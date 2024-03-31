@@ -341,10 +341,11 @@ clone_graph <- function(phase_type_graph) {
 #' probability vector, `$states` the state of each vertex. Does
 #' *not* have the same order as [ptdalgorithms::vertices()]
 #' It is expected that all out-going edges have weights summing to 1 or
-#' less, and the remaining probability is considered as a self-transition.
+#' less, and the remaining probability is considered as a self-transition. The indices
+#' returned are 1-based, like the input to [ptdalgorithms::vertex_at()]
 #'
 #' @seealso [ptdalgorithms::graph_as_matrix()]
-#' @return A list of the sub-transition matrix, states, and initial probability vector
+#' @return A list of the sub-transition matrix, states, and initial probability vector, and graph indices matching the matrix (1-indexed) 
 #'
 #' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
 #' 
@@ -370,6 +371,8 @@ clone_graph <- function(phase_type_graph) {
 #' #   [2,]   0.0   0.5
 #' # $IPV
 #' #   [1] 0.5 0
+#' # $indices
+#' #   [1] 3 2
 graph_as_dph_matrix <- function(phase_type_graph) {
     .Call(`_ptdalgorithms_graph_as_dph_matrix`, phase_type_graph)
 }

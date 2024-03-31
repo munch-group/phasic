@@ -661,18 +661,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// add_epoque
-NumericVector add_epoque(SEXP phase_type_graph, NumericVector scalars, double time);
-RcppExport SEXP _ptdalgorithms_add_epoque(SEXP phase_type_graphSEXP, SEXP scalarsSEXP, SEXP timeSEXP) {
-BEGIN_RCPP
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< SEXP >::type phase_type_graph(phase_type_graphSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type scalars(scalarsSEXP);
-    Rcpp::traits::input_parameter< double >::type time(timeSEXP);
-    add_epoque(phase_type_graph, scalars, time);
-    return R_NilValue;
-END_RCPP
-}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_ptdalgorithms_create_graph", (DL_FUNC) &_ptdalgorithms_create_graph, 1},
@@ -730,7 +718,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_ptdalgorithms_dph_distribution_context_state", (DL_FUNC) &_ptdalgorithms_dph_distribution_context_state, 1},
     {"_ptdalgorithms_dph_distribution_context_stop_probability", (DL_FUNC) &_ptdalgorithms_dph_distribution_context_stop_probability, 1},
     {"_ptdalgorithms_dph_distribution_context_accumulated_visits", (DL_FUNC) &_ptdalgorithms_dph_distribution_context_accumulated_visits, 1},
-    {"_ptdalgorithms_add_epoque", (DL_FUNC) &_ptdalgorithms_add_epoque, 3},
     {NULL, NULL, 0}
 };
 
