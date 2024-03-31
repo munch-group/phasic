@@ -1139,3 +1139,18 @@ dph_distribution_context_accumulated_visits <- function(probability_distribution
     .Call(`_ptdalgorithms_dph_distribution_context_accumulated_visits`, probability_distribution_context)
 }
 
+#' Bla bla
+#' 
+#' @description
+#' Bla bla
+#' Bla bla
+#' Bla bla
+#' 
+#' @param phase_type_graph The ...
+#' @param scalars The ...
+#' @param time The ...
+#' 
+add_epoque <- function(phase_type_graph, scalars, time) {
+    .Call(`_ptdalgorithms_add_epoque`, phase_type_graph, scalars, time)
+}
+

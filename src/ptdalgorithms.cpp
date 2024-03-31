@@ -2051,5 +2051,23 @@ NumericVector dph_distribution_context_accumulated_visits(SEXP probability_distr
     return wrap(context->accumulated_visits());
 }
 
+//' Adds an epoque...
+//' 
+//' @description
+//' This allows the user to ...
+//' and thus ...
+//' so it is possible to ...
+//' 
+//' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+//' @param scalars Scalars for rescaling edge weights.
+//' @param time Time for start of new epoque.
+//' 
+// [[Rcpp::export]]
+void add_epoque(SEXP phase_type_graph, NumericVector scalars, double time) {
+    Rcpp::XPtr <Graph> graph(phase_type_graph);
+
+    graph->add_epoque(as<std::vector<double> >(scalars), time);
+}
+
 
 #endif

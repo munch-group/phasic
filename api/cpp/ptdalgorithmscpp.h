@@ -616,6 +616,21 @@ namespace ptdalgorithms {
             return ret;
         }
 
+        void add_epoque(std::vector<double> scalars, double time) {
+
+            std::vector<double> stop_probs = this->stop_probability(time);
+            std::vector<double> acum_visit = this->accumulated_visiting_time(time);
+
+            double *epoque_trans = (double *) calloc(this->vertices_length(), sizeof(double));
+            for (int i=0; i<this->vertices_length(); i++) {
+                epoque_trans[i] = epoque_trans[i] / epoque_trans[i];
+            }
+
+            return ptd_add_epoque(this->rf_graph->graph, this->rf_graph->tree, &scalars[0], scalars.size(), epoque_trans);
+        }
+
+
+
     public:
         Graph &operator=(const Graph &o) {
             if (this == &o) {

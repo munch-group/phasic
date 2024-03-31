@@ -4519,3 +4519,84 @@ static void *stack_pop(struct ptd_stack *stack) {
 static int stack_empty(struct ptd_stack *stack) {
     return (stack->ll == NULL);
 }
+
+void ptd_add_epoque(struct ptd_graph *ptd_graph, struct ptd_avl_tree *avl_tree, double *scalars, int scalars_length, double *epoque_trans) {
+    
+    // number of states in orig graph
+    int nr_states = ptd_graph->vertices_length;
+
+    // state and edge state buffers
+    int *state = (int *) calloc(ptd_graph->state_length, sizeof(int));
+    
+    for (size_t i = 0; i < nr_states; ++i) {
+
+        // get vertex
+        struct ptd_vertex *vertex = ptd_graph->vertices[i];
+
+        // skip starting and absobing vertices
+        if (vertex == ptd_graph->starting_vertex || vertex->edges_length == 0) {
+            continue;
+        }
+
+        // add/find sister state
+        memcpy(state, vertex->state, ptd_graph->state_length * sizeof(int));
+        state[(ptd_graph->state_length)-1] = nr_states;
+        struct ptd_vertex *sister_vertex  = ptd_find_or_create_vertex(ptd_graph, avl_tree, state);
+
+        // edge params for edge to sister state
+        double *edge_state = (double *) calloc(((int) scalars_length), sizeof(double));         
+        for (int j=0; j<scalars_length; ++j) {
+            edge_state[j] = 0;
+        }
+
+        // add edge to sister
+        ptd_graph_add_edge_parameterized(vertex, sister_vertex, epoque_trans[i], edge_state);   
+
+        // only clone edges for the first eqopuqe of states
+        if (vertex->state[(ptd_graph->state_length)-1] != 0) {
+            continue;  
+        }
+        for (size_t j = 0; j < vertex->edges_length; ++j) {
+
+            // get sister state
+            struct ptd_edge_parameterized *edge = ((struct ptd_edge_parameterized *) vertex->edges[j]);
+
+            // edges connecting epoques are already made
+            if (edge->to == sister_vertex) {
+                continue;
+            }
+
+            // add/find state corresponding edge from sister-state should point to
+            memcpy(state, edge->to->state, ptd_graph->state_length * sizeof(int));
+            // make transitions in all epoques go to absorb of first epoque (saves states)
+            if (edge->to->edges_length > 0) {
+                state[ptd_graph->state_length-1] = nr_states;
+            }
+            // state[ptd_graph->state_length-1] = nr_states;
+            struct ptd_vertex *sister_to_vertex  = ptd_find_or_create_vertex(ptd_graph, avl_tree, state);
+
+            // edge params for edge to that state
+            double *sister_edge_state = (double *) calloc(((int) scalars_length), sizeof(double));         
+            memcpy(sister_edge_state, edge->state, ((int) scalars_length) * sizeof(double));
+            // weight for edge to that state
+            double weight = 0;
+            for (size_t k = 0; k < scalars_length; ++k) {
+                weight += scalars[k] * sister_edge_state[k];
+            }            
+            // add the edge to that state
+            ptd_graph_add_edge_parameterized(
+                sister_vertex, 
+                sister_to_vertex, 
+                weight, 
+                sister_edge_state);         
+            }
+        }
+    
+    // free(stop_probs);
+    // free(acum_visit);
+    // free(state);
+    // free(edge_state);
+
+    // assert(ptd_validate_graph(ptd_graph) == 0);
+    ptd_notify_change(ptd_graph);  
+}

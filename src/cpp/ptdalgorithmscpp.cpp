@@ -350,4 +350,16 @@ void ptdalgorithms::Graph::update_weights_parameterized(std::vector<double> scal
     notify_change();
 }
 
+// void ptdalgorithms::Graph::add_epoque(std::vector<double> scalars, double time) {
+
+//     ptd_add_epoque(
+//         this->rf_graph->graph, 
+//         this->rf_graph->tree,
+//         &scalars[0],
+//         scalars.size(),
+//         epoque_trans);
+
+//     notify_change();
+// }
+
 #endif

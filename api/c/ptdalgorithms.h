@@ -360,6 +360,11 @@ int ptd_dph_probability_distribution_step(
         struct ptd_dph_probability_distribution_context *context
 );
 
+void ptd_add_epoque(
+    struct ptd_graph *ptd_graph, struct ptd_avl_tree *avl_tree, 
+    double *scalars, int scalars_length, double *epoque_trans);
+
+
 #ifndef PTD_INTEGRATE_EXCEPTIONS
 #define DIE_ERROR(error_code, error, ...) do {     \
 char error_formatted[1024];                        \
