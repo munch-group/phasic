@@ -28,6 +28,7 @@
 #include <time.h>
 #include <stdbool.h>
 #include <string.h>
+#include <assert.h>
 #include "ptdalgorithms.h"
 
 volatile char ptd_err[4096] = {'\0'};
@@ -4549,8 +4550,13 @@ void ptd_add_epoque(struct ptd_graph *ptd_graph, struct ptd_avl_tree *avl_tree, 
             edge_state[j] = 0;
         }
 
+        assert(epoque_trans[i] > 0);
+        assert(!(epoque_trans[i] != epoque_trans[i]));
+
         // add edge to sister
-        ptd_graph_add_edge_parameterized(vertex, sister_vertex, epoque_trans[i], edge_state);   
+        ptd_graph_add_edge_parameterized(vertex, sister_vertex, 
+            epoque_trans[i], 
+            edge_state);   
 
         // only clone edges for the first eqopuqe of states
         if (vertex->state[(ptd_graph->state_length)-1] != 0) {
@@ -4577,26 +4583,27 @@ void ptd_add_epoque(struct ptd_graph *ptd_graph, struct ptd_avl_tree *avl_tree, 
 
             // edge params for edge to that state
             double *sister_edge_state = (double *) calloc(((int) scalars_length), sizeof(double));         
-            memcpy(sister_edge_state, edge->state, ((int) scalars_length) * sizeof(double));
+            // memcpy(sister_edge_state, edge->state, ((int) scalars_length) * sizeof(double));
             // weight for edge to that state
             double weight = 0;
             for (size_t k = 0; k < scalars_length; ++k) {
+                sister_edge_state[k] = ((struct ptd_edge_parameterized *) edge)->state[k];
                 weight += scalars[k] * sister_edge_state[k];
-            }            
+            }
+            assert(weight > 0);
+            assert(!(weight != weight));
+            
             // add the edge to that state
             ptd_graph_add_edge_parameterized(
                 sister_vertex, 
                 sister_to_vertex, 
                 weight, 
                 sister_edge_state);         
-            }
         }
+    }
     
-    // free(stop_probs);
-    // free(acum_visit);
-    // free(state);
-    // free(edge_state);
+    free(state);
 
-    // assert(ptd_validate_graph(ptd_graph) == 0);
+    assert(ptd_validate_graph(ptd_graph) == 0);
     ptd_notify_change(ptd_graph);  
 }

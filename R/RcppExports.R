@@ -1142,18 +1142,18 @@ dph_distribution_context_accumulated_visits <- function(probability_distribution
     .Call(`_ptdalgorithms_dph_distribution_context_accumulated_visits`, probability_distribution_context)
 }
 
-#' Bla bla
+#' Adds an epoque...
 #' 
 #' @description
-#' Bla bla
-#' Bla bla
-#' Bla bla
+#' This allows the user to ...
+#' and thus ...
+#' so it is possible to ...
 #' 
-#' @param phase_type_graph The ...
-#' @param scalars The ...
-#' @param time The ...
+#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+#' @param scalars Scalars for rescaling edge weights.
+#' @param time Time for start of new epoque.
 #' 
 add_epoque <- function(phase_type_graph, scalars, time) {
-    .Call(`_ptdalgorithms_add_epoque`, phase_type_graph, scalars, time)
+    invisible(.Call(`_ptdalgorithms_add_epoque`, phase_type_graph, scalars, time))
 }
 

@@ -11,4 +11,5 @@ src/*.o
 src/*.so
 src/*.dll
 *.o
-
+*.dylib
+**/.ipynb_checkpoints/

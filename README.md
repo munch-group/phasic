@@ -1,5 +1,7 @@
 # Fast graph-based algorithms for phase-type distributions
 
+> This is a fork of the repository by Tobias Røikjer extending the framework to time-inhomogeneous phase-type distributions.
+
 This software library provides fast and scalable algorithms for constructing and computing properties of for the statistical
 distributions: continuous and discrete phase-type distributions, rewarded phase-type distributions, and the general multivariate phase-type distributions. The library can compute the moments (e.g. expectation, variance, covariance), the distribution function (pdf, cdf, pmf), the stopping time probability in the Markov jump process or Markov chain, and the distribution function of time-inhomogeneous phase-type distribution, as well as the expectation of rewarded time-inhomogeneous phase-type distributions.
 

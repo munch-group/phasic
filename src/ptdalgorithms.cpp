@@ -2067,6 +2067,17 @@ void add_epoque(SEXP phase_type_graph, NumericVector scalars, double time) {
     Rcpp::XPtr <Graph> graph(phase_type_graph);
 
     graph->add_epoque(as<std::vector<double> >(scalars), time);
+
+    // Rcpp::XPtr<Graph> graphcpp(graph);
+    // struct ptd_graph *ptd_graph = graphcpp->c_graph();
+    // for (int i=0; i<ptd_graph->vertices_length; ++i) {
+    //     struct ptd_vertex *vertex = ptd_graph->vertices[i];
+    //     REprintf("vertex: %i\n", i);
+    //     for (int j=0; j<vertex->edges_length; ++j) {
+    //         REprintf("edge: %i %f\n", j, vertex->edges[j]->weight);
+    //     }
+    // }
+
 }
 
 
