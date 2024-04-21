@@ -33,6 +33,18 @@ plot_sfs_dph <- function(graph, rewards, trunc=4) {
         geom_line(linewidth=1) + scale_color_viridis() + despine
 }
 
+plot_sfs_pph <- function(graph, rewards, trunc=4) {
+    result = data.frame()
+    for (i in 1:(nrow(rewards)-1)) {
+        x <- seq(from = 0, to = trunc, by = 0.01)
+        cdf <- pph(x, reward_transform(graph, rewards[i, ]))
+        df <- data.frame(probability = cdf, t=x, ton=i)
+        result <- rbind(result, df)
+    }
+    result %>% ggplot(aes(y=probability, x=t, group=ton, color=ton)) +
+        geom_line(linewidth=1) + scale_color_viridis() + despine
+}
+
 get_exp_mat <- function(graph, rewards) {
     s <- nrow(rewards)
     exp_mat <- matrix(nrow=s+1,ncol=s+1)
