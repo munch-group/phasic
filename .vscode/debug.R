@@ -11,4 +11,7 @@ writeLines(paste0(cached_names, "=", env[cached_names]), ".vscode/.env")
 devtools::clean_dll()
 devtools::load_all()
 
-create_graph(10)
+devtools::test()
+
+# create_graph(10)
+

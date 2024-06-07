@@ -1,3 +1,6 @@
+
+# TODO: Remove this file when you have added equivalent testthat tests for the package in the tests dir
+
 setwd("~/school/PtDAlgorithms/test")
 Rcpp::sourceCpp('../src/ptdalgorithms.cpp')
 devtools::install_github("TobiasRoikjer/PtDalgorithms")
