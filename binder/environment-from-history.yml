@@ -1,0 +1,20 @@
+name: base
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - conda
+  - python=3.9
+  - python.app
+  - slurm-jupyter=2.5.4
+  - arviz=0.15.1
+  - conda-libmamba-solver
+  - vim
+  - art
+  - pygments
+  - rich
+  - textual
+  - git
+  - tqdm
+  - gh
+prefix: /Users/kmt/miniconda3
