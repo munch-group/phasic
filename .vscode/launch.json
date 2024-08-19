@@ -6,31 +6,34 @@
   "configurations": [
     {
       "name": "(gdb) Launch",
-      "type": "cppdbg",
+      "type": "node",
       "request": "launch",
-      "program": "/usr/lib/R/bin/exec/R",
+      "program": "/opt/conda/bin/R",
       "args": [
         "--vanilla",
         "-e",
         "devtools::test()"
       ],
-      "stopAtEntry": false,
+      // "stopAtEntry": false,
       "envFile": "${workspaceFolder}/.vscode/.env",
       "cwd": "${workspaceFolder}",
-      "externalConsole": false,
-      "MIMode": "gdb",
-      "setupCommands": [
-        {
-          "description": "Enable pretty-printing for gdb",
-          "text": "-enable-pretty-printing",
-          "ignoreFailures": true
-        }
-      ],
+      // "externalConsole": false,
+      // "MIMode": "gdb",
+      // "setupCommands": [
+      //   {
+      //     "description": "Enable pretty-printing for gdb",
+      //     "text": "-enable-pretty-printing",
+      //     "ignoreFailures": true
+      //   },
+      // ],
       "preLaunchTask": "debug",
-      "osx": {
-        "program": "/Library/Frameworks/R.framework/Resources/bin/exec/R",
-        "MIMode": "lldb"
+    
       }
-    }
+      // "osx": {
+      //   // "program": "/Library/Frameworks/R.framework/Resources/bin/exec/R",
+      //   "program": "${env:CONDA_PREFIX}/bin/R",
+      //   "MIMode": "lldb",
+      // }
+    // }
   ]
 }

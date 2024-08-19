@@ -4,7 +4,7 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${env:HOME}/R/x86_64-pc-linux-gnu-library/4.4-arm64/Rcpp/include",
+                // "${env:HOME}/R/x86_64-pc-linux-gnu-library/4.4-arm64/Rcpp/include",
                 "/usr/share/R/include"
             ],
             "defines": [],
@@ -16,10 +16,12 @@
             "name": "Mac",
             "includePath": [
                 "${workspaceFolder}/**",
-                "/Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library/Rcpp/include",
-                "/Library/Frameworks/R.framework/Resources/include",
+                "${env:CONDA_PREFIX}/lib/R/include",
+                "${env:CONDA_PREFIX}/lib/R/library/Rcpp/include",
+                // "/Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library/Rcpp/include",
+                // "/Library/Frameworks/R.framework/Resources/include",
                 "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include",
-                "/usr/local/include"
+                // "/usr/local/include"
             ],
             "defines": [],
             "macFrameworkPath": [
