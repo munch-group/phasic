@@ -253,6 +253,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// expected_residence_time
+NumericVector expected_residence_time(SEXP phase_type_graph, Nullable <NumericVector> rewards);
+RcppExport SEXP _ptdalgorithms_expected_residence_time(SEXP phase_type_graphSEXP, SEXP rewardsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type phase_type_graph(phase_type_graphSEXP);
+    Rcpp::traits::input_parameter< Nullable <NumericVector> >::type rewards(rewardsSEXP);
+    rcpp_result_gen = Rcpp::wrap(expected_residence_time(phase_type_graph, rewards));
+    return rcpp_result_gen;
+END_RCPP
+}
 // dph_expected_visits
 NumericVector dph_expected_visits(SEXP phase_type_graph, Nullable <NumericVector> rewards);
 RcppExport SEXP _ptdalgorithms_dph_expected_visits(SEXP phase_type_graphSEXP, SEXP rewardsSEXP) {
@@ -684,6 +696,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_ptdalgorithms_normalize_graph", (DL_FUNC) &_ptdalgorithms_normalize_graph, 1},
     {"_ptdalgorithms_normalize_dph_graph", (DL_FUNC) &_ptdalgorithms_normalize_dph_graph, 1},
     {"_ptdalgorithms_expected_waiting_time", (DL_FUNC) &_ptdalgorithms_expected_waiting_time, 2},
+    {"_ptdalgorithms_expected_residence_time", (DL_FUNC) &_ptdalgorithms_expected_residence_time, 2},
     {"_ptdalgorithms_dph_expected_visits", (DL_FUNC) &_ptdalgorithms_dph_expected_visits, 2},
     {"_ptdalgorithms_moments", (DL_FUNC) &_ptdalgorithms_moments, 3},
     {"_ptdalgorithms_expectation", (DL_FUNC) &_ptdalgorithms_expectation, 2},

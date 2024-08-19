@@ -3638,6 +3638,136 @@ double *ptd_expected_waiting_time(struct ptd_graph *graph, double *rewards) {
     return result;
 }
 
+double *ptd_expected_residence_time(struct ptd_graph *graph, double *rewards) {
+    if (ptd_precompute_reward_compute_graph(graph)) {
+        return NULL;
+    }
+
+    double *result = (double *) calloc(graph->vertices_length, sizeof(*result));
+
+    if (rewards != NULL) {
+        // TODO: fix this if reward is nan...
+        memcpy(result, rewards, sizeof(*result) * graph->vertices_length);
+    } else {
+        for (size_t j = 0; j < graph->vertices_length; ++j) {
+            result[j] = 1;
+        }
+    }
+
+    // we want only the acyclic graph so we we substract graph->vertices_length to skip the computation expected waiting time
+    for (size_t j = 0; j < graph->reward_compute_graph->length - graph->vertices_length; ++j) {
+        struct ptd_reward_increase command = graph->reward_compute_graph->commands[j];
+        result[command.from] += result[command.to] * command.multiplier;
+        //TODO: if inf, give error stating that there is an infinite loop
+    }
+
+    // make a copy of the result at this point
+    double *dag_vertex_props = (double *) calloc(graph->vertices_length, sizeof(*dag_vertex_props));
+    memcpy(dag_vertex_props, result, sizeof(*result) * graph->vertices_length);
+
+    // continue computing the expected waiting
+    for (size_t j = graph->reward_compute_graph->length - graph->vertices_length; j < graph->reward_compute_graph->length; ++j) {
+        struct ptd_reward_increase command = graph->reward_compute_graph->commands[j];
+        result[command.from] += result[command.to] * command.multiplier;
+        //TODO: if inf, give error stating that there is an infinite loop
+    }
+
+    // compute the expected residence time
+    double *res = (double *) calloc(graph->vertices_length, sizeof(*res));
+    for (size_t j = 0; j < graph->vertices_length; ++j) {
+        res[j] = 0;
+    }
+    res[0] = result[0]; // expected waiting time
+    double *sca = (double *) calloc(graph->vertices_length, sizeof(*sca));
+       for (size_t j = 0; j < graph->vertices_length; ++j) {
+        sca[j] = 0 ;
+    } 
+    sca[0] = 1;
+    struct ptd_vertex *start_vertex = graph->starting_vertex;
+    double pushed = 0;
+    int prev_idx = -1;
+    int prev_child_idx = -1;
+    // for (size_t j = graph->reward_compute_graph->length - graph->vertices_length; j <  graph->reward_compute_graph->length; ++j) {
+        // struct ptd_reward_increase command = graph->reward_compute_graph->commands[j];
+    for (size_t j = 1; j <  graph->vertices_length; ++j) {
+        struct ptd_reward_increase command = graph->reward_compute_graph->commands[graph->reward_compute_graph->length - j];
+
+        int idx = command.from;
+        int child_idx = command.to;
+        double child_prob = command.multiplier;
+        double wt = 1 / dag_vertex_props[idx] * sca[idx];
+
+        fprintf(stderr, "%zu\n", graph->vertices[idx]->index);
+
+        if (idx == start_vertex->index) {
+            wt = 0;
+        }
+        if (prev_child_idx != child_idx) {
+            res[prev_idx] -= pushed;
+            pushed = 0;
+        }
+        if (dag_vertex_props[child_idx] > 0) { // don't push to absorbing
+            double push = (res[idx] - wt) * child_prob;
+            res[child_idx] += push;
+            sca[child_idx] += sca[idx] * child_prob;
+            pushed += push;
+        }
+        prev_idx = idx;
+        prev_child_idx = child_idx;
+        //TODO: if inf, give error stating that there is an infinite loop
+    }
+
+    free(result);
+    free(sca);
+    free(dag_vertex_props);
+
+    return res;
+}
+
+/////////////////////////////////////////
+
+// the commands are in reverse toplogogical order so 
+// command.from is the parent index
+// command.to is the child index
+// command.multiplier is the edge weight
+// dag_vertex_props[command.from] is the parent vertex reward
+// dag_vertex_props[command.to] is the child vertex reward
+
+
+// I can make the parent rewards 1 and make the edge weights the child rewards: command.multiplier / result[command.from]
+
+
+// residence_times <- function(graph) {
+//     res <- rep(0, vertices_length(graph))
+//     res[1] <- expectation(graph)
+//     sca <- rep(0, vertices_length(graph))
+//     sca[1] <- 1
+//     start_idx <- starting_vertex(graph)$index
+//     for (vertex in vertices(graph)) {
+//         idx <- vertex$index
+//         pushed <- 0
+//         for (edge in edges(vertex)) {
+//             child_idx <- edge$child$index
+//             child_prob <- edge$weight / vertex$rate
+//             wt <- 1/vertex$rate * sca[idx]            
+//             # if (vertex$index == 1) {
+//             if (idx == start_idx) {
+//                 wt <- 0
+//             } 
+//             if (length(edges(edge$child)) > 0) { # don't push to absorbing
+//                 push <- (res[idx] - wt) * child_prob
+//                 res[child_idx] <- res[child_idx] + push
+//                 sca[child_idx] <- sca[child_idx] + sca[idx] * child_prob
+//                 pushed <- pushed + push
+//             }
+//         }
+//         res[idx] <- res[idx] - pushed
+//     }
+//     return(res)
+// }
+
+/////////////////////////////////////////
+
 long double ptd_random_sample(struct ptd_graph *graph, double *rewards) {
     long double outcome = 0;
 

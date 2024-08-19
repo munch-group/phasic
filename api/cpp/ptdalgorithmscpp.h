@@ -162,6 +162,23 @@ namespace ptdalgorithms {
             return res;
         }
 
+        std::vector<double> expected_residence_time(std::vector<double> rewards = std::vector<double>()) {
+            double *ptr = ptd_expected_residence_time(
+                    this->c_graph(),
+                    rewards.empty() ? NULL : &rewards[0]
+            );
+
+            if (ptr == NULL) {
+                throw std::runtime_error((char *) ptd_err);
+            }
+
+            std::vector<double> res;
+            res.assign(ptr, ptr + this->c_graph()->vertices_length);
+            free(ptr);
+
+            return res;
+        }
+
         Vertex create_vertex(std::vector<int> state = std::vector<int>());
 
         Vertex create_vertex(const int *state);

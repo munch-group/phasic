@@ -517,6 +517,43 @@ expected_waiting_time <- function(phase_type_graph, rewards = NULL) {
     .Call(`_ptdalgorithms_expected_waiting_time`, phase_type_graph, rewards)
 }
 
+#' Computes the expected residence time (or accumulated rewards) in each state
+#' 
+#' @description
+#' bla bla bla bla
+#' bla bla bla bla
+#' bla bla bla bla
+#' bla bla bla bla
+#' 
+#' @return A numeric vector where entry `i` is the expected waiting time starting at vertex `i`
+#' 
+#' @seealso [ptdalgorithms::moments()]
+#' @seealso [ptdalgorithms::expectation()]
+#' @seealso [ptdalgorithms::variance()]
+#' @seealso [ptdalgorithms::covariance()]
+#' 
+#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+#' @param rewards Optional rewards, which should be applied to the phase-type distribution. Must have length equal to [ptdalgorithms::vertices_length()]
+#' 
+#' @examples
+#' graph <- ptdalgorithms::create_graph(4)
+#' v1 <- ptdalgorithms::create_vertex(graph, c(1,2,3,4))
+#' v2 <- ptdalgorithms::create_vertex(graph, c(4,0,3,3))
+#' a <- ptdalgorithms::create_vertex(graph, c(0,0,0,0))
+#' ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), v1, 1)
+#' ptdalgorithms::add_edge(v1, v2, 4)
+#' ptdalgorithms::add_edge(v2, a, 10)
+#' ptdalgorithms::expected_residence_time(graph) # =>
+#' # c(0.35, 0.35, 0.10, 0)
+#' # Rewards on absorbing and starting vertex has no effect
+#' ptdalgorithms::expected_residence_time(graph, c(0, 2, 0, 0)) # =>
+#' # c(0.5, 0.5, 0, 0)
+#' ptdalgorithms::expected_residence_time(graph, c(9999, 2, 0, 9999)) # =>
+#' # c(0.5, 0.5, 0, 0)
+expected_residence_time <- function(phase_type_graph, rewards = NULL) {
+    .Call(`_ptdalgorithms_expected_residence_time`, phase_type_graph, rewards)
+}
+
 #' Computes the expected jumps (or accumulated rewards) until absorption
 #' 
 #' @description
