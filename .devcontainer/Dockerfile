@@ -7,12 +7,15 @@ RUN if [ -f "/tmp/conda-tmp/environment.yml" ]; then umask 0002 && /opt/conda/bi
     && rm -rf /tmp/conda-tmp
 
 # [Optional] Uncomment this section to install additional OS packages.
-# RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-#     && apt-get -y install --no-install-recommends <your-package-list-here>
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    && apt-get -y install --no-install-recommends gdb
 
 RUN conda install -n base -c conda-forge -c r -y \
-        python=3.11 \
-        jupyterlab nodejs \
-        r-essentials graphviz r-rsvg \
-        r-devtools r-foreach r-viridis r-roxygen2 \
+        python=3.11 jupyterlab nodejs \
+        r-essentials graphviz r-rsvg r-foreach r-viridis \
+        r-devtools r-roxygen2 \
     && conda clean -afy 
+
+RUN Rscript -e 'install.packages(c("IRkernel", "IRdisplay"), repos="https://cloud.r-project.org") ; library(IRkernel) ; IRkernel::installspec()'
+
+#IRkernel::installspec(user = FALSE)
