@@ -8,29 +8,34 @@
       "name": "(gdb) Launch",
       "type": "cppdbg",
       "request": "launch",
-      "program": "/opt/conda/bin/R",
+      // "program": "/opt/conda/lib/R/bin/R",      
+      // "program": "${env:CONDA_PREFIX}/lib/R/bin/R",
+      "program": "/usr/lib/R/bin/exec/R",
       "args": [
         "--vanilla",
         "-e",
-        "devtools::test()"
+        "source('.vscode/debug.R')"
+        // "devtools::test()"
       ],
       "stopAtEntry": false,
       "envFile": "${workspaceFolder}/.vscode/.env",
       "cwd": "${workspaceFolder}",
       "externalConsole": false,
       "MIMode": "gdb",
+      // "miDebuggerPath": "/usr/bin/gdb",
       "setupCommands": [
         {
           "description": "Enable pretty-printing for gdb",
           "text": "-enable-pretty-printing",
           "ignoreFailures": true
-        },
+        }
       ],
       "preLaunchTask": "debug",
       "osx": {
-        // "program": "/Library/Frameworks/R.framework/Resources/bin/exec/R",
-        "program": "${env:CONDA_PREFIX}/bin/R",
+        "program": "/Library/Frameworks/R.framework/Resources/bin/R",
+        // "program": "${env:CONDA_PREFIX}/bin/R",
         "MIMode": "lldb",
+        // "miDebuggerPath": "/usr/bin/lldb",
       }
      }
   ]
