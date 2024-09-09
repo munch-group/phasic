@@ -32,7 +32,8 @@
       ],
       "preLaunchTask": "debug",
       "osx": {
-        "program": "/Library/Frameworks/R.framework/Resources/bin/R",
+        // "program": "/Library/Frameworks/R.framework/Resources/bin/R",
+        "program": "/Library/Frameworks/R.framework/Resources/bin/exec/R",        
         // "program": "${env:CONDA_PREFIX}/bin/R",
         "MIMode": "lldb",
         // "miDebuggerPath": "/usr/bin/lldb",

@@ -698,6 +698,56 @@ List graph_as_dph_matrix(SEXP phase_type_graph) {
 //' Performs a reward transformation, returning a phase-type distribution to model the total accumulated reward until abosorption
 //' 
 //' @description
+//' Returns a new `phase_type_graph` ... bla bla bla bla bla bla bla bla bla bla bla bla 
+//' bla bla bla bla bla bla bla bla bla 
+//' 
+//' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+//' @param rewards to give to each vertex, zero or positive real number. Must have length equal to [ptdalgorithms::vertices_length()]
+//' 
+//' @return A new phase-type graph ... bla bla bla 
+//' 
+//' @examples
+//' graph <- ptdalgorithms::create_graph(4)
+//' v1 <- ptdalgorithms::create_vertex(graph, c(1,2,3,4))
+//' v2 <- ptdalgorithms::create_vertex(graph, c(4,0,3,3))
+//' a <- ptdalgorithms::create_vertex(graph, c(0,0,0,0))
+//' ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), v1, 1)
+//' ptdalgorithms::add_edge(v1, v2, 4)
+//' ptdalgorithms::add_edge(v2, a, 10)
+//' graph <- ptdalgorithms::expectation_dag(graph, ptdalgorithms::states(graph)[,2])
+//' # bla bla bla 
+//' # bla bla bla 
+//' 
+// [[Rcpp::export]]
+SEXP expectation_dag(SEXP phase_type_graph, Nullable <NumericVector> rewards = R_NilValue) {
+    Rcpp::XPtr <Graph> graph(phase_type_graph);
+
+    if (rewards.isNotNull() && (int) NumericVector(rewards).size() != (int) graph->c_graph()->vertices_length) {
+        char message[1024];
+
+        snprintf(
+                message,
+                1024,
+                "Failed: Rewards must match the number of vertices. Expected %i, got %i",
+                (int) graph->c_graph()->vertices_length,
+                (int) NumericVector(rewards).size()
+        );
+
+        throw std::runtime_error(
+                message
+        );
+    }
+
+    if (rewards.isNull()) {
+        return Rcpp::XPtr<Graph>( graph->expectation_dag_p() );
+    } else {
+        return Rcpp::XPtr<Graph>( graph->expectation_dag_p(as<std::vector<double> >(rewards)) );
+    }
+}
+
+//' Performs a reward transformation, returning a phase-type distribution to model the total accumulated reward until abosorption
+//' 
+//' @description
 //' Returns a new `phase_type_graph` to instead model accumulated rewards until absorption,
 //' as described in the paper. 
 //' 

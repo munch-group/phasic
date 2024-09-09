@@ -330,6 +330,23 @@ namespace ptdalgorithms {
             }
         }
 
+        Graph expectation_dag(std::vector<double> rewards = std::vector<double>());
+        // Graph expectation_dag(std::vector<double> rewards);
+        // Graph expectation_dag(std::vector<double> rewards) {
+        //     double *rewards_ptr = &rewards[0];
+        //     struct ptd_clone_res r = ptd_graph_expectation_dag(c_graph(), rewards_ptr);
+
+        //     return Graph(r.graph, r.avl_tree);
+        // }
+
+        Graph *expectation_dag_p(std::vector<double> rewards = std::vector<double>());
+        // Graph *expectation_dag_p(std::vector<double> rewards) {
+        //     double *rewards_ptr = &rewards[0];
+        //     struct ptd_clone_res r = ptd_graph_expectation_dag(c_graph(), rewards_ptr);
+
+        //     return new Graph(r.graph, r.avl_tree);
+        // }
+
         Graph reward_transform(std::vector<double> rewards);
 
         Graph *reward_transform_p(std::vector<double> rewards);

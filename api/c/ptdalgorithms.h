@@ -205,6 +205,8 @@ struct ptd_vertex **ptd_graph_topological_sort(struct ptd_graph *graph);
 
 struct ptd_graph *ptd_graph_reward_transform(struct ptd_graph *graph, double *rewards);
 
+struct ptd_clone_res ptd_graph_expectation_dag(struct ptd_graph *graph, double *rewards);
+
 struct ptd_graph *ptd_graph_dph_reward_transform(struct ptd_graph *graph, int *rewards);
 
 long double ptd_random_sample(struct ptd_graph *graph, double *rewards);

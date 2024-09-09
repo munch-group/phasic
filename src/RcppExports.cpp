@@ -195,6 +195,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// expectation_dag
+SEXP expectation_dag(SEXP phase_type_graph, Nullable <NumericVector> rewards);
+RcppExport SEXP _ptdalgorithms_expectation_dag(SEXP phase_type_graphSEXP, SEXP rewardsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type phase_type_graph(phase_type_graphSEXP);
+    Rcpp::traits::input_parameter< Nullable <NumericVector> >::type rewards(rewardsSEXP);
+    rcpp_result_gen = Rcpp::wrap(expectation_dag(phase_type_graph, rewards));
+    return rcpp_result_gen;
+END_RCPP
+}
 // reward_transform
 SEXP reward_transform(SEXP phase_type_graph, NumericVector rewards);
 RcppExport SEXP _ptdalgorithms_reward_transform(SEXP phase_type_graphSEXP, SEXP rewardsSEXP) {
@@ -691,6 +703,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_ptdalgorithms_matrix_as_graph", (DL_FUNC) &_ptdalgorithms_matrix_as_graph, 3},
     {"_ptdalgorithms_clone_graph", (DL_FUNC) &_ptdalgorithms_clone_graph, 1},
     {"_ptdalgorithms_graph_as_dph_matrix", (DL_FUNC) &_ptdalgorithms_graph_as_dph_matrix, 1},
+    {"_ptdalgorithms_expectation_dag", (DL_FUNC) &_ptdalgorithms_expectation_dag, 2},
     {"_ptdalgorithms_reward_transform", (DL_FUNC) &_ptdalgorithms_reward_transform, 2},
     {"_ptdalgorithms_dph_reward_transform", (DL_FUNC) &_ptdalgorithms_dph_reward_transform, 2},
     {"_ptdalgorithms_normalize_graph", (DL_FUNC) &_ptdalgorithms_normalize_graph, 1},

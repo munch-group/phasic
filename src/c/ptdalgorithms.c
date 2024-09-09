@@ -1753,6 +1753,92 @@ static inline int arr_c_cmp(const void *a, const void *b) {
     }
 }
 
+struct ptd_clone_res _ptd_graph_expectation_dag(struct ptd_graph *graph, double *rewards) {
+    if (ptd_precompute_reward_compute_graph(graph)) {
+        printf("Error in precomputing reward compute graph\n");
+        // return NULL;
+        // TODO: reenable this
+    }
+
+    double *dag_vertex_props = (double *) calloc(graph->vertices_length, sizeof(*dag_vertex_props));
+
+    if (rewards != NULL) {
+        // TODO: fix this if reward is nan...
+        memcpy(dag_vertex_props, rewards, sizeof(*dag_vertex_props) * graph->vertices_length);
+    } else {
+        for (size_t j = 0; j < graph->vertices_length; ++j) {
+            dag_vertex_props[j] = 1;
+        }
+    }
+
+    // we want only the acyclic graph so we we subtract graph->vertices_length to skip 
+    // the commands computing the expected waiting time
+    for (size_t j = 0; j < graph->reward_compute_graph->length - graph->vertices_length; ++j) {
+        struct ptd_reward_increase command = graph->reward_compute_graph->commands[j];
+        dag_vertex_props[command.from] += dag_vertex_props[command.to] * command.multiplier;
+        //TODO: if inf, give error stating that there is an infinite loop
+    }
+
+    // construct the acyclic graph
+    struct ptd_graph *dag = ptd_graph_create(graph->state_length);
+    struct ptd_avl_tree *dag_avl_tree = ptd_avl_tree_create(graph->state_length);
+ 
+    for (size_t j = 0; j < graph->starting_vertex->edges_length; ++j) {
+        ptd_graph_add_edge(dag->starting_vertex, 
+                            ptd_find_or_create_vertex(dag, dag_avl_tree, graph->starting_vertex->edges[j]->to->state), 
+                            graph->starting_vertex->edges[j]->weight);
+    }
+
+    // for (size_t j = 2; j < graph->vertices_length; ++j) {
+    //     struct ptd_reward_increase command = graph->reward_compute_graph->commands[graph->reward_compute_graph->length - j];
+    for (size_t j = 2; j < graph->vertices_length; ++j) {
+        struct ptd_reward_increase command = graph->reward_compute_graph->commands[graph->reward_compute_graph->length - j];
+
+        int idx = command.from;
+        int child_idx = command.to;
+        double child_prob = command.multiplier;
+
+        struct ptd_vertex *vertex = ptd_find_or_create_vertex(dag, dag_avl_tree, graph->vertices[idx]->state);
+        struct ptd_vertex *child_vertex = ptd_find_or_create_vertex(dag, dag_avl_tree, graph->vertices[child_idx]->state); 
+
+        // TODO: parametrization is meaningful here as DAG would need to be recomputed if rewards change
+        // maybe alert user that this is not supported
+
+        // if (e->parameterized) {
+        //     ptd_graph_add_edge_parameterized(
+        //             vertex,
+        //             child_vertex,
+        //             child_prob / dag_vertex_props[idx],
+        //             ((struct ptd_edge_parameterized *) e)->state
+        //     )->should_free_state = false;
+        // } else {
+            ptd_graph_add_edge(vertex, child_vertex, child_prob / dag_vertex_props[idx]);
+        // }
+
+    }
+
+    // TODO: make version for discrete graphs
+
+    free(dag_vertex_props);
+
+    struct ptd_clone_res ret;
+    ret.graph = dag;
+    ret.avl_tree = dag_avl_tree;
+    return ret;
+}
+
+struct ptd_clone_res ptd_graph_expectation_dag(struct ptd_graph *graph, double *rewards) {
+    if (ptd_validate_graph(graph)) {
+        printf("Error in validating graph\n");
+        // return NULL;
+        // TODO: reenable this
+    }
+
+    struct ptd_clone_res res = _ptd_graph_expectation_dag(graph, rewards);
+
+    return res;
+}
+
 struct ptd_graph *_ptd_graph_reward_transform(struct ptd_graph *graph, double *__rewards, size_t **new_indices_r) {
     double *rewards = (double *) calloc(graph->vertices_length, sizeof(*rewards));
 
@@ -3654,7 +3740,8 @@ double *ptd_expected_residence_time(struct ptd_graph *graph, double *rewards) {
         }
     }
 
-    // we want only the acyclic graph so we we substract graph->vertices_length to skip the computation expected waiting time
+    // we want only the acyclic graph so we we subtract graph->vertices_length to skip 
+    // the commands computing the expected waiting time
     for (size_t j = 0; j < graph->reward_compute_graph->length - graph->vertices_length; ++j) {
         struct ptd_reward_increase command = graph->reward_compute_graph->commands[j];
         result[command.from] += result[command.to] * command.multiplier;
