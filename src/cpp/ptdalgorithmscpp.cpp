@@ -323,9 +323,9 @@ std::vector<ptdalgorithms::ParameterizedEdge> ptdalgorithms::Vertex::parameteriz
 ptdalgorithms::Graph ptdalgorithms::Graph::expectation_dag(std::vector<double> rewards) {
     struct ptd_clone_res res = ptd_graph_expectation_dag(this->c_graph(), &rewards[0]);
 
-    // if (res == NULL) {
-    //     throw std::runtime_error((char *) ptd_err);
-    // }
+    if (res.graph == NULL) {
+        throw std::runtime_error((char *) ptd_err);
+    }
 
     return Graph(res.graph, res.avl_tree);
 }
@@ -333,9 +333,9 @@ ptdalgorithms::Graph ptdalgorithms::Graph::expectation_dag(std::vector<double> r
 ptdalgorithms::Graph *ptdalgorithms::Graph::expectation_dag_p(std::vector<double> rewards) {
   struct ptd_clone_res res = ptd_graph_expectation_dag(this->c_graph(), &rewards[0]);
   
-//   if (res == NULL) {
-//     throw std::runtime_error((char *) ptd_err);
-//   }
+  if (res.graph == NULL) {
+    throw std::runtime_error((char *) ptd_err);
+  }
   
   return new Graph(res.graph, res.avl_tree);
 }

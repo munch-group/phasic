@@ -1754,11 +1754,15 @@ static inline int arr_c_cmp(const void *a, const void *b) {
 }
 
 struct ptd_clone_res _ptd_graph_expectation_dag(struct ptd_graph *graph, double *rewards) {
+
+    struct ptd_clone_res ret;
+    ret.graph = NULL;
+
     if (ptd_precompute_reward_compute_graph(graph)) {
         printf("Error in precomputing reward compute graph\n");
-        // return NULL;
-        // TODO: reenable this
+        return ret;
     }
+
 
     double *dag_vertex_props = (double *) calloc(graph->vertices_length, sizeof(*dag_vertex_props));
 
@@ -1821,7 +1825,6 @@ struct ptd_clone_res _ptd_graph_expectation_dag(struct ptd_graph *graph, double 
 
     free(dag_vertex_props);
 
-    struct ptd_clone_res ret;
     ret.graph = dag;
     ret.avl_tree = dag_avl_tree;
     return ret;
@@ -1829,13 +1832,12 @@ struct ptd_clone_res _ptd_graph_expectation_dag(struct ptd_graph *graph, double 
 
 struct ptd_clone_res ptd_graph_expectation_dag(struct ptd_graph *graph, double *rewards) {
     if (ptd_validate_graph(graph)) {
-        printf("Error in validating graph\n");
-        // return NULL;
-        // TODO: reenable this
+        struct ptd_clone_res res;
+        res.graph = NULL;
+        return res;
     }
 
     struct ptd_clone_res res = _ptd_graph_expectation_dag(graph, rewards);
-
     return res;
 }
 
@@ -3752,7 +3754,7 @@ double *ptd_expected_residence_time(struct ptd_graph *graph, double *rewards) {
     double *dag_vertex_props = (double *) calloc(graph->vertices_length, sizeof(*dag_vertex_props));
     memcpy(dag_vertex_props, result, sizeof(*result) * graph->vertices_length);
 
-    // continue computing the expected waiting
+    // continue computing the expected waiting time
     for (size_t j = graph->reward_compute_graph->length - graph->vertices_length; j < graph->reward_compute_graph->length; ++j) {
         struct ptd_reward_increase command = graph->reward_compute_graph->commands[j];
         result[command.from] += result[command.to] * command.multiplier;
@@ -3760,43 +3762,75 @@ double *ptd_expected_residence_time(struct ptd_graph *graph, double *rewards) {
     }
 
     // compute the expected residence time
-    double *res = (double *) calloc(graph->vertices_length, sizeof(*res));
+    double *res_times = (double *) calloc(graph->vertices_length, sizeof(*res_times));
     for (size_t j = 0; j < graph->vertices_length; ++j) {
-        res[j] = 0;
+        res_times[j] = 0;
     }
-    res[0] = result[0]; // expected waiting time
-    double *sca = (double *) calloc(graph->vertices_length, sizeof(*sca));
-       for (size_t j = 0; j < graph->vertices_length; ++j) {
-        sca[j] = 0 ;
+    res_times[0] = result[0]; // expected waiting time
+    double *scalars = (double *) calloc(graph->vertices_length, sizeof(*scalars));
+    for (size_t j = 0; j < graph->vertices_length; ++j) {
+        scalars[j] = 0 ;
     } 
-    sca[0] = 1;
+    scalars[0] = 1;
     struct ptd_vertex *start_vertex = graph->starting_vertex;
     double pushed = 0;
     int prev_idx = -1;
     int prev_child_idx = -1;
     // for (size_t j = graph->reward_compute_graph->length - graph->vertices_length; j <  graph->reward_compute_graph->length; ++j) {
-        // struct ptd_reward_increase command = graph->reward_compute_graph->commands[j];
-    for (size_t j = 1; j <  graph->vertices_length; ++j) {
-        struct ptd_reward_increase command = graph->reward_compute_graph->commands[graph->reward_compute_graph->length - j];
+    //     struct ptd_reward_increase command = graph->reward_compute_graph->commands[j];
+    // for (size_t j = 1; j <  graph->vertices_length; ++j) {
+    //     struct ptd_reward_increase command = graph->reward_compute_graph->commands[graph->reward_compute_graph->length - j];
+    for (size_t j = 0; j <  graph->vertices_length; ++j) {
+        struct ptd_reward_increase command = graph->reward_compute_graph->commands[graph->reward_compute_graph->length - j - 1];
 
         int idx = command.from;
         int child_idx = command.to;
         double child_prob = command.multiplier;
-        double wt = 1 / dag_vertex_props[idx] * sca[idx];
+        double wt = 1 / dag_vertex_props[idx] * scalars[idx];
 
-        fprintf(stderr, "%zu\n", graph->vertices[idx]->index);
+        // fprintf(stderr, "%d\n", graph->vertices[idx]->index);
+        // fprintf(stderr, "%d -> %d, %f, %f\n", idx, child_idx, child_prob, wt);
+
+        // char message[1024];
+        // sprintf(message, "%zu -> %d, %f, %f\n", idx, child_idx, child_prob, wt);
+        // DEBUG_PRINT(message);
+        DEBUG_PRINT("HELLO\n");
+        
+        
+
+        if (wt < 0) {
+            snprintf(
+                (char *) ptd_err, 
+                sizeof(ptd_err),
+                "%d -> %d, %f, %f\n",
+                idx, child_idx, (float) child_prob, (float) wt
+            );
+            return NULL;
+        }
+
+
+        // snprintf(
+        //         (char *) ptd_err,
+        //         sizeof(ptd_err),
+        //         "Multiple edges to the same vertex!. From vertex with index %i%s (state %s)."
+        //         " To vertex with index %i (state %s)\n",
+        //         (int) debug_index_from, starting_vertex, state,
+        //         (int) debug_index_to, state_to
+        // );
 
         if (idx == start_vertex->index) {
             wt = 0;
         }
         if (prev_child_idx != child_idx) {
-            res[prev_idx] -= pushed;
+            // fprintf(stderr, "removing total push from vertex %zu: %f\n", child_idx, pushed);
+            res_times[prev_idx] -= pushed;
             pushed = 0;
         }
         if (dag_vertex_props[child_idx] > 0) { // don't push to absorbing
-            double push = (res[idx] - wt) * child_prob;
-            res[child_idx] += push;
-            sca[child_idx] += sca[idx] * child_prob;
+            double push = (res_times[idx] - wt) * child_prob;
+            // fprintf(stderr, "pushing %f to %zu\n", push, child_idx);
+            res_times[child_idx] += push;
+            scalars[child_idx] += scalars[idx] * child_prob;
             pushed += push;
         }
         prev_idx = idx;
@@ -3805,10 +3839,10 @@ double *ptd_expected_residence_time(struct ptd_graph *graph, double *rewards) {
     }
 
     free(result);
-    free(sca);
+    free(scalars);
     free(dag_vertex_props);
 
-    return res;
+    return res_times;
 }
 
 /////////////////////////////////////////
