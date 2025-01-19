@@ -1,4 +1,5 @@
 from glob import glob
+import platform
 from setuptools import setup, find_packages
 from pybind11.setup_helpers import Pybind11Extension, ParallelCompile, build_ext, naive_recompile
 
@@ -8,10 +9,16 @@ ParallelCompile("NPY_NUM_BUILD_JOBS").install()
 ParallelCompile("NPY_NUM_BUILD_JOBS", needs_recompile=naive_recompile).install()
 
 
+if platform.system() == "Darwin":
+  extra_link_args = ["-undefined", "dynamic_lookup"]
+else: 
+  extra_link_args = None
+
 ext_modules = [
     Pybind11Extension(
         "ptdalgorithms.ptdalgorithmscpp_pybind",
-        sorted(glob("src/*/*.cpp") + glob("src/*/*.c"))# + glob("src/*/*.h") + glob("api/*/*.h")),
+        sorted(glob("src/*/*.cpp") + glob("src/*/*.c")),
+        extra_link_args = extra_link_args
     ),
 ]
 
