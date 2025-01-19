@@ -1,4 +1,5 @@
 from glob import glob
+import os
 import platform
 from setuptools import setup, find_packages
 from pybind11.setup_helpers import Pybind11Extension, ParallelCompile, build_ext, naive_recompile
@@ -9,16 +10,20 @@ ParallelCompile("NPY_NUM_BUILD_JOBS").install()
 ParallelCompile("NPY_NUM_BUILD_JOBS", needs_recompile=naive_recompile).install()
 
 
+
+extra_link_args = None
 if platform.system() == "Darwin":
-  extra_link_args = ["-undefined", "dynamic_lookup"]
-else: 
-  extra_link_args = None
+  # Compiling on macOS requires an installation of the Xcode Command Line Tools
+  os.environ["CC"] = "g++"
+  os.environ["CXX"] = "g++"
+  # extra_link_args = ["-undefined", "dynamic_lookup"]
 
 ext_modules = [
     Pybind11Extension(
         "ptdalgorithms.ptdalgorithmscpp_pybind",
         sorted(glob("src/*/*.cpp") + glob("src/*/*.c")),
-        extra_link_args = extra_link_args
+#        cxx_std=11,
+        extra_link_args=extra_link_args
     ),
 ]
 
