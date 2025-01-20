@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "*.qmd": "quarto",
         "vector": "cpp",
         "__locale": "cpp",
         "locale": "cpp",
@@ -55,6 +56,12 @@
         "tuple": "cpp",
         "typeinfo": "cpp",
         "variant": "cpp",
-        "algorithm": "cpp"
-    }
+        "algorithm": "cpp",
+        "memory": "cpp",
+        "print": "cpp",
+        "queue": "cpp"
+    },
+    "cSpell.words": [
+        "ptdalgorithmscpp"
+    ]
 }
