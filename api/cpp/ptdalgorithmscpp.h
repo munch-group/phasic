@@ -728,6 +728,12 @@ namespace ptdalgorithms {
             this->vertex = o.vertex;
         }
 
+        // pybind11 factory function
+        static Vertex init_factory(Graph &graph, std::vector<int> state) {
+            int* s = &s[0];
+            return Vertex(graph, s); 
+        }
+
         ~Vertex() {
         }
 
@@ -783,6 +789,16 @@ namespace ptdalgorithms {
         double _weight;
 
     public:
+
+        // pybind11 factory function
+        static Edge init_factory(struct ptd_vertex *vertex, struct ptd_edge *edge, Graph &graph, double weight) {
+            Edge e = Edge(vertex, edge, graph, weight);
+            e->graph = graph;
+            e->_vertex = vertex;
+            e->_edge = ptd_edge;
+            return e; 
+        }
+
         Vertex to() {
             return Vertex(graph, _vertex);
         }
