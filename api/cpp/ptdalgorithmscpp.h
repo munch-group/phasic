@@ -793,9 +793,9 @@ namespace ptdalgorithms {
         // pybind11 factory function
         static Edge init_factory(struct ptd_vertex *vertex, struct ptd_edge *edge, Graph &graph, double weight) {
             Edge e = Edge(vertex, edge, graph, weight);
-            e->graph = graph;
-            e->_vertex = vertex;
-            e->_edge = ptd_edge;
+            e.graph = graph;
+            e._vertex = vertex;
+            e._edge = edge;
             return e; 
         }
 
@@ -803,7 +803,7 @@ namespace ptdalgorithms {
             return Vertex(graph, _vertex);
         }
 
-	Vertex *to_p() {
+	    Vertex *to_p() {
             return new Vertex(graph, _vertex);
         }
 
@@ -846,11 +846,17 @@ namespace ptdalgorithms {
         size_t state_size;
 
     public:
+
+        // pybind11 factory function
+        static ParameterizedEdge init_factory(struct ptd_vertex *vertex, struct ptd_edge *edge, Graph &graph, double weight, double *state) {
+            return ParameterizedEdge(vertex, edge, graph, weight, state);
+        }
+
         Vertex to() {
             return Vertex(graph, _vertex);
         }
 
-	Vertex *to_p() {
+	    Vertex *to_p() {
             return new Vertex(graph, _vertex);
         }
 
@@ -899,6 +905,12 @@ namespace ptdalgorithms {
         struct ptd_phase_type_distribution *distribution;
 
     public:
+
+       // pybind11 factory function
+        static PhaseTypeDistribution init_factory(Graph &graph, struct ptd_phase_type_distribution *matrix) {
+            return PhaseTypeDistribution(graph, matrix);
+        }
+
         ~PhaseTypeDistribution() {
             ptd_phase_type_distribution_destroy(distribution);
         }
@@ -970,6 +982,11 @@ namespace ptdalgorithms {
             _discrete = false;
         }
 
+        // pybind11 factory function
+        static ProbabilityDistributionContext init_factory(Graph &graph, int granularity = 0) {
+            return ProbabilityDistributionContext(graph, granularity);
+        }
+
         void step() {
             ptd_probability_distribution_step(context);
         }
@@ -1016,6 +1033,11 @@ namespace ptdalgorithms {
         DPHProbabilityDistributionContext(Graph &graph) : graph(graph) {
             context = ptd_dph_probability_distribution_context_create(graph.c_graph());
             _discrete = true;
+        }
+
+        // pybind11 factory function
+        static DPHProbabilityDistributionContext init_factory(Graph &graph) {
+            return DPHProbabilityDistributionContext(graph);
         }
 
         void step() {
