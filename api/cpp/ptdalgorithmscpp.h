@@ -466,7 +466,7 @@ namespace ptdalgorithms {
 
             return _cdf[this->rf_graph->ph_context->granularity * time];
         }
-
+        
         double dph_pmf(int jumps) {
             if (this->rf_graph->dph_context == NULL) {
                 this->rf_graph->dph_context = ptd_dph_probability_distribution_context_create(c_graph());

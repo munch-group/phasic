@@ -6,6 +6,7 @@
 #include <pybind11/stl.h>
 #include <pybind11/operators.h>
 #include <pybind11/eigen.h>
+#include <pybind11/numpy.h>
 
 // FIXME: Had to:
 // cd ~/miniconda3/envs/phasetype/include
@@ -26,19 +27,123 @@ using std::tuple;
 using std::deque;
 using std::endl;
 
+// static void set_c_seed() {
+//     Function f("runif");
+
+//     NumericVector res = f(1, 0, 1000000);
+
+//     srand(res[0]);
+// }
+
+static int fac(int n) {
+    if (n == 0) {
+        return 1;
+    }
+
+    return n * fac(n - 1);
+}
+
+
+/* Bind MatrixXd (or some other Eigen type) to Python */
+// typedef Eigen::MatrixXd Matrix;
+typedef Eigen::MatrixXd dMatrix;
+
+typedef dMatrix::Scalar dScalar;
+//  constexpr bool rowMajor = dMatrix::Flags & Eigen::RowMajorBit;
+
+/* Bind MatrixXd (or some other Eigen type) to Python */
+// typedef Eigen::MatrixXd Matrix;
+typedef Eigen::MatrixXi iMatrix;
+
+typedef iMatrix::Scalar iScalar;
+constexpr bool rowMajor = iMatrix::Flags & Eigen::RowMajorBit;
+
+
+struct matrix_representation {
+    iMatrix states;
+    dMatrix SIM;
+    std::vector<double> IPV;
+    std::vector<int> indices;
+};
+
+matrix_representation* _graph_as_matrix(ptdalgorithms::Graph graph) {
+
+    ::ptd_phase_type_distribution *dist = ::ptd_graph_as_phase_type_distribution(graph.c_graph());
+
+    int rows = dist->length;
+    int cols = dist->length;
+    dMatrix SIM = dMatrix(rows, cols);
+    std::vector<double> IPV(dist->length);
+
+    for (size_t i = 0; i < dist->length; ++i) {
+        IPV[i] = dist->initial_probability_vector[i];
+
+        for (size_t j = 0; j < dist->length; ++j) {
+            SIM(i, j) = dist->sub_intensity_matrix[i][j];
+        }
+    }
+
+    size_t state_length = graph.state_length();
+
+    rows = dist->length;
+    cols = state_length;
+    iMatrix states = iMatrix(rows, cols);
+
+    for (size_t i = 0; i < dist->length; i++) {
+        for (size_t j = 0; j < state_length; j++) {
+            states(i, j) = dist->vertices[i]->state[j];
+        }
+    }
+
+    std::vector<int> indices(dist->length);
+    for (size_t i = 0; i < dist->length; i++) {
+        indices[i] = dist->vertices[i]->index + 1;
+    }
+
+    struct matrix_representation *matrix_rep;
+    // auto *as_matrix = new matrix_representation(); 
+    matrix_rep->states = states;
+    matrix_rep->SIM = SIM;
+    matrix_rep->IPV = IPV;
+    matrix_rep->indices = indices;
+
+    ::ptd_phase_type_distribution_destroy(dist);
+    return matrix_rep;
+}
+
+
+class MatrixRepresentation {
+    private:
+
+    public:
+        iMatrix states;
+        dMatrix sim;
+        std::vector<double> ipv;
+        std::vector<int> indices;
+
+        MatrixRepresentation(ptdalgorithms::Graph graph) {
+            struct matrix_representation *rep = _graph_as_matrix(graph);
+            this->states = rep->states;
+            this->sim = rep->SIM;
+            this->ipv = rep->IPV;
+            this->indices = rep->indices;
+        }
+
+        // // pybind11 factory function
+        // static MatrixRepresentation init_factory(ptdalgorithms::Graph graph) {
+        //     return MatrixRepresentation(graph); 
+        // }
+
+        ~MatrixRepresentation() {
+        }
+};
+
 
 PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
   m.doc() = "These are the docs";
 
-
-  /* Bind MatrixXd (or some other Eigen type) to Python */
-  typedef Eigen::MatrixXd Matrix;
-
-  typedef Matrix::Scalar Scalar;
-  constexpr bool rowMajor = Matrix::Flags & Eigen::RowMajorBit;
-
-  py::class_<Matrix>(m, "Matrix", py::buffer_protocol())
+  py::class_<iMatrix>(m, "iMatrix", py::buffer_protocol())
 
     .def(py::init([](py::buffer b) {
         typedef Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic> Strides;
@@ -47,37 +152,103 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
         py::buffer_info info = b.request();
 
         /* Some basic validation checks ... */
-        if (info.format != py::format_descriptor<Scalar>::format())
+        if (info.format != py::format_descriptor<iScalar>::format())
             throw std::runtime_error("Incompatible format: expected a double array!");
 
         if (info.ndim != 2)
             throw std::runtime_error("Incompatible buffer dimension!");
 
         auto strides = Strides(
-            info.strides[rowMajor ? 0 : 1] / (py::ssize_t)sizeof(Scalar),
-            info.strides[rowMajor ? 1 : 0] / (py::ssize_t)sizeof(Scalar));
+            info.strides[rowMajor ? 0 : 1] / (py::ssize_t)sizeof(iScalar),
+            info.strides[rowMajor ? 1 : 0] / (py::ssize_t)sizeof(iScalar));
 
-        auto map = Eigen::Map<Matrix, 0, Strides>(
-            static_cast<Scalar *>(info.ptr), info.shape[0], info.shape[1], strides);
+        auto map = Eigen::Map<iMatrix, 0, Strides>(
+            static_cast<iScalar *>(info.ptr), info.shape[0], info.shape[1], strides);
 
-        return Matrix(map);
+        return iMatrix(map);
     }))
 
-    .def_buffer([](Matrix &m) -> py::buffer_info {
+    .def_buffer([](iMatrix &m) -> py::buffer_info {
     return py::buffer_info(
         m.data(),                                /* Pointer to buffer */
-        sizeof(Scalar),                          /* Size of one scalar */
-        py::format_descriptor<Scalar>::format(), /* Python struct-style format descriptor */
+        sizeof(iScalar),                          /* Size of one scalar */
+        py::format_descriptor<iScalar>::format(), /* Python struct-style format descriptor */
         2,                                       /* Number of dimensions */
         { m.rows(), m.cols() },                  /* Buffer dimensions */
-        { sizeof(Scalar) * (rowMajor ? m.cols() : 1),
-          sizeof(Scalar) * (rowMajor ? 1 : m.rows()) }
+        { sizeof(iScalar) * (rowMajor ? m.cols() : 1),
+          sizeof(iScalar) * (rowMajor ? 1 : m.rows()) }
                                                  /* Strides (in bytes) for each index */
     );
- })
+   })
   ;
 
 
+  py::class_<dMatrix>(m, "dMatrix", py::buffer_protocol())
+
+    .def(py::init([](py::buffer b) {
+        typedef Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic> Strides;
+
+        /* Request a buffer descriptor from Python */
+        py::buffer_info info = b.request();
+
+        /* Some basic validation checks ... */
+        if (info.format != py::format_descriptor<dScalar>::format())
+            throw std::runtime_error("Incompatible format: expected a double array!");
+
+        if (info.ndim != 2)
+            throw std::runtime_error("Incompatible buffer dimension!");
+
+        auto strides = Strides(
+            info.strides[rowMajor ? 0 : 1] / (py::ssize_t)sizeof(dScalar),
+            info.strides[rowMajor ? 1 : 0] / (py::ssize_t)sizeof(dScalar));
+
+        auto map = Eigen::Map<dMatrix, 0, Strides>(
+            static_cast<dScalar *>(info.ptr), info.shape[0], info.shape[1], strides);
+
+        return dMatrix(map);
+    }))
+
+    .def_buffer([](dMatrix &m) -> py::buffer_info {
+    return py::buffer_info(
+        m.data(),                                /* Pointer to buffer */
+        sizeof(dScalar),                          /* Size of one scalar */
+        py::format_descriptor<dScalar>::format(), /* Python struct-style format descriptor */
+        2,                                       /* Number of dimensions */
+        { m.rows(), m.cols() },                  /* Buffer dimensions */
+        { sizeof(dScalar) * (rowMajor ? m.cols() : 1),
+          sizeof(dScalar) * (rowMajor ? 1 : m.rows()) }
+                                                 /* Strides (in bytes) for each index */
+    );
+   })
+  ;
+
+    
+  py::class_<MatrixRepresentation>(m, "MatrixRepresentation", R"delim(
+      Matrix representation of phase-type distribution
+      )delim")
+      
+    // .def(py::init(&MatrixRepresentation::init_factory))
+      
+    .def(py::init<const MatrixRepresentation>(), py::arg("graph"), R"delim(
+
+      )delim")
+
+    .def_readwrite("states", &MatrixRepresentation::states, R"delim(
+
+      )delim")
+      
+    .def_readwrite("sim", &MatrixRepresentation::sim, R"delim(
+
+      )delim")
+    .def_readwrite("ipv", &MatrixRepresentation::ipv, R"delim(
+
+      )delim")
+    .def_readwrite("indices", &MatrixRepresentation::indices, R"delim(
+
+      )delim")
+  ;            
+
+    
   py::class_<ptdalgorithms::Graph>(m, "Graph")
 
     .def(py::init<int>(), py::arg("state_length"), R"delim(
@@ -151,6 +322,202 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 //' edges(starting_vertex(graph))[[1]]$weight # => 5
 //' edges(v1)[[1]]$weight # => 59
       )delim")
+
+    .def("moments",
+      [](ptdalgorithms::Graph &graph, int power, std::vector<double> &rewards) {
+
+      // NumericVector moments(SEXP phase_type_graph, int power, Nullable <NumericVector> rewards = R_NilValue) {
+      //     Rcpp::XPtr <Graph> graph(phase_type_graph);
+
+          if (!rewards.empty() && (int) rewards.size() != (int) graph.c_graph()->vertices_length) {
+              char message[1024];
+
+              snprintf(
+                      message,
+                      1024,
+                      "Failed: Rewards must match the number of vertices. Expected %i, got %i",
+                      (int) graph.c_graph()->vertices_length,
+                      (int) rewards.size()
+              );
+
+              throw std::runtime_error(
+                      message
+              );
+          }
+
+          if (power <= 0) {
+              char message[1024];
+
+              snprintf(
+                      message,
+                      1024,
+                      "Failed: power must be a strictly positive integer. Got %i",
+                      power
+              );
+
+              throw std::runtime_error(
+                      message
+              );
+          }
+
+          std::vector<double> res(power);
+          std::vector<double> rewards2 = graph.expected_waiting_time(rewards);
+          std::vector<double> rewards3(rewards2.size());
+          res[0] = rewards2[0];
+
+          std::vector<double> rw = rewards;
+
+          // if (!rewards.empty()) {
+          //     rw = as<std::vector<double> >(rewards);
+          // }
+
+          for (int i = 1; i < power; i++) {
+              if (!rewards.empty()) {
+                  for (int j = 0; j < (int) rewards2.size(); j++) {
+                      rewards3[j] = rewards2[j] * rw[j];
+                  }
+              } else {
+                  rewards3 = rewards2;
+              }
+
+              rewards2 = graph.expected_waiting_time(rewards3);
+              res[i] = fac(i + 1) * rewards2[0];
+          }
+
+          return res;
+
+      }, py::return_value_policy::move, py::arg("power"), py::arg("rewards")=std::vector<double>(), R"delim(
+//' Computes the first `k` moments of the phase-type distribution
+//' 
+//' @description
+//' This function invokes [ptdalgorithms::expected_waiting_times()] consequtively to find the first moments,
+//' given by the `power` argument
+//' 
+//' @return A numeric vector of the first `k` moments. The first entry is the first moment (mean)
+//' 
+//' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+//' @param power An integer of the first `k` moments.
+//' @param rewards Optional rewards, which should be applied to the phase-type distribution. Must have length equal to [ptdalgorithms::vertices_length()]
+//' 
+//' @seealso [ptdalgorithms::expected_waiting_time()]
+//' @seealso [ptdalgorithms::expectation()]
+//' @seealso [ptdalgorithms::variance()]
+//' @seealso [ptdalgorithms::covariance()]
+//' 
+//' @examples
+//' graph <- ptdalgorithms::create_graph(4)
+//' v1 <- ptdalgorithms::create_vertex(graph, c(1,2,3,4))
+//' v2 <- ptdalgorithms::create_vertex(graph, c(4,0,3,3))
+//' a <- ptdalgorithms::create_vertex(graph, c(0,0,0,0))
+//' ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), v1, 1)
+//' ptdalgorithms::add_edge(v1, v2, 4)
+//' ptdalgorithms::add_edge(v2, a, 10)
+//' ptdalgorithms::moments(graph, 3) # =>
+//'   (0.350000 0.097500 0.025375)
+//' ptdalgorithms::moments(graph, 3, c(0,2,1,0)) # =>
+//'   (0.600 0.160 0.041)
+      )delim")     
+
+    .def("expectation",
+      [](ptdalgorithms::Graph &graph, std::vector<double> rewards) {
+          return graph.expected_waiting_time(rewards)[0];
+      }, py::return_value_policy::move, py::arg("rewards")=std::vector<double>(), R"delim(
+//' Computes the expectation (mean) of the phase-type distribution
+//' 
+//' @description
+//' This function invokes [ptdalgorithms::expected_waiting_times()]
+//' and takes the first entry (from starting vertex)
+//' 
+//' @return The expectation of the distribution
+//' 
+//' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+//' @param rewards Optional rewards, which should be applied to the phase-type distribution. Must have length equal to [ptdalgorithms::vertices_length()]
+//' 
+//' @seealso [ptdalgorithms::expected_waiting_time()]
+//' @seealso [ptdalgorithms::moments()]
+//' @seealso [ptdalgorithms::variance()]
+//' @seealso [ptdalgorithms::covariance()]
+//' 
+//' @examples
+//' graph <- ptdalgorithms::create_graph(4)
+//' v1 <- ptdalgorithms::create_vertex(graph, c(1,2,3,4))
+//' v2 <- ptdalgorithms::create_vertex(graph, c(4,0,3,3))
+//' a <- ptdalgorithms::create_vertex(graph, c(0,0,0,0))
+//' ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), v1, 1)
+//' ptdalgorithms::add_edge(v1, v2, 4)
+//' ptdalgorithms::add_edge(v2, a, 10)
+//' ptdalgorithms::expectation(graph) # =>
+//'   0.35
+//' ptdalgorithms::expectation(graph, c(0,2,1,0)) # =>
+//'   0.6
+//' ph <- ptdalgorithms::graph_as_matrix(graph)
+//' # This is a much faster version of
+//' ph$IPV%*%solve(-ph$SIM) %*% rep(1, length(ph$IPV)) # =>
+//'   0.35
+//' ph$IPV%*%solve(-ph$SIM) %*% diag(c(2,1))%*% rep(1, length(ph$IPV)) # =>
+//'   0.35
+      )delim")      
+
+    .def("variance",
+      [](ptdalgorithms::Graph &graph, std::vector<double> rewards) {
+
+        std::vector<double> exp = graph.expected_waiting_time(rewards);
+        std::vector<double> second;
+
+        if (rewards.empty()) {
+            second = graph.expected_waiting_time(exp);
+        } else {
+            std::vector<double> new_rewards(exp.size());
+            std::vector<double> rw = rewards;
+
+            for (int i = 0; i < (int) exp.size(); i++) {
+                new_rewards[i] = exp[i] * rw[i];
+            }
+
+            second = graph.expected_waiting_time(new_rewards);
+        }
+
+        return (2 * second[0] - exp[0] * exp[0]);
+
+
+      }, py::return_value_policy::move, py::arg("rewards")=std::vector<double>(), R"delim(
+//' Computes the variance of the phase-type distribution
+//' 
+//' @description
+//' This function invokes [ptdalgorithms::expected_waiting_times()]
+//' twice to find the first and second moment
+//' 
+//' @return The variance of the distribution
+//' 
+//' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+//' @param rewards Optional rewards, which should be applied to the phase-type distribution. Must have length equal to [ptdalgorithms::vertices_length()]
+//' 
+//' @seealso [ptdalgorithms::expected_waiting_time()]
+//' @seealso [ptdalgorithms::expectation()]
+//' @seealso [ptdalgorithms::moments()]
+//' @seealso [ptdalgorithms::covariance()]
+//' 
+//' @examples
+//' graph <- ptdalgorithms::create_graph(4)
+//' v1 <- ptdalgorithms::create_vertex(graph, c(1,2,3,4))
+//' v2 <- ptdalgorithms::create_vertex(graph, c(4,0,3,3))
+//' a <- ptdalgorithms::create_vertex(graph, c(0,0,0,0))
+//' ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), v1, 1)
+//' ptdalgorithms::add_edge(v1, v2, 4)
+//' ptdalgorithms::add_edge(v2, a, 10)
+//' ptdalgorithms::variance(graph) # =>
+//'   0.0725
+//' ptdalgorithms::variance(graph, c(0,2,1,0)) # =>
+//'   0.26
+//' ph <- ptdalgorithms::graph_as_matrix(graph)
+//' # This is a much faster version of
+//' 2*ph$IPV%*%solve(-ph$SIM)%*%solve(-ph$SIM) %*% rep(1, length(ph$IPV)) - ph$IPV%*%solve(-ph$SIM) %*% rep(1, length(ph$IPV)) %*% ph$IPV%*%solve(-ph$SIM) %*% rep(1, length(ph$IPV)) # =>
+//'   0.0725
+//' 2*ph$IPV%*%solve(-ph$SIM)%*%diag(c(2,1))%*%solve(-ph$SIM)%*%diag(c(2,1)) %*% rep(1, length(ph$IPV)) - ph$IPV%*%solve(-ph$SIM)%*%diag(c(2,1)) %*% rep(1, length(ph$IPV)) %*% ph$IPV%*%solve(-ph$SIM)%*%diag(c(2,1)) %*% rep(1, length(ph$IPV)) # =>
+//'   0.26
+      )delim")    
+
+
 
     .def("expected_waiting_time", &ptdalgorithms::Graph::expected_waiting_time, py::arg("rewards")=std::vector<double>(), 
       py::return_value_policy::move, R"delim(
@@ -260,10 +627,7 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
           int rows = ver.size();
           int cols = graph.state_length();
-          Matrix states = Matrix(rows, cols);
-
-          // int **states = new int*[rows]; 
-          // for (int i = 0; i < rows; ++i) states[i] = new int[cols];
+          iMatrix states = iMatrix(rows, cols);
 
           for (size_t i = 0; i < ver.size(); i++) {
               for (size_t j = 0; j < graph.state_length(); j++) {
@@ -273,7 +637,20 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
           return states;
       }, py::return_value_policy::copy, R"delim(
-
+//' Returns a matrix where each row is the state of the vertex at that index
+//' 
+//' @return A matrix of size [ptdalgorithms::vertices_length()] where the rows match the state of the vertex at that index
+//' 
+//' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+//' 
+//' @examples
+//' graph <- ptdalgorithms::create_graph(4)
+//' ptdalgorithms::create_vertex(graph, c(1,2,3,4))
+//' ptdalgorithms::create_vertex(graph, c(4,3,3,3))
+//' ptdalgorithms::states(graph) # => 
+//' # 0 0 0 0
+//' # 1 2 3 4
+//' # 4 3 3 3
       )delim")
 
     .def("__repr__",
@@ -356,22 +733,24 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
       )delim")
       
-    .def("pdf", &ptdalgorithms::Graph::pdf, py::arg("time"), py::arg("granularity") = 0, 
+    .def("pdf",
+         py::vectorize(&ptdalgorithms::Graph::pdf), py::arg("time"), py::arg("granularity") = 0,
+         py::return_value_policy::copy, R"delim(
+
+      )delim")
+      
+    .def("cdf",
+         py::vectorize(&ptdalgorithms::Graph::cdf), py::arg("time"), py::arg("granularity") = 0,
+         py::return_value_policy::copy, R"delim(
+
+      )delim")
+      
+    .def("dph_pmf", py::vectorize(&ptdalgorithms::Graph::dph_pmf), py::arg("jumps"), 
       py::return_value_policy::copy, R"delim(
 
       )delim")
       
-    .def("cdf", &ptdalgorithms::Graph::cdf, py::arg("time"), py::arg("granularity") = 0, 
-      py::return_value_policy::copy, R"delim(
-
-      )delim")
-      
-    .def("dph_pmf", &ptdalgorithms::Graph::dph_pmf, py::arg("jumps"), 
-      py::return_value_policy::copy, R"delim(
-
-      )delim")
-      
-    .def("dph_cdf", &ptdalgorithms::Graph::dph_cdf, py::arg("jumps"), 
+    .def("dph_cdf", py::vectorize(&ptdalgorithms::Graph::dph_cdf), py::arg("jumps"), 
       py::return_value_policy::copy, R"delim(
 
       )delim")
@@ -398,6 +777,13 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
     .def("dph_expected_visits", &ptdalgorithms::Graph::dph_expected_visits, py::arg("jumps"), 
       py::return_value_policy::copy, R"delim(
+
+      )delim")
+      
+    .def("as_matrices",
+      [](ptdalgorithms::Graph &graph) {
+              return MatrixRepresentation(graph);
+      }, py::return_value_policy::copy, R"delim(
 
       )delim")
     ;
