@@ -5,7 +5,7 @@
   "version": "0.2.0",
   "configurations": [
       {
-        "name": "Python",
+        "name": "Python API (python)",
         "type": "debugpy",
         "request": "launch",
         "program": ".vscode/debug.py", 
@@ -15,7 +15,7 @@
       }        
     },
     {
-      "name": "Debug C++",
+      "name": "Python API (c++)",
       "type": "cppdbg",
       "request": "launch",
       "program": "${userHome}/miniconda3/envs/phasetype/bin/python", 
@@ -41,7 +41,7 @@
       }
     },
     {
-      "name": "(gdb) Launch",
+      "name": "Debug R API",
       "type": "cppdbg",
       "request": "launch",
       // "program": "/opt/conda/lib/R/bin/R",      

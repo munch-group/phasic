@@ -20,7 +20,7 @@ if platform.system() == "Darwin":
   # Compiling on macOS requires an installation of the Xcode Command Line Tools
   os.environ["CC"] = "g++"
   os.environ["CXX"] = "g++"
-  # extra_link_args = ["-undefined", "dynamic_lookup"]
+  # extra_link_args.extend(["-undefined", "dynamic_lookup"])
 
 #include/eigen3
 

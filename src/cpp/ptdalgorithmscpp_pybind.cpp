@@ -11,7 +11,7 @@
 // FIXME: Had to:
 // cd ~/miniconda3/envs/phasetype/include
 // ln -s eigen3/Eigen
-#include <eigen3/Eigen/Core>
+#include <Eigen/Core>
 
 #include "ptdalgorithmscpp.h"
 
@@ -26,6 +26,38 @@ using std::vector;
 using std::tuple;
 using std::deque;
 using std::endl;
+
+using namespace pybind11::literals; // to bring in the `_a` literal
+
+
+// static void set_c_seed() {
+//   py::object random = py::module_::import("random").attr("random");
+//   py::object obj = random.attr("getstate")();
+//   double r = obj.cast<double>();
+//   unsigned int seed = (unsigned int) (r * 1000000);
+//   srand(seed);
+//   py::print(seed);
+
+// }
+static void set_c_seed() {
+  py::object random = py::module_::import("random");//.attr("randint");
+  py::object obj = random.attr("randint")(0, 1000000);
+  unsigned int i = (unsigned int) obj.cast<int>();
+  srand(i);
+  // py::print(i);
+}
+
+  // py::print(py::str(exp_pi));
+
+    // Function f("runif");
+// }
+
+
+//     NumericVector res = f(1, 0, 1000000);
+
+//     srand(res[0]);
+// }
+
 
 // static void set_c_seed() {
 //     Function f("runif");
@@ -137,6 +169,43 @@ class MatrixRepresentation {
         ~MatrixRepresentation() {
         }
 };
+
+
+
+  // std::vector<double> _sample(ptdalgorithms::Graph graph, int n, std::vector<double> rewards) {
+
+  //     if (!rewards.empty() && (int) rewards.size() != (int) graph.c_graph()->vertices_length) {
+  //         char message[1024];
+
+  //         snprintf(
+  //                 message,
+  //                 1024,
+  //                 "Failed: Rewards must match the number of vertices. Expected %i, got %i",
+  //                 (int) graph.c_graph()->vertices_length,
+  //                 (int) rewards.size()
+  //         );
+
+  //         throw std::runtime_error(
+  //                 message
+  //         );
+  //     }
+  //     std::vector<double> res(n);
+
+  //     set_c_seed();
+
+  //     for (int i = 0; i < n; i++) {
+  //         if (rewards.empty()) {
+  //             res[i] = (double) (graph.random_sample());
+  //         } else {
+  //             res[i] = (double) (graph.random_sample(rewards));
+  //         }
+  //     }
+
+  //     return res;
+
+  //   }
+
+
 
 
 PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
@@ -659,7 +728,60 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
       }, py::return_value_policy::move, R"delim(
 
       )delim")
+
+    // .def("sample",
+    //      py::vectorize(_sample), py::arg("n")=1, py::arg("rewards") = std::vector<double>(),
+    //      py::return_value_policy::copy, R"delim(
+
+    //   )delim")
       
+
+    .def("sample",
+      [](ptdalgorithms::Graph &graph, int n, std::vector<double>rewards) {
+
+
+        if (!rewards.empty() && (int) rewards.size() != (int) graph.c_graph()->vertices_length) {
+            char message[1024];
+
+            snprintf(
+                    message,
+                    1024,
+                    "Failed: Rewards must match the number of vertices. Expected %i, got %i",
+                    (int) graph.c_graph()->vertices_length,
+                    (int) rewards.size()
+            );
+
+            throw std::runtime_error(
+                    message
+            );
+        }
+        std::vector<double> res(n);
+
+        set_c_seed();
+
+        for (int i = 0; i < n; i++) {
+            if (rewards.empty()) {
+                res[i] = (double) (graph.random_sample());
+            } else {
+                res[i] = (double) (graph.random_sample(rewards));
+            }
+        }
+
+        return res;
+
+      }, py::return_value_policy::move, py::arg("n")=1, py::arg("rewards")=std::vector<double>(), R"delim(
+
+    )delim")
+
+   .def("sample_multivariate",
+      [](ptdalgorithms::Graph &graph, int n, std::vector<double> rewards) {
+
+        py::print(py::str("not implemented"));
+
+      }, py::return_value_policy::move, py::arg("n")=1, py::arg("rewards")=dMatrix(), R"delim(
+
+    )delim")
+
     .def("random_sample", &ptdalgorithms::Graph::random_sample, py::arg("rewards"), 
       py::return_value_policy::copy, R"delim(
 
@@ -755,15 +877,31 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
       )delim")
 
-    .def("stop_probability", &ptdalgorithms::Graph::stop_probability, py::arg("time"), py::arg("granularity") = 0, 
-      py::return_value_policy::copy, R"delim(
+    // .def("stop_probability", &ptdalgorithms::Graph::stop_probability, py::arg("time"), py::arg("granularity") = 0, 
+    //   py::return_value_policy::copy, R"delim(
+
+    //   )delim")
+
+    // .def("accumulated_visiting_time", &ptdalgorithms::Graph::accumulated_visiting_time, py::arg("time"), py::arg("granularity") = 0, 
+    //   py::return_value_policy::copy, R"delim(
+
+    //   )delim")
+
+    .def("stop_probability", 
+         py::vectorize(&ptdalgorithms::Graph::stop_probability), py::arg("time"), py::arg("granularity") = 0,
+         py::return_value_policy::copy, R"delim(
+
 
       )delim")
 
-    .def("accumulated_visiting_time", &ptdalgorithms::Graph::accumulated_visiting_time, py::arg("time"), py::arg("granularity") = 0, 
-      py::return_value_policy::copy, R"delim(
+    .def("accumulated_visiting_time", 
+         py::vectorize(&ptdalgorithms::Graph::accumulated_visiting_time), py::arg("time"), py::arg("granularity") = 0,
+         py::return_value_policy::copy, R"delim(
+
 
       )delim")
+
+
 
     .def("dph_stop_probability", &ptdalgorithms::Graph::dph_stop_probability, py::arg("jumps"), 
       py::return_value_policy::copy, R"delim(
