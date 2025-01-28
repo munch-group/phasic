@@ -12,4 +12,8 @@ src/*.so
 src/*.dll
 *.o
 **/.ipynb_checkpoints/
+**/__pycache__/
+**/*.egg-info/
+build/
+**/*.so
 

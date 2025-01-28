@@ -9,17 +9,20 @@ ParallelCompile("NPY_NUM_BUILD_JOBS").install()
 
 ParallelCompile("NPY_NUM_BUILD_JOBS", needs_recompile=naive_recompile).install()
 
+import os
+conda = print(os.environ["CONDA_PREFIX"])
 
-extra_compile_args=["-g"]
+extra_compile_args=["-g", f"-I{conda}/include/eigen3/"]
 
 # extra_link_args = None
-extra_link_args = ["-g"]
+extra_link_args = ["-g", f"-I{conda}/include/eigen3/"]
 if platform.system() == "Darwin":
   # Compiling on macOS requires an installation of the Xcode Command Line Tools
   os.environ["CC"] = "g++"
   os.environ["CXX"] = "g++"
   # extra_link_args = ["-undefined", "dynamic_lookup"]
 
+#include/eigen3
 
 ext_modules = [
     Pybind11Extension(
@@ -43,4 +46,6 @@ setup(name='ptdalgorithms',
       packages = find_packages(),
     #   package_dir = {'SAP': 'SAP'},
     #   include_package_data = True,     
-      cmdclass={"build_ext": build_ext}, ext_modules=ext_modules)
+      extras_require={"test": "pytest"},
+      cmdclass={"build_ext": build_ext}, 
+      ext_modules=ext_modules)

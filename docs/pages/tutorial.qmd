@@ -1,0 +1,27 @@
+
+
+
+
+
+::: {.panel-tabset group="language"}
+
+## Python
+
+``` {.python}
+print("Hello world")
+```
+
+## R
+
+``` {.r}
+cat("Hello world")
+```
+
+## C
+
+``` {.c}
+printf("Hello World");
+```
+
+
+:::

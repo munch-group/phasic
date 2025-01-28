@@ -8,43 +8,19 @@
         "name": "Python",
         "type": "debugpy",
         "request": "launch",
-        "program": "${workspaceFolder}/test/testPy.py",
-        // "module": "ptdalgorithms.${fileBasenameNoExtension}",
-        "console": "integratedTerminal"
-    },
-    {
-        "name": "(gdb) Attach",
-        "type": "cppdbg",
-        "request": "attach",
-        "program": "/home/kmt/miniconda3/envs/phasetype/bin/python", 
-        "processId": "${command:pickProcess}",
-        "MIMode": "gdb",
-        "setupCommands": [
-            {
-                "description": "Enable pretty-printing for gdb",
-                "text": "-enable-pretty-printing",
-                "ignoreFailures": true
-            }
-        ],
-        // "additionalSOLibSearchPath": "${workspaceFolder}/build/lib.linux-x86_64-3.8;${workspaceFolder}/lib;${workspaceFolder}/lib/python3.8/site-packages/myadd-1.0.0-py3.8-linux-x86_64.egg/"
-    },
-    {
-      "name": "Debug Python",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/test/testPy.py",  // update this location
-      "console": "integratedTerminal",
-      "args": [
-        // other arguments that you want to use when running your code
-      ]
+        "program": ".vscode/debug.py", 
+        "console": "integratedTerminal",
+        "env": {
+          "PYTHONPATH": "${workspaceFolder}"
+      }        
     },
     {
       "name": "Debug C++",
       "type": "cppdbg",
       "request": "launch",
-      "program": "/home/kmt/miniconda3/envs/phasetype/bin/python", 
+      "program": "${userHome}/miniconda3/envs/phasetype/bin/python", 
       "args": [
-        "${workspaceFolder}/test/testPy.py",           // update this location
+        "${workspaceFolder}/.vscode/debug.py",           // update this location
         // other arguments that you want to use when running your code
       ],
       "stopAtEntry": false,
@@ -57,8 +33,47 @@
           "description": "Enable pretty-printing for gdb",
           "text": "-enable-pretty-printing",
           "ignoreFailures": true
+        },        
+      ],
+      "osx": {
+        "MIMode": "lldb",
+        // "miDebuggerPath": "/usr/bin/lldb",
+      }
+    },
+    {
+      "name": "(gdb) Launch",
+      "type": "cppdbg",
+      "request": "launch",
+      // "program": "/opt/conda/lib/R/bin/R",      
+      // "program": "${env:CONDA_PREFIX}/lib/R/bin/R",
+      "program": "/usr/lib/R/bin/exec/R",
+      "args": [
+        "--vanilla",
+        "-e",
+        "source('.vscode/debug.R')"
+        // "devtools::test()"
+      ],
+      "stopAtEntry": false,
+      "envFile": "${workspaceFolder}/.vscode/.env",
+      "cwd": "${workspaceFolder}",
+      "externalConsole": false,
+      "MIMode": "gdb",
+      // "miDebuggerPath": "/usr/bin/gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
         }
-      ]
-    }
+      ],
+      "preLaunchTask": "debug",
+      "osx": {
+        // "program": "/Library/Frameworks/R.framework/Resources/bin/R",
+        "program": "/Library/Frameworks/R.framework/Resources/bin/exec/R",        
+        // "program": "${env:CONDA_PREFIX}/bin/R",
+        "MIMode": "lldb",
+        // "miDebuggerPath": "/usr/bin/lldb",
+      }
+     }    
   ]
 }
