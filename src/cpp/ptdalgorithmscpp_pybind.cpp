@@ -877,29 +877,29 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
       )delim")
 
-    // .def("stop_probability", &ptdalgorithms::Graph::stop_probability, py::arg("time"), py::arg("granularity") = 0, 
-    //   py::return_value_policy::copy, R"delim(
-
-    //   )delim")
-
-    // .def("accumulated_visiting_time", &ptdalgorithms::Graph::accumulated_visiting_time, py::arg("time"), py::arg("granularity") = 0, 
-    //   py::return_value_policy::copy, R"delim(
-
-    //   )delim")
-
-    .def("stop_probability", 
-         py::vectorize(&ptdalgorithms::Graph::stop_probability), py::arg("time"), py::arg("granularity") = 0,
-         py::return_value_policy::copy, R"delim(
-
+    .def("stop_probability", &ptdalgorithms::Graph::stop_probability, py::arg("time"), py::arg("granularity") = 0, 
+      py::return_value_policy::copy, R"delim(
 
       )delim")
 
-    .def("accumulated_visiting_time", 
-         py::vectorize(&ptdalgorithms::Graph::accumulated_visiting_time), py::arg("time"), py::arg("granularity") = 0,
-         py::return_value_policy::copy, R"delim(
-
+    .def("accumulated_visiting_time", &ptdalgorithms::Graph::accumulated_visiting_time, py::arg("time"), py::arg("granularity") = 0, 
+      py::return_value_policy::copy, R"delim(
 
       )delim")
+
+    // .def("stop_probability", 
+    //      py::vectorize(&ptdalgorithms::Graph::stop_probability), py::arg("time"), py::arg("granularity") = 0,
+    //      py::return_value_policy::copy, R"delim(
+
+
+    //   )delim")
+
+    // .def("accumulated_visiting_time", 
+    //      py::vectorize(&ptdalgorithms::Graph::accumulated_visiting_time), py::arg("time"), py::arg("granularity") = 0,
+    //      py::return_value_policy::copy, R"delim(
+
+
+    //   )delim")
 
 
 
@@ -1159,12 +1159,12 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
       )delim")
       
-    .def("accumulated_visits", &ptdalgorithms::AnyProbabilityDistributionContext::stop_probability, 
+    .def("accumulated_visits", &ptdalgorithms::AnyProbabilityDistributionContext::accumulated_visits, 
       py::return_value_policy::copy, R"delim(
 
       )delim")
       
-    .def("accumulated_visiting_time", &ptdalgorithms::AnyProbabilityDistributionContext::stop_probability, 
+    .def("accumulated_visiting_time", &ptdalgorithms::AnyProbabilityDistributionContext::accumulated_visiting_time, 
       py::return_value_policy::copy, R"delim(
 
       )delim")
@@ -1204,15 +1204,15 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
       )delim")
       
-    .def("stop_probability", &ptdalgorithms::ProbabilityDistributionContext::stop_probability, 
-      py::return_value_policy::copy, R"delim(
+    // .def("stop_probability", &ptdalgorithms::ProbabilityDistributionContext::stop_probability, 
+    //   py::return_value_policy::copy, R"delim(
 
-      )delim")
+    //   )delim")
       
-    .def("accumulated_visiting_time", &ptdalgorithms::ProbabilityDistributionContext::accumulated_visiting_time, 
-      py::return_value_policy::copy, R"delim(
+    // .def("accumulated_visiting_time", &ptdalgorithms::ProbabilityDistributionContext::accumulated_visiting_time, 
+    //   py::return_value_policy::copy, R"delim(
 
-      )delim")
+    //   )delim")
     ;
 
 
