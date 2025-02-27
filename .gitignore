@@ -17,3 +17,5 @@ src/*.dll
 build/
 **/*.so
 
+
+/.quarto/

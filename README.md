@@ -1,7 +1,6 @@
 # Fast graph-based algorithms for phase-type distributions
 
-This software library provides fast and scalable algorithms for constructing and computing properties of for the statistical
-distributions: continuous and discrete phase-type distributions, rewarded phase-type distributions, and the general multivariate phase-type distributions. The library can compute the moments (e.g. expectation, variance, covariance), the distribution function (pdf, cdf, pmf), the stopping time probability in the Markov jump process or Markov chain, and the distribution function of time-inhomogeneous phase-type distribution, as well as the expectation of rewarded time-inhomogeneous phase-type distributions.
+This software library provides fast and scalable algorithms for constructing and computing properties of for the statistical distributions: continuous and discrete phase-type distributions, rewarded phase-type distributions, and the general multivariate phase-type distributions. The library can compute the moments (e.g. expectation, variance, covariance), the distribution function (pdf, cdf, pmf), the stopping time probability in the Markov jump process or Markov chain, and the distribution function of time-inhomogeneous phase-type distribution, as well as the expectation of rewarded time-inhomogeneous phase-type distributions.
 
 This code is the basis for our paper: `Røikjer, Tobias, Asger Hobolth, and Kasper Munch. "Graph-based algorithms for phase-type distributions." Statistics and Computing 32.6 (2022): 103.`
 
@@ -9,15 +8,15 @@ The algorithms in the package are emperically multiple orders of magnitude faste
 
 The code is written in C, but exposes an interface to both C and R through a C++ layer.
 
-
 The state-space is built as a graph with an easy-to-use API. The state-space is stored efficiently as a graph, taking up very little space compared to using a matrix.The algorithms are fast, graph-based algorithms that operate of this data structure. The state-space can be converted back to a matrix-based format if desired.
 
 The speed and memory improvements are often in the realm of 1000x faster than traditional matrix-based methods, if they are even possible to store as a matrix without running out of memory.
 
 ## Installing/compiling
+
 For the R interface, simply install devtools and install from GitHub:
 
-```R
+``` r
 install.packages("devtools",  INSTALL_opts = c('--no-lock'))
 library(devtools)
 devtools::install_github("TobiasRoikjer/PtDAlgorithms")
@@ -27,7 +26,7 @@ That is everything that is needed.
 
 If you want to install the C library only, run e.g.:
 
-```
+```         
 cmake CMakeLists.txt
 sudo make install
 ```
@@ -35,19 +34,20 @@ sudo make install
 The library can also be compiled against R directly and easily!
 
 ## Source
-The C and C++ header files can be found in `api`, and the source
-code in `src/c` and `src/cpp`.
+
+The C and C++ header files can be found in `api`, and the source code in `src/c` and `src/cpp`.
 
 The R code can be seen in `src/ptdalgorithms.cpp` and the auto-generated code in `R`.
 
 ## Examples and documentation
-Examples can be found in the `examples` directory. The full R api is documented as an easy-to-read jupyter notebook and can be seen at [https://github.com/TobiasRoikjer/PtDAlgorithms/blob/master/examples/full_api_example.ipynb](https://github.com/TobiasRoikjer/PtDAlgorithms/blob/master/examples/full_api_example.ipynb)
+
+Examples can be found in the `examples` directory. The full R api is documented as an easy-to-read jupyter notebook and can be seen at <https://github.com/TobiasRoikjer/PtDAlgorithms/blob/master/examples/full_api_example.ipynb>
 
 For the R interface, documentation can also be found in `man` which will automatically be installed when PtDAlgorithms is installed. Thereafter you can run e.g. `?ptdalgorithms` or `?ptdalgorithms::create_graph`.
 
 A small example:
 
-```R
+``` r
 library(ptdalgorithms)
 # This is an example of constructing a state-space in R.
 # The *construction* API (i.e. adding vertices and edges) is *slow* in R.
@@ -118,18 +118,17 @@ construct_rabbit_graph <- function(number_of_rabbits, flooding_rate_l, flooding_
 
 We can compute the expectation and variance (and all other moments)
 
-```R
+``` r
 # Extremely fast to compute moments
 graph <- construct_rabbit_graph(2, 2, 4)
 expectation(graph)
 variance(graph)
 pdf <- dph(seq(0,5,by=0.01), graph)
 cdf <- pph(seq(0,5,by=0.01), graph)
-
 ```
 
-![https://github.com/TobiasRoikjer/PtDAlgorithms/blob/master/examples/graphic_rabbits.png?raw=true](https://github.com/TobiasRoikjer/PtDAlgorithms/blob/master/examples/graphic_rabbits.png?raw=true)
+![](https://github.com/TobiasRoikjer/PtDAlgorithms/blob/master/examples/graphic_rabbits.png?raw=true)
 
 ## Author
-This software is written by Tobias Røikjer and released under the MIT license.
-I hope this software is helpful,
+
+This software is written by Tobias Røikjer and released under the MIT license. I hope this software is helpful,

@@ -75,6 +75,8 @@ static int fac(int n) {
     return n * fac(n - 1);
 }
 
+template<pybind11::return_value_policy Policy = pybind11::return_value_policy::reference_internal, typename Iterator, typename Sentinel, typename ValueType = typename pybind11::detail::iterator_access<Iterator>::result_type, typename ...Extra>
+pybind11::typing::Iterator<ValueType> make_iterator(Iterator first, Sentinel last, Extra&&... extra);
 
 /* Bind MatrixXd (or some other Eigen type) to Python */
 // typedef Eigen::MatrixXd Matrix;
@@ -347,6 +349,18 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
         Parameters
         ----------
       )delim")
+
+
+      .def("__iter__",
+        [](ptdalgorithms::Graph &g) {
+            return make_iterator(g.begin(), g.end());
+        }, py::return_value_policy::reference_internal, R"delim(
+  
+        )delim")
+  
+      
+
+      
 
     .def(py::init<struct ::ptd_graph* >(), py::arg("ptd_graph"), R"delim(
 
@@ -974,7 +988,7 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
             if (state.begin() != i) s << ", ";
             s << *i;
         }
-        s << "]";
+        s << "]>";
         // std::vector<ptdalgorithms::Edge> edges = v.edges();
         // for (auto e(edges.begin()); e != edges.end(); e++) {
         //   std::vector<int> state = e->to().state();
@@ -991,9 +1005,9 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
       )delim")
 
-    .def("get_index",
+    .def("index",
         [](ptdalgorithms::Vertex &v) {
-          return  v._vertex->index;
+          return  v.vertex->index;
         }, R"delim(
   
         )delim")
@@ -1031,11 +1045,26 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
       
     ;
 
-
   py::class_<ptdalgorithms::Edge>(m, "Edge", R"delim(
 
       )delim")
       
+      .def("__repr__",
+        [](ptdalgorithms::Edge &e) {
+  
+          std::ostringstream s;
+          s << "<ptdalgorithms.Edge [";
+          std::vector<int> state = e.to().state();
+          for (auto i(state.begin()); i != state.end(); i++) {
+              if (state.begin() != i) s << ", ";
+              s << *i;
+          }
+          s << "]>";
+          return s.str();
+        }, R"delim(
+  
+        )delim")
+
     .def(py::init(&ptdalgorithms::Edge::init_factory), R"delim(
 
       )delim")

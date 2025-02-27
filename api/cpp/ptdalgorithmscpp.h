@@ -30,6 +30,8 @@
 #include <vector>
 #include <stdexcept>
 #include <cmath>
+#include <iterator> 
+
 #include "../c/ptdalgorithms.h"
 
 namespace ptdalgorithms {
@@ -142,6 +144,58 @@ namespace ptdalgorithms {
 
             free(this->rf_graph);
         }
+
+
+
+//         struct Iterator 
+//         {
+//           using iterator_category = std::forward_iterator_tag;
+//           using difference_type   = std::ptrdiff_t;
+//           using value_type        = Vertex;
+//           using pointer           = Vertex*;  // or also value_type*
+//           using reference         = Vertex&;  // or also value_type&
+
+//             Iterator(pointer ptr) : vertex_ptr(ptr) {}
+
+//             reference operator*() const { return *vertex_ptr; }
+//             pointer operator->() { return vertex_ptr; }
+//             // const reference operator*() const { return *m_ptr; }
+//             // const pointer operator->() { return m_ptr; }
+        
+//             // Prefix increment
+//             Iterator& operator++() { 
+
+//                 // std::vector<Vertex> vertices;
+
+//                 // *this.vertex->index + 1
+
+//                 &this->c_graph()->vertex_at((&vertex_ptr.index) + 1);
+
+//                 // vertex_ptr++; 
+//                 return *this; 
+            
+//             }  
+        
+//             // Postfix increment
+//             Iterator operator++(int) { Iterator tmp = *this; ++(*this); return tmp; }
+        
+//             friend bool operator== (const Iterator& a, const Iterator& b) { return a.vertex_ptr == b.vertex_ptr; };
+//             friend bool operator!= (const Iterator& a, const Iterator& b) { return a.vertex_ptr != b.vertex_ptr; };     
+        
+//         private:
+        
+//             pointer vertex_ptr;
+//         };
+    
+//         Iterator begin() { return Iterator(&this->vertex_at(0)); }
+//         Iterator end() { return Iterator(&this->vertex_at(this->c_graph()->vertices_length)); }
+
+// //        Iterator end()   { return Iterator(&m_data[200]); } // 200 is out of bounds
+//         // ConstantIterator cbegin() const { return ConstantIterator(); }
+//         // ConstantIterator cend()   const { return ConstantIterator(&m_data[200]); }
+
+
+
 
         void update_weights_parameterized(std::vector<double> scalars);
 
@@ -766,10 +820,14 @@ namespace ptdalgorithms {
             return ptd_vertex_rate(vertex);
         }
 
+        // NB: moved this from private to public to allow pybin11 to find it
+        // @Tobias: is there a better way to do this?
+        struct ptd_vertex *vertex;
+
     private:
         Graph &graph;
 
-        struct ptd_vertex *vertex;
+        // struct ptd_vertex *vertex;
 
         friend class Graph;
     };
@@ -789,8 +847,6 @@ namespace ptdalgorithms {
         double _weight;
 
     public:
-
-        struct ptd_vertex *__vertex = _vertex
 
     // pybind11 factory function
         static Edge init_factory(struct ptd_vertex *vertex, struct ptd_edge *edge, Graph &graph, double weight) {
