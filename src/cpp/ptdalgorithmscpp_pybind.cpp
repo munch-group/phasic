@@ -991,6 +991,13 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
       )delim")
 
+    .def("get_index",
+        [](ptdalgorithms::Vertex &v) {
+          return  v._vertex->index;
+        }, R"delim(
+  
+        )delim")
+
     .def("add_edge_parameterized", &ptdalgorithms::Vertex::add_edge_parameterized, py::arg("to"), py::arg("weight"), py::arg("edge_state"), R"delim(
 
       )delim")

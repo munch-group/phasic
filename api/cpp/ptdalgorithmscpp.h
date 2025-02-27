@@ -790,7 +790,9 @@ namespace ptdalgorithms {
 
     public:
 
-        // pybind11 factory function
+        struct ptd_vertex *__vertex = _vertex
+
+    // pybind11 factory function
         static Edge init_factory(struct ptd_vertex *vertex, struct ptd_edge *edge, Graph &graph, double weight) {
             Edge e = Edge(vertex, edge, graph, weight);
             e.graph = graph;
