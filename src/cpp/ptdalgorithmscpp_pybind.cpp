@@ -351,16 +351,13 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
       )delim")
 
 
-      .def("__iter__",
-        [](ptdalgorithms::Graph &g) {
-            return make_iterator(g.begin(), g.end());
-        }, py::return_value_policy::reference_internal, R"delim(
+      // .def("__iter__",
+      //   [](ptdalgorithms::Graph &g) {
+      //       return make_iterator(g.begin(), g.end());
+      //   }, py::return_value_policy::reference_internal, R"delim(
   
-        )delim")
+      //   )delim")
   
-      
-
-      
 
     .def(py::init<struct ::ptd_graph* >(), py::arg("ptd_graph"), R"delim(
 
@@ -738,7 +735,7 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
     .def("__repr__",
       [](ptdalgorithms::Graph &g) {
-          return "<ptdalgorithms.Graph (" + std::to_string(g.vertices_length()) + " vertices)>";
+          return "<Graph (" + std::to_string(g.vertices_length()) + " vertices)>";
       }, py::return_value_policy::move, R"delim(
 
       )delim")
@@ -982,13 +979,13 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
       [](ptdalgorithms::Vertex &v) {
 
         std::ostringstream s;
-        s << "<ptdalgorithms.Vertex [";
+        s << "(";
         std::vector<int> state = v.state();
         for (auto i(state.begin()); i != state.end(); i++) {
-            if (state.begin() != i) s << ", ";
+            if (state.begin() != i) s << ",";
             s << *i;
         }
-        s << "]>";
+        s << ")";
         // std::vector<ptdalgorithms::Edge> edges = v.edges();
         // for (auto e(edges.begin()); e != edges.end(); e++) {
         //   std::vector<int> state = e->to().state();
@@ -1051,15 +1048,14 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
       
       .def("__repr__",
         [](ptdalgorithms::Edge &e) {
-  
           std::ostringstream s;
-          s << "<ptdalgorithms.Edge [";
+          s << "" << e.weight() << "-(";
           std::vector<int> state = e.to().state();
           for (auto i(state.begin()); i != state.end(); i++) {
-              if (state.begin() != i) s << ", ";
+              if (state.begin() != i) s << ",";
               s << *i;
           }
-          s << "]>";
+          s << ")";
           return s.str();
         }, R"delim(
   
