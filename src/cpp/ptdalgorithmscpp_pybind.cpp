@@ -208,6 +208,68 @@ class MatrixRepresentation {
   //   }
 
 
+// Utility function for use in both moments dph_expectation and dph_variance lambda functions
+std::vector<double> _moments(ptdalgorithms::Graph &graph, int power, const std::vector<double> &rewards = vector<double>()) {
+
+      if (!rewards.empty() && (int) rewards.size() != (int) graph.c_graph()->vertices_length) {
+          char message[1024];
+
+          snprintf(
+                  message,
+                  1024,
+                  "Failed: Rewards must match the number of vertices. Expected %i, got %i",
+                  (int) graph.c_graph()->vertices_length,
+                  (int) rewards.size()
+          );
+
+          throw std::runtime_error(
+                  message
+          );
+      }
+
+      if (power <= 0) {
+          char message[1024];
+
+          snprintf(
+                  message,
+                  1024,
+                  "Failed: power must be a strictly positive integer. Got %i",
+                  power
+          );
+
+          throw std::runtime_error(
+                  message
+          );
+      }
+
+      std::vector<double> res(power);
+      std::vector<double> rewards2 = graph.expected_waiting_time(rewards);
+      std::vector<double> rewards3(rewards2.size());
+      res[0] = rewards2[0];
+
+      std::vector<double> rw = rewards;
+
+      // if (!rewards.empty()) {
+      //     rw = as<std::vector<double> >(rewards);
+      // }
+
+      for (int i = 1; i < power; i++) {
+          if (!rewards.empty()) {
+              for (int j = 0; j < (int) rewards2.size(); j++) {
+                  rewards3[j] = rewards2[j] * rw[j];
+              }
+          } else {
+              rewards3 = rewards2;
+          }
+
+          rewards2 = graph.expected_waiting_time(rewards3);
+          res[i] = fac(i + 1) * rewards2[0];
+      }
+
+      return res;
+
+  }
+
 
 
 PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
@@ -406,65 +468,67 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
     .def("moments",
       [](ptdalgorithms::Graph &graph, int power, std::vector<double> &rewards) {
 
-      // NumericVector moments(SEXP phase_type_graph, int power, Nullable <NumericVector> rewards = R_NilValue) {
-      //     Rcpp::XPtr <Graph> graph(phase_type_graph);
+      // // NumericVector moments(SEXP phase_type_graph, int power, Nullable <NumericVector> rewards = R_NilValue) {
+      // //     Rcpp::XPtr <Graph> graph(phase_type_graph);
 
-          if (!rewards.empty() && (int) rewards.size() != (int) graph.c_graph()->vertices_length) {
-              char message[1024];
+      //     if (!rewards.empty() && (int) rewards.size() != (int) graph.c_graph()->vertices_length) {
+      //         char message[1024];
 
-              snprintf(
-                      message,
-                      1024,
-                      "Failed: Rewards must match the number of vertices. Expected %i, got %i",
-                      (int) graph.c_graph()->vertices_length,
-                      (int) rewards.size()
-              );
+      //         snprintf(
+      //                 message,
+      //                 1024,
+      //                 "Failed: Rewards must match the number of vertices. Expected %i, got %i",
+      //                 (int) graph.c_graph()->vertices_length,
+      //                 (int) rewards.size()
+      //         );
 
-              throw std::runtime_error(
-                      message
-              );
-          }
+      //         throw std::runtime_error(
+      //                 message
+      //         );
+      //     }
 
-          if (power <= 0) {
-              char message[1024];
+      //     if (power <= 0) {
+      //         char message[1024];
 
-              snprintf(
-                      message,
-                      1024,
-                      "Failed: power must be a strictly positive integer. Got %i",
-                      power
-              );
+      //         snprintf(
+      //                 message,
+      //                 1024,
+      //                 "Failed: power must be a strictly positive integer. Got %i",
+      //                 power
+      //         );
 
-              throw std::runtime_error(
-                      message
-              );
-          }
+      //         throw std::runtime_error(
+      //                 message
+      //         );
+      //     }
 
-          std::vector<double> res(power);
-          std::vector<double> rewards2 = graph.expected_waiting_time(rewards);
-          std::vector<double> rewards3(rewards2.size());
-          res[0] = rewards2[0];
+      //     std::vector<double> res(power);
+      //     std::vector<double> rewards2 = graph.expected_waiting_time(rewards);
+      //     std::vector<double> rewards3(rewards2.size());
+      //     res[0] = rewards2[0];
 
-          std::vector<double> rw = rewards;
+      //     std::vector<double> rw = rewards;
 
-          // if (!rewards.empty()) {
-          //     rw = as<std::vector<double> >(rewards);
-          // }
+      //     // if (!rewards.empty()) {
+      //     //     rw = as<std::vector<double> >(rewards);
+      //     // }
 
-          for (int i = 1; i < power; i++) {
-              if (!rewards.empty()) {
-                  for (int j = 0; j < (int) rewards2.size(); j++) {
-                      rewards3[j] = rewards2[j] * rw[j];
-                  }
-              } else {
-                  rewards3 = rewards2;
-              }
+      //     for (int i = 1; i < power; i++) {
+      //         if (!rewards.empty()) {
+      //             for (int j = 0; j < (int) rewards2.size(); j++) {
+      //                 rewards3[j] = rewards2[j] * rw[j];
+      //             }
+      //         } else {
+      //             rewards3 = rewards2;
+      //         }
 
-              rewards2 = graph.expected_waiting_time(rewards3);
-              res[i] = fac(i + 1) * rewards2[0];
-          }
+      //         rewards2 = graph.expected_waiting_time(rewards3);
+      //         res[i] = fac(i + 1) * rewards2[0];
+      //     }
 
-          return res;
+      //     return res;
+
+        return _moments(graph, power, rewards);
 
       }, py::return_value_policy::move, py::arg("power"), py::arg("rewards")=std::vector<double>(), R"delim(
 //' Computes the first `k` moments of the phase-type distribution
@@ -597,6 +661,67 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 //'   0.26
       )delim")    
 
+      .def("covariance",
+        [](ptdalgorithms::Graph &graph, std::vector<double> rewards1, std::vector<double> rewards2) {
+  
+          std::vector<double> exp1 = graph.expected_waiting_time(rewards1);
+          std::vector<double> exp2 = graph.expected_waiting_time(rewards2);
+
+  
+          std::vector<double> new_rewards(exp1.size());
+
+      
+          for (int i = 0; i < exp1.size(); i++) {
+            new_rewards[i] = exp1[i] * rewards2[i];
+        }
+    
+        std::vector<double> second1 = graph.expected_waiting_time(new_rewards);
+    
+
+        for (int i = 0; i < exp1.size(); i++) {
+            new_rewards[i] = exp2[i] * rewards1[i];
+        }
+    
+        std::vector<double> second2 = graph.expected_waiting_time(new_rewards);
+    
+        return (second1[0] + second2[0] - exp1[0] * exp2[0]);
+  
+  
+        }, py::return_value_policy::move, py::arg("rewards1"), py::arg("rewards2"), R"delim(
+
+         )delim")   
+
+
+      .def("covariance_discrete",
+          [](ptdalgorithms::Graph &graph, std::vector<double> rewards1, std::vector<double> rewards2) {         
+
+          std::vector<double> rw1(rewards1);
+          std::vector<double> rw2(rewards2);
+          std::vector<double> sq_rewards(rw1.size());
+      
+          for (int i = 0; i < (int)rw1.size(); i++) {
+              sq_rewards[i] = rw1[i] * rw2[i];
+          }
+      
+          std::vector<double> rw1to2(rw1.size());
+          std::vector<double> rw2to1(rw2.size());
+          std::vector<double> exp1 = graph.expected_waiting_time(rewards1);
+          std::vector<double> exp2 = graph.expected_waiting_time(rewards2);
+      
+          for (int i = 0; i < (int)rw1.size(); i++) {
+              rw1to2[i] = exp1[i] * rw2[i];
+              rw2to1[i] = exp2[i] * rw1[i];
+          }
+      
+          return graph.expected_waiting_time(rw1to2)[0] +
+                    _moments(graph, 1, sq_rewards)[0] - 
+                    _moments(graph, 1, rewards1)[0] *
+                    _moments(graph, 1, rewards2)[0];
+          
+        }, py::return_value_policy::move, py::arg("rewards1"), py::arg("rewards2"), R"delim(
+
+         )delim")   
+      
 
 
     .def("expected_waiting_time", &ptdalgorithms::Graph::expected_waiting_time, py::arg("rewards")=std::vector<double>(), 
@@ -740,11 +865,6 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
       )delim")
 
-    // .def("sample",
-    //      py::vectorize(_sample), py::arg("n")=1, py::arg("rewards") = std::vector<double>(),
-    //      py::return_value_policy::copy, R"delim(
-
-    //   )delim")
       
 
     .def("sample",
@@ -784,31 +904,192 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
     )delim")
 
-   .def("sample_multivariate",
-      [](ptdalgorithms::Graph &graph, int n, std::vector<double> rewards) {
 
-        py::print(py::str("not implemented"));
+    .def("sample_discrete",
+      [](ptdalgorithms::Graph &graph, int n, std::vector<double>rewards) {
 
-      }, py::return_value_policy::move, py::arg("n")=1, py::arg("rewards")=dMatrix(), R"delim(
+
+        if (!rewards.empty() && (int) rewards.size() != (int) graph.c_graph()->vertices_length) {
+            char message[1024];
+
+            snprintf(
+                    message,
+                    1024,
+                    "Failed: Rewards must match the number of vertices. Expected %i, got %i",
+                    (int) graph.c_graph()->vertices_length,
+                    (int) rewards.size()
+            );
+
+            throw std::runtime_error(
+                    message
+            );
+        }
+        std::vector<double> res(n);
+
+        set_c_seed();
+
+        for (int i = 0; i < n; i++) {
+            if (rewards.empty()) {
+                res[i] = (double) (graph.dph_random_sample_c(NULL));
+            } else {
+                res[i] = (double) (graph.dph_random_sample_c(&rewards[0]));
+            }
+        }
+
+        return res;
+
+      }, py::return_value_policy::move, py::arg("n")=1, py::arg("rewards")=std::vector<double>(), R"delim(
 
     )delim")
 
-    .def("random_sample", &ptdalgorithms::Graph::random_sample, py::arg("rewards"), 
-      py::return_value_policy::copy, R"delim(
+    ///////////////////////////////////////////
 
-      )delim")
+    .def("sample_multivariate",
+      [](ptdalgorithms::Graph &graph, int n, dMatrix rewards) -> dMatrix  {
+
+        if ((int) rewards.rows() != (int) graph.c_graph()->vertices_length) {
+            char message[1024];
+    
+            snprintf(
+                    message,
+                    1024,
+                    "Failed: Rewards rows must match the number of vertices. Expected %i, got %i",
+                    (int) graph.c_graph()->vertices_length,
+                    (int) rewards.rows()
+            );
+    
+            throw std::runtime_error(
+                    message
+            );
+        }
+    
+        double *vrewards = (double *) calloc(rewards.rows() * rewards.cols(), sizeof(double));
+    
+        size_t index = 0;
+    
+        for (int i = 0; i < rewards.rows(); i++) {
+            for (int j = 0; j < rewards.cols(); j++) {
+                vrewards[index] = rewards(i, j);
+                index++;
+            }
+        }
+    
+        set_c_seed();
+
+        dMatrix mat_res = dMatrix(rewards.cols(), n);
+    
+        for (int i = 0; i < n; i++) {
+            long double *res = ptd_mph_random_sample(graph.c_graph(), vrewards, (size_t) rewards.cols());
+    
+            for (int j = 0; j < rewards.cols(); j++) {
+                mat_res(j, i) = res[j];
+            }
+    
+            free(res);
+        }
+    
+        free(vrewards);
+    
+        return mat_res;
+
+      }, py::return_value_policy::move, py::arg("n")=1, py::arg("rewards")=std::vector<double>(), R"delim(
+
+    )delim")
+
+    
+    ///////////////////////////////////////////
+
+
+    .def("sample_multivariate_discrete",
+      [](ptdalgorithms::Graph &graph, int n, dMatrix rewards) -> dMatrix  {
+
+        if ((int) rewards.rows() != (int) graph.c_graph()->vertices_length) {
+          char message[1024];
+  
+          snprintf(
+                  message,
+                  1024,
+                  "Failed: Rewards rows must match the number of vertices. Expected %i, got %i",
+                  (int) graph.c_graph()->vertices_length,
+                  (int) rewards.rows()
+          );
+  
+          throw std::runtime_error(
+                  message
+          );
+      }
+
+    
+    
+        double *vrewards = (double *) calloc(rewards.rows() * rewards.cols(), sizeof(double));
+    
+        size_t index = 0;
+    
+        for (int i = 0; i < rewards.rows(); i++) {
+            for (int j = 0; j < rewards.cols(); j++) {
+                vrewards[index] = rewards(i, j);
+                index++;
+            }
+        }
+    
+        set_c_seed();
+    
+        dMatrix mat_res = dMatrix(rewards.cols(), n);
+    
+        for (int i = 0; i < n; i++) {
+            long double *res = ptd_mdph_random_sample(graph.c_graph(), vrewards, (size_t) rewards.cols());
+    
+            for (int j = 0; j < rewards.cols(); j++) {
+                mat_res(j, i) = res[j];
+            }
+    
+            free(res);
+        }
+    
+        free(vrewards);
+    
+        return mat_res;
+
+    }, py::return_value_policy::move, py::arg("n")=1, py::arg("rewards")=std::vector<double>(), R"delim(
+
+    )delim")
+
+
+
+
+
+
+
+    // .def("sample_multivariate", static_cast<std::vector<long double> (ptdalgorithms::Graph::*)(std::vector<double>, size_t)>(&ptdalgorithms::Graph::mph_random_sample), py::arg("rewards"), py::arg("vertex_rewards_length"), 
+    //   py::return_value_policy::copy, R"delim(
+
+    //   )delim")
+
+
+    // .def("sample_multivariate_discrete", static_cast<std::vector<long double> (ptdalgorithms::Graph::*)(std::vector<double>, size_t)>(&ptdalgorithms::Graph::mdph_random_sample), py::arg("rewards"), py::arg("vertex_rewards_length"), 
+    //   py::return_value_policy::copy, R"delim(
+
+    //   )delim")
+
+    
+  //  .def("sample_multivariate",
+  //     [](ptdalgorithms::Graph &graph, int n, std::vector<double> rewards) {
+
+  //       py::print(py::str("not implemented"));
+
+  //     }, py::return_value_policy::move, py::arg("n")=1, py::arg("rewards")=dMatrix(), R"delim(
+
+  //   )delim")
+
       
-    .def("mph_random_sample", static_cast<std::vector<long double> (ptdalgorithms::Graph::*)(std::vector<double>, size_t)>(&ptdalgorithms::Graph::mph_random_sample), py::arg("rewards"), py::arg("vertex_rewards_length"), 
-      py::return_value_policy::copy, R"delim(
 
-      )delim")
       
     .def("random_sample_stop_vertex", &ptdalgorithms::Graph::random_sample_stop_vertex, py::arg("time"), 
       py::return_value_policy::copy, R"delim(
 
       )delim")
       
-    .def("dph_random_sample_stop_vertex", &ptdalgorithms::Graph::dph_random_sample_stop_vertex, py::arg("jumps"), 
+    .def("random_sample_discrete_stop_vertex", &ptdalgorithms::Graph::dph_random_sample_stop_vertex, py::arg("jumps"), 
       py::return_value_policy::copy, R"delim(
 
       )delim")
@@ -837,7 +1118,7 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
       )delim")
       
-    .def("dph_reward_transform", static_cast<ptdalgorithms::Graph (ptdalgorithms::Graph::*)(std::vector<int>)>(&ptdalgorithms::Graph::dph_reward_transform), py::arg("rewards"), 
+    .def("reward_transform_discrete", static_cast<ptdalgorithms::Graph (ptdalgorithms::Graph::*)(std::vector<int>)>(&ptdalgorithms::Graph::dph_reward_transform), py::arg("rewards"), 
       py::return_value_policy::reference_internal, R"delim(
 
       )delim")
@@ -847,7 +1128,7 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
       )delim")
       
-    .def("dph_normalize", &ptdalgorithms::Graph::dph_normalize, 
+    .def("normalize_discrete", &ptdalgorithms::Graph::dph_normalize, 
       py::return_value_policy::reference_internal, R"delim(
 
       )delim")
@@ -878,12 +1159,12 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
       )delim")
       
-    .def("dph_pmf", py::vectorize(&ptdalgorithms::Graph::dph_pmf), py::arg("jumps"), 
+    .def("pmf_discrete", py::vectorize(&ptdalgorithms::Graph::dph_pmf), py::arg("jumps"), 
       py::return_value_policy::copy, R"delim(
 
       )delim")
       
-    .def("dph_cdf", py::vectorize(&ptdalgorithms::Graph::dph_cdf), py::arg("jumps"), 
+    .def("cdf_discrete", py::vectorize(&ptdalgorithms::Graph::dph_cdf), py::arg("jumps"), 
       py::return_value_policy::copy, R"delim(
 
       )delim")
@@ -912,19 +1193,73 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
     //   )delim")
 
+    
+
+    .def("expectation_discrete",
+        [](ptdalgorithms::Graph &graph, std::vector<double> &rewards) {
+
+          return _moments(graph, 1, rewards)[0];
+        }, py::return_value_policy::copy, R"delim(
+
+    )delim")
 
 
-    .def("dph_stop_probability", &ptdalgorithms::Graph::dph_stop_probability, py::arg("jumps"), 
+    // double dph_variance(SEXP phase_type_graph, Nullable <NumericVector> rewards = R_NilValue) {
+    .def("variance_discrete",
+        [](ptdalgorithms::Graph &graph, std::vector<double> &rewards) {
+
+        if (!rewards.empty() && (int) rewards.size() != (int) graph.c_graph()->vertices_length) {
+          char message[1024];
+    
+          snprintf(
+                  message,
+                  1024,
+                  "Failed: Rewards must match the number of vertices. Expected %i, got %i",
+                  (int) graph.c_graph()->vertices_length,
+                  (int) rewards.size()
+          );
+    
+          throw std::runtime_error(
+                  message
+          );
+      }
+    
+
+      if (rewards.empty()) {
+          std::vector<double> m = _moments(graph, 2);
+  
+          return m[1] - 2*m[0];
+      } else {
+          // std::vector<double> rw = as<std::vector<double> >(rewards);
+          std::vector<double> sq_rewards(rewards.size());
+  
+          for (int i = 0; i < (int)rewards.size(); i++) {
+              sq_rewards[i] = rewards[i] * rewards[i];
+          }
+  
+          std::vector<double> momentsr = _moments(graph, 2, rewards);
+          std::vector<double> momentsrr = _moments(graph, 1, sq_rewards);
+  
+          return momentsr[1] - momentsr[0] * momentsr[0] - momentsrr[0];
+      }
+  } , py::return_value_policy::copy, R"delim(
+
+)delim")
+
+
+
+
+    .def("stop_probability_discrete", &ptdalgorithms::Graph::dph_stop_probability, py::arg("jumps"), 
       py::return_value_policy::copy, R"delim(
 
       )delim")
 
-    .def("dph_accumulated_visits", &ptdalgorithms::Graph::dph_accumulated_visits, py::arg("jumps"), 
+    .def("accumulated_visits_discrete", &ptdalgorithms::Graph::dph_accumulated_visits, py::arg("jumps"), 
       py::return_value_policy::copy, R"delim(
 
       )delim")
 
-    .def("dph_expected_visits", &ptdalgorithms::Graph::dph_expected_visits, py::arg("jumps"), 
+    .def("expected_visits_discrete", &ptdalgorithms::Graph::dph_expected_visits, py::arg("jumps"), 
       py::return_value_policy::copy, R"delim(
 
       )delim")
