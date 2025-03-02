@@ -1,0 +1,69 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${env:HOME}/R/x86_64-pc-linux-gnu-library/4.4-arm64/Rcpp/include",
+                "/usr/share/R/include"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17"
+        },
+        {
+            "name": "Mac",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library/Rcpp/include",
+                "/Library/Frameworks/R.framework/Resources/include",
+                "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include",
+                "/usr/local/include"
+            ],
+            "defines": [],
+            "macFrameworkPath": [
+                "/System/Library/Frameworks",
+                "/Library/Frameworks"
+            ],
+            "compilerPath": "/usr/bin/clang",
+            // "compilerPath": "/usr/bin/g++",
+            "cStandard": "c11",
+            "cppStandard": "c++17"
+        }
+    ],
+    "version": 4
+}
+// {
+//     "version": 4,
+//     "configurations": [
+//         {
+//             "name": "(gdb) Launch",
+//             "type": "cppdbg",
+//             "request": "launch",
+//             "program": "/usr/lib/R/bin/exec/R",
+//             "args": [
+//                 "--vanilla",
+//                 "-e",
+//                 "devtools::test()"
+//             ],
+//             "stopAtEntry": false,
+//             "envFile": "${workspaceFolder}/.vscode/.env",
+//             "cwd": "${workspaceFolder}",
+//             "externalConsole": false,
+//             "MIMode": "gdb",
+//             "setupCommands": [
+//                 {
+//                     "description": "Enable pretty-printing for gdb",
+//                     "text": "-enable-pretty-printing",
+//                     "ignoreFailures": true
+//                 }
+//             ],
+//             "preLaunchTask": "debug",
+//             "osx": {
+//                 "program": "/Library/Frameworks/R.framework/Resources/bin/exec/R",
+//                 "MIMode": "lldb"
+//             }
+//         }
+//     ]
+// }
