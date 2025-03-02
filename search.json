@@ -1,0 +1,84 @@
+[
+  {
+    "objectID": "pages/tutorial.html",
+    "href": "pages/tutorial.html",
+    "title": "ptdalgorithms",
+    "section": "",
+    "text": "PythonRC\n\n\nprint(\"Hello world\")\n\n\ncat(\"Hello world\")\n\n\nprintf(\"Hello World\");"
+  },
+  {
+    "objectID": "api/index.html",
+    "href": "api/index.html",
+    "title": "Function reference",
+    "section": "",
+    "text": "Some description…\n\n\n\nGraph\n\n\n\nVertex\n\n\n\nEdge",
+    "crumbs": [
+      "Function reference"
+    ]
+  },
+  {
+    "objectID": "api/index.html#some-section",
+    "href": "api/index.html#some-section",
+    "title": "Function reference",
+    "section": "",
+    "text": "Some description…\n\n\n\nGraph\n\n\n\nVertex\n\n\n\nEdge",
+    "crumbs": [
+      "Function reference"
+    ]
+  },
+  {
+    "objectID": "api/Vertex.html",
+    "href": "api/Vertex.html",
+    "title": "Vertex",
+    "section": "",
+    "text": "ptdalgorithms.Vertex()\n\n\n\n\n\nName\nDescription\n\n\n\n\nadd_edge\nadd_edge(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, to: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, weight: float) -&gt; None\n\n\nadd_edge_parameterized\nadd_edge_parameterized(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, to: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, weight: float, edge_state: list[float]) -&gt; None\n\n\nae\nae(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, to: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, weight: float) -&gt; None\n\n\nedges\nedges(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -&gt; list[ptdalgorithms::Edge]\n\n\nindex\nindex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -&gt; int\n\n\nrate\nrate(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -&gt; float\n\n\nstate\nstate(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -&gt; list[int]\n\n\n\n\n\nptdalgorithms.Vertex.add_edge()\nadd_edge(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, to: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, weight: float) -&gt; None\n//’ Adds an edge between two vertices in the graph //’ //’ @description //’ The graph represents transitions between states as //’ a weighted direction edge between two vertices. //’ //’ @seealso [ptdalgorithms::expected_waiting_time()] //’ @seealso [ptdalgorithms::moments()] //’ @seealso [ptdalgorithms::variance()] //’ @seealso [ptdalgorithms::covariance()] //’ @seealso [ptdalgorithms::graph_update_weights_parameterized()] //’ //’ @param phase_type_vertex_from The vertex that transitions from //’ @param phase_type_vertex_to The vertex that transitions to //’ @param weight The weight of the edge, i.e. the transition rate //’ @param parameterized_edge_state Optional. Associate a numeric vector to an edge, for faster computations of moments when weights are changed. //’ //’ @examples //’ graph &lt;- create_graph(4) //’ vertex_a &lt;- find_or_create_vertex(graph, c(1,2,1,0)) //’ vertex_b &lt;- find_or_create_vertex(graph, c(2,0,1,0)) //’ add_edge(vertex_a, vertex_b, 1.5)\n\n\n\nptdalgorithms.Vertex.add_edge_parameterized()\nadd_edge_parameterized(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, to: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, weight: float, edge_state: list[float]) -&gt; None\n\n\n\nptdalgorithms.Vertex.ae()\nae(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, to: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, weight: float) -&gt; None\nAlias for add_edge\n\n\n\nptdalgorithms.Vertex.edges()\nedges(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -&gt; list[ptdalgorithms::Edge]\n\n\n\nptdalgorithms.Vertex.index()\nindex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -&gt; int\n\n\n\nptdalgorithms.Vertex.rate()\nrate(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -&gt; float\n\n\n\nptdalgorithms.Vertex.state()\nstate(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -&gt; list[int]",
+    "crumbs": [
+      "Some section",
+      "Vertex"
+    ]
+  },
+  {
+    "objectID": "api/Vertex.html#methods",
+    "href": "api/Vertex.html#methods",
+    "title": "Vertex",
+    "section": "",
+    "text": "Name\nDescription\n\n\n\n\nadd_edge\nadd_edge(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, to: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, weight: float) -&gt; None\n\n\nadd_edge_parameterized\nadd_edge_parameterized(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, to: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, weight: float, edge_state: list[float]) -&gt; None\n\n\nae\nae(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, to: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, weight: float) -&gt; None\n\n\nedges\nedges(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -&gt; list[ptdalgorithms::Edge]\n\n\nindex\nindex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -&gt; int\n\n\nrate\nrate(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -&gt; float\n\n\nstate\nstate(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -&gt; list[int]\n\n\n\n\n\nptdalgorithms.Vertex.add_edge()\nadd_edge(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, to: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, weight: float) -&gt; None\n//’ Adds an edge between two vertices in the graph //’ //’ @description //’ The graph represents transitions between states as //’ a weighted direction edge between two vertices. //’ //’ @seealso [ptdalgorithms::expected_waiting_time()] //’ @seealso [ptdalgorithms::moments()] //’ @seealso [ptdalgorithms::variance()] //’ @seealso [ptdalgorithms::covariance()] //’ @seealso [ptdalgorithms::graph_update_weights_parameterized()] //’ //’ @param phase_type_vertex_from The vertex that transitions from //’ @param phase_type_vertex_to The vertex that transitions to //’ @param weight The weight of the edge, i.e. the transition rate //’ @param parameterized_edge_state Optional. Associate a numeric vector to an edge, for faster computations of moments when weights are changed. //’ //’ @examples //’ graph &lt;- create_graph(4) //’ vertex_a &lt;- find_or_create_vertex(graph, c(1,2,1,0)) //’ vertex_b &lt;- find_or_create_vertex(graph, c(2,0,1,0)) //’ add_edge(vertex_a, vertex_b, 1.5)\n\n\n\nptdalgorithms.Vertex.add_edge_parameterized()\nadd_edge_parameterized(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, to: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, weight: float, edge_state: list[float]) -&gt; None\n\n\n\nptdalgorithms.Vertex.ae()\nae(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, to: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, weight: float) -&gt; None\nAlias for add_edge\n\n\n\nptdalgorithms.Vertex.edges()\nedges(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -&gt; list[ptdalgorithms::Edge]\n\n\n\nptdalgorithms.Vertex.index()\nindex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -&gt; int\n\n\n\nptdalgorithms.Vertex.rate()\nrate(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -&gt; float\n\n\n\nptdalgorithms.Vertex.state()\nstate(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -&gt; list[int]",
+    "crumbs": [
+      "Some section",
+      "Vertex"
+    ]
+  },
+  {
+    "objectID": "api/Edge.html",
+    "href": "api/Edge.html",
+    "title": "Edge",
+    "section": "",
+    "text": "ptdalgorithms.Edge()\n\n\n\n\n\nName\nDescription\n\n\n\n\nto\nto(self: ptdalgorithms.ptdalgorithmscpp_pybind.Edge) -&gt; ptdalgorithms.ptdalgorithmscpp_pybind.Vertex\n\n\nupdate_weight\nupdate_weight(self: ptdalgorithms.ptdalgorithmscpp_pybind.Edge, arg0: float) -&gt; None\n\n\nweight\nweight(self: ptdalgorithms.ptdalgorithmscpp_pybind.Edge) -&gt; float\n\n\n\n\n\nptdalgorithms.Edge.to()\nto(self: ptdalgorithms.ptdalgorithmscpp_pybind.Edge) -&gt; ptdalgorithms.ptdalgorithmscpp_pybind.Vertex\n\n\n\nptdalgorithms.Edge.update_weight()\nupdate_weight(self: ptdalgorithms.ptdalgorithmscpp_pybind.Edge, arg0: float) -&gt; None\n\n\n\nptdalgorithms.Edge.weight()\nweight(self: ptdalgorithms.ptdalgorithmscpp_pybind.Edge) -&gt; float",
+    "crumbs": [
+      "Some section",
+      "Edge"
+    ]
+  },
+  {
+    "objectID": "api/Edge.html#methods",
+    "href": "api/Edge.html#methods",
+    "title": "Edge",
+    "section": "",
+    "text": "Name\nDescription\n\n\n\n\nto\nto(self: ptdalgorithms.ptdalgorithmscpp_pybind.Edge) -&gt; ptdalgorithms.ptdalgorithmscpp_pybind.Vertex\n\n\nupdate_weight\nupdate_weight(self: ptdalgorithms.ptdalgorithmscpp_pybind.Edge, arg0: float) -&gt; None\n\n\nweight\nweight(self: ptdalgorithms.ptdalgorithmscpp_pybind.Edge) -&gt; float\n\n\n\n\n\nptdalgorithms.Edge.to()\nto(self: ptdalgorithms.ptdalgorithmscpp_pybind.Edge) -&gt; ptdalgorithms.ptdalgorithmscpp_pybind.Vertex\n\n\n\nptdalgorithms.Edge.update_weight()\nupdate_weight(self: ptdalgorithms.ptdalgorithmscpp_pybind.Edge, arg0: float) -&gt; None\n\n\n\nptdalgorithms.Edge.weight()\nweight(self: ptdalgorithms.ptdalgorithmscpp_pybind.Edge) -&gt; float",
+    "crumbs": [
+      "Some section",
+      "Edge"
+    ]
+  },
+  {
+    "objectID": "api/Graph.html",
+    "href": "api/Graph.html",
+    "title": "Graph",
+    "section": "",
+    "text": "Graph\nptdalgorithms.Graph(self, n)",
+    "crumbs": [
+      "Some section",
+      "Graph"
+    ]
+  }
+]
