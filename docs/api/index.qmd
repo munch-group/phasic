@@ -1,0 +1,12 @@
+# Function reference {.doc .doc-index}
+
+## Some section
+
+Some description...
+
+
+| | |
+| --- | --- |
+| [Graph](Graph.qmd#ptdalgorithms.Graph) |  |
+| [Vertex](Vertex.qmd#ptdalgorithms.Vertex) |  |
+| [Edge](Edge.qmd#ptdalgorithms.Edge) |  |

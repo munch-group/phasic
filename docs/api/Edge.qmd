@@ -1,0 +1,39 @@
+# Edge { #ptdalgorithms.Edge }
+
+```python
+ptdalgorithms.Edge()
+```
+
+
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [to](#ptdalgorithms.Edge.to) | to(self: ptdalgorithms.ptdalgorithmscpp_pybind.Edge) -> ptdalgorithms.ptdalgorithmscpp_pybind.Vertex |
+| [update_weight](#ptdalgorithms.Edge.update_weight) | update_weight(self: ptdalgorithms.ptdalgorithmscpp_pybind.Edge, arg0: float) -> None |
+| [weight](#ptdalgorithms.Edge.weight) | weight(self: ptdalgorithms.ptdalgorithmscpp_pybind.Edge) -> float |
+
+### to { #ptdalgorithms.Edge.to }
+
+```python
+ptdalgorithms.Edge.to()
+```
+
+to(self: ptdalgorithms.ptdalgorithmscpp_pybind.Edge) -> ptdalgorithms.ptdalgorithmscpp_pybind.Vertex
+
+### update_weight { #ptdalgorithms.Edge.update_weight }
+
+```python
+ptdalgorithms.Edge.update_weight()
+```
+
+update_weight(self: ptdalgorithms.ptdalgorithmscpp_pybind.Edge, arg0: float) -> None
+
+### weight { #ptdalgorithms.Edge.weight }
+
+```python
+ptdalgorithms.Edge.weight()
+```
+
+weight(self: ptdalgorithms.ptdalgorithmscpp_pybind.Edge) -> float

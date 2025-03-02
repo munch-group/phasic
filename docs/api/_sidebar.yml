@@ -1,0 +1,11 @@
+website:
+  sidebar:
+  - contents:
+    - api/index.qmd
+    - contents:
+      - api/Graph.qmd
+      - api/Vertex.qmd
+      - api/Edge.qmd
+      section: Some section
+    id: api
+  - id: dummy-sidebar

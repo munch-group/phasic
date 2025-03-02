@@ -1,0 +1,6 @@
+# Graph { #ptdalgorithms.Graph }
+
+```python
+ptdalgorithms.Graph(self, n)
+```
+

@@ -1,0 +1,102 @@
+# Vertex { #ptdalgorithms.Vertex }
+
+```python
+ptdalgorithms.Vertex()
+```
+
+
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [add_edge](#ptdalgorithms.Vertex.add_edge) | add_edge(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, to: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, weight: float) -> None |
+| [add_edge_parameterized](#ptdalgorithms.Vertex.add_edge_parameterized) | add_edge_parameterized(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, to: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, weight: float, edge_state: list[float]) -> None |
+| [ae](#ptdalgorithms.Vertex.ae) | ae(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, to: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, weight: float) -> None |
+| [edges](#ptdalgorithms.Vertex.edges) | edges(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -> list[ptdalgorithms::Edge] |
+| [index](#ptdalgorithms.Vertex.index) | index(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -> int |
+| [rate](#ptdalgorithms.Vertex.rate) | rate(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -> float |
+| [state](#ptdalgorithms.Vertex.state) | state(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -> list[int] |
+
+### add_edge { #ptdalgorithms.Vertex.add_edge }
+
+```python
+ptdalgorithms.Vertex.add_edge()
+```
+
+add_edge(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, to: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, weight: float) -> None
+
+
+//' Adds an edge between two vertices in the graph
+//' 
+//' @description
+//' The graph represents transitions between states as
+//' a weighted direction edge between two vertices.
+//' 
+//' @seealso [ptdalgorithms::expected_waiting_time()]
+//' @seealso [ptdalgorithms::moments()]
+//' @seealso [ptdalgorithms::variance()]
+//' @seealso [ptdalgorithms::covariance()]
+//' @seealso [ptdalgorithms::graph_update_weights_parameterized()]
+//' 
+//' @param phase_type_vertex_from The vertex that transitions from
+//' @param phase_type_vertex_to The vertex that transitions to
+//' @param weight The weight of the edge, i.e. the transition rate
+//' @param parameterized_edge_state Optional. Associate a numeric vector to an edge, for faster computations of moments when weights are changed.
+//' 
+//' @examples
+//' graph <- create_graph(4)
+//' vertex_a <- find_or_create_vertex(graph, c(1,2,1,0))
+//' vertex_b <- find_or_create_vertex(graph, c(2,0,1,0))
+//' add_edge(vertex_a, vertex_b, 1.5)
+
+### add_edge_parameterized { #ptdalgorithms.Vertex.add_edge_parameterized }
+
+```python
+ptdalgorithms.Vertex.add_edge_parameterized()
+```
+
+add_edge_parameterized(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, to: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, weight: float, edge_state: list[float]) -> None
+
+### ae { #ptdalgorithms.Vertex.ae }
+
+```python
+ptdalgorithms.Vertex.ae()
+```
+
+ae(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, to: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, weight: float) -> None
+
+
+Alias for add_edge
+
+### edges { #ptdalgorithms.Vertex.edges }
+
+```python
+ptdalgorithms.Vertex.edges()
+```
+
+edges(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -> list[ptdalgorithms::Edge]
+
+### index { #ptdalgorithms.Vertex.index }
+
+```python
+ptdalgorithms.Vertex.index()
+```
+
+index(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -> int
+
+### rate { #ptdalgorithms.Vertex.rate }
+
+```python
+ptdalgorithms.Vertex.rate()
+```
+
+rate(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -> float
+
+### state { #ptdalgorithms.Vertex.state }
+
+```python
+ptdalgorithms.Vertex.state()
+```
+
+state(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -> list[int]
