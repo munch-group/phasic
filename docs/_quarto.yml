@@ -54,7 +54,7 @@ website:
       style: floating
       align: left
       contents:
-        - pages/getting_started.ipynb
+        - index.qmd
         - section: "Overview"
           contents:
             - pages/overview.ipynb
