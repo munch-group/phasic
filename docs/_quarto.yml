@@ -41,10 +41,10 @@ website:
   page-navigation: true
   navbar:
     left:
-      - file: examples/
-        text: Examples
       - href: api/
         text: API reference
+      # - file: examples/
+      #   text: Examples
     right:
       - icon: github
         href: https://github.com/munch-group/ptdalgorithms/
@@ -54,7 +54,7 @@ website:
       style: floating
       align: left
       contents:
-        - index.qmd
+        - pages/overview.ipynb
         - section: "Overview"
           contents:
             - pages/overview.ipynb
