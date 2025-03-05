@@ -3794,7 +3794,7 @@ double *ptd_expected_residence_time(struct ptd_graph *graph, double *rewards) {
         // char message[1024];
         // sprintf(message, "%zu -> %d, %f, %f\n", idx, child_idx, child_prob, wt);
         // DEBUG_PRINT(message);
-        DEBUG_PRINT("HELLO\n");
+        // DEBUG_PRINT("HELLO\n");
         
         
 

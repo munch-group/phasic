@@ -54,11 +54,18 @@ website:
       style: floating
       align: left
       contents:
-        - pages/overview.ipynb
-        - section: "Overview"
+        - pages/getting_started.ipynb
+        - section: "Basics"
           contents:
-            - pages/overview.ipynb
-
+            - pages/state_space.ipynb
+            - pages/moments.ipynb
+            - pages/distributions.ipynb
+            - pages/laplace.ipynb
+        - section: "Advanced"
+          contents:
+            - pages/state_lumping.ipynb
+            - pages/epochs.ipynb
+            - pages/joint_prob.ipynb
 
 lightbox: true
 

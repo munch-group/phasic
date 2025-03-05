@@ -7,6 +7,7 @@
 #include <pybind11/operators.h>
 #include <pybind11/eigen.h>
 #include <pybind11/numpy.h>
+#include <pybind11/functional.h>
 
 // FIXME: Had to:
 // cd ~/miniconda3/envs/phasetype/include
@@ -29,16 +30,6 @@ using std::endl;
 
 using namespace pybind11::literals; // to bring in the `_a` literal
 
-
-// static void set_c_seed() {
-//   py::object random = py::module_::import("random").attr("random");
-//   py::object obj = random.attr("getstate")();
-//   double r = obj.cast<double>();
-//   unsigned int seed = (unsigned int) (r * 1000000);
-//   srand(seed);
-//   py::print(seed);
-
-// }
 static void set_c_seed() {
   py::object random = py::module_::import("random");//.attr("randint");
   py::object obj = random.attr("randint")(0, 1000000);
@@ -46,26 +37,6 @@ static void set_c_seed() {
   srand(i);
   // py::print(i);
 }
-
-  // py::print(py::str(exp_pi));
-
-    // Function f("runif");
-// }
-
-
-//     NumericVector res = f(1, 0, 1000000);
-
-//     srand(res[0]);
-// }
-
-
-// static void set_c_seed() {
-//     Function f("runif");
-
-//     NumericVector res = f(1, 0, 1000000);
-
-//     srand(res[0]);
-// }
 
 static int fac(int n) {
     if (n == 0) {
@@ -269,6 +240,73 @@ std::vector<double> _moments(ptdalgorithms::Graph &graph, int power, const std::
       return res;
 
   }
+  
+
+ptdalgorithms::Graph build_state_space_callback_dicts(
+  const std::function<std::vector<const py::dict> (std::vector<int> &state)> &callback, std::vector<int> &initial_state) {
+
+      ptdalgorithms::Graph *graph = new ptdalgorithms::Graph(initial_state.size());
+
+      ptdalgorithms::Vertex init = graph->find_or_create_vertex(initial_state);
+
+        graph->starting_vertex().add_edge(init, 1);
+
+        int index = 1;
+        while (index < graph->vertices_length()) {
+
+          ptdalgorithms::Vertex this_vertex = graph->vertex_at(index);
+          std::vector<int> this_state = graph->vertex_at(index).state();
+
+          std::vector<const pybind11::dict> children = callback(this_state);
+              for (auto child : children) {
+                std::vector<int> child_state = child["state"].cast<std::vector<int> >();
+                long double weight = child["weight"].cast<long double>();
+                ptdalgorithms::Vertex child_vertex = graph->find_or_create_vertex(child_state);
+                if (child.size() == 3) {
+                  std::vector<double> edge_params = child["edge_params"].cast<std::vector<double> >();
+                  this_vertex.add_edge_parameterized(child_vertex, weight, edge_params);
+                } else {
+                  this_vertex.add_edge(child_vertex, weight);
+                }
+              }
+              ++index;
+            }
+      return *graph;
+  }
+    
+  ptdalgorithms::Graph build_state_space_callback_tuples(
+    const std::function<std::vector<const py::tuple> (std::vector<int> &state)> &callback, std::vector<int> &initial_state) {
+
+      ptdalgorithms::Graph *graph = new ptdalgorithms::Graph(initial_state.size());
+
+      ptdalgorithms::Vertex init = graph->find_or_create_vertex(initial_state);
+
+        graph->starting_vertex().add_edge(init, 1);
+
+        int index = 1;
+        while (index < graph->vertices_length()) {
+
+          ptdalgorithms::Vertex this_vertex = graph->vertex_at(index);
+          std::vector<int> this_state = graph->vertex_at(index).state();
+
+          std::vector<const pybind11::tuple> children = callback(this_state);
+
+              for (auto child : children) {
+                std::vector<int> child_state = child[0].cast<std::vector<int> >();
+                long double weight = child[1].cast<long double>();
+                ptdalgorithms::Vertex child_vertex = graph->find_or_create_vertex(child_state);
+                if (child.size() == 3) {
+                  std::vector<double> edge_params = child[2].cast<std::vector<double> >();
+                  this_vertex.add_edge_parameterized(child_vertex, weight, edge_params);
+                } else {
+                  this_vertex.add_edge(child_vertex, weight);
+                }
+              }
+              ++index;
+            }
+      return *graph;
+  }
+    
 
 
 
@@ -315,7 +353,7 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
    })
   ;
 
-
+  
   py::class_<dMatrix>(m, "dMatrix", py::buffer_protocol())
 
     .def(py::init([](py::buffer b) {
@@ -433,7 +471,22 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
       )delim")
 
-    .def("update_weights_parameterized", &ptdalgorithms::Graph::update_weights_parameterized, py::arg("rewards"), R"delim(
+      .def(py::init<struct ::ptd_graph*, struct ::ptd_avl_tree* >(), py::arg("ptd_graph"), py::arg("ptd_avl_tree"), R"delim(
+
+    )delim")
+    
+    .def(py::init(&build_state_space_callback_dicts), 
+      py::arg("callback_dicts"), py::arg("initial_state"), R"delim(
+
+        )delim")
+
+      .def(py::init(&build_state_space_callback_tuples),
+          py::arg("callback_tuples"), py::arg("initial_state"), R"delim(
+
+      )delim")
+
+
+    .def("update_parameterized_weights", &ptdalgorithms::Graph::update_weights_parameterized, py::arg("rewards"), R"delim(
 //' Updates all parameterized edges of the graph by given scalars.
 //' 
 //' @description
@@ -465,68 +518,9 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 //' edges(v1)[[1]]$weight # => 59
       )delim")
 
+
     .def("moments",
       [](ptdalgorithms::Graph &graph, int power, std::vector<double> &rewards) {
-
-      // // NumericVector moments(SEXP phase_type_graph, int power, Nullable <NumericVector> rewards = R_NilValue) {
-      // //     Rcpp::XPtr <Graph> graph(phase_type_graph);
-
-      //     if (!rewards.empty() && (int) rewards.size() != (int) graph.c_graph()->vertices_length) {
-      //         char message[1024];
-
-      //         snprintf(
-      //                 message,
-      //                 1024,
-      //                 "Failed: Rewards must match the number of vertices. Expected %i, got %i",
-      //                 (int) graph.c_graph()->vertices_length,
-      //                 (int) rewards.size()
-      //         );
-
-      //         throw std::runtime_error(
-      //                 message
-      //         );
-      //     }
-
-      //     if (power <= 0) {
-      //         char message[1024];
-
-      //         snprintf(
-      //                 message,
-      //                 1024,
-      //                 "Failed: power must be a strictly positive integer. Got %i",
-      //                 power
-      //         );
-
-      //         throw std::runtime_error(
-      //                 message
-      //         );
-      //     }
-
-      //     std::vector<double> res(power);
-      //     std::vector<double> rewards2 = graph.expected_waiting_time(rewards);
-      //     std::vector<double> rewards3(rewards2.size());
-      //     res[0] = rewards2[0];
-
-      //     std::vector<double> rw = rewards;
-
-      //     // if (!rewards.empty()) {
-      //     //     rw = as<std::vector<double> >(rewards);
-      //     // }
-
-      //     for (int i = 1; i < power; i++) {
-      //         if (!rewards.empty()) {
-      //             for (int j = 0; j < (int) rewards2.size(); j++) {
-      //                 rewards3[j] = rewards2[j] * rw[j];
-      //             }
-      //         } else {
-      //             rewards3 = rewards2;
-      //         }
-
-      //         rewards2 = graph.expected_waiting_time(rewards3);
-      //         res[i] = fac(i + 1) * rewards2[0];
-      //     }
-
-      //     return res;
 
         return _moments(graph, power, rewards);
 
@@ -1147,6 +1141,34 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
       )delim")
       
+
+
+    .def("distribution_context",
+      [](ptdalgorithms::Graph &graph, int granularity) {
+        return new ptdalgorithms::ProbabilityDistributionContext(graph, granularity);
+      }, 
+      
+      py::arg("granularity")=0, py::return_value_policy::move, 
+      
+      R"delim(
+
+     )delim")      
+      
+
+
+     .def("distribution_context_discrete",
+      [](ptdalgorithms::Graph &graph) {
+        return new ptdalgorithms::DPHProbabilityDistributionContext(graph);
+      }, 
+      
+      py::return_value_policy::move, 
+      
+      R"delim(
+
+     )delim")      
+      
+
+
     .def("pdf",
          py::vectorize(&ptdalgorithms::Graph::pdf), py::arg("time"), py::arg("granularity") = 0,
          py::return_value_policy::copy, R"delim(
@@ -1321,17 +1343,6 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
             s << *i;
         }
         s << ")";
-        // std::vector<ptdalgorithms::Edge> edges = v.edges();
-        // for (auto e(edges.begin()); e != edges.end(); e++) {
-        //   std::vector<int> state = e->to().state();
-        //   s << std::endl << " " << e->weight() << " -> [";
-        //   for (auto i(state.begin()); i != state.end(); i++) {
-        //     if (state.begin() != i) s << ", ";
-        //     s << *i;
-        //   }
-        //   s << "]";
-        // }
-        // s << std::endl << ">";
         return s.str();
       }, R"delim(
 
@@ -1400,7 +1411,6 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
       )delim")
       
-    // .def(py::init<struct ::ptd_vertex*, struct ::ptd_edge*, &ptdalgorithms::Graph, double >(), py::arg("vertex"), py::arg("edge"), py::arg("graph"), py::arg("weight"))
     .def("to", &ptdalgorithms::Edge::to, 
       py::return_value_policy::reference_internal, R"delim(
 
@@ -1422,7 +1432,6 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
       )delim")
       
     ;
-
 
   py::class_<ptdalgorithms::ParameterizedEdge>(m, "ParameterizedEdge", R"delim(
 
@@ -1488,11 +1497,13 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
       )delim")
       
     .def("is_discrete", &ptdalgorithms::AnyProbabilityDistributionContext::is_discrete, 
-      py::return_value_policy::reference_internal, R"delim(
+      py::return_value_policy::copy, R"delim(
 
       )delim")
       
-    .def("step", &ptdalgorithms::AnyProbabilityDistributionContext::step, R"delim(
+    .def("step", &ptdalgorithms::AnyProbabilityDistributionContext::step, 
+      
+      py::return_value_policy::copy, R"delim(
 
       )delim")
       
@@ -1542,10 +1553,39 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
       )delim")
       
-    .def(py::init(&ptdalgorithms::ProbabilityDistributionContext::init_factory), R"delim(
+    .def(py::init(&ptdalgorithms::ProbabilityDistributionContext::init_factory),     
+      py::return_value_policy::reference_internal, R"delim(
 
-      )delim")
+        )delim")
+        
+
+
       
+    // .def("__enter__",
+    //   [](ptdalgorithms::ProbabilityDistributionContext &ctx) {
+
+    //     // reset context
+
+    //     return ctx;
+
+    //   }, py::return_value_policy::move, R"delim(
+
+    //   )delim")
+
+
+    // .def("__exit__",
+    //   [](ptdalgorithms::ProbabilityDistributionContext &ctx) {
+
+
+    //     // reset context
+
+    //   }, R"delim(
+
+    //   )delim")
+      
+
+
+
     .def("step", &ptdalgorithms::ProbabilityDistributionContext::step, 
       py::return_value_policy::copy, R"delim(
 

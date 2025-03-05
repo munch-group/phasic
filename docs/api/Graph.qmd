@@ -1,6 +1,12 @@
 # Graph { #ptdalgorithms.Graph }
 
 ```python
-ptdalgorithms.Graph(self, n)
+ptdalgorithms.Graph(
+    self,
+    state_length=None,
+    callback=None,
+    initial=None,
+    trans_as_dict=False,
+)
 ```
 

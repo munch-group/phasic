@@ -2,6 +2,7 @@
 import graphviz
 import random
 from collections import defaultdict
+from IPython.display import display
 
 def random_color():
     return '#'+''.join(random.sample('0123456789ABCDEF', 6))
@@ -14,11 +15,17 @@ def format_rate(rate):
         return f"{rate:.2e}"
 
 
-def plot_graph(graph, constraint=True, subgraphs=False, ranksep=1, 
-               nodesep=0.5, splines='splines', 
-               subgraphfun=lambda state, index: ','.join(map(str, state[:-1])), size=(6, 6), 
-               fontsize=10, rankdir="LR", align=False, nodecolor='white', 
-               edgecolor='rainbow', penwidth=1):
+def plot_graph(graph, constraint=True,ranksep=1, 
+               nodesep=1,
+               subgraphs=False, 
+                #  splines=False, 
+            #    subgraphfun=lambda state, index: ','.join(map(str, state[:-1])), 
+            size=(7, 7), 
+               subgraphfun=None,
+               fontsize=12, rankdir="LR", align=False, nodecolor='white', 
+               edgecolor='black', 
+            #    edgecolor='rainbow', 
+               penwidth=1, **kwargs):
 
     graph_attr = dict(
         compound='true',
@@ -28,10 +35,11 @@ def plot_graph(graph, constraint=True, subgraphs=False, ranksep=1,
         nodesep=str(nodesep),
         bgcolor='transparent',
         rankdir=rankdir,
-        splines=splines,
+        # splines='true' if splines else 'false',
         size=f'{size[0]},{size[1]}',
         fontname="Helvetica,Arial,sans-serif",
-        ratio="fill",
+        ratio="auto",
+        **kwargs
     )
     node_attr = dict(
         style='filled',
@@ -74,16 +82,17 @@ def plot_graph(graph, constraint=True, subgraphs=False, ranksep=1,
         vertex = graph.vertex_at(i)
         if i == 0:
             dot.node(str(vertex.index()), 'S', 
-                     style='filled', color='black', fillcolor='whitesmoke')
+                     style='filled', color='black', fillcolor='#eeeeee')
         elif not vertex.edges():
             dot.node(str(vertex.index()), ','.join(map(str, vertex.state())), 
-                     style='filled', color='black',fillcolor='whitesmoke')
-        elif subgraphs:
+                     style='filled', color='black',fillcolor='#eeeeee')
+        elif subgraphfun is not None:
             subg[f'cluster_{subgraphfun(vertex.state())}'].append(i)
         else:
             dot.node(str(vertex.index()), ','.join(map(str, vertex.state())))
-    if subgraphs:
+    if subgraphfun is not None:
         for sglabel in subg:
+            subgraph_attr['label'] = sglabel.replace('cluster_', '')
             with dot.subgraph(name=sglabel, graph_attr=subgraph_attr) as c:
                 for i in subg[sglabel]:
                     vertex = graph.vertex_at(i)

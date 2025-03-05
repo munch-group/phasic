@@ -47,6 +47,7 @@ namespace ptdalgorithms {
         int granularity_markov;
     };
 
+
     class Vertex;
 
     struct Edge;
@@ -124,6 +125,7 @@ namespace ptdalgorithms {
             this->rf_graph->dph_context_markov = NULL;
             this->rf_graph->ph_context_markov = NULL;
         }
+
 
         ~Graph() {
             *(this->rf_graph->references) -= 1;
