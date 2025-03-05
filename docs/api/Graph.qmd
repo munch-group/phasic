@@ -10,3 +10,655 @@ ptdalgorithms.Graph(
 )
 ```
 
+
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [accumulated_visiting_time](#ptdalgorithms.Graph.accumulated_visiting_time) | accumulated_visiting_time(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, time: float, granularity: int = 0) -> list[float] |
+| [accumulated_visits_discrete](#ptdalgorithms.Graph.accumulated_visits_discrete) | accumulated_visits_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, jumps: int) -> list[float] |
+| [as_matrices](#ptdalgorithms.Graph.as_matrices) | as_matrices(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> ptdalgorithms.ptdalgorithmscpp_pybind.MatrixRepresentation |
+| [cdf](#ptdalgorithms.Graph.cdf) | cdf(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, time: numpy.ndarray[numpy.float32], granularity: numpy.ndarray[numpy.int32] = 0) -> object |
+| [cdf_discrete](#ptdalgorithms.Graph.cdf_discrete) | cdf_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, jumps: numpy.ndarray[numpy.int32]) -> object |
+| [clone](#ptdalgorithms.Graph.clone) | clone(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> ptdalgorithms.ptdalgorithmscpp_pybind.Graph |
+| [covariance](#ptdalgorithms.Graph.covariance) | covariance(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards1: list[float], rewards2: list[float]) -> float |
+| [covariance_discrete](#ptdalgorithms.Graph.covariance_discrete) | covariance_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards1: list[float], rewards2: list[float]) -> float |
+| [create_vertex](#ptdalgorithms.Graph.create_vertex) | create_vertex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, state: list[int]) -> ptdalgorithms::Vertex |
+| [defect](#ptdalgorithms.Graph.defect) | defect(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> float |
+| [distribution_context](#ptdalgorithms.Graph.distribution_context) | distribution_context(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, granularity: int = 0) -> ptdalgorithms::ProbabilityDistributionContext |
+| [distribution_context_discrete](#ptdalgorithms.Graph.distribution_context_discrete) | distribution_context_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> ptdalgorithms::DPHProbabilityDistributionContext |
+| [expectation](#ptdalgorithms.Graph.expectation) | expectation(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float] = []) -> float |
+| [expectation_dag](#ptdalgorithms.Graph.expectation_dag) | expectation_dag(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float]) -> ptdalgorithms.ptdalgorithmscpp_pybind.Graph |
+| [expectation_discrete](#ptdalgorithms.Graph.expectation_discrete) | expectation_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, arg0: list[float]) -> float |
+| [expected_residence_time](#ptdalgorithms.Graph.expected_residence_time) | expected_residence_time(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float] = []) -> list[float] |
+| [expected_visits_discrete](#ptdalgorithms.Graph.expected_visits_discrete) | expected_visits_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, jumps: int) -> list[float] |
+| [expected_waiting_time](#ptdalgorithms.Graph.expected_waiting_time) | expected_waiting_time(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float] = []) -> list[float] |
+| [find_or_create_vertex](#ptdalgorithms.Graph.find_or_create_vertex) | find_or_create_vertex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, state: list[int]) -> ptdalgorithms::Vertex |
+| [find_vertex](#ptdalgorithms.Graph.find_vertex) | find_vertex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, state: list[int]) -> ptdalgorithms::Vertex |
+| [focv](#ptdalgorithms.Graph.focv) | focv(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, state: list[int]) -> ptdalgorithms::Vertex |
+| [is_acyclic](#ptdalgorithms.Graph.is_acyclic) | is_acyclic(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> bool |
+| [moments](#ptdalgorithms.Graph.moments) | moments(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, power: int, rewards: list[float] = []) -> list[float] |
+| [normalize](#ptdalgorithms.Graph.normalize) | normalize(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> list[float] |
+| [normalize_discrete](#ptdalgorithms.Graph.normalize_discrete) | normalize_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> list[float] |
+| [notify_change](#ptdalgorithms.Graph.notify_change) | notify_change(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> None |
+| [pdf](#ptdalgorithms.Graph.pdf) | pdf(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, time: numpy.ndarray[numpy.float32], granularity: numpy.ndarray[numpy.int32] = 0) -> object |
+| [pmf_discrete](#ptdalgorithms.Graph.pmf_discrete) | pmf_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, jumps: numpy.ndarray[numpy.int32]) -> object |
+| [random_sample_discrete_stop_vertex](#ptdalgorithms.Graph.random_sample_discrete_stop_vertex) | random_sample_discrete_stop_vertex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, jumps: int) -> int |
+| [random_sample_stop_vertex](#ptdalgorithms.Graph.random_sample_stop_vertex) | random_sample_stop_vertex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, time: float) -> int |
+| [reward_transform](#ptdalgorithms.Graph.reward_transform) | reward_transform(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float]) -> ptdalgorithms.ptdalgorithmscpp_pybind.Graph |
+| [reward_transform_discrete](#ptdalgorithms.Graph.reward_transform_discrete) | reward_transform_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[int]) -> ptdalgorithms.ptdalgorithmscpp_pybind.Graph |
+| [sample](#ptdalgorithms.Graph.sample) | sample(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, n: int = 1, rewards: list[float] = []) -> list[float] |
+| [sample_discrete](#ptdalgorithms.Graph.sample_discrete) | sample_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, n: int = 1, rewards: list[float] = []) -> list[float] |
+| [sample_multivariate](#ptdalgorithms.Graph.sample_multivariate) | sample_multivariate(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, n: int = 1, rewards: numpy.ndarray[numpy.float64[m, n]] = []) -> numpy.ndarray[numpy.float64[m, n]] |
+| [sample_multivariate_discrete](#ptdalgorithms.Graph.sample_multivariate_discrete) | sample_multivariate_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, n: int = 1, rewards: numpy.ndarray[numpy.float64[m, n]] = []) -> numpy.ndarray[numpy.float64[m, n]] |
+| [starting_vertex](#ptdalgorithms.Graph.starting_vertex) | starting_vertex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> ptdalgorithms::Vertex |
+| [state_length](#ptdalgorithms.Graph.state_length) | state_length(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> int |
+| [states](#ptdalgorithms.Graph.states) | states(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> numpy.ndarray[numpy.int32[m, n]] |
+| [stop_probability](#ptdalgorithms.Graph.stop_probability) | stop_probability(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, time: float, granularity: int = 0) -> list[float] |
+| [stop_probability_discrete](#ptdalgorithms.Graph.stop_probability_discrete) | stop_probability_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, jumps: int) -> list[float] |
+| [update_parameterized_weights](#ptdalgorithms.Graph.update_parameterized_weights) | update_parameterized_weights(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float]) -> None |
+| [validate](#ptdalgorithms.Graph.validate) | validate(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> None |
+| [variance](#ptdalgorithms.Graph.variance) | variance(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float] = []) -> float |
+| [variance_discrete](#ptdalgorithms.Graph.variance_discrete) | variance_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, arg0: list[float]) -> float |
+| [vertex_at](#ptdalgorithms.Graph.vertex_at) | vertex_at(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, index: int) -> ptdalgorithms::Vertex |
+| [vertex_exists](#ptdalgorithms.Graph.vertex_exists) | vertex_exists(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, state: list[int]) -> bool |
+| [vertices](#ptdalgorithms.Graph.vertices) | vertices(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> list[ptdalgorithms::Vertex] |
+| [vertices_length](#ptdalgorithms.Graph.vertices_length) | vertices_length(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> int |
+
+### accumulated_visiting_time { #ptdalgorithms.Graph.accumulated_visiting_time }
+
+```python
+ptdalgorithms.Graph.accumulated_visiting_time()
+```
+
+accumulated_visiting_time(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, time: float, granularity: int = 0) -> list[float]
+
+### accumulated_visits_discrete { #ptdalgorithms.Graph.accumulated_visits_discrete }
+
+```python
+ptdalgorithms.Graph.accumulated_visits_discrete()
+```
+
+accumulated_visits_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, jumps: int) -> list[float]
+
+### as_matrices { #ptdalgorithms.Graph.as_matrices }
+
+```python
+ptdalgorithms.Graph.as_matrices()
+```
+
+as_matrices(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> ptdalgorithms.ptdalgorithmscpp_pybind.MatrixRepresentation
+
+### cdf { #ptdalgorithms.Graph.cdf }
+
+```python
+ptdalgorithms.Graph.cdf()
+```
+
+cdf(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, time: numpy.ndarray[numpy.float32], granularity: numpy.ndarray[numpy.int32] = 0) -> object
+
+### cdf_discrete { #ptdalgorithms.Graph.cdf_discrete }
+
+```python
+ptdalgorithms.Graph.cdf_discrete()
+```
+
+cdf_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, jumps: numpy.ndarray[numpy.int32]) -> object
+
+### clone { #ptdalgorithms.Graph.clone }
+
+```python
+ptdalgorithms.Graph.clone()
+```
+
+clone(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> ptdalgorithms.ptdalgorithmscpp_pybind.Graph
+
+### covariance { #ptdalgorithms.Graph.covariance }
+
+```python
+ptdalgorithms.Graph.covariance()
+```
+
+covariance(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards1: list[float], rewards2: list[float]) -> float
+
+### covariance_discrete { #ptdalgorithms.Graph.covariance_discrete }
+
+```python
+ptdalgorithms.Graph.covariance_discrete()
+```
+
+covariance_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards1: list[float], rewards2: list[float]) -> float
+
+### create_vertex { #ptdalgorithms.Graph.create_vertex }
+
+```python
+ptdalgorithms.Graph.create_vertex()
+```
+
+create_vertex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, state: list[int]) -> ptdalgorithms::Vertex
+
+### defect { #ptdalgorithms.Graph.defect }
+
+```python
+ptdalgorithms.Graph.defect()
+```
+
+defect(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> float
+
+### distribution_context { #ptdalgorithms.Graph.distribution_context }
+
+```python
+ptdalgorithms.Graph.distribution_context()
+```
+
+distribution_context(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, granularity: int = 0) -> ptdalgorithms::ProbabilityDistributionContext
+
+### distribution_context_discrete { #ptdalgorithms.Graph.distribution_context_discrete }
+
+```python
+ptdalgorithms.Graph.distribution_context_discrete()
+```
+
+distribution_context_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> ptdalgorithms::DPHProbabilityDistributionContext
+
+### expectation { #ptdalgorithms.Graph.expectation }
+
+```python
+ptdalgorithms.Graph.expectation()
+```
+
+expectation(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float] = []) -> float
+
+
+//' Computes the expectation (mean) of the phase-type distribution
+//' 
+//' @description
+//' This function invokes [ptdalgorithms::expected_waiting_times()]
+//' and takes the first entry (from starting vertex)
+//' 
+//' @return The expectation of the distribution
+//' 
+//' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+//' @param rewards Optional rewards, which should be applied to the phase-type distribution. Must have length equal to [ptdalgorithms::vertices_length()]
+//' 
+//' @seealso [ptdalgorithms::expected_waiting_time()]
+//' @seealso [ptdalgorithms::moments()]
+//' @seealso [ptdalgorithms::variance()]
+//' @seealso [ptdalgorithms::covariance()]
+//' 
+//' @examples
+//' graph <- ptdalgorithms::create_graph(4)
+//' v1 <- ptdalgorithms::create_vertex(graph, c(1,2,3,4))
+//' v2 <- ptdalgorithms::create_vertex(graph, c(4,0,3,3))
+//' a <- ptdalgorithms::create_vertex(graph, c(0,0,0,0))
+//' ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), v1, 1)
+//' ptdalgorithms::add_edge(v1, v2, 4)
+//' ptdalgorithms::add_edge(v2, a, 10)
+//' ptdalgorithms::expectation(graph) # =>
+//'   0.35
+//' ptdalgorithms::expectation(graph, c(0,2,1,0)) # =>
+//'   0.6
+//' ph <- ptdalgorithms::graph_as_matrix(graph)
+//' # This is a much faster version of
+//' ph$IPV%*%solve(-ph$SIM) %*% rep(1, length(ph$IPV)) # =>
+//'   0.35
+//' ph$IPV%*%solve(-ph$SIM) %*% diag(c(2,1))%*% rep(1, length(ph$IPV)) # =>
+//'   0.35
+
+### expectation_dag { #ptdalgorithms.Graph.expectation_dag }
+
+```python
+ptdalgorithms.Graph.expectation_dag()
+```
+
+expectation_dag(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float]) -> ptdalgorithms.ptdalgorithmscpp_pybind.Graph
+
+### expectation_discrete { #ptdalgorithms.Graph.expectation_discrete }
+
+```python
+ptdalgorithms.Graph.expectation_discrete()
+```
+
+expectation_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, arg0: list[float]) -> float
+
+### expected_residence_time { #ptdalgorithms.Graph.expected_residence_time }
+
+```python
+ptdalgorithms.Graph.expected_residence_time()
+```
+
+expected_residence_time(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float] = []) -> list[float]
+
+### expected_visits_discrete { #ptdalgorithms.Graph.expected_visits_discrete }
+
+```python
+ptdalgorithms.Graph.expected_visits_discrete()
+```
+
+expected_visits_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, jumps: int) -> list[float]
+
+### expected_waiting_time { #ptdalgorithms.Graph.expected_waiting_time }
+
+```python
+ptdalgorithms.Graph.expected_waiting_time()
+```
+
+expected_waiting_time(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float] = []) -> list[float]
+
+### find_or_create_vertex { #ptdalgorithms.Graph.find_or_create_vertex }
+
+```python
+ptdalgorithms.Graph.find_or_create_vertex()
+```
+
+find_or_create_vertex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, state: list[int]) -> ptdalgorithms::Vertex
+
+
+//' Find or create a vertex matching `state`
+//' 
+//' @description
+//' Finds a vertex by the `state` parameter. If no such
+//' vertex exists, it creates the vertex and adds it to
+//' the graph object instead.
+//' 
+//' @details
+//' A faster and simpler version of calling [ptdalgorithms::find_vertex()] and  [ptdalgorithms::create_vertex()]
+//' 
+//' @return The newly found or inserted vertex in the graph
+//' 
+//' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+//' @param state An integer vector of what vertex to look for. Has length as given by `state_length` in  [ptdalgorithms::create_graph()]
+//' 
+//' @examples
+//' graph <- create_graph(4)
+//' find_or_create_vertex(graph, c(1,2,1,0)) # Adds and returns the vertex
+//' find_or_create_vertex(graph, c(1,2,1,0)) # Only returns the vertex
+//' # `graph` is now changed permanently
+
+### find_vertex { #ptdalgorithms.Graph.find_vertex }
+
+```python
+ptdalgorithms.Graph.find_vertex()
+```
+
+find_vertex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, state: list[int]) -> ptdalgorithms::Vertex
+
+### focv { #ptdalgorithms.Graph.focv }
+
+```python
+ptdalgorithms.Graph.focv()
+```
+
+focv(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, state: list[int]) -> ptdalgorithms::Vertex
+
+
+Alias for find_or_create_vertex
+
+### is_acyclic { #ptdalgorithms.Graph.is_acyclic }
+
+```python
+ptdalgorithms.Graph.is_acyclic()
+```
+
+is_acyclic(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> bool
+
+### moments { #ptdalgorithms.Graph.moments }
+
+```python
+ptdalgorithms.Graph.moments()
+```
+
+moments(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, power: int, rewards: list[float] = []) -> list[float]
+
+
+//' Computes the first `k` moments of the phase-type distribution
+//' 
+//' @description
+//' This function invokes [ptdalgorithms::expected_waiting_times()] consequtively to find the first moments,
+//' given by the `power` argument
+//' 
+//' @return A numeric vector of the first `k` moments. The first entry is the first moment (mean)
+//' 
+//' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+//' @param power An integer of the first `k` moments.
+//' @param rewards Optional rewards, which should be applied to the phase-type distribution. Must have length equal to [ptdalgorithms::vertices_length()]
+//' 
+//' @seealso [ptdalgorithms::expected_waiting_time()]
+//' @seealso [ptdalgorithms::expectation()]
+//' @seealso [ptdalgorithms::variance()]
+//' @seealso [ptdalgorithms::covariance()]
+//' 
+//' @examples
+//' graph <- ptdalgorithms::create_graph(4)
+//' v1 <- ptdalgorithms::create_vertex(graph, c(1,2,3,4))
+//' v2 <- ptdalgorithms::create_vertex(graph, c(4,0,3,3))
+//' a <- ptdalgorithms::create_vertex(graph, c(0,0,0,0))
+//' ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), v1, 1)
+//' ptdalgorithms::add_edge(v1, v2, 4)
+//' ptdalgorithms::add_edge(v2, a, 10)
+//' ptdalgorithms::moments(graph, 3) # =>
+//'   (0.350000 0.097500 0.025375)
+//' ptdalgorithms::moments(graph, 3, c(0,2,1,0)) # =>
+//'   (0.600 0.160 0.041)
+
+### normalize { #ptdalgorithms.Graph.normalize }
+
+```python
+ptdalgorithms.Graph.normalize()
+```
+
+normalize(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> list[float]
+
+### normalize_discrete { #ptdalgorithms.Graph.normalize_discrete }
+
+```python
+ptdalgorithms.Graph.normalize_discrete()
+```
+
+normalize_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> list[float]
+
+### notify_change { #ptdalgorithms.Graph.notify_change }
+
+```python
+ptdalgorithms.Graph.notify_change()
+```
+
+notify_change(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> None
+
+### pdf { #ptdalgorithms.Graph.pdf }
+
+```python
+ptdalgorithms.Graph.pdf()
+```
+
+pdf(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, time: numpy.ndarray[numpy.float32], granularity: numpy.ndarray[numpy.int32] = 0) -> object
+
+### pmf_discrete { #ptdalgorithms.Graph.pmf_discrete }
+
+```python
+ptdalgorithms.Graph.pmf_discrete()
+```
+
+pmf_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, jumps: numpy.ndarray[numpy.int32]) -> object
+
+### random_sample_discrete_stop_vertex { #ptdalgorithms.Graph.random_sample_discrete_stop_vertex }
+
+```python
+ptdalgorithms.Graph.random_sample_discrete_stop_vertex()
+```
+
+random_sample_discrete_stop_vertex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, jumps: int) -> int
+
+### random_sample_stop_vertex { #ptdalgorithms.Graph.random_sample_stop_vertex }
+
+```python
+ptdalgorithms.Graph.random_sample_stop_vertex()
+```
+
+random_sample_stop_vertex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, time: float) -> int
+
+### reward_transform { #ptdalgorithms.Graph.reward_transform }
+
+```python
+ptdalgorithms.Graph.reward_transform()
+```
+
+reward_transform(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float]) -> ptdalgorithms.ptdalgorithmscpp_pybind.Graph
+
+### reward_transform_discrete { #ptdalgorithms.Graph.reward_transform_discrete }
+
+```python
+ptdalgorithms.Graph.reward_transform_discrete()
+```
+
+reward_transform_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[int]) -> ptdalgorithms.ptdalgorithmscpp_pybind.Graph
+
+### sample { #ptdalgorithms.Graph.sample }
+
+```python
+ptdalgorithms.Graph.sample()
+```
+
+sample(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, n: int = 1, rewards: list[float] = []) -> list[float]
+
+### sample_discrete { #ptdalgorithms.Graph.sample_discrete }
+
+```python
+ptdalgorithms.Graph.sample_discrete()
+```
+
+sample_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, n: int = 1, rewards: list[float] = []) -> list[float]
+
+### sample_multivariate { #ptdalgorithms.Graph.sample_multivariate }
+
+```python
+ptdalgorithms.Graph.sample_multivariate()
+```
+
+sample_multivariate(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, n: int = 1, rewards: numpy.ndarray[numpy.float64[m, n]] = []) -> numpy.ndarray[numpy.float64[m, n]]
+
+### sample_multivariate_discrete { #ptdalgorithms.Graph.sample_multivariate_discrete }
+
+```python
+ptdalgorithms.Graph.sample_multivariate_discrete()
+```
+
+sample_multivariate_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, n: int = 1, rewards: numpy.ndarray[numpy.float64[m, n]] = []) -> numpy.ndarray[numpy.float64[m, n]]
+
+### starting_vertex { #ptdalgorithms.Graph.starting_vertex }
+
+```python
+ptdalgorithms.Graph.starting_vertex()
+```
+
+starting_vertex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> ptdalgorithms::Vertex
+
+### state_length { #ptdalgorithms.Graph.state_length }
+
+```python
+ptdalgorithms.Graph.state_length()
+```
+
+state_length(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> int
+
+### states { #ptdalgorithms.Graph.states }
+
+```python
+ptdalgorithms.Graph.states()
+```
+
+states(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> numpy.ndarray[numpy.int32[m, n]]
+
+
+//' Returns a matrix where each row is the state of the vertex at that index
+//' 
+//' @return A matrix of size [ptdalgorithms::vertices_length()] where the rows match the state of the vertex at that index
+//' 
+//' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+//' 
+//' @examples
+//' graph <- ptdalgorithms::create_graph(4)
+//' ptdalgorithms::create_vertex(graph, c(1,2,3,4))
+//' ptdalgorithms::create_vertex(graph, c(4,3,3,3))
+//' ptdalgorithms::states(graph) # => 
+//' # 0 0 0 0
+//' # 1 2 3 4
+//' # 4 3 3 3
+
+### stop_probability { #ptdalgorithms.Graph.stop_probability }
+
+```python
+ptdalgorithms.Graph.stop_probability()
+```
+
+stop_probability(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, time: float, granularity: int = 0) -> list[float]
+
+### stop_probability_discrete { #ptdalgorithms.Graph.stop_probability_discrete }
+
+```python
+ptdalgorithms.Graph.stop_probability_discrete()
+```
+
+stop_probability_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, jumps: int) -> list[float]
+
+### update_parameterized_weights { #ptdalgorithms.Graph.update_parameterized_weights }
+
+```python
+ptdalgorithms.Graph.update_parameterized_weights()
+```
+
+update_parameterized_weights(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float]) -> None
+
+
+//' Updates all parameterized edges of the graph by given scalars.
+//' 
+//' @description
+//' Given a vector of scalars, computes a new weight of
+//' the parameterized edges in the graph by a simple inner
+//' product of the edge state vector and the scalar vector.
+//' 
+//' @details
+//' A faster and simpler version to compute new moments, when
+//' the user wants to try multiple different weights.
+//'
+//' 
+//' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+//' @param scalars A numeric vector of multiplies for the edge states.
+//' 
+//' @seealso [ptdalgorithms::expected_waiting_time()]
+//' @seealso [ptdalgorithms::add_edge()]
+//' 
+//' @examples
+//' graph <- create_graph(4)
+//' v1 <- find_or_create_vertex(graph, c(1,2,1,0))
+//' v2 <- find_or_create_vertex(graph, c(2,0,1,0))
+//' add_edge(starting_vertex(graph), v1, 5)
+//' add_edge(v1, v2, 0, c(5,2))
+//' edges(starting_vertex(graph))[[1]]$weight # => 5
+//' edges(v1)[[1]]$weight # => 0
+//' graph_update_weights_parameterized(graph, c(9,7))
+//' edges(starting_vertex(graph))[[1]]$weight # => 5
+//' edges(v1)[[1]]$weight # => 59
+
+### validate { #ptdalgorithms.Graph.validate }
+
+```python
+ptdalgorithms.Graph.validate()
+```
+
+validate(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> None
+
+### variance { #ptdalgorithms.Graph.variance }
+
+```python
+ptdalgorithms.Graph.variance()
+```
+
+variance(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float] = []) -> float
+
+
+//' Computes the variance of the phase-type distribution
+//' 
+//' @description
+//' This function invokes [ptdalgorithms::expected_waiting_times()]
+//' twice to find the first and second moment
+//' 
+//' @return The variance of the distribution
+//' 
+//' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+//' @param rewards Optional rewards, which should be applied to the phase-type distribution. Must have length equal to [ptdalgorithms::vertices_length()]
+//' 
+//' @seealso [ptdalgorithms::expected_waiting_time()]
+//' @seealso [ptdalgorithms::expectation()]
+//' @seealso [ptdalgorithms::moments()]
+//' @seealso [ptdalgorithms::covariance()]
+//' 
+//' @examples
+//' graph <- ptdalgorithms::create_graph(4)
+//' v1 <- ptdalgorithms::create_vertex(graph, c(1,2,3,4))
+//' v2 <- ptdalgorithms::create_vertex(graph, c(4,0,3,3))
+//' a <- ptdalgorithms::create_vertex(graph, c(0,0,0,0))
+//' ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), v1, 1)
+//' ptdalgorithms::add_edge(v1, v2, 4)
+//' ptdalgorithms::add_edge(v2, a, 10)
+//' ptdalgorithms::variance(graph) # =>
+//'   0.0725
+//' ptdalgorithms::variance(graph, c(0,2,1,0)) # =>
+//'   0.26
+//' ph <- ptdalgorithms::graph_as_matrix(graph)
+//' # This is a much faster version of
+//' 2*ph$IPV%*%solve(-ph$SIM)%*%solve(-ph$SIM) %*% rep(1, length(ph$IPV)) - ph$IPV%*%solve(-ph$SIM) %*% rep(1, length(ph$IPV)) %*% ph$IPV%*%solve(-ph$SIM) %*% rep(1, length(ph$IPV)) # =>
+//'   0.0725
+//' 2*ph$IPV%*%solve(-ph$SIM)%*%diag(c(2,1))%*%solve(-ph$SIM)%*%diag(c(2,1)) %*% rep(1, length(ph$IPV)) - ph$IPV%*%solve(-ph$SIM)%*%diag(c(2,1)) %*% rep(1, length(ph$IPV)) %*% ph$IPV%*%solve(-ph$SIM)%*%diag(c(2,1)) %*% rep(1, length(ph$IPV)) # =>
+//'   0.26
+
+### variance_discrete { #ptdalgorithms.Graph.variance_discrete }
+
+```python
+ptdalgorithms.Graph.variance_discrete()
+```
+
+variance_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, arg0: list[float]) -> float
+
+### vertex_at { #ptdalgorithms.Graph.vertex_at }
+
+```python
+ptdalgorithms.Graph.vertex_at()
+```
+
+vertex_at(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, index: int) -> ptdalgorithms::Vertex
+
+### vertex_exists { #ptdalgorithms.Graph.vertex_exists }
+
+```python
+ptdalgorithms.Graph.vertex_exists()
+```
+
+vertex_exists(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, state: list[int]) -> bool
+
+### vertices { #ptdalgorithms.Graph.vertices }
+
+```python
+ptdalgorithms.Graph.vertices()
+```
+
+vertices(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> list[ptdalgorithms::Vertex]
+
+
+//' Obtain a list of all vertices in the graph
+//' 
+//' @description
+//' Returns all vertices that have been added to the
+//' graph from either calling `find_or_create_vertex` or
+//' `create_vertex`. The first vertex in the list is
+//' *always* the starting vertex [ptdalgorithms::starting_vertex()].
+//' Importantly, for speed, use [ptdalgorithms::vertices_length()] to get the number
+//' of added vertices, and use [ptdalgorithms::vertex_at()] to
+//' get a vertex at a particular index.
+//' 
+//' @details
+//' The list of vertices contains any added vertex, even
+//' if it does not have any in-going / out-going edges.
+//' 
+//' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+//' 
+//' @seealso [ptdalgorithms::starting_vertex()]
+//' @seealso [ptdalgorithms::vertices_length()]
+//' @seealso [ptdalgorithms::vertex_at()]
+//' 
+//' @examples
+//' graph <- create_graph(4)
+//' vertex_a <- find_or_create_vertex(graph, c(1,2,1,0))
+//' vertex_b <- find_or_create_vertex(graph, c(2,0,1,0))
+//' vertices(graph)[[1]] == starting_vertex(graph)
+//' vertices(graph)[[2]] == vertex_at(graph, 2)
+//' vertices_length(graph) == 3
+
+### vertices_length { #ptdalgorithms.Graph.vertices_length }
+
+```python
+ptdalgorithms.Graph.vertices_length()
+```
+
+vertices_length(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> int

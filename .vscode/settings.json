@@ -59,7 +59,8 @@
         "algorithm": "cpp",
         "memory": "cpp",
         "print": "cpp",
-        "queue": "cpp"
+        "queue": "cpp",
+        "iterator": "cpp"
     },
     "cSpell.words": [
         "ptdalgorithmscpp"

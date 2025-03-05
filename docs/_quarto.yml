@@ -86,6 +86,7 @@ quartodoc:
   render_interlinks: true
   options:
     signature_name: full
+    include_inherited: true
   renderer:
     style: markdown
     table_style: description-list
