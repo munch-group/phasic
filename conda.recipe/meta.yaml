@@ -24,7 +24,7 @@ requirements:
 
 test:
   imports:
-    - ptdalgorithm
+    - ptdalgorithms
   # source_files:
   #   - tests
   # commands:

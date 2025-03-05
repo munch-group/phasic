@@ -4,6 +4,8 @@ import platform
 from setuptools import setup, find_packages
 from pybind11.setup_helpers import Pybind11Extension, ParallelCompile, build_ext, naive_recompile
 
+version = "0.1.3"
+
 # Optional multithreaded build
 ParallelCompile("NPY_NUM_BUILD_JOBS").install()
 
@@ -37,7 +39,7 @@ ext_modules = [
 setup(name='ptdalgorithms',
       package_dir = {'ptdalgorithms': 'ptdalgorithms'},
     #   test_suite='tests',
-      version='0.1.2',
+      version=version,
       description='',
       long_description='',
       author='',
