@@ -419,29 +419,7 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
     
   py::class_<ptdalgorithms::Graph>(m, "Graph")
 
-    .def(py::init<int>(), py::arg("state_length"), R"delim(
-    Create a graph representing a phase-type distribution.
-
-    This is the primary entry-point of the library.
-
-    There will *always* be a starting vertex added to the graph.
-
-    Notice that when the library functions are invoked on this object, the object is *mutated*, i.e. changed, which may be surprising considering the normal behavior of R objects.
-
-    Parameters
-    ----------
-    state_length : size_t
-        The length of the integer vector used to represent and reference a state.
-
-    Returns
-    -------
-    SEXP
-        Simple reference to a CPP object.
-
-    Examples
-    --------
-    >>> graph <- create_graph(4)
-      )delim")
+    .def(py::init<int>(), py::arg("state_length"))
 
 
       // .def("__iter__",
@@ -452,98 +430,81 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
       //   )delim")
   
 
-    .def(py::init<struct ::ptd_graph* >(), py::arg("ptd_graph"), R"delim(
+    .def(py::init<struct ::ptd_graph* >(), py::arg("ptd_graph"))
 
-      )delim")
-
-    .def(py::init<struct ::ptd_graph*, struct ::ptd_avl_tree* >(), py::arg("ptd_graph"), py::arg("ptd_avl_tree"), R"delim(
-
-      )delim")
+    .def(py::init<struct ::ptd_graph*, struct ::ptd_avl_tree* >(), py::arg("ptd_graph"), py::arg("ptd_avl_tree"))
       
-    .def(py::init<const ptdalgorithms::Graph>(), py::arg("o"), R"delim(
+    .def(py::init<const ptdalgorithms::Graph>(), py::arg("o"))
 
-      )delim")
-
-      .def(py::init<struct ::ptd_graph*, struct ::ptd_avl_tree* >(), py::arg("ptd_graph"), py::arg("ptd_avl_tree"), R"delim(
-
-    )delim")
+    .def(py::init<struct ::ptd_graph*, struct ::ptd_avl_tree* >(), py::arg("ptd_graph"), py::arg("ptd_avl_tree"))
     
     .def(py::init(&build_state_space_callback_dicts), 
-      py::arg("callback_dicts"), py::arg("initial_state"), R"delim(
-
-        )delim")
+      py::arg("callback_dicts"), py::arg("initial_state"))
 
     .def(py::init(&build_state_space_callback_tuples),
-          py::arg("callback_tuples"), py::arg("initial_state"), R"delim(
+          py::arg("callback_tuples"), py::arg("initial_state"))
 
-      )delim")
-
-
-    .def("create_vertex", static_cast<ptdalgorithms::Vertex (ptdalgorithms::Graph::*)(std::vector<int>)>(&ptdalgorithms::Graph::create_vertex), py::arg("state"), 
+    .def("_create_vertex", static_cast<ptdalgorithms::Vertex (ptdalgorithms::Graph::*)(std::vector<int>)>(&ptdalgorithms::Graph::create_vertex), py::arg("state"), 
       py::return_value_policy::copy, R"delim(
-    Create a vertex matching `state`.
+      
+      Warning: the function [ptdalgorithms::find_or_create_vertex()] should be preferred. 
+      This function will *not* update the lookup tree, so [ptdalgorithms::find_vertex()] will *not* return it.
+      Creates a vertex matching `state`. Creates the vertex and adds it to the graph object. 
 
-    Creates the vertex and adds it to the graph object. Warning: the function [ptdalgorithms::find_or_create_vertex()] should be preferred. This function will *not* update the lookup tree, so [ptdalgorithms::find_vertex()] will *not* return it.
+      Parameters
+      ----------
+      state : ArrayLike
+          An integer sequence defining the state represented by the new vertex.
 
-    Parameters
-    ----------
-    phase_type_graph : SEXP
-        A reference to the graph created by [ptdalgorithms::create_graph()].
-    state : IntegerVector
-        An integer vector of the newly added vertex. Has length as given by `state_length` in [ptdalgorithms::create_graph()].
-
-    Returns
-    -------
-    SEXP
-        The newly inserted vertex in the graph.
+      Returns
+      -------
+      Vertex
+          The newly inserted vertex in the graph.
       )delim")
       
     .def("find_vertex", static_cast<ptdalgorithms::Vertex (ptdalgorithms::Graph::*)(std::vector<int>)>(&ptdalgorithms::Graph::find_vertex), py::arg("state"), 
       py::return_value_policy::copy, R"delim(
-    Finds a vertex matching `state`.
+      Finds a vertex matching the `state` parameter.
 
-    Parameters
-    ----------
-    phase_type_graph : SEXP
-        A reference to the graph created by [ptdalgorithms::create_graph()].
-    state : IntegerVector
-        An integer vector of the newly added vertex. Has length as given by `state_length` in [ptdalgorithms::create_graph()].
+      Parameters
+      ----------
+      state : ArrayLike
+          An integer sequence defining the state represented by the new vertex.
 
-    Returns
-    -------
-    SEXP
-        The found vertex in the graph or NA.
+      Returns
+      -------
+      Vertex
+          The found vertex in the graph or None.
       )delim")
       
     .def("vertex_exists", static_cast<bool (ptdalgorithms::Graph::*)(std::vector<int>)>(&ptdalgorithms::Graph::vertex_exists), py::arg("state"), 
       py::return_value_policy::reference_internal, R"delim(
 
+
+
+
       )delim")
       
     .def("find_or_create_vertex", static_cast<ptdalgorithms::Vertex (ptdalgorithms::Graph::*)(std::vector<int>)>(&ptdalgorithms::Graph::find_or_create_vertex), py::arg("state"), 
       py::return_value_policy::copy, R"delim(
-    Find or create a vertex matching `state`.
+      Finds a vertex matching the `state` parameter. If no such vertex exists, it creates the vertex and adds it to the graph object instead.
 
-    Finds a vertex by the `state` parameter. If no such vertex exists, it creates the vertex and adds it to the graph object instead.
+      Parameters
+      ----------
+      state : ArrayLike
+          An integer sequence defining the state represented by the new vertex.
 
-    Parameters
-    ----------
-    phase_type_graph : SEXP
-        A reference to the graph created by [ptdalgorithms::create_graph()].
-    state : IntegerVector
-        An integer vector of what vertex to look for. Has length as given by `state_length` in [ptdalgorithms::create_graph()].
+      Returns
+      -------
+      Vertex
+          The newly found or inserted vertex in the graph.
 
-    Returns
-    -------
-    List
-        The newly found or inserted vertex in the graph.
-
-    Examples
-    --------
-    >>> graph <- create_graph(4)
-    >>> find_or_create_vertex(graph, c(1,2,1,0)) # Adds and returns the vertex
-    >>> find_or_create_vertex(graph, c(1,2,1,0)) # Only returns the vertex
-    >>> # `graph` is now changed permanently
+      Examples
+      --------
+      ```
+      graph = Graph(4)
+      graph.find_or_create_vertex([1,2,1,0])
+      ````
       )delim")
       
     .def("focv", static_cast<ptdalgorithms::Vertex (ptdalgorithms::Graph::*)(std::vector<int>)>(&ptdalgorithms::Graph::find_or_create_vertex), py::arg("state"), 
@@ -553,81 +514,59 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
     .def("starting_vertex", &ptdalgorithms::Graph::starting_vertex, 
       py::return_value_policy::copy, R"delim(
-    Returns the special starting vertex of the graph.
+      Returns the special starting vertex of the graph. The starting vertex is always added at graph creation and always has index 0.
 
-    The starting vertex is always added to the graph after calling [ptdalgorithms::create_graph()], and always has the first index in [ptdalgorithms::vertex_at()].
-
-    Parameters
-    ----------
-    phase_type_graph : SEXP
-        A reference to the graph created by [ptdalgorithms::create_graph()].
-
-    Returns
-    -------
-    List
-        The starting vertex.
+      Returns
+      -------
+      Vertex
+          The starting vertex.
       )delim")
       
     .def("vertices", &ptdalgorithms::Graph::vertices, 
       py::return_value_policy::copy, R"delim(
-    Obtain a list of all vertices in the graph.
+      Returns all vertices that have been added to the graph from either calling `find_or_create_vertex` or `create_vertex`. 
+      The first vertex in the list is *always* the starting vertex.
 
-    Returns all vertices that have been added to the graph from either calling `find_or_create_vertex` or `create_vertex`. The first vertex in the list is *always* the starting vertex [ptdalgorithms::starting_vertex()].
+      Returns
+      -------
+      List
+          A list of all vertices in the graph.
 
-    Parameters
-    ----------
-    phase_type_graph : SEXP
-        A reference to the graph created by [ptdalgorithms::create_graph()].
-
-    Returns
-    -------
-    List
-        A list of all vertices in the graph.
-
-    Examples
-    --------
-    >>> graph <- create_graph(4)
-    >>> vertex_a <- find_or_create_vertex(graph, c(1,2,1,0))
-    >>> vertex_b <- find_or_create_vertex(graph, c(2,0,1,0))
-    >>> vertices(graph)[[1]] == starting_vertex(graph)
-    >>> vertices(graph)[[2]] == vertex_at(graph, 2)
-    >>> vertices_length(graph) == 3
+      Examples
+      --------
+      graph.create_graph(4)
+      vertex_a = find_or_create_vertex([1,2,1,0])
+      vertex_b = find_or_create_vertex([2,0,1,0])
+      graph.vertices()[0] == graph.starting_vertex()
+      graph.vertices()[1] == graph.vertex_at(1)
+      graph.vertices_length() == 3
       )delim")
       
     .def("vertex_at", &ptdalgorithms::Graph::vertex_at, py::arg("index"), 
       py::return_value_policy::copy, R"delim(
-    Returns a vertex at a particular index.
+      Returns a vertex at a particular index. This method is much faster than `Graph.vertices()[i]`.
 
-    This method is much faster than calling `ptdalgorithms::vertices()[i]`. Uses 1-indexing like usual R, so first vertex is 1.
+      Parameters
+      ----------
+      phase_type_graph : SEXP
+          A reference to the graph created by [ptdalgorithms::create_graph()].
+      index : int
+          The index of the vertex to find.
 
-    Parameters
-    ----------
-    phase_type_graph : SEXP
-        A reference to the graph created by [ptdalgorithms::create_graph()].
-    index : int
-        The index of the vertex to find.
-
-    Returns
-    -------
-    List
-        The vertex at index `index` in the graph.
-      )delim")
+      Returns
+      -------
+      List
+          The vertex at index `index` in the graph.
+        )delim")
       
     .def("vertices_length", &ptdalgorithms::Graph::vertices_length, 
       py::return_value_policy::reference_internal, R"delim(
-    Returns the number of vertices in the graph.
+      Returns the number of vertices in the graph. This method is much faster than `len(Graph.vertices())`.
 
-    This method is much faster than calling `length(ptdalgorithms::vertices())`.
-
-    Parameters
-    ----------
-    phase_type_graph : SEXP
-        A reference to the graph created by [ptdalgorithms::create_graph()].
-
-    Returns
-    -------
-    int
-        An integer of the number of vertices.
+      Returns
+      -------
+      int
+          The number of vertices.
       )delim")
 
     .def("states",
@@ -647,20 +586,12 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
           return states;
       }, py::return_value_policy::copy, R"delim(
-//' Returns a matrix where each row is the state of the vertex at that index
-//' 
-//' @return A matrix of size [ptdalgorithms::vertices_length()] where the rows match the state of the vertex at that index
-//' 
-//' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
-//' 
-//' @examples
-//' graph <- ptdalgorithms::create_graph(4)
-//' ptdalgorithms::create_vertex(graph, c(1,2,3,4))
-//' ptdalgorithms::create_vertex(graph, c(4,3,3,3))
-//' ptdalgorithms::states(graph) # => 
-//' # 0 0 0 0
-//' # 1 2 3 4
-//' # 4 3 3 3
+      Returns a matrix where each row is the state of the vertex at that index.
+
+      Returns
+      -------
+      int
+         A matrix of size [ptdalgorithms::vertices_length()] where the rows match the state of the vertex at that index
       )delim")
 
     .def("__repr__",
@@ -679,71 +610,68 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
 
     .def("update_parameterized_weights", &ptdalgorithms::Graph::update_weights_parameterized, py::arg("rewards"), R"delim(
-    Updates all parameterized edges of the graph by given scalars.
-
-    Given a vector of scalars, computes a new weight of the parameterized edges in the graph by a simple inner product of the edge state vector and the scalar vector.
+    Updates all parameterized edges of the graph by given scalars. Given a vector of scalars, 
+    computes a new weight of the parameterized edges in the graph by a simple inner product of
+    the edge state vector and the scalar vector.
 
     Parameters
     ----------
-    phase_type_graph : SEXP
-        A reference to the graph created by [ptdalgorithms::create_graph()].
-    scalars : NumericVector
+    scalars : ArrayLike
         A numeric vector of multiplies for the edge states.
 
     Examples
     --------
-    >>> graph <- create_graph(4)
-    >>> v1 <- find_or_create_vertex(graph, c(1,2,1,0))
-    >>> v2 <- find_or_create_vertex(graph, c(2,0,1,0))
-    >>> add_edge(starting_vertex(graph), v1, 5)
-    >>> add_edge(v1, v2, 0, c(5,2))
-    >>> edges(starting_vertex(graph))[[1]]$weight # => 5
-    >>> edges(v1)[[1]]$weight # => 0
-    >>> graph_update_weights_parameterized(graph, c(9,7))
-    >>> edges(starting_vertex(graph))[[1]]$weight # => 5
-    >>> edges(v1)[[1]]$weight # => 59
+    graph = Graph(4)
+    v1 = graph.find_or_create_vertex([1, 2, 1, 0])
+    v2 = graph.find_or_create_vertex([2, 0, 1, 0])
+    graph.starting_vertex().add_edge(v1, 5)
+    v1.add_edge(v2, 0, [5,2])
+    graph.starting_vertex().edges()[0].weight()5
+    v1.edges()[0].weight() # => 0
+    graph.update_weights_parameterized([9,7])
+    graph.starting_vertex().edges()[0]].weight() # => 5
+    v1.edges()[0].weight() # => 59
       )delim")
 
 
     .def("moments",
       [](ptdalgorithms::Graph &graph, int power, std::vector<double> &rewards) {
 
+
         return _moments(graph, power, rewards);
 
-      }, py::return_value_policy::move, py::arg("power"), py::arg("rewards")=std::vector<double>(), R"delim(
-    Computes the first `k` moments of the phase-type distribution.
+      }, " XXX lkas dlfakjs dlakj sdlfkajs dflaksjd flaksdjf ", py::return_value_policy::move, py::arg("power"), py::arg("rewards")=std::vector<double>(),
+      """
+      Computes the first `power` moments of the phase-type distribution. This function invokes 
+      `Graph.expected_waiting_times()` consecutively to find the first moments, given by the `power` argument.
 
-    This function invokes `ptdalgorithms::expected_waiting_times()` consecutively to find the first moments, given by the `power` argument.
+      Parameters
+      ----------
+      power : int
+          The number of moments to compute.
+      rewards : ArrayLike, optional
+          Rewards to apply to the phase-type distribution.
 
-    Parameters
-    ----------
-    phase_type_graph : SEXP
-        A reference to the graph created by `ptdalgorithms::create_graph()`.
-    power : int
-        An integer of the first `k` moments.
-    rewards : NumericVector, optional
-        Optional rewards, which should be applied to the phase-type distribution. Must have length equal to `ptdalgorithms::vertices_length()`.
+      Returns
+      -------
+      Array
+          Array of the first `power` moments. The first entry is the first moment (mean).
 
-    Returns
-    -------
-    NumericVector
-        A numeric vector of the first `k` moments. The first entry is the first moment (mean).
-
-    Examples
-    --------
-    >>> graph <- ptdalgorithms::create_graph(4)
-    >>> v1 <- ptdalgorithms::create_vertex(graph, c(1,2,3,4))
-    >>> v2 <- ptdalgorithms::create_vertex(graph, c(4,0,3,3))
-    >>> a <- ptdalgorithms::create_vertex(graph, c(0,0,0,0))
-    >>> ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), v1, 1)
-    >>> ptdalgorithms::add_edge(v1, v2, 4)
-    >>> ptdalgorithms::add_edge(v2, a, 10)
-    >>> ptdalgorithms::moments(graph, 3) # =>
-    >>>   (0.350000 0.097500 0.025375)
-    >>> ptdalgorithms::moments(graph, 3, c(0,2,1,0)) # =>
-    >>>   (0.600 0.160 0.041)
-      )delim")     
-
+      Examples
+      --------
+      >>> graph = Graph(4)
+      >>> v1 = graph.create_vertex([1,2,3,4])
+      >>> v2 = graph.create_vertex([4,0,3,3])
+      >>> a = graph.create_vertex([0,0,0,0])
+      >>> graph.starting_vertex().add_edge(v1, 1)
+      >>> v1.add_edge(v2, 4)
+      >>> v2.add_edge(a, 10)
+      >>> graph.moments(3)
+      (0.350000 0.097500 0.025375)
+      >>> ptdalgorithms::moments(graph, 3, [0,2,1,0])
+      (0.600 0.160 0.041)
+      """
+    )
     .def("expectation",
       [](ptdalgorithms::Graph &graph, std::vector<double> rewards) {
           return graph.expected_waiting_time(rewards)[0];

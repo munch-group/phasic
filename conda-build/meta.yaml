@@ -1,0 +1,47 @@
+{% set data = load_setup_py_data() %}
+
+package:
+  name: libraryname
+  version: {{ data.get('version') }}  
+
+source:
+  git_url: https://github.com/munch-group/ptdalgorithms.git
+
+build:
+  number: 0
+  script: python -m pip install . -vv
+  # entry_points:
+  #   - exercises = exercise_client:launch_exercise
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+  host:
+    - python
+    - pip
+    - pybind11 >=2.10.0
+  run:  # your library dependencies
+    - python
+    - graphviz
+    - python-graphviz
+    - ipython
+
+channels:  # channels for your library dependencies
+  - uibcdf
+  - conda-forge
+  - default
+
+dependencies:   # Keep this block with only these two packages
+  - anaconda-client
+  - conda-build=24 # from 25 the output file is a .conda not .tar.bz2
+  - conda-verify
+  
+test:
+  imports:
+    - ptdalgorithms
+
+about:
+  home: https://github.com/munch-group/ptdalgorithms.git
+  license: MIT
+  dev_url: https://github.com/munch-group/ptdalgorithms.git
+  doc_url: https://munch-group.org/ptdalgorithms

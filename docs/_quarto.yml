@@ -80,9 +80,11 @@ format:
       theme: neutral     
 
 quartodoc:
+  package: ptdalgorithms
+  # package: null
+  # source_dir: ../src/cpp
   style: pkgdown
   dir: api
-  package: ptdalgorithms
   render_interlinks: true
   options:
     signature_name: full
