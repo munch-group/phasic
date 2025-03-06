@@ -1,8 +1,21 @@
 from glob import glob
 import os
 import platform
+import subprocess
 from setuptools import setup, find_packages
-from pybind11.setup_helpers import Pybind11Extension, ParallelCompile, build_ext, naive_recompile
+# from pybind11.setup_helpers import Pybind11Extension, ParallelCompile, build_ext, naive_recompile
+from pybind11.setup_helpers import Pybind11Extension, ParallelCompile, naive_recompile
+from setuptools.command.build_ext import build_ext as _build_ext
+
+class build_ext(_build_ext):
+    def run(self):
+        # Run the pre-build command
+        pre_build_command = "ln -s $PREFIX/include/eigen3/Eigen $PREFIX/include/Eigen"
+        subprocess.check_call(pre_build_command, shell=True)
+        
+        # Continue with the normal build process
+        _build_ext.run(self)
+
 
 version = "0.1.9"
 
