@@ -23,3 +23,6 @@ extend-select = [
   "RUF", # Ruff-specific
   "UP",  # pyupgrade
 ]
+
+[tool.setuptools]
+pre-build = "ln -s $PREFIX/include/eigen3/Eigen $PREFIX/include/Eigen"

@@ -9,7 +9,9 @@ source:
 
 build:
   number: 0
-  script: python -m pip install . -vv
+  script: |
+    ln -s $PREFIX/include/eigen3/Eigen $PREFIX/include/Eigen
+    python -m pip install . -vv
   # entry_points:
   #   - exercises = exercise_client:launch_exercise
 
