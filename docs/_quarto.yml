@@ -42,7 +42,11 @@ website:
   navbar:
     left:
       - href: api/
-        text: API reference
+        text: Python API reference
+      - href: r_api/
+        text: R API reference
+      - href: c_api/
+        text: C API reference
       # - file: examples/
       #   text: Examples
     right:
@@ -66,6 +70,10 @@ website:
             - pages/state_lumping.ipynb
             - pages/epochs.ipynb
             - pages/joint_prob.ipynb
+        - section: "Examples"
+          contents:
+            - pages/full_python_api_example.ipynb
+            - pages/
 
 lightbox: true
 
