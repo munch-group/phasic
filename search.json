@@ -46,12 +46,12 @@
   {
     "objectID": "pages/joint_prob.html",
     "href": "pages/joint_prob.html",
-    "title": "ptdalgorithms",
+    "title": "Joint probabilities",
     "section": "",
-    "text": "title: Joint probabilities\n\n\n\n\n\n\n\n\n\nThis pages is under construction",
+    "text": "This pages is under construction",
     "crumbs": [
       "Advanced",
-      "title: Joint probabilities"
+      "Joint probabilities"
     ]
   },
   {
@@ -64,23 +64,23 @@
   {
     "objectID": "pages/distributions.html",
     "href": "pages/distributions.html",
-    "title": "ptdalgorithms",
+    "title": "Distributions",
     "section": "",
-    "text": "title: Distributions\n\n\n\n\n\n\n\n\n\nThis pages is under construction",
+    "text": "This pages is under construction",
     "crumbs": [
       "Basics",
-      "title: Distributions"
+      "Distributions"
     ]
   },
   {
     "objectID": "pages/laplace.html",
     "href": "pages/laplace.html",
-    "title": "ptdalgorithms",
+    "title": "Laplace transform",
     "section": "",
-    "text": "title: Laplace transform\n\n\n\n\n\n\n\n\n\nThis pages is under construction",
+    "text": "This pages is under construction",
     "crumbs": [
       "Basics",
-      "title: Laplace transform"
+      "Laplace transform"
     ]
   },
   {
@@ -135,12 +135,23 @@
   {
     "objectID": "pages/epochs.html",
     "href": "pages/epochs.html",
-    "title": "ptdalgorithms",
+    "title": "Epochs",
     "section": "",
-    "text": "title: Epochs\n\n\n\n\n\n\n\n\n\nThis pages is under construction",
+    "text": "This pages is under construction",
     "crumbs": [
       "Advanced",
-      "title: Epochs"
+      "Epochs"
+    ]
+  },
+  {
+    "objectID": "pages/state_lumping.html",
+    "href": "pages/state_lumping.html",
+    "title": "State lumping",
+    "section": "",
+    "text": "This pages is under construction",
+    "crumbs": [
+      "Advanced",
+      "State lumping"
     ]
   },
   {
@@ -148,7 +159,7 @@
     "href": "pages/getting_started.html",
     "title": "Getting started",
     "section": "",
-    "text": "The ptdalgorithms library provides fast and scalable algorithms for constructing and computing properties of phase-type distributions with support for both continuous and discrete, unrewarded and rewarded, univariate and multivariate distributions.\nThe library computes moments (e.g. expectation, variance, covariance), distribution functions (pdf, cdf, pmf), laplace transform, and Markov chain stopping time probabilities. Although phase-type distributions are time-homogeneous, the library also computes moments and univariate distributions for epoch-wise time-inhomogeneous models as well as full joint probability distributions.\nThe state-space is built as a graph using an simple API and take up very little space compared to a matrix representation. It handles millions of vertices (states) and edges (transitions) and is munch faster than the traditional matrix-based computation relying on (sparse) matrix inversion and exponentiation. For sparse models, it can be orders of magnitude faster. The code is written in C, but exposes an interface to both C, R and Python through a C++ layer.\nThe user iterativfely builds the the state-space using a simple API. The state-space can be imported from and exported to a matrix representation allowing the library to seamlessly embed into matrix based workflows.",
+    "text": "The ptdalgorithms library provides fast and scalable algorithms for constructing and computing properties of phase-type distributions with support for both continuous and discrete, unrewarded and rewarded, univariate and multivariate distributions. For sparse models, it can be orders of magnitude faster. The code is written in C, but exposes an interface to both C, R and Python through a C++ layer.\nThe library computes moments (e.g. expectation, variance, covariance), distribution functions (pdf, cdf, pmf), laplace transform, and Markov chain stopping time probabilities. Although phase-type distributions are time-homogeneous, the library also computes moments and univariate distributions for epoch-wise time-inhomogeneous models as well as full joint probability distributions.",
     "crumbs": [
       "Getting started"
     ]
@@ -178,7 +189,7 @@
     "href": "pages/state_space.html",
     "title": "State space",
     "section": "",
-    "text": "Consider this model: Rabbits jump between two islands at a rate of one. The two islands are flooded at rates 2 and 4 drowning all rabbits on the flooded island. The end (absorbing) is when no more rabbits are left.\nIn ptdalgorithms, each state is represented by a sequence of integers. To represent states in the rabbit model, we only need two such integer to represent the number of rabbits on the left and right islands. Laid out as in the above picture, the states are:\nTo skip some of the boilerplate you can pass a callback function and an initial state to Graph. The callback function must take as the only argument a list of int representing a state, and return: a list of tuples that each represent reachable child state and the associated transition rate. To create a callback function, just think of rules of your model and ask yourself:\nHere is an example for our rabbit model: If the current state is “two rabbits on the left island” ([2, 0]), the reachable states are: “one rabbit on each island” ([1, 1]) if one rabbit jumps and and “no rabbits” ([0, 0]) if the island is flodded. So if the callback function is called like this:\nit should return\nTogether, the callback and initial state fully specifies the model. Here is what they look like for the rabbit model:\nnr_rabbits, flood_left, flood_right = 2, 2, 4\n\ndef rabbit_islands(state):\n    nr_left, nr_right = state\n    reachable = []\n    if state[0] &gt; 0:\n        reachable.append(([nr_left-1, nr_right+1], 1))\n        reachable.append(([0,         nr_right  ], flood_left))\n    if state[1] &gt; 0:   \n        reachable.append(([nr_left+1, nr_right-1], 1))\n        reachable.append(([nr_left,   0         ], flood_right))\n    return reachable\n\ninitial_state = [nr_rabbits, 0]\nTo then build the state space all you need to do is:\nimport ptdalgorithms as ptd\n\ngraph = ptd.Graph(callback=rabbit_islands, initial=initial_state)\nPlot it to make sure it looks as expected. The gray S state is the “starting state” immediately transiting one or more model states where the model is allowed to begin. In the rabbit model, S goes to state 2,0 with probability 1 because the model can only begin there. The end (absorbing) state 0,0 is also colored gray.\ngraph.plot()",
+    "text": "The state-space is built as a graph using an simple API and take up very little space compared to a matrix representation. It handles millions of vertices (states) and edges (transitions) and is munch faster than the traditional matrix-based computation relying on (sparse) matrix inversion and exponentiation.\nConsider this model: Rabbits jump between two islands at a rate of one. The two islands are flooded at rates 2 and 4 drowning all rabbits on the flooded island. The end (absorbing) is when no more rabbits are left.\nIn ptdalgorithms, each state is represented by a sequence of integers. To represent states in the rabbit model, we only need two such integer to represent the number of rabbits on the left and right islands. Laid out as in the above picture, the states are:\nTo skip some of the boilerplate you can pass a callback function and an initial state to Graph. The callback function must take as the only argument a list of int representing a state, and return: a list of tuples that each represent reachable child state and the associated transition rate. To create a callback function, just think of rules of your model and ask yourself:\nHere is an example for our rabbit model: If the current state is “two rabbits on the left island” ([2, 0]), the reachable states are: “one rabbit on each island” ([1, 1]) if one rabbit jumps and and “no rabbits” ([0, 0]) if the island is flodded. So if the callback function is called like this:\nit should return\nTogether, the callback and initial state fully specifies the model. Here is what they look like for the rabbit model:\nnr_rabbits, flood_left, flood_right = 2, 2, 4\n\ndef rabbit_islands(state):\n    nr_left, nr_right = state\n    reachable = []\n    if state[0] &gt; 0:\n        reachable.append(([nr_left-1, nr_right+1], 1))\n        reachable.append(([0,         nr_right  ], flood_left))\n    if state[1] &gt; 0:   \n        reachable.append(([nr_left+1, nr_right-1], 1))\n        reachable.append(([nr_left,   0         ], flood_right))\n    return reachable\n\ninitial_state = [nr_rabbits, 0]\nTo then build the state space all you need to do is:\nimport ptdalgorithms as ptd\n\ngraph = ptd.Graph(callback=rabbit_islands, initial=initial_state)\nPlot it to make sure it looks as expected. The gray S state is the “starting state” immediately transiting one or more model states where the model is allowed to begin. In the rabbit model, S goes to state 2,0 with probability 1 because the model can only begin there. The end (absorbing) state 0,0 is also colored gray.\ngraph.plot()",
     "crumbs": [
       "Basics",
       "State space"
@@ -220,12 +231,12 @@
   {
     "objectID": "pages/moments.html",
     "href": "pages/moments.html",
-    "title": "ptdalgorithms",
+    "title": "Moments",
     "section": "",
-    "text": "title: Moments\n\n\n\n\n::: {.callout-caution }\n## This pages is under construction\n\n:::",
+    "text": "This pages is under construction",
     "crumbs": [
       "Basics",
-      "title: Moments"
+      "Moments"
     ]
   },
   {
