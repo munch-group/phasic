@@ -72,8 +72,8 @@ website:
             - pages/joint_prob.ipynb
         - section: "Examples"
           contents:
-            - pages/full_python_api_example.ipynb
-            - pages/
+            - examples/rabbits_full_py_api_example.ipynb
+            # - pages/
 
 lightbox: true
 
