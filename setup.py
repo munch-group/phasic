@@ -4,7 +4,7 @@ import platform
 from setuptools import setup, find_packages
 from pybind11.setup_helpers import Pybind11Extension, ParallelCompile, build_ext, naive_recompile
 
-version = "0.1.7"
+version = "0.1.8"
 
 # Optional multithreaded build
 ParallelCompile("NPY_NUM_BUILD_JOBS").install()
@@ -32,7 +32,8 @@ ext_modules = [
         sorted(glob("src/*/*.cpp") + glob("src/*/*.c")),
 #        cxx_std=11,
         extra_compile_args=extra_compile_args,
-        extra_link_args=extra_link_args
+        extra_link_args=extra_link_args,
+        include_dirs=[f"{conda}/include/", f"{conda}/include/eigen3/"],
     ),
 ]
 
