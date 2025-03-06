@@ -640,8 +640,7 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
         return _moments(graph, power, rewards);
 
-      }, " XXX lkas dlfakjs dlakj sdlfkajs dflaksjd flaksdjf ", py::return_value_policy::move, py::arg("power"), py::arg("rewards")=std::vector<double>(),
-      """
+      }, py::return_value_policy::move, py::arg("power"), py::arg("rewards")=std::vector<double>(), R"delim(
       Computes the first `power` moments of the phase-type distribution. This function invokes 
       `Graph.expected_waiting_times()` consecutively to find the first moments, given by the `power` argument.
 
@@ -670,8 +669,8 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
       (0.350000 0.097500 0.025375)
       >>> ptdalgorithms::moments(graph, 3, [0,2,1,0])
       (0.600 0.160 0.041)
-      """
-    )
+   )delim")
+    
     .def("expectation",
       [](ptdalgorithms::Graph &graph, std::vector<double> rewards) {
           return graph.expected_waiting_time(rewards)[0];
@@ -2462,37 +2461,37 @@ Computes the expected residence time of the phase-type distribution.
           A list containing the PDF, PMF, CDF, and time for the current probability distribution context.
 
 
-      )delim")
+      )delim");
       
 
-      distribution_context_stop_probability
-//' Returns the stop probability for the current probability distribution context for the phase-type distribution.
-//' 
-//' @description
-//' This allows the user to step through the distribution, computing e.g. the
-//' time-inhomogeneous distribution function or the expectation of a multivariate phase-type distribution.
-//' *mutates* the context
-//' 
-//' @seealso [ptdalgorithms::distribution_context()]
-//' 
-//' @param probability_distribution_context The context created by [ptdalgorithms::distribution_context()]
-//' 
-// [[Rcpp::export]]
+//       distribution_context_stop_probability
+// //' Returns the stop probability for the current probability distribution context for the phase-type distribution.
+// //' 
+// //' @description
+// //' This allows the user to step through the distribution, computing e.g. the
+// //' time-inhomogeneous distribution function or the expectation of a multivariate phase-type distribution.
+// //' *mutates* the context
+// //' 
+// //' @seealso [ptdalgorithms::distribution_context()]
+// //' 
+// //' @param probability_distribution_context The context created by [ptdalgorithms::distribution_context()]
+// //' 
+// // [[Rcpp::export]]
 
 
-NumericVector distribution_context_accumulated_visiting_time
-//' Returns the accumulated visiting time (integral of stop probability) for the current probability distribution context for the phase-type distribution.
-//' 
-//' @description
-//' This allows the user to step through the distribution, computing e.g. the
-//' time-inhomogeneous distribution function or the expectation of a multivariate phase-type distribution.
-//' *mutates* the context
-//' 
-//' @seealso [ptdalgorithms::distribution_context()]
-//' 
-//' @param probability_distribution_context The context created by [ptdalgorithms::distribution_context()]
-//' 
-// [[Rcpp::export]]
+// NumericVector distribution_context_accumulated_visiting_time
+// //' Returns the accumulated visiting time (integral of stop probability) for the current probability distribution context for the phase-type distribution.
+// //' 
+// //' @description
+// //' This allows the user to step through the distribution, computing e.g. the
+// //' time-inhomogeneous distribution function or the expectation of a multivariate phase-type distribution.
+// //' *mutates* the context
+// //' 
+// //' @seealso [ptdalgorithms::distribution_context()]
+// //' 
+// //' @param probability_distribution_context The context created by [ptdalgorithms::distribution_context()]
+// //' 
+// // [[Rcpp::export]]
       
 
 

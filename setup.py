@@ -50,4 +50,33 @@ setup(name='ptdalgorithms',
     #   include_package_data = True,     
       extras_require={"test": "pytest"},
       cmdclass={"build_ext": build_ext}, 
-      ext_modules=ext_modules)
+      ext_modules=ext_modules,
+      # package_data={
+      # 'ptdalgorithms.data.src.c': ['src/c/*'],
+      # 'ptdalgorithms.data.src.cpp': ['src/cpp/*'],
+      # 'ptdalgorithms.data.api.c': ['api/c/*'],
+      # 'ptdalgorithms.data.api.cpp': ['api/cpp/*'],
+      #  },
+      data_files=[
+        ('include', ['ptdalgorithms/ptdalgorithms.h']),
+        ('include/ptdalgorithms/api/c', ['api/c/ptdalgorithms.h']),
+        ('include/ptdalgorithms/api/cpp', ['api/cpp/ptdalgorithmscpp.h']),
+        ('include/ptdalgorithms/src/c', ['src/c/ptdalgorithms.c', 'src/c/ptdalgorithms.h']),
+        ('include/ptdalgorithms/src/cpp', ['src/cpp/ptdalgorithmscpp.cpp', 'src/cpp/ptdalgorithmscpp.h', 'src/cpp/ptdalgorithmscpp_pybind.cpp']),
+
+        # ('include/ptdalgorithms/src/c', ['src/c/ptdalgorithms.c', 'src/c/ptdalgorithms.h']),
+        # ('include/ptdalgorithms/src/cpp', ['src/cpp/ptdalgorithmscpp.cpp', 'src/cpp/ptdalgorithmscpp.h']),
+
+        # ('include', ['ptdalgorithms/ptdalgorithms.h']),
+        # ('include/ptdalgorithms/api/c', glob('api/c/*.h`') + glob('api/c/*.c`')),
+        # ('include/ptdalgorithms/api/cpp', glob('api/cpp/*.h`') + glob('api/cpp/*.cpp`')),
+        # ('include/ptdalgorithms/src/c', glob('src/c/*.h`') + glob('src/c/*.c`')),
+        # ('include/ptdalgorithms/src/cpp', glob('src/cpp/*.h`') + glob('src/cpp/*.cpp`')),
+        # ('include/api', [f for f in glob('src/**', recursive=True) if os.path.isfile(f)]),
+        # ('include/src', [f for f in glob('api/**', recursive=True) if os.path.isfile(f)]),
+                  ],
+     )
+#include "../api/c/ptdalgorithms.h"
+
+#include "../src/c/ptdalgorithms.c"
+#include "../api/cpp/ptdalgorithmscpp.h"
