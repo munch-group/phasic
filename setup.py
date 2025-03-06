@@ -4,7 +4,7 @@ import platform
 from setuptools import setup, find_packages
 from pybind11.setup_helpers import Pybind11Extension, ParallelCompile, build_ext, naive_recompile
 
-version = "0.1.4"
+version = "0.1.5"
 
 # Optional multithreaded build
 ParallelCompile("NPY_NUM_BUILD_JOBS").install()
