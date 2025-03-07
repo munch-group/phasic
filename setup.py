@@ -5,7 +5,7 @@ import platform
 import subprocess
 from setuptools import setup, find_packages
 
-version = "0.1.19"
+version = "0.1.20"
 
 # if "BUILD_PREFIX" in os.environ and os.environ["BUILD_PREFIX"]:
 #     prefix = os.environ["BUILD_PREFIX"]
