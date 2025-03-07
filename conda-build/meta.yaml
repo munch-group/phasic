@@ -9,9 +9,7 @@ source:
 
 build:
   number: 0
-  script: |
-    python pre_build.py
-    python -m pip install . -vv
+  script: python -m pip install . -vv
   # entry_points:
   #   - exercises = exercise_client:launch_exercise
 
