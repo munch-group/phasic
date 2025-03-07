@@ -5,14 +5,24 @@ import platform
 import subprocess
 from setuptools import setup, find_packages
 
-version = "0.1.18"
+version = "0.1.19"
 
-if "BUILD_PREFIX" in os.environ and os.environ["BUILD_PREFIX"]:
-    prefix = os.environ["BUILD_PREFIX"]
-if "PREFIX" in os.environ and os.environ["PREFIX"]:
-    prefix = os.environ["PREFIX"]
-else:
-    prefix = sys.exec_prefix
+# if "BUILD_PREFIX" in os.environ and os.environ["BUILD_PREFIX"]:
+#     prefix = os.environ["BUILD_PREFIX"]
+# if "PREFIX" in os.environ and os.environ["PREFIX"]:
+#     prefix = os.environ["PREFIX"]
+# # else:
+# #     prefix = sys.exec_prefix
+
+prefix = os.environ["PREFIX"]
+
+def symlink_eigen(prefix):
+  target_path = f"{prefix}/include/eigen3/Eigen"
+  link_path = f"{prefix}/include/Eigen" 
+  try:
+      os.symlink(target_path, link_path)
+  except FileExistsError:
+      pass
 
 # from pybind11.setup_helpers import Pybind11Extension, ParallelCompile, build_ext, naive_recompile
 from pybind11.setup_helpers import Pybind11Extension, ParallelCompile, naive_recompile
@@ -22,6 +32,12 @@ class build_ext(_build_ext):
         # # Run the pre-build command
         # pre_build_command = "python pre_build.py"
         # subprocess.check_call(pre_build_command, shell=True)
+
+        if "BUILD_PREFIX" in os.environ and os.environ["BUILD_PREFIX"]:
+            symlink_eigen(os.environ["BUILD_PREFIX"])
+        if "PREFIX" in os.environ and os.environ["PREFIX"]:
+            symlink_eigen(os.environ["PREFIX"])
+        symlink_eigen(sys.exec_prefix)
 
         target_path = f"{prefix}/include/eigen3/Eigen"
         link_path = f"{prefix}/include/Eigen" 
