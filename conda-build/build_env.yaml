@@ -8,3 +8,4 @@ dependencies:
   - setuptools>=42
   - pybind11>=2.10.0
   - eigen 
+  - cxx-compiler

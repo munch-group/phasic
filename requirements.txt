@@ -2,3 +2,4 @@ pybind11>=2.10.0
 graphviz
 ipython
 eigen
+cxx-compiler

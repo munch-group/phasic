@@ -444,7 +444,7 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
     .def(py::init(&build_state_space_callback_tuples),
           py::arg("callback_tuples"), py::arg("initial_state"))
 
-    .def("_create_vertex", static_cast<ptdalgorithms::Vertex (ptdalgorithms::Graph::*)(std::vector<int>)>(&ptdalgorithms::Graph::create_vertex), py::arg("state"), 
+    .def("create_vertex", static_cast<ptdalgorithms::Vertex (ptdalgorithms::Graph::*)(std::vector<int>)>(&ptdalgorithms::Graph::create_vertex), py::arg("state"), 
       py::return_value_policy::copy, R"delim(
       
       Warning: the function [ptdalgorithms::find_or_create_vertex()] should be preferred. 
