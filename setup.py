@@ -17,7 +17,7 @@ class build_ext(_build_ext):
         _build_ext.run(self)
 
 
-version = "0.1.14"
+version = "0.1.15"
 
 # Optional multithreaded build
 ParallelCompile("NPY_NUM_BUILD_JOBS").install()
