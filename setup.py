@@ -10,14 +10,14 @@ from setuptools.command.build_ext import build_ext as _build_ext
 class build_ext(_build_ext):
     def run(self):
         # Run the pre-build command
-        pre_build_command = "test -e ${PREFIX}/include/Eigen || ln -s ${PREFIX}/include/eigen3/Eigen ${PREFIX}/include/Eigen"
+        pre_build_command = "ln -s ${PREFIX}/include/eigen3/Eigen ${PREFIX}/include/Eigen || true"
         subprocess.check_call(pre_build_command, shell=True)
         
         # Continue with the normal build process
         _build_ext.run(self)
 
 
-version = "0.1.12"
+version = "0.1.13"
 
 # Optional multithreaded build
 ParallelCompile("NPY_NUM_BUILD_JOBS").install()
