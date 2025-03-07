@@ -15,8 +15,6 @@ using namespace pybind11::literals; // to bring in the `_a` literal
 
 ptdalgorithms::Graph build(int starting_rabbits, float flooding_left, float flooding_right) {
 
-    // using namespace ptdalgorithms;
-
     /* Same state size (left_rabbits, right_rabbits) */
     size_t state_size = 2;
 
