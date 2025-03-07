@@ -31,14 +31,19 @@ ParallelCompile("NPY_NUM_BUILD_JOBS").install()
 
 ParallelCompile("NPY_NUM_BUILD_JOBS", needs_recompile=naive_recompile).install()
 
-extra_compile_args=["-g", f"-I{prefix}/include/eigen3/"]
+# extra_compile_args=["-g", f"-I{prefix}/include/eigen3/"]
+extra_compile_args=["-g", "-I${PREFIX}/include/eigen3/"]
 
-# extra_link_args = None
-extra_link_args = ["-g", f"-I{prefix}/include/eigen3/"]
+# extra_link_args = ["-g", f"-I{prefix}/include/eigen3/"]
+extra_link_args = ["-g", "-I${PREFIX}/include/eigen3/"]
 if platform.system() == "Darwin":
   # Compiling on macOS requires an installation of the Xcode Command Line Tools
-  os.environ["CC"] = "g++"
-  os.environ["CXX"] = "g++ -std=c++11"
+  # os.environ["CC"] = "g++"
+  # os.environ["CXX"] = "g++ -std=c++11"
+  os.environ["CC"] = "g++ -g -I${PREFIX}/include/eigen3/"
+  os.environ["CXX"] = "g++ -g -I${PREFIX}/include/eigen3/ -std=c++11"
+
+
   # extra_link_args.extend(["-undefined", "dynamic_lookup"])
 
 #include/eigen3
