@@ -14,7 +14,10 @@ version = "0.1.19"
 # # else:
 # #     prefix = sys.exec_prefix
 
-prefix = os.environ["PREFIX"]
+if os.environ["PREFIX"]:
+    prefix = os.environ["PREFIX"]
+else:
+    prefix = sys.exec_prefix
 
 def symlink_eigen(prefix):
   target_path = f"{prefix}/include/eigen3/Eigen"
