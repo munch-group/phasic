@@ -5,8 +5,14 @@ import platform
 import subprocess
 from setuptools import setup, find_packages
 
-import os
-prefix = sys.exec_prefix
+version = "0.1.18"
+
+if "BUILD_PREFIX" in os.environ and os.environ["BUILD_PREFIX"]:
+    prefix = os.environ["BUILD_PREFIX"]
+if "PREFIX" in os.environ and os.environ["PREFIX"]:
+    prefix = os.environ["PREFIX"]
+else:
+    prefix = sys.exec_prefix
 
 # from pybind11.setup_helpers import Pybind11Extension, ParallelCompile, build_ext, naive_recompile
 from pybind11.setup_helpers import Pybind11Extension, ParallelCompile, naive_recompile
@@ -26,8 +32,6 @@ class build_ext(_build_ext):
 
         # Continue with the normal build process
         _build_ext.run(self)
-
-version = "0.1.17"
 
 # Optional multithreaded build
 ParallelCompile("NPY_NUM_BUILD_JOBS").install()
