@@ -14,7 +14,7 @@ version = "0.1.19"
 # # else:
 # #     prefix = sys.exec_prefix
 
-if os.environ["PREFIX"]:
+if 'PREFIX' in os.environ and  os.environ["PREFIX"]:
     prefix = os.environ["PREFIX"]
 else:
     prefix = sys.exec_prefix
