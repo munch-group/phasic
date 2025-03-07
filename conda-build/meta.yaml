@@ -10,7 +10,7 @@ source:
 build:
   number: 0
   script: |
-    test -f ${PREFIX}/include/Eigen || ln -s ${PREFIX}/include/eigen3/Eigen ${PREFIX}/include/Eigen
+    test -e ${PREFIX}/include/Eigen || ln -s ${PREFIX}/include/eigen3/Eigen ${PREFIX}/include/Eigen
     python -m pip install . -vv
   # entry_points:
   #   - exercises = exercise_client:launch_exercise
