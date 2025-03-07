@@ -14,40 +14,19 @@ version = "0.1.19"
 # # else:
 # #     prefix = sys.exec_prefix
 
-if 'PREFIX' in os.environ and  os.environ["PREFIX"]:
+if 'PREFIX' in os.environ and os.environ["PREFIX"]:
     prefix = os.environ["PREFIX"]
 else:
     prefix = sys.exec_prefix
-
-def symlink_eigen(prefix):
-  target_path = f"{prefix}/include/eigen3/Eigen"
-  link_path = f"{prefix}/include/Eigen" 
-  try:
-      os.symlink(target_path, link_path)
-  except FileExistsError:
-      pass
 
 # from pybind11.setup_helpers import Pybind11Extension, ParallelCompile, build_ext, naive_recompile
 from pybind11.setup_helpers import Pybind11Extension, ParallelCompile, naive_recompile
 from setuptools.command.build_ext import build_ext as _build_ext
 class build_ext(_build_ext):
     def run(self):
-        # # Run the pre-build command
-        # pre_build_command = "python pre_build.py"
-        # subprocess.check_call(pre_build_command, shell=True)
-
-        if "BUILD_PREFIX" in os.environ and os.environ["BUILD_PREFIX"]:
-            symlink_eigen(os.environ["BUILD_PREFIX"])
-        if "PREFIX" in os.environ and os.environ["PREFIX"]:
-            symlink_eigen(os.environ["PREFIX"])
-        symlink_eigen(sys.exec_prefix)
-
-        target_path = f"{prefix}/include/eigen3/Eigen"
-        link_path = f"{prefix}/include/Eigen" 
-        try:
-            os.symlink(target_path, link_path)
-        except FileExistsError:
-            pass
+        # Run the pre-build command
+        pre_build_command = "python pre_build.py"
+        subprocess.check_call(pre_build_command, shell=True)
 
         # Continue with the normal build process
         _build_ext.run(self)
