@@ -5,12 +5,17 @@ import platform
 import subprocess
 from setuptools import setup, find_packages
 
-version = "0.1.38"
+version = "0.1.39"
 
 if 'PREFIX' in os.environ and os.environ["PREFIX"]:
     prefix = os.environ["PREFIX"]
 else:
     prefix = sys.exec_prefix
+
+if 'BUILD_PREFIX' in os.environ and os.environ["BUILD_PREFIX"]:
+    build_prefix_link_arg = f"-I{os.environ["BUILD_PREFIX"]}/include/eigen3/"
+else:
+  build_prefix_link_arg = ''
 
 from pybind11.setup_helpers import Pybind11Extension, ParallelCompile, build_ext, naive_recompile
 # from pybind11.setup_helpers import Pybind11Extension, ParallelCompile, naive_recompile
@@ -30,10 +35,10 @@ ParallelCompile("NPY_NUM_BUILD_JOBS").install()
 
 ParallelCompile("NPY_NUM_BUILD_JOBS", needs_recompile=naive_recompile).install()
 
-extra_compile_args=["-g", f"-I{prefix}/include/eigen3/", "-std=c++11"]
+extra_compile_args=["-g", "-std=c++11", f"-I{prefix}/include/eigen3/", build_prefix_link_arg]
 # extra_compile_args=["-g", "-I${PREFIX}/include/eigen3/"]
 
-extra_link_args = ["-g", f"-I{prefix}/include/eigen3/"]
+extra_link_args = ["-g", f"-I{prefix}/include/eigen3/", build_prefix_link_arg]
 # extra_link_args = ["-g", "-I${PREFIX}/include/eigen3/"]
 if platform.system() == "Darwin":
   # Compiling on macOS requires an installation of the Xcode Command Line Tools
