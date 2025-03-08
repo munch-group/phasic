@@ -11,8 +11,7 @@ build:
   number: 0
   script: python -m pip install . -vv
   script_env:
-    - CFLAGS=-I${PREFIX}/include/eigen3/"
-    - CXXFLAGS=-I${PREFIX}/include/eigen3/"
+    - CFLAGS=-I${PREFIX}/include/eigen3"
   # entry_points:
   #   - exercises = exercise_client:launch_exercise
 
