@@ -9,7 +9,8 @@
 // FIXME: Had to:
 // cd ~/miniconda3/envs/phasetype/include
 // ln -s eigen3/Eigen
-#include <eigen3/Eigen/Core>
+// #include <eigen3/Eigen/Core>
+#include <Eigen/Core>
 
 #include "ptdalgorithmscpp.h"
 
