@@ -5,7 +5,7 @@ import platform
 import subprocess
 from setuptools import setup, find_packages
 
-version = "0.1.24"
+version = "0.1.25"
 
 # if 'PREFIX' in os.environ and os.environ["PREFIX"]:
 #     prefix = os.environ["PREFIX"]
@@ -38,10 +38,10 @@ extra_compile_args=["-g", "-I${PREFIX}/include/eigen3/"]
 extra_link_args = ["-g", "-I${PREFIX}/include/eigen3/"]
 if platform.system() == "Darwin":
   # Compiling on macOS requires an installation of the Xcode Command Line Tools
-  # os.environ["CC"] = "g++"
-  # os.environ["CXX"] = "g++ -std=c++11"
-  os.environ["CC"] = "g++ -g -I${PREFIX}/include/eigen3/"
-  os.environ["CXX"] = "g++ -g -I${PREFIX}/include/eigen3/ -std=c++11"
+  os.environ["CC"] = "g++"
+  os.environ["CXX"] = "g++ -std=c++11"
+  # os.environ["CC"] = "g++ -g -I${PREFIX}/include/eigen3/"
+  # os.environ["CXX"] = "g++ -g -I${PREFIX}/include/eigen3/ -std=c++11"
 
 
   # extra_link_args.extend(["-undefined", "dynamic_lookup"])
