@@ -5,7 +5,7 @@ import platform
 import subprocess
 from setuptools import setup, find_packages
 
-version = "0.1.36"
+version = "0.1.37"
 
 if 'PREFIX' in os.environ and os.environ["PREFIX"]:
     prefix = os.environ["PREFIX"]

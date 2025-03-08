@@ -23,6 +23,7 @@ requirements:
   host:
     - python
     - pip
+    - distutils    
   run:  # your library dependencies
     - python
     - graphviz
