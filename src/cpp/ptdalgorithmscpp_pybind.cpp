@@ -255,7 +255,7 @@ ptdalgorithms::Graph build_state_space_callback_dicts(
           ptdalgorithms::Vertex this_vertex = graph->vertex_at(index);
           std::vector<int> this_state = graph->vertex_at(index).state();
 
-          std::vector<const py::dict> children = callback(this_state);
+          std::vector<py::dict> children = callback(this_state);
               for (auto child : children) {
                 std::vector<int> child_state = child["state"].cast<std::vector<int> >();
                 long double weight = child["weight"].cast<long double>();
