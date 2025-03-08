@@ -18,9 +18,6 @@ build:
 requirements:
   build:
     - {{ compiler('cxx') }}
-    - setuptools>=42
-    - pybind11>=2.10.0
-    - eigen
 
   host:
     - python
@@ -43,6 +40,9 @@ dependencies:   # Keep this block with only these two packages
   - anaconda-client
   - conda-build=24 # from 25 the output file is a .conda not .tar.bz2
   - conda-verify
+  - setuptools>=42
+  - pybind11>=2.10.0
+  - eigen
   
 test:
   imports:
