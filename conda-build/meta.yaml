@@ -1,7 +1,7 @@
 {% set data = load_setup_py_data() %}
 
 package:
-  name: libraryname
+  name: ptdalgorithms
   version: {{ data.get('version') }}  
 
 source:
@@ -27,6 +27,9 @@ requirements:
     - graphviz
     - python-graphviz
     - ipython
+    - pybind11>=2.10.0
+    - eigen
+
 
 channels:  # channels for your library dependencies
   - uibcdf
