@@ -241,7 +241,7 @@ std::vector<double> _moments(ptdalgorithms::Graph &graph, int power, const std::
   
 
 ptdalgorithms::Graph build_state_space_callback_dicts(
-  const std::function<std::vector<const py::dict> (std::vector<int> &state)> &callback, std::vector<int> &initial_state) {
+  const std::function<std::vector<py::dict> (std::vector<int> &state)> &callback, std::vector<int> &initial_state) {
 
       ptdalgorithms::Graph *graph = new ptdalgorithms::Graph(initial_state.size());
 
