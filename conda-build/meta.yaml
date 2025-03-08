@@ -18,12 +18,13 @@ build:
 requirements:
   build:
     - {{ compiler('cxx') }}
-    - pybind11 >=2.10.0
+    - setuptools>=42
+    - pybind11>=2.10.0
     - eigen
+
   host:
     - python
     - pip
-    - distutils    
   run:  # your library dependencies
     - python
     - graphviz
