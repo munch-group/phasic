@@ -22,6 +22,7 @@ requirements:
     - python
     - pip
     - pybind11 >=2.10.0
+    - eigen
   run:  # your library dependencies
     - python
     - graphviz
