@@ -5,7 +5,7 @@ import platform
 import subprocess
 from setuptools import setup, find_packages
 
-version = "0.1.49"
+version = "0.1.50"
 
 if 'PREFIX' in os.environ and os.environ["PREFIX"]:
     prefix = os.environ["PREFIX"]
@@ -35,7 +35,7 @@ ParallelCompile("NPY_NUM_BUILD_JOBS").install()
 
 ParallelCompile("NPY_NUM_BUILD_JOBS", needs_recompile=naive_recompile).install()
 
-extra_compile_args=["-g", "-std=c++11", f"-I{prefix}/include/eigen3/", build_prefix_link_arg]
+extra_compile_args=["-g", "-std=c++11", "-std=gnu++17", f"-I{prefix}/include/eigen3/", build_prefix_link_arg]
 # extra_compile_args=["-g", "-I${PREFIX}/include/eigen3/"]
 
 extra_link_args = ["-g", f"-I{prefix}/include/eigen3/", build_prefix_link_arg]
