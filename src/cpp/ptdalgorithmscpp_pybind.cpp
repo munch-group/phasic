@@ -465,12 +465,13 @@ double _covariance_discrete(ptdalgorithms::Graph &graph,
   ptdalgorithms::Graph build_state_space_callback_tuples(
     
       // const std::function< std::vector<const std::tuple<const py::array_t<int>, long double> > (const py::array_t<int> &state)> &callback) { 
-      const std::function<const std::vector<const py::object> (const py::array_t<int> &state)> &callback) { 
+      const std::function<std::vector<py::object> (const py::array_t<int> &state)> &callback) { 
 
       ptdalgorithms::Graph *graph = nullptr;
 
       // IPV from callback with no state argument
-      const std::vector<const py::object> children = callback(py::array_t<int>());
+      std::vector<py::object> children = callback(py::array_t<int>());
+
       for (const auto child : children) {
 
         std::tuple<py::array_t<int>, long double> tup = child.cast<std::tuple<py::array_t<int>, long double> >();
