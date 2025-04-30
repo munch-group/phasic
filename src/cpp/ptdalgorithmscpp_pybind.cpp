@@ -36,6 +36,7 @@ static void set_c_seed() {
   // py::print(i);
 }
 
+
 static int fac(int n) {
     if (n == 0) {
         return 1;
@@ -43,6 +44,7 @@ static int fac(int n) {
 
     return n * fac(n - 1);
 }
+
 
 template<pybind11::return_value_policy Policy = pybind11::return_value_policy::reference_internal, typename Iterator, typename Sentinel, typename ValueType = typename pybind11::detail::iterator_access<Iterator>::result_type, typename ...Extra>
 pybind11::typing::Iterator<ValueType> make_iterator(Iterator first, Sentinel last, Extra&&... extra);
@@ -142,7 +144,24 @@ class MatrixRepresentation {
 };
 
 
+iMatrix _states(ptdalgorithms::Graph &graph) {
 
+      std::vector<ptdalgorithms::Vertex> ver = graph.vertices();
+
+      int rows = ver.size();
+      int cols = graph.state_length();
+      iMatrix states = iMatrix(rows, cols);
+
+      for (size_t i = 0; i < ver.size(); i++) {
+          for (size_t j = 0; j < graph.state_length(); j++) {
+              states(i, j) = ver[i].state()[j];
+          }
+      }
+
+      return states;
+  }
+
+  
   // std::vector<double> _sample(ptdalgorithms::Graph graph, int n, std::vector<double> rewards) {
 
   //     if (!rewards.empty() && (int) rewards.size() != (int) graph.c_graph()->vertices_length) {
@@ -239,6 +258,177 @@ std::vector<double> _moments(ptdalgorithms::Graph &graph, int power, const std::
 
   }
   
+// // Vectorize this
+    
+// py::array_t<double> _expectation(ptdalgorithms::Graph &graph, py::iterable_t<py::array_t<double> >() rewards) {
+
+
+//     for (auto v : x)
+//     std::cout << " " << v.to_string();
+//   }
+
+
+//   py::array_t<double> _expectation(ptdalgorithms::Graph &graph, py::array_t<double> rewards) {
+
+//     py::buffer_info reward_buf = rewards.request();
+//     if (reward_buf.ndim != 1)
+//       throw std::runtime_error("Number of dimensions must be one");
+
+//     /* No pointer is passed, so NumPy will allocate the buffer */
+//     auto result = py::array_t<double>(reward_buf.size);
+
+//     py::buffer_info result_buf = result.request();
+
+//     double *reward_ptr = static_cast<double *>(reward_buf.ptr);
+//     double *result_ptr = static_cast<double *>(result_buf.ptr);
+
+//     for (size_t idx = 0; idx < reward_buf.shape[0]; idx++) {
+
+//       // std::vector<double> _vector(reward_ptr, reward_ptr + reward_buf[idx].shape[0]);
+//       std::vector<double> _vector(reward_ptr, reward_ptr + reward_buf.shape[0]);
+
+//       result_ptr[idx] = _moments(graph, 1, _vector)[0];
+//     }
+
+//     return result;
+// }
+
+
+double _expectation(
+  ptdalgorithms::Graph &graph, 
+  const std::vector<double> &rewards = vector<double>()) {
+
+  return _moments(graph, 1, rewards)[0];
+}
+
+
+
+double _variance(
+  ptdalgorithms::Graph &graph, 
+  const std::vector<double> &rewards = vector<double>()) {
+
+    std::vector<double> exp = graph.expected_waiting_time(rewards);
+    std::vector<double> second;
+
+    if (rewards.empty()) {
+        second = graph.expected_waiting_time(exp);
+    } else {
+        std::vector<double> new_rewards(exp.size());
+        std::vector<double> rw = rewards;
+
+        for (int i = 0; i < (int) exp.size(); i++) {
+            new_rewards[i] = exp[i] * rw[i];
+        }
+
+        second = graph.expected_waiting_time(new_rewards);
+    }
+
+    return (2 * second[0] - exp[0] * exp[0]);    
+
+}
+
+double _covariance(ptdalgorithms::Graph &graph, 
+  const std::vector<double> &rewards1 = vector<double>(),
+  const std::vector<double> &rewards2 = vector<double>()) {
+
+    std::vector<double> exp1 = graph.expected_waiting_time(rewards1);
+    std::vector<double> exp2 = graph.expected_waiting_time(rewards2);
+
+
+    std::vector<double> new_rewards(exp1.size());
+
+
+    for (int i = 0; i < exp1.size(); i++) {
+      new_rewards[i] = exp1[i] * rewards2[i];
+    }
+
+    std::vector<double> second1 = graph.expected_waiting_time(new_rewards);
+
+
+    for (int i = 0; i < exp1.size(); i++) {
+        new_rewards[i] = exp2[i] * rewards1[i];
+    }
+
+    std::vector<double> second2 = graph.expected_waiting_time(new_rewards);
+
+    return (second1[0] + second2[0] - exp1[0] * exp2[0]);    
+
+}
+
+double _expectation_discrete(
+  ptdalgorithms::Graph &graph, 
+  const std::vector<double> &rewards = vector<double>()) {
+    return _moments(graph, 1, rewards)[0];
+}
+
+double _variance_discrete(
+  ptdalgorithms::Graph &graph, 
+  const std::vector<double> &rewards = vector<double>()) {
+
+    if (!rewards.empty() && (int) rewards.size() != (int) graph.c_graph()->vertices_length) {
+      char message[1024];
+
+      snprintf(
+              message,
+              1024,
+              "Failed: Rewards must match the number of vertices. Expected %i, got %i",
+              (int) graph.c_graph()->vertices_length,
+              (int) rewards.size()
+      );
+
+      throw std::runtime_error(
+              message
+      );
+  }
+  if (rewards.empty()) {
+      std::vector<double> m = _moments(graph, 2);
+
+      return m[1] - 2*m[0];
+  } else {
+      // std::vector<double> rw = as<std::vector<double> >(rewards);
+      std::vector<double> sq_rewards(rewards.size());
+
+      for (int i = 0; i < (int)rewards.size(); i++) {
+          sq_rewards[i] = rewards[i] * rewards[i];
+      }
+
+      std::vector<double> momentsr = _moments(graph, 2, rewards);
+      std::vector<double> momentsrr = _moments(graph, 1, sq_rewards);
+
+      return momentsr[1] - momentsr[0] * momentsr[0] - momentsrr[0];
+    }
+
+}
+
+double _covariance_discrete(ptdalgorithms::Graph &graph, 
+  const std::vector<double> &rewards1 = vector<double>(),
+  const std::vector<double> &rewards2 = vector<double>()) {
+
+    std::vector<double> rw1(rewards1);
+    std::vector<double> rw2(rewards2);
+    std::vector<double> sq_rewards(rw1.size());
+
+    for (int i = 0; i < (int)rw1.size(); i++) {
+        sq_rewards[i] = rw1[i] * rw2[i];
+    }
+
+    std::vector<double> rw1to2(rw1.size());
+    std::vector<double> rw2to1(rw2.size());
+    std::vector<double> exp1 = graph.expected_waiting_time(rewards1);
+    std::vector<double> exp2 = graph.expected_waiting_time(rewards2);
+
+    for (int i = 0; i < (int)rw1.size(); i++) {
+        rw1to2[i] = exp1[i] * rw2[i];
+        rw2to1[i] = exp2[i] * rw1[i];
+    }
+
+    return graph.expected_waiting_time(rw1to2)[0] +
+              _moments(graph, 1, sq_rewards)[0] - 
+              _moments(graph, 1, rewards1)[0] *
+              _moments(graph, 1, rewards2)[0];
+
+}
+
 
 ptdalgorithms::Graph build_state_space_callback_dicts(
   const std::function<std::vector<py::dict> (std::vector<int> &state)> &callback, std::vector<int> &initial_state) {
@@ -271,39 +461,101 @@ ptdalgorithms::Graph build_state_space_callback_dicts(
             }
       return *graph;
   }
-    
+
   ptdalgorithms::Graph build_state_space_callback_tuples(
-    const std::function<std::vector<const py::tuple> (std::vector<int> &state)> &callback, std::vector<int> &initial_state) {
+    const std::function<std::vector<const py::tuple> (const py::array_t<int> &state)> &callback) { 
 
-      ptdalgorithms::Graph *graph = new ptdalgorithms::Graph(initial_state.size());
+      ptdalgorithms::Graph *graph = nullptr;
 
-      ptdalgorithms::Vertex init = graph->find_or_create_vertex(initial_state);
+      // IPV from callback with no state argument
+      std::vector<const py::tuple> children = callback(py::array_t<int>());
+      for (auto child : children) {
+        std::vector<int> child_state = child[0].cast<std::vector<int> >();
+        long double weight = child[1].cast<long double>();
+        if (!graph) {
+          graph = new ptdalgorithms::Graph(child_state.size());
+        }
+        ptdalgorithms::Vertex child_vertex = graph->find_or_create_vertex(child_state);
+        graph->starting_vertex().add_edge(child_vertex, weight);
+      }
 
-        graph->starting_vertex().add_edge(init, 1);
+      // IF THIS WORKS I CAN MAKE DECORATORS @joint, @fmc  FOR JOINT PROB, FMC ETC.... !   I COULD EVEN MAKE NORMAL CONSTRUCTION A @graph decorator
+
+      // ptdalgorithms::Graph *graph = new ptdalgorithms::Graph(initial_state.size());
+      // ptdalgorithms::Vertex init = graph->find_or_create_vertex(initial_state);
+      // graph->starting_vertex().add_edge(init, 1);
 
         int index = 1;
         while (index < graph->vertices_length()) {
 
           ptdalgorithms::Vertex this_vertex = graph->vertex_at(index);
-          std::vector<int> this_state = graph->vertex_at(index).state();
+
+          
+          // std::vector<int> this_state = graph->vertex_at(index).state();
+
+          auto a = new std::vector<int>(graph->vertex_at(index).state());
+          auto capsule = py::capsule(a, [](void *a) { delete reinterpret_cast<std::vector<int>*>(a); });
+          py::array_t<int> this_state = py::array(a->size(), a->data(), capsule);
+
 
           std::vector<const py::tuple> children = callback(this_state);
 
-              for (auto child : children) {
-                std::vector<int> child_state = child[0].cast<std::vector<int> >();
-                long double weight = child[1].cast<long double>();
-                ptdalgorithms::Vertex child_vertex = graph->find_or_create_vertex(child_state);
-                if (child.size() == 3) {
-                  std::vector<double> edge_params = child[2].cast<std::vector<double> >();
-                  this_vertex.add_edge_parameterized(child_vertex, weight, edge_params);
-                } else {
-                  this_vertex.add_edge(child_vertex, weight);
-                }
-              }
-              ++index;
+          for (auto child : children) {
+            std::vector<int> child_state = child[0].cast<std::vector<int> >();
+            long double weight = child[1].cast<long double>();
+            ptdalgorithms::Vertex child_vertex = graph->find_or_create_vertex(child_state);
+            if (child.size() == 3) {
+              std::vector<double> edge_params = child[2].cast<std::vector<double> >();
+              this_vertex.add_edge_parameterized(child_vertex, weight, edge_params);
+            } else {
+              this_vertex.add_edge(child_vertex, weight);
             }
+          }
+          ++index;
+        }
       return *graph;
   }
+        
+  // ptdalgorithms::Graph build_state_space_callback_tuples(
+  //   // const std::function<std::vector<const py::tuple> (std::vector<int> &state)> &callback, std::vector<int> &initial_state) {
+  //   const std::function<std::vector<const py::tuple> (py::array_t<int> &state)> &callback, std::vector<int> &initial_state) {
+
+  //     ptdalgorithms::Graph *graph = new ptdalgorithms::Graph(initial_state.size());
+
+  //     ptdalgorithms::Vertex init = graph->find_or_create_vertex(initial_state);
+
+  //       graph->starting_vertex().add_edge(init, 1);
+
+  //       int index = 1;
+  //       while (index < graph->vertices_length()) {
+
+  //         ptdalgorithms::Vertex this_vertex = graph->vertex_at(index);
+
+          
+  //         // std::vector<int> this_state = graph->vertex_at(index).state();
+
+  //         auto a = new std::vector<int>(graph->vertex_at(index).state());
+  //         auto capsule = py::capsule(a, [](void *a) { delete reinterpret_cast<std::vector<int>*>(a); });
+  //         py::array_t<int> this_state = py::array(a->size(), a->data(), capsule);
+
+
+  //         std::vector<const py::tuple> children = callback(this_state);
+
+  //             for (auto child : children) {
+  //               std::vector<int> child_state = child[0].cast<std::vector<int> >();
+  //               long double weight = child[1].cast<long double>();
+  //               ptdalgorithms::Vertex child_vertex = graph->find_or_create_vertex(child_state);
+  //               if (child.size() == 3) {
+  //                 std::vector<double> edge_params = child[2].cast<std::vector<double> >();
+  //                 this_vertex.add_edge_parameterized(child_vertex, weight, edge_params);
+  //               } else {
+  //                 this_vertex.add_edge(child_vertex, weight);
+  //               }
+  //             }
+  //             ++index;
+  //           }
+  //     return *graph;
+  // }
     
 
 
@@ -351,7 +603,6 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
    })
   ;
 
-  
   py::class_<dMatrix>(m, "dMatrix", py::buffer_protocol())
 
     .def(py::init([](py::buffer b) {
@@ -442,8 +693,11 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
     .def(py::init(&build_state_space_callback_dicts), 
       py::arg("callback_dicts"), py::arg("initial_state"))
 
+    // .def(py::init(&build_state_space_callback_tuples),
+    //       py::arg("callback_tuples"), py::arg("initial_state"))
+
     .def(py::init(&build_state_space_callback_tuples),
-          py::arg("callback_tuples"), py::arg("initial_state"))
+      py::arg("callback_tuples"))
 
     .def("create_vertex", static_cast<ptdalgorithms::Vertex (ptdalgorithms::Graph::*)(std::vector<int>)>(&ptdalgorithms::Graph::create_vertex), py::arg("state"), 
       py::return_value_policy::copy, R"delim(
@@ -462,7 +716,8 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
       Vertex
           The newly inserted vertex in the graph.
       )delim")
-      
+
+
     .def("find_vertex", static_cast<ptdalgorithms::Vertex (ptdalgorithms::Graph::*)(std::vector<int>)>(&ptdalgorithms::Graph::find_vertex), py::arg("state"), 
       py::return_value_policy::copy, R"delim(
       Finds a vertex matching the `state` parameter.
@@ -508,6 +763,14 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
       ````
       )delim")
       
+    // .def("find_or_create_vertex",
+    //   [](ptdalgorithms::Graph &graph, std::vector<double> state) {
+    //     std::vector<int> int_vec(state.begin(), state.end());
+    //     return graph.find_or_create_vertex(int_vec);
+    //   }, R"delim(
+
+    //   )delim")
+
     .def("focv", static_cast<ptdalgorithms::Vertex (ptdalgorithms::Graph::*)(std::vector<int>)>(&ptdalgorithms::Graph::find_or_create_vertex), py::arg("state"), 
       py::return_value_policy::copy, R"delim(
       Alias for find_or_create_vertex
@@ -541,8 +804,8 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
       graph.vertices()[0] == graph.starting_vertex()
       graph.vertices()[1] == graph.vertex_at(1)
       graph.vertices_length() == 3
-      )delim")
-      
+      )delim")      
+
     .def("vertex_at", &ptdalgorithms::Graph::vertex_at, py::arg("index"), 
       py::return_value_policy::copy, R"delim(
       Returns a vertex at a particular index. This method is much faster than `Graph.vertices()[i]`.
@@ -560,6 +823,11 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
           The vertex at index `index` in the graph.
         )delim")
       
+    .def("vertex_at",[](ptdalgorithms::Graph &graph, double index) {
+      return graph.vertex_at((int) index);
+  
+    })
+
     .def("vertices_length", &ptdalgorithms::Graph::vertices_length, 
       py::return_value_policy::reference_internal, R"delim(
       Returns the number of vertices in the graph. This method is much faster than `len(Graph.vertices())`.
@@ -570,23 +838,8 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
           The number of vertices.
       )delim")
 
-    .def("states",
-      [](ptdalgorithms::Graph &graph) {
-
-          std::vector<ptdalgorithms::Vertex> ver = graph.vertices();
-
-          int rows = ver.size();
-          int cols = graph.state_length();
-          iMatrix states = iMatrix(rows, cols);
-
-          for (size_t i = 0; i < ver.size(); i++) {
-              for (size_t j = 0; j < graph.state_length(); j++) {
-                  states(i, j) = ver[i].state()[j];
-              }
-          }
-
-          return states;
-      }, py::return_value_policy::copy, R"delim(
+    .def("states", &_states,
+      py::return_value_policy::copy, R"delim(
       Returns a matrix where each row is the state of the vertex at that index.
 
       Returns
@@ -598,19 +851,14 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
     .def("__repr__",
       [](ptdalgorithms::Graph &g) {
           return "<Graph (" + std::to_string(g.vertices_length()) + " vertices)>";
-      }, py::return_value_policy::move, R"delim(
+      }, py::return_value_policy::move, 
+      R"delim(
 
       )delim")
 
-
-
-
-
-
-
-
-
-    .def("update_parameterized_weights", &ptdalgorithms::Graph::update_weights_parameterized, py::arg("rewards"), R"delim(
+    .def("update_parameterized_weights", &ptdalgorithms::Graph::update_weights_parameterized, 
+      py::arg("rewards"), 
+      R"delim(
     Updates all parameterized edges of the graph by given scalars. Given a vector of scalars, 
     computes a new weight of the parameterized edges in the graph by a simple inner product of
     the edge state vector and the scalar vector.
@@ -634,14 +882,17 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
     v1.edges()[0].weight() # => 59
       )delim")
 
-
-    .def("moments",
-      [](ptdalgorithms::Graph &graph, int power, std::vector<double> &rewards) {
-
-
-        return _moments(graph, power, rewards);
-
-      }, py::return_value_policy::move, py::arg("power"), py::arg("rewards")=std::vector<double>(), R"delim(
+      
+      // .def("moments", 
+      //   [](ptdalgorithms::Graph &graph, int power, std::vector<double> &rewards) {
+        
+          // return _moments(graph, power, rewards);
+      
+    // }, 
+    .def("moments", &_moments,
+      py::arg("power"), py::arg("rewards")=std::vector<double>(), 
+      py::return_value_policy::move, 
+      R"delim(
       Computes the first `power` moments of the phase-type distribution. This function invokes 
       `Graph.expected_waiting_times()` consecutively to find the first moments, given by the `power` argument.
 
@@ -672,11 +923,13 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
       (0.600 0.160 0.041)
    )delim")
     
-    .def("expectation",
-      [](ptdalgorithms::Graph &graph, std::vector<double> rewards) {
-          return graph.expected_waiting_time(rewards)[0];
-      }, py::return_value_policy::move, py::arg("rewards")=std::vector<double>(), R"delim(
-    Computes the expectation (mean) of the phase-type distribution.
+
+    .def("expectation", &_expectation,
+      py::arg("rewards")=std::vector<double>(), 
+      py::return_value_policy::move, 
+      R"delim(
+
+      Computes the expectation (mean) of the phase-type distribution.
 
     This function invokes `ptdalgorithms::expected_waiting_times()` and takes the first entry (from starting vertex).
 
@@ -709,29 +962,10 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
     >>> ph$IPV %*% solve(-ph$SIM) %*% diag(c(2,1)) %*% rep(1, length(ph$IPV)) # => 0.35
       )delim")      
 
-    .def("variance",
-      [](ptdalgorithms::Graph &graph, std::vector<double> rewards) {
-
-        std::vector<double> exp = graph.expected_waiting_time(rewards);
-        std::vector<double> second;
-
-        if (rewards.empty()) {
-            second = graph.expected_waiting_time(exp);
-        } else {
-            std::vector<double> new_rewards(exp.size());
-            std::vector<double> rw = rewards;
-
-            for (int i = 0; i < (int) exp.size(); i++) {
-                new_rewards[i] = exp[i] * rw[i];
-            }
-
-            second = graph.expected_waiting_time(new_rewards);
-        }
-
-        return (2 * second[0] - exp[0] * exp[0]);
-
-
-      }, py::return_value_policy::move, py::arg("rewards")=std::vector<double>(), R"delim(
+    .def("variance", &_variance,
+        py::arg("rewards")=std::vector<double>(), 
+        py::return_value_policy::move, 
+        R"delim(
     Computes the variance of the phase-type distribution.
 
     This function invokes `ptdalgorithms::expected_waiting_times()` twice to find the first and second moment.
@@ -765,33 +999,11 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
     >>> 2*ph$IPV%*%solve(-ph$SIM)%*%diag(c(2,1))%*%solve(-ph$SIM)%*%diag(c(2,1)) %*% rep(1, length(ph$IPV)) - ph$IPV%*%solve(-ph$SIM)%*%diag(c(2,1)) %*% rep(1, length(ph$IPV)) %*% ph$IPV%*%solve(-ph$SIM)%*%diag(c(2,1)) %*% rep(1, length(ph$IPV)) # => 0.26
       )delim")    
 
-      .def("covariance",
-        [](ptdalgorithms::Graph &graph, std::vector<double> rewards1, std::vector<double> rewards2) {
-  
-          std::vector<double> exp1 = graph.expected_waiting_time(rewards1);
-          std::vector<double> exp2 = graph.expected_waiting_time(rewards2);
-
-  
-          std::vector<double> new_rewards(exp1.size());
-
-      
-          for (int i = 0; i < exp1.size(); i++) {
-            new_rewards[i] = exp1[i] * rewards2[i];
-        }
-    
-        std::vector<double> second1 = graph.expected_waiting_time(new_rewards);
-    
-
-        for (int i = 0; i < exp1.size(); i++) {
-            new_rewards[i] = exp2[i] * rewards1[i];
-        }
-    
-        std::vector<double> second2 = graph.expected_waiting_time(new_rewards);
-    
-        return (second1[0] + second2[0] - exp1[0] * exp2[0]);
-  
-  
-        }, py::return_value_policy::move, py::arg("rewards1"), py::arg("rewards2"), R"delim(
+      .def("covariance", &_covariance,
+        py::arg("rewards1")=std::vector<double>(), 
+        py::arg("rewards2")=std::vector<double>(), 
+        py::return_value_policy::move, 
+        R"delim(
     Computes the covariance of the phase-type distribution.
 
     This function invokes `ptdalgorithms::expected_waiting_times()` twice to find the first and second moments for two sets of rewards.
@@ -826,33 +1038,11 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
          )delim")   
 
 
-      .def("covariance_discrete",
-          [](ptdalgorithms::Graph &graph, std::vector<double> rewards1, std::vector<double> rewards2) {         
-
-          std::vector<double> rw1(rewards1);
-          std::vector<double> rw2(rewards2);
-          std::vector<double> sq_rewards(rw1.size());
-      
-          for (int i = 0; i < (int)rw1.size(); i++) {
-              sq_rewards[i] = rw1[i] * rw2[i];
-          }
-      
-          std::vector<double> rw1to2(rw1.size());
-          std::vector<double> rw2to1(rw2.size());
-          std::vector<double> exp1 = graph.expected_waiting_time(rewards1);
-          std::vector<double> exp2 = graph.expected_waiting_time(rewards2);
-      
-          for (int i = 0; i < (int)rw1.size(); i++) {
-              rw1to2[i] = exp1[i] * rw2[i];
-              rw2to1[i] = exp2[i] * rw1[i];
-          }
-      
-          return graph.expected_waiting_time(rw1to2)[0] +
-                    _moments(graph, 1, sq_rewards)[0] - 
-                    _moments(graph, 1, rewards1)[0] *
-                    _moments(graph, 1, rewards2)[0];
-          
-        }, py::return_value_policy::move, py::arg("rewards1"), py::arg("rewards2"), R"delim(
+    .def("covariance_discrete", &_covariance_discrete,
+          py::arg("rewards1")=std::vector<double>(), 
+          py::arg("rewards2")=std::vector<double>(), 
+          py::return_value_policy::move, 
+          R"delim(
     Computes the covariance of the discrete phase-type distribution.
 
     This function invokes `ptdalgorithms::dph_expected_waiting_times()` twice to find the first and second moments for two sets of rewards.
@@ -1809,12 +1999,10 @@ Computes the expected residence time of the phase-type distribution.
     //   )delim")
 
     
-
-    .def("expectation_discrete",
-        [](ptdalgorithms::Graph &graph, std::vector<double> &rewards) {
-
-          return _moments(graph, 1, rewards)[0];
-        }, py::return_value_policy::copy, R"delim(
+    .def("expectation_discrete", &_expectation_discrete,
+      py::arg("rewards")=std::vector<double>(), 
+      py::return_value_policy::move, 
+      R"delim(
     Computes the expectation (mean) of the discrete phase-type distribution.
 
     This function computes the expectation of the discrete phase-type distribution given a set of rewards.
@@ -1837,43 +2025,10 @@ Computes the expected residence time of the phase-type distribution.
     )delim")
 
 
-    // double dph_variance(SEXP phase_type_graph, Nullable <NumericVector> rewards = R_NilValue) {
-    .def("variance_discrete",
-        [](ptdalgorithms::Graph &graph, std::vector<double> &rewards) {
-
-        if (!rewards.empty() && (int) rewards.size() != (int) graph.c_graph()->vertices_length) {
-          char message[1024];
-    
-          snprintf(
-                  message,
-                  1024,
-                  "Failed: Rewards must match the number of vertices. Expected %i, got %i",
-                  (int) graph.c_graph()->vertices_length,
-                  (int) rewards.size()
-          );
-    
-          throw std::runtime_error(
-                  message
-          );
-      }
-      if (rewards.empty()) {
-          std::vector<double> m = _moments(graph, 2);
-  
-          return m[1] - 2*m[0];
-      } else {
-          // std::vector<double> rw = as<std::vector<double> >(rewards);
-          std::vector<double> sq_rewards(rewards.size());
-  
-          for (int i = 0; i < (int)rewards.size(); i++) {
-              sq_rewards[i] = rewards[i] * rewards[i];
-          }
-  
-          std::vector<double> momentsr = _moments(graph, 2, rewards);
-          std::vector<double> momentsrr = _moments(graph, 1, sq_rewards);
-  
-          return momentsr[1] - momentsr[0] * momentsr[0] - momentsrr[0];
-      }
-  } , py::return_value_policy::copy, R"delim(
+      .def("variance_discrete", &_variance_discrete,
+        py::arg("rewards")=std::vector<double>(), 
+        py::return_value_policy::move, 
+        R"delim(    
     Computes the variance of the discrete phase-type distribution.
 
     This function computes the variance of the discrete phase-type distribution given a set of rewards.
@@ -2106,8 +2261,9 @@ Computes the expected residence time of the phase-type distribution.
 
     .def("index",
         [](ptdalgorithms::Vertex &v) {
-          return  v.vertex->index;
-        }, R"delim(
+          int idx = v.vertex->index; // why is index not already an int?
+          return  idx;
+        }, py::return_value_policy::copy, R"delim(
   
         )delim")
 
@@ -2138,11 +2294,22 @@ Computes the expected residence time of the phase-type distribution.
       >>> vertex_b <- find_or_create_vertex(graph, c(2,0,1,0))
       >>> add_edge(vertex_a, vertex_b, 1.5)
       )delim")
-      
-    .def("state", &ptdalgorithms::Vertex::state, 
-      py::return_value_policy::reference_internal, R"delim(
+
+    .def("state",
+        [](ptdalgorithms::Vertex &v) {
+          // to make it return np.array instead of list without copying data
+          auto a = new std::vector<int>(v.state());
+          auto capsule = py::capsule(a, [](void *a) { delete reinterpret_cast<std::vector<int>*>(a); });
+          return py::array(a->size(), a->data(), capsule);
+        }, py::return_value_policy::copy, 
+        R"delim(
 
       )delim")
+
+    // .def("state", &ptdalgorithms::Vertex::state, 
+    //   py::return_value_policy::reference_internal, R"delim(
+
+    //   )delim")
       
     .def("edges", &ptdalgorithms::Vertex::edges, 
       py::return_value_policy::reference_internal, R"delim(
@@ -2213,10 +2380,14 @@ Computes the expected residence time of the phase-type distribution.
 
       )delim")
       
-    .def("update_weight", &ptdalgorithms::Edge::update_weight, R"delim(
+    .def("update_to", &ptdalgorithms::Edge::update_to, R"delim(
 
       )delim")
       
+    .def("update_weight", &ptdalgorithms::Edge::update_weight, R"delim(
+
+      )delim")
+
     .def("__assign__", [](ptdalgorithms::Edge &e, const ptdalgorithms::Edge &o) {
           return e = o;
     }, py::is_operator(), R"delim(
@@ -2243,6 +2414,14 @@ Computes the expected residence time of the phase-type distribution.
 
       )delim")
       
+    // .def("edge_state", 
+    //   [](ptdalgorithms::ParameterizedEdge &edge) {
+    //     auto a = edge.state;
+    //     auto capsule = py::capsule(a, [](void *a) { delete reinterpret_cast<std::vector<double>*>(a); });
+    //     return py::array(a->size(), a->data(), capsule);
+    //   }, R"delim(
+
+    // )delim")  
     .def("edge_state", &ptdalgorithms::ParameterizedEdge::edge_state, 
       py::return_value_policy::reference_internal, R"delim(
 
@@ -2334,10 +2513,22 @@ Computes the expected residence time of the phase-type distribution.
 
       )delim")
       
-    .def("accumulated_visiting_time", &ptdalgorithms::AnyProbabilityDistributionContext::accumulated_visiting_time, 
-      py::return_value_policy::copy, R"delim(
+    // .def("accumulated_visiting_time", &ptdalgorithms::AnyProbabilityDistributionContext::accumulated_visiting_time, 
+    //   py::return_value_policy::copy, R"delim(
+
+    //   )delim")
+
+    .def("accumulated_visiting_time",
+      [](ptdalgorithms::AnyProbabilityDistributionContext &context) {
+        // to make it return np.array instead of list without copying data
+        auto a = new std::vector<long double>(context.accumulated_visiting_time());
+        auto capsule = py::capsule(a, [](void *a) { delete reinterpret_cast<std::vector<long double>*>(a); });
+        return py::array(a->size(), a->data(), capsule);
+      }, py::return_value_policy::copy, 
+      R"delim(
 
       )delim")
+  
     ;
 
 

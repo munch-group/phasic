@@ -60,7 +60,8 @@
         "memory": "cpp",
         "print": "cpp",
         "queue": "cpp",
-        "iterator": "cpp"
+        "iterator": "cpp",
+        "type_traits": "cpp"
     },
     "cSpell.words": [
         "ptdalgorithmscpp"

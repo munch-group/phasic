@@ -876,6 +876,11 @@ namespace ptdalgorithms {
             _weight = weight;
         }
 
+        void update_to(const Vertex &v) {
+            ptd_edge_update_to(_edge, v.vertex);
+            _vertex = v.vertex;
+        }
+
         Edge &operator=(const Edge &o) {
             _weight = o._weight;
             _vertex = o._vertex;

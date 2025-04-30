@@ -1575,6 +1575,20 @@ void ptd_edge_update_weight(
     }
 }
 
+void ptd_edge_update_to(
+    struct ptd_edge *edge,
+    struct ptd_vertex *vertex
+) {
+
+if (edge->to->graph->reward_compute_graph != NULL) {
+    free(edge->to->graph->reward_compute_graph->commands);
+    edge->to->graph->reward_compute_graph = NULL;
+}
+
+edge->to = vertex;
+
+}
+
 void ptd_edge_update_weight_parameterized(
         struct ptd_edge *edge,
         double *scalars,

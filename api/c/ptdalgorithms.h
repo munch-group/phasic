@@ -175,6 +175,11 @@ void ptd_edge_update_weight(
         double weight
 );
 
+void ptd_edge_update_to(
+    struct ptd_edge *edge,
+    struct ptd_vertex *vertex
+);
+
 void ptd_notify_change(
         struct ptd_graph *graph
 );
