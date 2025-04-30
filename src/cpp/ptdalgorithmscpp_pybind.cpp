@@ -501,7 +501,7 @@ double _covariance_discrete(ptdalgorithms::Graph &graph,
           auto capsule = py::capsule(a, [](void *a) { delete reinterpret_cast<std::vector<int>*>(a); });
           py::array_t<int> this_state = py::array(a->size(), a->data(), capsule);
 
-          const std::vector<const py::object> children = callback(this_state);
+          std::vector<py::object> children = callback(this_state);
 
           for (auto child : children) {
 
