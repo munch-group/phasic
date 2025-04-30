@@ -9,7 +9,7 @@ source:
 
 build:
   number: 0
-  script: python -m pip install . -vv
+  script: ${{ env.PYTHON }} -m pip install . -vv
   # script_env:
   #   - CFLAGS=-I${PREFIX}/include/eigen3"
   # entry_points:
