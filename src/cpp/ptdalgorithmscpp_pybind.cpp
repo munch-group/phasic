@@ -430,48 +430,60 @@ double _covariance_discrete(ptdalgorithms::Graph &graph,
 }
 
 
-ptdalgorithms::Graph build_state_space_callback_dicts(
-  const std::function<std::vector<py::dict> (std::vector<int> &state)> &callback, std::vector<int> &initial_state) {
+// ptdalgorithms::Graph build_state_space_callback_dicts(
+//   const std::function<std::vector<py::dict> (std::vector<int> &state)> &callback, std::vector<int> &initial_state) {
 
-      ptdalgorithms::Graph *graph = new ptdalgorithms::Graph(initial_state.size());
+//       ptdalgorithms::Graph *graph = new ptdalgorithms::Graph(initial_state.size());
 
-      ptdalgorithms::Vertex init = graph->find_or_create_vertex(initial_state);
+//       ptdalgorithms::Vertex init = graph->find_or_create_vertex(initial_state);
 
-        graph->starting_vertex().add_edge(init, 1);
+//         graph->starting_vertex().add_edge(init, 1);
 
-        int index = 1;
-        while (index < graph->vertices_length()) {
+//         int index = 1;
+//         while (index < graph->vertices_length()) {
 
-          ptdalgorithms::Vertex this_vertex = graph->vertex_at(index);
-          std::vector<int> this_state = graph->vertex_at(index).state();
+//           ptdalgorithms::Vertex this_vertex = graph->vertex_at(index);
+//           std::vector<int> this_state = graph->vertex_at(index).state();
 
-          std::vector<py::dict> children = callback(this_state);
-              for (auto child : children) {
-                std::vector<int> child_state = child["state"].cast<std::vector<int> >();
-                long double weight = child["weight"].cast<long double>();
-                ptdalgorithms::Vertex child_vertex = graph->find_or_create_vertex(child_state);
-                if (child.size() == 3) {
-                  std::vector<double> edge_params = child["edge_params"].cast<std::vector<double> >();
-                  this_vertex.add_edge_parameterized(child_vertex, weight, edge_params);
-                } else {
-                  this_vertex.add_edge(child_vertex, weight);
-                }
-              }
-              ++index;
-            }
-      return *graph;
-  }
+//           std::vector<py::dict> children = callback(this_state);
+//               for (auto child : children) {
+//                 std::vector<int> child_state = child["state"].cast<std::vector<int> >();
+//                 long double weight = child["weight"].cast<long double>();
+//                 ptdalgorithms::Vertex child_vertex = graph->find_or_create_vertex(child_state);
+//                 if (child.size() == 3) {
+//                   std::vector<double> edge_params = child["edge_params"].cast<std::vector<double> >();
+//                   this_vertex.add_edge_parameterized(child_vertex, weight, edge_params);
+//                 } else {
+//                   this_vertex.add_edge(child_vertex, weight);
+//                 }
+//               }
+//               ++index;
+//             }
+//       return *graph;
+//   }
 
   ptdalgorithms::Graph build_state_space_callback_tuples(
-    const std::function<std::vector<const py::tuple> (const py::array_t<int> &state)> &callback) { 
+    
+      // const std::function< std::vector<const std::tuple<const py::array_t<int>, long double> > (const py::array_t<int> &state)> &callback) { 
+      const std::function<const std::vector<const py::object> (const py::array_t<int> &state)> &callback) { 
 
       ptdalgorithms::Graph *graph = nullptr;
 
       // IPV from callback with no state argument
-      std::vector<const py::tuple> children = callback(py::array_t<int>());
-      for (auto child : children) {
-        std::vector<int> child_state = child[0].cast<std::vector<int> >();
-        long double weight = child[1].cast<long double>();
+      const std::vector<const py::object> children = callback(py::array_t<int>());
+      for (const auto child : children) {
+
+        std::tuple<py::array_t<int>, long double> tup = child.cast<std::tuple<py::array_t<int>, long double> >();
+
+        py::array_t<int> a = std::get<0>(tup);
+        py::buffer_info buf = a.request();
+        if (buf.ndim != 1)
+          throw std::runtime_error("Number of dimensions must be one");
+        int *ptr = static_cast<int *>(buf.ptr);
+        std::vector<int> child_state(ptr, ptr + buf.shape[0]);
+
+        long double weight = std::get<1>(tup);
+
         if (!graph) {
           graph = new ptdalgorithms::Graph(child_state.size());
         }
@@ -479,37 +491,35 @@ ptdalgorithms::Graph build_state_space_callback_dicts(
         graph->starting_vertex().add_edge(child_vertex, weight);
       }
 
-      // IF THIS WORKS I CAN MAKE DECORATORS @joint, @fmc  FOR JOINT PROB, FMC ETC.... !   I COULD EVEN MAKE NORMAL CONSTRUCTION A @graph decorator
-
-      // ptdalgorithms::Graph *graph = new ptdalgorithms::Graph(initial_state.size());
-      // ptdalgorithms::Vertex init = graph->find_or_create_vertex(initial_state);
-      // graph->starting_vertex().add_edge(init, 1);
-
         int index = 1;
         while (index < graph->vertices_length()) {
 
           ptdalgorithms::Vertex this_vertex = graph->vertex_at(index);
 
-          
-          // std::vector<int> this_state = graph->vertex_at(index).state();
-
           auto a = new std::vector<int>(graph->vertex_at(index).state());
           auto capsule = py::capsule(a, [](void *a) { delete reinterpret_cast<std::vector<int>*>(a); });
           py::array_t<int> this_state = py::array(a->size(), a->data(), capsule);
 
-
-          std::vector<const py::tuple> children = callback(this_state);
+          const std::vector<const py::object> children = callback(this_state);
 
           for (auto child : children) {
-            std::vector<int> child_state = child[0].cast<std::vector<int> >();
-            long double weight = child[1].cast<long double>();
+
+            std::tuple<py::array_t<int>, long double> tup = child.cast<std::tuple<py::array_t<int>, long double> >();
+            py::array_t<int> a = std::get<0>(tup);
+            py::buffer_info buf = a.request();
+            if (buf.ndim != 1)
+              throw std::runtime_error("Number of dimensions must be one");
+            int *ptr = static_cast<int *>(buf.ptr);
+            std::vector<int> child_state(ptr, ptr + buf.shape[0]);
+            long double weight = std::get<1>(tup);
+
             ptdalgorithms::Vertex child_vertex = graph->find_or_create_vertex(child_state);
-            if (child.size() == 3) {
-              std::vector<double> edge_params = child[2].cast<std::vector<double> >();
-              this_vertex.add_edge_parameterized(child_vertex, weight, edge_params);
-            } else {
+            // if (child.size() == 3) {
+            //   std::vector<double> edge_params = child[2].cast<std::vector<double> >();
+            //   this_vertex.add_edge_parameterized(child_vertex, weight, edge_params);
+            // } else {
               this_vertex.add_edge(child_vertex, weight);
-            }
+            // }
           }
           ++index;
         }
@@ -690,8 +700,8 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
     .def(py::init<struct ::ptd_graph*, struct ::ptd_avl_tree* >(), py::arg("ptd_graph"), py::arg("ptd_avl_tree"))
     
-    .def(py::init(&build_state_space_callback_dicts), 
-      py::arg("callback_dicts"), py::arg("initial_state"))
+    // .def(py::init(&build_state_space_callback_dicts), 
+    //   py::arg("callback_dicts"), py::arg("initial_state"))
 
     // .def(py::init(&build_state_space_callback_tuples),
     //       py::arg("callback_tuples"), py::arg("initial_state"))
