@@ -12,7 +12,7 @@ if 'PREFIX' in os.environ and os.environ["PREFIX"]:
 else:
     prefix = sys.exec_prefix
 
-if False:#'BUILD_PREFIX' in os.environ and os.environ["BUILD_PREFIX"]:
+if 'BUILD_PREFIX' in os.environ and os.environ["BUILD_PREFIX"]:
     build_prefix_link_arg = f'-I{os.environ["BUILD_PREFIX"]}/include/eigen3/'
 else:
   build_prefix_link_arg = ''
