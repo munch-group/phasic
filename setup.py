@@ -12,23 +12,13 @@ if 'PREFIX' in os.environ and os.environ["PREFIX"]:
 else:
     prefix = sys.exec_prefix
 
-if 'BUILD_PREFIX' in os.environ and os.environ["BUILD_PREFIX"]:
+if False:#'BUILD_PREFIX' in os.environ and os.environ["BUILD_PREFIX"]:
     build_prefix_link_arg = f'-I{os.environ["BUILD_PREFIX"]}/include/eigen3/'
 else:
   build_prefix_link_arg = ''
 
 from pybind11.setup_helpers import Pybind11Extension, ParallelCompile, build_ext, naive_recompile
-# from pybind11.setup_helpers import Pybind11Extension, ParallelCompile, naive_recompile
-# from setuptools.command.build_ext import build_ext as _build_ext
-# class build_ext(_build_ext):
-#     def run(self):
-#         # # Run the pre-build command
-#         pre_build_command = "python pre_build.py"
-#         subprocess.check_call(pre_build_command, shell=True)
-#         assert 0
 
-#         # Continue with the normal build process
-#         _build_ext.run(self)
 
 # Optional multithreaded build
 ParallelCompile("NPY_NUM_BUILD_JOBS").install()
@@ -36,7 +26,8 @@ ParallelCompile("NPY_NUM_BUILD_JOBS").install()
 ParallelCompile("NPY_NUM_BUILD_JOBS", needs_recompile=naive_recompile).install()
 
 extra_compile_args=["-g", "-std=c++11", "-std=gnu++17", f"-I{prefix}/include/eigen3/", build_prefix_link_arg]
-# extra_compile_args=["-g", "-I${PREFIX}/include/eigen3/"]
+# extra_compile_args=["-g", "-I${PREFIX}/include/eigen3/", "-std=c++11", "-std=gnu++17"]
+
 
 extra_link_args = ["-g", f"-I{prefix}/include/eigen3/", build_prefix_link_arg]
 # extra_link_args = ["-g", "-I${PREFIX}/include/eigen3/"]
@@ -64,17 +55,17 @@ ext_modules = [
     ),
 ]
 
-setup(name='ptdalgorithms',
-      package_dir = {'ptdalgorithms': 'ptdalgorithms'},
-    #   test_suite='tests',
-      version=version,
-      description='',
-      long_description='',
-      author='',
-      author_email='',
-      url='',
-      packages = find_packages(where='src'),
-      extras_require={"test": "pytest"},
+setup(#name='ptdalgorithms',
+    #   package_dir = {'ptdalgorithms': 'ptdalgorithms'},
+    # #   test_suite='tests',
+    #   version=version,
+    #   description='',
+    #   long_description='',
+    #   author='',
+    #   author_email='',
+    #   url='',
+    #   packages = find_packages(where='src'),
+    #   extras_require={"test": "pytest"},
       cmdclass={"build_ext": build_ext}, 
       ext_modules=ext_modules,
       data_files=[

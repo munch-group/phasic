@@ -1,25 +1,84 @@
 
 [build-system]
-requires = [
-    "setuptools>=42",
-    "pybind11>=2.10.0",
-    "eigen"
-]
+requires = ["setuptools >= 77.0.3", "pybind11>=2.10.0", "eigen"]
 build-backend = "setuptools.build_meta"
 
-[tool.cibuildwheel]
-test-command = "pytest {project}/tests"
+[project]
+name = "ptdalgorithms"
+version = "0.19.14"
+classifiers = [
+  "Development Status :: 5 - Beta",
+  "Intended Audience :: Education",
+  "Topic :: Software Development :: Build Tools",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+requires-python = ">= 3.9"
+dependencies = [
+  'pybind11>=2.10.0',
+  'graphviz',
+  'ipython',
+  'eigen',
+]
+
+authors = [
+  # {name = "Tobias Røikjer", email = ""},
+  {name = "Kasper Munch", email = "kaspermunch@birc.au.dk"},
+]
+maintainers = [
+  {name = "Kasper Munch", email = "kaspermunch@birc.au.dk"},
+]
+description = ""
+keywords = ["", "", ""]
+readme = "README.md"
+license = {file = "LICENSE"}
+
+# [project.optional-dependencies]
+# dev = [
+#     "pytest",
+#     "tszip>=0.2.5",
+# ]
+# docs = [
+#     "sphinx",
+#     "sphinx-rtd-theme",
+# ]
+
+[project.urls]
+Homepage = "https://munch-group.org/PtDAlgorithms]"
+Documentation = "https://munch-group.org/PtDAlgorithms"
+Repository = "https://github.com/munch-group/ptdalgorithms.git"
+Issues = "https://github.com/munch-group/ptdalgorithms/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+
+# [tool.setuptools.package-data]
+# franklin = ["data/*.yaml", "data/gitui/*", "data/repo_templates/exercise/*", "data/repo_templates/base/*"]
+
+
+
+# [tool.cibuildwheel]
+# test-command = "pytest {project}/tests"
+
 # test-command = "python {project}/tests/test.py"
 # test-skip = "*universal2:arm64"
 
-[tool.ruff]
-target-version = "py37"
 
-[tool.ruff.lint]
-extend-select = [
-  "B",   # flake8-bugbear
-  "I",   # isort
-  "PGH", # pygrep-hooks
-  "RUF", # Ruff-specific
-  "UP",  # pyupgrade
-]
+
+# [tool.ruff]
+# target-version = "py37"
+
+# [tool.ruff.lint]
+# extend-select = [
+#   "B",   # flake8-bugbear
+#   "I",   # isort
+#   "PGH", # pygrep-hooks
+#   "RUF", # Ruff-specific
+#   "UP",  # pyupgrade
+# ]
