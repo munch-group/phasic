@@ -58,15 +58,12 @@ set(Eigen3_DIR ${CONDA_PREFIX}/share/eigen3/cmake)
 find_package(Eigen3 REQUIRED NO_MODULE)
 include_directories(${EIGEN3_INCLUDE_DIR})
 
-# find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
-# find_package(pybind11 REQUIRED)
-set(PYBIND11_FINDPYTHON ON)
+project(ptdalgorithms LANGUAGES CXX)
+
+find_package(Python 3.7 COMPONENTS Interpreter Development REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
 
-pybind11_add_module(ptdalgorithmscpp_pybind src/cpp/ptdalgorithmscpp_pybind.cpp)
-# install(TARGETS ptdalgorithmscpp_pybind DESTINATION .)
-install(TARGETS ptdalgorithmscpp_pybind DESTINATION ${CMAKE_INSTALL_LIBDIR})
-
+pybind11_add_module(ptdalgorithms src/cpp/ptdalgorithmscpp_pybind.cpp)
 
 
 
