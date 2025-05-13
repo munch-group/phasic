@@ -35,9 +35,9 @@ requirements:
     - cmake>=3.5
     # - ninja
     # - make                        
-    - scikit-build-core
-    - pybind11>=2.10.0
-    - eigen
+    # - scikit-build-core
+    # - pybind11>=2.10.0
+    # - eigen
   host:
     - python
     - make                        
