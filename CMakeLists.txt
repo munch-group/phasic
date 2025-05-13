@@ -64,7 +64,7 @@ set(PYBIND11_FINDPYTHON ON)
 find_package(pybind11 CONFIG REQUIRED)
 
 pybind11_add_module(ptdalgorithmscpp_pybind src/cpp/ptdalgorithmscpp_pybind.cpp)
-install(TARGETS ptdalgorithms DESTINATION .)
+install(TARGETS ptdalgorithmscpp_pybind DESTINATION .)
 
 
 
