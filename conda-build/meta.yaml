@@ -24,6 +24,7 @@ requirements:
     - pip
     - git
     - cmake>=3.5
+    - pybind11>=2.10.0
   host:
     - python
     - pip
