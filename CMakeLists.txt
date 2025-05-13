@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.30)
 project(PtDAlgorithms)
 
 set(CMAKE_CXX_STANDARD 98)
@@ -10,7 +10,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 #set(CMAKE_CXX_FLAGS_DEBUG "-O3")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.27+)
 project(ptdalgorithms VERSION 1.0.0 DESCRIPTION "Efficient graph based phase-type distribution algorithms")
 include(GNUInstallDirs)
 add_library(libptdalgorithms SHARED api/c/ptdalgorithms.h src/c/ptdalgorithms.c)
@@ -19,6 +19,7 @@ set_target_properties(libptdalgorithms PROPERTIES
         SOVERSION 1
         PUBLIC_HEADER api/c/ptdalgorithms.h)
 configure_file(ptdalgorithms.pc.in ptdalgorithms.pc @ONLY)
+
 target_include_directories(libptdalgorithms PRIVATE src/c)
 install(TARGETS libptdalgorithms
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -37,9 +38,8 @@ target_include_directories(libptdalgorithmscpp PRIVATE src/cpp)
 install(TARGETS libptdalgorithmscpp
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(FILES ${CMAKE_BINARY_DIR}/ptdalgorithmscpp.pc
-        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
-
+# install(FILES ${CMAKE_BINARY_DIR}/ptdalgorithmscpp.pc
+#         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
 
 #add_executable(testcpp test/testcpp.cpp)
 #target_link_libraries (testcpp LINK_PUBLIC libptdalgorithmscpp)
@@ -47,3 +47,61 @@ install(FILES ${CMAKE_BINARY_DIR}/ptdalgorithmscpp.pc
 #add_executable(tester test/tester.cpp)
 #target_link_libraries (tester LINK_PUBLIC libptdalgorithms)
 
+
+
+project(ptdalgorithms LANGUAGES CXX)
+
+set(PYBIND11_FINDPYTHON ON)
+find_package(pybind11 CONFIG REQUIRED)
+
+pybind11_add_module(ptdalgorithms src/cpp/ptdalgorithmscpp_pybind.cpp)
+install(TARGETS ptdalgorithms DESTINATION .)
+
+
+
+### Pixi version ######
+# find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED) 
+
+# execute_process(
+#   COMMAND "${Python_EXECUTABLE}" -m nanobind --cmake_dir
+#   OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE nanobind_ROOT
+# ) 
+
+# execute_process(
+#     COMMAND ${Python_EXECUTABLE} -c "import sysconfig; print(sysconfig.get_path('purelib'))"
+#     OUTPUT_VARIABLE PYTHON_SITE_PACKAGES
+#     OUTPUT_STRIP_TRAILING_WHITESPACE
+# ) 
+
+# find_package(nanobind CONFIG REQUIRED) 
+
+# nanobind_add_module(${PROJECT_NAME} src/cpp/ptdalgorithmscpp_pybind.cpp) 
+
+# install( 
+#     TARGETS ${PROJECT_NAME}
+#     EXPORT ${PROJECT_NAME}Targets
+#     LIBRARY DESTINATION ${PYTHON_SITE_PACKAGES}
+#     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+#     RUNTIME DESTINATION ${BINDIR}
+# )
+####################
+
+
+
+
+
+
+# find_package(Python COMPONENTS Interpreter Development)
+# find_package(pybind11 CONFIG REQUIRED)
+# # find_package(pybind11 CONFIG)
+
+# # pybind11 method:
+# pybind11_add_module(ptdalgorithms src/cpp/ptdalgorithmscpp_pybind.cpp)
+
+# # Python method:
+# Python_add_library(ptdalgorithms src/cpp/ptdalgorithmscpp_pybind.cpp)
+# target_link_libraries(ptdalgorithms PUBLIC pybind11::headers)
+# set_target_properties(ptdalgorithms PROPERTIES
+#                                 INTERPROCEDURAL_OPTIMIZATION ON
+#                                 CXX_VISIBILITY_PRESET default
+#                                 VISIBILITY_INLINES_HIDDEN ON)

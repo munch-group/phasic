@@ -9,44 +9,62 @@ source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
 
 build:
-  number: 0
-  # script: "python -m pip install . -vv"
+  number: 1
+  script: python -m pip install . -vv
+  # script: "$PYTHON -m pip install . -vv"
+
   # script: "{{ PYTHON }} -m pip install . -vv"
-  script: "$PYTHON -m pip install . -vv"
+  # script: "$PYTHON -m pip install . -vv"
   # script_env:
   #   - CFLAGS=-I${PREFIX}/include/eigen3"
   # entry_points:
   #   - exercises = exercise_client:launch_exercise
 
+  # run_exports:
+  #   - {{ compiler('cxx') }}
+
+  run_exports:
+    strong:
+      - {{ compiler('cxx') }}
+
 requirements:
   build:
     - {{ compiler('cxx') }}
-    - setuptools>=77.0.3
-    - pybind11>=2.10.0
-    - eigen
-
-  host:
-    - python
-    - pip
-  run:  # your library dependencies
-    {% for dep in pyproject.get("project").get("dependencies") %}
-    - {{ dep.lower() }}
-    {% endfor %}
-    # - python
-    # - graphviz
-    # # - python-graphviz
-    # - ipython
+    - git
+    - cmake
+    # - ninja
+    # - make                        
     # - pybind11>=2.10.0
     # - eigen
+  host:
+    - python
+    # - cmake
+    # - ninja
+    - make                        
+    - pybind11>=2.10.0
+    - eigen
+  run:
+    - python
+    - numpy
+    - graphviz
+    - ipython
+    - numpy
+    - seaborn
+    # - eigen
+
+
+    # {% for dep in pyproject.get("project").get("dependencies") %}
+    # - {{ dep.lower() }}
+    # {% endfor %}
+
 
 channels:  # channels for your library dependencies
-  # - uibcdf
   - conda-forge
   - default
 
 dependencies:   # Keep this block with only these two packages
   - anaconda-client
-  - conda-build=24 # from 25 the output file is a .conda not .tar.bz2
+  - conda-build #=24 # from 25 the output file is a .conda not .tar.bz2
   - conda-verify
   # - setuptools>=42
   # - pybind11>=2.10.0

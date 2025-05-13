@@ -1,7 +1,10 @@
 
+# [build-system]
+# requires = ["setuptools >= 77.0.3", "pybind11>=2.10.0", "eigen"]
+# build-backend = "setuptools.build_meta"
 [build-system]
-requires = ["setuptools >= 77.0.3", "pybind11>=2.10.0", "eigen"]
-build-backend = "setuptools.build_meta"
+requires = ["scikit-build-core", "pybind11>=2.10.0", "eigen"]
+build-backend = "scikit_build_core.build"
 
 [project]
 name = "ptdalgorithms"
@@ -23,6 +26,7 @@ dependencies = [
   'pybind11>=2.10.0',
   'graphviz',
   'ipython',
+  'numpy',
   'eigen',
 ]
 
@@ -36,7 +40,7 @@ maintainers = [
 description = ""
 keywords = ["", "", ""]
 readme = "README.md"
-license = {file = "LICENSE"}
+license = {file = "LICENSE.txt"}
 
 # [project.optional-dependencies]
 # dev = [
@@ -55,7 +59,12 @@ Repository = "https://github.com/munch-group/ptdalgorithms.git"
 Issues = "https://github.com/munch-group/ptdalgorithms/issues"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["src"]  # list of folders that contain the packages (["."] by default)
+include = ["ptdalgorithms*"]  # package names should match these glob patterns (["*"] by default)
+# exclude = ["my_package.tests*"]  # exclude packages matching these glob patterns (empty by default)
+namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
+
+
 
 
 # [tool.setuptools.package-data]
@@ -82,3 +91,30 @@ where = ["src"]
 #   "RUF", # Ruff-specific
 #   "UP",  # pyupgrade
 # ]
+
+# [tool.pixi.workspace]
+# channels = ["conda-forge", "r"]
+# platforms = ["linux-aarch64", "linux-64"]
+
+# [tool.pixi.pypi-dependencies]
+# ptdalgorithms = { path = ".", editable = true }
+
+# [tool.pixi.tasks]
+
+# [tool.pixi.dependencies]
+# python = "3.11.*"
+# jupyterlab = "*"
+# nodejs = "*"
+# r-essentials = "*"
+# graphviz = "*"
+# r-rsvg = "*"
+# r-foreach = "*"
+# r-viridis = "*"
+# r-devtools = "*"
+# r-roxygen2 = "*"
+# r-irkernel = "*"
+# r-irdisplay = "*"
+# r-languageserver = "*"
+# pip = "*"
+# conda-build = "*"
+
