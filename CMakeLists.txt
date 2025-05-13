@@ -52,13 +52,11 @@ install(TARGETS libptdalgorithmscpp
 
 
 # cmake_minimum_required(VERSION 3.5)
-project(ptdalgorithmscpp_pybind)
+project(ptdalgorithms LANGUAGES CXX)
 
 set(Eigen3_DIR ${CONDA_PREFIX}/share/eigen3/cmake)
 find_package(Eigen3 REQUIRED NO_MODULE)
 include_directories(${EIGEN3_INCLUDE_DIR})
-
-project(ptdalgorithms LANGUAGES CXX)
 
 find_package(Python 3.7 COMPONENTS Interpreter Development REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
