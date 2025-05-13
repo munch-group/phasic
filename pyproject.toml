@@ -28,6 +28,7 @@ dependencies = [
   'ipython',
   'numpy',
   'eigen',
+  'seaborn',
 ]
 
 authors = [

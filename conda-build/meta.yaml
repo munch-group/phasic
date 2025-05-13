@@ -11,7 +11,7 @@ source:
 build:
   number: 1
   # script: python -m pip install . -vv
-  script: "$PYTHON -m pip install . -vv"
+  script: "$PYTHON -m pip install ../src -vv"
 
   # script: "{{ PYTHON }} -m pip install . -vv"
   # script: "$PYTHON -m pip install . -vv"
@@ -44,7 +44,7 @@ requirements:
     - pybind11>=2.10.0
     - eigen
   run:
-    # - python
+    - python
     - numpy
     - graphviz
     - ipython
