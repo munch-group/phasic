@@ -3,7 +3,7 @@
 # requires = ["setuptools >= 77.0.3", "pybind11>=2.10.0", "eigen"]
 # build-backend = "setuptools.build_meta"
 [build-system]
-requires = ["scikit-build-core", "pybind11>=2.10.0", "eigen"]
+requires = ["setuptools", "wheel", "scikit-build-core", "pybind11>=2.10.0", "eigen"]
 build-backend = "scikit_build_core.build"
 
 [project]

@@ -20,8 +20,8 @@ build:
 requirements:
   build:
     - {{ compiler('cxx') }}
-    # - python
-    # - pip
+    - python
+    - pip
     - git
     - cmake>=3.5
     - pybind11>=2.10.0
