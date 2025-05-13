@@ -10,10 +10,11 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 #set(CMAKE_CXX_FLAGS_DEBUG "-O3")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
-cmake_minimum_required(VERSION 3.27+)
 project(ptdalgorithms VERSION 1.0.0 DESCRIPTION "Efficient graph based phase-type distribution algorithms")
 include(GNUInstallDirs)
+
 add_library(libptdalgorithms SHARED api/c/ptdalgorithms.h src/c/ptdalgorithms.c)
+
 set_target_properties(libptdalgorithms PROPERTIES
         VERSION ${PROJECT_VERSION}
         SOVERSION 1
@@ -27,8 +28,8 @@ install(TARGETS libptdalgorithms
 install(FILES ${CMAKE_BINARY_DIR}/ptdalgorithms.pc
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
 
+        
 add_library(libptdalgorithmscpp SHARED api/c/ptdalgorithms.h src/c/ptdalgorithms.c src/c/ptdalgorithms.h src/cpp/ptdalgorithmscpp.cpp api/cpp/ptdalgorithmscpp.h src/cpp/ptdalgorithmscpp.h)
-
 set_target_properties(libptdalgorithmscpp PROPERTIES
         VERSION ${PROJECT_VERSION}
         SOVERSION 1
@@ -49,13 +50,20 @@ install(TARGETS libptdalgorithmscpp
 
 
 
-project(ptdalgorithms LANGUAGES CXX)
+
+#project(ptdalgorithms LANGUAGES CXX)
+
+find_package (Eigen3 3.3 REQUIRED NO_MODULE)
+include_directories(${EIGEN3_INCLUDE_DIR})
+#target_include_directories(ptdalgorithms PRIVATE ${EIGEN3_INCLUDE_DIR})
 
 set(PYBIND11_FINDPYTHON ON)
 find_package(pybind11 CONFIG REQUIRED)
 
 pybind11_add_module(ptdalgorithms src/cpp/ptdalgorithmscpp_pybind.cpp)
 install(TARGETS ptdalgorithms DESTINATION .)
+
+ 
 
 
 
