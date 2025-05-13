@@ -22,7 +22,7 @@ requirements:
     - {{ compiler('cxx') }}
     # - python
     # - pip
-    # - git
+    - git
     - cmake>=3.5
     - pybind11>=2.10.0
     - eigen
@@ -33,11 +33,12 @@ requirements:
     - pybind11>=2.10.0
     - eigen
   run:
-    # - python
+    - python
     - numpy
     - graphviz
     - ipython
     - seaborn
+
   # build:
   #   - {{ compiler('cxx') }}
   #   - git
