@@ -56,18 +56,19 @@ project(ptdalgorithms LANGUAGES CXX)
 
 find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
-
+find_package (Eigen3 3.3 REQUIRED NO_MODULE)
+ 
 pybind11_add_module(ptdalgorithms src/cpp/ptdalgorithmscpp_pybind.cpp)
 
+target_link_libraries (ptdalgorithms Eigen3::Eigen)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
-find_package(Eigen3 REQUIRED)
+
 #target_link_libraries(ptdalgorithms PUBLIC Eigen)
 
 # list(APPEND CMAKE_PREFIX_PATH "$ENV{CONDA_PREFIX}/share/eigen3/cmake")
 # #set(Eigen3_DIR ${CONDA_PREFIX}/share/eigen3/cmake)
 # find_package(Eigen3 REQUIRED NO_MODULE)
-include_directories(${EIGEN3_INCLUDE_DIR})
+# include_directories(${EIGEN3_INCLUDE_DIR})
 # target_link_libraries (ptdalgorithms Eigen3::Eigen)
 
 
