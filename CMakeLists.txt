@@ -62,9 +62,9 @@ pybind11_add_module(ptdalgorithmscpp_pybind src/cpp/ptdalgorithmscpp_pybind.cpp)
 
 target_link_libraries (ptdalgorithmscpp_pybind PUBLIC Eigen3::Eigen)
 install(
-        TARGETS ptdalgorithmscpp_pybind 
-        LIBRARY DESTINATION ${PYTHON_SITE_PACKAGES}
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        TARGETS ptdalgorithmscpp_pybind ${CMAKE_INSTALL_LIBDIR}
+        # LIBRARY DESTINATION ${PYTHON_SITE_PACKAGES}
+        # ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         )
 
 # install( 
