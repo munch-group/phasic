@@ -19,3 +19,7 @@ build/
 
 
 /.quarto/
+
+# pixi environments
+.pixi
+*.egg-info

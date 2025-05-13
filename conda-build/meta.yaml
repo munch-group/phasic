@@ -31,11 +31,12 @@ requirements:
   build:
     - {{ compiler('cxx') }}
     - git
-    - cmake
+    - cmake>=3.5
     # - ninja
     # - make                        
-    # - pybind11>=2.10.0
-    # - eigen
+    - scikit-build-core
+    - pybind11>=2.10.0
+    - eigen
   host:
     - python
     # - cmake
