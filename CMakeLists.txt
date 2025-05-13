@@ -25,8 +25,8 @@ target_include_directories(libptdalgorithms PRIVATE src/c)
 install(TARGETS libptdalgorithms
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(FILES ${CMAKE_BINARY_DIR}/ptdalgorithms.pc
-        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
+# install(FILES ${CMAKE_BINARY_DIR}/ptdalgorithms.pc
+#         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
 
         
 add_library(libptdalgorithmscpp SHARED api/c/ptdalgorithms.h src/c/ptdalgorithms.c src/c/ptdalgorithms.h src/cpp/ptdalgorithmscpp.cpp api/cpp/ptdalgorithmscpp.h src/cpp/ptdalgorithmscpp.h)
@@ -51,9 +51,9 @@ install(TARGETS libptdalgorithmscpp
 
 
 
-#project(ptdalgorithms LANGUAGES CXX)
+project(ptdalgorithms LANGUAGES CXX)
 
-find_package (Eigen3 3.3 REQUIRED NO_MODULE)
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 include_directories(${EIGEN3_INCLUDE_DIR})
 #target_include_directories(ptdalgorithms PRIVATE ${EIGEN3_INCLUDE_DIR})
 
