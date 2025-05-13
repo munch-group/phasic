@@ -7,11 +7,12 @@ package:
 
 source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
-
+  git_rev: main  # Or the branch/tag you want to build from
+  
 build:
   number: 1
   # script: python -m pip install . -vv
-  script: "$PYTHON -m pip install ../src -vv"
+  script: "$PYTHON -m pip install . -vv"
 
   # script: "{{ PYTHON }} -m pip install . -vv"
   # script: "$PYTHON -m pip install . -vv"
