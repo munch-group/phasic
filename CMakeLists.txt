@@ -61,7 +61,20 @@ find_package (Eigen3 3.3 REQUIRED NO_MODULE)
 pybind11_add_module(ptdalgorithmscpp_pybind src/cpp/ptdalgorithmscpp_pybind.cpp)
 
 target_link_libraries (ptdalgorithmscpp_pybind PUBLIC Eigen3::Eigen)
+install(
+        TARGETS ptdalgorithmscpp_pybind 
+        LIBRARY DESTINATION ${PYTHON_SITE_PACKAGES}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        )
 
+# install( 
+#     TARGETS ${PROJECT_NAME}
+#     EXPORT ${PROJECT_NAME}Targets
+#     LIBRARY DESTINATION ${PYTHON_SITE_PACKAGES}
+#     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+#     RUNTIME DESTINATION ${BINDIR}
+# )
+########
 
 #target_link_libraries(ptdalgorithms PUBLIC Eigen)
 
