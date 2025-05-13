@@ -51,20 +51,37 @@ install(TARGETS libptdalgorithmscpp
 
 
 
-project(ptdalgorithms LANGUAGES CXX)
+# cmake_minimum_required(VERSION 3.5)
+project(ptdalgorithmscpp_pybind)
 
 set(Eigen3_DIR ${CONDA_PREFIX}/share/eigen3/cmake)
-
 find_package(Eigen3 REQUIRED NO_MODULE)
-# find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 include_directories(${EIGEN3_INCLUDE_DIR})
-#target_include_directories(ptdalgorithms PRIVATE ${EIGEN3_INCLUDE_DIR})
 
+# find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+# find_package(pybind11 REQUIRED)
 set(PYBIND11_FINDPYTHON ON)
 find_package(pybind11 CONFIG REQUIRED)
 
-pybind11_add_module(ptdalgorithms src/cpp/ptdalgorithmscpp_pybind.cpp)
+pybind11_add_module(ptdalgorithmscpp_pybind src/cpp/ptdalgorithmscpp_pybind.cpp)
 install(TARGETS ptdalgorithms DESTINATION .)
+
+
+
+
+# project(ptdalgorithms LANGUAGES CXX)
+
+# set(Eigen3_DIR ${CONDA_PREFIX}/share/eigen3/cmake)
+# find_package(Eigen3 REQUIRED NO_MODULE)
+# # find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+# include_directories(${EIGEN3_INCLUDE_DIR})
+# #target_include_directories(ptdalgorithms PRIVATE ${EIGEN3_INCLUDE_DIR})
+
+# set(PYBIND11_FINDPYTHON ON)
+# find_package(pybind11 CONFIG REQUIRED)
+
+# pybind11_add_module(ptdalgorithms src/cpp/ptdalgorithmscpp_pybind.cpp)
+# install(TARGETS ptdalgorithms DESTINATION .)
 
  
 
