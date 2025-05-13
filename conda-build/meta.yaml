@@ -10,8 +10,8 @@ source:
 
 build:
   number: 1
-  script: python -m pip install . -vv
-  # script: "$PYTHON -m pip install . -vv"
+  # script: python -m pip install . -vv
+  script: "$PYTHON -m pip install . -vv"
 
   # script: "{{ PYTHON }} -m pip install . -vv"
   # script: "$PYTHON -m pip install . -vv"
@@ -39,9 +39,8 @@ requirements:
     - eigen
   host:
     - python
-    # - cmake
-    # - ninja
     - make                        
+    - scikit-build-core
     - pybind11>=2.10.0
     - eigen
   run:
