@@ -26,7 +26,7 @@ requirements:
     - cmake>=3.5
     - pybind11>=2.10.0
   host:
-   - python
+    - python
     - scikit-build-core
     - pybind11>=2.10.0
     - eigen
