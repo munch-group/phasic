@@ -20,20 +20,20 @@ build:
 requirements:
   build:
     - {{ compiler('cxx') }}
-    - python
-    - pip
-    - git
+    # - python
+    # - pip
+    # - git
     - cmake>=3.5
     - pybind11>=2.10.0
     - eigen
   host:
     - python
-    - pip
+    # - pip
     - scikit-build-core
     - pybind11>=2.10.0
     - eigen
   run:
-    - python
+    # - python
     - numpy
     - graphviz
     - ipython
