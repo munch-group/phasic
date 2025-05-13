@@ -62,13 +62,12 @@ pybind11_add_module(ptdalgorithms src/cpp/ptdalgorithmscpp_pybind.cpp)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 find_package(Eigen3 REQUIRED)
-#include_directories(${EIGEN3_INCLUDE_DIR})
-target_link_libraries(ptdalgorithms PUBLIC Eigen)
+#target_link_libraries(ptdalgorithms PUBLIC Eigen)
 
 # list(APPEND CMAKE_PREFIX_PATH "$ENV{CONDA_PREFIX}/share/eigen3/cmake")
 # #set(Eigen3_DIR ${CONDA_PREFIX}/share/eigen3/cmake)
 # find_package(Eigen3 REQUIRED NO_MODULE)
-# #include_directories(${EIGEN3_INCLUDE_DIR})
+include_directories(${EIGEN3_INCLUDE_DIR})
 # target_link_libraries (ptdalgorithms Eigen3::Eigen)
 
 
