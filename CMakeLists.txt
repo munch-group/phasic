@@ -60,7 +60,7 @@ find_package (Eigen3 3.3 REQUIRED NO_MODULE)
  
 pybind11_add_module(ptdalgorithms src/cpp/ptdalgorithmscpp_pybind.cpp)
 
-target_link_libraries (ptdalgorithms Eigen3::Eigen)
+target_link_libraries (ptdalgorithms PUBLIC Eigen3::Eigen)
 
 
 #target_link_libraries(ptdalgorithms PUBLIC Eigen)
