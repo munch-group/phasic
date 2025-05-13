@@ -54,7 +54,8 @@ install(TARGETS libptdalgorithmscpp
 # cmake_minimum_required(VERSION 3.5)
 project(ptdalgorithms LANGUAGES CXX)
 
-set(Eigen3_DIR ${CONDA_PREFIX}/share/eigen3/cmake)
+list(APPEND CMAKE_PREFIX_PATH ${BUILD_PREFIX}/share/eigen3/cmake)
+# set(Eigen3_DIR ${CONDA_PREFIX}/share/eigen3/cmake)
 find_package(Eigen3 REQUIRED NO_MODULE)
 include_directories(${EIGEN3_INCLUDE_DIR})
 
