@@ -58,7 +58,7 @@ set(Eigen3_DIR ${CONDA_PREFIX}/share/eigen3/cmake)
 find_package(Eigen3 REQUIRED NO_MODULE)
 include_directories(${EIGEN3_INCLUDE_DIR})
 
-find_package(Python 3.7 COMPONENTS Interpreter Development REQUIRED)
+find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
 
 pybind11_add_module(ptdalgorithms src/cpp/ptdalgorithmscpp_pybind.cpp)
