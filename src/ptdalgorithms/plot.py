@@ -47,7 +47,7 @@ def plot_graph(graph:GraphType,
                theme:str=None,
                constraint:bool=True, ranksep:float=1, nodesep:float=1, rankdir:str="LR",
                size:tuple=(7, 7), fontsize:int=12, rainbow:bool=True, penwidth:FloatingPointError=1,                
-               **kwargs) -> graphviz.dot.Digraph:
+               **kwargs) -> graphviz.Digraph:
     """
     Plot a graph using graphviz.
 
