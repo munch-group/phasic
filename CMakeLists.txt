@@ -50,21 +50,30 @@ install(TARGETS libptdalgorithmscpp
 #target_link_libraries (tester LINK_PUBLIC libptdalgorithms)
 
 
-
-
 # cmake_minimum_required(VERSION 3.5)
 project(ptdalgorithmscpp_pybind LANGUAGES CXX)
 
-find_package(Python COMPONENTS Interpreter Development REQUIRED)
-find_package(pybind11 CONFIG REQUIRED)
-# set(CMAKE_LIBRARY_OUTPUT_DIRECTORY pybind11::module)
-find_package (Eigen3 3.3 REQUIRED NO_MODULE)
+find_package(Python COMPONENTS Interpreter Development)
+find_package(pybind11 CONFIG)
+find_package (Eigen3 REQUIRED NO_MODULE)
+pybind11_add_module(ptdalgorithmscpp_pybind src/cpp/ptdalgorithmscpp_pybind.cpp)
+target_link_libraries (ptdalgorithmscpp_pybind PUBLIC Eigen3::Eigen pybind11::module)
+install(TARGETS ptdalgorithmscpp_pybind DESTINATION ptdalgorithms)
+
+
+# # cmake_minimum_required(VERSION 3.5)
+# project(ptdalgorithmscpp_pybind LANGUAGES CXX)
+
+# find_package(Python COMPONENTS Interpreter Development REQUIRED)
+# find_package(pybind11 CONFIG REQUIRED)
+# # set(CMAKE_LIBRARY_OUTPUT_DIRECTORY pybind11::module)
+# find_package (Eigen3 3.3 REQUIRED NO_MODULE)
  
 
-# pybind11 method:
-pybind11_add_module(ptdalgorithmscpp_pybind src/cpp/ptdalgorithmscpp_pybind.cpp)
-target_link_libraries (ptdalgorithmscpp_pybind PUBLIC Eigen3::Eigen)
-install(TARGETS ptdalgorithmscpp_pybind DESTINATION ptdalgorithms)
+# # pybind11 method:
+# pybind11_add_module(ptdalgorithmscpp_pybind src/cpp/ptdalgorithmscpp_pybind.cpp)
+# target_link_libraries (ptdalgorithmscpp_pybind PUBLIC Eigen3::Eigen)
+# install(TARGETS ptdalgorithmscpp_pybind DESTINATION ptdalgorithms)
 
 
 # # Python method:
