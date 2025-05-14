@@ -25,11 +25,7 @@ build:
 
 requirements:
   build:
-    # - {{ stdlib('c') }}
-    # - {{ stdlib('cxx') }}
-    - {{ compiler('c') }}
     - {{ compiler('cxx') }}  
-    - libcxx  
     - python {{ python }}
     # - pip
     - git
