@@ -50,24 +50,36 @@ install(TARGETS libptdalgorithmscpp
 
 
 
-set(Python_FIND_VIRTUALENV ONLY)
 
 # cmake_minimum_required(VERSION 3.5)
 project(ptdalgorithmscpp_pybind LANGUAGES CXX)
 
 find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
-find_package (Eigen3 3.3 REQUIRED NO_MODULE)
 find_package(pybind11 CONFIG REQUIRED)
-
+find_package (Eigen3 3.3 REQUIRED NO_MODULE)
+ 
 pybind11_add_module(ptdalgorithmscpp_pybind src/cpp/ptdalgorithmscpp_pybind.cpp)
 
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY pybind11::module)
-#install(TARGETS ptdalgorithmscpp_pybind DESTINATION pybind11::module)
+target_link_libraries (ptdalgorithmscpp_pybind PUBLIC Eigen3::Eigen)
+install(TARGETS ptdalgorithmscpp_pybind DESTINATION Python3_SITELIB)
 
 
-# target_link_libraries (ptdalgorithmscpp_pybind PUBLIC Eigen3::Eigen)
-# # install(TARGETS ptdalgorithmscpp_pybind DESTINATION Python3_SITELIB)
-# set(CMAKE_LIBRARY_OUTPUT_DIRECTORY Python3_SITELIB)
+
+
+
+# set(Python_FIND_VIRTUALENV ONLY)
+
+# # cmake_minimum_required(VERSION 3.5)
+# project(ptdalgorithmscpp_pybind LANGUAGES CXX)
+
+# find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+# find_package (Eigen3 3.3 REQUIRED NO_MODULE)
+# find_package(pybind11 CONFIG REQUIRED)
+# set(CMAKE_LIBRARY_OUTPUT_DIRECTORY pybind11::module)
+
+# pybind11_add_module(ptdalgorithmscpp_pybind src/cpp/ptdalgorithmscpp_pybind.cpp)
+
+
 
 # install( 
 #     TARGETS ${PROJECT_NAME}
