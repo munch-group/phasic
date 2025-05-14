@@ -2,102 +2,102 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://munch-group.github.io/PtDAlgorithms/api/index.html</loc>
-    <lastmod>2025-05-14T10:28:09.925Z</lastmod>
+    <lastmod>2025-05-14T10:52:25.290Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/PtDAlgorithms/api/Graph.html</loc>
-    <lastmod>2025-05-14T10:28:09.924Z</lastmod>
+    <lastmod>2025-05-14T10:52:25.290Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/PtDAlgorithms/c_api/index.html</loc>
-    <lastmod>2025-05-14T10:28:09.925Z</lastmod>
+    <lastmod>2025-05-14T10:52:25.290Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/PtDAlgorithms/examples/R/full_r_api_example.html</loc>
-    <lastmod>2025-05-14T10:28:09.947Z</lastmod>
+    <lastmod>2025-05-14T10:52:25.314Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/PtDAlgorithms/examples/python/rabbits_full_py_api_example.html</loc>
-    <lastmod>2025-05-14T10:28:09.959Z</lastmod>
+    <lastmod>2025-05-14T10:52:25.324Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/PtDAlgorithms/examples/python/somecode.html</loc>
-    <lastmod>2025-05-14T10:28:09.961Z</lastmod>
+    <lastmod>2025-05-14T10:52:25.325Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/PtDAlgorithms/examples/python/isolation_migration.html</loc>
-    <lastmod>2025-05-14T10:28:09.957Z</lastmod>
+    <lastmod>2025-05-14T10:52:25.322Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/PtDAlgorithms/pages/epochs.html</loc>
-    <lastmod>2025-05-14T10:28:09.967Z</lastmod>
+    <lastmod>2025-05-14T10:52:25.331Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/PtDAlgorithms/pages/tutorial.html</loc>
-    <lastmod>2025-05-14T10:28:09.970Z</lastmod>
+    <lastmod>2025-05-14T10:52:25.334Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/PtDAlgorithms/pages/laplace.html</loc>
-    <lastmod>2025-05-14T10:28:09.969Z</lastmod>
+    <lastmod>2025-05-14T10:52:25.334Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/PtDAlgorithms/pages/state_space.html</loc>
-    <lastmod>2025-05-14T10:28:09.970Z</lastmod>
+    <lastmod>2025-05-14T10:52:25.334Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/PtDAlgorithms/pages/joint_prob.html</loc>
-    <lastmod>2025-05-14T10:28:09.969Z</lastmod>
+    <lastmod>2025-05-14T10:52:25.334Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/PtDAlgorithms/r_api/index.html</loc>
-    <lastmod>2025-05-14T10:28:09.970Z</lastmod>
+    <lastmod>2025-05-14T10:52:25.334Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/PtDAlgorithms/pages/moments.html</loc>
-    <lastmod>2025-05-14T10:28:09.969Z</lastmod>
+    <lastmod>2025-05-14T10:52:25.334Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/PtDAlgorithms/pages/state_lumping.html</loc>
-    <lastmod>2025-05-14T10:28:09.969Z</lastmod>
+    <lastmod>2025-05-14T10:52:25.334Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/PtDAlgorithms/pages/coalescent_showcase.html</loc>
-    <lastmod>2025-05-14T10:28:09.967Z</lastmod>
+    <lastmod>2025-05-14T10:52:25.331Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/PtDAlgorithms/pages/distributions.html</loc>
-    <lastmod>2025-05-14T10:28:09.967Z</lastmod>
+    <lastmod>2025-05-14T10:52:25.331Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/PtDAlgorithms/pages/getting_started.html</loc>
-    <lastmod>2025-05-14T10:28:09.967Z</lastmod>
+    <lastmod>2025-05-14T10:52:25.331Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/PtDAlgorithms/examples/python/experiments.html</loc>
-    <lastmod>2025-05-14T10:28:09.956Z</lastmod>
+    <lastmod>2025-05-14T10:52:25.321Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/PtDAlgorithms/examples/python/two-island-two-locus-arg.html</loc>
-    <lastmod>2025-05-14T10:28:09.961Z</lastmod>
+    <lastmod>2025-05-14T10:52:25.325Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/PtDAlgorithms/examples/python/coalescent-jointprob.html</loc>
-    <lastmod>2025-05-14T10:28:09.955Z</lastmod>
+    <lastmod>2025-05-14T10:52:25.321Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/PtDAlgorithms/examples/R/coalescent-jointprob-R.html</loc>
-    <lastmod>2025-05-14T10:28:09.934Z</lastmod>
+    <lastmod>2025-05-14T10:52:25.300Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/PtDAlgorithms/examples/showcase_rpy2/showcase.html</loc>
-    <lastmod>2025-05-14T10:28:09.966Z</lastmod>
+    <lastmod>2025-05-14T10:52:25.330Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/PtDAlgorithms/api/Edge.html</loc>
-    <lastmod>2025-05-14T10:28:09.924Z</lastmod>
+    <lastmod>2025-05-14T10:52:25.289Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/PtDAlgorithms/api/Vertex.html</loc>
-    <lastmod>2025-05-14T10:28:09.925Z</lastmod>
+    <lastmod>2025-05-14T10:52:25.290Z</lastmod>
   </url>
 </urlset>
