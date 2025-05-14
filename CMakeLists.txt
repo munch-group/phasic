@@ -56,13 +56,13 @@ project(ptdalgorithmscpp_pybind LANGUAGES CXX)
 
 find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY pybind11::module)
 find_package (Eigen3 3.3 REQUIRED NO_MODULE)
  
 pybind11_add_module(ptdalgorithmscpp_pybind src/cpp/ptdalgorithmscpp_pybind.cpp)
 
 target_link_libraries (ptdalgorithmscpp_pybind PUBLIC Eigen3::Eigen)
 install(TARGETS ptdalgorithmscpp_pybind DESTINATION Python3_SITELIB)
-
 
 
 
