@@ -28,7 +28,8 @@ requirements:
     # - {{ stdlib('c') }}
     # - {{ stdlib('cxx') }}
     - {{ compiler('c') }}
-    - {{ compiler('cxx') }}    
+    - {{ compiler('cxx') }}  
+    - libcxx  
     - python {{ python }}
     # - pip
     - git
