@@ -34,6 +34,8 @@ requirements:
     - eigen
   run:
     - python {{ python }}
+    # - pybind11>=2.10.0
+    # - eigen    
     - numpy
     - graphviz
     - ipython
