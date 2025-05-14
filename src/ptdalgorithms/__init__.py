@@ -71,8 +71,7 @@ class Graph(_Graph):
         :
             A graph object representing a phase-type distribution.
         """
-
-        assert bool(callback) != bool(state_length), "Use either the state_length or callback argument, not both"
+        assert (callback is None) + (state_length is None) == 1, "Use either the state_length or callback argument"
 
         if callback:
             super().__init__(callback_tuples=partial(callback, **kwargs))
@@ -88,7 +87,6 @@ class Graph(_Graph):
         :
             _description_
         """
-
         return plot.plot_graph(self, *args, **kwargs)
 
     def copy(self) -> GraphType:
@@ -96,7 +94,6 @@ class Graph(_Graph):
         Returns a deep copy of the graph.
         """
         return Graph(self.clone())
-
 
         # """
         # Takes a graph for a continuous distribution and turns

@@ -3,38 +3,24 @@
 package:
   name: ptdalgorithms
   version: {{ pyproject.get("project").get("version") }}
-  # version: {{ data.get('version') }}  
 
 source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
-
 
 build:
   number: 1
   script: "$PYTHON -m pip install . -vv"
 
-  # run_exports:
-  #   strong:
-  #     - {{ stdlib('c') }}
-  #     - {{ compiler('c') }}
-  #     - {{ compiler('cxx') }}
-  #     - pybind11>=2.10.0
-  #     - eigen
-  #     - libstdc++
-  # #     - libgomp
-
 requirements:
   build:
     - {{ compiler('cxx') }}  
-    - python {{ python }}
-    # - pip
+    - python {{ python }} # pin to specified version
     - git
     - cmake>=3.30
     - pybind11>=2.10.0
     - eigen
   host:
     - python {{ python }}
-    # - pip
     - scikit-build-core
     - pybind11>=2.10.0
     - eigen
@@ -46,28 +32,6 @@ requirements:
     - python-graphviz
     - ipython
     - seaborn
-
-  # build:
-  #   - {{ compiler('cxx') }}
-  #   - git
-  #   - cmake>=3.5
-  #   # - ninja
-  # host:
-  #   - python
-  #   - make                        
-  #   - scikit-build-core
-  #   - pybind11>=2.10.0
-  #   - eigen
-  # run:
-  #   - python
-  #   - numpy
-  #   - graphviz
-  #   - ipython
-  #   - seaborn
-
-    # {% for dep in pyproject.get("project").get("dependencies") %}
-    # - {{ dep.lower() }}
-    # {% endfor %}
 
 channels:  # channels for your library dependencies
   - conda-forge

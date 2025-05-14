@@ -40,44 +40,13 @@ install(TARGETS libptdalgorithmscpp
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-        # install(FILES ${CMAKE_BINARY_DIR}/ptdalgorithmscpp.pc
+# install(FILES ${CMAKE_BINARY_DIR}/ptdalgorithmscpp.pc
 #         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
 
-#add_executable(testcpp test/testcpp.cpp)
-#target_link_libraries (testcpp LINK_PUBLIC libptdalgorithmscpp)
 
-#add_executable(tester test/tester.cpp)
-#target_link_libraries (tester LINK_PUBLIC libptdalgorithms)
-
-
-# # cmake_minimum_required(VERSION 3.5)
-# project(ptdalgorithmscpp_pybind LANGUAGES CXX)
-
-# include(FetchContent)
-# FetchContent_Declare(
-#         pybind11
-#         GIT_REPOSITORY https://github.com/pybind/pybind11
-#         GIT_TAG 7c33cdc2d39c7b99a122579f53bc94c8eb3332ff # Version 2.13.5
-# )
-# FetchContent_MakeAvailable(pybind11)
-# FetchContent_GetProperties(pybind11)
-# if (NOT pybind11_POPULATED)
-#         FetchContent_Populate(pybind11)
-#         add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
-# endif ()
-    
-
-# find_package(Python COMPONENTS Interpreter Development)
-# find_package(pybind11 CONFIG)
-# find_package (Eigen3 REQUIRED NO_MODULE)
-# pybind11_add_module(ptdalgorithmscpp_pybind src/cpp/ptdalgorithmscpp_pybind.cpp)
-# target_link_libraries (ptdalgorithmscpp_pybind PUBLIC Eigen3::Eigen pybind11::module)
-# install(TARGETS ptdalgorithmscpp_pybind DESTINATION ptdalgorithms)
-
-
-# cmake_minimum_required(VERSION 3.5)
+# Python bindings ###################################################
 project(ptdalgorithmscpp_pybind LANGUAGES CXX)
-set(CMAKE_CXX_COMPILER_INIT g++)
+# set(CMAKE_CXX_COMPILER_INIT g++)
 
 find_package(Python COMPONENTS Interpreter Development REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
@@ -87,68 +56,6 @@ find_package (Eigen3 REQUIRED NO_MODULE)
 pybind11_add_module(ptdalgorithmscpp_pybind src/cpp/ptdalgorithmscpp_pybind.cpp api/c/ptdalgorithms.h src/c/ptdalgorithms.c src/c/ptdalgorithms.h src/cpp/ptdalgorithmscpp.cpp api/cpp/ptdalgorithmscpp.h src/cpp/ptdalgorithmscpp.h)
 target_link_libraries (ptdalgorithmscpp_pybind PUBLIC Eigen3::Eigen pybind11::module)
 install(TARGETS ptdalgorithmscpp_pybind DESTINATION ptdalgorithms)
-
-
-# # Python method:
-# Python_add_library(ptdalgorithmscpp_pybind src/cpp/ptdalgorithmscpp_pybind.cpp)
-# target_link_libraries(ptdalgorithmscpp_pybind PUBLIC pybind11::headers Eigen3::Eigen)
-# set_target_properties(ptdalgorithmscpp_pybind PROPERTIES
-#                                 INTERPROCEDURAL_OPTIMIZATION ON
-#                                 CXX_VISIBILITY_PRESET "default"
-#                                 VISIBILITY_INLINES_HIDDEN 1)
-
-
-# install(TARGETS ptdalgorithmscpp_pybind DESTINATION ./ptdalgorithms)
-
-
-
-# set(Python_FIND_VIRTUALENV ONLY)
-
-# # cmake_minimum_required(VERSION 3.5)
-# project(ptdalgorithmscpp_pybind LANGUAGES CXX)
-
-# find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
-# find_package (Eigen3 3.3 REQUIRED NO_MODULE)
-# find_package(pybind11 CONFIG REQUIRED)
-# set(CMAKE_LIBRARY_OUTPUT_DIRECTORY pybind11::module)
-
-# pybind11_add_module(ptdalgorithmscpp_pybind src/cpp/ptdalgorithmscpp_pybind.cpp)
-
-
-
-# install( 
-#     TARGETS ${PROJECT_NAME}
-#     EXPORT ${PROJECT_NAME}Targets
-#     LIBRARY DESTINATION ${PYTHON_SITE_PACKAGES}
-#     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-#     RUNTIME DESTINATION ${BINDIR}
-# )
-########
-
-#target_link_libraries(ptdalgorithms PUBLIC Eigen)
-
-# list(APPEND CMAKE_PREFIX_PATH "$ENV{CONDA_PREFIX}/share/eigen3/cmake")
-# #set(Eigen3_DIR ${CONDA_PREFIX}/share/eigen3/cmake)
-# find_package(Eigen3 REQUIRED NO_MODULE)
-# include_directories(${EIGEN3_INCLUDE_DIR})
-# target_link_libraries (ptdalgorithms Eigen3::Eigen)
-
-
-# project(ptdalgorithms LANGUAGES CXX)
-
-# set(Eigen3_DIR ${CONDA_PREFIX}/share/eigen3/cmake)
-# find_package(Eigen3 REQUIRED NO_MODULE)
-# # find_package(Eigen3 3.3 REQUIRED NO_MODULE)
-# include_directories(${EIGEN3_INCLUDE_DIR})
-# #target_include_directories(ptdalgorithms PRIVATE ${EIGEN3_INCLUDE_DIR})
-
-# set(PYBIND11_FINDPYTHON ON)
-# find_package(pybind11 CONFIG REQUIRED)
-
-# pybind11_add_module(ptdalgorithms src/cpp/ptdalgorithmscpp_pybind.cpp)
-# install(TARGETS ptdalgorithms DESTINATION .)
-
- 
 
 
 
@@ -178,23 +85,3 @@ install(TARGETS ptdalgorithmscpp_pybind DESTINATION ptdalgorithms)
 #     RUNTIME DESTINATION ${BINDIR}
 # )
 ####################
-
-
-
-
-
-
-# find_package(Python COMPONENTS Interpreter Development)
-# find_package(pybind11 CONFIG REQUIRED)
-# # find_package(pybind11 CONFIG)
-
-# # pybind11 method:
-# pybind11_add_module(ptdalgorithms src/cpp/ptdalgorithmscpp_pybind.cpp)
-
-# # Python method:
-# Python_add_library(ptdalgorithms src/cpp/ptdalgorithmscpp_pybind.cpp)
-# target_link_libraries(ptdalgorithms PUBLIC pybind11::headers)
-# set_target_properties(ptdalgorithms PROPERTIES
-#                                 INTERPROCEDURAL_OPTIMIZATION ON
-#                                 CXX_VISIBILITY_PRESET default
-#                                 VISIBILITY_INLINES_HIDDEN ON)
