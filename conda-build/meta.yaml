@@ -18,6 +18,8 @@ build:
   #     - {{ compiler('cxx') }}
   #     - pybind11>=2.10.0
   #     - eigen
+  #     - libstdc++
+  #     - libgomp
 
 requirements:
   build:
@@ -36,8 +38,8 @@ requirements:
     - eigen
   run:
     - python {{ python }}
-    # - pybind11>=2.10.0
-    # - eigen    
+    - pybind11>=2.10.0
+    - eigen    
     - numpy
     - graphviz
     - ipython
