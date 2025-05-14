@@ -20,10 +20,10 @@ build:
 requirements:
   build:
     - {{ compiler('cxx') }}
-    # - python
+    - python
     # - pip
     - git
-    - cmake>=3.5
+    - cmake>=3.30
     - pybind11>=2.10.0
     - eigen
   host:
@@ -33,7 +33,7 @@ requirements:
     - pybind11>=2.10.0
     - eigen
   run:
-    # - python
+    - python
     - numpy
     - graphviz
     - ipython
@@ -70,9 +70,9 @@ dependencies:   # Keep this block with only these two packages
   - conda-build
   - conda-verify
 
-# test:
-#   imports:
-#     - ptdalgorithms
+test:
+  imports:
+    - ptdalgorithms
 
 about:
   home: https://github.com/munch-group/ptdalgorithms.git
