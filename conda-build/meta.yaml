@@ -47,7 +47,7 @@ requirements:
     - pybind11>=2.10.0
     - eigen    
     - numpy
-    - graphviz
+    - python-graphviz
     - ipython
     - seaborn
 
