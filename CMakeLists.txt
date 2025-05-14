@@ -55,7 +55,7 @@ install(TARGETS libptdalgorithmscpp
 # cmake_minimum_required(VERSION 3.5)
 project(ptdalgorithmscpp_pybind LANGUAGES CXX)
 
-find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+find_package(Python COMPONENTS Interpreter Development REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
 # set(CMAKE_LIBRARY_OUTPUT_DIRECTORY pybind11::module)
 find_package (Eigen3 3.3 REQUIRED NO_MODULE)
