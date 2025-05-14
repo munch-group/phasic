@@ -13,19 +13,21 @@ build:
   number: 1
   script: "$PYTHON -m pip install . -vv"
 
-  run_exports:
-    strong:
-      - {{ stdlib('c') }}
-      - {{ compiler('c') }}
-      - {{ compiler('cxx') }}
-      - pybind11>=2.10.0
-      - eigen
-      - libstdc++
-  #     - libgomp
+  # run_exports:
+  #   strong:
+  #     - {{ stdlib('c') }}
+  #     - {{ compiler('c') }}
+  #     - {{ compiler('cxx') }}
+  #     - pybind11>=2.10.0
+  #     - eigen
+  #     - libstdc++
+  # #     - libgomp
 
 requirements:
   build:
-    - {{ compiler('cxx') }}
+    - {{ stdlib('c') }}
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}    
     - python {{ python }}
     # - pip
     - git
