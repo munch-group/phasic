@@ -20,7 +20,7 @@ build:
 requirements:
   build:
     - {{ compiler('cxx') }}
-    - python
+    # - python
     # - pip
     - git
     - cmake>=3.30
@@ -33,7 +33,7 @@ requirements:
     - pybind11>=2.10.0
     - eigen
   run:
-    - python
+    # - python
     - numpy
     - graphviz
     - ipython
