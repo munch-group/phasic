@@ -39,7 +39,8 @@ target_include_directories(libptdalgorithmscpp PRIVATE src/cpp)
 install(TARGETS libptdalgorithmscpp
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-# install(FILES ${CMAKE_BINARY_DIR}/ptdalgorithmscpp.pc
+
+        # install(FILES ${CMAKE_BINARY_DIR}/ptdalgorithmscpp.pc
 #         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
 
 #add_executable(testcpp test/testcpp.cpp)
@@ -57,7 +58,7 @@ project(ptdalgorithmscpp_pybind LANGUAGES CXX)
 find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
 # set(CMAKE_LIBRARY_OUTPUT_DIRECTORY pybind11::module)
-message("$(CMAKE_LIBRARY_OUTPUT_DIRECTORY) $(LIBRARY_OUTPUT_DIRECTORY)")
+
 find_package (Eigen3 3.3 REQUIRED NO_MODULE)
  
 pybind11_add_module(ptdalgorithmscpp_pybind src/cpp/ptdalgorithmscpp_pybind.cpp)

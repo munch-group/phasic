@@ -20,7 +20,7 @@ build:
 requirements:
   build:
     - {{ compiler('cxx') }}
-    # - python
+    - python
     # - pip
     - git
     - cmake>=3.30
