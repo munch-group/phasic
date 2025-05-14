@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.30)
+cmake_minimum_required(VERSION 3.27+...3.30)
 project(PtDAlgorithms)
 
 set(CMAKE_CXX_STANDARD 98)
@@ -71,7 +71,7 @@ find_package (Eigen3 3.3 REQUIRED NO_MODULE)
 # pybind11_add_module(ptdalgorithmscpp_pybind ptdalgorithmscpp_pybind)
 
 # Python method:
-Python_add_library(ptdalgorithmscpp_pybind ptdalgorithmscpp_pybind)
+Python_add_library(ptdalgorithmscpp_pybind src/cpp/ptdalgorithmscpp_pybind.cpp)
 target_link_libraries(ptdalgorithmscpp_pybind PUBLIC pybind11::headers Eigen3::Eigen)
 set_target_properties(ptdalgorithmscpp_pybind PROPERTIES
                                 INTERPROCEDURAL_OPTIMIZATION ON
