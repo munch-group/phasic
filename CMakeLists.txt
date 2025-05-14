@@ -79,7 +79,7 @@ set_target_properties(ptdalgorithmscpp_pybind PROPERTIES
                                 VISIBILITY_INLINES_HIDDEN 1)
 
 
-#install(TARGETS ptdalgorithmscpp_pybind DESTINATION ptdalgorithms)
+install(TARGETS ptdalgorithmscpp_pybind DESTINATION ptdalgorithms)
 
 
 
