@@ -50,6 +50,7 @@ install(TARGETS libptdalgorithmscpp
 
 
 
+set(Python_FIND_VIRTUALENV ONLY)
 
 # cmake_minimum_required(VERSION 3.5)
 project(ptdalgorithmscpp_pybind LANGUAGES CXX)
@@ -61,8 +62,8 @@ find_package (Eigen3 3.3 REQUIRED NO_MODULE)
 pybind11_add_module(ptdalgorithmscpp_pybind src/cpp/ptdalgorithmscpp_pybind.cpp)
 
 target_link_libraries (ptdalgorithmscpp_pybind PUBLIC Eigen3::Eigen)
-install(TARGETS ptdalgorithmscpp_pybind DESTINATION Python3_SITELIB)
-
+# install(TARGETS ptdalgorithmscpp_pybind DESTINATION Python3_SITELIB)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY Python3_SITELIB)
 
 # install( 
 #     TARGETS ${PROJECT_NAME}
