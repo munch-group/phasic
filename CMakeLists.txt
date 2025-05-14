@@ -84,7 +84,7 @@ find_package(pybind11 CONFIG REQUIRED)
 find_package (Eigen3 REQUIRED NO_MODULE)
  
 # pybind11 method:
-pybind11_add_module(ptdalgorithmscpp_pybind src/cpp/ptdalgorithmscpp_pybind.cpp, api/c/ptdalgorithms.h src/c/ptdalgorithms.c src/c/ptdalgorithms.h src/cpp/ptdalgorithmscpp.cpp api/cpp/ptdalgorithmscpp.h src/cpp/ptdalgorithmscpp.h)
+pybind11_add_module(ptdalgorithmscpp_pybind src/cpp/ptdalgorithmscpp_pybind.cpp api/c/ptdalgorithms.h src/c/ptdalgorithms.c src/c/ptdalgorithms.h src/cpp/ptdalgorithmscpp.cpp api/cpp/ptdalgorithmscpp.h src/cpp/ptdalgorithmscpp.h)
 target_link_libraries (ptdalgorithmscpp_pybind PUBLIC Eigen3::Eigen pybind11::module)
 install(TARGETS ptdalgorithmscpp_pybind DESTINATION ptdalgorithms)
 
