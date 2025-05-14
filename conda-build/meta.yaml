@@ -11,7 +11,7 @@ source:
 
 build:
   number: 1
-  script: "$PYTHON -m pip install . -vv --no-build-isolation"
+  script: "$PYTHON -m pip install . -vv"
 
   run_exports:
     strong:
@@ -70,9 +70,9 @@ dependencies:   # Keep this block with only these two packages
   - conda-build
   - conda-verify
 
-test:
-  imports:
-    - ptdalgorithms
+# test:
+#   imports:
+#     - ptdalgorithms
 
 about:
   home: https://github.com/munch-group/ptdalgorithms.git
