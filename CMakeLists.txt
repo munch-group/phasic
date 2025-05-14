@@ -58,14 +58,27 @@ project(ptdalgorithmscpp_pybind LANGUAGES CXX)
 find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
 # set(CMAKE_LIBRARY_OUTPUT_DIRECTORY pybind11::module)
-
 find_package (Eigen3 3.3 REQUIRED NO_MODULE)
  
-pybind11_add_module(ptdalgorithmscpp_pybind src/cpp/ptdalgorithmscpp_pybind.cpp)
 
-target_link_libraries (ptdalgorithmscpp_pybind PUBLIC Eigen3::Eigen)
+# pybind11_add_module(ptdalgorithmscpp_pybind src/cpp/ptdalgorithmscpp_pybind.cpp)
+
+# target_link_libraries (ptdalgorithmscpp_pybind PUBLIC Eigen3::Eigen)
+# install(TARGETS ptdalgorithmscpp_pybind DESTINATION ptdalgorithms)
+
+
+# # pybind11 method:
+# pybind11_add_module(ptdalgorithmscpp_pybind ptdalgorithmscpp_pybind)
+
+# Python method:
+Python_add_library(ptdalgorithmscpp_pybind ptdalgorithmscpp_pybind)
+target_link_libraries(ptdalgorithmscpp_pybind PUBLIC pybind11::headers Eigen3::Eigen)
+set_target_properties(ptdalgorithmscpp_pybind PROPERTIES
+                                INTERPROCEDURAL_OPTIMIZATION ON
+                                CXX_VISIBILITY_PRESET ON
+                                VISIBILITY_INLINES_HIDDEN ON)
+
 install(TARGETS ptdalgorithmscpp_pybind DESTINATION ptdalgorithms)
-
 
 
 
