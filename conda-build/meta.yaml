@@ -16,6 +16,8 @@ build:
   run_exports:
     strong:
       - {{ compiler('cxx') }}
+      - pybind11>=2.10.0
+      - eigen
 
 requirements:
   build:
