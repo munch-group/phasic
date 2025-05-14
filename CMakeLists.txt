@@ -76,7 +76,8 @@ target_link_libraries(ptdalgorithmscpp_pybind PUBLIC pybind11::headers Eigen3::E
 set_target_properties(ptdalgorithmscpp_pybind PROPERTIES
                                 INTERPROCEDURAL_OPTIMIZATION ON
                                 CXX_VISIBILITY_PRESET ON
-                                VISIBILITY_INLINES_HIDDEN ON)
+                                VISIBILITY_INLINES_HIDDEN default) # ON)
+
 
 install(TARGETS ptdalgorithmscpp_pybind DESTINATION ptdalgorithms)
 
