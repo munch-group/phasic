@@ -26,13 +26,13 @@ build:
 requirements:
   build:
     - {{ stdlib('c') }}
+    - {{ stdlib('cxx') }}
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}    
     - python {{ python }}
     # - pip
     - git
     - cmake>=3.30
-    - libstdc++
     - pybind11>=2.10.0
     - eigen
   host:
