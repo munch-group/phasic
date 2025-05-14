@@ -10,34 +10,74 @@ source:
 
 
 build:
-  number: 1
-  script: "$PYTHON -m pip install . -vv"
+  number: 0
+  skip: true # [py<310]
+  # script: "$PYTHON -m pip install . -vv"
 
-  run_exports:
-    strong:
-      - {{ compiler('cxx') }}
+  # run_exports:
+  #   strong:
+  #     - {{ compiler('cxx') }}
 
 requirements:
-  build:
-    - {{ compiler('cxx') }}
-    # - python
-    # - pip
-    - git
-    - cmake>=3.5
-    - pybind11>=2.10.0
-    - eigen
   host:
     - python
-    # - pip
-    - scikit-build-core
-    - pybind11>=2.10.0
-    - eigen
-  run:
-    # - python
-    - numpy
-    - graphviz
-    - ipython
-    - seaborn
+
+outputs:
+  - name: ptdalgorithms
+    script: build_base.bat  # [win]
+    script: build_base.sh  # [not win]
+    build:
+      ignore_run_exports_from:
+        - zlib  
+    requirements:
+      build:
+        - python                                 # [build_platform != target_platform]
+        - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+        - numpy                                  # [build_platform != target_platform]
+        - pybind11 >=2.13.2,!=2.13.3             # [build_platform != target_platform]
+        - eigen >= 3.3                           # [build_platform != target_platform]
+        - {{ stdlib('c') }}
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake >= 3.30                          # [win]
+        - pkg-config
+        - libtool                                # [unix]
+        - ninja
+        - git
+      host:
+        - python
+        - pip
+        - scikit-build-core
+        - pybind11 >= 2.13.2,!=2.13.3
+        - eigen
+        - numpy
+      run:
+        - python
+        - numpy
+        - graphviz
+        - ipython
+        - seaborn
+
+  # build:
+  #   - {{ compiler('cxx') }}
+  #   # - python
+  #   # - pip
+  #   - git
+  #   - cmake>=3.5
+  #   - pybind11>=2.10.0
+  #   - eigen
+  # host:
+  #   - python
+  #   # - pip
+  #   - scikit-build-core
+  #   - pybind11>=2.10.0
+  #   - eigen
+  # run:
+  #   # - python
+  #   - numpy
+  #   - graphviz
+  #   - ipython
+  #   - seaborn
 
   # build:
   #   - {{ compiler('cxx') }}
