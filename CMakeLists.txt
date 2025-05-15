@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.30)
 project(PtDAlgorithms)
 
-set(CMAKE_CXX_STANDARD 98)
+set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_BINARY_DIR .)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -43,6 +43,7 @@ install(TARGETS libptdalgorithmscpp
 # install(FILES ${CMAKE_BINARY_DIR}/ptdalgorithmscpp.pc
 #         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
 
+add_subdirectory(./R)
 
 # Python bindings ###################################################
 project(ptdalgorithmscpp_pybind LANGUAGES CXX)
