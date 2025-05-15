@@ -1,0 +1,50 @@
+{% set name = "r-ptdalgorithms" %}
+{% set version = "1.0.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  path: ..  # Adjusted to point to the R folder containing the package source
+
+build:
+  noarch: false
+  script: |
+    $R CMD INSTALL --build .
+    tar xvfz ptdalgorithms_{{ version }}.tgz
+    tar cfvj ptdalgorithms_{{ version }}.tar.bz2 ptdalgorithms
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - libcxx
+    - r-base>=4.2.1
+    - r-rcpp
+  host:
+    - r-base>=4.2.1
+    - r-rcpp
+  run:
+    - r-base>=4.2.1
+    - r-rcpp
+    # - libgomp  # for OpenMP support
+
+test:
+  commands:
+    - $R -e "library('ptdalgorithms')"
+  imports:
+    - ptdalgorithms
+
+about:
+  home: "https://github.com/kaspermunch/ptdalgorithms"
+  license: MIT
+  license_file: LICENSE.txt
+  summary: "An R package for advanced algorithms in phylogenetics."
+  description: |
+    This package provides advanced algorithms for phylogenetic tree analysis
+    and related computational biology tasks.
+  dev_url: "https://github.com/kaspermunch/ptdalgorithms"
+
+extra:
+  recipe-maintainers:
+    - kaspermunch
