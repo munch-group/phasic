@@ -51,13 +51,13 @@ outputs:
         build:
           - {{ compiler('cxx') }}
           - libcxx
-          - r-base>=4.2.1
+          - r-base {{ r_base }}
           - r-rcpp
         host:
-          - r-base>=4.2.1
+          - r-base {{ r_base }}
           - r-rcpp
         run:
-          - r-base>=4.2.1
+          - r-base {{ r_base }}
           - r-rcpp
           # - libgomp  # for OpenMP support
       build:
