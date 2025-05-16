@@ -9,7 +9,7 @@ source:
 
 outputs:
     - name: ptdalgorithms
-      version: {{ pyproject.get("project").get("version") }}
+      version: 1.0 #{{ pyproject.get("project").get("version") }}
       requirements:
         build:
           - {{ compiler('cxx') }}  
@@ -45,40 +45,7 @@ outputs:
         imports:
           - ptdalgorithms
 
-    # - name: r-ptdalgorithms
-    #   version: {{ pyproject.get("project").get("version") }}
-    #   requirements:
-    #     build:
-    #       - {{ compiler('cxx') }}
-    #       - libcxx
-    #       - r-base>=4.2.1
-    #       - r-rcpp
-    #     host:
-    #       - r-base>=4.2.1
-    #       - r-rcpp
-    #     run:
-    #       - r-base>=4.2.1
-    #       - r-rcpp
-    #       # - libgomp  # for OpenMP support
-    #   build:
-    #     noarch: false
-    #     script: |
-    #       $R CMD INSTALL --build .
-    #       tar xvfz ptdalgorithms_{{ pyproject.get("project").get("version") }}.tgz
-    #       tar cfvj ptdalgorithms_{{ pyproject.get("project").get("version") }}.tar.bz2 ptdalgorithms
-    #   channels:  # channels for your library dependencies
-    #     - conda-forge
-    #     - default
 
-    #   dependencies:   # Keep this block with only these two packages
-    #     - anaconda-client
-    #     - conda-build
-    #     - conda-verify
-    #   test:
-    #     commands:
-    #       - $R -e "library('ptdalgorithms')"
-    #     imports:
-    #       - ptdalgorithms
 
 about:
   home: https://github.com/munch-group/ptdalgorithms.git
