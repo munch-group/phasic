@@ -8,7 +8,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "ptdalgorithms"
-version = "0.19.18"
+version = "0.19.19"
 classifiers = [
   "Development Status :: 5 - Beta",
   "Intended Audience :: Education",

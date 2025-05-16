@@ -1,11 +1,12 @@
-# name: buildenv
-# channels:
-#   - conda-forge
-# dependencies:
-#   - {{ compiler('cxx') }}
-#   - anaconda
-#   - conda-build=24 # from 25 the output file is a .conda not .tar.bz2
-#   - anaconda-client
-#   - setuptools>=42
-#   - pybind11>=2.10.0
-#   - eigen 
+name: buildenv
+channels:
+  - conda-forge
+dependencies:
+  # - {{ compiler('cxx') }}
+  - anaconda
+  - conda-build #=24 # from 25 the output file is a .conda not .tar.bz2
+  - anaconda-client
+  - conda-verify
+  # - setuptools>=42
+  # - pybind11>=2.10.0
+  # - eigen 
