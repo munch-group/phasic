@@ -43,7 +43,6 @@ install(TARGETS libptdalgorithmscpp
 # install(FILES ${CMAKE_BINARY_DIR}/ptdalgorithmscpp.pc
 #         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
 
-add_subdirectory(./R)
 
 # Python bindings ###################################################
 project(ptdalgorithmscpp_pybind LANGUAGES CXX)
@@ -57,6 +56,11 @@ find_package (Eigen3 REQUIRED NO_MODULE)
 pybind11_add_module(ptdalgorithmscpp_pybind src/cpp/ptdalgorithmscpp_pybind.cpp api/c/ptdalgorithms.h src/c/ptdalgorithms.c src/c/ptdalgorithms.h src/cpp/ptdalgorithmscpp.cpp api/cpp/ptdalgorithmscpp.h src/cpp/ptdalgorithmscpp.h)
 target_link_libraries (ptdalgorithmscpp_pybind PUBLIC Eigen3::Eigen pybind11::module)
 install(TARGETS ptdalgorithmscpp_pybind DESTINATION ptdalgorithms)
+
+
+# # R bindings ###################################################
+# add_subdirectory(./R)
+
 
 
 
