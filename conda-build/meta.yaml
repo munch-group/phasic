@@ -1,4 +1,4 @@
-{% set pyproject = load_file_data("../pyproject.toml", from_recipe_dir=True) %}
+
 
 # package:
 #   name: ptdalgorithms
@@ -9,7 +9,7 @@ source:
 
 outputs:
     - name: ptdalgorithms
-      version: 1.0 #{{ pyproject.get("project").get("version") }}
+      version: 1.0 
       requirements:
         build:
           - {{ compiler('cxx') }}  
