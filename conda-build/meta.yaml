@@ -2,7 +2,7 @@
 
 package:
   name: ptdalgorithms
-  version: {{ pyproject.get("project").get("version") }}
+  version: '0.19.24'
 
 source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
@@ -58,7 +58,7 @@ outputs:
           - r-rcpp
         run:
           - r-base {{ r_base }}
-          - r-rcpp
+          # - r-rcpp
           # - libgomp  # for OpenMP support
       build:
         noarch: false

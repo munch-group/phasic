@@ -51,3 +51,22 @@ The C++ debugger runs ...
 
 Debugging in vscode offers a "R API" debugging mode. You need to have an open R file from tests/ when launching the debugger.
 
+
+## Conda package
+
+Edit to fix/patch something. Then:
+
+    git commit -m 'some patch'
+
+Bump version and commit:
+
+    ./scripts/bump_version.py 0 0 1
+    git add -u
+    git commit -m 'bumped version' 
+
+Push commits create/push a new release tag:
+
+    git push
+    ./scripts/release-tag.py --patch
+
+For minor and major version bumps, use `--major` and `--minor`.

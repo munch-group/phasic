@@ -2,15 +2,26 @@
 import re
 import sys
 
-_, major, minor, fix = sys.argv
-major, minor, fix = int(major), int(minor), int(fix)
-assert sum([major, minor, fix]) == 1
+import argparse
+
+# major, minor, patch arguments
+parser = argparse.ArgumentParser(description='Release tag script')
+parser.add_argument('--major', action='store_true', help='Bump major version number')
+parser.add_argument('--minor', action='store_true', help='Bump minor version number') 
+parser.add_argument('--patch', action='store_true', help='Bump patch version number')
+args = parser.parse_args()
+major = int(args.major)
+minor = int(args.minor)
+patch = int(args.patch)
+
+assert sum([major, minor, patch]) == 1
 
 # file, regex pairs
 spec = {
     'src/python/ptdalgorithms/__init__.py':  r"(__version__\s*=\s*')(\d+)\.(\d+)\.(\d+)(')",
     'DESCRIPTION': r"(Version: )(\d+)\.(\d+)\.(\d+)(.*)",
-    'CMakeLists.txt': r"(ptdalgorithms\s+VERSION\s+)(\d+)\.(\d+)\.(\d+)(.*)"
+    'CMakeLists.txt': r"(ptdalgorithms\s+VERSION\s+)(\d+)\.(\d+)\.(\d+)(.*)",
+    'conda-build/meta.yaml': r"(\s*version:\s+')(\d+)\.(\d+)\.(\d+)(')"
 }
 
 def bump(content, m):
@@ -18,10 +29,10 @@ def bump(content, m):
     prefix = m.group(1)
     _major = int(m.group(2))
     _minor = int(m.group(3))
-    _fix = int(m.group(4))
+    _patch = int(m.group(4))
     postfix = m.group(5)
-    version = f'{_major}.{_minor}.{_fix}'
-    new_version = f'{_major+major}.{_minor+minor}.{_fix+fix}'
+    version = f'{_major}.{_minor}.{_patch}'
+    new_version = f'{_major+major}.{_minor+minor}.{_patch+patch}'
     match = f'{prefix}{version}{postfix}'
     repl = f'{prefix}{new_version}{postfix}'
     new_content = content.replace(match, repl)
@@ -45,8 +56,8 @@ for file, content in new_contents.items():
     with open(file, 'w') as f:
         f.write(content)
 
-_major, _minor, _fix = map(int, new_version.split('.'))
-old_version = f'{_major-major}.{_minor-minor}.{_fix-fix}'
+_major, _minor, _patch = map(int, new_version.split('.'))
+old_version = f'{_major-major}.{_minor-minor}.{_patch-patch}'
 
 print(f"Version bump:\n  {old_version} -> {new_version}:\nFiles changed:")
 for file, content in new_contents.items():
