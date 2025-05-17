@@ -79,7 +79,8 @@ jobs:
         with:
           miniconda-version: "latest"
           environment-file: conda-build/build_env.yaml 
-          auto-update-conda: false
+          # auto-update-conda: false
+          auto-update-conda: true
           auto-activate-base: false
           show-channel-urls: true
 
