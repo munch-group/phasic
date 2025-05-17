@@ -1,5 +1,4 @@
-
-##!/usr/bin/env python
+#!/usr/bin/env python
 
 from subprocess import check_output, CalledProcessError
 import toml
