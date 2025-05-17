@@ -14,7 +14,9 @@ major = int(args.major)
 minor = int(args.minor)
 patch = int(args.patch)
 
-assert sum([major, minor, patch]) == 1
+if sum([major, minor, patch]) != 1:
+    print("Please specify exactly one of --major, --minor, or --patch")
+    sys.exit(1)
 
 # file, regex pairs
 spec = {

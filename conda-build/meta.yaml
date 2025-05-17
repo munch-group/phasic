@@ -2,7 +2,7 @@
 
 package:
   name: ptdalgorithms
-  version: '0.19.26'
+  version: '0.19.27'
 
 source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
@@ -41,6 +41,7 @@ outputs:
         - anaconda-client
         - conda-build
         - conda-verify
+        - conda-package-handling
       test:
         imports:
           - ptdalgorithms
@@ -74,6 +75,7 @@ outputs:
         - anaconda-client
         - conda-build
         - conda-verify
+        - conda-package-handling
       test:
         commands:
           - $R -e "library('ptdalgorithms')"
