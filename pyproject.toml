@@ -8,7 +8,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "ptdalgorithms"
-version = "0.19.19"
+dynamic = ["version"]
 classifiers = [
   "Development Status :: 5 - Beta",
   "Intended Audience :: Education",
@@ -65,7 +65,8 @@ include = ["ptdalgorithms*"]  # package names should match these glob patterns (
 # exclude = ["my_package.tests*"]  # exclude packages matching these glob patterns (empty by default)
 namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
 
-
+[tool.setuptools.dynamic]
+version = {attr = "ptdalgorithms.__version__"}
 
 
 # [tool.setuptools.package-data]
