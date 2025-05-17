@@ -8,7 +8,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "ptdalgorithms"
-dynamic = ["version"]
+version = "0.19.20"
 classifiers = [
   "Development Status :: 5 - Beta",
   "Intended Audience :: Education",
@@ -64,10 +64,6 @@ where = ["src/python"]  # list of folders that contain the packages (["."] by de
 include = ["ptdalgorithms*"]  # package names should match these glob patterns (["*"] by default)
 # exclude = ["my_package.tests*"]  # exclude packages matching these glob patterns (empty by default)
 namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
-
-[tool.setuptools.dynamic]
-version = {attr = "ptdalgorithms.__version__"}
-
 
 # [tool.setuptools.package-data]
 # franklin = ["data/*.yaml", "data/gitui/*", "data/repo_templates/exercise/*", "data/repo_templates/base/*"]
