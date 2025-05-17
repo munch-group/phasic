@@ -63,8 +63,7 @@ outputs:
           # - libgomp  # for OpenMP support
       build:
         noarch: false
-        script: |
-          $R CMD INSTALL --build .
+        script: $R CMD INSTALL --build .
           # tar xvfz ptdalgorithms_{{ pyproject.get("project").get("version") }}.tgz
           # tar cfvj ptdalgorithms_{{ pyproject.get("project").get("version") }}.tar.bz2 ptdalgorithms
       channels:  # channels for your library dependencies
