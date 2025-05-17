@@ -10,10 +10,12 @@ source:
 
 build:
   noarch: false
-  script: |
-    $R CMD INSTALL --build .
-    tar xvfz ptdalgorithms_{{ version }}.tgz
-    tar cfvj ptdalgorithms_{{ version }}.tar.bz2 ptdalgorithms
+  script: $R CMD INSTALL --build .
+  # script: |
+  #   $R CMD INSTALL --build .
+  #   tar xvfz ptdalgorithms_{{ version }}.tgz
+  #   tar cfvj ptdalgorithms_{{ version }}.tar.bz2 ptdalgorithms
+
 
 requirements:
   build:
