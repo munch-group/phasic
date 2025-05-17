@@ -54,6 +54,10 @@ Debugging in vscode offers a "R API" debugging mode. You need to have an open R 
 
 ## Conda package
 
+Pul any changes to CHANGELOG.md made by github action:
+
+    git pull --rebase
+
 Edit to fix/patch something. Then:
 
     git commit -m 'some patch'
@@ -62,10 +66,10 @@ Bump version and commit:
 
     ./scripts/bump_version.py 0 0 1
     git add -u
-    git commit -m 'bumped version' 
 
 Push commits create/push a new release tag:
 
+    git commit -m 'bumped version' 
     git push
     ./scripts/release-tag.py --patch
 
