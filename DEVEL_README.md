@@ -74,3 +74,10 @@ Push commits create/push a new release tag:
     ./scripts/release-tag.py --patch
 
 For minor and major version bumps, use `--major` and `--minor`.
+
+
+To trigger a rebuild do:
+
+    ./scripts/bump_version.py --patch
+    git add -u ; git commit -m 'update' ; git push
+    ./scripts/release-tag.py
