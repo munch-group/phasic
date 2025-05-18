@@ -2,7 +2,7 @@
 
 package:
   name: ptdalgorithms
-  version: '0.19.49'
+  version: '0.19.50'
 
 source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
@@ -31,9 +31,9 @@ outputs:
           - python-graphviz
           - ipython
           - seaborn
-      build:
-        number: 1
-        script: "$PYTHON -m pip install . -vv"
+      # build:
+      #   number: 1
+      #   script: "$PYTHON -m pip install . -vv"
       channels:  # channels for your library dependencies
         - conda-forge
         - default
@@ -64,11 +64,11 @@ outputs:
           - r-base {{ r_base }}
           - r-rcpp
           # - libgomp  # for OpenMP support
-      build:
-        noarch: false
-        script: $R CMD INSTALL --build .
-          # tar xvfz ptdalgorithms_{{ pyproject.get("project").get("version") }}.tgz
-          # tar cfvj ptdalgorithms_{{ pyproject.get("project").get("version") }}.tar.bz2 ptdalgorithms
+      # build:
+      #   noarch: false
+      #   script: $R CMD INSTALL --build .
+      #     # tar xvfz ptdalgorithms_{{ pyproject.get("project").get("version") }}.tgz
+      #     # tar cfvj ptdalgorithms_{{ pyproject.get("project").get("version") }}.tar.bz2 ptdalgorithms
       channels:  # channels for your library dependencies
         - conda-forge
         - default
