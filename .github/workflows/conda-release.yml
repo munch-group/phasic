@@ -94,7 +94,7 @@ jobs:
       #     pytest test
 
       - name: Build and upload the conda packages
-        uses: munch-group/action-conda-build-upload@v0.1.23
+        uses: munch-group/action-conda-build-upload@v0.1.24
         with:
           meta_yaml_dir: conda-build
           user: munch-group
