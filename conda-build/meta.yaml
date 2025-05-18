@@ -2,7 +2,7 @@
 
 package:
   name: ptdalgorithms
-  version: '0.19.51'
+  version: '0.19.52'
 
 source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
@@ -34,7 +34,7 @@ outputs:
       build:
         number: 1
         script: "$PYTHON -m pip install . -vv" # [not win]
-        script: '"%PYTHON%" setup.py install -m pip install . -vv' # [win]
+        script: '"%PYTHON%" -m pip install . -vv' # [win]
 
       channels:  # channels for your library dependencies
         - conda-forge

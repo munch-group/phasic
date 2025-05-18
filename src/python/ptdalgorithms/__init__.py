@@ -10,7 +10,7 @@ from .ptdalgorithmscpp_pybind import Vertex, Edge
 
 from . import plot
 
-__version__ = '0.19.51'
+__version__ = '0.19.52'
 
 GraphType = TypeVar('Graph') 
 
