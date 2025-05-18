@@ -2,7 +2,7 @@
 
 package:
   name: ptdalgorithms
-  version: '0.19.52'
+  version: '0.19.53'
 
 source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
