@@ -2,7 +2,7 @@
 
 package:
   name: ptdalgorithms
-  version: '0.19.54'
+  version: '0.19.55'
 
 source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
@@ -13,6 +13,7 @@ outputs:
       requirements:
         build:
           - {{ compiler('cxx') }}  
+          - {{ stdlib('cxx') }}
           - python {{ python }} # pin to specified version
           - git
           - cmake>=3.30
@@ -56,6 +57,7 @@ outputs:
       requirements:
         build:
           - {{ compiler('cxx') }}
+          - {{ stdlib('cxx') }}
           # - libcxx
           - r-base {{ r_base }}
           - r-rcpp
