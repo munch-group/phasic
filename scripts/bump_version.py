@@ -21,7 +21,7 @@ if sum([major, minor, patch]) != 1:
 # file, regex pairs
 spec = {
     'pyproject.toml':  r"(version = ')(\d+)\.(\d+)\.(\d+)(')",
-    'src/python/ptdalgorithms/__init__.py':  r"(__version__\s*=\s*')(\d+)\.(\d+)\.(\d+)(')",
+    'src/ptdalgorithms/__init__.py':  r"(__version__\s*=\s*')(\d+)\.(\d+)\.(\d+)(')",
     'DESCRIPTION': r"(Version: )(\d+)\.(\d+)\.(\d+)(.*)",
     'CMakeLists.txt': r"(ptdalgorithms\s+VERSION\s+)(\d+)\.(\d+)\.(\d+)(.*)",
     'conda-build/meta.yaml': r"(\s*version:\s+')(\d+)\.(\d+)\.(\d+)(')"
