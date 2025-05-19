@@ -2,7 +2,7 @@
 
 package:
   name: ptdalgorithms
-  version: '0.19.75'
+  version: '0.19.76'
 
 source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
@@ -69,9 +69,8 @@ outputs:
       build:
         number: 1
         noarch: generic
-        script: R CMD INSTALL --build .
-        # script: $R CMD INSTALL --build . # [not win]
-        # script: '"%R%" CMD INSTALL --build .' # [win]
+        script: $R CMD INSTALL --build . # [not win]
+        script: '"%R%" CMD INSTALL --build .' # [win]
       channels:  # channels for your library dependencies
         - conda-forge
         - default
