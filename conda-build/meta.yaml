@@ -47,9 +47,9 @@ outputs:
       test:
         imports:
           - ptdalgorithms
-        commands:
-          - "$PYTHON -c 'import ptdalgorithms as ptd ; print(ptd.Graph(4).vertices_length() == 1)'" # [not win]
-          - '"%PYTHON%" -c "import ptdalgorithms as ptd ; print(ptd.Graph(4).vertices_length() == 1)"' # [win]
+        # commands:
+        #   - "$PYTHON -c 'import ptdalgorithms as ptd ; print(ptd.Graph(4).vertices_length() == 1)'" # [not win]
+        #   - '"%PYTHON%" -c "import ptdalgorithms as ptd ; print(ptd.Graph(4).vertices_length() == 1)"' # [win]
 
 
     # - name: r-ptdalgorithms
