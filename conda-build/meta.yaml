@@ -1,14 +1,15 @@
 
 
-package:
-  name: ptdalgorithms
-  version: '0.19.77'
+# package:
+#   name: ptdalgorithms
+#   version: '0.19.77'
 
 source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
 
 outputs:
-    - name: ptdalgorithms-py
+    - name: ptdalgorithms
+      version: '0.19.77'
       requirements:
         build:
           - {{ compiler('cxx') }}  
@@ -32,7 +33,7 @@ outputs:
           - seaborn
       build:
         number: 1
-        noarch: generic
+        noarch: false
         script: '"$PYTHON" -m pip install . -vv' # [not win]
         script: '"%PYTHON%" -m pip install . -vv' # [win]
 
@@ -53,6 +54,7 @@ outputs:
 
 
     - name: r-ptdalgorithms
+      version: '0.19.77'
       requirements:
         build:
           - {{ compiler('cxx') }}
@@ -68,7 +70,7 @@ outputs:
           # - libgomp  # for OpenMP support
       build:
         number: 1
-        noarch: generic
+        noarch: false
         script: $R CMD INSTALL --build . # [not win]
         script: '"%R%" CMD INSTALL --build .' # [win]
       channels:  # channels for your library dependencies
