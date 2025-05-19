@@ -1,5 +1,5 @@
 package:
-  version: '0.19.70'
+  version: '0.19.71'
 
 source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
@@ -31,8 +31,7 @@ outputs:
       build:
         number: 1
         noarch: generic
-        script: python -m pip install . -vv
-        # script: "$PYTHON -m pip install . -vv" # [not win]
+        script: "$PYTHON -m pip install . -vv" # [not win]
         # script: '"%PYTHON%" -m pip install . -vv' # [win]
 
       channels:  # channels for your library dependencies
