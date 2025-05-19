@@ -2,7 +2,7 @@
 
 package:
   name: ptdalgorithms
-  version: '0.19.74'
+  version: '0.19.75'
 
 source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
@@ -52,41 +52,41 @@ outputs:
         #   - '"%PYTHON%" -c "import ptdalgorithms as ptd ; print(ptd.Graph(4).vertices_length() == 1)"' # [win]
 
 
-    # - name: r-ptdalgorithms
-    #   requirements:
-    #     build:
-    #       - {{ compiler('cxx') }}
-    #       - libcxx
-    #       - r-base {{ r_base }}
-    #       - r-rcpp
-    #     host:
-    #       - r-base {{ r_base }}
-    #       - r-rcpp
-    #     run:
-    #       - r-base {{ r_base }}
-    #       - r-rcpp
-    #       # - libgomp  # for OpenMP support
-    #   build:
-    #     number: 1
-    #     noarch: generic
-    #     script: R CMD INSTALL --build .
-    #     # script: $R CMD INSTALL --build . # [not win]
-    #     # script: '"%R%" CMD INSTALL --build .' # [win]
-    #   channels:  # channels for your library dependencies
-    #     - conda-forge
-    #     - default
+    - name: r-ptdalgorithms
+      requirements:
+        build:
+          - {{ compiler('cxx') }}
+          - libcxx
+          - r-base {{ r_base }}
+          - r-rcpp
+        host:
+          - r-base {{ r_base }}
+          - r-rcpp
+        run:
+          - r-base {{ r_base }}
+          - r-rcpp
+          # - libgomp  # for OpenMP support
+      build:
+        number: 1
+        noarch: generic
+        script: R CMD INSTALL --build .
+        # script: $R CMD INSTALL --build . # [not win]
+        # script: '"%R%" CMD INSTALL --build .' # [win]
+      channels:  # channels for your library dependencies
+        - conda-forge
+        - default
 
-    #   dependencies:   # Keep this block with only these two packages
-    #     - anaconda-client
-    #     - conda-build
-    #     - conda-verify
-    #     - conda-package-handling
-    #   test:
-    #     imports:
-    #       - ptdalgorithms
-    #     commands:
-    #       - "$R -e 'library('ptdalgorithms') ; print(vertices_length(create_graph(4)) == 1)'" # [not win]
-    #       - "%R% -e 'library('ptdalgorithms') ; print(vertices_length(create_graph(4)) == 1)'" # [win]
+      dependencies:   # Keep this block with only these two packages
+        - anaconda-client
+        - conda-build
+        - conda-verify
+        - conda-package-handling
+      test:
+        imports:
+          - ptdalgorithms
+        # commands:
+        #   - "$R -e 'library('ptdalgorithms') ; print(vertices_length(create_graph(4)) == 1)'" # [not win]
+        #   - "%R% -e 'library('ptdalgorithms') ; print(vertices_length(create_graph(4)) == 1)'" # [win]
 
 about:
   home: https://github.com/munch-group/ptdalgorithms.git
