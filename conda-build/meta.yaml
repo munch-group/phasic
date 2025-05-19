@@ -1,13 +1,16 @@
 
 package:
   name: ptdalgorithms
-  version: '0.19.73'
+  version: '0.19.74'
 source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
 
 build:
   number: 1
-  script: "$PYTHON -m pip install . -vv"
+  # script: "$PYTHON -m pip install . -vv"
+  script: "$PYTHON -m pip install . -vv" # [not win]
+  script: "%PYTHON% -m pip install . -vv" # [win]
+
 
 requirements:
   build:
@@ -52,7 +55,7 @@ about:
 
 
 # package:
-#   version: '0.19.73'
+#   version: '0.19.74'
 
 # source:
 #   git_url: https://github.com/munch-group/ptdalgorithms.git

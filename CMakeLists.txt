@@ -10,7 +10,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 #set(CMAKE_CXX_FLAGS_DEBUG "-O3")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
-project(ptdalgorithms VERSION 0.19.73 DESCRIPTION "Efficient graph based phase-type distribution algorithms")
+project(ptdalgorithms VERSION 0.19.74 DESCRIPTION "Efficient graph based phase-type distribution algorithms")
 include(GNUInstallDirs)
 
 add_library(libptdalgorithms SHARED api/c/ptdalgorithms.h src/c/ptdalgorithms.c)
