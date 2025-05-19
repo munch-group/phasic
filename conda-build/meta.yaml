@@ -1,5 +1,5 @@
 package:
-  version: '0.19.62'
+  version: '0.19.63'
 
 source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
@@ -9,7 +9,6 @@ outputs:
       requirements:
         build:
           - {{ compiler('cxx') }}  
-          - {{ stdlib('cxx') }}
           - python {{ python }}
           - git
           - cmake>=3.30
