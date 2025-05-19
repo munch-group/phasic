@@ -1,29 +1,13 @@
 [workspace]
-channels = [
-  "https://prefix.dev/pixi-build-backends",
-  "https://prefix.dev/conda-forge",
-]
-platforms = ["osx-arm64", "osx-64", "linux-64", "win-64"]
-preview = ["pixi-build"] 
-
-[dependencies] 
-ptdalgorithms = { path = "." }
-python = "3.12.*"
-
-# [tasks]
-# start = "python -c 'import ptdalroth as b; print(b.add(1, 2))'" 
-
-[package] 
-name = "ptdalgorithms"
+authors = ["Kasper Munch <kaspermunch@birc.au.dk>"]
+channels = ["conda-forge"]
+name = "PtDalgorithms"
+platforms = ["osx-arm64"]
 version = "0.1.0"
 
-[package.build]
-backend = { name = "pixi-build-cmake", version = "0.1.*" } 
-[package.build.configuration]
-extra-args = ["-DCMAKE_BUILD_TYPE=Release"] 
+[tasks]
 
-[package.host-dependencies]
-cmake = "3.20.*"   
-nanobind = "2.4.*" 
-python = "3.12.*"  
-#ninja-build = "*"
+[dependencies]
+anaconda-client = ">=1.13.0,<2"
+conda-build = ">=25.4.2,<26"
+conda-verify = ">=3.4.2,<4"

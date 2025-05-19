@@ -1,108 +1,54 @@
 
+
 package:
-  name: ptdalgorithms
   version: '0.19.74'
+
 source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
 
-build:
-  number: 1
-  # script: "$PYTHON -m pip install . -vv"
-  script: "$PYTHON -m pip install . -vv" # [not win]
-  script: "%PYTHON% -m pip install . -vv" # [win]
+outputs:
+    - name: ptdalgorithms
+      requirements:
+        build:
+          - {{ compiler('cxx') }}  
+          - python {{ python }}
+          - git
+          - cmake>=3.30
+          - pybind11>=2.10.0
+          - eigen
+        host:
+          - python {{ python }}
+          - scikit-build-core
+          - pybind11>=2.10.0
+          - eigen
+        run:
+          - python {{ python }}
+          - pybind11>=2.10.0
+          - eigen    
+          - numpy
+          - python-graphviz
+          - ipython
+          - seaborn
+      build:
+        number: 1
+        noarch: generic
+        script: '"$PYTHON" -m pip install . -vv' # [not win]
+        script: '"%PYTHON%" -m pip install . -vv' # [win]
 
-
-requirements:
-  build:
-    - {{ compiler('cxx') }}  
-    - python {{ python }} # pin to specified version
-    - git
-    - cmake>=3.30
-    - pybind11>=2.10.0
-    - eigen
-  host:
-    - python {{ python }}
-    - scikit-build-core
-    - pybind11>=2.10.0
-    - eigen
-  run:
-    - python {{ python }}
-    - pybind11>=2.10.0
-    - eigen    
-    - numpy
-    - python-graphviz
-    - ipython
-    - seaborn
-
-channels:  # channels for your library dependencies
-  - conda-forge
-  - default
-
-dependencies:   # Keep this block with only these two packages
-  - anaconda-client
-  - conda-build
-  - conda-verify
-
-test:
-  imports:
-    - ptdalgorithms
-
-about:
-  home: https://github.com/munch-group/ptdalgorithms.git
-  license: MIT
-  dev_url: https://github.com/munch-group/ptdalgorithms.git
-  doc_url: https://munch-group.org/ptdalgorithms
-
-
-# package:
-#   version: '0.19.74'
-
-# source:
-#   git_url: https://github.com/munch-group/ptdalgorithms.git
-
-# outputs:
-#     - name: ptdalgorithms
-#       requirements:
-#         build:
-#           - {{ compiler('cxx') }}  
-#           - python {{ python }}
-#           - git
-#           - cmake>=3.30
-#           - pybind11>=2.10.0
-#           - eigen
-#         host:
-#           - python {{ python }}
-#           - scikit-build-core
-#           - pybind11>=2.10.0
-#           - eigen
-#         run:
-#           - python {{ python }}
-#           - pybind11>=2.10.0
-#           - eigen    
-#           - numpy
-#           - python-graphviz
-#           - ipython
-#           - seaborn
-#       build:
-#         number: 1
-#         noarch: generic
-#         script: '"$PYTHON" -m pip install . -vv' # [not win]
-#         script: '"%PYTHON%" -m pip install . -vv' # [win]
-
-#       channels:  # channels for your library dependencies
-#         - conda-forge
-#         - default
-#       dependencies:   # Keep this block with only these two packages
-#         - anaconda-client
-#         - conda-build
-#         - conda-verify
-#         - conda-package-handling
-#       test:
-#         imports:
-#           - ptdalgorithms
-#         commands:
-#           - "$PYTHON -c 'import ptdalgorithms as ptd ; print(ptd.Graph(4).vertices_length() == 1)'" # [not win]
-#           - '"%PYTHON%" -c "import ptdalgorithms as ptd ; print(ptd.Graph(4).vertices_length() == 1)"' # [win]
+      channels:  # channels for your library dependencies
+        - conda-forge
+        - default
+      dependencies:   # Keep this block with only these two packages
+        - anaconda-client
+        - conda-build
+        - conda-verify
+        - conda-package-handling
+      test:
+        imports:
+          - ptdalgorithms
+        commands:
+          - "$PYTHON -c 'import ptdalgorithms as ptd ; print(ptd.Graph(4).vertices_length() == 1)'" # [not win]
+          - '"%PYTHON%" -c "import ptdalgorithms as ptd ; print(ptd.Graph(4).vertices_length() == 1)"' # [win]
 
 
     # - name: r-ptdalgorithms
