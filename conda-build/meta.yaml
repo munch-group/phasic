@@ -1,5 +1,5 @@
 package:
-  version: '0.19.61'
+  version: '0.19.62'
 
 source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
@@ -45,7 +45,7 @@ outputs:
         imports:
           - ptdalgorithms
         commands:
-          - $PYTHON -e "import ptdalgorithms as ptd ; print(ptd.Graph(4).vertices_length() == 1)" # [not win]
+          - "$PYTHON -e 'import ptdalgorithms as ptd ; print(ptd.Graph(4).vertices_length() == 1)'" # [not win]
           - '"%PYTHON%" -e "import ptdalgorithms as ptd ; print(ptd.Graph(4).vertices_length() == 1)"' # [win]
 
 
@@ -53,7 +53,7 @@ outputs:
       requirements:
         build:
           - {{ compiler('cxx') }}
-          - libcxx
+          # - libcxx
           - r-base {{ r_base }}
           - r-rcpp
         host:
@@ -80,7 +80,8 @@ outputs:
         imports:
           - ptdalgorithms
         commands:
-          - $R -e "library('ptdalgorithms') ; print(vertices_length(create_graph(4)) == 1)"
+          - "$R -e 'library('ptdalgorithms') ; print(vertices_length(create_graph(4)) == 1)'"
+          - "%R% -e 'library('ptdalgorithms') ; print(vertices_length(create_graph(4)) == 1)'"
 
 about:
   home: https://github.com/munch-group/ptdalgorithms.git
