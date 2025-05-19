@@ -53,7 +53,7 @@ outputs:
       requirements:
         build:
           - {{ compiler('cxx') }}
-          # - libcxx
+          - libcxx
           - r-base {{ r_base }}
           - r-rcpp
         host:
