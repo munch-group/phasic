@@ -1,5 +1,5 @@
 package:
-  version: '0.19.63'
+  version: '0.19.68'
 
 source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
@@ -9,6 +9,7 @@ outputs:
       requirements:
         build:
           - {{ compiler('cxx') }}  
+          - libc++
           - python {{ python }}
           - git
           - cmake>=3.30
@@ -52,7 +53,7 @@ outputs:
       requirements:
         build:
           - {{ compiler('cxx') }}
-          # - libcxx
+          - libcxx
           - r-base {{ r_base }}
           - r-rcpp
         host:
@@ -79,8 +80,8 @@ outputs:
         imports:
           - ptdalgorithms
         commands:
-          - "$R -e 'library('ptdalgorithms') ; print(vertices_length(create_graph(4)) == 1)'"
-          - "%R% -e 'library('ptdalgorithms') ; print(vertices_length(create_graph(4)) == 1)'"
+          - "$R -e 'library('ptdalgorithms') ; print(vertices_length(create_graph(4)) == 1)'" # [not win]
+          - "%R% -e 'library('ptdalgorithms') ; print(vertices_length(create_graph(4)) == 1)'" # [win]
 
 about:
   home: https://github.com/munch-group/ptdalgorithms.git

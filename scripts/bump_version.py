@@ -47,7 +47,6 @@ def bump(content, m):
 new_contents = {}
 new_versions = []
 for file, regex in spec.items():
-    print(file)
     with open(file, 'r') as f:
         content = f.read()
     m = re.search(regex, content)
@@ -64,10 +63,9 @@ _major, _minor, _patch = map(int, new_version.split('.'))
 old_version = f'{_major-major}.{_minor-minor}.{_patch-patch}'
 
 just = max([len(x) for x in spec.keys()])
-print(f"Version bump: {old_version} -> {new_version}\nFiles changed:")
+print(f"Version bump:\n  {old_version} -> {new_version}\nFiles changed:")
 for file, content in new_contents.items():
-    print(file, re.findall(new_version, content))
-    print(f"{file.ljust(just)}  (replaced {len(re.findall(new_version, content))} instance)")
+    print(f"  {file.ljust(just)}  (replaced {len(re.findall(new_version, content))} instance)")
     with open(file, 'w') as f:
         f.write(content)
 
