@@ -1,15 +1,14 @@
 
 
-# package:
-#   name: ptdalgorithms
-#   version: '0.19.77'
+package:
+  name: ptdalgorithms-base
+  version: '0.19.77'
 
 source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
 
 outputs:
     - name: ptdalgorithms
-      version: '0.19.77'
       requirements:
         build:
           - {{ compiler('cxx') }}  
@@ -54,7 +53,6 @@ outputs:
 
 
     - name: r-ptdalgorithms
-      version: '0.19.77'
       requirements:
         build:
           - {{ compiler('cxx') }}
