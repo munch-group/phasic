@@ -36,32 +36,38 @@ def bump(content, m):
     postfix = m.group(5)
     version = f'{_major}.{_minor}.{_patch}'
     new_version = f'{_major+major}.{_minor+minor}.{_patch+patch}'
-    match = f'{prefix}{version}{postfix}'
-    repl = f'{prefix}{new_version}{postfix}'
+    match = f'{version}'
+    repl = f'{new_version}'
+    # match = f'{prefix}{version}{postfix}'
+    # repl = f'{prefix}{new_version}{postfix}'
     new_content = content.replace(match, repl)
+    assert new_content != content
     return new_content, new_version
 
 new_contents = {}
-new_versions = set()
+new_versions = []
 for file, regex in spec.items():
+    print(file)
     with open(file, 'r') as f:
         content = f.read()
     m = re.search(regex, content)
     new_content, new_version = bump(content, m)
     new_contents[file] = new_content
-    new_versions.add(new_version)
+    new_versions.append(new_version)
 
 # all versions should be the same
-assert len(new_versions) == 1
+assert len(new_versions) == len(spec)
+assert len(set(new_versions)) == 1, new_versions
 new_version = list(new_versions)[0]
-
-for file, content in new_contents.items():
-    with open(file, 'w') as f:
-        f.write(content)
 
 _major, _minor, _patch = map(int, new_version.split('.'))
 old_version = f'{_major-major}.{_minor-minor}.{_patch-patch}'
 
-print(f"Version bump:\n  {old_version} -> {new_version}:\nFiles changed:")
+just = max([len(x) for x in spec.keys()])
+print(f"Version bump: {old_version} -> {new_version}\nFiles changed:")
 for file, content in new_contents.items():
-    print(f"  {file}")
+    print(file, re.findall(new_version, content))
+    print(f"{file.ljust(just)}  (replaced {len(re.findall(new_version, content))} instance)")
+    with open(file, 'w') as f:
+        f.write(content)
+

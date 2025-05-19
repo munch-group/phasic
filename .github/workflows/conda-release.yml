@@ -63,13 +63,12 @@ jobs:
 
   conda_deployment_with_new_tag:
 
-    name: Conda deployment of package for platform ${{ matrix.os }} with Python ${{ matrix.python-version }}
+    name: Conda deployment of package for platform ${{ matrix.os }} 
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macOS-latest, macos-13, ubuntu-latest, windows-latest]
-        # os: [macOS-latest, ubuntu-latest]
-        # os: [ubuntu-latest]
+        # os: [macOS-latest, macos-13, ubuntu-latest, windows-latest]
+        os: [ubuntu-latest]
 
     steps:
       - uses: actions/checkout@v3
