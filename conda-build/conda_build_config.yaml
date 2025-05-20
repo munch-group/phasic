@@ -3,9 +3,9 @@ python:
 r_base:
   - 4.4
 
-python_c_compiler:
+python_cxx_compiler:
   - vs2015
-r_c_compiler:
+r_cxx_compiler:
   - m2w64-gcc
 target_platform:
   - win-64

@@ -12,7 +12,7 @@ outputs:
       requirements:
         build:
           - {{ compiler('cxx') }} # [not win]
-          - {{ compiler('python_c') }} # [win]
+          - {{ compiler('python_cxx') }} # [win]
           - python {{ python }}
           - git
           - cmake>=3.30
@@ -57,7 +57,8 @@ outputs:
       requirements:
         build:
           - {{ compiler('cxx') }} # [not win]
-          - {{ compiler('r_c') }} # [win]
+          - {{ compiler('r_cxx') }} # [win]
+          - m2w64-gcc  # [win]
         #  - libcxx
           - r-base {{ r_base }}
           - r-rcpp
