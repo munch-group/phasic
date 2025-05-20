@@ -11,7 +11,8 @@ outputs:
     - name: ptdalgorithms
       requirements:
         build:
-          - {{ compiler('cxx') }}  
+          - {{ compiler('cxx') }} # [not win]
+          - {{ compiler('python_c') }} # [win]
           - python {{ python }}
           - git
           - cmake>=3.30
@@ -55,12 +56,11 @@ outputs:
     - name: r-ptdalgorithms
       requirements:
         build:
-          - {{ compiler('cxx') }}
+          - {{ compiler('cxx') }} # [not win]
+          - {{ compiler('r_c') }} # [win]
         #  - libcxx
           - r-base {{ r_base }}
           - r-rcpp
-          - rtools
-          - dlib
         host:
           - r-base {{ r_base }}
           - r-rcpp
