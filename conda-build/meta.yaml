@@ -60,6 +60,7 @@ outputs:
           - r-base {{ r_base }}
           - r-rcpp
           - rtools
+          - dlib
         host:
           - r-base {{ r_base }}
           - r-rcpp
