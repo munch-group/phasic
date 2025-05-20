@@ -23,3 +23,7 @@ build/
 # pixi environments
 .pixi
 *.egg-info
+
+# pixi environments
+.pixi
+*.egg-info

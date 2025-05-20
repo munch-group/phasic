@@ -1,11 +1,13 @@
 [workspace]
 authors = ["Kasper Munch <kaspermunch@birc.au.dk>"]
-channels = ["conda-forge", "kaspermunch"]
-name = "PtDalgorithms"
-platforms = ["osx-arm64"]
+channels = ["conda-forge"]
+name = "PtDAlgorithms"
+platforms = ["win-64"]
 version = "0.1.0"
 
 [tasks]
 
 [dependencies]
-ptdalgorithms = "0.19.74.*"
+anaconda-client = ">=1.13.0,<2"
+conda-build = ">=25.4.2,<26"
+conda-verify = ">=3.4.2,<4"
