@@ -56,7 +56,6 @@ outputs:
       requirements:
         build:
           - {{ compiler('cxx') }}
-          - {{ stdlib('cxx') }}
         #  - libcxx
           - r-base {{ r_base }}
           - r-rcpp
