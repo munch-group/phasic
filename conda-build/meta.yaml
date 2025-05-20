@@ -57,7 +57,7 @@ outputs:
       requirements:
         build:
           - {{ compiler('cxx') }} # [not win]
-          - {{ compiler('r_cxx') }} # [win]
+         # - {{ compiler('r_cxx') }} # [win]
           - m2w64-gcc  # [win]
         #  - libcxx
           - r-base {{ r_base }}
