@@ -66,14 +66,15 @@ outputs:
         #  - libcxx
           - r-base {{ r_base }}
           - r-rcpp
-          - anaconda-client
         host:
           - r-base {{ r_base }}
           - r-rcpp
+          - anaconda-client
         run:
           - r-base {{ r_base }}
           - r-rcpp
           # - libgomp  # for OpenMP support
+          - anaconda-client
       build:
         number: 1
         noarch: false
