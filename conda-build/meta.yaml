@@ -11,8 +11,9 @@ outputs:
     - name: ptdalgorithms
       requirements:
         build:
-          # - {{ compiler('python_cxx') }} 
-          - compilers
+          - {{ compiler('cxx') }} 
+          - mingw-w64    # [win]  
+          # - compilers
           # - vc # [win]
           # - vs2019 # [win]          
           - python {{ python }}
@@ -58,12 +59,13 @@ outputs:
     - name: r-ptdalgorithms
       requirements:
         build:
-        #  - {{ compiler('r_cxx') }}
+         - {{ compiler('cxx') }}
           - compilers
           # - m2w64-gcc  # [win]
           # - vc # [win]
           # - vs2019 # [win]          
         #  - libcxx
+          - mingw-w64    # [win]  
           - r-base {{ r_base }}
           - r-rcpp
         host:
