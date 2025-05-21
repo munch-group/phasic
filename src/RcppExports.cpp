@@ -195,18 +195,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// expectation_dag
-SEXP expectation_dag(SEXP phase_type_graph, Nullable <NumericVector> rewards);
-RcppExport SEXP _ptdalgorithms_expectation_dag(SEXP phase_type_graphSEXP, SEXP rewardsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< SEXP >::type phase_type_graph(phase_type_graphSEXP);
-    Rcpp::traits::input_parameter< Nullable <NumericVector> >::type rewards(rewardsSEXP);
-    rcpp_result_gen = Rcpp::wrap(expectation_dag(phase_type_graph, rewards));
-    return rcpp_result_gen;
-END_RCPP
-}
+// // expectation_dag
+// SEXP expectation_dag(SEXP phase_type_graph, Nullable <NumericVector> rewards);
+// RcppExport SEXP _ptdalgorithms_expectation_dag(SEXP phase_type_graphSEXP, SEXP rewardsSEXP) {
+// BEGIN_RCPP
+//     Rcpp::RObject rcpp_result_gen;
+//     Rcpp::RNGScope rcpp_rngScope_gen;
+//     Rcpp::traits::input_parameter< SEXP >::type phase_type_graph(phase_type_graphSEXP);
+//     Rcpp::traits::input_parameter< Nullable <NumericVector> >::type rewards(rewardsSEXP);
+//     rcpp_result_gen = Rcpp::wrap(expectation_dag(phase_type_graph, rewards));
+//     return rcpp_result_gen;
+// END_RCPP
+// }
 // reward_transform
 SEXP reward_transform(SEXP phase_type_graph, NumericVector rewards);
 RcppExport SEXP _ptdalgorithms_reward_transform(SEXP phase_type_graphSEXP, SEXP rewardsSEXP) {
