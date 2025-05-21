@@ -3,14 +3,14 @@ project(PtDAlgorithms)
 
 set(CMAKE_CXX_STANDARD 17)
 
-set(CMAKE_BINARY_DIR .)
+# set(CMAKE_BINARY_DIR .)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 #set(CMAKE_CXX_FLAGS_DEBUG "-O3")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
-project(ptdalgorithms VERSION 0.19.95 DESCRIPTION "Efficient graph based phase-type distribution algorithms")
+project(ptdalgorithms VERSION 0.19.96 DESCRIPTION "Efficient graph based phase-type distribution algorithms")
 include(GNUInstallDirs)
 
 add_library(libptdalgorithms SHARED api/c/ptdalgorithms.h src/c/ptdalgorithms.c)
