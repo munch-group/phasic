@@ -400,9 +400,9 @@ graph_as_dph_matrix <- function(phase_type_graph) {
 #' # bla bla bla 
 #' # bla bla bla 
 #' 
-expectation_dag <- function(phase_type_graph, rewards = NULL) {
-    .Call(`_ptdalgorithms_expectation_dag`, phase_type_graph, rewards)
-}
+# expectation_dag <- function(phase_type_graph, rewards = NULL) {
+#     .Call(`_ptdalgorithms_expectation_dag`, phase_type_graph, rewards)
+# }
 
 #' Performs a reward transformation, returning a phase-type distribution to model the total accumulated reward until abosorption
 #' 
