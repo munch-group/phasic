@@ -13,8 +13,8 @@ outputs:
         build:
           - {{ compiler('cxx') }} # [not win]
           - {{ compiler('python_cxx') }} # [win]
-          # - vc # [win]
-          # - vs2019_win-64 # [win]          
+          - vc # [win]
+          - vs2019 # [win]          
           - python {{ python }}
           - git
           - cmake>=3.30
@@ -62,7 +62,7 @@ outputs:
          # - {{ compiler('r_cxx') }} # [win]
           # - m2w64-gcc  # [win]
           # - vc # [win]
-          - vs2019_win-64 # [win]
+          - vs2019 # [win]          
         #  - libcxx
           - r-base {{ r_base }}
           - r-rcpp
