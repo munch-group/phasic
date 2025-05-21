@@ -13,6 +13,8 @@ outputs:
         build:
           - {{ compiler('cxx') }} # [not win]
           - {{ compiler('python_cxx') }} # [win]
+          - vc # [win]
+          - vs2019_win-64 # [win]          
           - python {{ python }}
           - git
           - cmake>=3.30
@@ -39,7 +41,7 @@ outputs:
 
       channels:  # channels for your library dependencies
         - conda-forge
-        - default
+        - anaconda
       dependencies:   # Keep this block with only these two packages
         - anaconda-client
         - conda-build
@@ -56,9 +58,11 @@ outputs:
     - name: r-ptdalgorithms
       requirements:
         build:
-          - {{ compiler('cxx') }} # [not win]
+#          - {{ compiler('cxx') }} # [not win]
          # - {{ compiler('r_cxx') }} # [win]
           - m2w64-gcc  # [win]
+          - vc # [win]
+          - vs2019_win-64 # [win]
         #  - libcxx
           - r-base {{ r_base }}
           - r-rcpp

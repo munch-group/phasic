@@ -3,9 +3,21 @@ python:
 r_base:
   - 4.1
 
+numpy:
+  - 1.13
+
 python_cxx_compiler:
-  - vs2015
+  - vs2019
 r_cxx_compiler:
   - m2w64-gcc
 target_platform:
   - win-64
+
+# python_cxx_stdlib:
+#   - sysroot                     # [linux]
+#   - macosx_deployment_target    # [osx]
+
+
+# zip_keys:
+#   - python_cxx_compiler
+#   - python_cxx_stdlib
