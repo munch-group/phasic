@@ -11,10 +11,9 @@ outputs:
     - name: ptdalgorithms
       requirements:
         build:
-          - {{ compiler('cxx') }} # [not win]
-          - {{ compiler('python_cxx') }} # [win]
-          - vc # [win]
-          - vs2019 # [win]          
+          - {{ compiler('python_cxx') }} 
+          # - vc # [win]
+          # - vs2019 # [win]          
           - python {{ python }}
           - git
           - cmake>=3.30
@@ -58,11 +57,10 @@ outputs:
     - name: r-ptdalgorithms
       requirements:
         build:
-#          - {{ compiler('cxx') }} # [not win]
-         # - {{ compiler('r_cxx') }} # [win]
+         - {{ compiler('r_cxx') }}
           # - m2w64-gcc  # [win]
           # - vc # [win]
-          - vs2019 # [win]          
+          # - vs2019 # [win]          
         #  - libcxx
           - r-base {{ r_base }}
           - r-rcpp
