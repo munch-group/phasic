@@ -2,7 +2,7 @@
 
 package:
   name: ptdalgorithms-base
-  version: '0.19.91'
+  version: '0.19.92'
 
 source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
@@ -59,8 +59,8 @@ outputs:
     - name: r-ptdalgorithms
       requirements:
         build:
-         - {{ compiler('cxx') }}
-          - compilers
+          - {{ compiler('cxx') }}
+          # - compilers
           # - m2w64-gcc  # [win]
           # - vc # [win]
           # - vs2019 # [win]          
