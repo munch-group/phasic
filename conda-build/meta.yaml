@@ -8,51 +8,51 @@ source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
 
 outputs:
-    - name: ptdalgorithms
-      requirements:
-        build:
-          # - {{ compiler('python_cxx') }} 
-          - compilers
-          # - vc # [win]
-          # - vs2019 # [win]          
-          - python {{ python }}
-          - git
-          - cmake>=3.30
-          - pybind11>=2.10.0
-          - eigen
-        host:
-          - python {{ python }}
-          - scikit-build-core
-          - pybind11>=2.10.0
-          - eigen
-        run:
-          - python {{ python }}
-          - pybind11>=2.10.0
-          - eigen    
-          - numpy
-          - python-graphviz
-          - ipython
-          - seaborn
-      build:
-        number: 1
-        noarch: false
-        script: '"$PYTHON" -m pip install . -vv' # [not win]
-        script: '"%PYTHON%" -m pip install . -vv' # [win]
+    # - name: ptdalgorithms
+    #   requirements:
+    #     build:
+    #       # - {{ compiler('python_cxx') }} 
+    #       - compilers
+    #       # - vc # [win]
+    #       # - vs2019 # [win]          
+    #       - python {{ python }}
+    #       - git
+    #       - cmake>=3.30
+    #       - pybind11>=2.10.0
+    #       - eigen
+    #     host:
+    #       - python {{ python }}
+    #       - scikit-build-core
+    #       - pybind11>=2.10.0
+    #       - eigen
+    #     run:
+    #       - python {{ python }}
+    #       - pybind11>=2.10.0
+    #       - eigen    
+    #       - numpy
+    #       - python-graphviz
+    #       - ipython
+    #       - seaborn
+    #   build:
+    #     number: 1
+    #     noarch: false
+    #     script: '"$PYTHON" -m pip install . -vv' # [not win]
+    #     script: '"%PYTHON%" -m pip install . -vv' # [win]
 
-      channels:  # channels for your library dependencies
-        - conda-forge
-        # - defaults
-      dependencies:   # Keep this block with only these two packages
-        - anaconda-client
-        - conda-build
-        - conda-verify
-        - conda-package-handling
-      test:
-        imports:
-          - ptdalgorithms
-        # commands:
-        #   - "$PYTHON -c 'import ptdalgorithms as ptd ; print(ptd.Graph(4).vertices_length() == 1)'" # [not win]
-        #   - '"%PYTHON%" -c "import ptdalgorithms as ptd ; print(ptd.Graph(4).vertices_length() == 1)"' # [win]
+    #   channels:  # channels for your library dependencies
+    #     - conda-forge
+    #     # - defaults
+    #   dependencies:   # Keep this block with only these two packages
+    #     - anaconda-client
+    #     - conda-build
+    #     - conda-verify
+    #     - conda-package-handling
+    #   test:
+    #     imports:
+    #       - ptdalgorithms
+    #     # commands:
+    #     #   - "$PYTHON -c 'import ptdalgorithms as ptd ; print(ptd.Graph(4).vertices_length() == 1)'" # [not win]
+    #     #   - '"%PYTHON%" -c "import ptdalgorithms as ptd ; print(ptd.Graph(4).vertices_length() == 1)"' # [win]
 
 
     - name: r-ptdalgorithms
@@ -66,6 +66,7 @@ outputs:
         #  - libcxx
           - r-base {{ r_base }}
           - r-rcpp
+          - anaconda-client
         host:
           - r-base {{ r_base }}
           - r-rcpp
