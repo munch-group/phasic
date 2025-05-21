@@ -2,7 +2,7 @@
 
 package:
   name: ptdalgorithms-base
-  version: '0.19.79'
+  version: '0.19.80'
 
 source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
@@ -69,12 +69,10 @@ outputs:
         host:
           - r-base {{ r_base }}
           - r-rcpp
-          - anaconda-client
         run:
           - r-base {{ r_base }}
           - r-rcpp
           # - libgomp  # for OpenMP support
-          - anaconda-client
       build:
         number: 1
         noarch: false
