@@ -11,7 +11,8 @@ outputs:
     - name: ptdalgorithms
       requirements:
         build:
-          - {{ compiler('python_cxx') }} 
+          # - {{ compiler('python_cxx') }} 
+          - compilers
           # - vc # [win]
           # - vs2019 # [win]          
           - python {{ python }}
@@ -40,7 +41,7 @@ outputs:
 
       channels:  # channels for your library dependencies
         - conda-forge
-        - defaults
+        # - defaults
       dependencies:   # Keep this block with only these two packages
         - anaconda-client
         - conda-build
@@ -57,7 +58,8 @@ outputs:
     - name: r-ptdalgorithms
       requirements:
         build:
-         - {{ compiler('r_cxx') }}
+        #  - {{ compiler('r_cxx') }}
+          - compilers
           # - m2w64-gcc  # [win]
           # - vc # [win]
           # - vs2019 # [win]          
@@ -78,7 +80,7 @@ outputs:
         script: '"%R%" CMD INSTALL --build .' # [win]
       channels:  # channels for your library dependencies
         - conda-forge
-        - defaults
+        # - defaults
 
       dependencies:   # Keep this block with only these two packages
         - anaconda-client
