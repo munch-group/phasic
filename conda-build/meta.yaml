@@ -80,7 +80,7 @@ outputs:
         script: '"%R%" CMD INSTALL --build .' # [win]
       channels:  # channels for your library dependencies
         - conda-forge
-        - default
+        - anaconda
 
       dependencies:   # Keep this block with only these two packages
         - anaconda-client
