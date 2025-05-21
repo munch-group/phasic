@@ -703,7 +703,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_ptdalgorithms_matrix_as_graph", (DL_FUNC) &_ptdalgorithms_matrix_as_graph, 3},
     {"_ptdalgorithms_clone_graph", (DL_FUNC) &_ptdalgorithms_clone_graph, 1},
     {"_ptdalgorithms_graph_as_dph_matrix", (DL_FUNC) &_ptdalgorithms_graph_as_dph_matrix, 1},
-    {"_ptdalgorithms_expectation_dag", (DL_FUNC) &_ptdalgorithms_expectation_dag, 2},
+    // {"_ptdalgorithms_expectation_dag", (DL_FUNC) &_ptdalgorithms_expectation_dag, 2},
     {"_ptdalgorithms_reward_transform", (DL_FUNC) &_ptdalgorithms_reward_transform, 2},
     {"_ptdalgorithms_dph_reward_transform", (DL_FUNC) &_ptdalgorithms_dph_reward_transform, 2},
     {"_ptdalgorithms_normalize_graph", (DL_FUNC) &_ptdalgorithms_normalize_graph, 1},
