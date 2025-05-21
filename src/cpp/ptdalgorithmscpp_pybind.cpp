@@ -1605,28 +1605,28 @@ Computes the expected residence time of the phase-type distribution.
     >>> ptdalgorithms::validate(graph)
       )delim")
       
-    .def("expectation_dag", static_cast<ptdalgorithms::Graph (ptdalgorithms::Graph::*)(std::vector<double>)>(&ptdalgorithms::Graph::expectation_dag), py::arg("rewards"), 
-      py::return_value_policy::reference_internal, R"delim(
-    Computes the expectation of the directed acyclic graph (DAG) representation of the phase-type distribution.
+    // .def("expectation_dag", static_cast<ptdalgorithms::Graph (ptdalgorithms::Graph::*)(std::vector<double>)>(&ptdalgorithms::Graph::expectation_dag), py::arg("rewards"), 
+    //   py::return_value_policy::reference_internal, R"delim(
+    // Computes the expectation of the directed acyclic graph (DAG) representation of the phase-type distribution.
 
-    This function computes the expectation of the phase-type distribution when represented as a directed acyclic graph (DAG).
+    // This function computes the expectation of the phase-type distribution when represented as a directed acyclic graph (DAG).
 
-    Parameters
-    ----------
-    rewards : NumericVector
-        A numeric vector of rewards to be applied to the phase-type distribution. Must have length equal to `ptdalgorithms::vertices_length()`.
+    // Parameters
+    // ----------
+    // rewards : NumericVector
+    //     A numeric vector of rewards to be applied to the phase-type distribution. Must have length equal to `ptdalgorithms::vertices_length()`.
 
-    Returns
-    -------
-    Graph
-        A graph object representing the expectation of the DAG.
+    // Returns
+    // -------
+    // Graph
+    //     A graph object representing the expectation of the DAG.
 
-    Examples
-    --------
-    >>> graph <- ptdalgorithms::create_graph(4)
-    >>> rewards <- c(1.0, 2.0, 3.0, 4.0)
-    >>> dag_expectation <- ptdalgorithms::expectation_dag(graph, rewards)
-      )delim")
+    // Examples
+    // --------
+    // >>> graph <- ptdalgorithms::create_graph(4)
+    // >>> rewards <- c(1.0, 2.0, 3.0, 4.0)
+    // >>> dag_expectation <- ptdalgorithms::expectation_dag(graph, rewards)
+    //   )delim")
       
     .def("reward_transform", static_cast<ptdalgorithms::Graph (ptdalgorithms::Graph::*)(std::vector<double>)>(&ptdalgorithms::Graph::reward_transform), py::arg("rewards"), 
       py::return_value_policy::reference_internal, R"delim(
