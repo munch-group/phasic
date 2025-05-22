@@ -7,31 +7,25 @@ package:
 source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
 
-channels:  # channels for your library dependencies
-  - conda-forge
-  # - defaults
-
 outputs:
     - name: ptdalgorithms
       requirements:
         build:
           - {{ compiler('c') }} 
           - {{ compiler('cxx') }} 
-          # # - m2w64-toolchain    # [win]  
-          # # - vc # [win]
-          # # - vs2019 # [win]          
-          # - python
+          # - m2w64-toolchain    # [win]        
+          - python {{ python }}
           - git
           - cmake>=3.30
           - pybind11>=2.10.0
           - eigen
         host:
-          - python
+          - python {{ python }}
           - scikit-build-core
           - pybind11>=2.10.0
           - eigen
         run:
-          - python
+          - python {{ python }}
           - pybind11>=2.10.0
           - eigen    
           - numpy
@@ -41,14 +35,18 @@ outputs:
       build:
         number: 1
         noarch: false
-        script: "{{ PYTHON }} -m pip install . -vv"
+        script: |
+          "$PYTHON" -m pip install . -vv   # [not win]
+          "%PYTHON%" -m pip install . -vv  # [win]
 
-      # dependencies:   # Keep this block with only these two packages
-      #   - compilers
-      #   - anaconda-client
-      #   - conda-build
-      #   - conda-verify
-      #   - conda-package-handling
+      channels:  # channels for your library dependencies
+        - conda-forge
+        # - defaults
+      dependencies:   # Keep this block with only these two packages
+        - anaconda-client
+        - conda-build
+        - conda-verify
+        # - conda-package-handling
       test:
         imports:
           - ptdalgorithms
@@ -63,6 +61,7 @@ outputs:
     #       - {{ compiler('c') }} 
     #       - {{ compiler('cxx') }}
     #       #- m2w64-toolchain    # [win]  
+    #       - compilers
     #       # - m2w64-gcc  # [win]
     #       # - vc # [win]
     #       # - vs2019 # [win]          
@@ -84,23 +83,27 @@ outputs:
     #   build:
     #     number: 1
     #     noarch: false
-    #     script: "{{ R }} CMD INSTALL --build ."
+    #     script: $R CMD INSTALL --build . # [not win]
+    #     script: '"%R%" CMD INSTALL --build .' # [win]
+    #   channels:  # channels for your library dependencies
+    #     - conda-forge
+    #     # - defaults
 
-    #   # dependencies:   # Keep this block with only these two packages
-    #   #   #- anaconda-client
-    #   #   #- conda-build
-    #   #   #- conda-verify
-    #   #   - conda-build>=25.4.2,<26
-    #   #   - conda-verify>=3.4.2,<4
-    #   #   - anaconda-client>=1.13.0,<2
+    #   dependencies:   # Keep this block with only these two packages
+    #     #- anaconda-client
+    #     #- conda-build
+    #     #- conda-verify
+    #     - conda-build>=25.4.2,<26
+    #     - conda-verify>=3.4.2,<4
+    #     - anaconda-client>=1.13.0,<2
 
 
-      test:
-        imports:
-          - ptdalgorithms
-        # commands:
-        #   - "$R -e 'library('ptdalgorithms') ; print(vertices_length(create_graph(4)) == 1)'" # [not win]
-        #   - "%R% -e 'library('ptdalgorithms') ; print(vertices_length(create_graph(4)) == 1)'" # [win]
+    #   test:
+    #     imports:
+    #       - ptdalgorithms
+    #     # commands:
+    #     #   - "$R -e 'library('ptdalgorithms') ; print(vertices_length(create_graph(4)) == 1)'" # [not win]
+    #     #   - "%R% -e 'library('ptdalgorithms') ; print(vertices_length(create_graph(4)) == 1)'" # [win]
 
 about:
   home: https://github.com/munch-group/ptdalgorithms.git
