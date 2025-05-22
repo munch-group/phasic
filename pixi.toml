@@ -1,18 +1,15 @@
 [workspace]
 authors = ["Kasper Munch <kaspermunch@birc.au.dk>"]
 channels = ["conda-forge"]
-name = "PtDAlgorithms"
-platforms = ["win-64"]
+name = "PtDalgorithms"
+platforms = ["osx-arm64"]
 version = "0.1.0"
 
 [tasks]
 
 [dependencies]
-anaconda-client = ">=1.13.0,<2"
+git = ">=2.49.0,<3"
 conda-build = ">=25.4.2,<26"
 conda-verify = ">=3.4.2,<4"
-r-base = ">=4.1.3,<4.2"
-m2w64-gcc = ">=5.3.0,<6"
-r-rcpp = ">=1.0.12,<2"
-conda = ">=25.3.1,<26"
-git = ">=2.49.0,<3"
+anaconda-client = ">=1.13.0,<2"
+compilers = ">=1.9.0,<2"
