@@ -4,8 +4,8 @@ r_base:
   - 4.1
 
 
-c_compiler: vs
-cxx_compiler: vs
+# c_compiler: vs
+# cxx_compiler: vs
 
 # numpy:
 #   - 1.13
