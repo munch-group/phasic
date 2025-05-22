@@ -1,7 +1,7 @@
 Package: ptdalgorithms
 Type: Package
 Title: Phase-type distribution algorithms
-Version: 0.19.96
+Version: 0.19.97
 Authors@R: person("Tobias", "Røikjer", email = "tobiasroikjer@gmail.com", role = c("aut", "cre", "cph"))
 Description: Fast, memory efficient graph-based algorithms for phase-type distributions. Includes methods to construct, reward transform, and compute moments of phase-type distributions, rewarded phase-type distributions, and multivariate phase-type distribution.
 BugReports: https://github.com/TobiasRoikjer/PtDAlgorithms
