@@ -2,7 +2,7 @@
 
 package:
   name: ptdalgorithms-base
-  version: '0.19.99'
+  version: '0.19.100'
 
 source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
@@ -14,8 +14,8 @@ outputs:
           - {{ compiler('c') }} 
           - {{ compiler('cxx') }} 
           - python {{ python }}
-          - git
           - cmake>=3.30
+          - ninja
           - pybind11>=2.10.0
           - eigen
         host:
