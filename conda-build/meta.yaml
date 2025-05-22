@@ -63,16 +63,16 @@ outputs:
           - {{ compiler('c') }} 
           - {{ compiler('cxx') }}
           #- m2w64-toolchain    # [win]  
-          # - compilers
+          - compilers
           # - m2w64-gcc  # [win]
           # - vc # [win]
           # - vs2019 # [win]          
         #  - libcxx
           - r-base {{ r_base }}
           #- r-rcpp
-          - m2w64-toolchain>=5.3.0,<6    # [win]
+          # - m2w64-toolchain>=5.3.0,<6    # [win]
           #- r-base >=4.1.3,<4.2"
-          - r-rcpp >=1.0.12,<2
+          - r-rcpp>=1.0.12,<2
         host:
           - r-base {{ r_base }}
           #- r-rcpp
