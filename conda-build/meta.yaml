@@ -2,7 +2,7 @@
 
 package:
   name: ptdalgorithms-base
-  version: '0.19.101'
+  version: '0.19.102'
 
 source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
@@ -85,8 +85,9 @@ outputs:
         # - defaults
 
       test:
-        imports:
-          - ptdalgorithms
+        commands:
+          - $R -e "library('ptdalgorithms')"  # [not win]
+          - "%R% -e \"library('ptdalgorithms')\""  # [win]
         # commands:
         #   - "$R -e 'library('ptdalgorithms') ; print(vertices_length(create_graph(4)) == 1)'" # [not win]
         #   - "%R% -e 'library('ptdalgorithms') ; print(vertices_length(create_graph(4)) == 1)'" # [win]
