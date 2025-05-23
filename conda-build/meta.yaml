@@ -2,7 +2,7 @@
 
 package:
   name: ptdalgorithms-base
-  version: '0.19.102'
+  version: '0.19.103'
 
 source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
@@ -86,6 +86,7 @@ outputs:
 
       test:
         commands:
+          - ninja --version || where ninja || echo "Ninja not found!"
           - $R -e "library('ptdalgorithms')"  # [not win]
           - "%R% -e \"library('ptdalgorithms')\""  # [win]
         # commands:
