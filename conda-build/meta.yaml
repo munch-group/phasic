@@ -2,7 +2,7 @@
 
 package:
   name: ptdalgorithms-base
-  version: '0.19.105'
+  version: '0.19.106'
 
 source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
@@ -13,18 +13,18 @@ outputs:
         build:
           - {{ compiler('c') }} 
           - {{ compiler('cxx') }} 
-          - python {{ python }}
+          - python #{{ python }}
           - cmake>=3.30
           - ninja
           - pybind11>=2.10.0
           - eigen
         host:
-          - python {{ python }}
+          - python #{{ python }}
           - scikit-build-core
           - pybind11>=2.10.0
           - eigen
         run:
-          - python {{ python }}
+          - python #{{ python }}
           - pybind11>=2.10.0
           - eigen    
           - numpy
@@ -35,7 +35,7 @@ outputs:
         number: 1
         noarch: false
         script: |
-          set CMAKE_GENERATOR=
+          # set CMAKE_GENERATOR=
           ninja --version || where ninja || echo "Ninja not found!"
           "$PYTHON" -m pip install . -vv   # [not win]
           "%PYTHON%" -m pip install . -vv  # [win]
@@ -63,17 +63,13 @@ outputs:
           - {{ compiler('cxx') }}
           - cmake>=3.30
           - ninja
-          #- m2w64-toolchain    # [win]  
-          # - m2w64-gcc  # [win]
-          # - vc # [win]
-          # - vs2019 # [win]          
-          - r-base {{ r_base }}
+          - r-base #{{ r_base }}
           - r-rcpp
         host:
-          - r-base {{ r_base }}
+          - r-base #{{ r_base }}
           - r-rcpp
         run:
-          - r-base {{ r_base }}
+          - r-base #{{ r_base }}
           - r-rcpp
           # - libgomp  # for OpenMP support
       build:
