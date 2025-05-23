@@ -2,7 +2,7 @@
 
 package:
   name: ptdalgorithms-base
-  version: '0.19.104'
+  version: '0.19.105'
 
 source:
   git_url: https://github.com/munch-group/ptdalgorithms.git
@@ -35,6 +35,7 @@ outputs:
         number: 1
         noarch: false
         script: |
+          set CMAKE_GENERATOR=
           ninja --version || where ninja || echo "Ninja not found!"
           "$PYTHON" -m pip install . -vv   # [not win]
           "%PYTHON%" -m pip install . -vv  # [win]
@@ -79,6 +80,7 @@ outputs:
         number: 1
         noarch: false
         script: |
+          set CMAKE_GENERATOR=
           ninja --version || where ninja || echo "Ninja not found!"
           $R CMD INSTALL --build . # [not win]
           "%R%" CMD INSTALL --build . # [win]
