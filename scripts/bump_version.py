@@ -28,6 +28,7 @@ spec = {
 }
 
 def bump(content, m):
+    global major, minor, patch
     assert m is not None, "Version not found"
     prefix = m.group(1)
     _major = int(m.group(2))
@@ -35,6 +36,12 @@ def bump(content, m):
     _patch = int(m.group(4))
     postfix = m.group(5)
     version = f'{_major}.{_minor}.{_patch}'
+
+    if major or minor:
+        patch = -_patch
+    if major:
+        minor = -_minor
+
     new_version = f'{_major+major}.{_minor+minor}.{_patch+patch}'
     match = f'{version}'
     repl = f'{new_version}'

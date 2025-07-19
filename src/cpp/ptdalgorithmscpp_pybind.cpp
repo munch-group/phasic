@@ -26,6 +26,36 @@ using std::tuple;
 using std::deque;
 using std::endl;
 
+
+///////////////////////////////////////////////////////
+// Jax interface
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+__attribute__((visibility("default")))
+void dph_pmf_param(void* out_ptr, const int64_t* times, 
+    const char* opaque, size_t opaque_len, int64_t n ) {
+    assert(opaque_len == 8);
+    uintptr_t raw_ptr;
+    std::memcpy(&raw_ptr, opaque, 8);
+    ptdalgorithms::Graph* graph = reinterpret_cast<ptdalgorithms::Graph*>(raw_ptr);
+
+    double* result_ptr = static_cast<double*>(out_ptr);
+    for (int i=0; i<n; ++i) {
+      result_ptr[i] = graph->dph_pmf(times[i]);
+    }
+
+    graph->dph_pmf(4);
+
+
+}
+
+#ifdef __cplusplus
+}
+#endif
+///////////////////////////////////////////////////////
+
 using namespace pybind11::literals; // to bring in the `_a` literal
 
 static void set_c_seed() {
@@ -568,9 +598,7 @@ double _covariance_discrete(ptdalgorithms::Graph &graph,
   //     return *graph;
   // }
     
-
-
-
+  
 PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
   m.doc() = "These are the docs";
@@ -692,6 +720,22 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
   
       //   )delim")
   
+
+      ///////////////////////////////////////////////////////
+      // for jax interface
+      .def("as_pointer", [](ptdalgorithms::Graph* self) -> uintptr_t {
+          return reinterpret_cast<uintptr_t>(self);
+      })
+
+      // HOW TO USE IN PYTHON:
+      // import ptdalgorithms._core as core
+      // graph = core.Graph(...)
+      // ptr = graph.as_pointer()
+      // dph_pmf = register_dph_kernel("dph_pmf_param")(lambda theta, times: None, ptr: None)
+      // dph_pmf(theta, time, graph.as_pointer())
+
+      ///////////////////////////////////////////////////////
+
 
     .def(py::init<struct ::ptd_graph* >(), py::arg("ptd_graph"))
 
