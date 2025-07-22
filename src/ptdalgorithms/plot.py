@@ -1,4 +1,5 @@
 
+from asyncio import subprocess
 import graphviz
 import random
 from collections import defaultdict
@@ -41,6 +42,15 @@ def set_theme(theme:str):
 
 
 GraphType = TypeVar('Graph') 
+
+
+def _plot_graph (*args, **kwargs):
+    try:
+        _plot_graph(*args, **kwargs)
+    except Exception as e:
+        subprocess.check_call(['dot', '-c']) # register layout engine
+        _plot_graph(*args, **kwargs)
+
 
 def plot_graph(graph:GraphType, 
                subgraphfun:Callable=None, max_nodes:int=100, 

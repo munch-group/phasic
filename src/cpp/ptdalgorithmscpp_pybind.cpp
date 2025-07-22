@@ -29,31 +29,49 @@ using std::endl;
 
 ///////////////////////////////////////////////////////
 // Jax interface
-#ifdef __cplusplus
+#include <cstdint>
+#include <cstring>
+#include <vector>
+#include <cmath>
+#include <thread>
+#include <mutex>
+#include <cassert>
+#include <iostream>
+#include <iomanip>
+
 extern "C" {
-#endif
 
-__attribute__((visibility("default")))
-void dph_pmf_param(void* out_ptr, const int64_t* times, 
-    const char* opaque, size_t opaque_len, int64_t n ) {
-    assert(opaque_len == 8);
-    uintptr_t raw_ptr;
-    std::memcpy(&raw_ptr, opaque, 8);
-    ptdalgorithms::Graph* graph = reinterpret_cast<ptdalgorithms::Graph*>(raw_ptr);
+  // JAX custom call signature with scalar operands
+  __attribute__((visibility("default")))
+  void _pmf_jax_ffi_prim(void* out_ptr, void* in_ptrs);
 
-    double* result_ptr = static_cast<double*>(out_ptr);
-    for (int i=0; i<n; ++i) {
-      result_ptr[i] = graph->dph_pmf(times[i]);
-    }
+  // JAX custom call signature for jax_graph_method_pmf
+  void _pmf_jax_ffi_prim(void* out_ptr, void* in_ptrs) {
 
-    graph->dph_pmf(4);
+      void** buffers = reinterpret_cast<void**>(in_ptrs);
+      ptdalgorithms::Graph* graph = reinterpret_cast<ptdalgorithms::Graph*>(buffers[0]);
+      int64_t* times = reinterpret_cast<int64_t*>(buffers[1]);
+      int64_t* n_ptr = reinterpret_cast<int64_t*>(buffers[2]);
 
+      double* output = reinterpret_cast<double*>(out_ptr);      
+      
+      // Extract dimensions from scalar operands
+      int64_t n = *n_ptr;
+
+      for (int64_t idx = 0; idx < n; ++idx) {
+        int64_t k = times[idx];
+        output[idx] = graph->dph_pmf(k);
+      }
+  }
+
+  // XLA custom call registration
+  void register_jax_graph_method_pmf() {
+      // This would normally register with XLA, but for simplicity we'll rely on 
+      // the Python side custom call mechanism
+  }
 
 }
 
-#ifdef __cplusplus
-}
-#endif
 ///////////////////////////////////////////////////////
 
 using namespace pybind11::literals; // to bring in the `_a` literal
@@ -601,6 +619,13 @@ double _covariance_discrete(ptdalgorithms::Graph &graph,
   
 PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
+  ///////////////////////////////////////////////////////
+  // for jax interface
+  m.def("jax_graph_method_pmf", []() {}); // No-op: only used for symbol registration
+
+  ///////////////////////////////////////////////////////
+
+
   m.doc() = "These are the docs";
 
   py::class_<iMatrix>(m, "iMatrix", py::buffer_protocol())
@@ -721,22 +746,6 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
       //   )delim")
   
 
-      ///////////////////////////////////////////////////////
-      // for jax interface
-      .def("as_pointer", [](ptdalgorithms::Graph* self) -> uintptr_t {
-          return reinterpret_cast<uintptr_t>(self);
-      })
-
-      // HOW TO USE IN PYTHON:
-      // import ptdalgorithms._core as core
-      // graph = core.Graph(...)
-      // ptr = graph.as_pointer()
-      // dph_pmf = register_dph_kernel("dph_pmf_param")(lambda theta, times: None, ptr: None)
-      // dph_pmf(theta, time, graph.as_pointer())
-
-      ///////////////////////////////////////////////////////
-
-
     .def(py::init<struct ::ptd_graph* >(), py::arg("ptd_graph"))
 
     .def(py::init<struct ::ptd_graph*, struct ::ptd_avl_tree* >(), py::arg("ptd_graph"), py::arg("ptd_avl_tree"))
@@ -750,6 +759,16 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
     // .def(py::init(&build_state_space_callback_tuples),
     //       py::arg("callback_tuples"), py::arg("initial_state"))
+
+
+
+    ///////////////////////////////////////////////////////
+    // for jax interface
+    .def("pointer", [](ptdalgorithms::Graph* self) -> uintptr_t {
+        return reinterpret_cast<uintptr_t>(self);
+    })
+    ///////////////////////////////////////////////////////
+
 
     .def(py::init(&build_state_space_callback_tuples),
       py::arg("callback_tuples"))

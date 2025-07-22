@@ -89,7 +89,7 @@ class Graph(_Graph):
         :
             _description_
         """
-        return plot.plot_graph(self, *args, **kwargs)
+        return plot._plot_graph(self, *args, **kwargs)
 
     def copy(self) -> GraphType:
         """
