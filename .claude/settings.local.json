@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make:*)",
+      "Bash(python3:*)",
+      "Bash(ldd:*)",
+      "Bash(otool:*)",
+      "Bash(g++:*)",
+      "Bash(./test_graph_api)"
+    ],
+    "deny": []
+  }
+}

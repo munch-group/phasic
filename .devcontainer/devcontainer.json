@@ -7,7 +7,18 @@
     "customizations": {
       "vscode": {
         "settings": {},
-        // "extensions": ["ms-python.python", "charliermarsh.ruff", "GitHub.copilot"]
+        "extensions": [
+          "ms-python.python", 
+          "charliermarsh.ruff", 
+          "GitHub.copilot",
+		      "anthropic.claude-code",
+          "ms-vscode-remote.remote-containers",
+          "ms-toolsai.jupyter",
+          "eamodio.gitlens",
+          "yzhang.markdown-all-in-one",
+          "tamasfe.even-better-toml",
+		      "quarto.quarto"
+      ]
       }
     },
     // "features": {

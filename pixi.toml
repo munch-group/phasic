@@ -2,7 +2,7 @@
 authors = ["Kasper Munch <kaspermunch@birc.au.dk>"]
 channels = ["conda-forge"]
 name = "PtDalgorithms"
-platforms = ["osx-arm64"]
+platforms = ["osx-arm64", "linux-aarch64"]
 version = "0.1.0"
 
 [tasks]
@@ -24,3 +24,4 @@ pydot = ">=4.0.1,<5"
 python-graphviz = ">=0.21,<0.22"
 graphviz = ">=13.1.1,<14"
 pandas = ">=2.3.1,<3"
+pytoml = ">=0.1.21,<0.2"
