@@ -72,17 +72,17 @@ website:
             - pages/joint_prob.ipynb
         - section: "Examples"
           contents:
-            - examples/rabbits_full_py_api_example.ipynb
-            - examples/coalescent_showcase.ipynb
-            - examples/distributions.ipynb
-            - examples/epochs.ipynb
-            - examples/getting_started.ipynb
-            - examples/joint_prob.ipynb
-            - examples/laplace.ipynb
-            - examples/moments.ipynb
-            - examples/state_lumping.ipynb
-            - examples/svgd_jax.ipynb
-            - examples/tutorial.ipynb
+            - examples/python/rabbits_full_py_api_example.ipynb
+            - examples/python/coalescent_showcase.ipynb
+            - examples/python/distributions.ipynb
+            - examples/python/epochs.ipynb
+            - examples/python/getting_started.ipynb
+            - examples/python/joint_prob.ipynb
+            - examples/python/laplace.ipynb
+            - examples/python/moments.ipynb
+            - examples/python/state_lumping.ipynb
+            - examples/python/svgd_jax.ipynb
+            - examples/python/tutorial.ipynb
             # - pages/
 
 lightbox: true
