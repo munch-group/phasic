@@ -73,6 +73,16 @@ website:
         - section: "Examples"
           contents:
             - examples/rabbits_full_py_api_example.ipynb
+            - examples/coalescent_showcase.ipynb
+            - examples/distributions.ipynb
+            - examples/epochs.ipynb
+            - examples/getting_started.ipynb
+            - examples/joint_prob.ipynb
+            - examples/laplace.ipynb
+            - examples/moments.ipynb
+            - examples/state_lumping.ipynb
+            - examples/svgd_jax.ipynb
+            - examples/tutorial.ipynb
             # - pages/
 
 lightbox: true
