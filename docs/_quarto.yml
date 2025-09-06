@@ -73,16 +73,13 @@ website:
         - section: "Examples"
           contents:
             - examples/python/rabbits_full_py_api_example.ipynb
-            - examples/python/coalescent_showcase.ipynb
-            - examples/python/distributions.ipynb
-            - examples/python/epochs.ipynb
+            - examples/python/coalescent-jointprob.ipynb
+            - examples/python/experiments.ipynb
+            - examples/python/isolation_migration.ipynb
             - examples/python/getting_started.ipynb
-            - examples/python/joint_prob.ipynb
+            - examples/python/somecode.ipynb
             - examples/python/laplace.ipynb
-            - examples/python/moments.ipynb
-            - examples/python/state_lumping.ipynb
-            - examples/python/svgd_jax.ipynb
-            - examples/python/tutorial.ipynb
+            - examples/python/two-island-two-locus-arg.ipynb
             # - pages/
 
 lightbox: true
