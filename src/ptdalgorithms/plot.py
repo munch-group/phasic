@@ -1,5 +1,5 @@
 
-from asyncio import subprocess
+import subprocess
 import graphviz
 import random
 from collections import defaultdict
@@ -44,12 +44,12 @@ def set_theme(theme:str):
 GraphType = TypeVar('Graph') 
 
 
-def _plot_graph (*args, **kwargs):
-    try:
-        _plot_graph(*args, **kwargs)
-    except Exception as e:
-        subprocess.check_call(['dot', '-c']) # register layout engine
-        _plot_graph(*args, **kwargs)
+# def plot_graph (*args, **kwargs):
+#     try:
+#         _plot_graph(*args, **kwargs)
+#     except Exception as e:
+#         subprocess.check_call(['dot', '-c']) # register layout engine
+#         _plot_graph(*args, **kwargs)
 
 
 def plot_graph(graph:GraphType, 
@@ -93,17 +93,23 @@ def plot_graph(graph:GraphType,
         Graphviz object for Jupyter notebooks display
     """
 
+    # try: 
+    #     subprocess.check_call('dot', timeout=0.1)#.output.startswith('There is no layout engine support for "dot"'):
+    # except:
+    subprocess.check_call(['dot', '-c']) # register layout engine
+
+        
     if theme is None:
         theme = _theme
 
     if theme == 'dark':
         edge_color = '#e6e6e6'
-        node_edgecolor = '#e6e6e6'
-        node_fillcolor = '#dddddd'
+        node_edgecolor = '#888888'
+        node_fillcolor = "#c6c6c6"
         start_edgecolor = 'black'
-        start_fillcolor = '#aaaaaa'
+        start_fillcolor = '#777777'
         abs_edgecolor = 'black'
-        abs_fillcolor = '#9f9f9f'
+        abs_fillcolor = '#777777'
         bgcolor = '#1F1F1F'
         subgraph_label_fontcolor = '#e6e6e6'
         subgraph_bgcolor='#3F3F3F'
@@ -121,7 +127,6 @@ def plot_graph(graph:GraphType,
         subgraph_label_fontcolor = 'black'
         subgraph_bgcolor='whitesmoke'
         husl_colors = _get_color(10, lightness=0.4)
-
 
     if graph.vertices_length() > max_nodes:
         raise ValueError(f"Graph has too many nodes ({graph.vertices_length()}). Please set max_nodes to a higher value.")

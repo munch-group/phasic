@@ -6,6 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 PtDAlgorithms is a multi-language library for efficient phase-type distribution algorithms using graph-based approaches. The library provides APIs for Python, R, and C/C++, with the core implementation in C++ and bindings using pybind11 for Python and Rcpp for R.
 
+## Recent Work (August-September 2025)
+
+- **JAX Extension**: Implemented separated architecture for JAX-compatible graph computation with C++ performance
+- **Documentation**: Added GitHub Pages integration with Quarto notebooks
+- **Build System**: Migrated to Pixi for dependency management alongside Conda
+- **Examples**: Created SVGD (Stein Variational Gradient Descent) inference examples for coalescent models
+
 ## Build and Development Commands
 
 ### Python Development
@@ -21,9 +28,9 @@ PtDAlgorithms is a multi-language library for efficient phase-type distribution 
 - **Build C++ libraries**: `cmake . && make`
 - **Build with CMake**: Uses CMakeLists.txt for building both C and C++ shared libraries
 - **JAX extension**: Use `make` in jax_extension/ directory
+- **Test C++ API**: `./test_graph_api` in jax_extension/ directory
 
 ### Environment Setup
-- **Conda environment**: `conda env create -f binder/env-osx-arm64.yml` (or platform-specific file)
 - **Pixi environment**: Project uses pixi for dependency management (pixi.toml)
 
 ### Version Management
@@ -42,6 +49,7 @@ PtDAlgorithms is a multi-language library for efficient phase-type distribution 
 - **Graph**: Main class for representing phase-type distributions
 - **Vertex**: Represents states in the graph
 - **Edge**: Represents transitions between states
+- **UserGraphAPI** (JAX extension): User-implemented C++ interface for custom graph builders
 
 ### Language-Specific Entry Points
 - **Python**: `src/ptdalgorithms/__init__.py` - Main Graph class with discretize() and plot() methods
@@ -81,6 +89,14 @@ PtDAlgorithms is a multi-language library for efficient phase-type distribution 
 - Examples and documentation in multiple formats (notebooks, R scripts, C++ files)
 
 ### JAX Extension
-- Experimental JAX integration in `jax_extension/` directory
-- Provides JAX-compatible operations for phase-type distributions
-- Separate build system using dedicated Makefile
+- Production-ready JAX integration in `jax_extension/` directory
+- Provides JAX-compatible operations for phase-type distributions with automatic differentiation
+- Separated architecture: User-defined C++ graph builders with JAX-compatible PMF computation
+- Features:
+  - Custom graph construction in C++ via UserGraphAPI
+  - JAX JIT compilation and gradient support
+  - Batched computation for SVGD and multi-chain inference
+  - HDF5 caching for precomputed graphs
+- Build: `make` in jax_extension/ directory
+- Test: `./test_graph_api` for C++ API, `python simple_python_test.py` for Python integration
+- Example usage: `docs/pages/svgd_jax.ipynb` demonstrates SVGD inference with coalescent model

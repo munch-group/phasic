@@ -10,7 +10,7 @@ The library's foundation rests on a core C implementation that provides the fund
 
 The PtDAlgorithms project follows a hierarchical organization that reflects its multi-layered architecture. At the root level, the `api/` directory houses the public interface definitions, with separate subdirectories for C and C++ APIs that establish the contract between the core implementation and its various language bindings. The `src/` directory contains the actual implementation files, organized to mirror the architectural layers, with core C code residing in `src/c/`, C++ wrappers and Python bindings in `src/cpp/`, and the Python package structure maintained within `src/ptdalgorithms/`.
 
-The R integration follows standard R package conventions, with R-specific files located in the `R/` directory and compilation configuration managed through `src/Makevars` files. An experimental JAX extension exists in the `jax_extension/` directory, providing GPU-accelerated computation capabilities for specialized use cases. Documentation, examples, and test suites are organized in their respective directories, supporting the development workflow across all target languages.
+The R integration follows standard R package conventions, with R-specific files located in the `R/` directory and compilation configuration managed through `src/Makevars` files. A production-ready JAX extension exists in the `jax_extension/` directory, providing GPU-accelerated computation capabilities with automatic differentiation for gradient-based inference methods. Documentation, examples, and test suites are organized in their respective directories, supporting the development workflow across all target languages.
 
 ## Component Architecture
 
@@ -54,13 +54,17 @@ Compilation configuration for the R package occurs through `src/Makevars` files 
 
 The R interface maintains consistency with the broader PtDAlgorithms API while respecting R's programming conventions and idioms. Functions accept and return R objects naturally, and error handling integrates with R's exception mechanism to provide meaningful feedback when operations fail or encounter invalid input.
 
-### Experimental JAX Extension
+### JAX Extension with Separated Architecture
 
-The JAX extension represents an experimental effort to integrate PtDAlgorithms with JAX's automatic differentiation and GPU acceleration capabilities. This component demonstrates the library's extensibility by implementing custom JAX primitives that can execute phase-type distribution operations on GPU hardware while maintaining compatibility with JAX's transformation system.
+The JAX extension represents a sophisticated integration of PtDAlgorithms with JAX's automatic differentiation and GPU acceleration capabilities through an innovative separated architecture. This design solves the fundamental challenge of integrating C++ object-based computation with JAX's requirement for pure functional operations by separating graph construction from PMF computation.
 
-The JAX integration includes HDF5 serialization capabilities that enable efficient storage and loading of large model configurations, supporting workflows that involve complex model parameters or large-scale computations. The extension compiles to a shared library that interfaces with JAX through its Foreign Function Interface (FFI), enabling high-performance execution while maintaining JAX's functional programming paradigms.
+The architecture introduces a User Graph API that allows developers to implement domain-specific graph builders in C++, which are registered at compile time and called during computation. This separation enables users to leverage their existing C++ models while gaining access to JAX's powerful features including JIT compilation, automatic differentiation, and batched computation for ensemble methods like Stein Variational Gradient Descent (SVGD).
 
-This experimental component showcases the potential for extending PtDAlgorithms into modern machine learning workflows where automatic differentiation and GPU acceleration are essential for practical applications. The design maintains separation from the core library while demonstrating how the fundamental algorithms can be adapted to contemporary computational frameworks.
+The separated PMF engine operates independently of graph construction, accepting serialized graph structures and computing probability mass functions through optimized matrix operations. This decoupling allows the system to cache precomputed graphs in HDF5 format for repeated use, significantly improving performance in iterative optimization scenarios.
+
+The extension compiles to a shared library that interfaces with JAX through ctypes and custom JAX operations via `jax.pure_callback`. The implementation supports automatic gradient computation through finite differences while maintaining compatibility with JAX's transformation system. Batched computation enables efficient processing of multiple parameter sets in parallel, essential for modern inference algorithms.
+
+This production-ready component demonstrates how traditional scientific computing libraries can be extended into modern machine learning workflows. The design maintains clean separation of concerns: users focus on domain-specific graph construction logic in C++, while the system handles the complexities of JAX integration, gradient computation, and performance optimization.
 
 ## Build System Architecture
 
@@ -72,7 +76,7 @@ The Python package build process leverages scikit-build-core, which provides a m
 
 The R package follows standard R compilation practices, with `src/Makevars` providing the necessary configuration to link against the C++ components. The build process integrates with R's package management system while ensuring that the underlying C++ code is compiled with appropriate settings for R's requirements.
 
-The JAX extension maintains its own build system through a custom Makefile that handles the specific requirements for creating shared libraries compatible with JAX's FFI mechanism. This build process includes linking against HDF5 libraries and managing the specific compiler flags required for proper symbol visibility in the shared library.
+The JAX extension maintains its own build system through a custom Makefile that handles the specific requirements for creating shared libraries compatible with JAX's integration. This build process includes linking against HDF5 libraries for graph serialization, Eigen3 for matrix operations, and Boost for additional utilities. The Makefile manages specific compiler flags required for proper symbol visibility in the shared library and includes targets for both the main library and test executables. The build system supports rapid development iteration with simple `make` commands for compilation and `./test_graph_api` for C++ testing.
 
 ## Language Integration and Data Flow
 
@@ -92,14 +96,20 @@ The development workflow accommodates the complexity of multi-language developme
 
 Documentation generation leverages Quarto for comprehensive API documentation that spans all language interfaces, with examples provided in multiple languages to demonstrate equivalent functionality across the different bindings. Jupyter notebooks provide interactive examples that showcase complex workflows and demonstrate the library's capabilities in realistic scientific computing scenarios.
 
-Dependency management represents a significant challenge in multi-language projects, addressed through pixi for unified environment management that ensures consistent development environments across different platforms and languages. This approach simplifies the setup process for new developers while ensuring that all components build correctly with compatible dependency versions.
+Dependency management represents a significant challenge in multi-language projects, addressed through Pixi for unified environment management that ensures consistent development environments across different platforms and languages. The `pixi.toml` configuration file defines comprehensive dependencies including scientific computing libraries, development tools, and language-specific packages, providing reproducible environments across macOS, Linux, and Windows platforms. This approach simplifies the setup process for new developers while ensuring that all components build correctly with compatible dependency versions.
 
 The project structure supports continuous integration and testing across all supported languages and platforms, with build configurations that validate functionality across the entire software stack. This comprehensive testing approach ensures that changes to core algorithms are properly reflected across all language bindings and that the user experience remains consistent regardless of the chosen interface.
+
+## Recent Innovations and Future Direction
+
+The recent development of the JAX extension with its separated architecture represents a significant evolution in the library's capabilities. By solving the challenge of integrating imperative C++ code with functional JAX operations, the project has opened new possibilities for gradient-based inference and GPU-accelerated computation while maintaining the efficiency of the core C++ implementation.
+
+The separated architecture pattern demonstrates how traditional scientific computing libraries can evolve to support modern machine learning workflows without sacrificing their fundamental strengths. This approach allows researchers to leverage decades of domain-specific algorithm development while gaining access to contemporary computational frameworks.
 
 ## Conclusion
 
 The PtDAlgorithms architecture demonstrates sophisticated engineering principles applied to create a robust, multi-language scientific computing library. The design successfully balances computational efficiency with developer accessibility, providing high-performance algorithms through a carefully optimized C core while offering idiomatic interfaces for multiple programming languages.
 
-The layered architecture ensures that computational efficiency is preserved at the algorithmic level while enabling each language binding to leverage its ecosystem's strengths. Python users benefit from NumPy integration and visualization capabilities, R users access familiar data structures and documentation conventions, and C++ users enjoy modern programming practices with STL integration and RAII memory management.
+The layered architecture ensures that computational efficiency is preserved at the algorithmic level while enabling each language binding to leverage its ecosystem's strengths. Python users benefit from NumPy integration and visualization capabilities, R users access familiar data structures and documentation conventions, and C++ users enjoy modern programming practices with STL integration and RAII memory management. The JAX extension adds modern machine learning capabilities including automatic differentiation and GPU acceleration.
 
-This architectural approach provides a template for developing scientific computing libraries that must serve diverse user communities while maintaining the performance characteristics essential for computational research. The careful attention to build systems, testing practices, and documentation ensures that the library can evolve and expand while maintaining reliability and consistency across its supported platforms.
+This architectural approach provides a template for developing scientific computing libraries that must serve diverse user communities while maintaining the performance characteristics essential for computational research. The careful attention to build systems, testing practices, and documentation ensures that the library can evolve and expand while maintaining reliability and consistency across its supported platforms. The successful integration with JAX demonstrates the architecture's flexibility and ability to adapt to emerging computational paradigms.

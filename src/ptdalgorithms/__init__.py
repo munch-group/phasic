@@ -8,7 +8,8 @@ from .ptdalgorithmscpp_pybind import *
 from .ptdalgorithmscpp_pybind import Graph as _Graph
 from .ptdalgorithmscpp_pybind import Vertex, Edge
 
-from . import plot
+# from . import plot
+from .plot import set_theme
 
 __version__ = '0.19.106'
 
@@ -89,7 +90,7 @@ class Graph(_Graph):
         :
             _description_
         """
-        return plot._plot_graph(self, *args, **kwargs)
+        return plot.plot_graph(self, *args, **kwargs)
 
     def copy(self) -> GraphType:
         """

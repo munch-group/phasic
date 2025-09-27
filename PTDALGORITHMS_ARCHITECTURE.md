@@ -18,7 +18,7 @@ PtDalgorithms/
 │   ├── Makevars*           # R compilation configuration
 │   └── RcppExports.cpp     # R bindings (auto-generated)
 ├── R/                      # R package files
-├── jax_extension/          # JAX integration (experimental)
+├── jax_extension/          # JAX integration with separated architecture
 ├── docs/                   # Documentation and examples
 ├── tests/                  # Test suites for all languages
 └── build configuration files (CMakeLists.txt, pyproject.toml, DESCRIPTION)
@@ -121,12 +121,17 @@ namespace ptdalgorithms {
 class Graph(_Graph):
     def __init__(self, state_length=None, callback=None, **kwargs):
         # Constructor supporting callback-based graph construction
-    
+
     def discretize(self, reward_rate, skip_states=[], skip_slots=[]):
         # Creates discrete distribution from continuous one
-        
+
     def plot(self, *args, **kwargs):
         # Graphviz-based visualization
+
+# JAX Integration (via separated_graph_python.py)
+def compute_pmf_jax(theta, config):
+    # JAX-compatible PMF computation with gradients
+    return pmf_values
 ```
 
 ### 4. R Bindings (`src/RcppExports.cpp`, `R/`)
@@ -151,17 +156,39 @@ class Graph(_Graph):
 
 ### 5. JAX Extension (`jax_extension/`)
 
-**Purpose**: Experimental JAX integration for GPU-accelerated computations.
+**Purpose**: Production-ready JAX integration for GPU-accelerated computations with automatic differentiation.
+
+**Architecture**: Separated concerns - user-defined C++ graph builders with JAX-compatible PMF computation
 
 **Key Components**:
-- **Custom JAX primitives**: For phase-type distribution operations
-- **HDF5 serialization**: For efficient model storage/loading
-- **Shared library**: Compiled as `.so` for JAX FFI
+- **User Graph API**: C++ interface for custom graph construction
+- **Separated PMF Engine**: Decoupled computation engine
+- **JAX Integration**: JIT compilation and gradient support
+- **Batching**: Support for SVGD and multi-chain inference
+- **HDF5 Caching**: Precomputed graph serialization
 
 **Key Files**:
-- `jax_extension/jax_graph_method_pmf.cpp`: JAX custom operation implementation
-- `jax_extension/Makefile`: Build configuration
-- `jax_extension/jax_graph_method_pmf.py`: Python JAX interface
+- `jax_extension/user_graph_api.h/cpp`: User-implementable C++ API
+- `jax_extension/separated_graph_pmf.cpp`: Core PMF computation engine
+- `jax_extension/separated_graph_python.py`: Python-JAX bridge
+- `jax_extension/test_graph_api.cpp`: C++ API tests
+- `jax_extension/example_coalescent.py`: Real-world usage example
+- `jax_extension/SEPARATED_ARCHITECTURE.md`: Detailed architecture docs
+
+**User Graph API Example**:
+```cpp
+Graph build_my_graph(const double* theta, int theta_size, const UserConfig& config) {
+    Graph graph;
+    double pop_size = theta[0];
+
+    // Domain-specific graph construction
+    int vertex_id = graph.add_vertex({config.nr_samples});
+    graph.add_edge(vertex_id, target_vertex, rate);
+    graph.set_absorption_rate(terminal_vertex, 1.0);
+
+    return graph;
+}
+```
 
 ## Build Systems
 
@@ -230,11 +257,20 @@ devtools::install()       # Development install
 - HDF5 libraries
 - C++17 compiler
 - Boost (via pixi environment)
+- Eigen3 (matrix operations)
 
 **Build Process**:
 ```bash
-cd jax_extension && make
+cd jax_extension && make           # Build shared library
+./test_graph_api                   # Run C++ tests
+python simple_python_test.py       # Run Python integration tests
 ```
+
+**Integration with JAX**:
+- Compiles to shared library loaded by ctypes
+- Provides JAX custom operations via `jax.pure_callback`
+- Supports automatic differentiation through finite differences
+- Enables batched computation for ensemble methods
 
 ## Language Integration Patterns
 
@@ -267,11 +303,20 @@ All language interfaces provide equivalent functionality:
 
 ## Data Flow
 
+### Standard Flow
 1. **Graph Construction**: User creates graph in preferred language
 2. **State Management**: AVL tree maintains state-to-vertex mapping
 3. **Algorithm Execution**: Core C algorithms process graph structure
 4. **Result Translation**: Results converted to appropriate language types
 5. **Memory Cleanup**: Language-specific cleanup (RAII, GC, reference counting)
+
+### JAX Extension Flow
+1. **Registration**: User registers C++ graph builder at compile time
+2. **JAX Call**: Python passes parameters to JAX-wrapped function
+3. **Graph Build**: C++ constructs graph from parameters
+4. **PMF Computation**: Separated engine computes probabilities
+5. **Gradient**: JAX computes gradients via automatic differentiation
+6. **Batching**: Multiple parameter sets processed in parallel
 
 ## Development Workflow
 
@@ -280,7 +325,7 @@ All language interfaces provide equivalent functionality:
 - **Python**: pybind11, NumPy, scikit-build-core
 - **R**: Rcpp, devtools
 - **JAX**: HDF5, Boost
-- **Environment**: pixi for unified dependency management
+- **Environment**: Pixi for unified dependency management (pixi.toml)
 
 ### Testing
 - **Python**: pytest in `tests/`

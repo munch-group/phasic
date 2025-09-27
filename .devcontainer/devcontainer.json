@@ -24,6 +24,23 @@
     // "features": {
     //   "ghcr.io/devcontainers/environments/docker-in-docker:2": {}
     // },
-    "mounts": ["source=${localWorkspaceFolderBasename}-pixi,target=${containerWorkspaceFolder}/.pixi,type=volume"],
-    "postCreateCommand": "sudo chown vscode .pixi && pixi install"
+//     "mounts": [
+// // //      "source=${localWorkspaceFolderBasename}-pixi,target=${containerWorkspaceFolder}/.pixi,type=volume",
+// //       "source=\"${localEnv:HOME}/Library/Application Support/Code/User\",target=/home/vscode/.config/Code/User,type=volume"
+// //       // "source=${localEnv:HOME}${localEnv:USERPROFILE}/.config/Code/User/settings.json,target=/home/vscode/.config/Code/User/settings.json,type=bind,consistency=cached"
+// //     {
+// //       "source": "${localWorkspaceFolderBasename}-pixi",
+// //       "target":"${containerWorkspaceFolder}/.pixi",
+// //       "type": "bind"
+// //     },
+//     {
+//       // "source": "${localEnv:HOME}/Library/Application Support/Code/User/settings.json",
+//       // "target": "/workspace/vscode-settings.json",
+//       // "type": "bind"
+//       "source": "\"${localEnv:HOME}/Library/Application Support/Code/User\"",
+//       "target": "/home/vscode/.config/Code/User",
+//       "type": "volume"
+//     }
+//     ],
+    "postCreateCommand": "sudo chown vscode .pixi && pixi config set --local run-post-link-scripts insecure && pixi install"
 }
