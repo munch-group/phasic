@@ -10,6 +10,7 @@
  */
 
 #include "../../include/user_model.h"
+#include <vector>
 #include <cmath>
 
 ptdalgorithms::Graph build_model(const double* theta, int n_params) {
@@ -25,7 +26,8 @@ ptdalgorithms::Graph build_model(const double* theta, int n_params) {
     // Create vertices for each stage
     std::vector<ptdalgorithms::Vertex> vertices;
     for (int i = 0; i <= n_stages; i++) {
-        vertices.push_back(g.find_or_create_vertex({i}));
+        std::vector<int> state = {i};
+        vertices.push_back(g.find_or_create_vertex(state));
     }
 
     // Set initial distribution: start at stage 0

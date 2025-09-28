@@ -6,6 +6,7 @@
  */
 
 #include "../../include/user_model.h"
+#include <vector>
 
 ptdalgorithms::Graph build_model(const double* theta, int n_params) {
     // Create graph with state vectors of length 1
@@ -18,8 +19,10 @@ ptdalgorithms::Graph build_model(const double* theta, int n_params) {
     auto start = g.starting_vertex();
 
     // Create two states: 0 (initial) and 1 (absorbing)
-    auto v0 = g.find_or_create_vertex({0});
-    auto v1 = g.find_or_create_vertex({1});
+    std::vector<int> state0 = {0};
+    std::vector<int> state1 = {1};
+    auto v0 = g.find_or_create_vertex(state0);
+    auto v1 = g.find_or_create_vertex(state1);
 
     // Set initial distribution: start at state 0
     start.add_edge(v0, 1.0);

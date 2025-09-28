@@ -10,6 +10,7 @@
  */
 
 #include "../../include/user_model.h"
+#include <vector>
 
 ptdalgorithms::Graph build_model(const double* theta, int n_params) {
     const int max_population = 20;
@@ -26,7 +27,8 @@ ptdalgorithms::Graph build_model(const double* theta, int n_params) {
     // Create all states (population sizes 0 to max_population)
     std::vector<ptdalgorithms::Vertex> vertices;
     for (int i = 0; i <= max_population; i++) {
-        vertices.push_back(g.find_or_create_vertex({i}));
+        std::vector<int> state = {i};
+        vertices.push_back(g.find_or_create_vertex(state));
     }
 
     // Set initial distribution: start at population 1

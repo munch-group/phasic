@@ -90,7 +90,7 @@ class Graph(_Graph):
             super().__init__(state_length)
 
     @classmethod
-    def load_cpp_model(cls, cpp_file: Union[str, pathlib.Path], jax_compatible: bool = True) -> Callable:
+    def load_cpp_model(cls, cpp_file: Union[str, pathlib.Path], jax_compatible: bool = True, use_ffi: bool = False) -> Callable:
         """
         Load a phase-type model from a user's C++ file.
 
@@ -106,24 +106,43 @@ class Graph(_Graph):
             Path to the user's C++ file
         jax_compatible : bool
             If True, returns a JAX-compatible function. If False, returns a regular Python function.
+            Ignored if use_ffi=True.
+        use_ffi : bool
+            If True, uses Foreign Function Interface approach that separates graph construction
+            from computation. Returns a builder function that creates reusable Graph objects.
+            This is more efficient for repeated evaluations with the same parameters but
+            doesn't support JAX transformations directly on the returned graphs.
 
         Returns
         -------
         callable
-            A function (theta, times) -> pmf_values that computes the PMF.
-            If jax_compatible=True, supports JIT, grad, vmap, etc.
+            If use_ffi=False: A function (theta, times) -> pmf_values that computes the PMF.
+            If use_ffi=True: A builder function (theta) -> Graph that creates Graph objects.
+            If jax_compatible=True and use_ffi=False: supports JIT, grad, vmap, etc.
 
         Examples
         --------
+        # JAX-compatible approach (default)
         >>> model = Graph.load_cpp_model("my_model.cpp")
         >>> theta = jnp.array([1.0, 2.0])
         >>> times = jnp.linspace(0, 10, 100)
         >>> pmf = model(theta, times)
         >>> gradient = jax.grad(lambda p: jnp.sum(model(p, times)))(theta)
+
+        # FFI approach (efficient for repeated evaluations)
+        >>> builder = Graph.load_cpp_model("my_model.cpp", use_ffi=True)
+        >>> graph = builder(np.array([1.0, 2.0]))  # Build graph once
+        >>> pdf1 = graph.pdf(1.0)  # Use many times
+        >>> pdf2 = graph.pdf(2.0)  # No rebuild needed
         """
         cpp_path = pathlib.Path(cpp_file)
         if not cpp_path.exists():
             raise FileNotFoundError(f"C++ file not found: {cpp_file}")
+
+        # If using FFI, delegate to the pybind module's load_cpp_builder
+        if use_ffi:
+            from . import ptdalgorithmscpp_pybind
+            return ptdalgorithmscpp_pybind.load_cpp_builder(str(cpp_path))
 
         # Read user's C++ code
         with open(cpp_path, 'r') as f:
@@ -140,9 +159,10 @@ class Graph(_Graph):
 
         # Use a different approach: build the graph using the Python API
         # by loading the user's C++ code and calling it through ctypes
-        # Create a minimal wrapper that compiles user code with full Graph implementation
+        # Create a minimal wrapper that links against the existing pybind module
+        # This ensures we use the same library instance that's already initialized
         wrapper_code = f'''
-// Include the C++ API header
+// Include the C++ API header (which includes the C headers)
 #include "ptdalgorithmscpp.h"
 
 // Include user's model
@@ -188,7 +208,10 @@ extern "C" {{
                 wrapper_file = f.name
 
             try:
-                # Find source files to compile
+                # Compile with source files
+                # The key insight: the crash happens because ptd_vertex_create allocates
+                # memory for state based on graph->state_length, but if graph is NULL
+                # or uninitialized, this will segfault
                 cpp_src = f'{pkg_dir}/src/cpp/ptdalgorithmscpp.cpp'
                 c_src = f'{pkg_dir}/src/c/ptdalgorithms.c'
 

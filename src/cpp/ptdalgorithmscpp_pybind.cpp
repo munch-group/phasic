@@ -18,6 +18,9 @@
 #include <sstream>
 #include <stdexcept>
 #include <vector>
+#include <fstream>
+#include <cstdlib>
+#include <dlfcn.h>
 
 namespace py = pybind11;
 using std::deque;
@@ -2897,4 +2900,155 @@ Computes the expected residence time of the phase-type distribution.
 // [[Rcpp::export]]
       )delim")
     ;
+
+  // ============================================================================
+  // FFI Support for User-Defined C++ Models
+  // ============================================================================
+  // This allows users to load C++ model builders and get back Python Graph objects
+  // which can be reused without rebuilding
+
+  m.def("load_cpp_builder", [](const std::string& cpp_file) -> py::object {
+      // Compile the C++ file to a shared library
+      std::string pkg_dir = std::string(__FILE__);
+      size_t pos = pkg_dir.rfind("/src/cpp/");
+      if (pos != std::string::npos) {
+          pkg_dir = pkg_dir.substr(0, pos);
+      }
+
+      // Read the source to generate a hash
+      std::ifstream file(cpp_file);
+      if (!file.is_open()) {
+          throw std::runtime_error("Cannot open file: " + cpp_file);
+      }
+      std::stringstream buffer;
+      buffer << file.rdbuf();
+      std::string source_code = buffer.str();
+      file.close();
+
+      // Check if it implements build_model
+      if (source_code.find("build_model") == std::string::npos) {
+          throw std::runtime_error("C++ file must implement: ptdalgorithms::Graph build_model(const double* theta, int n_params)");
+      }
+
+      // Create a hash for caching
+      std::hash<std::string> hasher;
+      size_t source_hash = hasher(source_code);
+      std::string lib_file = "/tmp/ptd_builder_" + std::to_string(source_hash) + ".so";
+
+      // Check if already compiled
+      std::ifstream lib_check(lib_file);
+      if (!lib_check.good()) {
+          // Need to compile
+          // Create wrapper that includes the user's code
+          std::string wrapper_file = "/tmp/ptd_wrapper_" + std::to_string(source_hash) + ".cpp";
+          std::ofstream wrapper(wrapper_file);
+          wrapper << "#include \"ptdalgorithmscpp.h\"\n";
+          wrapper << "#include <vector>\n";
+          wrapper << "#include \"" << cpp_file << "\"\n\n";
+          wrapper << "extern \"C\" {\n";
+          wrapper << "    void* build_graph_ffi(const double* theta, int n_params) {\n";
+          wrapper << "        ptdalgorithms::Graph* g = new ptdalgorithms::Graph(build_model(theta, n_params));\n";
+          wrapper << "        g->normalize();\n";
+          wrapper << "        return static_cast<void*>(g);\n";
+          wrapper << "    }\n";
+          wrapper << "    void free_graph_ffi(void* graph) {\n";
+          wrapper << "        delete static_cast<ptdalgorithms::Graph*>(graph);\n";
+          wrapper << "    }\n";
+          wrapper << "}\n";
+          wrapper.close();
+
+          // Compile
+          std::string compile_cmd = "g++ -O3 -fPIC -shared -std=c++14 ";
+          compile_cmd += "-I" + pkg_dir + " ";
+          compile_cmd += "-I" + pkg_dir + "/api/cpp ";
+          compile_cmd += "-I" + pkg_dir + "/api/c ";
+          compile_cmd += "-I" + pkg_dir + "/include ";
+          compile_cmd += wrapper_file + " ";
+          compile_cmd += pkg_dir + "/src/cpp/ptdalgorithmscpp.cpp ";
+          compile_cmd += pkg_dir + "/src/c/ptdalgorithms.c ";
+          compile_cmd += "-o " + lib_file + " 2>&1";
+
+          FILE* pipe = popen(compile_cmd.c_str(), "r");
+          if (!pipe) {
+              std::remove(wrapper_file.c_str());
+              throw std::runtime_error("Failed to compile C++ model");
+          }
+
+          char compile_buffer[256];
+          std::string compile_output;
+          while (fgets(compile_buffer, sizeof(compile_buffer), pipe) != nullptr) {
+              compile_output += compile_buffer;
+          }
+
+          int compile_result = pclose(pipe);
+          std::remove(wrapper_file.c_str());
+
+          if (compile_result != 0) {
+              throw std::runtime_error("Compilation failed: " + compile_output);
+          }
+      }
+
+      // Load the library
+      void* lib_handle = dlopen(lib_file.c_str(), RTLD_NOW | RTLD_LOCAL);
+      if (!lib_handle) {
+          throw std::runtime_error("Failed to load library: " + std::string(dlerror()));
+      }
+
+      // Get the build function
+      typedef void* (*BuildFunc)(const double*, int);
+      BuildFunc build_ffi = (BuildFunc)dlsym(lib_handle, "build_graph_ffi");
+
+      typedef void (*FreeFunc)(void*);
+      FreeFunc free_ffi = (FreeFunc)dlsym(lib_handle, "free_graph_ffi");
+
+      if (!build_ffi || !free_ffi) {
+          dlclose(lib_handle);
+          throw std::runtime_error("Failed to find functions in library");
+      }
+
+      // Return a Python function that builds and returns Graph objects
+      return py::cpp_function([build_ffi, free_ffi](py::array_t<double> theta) -> ptdalgorithms::Graph {
+          auto buf = theta.request();
+          double* theta_ptr = static_cast<double*>(buf.ptr);
+          int n_params = buf.size;
+
+          // Build the graph
+          void* graph_ptr = build_ffi(theta_ptr, n_params);
+
+          // Copy the graph (to avoid memory issues)
+          ptdalgorithms::Graph result = *static_cast<ptdalgorithms::Graph*>(graph_ptr);
+
+          // Free the original
+          free_ffi(graph_ptr);
+
+          return result;
+      }, py::return_value_policy::copy);
+
+  }, py::arg("cpp_file"), R"delim(
+      Load a C++ model builder from a file and return a Python function that builds Graph objects.
+
+      The C++ file should include "user_model.h" and implement:
+      ptdalgorithms::Graph build_model(const double* theta, int n_params);
+
+      Parameters
+      ----------
+      cpp_file : str
+          Path to the C++ file containing the build_model function
+
+      Returns
+      -------
+      callable
+          A Python function that takes parameters and returns a Graph object.
+          The returned Graph can be used multiple times without rebuilding.
+
+      Example
+      -------
+      >>> from ptdalgorithms.ptdalgorithmscpp_pybind import load_cpp_builder
+      >>> builder = load_cpp_builder("examples/user_models/simple_exponential.cpp")
+      >>> graph = builder(np.array([1.0]))  # Build graph with rate=1.0
+      >>> pdf1 = graph.pdf(0.5)  # Use graph
+      >>> pdf2 = graph.pdf(1.0)  # Reuse same graph, no rebuild!
+      >>> graph2 = builder(np.array([2.0]))  # Build new graph with different params
+      )delim");
+
 }

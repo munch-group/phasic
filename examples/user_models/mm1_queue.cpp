@@ -12,6 +12,7 @@
  */
 
 #include "../../include/user_model.h"
+#include <vector>
 
 ptdalgorithms::Graph build_model(const double* theta, int n_params) {
     const int max_queue_size = 30;
@@ -28,7 +29,8 @@ ptdalgorithms::Graph build_model(const double* theta, int n_params) {
     // Create vertices for each queue size
     std::vector<ptdalgorithms::Vertex> vertices;
     for (int i = 0; i <= max_queue_size; i++) {
-        vertices.push_back(g.find_or_create_vertex({i}));
+        std::vector<int> state = {i};
+        vertices.push_back(g.find_or_create_vertex(state));
     }
 
     // Set initial distribution: start with empty queue
