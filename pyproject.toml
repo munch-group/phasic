@@ -30,7 +30,6 @@ dependencies = [
   'eigen',
   'seaborn',
 ]
-
 authors = [
   # {name = "Tobias Røikjer", email = ""},
   {name = "Kasper Munch", email = "kaspermunch@birc.au.dk"},
@@ -43,11 +42,16 @@ keywords = ["", "", ""]
 readme = "README.md"
 license = {file = "LICENSE.txt"}
 
-# [project.optional-dependencies]
-# dev = [
-#     "pytest",
-#     "tszip>=0.2.5",
-# ]
+[project.optional-dependencies]
+jax = [
+  'jax>=0.4.0',
+  'jaxlib',
+  'h5py',
+]
+dev = [
+    "pytest",
+    "tszip>=0.2.5",
+]
 # docs = [
 #     "sphinx",
 #     "sphinx-rtd-theme",
