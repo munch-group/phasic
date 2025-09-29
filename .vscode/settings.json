@@ -61,7 +61,24 @@
         "print": "cpp",
         "queue": "cpp",
         "iterator": "cpp",
-        "type_traits": "cpp"
+        "type_traits": "cpp",
+        "any": "cpp",
+        "cfenv": "cpp",
+        "charconv": "cpp",
+        "cinttypes": "cpp",
+        "codecvt": "cpp",
+        "condition_variable": "cpp",
+        "csignal": "cpp",
+        "forward_list": "cpp",
+        "fstream": "cpp",
+        "future": "cpp",
+        "regex": "cpp",
+        "scoped_allocator": "cpp",
+        "shared_mutex": "cpp",
+        "source_location": "cpp",
+        "strstream": "cpp",
+        "typeindex": "cpp",
+        "valarray": "cpp"
     },
     "cSpell.words": [
         "ptdalgorithmscpp"

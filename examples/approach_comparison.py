@@ -59,6 +59,21 @@ vmap_model = jax.vmap(lambda p: jax_model(p, times_jax))
 batch_results = vmap_model(batch_params)
 print(f"   ✅ Batch shape: {batch_results.shape}")
 
+# --- Feature: Parallelization ---
+print("\n🚀 Parallelization (pmap):")
+devices = jax.devices()
+n_devices = len(devices)
+if n_devices > 1:
+    params_per_device = batch_params[:n_devices]
+    pmap_model = jax.pmap(lambda p: jax_model(p, times_jax))
+    pmap_results = pmap_model(params_per_device)
+    print(f"   ✅ pmap across {n_devices} devices: {pmap_results.shape}")
+else:
+    params_single = jnp.array([[1.0]])
+    pmap_model = jax.pmap(lambda p: jax_model(p, times_jax))
+    pmap_results = pmap_model(params_single)
+    print(f"   ✅ pmap works (single device): {pmap_results.shape}")
+
 # --- Performance Test ---
 print("\n⏱️  Performance (1000 evaluations):")
 start = time.time()
@@ -142,6 +157,8 @@ comparison_table = """
 │ JAX grad               │ ✅ Full support  │ ❌ Not available │
 ├─────────────────────────┼──────────────────┼──────────────────┤
 │ JAX vmap               │ ✅ Full support  │ ❌ Manual only   │
+├─────────────────────────┼──────────────────┼──────────────────┤
+│ JAX pmap               │ ✅ Full support  │ ❌ Not available │
 ├─────────────────────────┼──────────────────┼──────────────────┤
 │ Graph reuse            │ ❌ Rebuilds      │ ✅ Build once    │
 ├─────────────────────────┼──────────────────┼──────────────────┤

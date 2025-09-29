@@ -6,7 +6,20 @@
       "Bash(ldd:*)",
       "Bash(otool:*)",
       "Bash(g++:*)",
-      "Bash(./test_graph_api)"
+      "Bash(./test_graph_api)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(pip install:*)",
+      "Bash(pip show:*)",
+      "Bash(python:*)",
+      "Read(//Users/kmt/**)",
+      "Bash(cmake:*)",
+      "Bash(nm:*)",
+      "WebFetch(domain:docs.jax.dev)",
+      "WebFetch(domain:github.com)",
+      "Bash(jupyter nbconvert:*)",
+      "Read(//private/var/folders/**)",
+      "Bash(pixi run pytest:*)"
     ],
     "deny": []
   }

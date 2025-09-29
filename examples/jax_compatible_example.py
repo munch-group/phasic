@@ -187,9 +187,72 @@ print(f"   ∂P/∂(flood_left):     {sensitivity[1]:.6f}")
 print(f"   ∂P/∂(flood_right):    {sensitivity[2]:.6f}")
 
 # ==============================================================================
-# 7. COMBINING WITH OTHER JAX LIBRARIES
+# 7. PARALLELIZATION WITH PMAP
 # ==============================================================================
-print("\n7. COMBINING WITH JAX ECOSYSTEM")
+print("\n7. PARALLELIZATION WITH PMAP")
+print("-" * 40)
+
+# Check available devices
+devices = jax.devices()
+n_devices = len(devices)
+print(f"Available devices: {devices}")
+print(f"Number of devices: {n_devices}")
+
+if n_devices > 1:
+    # Multiple devices (GPUs/TPUs) available
+    print("\nUsing pmap for multi-device parallelization:")
+
+    # Parameters for each device
+    params_per_device = jnp.array([
+        [0.5 + 0.5 * i] for i in range(n_devices)
+    ])
+
+    # Parallelize across devices
+    pmap_model = jax.pmap(lambda p: model(p, times))
+    pdf_parallel = pmap_model(params_per_device)
+
+    print(f"✅ pmap successful across {n_devices} devices")
+    print(f"   Output shape: {pdf_parallel.shape}")
+
+    # Combine pmap with grad
+    pmap_grad = jax.pmap(jax.grad(lambda p: jnp.sum(model(p, times))))
+    parallel_gradients = pmap_grad(params_per_device)
+    print(f"✅ Parallel gradients computed: shape={parallel_gradients.shape}")
+else:
+    # Single device - demonstrate pmap anyway
+    print("\nSingle device available - pmap will use thread-level parallelism")
+    print("For multi-GPU/TPU systems, pmap distributes across devices")
+
+    # Even with 1 device, pmap works
+    params_single = jnp.array([[1.0]])  # Shape: (1 device, 1 param)
+    pmap_model = jax.pmap(lambda p: model(p, times))
+    pdf_pmap = pmap_model(params_single)
+    print(f"✅ pmap works even on single device: shape={pdf_pmap.shape}")
+
+print("\nHybrid parallelization (pmap + vmap):")
+print("This pattern is useful for multi-node clusters")
+
+# Define a function that uses vmap internally
+def batch_compute(param_batch):
+    """Process multiple parameters on one device"""
+    return jax.vmap(lambda p: model(p, times[:10]))(param_batch)
+
+# If we had multiple devices, we'd distribute batches across them
+if n_devices > 1:
+    # Split work across devices
+    all_params = jnp.array([[0.5 + 0.1 * j] for j in range(8)])
+    params_per_device = all_params.reshape(n_devices, -1, 1)
+
+    pmap_vmap_hybrid = jax.pmap(batch_compute)
+    hybrid_results = pmap_vmap_hybrid(params_per_device)
+    print(f"✅ Hybrid (pmap+vmap): {hybrid_results.shape}")
+else:
+    print("   (Would distribute batches across multiple GPUs/TPUs)")
+
+# ==============================================================================
+# 8. COMBINING WITH OTHER JAX LIBRARIES
+# ==============================================================================
+print("\n8. COMBINING WITH JAX ECOSYSTEM")
 print("-" * 40)
 
 # Example: Using with Haiku (neural network library)

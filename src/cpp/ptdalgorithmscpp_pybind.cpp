@@ -122,9 +122,115 @@ struct matrix_representation {
     std::vector<int> indices;
 };
 
+// matrix_representation* _graph_as_matrix(ptdalgorithms::Graph graph) {
+
+
+
+//     int nr_states = 0;
+//     for (size_t i = 1; i < graph.vertices_length(); ++i) {
+//       if (graph->vertices[i]->edge_length == 0) {
+//         continue;
+//       }
+//       ++nr_states;
+//     }
+
+//     std::vector<int> indices(nr_states);
+//     dMatrix SIM = dMatrix(nr_states, nr_states);
+//     std::vector<double> IPV(nr_states);
+//     iMatrix states = iMatrix(nr_states, graph.state_length());
+    
+//     for (int = 0; i < nr_states; ++i) {
+//       IPV[idx] = 0;
+//     }
+//     ptdalgorithms::Vertex starting_vertex = graph.vertices[0];
+//     for (size_t i = 0; i < starting_vertex.edges_length(); ++i) {
+//       ptdalgorithms::Edge edge = starting_vertex->edges[i]->to()->index;
+
+//       indices[i]
+
+//       IPV[idx] = dist->initial_probability_vector[i];
+//     }
+
+    
+//     int idx = 0;
+//     for (size_t i = 1; i < graph.vertices_length(); ++i) {
+//       if (graph->vertices[i]->edge_length == 0) {
+//         continue;
+//       }
+//       indices[idx] = graph->vertices[i]->index + 1;
+//     }
+
+
+
+//     for (int = 0; i < nr_states; ++i) {
+//       int vertex_idx = indices[i] - 1;
+
+//     }
+
+
+//     int idx = 0;
+//     for (size_t i = 1; i < graph.vertices_length(); ++i) {
+//       if (graph->vertices[i]->edge_length == 0) {
+//         continue;
+//       }
+//       indices[idx] = graph->vertices[i]->index + 1;
+
+//       for (size_t j = 0; j < dist->length; ++j) {
+//           SIM(i, j) = dist->sub_intensity_matrix[i][j];
+//       }
+//         for (size_t j = 0; j < state_length; j++) {
+//             states(i, j) = dist->vertices[i]->state[j];
+//         }
+
+//       ++idx;
+//     }
+
+
+
+
+//     }
+
+
+//     for (size_t i = 0; i < dist->length; ++i) {
+//         IPV[i] = dist->initial_probability_vector[i];
+
+//         for (size_t j = 0; j < dist->length; ++j) {
+//             SIM(i, j) = dist->sub_intensity_matrix[i][j];
+//         }
+//     }
+
+//     size_t state_length = graph.state_length();
+
+//     rows = dist->length;
+//     cols = state_length;
+//     iMatrix states = iMatrix(rows, cols);
+
+//     for (size_t i = 0; i < dist->length; i++) {
+//         for (size_t j = 0; j < state_length; j++) {
+//             states(i, j) = dist->vertices[i]->state[j];
+//         }
+//     }
+
+//     std::vector<int> indices(dist->length);
+//     for (size_t i = 0; i < dist->length; i++) {
+//         indices[i] = dist->vertices[i]->index + 1;
+//     }
+
+//     struct matrix_representation *matrix_rep = new matrix_representation();
+//     matrix_rep->states = states;
+//     matrix_rep->SIM = SIM;
+//     matrix_rep->IPV = IPV;
+//     matrix_rep->indices = indices;
+
+//     ::ptd_phase_type_distribution_destroy(dist);
+//     return matrix_rep;
+// }
+
 matrix_representation* _graph_as_matrix(ptdalgorithms::Graph graph) {
 
     ::ptd_phase_type_distribution *dist = ::ptd_graph_as_phase_type_distribution(graph.c_graph());
+
+    int nr_vertices = graph.vertices_length();
 
     int rows = dist->length;
     int cols = dist->length;
@@ -144,8 +250,7 @@ matrix_representation* _graph_as_matrix(ptdalgorithms::Graph graph) {
     rows = dist->length;
     cols = state_length;
     iMatrix states = iMatrix(rows, cols);
-
-    for (size_t i = 0; i < dist->length; i++) {
+    for (size_t i = 0; i < dist->length; i++) {      
         for (size_t j = 0; j < state_length; j++) {
             states(i, j) = dist->vertices[i]->state[j];
         }
@@ -156,8 +261,7 @@ matrix_representation* _graph_as_matrix(ptdalgorithms::Graph graph) {
         indices[i] = dist->vertices[i]->index + 1;
     }
 
-    struct matrix_representation *matrix_rep;
-    // auto *as_matrix = new matrix_representation(); 
+    struct matrix_representation *matrix_rep = new matrix_representation();
     matrix_rep->states = states;
     matrix_rep->SIM = SIM;
     matrix_rep->IPV = IPV;
@@ -183,11 +287,12 @@ class MatrixRepresentation {
             this->sim = rep->SIM;
             this->ipv = rep->IPV;
             this->indices = rep->indices;
+            delete rep;  // Clean up the allocated memory
         }
 
         // // pybind11 factory function
         // static MatrixRepresentation init_factory(ptdalgorithms::Graph graph) {
-        //     return MatrixRepresentation(graph); 
+        //     return MatrixRepresentation(graph);
         // }
 
         ~MatrixRepresentation() {
@@ -2214,9 +2319,57 @@ Computes the expected residence time of the phase-type distribution.
       )delim")
       
     .def("as_matrices",
-      [](ptdalgorithms::Graph &graph) {
-              return MatrixRepresentation(graph);
-      }, py::return_value_policy::copy, R"delim(
+      [](ptdalgorithms::Graph &graph) -> py::dict {
+              // Get the phase-type distribution representation directly
+              ::ptd_phase_type_distribution *dist = ::ptd_graph_as_phase_type_distribution(graph.c_graph());
+
+              // Create Python dictionary to return
+              py::dict result;
+
+              // Convert states to numpy array
+              size_t state_length = graph.state_length();
+              size_t n_states = dist->length;
+
+              py::array_t<int> states_array({n_states, state_length});
+              auto states_view = states_array.mutable_unchecked<2>();
+              for(size_t i = 0; i < n_states; i++) {
+                  for(size_t j = 0; j < state_length; j++) {
+                      states_view(i, j) = dist->vertices[i]->state[j];
+                  }
+              }
+              result["states"] = states_array;
+
+              // Convert SIM matrix to numpy array
+              py::array_t<double> sim_array({n_states, n_states});
+              auto sim_view = sim_array.mutable_unchecked<2>();
+              for(size_t i = 0; i < n_states; i++) {
+                  for(size_t j = 0; j < n_states; j++) {
+                      sim_view(i, j) = dist->sub_intensity_matrix[i][j];
+                  }
+              }
+              result["sim"] = sim_array;
+
+              // Convert IPV to numpy array
+              py::array_t<double> ipv_array(n_states);
+              auto ipv_view = ipv_array.mutable_unchecked<1>();
+              for(size_t i = 0; i < n_states; i++) {
+                  ipv_view(i) = dist->initial_probability_vector[i];
+              }
+              result["ipv"] = ipv_array;
+
+              // Convert indices to numpy array
+              py::array_t<int> indices_array(n_states);
+              auto indices_view = indices_array.mutable_unchecked<1>();
+              for(size_t i = 0; i < n_states; i++) {
+                  indices_view(i) = dist->vertices[i]->index + 1;
+              }
+              result["indices"] = indices_array;
+
+              // Clean up the C distribution structure
+              ::ptd_phase_type_distribution_destroy(dist);
+
+              return result;
+      }, R"delim(
     Converts the graph-based phase-type distribution into a traditional sub-intensity matrix and initial probability vector.
 
     Used to convert to the traditional matrix-based formulation. Has three entries: `$SIM` the sub-intensity matrix, `$IPV` the initial probability vector, `$states` the state of each vertex. Does *not* have the same order as [ptdalgorithms::vertices()]. The indices returned are 1-based, like the input to [ptdalgorithms::vertex_at()].
@@ -2254,35 +2407,130 @@ Computes the expected residence time of the phase-type distribution.
     >>> # $indices
     >>> #   [1] 3 2
       )delim")
+
+
+    .def_static("from_matrices",
+      [](py::array_t<double> IPV, py::array_t<double> SIM, py::object states) -> ptdalgorithms::Graph {
+              // Get array info
+              auto ipv = IPV.unchecked<1>();
+              auto sim = SIM.unchecked<2>();
+
+              // Check dimensions
+              size_t n = ipv.shape(0);
+
+              if (sim.shape(0) != n || sim.shape(1) != n) {
+                  throw std::runtime_error("SIM must be square and have same dimension as IPV length");
+              }
+
+              // Check if states provided
+              size_t state_dim = 1;
+              py::array_t<int> states_array;
+
+              if (!states.is_none()) {
+                  states_array = states.cast<py::array_t<int>>();
+                  auto states_view = states_array.unchecked<2>();
+                  if (states_view.shape(0) != n) {
+                      throw std::runtime_error("states must have same number of rows as IPV length");
+                  }
+                  state_dim = states_view.shape(1);
+              }
+
+              // Create graph
+              ptdalgorithms::Graph graph(state_dim);
+
+              // Create vertices
+              std::vector<ptdalgorithms::Vertex*> vertices;
+
+              if (!states.is_none()) {
+                  auto states_view = states_array.unchecked<2>();
+                  for (size_t i = 0; i < n; i++) {
+                      std::vector<int> state(state_dim);
+                      for (size_t j = 0; j < state_dim; j++) {
+                          state[j] = states_view(i, j);
+                      }
+                      vertices.push_back(graph.find_or_create_vertex_p(state));
+                  }
+              } else {
+                  // Create default states [0], [1], [2], ...
+                  for (size_t i = 0; i < n; i++) {
+                      std::vector<int> state = {static_cast<int>(i)};
+                      vertices.push_back(graph.find_or_create_vertex_p(state));
+                  }
+              }
+
+              // Create absorbing vertex
+              std::vector<int> absorbing_state(state_dim, static_cast<int>(n));
+              auto* absorbing = graph.find_or_create_vertex_p(absorbing_state);
+
+              // Add edges from starting vertex according to IPV
+              auto* start = graph.starting_vertex_p();
+              double sum_ipv = 0.0;
+
+              for (size_t i = 0; i < n; i++) {
+                  if (ipv(i) > 0) {
+                      start->add_edge(*vertices[i], ipv(i));
+                      sum_ipv += ipv(i);
+                  }
+              }
+
+              // Add edge to absorbing if IPV doesn't sum to 1
+              if (sum_ipv < 0.99999) {
+                  start->add_edge(*absorbing, 1.0 - sum_ipv);
+              }
+
+              // Add edges according to SIM matrix
+              for (size_t i = 0; i < n; i++) {
+                  double row_sum = 0.0;
+
+                  // Off-diagonal elements are transition rates
+                  for (size_t j = 0; j < n; j++) {
+                      if (i != j && sim(i, j) > 0) {
+                          vertices[i]->add_edge(*vertices[j], sim(i, j));
+                          row_sum += sim(i, j);
+                      }
+                  }
+
+                  // Diagonal element represents negative total exit rate
+                  double exit_rate = -(sim(i, i) + row_sum);
+                  if (exit_rate > 0.000001) {
+                      vertices[i]->add_edge(*absorbing, exit_rate);
+                  }
+              }
+
+              return graph;
+      },
+      py::arg("ipv"),
+      py::arg("sim"),
+      py::arg("states") = py::none(), R"delim(
+    Converts the matrix-based representation into a phase-type graph.
+
+    Sometimes the user might want to use the fast graph algorithms, but have some state-space given as a matrix. Therefore we can construct a graph from a matrix. If desired, a discrete phase-type distribution should just have no self-loop given. Note that the function `graph_as_matrix` may reorder the vertices to make the graph represented as strongly connected components in an acyclic manner.
+
+    Parameters
+    ----------
+    IPV : NumericVector
+        The initial probability vector (alpha).
+    SIM : NumericMatrix
+        The sub-intensity matrix (S).
+    rewards : NumericMatrix, optional
+        The state/rewards of each of the vertices.
+
+    Returns
+    -------
+    SEXP
+        A graph object.
+
+    Examples
+    --------
+    >>> g <- matrix_as_graph(
+    >>>     c(0.5,0.3, 0),
+    >>>     matrix(c(-3, 0, 0, 2, -4, 1, 0, 1,-3), ncol=3),
+    >>>     matrix(c(1,4,5,9,2,7), ncol=2)
+    >>> )
+    >>> graph_as_matrix(g)
+      )delim")
+
     ;
-
-
-    // Converts the matrix-based representation into a phase-type graph.
-
-    // Sometimes the user might want to use the fast graph algorithms, but have some state-space given as a matrix. Therefore we can construct a graph from a matrix. If desired, a discrete phase-type distribution should just have no self-loop given. Note that the function `graph_as_matrix` may reorder the vertices to make the graph represented as strongly connected components in an acyclic manner.
-
-    // Parameters
-    // ----------
-    // IPV : NumericVector
-    //     The initial probability vector (alpha).
-    // SIM : NumericMatrix
-    //     The sub-intensity matrix (S).
-    // rewards : NumericMatrix, optional
-    //     The state/rewards of each of the vertices.
-
-    // Returns
-    // -------
-    // SEXP
-    //     A graph object.
-
-    // Examples
-    // --------
-    // >>> g <- matrix_as_graph(
-    // >>>     c(0.5,0.3, 0),
-    // >>>     matrix(c(-3, 0, 0, 2, -4, 1, 0, 1,-3), ncol=3),
-    // >>>     matrix(c(1,4,5,9,2,7), ncol=2)
-    // >>> )
-    // >>> graph_as_matrix(g)
 
   py::class_<ptdalgorithms::Vertex>(m, "Vertex", R"delim(
 
