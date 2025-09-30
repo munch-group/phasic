@@ -56,7 +56,8 @@ def plot_graph(graph:GraphType,
                subgraphfun:Callable=None, max_nodes:int=100, 
                theme:str=None,
                constraint:bool=True, ranksep:float=1, nodesep:float=1, rankdir:str="LR",
-               size:tuple=(7, 7), fontsize:int=12, rainbow:bool=True, penwidth:FloatingPointError=1,                
+               size:tuple=(7, 7), fontsize:int=12, rainbow:bool=True, penwidth:FloatingPointError=1,
+               seed:int=1,                
                **kwargs) -> graphviz.Digraph:
     """
     Plot a graph using graphviz.
@@ -135,6 +136,7 @@ def plot_graph(graph:GraphType,
                       ranksep=str(ranksep), nodesep=str(nodesep), 
                       bgcolor=bgcolor, rankdir=rankdir, ratio="auto",
                       size=f'{size[0]},{size[1]}',
+                      start=str(seed),
                       fontname="Helvetica,Arial,sans-serif", **kwargs)
     node_attr = dict(style='filled', color='black',
                      fontname="Helvetica,Arial,sans-serif", 

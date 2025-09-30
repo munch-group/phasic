@@ -2441,6 +2441,7 @@ Computes the expected residence time of the phase-type distribution.
               // Create vertices
               std::vector<ptdalgorithms::Vertex*> vertices;
 
+              int s = 0;
               if (!states.is_none()) {
                   auto states_view = states_array.unchecked<2>();
                   for (size_t i = 0; i < n; i++) {
@@ -2452,16 +2453,17 @@ Computes the expected residence time of the phase-type distribution.
                   }
               } else {
                   // Create default states [0], [1], [2], ...
-                  for (size_t i = 0; i < n; i++) {
-                      std::vector<int> state = {static_cast<int>(i)};
+                  for (s = 0; s < n; s++) {
+                      std::vector<int> state = {static_cast<int>(s)};
                       vertices.push_back(graph.find_or_create_vertex_p(state));
                   }
-              }
+                  
+                }
 
               // Create absorbing vertex
-              std::vector<int> absorbing_state(state_dim, static_cast<int>(n));
+              std::vector<int> absorbing_state(state_dim, static_cast<int>(s));
               auto* absorbing = graph.find_or_create_vertex_p(absorbing_state);
-
+                
               // Add edges from starting vertex according to IPV
               auto* start = graph.starting_vertex_p();
               double sum_ipv = 0.0;
@@ -2475,7 +2477,10 @@ Computes the expected residence time of the phase-type distribution.
 
               // Add edge to absorbing if IPV doesn't sum to 1
               if (sum_ipv < 0.99999) {
-                  start->add_edge(*absorbing, 1.0 - sum_ipv);
+                throw std::runtime_error(
+                        "Initial probability vector does not sum to one\n"
+                );
+                 // start->add_edge(*absorbing, 1.0 - sum_ipv);
               }
 
               // Add edges according to SIM matrix

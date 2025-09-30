@@ -19,7 +19,8 @@
       "WebFetch(domain:github.com)",
       "Bash(jupyter nbconvert:*)",
       "Read(//private/var/folders/**)",
-      "Bash(pixi run pytest:*)"
+      "Bash(pixi run pytest:*)",
+      "WebSearch"
     ],
     "deny": []
   }

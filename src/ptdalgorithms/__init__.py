@@ -116,6 +116,61 @@ class Graph(_Graph):
         else:
             super().__init__(state_length)
 
+
+    def make_discrete(self, mutation_rate, skip_states=[], skip_slots=[]):
+        """
+        Takes a graph for a continuous distribution and turns
+        it into a descrete one (inplace). Returns a matrix of
+        rewards for computing marginal moments
+        """
+
+        mutation_graph = self.copy()
+
+        # save current nr of states in graph
+        vlength = mutation_graph.vertices_length()
+
+        # number of fields in state vector (assumes all are the same length)
+        state_vector_length = len(mutation_graph.vertex_at(1).state())
+
+        # list state vector fields to reward at each auxiliary node
+        # rewarded_state_vector_indexes = [[] for _ in range(state_vector_length)]
+        rewarded_state_vector_indexes = defaultdict(list)
+
+        # loop all but starting node
+        for i in range(1, vlength):
+            if i in skip_states:
+                continue
+            vertex = mutation_graph.vertex_at(i)
+            if vertex.rate() > 0: # not absorbing
+                for j in range(state_vector_length):
+                    if j in skip_slots:
+                        continue
+                    val = vertex.state()[j]
+                    if val > 0: # only ones we may reward
+                        # add auxilliary node
+                        mutation_vertex = mutation_graph.create_vertex(np.repeat(0, state_vector_length))
+                        mutation_vertex.add_edge(vertex, 1)
+                        vertex.add_edge(mutation_vertex, mutation_rate*val)
+                        # print(mutation_vertex.index(), rewarded_state_vector_indexes[j], j)
+                        # rewarded_state_vector_indexes[mutation_vertex.index()] = rewarded_state_vector_indexes[j] + [j]
+                        rewarded_state_vector_indexes[mutation_vertex.index()].append(j)
+
+        # normalize graph
+        weights_were_multiplied_with = mutation_graph.normalize()
+
+        # build reward matrix
+        rewards = np.zeros((mutation_graph.vertices_length(), state_vector_length))
+        for state in rewarded_state_vector_indexes:
+            for i in rewarded_state_vector_indexes[state]:
+                rewards[state, i] = 1
+
+        rewards = np.transpose(rewards)
+        return NamedTuple("DiscreteGraph", (mutation_graph, rewards))
+
+
+
+
+
     def serialize(self) -> Dict[str, np.ndarray]:
         """
         Serialize graph to array representation for efficient computation.
