@@ -410,7 +410,7 @@ extern "C" {{
         }}
 
         // Normalize and compute PDF
-        g.normalize();
+//        g.normalize();
         for (int i = 0; i < n_times; i++) {{
             output[i] = g.pdf(times[i], granularity);
         }}
@@ -832,7 +832,7 @@ extern "C" {{
         >>> pdf1 = graph.pdf(1.0)  # Use many times
         >>> pdf2 = graph.pdf(2.0)  # No rebuild needed
         """
-        cpp_path = pathlib.Path(cpp_file)
+        cpp_path = pathlib.Path(cpp_file).absolute()
         if not cpp_path.exists():
             raise FileNotFoundError(f"C++ file not found: {cpp_file}")
 
@@ -871,7 +871,7 @@ extern "C" {{
                      const double* times, int n_times,
                      double* output, int granularity) {{
         ptdalgorithms::Graph g = build_model(theta, n_params);
-        g.normalize();  // Normalize the graph before computing PDF
+        // g.normalize();  // Normalize the graph before computing PDF
         for (int i = 0; i < n_times; i++) {{
             output[i] = g.pdf(times[i], granularity);
         }}
@@ -881,7 +881,7 @@ extern "C" {{
                          const int* jumps, int n_jumps,
                          double* output) {{
         ptdalgorithms::Graph g = build_model(theta, n_params);
-        g.dph_normalize();  // Normalize for discrete phase-type
+        // g.dph_normalize();  // Normalize for discrete phase-type
         for (int i = 0; i < n_jumps; i++) {{
             output[i] = g.dph_pmf(jumps[i]);
         }}

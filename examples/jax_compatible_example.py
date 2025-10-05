@@ -11,7 +11,7 @@ When to use this approach:
 - When using JAX transformations (jit, grad, vmap, pmap)
 - When doing parameter optimization
 """
-
+import os
 import numpy as np
 import jax
 import jax.numpy as jnp
@@ -30,8 +30,10 @@ print("=" * 80)
 print("\n1. BASIC USAGE")
 print("-" * 40)
 
+user_model_cpp = os.path.abspath("user_models/simple_exponential.cpp")
+
 # Load the model (this returns a JAX-compatible function)
-model = Graph.load_cpp_model("examples/user_models/simple_exponential.cpp")
+model = Graph.load_cpp_model(user_model_cpp)
 print("✅ Model loaded as JAX-compatible function")
 
 # Define parameters and evaluation times
