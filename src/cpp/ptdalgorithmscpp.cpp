@@ -293,6 +293,7 @@ std::vector<ptdalgorithms::ParameterizedEdge> ptdalgorithms::Vertex::parameteriz
     std::vector<ParameterizedEdge> vector;
 
     for (size_t i = 0; i < this->vertex->edges_length; ++i) {
+        // Only include edges that are actually parameterized
         if (this->vertex->edges[i]->parameterized) {
             ParameterizedEdge edge_i(
                     this->vertex->edges[i]->to,
@@ -304,17 +305,8 @@ std::vector<ptdalgorithms::ParameterizedEdge> ptdalgorithms::Vertex::parameteriz
             );
 
             vector.push_back(edge_i);
-        } else {
-            ParameterizedEdge edge_i(
-                    this->vertex->edges[i]->to,
-                    this->vertex->edges[i],
-                    graph,
-                    this->vertex->edges[i]->weight,
-                    NULL
-            );
-
-            vector.push_back(edge_i);
         }
+        // Don't include non-parameterized edges in parameterized_edges() result
     }
 
     return vector;

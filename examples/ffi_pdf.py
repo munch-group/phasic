@@ -2,7 +2,7 @@
 """
 Comprehensive Example: FFI Approach for C++ Models
 
-This example demonstrates how to use Graph.load_cpp_model(use_ffi=True) for
+This example demonstrates how to use Graph.pmf_from_cpp(use_ffi=True) for
 efficient graph reuse. The FFI approach separates graph construction from
 computation, allowing you to build the graph once and use it many times.
 
@@ -30,7 +30,7 @@ print("\n1. BASIC USAGE")
 print("-" * 40)
 
 # Load the model with FFI (returns a builder function)
-builder = Graph.load_cpp_model("examples/user_models/simple_exponential.cpp", use_ffi=True)
+builder = Graph.pmf_from_cpp("user_models/simple_exponential.cpp", use_ffi=True)
 print("✅ Builder function loaded")
 
 # Build a graph with specific parameters
@@ -136,7 +136,7 @@ print("\n5. COMPLEX MODEL: Rabbit Flooding")
 print("-" * 40)
 
 # Load the rabbit flooding model
-rabbit_builder = Graph.load_cpp_model("examples/user_models/rabbit_flooding.cpp", use_ffi=True)
+rabbit_builder = Graph.pmf_from_cpp("user_models/rabbit_flooding.cpp", use_ffi=True)
 
 # Build graph with specific parameters
 params = np.array([5.0, 0.3, 0.7])  # 5 rabbits, asymmetric flooding

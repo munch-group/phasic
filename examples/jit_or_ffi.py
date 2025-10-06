@@ -18,7 +18,7 @@ print("COMPARISON: JAX-Compatible vs FFI Approaches")
 print("=" * 80)
 
 # Model file to use for comparison
-model_file = "examples/user_models/simple_exponential.cpp"
+model_file = "user_models/simple_exponential.cpp"
 
 # ==============================================================================
 # APPROACH 1: JAX-COMPATIBLE
@@ -28,7 +28,7 @@ print("APPROACH 1: JAX-COMPATIBLE (default)")
 print("="*60)
 
 # Load model with JAX support
-jax_model = Graph.load_cpp_model(model_file, jax_compatible=True)
+jax_model = Graph.pmf_from_cpp(model_file, jax_compatible=True)
 print("✅ Loaded JAX-compatible model")
 
 # Test parameters and times
@@ -91,7 +91,7 @@ print("APPROACH 2: FFI (use_ffi=True)")
 print("="*60)
 
 # Load model with FFI
-ffi_builder = Graph.load_cpp_model(model_file, use_ffi=True)
+ffi_builder = Graph.pmf_from_cpp(model_file, use_ffi=True)
 print("✅ Loaded FFI builder function")
 
 # Build graph once
@@ -146,7 +146,7 @@ comparison_table = """
 ┌─────────────────────────┬──────────────────┬──────────────────┐
 │ Feature                 │ JAX-Compatible   │ FFI Approach     │
 ├─────────────────────────┼──────────────────┼──────────────────┤
-│ Load function          │ load_cpp_model() │ load_cpp_model(  │
+│ Load function          │ pmf_from_cpp()   │ pmf_from_cpp(    │
 │                        │                  │   use_ffi=True)  │
 ├─────────────────────────┼──────────────────┼──────────────────┤
 │ Returns                │ Function         │ Builder function │
@@ -190,7 +190,7 @@ WHEN TO USE JAX-COMPATIBLE (default):
 ✅ When parameters change frequently
 
 Example:
-    model = Graph.load_cpp_model("model.cpp")
+    model = Graph.pmf_from_cpp("model.cpp")
     optimizer = optax.adam(learning_rate=0.01)
 
     def loss(params):
@@ -209,7 +209,7 @@ WHEN TO USE FFI APPROACH:
 ✅ When evaluating same model many times
 
 Example:
-    builder = Graph.load_cpp_model("model.cpp", use_ffi=True)
+    builder = Graph.pmf_from_cpp("model.cpp", use_ffi=True)
     graph = builder(fixed_parameters)
 
     for _ in range(1000000):

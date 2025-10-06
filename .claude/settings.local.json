@@ -20,7 +20,15 @@
       "Bash(jupyter nbconvert:*)",
       "Read(//private/var/folders/**)",
       "Bash(pixi run pytest:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(pixi run:*)",
+      "Bash(timeout 30 pixi run python test_pmf_from_graph.py)",
+      "Bash(echo:*)",
+      "Read(//private/tmp/**)",
+      "Read(//tmp/**)",
+      "Bash(pkill:*)",
+      "Bash(timeout 10 pixi run python test_empty_theta.py)",
+      "Bash(timeout 10 pixi run python test_param_minimal.py)"
     ],
     "deny": []
   }

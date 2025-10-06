@@ -47,7 +47,7 @@ print(f"  Start edges shape: {serialized['start_edges'].shape}")
 
 # Convert to JAX function
 print("\nConverting to JAX function...")
-model = Graph.from_python_graph(g)
+model = Graph.pmf_from_graph(g)
 print(f"✅ JAX-compatible function created")
 
 # Test the model
@@ -68,96 +68,122 @@ pdf_jit = jit_model(times)
 print(f"✅ JIT compilation works: {jnp.allclose(pdf, pdf_jit)}")
 
 # Note about gradients
-print("⚠️  Note: Gradient support requires custom_jvp (not implemented yet)")
-print("    For gradient-based optimization, use load_cpp_model() instead")
+print("⚠️  Note: Gradients are not available for non-parameterized graphs")
+print("    Use parameterized edges (add_edge_parameterized) for gradient support")
 
 # ==============================================================================
-# 2. PARAMETERIZED MODEL
+# 2. PARAMETERIZED MODEL WITH GRADIENT SUPPORT
 # ==============================================================================
-print("\n2. PARAMETERIZED MODEL")
+print("\n2. PARAMETERIZED MODEL WITH GRADIENT SUPPORT")
 print("-" * 40)
 
-def build_exponential(rate):
-    """Build exponential distribution with given rate"""
-    g = Graph(1)
-    start = g.starting_vertex()
-    v_transient = g.find_or_create_vertex([1])
-    v_absorbing = g.find_or_create_vertex([2])
+# Build model with parameterized edges
+print("Building model with parameterized edge...")
+g_param = Graph(1)
+start = g_param.starting_vertex()
+v_transient = g_param.find_or_create_vertex([1])
+v_absorbing = g_param.find_or_create_vertex([2])
 
-    start.add_edge(v_transient, 1.0)
-    v_transient.add_edge(v_absorbing, float(rate))  # Use the rate parameter
+start.add_edge(v_transient, 1.0)
+# Use parameterized edge: weight = edge_state · theta
+# edge_state=[1.0] means weight = 1.0 * theta[0]
+v_transient.add_edge_parameterized(v_absorbing, weight=0.0, edge_state=[1.0])
 
-    g.normalize()
-    return g
+g_param.normalize()
+print(f"✅ Graph with parameterized edge built")
 
-print("Creating parameterized model...")
-param_model = Graph.from_python_graph_parameterized(build_exponential)
-print("✅ Parameterized model created")
+# Convert to JAX function
+param_model = Graph.pmf_from_graph(g_param)
+print("✅ Parameterized model created (supports gradients!)")
 
 # Test with different rates
-rates = jnp.array([0.5, 1.0, 1.5, 2.0])
+rates = [0.5, 1.0, 1.5, 2.0]
 print("\nTesting with different rates:")
 for rate in rates:
     theta = jnp.array([rate])
     pdf = param_model(theta, times)
-    mean_time = jnp.sum(times * pdf) / jnp.sum(pdf)
-    print(f"  Rate={rate:.1f}: Mean time={mean_time:.4f} (expected={1/rate:.4f})")
+    peak_time = times[jnp.argmax(pdf)]
+    print(f"  Rate={rate:.1f}: Peak at t={peak_time:.4f}")
 
 # Test JAX features with parameterized model
-print("\nTesting JAX with parameterized model:")
+print("\nTesting JAX features with parameterized model:")
 
 # JIT compilation
+theta_test = jnp.array([1.5])
 jit_param_model = jax.jit(param_model)
-theta = jnp.array([1.5])
-pdf_param = jit_param_model(theta, times)
+pdf_param = jit_param_model(theta_test, times)
 print(f"✅ JIT compilation works")
 
-# Note about gradients
-print("⚠️  Note: Gradient support requires custom_jvp (not implemented yet)")
+# GRADIENT SUPPORT!
+print("\n✅ Testing GRADIENTS (this is the key feature!):")
+def loss_fn(theta):
+    """Example: sum of PDF values"""
+    return jnp.sum(param_model(theta, times))
 
-# Note about vmap
-print("⚠️  vmap support requires vmap_method parameter (not implemented yet)")
+grad_fn = jax.grad(loss_fn)
+gradient = grad_fn(theta_test)
+print(f"✅ Gradient computation works!")
+print(f"   ∂loss/∂θ = {gradient[0]:.6f}")
+
+# VMAP SUPPORT!
+print("\n✅ Testing VMAP (vectorization):")
+theta_batch = jnp.array([[0.5], [1.0], [1.5]])
+vmap_model = jax.vmap(lambda t: param_model(t, times[:10]))
+pdf_batch = vmap_model(theta_batch)
+print(f"✅ vmap works: output shape = {pdf_batch.shape}")
+print(f"   (3 parameter sets × 10 time points)")
 
 # ==============================================================================
-# 3. SUMMARY AND LIMITATIONS
+# 3. SUMMARY
 # ==============================================================================
-print("\n3. SUMMARY AND LIMITATIONS")
+print("\n3. SUMMARY")
 print("-" * 40)
 print("""
 Current Implementation Status:
-✅ Python API graph building
+✅ Python API graph building (no C++ required!)
 ✅ Graph serialization to arrays
-✅ C++ reconstruction from arrays
+✅ Automatic C++ code generation from Python graphs
 ✅ JIT compilation support
-⚠️  Gradient support (requires custom_jvp)
-⚠️  vmap support (requires vmap_method)
+✅ Full gradient support with parameterized edges
+✅ vmap support for vectorization
+✅ Works in both continuous and discrete modes
 
-For full JAX support including gradients:
-  Use Graph.load_cpp_model() with C++ model files
+Key Features:
+• Regular edges: Fixed weights
+• Parameterized edges: Weights as functions of parameters (gradient support!)
+• Automatic detection of parameterized vs non-parameterized graphs
+• Full JAX ecosystem integration
+
+Usage patterns:
+1. Non-parameterized: Graph.pmf_from_graph(graph)
+   - Model signature: model(times)
+   - JIT compilation supported
+   - No gradient support
+
+2. Parameterized: Graph.pmf_from_graph(graph_with_param_edges)
+   - Model signature: model(theta, times)
+   - JIT, gradients, and vmap all supported
+   - Enable gradient-based inference (SVGD, MLE, etc.)
 """)
 
 
 # ==============================================================================
-# SUMMARY
+# FINAL SUMMARY
 # ==============================================================================
 print("\n" + "=" * 80)
-print("SUMMARY")
+print("FINAL SUMMARY")
 print("=" * 80)
 print("""
-Python Graph to JAX provides a way to:
+Python Graph to JAX with Parameterized Edges:
 ✅ Build models with Python API (no C++ required)
-✅ Convert to JAX-compatible functions
-✅ Use JIT compilation for performance
-✅ Support both fixed and parameterized models
+✅ Automatic C++ code generation for performance
+✅ Full JAX support: JIT, gradients, vmap
+✅ Gradient-based inference ready (SVGD, optimization)
+✅ Works in continuous (PDF) and discrete (PMF) modes
 
-Current limitations (to be addressed):
-⚠️  Gradient support requires custom_jvp implementation
-⚠️  vmap requires vmap_method parameter
+Two approaches available:
+1. Python graphs (this file): Best for iterative development
+2. C++ models (see jit_pdf.py): Best for complex/reusable models
 
-Usage patterns:
-1. Fixed graph: Graph.from_python_graph(graph)
-2. Parameterized: Graph.from_python_graph_parameterized(builder_fn)
-
-For full JAX support including gradients, use:
-  Graph.load_cpp_model() with C++ model files
+Both support parameterized edges for gradient-based inference!
 """)

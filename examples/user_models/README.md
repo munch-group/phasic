@@ -1,6 +1,6 @@
 # User-Defined C++ Models for PtDAlgorithms
 
-This directory contains example C++ models that can be loaded using `Graph.load_cpp_model()`.
+This directory contains example C++ models that can be loaded using `Graph.pmf_from_cpp()`.
 
 ## Available Models
 
@@ -19,7 +19,7 @@ import jax
 import jax.numpy as jnp
 
 # Load model with full JAX support
-model = Graph.load_cpp_model("simple_exponential.cpp")
+model = Graph.pmf_from_cpp("simple_exponential.cpp")
 
 # Use with JAX transformations
 theta = jnp.array([1.0])
@@ -54,7 +54,7 @@ from ptdalgorithms import Graph
 import numpy as np
 
 # Load model with FFI for efficiency
-builder = Graph.load_cpp_model("simple_exponential.cpp", use_ffi=True)
+builder = Graph.pmf_from_cpp("simple_exponential.cpp", use_ffi=True)
 
 # Build graph once
 theta = np.array([1.0])
@@ -113,7 +113,7 @@ ptdalgorithms::Graph build_model(const double* theta, int n_params) {
 ## Examples
 
 For detailed examples, see:
-- **examples/load_cpp_model_simple.py** - Basic usage of both approaches
+- **examples/pmf_from_cpp_simple.py** - Basic usage of both approaches
 - **examples/jax_compatible_example.py** - Comprehensive JAX approach demonstration
 - **examples/ffi_approach_example.py** - Comprehensive FFI approach demonstration
 - **examples/approach_comparison.py** - Side-by-side comparison with benchmarks

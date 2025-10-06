@@ -81,6 +81,7 @@
         "valarray": "cpp"
     },
     "cSpell.words": [
+        "iridis",
         "ptdalgorithmscpp"
     ],
     "python.terminal.activateEnvironment": false

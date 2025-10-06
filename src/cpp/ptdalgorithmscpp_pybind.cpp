@@ -968,15 +968,15 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
           The starting vertex.
       )delim")
       
-    .def("vertices", &ptdalgorithms::Graph::vertices, 
-      py::return_value_policy::copy, R"delim(
-      Returns all vertices that have been added to the graph from either calling `find_or_create_vertex` or `create_vertex`. 
+    .def("vertices", &ptdalgorithms::Graph::vertices_p,
+      py::return_value_policy::reference_internal, R"delim(
+      Returns all vertices that have been added to the graph from either calling `find_or_create_vertex` or `create_vertex`.
       The first vertex in the list is *always* the starting vertex.
 
       Returns
       -------
       List
-          A list of all vertices in the graph.
+          A list of references to all vertices in the graph.
 
       Examples
       --------
@@ -988,8 +988,8 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
       graph.vertices_length() == 3
       )delim")      
 
-    .def("vertex_at", &ptdalgorithms::Graph::vertex_at, py::arg("index"), 
-      py::return_value_policy::copy, R"delim(
+    .def("vertex_at", &ptdalgorithms::Graph::vertex_at_p, py::arg("index"),
+      py::return_value_policy::reference_internal, R"delim(
       Returns a vertex at a particular index. This method is much faster than `Graph.vertices()[i]`.
 
       Parameters
@@ -1001,14 +1001,14 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
       Returns
       -------
-      List
-          The vertex at index `index` in the graph.
+      Vertex
+          A reference to the vertex at index `index` in the graph.
         )delim")
-      
+
     .def("vertex_at",[](ptdalgorithms::Graph &graph, double index) {
-      return graph.vertex_at((int) index);
-  
-    })
+      return graph.vertex_at_p((int) index);
+
+    }, py::return_value_policy::reference_internal)
 
     .def("vertices_length", &ptdalgorithms::Graph::vertices_length, 
       py::return_value_policy::reference_internal, R"delim(
@@ -2641,7 +2641,7 @@ Computes the expected residence time of the phase-type distribution.
 
     //   )delim")
       
-    .def("edges", &ptdalgorithms::Vertex::edges, 
+    .def("edges", &ptdalgorithms::Vertex::edges,
       py::return_value_policy::reference_internal, R"delim(
     Returns the out-going edges of a vertex.
 
@@ -2657,7 +2657,24 @@ Computes the expected residence time of the phase-type distribution.
     List
         A list of out-going edges.
       )delim")
-      
+
+    .def("parameterized_edges", &ptdalgorithms::Vertex::parameterized_edges,
+      py::return_value_policy::reference_internal, R"delim(
+    Returns the out-going parameterized edges of a vertex.
+
+    Returns a list of parameterized edges added by [ptdalgorithms::add_edge_parameterized()].
+
+    Parameters
+    ----------
+    phase_type_vertex : SEXP
+        The vertex to find the parameterized edges for.
+
+    Returns
+    -------
+    List
+        A list of out-going parameterized edges.
+      )delim")
+
     .def(py::self == py::self)
     .def("__assign__", [](ptdalgorithms::Vertex &v, const ptdalgorithms::Vertex &o) {
           return v = o;

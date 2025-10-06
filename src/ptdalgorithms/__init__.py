@@ -50,6 +50,408 @@ GraphType = TypeVar('Graph')
 from collections import namedtuple
 MatrixRepresentation = namedtuple("MatrixRepresentation", ['ipv', 'sim', 'states', 'indices'])
 
+
+# ============================================================================
+# Pure Helper Functions (Computation Phase - JAX Compatible)
+# ============================================================================
+
+def _compute_pmf_from_ctypes(theta, times, compute_func, graph_data, granularity, discrete):
+    """
+    Pure function wrapper around ctypes PMF computation.
+
+    No side effects - same inputs always produce same outputs.
+    Compatible with JAX transformations when wrapped appropriately.
+    """
+    theta_np = np.asarray(theta, dtype=np.float64)
+    times_np = np.asarray(times, dtype=np.float64 if not discrete else np.int32)
+    output_np = np.zeros_like(times_np, dtype=np.float64)
+
+    # Check if this is a parameterized C++ model or a from_arrays model
+    if graph_data and 'states_flat' in graph_data:
+        # from_arrays case: unpack graph_data (works for both discrete and continuous)
+        states_flat = graph_data['states_flat']
+        edges_flat = graph_data['edges_flat']
+        start_edges_flat = graph_data['start_edges_flat']
+        n_vertices = graph_data['n_vertices']
+        state_length = graph_data['state_length']
+        n_edges = graph_data['n_edges']
+        n_start_edges = graph_data['n_start_edges']
+
+        if discrete:
+            # Discrete mode: no granularity parameter
+            compute_func(
+                states_flat.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
+                n_vertices,
+                state_length,
+                edges_flat.ctypes.data_as(ctypes.POINTER(ctypes.c_double)) if len(edges_flat) > 0 else None,
+                n_edges,
+                start_edges_flat.ctypes.data_as(ctypes.POINTER(ctypes.c_double)) if len(start_edges_flat) > 0 else None,
+                n_start_edges,
+                times_np.ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
+                len(times_np),
+                output_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+            )
+        else:
+            # Continuous mode: includes granularity parameter
+            compute_func(
+                states_flat.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
+                n_vertices,
+                state_length,
+                edges_flat.ctypes.data_as(ctypes.POINTER(ctypes.c_double)) if len(edges_flat) > 0 else None,
+                n_edges,
+                start_edges_flat.ctypes.data_as(ctypes.POINTER(ctypes.c_double)) if len(start_edges_flat) > 0 else None,
+                n_start_edges,
+                times_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                len(times_np),
+                output_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                granularity
+            )
+    else:
+        # C++ build_model case (works for both discrete and continuous)
+        if discrete:
+            # Discrete mode: no granularity parameter
+            compute_func(
+                theta_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                len(theta_np),
+                times_np.ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
+                len(times_np),
+                output_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+            )
+        else:
+            # Continuous mode: includes granularity parameter
+            compute_func(
+                theta_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                len(theta_np),
+                times_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                len(times_np),
+                output_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                granularity
+            )
+
+    return output_np
+
+
+def _create_jax_callback_wrapper(compute_func, graph_data, discrete):
+    """
+    Create a pure JAX-compatible callback wrapper.
+
+    Returns a function compatible with jax.pure_callback that maintains
+    purity and supports JAX transformations.
+    """
+    from jax import pure_callback
+
+    def compute_pmf_pure(times, granularity=100):
+        """Pure function wrapper for JAX compatibility"""
+        def compute_impl(times_arr):
+            # For parameterized models, theta comes from outer scope
+            # For static models, graph_data is fixed
+            return _compute_pmf_from_ctypes(
+                np.array([]),  # Empty theta for static graphs
+                times_arr,
+                compute_func,
+                graph_data,
+                granularity,
+                discrete
+            )
+
+        result_shape_dtypes = jax.ShapeDtypeStruct(times.shape, jnp.float32)
+        return pure_callback(compute_impl, result_shape_dtypes, times)
+
+    return compute_pmf_pure
+
+
+def _create_jax_parameterized_wrapper(compute_func, graph_builder, discrete):
+    """
+    Create a pure JAX-compatible wrapper for parameterized models.
+
+    Handles models where graph structure depends on parameters.
+    """
+    from jax import pure_callback
+
+    def model_fn(theta, times, granularity=100):
+        """Parameterized model with JAX compatibility"""
+        def compute_impl(inputs):
+            theta_arr, times_arr = inputs
+
+            # Build graph with parameters
+            theta_np = np.asarray(theta_arr)
+            if theta_np.ndim == 0:
+                theta_np = theta_np.reshape(1)
+
+            # Build and serialize the graph
+            graph = graph_builder(*theta_np)
+            serialized = graph.serialize()
+
+            # Prepare graph data
+            graph_data = _serialize_graph_data(serialized)
+
+            return _compute_pmf_from_ctypes(
+                theta_np,
+                times_arr,
+                compute_func,
+                graph_data,
+                granularity,
+                discrete
+            )
+
+        result_shape_dtypes = jax.ShapeDtypeStruct(times.shape, jnp.float32)
+        return pure_callback(compute_impl, result_shape_dtypes, (theta, times))
+
+    return model_fn
+
+
+# ============================================================================
+# Impure Helper Functions (Setup Phase - Run Once During Model Loading)
+# ============================================================================
+
+def _get_package_dir():
+    """Get package root directory (caching is acceptable)."""
+    return pathlib.Path(__file__).parent.parent.parent
+
+
+def _serialize_graph_data(serialized):
+    """Extract and prepare graph arrays for computation."""
+    states_flat = serialized['states'].flatten()
+    edges_flat = serialized['edges'].flatten() if serialized['edges'].size > 0 else np.array([], dtype=np.float64)
+    start_edges_flat = serialized['start_edges'].flatten() if serialized['start_edges'].size > 0 else np.array([], dtype=np.float64)
+
+    return {
+        'states_flat': states_flat,
+        'edges_flat': edges_flat,
+        'start_edges_flat': start_edges_flat,
+        'n_vertices': serialized['n_vertices'],
+        'state_length': serialized['state_length'],
+        'n_edges': len(serialized['edges']),
+        'n_start_edges': len(serialized['start_edges'])
+    }
+
+
+def _generate_cpp_from_graph(serialized):
+    """
+    Generate C++ build_model() function from serialized graph.
+
+    Auto-detects if graph has parameterized edges and generates appropriate code.
+
+    Parameters
+    ----------
+    serialized : dict
+        Dictionary from Graph.serialize() containing states, edges, and param info
+
+    Returns
+    -------
+    str
+        C++ code implementing build_model(const double* theta, int n_params)
+    """
+    states = serialized['states']
+    edges = serialized['edges']
+    start_edges = serialized['start_edges']
+    param_edges = serialized.get('param_edges', np.array([]))
+    start_param_edges = serialized.get('start_param_edges', np.array([]))
+    param_length = serialized.get('param_length', 0)
+    state_dim = serialized['state_length']
+    n_vertices = serialized['n_vertices']
+
+    # Generate vertex creation code
+    vertex_code = []
+    vertex_code.append(f"    auto start = g.starting_vertex_p();")
+    vertex_code.append(f"    std::vector<ptdalgorithms::Vertex*> vertices;")
+
+    # Check if first vertex is the starting vertex (common case)
+    # Starting vertex typically has state [0, 0, ...] in state_dim dimensions
+    start_state = tuple([0] * state_dim)
+    first_vertex_state = tuple(int(s) for s in states[0]) if n_vertices > 0 else None
+
+    for i in range(n_vertices):
+        state_vals = ", ".join(str(int(s)) for s in states[i])
+        state_tuple = tuple(int(s) for s in states[i])
+
+        # If this is the starting vertex (state is all zeros), use the start pointer
+        if state_tuple == start_state:
+            vertex_code.append(f"    vertices.push_back(start);  // Starting vertex")
+        else:
+            vertex_code.append(f"    vertices.push_back(g.find_or_create_vertex_p({{{state_vals}}}));")
+
+    # Create a set of parameterized edge (from, to) pairs to skip in regular edges
+    param_edge_pairs = set()
+    for edge in start_param_edges:
+        to_idx = int(edge[0])
+        param_edge_pairs.add((-1, to_idx))  # -1 represents start vertex
+    for edge in param_edges:
+        from_idx = int(edge[0])
+        to_idx = int(edge[1])
+        param_edge_pairs.add((from_idx, to_idx))
+
+    # Generate regular edge code
+    edge_code = []
+    edge_code.append("    // Regular (fixed weight) edges")
+
+    for edge in start_edges:
+        to_idx = int(edge[0])
+        weight = edge[1]
+        # Skip if this edge is also parameterized, or has NaN weight
+        if (-1, to_idx) not in param_edge_pairs and not np.isnan(weight):
+            edge_code.append(f"    start->add_edge(*vertices[{to_idx}], {weight});")
+
+    for edge in edges:
+        from_idx = int(edge[0])
+        to_idx = int(edge[1])
+        weight = edge[2]
+        # Skip if this edge is also parameterized, or has NaN weight
+        if (from_idx, to_idx) not in param_edge_pairs and not np.isnan(weight):
+            edge_code.append(f"    vertices[{from_idx}]->add_edge(*vertices[{to_idx}], {weight});")
+
+    # Generate parameterized edge code
+    param_edge_code = []
+    if param_length > 0:
+        param_edge_code.append("    // Parameterized edges (weights computed from theta)")
+
+        # Starting vertex parameterized edges
+        for i, edge in enumerate(start_param_edges):
+            to_idx = int(edge[0])
+            edge_state = edge[1:]
+            # Generate weight computation: w = x1*theta[0] + x2*theta[1] + ...
+            weight_terms = [f"{edge_state[j]}*theta[{j}]" for j in range(param_length)]
+            weight_expr = " + ".join(weight_terms)
+            param_edge_code.append(f"    double w_start_{to_idx} = {weight_expr};")
+            param_edge_code.append(f"    start->add_edge(*vertices[{to_idx}], w_start_{to_idx});")
+
+        # Regular vertex parameterized edges
+        for i, edge in enumerate(param_edges):
+            from_idx = int(edge[0])
+            to_idx = int(edge[1])
+            edge_state = edge[2:]
+            # Generate weight computation
+            weight_terms = [f"{edge_state[j]}*theta[{j}]" for j in range(param_length)]
+            weight_expr = " + ".join(weight_terms)
+            param_edge_code.append(f"    double w_{from_idx}_{to_idx} = {weight_expr};")
+            param_edge_code.append(f"    vertices[{from_idx}]->add_edge(*vertices[{to_idx}], w_{from_idx}_{to_idx});")
+
+    # Combine all code
+    cpp_code = f'''#include "ptdalgorithmscpp.h"
+
+ptdalgorithms::Graph build_model(const double* theta, int n_params) {{
+    ptdalgorithms::Graph g({state_dim});
+
+{chr(10).join(vertex_code)}
+
+{chr(10).join(edge_code)}
+
+{chr(10).join(param_edge_code) if param_edge_code else ""}
+
+    return g;
+}}
+'''
+    return cpp_code
+
+
+def _compile_wrapper_library(wrapper_code, lib_name, extra_includes=None):
+    """
+    Compile C++ wrapper code to shared library.
+
+    Handles all I/O and subprocess calls during setup phase.
+    """
+    pkg_dir = _get_package_dir()
+    lib_path = f"/tmp/{lib_name}.so"
+
+    # Remove existing library if present
+    if os.path.exists(lib_path):
+        os.unlink(lib_path)
+
+    with tempfile.NamedTemporaryFile(suffix='.cpp', delete=False, mode='w') as f:
+        f.write(wrapper_code)
+        wrapper_file = f.name
+
+    try:
+        # Base compilation command
+        cmd = [
+            'g++', '-O3', '-fPIC', '-shared', '-std=c++14',
+            f'-I{pkg_dir}',
+            f'-I{pkg_dir}/api/cpp',
+            f'-I{pkg_dir}/api/c',
+            f'-I{pkg_dir}/include',
+        ]
+
+        # Add extra includes if provided
+        if extra_includes:
+            for inc in extra_includes:
+                cmd.append(f'-I{inc}')
+
+        # Add source files
+        cmd.extend([
+            wrapper_file,
+            f'{pkg_dir}/src/cpp/ptdalgorithmscpp.cpp',
+            f'{pkg_dir}/src/c/ptdalgorithms.c',
+            '-o', lib_path
+        ])
+
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            raise RuntimeError(f"Compilation failed:\n{result.stderr}")
+    finally:
+        os.unlink(wrapper_file)
+
+    return lib_path
+
+
+def _setup_ctypes_signatures(lib, has_pmf=True, has_dph=True):
+    """Configure ctypes function signatures on loaded library."""
+    if has_pmf:
+        lib.compute_pmf.argtypes = [
+            ctypes.POINTER(ctypes.c_double),  # theta
+            ctypes.c_int,                      # n_params
+            ctypes.POINTER(ctypes.c_double),  # times
+            ctypes.c_int,                      # n_times
+            ctypes.POINTER(ctypes.c_double),  # output
+            ctypes.c_int                       # granularity
+        ]
+        lib.compute_pmf.restype = None
+
+    if has_dph:
+        lib.compute_dph_pmf.argtypes = [
+            ctypes.POINTER(ctypes.c_double),  # theta
+            ctypes.c_int,                      # n_params
+            ctypes.POINTER(ctypes.c_int),     # jumps
+            ctypes.c_int,                      # n_jumps
+            ctypes.POINTER(ctypes.c_double),  # output
+        ]
+        lib.compute_dph_pmf.restype = None
+
+
+def _setup_ctypes_signatures_from_arrays(lib, discrete=False):
+    """Configure ctypes signatures for from_arrays compute function."""
+    if discrete:
+        # Discrete mode: no granularity parameter, uses int* for jumps
+        lib.compute_dph_pmf_from_arrays.argtypes = [
+            ctypes.POINTER(ctypes.c_int32),    # states
+            ctypes.c_int,                       # n_vertices
+            ctypes.c_int,                       # state_dim
+            ctypes.POINTER(ctypes.c_double),    # edges
+            ctypes.c_int,                       # n_edges
+            ctypes.POINTER(ctypes.c_double),    # start_edges
+            ctypes.c_int,                       # n_start_edges
+            ctypes.POINTER(ctypes.c_int),       # jumps (int* not double*)
+            ctypes.c_int,                       # n_jumps
+            ctypes.POINTER(ctypes.c_double),    # output
+        ]
+        lib.compute_dph_pmf_from_arrays.restype = None
+    else:
+        # Continuous mode: includes granularity parameter
+        lib.compute_pmf_from_arrays.argtypes = [
+            ctypes.POINTER(ctypes.c_int32),    # states
+            ctypes.c_int,                       # n_vertices
+            ctypes.c_int,                       # state_dim
+            ctypes.POINTER(ctypes.c_double),    # edges
+            ctypes.c_int,                       # n_edges
+            ctypes.POINTER(ctypes.c_double),    # start_edges
+            ctypes.c_int,                       # n_start_edges
+            ctypes.POINTER(ctypes.c_double),    # times
+            ctypes.c_int,                       # n_times
+            ctypes.POINTER(ctypes.c_double),    # output
+            ctypes.c_int                        # granularity
+        ]
+        lib.compute_pmf_from_arrays.restype = None
+
+
 # class Graph(_Graph):
 #     def __init__(self, state_length=None, callback=None, initial=None, trans_as_dict=False):
 #         """
@@ -180,9 +582,13 @@ class Graph(_Graph):
         dict
             Dictionary containing:
             - 'states': Array of vertex states (n_vertices, state_dim)
-            - 'edges': Array of edges [from_idx, to_idx, weight] (n_edges, 3)
-            - 'start_edges': Array of starting vertex edges [to_idx, weight] (n_start_edges, 2)
+            - 'edges': Array of regular edges [from_idx, to_idx, weight] (n_edges, 3)
+            - 'start_edges': Array of starting vertex regular edges [to_idx, weight] (n_start_edges, 2)
+            - 'param_edges': Array of parameterized edges [from_idx, to_idx, x1, x2, ...] (n_param_edges, param_length+2)
+            - 'start_param_edges': Array of starting vertex parameterized edges [to_idx, x1, x2, ...] (n_start_param_edges, param_length+1)
+            - 'param_length': Length of parameter vector (0 if no parameterized edges)
             - 'state_length': Integer state dimension
+            - 'n_vertices': Number of vertices
         """
         vertices_list = list(self.vertices())
         n_vertices = len(vertices_list)
@@ -202,9 +608,76 @@ class Graph(_Graph):
             state_tuple = tuple(state)
             state_to_idx[state_tuple] = i
 
-        # Extract edges between vertices
+        # Detect parameter length from parameterized edges
+        param_length = 0
+        start = self.starting_vertex()
+
+        # Check all vertices for parameterized edges to determine param_length
+        # Strategy: Collect a few parameterized edges and check for consistency
+        # All param edges should have the same length
+        sample_edges = []
+        for v in vertices_list:
+            param_edges = v.parameterized_edges()
+            if param_edges:
+                sample_edges.extend(param_edges[:2])  # Take up to 2 edges per vertex
+                if len(sample_edges) >= 5:  # Collect a few samples
+                    break
+
+        if sample_edges:
+            # Try increasing lengths and stop when we hit uninitialized memory
+            # Strategy: Uninitialized memory typically contains extremely tiny values (< 1e-300)
+            # or NaN/inf. Valid edge state coefficients should be reasonable numbers.
+            for try_len in range(1, 20):
+                hit_garbage = False
+
+                for edge in sample_edges:
+                    state = edge.edge_state(try_len)
+                    if len(state) == 0:
+                        hit_garbage = True
+                        break
+                    last_val = state[-1]
+
+                    # Check for obvious garbage:
+                    # 1. NaN or inf
+                    # 2. Extremely large values (> 1e100)
+                    # 3. Extremely tiny values (< 1e-300) which indicate uninitialized memory
+                    #    Note: We use 1e-300 instead of checking == 0 because 0.0 is valid
+                    if (np.isnan(last_val) or np.isinf(last_val) or
+                        abs(last_val) > 1e100 or
+                        (last_val != 0 and abs(last_val) < 1e-300)):
+                        hit_garbage = True
+                        break
+
+                if hit_garbage:
+                    # At least one edge hit garbage, previous length was correct
+                    break
+
+                # This length seems valid
+                param_length = try_len
+
+        # Also check starting vertex if we haven't found param_length yet
+        if param_length == 0:
+            start_param_edges = start.parameterized_edges()
+            if start_param_edges:
+                # Use same strategy as above
+                for try_len in range(1, 20):
+                    edge_state = start_param_edges[0].edge_state(try_len)
+                    if len(edge_state) == 0:
+                        break
+                    last_val = edge_state[-1]
+                    if np.isnan(last_val) or np.isinf(last_val) or abs(last_val) > 1e100:
+                        break
+                    param_length = try_len
+
+        # Extract regular edges between vertices (excluding starting vertex)
         edges_list = []
+        start_state = tuple(start.state())
         for i, v in enumerate(vertices_list):
+            # Skip starting vertex edges (they're handled separately)
+            v_state = tuple(v.state())
+            if v_state == start_state:
+                continue
+
             from_idx = i
             for edge in v.edges():
                 to_vertex = edge.to()
@@ -216,8 +689,30 @@ class Graph(_Graph):
 
         edges = np.array(edges_list, dtype=np.float64) if edges_list else np.empty((0, 3), dtype=np.float64)
 
-        # Extract starting vertex edges
-        start = self.starting_vertex()
+        # Extract parameterized edges between vertices (excluding starting vertex)
+        param_edges_list = []
+        if param_length > 0:
+            for i, v in enumerate(vertices_list):
+                # Skip starting vertex edges (they're handled separately)
+                v_state = tuple(v.state())
+                if v_state == start_state:
+                    continue
+
+                from_idx = i
+                for edge in v.parameterized_edges():
+                    to_vertex = edge.to()
+                    to_state = tuple(to_vertex.state())
+                    if to_state in state_to_idx:
+                        to_idx = state_to_idx[to_state]
+                        edge_state = edge.edge_state(param_length)
+                        # Only include edges with non-empty edge states
+                        if len(edge_state) > 0 and any(x != 0 for x in edge_state):
+                            # Store: [from_idx, to_idx, x1, x2, x3, ...]
+                            param_edges_list.append([from_idx, to_idx] + list(edge_state))
+
+        param_edges = np.array(param_edges_list, dtype=np.float64) if param_edges_list else np.empty((0, param_length + 2 if param_length > 0 else 0), dtype=np.float64)
+
+        # Extract starting vertex regular edges
         start_edges_list = []
         for edge in start.edges():
             to_vertex = edge.to()
@@ -229,10 +724,29 @@ class Graph(_Graph):
 
         start_edges = np.array(start_edges_list, dtype=np.float64) if start_edges_list else np.empty((0, 2), dtype=np.float64)
 
+        # Extract starting vertex parameterized edges
+        start_param_edges_list = []
+        if param_length > 0:
+            for edge in start.parameterized_edges():
+                to_vertex = edge.to()
+                to_state = tuple(to_vertex.state())
+                if to_state in state_to_idx:
+                    to_idx = state_to_idx[to_state]
+                    edge_state = edge.edge_state(param_length)
+                    # Only include edges with non-empty edge states
+                    if len(edge_state) > 0 and any(x != 0 for x in edge_state):
+                        # Store: [to_idx, x1, x2, x3, ...]
+                        start_param_edges_list.append([to_idx] + list(edge_state))
+
+        start_param_edges = np.array(start_param_edges_list, dtype=np.float64) if start_param_edges_list else np.empty((0, param_length + 1 if param_length > 0 else 0), dtype=np.float64)
+
         return {
             'states': states,
             'edges': edges,
             'start_edges': start_edges,
+            'param_edges': param_edges,
+            'start_param_edges': start_param_edges,
+            'param_length': param_length,
             'state_length': state_length,
             'n_vertices': n_vertices
         }
@@ -328,212 +842,113 @@ class Graph(_Graph):
         return Graph(base_graph)
 
     @classmethod
-    def from_python_graph(cls, graph: 'Graph', jax_compatible: bool = True) -> Callable:
+    def pmf_from_graph(cls, graph: 'Graph', use_ffi: bool = False, discrete: bool = False) -> Callable:
         """
-        Convert a Python-built Graph to a JAX-compatible function.
+        Convert a Python-built Graph to a JAX-compatible function with full gradient support.
 
-        This allows users to build graphs using the Python API and then
-        convert them to efficient JAX-compatible functions without writing C++.
+        This method automatically detects if the graph has parameterized edges (edges with
+        state vectors) and generates optimized C++ code to enable full JAX transformations
+        including gradients, vmap, and jit compilation.
 
         Parameters
         ----------
         graph : Graph
-            Graph built using the Python API
-        jax_compatible : bool
-            If True, returns a JAX-compatible function
+            Graph built using the Python API. Can have regular edges or parameterized edges.
+        use_ffi : bool
+            If True, uses Foreign Function Interface approach that returns a Graph object
+            directly instead of a callable function. This is more efficient for repeated
+            evaluations but doesn't support JAX transformations.
+        discrete : bool
+            If True, uses discrete phase-type distribution (DPH) computation.
+            If False, uses continuous phase-type distribution (PDF).
 
         Returns
         -------
         callable
-            Function (times) -> pdf_values that computes the PDF
+            If use_ffi=False and graph has parameterized edges:
+                JAX-compatible function (theta, times) -> pmf_values
+                Supports JIT, grad, vmap, etc.
+            If use_ffi=False and graph has no parameterized edges:
+                JAX-compatible function (times) -> pmf_values
+                Supports JIT (backward compatible signature)
+            If use_ffi=True:
+                Returns the Graph object directly for manual computation
 
         Examples
         --------
+        # Non-parameterized graph (regular edges only)
         >>> g = Graph(1)
         >>> start = g.starting_vertex()
         >>> v0 = g.find_or_create_vertex([0])
         >>> v1 = g.find_or_create_vertex([1])
         >>> start.add_edge(v0, 1.0)
-        >>> v0.add_edge(v1, 1.0)  # rate = 1.0
+        >>> v0.add_edge(v1, 2.0)  # fixed weight
         >>>
-        >>> model = Graph.from_python_graph(g)
+        >>> model = Graph.pmf_from_graph(g)
         >>> times = jnp.linspace(0, 5, 50)
-        >>> pdf = model(times)
+        >>> pdf = model(times)  # No theta needed
+
+        # Parameterized graph (with edge states for gradient support)
+        >>> g = Graph(1)
+        >>> start = g.starting_vertex()
+        >>> v0 = g.find_or_create_vertex([0])
+        >>> v1 = g.find_or_create_vertex([1])
+        >>> start.add_edge(v0, 1.0)
+        >>> v0.add_edge_parameterized(v1, 0.0, [2.0, 0.5])  # weight = 2.0*theta[0] + 0.5*theta[1]
+        >>>
+        >>> model = Graph.pmf_from_graph(g)
+        >>> theta = jnp.array([1.0, 3.0])
+        >>> pdf = model(theta, times)  # weight becomes 2.0*1.0 + 0.5*3.0 = 3.5
+        >>>
+        >>> # Full JAX support for parameterized graphs
+        >>> grad_fn = jax.grad(lambda t: jnp.sum(model(t, times)))
+        >>> gradient = grad_fn(theta)  # Gradients work!
+
+        # FFI approach (efficient for repeated evaluations)
+        >>> graph = Graph.pmf_from_graph(g, use_ffi=True)
+        >>> pdf1 = graph.pdf(1.0)  # Use many times
+        >>> pdf2 = graph.pdf(2.0)  # No rebuild needed
         """
-        # Serialize the graph once
+        # If using FFI, just return the graph object directly
+        if use_ffi:
+            return graph
+
+        # Serialize the graph (now includes parameterized edges)
         serialized = graph.serialize()
+        param_length = serialized.get('param_length', 0)
+        has_param_edges = param_length > 0
 
-        # Get package directory
-        pkg_dir = pathlib.Path(__file__).parent.parent.parent
+        # Generate C++ build_model() code from the serialized graph
+        cpp_code = _generate_cpp_from_graph(serialized)
 
-        # Create wrapper code
-        wrapper_code = f'''
-#include "ptdalgorithmscpp.h"
-#include <vector>
+        # Create hash of the generated C++ code
+        cpp_hash = hashlib.sha256(cpp_code.encode()).hexdigest()[:16]
+        temp_file = f"/tmp/graph_model_{cpp_hash}.cpp"
 
-extern "C" {{
-    void compute_pmf_from_arrays(
-        const int* states, int n_vertices, int state_dim,
-        const double* edges, int n_edges,
-        const double* start_edges, int n_start_edges,
-        const double* times, int n_times,
-        double* output, int granularity
-    ) {{
-        // Create graph
-        ptdalgorithms::Graph g(state_dim);
-        auto start = g.starting_vertex_p();
+        # Write C++ code to temp file
+        with open(temp_file, 'w') as f:
+            f.write(cpp_code)
 
-        // Create vertices
-        std::vector<ptdalgorithms::Vertex*> vertices;
-        for (int i = 0; i < n_vertices; i++) {{
-            std::vector<int> state(state_dim);
-            for (int j = 0; j < state_dim; j++) {{
-                state[j] = states[i * state_dim + j];
-            }}
-            auto v = g.find_or_create_vertex_p(state);
-            vertices.push_back(v);
-        }}
+        # Use pmf_from_cpp() to compile and create JAX-compatible function
+        # This gives us full JAX support (jit, grad, vmap)
+        base_model = cls.pmf_from_cpp(temp_file, discrete=discrete)
 
-        // Add edges from starting vertex
-        for (int i = 0; i < n_start_edges; i++) {{
-            int to_idx = (int)start_edges[i * 2];
-            double weight = start_edges[i * 2 + 1];
-            start->add_edge(*vertices[to_idx], weight);
-        }}
-
-        // Add edges between vertices
-        for (int i = 0; i < n_edges; i++) {{
-            int from_idx = (int)edges[i * 3];
-            int to_idx = (int)edges[i * 3 + 1];
-            double weight = edges[i * 3 + 2];
-            vertices[from_idx]->add_edge(*vertices[to_idx], weight);
-        }}
-
-        // Normalize and compute PDF
-//        g.normalize();
-        for (int i = 0; i < n_times; i++) {{
-            output[i] = g.pdf(times[i], granularity);
-        }}
-    }}
-}}
-'''
-
-        # Create hash of serialized graph
-        import hashlib
-        graph_hash = hashlib.sha256(str(serialized).encode()).hexdigest()[:16]
-
-        # Compile to shared library
-        with tempfile.TemporaryDirectory() as tmpdir:
-            wrapper_path = pathlib.Path(tmpdir) / "wrapper.cpp"
-            wrapper_path.write_text(wrapper_code)
-
-            lib_path = pathlib.Path(tmpdir) / f"graph_{graph_hash}.so"
-
-            compile_cmd = [
-                "g++", "-O3", "-fPIC", "-shared", "-std=c++14",
-                f"-I{pkg_dir}",
-                f"-I{pkg_dir}/api/cpp",
-                f"-I{pkg_dir}/api/c",
-                f"-I{pkg_dir}/include",
-                str(wrapper_path),
-                f"{pkg_dir}/src/cpp/ptdalgorithmscpp.cpp",
-                f"{pkg_dir}/src/c/ptdalgorithms.c",
-                "-o", str(lib_path)
-            ]
-
-            result = subprocess.run(compile_cmd, capture_output=True, text=True)
-            if result.returncode != 0:
-                raise RuntimeError(f"Compilation failed: {result.stderr}")
-
-            # Load library
-            lib = ctypes.CDLL(str(lib_path))
-            compute_func = lib.compute_pmf_from_arrays
-            compute_func.argtypes = [
-                ctypes.POINTER(ctypes.c_int32),    # states
-                ctypes.c_int,                       # n_vertices
-                ctypes.c_int,                       # state_dim
-                ctypes.POINTER(ctypes.c_double),    # edges
-                ctypes.c_int,                       # n_edges
-                ctypes.POINTER(ctypes.c_double),    # start_edges
-                ctypes.c_int,                       # n_start_edges
-                ctypes.POINTER(ctypes.c_double),    # times
-                ctypes.c_int,                       # n_times
-                ctypes.POINTER(ctypes.c_double),    # output
-                ctypes.c_int                        # granularity
-            ]
-            compute_func.restype = None
-
-            # Keep library in memory
-            _lib_cache[graph_hash] = lib
-
-        # Prepare arrays
-        states_flat = serialized['states'].flatten()
-        edges_flat = serialized['edges'].flatten() if serialized['edges'].size > 0 else np.array([], dtype=np.float64)
-        start_edges_flat = serialized['start_edges'].flatten() if serialized['start_edges'].size > 0 else np.array([], dtype=np.float64)
-        n_vertices = serialized['n_vertices']
-        state_length = serialized['state_length']
-        n_edges = len(serialized['edges'])
-        n_start_edges = len(serialized['start_edges'])
-
-        if jax_compatible:
-            # Create JAX-compatible wrapper using pure callback
-            import jax
-            from jax import pure_callback
-
-            def compute_pmf_pure(times, granularity=100):
-                """Pure function wrapper for JAX compatibility"""
-                def compute_impl(times_arr):
-                    times_np = np.asarray(times_arr, dtype=np.float64)
-                    n_times = len(times_np)
-                    output = np.zeros(n_times, dtype=np.float64)
-
-                    compute_func(
-                        states_flat.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
-                        n_vertices,
-                        state_length,
-                        edges_flat.ctypes.data_as(ctypes.POINTER(ctypes.c_double)) if len(edges_flat) > 0 else None,
-                        n_edges,
-                        start_edges_flat.ctypes.data_as(ctypes.POINTER(ctypes.c_double)) if len(start_edges_flat) > 0 else None,
-                        n_start_edges,
-                        times_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                        n_times,
-                        output.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                        granularity
-                    )
-                    return output
-
-                # Use pure_callback for JAX compatibility
-                result_shape_dtypes = jax.ShapeDtypeStruct(times.shape, jnp.float32)
-                return pure_callback(compute_impl, result_shape_dtypes, times)
-
-            return compute_pmf_pure
+        # Return appropriate signature based on parameterization
+        if has_param_edges:
+            # Parameterized: return (theta, times) -> pmf
+            return base_model
         else:
-            # Return regular Python function
-            def model_fn(times, granularity=100):
-                times_np = np.asarray(times, dtype=np.float64)
-                n_times = len(times_np)
-                output = np.zeros(n_times, dtype=np.float64)
-
-                compute_func(
-                    states_flat.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
-                    n_vertices,
-                    state_length,
-                    edges_flat.ctypes.data_as(ctypes.POINTER(ctypes.c_double)) if len(edges_flat) > 0 else None,
-                    n_edges,
-                    start_edges_flat.ctypes.data_as(ctypes.POINTER(ctypes.c_double)) if len(start_edges_flat) > 0 else None,
-                    n_start_edges,
-                    times_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                    n_times,
-                    output.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                    granularity
-                )
-
-                return output
-
-            return model_fn
+            # Non-parameterized: wrap to hide theta parameter
+            # Return (times) -> pmf for backward compatibility
+            def non_param_wrapper(times):
+                # Use dummy theta (not used by non-parameterized graphs)
+                # Can't use empty array due to JAX pure_callback limitations
+                dummy_theta = jnp.array([0.0])
+                return base_model(dummy_theta, times)
+            return non_param_wrapper
 
     @classmethod
-    def from_python_graph_parameterized(cls, graph_builder: Callable, jax_compatible: bool = True) -> Callable:
+    def pmf_from_graph_parameterized(cls, graph_builder: Callable, discrete: bool = False) -> Callable:
         """
         Convert a parameterized Python graph builder to a JAX-compatible function.
 
@@ -544,13 +959,14 @@ extern "C" {{
         ----------
         graph_builder : callable
             Function (theta) -> Graph that builds a graph with given parameters
-        jax_compatible : bool
-            If True, returns a JAX-compatible function
+        discrete : bool
+            If True, uses discrete phase-type distribution (DPH) computation.
+            If False, uses continuous phase-type distribution (PDF).
 
         Returns
         -------
         callable
-            Function (theta, times) -> pdf_values that computes the PDF
+            JAX-compatible function (theta, times) -> pdf_values that supports JIT, grad, vmap, etc.
 
         Examples
         --------
@@ -563,73 +979,108 @@ extern "C" {{
         ...     v0.add_edge(v1, float(rate))
         ...     return g
         >>>
-        >>> model = Graph.from_python_graph_parameterized(build_exponential)
+        >>> model = Graph.pmf_from_graph_parameterized(build_exponential)
         >>> theta = jnp.array([1.5])
         >>> times = jnp.linspace(0, 5, 50)
         >>> pdf = model(theta, times)
         """
-        # Get package directory
-        pkg_dir = pathlib.Path(__file__).parent.parent.parent
-
-        # Create wrapper code
-        wrapper_code = f'''
+        # Create wrapper code (both continuous and discrete)
+        wrapper_code = '''
 #include "ptdalgorithmscpp.h"
 #include <vector>
 
-extern "C" {{
-    void compute_pmf_parameterized(
-        const double* theta, int n_params,
-        const double* times, int n_times,
-        double* output, int granularity
-    ) {{
-        // This is a placeholder - actual implementation depends on the model
-        // In practice, we'll generate specific code for each model
-    }}
-
+extern "C" {
+    // Continuous mode (PDF)
     void compute_pmf_from_arrays(
         const int* states, int n_vertices, int state_dim,
         const double* edges, int n_edges,
         const double* start_edges, int n_start_edges,
         const double* times, int n_times,
         double* output, int granularity
-    ) {{
+    ) {
         // Create graph
         ptdalgorithms::Graph g(state_dim);
         auto start = g.starting_vertex_p();
 
         // Create vertices
         std::vector<ptdalgorithms::Vertex*> vertices;
-        for (int i = 0; i < n_vertices; i++) {{
+        for (int i = 0; i < n_vertices; i++) {
             std::vector<int> state(state_dim);
-            for (int j = 0; j < state_dim; j++) {{
+            for (int j = 0; j < state_dim; j++) {
                 state[j] = states[i * state_dim + j];
-            }}
+            }
             auto v = g.find_or_create_vertex_p(state);
             vertices.push_back(v);
-        }}
+        }
 
         // Add edges from starting vertex
-        for (int i = 0; i < n_start_edges; i++) {{
+        for (int i = 0; i < n_start_edges; i++) {
             int to_idx = (int)start_edges[i * 2];
             double weight = start_edges[i * 2 + 1];
             start->add_edge(*vertices[to_idx], weight);
-        }}
+        }
 
         // Add edges between vertices
-        for (int i = 0; i < n_edges; i++) {{
+        for (int i = 0; i < n_edges; i++) {
             int from_idx = (int)edges[i * 3];
             int to_idx = (int)edges[i * 3 + 1];
             double weight = edges[i * 3 + 2];
             vertices[from_idx]->add_edge(*vertices[to_idx], weight);
-        }}
+        }
 
-        // Normalize and compute PDF
-        g.normalize();
-        for (int i = 0; i < n_times; i++) {{
+        // Compute PDF
+        for (int i = 0; i < n_times; i++) {
             output[i] = g.pdf(times[i], granularity);
-        }}
-    }}
-}}
+        }
+    }
+
+    // Discrete mode (DPH)
+    void compute_dph_pmf_from_arrays(
+        const int* states, int n_vertices, int state_dim,
+        const double* edges, int n_edges,
+        const double* start_edges, int n_start_edges,
+        const int* jumps, int n_jumps,
+        double* output
+    ) {
+        // Create graph (same as continuous)
+        ptdalgorithms::Graph g(state_dim);
+        auto start = g.starting_vertex_p();
+
+        // Create vertices
+        std::vector<ptdalgorithms::Vertex*> vertices;
+        for (int i = 0; i < n_vertices; i++) {
+            std::vector<int> state(state_dim);
+            for (int j = 0; j < state_dim; j++) {
+                state[j] = states[i * state_dim + j];
+            }
+            auto v = g.find_or_create_vertex_p(state);
+            vertices.push_back(v);
+        }
+
+        // Add edges from starting vertex
+        for (int i = 0; i < n_start_edges; i++) {
+            int to_idx = (int)start_edges[i * 2];
+            double weight = start_edges[i * 2 + 1];
+            start->add_edge(*vertices[to_idx], weight);
+        }
+
+        // Add edges between vertices
+        for (int i = 0; i < n_edges; i++) {
+            int from_idx = (int)edges[i * 3];
+            int to_idx = (int)edges[i * 3 + 1];
+            double weight = edges[i * 3 + 2];
+            vertices[from_idx]->add_edge(*vertices[to_idx], weight);
+        }
+
+        // Normalize for discrete mode (required for DPH)
+        g.normalize();
+
+        // Compute DPH PMF
+        for (int i = 0; i < n_jumps; i++) {
+            output[i] = g.dph_pmf(jumps[i]);
+        }
+    }
+}
 '''
 
         # Create hash for the builder function
@@ -638,156 +1089,27 @@ extern "C" {{
         builder_hash = hashlib.sha256(builder_source.encode()).hexdigest()[:16]
 
         # Check if already compiled
-        if builder_hash not in _lib_cache:
+        cache_key = f"{builder_hash}_discrete_{discrete}"
+        if cache_key not in _lib_cache:
             # Compile once
-            with tempfile.TemporaryDirectory() as tmpdir:
-                wrapper_path = pathlib.Path(tmpdir) / "wrapper.cpp"
-                wrapper_path.write_text(wrapper_code)
-
-                lib_path = pathlib.Path(tmpdir) / f"param_graph_{builder_hash}.so"
-
-                compile_cmd = [
-                    "g++", "-O3", "-fPIC", "-shared", "-std=c++14",
-                    f"-I{pkg_dir}",
-                    f"-I{pkg_dir}/api/cpp",
-                    f"-I{pkg_dir}/api/c",
-                    f"-I{pkg_dir}/include",
-                    str(wrapper_path),
-                    f"{pkg_dir}/src/cpp/ptdalgorithmscpp.cpp",
-                    f"{pkg_dir}/src/c/ptdalgorithms.c",
-                    "-o", str(lib_path)
-                ]
-
-                result = subprocess.run(compile_cmd, capture_output=True, text=True)
-                if result.returncode != 0:
-                    raise RuntimeError(f"Compilation failed: {result.stderr}")
-
-                # Load library
-                lib = ctypes.CDLL(str(lib_path))
-                compute_func = lib.compute_pmf_from_arrays
-                compute_func.argtypes = [
-                    ctypes.POINTER(ctypes.c_int32),    # states
-                    ctypes.c_int,                       # n_vertices
-                    ctypes.c_int,                       # state_dim
-                    ctypes.POINTER(ctypes.c_double),    # edges
-                    ctypes.c_int,                       # n_edges
-                    ctypes.POINTER(ctypes.c_double),    # start_edges
-                    ctypes.c_int,                       # n_start_edges
-                    ctypes.POINTER(ctypes.c_double),    # times
-                    ctypes.c_int,                       # n_times
-                    ctypes.POINTER(ctypes.c_double),    # output
-                    ctypes.c_int                        # granularity
-                ]
-                compute_func.restype = None
-
-                # Keep library in memory
-                _lib_cache[builder_hash] = lib
+            lib_name = f"param_graph_{builder_hash}"
+            lib_path = _compile_wrapper_library(wrapper_code, lib_name)
+            # Use PyDLL instead of CDLL to manage GIL automatically
+            lib = ctypes.PyDLL(lib_path)
+            _setup_ctypes_signatures_from_arrays(lib, discrete=discrete)
+            _lib_cache[cache_key] = lib
         else:
-            lib = _lib_cache[builder_hash]
-            compute_func = lib.compute_pmf_from_arrays
+            lib = _lib_cache[cache_key]
 
-        if jax_compatible:
-            # Create JAX-compatible wrapper using pure callback
-            import jax
-            from jax import pure_callback
+        # Select appropriate compute function based on mode
+        compute_func = lib.compute_dph_pmf_from_arrays if discrete else lib.compute_pmf_from_arrays
 
-            def model_fn(theta, times, granularity=100):
-                """Parameterized model with JAX compatibility"""
-                def compute_impl(inputs):
-                    theta_arr, times_arr = inputs
-
-                    # Build graph with parameters
-                    theta_np = np.asarray(theta_arr)
-                    if theta_np.ndim == 0:
-                        theta_np = theta_np.reshape(1)
-
-                    # Build the graph
-                    graph = graph_builder(*theta_np)
-
-                    # Serialize
-                    serialized = graph.serialize()
-
-                    # Prepare arrays
-                    states_flat = serialized['states'].flatten()
-                    edges_flat = serialized['edges'].flatten() if serialized['edges'].size > 0 else np.array([], dtype=np.float64)
-                    start_edges_flat = serialized['start_edges'].flatten() if serialized['start_edges'].size > 0 else np.array([], dtype=np.float64)
-                    n_vertices = serialized['n_vertices']
-                    state_length = serialized['state_length']
-                    n_edges = len(serialized['edges'])
-                    n_start_edges = len(serialized['start_edges'])
-
-                    times_np = np.asarray(times_arr, dtype=np.float64)
-                    n_times = len(times_np)
-                    output = np.zeros(n_times, dtype=np.float64)
-
-                    compute_func(
-                        states_flat.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
-                        n_vertices,
-                        state_length,
-                        edges_flat.ctypes.data_as(ctypes.POINTER(ctypes.c_double)) if len(edges_flat) > 0 else None,
-                        n_edges,
-                        start_edges_flat.ctypes.data_as(ctypes.POINTER(ctypes.c_double)) if len(start_edges_flat) > 0 else None,
-                        n_start_edges,
-                        times_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                        n_times,
-                        output.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                        granularity
-                    )
-
-                    return output
-
-                # Use pure_callback for JAX compatibility
-                result_shape_dtypes = jax.ShapeDtypeStruct(times.shape, jnp.float32)
-                return pure_callback(compute_impl, result_shape_dtypes, (theta, times))
-
-            return model_fn
-        else:
-            # Return regular Python function
-            def model_fn(theta, times, granularity=100):
-                # Build graph with parameters
-                theta_np = np.asarray(theta)
-                if theta_np.ndim == 0:
-                    theta_np = theta_np.reshape(1)
-
-                # Build the graph
-                graph = graph_builder(*theta_np)
-
-                # Serialize
-                serialized = graph.serialize()
-
-                # Prepare arrays
-                states_flat = serialized['states'].flatten()
-                edges_flat = serialized['edges'].flatten() if serialized['edges'].size > 0 else np.array([], dtype=np.float64)
-                start_edges_flat = serialized['start_edges'].flatten() if serialized['start_edges'].size > 0 else np.array([], dtype=np.float64)
-                n_vertices = serialized['n_vertices']
-                state_length = serialized['state_length']
-                n_edges = len(serialized['edges'])
-                n_start_edges = len(serialized['start_edges'])
-
-                times_np = np.asarray(times, dtype=np.float64)
-                n_times = len(times_np)
-                output = np.zeros(n_times, dtype=np.float64)
-
-                compute_func(
-                    states_flat.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
-                    n_vertices,
-                    state_length,
-                    edges_flat.ctypes.data_as(ctypes.POINTER(ctypes.c_double)) if len(edges_flat) > 0 else None,
-                    n_edges,
-                    start_edges_flat.ctypes.data_as(ctypes.POINTER(ctypes.c_double)) if len(start_edges_flat) > 0 else None,
-                    n_start_edges,
-                    times_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                    n_times,
-                    output.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                    granularity
-                )
-
-                return output
-
-            return model_fn
+        # Create JAX-compatible wrapper using the helper
+        return _create_jax_parameterized_wrapper(compute_func, graph_builder, discrete)
 
     @classmethod
-    def load_cpp_model(cls, cpp_file: Union[str, pathlib.Path], jax_compatible: bool = True, use_ffi: bool = False) -> Callable:
+    def pmf_from_cpp(cls, cpp_file: Union[str, pathlib.Path], use_ffi: bool = False,
+                    discrete: bool = False) -> Callable:
         """
         Load a phase-type model from a user's C++ file.
 
@@ -801,36 +1123,41 @@ extern "C" {{
         ----------
         cpp_file : str or Path
             Path to the user's C++ file
-        jax_compatible : bool
-            If True, returns a JAX-compatible function. If False, returns a regular Python function.
-            Ignored if use_ffi=True.
         use_ffi : bool
             If True, uses Foreign Function Interface approach that separates graph construction
             from computation. Returns a builder function that creates reusable Graph objects.
             This is more efficient for repeated evaluations with the same parameters but
             doesn't support JAX transformations directly on the returned graphs.
+        discrete : bool
+            If True, uses discrete phase-type distribution (DPH) computation.
+            If False, uses continuous phase-type distribution (PDF).
 
         Returns
         -------
         callable
-            If use_ffi=False: A function (theta, times) -> pmf_values that computes the PMF.
+            If use_ffi=False: JAX-compatible function (theta, times) -> pmf_values that supports JIT, grad, vmap, etc.
             If use_ffi=True: A builder function (theta) -> Graph that creates Graph objects.
-            If jax_compatible=True and use_ffi=False: supports JIT, grad, vmap, etc.
 
         Examples
         --------
         # JAX-compatible approach (default)
-        >>> model = Graph.load_cpp_model("my_model.cpp")
+        >>> model = Graph.pmf_from_cpp("my_model.cpp")
         >>> theta = jnp.array([1.0, 2.0])
         >>> times = jnp.linspace(0, 10, 100)
         >>> pmf = model(theta, times)
         >>> gradient = jax.grad(lambda p: jnp.sum(model(p, times)))(theta)
 
         # FFI approach (efficient for repeated evaluations)
-        >>> builder = Graph.load_cpp_model("my_model.cpp", use_ffi=True)
+        >>> builder = Graph.pmf_from_cpp("my_model.cpp", use_ffi=True)
         >>> graph = builder(np.array([1.0, 2.0]))  # Build graph once
         >>> pdf1 = graph.pdf(1.0)  # Use many times
         >>> pdf2 = graph.pdf(2.0)  # No rebuild needed
+
+        # Discrete phase-type distribution
+        >>> model = Graph.pmf_from_cpp("my_model.cpp", discrete=True)
+        >>> theta = jnp.array([1.0, 2.0])
+        >>> jumps = jnp.array([1, 2, 3, 4, 5])
+        >>> dph_pmf = model(theta, jumps)
         """
         cpp_path = pathlib.Path(cpp_file).absolute()
         if not cpp_path.exists():
@@ -851,13 +1178,7 @@ extern "C" {{
                 "C++ file must implement: ptdalgorithms::Graph build_model(const double* theta, int n_params)"
             )
 
-        # Get package root directory
-        pkg_dir = pathlib.Path(__file__).parent.parent.parent
-
-        # Use a different approach: build the graph using the Python API
-        # by loading the user's C++ code and calling it through ctypes
-        # Create a minimal wrapper that links against the existing pybind module
-        # This ensures we use the same library instance that's already initialized
+        # Create wrapper code with both continuous and discrete computation
         wrapper_code = f'''
 // Include the C++ API header (which includes the C headers)
 #include "ptdalgorithmscpp.h"
@@ -871,7 +1192,6 @@ extern "C" {{
                      const double* times, int n_times,
                      double* output, int granularity) {{
         ptdalgorithms::Graph g = build_model(theta, n_params);
-        // g.normalize();  // Normalize the graph before computing PDF
         for (int i = 0; i < n_times; i++) {{
             output[i] = g.pdf(times[i], granularity);
         }}
@@ -881,7 +1201,7 @@ extern "C" {{
                          const int* jumps, int n_jumps,
                          double* output) {{
         ptdalgorithms::Graph g = build_model(theta, n_params);
-        // g.dph_normalize();  // Normalize for discrete phase-type
+        g.normalize();  // Normalize for discrete mode
         for (int i = 0; i < n_jumps; i++) {{
             output[i] = g.dph_pmf(jumps[i]);
         }}
@@ -889,136 +1209,80 @@ extern "C" {{
 }}
 '''
 
-        # Compile the complete standalone library
+        # Compile the library
         source_hash = hashlib.md5(user_code.encode()).hexdigest()[:8]
         lib_name = f"user_model_{cpp_path.stem}_{source_hash}"
-        lib_path = f"/tmp/{lib_name}.so"
 
-        # Always recompile for now to ensure fresh library
-        # (In production, would cache more intelligently)
-        if os.path.exists(lib_path):
-            os.unlink(lib_path)
+        # Check cache first
+        cache_key = f"{lib_name}_discrete_{discrete}"
+        if cache_key not in _lib_cache:
+            lib_path = _compile_wrapper_library(wrapper_code, lib_name)
+            # Use PyDLL instead of CDLL to manage GIL automatically
+            lib = ctypes.PyDLL(lib_path)
+            _setup_ctypes_signatures(lib, has_pmf=True, has_dph=True)
+            _lib_cache[cache_key] = lib
+        else:
+            lib = _lib_cache[cache_key]
 
-        if not os.path.exists(lib_path):
-            with tempfile.NamedTemporaryFile(suffix='.cpp', delete=False, mode='w') as f:
-                f.write(wrapper_code)
-                wrapper_file = f.name
-
-            try:
-                # Compile with source files
-                # The key insight: the crash happens because ptd_vertex_create allocates
-                # memory for state based on graph->state_length, but if graph is NULL
-                # or uninitialized, this will segfault
-                cpp_src = f'{pkg_dir}/src/cpp/ptdalgorithmscpp.cpp'
-                c_src = f'{pkg_dir}/src/c/ptdalgorithms.c'
-
-                cmd = [
-                    'g++', '-O3', '-fPIC', '-shared', '-std=c++14',
-                    f'-I{pkg_dir}',
-                    f'-I{pkg_dir}/api/cpp',
-                    f'-I{pkg_dir}/api/c',
-                    f'-I{pkg_dir}/include',
-                    wrapper_file,
-                    cpp_src,
-                    c_src,
-                    '-o', lib_path
-                ]
-
-                result = subprocess.run(cmd, capture_output=True, text=True)
-                if result.returncode != 0:
-                    raise RuntimeError(f"Compilation failed:\n{result.stderr}")
-            finally:
-                os.unlink(wrapper_file)
-
-        # Load the compiled library
-        lib = ctypes.CDLL(lib_path)
-
-        # Set up function signatures
-        lib.compute_pmf.argtypes = [
-            ctypes.POINTER(ctypes.c_double),  # theta
-            ctypes.c_int,                      # n_params
-            ctypes.POINTER(ctypes.c_double),  # times
-            ctypes.c_int,                      # n_times
-            ctypes.POINTER(ctypes.c_double),  # output
-            ctypes.c_int                       # granularity
-        ]
-
-        lib.compute_dph_pmf.argtypes = [
-            ctypes.POINTER(ctypes.c_double),  # theta
-            ctypes.c_int,                      # n_params
-            ctypes.POINTER(ctypes.c_int),     # jumps
-            ctypes.c_int,                      # n_jumps
-            ctypes.POINTER(ctypes.c_double),  # output
-        ]
+        # Select the appropriate compute function
+        compute_func = lib.compute_dph_pmf if discrete else lib.compute_pmf
 
         # Create the Python wrapper function
-        def pmf_function(theta, times, discrete=False, granularity=0):
+        def pmf_function(theta, times, granularity=0):
             """Compute PMF using the loaded C++ model"""
-            theta_np = np.asarray(theta, dtype=np.float64)
-            times_np = np.asarray(times, dtype=np.float64 if not discrete else np.int32)
-            output_np = np.zeros_like(times_np, dtype=np.float64)
+            return _compute_pmf_from_ctypes(
+                theta,
+                times,
+                compute_func,
+                {},  # Empty graph_data for C++ models with theta
+                granularity,
+                discrete
+            )
 
-            if discrete:
-                lib.compute_dph_pmf(
-                    theta_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                    len(theta_np),
-                    times_np.ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
-                    len(times_np),
-                    output_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-                )
-            else:
-                lib.compute_pmf(
-                    theta_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                    len(theta_np),
-                    times_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                    len(times_np),
-                    output_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                    granularity
-                )
+        # Helper function for pure callback (used in forward and backward pass)
+        def _compute_pmf_pure(theta, times):
+            """Pure computation without custom_vjp wrapper"""
+            result_shape = jax.ShapeDtypeStruct(times.shape, jnp.float32)
+            return jax.pure_callback(
+                lambda t, tm: pmf_function(t, tm, granularity=0).astype(np.float32),
+                result_shape,
+                theta,
+                times,
+                vmap_method='sequential'
+            )
 
-            return output_np
+        # Wrap for JAX compatibility with custom VJP for gradients
+        @jax.custom_vjp
+        def jax_model(theta, times):
+            return _compute_pmf_pure(theta, times)
 
-        if jax_compatible:
-            # Wrap for JAX compatibility
-            @jax.custom_vjp
-            def jax_model(theta, times):
-                result_shape = jax.ShapeDtypeStruct(times.shape, jnp.float32)
-                return jax.pure_callback(
-                    lambda t, tm: pmf_function(t, tm, discrete=False, granularity=0).astype(np.float32),
-                    result_shape,
-                    theta,
-                    times,
-                    vmap_method='sequential'
-                )
+        def jax_model_fwd(theta, times):
+            # Call the underlying computation, not jax_model (avoid infinite recursion!)
+            pmf = _compute_pmf_pure(theta, times)
+            return pmf, (theta, times)
 
-            def jax_model_fwd(theta, times):
-                pmf = jax_model(theta, times)
-                return pmf, (theta, times)
+        def jax_model_bwd(res, g):
+            theta, times = res
+            n_params = theta.shape[0]
+            eps = 1e-7
 
-            def jax_model_bwd(res, g):
-                theta, times = res
-                n_params = theta.shape[0]
-                eps = 1e-7
+            # Finite differences for gradient
+            theta_bar = []
+            for i in range(n_params):
+                theta_plus = theta.at[i].add(eps)
+                theta_minus = theta.at[i].add(-eps)
 
-                # Finite differences for gradient
-                theta_bar = []
-                for i in range(n_params):
-                    theta_plus = theta.at[i].add(eps)
-                    theta_minus = theta.at[i].add(-eps)
+                # Call underlying computation, not jax_model
+                pmf_plus = _compute_pmf_pure(theta_plus, times)
+                pmf_minus = _compute_pmf_pure(theta_minus, times)
 
-                    pmf_plus = jax_model(theta_plus, times)
-                    pmf_minus = jax_model(theta_minus, times)
+                grad_i = jnp.sum(g * (pmf_plus - pmf_minus) / (2 * eps))
+                theta_bar.append(grad_i)
 
-                    grad_i = jnp.sum(g * (pmf_plus - pmf_minus) / (2 * eps))
-                    theta_bar.append(grad_i)
+            return jnp.array(theta_bar), None
 
-                return jnp.array(theta_bar), None
-
-            jax_model.defvjp(jax_model_fwd, jax_model_bwd)
-
-            return jax_model
-        else:
-            return pmf_function
+        jax_model.defvjp(jax_model_fwd, jax_model_bwd)
+        return jax_model
 
     def plot(self, *args, **kwargs):
         """
