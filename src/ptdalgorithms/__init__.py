@@ -1,6 +1,7 @@
 from functools import partial
 from collections import defaultdict
 import numpy as np
+from numpy.typing import ArrayLike
 from typing import Any, TypeVar, List, Tuple, Dict, Union, NamedTuple, Optional
 from collections.abc import Sequence, MutableSequence, Callable
 import os
@@ -9,8 +10,16 @@ import subprocess
 import tempfile
 import ctypes
 import pathlib
-import jax
-import jax.numpy as jnp
+
+# Optional JAX support
+try:
+    import jax
+    import jax.numpy as jnp
+    HAS_JAX = True
+except ImportError:
+    jax = None
+    jnp = None
+    HAS_JAX = False
 
 # Cache for compiled libraries
 _lib_cache = {}
@@ -21,6 +30,12 @@ from .ptdalgorithmscpp_pybind import Vertex, Edge
 
 from . import plot
 from .plot import set_theme
+
+# Optional SVGD support (requires JAX)
+if HAS_JAX:
+    from .svgd import SVGD
+else:
+    SVGD = None
 
 __version__ = '0.19.106'
 
@@ -490,7 +505,7 @@ def _setup_ctypes_signatures_from_arrays(lib, discrete=False):
 #             super().__init__(state_length)
 
 class Graph(_Graph):
-    def __init__(self, state_length:int=None, callback:Callable=None, **kwargs):
+    def __init__(self, state_length:int=None, callback:Callable=None, parameterized:bool=False, **kwargs):
         """
         Create a graph representing a phase-type distribution. This is the primary entry-point of the library. A starting vertex will always be added to the graph upon initialization.
 
@@ -500,11 +515,13 @@ class Graph(_Graph):
 
         Parameters
         ----------
-        state_length : 
+        state_length :
             The length of the integer vector used to represent and reference a state, by default None
-        callback : 
+        callback :
             Callback function accepting a state and returns a list of reachable states and the corresponding transition rates, by default None.
             The callback function should take a list of integers as its only argument and return a list of tuples, where each tuple contains a state and a list of tuples, where each tuple contains a state and a rate.
+        parameterized :
+            If True, the callback returns 3-tuples (state, weight, edge_state) for parameterized edges, by default False
 
         Returns
         -------
@@ -514,7 +531,10 @@ class Graph(_Graph):
         assert (callback is None) + (state_length is None) == 1, "Use either the state_length or callback argument"
 
         if callback:
-            super().__init__(callback_tuples=partial(callback, **kwargs))
+            if parameterized:
+                super().__init__(callback_tuples_parameterized=partial(callback, **kwargs))
+            else:
+                super().__init__(callback_tuples=partial(callback, **kwargs))
         else:
             super().__init__(state_length)
 
@@ -850,6 +870,11 @@ class Graph(_Graph):
         state vectors) and generates optimized C++ code to enable full JAX transformations
         including gradients, vmap, and jit compilation.
 
+        Raises
+        ------
+        ImportError
+            If JAX is not installed. Install with: pip install jax jaxlib
+
         Parameters
         ----------
         graph : Graph
@@ -909,6 +934,13 @@ class Graph(_Graph):
         >>> pdf1 = graph.pdf(1.0)  # Use many times
         >>> pdf2 = graph.pdf(2.0)  # No rebuild needed
         """
+        # Check if JAX is available
+        if not HAS_JAX and not use_ffi:
+            raise ImportError(
+                "JAX is required for JAX-compatible models. "
+                "Install with: pip install 'ptdalgorithms[jax]' or pip install jax jaxlib"
+            )
+
         # If using FFI, just return the graph object directly
         if use_ffi:
             return graph
@@ -1132,6 +1164,13 @@ extern "C" {
             If True, uses discrete phase-type distribution (DPH) computation.
             If False, uses continuous phase-type distribution (PDF).
 
+        Raises
+        ------
+        ImportError
+            If JAX is not installed and use_ffi=False. Install with: pip install jax jaxlib
+        FileNotFoundError
+            If the specified C++ file does not exist
+
         Returns
         -------
         callable
@@ -1162,6 +1201,13 @@ extern "C" {
         cpp_path = pathlib.Path(cpp_file).absolute()
         if not cpp_path.exists():
             raise FileNotFoundError(f"C++ file not found: {cpp_file}")
+
+        # Check if JAX is available (only needed for JAX-compatible mode)
+        if not HAS_JAX and not use_ffi:
+            raise ImportError(
+                "JAX is required for JAX-compatible C++ models. "
+                "Install with: pip install 'ptdalgorithms[jax]' or pip install jax jaxlib"
+            )
 
         # If using FFI, delegate to the pybind module's load_cpp_builder
         if use_ffi:
@@ -1283,6 +1329,151 @@ extern "C" {{
 
         jax_model.defvjp(jax_model_fwd, jax_model_bwd)
         return jax_model
+
+    @classmethod
+    def svgd(cls,
+             model: Callable,
+             observed_data: ArrayLike,
+             prior: Optional[Callable] = None,
+             n_particles: int = 50,
+             n_iterations: int = 1000,
+             learning_rate: float = 0.001,
+             kernel: str = 'rbf_median',
+             theta_init: Optional[ArrayLike] = None,
+             theta_dim: Optional[int] = None,
+             return_history: bool = False,
+             seed: int = 42,
+            verbose: bool = True) -> Dict:
+        """
+        Run Stein Variational Gradient Descent (SVGD) inference for Bayesian parameter estimation.
+
+        SVGD finds the posterior distribution p(theta | data) by optimizing a set of particles to
+        approximate the posterior. This method works with parameterized models created by
+        pmf_from_graph() or pmf_from_cpp() where the model signature is model(theta, times).
+
+        Parameters
+        ----------
+        model : callable
+            JAX-compatible parameterized model from pmf_from_graph() or pmf_from_cpp().
+            Must have signature: model(theta, times) -> values
+        observed_data : array_like
+            Observed data points. For continuous models (PDF), these are time points where
+            the density was observed. For discrete models (PMF), these are jump counts.
+        prior : callable, optional
+            Log prior function: prior(theta) -> scalar.
+            If None, uses standard normal prior: log p(theta) = -0.5 * sum(theta^2)
+        n_particles : int, default=50
+            Number of SVGD particles. More particles = better posterior approximation but slower.
+        n_iterations : int, default=1000
+            Number of SVGD optimization steps
+        learning_rate : float, default=0.001
+            SVGD step size. Larger values = faster convergence but may be unstable.
+        kernel : str, default='rbf_median'
+            Kernel bandwidth selection method:
+            - 'rbf_median': RBF kernel with median heuristic bandwidth (default)
+            - 'rbf_adaptive': RBF kernel with adaptive bandwidth
+        theta_init : array_like, optional
+            Initial particle positions (n_particles, theta_dim).
+            If None, initializes randomly from standard normal.
+        theta_dim : int, optional
+            Dimension of theta parameter vector. Required if theta_init is None.
+        return_history : bool, default=False
+            If True, return particle positions throughout optimization
+        seed : int, default=42
+            Random seed for reproducibility
+        verbose : bool, default=True
+            Print progress information
+
+        Returns
+        -------
+        dict
+            Inference results containing:
+            - 'particles': Final posterior samples (n_particles, theta_dim)
+            - 'theta_mean': Posterior mean estimate
+            - 'theta_std': Posterior standard deviation
+            - 'history': Particle evolution over iterations (if return_history=True)
+
+        Raises
+        ------
+        ImportError
+            If JAX is not installed
+        ValueError
+            If model is not parameterized or theta_dim cannot be inferred
+
+        Examples
+        --------
+        >>> import jax.numpy as jnp
+        >>> from ptdalgorithms import Graph
+        >>>
+        >>> # Build parameterized coalescent model
+        >>> def coalescent_callback(state, nr_samples=3):
+        ...     if len(state) == 0:
+        ...         return [(np.array([nr_samples]), 1.0, [1.0])]
+        ...     if state[0] > 1:
+        ...         n = state[0]
+        ...         rate = n * (n - 1) / 2
+        ...         return [(np.array([n - 1]), 0.0, [rate])]
+        ...     return []
+        >>>
+        >>> g = Graph.from_callback_parameterized(coalescent_callback, nr_samples=4)
+        >>> model = Graph.pmf_from_graph(g, discrete=False)
+        >>>
+        >>> # Generate synthetic observed data
+        >>> true_theta = jnp.array([2.0])
+        >>> times = jnp.linspace(0.1, 3.0, 15)
+        >>> observed_pdf = model(true_theta, times)
+        >>>
+        >>> # Run SVGD inference
+        >>> results = Graph.svgd(
+        ...     model=model,
+        ...     observed_data=observed_pdf,
+        ...     theta_dim=1,
+        ...     n_particles=30,
+        ...     n_iterations=500,
+        ...     learning_rate=0.01
+        ... )
+        >>>
+        >>> print(f"True theta: {true_theta}")
+        >>> print(f"Posterior mean: {results['theta_mean']}")
+        >>> print(f"Posterior std: {results['theta_std']}")
+
+        Notes
+        -----
+        - SVGD requires a parameterized model. Non-parameterized models (signature: model(times))
+          cannot be used for inference as there are no parameters to estimate.
+        - The likelihood is computed as sum(log(model(theta, observed_data)))
+        - For better results, ensure observed_data has sufficient information about the parameters
+        - Learning rate and number of iterations may need tuning for different problems
+        """
+        # Check JAX availability
+        if not HAS_JAX:
+            raise ImportError(
+                "JAX is required for SVGD inference. "
+                "Install with: pip install 'ptdalgorithms[jax]' or pip install jax jaxlib"
+            )
+
+        from .svgd import SVGD
+
+        # Create SVGD object
+        svgd = SVGD(
+            model=model,
+            observed_data=observed_data,
+            prior=prior,
+            n_particles=n_particles,
+            n_iterations=n_iterations,
+            learning_rate=learning_rate,
+            kernel=kernel,
+            theta_init=theta_init,
+            theta_dim=theta_dim,
+            seed=seed,
+            verbose=verbose
+        )
+
+        # Run inference
+        svgd.fit(return_history=return_history)
+
+        # Return results as dictionary for backward compatibility
+        return svgd.get_results()
 
     def plot(self, *args, **kwargs):
         """

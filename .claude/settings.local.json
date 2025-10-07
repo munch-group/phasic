@@ -28,7 +28,8 @@
       "Read(//tmp/**)",
       "Bash(pkill:*)",
       "Bash(timeout 10 pixi run python test_empty_theta.py)",
-      "Bash(timeout 10 pixi run python test_param_minimal.py)"
+      "Bash(timeout 10 pixi run python test_param_minimal.py)",
+      "Bash(timeout 180 pixi run python test_svgd_inference.py)"
     ],
     "deny": []
   }

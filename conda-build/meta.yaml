@@ -11,8 +11,8 @@ outputs:
     - name: ptdalgorithms
       requirements:
         build:
-          - {{ compiler('c') }} 
-          - {{ compiler('cxx') }} 
+          - {{ compiler('c') }}
+          - {{ compiler('cxx') }}
           - python #{{ python }}
           - cmake>=3.30
           - ninja
@@ -26,11 +26,17 @@ outputs:
         run:
           - python #{{ python }}
           - pybind11>=2.10.0
-          - eigen    
+          - eigen
           - numpy
           - python-graphviz
           - ipython
           - seaborn
+        run_constrained:
+          # Optional JAX support for gradient-based inference
+          # These are not required but if installed must meet these version constraints
+          - jax >=0.4.0
+          - jaxlib >=0.4.0
+          - h5py
       build:
         number: 1
         noarch: false

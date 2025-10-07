@@ -618,8 +618,7 @@ double _covariance_discrete(ptdalgorithms::Graph &graph,
 //       return *graph;
 //   }
 
-  ptdalgorithms::Graph build_state_space_callback_tuples(
-    
+  ptdalgorithms::Graph build_state_space_callback_tuples(    
       // const std::function< std::vector<const std::tuple<const py::array_t<int>, long double> > (const py::array_t<int> &state)> &callback) { 
       const std::function<std::vector<py::object> (const py::array_t<int> &state)> &callback) { 
 
@@ -682,7 +681,72 @@ double _covariance_discrete(ptdalgorithms::Graph &graph,
         }
       return *graph;
   }
-        
+
+  // Parameterized version: callback returns tuples of (state, weight, edge_state)
+  ptdalgorithms::Graph build_state_space_callback_tuples_parameterized(
+      const std::function<std::vector<py::object> (const py::array_t<int> &state)> &callback) {
+
+      ptdalgorithms::Graph *graph = nullptr;
+
+      // IPV from callback with no state argument
+      std::vector<py::object> children = callback(py::array_t<int>());
+
+      for (const auto child : children) {
+
+        std::tuple<py::array_t<int>, long double, std::vector<double>> tup =
+            child.cast<std::tuple<py::array_t<int>, long double, std::vector<double>> >();
+
+        py::array_t<int> a = std::get<0>(tup);
+        py::buffer_info buf = a.request();
+        if (buf.ndim != 1)
+          throw std::runtime_error("Number of dimensions must be one");
+        int *ptr = static_cast<int *>(buf.ptr);
+        std::vector<int> child_state(ptr, ptr + buf.shape[0]);
+
+        long double weight = std::get<1>(tup);
+        std::vector<double> edge_state = std::get<2>(tup);
+
+        if (!graph) {
+          graph = new ptdalgorithms::Graph(child_state.size());
+        }
+        ptdalgorithms::Vertex child_vertex = graph->find_or_create_vertex(child_state);
+        graph->starting_vertex().add_edge_parameterized(child_vertex, weight, edge_state);
+      }
+
+        int index = 1;
+        while (index < graph->vertices_length()) {
+
+          ptdalgorithms::Vertex this_vertex = graph->vertex_at(index);
+
+          auto a = new std::vector<int>(graph->vertex_at(index).state());
+          auto capsule = py::capsule(a, [](void *a) { delete reinterpret_cast<std::vector<int>*>(a); });
+          py::array_t<int> this_state = py::array(a->size(), a->data(), capsule);
+
+          std::vector<py::object> children = callback(this_state);
+
+          for (auto child : children) {
+
+            std::tuple<py::array_t<int>, long double, std::vector<double>> tup =
+                child.cast<std::tuple<py::array_t<int>, long double, std::vector<double>> >();
+
+            py::array_t<int> a = std::get<0>(tup);
+            py::buffer_info buf = a.request();
+            if (buf.ndim != 1)
+              throw std::runtime_error("Number of dimensions must be one");
+            int *ptr = static_cast<int *>(buf.ptr);
+            std::vector<int> child_state(ptr, ptr + buf.shape[0]);
+
+            long double weight = std::get<1>(tup);
+            std::vector<double> edge_state = std::get<2>(tup);
+
+            ptdalgorithms::Vertex child_vertex = graph->find_or_create_vertex(child_state);
+            this_vertex.add_edge_parameterized(child_vertex, weight, edge_state);
+          }
+          ++index;
+        }
+      return *graph;
+  }
+
   // ptdalgorithms::Graph build_state_space_callback_tuples(
   //   // const std::function<std::vector<const py::tuple> (std::vector<int> &state)> &callback, std::vector<int> &initial_state) {
   //   const std::function<std::vector<const py::tuple> (py::array_t<int> &state)> &callback, std::vector<int> &initial_state) {
@@ -880,6 +944,98 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
     .def(py::init(&build_state_space_callback_tuples),
       py::arg("callback_tuples"))
+
+    // .def_static("from_callback", [](py::function callback, py::kwargs kwargs) {
+    //     // Create a wrapper that applies kwargs to the callback
+    //     auto wrapper = [callback, kwargs](const py::array_t<int> &state) -> std::vector<py::object> {
+    //       return callback(state, **kwargs).cast<std::vector<py::object>>();
+    //     };
+    //     return build_state_space_callback_tuples(wrapper);
+    //   }, py::arg("callback"), R"delim(
+    //   Builds a graph from a callback function. The callback function must take a single argument, which is the current state as an integer array.
+    //   The callback function must return a list of tuples, where each tuple contains:
+    //   - An integer array representing the child state.
+    //   - A float representing the weight of the edge to that child state.
+
+    //   The first call to the callback function will be made with an empty array, and should return the initial states and their weights.
+
+    //   Additional keyword arguments are passed to the callback function.
+
+    //   Parameters
+    //   ----------
+    //   callback : function
+    //       A function that takes an integer array and returns a list of tuples as described above.
+    //   **kwargs :
+    //       Additional keyword arguments to pass to the callback function.
+
+    //   Returns
+    //   -------
+    //   Graph
+    //       A graph object representing the state space defined by the callback function.
+
+    //   Examples
+    //   --------
+    //   ```
+    //   def callback(state, nr_samples=2):
+    //       if len(state) == 0:
+    //           return [(np.array([nr_samples, 0]), 1.0)]
+    //       elif state[0] > 1:
+    //           return [(np.array([state[0] - 1, state[1] + 1]), state[0])]
+    //       else:
+    //           return []
+
+    //   graph = Graph.from_callback(callback, nr_samples=4)
+    //   ```
+    //   )delim")
+
+    .def(py::init(&build_state_space_callback_tuples_parameterized),
+      py::arg("callback_tuples_parameterized"))
+
+    // .def_static("from_callback_parameterized", [](py::function callback, py::kwargs kwargs) {
+    //     // Create a wrapper that applies kwargs to the callback
+    //     auto wrapper = [callback, kwargs](const py::array_t<int> &state) -> std::vector<py::object> {
+    //       return callback(state, **kwargs).cast<std::vector<py::object>>();
+    //     };
+    //     return build_state_space_callback_tuples_parameterized(wrapper);
+    //   }, py::arg("callback"), R"delim(
+    //   Builds a graph with parameterized edges from a callback function. The callback function must take a single argument,
+    //   which is the current state as an integer array. The callback function must return a list of tuples, where each tuple contains:
+    //   - An integer array representing the child state.
+    //   - A float representing the weight of the edge to that child state.
+    //   - A list of floats representing the edge state for parameterized edges (same length as the child state).
+
+    //   The first call to the callback function will be made with an empty array, and should return the initial states and their weights.
+
+    //   Additional keyword arguments are passed to the callback function.
+
+    //   Parameters
+    //   ----------
+    //   callback : function
+    //       A function that takes an integer array and returns a list of 3-tuples as described above.
+    //   **kwargs :
+    //       Additional keyword arguments to pass to the callback function.
+
+    //   Returns
+    //   -------
+    //   Graph
+    //       A graph object with parameterized edges representing the state space defined by the callback function.
+
+    //   Examples
+    //   --------
+    //   ```
+    //   def callback(state):
+    //       if len(state) == 0:
+    //           return [(np.array([0]), 1.0, [1.0])]
+    //       elif state[0] < 2:
+    //           # edge_state for parameterized edge (same length as child state)
+    //           return [(np.array([state[0] + 1]), 0.0, [1.5])]
+    //       else:
+    //           return []
+
+    //   graph = Graph.from_callback_parameterized(callback)
+    //   ```
+    //   )delim")
+
 
     .def("create_vertex", static_cast<ptdalgorithms::Vertex (ptdalgorithms::Graph::*)(std::vector<int>)>(&ptdalgorithms::Graph::create_vertex), py::arg("state"), 
       py::return_value_policy::copy, R"delim(

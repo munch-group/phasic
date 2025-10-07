@@ -8,18 +8,16 @@ version = "0.1.0"
 [tasks]
 
 [dependencies]
+# Core dependencies (always installed)
 git = ">=2.49.0,<3"
 conda-build = ">=25.4.2,<26"
 conda-verify = ">=3.4.2,<4"
 anaconda-client = ">=1.13.0,<2"
 compilers = ">=1.9.0,<2"
-cmake = ">=4.1.1,<5"
+cmake = ">=4.1.2,<5"
 pip = ">=25.1.1,<26"
 eigen = ">=3.4.0,<4"
-jax = ">=0.6.0,<0.7"
-jaxlib = ">=0.6.0,<0.7"
 ipykernel = ">=6.29.5,<7"
-hdf5 = ">=1.14.6,<2"
 boost = ">=1.85.0,<2"
 pydot = ">=4.0.1,<5"
 python-graphviz = ">=0.21,<0.22"
@@ -30,4 +28,19 @@ gh = ">=2.78.0,<3"
 ipython = ">=9.5.0,<10"
 json5 = ">=0.12.1,<0.13"
 seaborn = ">=0.13.2,<0.14"
+
+[feature.jax.dependencies]
+# JAX support (optional, for gradient-based inference)
+jax = ">=0.6.0,<0.7"
+jaxlib = ">=0.6.0,<0.7"
+h5py = ">=3.0"
 equinox = ">=0.13.1,<0.14"
+
+[feature.dev.dependencies]
+# Development dependencies
+pytest = "*"
+
+[environments]
+default = ["jax"]           # Default includes JAX
+minimal = []                # Minimal without JAX
+dev = ["jax", "dev"]       # Development environment

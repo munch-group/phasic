@@ -6,6 +6,13 @@ This directory contains examples demonstrating various features of the PtDAlgori
 
 ### Comprehensive Demonstrations
 
+- **`svgd_inference_example.py`** ⭐ - **Bayesian Parameter Inference with SVGD**
+  - Complete end-to-end SVGD inference example
+  - Parameterized coalescent model
+  - Synthetic data generation and parameter recovery
+  - Posterior visualization with matplotlib
+  - **Best starting point for learning SVGD inference**
+
 - **`jit_pdf.py`** 🎯 - Comprehensive demonstration of JAX-compatible approach
   - Python graph construction with regular edges
   - C++ model loading (both JIT and FFI approaches)
@@ -60,6 +67,9 @@ python test_parameterized_edges.py
 ### Main Examples
 
 ```bash
+# Bayesian inference with SVGD (recommended starting point)
+python svgd_inference_example.py
+
 # Comprehensive demonstration with parameterized edges
 python jit_pdf.py
 
