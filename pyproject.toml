@@ -81,8 +81,8 @@ platforms = ["osx-arm64", "linux-64"]
 
 [tool.pixi.dependencies]
 python = ">=3.9,<3.14"
-git = "*"
-gh = "*"
+git = ">=2.51.0,<3"
+gh = ">=2.81.0,<3"
 quartodoc = "*"
 pip = "*"
 
