@@ -62,41 +62,41 @@ outputs:
         #   - '"%PYTHON%" -c "import ptdalgorithms as ptd ; print(ptd.Graph(4).vertices_length() == 1)"' # [win]
 
 
-    - name: r-ptdalgorithms
-      requirements:
-        build:
-          - {{ compiler('c') }} 
-          - {{ compiler('cxx') }}
-          - cmake>=3.30
-          - ninja
-          - r-base #{{ r_base }}
-          - r-rcpp
-        host:
-          - r-base #{{ r_base }}
-          - r-rcpp
-        run:
-          - r-base #{{ r_base }}
-          - r-rcpp
-          # - libgomp  # for OpenMP support
-      build:
-        number: 1
-        noarch: false
-        script: |
-          set CMAKE_GENERATOR=
-          ninja --version || where ninja || echo "Ninja not found!"
-          $R CMD INSTALL --build . # [not win]
-          "%R%" CMD INSTALL --build . # [win]
-      channels:  # channels for your library dependencies
-        - conda-forge
-        # - defaults
+    # - name: r-ptdalgorithms
+    #   requirements:
+    #     build:
+    #       - {{ compiler('c') }} 
+    #       - {{ compiler('cxx') }}
+    #       - cmake>=3.30
+    #       - ninja
+    #       - r-base #{{ r_base }}
+    #       - r-rcpp
+    #     host:
+    #       - r-base #{{ r_base }}
+    #       - r-rcpp
+    #     run:
+    #       - r-base #{{ r_base }}
+    #       - r-rcpp
+    #       # - libgomp  # for OpenMP support
+    #   build:
+    #     number: 1
+    #     noarch: false
+    #     script: |
+    #       set CMAKE_GENERATOR=
+    #       ninja --version || where ninja || echo "Ninja not found!"
+    #       $R CMD INSTALL --build . # [not win]
+    #       "%R%" CMD INSTALL --build . # [win]
+    #   channels:  # channels for your library dependencies
+    #     - conda-forge
+    #     # - defaults
 
-      test:
-        commands:
-          - $R -e "library('ptdalgorithms')"  # [not win]
-          - "%R% -e \"library('ptdalgorithms')\""  # [win]
-        # commands:
-        #   - "$R -e 'library('ptdalgorithms') ; print(vertices_length(create_graph(4)) == 1)'" # [not win]
-        #   - "%R% -e 'library('ptdalgorithms') ; print(vertices_length(create_graph(4)) == 1)'" # [win]
+    #   test:
+    #     commands:
+    #       - $R -e "library('ptdalgorithms')"  # [not win]
+    #       - "%R% -e \"library('ptdalgorithms')\""  # [win]
+    #     # commands:
+    #     #   - "$R -e 'library('ptdalgorithms') ; print(vertices_length(create_graph(4)) == 1)'" # [not win]
+    #     #   - "%R% -e 'library('ptdalgorithms') ; print(vertices_length(create_graph(4)) == 1)'" # [win]
 
 about:
   home: https://github.com/munch-group/ptdalgorithms.git
