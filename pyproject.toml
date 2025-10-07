@@ -8,7 +8,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "ptdalgorithms"
-version = '0.19.106'
+version = '0.20.0'
 classifiers = [
   "Development Status :: 5 - Beta",
   "Intended Audience :: Education",
@@ -38,7 +38,7 @@ maintainers = [
   {name = "Kasper Munch", email = "kaspermunch@birc.au.dk"},
 ]
 description = ""
-keywords = ["", "", ""]
+keywords = ["",]
 readme = "README.md"
 license = {file = "LICENSE.txt"}
 
@@ -47,6 +47,7 @@ jax = [
   'jax>=0.4.0',
   'jaxlib',
   'h5py',
+  'equinox',
 ]
 dev = [
     "pytest",
@@ -76,14 +77,20 @@ namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
 
 [tool.pixi.workspace]
 channels = ["conda-forge"]
-platforms = ["osx-arm64", "win-64", "osx-64", "linux-64"]
+platforms = ["osx-arm64", "linux-64"]
 
 [tool.pixi.dependencies]
-python = ">=3.9"
+python = ">=3.9,<3.14"
 git = "*"
 gh = "*"
 quartodoc = "*"
 pip = "*"
+
+# [tool.pixi.pypi-dependencies]
+
+
+[tool.pixi.environments]
+default = {solve-group = "default"}
 
 [tool.pixi.tasks.git-remove-untracked]
 cmd = "git clean -fd"

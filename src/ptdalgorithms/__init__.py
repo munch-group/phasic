@@ -68,7 +68,7 @@ else:
     compute_moments_ffi = None
     compute_pmf_and_moments_ffi = None
 
-__version__ = '0.19.106'
+__version__ = '0.20.0'
 
 GraphType = TypeVar('Graph')
 
