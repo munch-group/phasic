@@ -1,0 +1,61 @@
+# GPU Cluster Configuration - 4 Nodes with GPUs
+# For GPU-accelerated SVGD inference (experimental)
+
+name: gpu_cluster
+nodes: 4
+cpus_per_node: 16  # CPUs for data loading/preprocessing
+gpus_per_node: 4   # GPUs for computation
+memory_per_cpu: "8G"
+time_limit: "04:00:00"
+partition: "gpu"
+qos: "normal"
+coordinator_port: 12345
+platform: "gpu"
+
+# Network configuration
+network_interface: "ib0"
+
+# Environment variables
+env_vars:
+  JAX_ENABLE_X64: "1"
+  XLA_PYTHON_CLIENT_PREALLOCATE: "false"
+  JAX_PLATFORMS: "gpu"
+  CUDA_VISIBLE_DEVICES: "0,1,2,3"  # All 4 GPUs visible
+  NCCL_SOCKET_IFNAME: "ib0"
+  NCCL_DEBUG: "INFO"
+
+# GPU optimization
+env_vars_extended:
+  # NCCL for GPU communication
+  NCCL_IB_DISABLE: "0"  # Enable InfiniBand for GPUs
+  NCCL_NET_GDR_LEVEL: "5"  # GPU Direct RDMA
+
+# Modules to load (adjust for your cluster)
+modules_to_load:
+  - "python/3.11"
+  - "gcc/11.2.0"
+  - "cuda/12.0"
+  - "cudnn/8.9"
+
+# Additional SBATCH options
+extra_sbatch_options:
+  gres: "gpu:4"  # Request 4 GPUs per node
+  exclusive: true
+  # mail-type: "END,FAIL"
+  # mail-user: "your.email@institution.edu"
+
+# Expected performance:
+# - Total devices: 4 nodes × 4 GPUs = 16 GPUs
+# - With 256 particles: 16 particles per GPU
+# - Speedup: ~50-100x vs CPU (depending on model size)
+# - Recommended for:
+#   * Very large models (>1000 states)
+#   * High-dimensional parameter spaces (>10 params)
+#   * Extremely large particle counts (>1000 particles)
+
+# Notes:
+# - GPU support is experimental - test thoroughly first
+# - Monitor GPU memory with nvidia-smi
+# - Reduce particles_per_device if OOM errors occur
+# - Consider mixed precision (float32) for memory savings
+# - NCCL communication overhead may dominate for small models

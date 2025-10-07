@@ -1,0 +1,39 @@
+# Small Cluster Configuration - 2 Nodes
+# Good for initial multi-node testing and small-scale SVGD (32-64 particles)
+
+name: small_cluster
+nodes: 2
+cpus_per_node: 8
+memory_per_cpu: "4G"
+time_limit: "01:00:00"
+partition: "compute"
+coordinator_port: 12345
+platform: "cpu"
+
+# Network configuration (adjust for your cluster)
+network_interface: "ib0"  # Use "eth0" for Ethernet, "ib0" for InfiniBand
+
+# Environment variables
+env_vars:
+  JAX_ENABLE_X64: "1"
+  XLA_PYTHON_CLIENT_PREALLOCATE: "false"
+  NCCL_SOCKET_IFNAME: "ib0"  # Match network_interface
+  NCCL_DEBUG: "WARN"
+
+# Modules to load (adjust for your cluster)
+modules_to_load:
+  - "python/3.11"
+  # - "gcc/11.2.0"
+  # - "openmpi/4.1.4"
+
+# Additional SBATCH options
+extra_sbatch_options:
+  # Uncomment if needed:
+  # exclusive: true
+  # mail-type: "END,FAIL"
+  # mail-user: "your.email@institution.edu"
+
+# Expected performance:
+# - Total devices: 2 × 8 = 16
+# - With 64 particles: 4 particles per device
+# - Speedup: ~1.8-1.9x vs single node

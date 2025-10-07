@@ -1,0 +1,29 @@
+# validate_config { #ptdalgorithms.validate_config }
+
+```python
+ptdalgorithms.validate_config(config, num_particles)
+```
+
+Validate configuration for a given number of particles.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**config**]{.parameter-name} [:]{.parameter-annotation-sep} [[ClusterConfig](`ptdalgorithms.cluster_configs.ClusterConfig`)]{.parameter-annotation}</code>
+
+:   Cluster configuration to validate
+
+<code>[**num_particles**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Number of particles to distribute
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation}</code>
+
+:   True if configuration is valid
+
+## Raises {.doc-section .doc-section-raises}
+
+<code>[:]{.parameter-annotation-sep} [[ValueError](`ValueError`)]{.parameter-annotation}</code>
+
+:   If configuration is invalid

@@ -1,0 +1,63 @@
+# compute_pmf_ffi { #ptdalgorithms.compute_pmf_ffi }
+
+```python
+ptdalgorithms.compute_pmf_ffi(
+    structure_json,
+    theta,
+    times,
+    discrete=False,
+    granularity=100,
+)
+```
+
+Compute PMF (discrete) or PDF (continuous) using JAX FFI.
+
+This function uses JAX's Foreign Function Interface to call C++ code
+with proper GIL management and XLA integration. It supports all JAX
+transformations including jit, grad, vmap, and pmap.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**structure_json**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation}</code>
+
+:   JSON string from Graph.serialize() containing graph structure
+
+<code>[**theta**]{.parameter-name} [:]{.parameter-annotation-sep} [[jax](`jax`).[Array](`jax.Array`)]{.parameter-annotation}</code>
+
+:   Parameter array, shape (n_params,)
+
+<code>[**times**]{.parameter-name} [:]{.parameter-annotation-sep} [[jax](`jax`).[Array](`jax.Array`)]{.parameter-annotation}</code>
+
+:   Time points (continuous) or jump counts (discrete), shape (n_times,)
+
+<code>[**discrete**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, compute DPH (discrete phase-type) If False, compute PDF (continuous phase-type)
+
+<code>[**granularity**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [100]{.parameter-default}</code>
+
+:   Discretization granularity for PDF computation (ignored for DPH)
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[jax](`jax`).[Array](`jax.Array`)]{.parameter-annotation}</code>
+
+:   PMF/PDF values, shape (n_times,)
+
+## Notes {.doc-section .doc-section-notes}
+
+- GIL is released during C++ computation
+- Supports batching via vmap
+- Differentiable with custom VJP rules
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> theta = jnp.array([1.0, 0.5])
+>>> times = jnp.linspace(0.1, 5.0, 100)
+>>> pmf = compute_pmf_ffi(structure_json, theta, times, discrete=False)
+>>>
+>>> # JIT compilation
+>>> jit_pmf = jax.jit(compute_pmf_ffi, static_argnums=(0, 3, 4))
+>>> fast_pmf = jit_pmf(structure_json, theta, times, False, 100)
+```

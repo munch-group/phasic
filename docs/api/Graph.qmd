@@ -2,11 +2,10 @@
 
 ```python
 ptdalgorithms.Graph(
-    self,
     state_length=None,
     callback=None,
-    initial=None,
-    trans_as_dict=False,
+    parameterized=False,
+    **kwargs,
 )
 ```
 
@@ -16,71 +15,19 @@ ptdalgorithms.Graph(
 
 | Name | Description |
 | --- | --- |
-| [accumulated_visiting_time](#ptdalgorithms.Graph.accumulated_visiting_time) | accumulated_visiting_time(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, time: float, granularity: int = 0) -> list[float] |
-| [accumulated_visits_discrete](#ptdalgorithms.Graph.accumulated_visits_discrete) | accumulated_visits_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, jumps: int) -> list[float] |
-| [as_matrices](#ptdalgorithms.Graph.as_matrices) | as_matrices(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> ptdalgorithms.ptdalgorithmscpp_pybind.MatrixRepresentation |
-| [cdf](#ptdalgorithms.Graph.cdf) | cdf(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, time: numpy.ndarray[numpy.float32], granularity: numpy.ndarray[numpy.int32] = 0) -> object |
-| [cdf_discrete](#ptdalgorithms.Graph.cdf_discrete) | cdf_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, jumps: numpy.ndarray[numpy.int32]) -> object |
-| [clone](#ptdalgorithms.Graph.clone) | clone(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> ptdalgorithms.ptdalgorithmscpp_pybind.Graph |
-| [covariance](#ptdalgorithms.Graph.covariance) | covariance(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards1: list[float], rewards2: list[float]) -> float |
-| [covariance_discrete](#ptdalgorithms.Graph.covariance_discrete) | covariance_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards1: list[float], rewards2: list[float]) -> float |
-| [create_vertex](#ptdalgorithms.Graph.create_vertex) | create_vertex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, state: list[int]) -> ptdalgorithms::Vertex |
-| [defect](#ptdalgorithms.Graph.defect) | defect(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> float |
-| [distribution_context](#ptdalgorithms.Graph.distribution_context) | distribution_context(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, granularity: int = 0) -> ptdalgorithms::ProbabilityDistributionContext |
-| [distribution_context_discrete](#ptdalgorithms.Graph.distribution_context_discrete) | distribution_context_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> ptdalgorithms::DPHProbabilityDistributionContext |
-| [expectation](#ptdalgorithms.Graph.expectation) | expectation(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float] = []) -> float |
-| [expectation_dag](#ptdalgorithms.Graph.expectation_dag) | expectation_dag(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float]) -> ptdalgorithms.ptdalgorithmscpp_pybind.Graph |
-| [expectation_discrete](#ptdalgorithms.Graph.expectation_discrete) | expectation_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, arg0: list[float]) -> float |
-| [expected_residence_time](#ptdalgorithms.Graph.expected_residence_time) | expected_residence_time(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float] = []) -> list[float] |
-| [expected_visits_discrete](#ptdalgorithms.Graph.expected_visits_discrete) | expected_visits_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, jumps: int) -> list[float] |
-| [expected_waiting_time](#ptdalgorithms.Graph.expected_waiting_time) | expected_waiting_time(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float] = []) -> list[float] |
-| [find_or_create_vertex](#ptdalgorithms.Graph.find_or_create_vertex) | find_or_create_vertex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, state: list[int]) -> ptdalgorithms::Vertex |
-| [find_vertex](#ptdalgorithms.Graph.find_vertex) | find_vertex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, state: list[int]) -> ptdalgorithms::Vertex |
-| [focv](#ptdalgorithms.Graph.focv) | focv(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, state: list[int]) -> ptdalgorithms::Vertex |
-| [is_acyclic](#ptdalgorithms.Graph.is_acyclic) | is_acyclic(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> bool |
-| [moments](#ptdalgorithms.Graph.moments) | moments(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, power: int, rewards: list[float] = []) -> list[float] |
-| [normalize](#ptdalgorithms.Graph.normalize) | normalize(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> list[float] |
-| [normalize_discrete](#ptdalgorithms.Graph.normalize_discrete) | normalize_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> list[float] |
-| [notify_change](#ptdalgorithms.Graph.notify_change) | notify_change(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> None |
-| [pdf](#ptdalgorithms.Graph.pdf) | pdf(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, time: numpy.ndarray[numpy.float32], granularity: numpy.ndarray[numpy.int32] = 0) -> object |
-| [pmf_discrete](#ptdalgorithms.Graph.pmf_discrete) | pmf_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, jumps: numpy.ndarray[numpy.int32]) -> object |
-| [random_sample_discrete_stop_vertex](#ptdalgorithms.Graph.random_sample_discrete_stop_vertex) | random_sample_discrete_stop_vertex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, jumps: int) -> int |
-| [random_sample_stop_vertex](#ptdalgorithms.Graph.random_sample_stop_vertex) | random_sample_stop_vertex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, time: float) -> int |
-| [reward_transform](#ptdalgorithms.Graph.reward_transform) | reward_transform(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float]) -> ptdalgorithms.ptdalgorithmscpp_pybind.Graph |
-| [reward_transform_discrete](#ptdalgorithms.Graph.reward_transform_discrete) | reward_transform_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[int]) -> ptdalgorithms.ptdalgorithmscpp_pybind.Graph |
-| [sample](#ptdalgorithms.Graph.sample) | sample(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, n: int = 1, rewards: list[float] = []) -> list[float] |
-| [sample_discrete](#ptdalgorithms.Graph.sample_discrete) | sample_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, n: int = 1, rewards: list[float] = []) -> list[float] |
-| [sample_multivariate](#ptdalgorithms.Graph.sample_multivariate) | sample_multivariate(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, n: int = 1, rewards: numpy.ndarray[numpy.float64[m, n]] = []) -> numpy.ndarray[numpy.float64[m, n]] |
-| [sample_multivariate_discrete](#ptdalgorithms.Graph.sample_multivariate_discrete) | sample_multivariate_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, n: int = 1, rewards: numpy.ndarray[numpy.float64[m, n]] = []) -> numpy.ndarray[numpy.float64[m, n]] |
-| [starting_vertex](#ptdalgorithms.Graph.starting_vertex) | starting_vertex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> ptdalgorithms::Vertex |
-| [state_length](#ptdalgorithms.Graph.state_length) | state_length(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> int |
-| [states](#ptdalgorithms.Graph.states) | states(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> numpy.ndarray[numpy.int32[m, n]] |
-| [stop_probability](#ptdalgorithms.Graph.stop_probability) | stop_probability(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, time: float, granularity: int = 0) -> list[float] |
-| [stop_probability_discrete](#ptdalgorithms.Graph.stop_probability_discrete) | stop_probability_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, jumps: int) -> list[float] |
-| [update_parameterized_weights](#ptdalgorithms.Graph.update_parameterized_weights) | update_parameterized_weights(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float]) -> None |
-| [validate](#ptdalgorithms.Graph.validate) | validate(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> None |
-| [variance](#ptdalgorithms.Graph.variance) | variance(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float] = []) -> float |
-| [variance_discrete](#ptdalgorithms.Graph.variance_discrete) | variance_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, arg0: list[float]) -> float |
-| [vertex_at](#ptdalgorithms.Graph.vertex_at) | vertex_at(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, index: int) -> ptdalgorithms::Vertex |
-| [vertex_exists](#ptdalgorithms.Graph.vertex_exists) | vertex_exists(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, state: list[int]) -> bool |
-| [vertices](#ptdalgorithms.Graph.vertices) | vertices(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> list[ptdalgorithms::Vertex] |
-| [vertices_length](#ptdalgorithms.Graph.vertices_length) | vertices_length(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> int |
-
-### accumulated_visiting_time { #ptdalgorithms.Graph.accumulated_visiting_time }
-
-```python
-ptdalgorithms.Graph.accumulated_visiting_time()
-```
-
-accumulated_visiting_time(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, time: float, granularity: int = 0) -> list[float]
-
-### accumulated_visits_discrete { #ptdalgorithms.Graph.accumulated_visits_discrete }
-
-```python
-ptdalgorithms.Graph.accumulated_visits_discrete()
-```
-
-accumulated_visits_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, jumps: int) -> list[float]
+| [as_matrices](#ptdalgorithms.Graph.as_matrices) | Convert the graph to its matrix representation. |
+| [copy](#ptdalgorithms.Graph.copy) | Returns a deep copy of the graph. |
+| [discretize](#ptdalgorithms.Graph.discretize) | Creates a graph for a discrete distribution from a continuous one. |
+| [from_matrices](#ptdalgorithms.Graph.from_matrices) | Construct a Graph from matrix representation. |
+| [make_discrete](#ptdalgorithms.Graph.make_discrete) | Takes a graph for a continuous distribution and turns |
+| [moments_from_graph](#ptdalgorithms.Graph.moments_from_graph) | Convert a parameterized Graph to a JAX-compatible function that computes moments. |
+| [plot](#ptdalgorithms.Graph.plot) | Plots the graph using graphviz. See plot::plot_graph.py for more details. |
+| [pmf_and_moments_from_graph](#ptdalgorithms.Graph.pmf_and_moments_from_graph) | Convert a parameterized Graph to a function that computes both PMF/PDF and moments. |
+| [pmf_from_cpp](#ptdalgorithms.Graph.pmf_from_cpp) | Load a phase-type model from a user's C++ file and return a JAX-compatible function. |
+| [pmf_from_graph](#ptdalgorithms.Graph.pmf_from_graph) | Convert a Python-built Graph to a JAX-compatible function with full gradient support. |
+| [pmf_from_graph_parameterized](#ptdalgorithms.Graph.pmf_from_graph_parameterized) | Convert a parameterized Python graph builder to a JAX-compatible function. |
+| [serialize](#ptdalgorithms.Graph.serialize) | Serialize graph to array representation for efficient computation. |
+| [svgd](#ptdalgorithms.Graph.svgd) | Run Stein Variational Gradient Descent (SVGD) inference for Bayesian parameter estimation. |
 
 ### as_matrices { #ptdalgorithms.Graph.as_matrices }
 
@@ -88,577 +35,621 @@ accumulated_visits_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, j
 ptdalgorithms.Graph.as_matrices()
 ```
 
-as_matrices(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> ptdalgorithms.ptdalgorithmscpp_pybind.MatrixRepresentation
+Convert the graph to its matrix representation.
 
-### cdf { #ptdalgorithms.Graph.cdf }
+Returns a NamedTuple containing the traditional phase-type distribution
+matrices and associated information.
 
-```python
-ptdalgorithms.Graph.cdf()
-```
+#### Returns {.doc-section .doc-section-returns}
 
-cdf(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, time: numpy.ndarray[numpy.float32], granularity: numpy.ndarray[numpy.int32] = 0) -> object
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[MatrixRepresentation](`ptdalgorithms.MatrixRepresentation`)]{.parameter-annotation}</code>
 
-### cdf_discrete { #ptdalgorithms.Graph.cdf_discrete }
+:   NamedTuple with the following attributes: - states: np.ndarray of shape (n_states, state_dim), dtype=int32     State vector for each vertex - sim: np.ndarray of shape (n_states, n_states), dtype=float64     Sub-intensity matrix - ipv: np.ndarray of shape (n_states,), dtype=float64     Initial probability vector - indices: np.ndarray of shape (n_states,), dtype=int32     1-based indices for vertices (for use with vertex_at())
 
-```python
-ptdalgorithms.Graph.cdf_discrete()
-```
-
-cdf_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, jumps: numpy.ndarray[numpy.int32]) -> object
-
-### clone { #ptdalgorithms.Graph.clone }
+#### Examples {.doc-section .doc-section-examples}
 
 ```python
-ptdalgorithms.Graph.clone()
+>>> g = Graph(1)
+>>> start = g.starting_vertex()
+>>> v1 = g.find_or_create_vertex([1])
+>>> v2 = g.find_or_create_vertex([2])
+>>> start.add_edge(v1, 1.0)
+>>> v1.add_edge(v2, 2.0)
+>>> g.normalize()
+>>>
+>>> matrices = g.as_matrices()
+>>> print(matrices.sim)  # Sub-intensity matrix (attribute access)
+>>> print(matrices.ipv)  # Initial probability vector
+>>> # Can also use index access like a tuple
+>>> states, sim, ipv, indices = matrices
 ```
 
-clone(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> ptdalgorithms.ptdalgorithmscpp_pybind.Graph
-
-### covariance { #ptdalgorithms.Graph.covariance }
+### copy { #ptdalgorithms.Graph.copy }
 
 ```python
-ptdalgorithms.Graph.covariance()
+ptdalgorithms.Graph.copy()
 ```
 
-covariance(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards1: list[float], rewards2: list[float]) -> float
+Returns a deep copy of the graph.
 
-### covariance_discrete { #ptdalgorithms.Graph.covariance_discrete }
+### discretize { #ptdalgorithms.Graph.discretize }
 
 ```python
-ptdalgorithms.Graph.covariance_discrete()
+ptdalgorithms.Graph.discretize(reward_rate, skip_states=[], skip_slots=[])
 ```
 
-covariance_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards1: list[float], rewards2: list[float]) -> float
+Creates a graph for a discrete distribution from a continuous one.
 
-### create_vertex { #ptdalgorithms.Graph.create_vertex }
+        Creates a graph augmented with auxiliary vertices and edges to represent the discrete distribution. 
+
+####         Parameters {.doc-section .doc-section---------parameters}
+
+        reward_rate : 
+            Rate of discrete events.
+        skip_states : 
+            Vertex indices to not add auxiliary states to, by default []
+        skip_slots : 
+            State vector indices to not add rewards to, by default []
+
+####         Returns {.doc-section .doc-section---------returns}
+
+        :
+            A new graph and a matrix of rewards for computing marginal moments.
+
+####         Examples {.doc-section .doc-section---------examples}
+
+
+        >>> from ptdalgorithms import Graph
+        >>> def callback(state):
+        ...     return [(state[0] + 1, [(state[0], 1)])]
+        >>> g = Graph(callback=callback)
+        >>> g.discretize(0.1)
+        >>> a = [1, 2, 3]
+        >>> print([x + 3 for x in a])
+        [4, 5, 6]
+        >>> print("a
+b")
+        a
+        b
+
+### from_matrices { #ptdalgorithms.Graph.from_matrices }
 
 ```python
-ptdalgorithms.Graph.create_vertex()
+ptdalgorithms.Graph.from_matrices(ipv, sim, states=None)
 ```
 
-create_vertex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, state: list[int]) -> ptdalgorithms::Vertex
+Construct a Graph from matrix representation.
 
-### defect { #ptdalgorithms.Graph.defect }
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**ipv**]{.parameter-name} [:]{.parameter-annotation-sep} [[np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation}</code>
+
+:   Initial probability vector, shape (n_states,)
+
+<code>[**sim**]{.parameter-name} [:]{.parameter-annotation-sep} [[np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation}</code>
+
+:   Sub-intensity matrix, shape (n_states, n_states)
+
+<code>[**states**]{.parameter-name} [:]{.parameter-annotation-sep} [[np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   State vectors, shape (n_states, state_dim), dtype=int32 If None, uses default states [0], [1], [2], ...
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[Graph](`ptdalgorithms.Graph`)]{.parameter-annotation}</code>
+
+:   The reconstructed phase-type distribution graph
+
+#### Examples {.doc-section .doc-section-examples}
 
 ```python
-ptdalgorithms.Graph.defect()
+>>> ipv = np.array([0.6, 0.4])
+>>> sim = np.array([[-2.0, 1.0], [0.0, -3.0]])
+>>> g = Graph.from_matrices(ipv, sim)
+>>> pdf = g.pdf(1.0)
 ```
 
-defect(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> float
-
-### distribution_context { #ptdalgorithms.Graph.distribution_context }
+### make_discrete { #ptdalgorithms.Graph.make_discrete }
 
 ```python
-ptdalgorithms.Graph.distribution_context()
+ptdalgorithms.Graph.make_discrete(mutation_rate, skip_states=[], skip_slots=[])
 ```
 
-distribution_context(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, granularity: int = 0) -> ptdalgorithms::ProbabilityDistributionContext
+Takes a graph for a continuous distribution and turns
+it into a descrete one (inplace). Returns a matrix of
+rewards for computing marginal moments
 
-### distribution_context_discrete { #ptdalgorithms.Graph.distribution_context_discrete }
+### moments_from_graph { #ptdalgorithms.Graph.moments_from_graph }
 
 ```python
-ptdalgorithms.Graph.distribution_context_discrete()
+ptdalgorithms.Graph.moments_from_graph(graph, nr_moments=2, use_ffi=False)
 ```
 
-distribution_context_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> ptdalgorithms::DPHProbabilityDistributionContext
+Convert a parameterized Graph to a JAX-compatible function that computes moments.
 
-### expectation { #ptdalgorithms.Graph.expectation }
+This method creates a function that computes the first `nr_moments` moments of the
+phase-type distribution: [E[T], E[T^2], ..., E[T^nr_moments]].
+
+Moments are computed using the existing C++ `graph.moments(power)` method for efficiency.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**graph**]{.parameter-name} [:]{.parameter-annotation-sep} [[Graph](`ptdalgorithms.Graph`)]{.parameter-annotation}</code>
+
+:   Parameterized graph built using the Python API with parameterized edges. Must have edges created with `add_edge_parameterized()`.
+
+<code>[**nr_moments**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [2]{.parameter-default}</code>
+
+:   Number of moments to compute. For example: - 1: Returns [E[T]] (mean only) - 2: Returns [E[T], E[T^2]] (mean and second moment) - 3: Returns [E[T], E[T^2], E[T^3]]
+
+<code>[**use_ffi**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, uses Foreign Function Interface approach.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[callable](`callable`)]{.parameter-annotation}</code>
+
+:   JAX-compatible function with signature: moments_fn(theta) -> jnp.array(nr_moments,) Returns array of moments: [E[T], E[T^2], ..., E[T^k]]
+
+#### Examples {.doc-section .doc-section-examples}
 
 ```python
-ptdalgorithms.Graph.expectation()
+>>> # Create parameterized coalescent model
+>>> def coalescent(state, nr_samples=2):
+...     if len(state) == 0:
+...         return [(np.array([nr_samples]), 1.0, [1.0])]
+...     if state[0] > 1:
+...         n = state[0]
+...         rate = n * (n - 1) / 2
+...         return [(np.array([n-1]), 0.0, [rate])]
+...     return []
+>>>
+>>> graph = Graph(callback=coalescent, parameterized=True, nr_samples=3)
+>>> moments_fn = Graph.moments_from_graph(graph, nr_moments=2)
+>>>
+>>> # Compute moments for given theta
+>>> theta = jnp.array([0.5])
+>>> moments = moments_fn(theta)  # [E[T], E[T^2]]
+>>> print(f"Mean: {moments[0]}, Second moment: {moments[1]}")
+>>>
+>>> # Variance can be computed as: Var[T] = E[T^2] - E[T]^2
+>>> variance = moments[1] - moments[0]**2
 ```
 
-expectation(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float] = []) -> float
+#### Notes {.doc-section .doc-section-notes}
 
+- Requires graph to have parameterized edges (created with parameterized=True)
+- Moments are raw moments, not central moments
+- For variance, compute: Var[T] = E[T^2] - E[T]^2
+- For standard deviation: std[T] = sqrt(Var[T])
 
-//' Computes the expectation (mean) of the phase-type distribution
-//' 
-//' @description
-//' This function invokes [ptdalgorithms::expected_waiting_times()]
-//' and takes the first entry (from starting vertex)
-//' 
-//' @return The expectation of the distribution
-//' 
-//' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
-//' @param rewards Optional rewards, which should be applied to the phase-type distribution. Must have length equal to [ptdalgorithms::vertices_length()]
-//' 
-//' @seealso [ptdalgorithms::expected_waiting_time()]
-//' @seealso [ptdalgorithms::moments()]
-//' @seealso [ptdalgorithms::variance()]
-//' @seealso [ptdalgorithms::covariance()]
-//' 
-//' @examples
-//' graph <- ptdalgorithms::create_graph(4)
-//' v1 <- ptdalgorithms::create_vertex(graph, c(1,2,3,4))
-//' v2 <- ptdalgorithms::create_vertex(graph, c(4,0,3,3))
-//' a <- ptdalgorithms::create_vertex(graph, c(0,0,0,0))
-//' ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), v1, 1)
-//' ptdalgorithms::add_edge(v1, v2, 4)
-//' ptdalgorithms::add_edge(v2, a, 10)
-//' ptdalgorithms::expectation(graph) # =>
-//'   0.35
-//' ptdalgorithms::expectation(graph, c(0,2,1,0)) # =>
-//'   0.6
-//' ph <- ptdalgorithms::graph_as_matrix(graph)
-//' # This is a much faster version of
-//' ph$IPV%*%solve(-ph$SIM) %*% rep(1, length(ph$IPV)) # =>
-//'   0.35
-//' ph$IPV%*%solve(-ph$SIM) %*% diag(c(2,1))%*% rep(1, length(ph$IPV)) # =>
-//'   0.35
-
-### expectation_dag { #ptdalgorithms.Graph.expectation_dag }
+### plot { #ptdalgorithms.Graph.plot }
 
 ```python
-ptdalgorithms.Graph.expectation_dag()
+ptdalgorithms.Graph.plot(*args, **kwargs)
 ```
 
-expectation_dag(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float]) -> ptdalgorithms.ptdalgorithmscpp_pybind.Graph
+Plots the graph using graphviz. See plot::plot_graph.py for more details.
 
-### expectation_discrete { #ptdalgorithms.Graph.expectation_discrete }
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+
+:   _description_
+
+### pmf_and_moments_from_graph { #ptdalgorithms.Graph.pmf_and_moments_from_graph }
 
 ```python
-ptdalgorithms.Graph.expectation_discrete()
+ptdalgorithms.Graph.pmf_and_moments_from_graph(
+    graph,
+    nr_moments=2,
+    discrete=False,
+    use_ffi=False,
+)
 ```
 
-expectation_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, arg0: list[float]) -> float
+Convert a parameterized Graph to a function that computes both PMF/PDF and moments.
 
-### expected_residence_time { #ptdalgorithms.Graph.expected_residence_time }
+This is more efficient than calling `pmf_from_graph()` and `moments_from_graph()`
+separately because it builds the graph once and computes both quantities.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**graph**]{.parameter-name} [:]{.parameter-annotation-sep} [[Graph](`ptdalgorithms.Graph`)]{.parameter-annotation}</code>
+
+:   Parameterized graph built using the Python API with parameterized edges.
+
+<code>[**nr_moments**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [2]{.parameter-default}</code>
+
+:   Number of moments to compute
+
+<code>[**discrete**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, computes discrete PMF. If False, computes continuous PDF.
+
+<code>[**use_ffi**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, uses Foreign Function Interface approach.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[callable](`callable`)]{.parameter-annotation}</code>
+
+:   JAX-compatible function with signature: model(theta, times) -> (pmf_values, moments)  Where: - pmf_values: jnp.array(len(times),) - PMF/PDF values at each time - moments: jnp.array(nr_moments,) - [E[T], E[T^2], ..., E[T^k]]
+
+#### Examples {.doc-section .doc-section-examples}
 
 ```python
-ptdalgorithms.Graph.expected_residence_time()
+>>> # Create parameterized model
+>>> graph = Graph(callback=coalescent, parameterized=True, nr_samples=3)
+>>> model = Graph.pmf_and_moments_from_graph(graph, nr_moments=2)
+>>>
+>>> # Compute both PMF and moments
+>>> theta = jnp.array([0.5])
+>>> times = jnp.array([1.0, 2.0, 3.0])
+>>> pmf_vals, moments = model(theta, times)
+>>>
+>>> print(f"PMF at times: {pmf_vals}")
+>>> print(f"Moments: {moments}")  # [E[T], E[T^2]]
+>>>
+>>> # Use in SVGD with moment regularization
+>>> svgd = SVGD(model, observed_pmf, theta_dim=1)
+>>> svgd.fit_regularized(observed_times=data, nr_moments=2, regularization=1.0)
 ```
 
-expected_residence_time(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float] = []) -> list[float]
+#### Notes {.doc-section .doc-section-notes}
 
-### expected_visits_discrete { #ptdalgorithms.Graph.expected_visits_discrete }
+- More efficient than separate calls to pmf_from_graph() and moments_from_graph()
+- Required for using moment-based regularization in SVGD.fit_regularized()
+- The moments are always computed from the same graph used for PMF/PDF
+
+### pmf_from_cpp { #ptdalgorithms.Graph.pmf_from_cpp }
 
 ```python
-ptdalgorithms.Graph.expected_visits_discrete()
+ptdalgorithms.Graph.pmf_from_cpp(cpp_file, discrete=False)
 ```
 
-expected_visits_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, jumps: int) -> list[float]
+Load a phase-type model from a user's C++ file and return a JAX-compatible function.
 
-### expected_waiting_time { #ptdalgorithms.Graph.expected_waiting_time }
+The C++ file should include 'user_model.h' and implement:
+
+ptdalgorithms::Graph build_model(const double* theta, int n_params) {
+    // Build and return Graph instance
+}
+
+For efficient repeated evaluations with the same parameters without JAX overhead,
+use load_cpp_builder() instead to get a builder function that creates Graph objects.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**cpp_file**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`) or [Path](`Path`)]{.parameter-annotation}</code>
+
+:   Path to the user's C++ file
+
+<code>[**discrete**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, uses discrete phase-type distribution (DPH) computation. If False, uses continuous phase-type distribution (PDF).
+
+#### Raises {.doc-section .doc-section-raises}
+
+<code>[:]{.parameter-annotation-sep} [[ImportError](`ImportError`)]{.parameter-annotation}</code>
+
+:   If JAX is not installed. Install with: pip install jax jaxlib
+
+<code>[:]{.parameter-annotation-sep} [[FileNotFoundError](`FileNotFoundError`)]{.parameter-annotation}</code>
+
+:   If the specified C++ file does not exist
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[callable](`callable`)]{.parameter-annotation}</code>
+
+:   JAX-compatible function (theta, times) -> pmf_values that supports JIT, grad, vmap, etc.
+
+#### Examples {.doc-section .doc-section-examples}
+
+# JAX-compatible approach (default - for SVGD, gradients, optimization)
 
 ```python
-ptdalgorithms.Graph.expected_waiting_time()
+>>> model = Graph.pmf_from_cpp("my_model.cpp")
+>>> theta = jnp.array([1.0, 2.0])
+>>> times = jnp.linspace(0, 10, 100)
+>>> pmf = model(theta, times)
+>>> gradient = jax.grad(lambda p: jnp.sum(model(p, times)))(theta)
 ```
 
-expected_waiting_time(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float] = []) -> list[float]
-
-### find_or_create_vertex { #ptdalgorithms.Graph.find_or_create_vertex }
+# Discrete phase-type distribution
 
 ```python
-ptdalgorithms.Graph.find_or_create_vertex()
+>>> model = Graph.pmf_from_cpp("my_model.cpp", discrete=True)
+>>> theta = jnp.array([1.0, 2.0])
+>>> jumps = jnp.array([1, 2, 3, 4, 5])
+>>> dph_pmf = model(theta, jumps)
 ```
 
-find_or_create_vertex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, state: list[int]) -> ptdalgorithms::Vertex
-
-
-//' Find or create a vertex matching `state`
-//' 
-//' @description
-//' Finds a vertex by the `state` parameter. If no such
-//' vertex exists, it creates the vertex and adds it to
-//' the graph object instead.
-//' 
-//' @details
-//' A faster and simpler version of calling [ptdalgorithms::find_vertex()] and  [ptdalgorithms::create_vertex()]
-//' 
-//' @return The newly found or inserted vertex in the graph
-//' 
-//' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
-//' @param state An integer vector of what vertex to look for. Has length as given by `state_length` in  [ptdalgorithms::create_graph()]
-//' 
-//' @examples
-//' graph <- create_graph(4)
-//' find_or_create_vertex(graph, c(1,2,1,0)) # Adds and returns the vertex
-//' find_or_create_vertex(graph, c(1,2,1,0)) # Only returns the vertex
-//' # `graph` is now changed permanently
-
-### find_vertex { #ptdalgorithms.Graph.find_vertex }
+# For direct C++ access without JAX (faster for repeated evaluations):
 
 ```python
-ptdalgorithms.Graph.find_vertex()
+>>> builder = load_cpp_builder("my_model.cpp")
+>>> graph = builder(np.array([1.0, 2.0]))  # Build graph once
+>>> pdf1 = graph.pdf(1.0)  # Use many times
+>>> pdf2 = graph.pdf(2.0)  # No rebuild needed
 ```
 
-find_vertex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, state: list[int]) -> ptdalgorithms::Vertex
-
-### focv { #ptdalgorithms.Graph.focv }
+### pmf_from_graph { #ptdalgorithms.Graph.pmf_from_graph }
 
 ```python
-ptdalgorithms.Graph.focv()
+ptdalgorithms.Graph.pmf_from_graph(graph, discrete=False)
 ```
 
-focv(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, state: list[int]) -> ptdalgorithms::Vertex
+Convert a Python-built Graph to a JAX-compatible function with full gradient support.
 
+This method automatically detects if the graph has parameterized edges (edges with
+state vectors) and generates optimized C++ code to enable full JAX transformations
+including gradients, vmap, and jit compilation.
 
-Alias for find_or_create_vertex
+For direct C++ access without JAX wrapping, use the Graph object's methods directly:
+graph.pdf(time), graph.dph_pmf(jump), graph.moments(power), etc.
 
-### is_acyclic { #ptdalgorithms.Graph.is_acyclic }
+#### Raises {.doc-section .doc-section-raises}
+
+<code>[:]{.parameter-annotation-sep} [[ImportError](`ImportError`)]{.parameter-annotation}</code>
+
+:   If JAX is not installed. Install with: pip install jax jaxlib
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**graph**]{.parameter-name} [:]{.parameter-annotation-sep} [[Graph](`ptdalgorithms.Graph`)]{.parameter-annotation}</code>
+
+:   Graph built using the Python API. Can have regular edges or parameterized edges.
+
+<code>[**discrete**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, uses discrete phase-type distribution (DPH) computation. If False, uses continuous phase-type distribution (PDF).
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[callable](`callable`)]{.parameter-annotation}</code>
+
+:   If graph has parameterized edges:     JAX-compatible function (theta, times) -> pmf_values     Supports JIT, grad, vmap, etc. If graph has no parameterized edges:     JAX-compatible function (times) -> pmf_values     Supports JIT (backward compatible signature)
+
+#### Examples {.doc-section .doc-section-examples}
+
+# Non-parameterized graph (regular edges only)
 
 ```python
-ptdalgorithms.Graph.is_acyclic()
+>>> g = Graph(1)
+>>> start = g.starting_vertex()
+>>> v0 = g.find_or_create_vertex([0])
+>>> v1 = g.find_or_create_vertex([1])
+>>> start.add_edge(v0, 1.0)
+>>> v0.add_edge(v1, 2.0)  # fixed weight
+>>>
+>>> model = Graph.pmf_from_graph(g)
+>>> times = jnp.linspace(0, 5, 50)
+>>> pdf = model(times)  # No theta needed
 ```
 
-is_acyclic(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> bool
-
-### moments { #ptdalgorithms.Graph.moments }
+# Parameterized graph (with edge states for gradient support)
 
 ```python
-ptdalgorithms.Graph.moments()
+>>> g = Graph(1)
+>>> start = g.starting_vertex()
+>>> v0 = g.find_or_create_vertex([0])
+>>> v1 = g.find_or_create_vertex([1])
+>>> start.add_edge(v0, 1.0)
+>>> v0.add_edge_parameterized(v1, 0.0, [2.0, 0.5])  # weight = 2.0*theta[0] + 0.5*theta[1]
+>>>
+>>> model = Graph.pmf_from_graph(g)
+>>> theta = jnp.array([1.0, 3.0])
+>>> pdf = model(theta, times)  # weight becomes 2.0*1.0 + 0.5*3.0 = 3.5
+>>>
+>>> # Full JAX support for parameterized graphs
+>>> grad_fn = jax.grad(lambda t: jnp.sum(model(t, times)))
+>>> gradient = grad_fn(theta)  # Gradients work!
 ```
 
-moments(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, power: int, rewards: list[float] = []) -> list[float]
-
-
-//' Computes the first `k` moments of the phase-type distribution
-//' 
-//' @description
-//' This function invokes [ptdalgorithms::expected_waiting_times()] consequtively to find the first moments,
-//' given by the `power` argument
-//' 
-//' @return A numeric vector of the first `k` moments. The first entry is the first moment (mean)
-//' 
-//' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
-//' @param power An integer of the first `k` moments.
-//' @param rewards Optional rewards, which should be applied to the phase-type distribution. Must have length equal to [ptdalgorithms::vertices_length()]
-//' 
-//' @seealso [ptdalgorithms::expected_waiting_time()]
-//' @seealso [ptdalgorithms::expectation()]
-//' @seealso [ptdalgorithms::variance()]
-//' @seealso [ptdalgorithms::covariance()]
-//' 
-//' @examples
-//' graph <- ptdalgorithms::create_graph(4)
-//' v1 <- ptdalgorithms::create_vertex(graph, c(1,2,3,4))
-//' v2 <- ptdalgorithms::create_vertex(graph, c(4,0,3,3))
-//' a <- ptdalgorithms::create_vertex(graph, c(0,0,0,0))
-//' ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), v1, 1)
-//' ptdalgorithms::add_edge(v1, v2, 4)
-//' ptdalgorithms::add_edge(v2, a, 10)
-//' ptdalgorithms::moments(graph, 3) # =>
-//'   (0.350000 0.097500 0.025375)
-//' ptdalgorithms::moments(graph, 3, c(0,2,1,0)) # =>
-//'   (0.600 0.160 0.041)
-
-### normalize { #ptdalgorithms.Graph.normalize }
+# For direct C++ access (no JAX overhead), use graph methods:
 
 ```python
-ptdalgorithms.Graph.normalize()
+>>> pdf_value = g.pdf(1.5)  # Direct C++ call
+>>> pmf_value = g.dph_pmf(3)  # Direct C++ call
 ```
 
-normalize(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> list[float]
-
-### normalize_discrete { #ptdalgorithms.Graph.normalize_discrete }
+### pmf_from_graph_parameterized { #ptdalgorithms.Graph.pmf_from_graph_parameterized }
 
 ```python
-ptdalgorithms.Graph.normalize_discrete()
+ptdalgorithms.Graph.pmf_from_graph_parameterized(graph_builder, discrete=False)
 ```
 
-normalize_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> list[float]
+Convert a parameterized Python graph builder to a JAX-compatible function.
 
-### notify_change { #ptdalgorithms.Graph.notify_change }
+This allows users to define parameterized models where the graph structure
+or edge weights depend on parameters.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**graph_builder**]{.parameter-name} [:]{.parameter-annotation-sep} [[callable](`callable`)]{.parameter-annotation}</code>
+
+:   Function (theta) -> Graph that builds a graph with given parameters
+
+<code>[**discrete**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, uses discrete phase-type distribution (DPH) computation. If False, uses continuous phase-type distribution (PDF).
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[callable](`callable`)]{.parameter-annotation}</code>
+
+:   JAX-compatible function (theta, times) -> pdf_values that supports JIT, grad, vmap, etc.
+
+#### Examples {.doc-section .doc-section-examples}
 
 ```python
-ptdalgorithms.Graph.notify_change()
+>>> def build_exponential(rate):
+...     g = Graph(1)
+...     start = g.starting_vertex()
+...     v0 = g.find_or_create_vertex([0])
+...     v1 = g.find_or_create_vertex([1])
+...     start.add_edge(v0, 1.0)
+...     v0.add_edge(v1, float(rate))
+...     return g
+>>>
+>>> model = Graph.pmf_from_graph_parameterized(build_exponential)
+>>> theta = jnp.array([1.5])
+>>> times = jnp.linspace(0, 5, 50)
+>>> pdf = model(theta, times)
 ```
 
-notify_change(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> None
-
-### pdf { #ptdalgorithms.Graph.pdf }
+### serialize { #ptdalgorithms.Graph.serialize }
 
 ```python
-ptdalgorithms.Graph.pdf()
+ptdalgorithms.Graph.serialize()
 ```
 
-pdf(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, time: numpy.ndarray[numpy.float32], granularity: numpy.ndarray[numpy.int32] = 0) -> object
+Serialize graph to array representation for efficient computation.
 
-### pmf_discrete { #ptdalgorithms.Graph.pmf_discrete }
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation}</code>
+
+:   Dictionary containing: - 'states': Array of vertex states (n_vertices, state_dim) - 'edges': Array of regular edges [from_idx, to_idx, weight] (n_edges, 3) - 'start_edges': Array of starting vertex regular edges [to_idx, weight] (n_start_edges, 2) - 'param_edges': Array of parameterized edges [from_idx, to_idx, x1, x2, ...] (n_param_edges, param_length+2) - 'start_param_edges': Array of starting vertex parameterized edges [to_idx, x1, x2, ...] (n_start_param_edges, param_length+1) - 'param_length': Length of parameter vector (0 if no parameterized edges) - 'state_length': Integer state dimension - 'n_vertices': Number of vertices
+
+### svgd { #ptdalgorithms.Graph.svgd }
 
 ```python
-ptdalgorithms.Graph.pmf_discrete()
+ptdalgorithms.Graph.svgd(
+    model,
+    observed_data,
+    prior=None,
+    n_particles=50,
+    n_iterations=1000,
+    learning_rate=0.001,
+    kernel='rbf_median',
+    theta_init=None,
+    theta_dim=None,
+    return_history=False,
+    seed=42,
+    verbose=True,
+)
 ```
 
-pmf_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, jumps: numpy.ndarray[numpy.int32]) -> object
+Run Stein Variational Gradient Descent (SVGD) inference for Bayesian parameter estimation.
 
-### random_sample_discrete_stop_vertex { #ptdalgorithms.Graph.random_sample_discrete_stop_vertex }
+SVGD finds the posterior distribution p(theta | data) by optimizing a set of particles to
+approximate the posterior. This method works with parameterized models created by
+pmf_from_graph() or pmf_from_cpp() where the model signature is model(theta, times).
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**model**]{.parameter-name} [:]{.parameter-annotation-sep} [[callable](`callable`)]{.parameter-annotation}</code>
+
+:   JAX-compatible parameterized model from pmf_from_graph() or pmf_from_cpp(). Must have signature: model(theta, times) -> values
+
+<code>[**observed_data**]{.parameter-name} [:]{.parameter-annotation-sep} [[array_like](`array_like`)]{.parameter-annotation}</code>
+
+:   Observed data points. For continuous models (PDF), these are time points where the density was observed. For discrete models (PMF), these are jump counts.
+
+<code>[**prior**]{.parameter-name} [:]{.parameter-annotation-sep} [[callable](`callable`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Log prior function: prior(theta) -> scalar. If None, uses standard normal prior: log p(theta) = -0.5 * sum(theta^2)
+
+<code>[**n_particles**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [50]{.parameter-default}</code>
+
+:   Number of SVGD particles. More particles = better posterior approximation but slower.
+
+<code>[**n_iterations**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1000]{.parameter-default}</code>
+
+:   Number of SVGD optimization steps
+
+<code>[**learning_rate**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.001]{.parameter-default}</code>
+
+:   SVGD step size. Larger values = faster convergence but may be unstable.
+
+<code>[**kernel**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'rbf_median\']{.parameter-default}</code>
+
+:   Kernel bandwidth selection method: - 'rbf_median': RBF kernel with median heuristic bandwidth (default) - 'rbf_adaptive': RBF kernel with adaptive bandwidth
+
+<code>[**theta_init**]{.parameter-name} [:]{.parameter-annotation-sep} [[array_like](`array_like`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Initial particle positions (n_particles, theta_dim). If None, initializes randomly from standard normal.
+
+<code>[**theta_dim**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Dimension of theta parameter vector. Required if theta_init is None.
+
+<code>[**return_history**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, return particle positions throughout optimization
+
+<code>[**seed**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [42]{.parameter-default}</code>
+
+:   Random seed for reproducibility
+
+<code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   Print progress information
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation}</code>
+
+:   Inference results containing: - 'particles': Final posterior samples (n_particles, theta_dim) - 'theta_mean': Posterior mean estimate - 'theta_std': Posterior standard deviation - 'history': Particle evolution over iterations (if return_history=True)
+
+#### Raises {.doc-section .doc-section-raises}
+
+<code>[:]{.parameter-annotation-sep} [[ImportError](`ImportError`)]{.parameter-annotation}</code>
+
+:   If JAX is not installed
+
+<code>[:]{.parameter-annotation-sep} [[ValueError](`ValueError`)]{.parameter-annotation}</code>
+
+:   If model is not parameterized or theta_dim cannot be inferred
+
+#### Examples {.doc-section .doc-section-examples}
 
 ```python
-ptdalgorithms.Graph.random_sample_discrete_stop_vertex()
+>>> import jax.numpy as jnp
+>>> from ptdalgorithms import Graph
+>>>
+>>> # Build parameterized coalescent model
+>>> def coalescent_callback(state, nr_samples=3):
+...     if len(state) == 0:
+...         return [(np.array([nr_samples]), 1.0, [1.0])]
+...     if state[0] > 1:
+...         n = state[0]
+...         rate = n * (n - 1) / 2
+...         return [(np.array([n - 1]), 0.0, [rate])]
+...     return []
+>>>
+>>> g = Graph.from_callback_parameterized(coalescent_callback, nr_samples=4)
+>>> model = Graph.pmf_from_graph(g, discrete=False)
+>>>
+>>> # Generate synthetic observed data
+>>> true_theta = jnp.array([2.0])
+>>> times = jnp.linspace(0.1, 3.0, 15)
+>>> observed_pdf = model(true_theta, times)
+>>>
+>>> # Run SVGD inference
+>>> results = Graph.svgd(
+...     model=model,
+...     observed_data=observed_pdf,
+...     theta_dim=1,
+...     n_particles=30,
+...     n_iterations=500,
+...     learning_rate=0.01
+... )
+>>>
+>>> print(f"True theta: {true_theta}")
+>>> print(f"Posterior mean: {results['theta_mean']}")
+>>> print(f"Posterior std: {results['theta_std']}")
 ```
 
-random_sample_discrete_stop_vertex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, jumps: int) -> int
-
-### random_sample_stop_vertex { #ptdalgorithms.Graph.random_sample_stop_vertex }
-
-```python
-ptdalgorithms.Graph.random_sample_stop_vertex()
-```
-
-random_sample_stop_vertex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, time: float) -> int
-
-### reward_transform { #ptdalgorithms.Graph.reward_transform }
-
-```python
-ptdalgorithms.Graph.reward_transform()
-```
-
-reward_transform(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float]) -> ptdalgorithms.ptdalgorithmscpp_pybind.Graph
-
-### reward_transform_discrete { #ptdalgorithms.Graph.reward_transform_discrete }
-
-```python
-ptdalgorithms.Graph.reward_transform_discrete()
-```
-
-reward_transform_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[int]) -> ptdalgorithms.ptdalgorithmscpp_pybind.Graph
-
-### sample { #ptdalgorithms.Graph.sample }
-
-```python
-ptdalgorithms.Graph.sample()
-```
-
-sample(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, n: int = 1, rewards: list[float] = []) -> list[float]
-
-### sample_discrete { #ptdalgorithms.Graph.sample_discrete }
-
-```python
-ptdalgorithms.Graph.sample_discrete()
-```
-
-sample_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, n: int = 1, rewards: list[float] = []) -> list[float]
-
-### sample_multivariate { #ptdalgorithms.Graph.sample_multivariate }
-
-```python
-ptdalgorithms.Graph.sample_multivariate()
-```
-
-sample_multivariate(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, n: int = 1, rewards: numpy.ndarray[numpy.float64[m, n]] = []) -> numpy.ndarray[numpy.float64[m, n]]
-
-### sample_multivariate_discrete { #ptdalgorithms.Graph.sample_multivariate_discrete }
-
-```python
-ptdalgorithms.Graph.sample_multivariate_discrete()
-```
-
-sample_multivariate_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, n: int = 1, rewards: numpy.ndarray[numpy.float64[m, n]] = []) -> numpy.ndarray[numpy.float64[m, n]]
-
-### starting_vertex { #ptdalgorithms.Graph.starting_vertex }
-
-```python
-ptdalgorithms.Graph.starting_vertex()
-```
-
-starting_vertex(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> ptdalgorithms::Vertex
-
-### state_length { #ptdalgorithms.Graph.state_length }
-
-```python
-ptdalgorithms.Graph.state_length()
-```
-
-state_length(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> int
-
-### states { #ptdalgorithms.Graph.states }
-
-```python
-ptdalgorithms.Graph.states()
-```
-
-states(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> numpy.ndarray[numpy.int32[m, n]]
-
-
-//' Returns a matrix where each row is the state of the vertex at that index
-//' 
-//' @return A matrix of size [ptdalgorithms::vertices_length()] where the rows match the state of the vertex at that index
-//' 
-//' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
-//' 
-//' @examples
-//' graph <- ptdalgorithms::create_graph(4)
-//' ptdalgorithms::create_vertex(graph, c(1,2,3,4))
-//' ptdalgorithms::create_vertex(graph, c(4,3,3,3))
-//' ptdalgorithms::states(graph) # => 
-//' # 0 0 0 0
-//' # 1 2 3 4
-//' # 4 3 3 3
-
-### stop_probability { #ptdalgorithms.Graph.stop_probability }
-
-```python
-ptdalgorithms.Graph.stop_probability()
-```
-
-stop_probability(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, time: float, granularity: int = 0) -> list[float]
-
-### stop_probability_discrete { #ptdalgorithms.Graph.stop_probability_discrete }
-
-```python
-ptdalgorithms.Graph.stop_probability_discrete()
-```
-
-stop_probability_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, jumps: int) -> list[float]
-
-### update_parameterized_weights { #ptdalgorithms.Graph.update_parameterized_weights }
-
-```python
-ptdalgorithms.Graph.update_parameterized_weights()
-```
-
-update_parameterized_weights(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float]) -> None
-
-
-//' Updates all parameterized edges of the graph by given scalars.
-//' 
-//' @description
-//' Given a vector of scalars, computes a new weight of
-//' the parameterized edges in the graph by a simple inner
-//' product of the edge state vector and the scalar vector.
-//' 
-//' @details
-//' A faster and simpler version to compute new moments, when
-//' the user wants to try multiple different weights.
-//'
-//' 
-//' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
-//' @param scalars A numeric vector of multiplies for the edge states.
-//' 
-//' @seealso [ptdalgorithms::expected_waiting_time()]
-//' @seealso [ptdalgorithms::add_edge()]
-//' 
-//' @examples
-//' graph <- create_graph(4)
-//' v1 <- find_or_create_vertex(graph, c(1,2,1,0))
-//' v2 <- find_or_create_vertex(graph, c(2,0,1,0))
-//' add_edge(starting_vertex(graph), v1, 5)
-//' add_edge(v1, v2, 0, c(5,2))
-//' edges(starting_vertex(graph))[[1]]$weight # => 5
-//' edges(v1)[[1]]$weight # => 0
-//' graph_update_weights_parameterized(graph, c(9,7))
-//' edges(starting_vertex(graph))[[1]]$weight # => 5
-//' edges(v1)[[1]]$weight # => 59
-
-### validate { #ptdalgorithms.Graph.validate }
-
-```python
-ptdalgorithms.Graph.validate()
-```
-
-validate(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> None
-
-### variance { #ptdalgorithms.Graph.variance }
-
-```python
-ptdalgorithms.Graph.variance()
-```
-
-variance(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, rewards: list[float] = []) -> float
-
-
-//' Computes the variance of the phase-type distribution
-//' 
-//' @description
-//' This function invokes [ptdalgorithms::expected_waiting_times()]
-//' twice to find the first and second moment
-//' 
-//' @return The variance of the distribution
-//' 
-//' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
-//' @param rewards Optional rewards, which should be applied to the phase-type distribution. Must have length equal to [ptdalgorithms::vertices_length()]
-//' 
-//' @seealso [ptdalgorithms::expected_waiting_time()]
-//' @seealso [ptdalgorithms::expectation()]
-//' @seealso [ptdalgorithms::moments()]
-//' @seealso [ptdalgorithms::covariance()]
-//' 
-//' @examples
-//' graph <- ptdalgorithms::create_graph(4)
-//' v1 <- ptdalgorithms::create_vertex(graph, c(1,2,3,4))
-//' v2 <- ptdalgorithms::create_vertex(graph, c(4,0,3,3))
-//' a <- ptdalgorithms::create_vertex(graph, c(0,0,0,0))
-//' ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), v1, 1)
-//' ptdalgorithms::add_edge(v1, v2, 4)
-//' ptdalgorithms::add_edge(v2, a, 10)
-//' ptdalgorithms::variance(graph) # =>
-//'   0.0725
-//' ptdalgorithms::variance(graph, c(0,2,1,0)) # =>
-//'   0.26
-//' ph <- ptdalgorithms::graph_as_matrix(graph)
-//' # This is a much faster version of
-//' 2*ph$IPV%*%solve(-ph$SIM)%*%solve(-ph$SIM) %*% rep(1, length(ph$IPV)) - ph$IPV%*%solve(-ph$SIM) %*% rep(1, length(ph$IPV)) %*% ph$IPV%*%solve(-ph$SIM) %*% rep(1, length(ph$IPV)) # =>
-//'   0.0725
-//' 2*ph$IPV%*%solve(-ph$SIM)%*%diag(c(2,1))%*%solve(-ph$SIM)%*%diag(c(2,1)) %*% rep(1, length(ph$IPV)) - ph$IPV%*%solve(-ph$SIM)%*%diag(c(2,1)) %*% rep(1, length(ph$IPV)) %*% ph$IPV%*%solve(-ph$SIM)%*%diag(c(2,1)) %*% rep(1, length(ph$IPV)) # =>
-//'   0.26
-
-### variance_discrete { #ptdalgorithms.Graph.variance_discrete }
-
-```python
-ptdalgorithms.Graph.variance_discrete()
-```
-
-variance_discrete(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, arg0: list[float]) -> float
-
-### vertex_at { #ptdalgorithms.Graph.vertex_at }
-
-```python
-ptdalgorithms.Graph.vertex_at()
-```
-
-vertex_at(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, index: int) -> ptdalgorithms::Vertex
-
-### vertex_exists { #ptdalgorithms.Graph.vertex_exists }
-
-```python
-ptdalgorithms.Graph.vertex_exists()
-```
-
-vertex_exists(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph, state: list[int]) -> bool
-
-### vertices { #ptdalgorithms.Graph.vertices }
-
-```python
-ptdalgorithms.Graph.vertices()
-```
-
-vertices(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> list[ptdalgorithms::Vertex]
-
-
-//' Obtain a list of all vertices in the graph
-//' 
-//' @description
-//' Returns all vertices that have been added to the
-//' graph from either calling `find_or_create_vertex` or
-//' `create_vertex`. The first vertex in the list is
-//' *always* the starting vertex [ptdalgorithms::starting_vertex()].
-//' Importantly, for speed, use [ptdalgorithms::vertices_length()] to get the number
-//' of added vertices, and use [ptdalgorithms::vertex_at()] to
-//' get a vertex at a particular index.
-//' 
-//' @details
-//' The list of vertices contains any added vertex, even
-//' if it does not have any in-going / out-going edges.
-//' 
-//' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
-//' 
-//' @seealso [ptdalgorithms::starting_vertex()]
-//' @seealso [ptdalgorithms::vertices_length()]
-//' @seealso [ptdalgorithms::vertex_at()]
-//' 
-//' @examples
-//' graph <- create_graph(4)
-//' vertex_a <- find_or_create_vertex(graph, c(1,2,1,0))
-//' vertex_b <- find_or_create_vertex(graph, c(2,0,1,0))
-//' vertices(graph)[[1]] == starting_vertex(graph)
-//' vertices(graph)[[2]] == vertex_at(graph, 2)
-//' vertices_length(graph) == 3
-
-### vertices_length { #ptdalgorithms.Graph.vertices_length }
-
-```python
-ptdalgorithms.Graph.vertices_length()
-```
-
-vertices_length(self: ptdalgorithms.ptdalgorithmscpp_pybind.Graph) -> int
+#### Notes {.doc-section .doc-section-notes}
+
+- SVGD requires a parameterized model. Non-parameterized models (signature: model(times))
+  cannot be used for inference as there are no parameters to estimate.
+- The likelihood is computed as sum(log(model(theta, observed_data)))
+- For better results, ensure observed_data has sufficient information about the parameters
+- Learning rate and number of iterations may need tuning for different problems

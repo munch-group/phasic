@@ -1,0 +1,59 @@
+# initialize_distributed { #ptdalgorithms.initialize_distributed }
+
+```python
+ptdalgorithms.initialize_distributed(
+    cpus_per_task=None,
+    coordinator_port=12345,
+    platform='cpu',
+    enable_x64=True,
+)
+```
+
+Initialize distributed computing with automatic environment detection.
+
+This is the main entry point for distributed computing. It handles:
+- SLURM environment detection
+- Coordinator setup
+- JAX distributed initialization
+- Device configuration
+
+For single-node setups, it creates multiple local devices.
+For multi-node SLURM setups, it initializes JAX distributed.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**cpus_per_task**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Number of CPUs per task (devices per node). If None, auto-detected from SLURM_CPUS_PER_TASK or defaults to 1.
+
+<code>[**coordinator_port**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [12345]{.parameter-default}</code>
+
+:   Port for coordinator communication (multi-node only)
+
+<code>[**platform**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [\"cpu\"]{.parameter-default}</code>
+
+:   Platform type: "cpu" or "gpu"
+
+<code>[**enable_x64**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   Enable 64-bit precision in JAX
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[DistributedConfig](`ptdalgorithms.distributed_utils.DistributedConfig`)]{.parameter-annotation}</code>
+
+:   Configuration object with all distributed computing information
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> # Single-node with 8 CPUs
+>>> dist_info = initialize_distributed(cpus_per_task=8)
+>>>
+>>> # Multi-node SLURM (auto-detected)
+>>> dist_info = initialize_distributed()
+>>>
+>>> # Use in your code
+>>> if dist_info.is_coordinator:
+>>>     print("I am the coordinator!")
+```

@@ -1,0 +1,26 @@
+# get_coordinator_address { #ptdalgorithms.get_coordinator_address }
+
+```python
+ptdalgorithms.get_coordinator_address(slurm_env, port=12345)
+```
+
+Determine the coordinator address for JAX distributed.
+
+For SLURM clusters, the first node in the allocation becomes the coordinator.
+For single-node setups, uses localhost.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**slurm_env**]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation}</code>
+
+:   SLURM environment from detect_slurm_environment()
+
+<code>[**port**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [12345]{.parameter-default}</code>
+
+:   Port for coordinator communication
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation}</code>
+
+:   Coordinator address in format "host:port"

@@ -74,59 +74,48 @@ namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
 
 
 
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["osx-arm64", "win-64", "osx-64", "linux-64"]
 
-# [tool.setuptools.dynamic]
-# version = {attr = "ptdalgorithms.__version__"}
+[tool.pixi.dependencies]
+python = ">=3.9"
+git = "*"
+gh = "*"
+quartodoc = "*"
+pip = "*"
 
+[tool.pixi.tasks.git-remove-untracked]
+cmd = "git clean -fd"
+description = "Removes untracked files and directories but respects your .gitignores"
 
-# [tool.setuptools.package-data]
-# franklin = ["data/*.yaml", "data/gitui/*", "data/repo_templates/exercise/*", "data/repo_templates/base/*"]
+# [tool.pixi.tasks.test]
+# cmd = "python -m unittest"
+# description = "Run tests"
 
+ # setup-kernel = "python -m ipykernel install --user --name franklin --display-name 'Franklin Python'"
+# quarto-render = { cmd = "quarto render", env = { QUARTO_PYTHON = ".pixi/envs/default/bin/python" } }
 
+[tool.pixi.tasks.bump-version]
+args = [
+  { "arg" = "kind", "default" = "patch" },  # can be patch, minor, major
+  { "arg" = "flag", "default" = "" },     # can be --pre, --release
+]
+cmd = "./.scripts/bump_version.py --{{ kind }} {{ flag }} &&  git add -u &&  git commit -m '{{ kind }} {{ flag }} version bump' && git push" 
+description = "Bump version patch and build/release conda packages"
 
-# [tool.cibuildwheel]
-# test-command = "pytest {project}/tests"
+[tool.pixi.tasks.bump-changelog]
+cmd = "./.scripts/bump_changelog.py --yes"
+description = "Bump version patch and build/release conda packages"
 
-# test-command = "python {project}/tests/test.py"
-# test-skip = "*universal2:arm64"
+[tool.pixi.tasks.acp]
+args = [
+  { "arg" = "message", "default" = "update" },  # can be --patch, --minor, --major
+]
+cmd = "git add -u ; git commit -m '{{ message }}' ; git push"
+description = "git add commit push of tracked files with optional message"
 
-
-
-# [tool.ruff]
-# target-version = "py37"
-
-# [tool.ruff.lint]
-# extend-select = [
-#   "B",   # flake8-bugbear
-#   "I",   # isort
-#   "PGH", # pygrep-hooks
-#   "RUF", # Ruff-specific
-#   "UP",  # pyupgrade
-# ]
-
-# [tool.pixi.workspace]
-# channels = ["conda-forge", "r"]
-# platforms = ["linux-aarch64", "linux-64"]
-
-# [tool.pixi.pypi-dependencies]
-# ptdalgorithms = { path = ".", editable = true }
-
-# [tool.pixi.tasks]
-
-# [tool.pixi.dependencies]
-# python = "3.11.*"
-# jupyterlab = "*"
-# nodejs = "*"
-# r-essentials = "*"
-# graphviz = "*"
-# r-rsvg = "*"
-# r-foreach = "*"
-# r-viridis = "*"
-# r-devtools = "*"
-# r-roxygen2 = "*"
-# r-irkernel = "*"
-# r-irdisplay = "*"
-# r-languageserver = "*"
-# pip = "*"
-# conda-build = "*"
+[tool.pixi.tasks.github-release]
+cmd = "./.scripts/release-tag.sh"
+description = "Release latest version on Github"
 

@@ -1,0 +1,19 @@
+# configure_jax_devices { #ptdalgorithms.configure_jax_devices }
+
+```python
+ptdalgorithms.configure_jax_devices(num_devices, platform='cpu')
+```
+
+Configure JAX device count using XLA_FLAGS.
+
+This must be called before importing JAX.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**num_devices**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Number of devices to create on this node
+
+<code>[**platform**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [\"cpu\"]{.parameter-default}</code>
+
+:   Platform type: "cpu" or "gpu"

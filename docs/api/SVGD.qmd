@@ -1,0 +1,381 @@
+# SVGD { #ptdalgorithms.SVGD }
+
+```python
+ptdalgorithms.SVGD(
+    model,
+    observed_data,
+    prior=None,
+    n_particles=50,
+    n_iterations=1000,
+    learning_rate=0.001,
+    kernel='rbf_median',
+    theta_init=None,
+    theta_dim=None,
+    seed=42,
+    verbose=True,
+)
+```
+
+Stein Variational Gradient Descent (SVGD) for Bayesian parameter inference.
+
+This class provides an object-oriented interface for SVGD inference with
+automatic result storage and diagnostic plotting capabilities.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**model**]{.parameter-name} [:]{.parameter-annotation-sep} [[callable](`callable`)]{.parameter-annotation}</code>
+
+:   JAX-compatible parameterized model with signature: model(theta, data) -> values
+
+<code>[**observed_data**]{.parameter-name} [:]{.parameter-annotation-sep} [[array_like](`array_like`)]{.parameter-annotation}</code>
+
+:   Observed data points
+
+<code>[**prior**]{.parameter-name} [:]{.parameter-annotation-sep} [[callable](`callable`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Log prior function: prior(theta) -> scalar. If None, uses standard normal prior: log p(theta) = -0.5 * sum(theta^2)
+
+<code>[**n_particles**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [50]{.parameter-default}</code>
+
+:   Number of SVGD particles
+
+<code>[**n_iterations**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1000]{.parameter-default}</code>
+
+:   Number of SVGD optimization steps
+
+<code>[**learning_rate**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.001]{.parameter-default}</code>
+
+:   SVGD step size
+
+<code>[**kernel**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'rbf_median\']{.parameter-default}</code>
+
+:   Kernel bandwidth selection method
+
+<code>[**theta_init**]{.parameter-name} [:]{.parameter-annotation-sep} [[array_like](`array_like`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Initial particle positions (n_particles, theta_dim)
+
+<code>[**theta_dim**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Dimension of theta parameter vector (required if theta_init is None)
+
+<code>[**seed**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [42]{.parameter-default}</code>
+
+:   Random seed for reproducibility
+
+<code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   Print progress information
+
+## Attributes {.doc-section .doc-section-attributes}
+
+<code>[**particles**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`)]{.parameter-annotation}</code>
+
+:   Final posterior samples (n_particles, theta_dim)
+
+<code>[**theta_mean**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`)]{.parameter-annotation}</code>
+
+:   Posterior mean estimate
+
+<code>[**theta_std**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`)]{.parameter-annotation}</code>
+
+:   Posterior standard deviation
+
+<code>[**history**]{.parameter-name} [:]{.parameter-annotation-sep} [list of arrays, optional]{.parameter-annotation}</code>
+
+:   Particle evolution over iterations (if fit was called with return_history=True)
+
+<code>[**is_fitted**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation}</code>
+
+:   Whether fit() has been called
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> # Build parameterized model
+>>> graph = Graph(callback=coalescent, parameterized=True, nr_samples=3)
+>>> model = Graph.pmf_from_graph(graph)
+>>>
+>>> # Create SVGD object and fit
+>>> svgd = SVGD(model, observed_data, theta_dim=1)
+>>> svgd.fit()
+>>>
+>>> # Access results
+>>> print(svgd.theta_mean)
+>>> print(svgd.theta_std)
+>>>
+>>> # Generate diagnostic plots
+>>> svgd.plot_posterior()
+>>> svgd.plot_trace()
+```
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [fit](#ptdalgorithms.SVGD.fit) | Run SVGD inference to approximate the posterior distribution. |
+| [fit_regularized](#ptdalgorithms.SVGD.fit_regularized) | Run SVGD with moment-based regularization. |
+| [get_results](#ptdalgorithms.SVGD.get_results) | Get inference results as a dictionary. |
+| [plot_convergence](#ptdalgorithms.SVGD.plot_convergence) | Plot convergence diagnostics showing mean and std over iterations. |
+| [plot_pairwise](#ptdalgorithms.SVGD.plot_pairwise) | Plot pairwise scatter plots for all parameter pairs. |
+| [plot_posterior](#ptdalgorithms.SVGD.plot_posterior) | Plot posterior distributions for each parameter. |
+| [plot_trace](#ptdalgorithms.SVGD.plot_trace) | Plot trace plots showing particle evolution over iterations. |
+| [summary](#ptdalgorithms.SVGD.summary) | Print a summary of the inference results. |
+
+### fit { #ptdalgorithms.SVGD.fit }
+
+```python
+ptdalgorithms.SVGD.fit(return_history=False)
+```
+
+Run SVGD inference to approximate the posterior distribution.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**return_history**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, store particle positions throughout optimization
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[self](`self`)]{.parameter-annotation}</code>
+
+:   Returns self for method chaining
+
+### fit_regularized { #ptdalgorithms.SVGD.fit_regularized }
+
+```python
+ptdalgorithms.SVGD.fit_regularized(
+    observed_times=None,
+    nr_moments=2,
+    regularization=1.0,
+    return_history=False,
+)
+```
+
+Run SVGD with moment-based regularization.
+
+Adds regularization term that penalizes difference between model moments
+and sample moments, improving stability and convergence.
+
+The regularized objective is:
+    log p(theta | data) = log p(data|theta) + log p(theta) - λ * Σ_k (E[T^k|theta] - mean(data^k))^2
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**observed_times**]{.parameter-name} [:]{.parameter-annotation-sep} [[array_like](`array_like`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Actual observed data points (waiting times, not PMF values). Used for computing sample moments. If None, uses self.observed_data (assumes it contains times, not PMF values).
+
+<code>[**nr_moments**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [2]{.parameter-default}</code>
+
+:   Number of moments to use for regularization. Higher moments provide stronger constraints but may be less stable. Example: nr_moments=2 uses E[T] and E[T^2]
+
+<code>[**regularization**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1.0]{.parameter-default}</code>
+
+:   Strength of moment regularization (λ in objective). - 0.0: No regularization (equivalent to standard SVGD) - 0.1-1.0: Mild regularization - 1.0-10.0: Strong regularization Higher values enforce moment matching more strongly.
+
+<code>[**return_history**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   Whether to store particle history
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[self](`self`)]{.parameter-annotation}</code>
+
+:   Returns self for method chaining
+
+#### Raises {.doc-section .doc-section-raises}
+
+<code>[:]{.parameter-annotation-sep} [[ValueError](`ValueError`)]{.parameter-annotation}</code>
+
+:   If model doesn't support moments (wasn't created with pmf_and_moments_from_graph)
+
+<code>[:]{.parameter-annotation-sep} [[ValueError](`ValueError`)]{.parameter-annotation}</code>
+
+:   If observed_times is None and cannot determine sample moments
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> # Create parameterized model with moments
+>>> graph = Graph(callback=coalescent, parameterized=True, nr_samples=4)
+>>> model = Graph.pmf_and_moments_from_graph(graph, nr_moments=2)
+>>>
+>>> # Generate observed data
+>>> true_theta = jnp.array([0.8])
+>>> observed_times = jnp.array([0.5, 1.2, 0.8, 1.5, 2.0])
+>>> observed_pmf = model(true_theta, observed_times)[0]  # Extract PMF values
+>>>
+>>> # Run regularized SVGD
+>>> svgd = SVGD(model, observed_pmf, theta_dim=1)
+>>> svgd.fit_regularized(observed_times=observed_times, nr_moments=2, regularization=1.0)
+>>>
+>>> # Access results
+>>> print(f"Posterior mean: {svgd.theta_mean}")
+>>> print(f"Posterior std: {svgd.theta_std}")
+```
+
+#### Notes {.doc-section .doc-section-notes}
+
+- Requires model created with Graph.pmf_and_moments_from_graph()
+- The regularization term stabilizes inference by matching distribution moments
+- Particularly useful when observed data is sparse or noisy
+- Start with regularization=1.0 and adjust based on performance
+
+### get_results { #ptdalgorithms.SVGD.get_results }
+
+```python
+ptdalgorithms.SVGD.get_results()
+```
+
+Get inference results as a dictionary.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation}</code>
+
+:   Dictionary containing: - 'particles': Final posterior samples - 'theta_mean': Posterior mean - 'theta_std': Posterior standard deviation - 'history': Particle evolution (if available)
+
+### plot_convergence { #ptdalgorithms.SVGD.plot_convergence }
+
+```python
+ptdalgorithms.SVGD.plot_convergence(figsize=(10, 4), save_path=None)
+```
+
+Plot convergence diagnostics showing mean and std over iterations.
+
+Requires fit() to have been called with return_history=True.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**figsize**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [(10, 4)]{.parameter-default}</code>
+
+:   Figure size (width, height)
+
+<code>[**save_path**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Path to save the plot
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [([fig](`fig`), [axes](`axes`))]{.parameter-annotation}</code>
+
+:   Matplotlib figure and axes objects
+
+### plot_pairwise { #ptdalgorithms.SVGD.plot_pairwise }
+
+```python
+ptdalgorithms.SVGD.plot_pairwise(
+    true_theta=None,
+    param_names=None,
+    figsize=None,
+    save_path=None,
+)
+```
+
+Plot pairwise scatter plots for all parameter pairs.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**true_theta**]{.parameter-name} [:]{.parameter-annotation-sep} [[array_like](`array_like`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   True parameter values (if known) to overlay on plot
+
+<code>[**param_names**]{.parameter-name} [:]{.parameter-annotation-sep} [list of str]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Names for each parameter dimension
+
+<code>[**figsize**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Figure size (width, height)
+
+<code>[**save_path**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Path to save the plot
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [([fig](`fig`), [axes](`axes`))]{.parameter-annotation}</code>
+
+:   Matplotlib figure and axes objects
+
+### plot_posterior { #ptdalgorithms.SVGD.plot_posterior }
+
+```python
+ptdalgorithms.SVGD.plot_posterior(
+    true_theta=None,
+    param_names=None,
+    bins=20,
+    figsize=None,
+    save_path=None,
+)
+```
+
+Plot posterior distributions for each parameter.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**true_theta**]{.parameter-name} [:]{.parameter-annotation-sep} [[array_like](`array_like`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   True parameter values (if known) to overlay on plot
+
+<code>[**param_names**]{.parameter-name} [:]{.parameter-annotation-sep} [list of str]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Names for each parameter dimension
+
+<code>[**bins**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [20]{.parameter-default}</code>
+
+:   Number of histogram bins
+
+<code>[**figsize**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Figure size (width, height)
+
+<code>[**save_path**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Path to save the plot
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [([fig](`fig`), [axes](`axes`))]{.parameter-annotation}</code>
+
+:   Matplotlib figure and axes objects
+
+### plot_trace { #ptdalgorithms.SVGD.plot_trace }
+
+```python
+ptdalgorithms.SVGD.plot_trace(param_names=None, figsize=None, save_path=None)
+```
+
+Plot trace plots showing particle evolution over iterations.
+
+Requires fit() to have been called with return_history=True.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**param_names**]{.parameter-name} [:]{.parameter-annotation-sep} [list of str]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Names for each parameter dimension
+
+<code>[**figsize**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Figure size (width, height)
+
+<code>[**save_path**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Path to save the plot
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [([fig](`fig`), [axes](`axes`))]{.parameter-annotation}</code>
+
+:   Matplotlib figure and axes objects
+
+### summary { #ptdalgorithms.SVGD.summary }
+
+```python
+ptdalgorithms.SVGD.summary()
+```
+
+Print a summary of the inference results.

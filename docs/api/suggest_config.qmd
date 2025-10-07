@@ -1,0 +1,30 @@
+# suggest_config { #ptdalgorithms.suggest_config }
+
+```python
+ptdalgorithms.suggest_config(num_particles, particles_per_device=4)
+```
+
+Suggest optimal cluster configuration for a given particle count.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**num_particles**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Number of particles for inference
+
+<code>[**particles_per_device**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [4]{.parameter-default}</code>
+
+:   Target particles per device (2-8 recommended)
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[ClusterConfig](`ptdalgorithms.cluster_configs.ClusterConfig`)]{.parameter-annotation}</code>
+
+:   Suggested configuration
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> config = suggest_config(num_particles=128)
+>>> print(config)  # Suggests 4 nodes × 8 CPUs = 32 devices
+```

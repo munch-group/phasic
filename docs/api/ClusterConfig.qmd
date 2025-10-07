@@ -1,0 +1,103 @@
+# ClusterConfig { #ptdalgorithms.ClusterConfig }
+
+```python
+ptdalgorithms.ClusterConfig(
+    name='default',
+    nodes=1,
+    cpus_per_node=8,
+    memory_per_cpu='4G',
+    time_limit='01:00:00',
+    partition='compute',
+    qos=None,
+    coordinator_port=12345,
+    platform='cpu',
+    gpus_per_node=None,
+    network_interface=None,
+    extra_sbatch_options=dict(),
+    env_vars=dict(),
+    modules_to_load=list(),
+)
+```
+
+Configuration for a SLURM cluster setup.
+
+## Attributes {.doc-section .doc-section-attributes}
+
+<code>[**name**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation}</code>
+
+:   Name of this configuration
+
+<code>[**nodes**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Number of nodes (machines) to request
+
+<code>[**cpus_per_node**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   CPUs per node (devices per node)
+
+<code>[**memory_per_cpu**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation}</code>
+
+:   Memory per CPU (e.g., "4G", "8G")
+
+<code>[**time_limit**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation}</code>
+
+:   Maximum job runtime (e.g., "01:00:00", "04:00:00")
+
+<code>[**partition**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation}</code>
+
+:   SLURM partition/queue name
+
+<code>[**qos**]{.parameter-name} [:]{.parameter-annotation-sep} [([str](`str`), [optional](`optional`))]{.parameter-annotation}</code>
+
+:   Quality of service
+
+<code>[**coordinator_port**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Port for JAX coordinator
+
+<code>[**platform**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation}</code>
+
+:   Platform type: "cpu" or "gpu"
+
+<code>[**gpus_per_node**]{.parameter-name} [:]{.parameter-annotation-sep} [([int](`int`), [optional](`optional`))]{.parameter-annotation}</code>
+
+:   Number of GPUs per node (if platform="gpu")
+
+<code>[**network_interface**]{.parameter-name} [:]{.parameter-annotation-sep} [([str](`str`), [optional](`optional`))]{.parameter-annotation}</code>
+
+:   Network interface for inter-node communication (e.g., "ib0", "eth0")
+
+<code>[**extra_sbatch_options**]{.parameter-name} [:]{.parameter-annotation-sep} [[Dict](`typing.Dict`)\[[str](`str`), [str](`str`)\]]{.parameter-annotation}</code>
+
+:   Additional SBATCH options
+
+<code>[**env_vars**]{.parameter-name} [:]{.parameter-annotation-sep} [[Dict](`typing.Dict`)\[[str](`str`), [str](`str`)\]]{.parameter-annotation}</code>
+
+:   Environment variables to set
+
+<code>[**modules_to_load**]{.parameter-name} [:]{.parameter-annotation-sep} [[List](`typing.List`)\[[str](`str`)\]]{.parameter-annotation}</code>
+
+:   Modules to load before execution
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [to_dict](#ptdalgorithms.ClusterConfig.to_dict) | Convert to dictionary. |
+| [to_yaml](#ptdalgorithms.ClusterConfig.to_yaml) | Save configuration to YAML file. |
+
+### to_dict { #ptdalgorithms.ClusterConfig.to_dict }
+
+```python
+ptdalgorithms.ClusterConfig.to_dict()
+```
+
+Convert to dictionary.
+
+### to_yaml { #ptdalgorithms.ClusterConfig.to_yaml }
+
+```python
+ptdalgorithms.ClusterConfig.to_yaml(filepath)
+```
+
+Save configuration to YAML file.

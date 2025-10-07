@@ -1,0 +1,26 @@
+# Debug Configuration - Single Node
+# Use this for quick testing and debugging before scaling up
+
+name: debug
+nodes: 1
+cpus_per_node: 4
+memory_per_cpu: "4G"
+time_limit: "00:30:00"
+partition: "debug"
+coordinator_port: 12345
+platform: "cpu"
+
+# Environment variables
+env_vars:
+  JAX_ENABLE_X64: "1"
+  XLA_PYTHON_CLIENT_PREALLOCATE: "false"
+
+# Modules to load (adjust for your cluster)
+modules_to_load:
+  - "python/3.11"
+
+# Additional SBATCH options
+extra_sbatch_options:
+  # Uncomment if needed:
+  # mail-type: "END,FAIL"
+  # mail-user: "your.email@institution.edu"

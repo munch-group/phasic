@@ -1,0 +1,59 @@
+# Production Configuration - 8 Nodes
+# Large-scale SVGD inference (512+ particles) with high priority
+
+name: production
+nodes: 8
+cpus_per_node: 32
+memory_per_cpu: "16G"
+time_limit: "08:00:00"
+partition: "compute"
+qos: "high"
+coordinator_port: 12345
+platform: "cpu"
+
+# Network configuration
+network_interface: "ib0"
+
+# Environment variables
+env_vars:
+  JAX_ENABLE_X64: "1"
+  XLA_PYTHON_CLIENT_PREALLOCATE: "false"
+  NCCL_SOCKET_IFNAME: "ib0"
+  NCCL_DEBUG: "INFO"  # More verbose for production monitoring
+
+# Performance tuning
+env_vars_extended:
+  # CPU optimization
+  XLA_FLAGS: "--xla_cpu_multi_thread_eigen=true --xla_cpu_enable_fast_math=true"
+  # InfiniBand optimization (uncomment if using IB)
+  # NCCL_IB_DISABLE: "0"
+  # NCCL_NET_GDR_LEVEL: "5"
+
+# Modules to load (adjust for your cluster)
+modules_to_load:
+  - "python/3.11"
+  - "gcc/11.2.0"
+  - "openmpi/4.1.4"
+
+# Additional SBATCH options
+extra_sbatch_options:
+  exclusive: true  # Request exclusive node access
+  requeue: true    # Requeue if preempted
+  mail-type: "BEGIN,END,FAIL"
+  # mail-user: "your.email@institution.edu"
+
+# Expected performance:
+# - Total devices: 8 × 32 = 256
+# - With 1024 particles: 4 particles per device
+# - Speedup: ~6-7x vs single node (8 nodes)
+# - Recommended for:
+#   * Large-scale SVGD (500+ particles)
+#   * High-dimensional parameter spaces
+#   * Production inference pipelines
+#   * Critical deadlines (high QoS)
+
+# Notes:
+# - Ensure sufficient walltime for large jobs
+# - Monitor network utilization with iftop/nload
+# - Check NCCL logs for communication bottlenecks
+# - Use checkpointing for jobs > 4 hours

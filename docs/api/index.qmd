@@ -1,12 +1,52 @@
 # Function reference {.doc .doc-index}
 
-## Some section
+## Graph Construction
 
-Some description...
+Graph components (Vertex and Edge are documented as part of Graph)
 
 
 | | |
 | --- | --- |
 | [Graph](Graph.qmd#ptdalgorithms.Graph) |  |
-| [Vertex](Vertex.qmd#ptdalgorithms.Vertex) |  |
-| [Edge](Edge.qmd#ptdalgorithms.Edge) |  |
+
+## JAX-compatible utils
+
+JAX-compatible phase-type distribution computations with FFI integration.
+Supports JIT compilation, automatic differentiation, and vmap/pmap parallelization.
+
+
+| | |
+| --- | --- |
+| [compute_pmf_ffi](compute_pmf_ffi.qmd#ptdalgorithms.compute_pmf_ffi) | Compute PMF (discrete) or PDF (continuous) using JAX FFI. |
+| [compute_moments_ffi](compute_moments_ffi.qmd#ptdalgorithms.compute_moments_ffi) | Compute distribution moments using JAX FFI. |
+| [compute_pmf_and_moments_ffi](compute_pmf_and_moments_ffi.qmd#ptdalgorithms.compute_pmf_and_moments_ffi) | Compute both PMF and moments efficiently using JAX FFI. |
+
+## Inference
+
+SVGD
+
+
+| | |
+| --- | --- |
+| [SVGD](SVGD.qmd#ptdalgorithms.SVGD) | Stein Variational Gradient Descent (SVGD) for Bayesian parameter inference. |
+
+## Distributed Computing
+
+Multi-node distributed computing utilities for SLURM clusters.
+Simplifies scaling from single machine to 100+ nodes with automatic
+JAX distributed initialization and configuration management.
+
+
+| | |
+| --- | --- |
+| [DistributedConfig](DistributedConfig.qmd#ptdalgorithms.DistributedConfig) | Configuration for distributed computing. |
+| [initialize_distributed](initialize_distributed.qmd#ptdalgorithms.initialize_distributed) | Initialize distributed computing with automatic environment detection. |
+| [detect_slurm_environment](detect_slurm_environment.qmd#ptdalgorithms.detect_slurm_environment) | Detect and parse SLURM environment variables. |
+| [get_coordinator_address](get_coordinator_address.qmd#ptdalgorithms.get_coordinator_address) | Determine the coordinator address for JAX distributed. |
+| [configure_jax_devices](configure_jax_devices.qmd#ptdalgorithms.configure_jax_devices) | Configure JAX device count using XLA_FLAGS. |
+| [initialize_jax_distributed](initialize_jax_distributed.qmd#ptdalgorithms.initialize_jax_distributed) | Initialize JAX distributed computing. |
+| [ClusterConfig](ClusterConfig.qmd#ptdalgorithms.ClusterConfig) | Configuration for a SLURM cluster setup. |
+| [load_config](load_config.qmd#ptdalgorithms.load_config) | Load cluster configuration from YAML file. |
+| [get_default_config](get_default_config.qmd#ptdalgorithms.get_default_config) | Get a pre-defined configuration profile. |
+| [validate_config](validate_config.qmd#ptdalgorithms.validate_config) | Validate configuration for a given number of particles. |
+| [suggest_config](suggest_config.qmd#ptdalgorithms.suggest_config) | Suggest optimal cluster configuration for a given particle count. |

@@ -1,0 +1,28 @@
+# initialize_jax_distributed { #ptdalgorithms.initialize_jax_distributed }
+
+```python
+ptdalgorithms.initialize_jax_distributed(
+    coordinator_address,
+    num_processes,
+    process_id,
+)
+```
+
+Initialize JAX distributed computing.
+
+This enables multi-node parallelization where pmap/pjit operations
+are distributed across all nodes in the cluster.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**coordinator_address**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation}</code>
+
+:   Address of coordinator node (host:port)
+
+<code>[**num_processes**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Total number of processes in the cluster
+
+<code>[**process_id**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Rank of this process (0 to num_processes-1)

@@ -1,0 +1,26 @@
+# load_config { #ptdalgorithms.load_config }
+
+```python
+ptdalgorithms.load_config(filepath)
+```
+
+Load cluster configuration from YAML file.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**filepath**]{.parameter-name} [:]{.parameter-annotation-sep} [[Path](`pathlib.Path`)]{.parameter-annotation}</code>
+
+:   Path to YAML configuration file
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[ClusterConfig](`ptdalgorithms.cluster_configs.ClusterConfig`)]{.parameter-annotation}</code>
+
+:   Loaded configuration
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> config = load_config("examples/slurm_configs/production.yaml")
+>>> print(config.nodes, config.cpus_per_node)
+```

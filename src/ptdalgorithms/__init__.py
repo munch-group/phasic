@@ -37,6 +37,37 @@ if HAS_JAX:
 else:
     SVGD = None
 
+# Distributed computing utilities
+from .distributed_utils import (
+    DistributedConfig,
+    initialize_distributed,
+    detect_slurm_environment,
+    get_coordinator_address,
+    configure_jax_devices,
+    initialize_jax_distributed
+)
+
+# Cluster configuration management
+from .cluster_configs import (
+    ClusterConfig,
+    load_config,
+    get_default_config,
+    validate_config,
+    suggest_config
+)
+
+# JAX FFI wrappers (optional, requires JAX)
+if HAS_JAX:
+    from .ffi_wrappers import (
+        compute_pmf_ffi,
+        compute_moments_ffi,
+        compute_pmf_and_moments_ffi
+    )
+else:
+    compute_pmf_ffi = None
+    compute_moments_ffi = None
+    compute_pmf_and_moments_ffi = None
+
 __version__ = '0.19.106'
 
 GraphType = TypeVar('Graph')

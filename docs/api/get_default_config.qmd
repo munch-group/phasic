@@ -1,0 +1,26 @@
+# get_default_config { #ptdalgorithms.get_default_config }
+
+```python
+ptdalgorithms.get_default_config(profile='small')
+```
+
+Get a pre-defined configuration profile.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**profile**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'small\']{.parameter-default}</code>
+
+:   Configuration profile name. Options: - "debug": Single node for debugging (1 node, 4 CPUs) - "small": Small cluster (2 nodes, 8 CPUs each) - "medium": Medium cluster (4 nodes, 16 CPUs each) - "large": Large cluster (8 nodes, 16 CPUs each) - "production": Production setup (8 nodes, 32 CPUs each)
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[ClusterConfig](`ptdalgorithms.cluster_configs.ClusterConfig`)]{.parameter-annotation}</code>
+
+:   Pre-configured cluster setup
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> config = get_default_config("medium")
+>>> print(config)  # 4 nodes × 16 CPUs = 64 devices
+```

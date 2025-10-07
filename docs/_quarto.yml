@@ -61,6 +61,7 @@ website:
         - pages/getting_started.ipynb
         - section: "Basics"
           contents:
+            - pages/phase-type-distributions.qmd
             - pages/state_space.ipynb
             - pages/moments.ipynb
             - pages/distributions.ipynb
@@ -70,6 +71,11 @@ website:
             - pages/state_lumping.ipynb
             - pages/epochs.ipynb
             - pages/joint_prob.ipynb
+        - section: "Distributed Computing"
+          contents:
+            - pages/distributed_computing_basics.ipynb
+            - pages/distributed_svgd_inference.ipynb
+            - pages/slurm_cluster_setup.ipynb
         - section: "Examples"
           contents:
             - examples/python/rabbits_full_py_api_example.ipynb
@@ -100,24 +106,64 @@ quartodoc:
   # source_dir: ../src/cpp
   style: pkgdown
   dir: api
+  dynamic: true  # Use runtime import for compiled extensions
+  parser: numpy  # Use numpy docstring parser (more lenient)
   render_interlinks: true
   options:
     signature_name: full
     include_inherited: true
+    include_empty: false  # Skip items that can't be loaded
   renderer:
     style: markdown
     table_style: description-list
   sidebar: "api/_sidebar.yml"
   css: "api/_styles-quartodoc.css"
   sections:
-    - title: Some section
+    - title: Graph Construction
       package: ptdalgorithms
       desc: |
-        Some description...
+        Graph components (Vertex and Edge are documented as part of Graph)
       contents:
         - Graph
-        - Vertex
-        - Edge
+    - title: JAX-compatible utils
+      package: ptdalgorithms
+      desc: |
+        JAX-compatible phase-type distribution computations with FFI integration.
+        Supports JIT compilation, automatic differentiation, and vmap/pmap parallelization.
+      contents:
+        - compute_pmf_ffi
+        - compute_moments_ffi
+        - compute_pmf_and_moments_ffi
+    - title: Inference
+      package: ptdalgorithms
+      desc: |
+        SVGD
+      contents:
+        - SVGD
+    - title: Distributed Computing
+      package: ptdalgorithms
+      desc: |
+        Multi-node distributed computing utilities for SLURM clusters.
+        Simplifies scaling from single machine to 100+ nodes with automatic
+        JAX distributed initialization and configuration management.
+      contents:
+        # - subtitle: "Distributed Initialization"
+        #   desc: "Auto-detection and setup for multi-node computing"
+        - DistributedConfig
+        - initialize_distributed
+        - detect_slurm_environment
+        - get_coordinator_address
+        - configure_jax_devices
+        - initialize_jax_distributed
+        # - subtitle: "Cluster Configuration"
+        #   desc: "YAML-based cluster configuration management"
+        - ClusterConfig
+        - load_config
+        - get_default_config
+        - validate_config
+        - suggest_config
+
+
     # - title: Some other section
     #   package: ptdalgorithms
     #   desc: |

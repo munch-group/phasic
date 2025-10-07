@@ -4,8 +4,27 @@ website:
     - api/index.qmd
     - contents:
       - api/Graph.qmd
-      - api/Vertex.qmd
-      - api/Edge.qmd
-      section: Some section
+      section: Graph Construction
+    - contents:
+      - api/compute_pmf_ffi.qmd
+      - api/compute_moments_ffi.qmd
+      - api/compute_pmf_and_moments_ffi.qmd
+      section: JAX-compatible utils
+    - contents:
+      - api/SVGD.qmd
+      section: Inference
+    - contents:
+      - api/DistributedConfig.qmd
+      - api/initialize_distributed.qmd
+      - api/detect_slurm_environment.qmd
+      - api/get_coordinator_address.qmd
+      - api/configure_jax_devices.qmd
+      - api/initialize_jax_distributed.qmd
+      - api/ClusterConfig.qmd
+      - api/load_config.qmd
+      - api/get_default_config.qmd
+      - api/validate_config.qmd
+      - api/suggest_config.qmd
+      section: Distributed Computing
     id: api
   - id: dummy-sidebar

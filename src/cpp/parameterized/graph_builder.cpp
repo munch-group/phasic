@@ -1,0 +1,345 @@
+#include "graph_builder.hpp"
+#include <nlohmann/json.hpp>
+#include <stdexcept>
+#include <sstream>
+#include <cmath>
+
+using json = nlohmann::json;
+
+namespace ptdalgorithms {
+namespace parameterized {
+
+GraphBuilder::GraphBuilder(const std::string& structure_json) {
+    parse_structure(structure_json);
+}
+
+void GraphBuilder::parse_structure(const std::string& json_str) {
+    try {
+        json j = json::parse(json_str);
+
+        // Extract metadata
+        param_length_ = j.at("param_length").get<int>();
+        state_length_ = j.at("state_length").get<int>();
+        n_vertices_ = j.at("n_vertices").get<int>();
+
+        // Parse states
+        states_.reserve(n_vertices_);
+        auto states_json = j.at("states");
+        for (const auto& state_arr : states_json) {
+            std::vector<int> state;
+            state.reserve(state_length_);
+            for (const auto& val : state_arr) {
+                state.push_back(val.get<int>());
+            }
+            states_.push_back(state);
+        }
+
+        // Parse regular edges
+        auto edges_json = j.at("edges");
+        edges_.reserve(edges_json.size());
+        for (const auto& edge_arr : edges_json) {
+            RegularEdge edge;
+            edge.from_idx = edge_arr[0].get<int>();
+            edge.to_idx = edge_arr[1].get<int>();
+            edge.weight = edge_arr[2].get<double>();
+            edges_.push_back(edge);
+        }
+
+        // Parse starting vertex edges
+        auto start_edges_json = j.at("start_edges");
+        start_edges_.reserve(start_edges_json.size());
+        for (const auto& edge_arr : start_edges_json) {
+            RegularEdge edge;
+            edge.from_idx = -1;  // Starting vertex
+            edge.to_idx = edge_arr[0].get<int>();
+            edge.weight = edge_arr[1].get<double>();
+            start_edges_.push_back(edge);
+        }
+
+        // Parse parameterized edges (if present)
+        if (j.contains("param_edges")) {
+            auto param_edges_json = j.at("param_edges");
+            param_edges_.reserve(param_edges_json.size());
+            for (const auto& edge_arr : param_edges_json) {
+                ParameterizedEdge edge;
+                edge.from_idx = edge_arr[0].get<int>();
+                edge.to_idx = edge_arr[1].get<int>();
+                edge.coefficients.reserve(param_length_);
+                for (int i = 2; i < 2 + param_length_; i++) {
+                    edge.coefficients.push_back(edge_arr[i].get<double>());
+                }
+                param_edges_.push_back(edge);
+            }
+        }
+
+        // Parse starting vertex parameterized edges (if present)
+        if (j.contains("start_param_edges")) {
+            auto start_param_edges_json = j.at("start_param_edges");
+            start_param_edges_.reserve(start_param_edges_json.size());
+            for (const auto& edge_arr : start_param_edges_json) {
+                ParameterizedEdge edge;
+                edge.from_idx = -1;  // Starting vertex
+                edge.to_idx = edge_arr[0].get<int>();
+                edge.coefficients.reserve(param_length_);
+                for (int i = 1; i < 1 + param_length_; i++) {
+                    edge.coefficients.push_back(edge_arr[i].get<double>());
+                }
+                start_param_edges_.push_back(edge);
+            }
+        }
+
+    } catch (const json::exception& e) {
+        std::ostringstream oss;
+        oss << "Failed to parse graph structure JSON: " << e.what();
+        throw std::runtime_error(oss.str());
+    } catch (const std::exception& e) {
+        std::ostringstream oss;
+        oss << "Error parsing graph structure: " << e.what();
+        throw std::runtime_error(oss.str());
+    }
+}
+
+Graph GraphBuilder::build(const double* theta, size_t theta_len) {
+    // Validate theta length
+    if (static_cast<int>(theta_len) != param_length_) {
+        std::ostringstream oss;
+        oss << "Theta length mismatch: expected " << param_length_
+            << ", got " << theta_len;
+        throw std::invalid_argument(oss.str());
+    }
+
+    // Create graph with proper state dimension
+    Graph g(state_length_);
+
+    // Get starting vertex
+    Vertex* start = g.starting_vertex_p();
+
+    // Create all vertices
+    std::vector<Vertex*> vertices;
+    vertices.reserve(n_vertices_);
+
+    // Check if first vertex is starting vertex (all zeros)
+    bool first_is_start = true;
+    if (n_vertices_ > 0) {
+        for (int i = 0; i < state_length_; i++) {
+            if (states_[0][i] != 0) {
+                first_is_start = false;
+                break;
+            }
+        }
+    }
+
+    for (int i = 0; i < n_vertices_; i++) {
+        // Check if this is the starting vertex
+        bool is_start = true;
+        for (int j = 0; j < state_length_; j++) {
+            if (states_[i][j] != 0) {
+                is_start = false;
+                break;
+            }
+        }
+
+        if (is_start && i == 0) {
+            vertices.push_back(start);
+        } else {
+            vertices.push_back(g.find_or_create_vertex_p(states_[i]));
+        }
+    }
+
+    // Add regular edges
+    for (const auto& edge : edges_) {
+        Vertex* from_v = vertices[edge.from_idx];
+        Vertex* to_v = vertices[edge.to_idx];
+        from_v->add_edge(*to_v, edge.weight);
+    }
+
+    // Add starting vertex edges
+    for (const auto& edge : start_edges_) {
+        Vertex* to_v = vertices[edge.to_idx];
+        start->add_edge(*to_v, edge.weight);
+    }
+
+    // Add parameterized edges
+    for (const auto& edge : param_edges_) {
+        Vertex* from_v = vertices[edge.from_idx];
+        Vertex* to_v = vertices[edge.to_idx];
+
+        // Compute weight: dot product of coefficients and theta
+        double weight = 0.0;
+        for (int i = 0; i < param_length_; i++) {
+            weight += edge.coefficients[i] * theta[i];
+        }
+
+        from_v->add_edge(*to_v, weight);
+    }
+
+    // Add starting vertex parameterized edges
+    for (const auto& edge : start_param_edges_) {
+        Vertex* to_v = vertices[edge.to_idx];
+
+        // Compute weight
+        double weight = 0.0;
+        for (int i = 0; i < param_length_; i++) {
+            weight += edge.coefficients[i] * theta[i];
+        }
+
+        start->add_edge(*to_v, weight);
+    }
+
+    return g;
+}
+
+double GraphBuilder::factorial(int n) {
+    double result = 1.0;
+    for (int i = 2; i <= n; i++) {
+        result *= static_cast<double>(i);
+    }
+    return result;
+}
+
+std::vector<double> GraphBuilder::compute_moments_impl(Graph& g, int nr_moments) {
+    std::vector<double> result(nr_moments);
+
+    // First moment: E[T]
+    std::vector<double> rewards;  // Empty for standard moments
+    std::vector<double> rewards2 = g.expected_waiting_time(rewards);
+
+    if (rewards2.empty()) {
+        throw std::runtime_error("expected_waiting_time returned empty vector");
+    }
+
+    result[0] = rewards2[0];
+
+    // Higher moments: E[T^k]
+    for (int k = 1; k < nr_moments; k++) {
+        // For moment k+1, we need: rewards3[i] = rewards2[i] * rewards2[i]^k
+        std::vector<double> rewards3(rewards2.size());
+        for (size_t i = 0; i < rewards2.size(); i++) {
+            rewards3[i] = rewards2[i] * std::pow(rewards2[i], k);
+        }
+
+        rewards2 = g.expected_waiting_time(rewards3);
+
+        if (rewards2.empty()) {
+            throw std::runtime_error("expected_waiting_time returned empty vector for higher moment");
+        }
+
+        // E[T^(k+1)] = (k+1)! * result
+        result[k] = factorial(k + 1) * rewards2[0];
+    }
+
+    return result;
+}
+
+py::array_t<double> GraphBuilder::compute_moments(
+    py::array_t<double> theta,
+    int nr_moments
+) {
+    // Extract theta data
+    auto theta_buf = theta.unchecked<1>();
+    size_t theta_len = theta_buf.shape(0);
+
+    // Build graph
+    Graph g = build(theta.data(), theta_len);
+
+    // Compute moments
+    std::vector<double> moments = compute_moments_impl(g, nr_moments);
+
+    // Convert to numpy array
+    py::array_t<double> result(moments.size());
+    auto result_buf = result.mutable_unchecked<1>();
+    for (size_t i = 0; i < moments.size(); i++) {
+        result_buf(i) = moments[i];
+    }
+
+    return result;
+}
+
+py::array_t<double> GraphBuilder::compute_pmf(
+    py::array_t<double> theta,
+    py::array_t<double> times,
+    bool discrete,
+    int granularity
+) {
+    // Extract theta data
+    auto theta_buf = theta.unchecked<1>();
+    size_t theta_len = theta_buf.shape(0);
+
+    // Extract times data
+    auto times_buf = times.unchecked<1>();
+    size_t n_times = times_buf.shape(0);
+
+    // Build graph
+    Graph g = build(theta.data(), theta_len);
+
+    // Compute PMF/PDF
+    py::array_t<double> result(n_times);
+    auto result_buf = result.mutable_unchecked<1>();
+
+    if (discrete) {
+        // Discrete phase-type (DPH) - times are jump counts
+        for (size_t i = 0; i < n_times; i++) {
+            int jump_count = static_cast<int>(times_buf(i));
+            result_buf(i) = g.dph_pmf(jump_count);
+        }
+    } else {
+        // Continuous phase-type (PDF) - times are real values
+        for (size_t i = 0; i < n_times; i++) {
+            double time = times_buf(i);
+            result_buf(i) = g.pdf(time, granularity);
+        }
+    }
+
+    return result;
+}
+
+std::pair<py::array_t<double>, py::array_t<double>>
+GraphBuilder::compute_pmf_and_moments(
+    py::array_t<double> theta,
+    py::array_t<double> times,
+    int nr_moments,
+    bool discrete,
+    int granularity
+) {
+    // Extract theta data
+    auto theta_buf = theta.unchecked<1>();
+    size_t theta_len = theta_buf.shape(0);
+
+    // Extract times data
+    auto times_buf = times.unchecked<1>();
+    size_t n_times = times_buf.shape(0);
+
+    // Build graph ONCE (more efficient than separate calls)
+    Graph g = build(theta.data(), theta_len);
+
+    // Compute PMF/PDF
+    py::array_t<double> pmf_result(n_times);
+    auto pmf_buf = pmf_result.mutable_unchecked<1>();
+
+    if (discrete) {
+        for (size_t i = 0; i < n_times; i++) {
+            int jump_count = static_cast<int>(times_buf(i));
+            pmf_buf(i) = g.dph_pmf(jump_count);
+        }
+    } else {
+        for (size_t i = 0; i < n_times; i++) {
+            double time = times_buf(i);
+            pmf_buf(i) = g.pdf(time, granularity);
+        }
+    }
+
+    // Compute moments using same graph
+    std::vector<double> moments = compute_moments_impl(g, nr_moments);
+
+    // Convert moments to numpy array
+    py::array_t<double> moments_result(moments.size());
+    auto moments_buf = moments_result.mutable_unchecked<1>();
+    for (size_t i = 0; i < moments.size(); i++) {
+        moments_buf(i) = moments[i];
+    }
+
+    return std::make_pair(pmf_result, moments_result);
+}
+
+} // namespace parameterized
+} // namespace ptdalgorithms

@@ -1,0 +1,38 @@
+# compute_moments_ffi { #ptdalgorithms.compute_moments_ffi }
+
+```python
+ptdalgorithms.compute_moments_ffi(structure_json, theta, nr_moments)
+```
+
+Compute distribution moments using JAX FFI.
+
+Computes E[T^k] for k=1,2,...,nr_moments using efficient C++ implementation
+with JAX FFI integration.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**structure_json**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation}</code>
+
+:   JSON string from Graph.serialize() containing graph structure
+
+<code>[**theta**]{.parameter-name} [:]{.parameter-annotation-sep} [[jax](`jax`).[Array](`jax.Array`)]{.parameter-annotation}</code>
+
+:   Parameter array, shape (n_params,)
+
+<code>[**nr_moments**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Number of moments to compute
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[jax](`jax`).[Array](`jax.Array`)]{.parameter-annotation}</code>
+
+:   Moments array, shape (nr_moments,) Contains [E[T], E[T^2], ..., E[T^nr_moments]]
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> moments = compute_moments_ffi(structure_json, theta, nr_moments=3)
+>>> mean = moments[0]
+>>> variance = moments[1] - moments[0]**2
+```

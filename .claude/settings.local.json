@@ -30,7 +30,14 @@
       "Bash(timeout 10 pixi run python test_empty_theta.py)",
       "Bash(timeout 10 pixi run python test_param_minimal.py)",
       "Bash(timeout 180 pixi run python test_svgd_inference.py)",
-      "Bash(JAX_TRACEBACK_FILTERING=off pixi run python examples/svgd_regularized_example.py)"
+      "Bash(JAX_TRACEBACK_FILTERING=off pixi run python examples/svgd_regularized_example.py)",
+      "WebFetch(domain:jax.readthedocs.io)",
+      "Bash(JAX_PLATFORMS=cpu pixi run python test_ffi_wrappers.py)",
+      "Bash(export JAX_PLATFORMS=cpu)",
+      "Bash(JAX_PLATFORMS=cpu pixi run python examples/graphbuilder_showcase.py)",
+      "Bash(cat:*)",
+      "Bash(chmod:*)",
+      "Bash(timeout 60 pixi run python:*)"
     ],
     "deny": []
   }

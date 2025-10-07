@@ -13,6 +13,7 @@
 #include <Eigen/Core>
 
 #include "ptdalgorithmscpp.h"
+#include "parameterized/graph_builder.hpp"
 
 #include <deque>
 #include <sstream>
@@ -3476,5 +3477,218 @@ Computes the expected residence time of the phase-type distribution.
       >>> pdf2 = graph.pdf(1.0)  # Reuse same graph, no rebuild!
       >>> graph2 = builder(np.array([2.0]))  # Build new graph with different params
       )delim");
+
+  // ============================================================================
+  // Parameterized Graph Module for JAX FFI
+  // ============================================================================
+
+  py::module_ param_module = m.def_submodule("parameterized",
+      R"delim(
+      Parameterized graph utilities for efficient JAX FFI integration.
+
+      This submodule provides the GraphBuilder class which enables efficient
+      batch processing of parameterized phase-type distributions. The graph
+      structure is parsed once, then rapidly rebuilt with different parameter
+      values.
+      )delim");
+
+  py::class_<ptdalgorithms::parameterized::GraphBuilder>(param_module, "GraphBuilder",
+      R"delim(
+      GraphBuilder: Efficient parameterized graph construction and computation.
+
+      Separates graph structure (topology) from parameters (theta values) for
+      efficient batch processing. The structure is parsed once from JSON, then
+      graphs can be rapidly built with different theta values.
+
+      Features:
+      - Build graphs with different parameters without re-parsing structure
+      - Compute PMF/PDF (continuous and discrete modes)
+      - Compute distribution moments
+      - Combined PMF+moments computation (efficient for SVGD)
+      - Automatic GIL release during C++ computation (thread-safe)
+
+      Thread-safety: Each GraphBuilder instance is NOT thread-safe. Create
+      separate instances for concurrent access, or use external synchronization.
+
+      Examples
+      --------
+      >>> import json
+      >>> import numpy as np
+      >>> from ptdalgorithms import Graph
+      >>> from ptdalgorithms.ptdalgorithmscpp_pybind import parameterized
+      >>>
+      >>> # Build a parameterized graph in Python
+      >>> graph = Graph(...)  # Your parameterized graph
+      >>> structure_json = json.dumps(graph.serialize())
+      >>>
+      >>> # Create GraphBuilder
+      >>> builder = parameterized.GraphBuilder(structure_json)
+      >>>
+      >>> # Compute moments for different theta values
+      >>> theta1 = np.array([0.5, 0.8])
+      >>> moments1 = builder.compute_moments(theta1, nr_moments=2)
+      >>>
+      >>> theta2 = np.array([0.7, 1.0])
+      >>> moments2 = builder.compute_moments(theta2, nr_moments=2)
+      >>>
+      >>> # Compute PMF (continuous mode)
+      >>> times = np.linspace(0.1, 5.0, 50)
+      >>> pmf = builder.compute_pmf(theta1, times, discrete=False)
+      >>>
+      >>> # Combined computation (most efficient for SVGD)
+      >>> pmf, moments = builder.compute_pmf_and_moments(
+      ...     theta1, times, nr_moments=2, discrete=False
+      ... )
+      )delim")
+
+      .def(py::init<const std::string&>(),
+          py::arg("structure_json"),
+          R"delim(
+          Construct GraphBuilder from JSON-serialized graph structure.
+
+          Parameters
+          ----------
+          structure_json : str
+              JSON string from Graph.serialize() containing graph structure
+
+          Raises
+          ------
+          RuntimeError
+              If JSON is malformed or required fields are missing
+          )delim")
+
+      .def("compute_moments",
+          &ptdalgorithms::parameterized::GraphBuilder::compute_moments,
+          py::arg("theta"),
+          py::arg("nr_moments"),
+          // TODO(Phase 2): Add py::call_guard<py::gil_scoped_release>() for proper GIL management
+          R"delim(
+          Compute distribution moments: E[T^k] for k=1,2,...,nr_moments.
+
+          Parameters
+          ----------
+          theta : numpy.ndarray
+              Parameter array, shape (n_params,)
+          nr_moments : int
+              Number of moments to compute
+
+          Returns
+          -------
+          numpy.ndarray
+              Moments array, shape (nr_moments,)
+              Contains [E[T], E[T^2], ..., E[T^nr_moments]]
+
+          Notes
+          -----
+          GIL is released during C++ computation, enabling true parallelization
+          when called from multiple Python threads.
+
+          Examples
+          --------
+          >>> moments = builder.compute_moments(np.array([0.8]), nr_moments=3)
+          >>> mean = moments[0]
+          >>> variance = moments[1] - moments[0]**2
+          )delim")
+
+      .def("compute_pmf",
+          &ptdalgorithms::parameterized::GraphBuilder::compute_pmf,
+          py::arg("theta"),
+          py::arg("times"),
+          py::arg("discrete") = false,
+          py::arg("granularity") = 100,
+          // TODO(Phase 2): Add py::call_guard<py::gil_scoped_release>() for proper GIL management
+          R"delim(
+          Compute PMF (discrete) or PDF (continuous) values.
+
+          Parameters
+          ----------
+          theta : numpy.ndarray
+              Parameter array, shape (n_params,)
+          times : numpy.ndarray
+              Time points (continuous) or jump counts (discrete), shape (n_times,)
+          discrete : bool, default=False
+              If True, compute DPH (discrete phase-type)
+              If False, compute PDF (continuous phase-type)
+          granularity : int, default=100
+              Discretization granularity for PDF computation (ignored for DPH)
+
+          Returns
+          -------
+          numpy.ndarray
+              PMF/PDF values, shape (n_times,)
+
+          Notes
+          -----
+          GIL is released during computation for true parallelization.
+
+          Examples
+          --------
+          >>> # Continuous PDF
+          >>> times = np.linspace(0.1, 5.0, 50)
+          >>> pdf = builder.compute_pmf(theta, times, discrete=False)
+          >>>
+          >>> # Discrete PMF
+          >>> jumps = np.array([1, 2, 3, 4, 5])
+          >>> pmf = builder.compute_pmf(theta, jumps, discrete=True)
+          )delim")
+
+      .def("compute_pmf_and_moments",
+          &ptdalgorithms::parameterized::GraphBuilder::compute_pmf_and_moments,
+          py::arg("theta"),
+          py::arg("times"),
+          py::arg("nr_moments"),
+          py::arg("discrete") = false,
+          py::arg("granularity") = 100,
+          // TODO(Phase 2): Add py::call_guard<py::gil_scoped_release>() for proper GIL management
+          R"delim(
+          Compute both PMF and moments efficiently in a single pass.
+
+          More efficient than calling compute_pmf() and compute_moments()
+          separately because the graph is built only once.
+
+          Parameters
+          ----------
+          theta : numpy.ndarray
+              Parameter array, shape (n_params,)
+          times : numpy.ndarray
+              Time points or jump counts, shape (n_times,)
+          nr_moments : int
+              Number of moments to compute
+          discrete : bool, default=False
+              If True, use DPH mode; if False, use PDF mode
+          granularity : int, default=100
+              Discretization granularity for PDF (ignored for DPH)
+
+          Returns
+          -------
+          tuple of (numpy.ndarray, numpy.ndarray)
+              (pmf_values, moments)
+              - pmf_values: shape (n_times,)
+              - moments: shape (nr_moments,)
+
+          Notes
+          -----
+          Primary use case: SVGD with moment-based regularization.
+          GIL is released during computation.
+
+          Examples
+          --------
+          >>> pmf, moments = builder.compute_pmf_and_moments(
+          ...     theta, times, nr_moments=2, discrete=False
+          ... )
+          >>> # Use pmf for likelihood, moments for regularization
+          )delim")
+
+      .def_property_readonly("param_length",
+          &ptdalgorithms::parameterized::GraphBuilder::param_length,
+          "Number of parameters (theta dimensions)")
+
+      .def_property_readonly("vertices_length",
+          &ptdalgorithms::parameterized::GraphBuilder::vertices_length,
+          "Number of vertices in graph")
+
+      .def_property_readonly("state_length",
+          &ptdalgorithms::parameterized::GraphBuilder::state_length,
+          "Dimension of state vectors");
 
 }

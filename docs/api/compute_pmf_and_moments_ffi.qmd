@@ -1,0 +1,62 @@
+# compute_pmf_and_moments_ffi { #ptdalgorithms.compute_pmf_and_moments_ffi }
+
+```python
+ptdalgorithms.compute_pmf_and_moments_ffi(
+    structure_json,
+    theta,
+    times,
+    nr_moments,
+    discrete=False,
+    granularity=100,
+)
+```
+
+Compute both PMF and moments efficiently using JAX FFI.
+
+More efficient than calling compute_pmf_ffi() and compute_moments_ffi()
+separately because the graph is built only once.
+
+Primary use case: SVGD with moment-based regularization.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**structure_json**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation}</code>
+
+:   JSON string from Graph.serialize() containing graph structure
+
+<code>[**theta**]{.parameter-name} [:]{.parameter-annotation-sep} [[jax](`jax`).[Array](`jax.Array`)]{.parameter-annotation}</code>
+
+:   Parameter array, shape (n_params,)
+
+<code>[**times**]{.parameter-name} [:]{.parameter-annotation-sep} [[jax](`jax`).[Array](`jax.Array`)]{.parameter-annotation}</code>
+
+:   Time points or jump counts, shape (n_times,)
+
+<code>[**nr_moments**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Number of moments to compute
+
+<code>[**discrete**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, use DPH mode; if False, use PDF mode
+
+<code>[**granularity**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [100]{.parameter-default}</code>
+
+:   Discretization granularity for PDF (ignored for DPH)
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)\[[jax](`jax`).[Array](`jax.Array`), [jax](`jax`).[Array](`jax.Array`)\]]{.parameter-annotation}</code>
+
+:   (pmf_values, moments) - pmf_values: shape (n_times,) - moments: shape (nr_moments,)
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> pmf, moments = compute_pmf_and_moments_ffi(
+...     structure_json, theta, times, nr_moments=2, discrete=False
+... )
+>>> # Use pmf for likelihood, moments for regularization
+>>> likelihood = jnp.sum(jnp.log(pmf))
+>>> moment_penalty = jnp.sum((moments - target_moments)**2)
+```

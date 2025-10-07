@@ -1,0 +1,13 @@
+# detect_slurm_environment { #ptdalgorithms.detect_slurm_environment }
+
+```python
+ptdalgorithms.detect_slurm_environment()
+```
+
+Detect and parse SLURM environment variables.
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation}</code>
+
+:   Dictionary with SLURM configuration: - 'is_slurm': bool - Whether running under SLURM - 'job_id': str - Job ID - 'process_id': int - Process rank (SLURM_PROCID) - 'num_processes': int - Total processes (SLURM_NTASKS) - 'cpus_per_task': int - CPUs per task - 'nodelist': str - List of nodes - 'node_count': int - Number of nodes

@@ -1,0 +1,70 @@
+# DistributedConfig { #ptdalgorithms.DistributedConfig }
+
+```python
+ptdalgorithms.DistributedConfig(
+    num_processes=1,
+    process_id=0,
+    cpus_per_task=1,
+    coordinator_address='localhost:12345',
+    coordinator_port=12345,
+    job_id=None,
+    local_device_count=1,
+    global_device_count=1,
+    local_devices=list(),
+    global_devices=list(),
+    is_coordinator=True,
+    platform='cpu',
+)
+```
+
+Configuration for distributed computing.
+
+## Attributes {.doc-section .doc-section-attributes}
+
+<code>[**num_processes**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Total number of processes (nodes) in the cluster
+
+<code>[**process_id**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Rank of this process (0 to num_processes-1)
+
+<code>[**cpus_per_task**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Number of CPUs per process (local devices per node)
+
+<code>[**coordinator_address**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation}</code>
+
+:   Address of the coordinator node (host:port)
+
+<code>[**coordinator_port**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Port for coordinator communication
+
+<code>[**job_id**]{.parameter-name} [:]{.parameter-annotation-sep} [[Optional](`typing.Optional`)\[[str](`str`)\]]{.parameter-annotation}</code>
+
+:   SLURM job ID (if running under SLURM)
+
+<code>[**local_device_count**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Number of devices on this node
+
+<code>[**global_device_count**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Total number of devices across all nodes
+
+<code>[**local_devices**]{.parameter-name} [:]{.parameter-annotation-sep} [[List](`typing.List`)]{.parameter-annotation}</code>
+
+:   List of local JAX devices
+
+<code>[**global_devices**]{.parameter-name} [:]{.parameter-annotation-sep} [[List](`typing.List`)]{.parameter-annotation}</code>
+
+:   List of all JAX devices (across all nodes)
+
+<code>[**is_coordinator**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation}</code>
+
+:   True if this is the coordinator process (rank 0)
+
+<code>[**platform**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation}</code>
+
+:   Platform type ('cpu' or 'gpu')
