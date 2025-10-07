@@ -42,38 +42,38 @@ using std::endl;
 #include <iostream>
 #include <iomanip>
 
-extern "C" {
+// extern "C" {
 
-  // JAX custom call signature with scalar operands
-  __attribute__((visibility("default")))
-  void _pmf_jax_ffi_prim(void* out_ptr, void* in_ptrs);
+//   // JAX custom call signature with scalar operands
+//   __attribute__((visibility("default")))
+//   void _pmf_jax_ffi_prim(void* out_ptr, void* in_ptrs);
 
-  // JAX custom call signature for jax_graph_method_pmf
-  void _pmf_jax_ffi_prim(void* out_ptr, void* in_ptrs) {
+//   // JAX custom call signature for jax_graph_method_pmf
+//   void _pmf_jax_ffi_prim(void* out_ptr, void* in_ptrs) {
 
-      void** buffers = reinterpret_cast<void**>(in_ptrs);
-      ptdalgorithms::Graph* graph = reinterpret_cast<ptdalgorithms::Graph*>(buffers[0]);
-      int64_t* times = reinterpret_cast<int64_t*>(buffers[1]);
-      int64_t* n_ptr = reinterpret_cast<int64_t*>(buffers[2]);
+//       void** buffers = reinterpret_cast<void**>(in_ptrs);
+//       ptdalgorithms::Graph* graph = reinterpret_cast<ptdalgorithms::Graph*>(buffers[0]);
+//       int64_t* times = reinterpret_cast<int64_t*>(buffers[1]);
+//       int64_t* n_ptr = reinterpret_cast<int64_t*>(buffers[2]);
 
-      double* output = reinterpret_cast<double*>(out_ptr);      
+//       double* output = reinterpret_cast<double*>(out_ptr);      
       
-      // Extract dimensions from scalar operands
-      int64_t n = *n_ptr;
+//       // Extract dimensions from scalar operands
+//       int64_t n = *n_ptr;
 
-      for (int64_t idx = 0; idx < n; ++idx) {
-        int64_t k = times[idx];
-        output[idx] = graph->dph_pmf(k);
-      }
-  }
+//       for (int64_t idx = 0; idx < n; ++idx) {
+//         int64_t k = times[idx];
+//         output[idx] = graph->dph_pmf(k);
+//       }
+//   }
 
-  // XLA custom call registration
-  void register_jax_graph_method_pmf() {
-      // This would normally register with XLA, but for simplicity we'll rely on 
-      // the Python side custom call mechanism
-  }
+//   // XLA custom call registration
+//   void register_jax_graph_method_pmf() {
+//       // This would normally register with XLA, but for simplicity we'll rely on 
+//       // the Python side custom call mechanism
+//   }
 
-}
+// }
 
 ///////////////////////////////////////////////////////
 

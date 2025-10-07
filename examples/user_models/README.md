@@ -48,13 +48,13 @@ batch_pdfs = vmap_model(batch_params)
 - Integration with JAX/ML libraries
 - Bayesian inference
 
-### 2. FFI Approach (Foreign Function Interface)
+### 2. Direct C++ Approach (load_cpp_builder)
 ```python
-from ptdalgorithms import Graph
+from ptdalgorithms import load_cpp_builder
 import numpy as np
 
-# Load model with FFI for efficiency
-builder = Graph.pmf_from_cpp("simple_exponential.cpp", use_ffi=True)
+# Load C++ model builder
+builder = load_cpp_builder("simple_exponential.cpp")
 
 # Build graph once
 theta = np.array([1.0])
@@ -77,9 +77,9 @@ for t in [0.5, 1.0, 1.5, 2.0]:
 | Approach | Build Graph | Evaluation | 1000 calls |
 |----------|-------------|------------|------------|
 | JAX-Compatible | Every call | Fast | ~9 seconds |
-| FFI | Once | Very fast | ~0.004 seconds |
+| Direct C++ | Once | Very fast | ~0.004 seconds |
 
-**Speedup with FFI: ~2000x for repeated evaluations with same parameters**
+**Speedup with Direct C++: ~2000x for repeated evaluations with same parameters**
 
 ## Writing Your Own C++ Model
 
@@ -113,23 +113,22 @@ ptdalgorithms::Graph build_model(const double* theta, int n_params) {
 ## Examples
 
 For detailed examples, see:
-- **examples/pmf_from_cpp_simple.py** - Basic usage of both approaches
-- **examples/jax_compatible_example.py** - Comprehensive JAX approach demonstration
-- **examples/ffi_approach_example.py** - Comprehensive FFI approach demonstration
-- **examples/approach_comparison.py** - Side-by-side comparison with benchmarks
+- **examples/jit_pdf.py** - JAX-compatible approach demonstration
+- **examples/ffi_pdf.py** - Direct C++ approach demonstration
+- **examples/jit_or_ffi.py** - Side-by-side comparison with benchmarks
 
 ## Quick Decision Guide
 
-**Use JAX-Compatible when:**
+**Use JAX-Compatible (Graph.pmf_from_cpp) when:**
 - You need automatic differentiation
 - Integrating with JAX ecosystem
 - Parameters change frequently
 - Research and experimentation
 
-**Use FFI when:**
+**Use Direct C++ (load_cpp_builder) when:**
 - Parameters are fixed or change rarely
 - Performance is critical
 - Real-time applications
 - Production systems
 
-Both approaches use the same C++ model files - you can switch by changing one parameter!
+Both approaches use the same C++ model files - you can switch between them by choosing the appropriate function!

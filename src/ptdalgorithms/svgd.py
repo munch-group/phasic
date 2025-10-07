@@ -693,6 +693,41 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
 
 
 # ============================================================================
+# Helper Functions for Moment-Based Regularization
+# ============================================================================
+
+def compute_sample_moments(data, nr_moments):
+    """
+    Compute sample moments from observed data.
+
+    Parameters
+    ----------
+    data : array_like
+        Observed data points (e.g., waiting times, event times)
+    nr_moments : int
+        Number of moments to compute
+
+    Returns
+    -------
+    jnp.array
+        Sample moments [mean(data), mean(data^2), ..., mean(data^k)]
+        Shape: (nr_moments,)
+
+    Examples
+    --------
+    >>> data = jnp.array([1.0, 2.0, 3.0, 4.0, 5.0])
+    >>> moments = compute_sample_moments(data, nr_moments=2)
+    >>> print(moments)  # [3.0, 11.0] = [mean, mean of squares]
+    >>> # Variance from moments: Var = E[X^2] - E[X]^2 = 11.0 - 3.0^2 = 2.0
+    """
+    data = jnp.array(data)
+    moments = []
+    for k in range(1, nr_moments + 1):
+        moments.append(jnp.mean(data**k))
+    return jnp.array(moments)
+
+
+# ============================================================================
 # SVGD Class for Object-Oriented Interface
 # ============================================================================
 
@@ -801,6 +836,26 @@ class SVGD:
             if verbose:
                 print(f"Using provided initial particles: {self.theta_init.shape}")
 
+        # Detect model type: does it return (pmf, moments) or just pmf?
+        self.model_returns_moments = False
+        try:
+            test_theta = self.theta_init[0]
+            test_times = self.observed_data[:min(2, len(self.observed_data))]
+            result = self.model(test_theta, test_times)
+            if isinstance(result, tuple) and len(result) == 2:
+                # Model returns (pmf, moments)
+                self.model_returns_moments = True
+                if verbose:
+                    print("Detected model type: returns (pmf, moments)")
+            else:
+                if verbose:
+                    print("Detected model type: returns pmf only")
+        except Exception as e:
+            # If detection fails, assume pmf only
+            if verbose:
+                print(f"Model type detection failed (assuming pmf only): {e}")
+            pass
+
         # Results (initialized after fit())
         self.particles = None
         self.theta_mean = None
@@ -824,7 +879,12 @@ class SVGD:
         """
         # Log-likelihood
         try:
-            model_values = self.model(theta, self.observed_data)
+            result = self.model(theta, self.observed_data)
+            # Handle both (pmf, moments) and pmf-only models
+            if isinstance(result, tuple):
+                model_values = result[0]  # Extract PMF values
+            else:
+                model_values = result
         except Exception as e:
             raise ValueError(
                 f"Model evaluation failed. Ensure model has signature model(theta, times). "
@@ -886,6 +946,171 @@ class SVGD:
             self.history = results['history']
 
         self.is_fitted = True
+
+        return self
+
+    def fit_regularized(self, observed_times=None, nr_moments=2,
+                       regularization=1.0, return_history=False):
+        """
+        Run SVGD with moment-based regularization.
+
+        Adds regularization term that penalizes difference between model moments
+        and sample moments, improving stability and convergence.
+
+        The regularized objective is:
+            log p(theta | data) = log p(data|theta) + log p(theta) - λ * Σ_k (E[T^k|theta] - mean(data^k))^2
+
+        Parameters
+        ----------
+        observed_times : array_like, optional
+            Actual observed data points (waiting times, not PMF values).
+            Used for computing sample moments.
+            If None, uses self.observed_data (assumes it contains times, not PMF values).
+        nr_moments : int, default=2
+            Number of moments to use for regularization.
+            Higher moments provide stronger constraints but may be less stable.
+            Example: nr_moments=2 uses E[T] and E[T^2]
+        regularization : float, default=1.0
+            Strength of moment regularization (λ in objective).
+            - 0.0: No regularization (equivalent to standard SVGD)
+            - 0.1-1.0: Mild regularization
+            - 1.0-10.0: Strong regularization
+            Higher values enforce moment matching more strongly.
+        return_history : bool, default=False
+            Whether to store particle history
+
+        Returns
+        -------
+        self
+            Returns self for method chaining
+
+        Raises
+        ------
+        ValueError
+            If model doesn't support moments (wasn't created with pmf_and_moments_from_graph)
+        ValueError
+            If observed_times is None and cannot determine sample moments
+
+        Examples
+        --------
+        >>> # Create parameterized model with moments
+        >>> graph = Graph(callback=coalescent, parameterized=True, nr_samples=4)
+        >>> model = Graph.pmf_and_moments_from_graph(graph, nr_moments=2)
+        >>>
+        >>> # Generate observed data
+        >>> true_theta = jnp.array([0.8])
+        >>> observed_times = jnp.array([0.5, 1.2, 0.8, 1.5, 2.0])
+        >>> observed_pmf = model(true_theta, observed_times)[0]  # Extract PMF values
+        >>>
+        >>> # Run regularized SVGD
+        >>> svgd = SVGD(model, observed_pmf, theta_dim=1)
+        >>> svgd.fit_regularized(observed_times=observed_times, nr_moments=2, regularization=1.0)
+        >>>
+        >>> # Access results
+        >>> print(f"Posterior mean: {svgd.theta_mean}")
+        >>> print(f"Posterior std: {svgd.theta_std}")
+
+        Notes
+        -----
+        - Requires model created with Graph.pmf_and_moments_from_graph()
+        - The regularization term stabilizes inference by matching distribution moments
+        - Particularly useful when observed data is sparse or noisy
+        - Start with regularization=1.0 and adjust based on performance
+        """
+        # Validate that model supports moments
+        if not self.model_returns_moments:
+            raise ValueError(
+                "Model must return both PMF and moments for regularized SVGD. "
+                "Use Graph.pmf_and_moments_from_graph() to create model, not Graph.pmf_from_graph()."
+            )
+
+        # Determine observed times
+        if observed_times is None:
+            # Try to use self.observed_data as times
+            observed_times = self.observed_data
+            if self.verbose:
+                print("Using self.observed_data as observed times for sample moment computation")
+        else:
+            observed_times = jnp.array(observed_times)
+
+        # Compute sample moments from observed data
+        sample_moments = compute_sample_moments(observed_times, nr_moments)
+        if self.verbose:
+            print(f"Sample moments from data: {sample_moments}")
+
+        # Define regularized log-probability function
+        def log_prob_regularized(theta):
+            """
+            Regularized log probability with moment matching term.
+
+            log p(theta | data, moments) = log p(data|theta) + log p(theta) - λ * ||E[T^k|theta] - sample_moments||^2
+            """
+            try:
+                result = self.model(theta, self.observed_data)
+                if isinstance(result, tuple) and len(result) == 2:
+                    pmf_vals, model_moments = result
+                else:
+                    raise ValueError("Model must return (pmf, moments) tuple for regularized SVGD")
+            except Exception as e:
+                raise ValueError(
+                    f"Model evaluation failed. Ensure model signature is model(theta, times) -> (pmf, moments). "
+                    f"Error: {e}"
+                )
+
+            # Standard log-likelihood term
+            log_lik = jnp.sum(jnp.log(pmf_vals + 1e-10))
+
+            # Log-prior term
+            if self.prior is not None:
+                log_pri = self.prior(theta)
+            else:
+                # Default: standard normal prior
+                log_pri = -0.5 * jnp.sum(theta**2)
+
+            # Moment regularization penalty
+            # We want to minimize (model_moments - sample_moments)^2
+            # So we subtract this from log probability
+            moment_diff = model_moments[:nr_moments] - sample_moments
+            moment_penalty = regularization * jnp.sum(moment_diff**2)
+
+            return log_lik + log_pri - moment_penalty
+
+        # Create kernel
+        kernel_obj = SVGDKernel(bandwidth=self.kernel_str)
+
+        # Run SVGD with regularized objective
+        if self.verbose:
+            print(f"\nStarting regularized SVGD inference...")
+            print(f"  Model: parameterized phase-type distribution")
+            print(f"  Data points: {len(self.observed_data)}")
+            print(f"  Prior: {'custom' if self.prior is not None else 'standard normal'}")
+            print(f"  Moment regularization: λ = {regularization}")
+            print(f"  Nr moments: {nr_moments}")
+
+        results = run_svgd(
+            log_prob_fn=log_prob_regularized,
+            theta_init=self.theta_init,
+            n_steps=self.n_iterations,
+            learning_rate=self.learning_rate,
+            kernel=kernel_obj,
+            return_history=return_history,
+            verbose=self.verbose
+        )
+
+        # Store results as attributes
+        self.particles = results['particles']
+        self.theta_mean = results['theta_mean']
+        self.theta_std = results['theta_std']
+
+        if return_history:
+            self.history = results['history']
+
+        self.is_fitted = True
+
+        # Store regularization info
+        self.regularization = regularization
+        self.nr_moments = nr_moments
+        self.sample_moments = sample_moments
 
         return self
 

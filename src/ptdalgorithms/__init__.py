@@ -862,13 +862,16 @@ class Graph(_Graph):
         return Graph(base_graph)
 
     @classmethod
-    def pmf_from_graph(cls, graph: 'Graph', use_ffi: bool = False, discrete: bool = False) -> Callable:
+    def pmf_from_graph(cls, graph: 'Graph', discrete: bool = False) -> Callable:
         """
         Convert a Python-built Graph to a JAX-compatible function with full gradient support.
 
         This method automatically detects if the graph has parameterized edges (edges with
         state vectors) and generates optimized C++ code to enable full JAX transformations
         including gradients, vmap, and jit compilation.
+
+        For direct C++ access without JAX wrapping, use the Graph object's methods directly:
+        graph.pdf(time), graph.dph_pmf(jump), graph.moments(power), etc.
 
         Raises
         ------
@@ -879,10 +882,6 @@ class Graph(_Graph):
         ----------
         graph : Graph
             Graph built using the Python API. Can have regular edges or parameterized edges.
-        use_ffi : bool
-            If True, uses Foreign Function Interface approach that returns a Graph object
-            directly instead of a callable function. This is more efficient for repeated
-            evaluations but doesn't support JAX transformations.
         discrete : bool
             If True, uses discrete phase-type distribution (DPH) computation.
             If False, uses continuous phase-type distribution (PDF).
@@ -890,14 +889,12 @@ class Graph(_Graph):
         Returns
         -------
         callable
-            If use_ffi=False and graph has parameterized edges:
+            If graph has parameterized edges:
                 JAX-compatible function (theta, times) -> pmf_values
                 Supports JIT, grad, vmap, etc.
-            If use_ffi=False and graph has no parameterized edges:
+            If graph has no parameterized edges:
                 JAX-compatible function (times) -> pmf_values
                 Supports JIT (backward compatible signature)
-            If use_ffi=True:
-                Returns the Graph object directly for manual computation
 
         Examples
         --------
@@ -929,21 +926,16 @@ class Graph(_Graph):
         >>> grad_fn = jax.grad(lambda t: jnp.sum(model(t, times)))
         >>> gradient = grad_fn(theta)  # Gradients work!
 
-        # FFI approach (efficient for repeated evaluations)
-        >>> graph = Graph.pmf_from_graph(g, use_ffi=True)
-        >>> pdf1 = graph.pdf(1.0)  # Use many times
-        >>> pdf2 = graph.pdf(2.0)  # No rebuild needed
+        # For direct C++ access (no JAX overhead), use graph methods:
+        >>> pdf_value = g.pdf(1.5)  # Direct C++ call
+        >>> pmf_value = g.dph_pmf(3)  # Direct C++ call
         """
         # Check if JAX is available
-        if not HAS_JAX and not use_ffi:
+        if not HAS_JAX:
             raise ImportError(
                 "JAX is required for JAX-compatible models. "
                 "Install with: pip install 'ptdalgorithms[jax]' or pip install jax jaxlib"
             )
-
-        # If using FFI, just return the graph object directly
-        if use_ffi:
-            return graph
 
         # Serialize the graph (now includes parameterized edges)
         serialized = graph.serialize()
@@ -1140,10 +1132,9 @@ extern "C" {
         return _create_jax_parameterized_wrapper(compute_func, graph_builder, discrete)
 
     @classmethod
-    def pmf_from_cpp(cls, cpp_file: Union[str, pathlib.Path], use_ffi: bool = False,
-                    discrete: bool = False) -> Callable:
+    def pmf_from_cpp(cls, cpp_file: Union[str, pathlib.Path], discrete: bool = False) -> Callable:
         """
-        Load a phase-type model from a user's C++ file.
+        Load a phase-type model from a user's C++ file and return a JAX-compatible function.
 
         The C++ file should include 'user_model.h' and implement:
 
@@ -1151,15 +1142,13 @@ extern "C" {
             // Build and return Graph instance
         }
 
+        For efficient repeated evaluations with the same parameters without JAX overhead,
+        use load_cpp_builder() instead to get a builder function that creates Graph objects.
+
         Parameters
         ----------
         cpp_file : str or Path
             Path to the user's C++ file
-        use_ffi : bool
-            If True, uses Foreign Function Interface approach that separates graph construction
-            from computation. Returns a builder function that creates reusable Graph objects.
-            This is more efficient for repeated evaluations with the same parameters but
-            doesn't support JAX transformations directly on the returned graphs.
         discrete : bool
             If True, uses discrete phase-type distribution (DPH) computation.
             If False, uses continuous phase-type distribution (PDF).
@@ -1167,52 +1156,46 @@ extern "C" {
         Raises
         ------
         ImportError
-            If JAX is not installed and use_ffi=False. Install with: pip install jax jaxlib
+            If JAX is not installed. Install with: pip install jax jaxlib
         FileNotFoundError
             If the specified C++ file does not exist
 
         Returns
         -------
         callable
-            If use_ffi=False: JAX-compatible function (theta, times) -> pmf_values that supports JIT, grad, vmap, etc.
-            If use_ffi=True: A builder function (theta) -> Graph that creates Graph objects.
+            JAX-compatible function (theta, times) -> pmf_values that supports JIT, grad, vmap, etc.
 
         Examples
         --------
-        # JAX-compatible approach (default)
+        # JAX-compatible approach (default - for SVGD, gradients, optimization)
         >>> model = Graph.pmf_from_cpp("my_model.cpp")
         >>> theta = jnp.array([1.0, 2.0])
         >>> times = jnp.linspace(0, 10, 100)
         >>> pmf = model(theta, times)
         >>> gradient = jax.grad(lambda p: jnp.sum(model(p, times)))(theta)
 
-        # FFI approach (efficient for repeated evaluations)
-        >>> builder = Graph.pmf_from_cpp("my_model.cpp", use_ffi=True)
-        >>> graph = builder(np.array([1.0, 2.0]))  # Build graph once
-        >>> pdf1 = graph.pdf(1.0)  # Use many times
-        >>> pdf2 = graph.pdf(2.0)  # No rebuild needed
-
         # Discrete phase-type distribution
         >>> model = Graph.pmf_from_cpp("my_model.cpp", discrete=True)
         >>> theta = jnp.array([1.0, 2.0])
         >>> jumps = jnp.array([1, 2, 3, 4, 5])
         >>> dph_pmf = model(theta, jumps)
+
+        # For direct C++ access without JAX (faster for repeated evaluations):
+        >>> builder = load_cpp_builder("my_model.cpp")
+        >>> graph = builder(np.array([1.0, 2.0]))  # Build graph once
+        >>> pdf1 = graph.pdf(1.0)  # Use many times
+        >>> pdf2 = graph.pdf(2.0)  # No rebuild needed
         """
         cpp_path = pathlib.Path(cpp_file).absolute()
         if not cpp_path.exists():
             raise FileNotFoundError(f"C++ file not found: {cpp_file}")
 
-        # Check if JAX is available (only needed for JAX-compatible mode)
-        if not HAS_JAX and not use_ffi:
+        # Check if JAX is available
+        if not HAS_JAX:
             raise ImportError(
                 "JAX is required for JAX-compatible C++ models. "
                 "Install with: pip install 'ptdalgorithms[jax]' or pip install jax jaxlib"
             )
-
-        # If using FFI, delegate to the pybind module's load_cpp_builder
-        if use_ffi:
-            from . import ptdalgorithmscpp_pybind
-            return ptdalgorithmscpp_pybind.load_cpp_builder(str(cpp_path))
 
         # Read user's C++ code
         with open(cpp_path, 'r') as f:
@@ -1475,6 +1458,502 @@ extern "C" {{
         # Return results as dictionary for backward compatibility
         return svgd.get_results()
 
+    @classmethod
+    def moments_from_graph(cls, graph: 'Graph', nr_moments: int = 2, use_ffi: bool = False) -> Callable:
+        """
+        Convert a parameterized Graph to a JAX-compatible function that computes moments.
+
+        This method creates a function that computes the first `nr_moments` moments of the
+        phase-type distribution: [E[T], E[T^2], ..., E[T^nr_moments]].
+
+        Moments are computed using the existing C++ `graph.moments(power)` method for efficiency.
+
+        Parameters
+        ----------
+        graph : Graph
+            Parameterized graph built using the Python API with parameterized edges.
+            Must have edges created with `add_edge_parameterized()`.
+        nr_moments : int, default=2
+            Number of moments to compute. For example:
+            - 1: Returns [E[T]] (mean only)
+            - 2: Returns [E[T], E[T^2]] (mean and second moment)
+            - 3: Returns [E[T], E[T^2], E[T^3]]
+        use_ffi : bool, default=False
+            If True, uses Foreign Function Interface approach.
+
+        Returns
+        -------
+        callable
+            JAX-compatible function with signature: moments_fn(theta) -> jnp.array(nr_moments,)
+            Returns array of moments: [E[T], E[T^2], ..., E[T^k]]
+
+        Examples
+        --------
+        >>> # Create parameterized coalescent model
+        >>> def coalescent(state, nr_samples=2):
+        ...     if len(state) == 0:
+        ...         return [(np.array([nr_samples]), 1.0, [1.0])]
+        ...     if state[0] > 1:
+        ...         n = state[0]
+        ...         rate = n * (n - 1) / 2
+        ...         return [(np.array([n-1]), 0.0, [rate])]
+        ...     return []
+        >>>
+        >>> graph = Graph(callback=coalescent, parameterized=True, nr_samples=3)
+        >>> moments_fn = Graph.moments_from_graph(graph, nr_moments=2)
+        >>>
+        >>> # Compute moments for given theta
+        >>> theta = jnp.array([0.5])
+        >>> moments = moments_fn(theta)  # [E[T], E[T^2]]
+        >>> print(f"Mean: {moments[0]}, Second moment: {moments[1]}")
+        >>>
+        >>> # Variance can be computed as: Var[T] = E[T^2] - E[T]^2
+        >>> variance = moments[1] - moments[0]**2
+
+        Notes
+        -----
+        - Requires graph to have parameterized edges (created with parameterized=True)
+        - Moments are raw moments, not central moments
+        - For variance, compute: Var[T] = E[T^2] - E[T]^2
+        - For standard deviation: std[T] = sqrt(Var[T])
+        """
+        # Check if JAX is available
+        if not HAS_JAX and not use_ffi:
+            raise ImportError(
+                "JAX is required for JAX-compatible models. "
+                "Install with: pip install 'ptdalgorithms[jax]' or pip install jax jaxlib"
+            )
+
+        import jax
+        import jax.numpy as jnp
+
+        # Serialize the graph to extract structure
+        serialized = graph.serialize()
+        param_length = serialized.get('param_length', 0)
+
+        if param_length == 0:
+            raise ValueError(
+                "Graph must have parameterized edges to compute moments as function of theta. "
+                "Create graph with parameterized=True and use add_edge_parameterized()."
+            )
+
+        # Generate C++ build_model() code
+        cpp_code = _generate_cpp_from_graph(serialized)
+
+        # Create wrapper code that computes moments
+        # Use expected_waiting_time() method which is available in C++ API
+        wrapper_code = f'''{cpp_code}
+
+#include <cmath>
+
+// Helper function to compute factorial
+double factorial(int n) {{
+    double result = 1.0;
+    for (int i = 2; i <= n; i++) {{
+        result *= i;
+    }}
+    return result;
+}}
+
+extern "C" {{
+    void compute_moments(
+        const double* theta, int n_params,
+        int nr_moments,
+        double* output
+    ) {{
+        // Build graph from theta
+        ptdalgorithms::Graph g = build_model(theta, n_params);
+
+        // Compute moments using expected_waiting_time() method
+        // This replicates the _moments() function from pybind11 code
+        std::vector<double> rewards;  // Empty rewards for standard moments
+        std::vector<double> rewards2 = g.expected_waiting_time(rewards);
+        std::vector<double> rewards3(rewards2.size());
+
+        output[0] = rewards2[0];  // First moment (mean)
+
+        for (int i = 1; i < nr_moments; i++) {{
+            // Compute higher moments
+            for (int j = 0; j < (int)rewards3.size(); j++) {{
+                rewards3[j] = rewards2[j] * std::pow(rewards2[j], i);
+            }}
+
+            rewards2 = g.expected_waiting_time(rewards3);
+            output[i] = factorial(i + 1) * rewards2[0];
+        }}
+    }}
+}}
+'''
+
+        # Compile the wrapper
+        lib_name = f"moments_{hashlib.sha256(wrapper_code.encode()).hexdigest()[:16]}"
+        lib_path = _compile_wrapper_library(wrapper_code, lib_name)
+
+        # Load the library
+        lib = ctypes.PyDLL(lib_path)
+
+        # Define the function signature
+        lib.compute_moments.argtypes = [
+            ctypes.POINTER(ctypes.c_double),  # theta
+            ctypes.c_int,                      # n_params
+            ctypes.c_int,                      # nr_moments
+            ctypes.POINTER(ctypes.c_double)    # output
+        ]
+        lib.compute_moments.restype = None
+
+        # Pure computation function
+        def _compute_moments_pure(theta_flat):
+            """Pure function for moment computation"""
+            theta_np = np.asarray(theta_flat, dtype=np.float64)
+            output_np = np.zeros(nr_moments, dtype=np.float64)
+
+            lib.compute_moments(
+                theta_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                len(theta_np),
+                nr_moments,
+                output_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+            )
+
+            return output_np
+
+        # Helper function for pure callback (used in forward and backward pass)
+        def _compute_pure(theta):
+            """Pure computation without custom_vjp wrapper"""
+            theta = jnp.atleast_1d(theta)
+            result_shape = jax.ShapeDtypeStruct((nr_moments,), jnp.float64)
+            return jax.pure_callback(_compute_moments_pure, result_shape, theta, vmap_method='sequential')
+
+        # Wrap for JAX compatibility with custom VJP for gradients
+        @jax.custom_vjp
+        def moments_fn(theta):
+            """JAX-compatible moments function"""
+            return _compute_pure(theta)
+
+        def moments_fn_fwd(theta):
+            # Call the underlying computation, not moments_fn (avoid infinite recursion!)
+            moments = _compute_pure(theta)
+            return moments, theta
+
+        def moments_fn_bwd(theta, g):
+            n_params = theta.shape[0]
+            eps = 1e-7
+
+            # Finite differences for gradient
+            theta_bar = []
+            for i in range(n_params):
+                theta_plus = theta.at[i].add(eps)
+                theta_minus = theta.at[i].add(-eps)
+
+                # Call underlying computation, not moments_fn
+                moments_plus = _compute_pure(theta_plus)
+                moments_minus = _compute_pure(theta_minus)
+
+                grad_i = jnp.sum(g * (moments_plus - moments_minus) / (2 * eps))
+                theta_bar.append(grad_i)
+
+            return (jnp.array(theta_bar),)
+
+        moments_fn.defvjp(moments_fn_fwd, moments_fn_bwd)
+        return moments_fn
+
+    @classmethod
+    def pmf_and_moments_from_graph(cls, graph: 'Graph', nr_moments: int = 2,
+                                   discrete: bool = False, use_ffi: bool = False) -> Callable:
+        """
+        Convert a parameterized Graph to a function that computes both PMF/PDF and moments.
+
+        This is more efficient than calling `pmf_from_graph()` and `moments_from_graph()`
+        separately because it builds the graph once and computes both quantities.
+
+        Parameters
+        ----------
+        graph : Graph
+            Parameterized graph built using the Python API with parameterized edges.
+        nr_moments : int, default=2
+            Number of moments to compute
+        discrete : bool, default=False
+            If True, computes discrete PMF. If False, computes continuous PDF.
+        use_ffi : bool, default=False
+            If True, uses Foreign Function Interface approach.
+
+        Returns
+        -------
+        callable
+            JAX-compatible function with signature:
+            model(theta, times) -> (pmf_values, moments)
+
+            Where:
+            - pmf_values: jnp.array(len(times),) - PMF/PDF values at each time
+            - moments: jnp.array(nr_moments,) - [E[T], E[T^2], ..., E[T^k]]
+
+        Examples
+        --------
+        >>> # Create parameterized model
+        >>> graph = Graph(callback=coalescent, parameterized=True, nr_samples=3)
+        >>> model = Graph.pmf_and_moments_from_graph(graph, nr_moments=2)
+        >>>
+        >>> # Compute both PMF and moments
+        >>> theta = jnp.array([0.5])
+        >>> times = jnp.array([1.0, 2.0, 3.0])
+        >>> pmf_vals, moments = model(theta, times)
+        >>>
+        >>> print(f"PMF at times: {pmf_vals}")
+        >>> print(f"Moments: {moments}")  # [E[T], E[T^2]]
+        >>>
+        >>> # Use in SVGD with moment regularization
+        >>> svgd = SVGD(model, observed_pmf, theta_dim=1)
+        >>> svgd.fit_regularized(observed_times=data, nr_moments=2, regularization=1.0)
+
+        Notes
+        -----
+        - More efficient than separate calls to pmf_from_graph() and moments_from_graph()
+        - Required for using moment-based regularization in SVGD.fit_regularized()
+        - The moments are always computed from the same graph used for PMF/PDF
+        """
+        # Check if JAX is available
+        if not HAS_JAX and not use_ffi:
+            raise ImportError(
+                "JAX is required for JAX-compatible models. "
+                "Install with: pip install 'ptdalgorithms[jax]' or pip install jax jaxlib"
+            )
+
+        import jax
+        import jax.numpy as jnp
+
+        # Serialize the graph
+        serialized = graph.serialize()
+        param_length = serialized.get('param_length', 0)
+
+        if param_length == 0:
+            raise ValueError(
+                "Graph must have parameterized edges. "
+                "Create graph with parameterized=True and use add_edge_parameterized()."
+            )
+
+        # Generate C++ build_model() code
+        cpp_code = _generate_cpp_from_graph(serialized)
+
+        # Create wrapper that computes both PMF and moments
+        granularity = 100  # Default granularity for PDF computation
+
+        if discrete:
+            wrapper_code = f'''{cpp_code}
+
+#include <cmath>
+
+// Helper function to compute factorial
+double factorial(int n) {{
+    double result = 1.0;
+    for (int i = 2; i <= n; i++) {{
+        result *= i;
+    }}
+    return result;
+}}
+
+extern "C" {{
+    void compute_pmf_and_moments(
+        const double* theta, int n_params,
+        const int* times, int n_times,
+        int nr_moments,
+        double* pmf_output,
+        double* moments_output
+    ) {{
+        // Build graph from theta
+        ptdalgorithms::Graph g = build_model(theta, n_params);
+
+        // Compute PMF for discrete case
+        for (int i = 0; i < n_times; i++) {{
+            pmf_output[i] = g.dph_pmf(times[i]);
+        }}
+
+        // Compute moments using expected_waiting_time() method
+        // This replicates the _moments() function from pybind11 code
+        std::vector<double> rewards;  // Empty rewards for standard moments
+        std::vector<double> rewards2 = g.expected_waiting_time(rewards);
+        std::vector<double> rewards3(rewards2.size());
+
+        moments_output[0] = rewards2[0];  // First moment (mean)
+
+        // Compute higher moments iteratively
+        for (int i = 1; i < nr_moments; i++) {{
+            for (int j = 0; j < (int)rewards3.size(); j++) {{
+                rewards3[j] = rewards2[j] * std::pow(rewards2[j], i);
+            }}
+            rewards2 = g.expected_waiting_time(rewards3);
+            moments_output[i] = factorial(i + 1) * rewards2[0];
+        }}
+    }}
+}}
+'''
+        else:
+            wrapper_code = f'''{cpp_code}
+
+#include <cmath>
+
+// Helper function to compute factorial
+double factorial(int n) {{
+    double result = 1.0;
+    for (int i = 2; i <= n; i++) {{
+        result *= i;
+    }}
+    return result;
+}}
+
+extern "C" {{
+    void compute_pmf_and_moments(
+        const double* theta, int n_params,
+        const double* times, int n_times,
+        int nr_moments,
+        double* pmf_output,
+        double* moments_output
+    ) {{
+        // Build graph from theta
+        ptdalgorithms::Graph g = build_model(theta, n_params);
+
+        // Compute PDF for continuous case
+        for (int i = 0; i < n_times; i++) {{
+            pmf_output[i] = g.pdf(times[i], {granularity});
+        }}
+
+        // Compute moments using expected_waiting_time() method
+        // This replicates the _moments() function from pybind11 code
+        std::vector<double> rewards;  // Empty rewards for standard moments
+        std::vector<double> rewards2 = g.expected_waiting_time(rewards);
+        std::vector<double> rewards3(rewards2.size());
+
+        moments_output[0] = rewards2[0];  // First moment (mean)
+
+        // Compute higher moments iteratively
+        for (int i = 1; i < nr_moments; i++) {{
+            for (int j = 0; j < (int)rewards3.size(); j++) {{
+                rewards3[j] = rewards2[j] * std::pow(rewards2[j], i);
+            }}
+            rewards2 = g.expected_waiting_time(rewards3);
+            moments_output[i] = factorial(i + 1) * rewards2[0];
+        }}
+    }}
+}}
+'''
+
+        # Compile the wrapper
+        lib_name = f"pmf_moments_{hashlib.sha256(wrapper_code.encode()).hexdigest()[:16]}"
+        lib_path = _compile_wrapper_library(wrapper_code, lib_name)
+
+        # Load the library
+        lib = ctypes.PyDLL(lib_path)
+
+        # Define the function signature
+        if discrete:
+            lib.compute_pmf_and_moments.argtypes = [
+                ctypes.POINTER(ctypes.c_double),  # theta
+                ctypes.c_int,                      # n_params
+                ctypes.POINTER(ctypes.c_int),      # times
+                ctypes.c_int,                      # n_times
+                ctypes.c_int,                      # nr_moments
+                ctypes.POINTER(ctypes.c_double),   # pmf_output
+                ctypes.POINTER(ctypes.c_double)    # moments_output
+            ]
+        else:
+            lib.compute_pmf_and_moments.argtypes = [
+                ctypes.POINTER(ctypes.c_double),  # theta
+                ctypes.c_int,                      # n_params
+                ctypes.POINTER(ctypes.c_double),   # times
+                ctypes.c_int,                      # n_times
+                ctypes.c_int,                      # nr_moments
+                ctypes.POINTER(ctypes.c_double),   # pmf_output
+                ctypes.POINTER(ctypes.c_double)    # moments_output
+            ]
+        lib.compute_pmf_and_moments.restype = None
+
+        # Pure computation function
+        def _compute_pmf_and_moments_pure(theta_flat, times_flat):
+            """Pure function for combined PMF and moments computation"""
+            theta_np = np.asarray(theta_flat, dtype=np.float64)
+            times_np = np.asarray(times_flat, dtype=np.float64 if not discrete else np.int32)
+
+            pmf_output = np.zeros(len(times_np), dtype=np.float64)
+            moments_output = np.zeros(nr_moments, dtype=np.float64)
+
+            if discrete:
+                lib.compute_pmf_and_moments(
+                    theta_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                    len(theta_np),
+                    times_np.ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
+                    len(times_np),
+                    nr_moments,
+                    pmf_output.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                    moments_output.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+                )
+            else:
+                lib.compute_pmf_and_moments(
+                    theta_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                    len(theta_np),
+                    times_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                    len(times_np),
+                    nr_moments,
+                    pmf_output.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                    moments_output.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+                )
+
+            return pmf_output, moments_output
+
+        # Helper function for pure callback (used in forward and backward pass)
+        def _compute_pure(theta, times):
+            """Pure computation without custom_vjp wrapper"""
+            theta = jnp.atleast_1d(theta)
+            times = jnp.atleast_1d(times)
+
+            pmf_shape = jax.ShapeDtypeStruct((len(times),), jnp.float64)
+            moments_shape = jax.ShapeDtypeStruct((nr_moments,), jnp.float64)
+
+            result = jax.pure_callback(
+                _compute_pmf_and_moments_pure,
+                (pmf_shape, moments_shape),
+                theta, times,
+                vmap_method='sequential'
+            )
+            return result
+
+        # Wrap for JAX compatibility with custom VJP for gradients
+        @jax.custom_vjp
+        def model(theta, times):
+            """JAX-compatible model function returning (pmf, moments)"""
+            return _compute_pure(theta, times)
+
+        def model_fwd(theta, times):
+            # Call the underlying computation, not model (avoid infinite recursion!)
+            pmf, moments = _compute_pure(theta, times)
+            return (pmf, moments), (theta, times)
+
+        def model_bwd(res, g):
+            theta, times = res
+            g_pmf, g_moments = g  # Unpack gradient tuple
+
+            n_params = theta.shape[0]
+            eps = 1e-7
+
+            # Finite differences for gradient
+            theta_bar = []
+            for i in range(n_params):
+                theta_plus = theta.at[i].add(eps)
+                theta_minus = theta.at[i].add(-eps)
+
+                # Call underlying computation, not model
+                pmf_plus, moments_plus = _compute_pure(theta_plus, times)
+                pmf_minus, moments_minus = _compute_pure(theta_minus, times)
+
+                # Combine gradients from both PMF and moments
+                grad_pmf_i = jnp.sum(g_pmf * (pmf_plus - pmf_minus) / (2 * eps))
+                grad_moments_i = jnp.sum(g_moments * (moments_plus - moments_minus) / (2 * eps))
+                grad_i = grad_pmf_i + grad_moments_i
+
+                theta_bar.append(grad_i)
+
+            return jnp.array(theta_bar), None
+
+        model.defvjp(model_fwd, model_bwd)
+        return model
+
     def plot(self, *args, **kwargs):
         """
         Plots the graph using graphviz. See plot::plot_graph.py for more details.
@@ -1571,3 +2050,65 @@ extern "C" {{
                 rewards[state, i] = 1
         rewards = np.transpose(rewards)
         return new_graph, rewards
+
+
+# Module-level utility functions
+
+def load_cpp_builder(cpp_file: Union[str, pathlib.Path]) -> Callable:
+    """
+    Load a C++ model builder for direct Graph object creation without JAX wrapping.
+
+    This function compiles a user-provided C++ file and returns a builder function
+    that creates Graph objects directly. Use this when you need fast forward
+    evaluations without JAX support or gradient computation.
+
+    For gradient-based inference and automatic differentiation, use pmf_from_cpp()
+    instead, which wraps the C++ model in a JAX-compatible function.
+
+    Parameters
+    ----------
+    cpp_file : str or pathlib.Path
+        Path to C++ file implementing the build_model() function.
+        See examples/user_models/README.md for details on the required interface.
+
+    Returns
+    -------
+    callable
+        Builder function with signature: (theta: np.ndarray) -> Graph
+        - Input: Parameter vector (numpy array)
+        - Output: Graph object with standard methods (pdf, pmf, moments, etc.)
+
+    Examples
+    --------
+    >>> # Load a C++ coalescent model
+    >>> builder = load_cpp_builder("models/coalescent.cpp")
+    >>>
+    >>> # Create graph with specific parameters
+    >>> graph = builder(np.array([1.0, 2.0]))
+    >>>
+    >>> # Use standard Graph methods for forward evaluation
+    >>> pdf_value = graph.pdf(1.0)  # Direct C++ call, no JAX overhead
+    >>> pmf_value = graph.dph_pmf(5)
+    >>> moment = graph.moments(2)  # E[T^2]
+    >>>
+    >>> # For gradient-based inference, use pmf_from_cpp instead:
+    >>> model = Graph.pmf_from_cpp("models/coalescent.cpp")
+    >>> # Now you can use jax.grad(model) for automatic differentiation
+
+    See Also
+    --------
+    Graph.pmf_from_cpp : JAX-compatible wrapper for gradient computation
+    Graph.pmf_from_graph : Convert Python-built Graph to JAX function
+
+    Notes
+    -----
+    - This function does NOT provide JAX integration or gradient support
+    - Suitable for scenarios where you need repeated fast evaluations with different parameters
+    - The C++ file must implement: Graph* build_model(const double* theta, int dim)
+    - For distributed/GPU computing with JAX, use pmf_from_cpp() instead
+    """
+    from . import ptdalgorithmscpp_pybind
+    cpp_path = pathlib.Path(cpp_file).resolve()
+    if not cpp_path.exists():
+        raise FileNotFoundError(f"C++ file not found: {cpp_path}")
+    return ptdalgorithmscpp_pybind.load_cpp_builder(str(cpp_path))

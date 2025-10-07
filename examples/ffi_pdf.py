@@ -1,26 +1,28 @@
 #!/usr/bin/env python
 """
-Comprehensive Example: FFI Approach for C++ Models
+Comprehensive Example: Direct C++ Graph Building with load_cpp_builder()
 
-This example demonstrates how to use Graph.pmf_from_cpp(use_ffi=True) for
-efficient graph reuse. The FFI approach separates graph construction from
-computation, allowing you to build the graph once and use it many times.
+This example demonstrates how to use load_cpp_builder() for efficient graph reuse.
+This approach separates graph construction from computation, allowing you to build
+the graph once and use it many times without JAX overhead.
 
 When to use this approach:
 - When evaluating the same model many times with fixed parameters
 - When performance is critical and you don't need JAX transformations
 - For Monte Carlo simulations with fixed parameters
 - For real-time applications requiring low latency
+
+For gradient-based inference and JAX integration, use Graph.pmf_from_cpp() instead.
 """
 
 import numpy as np
 import time
-from ptdalgorithms import Graph
+from ptdalgorithms import load_cpp_builder
 import matplotlib.pyplot as plt
 from scipy import stats
 
 print("=" * 80)
-print("FFI APPROACH: Efficient Graph Reuse for C++ Models")
+print("DIRECT C++ APPROACH: Efficient Graph Reuse with load_cpp_builder()")
 print("=" * 80)
 
 # ==============================================================================
@@ -29,8 +31,8 @@ print("=" * 80)
 print("\n1. BASIC USAGE")
 print("-" * 40)
 
-# Load the model with FFI (returns a builder function)
-builder = Graph.pmf_from_cpp("user_models/simple_exponential.cpp", use_ffi=True)
+# Load the model builder function
+builder = load_cpp_builder("user_models/simple_exponential.cpp")
 print("✅ Builder function loaded")
 
 # Build a graph with specific parameters
@@ -136,7 +138,7 @@ print("\n5. COMPLEX MODEL: Rabbit Flooding")
 print("-" * 40)
 
 # Load the rabbit flooding model
-rabbit_builder = Graph.pmf_from_cpp("user_models/rabbit_flooding.cpp", use_ffi=True)
+rabbit_builder = load_cpp_builder("user_models/rabbit_flooding.cpp")
 
 # Build graph with specific parameters
 params = np.array([5.0, 0.3, 0.7])  # 5 rabbits, asymmetric flooding
@@ -321,12 +323,13 @@ print("\n" + "=" * 80)
 print("SUMMARY")
 print("=" * 80)
 print("""
-The FFI approach provides:
+The load_cpp_builder() approach provides:
 ✅ Build graph once, use many times
 ✅ Excellent performance for repeated evaluations
 ✅ Memory efficient (single graph instance)
 ✅ Low latency for real-time applications
 ✅ Clean separation of construction and computation
+✅ Direct C++ graph objects without JAX overhead
 
 Best for:
 - Monte Carlo simulations with fixed parameters
@@ -334,4 +337,7 @@ Best for:
 - Parameter sweeps where each graph is used multiple times
 - Production systems where performance is critical
 - Batch processing of many time points
+
+For gradient-based inference, use Graph.pmf_from_cpp() instead, which provides
+full JAX support including automatic differentiation, JIT compilation, and vmap.
 """)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Side-by-Side Comparison: JAX-Compatible vs FFI Approaches
+Side-by-Side Comparison: JAX-Compatible vs Direct C++ Approaches
 
 This example directly compares both approaches for loading C++ models,
 helping you choose the right one for your use case.
@@ -9,12 +9,12 @@ helping you choose the right one for your use case.
 import numpy as np
 import jax
 import jax.numpy as jnp
-from ptdalgorithms import Graph
+from ptdalgorithms import Graph, load_cpp_builder
 import time
 import matplotlib.pyplot as plt
 
 print("=" * 80)
-print("COMPARISON: JAX-Compatible vs FFI Approaches")
+print("COMPARISON: JAX-Compatible vs Direct C++ Approaches")
 print("=" * 80)
 
 # Model file to use for comparison
@@ -24,11 +24,11 @@ model_file = "user_models/simple_exponential.cpp"
 # APPROACH 1: JAX-COMPATIBLE
 # ==============================================================================
 print("\n" + "="*60)
-print("APPROACH 1: JAX-COMPATIBLE (default)")
+print("APPROACH 1: JAX-COMPATIBLE (Graph.pmf_from_cpp)")
 print("="*60)
 
-# Load model with JAX support
-jax_model = Graph.pmf_from_cpp(model_file, jax_compatible=True)
+# Load model with JAX support (default behavior)
+jax_model = Graph.pmf_from_cpp(model_file)
 print("✅ Loaded JAX-compatible model")
 
 # Test parameters and times
@@ -84,19 +84,19 @@ print(f"   Time: {jax_time:.4f} seconds")
 print(f"   Note: Rebuilds graph each call")
 
 # ==============================================================================
-# APPROACH 2: FFI (Foreign Function Interface)
+# APPROACH 2: DIRECT C++ (load_cpp_builder)
 # ==============================================================================
 print("\n" + "="*60)
-print("APPROACH 2: FFI (use_ffi=True)")
+print("APPROACH 2: DIRECT C++ (load_cpp_builder)")
 print("="*60)
 
-# Load model with FFI
-ffi_builder = Graph.pmf_from_cpp(model_file, use_ffi=True)
-print("✅ Loaded FFI builder function")
+# Load model builder for direct C++ graph creation
+cpp_builder = load_cpp_builder(model_file)
+print("✅ Loaded C++ builder function")
 
 # Build graph once
 theta_np = np.array([1.0])
-graph = ffi_builder(theta_np)
+graph = cpp_builder(theta_np)
 print(f"✅ Built graph: {type(graph)}")
 
 # --- Feature: Basic Evaluation ---
@@ -115,11 +115,11 @@ print("   ❌ Not directly differentiable (graph is C++ object)")
 # --- Feature: Vectorization ---
 print("\n📦 Vectorization:")
 print("   ⚠️  Manual: Build multiple graphs")
-graphs = [ffi_builder(np.array([p])) for p in [0.5, 1.0, 1.5, 2.0]]
+graphs = [cpp_builder(np.array([p])) for p in [0.5, 1.0, 1.5, 2.0]]
 print(f"   Built {len(graphs)} graphs for different parameters")
 
 # --- Feature: Graph Reuse ---
-print("\n♻️  Graph Reuse (unique to FFI):")
+print("\n♻️  Graph Reuse (unique to Direct C++):")
 print("   ✅ Can reuse same graph without rebuilding:")
 for t in [0.3, 0.7, 1.2, 1.8]:
     pdf = graph.pdf(t, 100)
@@ -130,10 +130,10 @@ print("\n⏱️  Performance (1000 evaluations):")
 start = time.time()
 for _ in range(1000):
     _ = [graph.pdf(t, 100) for t in [0.5, 1.0, 1.5, 2.0]]
-ffi_time = time.time() - start
-print(f"   Time: {ffi_time:.4f} seconds")
+cpp_time = time.time() - start
+print(f"   Time: {cpp_time:.4f} seconds")
 print(f"   Note: Graph built once, reused 1000 times")
-print(f"   Speedup: {jax_time/ffi_time:.1f}x faster than JAX approach")
+print(f"   Speedup: {jax_time/cpp_time:.1f}x faster than JAX approach")
 
 # ==============================================================================
 # FEATURE COMPARISON TABLE
@@ -144,10 +144,10 @@ print("="*80)
 
 comparison_table = """
 ┌─────────────────────────┬──────────────────┬──────────────────┐
-│ Feature                 │ JAX-Compatible   │ FFI Approach     │
+│ Feature                 │ JAX-Compatible   │ Direct C++       │
 ├─────────────────────────┼──────────────────┼──────────────────┤
-│ Load function          │ pmf_from_cpp()   │ pmf_from_cpp(    │
-│                        │                  │   use_ffi=True)  │
+│ Load function          │ pmf_from_cpp()   │ load_cpp_builder │
+│                        │                  │ ()               │
 ├─────────────────────────┼──────────────────┼──────────────────┤
 │ Returns                │ Function         │ Builder function │
 │                        │ (theta,times)→pdf│ (theta)→Graph    │
@@ -168,7 +168,7 @@ comparison_table = """
 ├─────────────────────────┼──────────────────┼──────────────────┤
 │ Memory usage           │ Higher          │ ✅ Lower         │
 ├─────────────────────────┼──────────────────┼──────────────────┤
-│ Integration with JAX   │ ✅ Seamless     │ ⚠️ Limited       │
+│ Integration with JAX   │ ✅ Seamless     │ ⚠️ None          │
 └─────────────────────────┴──────────────────┴──────────────────┘
 """
 print(comparison_table)
@@ -180,8 +180,8 @@ print("USE CASE RECOMMENDATIONS")
 print("="*80)
 
 use_cases = """
-WHEN TO USE JAX-COMPATIBLE (default):
---------------------------------------
+WHEN TO USE JAX-COMPATIBLE (Graph.pmf_from_cpp):
+-------------------------------------------------
 ✅ Parameter optimization (needs gradients)
 ✅ Integration with JAX/ML libraries
 ✅ Research requiring automatic differentiation
@@ -199,8 +199,8 @@ Example:
     params = optimize(loss, initial_params, optimizer)
 
 
-WHEN TO USE FFI APPROACH:
--------------------------
+WHEN TO USE DIRECT C++ (load_cpp_builder):
+-------------------------------------------
 ✅ Monte Carlo with fixed parameters
 ✅ Real-time systems (low latency required)
 ✅ Production systems with known parameters
@@ -209,7 +209,7 @@ WHEN TO USE FFI APPROACH:
 ✅ When evaluating same model many times
 
 Example:
-    builder = Graph.pmf_from_cpp("model.cpp", use_ffi=True)
+    builder = load_cpp_builder("model.cpp")
     graph = builder(fixed_parameters)
 
     for _ in range(1000000):
@@ -252,8 +252,8 @@ for i in range(20):
 
 print(f"✅ Final estimate: {rate_est[0]:.4f} (true: {true_rate})")
 
-# --- FFI Approach: Grid search ---
-print("\nFFI Approach (Grid search):")
+# --- Direct C++ Approach: Grid search ---
+print("\nDirect C++ Approach (Grid search):")
 print("-" * 40)
 
 # Grid of possible rates
@@ -263,7 +263,7 @@ best_rate = None
 
 for rate in rate_grid:
     # Build graph for this rate
-    g = ffi_builder(np.array([rate]))
+    g = cpp_builder(np.array([rate]))
 
     # Compute likelihood
     log_lik = 0
@@ -287,8 +287,8 @@ fig, axes = plt.subplots(2, 2, figsize=(12, 10))
 
 # Plot 1: Performance comparison
 ax1 = axes[0, 0]
-methods = ['JAX\n(1000 calls)', 'FFI\n(1000 calls)']
-times = [jax_time, ffi_time]
+methods = ['JAX\n(1000 calls)', 'Direct C++\n(1000 calls)']
+times = [jax_time, cpp_time]
 colors = ['blue', 'green']
 bars = ax1.bar(methods, times, color=colors)
 ax1.set_ylabel('Time (seconds)')
@@ -301,11 +301,11 @@ for bar, t in zip(bars, times):
 ax2 = axes[0, 1]
 features = ['JIT', 'Grad', 'Vmap', 'Reuse']
 jax_support = [1, 1, 1, 0]
-ffi_support = [0, 0, 0, 1]
+cpp_support = [0, 0, 0, 1]
 x = np.arange(len(features))
 width = 0.35
 ax2.bar(x - width/2, jax_support, width, label='JAX', color='blue')
-ax2.bar(x + width/2, ffi_support, width, label='FFI', color='green')
+ax2.bar(x + width/2, cpp_support, width, label='C++', color='green')
 ax2.set_xticks(x)
 ax2.set_xticklabels(features)
 ax2.set_ylabel('Support (1=Yes, 0=No)')
@@ -317,7 +317,7 @@ ax2.set_ylim([0, 1.2])
 ax3 = axes[1, 0]
 # This would show the optimization path if we tracked it
 ax3.text(0.5, 0.5, 'JAX: Gradient-based\nconvergence in 20 steps\n\n' +
-         'FFI: Grid search\nover 50 points',
+         'Direct C++: Grid search\nover 50 points',
          ha='center', va='center', fontsize=12)
 ax3.set_title('Optimization Approaches')
 ax3.set_xlim([0, 1])
@@ -336,7 +336,7 @@ use_case_data = np.array([
 ])
 im = ax4.imshow(use_case_data, cmap='RdYlGn', aspect='auto', vmin=0, vmax=1)
 ax4.set_xticks([0, 1])
-ax4.set_xticklabels(['JAX', 'FFI'])
+ax4.set_xticklabels(['JAX', 'Direct C++'])
 ax4.set_yticks(range(6))
 ax4.set_yticklabels(['ML Integration', 'Need Gradients', 'Fixed Params',
                      'Real-time', 'Research', 'Production'])
@@ -357,16 +357,16 @@ print("\n" + "="*80)
 print("QUICK DECISION GUIDE")
 print("="*80)
 print("""
-Choose JAX-COMPATIBLE when you need:
+Choose JAX-COMPATIBLE (Graph.pmf_from_cpp) when you need:
   • Automatic differentiation (gradients)
   • JAX ecosystem integration
   • Research and experimentation
 
-Choose FFI when you need:
+Choose DIRECT C++ (load_cpp_builder) when you need:
   • Maximum performance with fixed parameters
   • Real-time/production systems
   • Large-scale simulations
 
 Both approaches use the SAME C++ model files!
-You can switch between them by changing one parameter.
+You can switch between them by choosing the appropriate function.
 """)

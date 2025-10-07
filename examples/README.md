@@ -13,6 +13,13 @@ This directory contains examples demonstrating various features of the PtDAlgori
   - Posterior visualization with matplotlib
   - **Best starting point for learning SVGD inference**
 
+- **`svgd_regularized_example.py`** 🎯 - **SVGD with Moment-Based Regularization**
+  - Advanced SVGD with moment matching constraints
+  - Compares standard vs regularized SVGD at different strengths (λ = 0.1, 1.0, 10.0)
+  - Demonstrates improved stability and convergence
+  - Comprehensive visualization of moment matching quality
+  - **Best for: Sparse data, high-dimensional parameters, improving convergence**
+
 - **`jit_pdf.py`** 🎯 - Comprehensive demonstration of JAX-compatible approach
   - Python graph construction with regular edges
   - C++ model loading (both JIT and FFI approaches)
@@ -70,6 +77,9 @@ python test_parameterized_edges.py
 # Bayesian inference with SVGD (recommended starting point)
 python svgd_inference_example.py
 
+# SVGD with moment-based regularization (advanced)
+python svgd_regularized_example.py
+
 # Comprehensive demonstration with parameterized edges
 python jit_pdf.py
 
@@ -122,6 +132,48 @@ vertex.add_edge_parameterized(child, weight=0.0, edge_state=[2.0, 0.5])
 - Sensitivity analysis
 
 See `jit_pdf.py` Section 11-12 for complete examples!
+
+## 🎯 Advanced Feature: Moment-Based Regularization
+
+**Moment regularization** stabilizes SVGD inference by constraining distribution moments to match observed data:
+
+```python
+# Standard SVGD (PMF matching only)
+model = Graph.pmf_from_graph(graph)
+svgd = SVGD(model, observed_pmf, theta_dim=1)
+svgd.fit()
+
+# Regularized SVGD (PMF + moment matching)
+model = Graph.pmf_and_moments_from_graph(graph, nr_moments=2)
+svgd = SVGD(model, observed_pmf, theta_dim=1)
+svgd.fit_regularized(observed_times=times, regularization=1.0)
+```
+
+**How it works:**
+- Regularized objective: `log p(θ|data) - λ * Σ(E[T^k|θ] - mean(data^k))²`
+- Penalizes difference between model moments `E[T^k|θ]` and sample moments `mean(data^k)`
+- Provides additional gradient signal beyond likelihood
+- Uses efficient C++ `graph.moments()` computation
+
+**Benefits:**
+- ✅ **Improved stability**: Prevents particle divergence
+- ✅ **Better convergence**: Additional constraints guide optimization
+- ✅ **Reduced overfitting**: Acts as implicit prior on distribution shape
+- ✅ **Interpretable**: Can inspect moment matching quality
+
+**When to use:**
+- ✅ Sparse or noisy data
+- ✅ High-dimensional parameter spaces
+- ✅ When standard SVGD struggles to converge
+- ✅ When you have access to raw observation times (not just PMF values)
+
+**Regularization strength (λ):**
+- `λ = 0.0`: No regularization (standard SVGD)
+- `λ = 0.1-1.0`: Mild regularization (recommended starting point)
+- `λ = 1.0-10.0`: Strong regularization
+- Start with `λ = 1.0` and adjust based on convergence
+
+See `svgd_regularized_example.py` for comprehensive demonstration!
 
 ## 📖 Documentation
 
