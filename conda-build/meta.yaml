@@ -31,12 +31,13 @@ outputs:
           - python-graphviz
           - ipython
           - seaborn
+          - tqdm
         run_constrained:
           # Optional JAX support for gradient-based inference
           # These are not required but if installed must meet these version constraints
           - jax >=0.4.0
           - jaxlib >=0.4.0
-          - h5py
+          - equinox
       build:
         number: 1
         noarch: false

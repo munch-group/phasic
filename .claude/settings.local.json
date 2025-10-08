@@ -37,7 +37,10 @@
       "Bash(JAX_PLATFORMS=cpu pixi run python examples/graphbuilder_showcase.py)",
       "Bash(cat:*)",
       "Bash(chmod:*)",
-      "Bash(timeout 60 pixi run python:*)"
+      "Bash(timeout 60 pixi run python:*)",
+      "Bash(quarto render:*)",
+      "Bash(pixi install:*)",
+      "Bash(timeout 10 pixi run python test_summary_display.py)"
     ],
     "deny": []
   }

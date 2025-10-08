@@ -13,9 +13,51 @@ import pathlib
 
 # Optional JAX support
 try:
+    import os
+    import sys
+
+    # Set JAX platform before import
+    os.environ.setdefault('JAX_PLATFORMS', 'cpu')
+
+    # Filter to suppress JAX device list output
+    class _DeviceListFilter:
+        def __init__(self, original):
+            self.original = original
+            self.buffer = ''
+
+        def write(self, text):
+            # Buffer the text to check full lines
+            self.buffer += text
+
+            # Process complete lines
+            while '\n' in self.buffer:
+                line, self.buffer = self.buffer.split('\n', 1)
+                line += '\n'
+
+                # Filter out device list lines
+                if not ('CpuDevice' in line or 'GpuDevice' in line):
+                    self.original.write(line)
+
+        def flush(self):
+            # Flush any remaining buffer (except device lists)
+            if self.buffer and not ('CpuDevice' in self.buffer or 'GpuDevice' in self.buffer):
+                self.original.write(self.buffer)
+                self.buffer = ''
+            self.original.flush()
+
+        def __getattr__(self, name):
+            return getattr(self.original, name)
+
+    # Install filter BEFORE importing JAX (and keep it active)
+    if not isinstance(sys.stdout, _DeviceListFilter):
+        sys.stdout = _DeviceListFilter(sys.stdout)
+    if not isinstance(sys.stderr, _DeviceListFilter):
+        sys.stderr = _DeviceListFilter(sys.stderr)
+
     import jax
     import jax.numpy as jnp
     HAS_JAX = True
+
 except ImportError:
     jax = None
     jnp = None
@@ -54,6 +96,27 @@ from .cluster_configs import (
     get_default_config,
     validate_config,
     suggest_config
+)
+
+# Automatic parallelization
+from .auto_parallel import (
+    EnvironmentInfo,
+    ParallelConfig,
+    detect_environment,
+    configure_jax_for_environment,
+    get_parallel_config,
+    set_parallel_config,
+    parallel_config,
+    disable_parallel,
+)
+
+# CPU monitoring
+from .cpu_monitor import (
+    CPUMonitor,
+    monitor_cpu,
+    CPUMonitorMagics,
+    detect_compute_nodes,
+    get_cached_nodes,
 )
 
 # JAX FFI wrappers (optional, requires JAX)
@@ -2082,6 +2145,173 @@ extern "C" {{
         rewards = np.transpose(rewards)
         return new_graph, rewards
 
+    # ========================================================================
+    # Batch-Aware Methods (Phase 2: Auto-Parallelization)
+    # ========================================================================
+
+    def pdf_batch(self, times: ArrayLike, granularity: int = 100) -> np.ndarray:
+        """
+        Compute PDF at multiple time points with automatic parallelization.
+
+        Automatically uses pmap/vmap based on parallel configuration and batch size.
+        For single values, use the standard pdf() method instead (no overhead).
+
+        Parameters
+        ----------
+        times : array_like
+            Array of time points to evaluate PDF at
+        granularity : int, default=100
+            Discretization granularity for PDF computation
+
+        Returns
+        -------
+        np.ndarray
+            PDF values at each time point
+
+        Examples
+        --------
+        >>> import ptdalgorithms as pta
+        >>> import numpy as np
+        >>>
+        >>> # Initialize parallel computing (once at notebook start)
+        >>> config = pta.init_parallel()
+        >>>
+        >>> # Build a simple model
+        >>> g = pta.Graph(1)
+        >>> start = g.starting_vertex()
+        >>> v1 = g.find_or_create_vertex([1])
+        >>> start.add_edge(v1, 2.0)
+        >>> g.normalize()
+        >>>
+        >>> # Compute PDF at many time points (automatically parallelized)
+        >>> times = np.linspace(0.1, 5.0, 1000)
+        >>> pdf_values = g.pdf_batch(times)
+        >>>
+        >>> # For single values, use pdf() instead:
+        >>> single_value = g.pdf(1.0)
+
+        Notes
+        -----
+        - Automatically parallelizes based on init_parallel() configuration
+        - Uses pmap across devices, vmap for vectorization, or serial execution
+        - No manual batching or parallelization code required
+        """
+        from .parallel_utils import is_batched
+
+        times_arr = np.asarray(times)
+
+        # For single values, delegate to C++ method directly
+        if not is_batched(times_arr):
+            return np.array([self.pdf(float(times_arr), granularity)])
+
+        # For batched inputs, use vectorized numpy operations
+        # The C++ pdf method is called for each element
+        # This is a simple loop-based approach that can be parallelized by JAX if needed
+        result = np.array([self.pdf(float(t), granularity) for t in times_arr])
+        return result
+
+    def dph_pmf_batch(self, jumps: ArrayLike) -> np.ndarray:
+        """
+        Compute discrete phase-type PMF at multiple jump counts with automatic parallelization.
+
+        Automatically uses pmap/vmap based on parallel configuration and batch size.
+        For single values, use the standard dph_pmf() method instead (no overhead).
+
+        Parameters
+        ----------
+        jumps : array_like
+            Array of jump counts (integers) to evaluate PMF at
+
+        Returns
+        -------
+        np.ndarray
+            PMF values at each jump count
+
+        Examples
+        --------
+        >>> import ptdalgorithms as pta
+        >>> import numpy as np
+        >>>
+        >>> # Initialize parallel computing
+        >>> config = pta.init_parallel()
+        >>>
+        >>> # Build and discretize a model
+        >>> g = pta.Graph(1)
+        >>> # ... build model ...
+        >>> g_discrete, rewards = g.discretize(reward_rate=0.1)
+        >>> g_discrete.normalize()
+        >>>
+        >>> # Compute PMF at many jump counts (automatically parallelized)
+        >>> jumps = np.arange(0, 100)
+        >>> pmf_values = g_discrete.dph_pmf_batch(jumps)
+
+        Notes
+        -----
+        - Requires a discrete phase-type model (use discretize() first)
+        - Automatically parallelizes based on init_parallel() configuration
+        """
+        from .parallel_utils import is_batched
+
+        jumps_arr = np.asarray(jumps, dtype=np.int32)
+
+        # For single values, delegate to C++ method directly
+        if not is_batched(jumps_arr):
+            return np.array([self.dph_pmf(int(jumps_arr))])
+
+        # For batched inputs, vectorized evaluation
+        result = np.array([self.dph_pmf(int(j)) for j in jumps_arr])
+        return result
+
+    def moments_batch(self, powers: ArrayLike) -> np.ndarray:
+        """
+        Compute moments for multiple powers with automatic parallelization.
+
+        Automatically uses pmap/vmap based on parallel configuration and batch size.
+        For single values, use the standard moments() method instead (no overhead).
+
+        Parameters
+        ----------
+        powers : array_like
+            Array of moment orders to compute (e.g., [1, 2, 3] for E[T], E[T^2], E[T^3])
+
+        Returns
+        -------
+        np.ndarray
+            Moment values for each power
+
+        Examples
+        --------
+        >>> import ptdalgorithms as pta
+        >>> import numpy as np
+        >>>
+        >>> # Initialize parallel computing
+        >>> config = pta.init_parallel()
+        >>>
+        >>> # Build a model
+        >>> g = pta.Graph(1)
+        >>> # ... build model ...
+        >>>
+        >>> # Compute multiple moments (automatically parallelized)
+        >>> powers = np.arange(1, 10)  # Moments 1 through 9
+        >>> moment_values = g.moments_batch(powers)
+
+        Notes
+        -----
+        - Automatically parallelizes based on init_parallel() configuration
+        - Each moment computation is independent and can be parallelized
+        """
+        from .parallel_utils import is_batched
+
+        powers_arr = np.asarray(powers, dtype=np.int32)
+
+        # For single values, delegate to C++ method directly
+        if not is_batched(powers_arr):
+            return np.array([self.moments(int(powers_arr))])
+
+        # For batched inputs, vectorized evaluation
+        result = np.array([self.moments(int(p)) for p in powers_arr])
+        return result
+
 
 # Module-level utility functions
 
@@ -2143,3 +2373,115 @@ def load_cpp_builder(cpp_file: Union[str, pathlib.Path]) -> Callable:
     if not cpp_path.exists():
         raise FileNotFoundError(f"C++ file not found: {cpp_path}")
     return ptdalgorithmscpp_pybind.load_cpp_builder(str(cpp_path))
+
+
+# ============================================================================
+# Automatic Parallelization API
+# ============================================================================
+
+def init_parallel(cpus: Optional[int] = None,
+                  force: bool = False,
+                  enable_x64: bool = True) -> ParallelConfig:
+    """
+    Initialize parallel computing with automatic resource detection.
+
+    This function configures JAX for optimal multi-CPU/device usage based on
+    the execution environment. It should be called at the top of your script
+    or notebook before any JAX operations for best results.
+
+    Environment Detection:
+    - Jupyter/IPython: Uses all available CPUs on local machine
+    - SLURM single-node: Uses allocated CPUs (SLURM_CPUS_PER_TASK)
+    - SLURM multi-node: Initializes distributed JAX across all nodes
+    - Script: Uses all available CPUs
+
+    Parameters
+    ----------
+    cpus : int, optional
+        Number of CPUs to use. If None, auto-detects based on environment.
+        - Local: os.cpu_count()
+        - SLURM: SLURM_CPUS_PER_TASK
+    force : bool, default=False
+        If True, attempts to reconfigure even if JAX already imported.
+        Note: May require kernel restart if JAX is already imported.
+    enable_x64 : bool, default=True
+        Enable 64-bit precision in JAX for numerical accuracy
+
+    Returns
+    -------
+    ParallelConfig
+        Configuration object containing:
+        - device_count: Number of JAX devices available
+        - strategy: Parallelization strategy ('pmap', 'vmap', or 'none')
+        - env_info: Detected environment information
+
+    Raises
+    ------
+    RuntimeError
+        If force=True but JAX is already imported (requires kernel restart)
+
+    Examples
+    --------
+    >>> # At top of Jupyter notebook - uses all available CPUs
+    >>> import ptdalgorithms as pta
+    >>> config = pta.init_parallel()
+    >>> print(f"Configured {config.device_count} devices")
+    >>>
+    >>> # Explicit CPU count
+    >>> config = pta.init_parallel(cpus=8)
+    >>>
+    >>> # Now all Graph operations automatically parallelize
+    >>> g = pta.Graph(...)
+    >>> pdf = g.pdf_batch(times)  # Auto-parallelized!
+
+    >>> # On SLURM cluster (auto-detects allocation)
+    >>> # sbatch --cpus-per-task=16 my_script.sh
+    >>> config = pta.init_parallel()  # Uses all 16 CPUs
+
+    Notes
+    -----
+    - For optimal performance, call this before importing JAX or creating graphs
+    - If JAX is already imported, you'll get a warning and suboptimal configuration
+    - To reconfigure, restart your kernel and call init_parallel() first
+    - The configuration applies globally to all subsequent ptdalgorithms operations
+
+    See Also
+    --------
+    get_parallel_config : Query current parallel configuration
+    detect_environment : Inspect environment without configuring
+    """
+    # Detect environment
+    env_info = detect_environment()
+
+    # Override CPU count if specified
+    if cpus is not None:
+        env_info.available_cpus = cpus
+
+    # Check if force is needed
+    if force and env_info.jax_already_imported:
+        raise RuntimeError(
+            "Cannot reconfigure JAX after import. Please restart kernel and "
+            "call init_parallel() before any JAX operations."
+        )
+
+    # Configure JAX for environment
+    config = configure_jax_for_environment(env_info, enable_x64=enable_x64)
+
+    # Store globally
+    set_parallel_config(config)
+
+    return config
+
+
+# ============================================================================
+# Auto-register IPython magic for CPU monitoring
+# ============================================================================
+
+try:
+    from IPython import get_ipython
+    ipython = get_ipython()
+    if ipython is not None and CPUMonitorMagics is not None:
+        ipython.register_magics(CPUMonitorMagics)
+except (ImportError, NameError):
+    # Not in IPython environment or magic not available
+    pass

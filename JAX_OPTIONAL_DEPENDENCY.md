@@ -30,7 +30,7 @@ JAX is already defined as an optional extra:
 
 ```toml
 [project.optional-dependencies]
-jax = ['jax>=0.4.0', 'jaxlib', 'h5py']
+jax = ['jax>=0.4.0', 'jaxlib']
 ```
 
 **Installation:**
@@ -54,7 +54,6 @@ JAX is now in a feature group:
 [feature.jax.dependencies]
 jax = ">=0.6.0,<0.7"
 jaxlib = ">=0.6.0,<0.7"
-h5py = ">=1.14.6,<2"
 
 [environments]
 default = ["jax"]    # Default includes JAX
@@ -87,7 +86,6 @@ run:
 run_constrained:
   - jax >=0.4.0
   - jaxlib >=0.4.0
-  - h5py
 ```
 
 **Installation:**

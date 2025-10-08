@@ -84,5 +84,6 @@
         "iridis",
         "ptdalgorithmscpp"
     ],
-    "python.terminal.activateEnvironment": false
+    "python.terminal.activateEnvironment": false,
+    "cmake.cmakePath": "/Users/kmt/PtDAlgorithms/.pixi/envs/default/bin/cmake"
 }
