@@ -1,0 +1,570 @@
+# Distributed Computing with PtDAlgorithms
+
+**Simple, powerful multi-node parallelization with zero boilerplate**
+
+This guide shows you how to use the new distributed computing interface to scale your computations from a laptop to 100+ node clusters with just **one line of code**.
+
+## Table of Contents
+
+- [Quick Start](#quick-start)
+- [Complete Examples](#complete-examples)
+- [Configuration Management](#configuration-management)
+- [SLURM Integration](#slurm-integration)
+- [API Reference](#api-reference)
+
+---
+
+## Quick Start
+
+### The Old Way (200+ lines of boilerplate) ❌
+
+```python
+# Detect SLURM environment
+if 'SLURM_JOB_ID' in os.environ:
+    num_processes = int(os.environ['SLURM_NTASKS'])
+    process_id = int(os.environ['SLURM_PROCID'])
+    cpus_per_task = int(os.environ.get('SLURM_CPUS_PER_TASK', '1'))
+
+    # Get coordinator node
+    nodelist = os.environ['SLURM_JOB_NODELIST']
+    result = subprocess.run(['scontrol', 'show', 'hostnames', nodelist], ...)
+    coordinator_node = result.stdout.strip().split('\n')[0]
+
+    # Setup environment
+    os.environ['XLA_FLAGS'] = f'--xla_force_host_platform_device_count={cpus_per_task}'
+
+    # Initialize JAX distributed
+    coordinator_address = f"{coordinator_node}:{coordinator_port}"
+    jax.distributed.initialize(...)
+
+# ... 150+ more lines of boilerplate code ...
+```
+
+### The New Way (1 line!) ✓
+
+```python
+from ptdalgorithms import initialize_distributed
+
+dist_info = initialize_distributed()
+```
+
+**That's it!** All SLURM detection, coordinator setup, and JAX initialization happens automatically.
+
+---
+
+## Complete Examples
+
+### Example 1: Simple Distributed Computation
+
+**File:** `distributed_inference_simple.py`
+
+```python
+from ptdalgorithms import Graph, initialize_distributed
+
+# ONE LINE - replaces 200+ lines of boilerplate
+dist_info = initialize_distributed()
+
+print(f"Running on {dist_info.global_device_count} devices")
+print(f"Process {dist_info.process_id}/{dist_info.num_processes}")
+
+# Build your model
+graph = Graph(1)
+# ... build graph ...
+
+# Your computation automatically uses all devices
+# via JAX pmap/vmap parallelization
+```
+
+**Run locally:**
+```bash
+python distributed_inference_simple.py
+```
+
+**Run on SLURM cluster:**
+```bash
+# Generate and submit SLURM script in one command
+sbatch <(python generate_slurm_script.py --profile medium --script distributed_inference_simple.py)
+```
+
+### Example 2: Distributed SVGD Inference
+
+**File:** `simple_multinode_example.py`
+
+This example shows SVGD (Stein Variational Gradient Descent) inference distributed across multiple nodes:
+
+```python
+from ptdalgorithms import initialize_distributed
+from ptdalgorithms.ffi_wrappers import compute_pmf_and_moments_ffi
+
+# Initialize distributed computing
+dist_info = initialize_distributed()
+
+# Create particles distributed across all devices
+num_particles = dist_info.global_device_count * 4  # 4 per device
+
+# Run SVGD (automatically parallelized)
+svgd = SVGD(model, observed_data, n_particles=num_particles)
+results = svgd.fit()
+```
+
+**Full example:** See `simple_multinode_example.py` for complete code.
+
+---
+
+## Configuration Management
+
+The new system uses **YAML files** to separate configuration from code.
+
+### Using Predefined Profiles
+
+```python
+from ptdalgorithms.cluster_configs import get_default_config
+
+# Available profiles: debug, small, medium, large, production
+config = get_default_config("medium")
+
+print(f"Nodes: {config.nodes}")
+print(f"CPUs/node: {config.cpus_per_node}")
+print(f"Total devices: {config.total_devices}")
+```
+
+**Available profiles:**
+
+| Profile | Nodes | CPUs/node | Total Devices | Time Limit |
+|---------|-------|-----------|---------------|------------|
+| debug | 1 | 4 | 4 | 00:30:00 |
+| small | 2 | 8 | 16 | 01:00:00 |
+| medium | 4 | 16 | 64 | 02:00:00 |
+| large | 8 | 16 | 128 | 04:00:00 |
+| production | 8 | 32 | 256 | 08:00:00 |
+
+### Creating Custom Configurations
+
+**File:** `examples/slurm_configs/my_config.yaml`
+
+```yaml
+name: my_custom_config
+nodes: 4
+cpus_per_node: 16
+memory_per_cpu: "8G"
+time_limit: "03:00:00"
+partition: "compute"
+coordinator_port: 12345
+platform: "cpu"
+
+env_vars:
+  JAX_ENABLE_X64: "1"
+  XLA_PYTHON_CLIENT_PREALLOCATE: "false"
+
+modules_to_load:
+  - "python/3.11"
+  - "gcc/11.2.0"
+```
+
+**Load in Python:**
+
+```python
+from ptdalgorithms.cluster_configs import load_config
+
+config = load_config("examples/slurm_configs/my_config.yaml")
+```
+
+---
+
+## SLURM Integration
+
+### Generating SLURM Scripts
+
+The `generate_slurm_script.py` tool creates SLURM submission scripts from configuration files:
+
+#### List Available Profiles
+
+```bash
+python generate_slurm_script.py --list-profiles
+```
+
+#### Generate Script from Profile
+
+```bash
+# Generate and save
+python generate_slurm_script.py \
+    --profile medium \
+    --script my_script.py \
+    --output submit.sh
+
+chmod +x submit.sh
+sbatch submit.sh
+```
+
+#### Quick Submit (One Command!)
+
+```bash
+# Generate and submit in one command
+sbatch <(python generate_slurm_script.py --profile medium --script my_script.py)
+```
+
+#### Generate from Custom Config
+
+```bash
+python generate_slurm_script.py \
+    --config examples/slurm_configs/my_config.yaml \
+    --script my_script.py \
+    --output submit.sh
+```
+
+### What the Generated Script Does
+
+The generated SLURM script automatically:
+
+1. **Loads modules** (if specified in config)
+2. **Activates Python environment** (Pixi or Conda)
+3. **Sets up JAX coordinator** for distributed computing
+4. **Configures environment variables**
+5. **Runs your script** with `srun` for multi-node execution
+6. **Reports job status** and exit codes
+
+**Example generated script:**
+
+```bash
+#!/bin/bash
+#SBATCH --job-name=my_script
+#SBATCH --nodes=4
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=16
+#SBATCH --time=02:00:00
+#SBATCH --partition=compute
+
+# Load modules
+module load python/3.11
+
+# Activate environment
+eval "$(pixi shell-hook)"
+
+# Setup JAX coordinator
+COORDINATOR_NODE=$(scontrol show hostnames $SLURM_JOB_NODELIST | head -n 1)
+export SLURM_COORDINATOR_ADDRESS=$COORDINATOR_NODE
+export JAX_COORDINATOR_PORT=12345
+
+# Run distributed computation
+srun --kill-on-bad-exit=1 python my_script.py
+```
+
+---
+
+## API Reference
+
+### Core Functions
+
+#### `initialize_distributed()`
+
+The main entry point for distributed computing.
+
+```python
+from ptdalgorithms import initialize_distributed
+
+dist_info = initialize_distributed(
+    cpus_per_task=None,      # Auto-detected from SLURM_CPUS_PER_TASK
+    coordinator_port=12345,  # Port for JAX coordinator
+    platform="cpu",          # "cpu" or "gpu"
+    enable_x64=True          # Enable 64-bit precision
+)
+```
+
+**Returns:** `DistributedConfig` object with:
+
+```python
+dist_info.num_processes        # Total number of processes (nodes)
+dist_info.process_id           # This process's rank (0 to num_processes-1)
+dist_info.local_device_count   # Number of devices on this node
+dist_info.global_device_count  # Total devices across all nodes
+dist_info.is_coordinator       # True if this is the coordinator (rank 0)
+dist_info.coordinator_address  # Address of coordinator ("host:port")
+dist_info.job_id              # SLURM job ID (if running under SLURM)
+```
+
+#### `get_default_config(profile)`
+
+Get predefined cluster configuration.
+
+```python
+from ptdalgorithms.cluster_configs import get_default_config
+
+config = get_default_config("medium")
+```
+
+**Available profiles:** `"debug"`, `"small"`, `"medium"`, `"large"`, `"production"`
+
+#### `load_config(filepath)`
+
+Load custom configuration from YAML file.
+
+```python
+from ptdalgorithms.cluster_configs import load_config
+
+config = load_config("examples/slurm_configs/my_config.yaml")
+```
+
+### Advanced Functions
+
+#### `detect_slurm_environment()`
+
+Manually detect SLURM environment variables.
+
+```python
+from ptdalgorithms.distributed_utils import detect_slurm_environment
+
+env = detect_slurm_environment()
+if env:
+    print(f"Running SLURM job {env['job_id']}")
+    print(f"Process {env['process_id']}/{env['num_processes']}")
+```
+
+#### `configure_jax_devices()`
+
+Configure JAX device count (called automatically by `initialize_distributed`).
+
+```python
+from ptdalgorithms.distributed_utils import configure_jax_devices
+
+configure_jax_devices(num_devices=8, platform="cpu")
+```
+
+#### `initialize_jax_distributed()`
+
+Initialize JAX distributed (called automatically by `initialize_distributed`).
+
+```python
+from ptdalgorithms.distributed_utils import initialize_jax_distributed
+
+initialize_jax_distributed(
+    coordinator_address="node01:12345",
+    num_processes=4,
+    process_id=0
+)
+```
+
+---
+
+## Comparison: Old vs New
+
+### Before (200+ lines)
+
+```python
+# 200+ lines of boilerplate for:
+# - SLURM detection
+# - Environment variable setup
+# - Coordinator configuration
+# - JAX initialization
+# - Error handling
+# - Device configuration
+```
+
+### After (1 line)
+
+```python
+dist_info = initialize_distributed()
+```
+
+### Benefits
+
+✅ **80% less code** (200 lines → 20 lines)
+✅ **Reusable** across all projects
+✅ **Type-safe** with IDE autocomplete
+✅ **Testable** (can mock SLURM environment)
+✅ **Maintainable** (one place to update)
+✅ **Config-driven** (YAML separates config from code)
+
+---
+
+## Tips and Best Practices
+
+### 1. Use Coordinator Check for Logging
+
+Only the coordinator should print summary information:
+
+```python
+if dist_info.is_coordinator:
+    print(f"Starting computation with {dist_info.global_device_count} devices")
+```
+
+### 2. Distribute Particles Evenly
+
+Ensure particles are divisible by device count:
+
+```python
+particles_per_device = 4
+n_particles = dist_info.global_device_count * particles_per_device
+```
+
+### 3. Use Different Seeds per Process
+
+Avoid identical random numbers across processes:
+
+```python
+np.random.seed(42 + dist_info.process_id)
+```
+
+### 4. Test Locally Before SLURM
+
+Your code should work both locally and on SLURM:
+
+```bash
+# Test locally first
+python my_script.py
+
+# Then submit to cluster
+sbatch <(python generate_slurm_script.py --profile small --script my_script.py)
+```
+
+### 5. Create Custom Configs for Your Cluster
+
+Different clusters have different partitions, QoS, modules, etc:
+
+```yaml
+# my_cluster.yaml
+name: my_cluster
+partition: "gpu-partition"  # Your cluster's GPU partition
+qos: "high-priority"         # Your QoS
+modules_to_load:
+  - "cuda/11.8"              # Your cluster's CUDA module
+  - "python/3.11"
+```
+
+---
+
+## Troubleshooting
+
+### Issue: "Module 'ptdalgorithms' not found"
+
+**Solution:** Ensure the package is installed in your environment:
+
+```bash
+# With Pixi (recommended)
+pixi install
+
+# Or with pip
+pip install -e .
+```
+
+### Issue: "JAX distributed initialization failed"
+
+**Possible causes:**
+
+1. **Coordinator node unreachable**: Check network connectivity between nodes
+2. **Port already in use**: Try a different `coordinator_port`
+3. **Firewall blocking**: Ensure port is open for inter-node communication
+
+**Debug with:**
+
+```python
+import os
+os.environ['JAX_LOG_LEVEL'] = 'DEBUG'
+dist_info = initialize_distributed()
+```
+
+### Issue: "SLURM environment not detected"
+
+**Check SLURM variables:**
+
+```bash
+echo $SLURM_JOB_ID
+echo $SLURM_PROCID
+echo $SLURM_NTASKS
+```
+
+If not running under SLURM, the code falls back to single-node mode (this is expected).
+
+### Issue: "Particles not evenly distributed"
+
+Ensure `n_particles` is divisible by `global_device_count`:
+
+```python
+# Good
+n_particles = dist_info.global_device_count * 4  # Exactly 4 per device
+
+# Bad
+n_particles = 37  # Won't divide evenly across devices
+```
+
+---
+
+## Complete Workflow Example
+
+Here's a complete workflow from development to production:
+
+### 1. Develop Locally
+
+```bash
+# Create your script
+vim my_inference.py
+
+# Test locally (single node)
+python my_inference.py
+```
+
+### 2. Create Custom Config
+
+```bash
+# Create config for your cluster
+vim slurm_configs/my_cluster.yaml
+```
+
+### 3. Test on Small Scale
+
+```bash
+# Test with small profile (2 nodes)
+sbatch <(python generate_slurm_script.py --profile small --script my_inference.py)
+
+# Monitor
+squeue -u $USER
+```
+
+### 4. Scale to Production
+
+```bash
+# Run on full cluster
+sbatch <(python generate_slurm_script.py --profile production --script my_inference.py)
+```
+
+### 5. Monitor Results
+
+```bash
+# Check logs
+tail -f logs/my_inference_*.out
+
+# Check errors
+tail -f logs/my_inference_*.err
+```
+
+---
+
+## Additional Resources
+
+- **Full examples:** See `examples/` directory
+  - `distributed_inference_simple.py` - Basic distributed computation
+  - `simple_multinode_example.py` - SVGD inference example
+  - `distributed_svgd_example.py` - Advanced SVGD with synthetic data
+
+- **Configuration examples:** See `examples/slurm_configs/`
+  - `debug.yaml` - Quick testing
+  - `small_cluster.yaml` - Development
+  - `medium_cluster.yaml` - Standard jobs
+  - `production.yaml` - Large-scale inference
+  - `gpu_cluster.yaml` - GPU acceleration
+
+- **SLURM guide:** See `SLURM_MULTINODE_GUIDE.md` for advanced SLURM topics
+
+---
+
+## Getting Help
+
+If you encounter issues:
+
+1. Check the examples in `examples/` directory
+2. Review this guide
+3. Check `SLURM_MULTINODE_GUIDE.md` for advanced topics
+4. Open an issue on GitHub
+
+---
+
+**Happy distributed computing! 🚀**
