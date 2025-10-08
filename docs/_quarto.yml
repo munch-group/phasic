@@ -61,7 +61,6 @@ website:
         - pages/getting_started.ipynb
         - section: "Basics"
           contents:
-            - pages/phase-type-distributions.qmd
             - pages/state_space.ipynb
             - pages/moments.ipynb
             - pages/distributions.ipynb
