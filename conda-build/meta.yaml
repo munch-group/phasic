@@ -32,6 +32,10 @@ outputs:
           - ipython
           - seaborn
           - tqdm
+          - pyyaml
+          - psutil
+          - rich
+        
         run_constrained:
           # Optional JAX support for gradient-based inference
           # These are not required but if installed must meet these version constraints
