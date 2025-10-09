@@ -75,6 +75,7 @@ class NodeInfo:
     cpu_count: int
     allocated_cpus: Optional[List[int]] = None
     process_id: int = 0
+    is_local: bool = True  # Whether this is the local node
 
     def __post_init__(self):
         if self.allocated_cpus is None:
@@ -141,6 +142,107 @@ def _clean_hostname(hostname: str) -> str:
             hostname = hostname[:-len(suffix)]
     return hostname
 
+def _parse_slurm_cpu_list(cpu_str: str) -> List[int]:
+    """
+    Parse SLURM CPU list format (e.g., "0-3,8,10-11" -> [0,1,2,3,8,10,11]).
+
+    Parameters
+    ----------
+    cpu_str : str
+        SLURM CPU list string
+
+    Returns
+    -------
+    List[int]
+        List of CPU IDs
+    """
+    cpus = []
+    for part in cpu_str.split(','):
+        if '-' in part:
+            start, end = map(int, part.split('-'))
+            cpus.extend(range(start, end + 1))
+        else:
+            cpus.append(int(part))
+    return cpus
+
+
+def _query_slurm_jobs_on_node() -> Optional[Dict[str, Any]]:
+    """
+    Query SLURM for jobs running on the current node.
+
+    This is useful when running outside SLURM context (e.g., VSCode on SLURM node).
+
+    Returns
+    -------
+    dict or None
+        Job information including job_id, nodelist, allocated CPUs, etc.
+    """
+    import socket
+    import getpass
+
+    try:
+        current_hostname = socket.gethostname().split('.')[0]
+        current_user = getpass.getuser()
+
+        # Query squeue for jobs on this node by this user
+        # Use explicit field widths to avoid truncation of nodelist
+        result = subprocess.run(
+            ['squeue', '-u', current_user, '-w', current_hostname,
+             '-h', '-O', 'jobid:15,nodelist:100,numcpus:8,numnodes:6'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+
+        if result.returncode != 0 or not result.stdout.strip():
+            return None
+
+        # Parse first job (most recent)
+        lines = result.stdout.strip().split('\n')
+        if not lines:
+            return None
+
+        fields = lines[0].split()
+        if len(fields) < 4:
+            return None
+
+        job_id = fields[0]
+        nodelist = fields[1]
+        num_cpus = int(fields[2])
+        num_nodes = int(fields[3])
+
+        # Get detailed job info including CPU IDs
+        result = subprocess.run(
+            ['scontrol', 'show', 'job', job_id],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+
+        if result.returncode != 0:
+            return {'job_id': job_id, 'nodelist': nodelist,
+                   'num_cpus': num_cpus, 'num_nodes': num_nodes}
+
+        # Parse scontrol output for CPU_IDs
+        job_info = {'job_id': job_id, 'nodelist': nodelist,
+                   'num_cpus': num_cpus, 'num_nodes': num_nodes}
+
+        for line in result.stdout.split('\n'):
+            # Look for CPU_IDs on current node
+            if 'CPU_IDs=' in line or 'Nodes=' in line:
+                # Extract CPU list if available
+                if 'CPU_IDs=' in line:
+                    cpu_part = line.split('CPU_IDs=')[1].split()[0]
+                    job_info['cpu_ids'] = _parse_slurm_cpu_list(cpu_part)
+
+        return job_info
+
+    except (subprocess.CalledProcessError, FileNotFoundError,
+            subprocess.TimeoutExpired, Exception) as e:
+        logger.debug(f"Could not query SLURM jobs: {e}")
+        return None
+
+
 def detect_compute_nodes() -> List[NodeInfo]:
     """
     Detect compute nodes and allocated CPUs.
@@ -149,47 +251,94 @@ def detect_compute_nodes() -> List[NodeInfo]:
     For local execution, returns single node.
     For SLURM, returns all allocated nodes.
     """
-    # Check for SLURM environment
-    if 'SLURM_JOB_ID' not in os.environ:
-        # Local execution
-        cpu_count = os.cpu_count() or 1
+    import socket
 
-        # Try to get CPU affinity if available
-        try:
-            allocated_cpus = psutil.Process().cpu_affinity()
-            if allocated_cpus:
-                cpu_count = len(allocated_cpus)
-        except (AttributeError, OSError):
-            allocated_cpus = list(range(cpu_count))
+    # Check for SLURM environment variables
+    if 'SLURM_JOB_ID' in os.environ:
+        # Running inside SLURM allocation
+        from .distributed_utils import detect_slurm_environment
+        slurm_env = detect_slurm_environment()
 
-        import socket
-        hostname = _clean_hostname(socket.gethostname())
+        if slurm_env.get('is_slurm', False):
+            # Get node list
+            nodelist = slurm_env.get('nodelist', '')
+            node_count = slurm_env.get('node_count', 1)
+            cpus_per_task = slurm_env.get('cpus_per_task', 1)
+            process_id = slurm_env.get('process_id', 0)
+            job_id = slurm_env.get('job_id')
 
-        return [NodeInfo(
-            name=hostname,
-            cpu_count=cpu_count,
-            allocated_cpus=allocated_cpus,
-            process_id=0
-        )]
+            # Parse nodelist using scontrol
+            nodes = []
+            if nodelist:
+                try:
+                    result = subprocess.run(
+                        ['scontrol', 'show', 'hostnames', nodelist],
+                        capture_output=True,
+                        text=True,
+                        check=True,
+                        timeout=5
+                    )
+                    nodes = result.stdout.strip().split('\n')
+                except (subprocess.CalledProcessError, FileNotFoundError,
+                       subprocess.TimeoutExpired) as e:
+                    logger.warning(f"Could not parse SLURM nodelist: {e}")
+                    nodes = [f"node-{i}" for i in range(node_count)]
+            else:
+                nodes = [f"node-{i}" for i in range(node_count)]
 
-    # SLURM environment
-    from .distributed_utils import detect_slurm_environment
+            # Get allocated CPUs from SLURM
+            allocated_cpus = None
+            if 'SLURM_JOB_CPUS_PER_NODE' in os.environ:
+                cpu_spec = os.environ['SLURM_JOB_CPUS_PER_NODE']
+                # Parse format like "4" or "4(x2)" or "4,8"
+                if '(' in cpu_spec:
+                    # Format: "4(x2)" means 4 CPUs per node
+                    num_cpus = int(cpu_spec.split('(')[0])
+                    allocated_cpus = list(range(num_cpus))
+                elif ',' in cpu_spec:
+                    # Multiple nodes with different CPU counts
+                    num_cpus = int(cpu_spec.split(',')[process_id])
+                    allocated_cpus = list(range(num_cpus))
+                else:
+                    num_cpus = int(cpu_spec)
+                    allocated_cpus = list(range(num_cpus))
 
-    slurm_env = detect_slurm_environment()
+            # Try CPU affinity as fallback
+            if not allocated_cpus:
+                try:
+                    allocated_cpus = psutil.Process().cpu_affinity()
+                    if not allocated_cpus:
+                        allocated_cpus = list(range(cpus_per_task))
+                except (AttributeError, OSError):
+                    allocated_cpus = list(range(cpus_per_task))
 
-    if not slurm_env.get('is_slurm', False):
-        # Fallback to local
-        return detect_compute_nodes.__wrapped__()
+            # Create NodeInfo for each node
+            current_hostname = _clean_hostname(socket.gethostname())
+            node_infos = []
+            for i, node_name in enumerate(nodes):
+                clean_name = _clean_hostname(node_name)
+                is_current = (clean_name == current_hostname or i == process_id)
 
-    # Get node list
-    nodelist = slurm_env.get('nodelist', '')
-    node_count = slurm_env.get('node_count', 1)
-    cpus_per_task = slurm_env.get('cpus_per_task', 1)
-    process_id = slurm_env.get('process_id', 0)
+                node_infos.append(NodeInfo(
+                    name=clean_name,
+                    cpu_count=len(allocated_cpus) if is_current else cpus_per_task,
+                    allocated_cpus=allocated_cpus if is_current else list(range(cpus_per_task)),
+                    process_id=i,
+                    is_local=is_current
+                ))
 
-    # Parse nodelist using scontrol
-    nodes = []
-    if nodelist:
+            return node_infos
+
+    # Not in SLURM context - check if we're on a SLURM node with active jobs
+    slurm_job = _query_slurm_jobs_on_node()
+
+    if slurm_job:
+        # Found SLURM job on this node
+        logger.info(f"Detected SLURM job {slurm_job['job_id']} on this node")
+
+        # Parse nodelist
+        nodelist = slurm_job['nodelist']
+        nodes = []
         try:
             result = subprocess.run(
                 ['scontrol', 'show', 'hostnames', nodelist],
@@ -199,32 +348,54 @@ def detect_compute_nodes() -> List[NodeInfo]:
                 timeout=5
             )
             nodes = result.stdout.strip().split('\n')
-        except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired) as e:
-            logger.warning(f"Could not parse SLURM nodelist: {e}")
-            nodes = [f"node-{i}" for i in range(node_count)]
-    else:
-        nodes = [f"node-{i}" for i in range(node_count)]
+        except Exception as e:
+            logger.warning(f"Could not parse nodelist: {e}")
+            # Use current hostname
+            nodes = [socket.gethostname().split('.')[0]]
 
-    # Get CPU affinity for this process
+        # Get allocated CPUs
+        if 'cpu_ids' in slurm_job:
+            allocated_cpus = slurm_job['cpu_ids']
+        else:
+            # Use number of CPUs as range
+            allocated_cpus = list(range(slurm_job['num_cpus']))
+
+        # Create NodeInfo for each node
+        current_hostname = _clean_hostname(socket.gethostname())
+        node_infos = []
+        for i, node_name in enumerate(nodes):
+            clean_name = _clean_hostname(node_name)
+            is_current = (clean_name == current_hostname)
+
+            node_infos.append(NodeInfo(
+                name=clean_name,
+                cpu_count=len(allocated_cpus) if is_current else slurm_job['num_cpus'],
+                allocated_cpus=allocated_cpus if is_current else list(range(slurm_job['num_cpus'])),
+                process_id=i,
+                is_local=is_current
+            ))
+
+        return node_infos
+
+    # Local execution - no SLURM
+    cpu_count = os.cpu_count() or 1
+
+    # Try to get CPU affinity if available
     try:
         allocated_cpus = psutil.Process().cpu_affinity()
-        if not allocated_cpus:
-            allocated_cpus = list(range(cpus_per_task))
+        if allocated_cpus:
+            cpu_count = len(allocated_cpus)
     except (AttributeError, OSError):
-        allocated_cpus = list(range(cpus_per_task))
+        allocated_cpus = list(range(cpu_count))
 
-    # Create NodeInfo for each node
-    # In multi-node SLURM, each process monitors its own node
-    node_infos = []
-    for i, node_name in enumerate(nodes):
-        node_infos.append(NodeInfo(
-            name=_clean_hostname(node_name),
-            cpu_count=len(allocated_cpus) if i == process_id else cpus_per_task,
-            allocated_cpus=allocated_cpus if i == process_id else list(range(cpus_per_task)),
-            process_id=i
-        ))
+    hostname = _clean_hostname(socket.gethostname())
 
-    return node_infos
+    return [NodeInfo(
+        name=hostname,
+        cpu_count=cpu_count,
+        allocated_cpus=allocated_cpus,
+        process_id=0
+    )]
 
 
 def is_jupyter() -> bool:
@@ -248,6 +419,66 @@ def is_vscode() -> bool:
         return 'VSCODE_PID' in os.environ or 'VSCODE_CWD' in os.environ
     except:
         return False
+
+
+# ============================================================================
+# Remote Monitoring via SSH
+# ============================================================================
+
+def _get_remote_cpu_usage(hostname: str, allocated_cpus: List[int], timeout: int = 5) -> tuple:
+    """
+    Get CPU usage from a remote node via SSH.
+
+    Parameters
+    ----------
+    hostname : str
+        Remote hostname
+    allocated_cpus : List[int]
+        List of CPU IDs to monitor
+    timeout : int
+        SSH timeout in seconds
+
+    Returns
+    -------
+    tuple
+        (per_core_usage, memory_percent) or (None, None) on error
+    """
+    try:
+        # Build Python command to get CPU stats
+        # We'll use a one-liner that imports psutil and outputs JSON
+        cpu_ids_str = ','.join(map(str, allocated_cpus))
+        python_cmd = (
+            f"python3 -c \"import psutil, json; "
+            f"percpu = psutil.cpu_percent(interval=0.1, percpu=True); "
+            f"mem = psutil.virtual_memory().percent; "
+            f"cpus = [{cpu_ids_str}]; "
+            f"usage = [percpu[i] if i < len(percpu) else 0.0 for i in cpus]; "
+            f"print(json.dumps({{'cpu': usage, 'mem': mem}}))\""
+        )
+
+        # Execute via SSH
+        result = subprocess.run(
+            ['ssh', '-o', 'StrictHostKeyChecking=no',
+             '-o', 'ConnectTimeout=2',
+             hostname, python_cmd],
+            capture_output=True,
+            text=True,
+            timeout=timeout
+        )
+
+        if result.returncode != 0:
+            logger.debug(f"SSH to {hostname} failed: {result.stderr}")
+            return None, None
+
+        # Parse JSON output
+        import json
+        data = json.loads(result.stdout.strip())
+        return data['cpu'], data['mem']
+
+    except (subprocess.TimeoutExpired, subprocess.CalledProcessError,
+            json.JSONDecodeError, Exception) as e:
+        logger.debug(f"Could not get remote CPU usage from {hostname}: {e}")
+        return None, None
 
 
 # ============================================================================
@@ -375,43 +606,62 @@ class CPUMonitor:
             return shutil.get_terminal_size().columns
 
     def _monitor_loop(self):
-        """Background thread that samples CPU usage."""
+        """Background thread that samples CPU usage for all nodes."""
         import socket
         current_hostname = _clean_hostname(socket.gethostname())
 
-        # Find our node
-        our_node = None
-        for node in self.nodes:
-            if node.name == current_hostname or node.process_id == 0:
-                our_node = node
-                break
+        # Identify local and remote nodes
+        local_nodes = [n for n in self.nodes if n.is_local]
+        remote_nodes = [n for n in self.nodes if not n.is_local]
 
-        if our_node is None:
-            logger.warning("Could not identify current node")
+        if not local_nodes:
+            logger.warning("Could not identify local node")
             return
 
         while self._monitoring:
             try:
-                # Get per-core CPU usage
-                # percpu=True returns list of percentages
-                per_core = psutil.cpu_percent(interval=self.update_interval, percpu=True)
+                # Monitor local nodes
+                for node in local_nodes:
+                    # Get per-core CPU usage
+                    per_core = psutil.cpu_percent(interval=self.update_interval, percpu=True)
 
-                # Get memory usage
-                memory_percent = psutil.virtual_memory().percent
+                    # Get memory usage
+                    memory_percent = psutil.virtual_memory().percent
 
-                # Filter to allocated CPUs if available
-                if our_node.allocated_cpus:
-                    try:
-                        per_core = [per_core[i] for i in our_node.allocated_cpus if i < len(per_core)]
-                    except IndexError:
-                        pass  # Use all cores
+                    # Filter to allocated CPUs if available
+                    if node.allocated_cpus:
+                        try:
+                            per_core = [per_core[i] for i in node.allocated_cpus if i < len(per_core)]
+                        except IndexError:
+                            pass  # Use all cores
 
-                # Store current usage
-                self._current_usage[our_node.name] = per_core
-                self._current_memory[our_node.name] = memory_percent
+                    # Store current usage
+                    self._current_usage[node.name] = per_core
+                    self._current_memory[node.name] = memory_percent
 
-                # Record statistics
-                self._stats[our_node.name].add_sample(per_core, memory_percent)
+                    # Record statistics
+                    self._stats[node.name].add_sample(per_core, memory_percent)
+
+                # Monitor remote nodes via SSH
+                for node in remote_nodes:
+                    per_core, memory_percent = _get_remote_cpu_usage(
+                        node.name,
+                        node.allocated_cpus or list(range(node.cpu_count)),
+                        timeout=3
+                    )
+
+                    if per_core is not None:
+                        # Store current usage
+                        self._current_usage[node.name] = per_core
+                        self._current_memory[node.name] = memory_percent
+
+                        # Record statistics
+                        self._stats[node.name].add_sample(per_core, memory_percent)
+                    else:
+                        # SSH failed - keep previous values or initialize to zeros
+                        if node.name not in self._current_usage or not self._current_usage[node.name]:
+                            self._current_usage[node.name] = [0.0] * node.cpu_count
+                            self._current_memory[node.name] = 0.0
 
             except Exception as e:
                 logger.error(f"Error in monitoring loop: {e}")
@@ -572,22 +822,30 @@ class CPUMonitor:
         """Generate HTML table with CPU statistics."""
         html = '<div style="font-family: monospace; font-size: 11px; padding: 10px;">'
 
-        for node in self.nodes:
+        for node_idx, node in enumerate(self.nodes):
             stats = self._stats[node.name]
             summary = stats.get_summary()
             if not summary:
                 continue
 
+            # Add separator between nodes (except before first)
+            if node_idx > 0:
+                html += '<div style="height: 12px;"></div>'
+
+            # Start node container with visual separation
+            node_style = 'border: 1px solid rgba(128, 128, 128, 0.3); border-radius: 4px; padding: 8px; margin-bottom: 8px; background: rgba(240, 240, 240, 0.1);'
+            html += f'<div style="{node_style}">'
+
             # Node name with memory percentage (mean/max)
             memory_mean = summary.get('memory_mean', 0.0)
             memory_max = summary.get('memory_max', 0.0)
-            html += f'<div style="margin-bottom: 8px; font-size: 12px;"><strong>{node.name}</strong> {memory_mean:.0f}%/{memory_max:.0f}% mem (mean/max)</div>'
+            html += f'<div style="margin-bottom: 8px; font-size: 13px; font-weight: bold;">{node.name} <span style="font-weight: normal; color: #666;">({memory_mean:.0f}%/{memory_max:.0f}% mem)</span></div>'
 
             mean_per_core = summary['mean_per_core']
             n_cpus = len(mean_per_core)
 
             # Create table with single row of CPU percentages
-            html += '''<table style="border-collapse: collapse; width: 100%; margin-bottom: 16px;">'''
+            html += '''<table style="border-collapse: collapse; width: 100%;">'''
 
             # CPU usage row
             html += '<tr style="background-color: rgba(128, 128, 128, 0.1);">'
@@ -597,6 +855,7 @@ class CPUMonitor:
             html += '</tr>'
 
             html += '</table>'
+            html += '</div>'  # Close node container
 
         html += '</div>'
         return html
@@ -609,23 +868,32 @@ class CPUMonitor:
 
         html = '<div style="font-family: monospace; font-size: 11px; padding: 10px;">'
 
-        for node in self.nodes:
+        for node_idx, node in enumerate(self.nodes):
+            # Add separator between nodes (except before first)
+            if node_idx > 0:
+                html += '<div style="height: 12px;"></div>'
+
+            # Start node container with visual separation
+            node_style = 'border: 1px solid rgba(128, 128, 128, 0.3); border-radius: 4px; padding: 8px; margin-bottom: 8px; background: rgba(240, 240, 240, 0.1);'
+            html += f'<div style="{node_style}">'
+
             if summary_mode:
                 # Summary mode: show mean usage
                 stats = self._stats[node.name]
                 summary = stats.get_summary()
                 if not summary:
+                    html += '</div>'  # Close node container
                     continue
 
                 # Node name with mean/max memory
                 memory_mean = summary.get('memory_mean', 0.0)
                 memory_max = summary.get('memory_max', 0.0)
-                html += f'<div style="margin-bottom: 4px; font-size: 12px;"><strong>{node.name}</strong> {memory_mean:.0f}%/{memory_max:.0f}% mem (mean/max)</div>'
+                html += f'<div style="margin-bottom: 6px; font-size: 13px; font-weight: bold;">{node.name} <span style="font-weight: normal; color: #666;">({memory_mean:.0f}%/{memory_max:.0f}% mem)</span></div>'
 
                 n_cpus = len(summary['mean_per_core'])
 
                 # Single row of bars - fill available width
-                html += '<div style="display: flex; gap: 3px; margin-bottom: 8px; width: 100%;">'
+                html += '<div style="display: flex; gap: 3px; width: 100%;">'
                 for i in range(n_cpus):
                     mean_val = summary['mean_per_core'][i]
 
@@ -634,7 +902,7 @@ class CPUMonitor:
 
                     # Show mean usage bar
                     html += f'''
-                    <div style="flex: 1; min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;">
+                    <div style="flex: 1; min-width: 20px; height: 12px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU {i}: {mean_val:.1f}% avg">
                         <div style="width: {mean_val}%; height: 100%; background: {summary_color};"></div>
                     </div>
                     '''
@@ -648,12 +916,12 @@ class CPUMonitor:
 
                 # Node name with current memory
                 current_memory = self._current_memory.get(node.name, 0.0)
-                html += f'<div style="margin-bottom: 4px; font-size: 12px;"><strong>{node.name}</strong> {current_memory:.0f}% mem</div>'
+                html += f'<div style="margin-bottom: 6px; font-size: 13px; font-weight: bold;">{node.name} <span style="font-weight: normal; color: #666;">({current_memory:.0f}% mem)</span></div>'
 
                 n_cpus = len(usage)
 
                 # Single row of bars - fill available width
-                html += '<div style="display: flex; gap: 3px; margin-bottom: 8px; width: 100%;">'
+                html += '<div style="display: flex; gap: 3px; width: 100%;">'
                 for i in range(n_cpus):
                     cpu_usage = usage[i]
 
@@ -670,14 +938,16 @@ class CPUMonitor:
                         # Default: gray only
                         color = '#666666'  # gray
 
-                    # Progress bar
+                    # Progress bar with tooltip
                     width_pct = min(100, max(0, cpu_usage))
                     html += f'''
-                    <div style="flex: 1; min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;">
+                    <div style="flex: 1; min-width: 20px; height: 12px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU {i}: {cpu_usage:.1f}%">
                         <div style="width: {width_pct}%; height: 100%; background: {color}; transition: width 0.3s;"></div>
                     </div>
                     '''
                 html += '</div>'
+
+            html += '</div>'  # Close node container
 
         html += '</div>'  # Close main container
         return html

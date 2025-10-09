@@ -6,10 +6,10 @@ import numpy as np
 # environment variables for JAX must be set before running any JAX code
 if platform.system() == "Darwin" and platform.machine() == "arm64":
     os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count=8"
-if platform.system() == "Linux" and os.environ['SLURM_JOB_CPUS_PER_NODE']:
+if platform.system() == "Linux" and os.environ.get('SLURM_JOB_CPUS_PER_NODE', ''):
     os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={os.environ['SLURM_JOB_CPUS_PER_NODE']}"
 import jax
-print(jax.devices())
+# print(jax.devices())
 import jax.numpy as jnp
 from jax import grad, vmap, jit
 from jax.scipy.stats import norm
