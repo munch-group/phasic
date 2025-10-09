@@ -49,8 +49,7 @@ license = {file = "LICENSE.txt"}
 [project.optional-dependencies]
 jax = [
   'jax>=0.4.0',
-  'jaxlib',
-  'equinox',
+#  'jaxlib',
 ]
 dev = [
     "pytest",

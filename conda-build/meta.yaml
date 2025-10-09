@@ -37,7 +37,7 @@ outputs:
           # These are not required but if installed must meet these version constraints
           - jax >=0.4.0
           - jaxlib >=0.4.0
-          - equinox
+          # - equinox
       build:
         number: 1
         noarch: false
