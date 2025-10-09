@@ -127,7 +127,7 @@ def rename_directory(old_name, new_name, dry_run=False):
     
     if old_path.exists():
         action = "Would rename" if dry_run else "Renaming"
-        print(f"{action} directory: {old_path} → {new_path}")
+        print(f"{action} directory: {old_path} {new_path}")
         if not dry_run:
             shutil.move(str(old_path), str(new_path))
         return True
@@ -143,7 +143,7 @@ def main():
                        help="Show what would be changed without making changes")
     args = parser.parse_args()
     
-    mode = "🔍 Dry run:" if args.dry_run else "🚀 Initializing"
+    mode = "Dry run:" if args.dry_run else "Initializing"
     print(f"{mode} Python library template...")
     
     # Get repository name and create module name
@@ -161,7 +161,7 @@ def main():
     files_to_process = get_files_to_process()
     
     action = "Would process" if args.dry_run else "Processing"
-    print(f"\n📝 {action} {len(files_to_process)} files...")
+    print(f"\n{action} {len(files_to_process)} files...")
     
     # Replace text in files
     files_changed = 0
@@ -180,7 +180,7 @@ def main():
     
     # Rename the source directory
     if rename_directory("munch_group_template", module_name, args.dry_run):
-        status = "Would rename" if args.dry_run else "✓ Renamed"
+        status = "Would rename" if args.dry_run else "Renamed"
         print(f"{status} source directory")
     
     if args.dry_run:

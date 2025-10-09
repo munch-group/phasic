@@ -14,16 +14,16 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -n|--new)
-            echo "🗑️  Removing existing session..."
+            echo "🗑 Removing existing session..."
             rm -f "$UUID_FILE"
             shift
             ;;
         -s|--show)
             if [ -f "$UUID_FILE" ]; then
                 uuid=$(cat "$UUID_FILE")
-                echo "📋 Current session UUID: $uuid"
-                echo "📁 Directory: $(pwd)"
-                echo "📄 UUID file: $UUID_FILE"
+                echo "Current session UUID: $uuid"
+                echo "Directory: $(pwd)"
+                echo "UUID file: $UUID_FILE"
             else
                 echo "No session found in current directory"
             fi
@@ -71,7 +71,7 @@ generate_uuid() {
 # Function for verbose logging
 log() {
     if [ "$VERBOSE" = true ]; then
-        echo "🔍 $1"
+        echo "$1"
     fi
 }
 
@@ -96,7 +96,7 @@ if [ -f "$UUID_FILE" ]; then
         SESSION_UUID=$(generate_uuid)
         echo "$SESSION_UUID" > "$UUID_FILE"
     else
-        echo "📂 Resuming session for '$DIR_NAME'"
+        echo "Resuming session for '$DIR_NAME'"
         log "UUID: $SESSION_UUID"
         log "File: $UUID_FILE"
     fi

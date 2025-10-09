@@ -1,4 +1,6 @@
-# PtDAlgorithms Project Architecture
+---
+title: PtDAlgorithms Project Architecture
+---
 
 ## Overview
 

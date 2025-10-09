@@ -294,7 +294,7 @@ def main():
         upper = results['theta_mean'][0] + 1.96*results['theta_std'][0]
 
         if lower <= true_theta[0] <= upper:
-            print("✓ SUCCESS: True parameter within 95% credible interval")
+            print("SUCCESS: True parameter within 95% credible interval")
         else:
             print("⚠ WARNING: True parameter outside 95% credible interval")
             print("  (This can happen with synthetic data - try increasing iterations)")

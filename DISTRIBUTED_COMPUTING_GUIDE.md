@@ -5,10 +5,10 @@
 This guide shows you how to use the distributed computing interface to scale your computations from a laptop to 100+ node clusters with just **one line of code**.
 
 **Key Features:**
-- ✅ **Automatic SLURM detection** - No manual environment parsing
-- ✅ **Built-in CPU monitoring** - Per-core usage across all nodes
-- ✅ **One-line initialization** - 200+ lines of boilerplate → 1 line
-- ✅ **Works everywhere** - Same code runs locally and on clusters
+- **Automatic SLURM detection** - No manual environment parsing
+- **Built-in CPU monitoring** - Per-core usage across all nodes
+- **One-line initialization** - 200+ lines of boilerplate 1 line
+- **Works everywhere** - Same code runs locally and on clusters
 
 ## Table of Contents
 
@@ -20,7 +20,6 @@ This guide shows you how to use the distributed computing interface to scale you
 - [Tips and Best Practices](#tips-and-best-practices)
 - [API Reference](#api-reference)
 
----
 
 ## Quick Start
 
@@ -58,7 +57,6 @@ dist_info = initialize_distributed()
 
 **That's it!** All SLURM detection, coordinator setup, and JAX initialization happens automatically.
 
----
 
 ## Complete Examples
 
@@ -125,7 +123,6 @@ with CPUMonitor(persist=True, color=True):
 
 **Full example:** See `simple_multinode_example.py` for complete code.
 
----
 
 ## Configuration Management
 
@@ -185,7 +182,6 @@ from ptdalgorithms.cluster_configs import load_config
 config = load_config("docs/examples/slurm_configs/my_config.yaml")
 ```
 
----
 
 ## SLURM Integration
 
@@ -276,7 +272,7 @@ export JAX_COORDINATOR_PORT=12345
 srun --kill-on-bad-exit=1 python my_script.py
 ```
 
----
+
 
 ## API Reference
 
@@ -406,7 +402,7 @@ initialize_jax_distributed(
 )
 ```
 
----
+
 
 ## Comparison: Old vs New
 
@@ -430,14 +426,14 @@ dist_info = initialize_distributed()
 
 ### Benefits
 
-✅ **80% less code** (200 lines → 20 lines)
-✅ **Reusable** across all projects
-✅ **Type-safe** with IDE autocomplete
-✅ **Testable** (can mock SLURM environment)
-✅ **Maintainable** (one place to update)
-✅ **Config-driven** (YAML separates config from code)
+**80% less code** (200 lines 20 lines)
+**Reusable** across all projects
+**Type-safe** with IDE autocomplete
+**Testable** (can mock SLURM environment)
+**Maintainable** (one place to update)
+**Config-driven** (YAML separates config from code)
 
----
+
 
 ## Monitoring Distributed Jobs
 
@@ -504,7 +500,7 @@ Note that the CPU monitor shows usage on the **current node only**. In a multi-n
 
 To see usage across all nodes, check SLURM logs or use cluster monitoring tools.
 
----
+
 
 ## Tips and Best Practices
 
@@ -571,7 +567,7 @@ modules_to_load:
   - "python/3.11"
 ```
 
----
+
 
 ## Troubleshooting
 
@@ -627,7 +623,7 @@ n_particles = dist_info.global_device_count * 4  # Exactly 4 per device
 n_particles = 37  # Won't divide evenly across devices
 ```
 
----
+
 
 ## Complete Workflow Example
 
@@ -677,7 +673,7 @@ tail -f logs/my_inference_*.out
 tail -f logs/my_inference_*.err
 ```
 
----
+
 
 ## Additional Resources
 
@@ -695,7 +691,7 @@ tail -f logs/my_inference_*.err
 
 - **SLURM guide:** See `SLURM_MULTINODE_GUIDE.md` for advanced SLURM topics
 
----
+
 
 ## Getting Help
 
@@ -706,6 +702,6 @@ If you encounter issues:
 3. Check `SLURM_MULTINODE_GUIDE.md` for advanced topics
 4. Open an issue on GitHub
 
----
+
 
 **Happy distributed computing! 🚀**

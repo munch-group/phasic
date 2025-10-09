@@ -369,6 +369,5 @@ The paper provides:
 - Duff, I.S., Erisman, A.M., & Reid, J.K. (2017). *Direct Methods for Sparse Matrices.* Oxford University Press.
 - Bobbio, A., Horváth, A., & Telek, M. (2004). The scale factor: a new degree of freedom in phase-type approximation. *Performance Evaluation*, 56(1-4):121-144.
 
----
 
 *This documentation is based on the graph-based algorithms implemented in PtDAlgorithms and described in Røikjer et al. (2022).*

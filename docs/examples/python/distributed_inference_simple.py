@@ -205,7 +205,7 @@ def main():
 
     print()
     if dist_info.is_coordinator:
-        print(f"✓ Distributed setup complete!")
+        print(f"Distributed setup complete!")
         print(f"  Processes: {dist_info.num_processes}")
         print(f"  Total devices: {dist_info.global_device_count}")
         print(f"  Local devices: {dist_info.local_device_count}")

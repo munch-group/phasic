@@ -18,9 +18,12 @@ ptdalgorithms.Graph(
 | [as_matrices](#ptdalgorithms.Graph.as_matrices) | Convert the graph to its matrix representation. |
 | [copy](#ptdalgorithms.Graph.copy) | Returns a deep copy of the graph. |
 | [discretize](#ptdalgorithms.Graph.discretize) | Creates a graph for a discrete distribution from a continuous one. |
+| [dph_pmf_batch](#ptdalgorithms.Graph.dph_pmf_batch) | Compute discrete phase-type PMF at multiple jump counts with automatic parallelization. |
 | [from_matrices](#ptdalgorithms.Graph.from_matrices) | Construct a Graph from matrix representation. |
 | [make_discrete](#ptdalgorithms.Graph.make_discrete) | Takes a graph for a continuous distribution and turns |
+| [moments_batch](#ptdalgorithms.Graph.moments_batch) | Compute moments for multiple powers with automatic parallelization. |
 | [moments_from_graph](#ptdalgorithms.Graph.moments_from_graph) | Convert a parameterized Graph to a JAX-compatible function that computes moments. |
+| [pdf_batch](#ptdalgorithms.Graph.pdf_batch) | Compute PDF at multiple time points with automatic parallelization. |
 | [plot](#ptdalgorithms.Graph.plot) | Plots the graph using graphviz. See plot::plot_graph.py for more details. |
 | [pmf_and_moments_from_graph](#ptdalgorithms.Graph.pmf_and_moments_from_graph) | Convert a parameterized Graph to a function that computes both PMF/PDF and moments. |
 | [pmf_from_cpp](#ptdalgorithms.Graph.pmf_from_cpp) | Load a phase-type model from a user's C++ file and return a JAX-compatible function. |
@@ -112,6 +115,54 @@ b")
         a
         b
 
+### dph_pmf_batch { #ptdalgorithms.Graph.dph_pmf_batch }
+
+```python
+ptdalgorithms.Graph.dph_pmf_batch(jumps)
+```
+
+Compute discrete phase-type PMF at multiple jump counts with automatic parallelization.
+
+Automatically uses pmap/vmap based on parallel configuration and batch size.
+For single values, use the standard dph_pmf() method instead (no overhead).
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**jumps**]{.parameter-name} [:]{.parameter-annotation-sep} [[array_like](`array_like`)]{.parameter-annotation}</code>
+
+:   Array of jump counts (integers) to evaluate PMF at
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation}</code>
+
+:   PMF values at each jump count
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> import ptdalgorithms as pta
+>>> import numpy as np
+>>>
+>>> # Initialize parallel computing
+>>> config = pta.init_parallel()
+>>>
+>>> # Build and discretize a model
+>>> g = pta.Graph(1)
+>>> # ... build model ...
+>>> g_discrete, rewards = g.discretize(reward_rate=0.1)
+>>> g_discrete.normalize()
+>>>
+>>> # Compute PMF at many jump counts (automatically parallelized)
+>>> jumps = np.arange(0, 100)
+>>> pmf_values = g_discrete.dph_pmf_batch(jumps)
+```
+
+#### Notes {.doc-section .doc-section-notes}
+
+- Requires a discrete phase-type model (use discretize() first)
+- Automatically parallelizes based on init_parallel() configuration
+
 ### from_matrices { #ptdalgorithms.Graph.from_matrices }
 
 ```python
@@ -158,6 +209,52 @@ ptdalgorithms.Graph.make_discrete(mutation_rate, skip_states=[], skip_slots=[])
 Takes a graph for a continuous distribution and turns
 it into a descrete one (inplace). Returns a matrix of
 rewards for computing marginal moments
+
+### moments_batch { #ptdalgorithms.Graph.moments_batch }
+
+```python
+ptdalgorithms.Graph.moments_batch(powers)
+```
+
+Compute moments for multiple powers with automatic parallelization.
+
+Automatically uses pmap/vmap based on parallel configuration and batch size.
+For single values, use the standard moments() method instead (no overhead).
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**powers**]{.parameter-name} [:]{.parameter-annotation-sep} [[array_like](`array_like`)]{.parameter-annotation}</code>
+
+:   Array of moment orders to compute (e.g., [1, 2, 3] for E[T], E[T^2], E[T^3])
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation}</code>
+
+:   Moment values for each power
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> import ptdalgorithms as pta
+>>> import numpy as np
+>>>
+>>> # Initialize parallel computing
+>>> config = pta.init_parallel()
+>>>
+>>> # Build a model
+>>> g = pta.Graph(1)
+>>> # ... build model ...
+>>>
+>>> # Compute multiple moments (automatically parallelized)
+>>> powers = np.arange(1, 10)  # Moments 1 through 9
+>>> moment_values = g.moments_batch(powers)
+```
+
+#### Notes {.doc-section .doc-section-notes}
+
+- Automatically parallelizes based on init_parallel() configuration
+- Each moment computation is independent and can be parallelized
 
 ### moments_from_graph { #ptdalgorithms.Graph.moments_from_graph }
 
@@ -223,6 +320,63 @@ Moments are computed using the existing C++ `graph.moments(power)` method for ef
 - Moments are raw moments, not central moments
 - For variance, compute: Var[T] = E[T^2] - E[T]^2
 - For standard deviation: std[T] = sqrt(Var[T])
+
+### pdf_batch { #ptdalgorithms.Graph.pdf_batch }
+
+```python
+ptdalgorithms.Graph.pdf_batch(times, granularity=100)
+```
+
+Compute PDF at multiple time points with automatic parallelization.
+
+Automatically uses pmap/vmap based on parallel configuration and batch size.
+For single values, use the standard pdf() method instead (no overhead).
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**times**]{.parameter-name} [:]{.parameter-annotation-sep} [[array_like](`array_like`)]{.parameter-annotation}</code>
+
+:   Array of time points to evaluate PDF at
+
+<code>[**granularity**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [100]{.parameter-default}</code>
+
+:   Discretization granularity for PDF computation
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation}</code>
+
+:   PDF values at each time point
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> import ptdalgorithms as pta
+>>> import numpy as np
+>>>
+>>> # Initialize parallel computing (once at notebook start)
+>>> config = pta.init_parallel()
+>>>
+>>> # Build a simple model
+>>> g = pta.Graph(1)
+>>> start = g.starting_vertex()
+>>> v1 = g.find_or_create_vertex([1])
+>>> start.add_edge(v1, 2.0)
+>>> g.normalize()
+>>>
+>>> # Compute PDF at many time points (automatically parallelized)
+>>> times = np.linspace(0.1, 5.0, 1000)
+>>> pdf_values = g.pdf_batch(times)
+>>>
+>>> # For single values, use pdf() instead:
+>>> single_value = g.pdf(1.0)
+```
+
+#### Notes {.doc-section .doc-section-notes}
+
+- Automatically parallelizes based on init_parallel() configuration
+- Uses pmap across devices, vmap for vectorization, or serial execution
+- No manual batching or parallelization code required
 
 ### plot { #ptdalgorithms.Graph.plot }
 

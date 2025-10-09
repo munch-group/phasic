@@ -2,8 +2,8 @@ project:
   type: website
   output-dir: _build
   # resources:
-    # - objects.txt
-    # - objects-test.txt
+  # - objects.txt
+  # - objects-test.txt
 
 execute:
   freeze: auto
@@ -75,6 +75,17 @@ website:
             - pages/distributed_computing_basics.ipynb
             - pages/distributed_svgd_inference.ipynb
             - pages/slurm_cluster_setup.ipynb
+            - pages/architecture.qmd
+            - pages/auto_parallel_computing.ipynb
+            - pages/cpu_monitoring_showcase.ipynb
+            - pages/distributed_computing_basics.ipynb
+            - pages/distributed_computing.qmd
+            - pages/distributed_svgd_inference.ipynb
+            - pages/graphbuilder_showcase.ipynb
+            - pages/math_and_algorithms.qmd
+            - pages/phase-type-distributions.qmd
+            - pages/slurm_multinode_guide.qmd
+            - pages/svgd_inference.ipynb
         - section: "Examples"
           contents:
             - examples/python/rabbits_full_py_api_example.ipynb
