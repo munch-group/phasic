@@ -39,7 +39,7 @@ The VScode extensions:
 
 Debugging requires that the module compiled and installed in editable mode:
 
-    pip install -e .
+   pip install -e ".[jax]" --force-reinstall
 
 > Tip: if compiling an editable install fails, it is often easier to identifying the problem by compiling/installing with regular `pip install .`. Just remember to uninstall (`pip uninstall ptdalgorithms`) and do the `pip install -e .` before you continue debugging.
 > 
@@ -51,33 +51,7 @@ The C++ debugger runs ...
 
 Debugging in vscode offers a "R API" debugging mode. You need to have an open R file from tests/ when launching the debugger.
 
+# Conda package
 
-## Conda package
-
-Pul any changes to CHANGELOG.md made by github action:
-
-    git pull --rebase
-
-Edit to fix/patch something. Then:
-
-    git commit -m 'some patch'
-
-Bump version and commit:
-
-    ./scripts/bump_version.py 0 0 1
-    git add -u
-
-Push commits create/push a new release tag:
-
-    git commit -m 'bumped version' 
-    git push
-    ./scripts/release-tag.py --patch
-
-For minor and major version bumps, use `--major` and `--minor`.
-
-
-To trigger a rebuild do:
-
-    ./scripts/bump_version.py --patch
-    git add -u ; git commit -m 'update' ; git push
-    ./scripts/release-tag.py
+    pixi run bump-version
+    pixi run github-release
