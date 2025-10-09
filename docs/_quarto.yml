@@ -58,7 +58,7 @@ website:
       style: floating
       align: left
       contents:
-        - pages/getting_started.ipynb
+        - pages/getting_started.qmd
         - section: "Basics"
           contents:
             - pages/state_space.ipynb

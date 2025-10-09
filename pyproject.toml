@@ -78,7 +78,7 @@ namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
 
 
 [tool.pixi.workspace]
-channels = ["conda-forge"]
+channels = ["conda-forge", "munch-group"]
 platforms = ["osx-arm64", "linux-64"]
 
 [tool.pixi.dependencies]

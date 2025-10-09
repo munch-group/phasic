@@ -1,0 +1,71 @@
+---
+title: Getting started
+aliases:
+  - ../index.html
+---
+
+::: {.callout-caution }
+## This pages is under construction
+
+:::
+
+The **ptdalgorithms** library provides fast and scalable algorithms for constructing and computing properties of phase-type distributions with support for both continuous and discrete, unrewarded and rewarded, univariate and multivariate distributions. For sparse models, it can be orders of magnitude faster. The code is written in C, but exposes an interface to both C, R and Python through a C++ layer. 
+
+The library computes moments (e.g. expectation, variance, covariance), distribution functions (pdf, cdf, pmf), laplace transform, and Markov chain stopping time probabilities. Although phase-type distributions are time-homogeneous, the library also computes moments and univariate distributions for epoch-wise time-inhomogeneous models as well as full joint probability distributions.
+
+<!-- The user iteratively builds the the state-space using a simple API. The state-space can be imported from and exported to a matrix representation allowing the library to seamlessly embed into matrix based workflows. -->
+
+## Installation
+
+::: {.panel-tabset}
+
+## Pixi
+
+Add conda channel:
+
+```bash
+pixi workspace channel add munch-group
+```
+
+Install without `jax`:
+
+```bash
+pixi install ptdalgorithms
+```
+
+For gradient-based inference using SVGD, the `jax` library is also required:
+
+```bash
+pixi install ptdalgorithms jax
+```
+
+## Conda
+
+Install without `jax`:
+
+```bash
+conda install -c munch-group -c conda-forge ptdalgorithms
+```
+
+For gradient-based inference using SVGD, the `jax` library is also required:
+
+```bash
+conda install -c munch-group -c conda-forge ptdalgorithms jax
+```
+
+## Pip
+
+Install without `jax`:
+
+```bash
+pip install ptdalgorithms
+```
+
+For gradient-based inference using SVGD, the `jax` library is also required:
+
+```bash
+pip install ptdalgorithms[jax]
+```
+
+:::
+
