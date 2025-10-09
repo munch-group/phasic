@@ -2,7 +2,13 @@
 
 **Simple, powerful multi-node parallelization with zero boilerplate**
 
-This guide shows you how to use the new distributed computing interface to scale your computations from a laptop to 100+ node clusters with just **one line of code**.
+This guide shows you how to use the distributed computing interface to scale your computations from a laptop to 100+ node clusters with just **one line of code**.
+
+**Key Features:**
+- ✅ **Automatic SLURM detection** - No manual environment parsing
+- ✅ **Built-in CPU monitoring** - Per-core usage across all nodes
+- ✅ **One-line initialization** - 200+ lines of boilerplate → 1 line
+- ✅ **Works everywhere** - Same code runs locally and on clusters
 
 ## Table of Contents
 
@@ -10,6 +16,8 @@ This guide shows you how to use the new distributed computing interface to scale
 - [Complete Examples](#complete-examples)
 - [Configuration Management](#configuration-management)
 - [SLURM Integration](#slurm-integration)
+- [Monitoring Distributed Jobs](#monitoring-distributed-jobs)
+- [Tips and Best Practices](#tips-and-best-practices)
 - [API Reference](#api-reference)
 
 ---
@@ -86,14 +94,14 @@ python distributed_inference_simple.py
 sbatch <(python generate_slurm_script.py --profile medium --script distributed_inference_simple.py)
 ```
 
-### Example 2: Distributed SVGD Inference
+### Example 2: Distributed SVGD Inference with Monitoring
 
 **File:** `simple_multinode_example.py`
 
-This example shows SVGD (Stein Variational Gradient Descent) inference distributed across multiple nodes:
+This example shows SVGD (Stein Variational Gradient Descent) inference distributed across multiple nodes with CPU monitoring:
 
 ```python
-from ptdalgorithms import initialize_distributed
+from ptdalgorithms import initialize_distributed, CPUMonitor
 from ptdalgorithms.ffi_wrappers import compute_pmf_and_moments_ffi
 
 # Initialize distributed computing
@@ -102,10 +110,18 @@ dist_info = initialize_distributed()
 # Create particles distributed across all devices
 num_particles = dist_info.global_device_count * 4  # 4 per device
 
-# Run SVGD (automatically parallelized)
-svgd = SVGD(model, observed_data, n_particles=num_particles)
-results = svgd.fit()
+# Run SVGD with automatic CPU monitoring
+with CPUMonitor(persist=True, color=True):
+    svgd = SVGD(model, observed_data, n_particles=num_particles)
+    results = svgd.fit()
+# Monitor persists after completion showing mean usage per core
 ```
+
+**Benefits of monitoring:**
+- See CPU utilization across all allocated cores
+- Verify efficient parallelization
+- Detect bottlenecks or idle cores
+- Track memory usage during inference
 
 **Full example:** See `simple_multinode_example.py` for complete code.
 
@@ -140,7 +156,7 @@ print(f"Total devices: {config.total_devices}")
 
 ### Creating Custom Configurations
 
-**File:** `examples/slurm_configs/my_config.yaml`
+**File:** `docs/examples/slurm_configs/my_config.yaml`
 
 ```yaml
 name: my_custom_config
@@ -166,12 +182,23 @@ modules_to_load:
 ```python
 from ptdalgorithms.cluster_configs import load_config
 
-config = load_config("examples/slurm_configs/my_config.yaml")
+config = load_config("docs/examples/slurm_configs/my_config.yaml")
 ```
 
 ---
 
 ## SLURM Integration
+
+### Why SLURM Scripts Are Still Needed
+
+While `initialize_distributed()` and `CPUMonitor` **automatically detect** the SLURM environment once your code is running, you still need SLURM batch scripts to:
+
+1. **Submit jobs** to the SLURM scheduler
+2. **Allocate resources** (nodes, CPUs, memory, time)
+3. **Set up the environment** (modules, Python environment)
+4. **Launch processes** on multiple nodes with `srun`
+
+The automatic detection happens **inside** your Python code after SLURM has started the job and set environment variables.
 
 ### Generating SLURM Scripts
 
@@ -207,7 +234,7 @@ sbatch <(python generate_slurm_script.py --profile medium --script my_script.py)
 
 ```bash
 python generate_slurm_script.py \
-    --config examples/slurm_configs/my_config.yaml \
+    --config docs/examples/slurm_configs/my_config.yaml \
     --script my_script.py \
     --output submit.sh
 ```
@@ -257,7 +284,7 @@ srun --kill-on-bad-exit=1 python my_script.py
 
 #### `initialize_distributed()`
 
-The main entry point for distributed computing.
+The main entry point for distributed computing with **automatic SLURM detection**.
 
 ```python
 from ptdalgorithms import initialize_distributed
@@ -269,6 +296,13 @@ dist_info = initialize_distributed(
     enable_x64=True          # Enable 64-bit precision
 )
 ```
+
+**Automatic detection includes:**
+- SLURM job environment (`SLURM_JOB_ID`, `SLURM_PROCID`, etc.)
+- Number of processes and process rank
+- Coordinator node from `SLURM_JOB_NODELIST`
+- CPUs per task allocation
+- Fallback to single-node mode if not running under SLURM
 
 **Returns:** `DistributedConfig` object with:
 
@@ -301,7 +335,36 @@ Load custom configuration from YAML file.
 ```python
 from ptdalgorithms.cluster_configs import load_config
 
-config = load_config("examples/slurm_configs/my_config.yaml")
+config = load_config("docs/examples/slurm_configs/my_config.yaml")
+```
+
+#### `CPUMonitor`
+
+Context manager for monitoring CPU usage with **automatic SLURM node detection**.
+
+```python
+from ptdalgorithms import CPUMonitor
+
+with CPUMonitor(
+    update_interval=0.5,    # Update every 0.5 seconds
+    persist=False,          # Clear display after completion
+    color=False,            # Gray bars (True for color-coded)
+    summary_table=False     # Show bars (True for table)
+):
+    # Your computation here
+    results = run_computation()
+```
+
+**Automatic detection:**
+- Detects SLURM nodes from `SLURM_JOB_NODELIST`
+- Shows only allocated CPUs from `SLURM_CPUS_PER_TASK`
+- Falls back to local node detection
+- Works in terminal, Jupyter, and VSCode
+
+**Cell magic** (Jupyter/VSCode):
+```python
+%%usage --color --persist --summary
+# Your computation
 ```
 
 ### Advanced Functions
@@ -376,6 +439,73 @@ dist_info = initialize_distributed()
 
 ---
 
+## Monitoring Distributed Jobs
+
+PtDAlgorithms includes a built-in CPU monitoring system that **automatically detects SLURM nodes** and displays per-node, per-core CPU usage in real-time.
+
+### Automatic Node Detection
+
+The monitoring system automatically detects:
+- **Local execution**: Shows your laptop/workstation
+- **SLURM jobs**: Detects all allocated nodes from `SLURM_JOB_NODELIST`
+- **Allocated CPUs**: Filters to show only your job's CPUs from `SLURM_CPUS_PER_TASK`
+
+### Example: Monitoring Distributed SVGD
+
+```python
+from ptdalgorithms import initialize_distributed, CPUMonitor
+import time
+
+# Initialize distributed computing (auto-detects SLURM)
+dist_info = initialize_distributed()
+
+# Monitor CPU usage across all allocated nodes
+with CPUMonitor(update_interval=0.5):
+    # Your distributed computation here
+    svgd = SVGD(model, data, n_particles=dist_info.global_device_count * 4)
+    results = svgd.fit()
+```
+
+**What you'll see:**
+```
+node01 45% mem
+[▓▓▓░░] [▓▓▓░░] [▓▓▓▓░] [▓▓░░░] [▓▓▓░░] [▓▓░░░] [▓▓▓▓░] [▓▓░░░]
+
+node02 52% mem
+[▓▓▓▓░] [▓▓░░░] [▓▓▓░░] [▓▓▓▓░] [▓▓▓░░] [▓▓░░░] [▓▓▓░░] [▓▓▓▓░]
+```
+
+Each bar shows real-time CPU usage for one core. Memory percentage shows current node usage.
+
+### Jupyter Notebook Monitoring
+
+For Jupyter/VSCode notebooks, use the cell magic:
+
+```python
+%%usage --color
+# Your distributed computation
+svgd = SVGD(model, data, n_particles=64)
+results = svgd.fit()
+```
+
+**Options:**
+- `--color` / `-c`: Color-coded bars (green/yellow/red based on usage)
+- `--persist` / `-p`: Keep display visible after completion with mean usage
+- `--summary` / `-s`: Show table with CPU percentages instead of bars
+- `--interval` / `-i`: Update interval in seconds (default: 0.5)
+
+### Monitoring Script vs Computation Script
+
+Note that the CPU monitor shows usage on the **current node only**. In a multi-node SLURM job:
+
+- Each process runs on one node
+- Each process sees its own node's CPU usage
+- The monitor automatically detects which node it's running on
+
+To see usage across all nodes, check SLURM logs or use cluster monitoring tools.
+
+---
+
 ## Tips and Best Practices
 
 ### 1. Use Coordinator Check for Logging
@@ -416,7 +546,18 @@ python my_script.py
 sbatch <(python generate_slurm_script.py --profile small --script my_script.py)
 ```
 
-### 5. Create Custom Configs for Your Cluster
+### 5. Monitor Resource Usage
+
+Use the built-in CPU monitor to ensure efficient resource utilization:
+
+```python
+with CPUMonitor(persist=True):
+    # Your computation
+    results = run_inference()
+# Shows mean CPU usage after completion
+```
+
+### 6. Create Custom Configs for Your Cluster
 
 Different clusters have different partitions, QoS, modules, etc:
 
@@ -545,7 +686,7 @@ tail -f logs/my_inference_*.err
   - `simple_multinode_example.py` - SVGD inference example
   - `distributed_svgd_example.py` - Advanced SVGD with synthetic data
 
-- **Configuration examples:** See `examples/slurm_configs/`
+- **Configuration examples:** See `docs/examples/slurm_configs/`
   - `debug.yaml` - Quick testing
   - `small_cluster.yaml` - Development
   - `medium_cluster.yaml` - Standard jobs

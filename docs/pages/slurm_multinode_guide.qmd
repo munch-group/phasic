@@ -33,7 +33,7 @@ The original multi-node setup required 200+ lines of boilerplate code spread acr
 python examples/generate_slurm_script.py --list-profiles
 
 # Available: debug, small, medium, large, production
-# Or create custom YAML in examples/slurm_configs/
+# Or create custom YAML in docs/examples/slurm_configs/
 ```
 
 **2. Generate SLURM script**
@@ -105,7 +105,7 @@ python examples/generate_slurm_script.py \\
 
 ### Configuration Files
 
-Create YAML configs in `examples/slurm_configs/`:
+Create YAML configs in `docs/examples/slurm_configs/`:
 
 ```yaml
 # my_cluster.yaml

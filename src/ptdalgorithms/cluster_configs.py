@@ -8,7 +8,7 @@ Usage:
     >>> from ptdalgorithms.cluster_configs import load_config, get_default_config
     >>>
     >>> # Load from YAML file
-    >>> config = load_config("examples/slurm_configs/production.yaml")
+    >>> config = load_config("docs/examples/slurm_configs/production.yaml")
     >>>
     >>> # Or use defaults
     >>> config = get_default_config("small")
@@ -146,7 +146,7 @@ def load_config(filepath: Path) -> ClusterConfig:
 
     Examples
     --------
-    >>> config = load_config("examples/slurm_configs/production.yaml")
+    >>> config = load_config("docs/examples/slurm_configs/production.yaml")
     >>> print(config.nodes, config.cpus_per_node)
     """
     if not HAS_YAML:
