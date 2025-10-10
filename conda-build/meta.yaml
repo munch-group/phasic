@@ -1,7 +1,7 @@
 {% set pyproject = load_file_data("../pyproject.toml", from_recipe_dir=True) %}
 
 package:
-  name: ptdalgorithms-base
+  name: ptdalgorithms
   version: {{ pyproject.get("project").get("version") }}
   # version: '0.20.0'
 
