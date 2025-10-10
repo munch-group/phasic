@@ -102,10 +102,18 @@ lightbox: true
 
 format:
   html:
-    theme: cosmo
+#    theme: cosmo
     css:
       - api/_styles-quartodoc.css
-      - styles.css
+      # - styles.css
+
+      - numpy-navbar-sidebar.css
+      - styles.css  # for code highlighting styles
+    theme: 
+      light: [cosmo, custom.scss]
+      dark: [darkly, custom-dark.scss]    
+
+
     toc: true
     mermaid:
       theme: neutral     
