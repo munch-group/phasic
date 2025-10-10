@@ -8,11 +8,11 @@ for both terminal and Jupyter notebook environments. It supports:
 - Adaptive width layouts
 - Unicode bar charts in terminal
 - HTML widgets in Jupyter
-- Cell magic (%%usage) for easy Jupyter usage
+- Cell magic (%%monitor) for easy Jupyter usage
 
 Usage:
     >>> # Jupyter notebook
-    >>> %%usage
+    >>> %%monitor
     >>> result = heavy_computation()
 
     >>> # Python script or notebook
@@ -527,6 +527,8 @@ def detect_compute_tasks() -> List[TaskInfo]:
 
             # Parse nodelist to get node names
             nodes = []
+            current_hostname = _clean_hostname(socket.gethostname())
+
             if nodelist:
                 try:
                     result = subprocess.run(
@@ -540,9 +542,17 @@ def detect_compute_tasks() -> List[TaskInfo]:
                 except (subprocess.CalledProcessError, FileNotFoundError,
                        subprocess.TimeoutExpired) as e:
                     logger.warning(f"Could not parse SLURM nodelist: {e}")
-                    nodes = [f"node-{i}" for i in range(num_nodes)]
+                    # Fallback: if single node, use current hostname; otherwise use generic names
+                    if num_nodes == 1:
+                        nodes = [current_hostname]
+                    else:
+                        nodes = [f"node-{i}" for i in range(num_nodes)]
             else:
-                nodes = [f"node-{i}" for i in range(num_nodes)]
+                # No nodelist - use current hostname for single node, generic names otherwise
+                if num_nodes == 1:
+                    nodes = [current_hostname]
+                else:
+                    nodes = [f"node-{i}" for i in range(num_nodes)]
 
             # Get allocated memory per task from SLURM
             allocated_memory_mb = None
@@ -565,7 +575,6 @@ def detect_compute_tasks() -> List[TaskInfo]:
                     allocated_memory_mb = None
 
             # Build task-to-node mapping
-            current_hostname = _clean_hostname(socket.gethostname())
             task_infos = []
             task_id = 0
 
@@ -595,7 +604,7 @@ def detect_compute_tasks() -> List[TaskInfo]:
                         node_name=clean_node_name,
                         cpu_count=cpus_per_task,
                         allocated_cpus=allocated_cpus,
-                        is_local=(is_current_node and is_current_task),
+                        is_local=is_current_node,  # All tasks on current node are local for monitoring
                         allocated_memory_mb=allocated_memory_mb
                     ))
                     task_id += 1
@@ -621,7 +630,7 @@ def detect_compute_tasks() -> List[TaskInfo]:
         except:
             allocated_memory_mb = None
 
-        # Create tasks (all local since we're querying from within the job)
+        # Create tasks (all local since they're on the current node)
         task_infos = []
         for task_id in range(num_tasks):
             cpu_start = task_id * cpus_per_task
@@ -632,7 +641,7 @@ def detect_compute_tasks() -> List[TaskInfo]:
                 node_name=hostname,
                 cpu_count=cpus_per_task,
                 allocated_cpus=allocated_cpus,
-                is_local=(task_id == 0),  # Assume we're task 0
+                is_local=True,  # All tasks on this node are local for monitoring
                 allocated_memory_mb=allocated_memory_mb
             ))
 
@@ -1136,7 +1145,7 @@ class CPUMonitor:
 
     def _generate_html_table(self):
         """Generate HTML table with CPU statistics."""
-        html = '<div style="font-family: monospace; font-size: 11px; padding: 10px;">'
+        html = '<div style="font-family: monospace; font-size: 10px; padding: 10px;">'
 
         for unit_idx, unit in enumerate(self.units):
             stats = self._stats[unit.name]
@@ -1152,10 +1161,18 @@ class CPUMonitor:
             unit_style = 'margin-bottom: 12px;'
             html += f'<div style="{unit_style}">'
 
-            # Unit name with memory percentage (mean/max)
-            memory_mean = summary.get('memory_mean', 0.0)
-            memory_max = summary.get('memory_max', 0.0)
-            html += f'<div style="margin-bottom: 8px; font-size: 13px; font-weight: bold;">{unit.name} <span style="font-weight: normal; color: #666;">({memory_mean:.0f}%/{memory_max:.0f}% mem)</span></div>'
+            # Unit name with memory percentage (mean/max) - convert MB to percentage
+            memory_mean_mb = summary.get('memory_mean', 0.0)
+            memory_max_mb = summary.get('memory_max', 0.0)
+            if unit.allocated_memory_mb and unit.allocated_memory_mb > 0:
+                memory_mean_pct = (memory_mean_mb / unit.allocated_memory_mb) * 100
+                memory_max_pct = (memory_max_mb / unit.allocated_memory_mb) * 100
+            else:
+                # Fallback: show as system percentage
+                total_mem_mb = psutil.virtual_memory().total / (1024 ** 2)
+                memory_mean_pct = (memory_mean_mb / total_mem_mb) * 100 if total_mem_mb > 0 else 0
+                memory_max_pct = (memory_max_mb / total_mem_mb) * 100 if total_mem_mb > 0 else 0
+            html += f'<div style="margin-bottom: 8px; font-size: 11px;">{unit.name} <span style="font-weight: normal; color: #666;">({memory_mean_pct:.0f}%/{memory_max_pct:.0f}% mem)</span></div>'
 
             mean_per_core = summary['mean_per_core']
             n_cpus = len(mean_per_core)
@@ -1182,7 +1199,7 @@ class CPUMonitor:
         if self.summary_table and summary_mode:
             return self._generate_html_table()
 
-        html = '<div style="font-family: monospace; font-size: 11px; padding: 10px;">'
+        html = '<div style="font-family: monospace; font-size: 10px; padding: 10px;">'
 
         for unit_idx, unit in enumerate(self.units):
             # Add separator between units (except before first)
@@ -1201,10 +1218,18 @@ class CPUMonitor:
                     html += '</div>'  # Close unit container
                     continue
 
-                # Unit name with mean/max memory
-                memory_mean = summary.get('memory_mean', 0.0)
-                memory_max = summary.get('memory_max', 0.0)
-                html += f'<div style="margin-bottom: 6px; font-size: 13px; font-weight: bold;">{unit.name} <span style="font-weight: normal; color: #666;">({memory_mean:.0f}%/{memory_max:.0f}% mem)</span></div>'
+                # Unit name with mean/max memory - convert MB to percentage
+                memory_mean_mb = summary.get('memory_mean', 0.0)
+                memory_max_mb = summary.get('memory_max', 0.0)
+                if unit.allocated_memory_mb and unit.allocated_memory_mb > 0:
+                    memory_mean_pct = (memory_mean_mb / unit.allocated_memory_mb) * 100
+                    memory_max_pct = (memory_max_mb / unit.allocated_memory_mb) * 100
+                else:
+                    # Fallback: show as system percentage
+                    total_mem_mb = psutil.virtual_memory().total / (1024 ** 2)
+                    memory_mean_pct = (memory_mean_mb / total_mem_mb) * 100 if total_mem_mb > 0 else 0
+                    memory_max_pct = (memory_max_mb / total_mem_mb) * 100 if total_mem_mb > 0 else 0
+                html += f'<div style="margin-bottom: 6px; font-size: 11px;">{unit.name} <span style="font-weight: normal; color: #666;">({memory_mean_pct:.0f}%/{memory_max_pct:.0f}% mem)</span></div>'
 
                 n_cpus = len(summary['mean_per_core'])
 
@@ -1225,7 +1250,7 @@ class CPUMonitor:
 
                         # Show mean usage bar with fixed width using calc()
                         html += f'''
-                        <div style="width: calc((100% - {gap_width_px}px) / {num_cpus_in_row}); min-width: 20px; height: 12px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU {i}: {mean_val:.1f}% avg">
+                        <div style="width: calc((100% - {gap_width_px}px) / {num_cpus_in_row}); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU {i}: {mean_val:.1f}% avg">
                             <div style="width: {mean_val}%; height: 100%; background: {summary_color};"></div>
                         </div>
                         '''
@@ -1237,24 +1262,36 @@ class CPUMonitor:
                 if not usage:
                     usage = [0.0] * unit.cpu_count
 
-                # Calculate memory usage percentage and apply color
+                # Calculate memory usage percentage and get max
                 current_memory_mb = self._current_memory.get(unit.name, 0.0)
-                if unit.allocated_memory_mb and unit.allocated_memory_mb > 0:
-                    mem_pct = (current_memory_mb / unit.allocated_memory_mb) * 100
-                else:
-                    # Fallback: show as system percentage (won't color correctly)
-                    mem_pct = (current_memory_mb / (psutil.virtual_memory().total / (1024 ** 2))) * 100
 
-                # Determine color based on thresholds
-                if mem_pct >= 90:
+                # Get max memory from stats
+                stats = self._stats[unit.name]
+                if stats.memory_samples:
+                    max_memory_mb = max(stats.memory_samples)
+                else:
+                    max_memory_mb = current_memory_mb
+
+                # Convert to percentages
+                if unit.allocated_memory_mb and unit.allocated_memory_mb > 0:
+                    current_mem_pct = (current_memory_mb / unit.allocated_memory_mb) * 100
+                    max_mem_pct = (max_memory_mb / unit.allocated_memory_mb) * 100
+                else:
+                    # Fallback: show as system percentage
+                    total_mem_mb = psutil.virtual_memory().total / (1024 ** 2)
+                    current_mem_pct = (current_memory_mb / total_mem_mb) * 100 if total_mem_mb > 0 else 0
+                    max_mem_pct = (max_memory_mb / total_mem_mb) * 100 if total_mem_mb > 0 else 0
+
+                # Determine color based on max memory threshold
+                if max_mem_pct >= 90:
                     mem_color = '#FF0000'  # red
-                elif mem_pct >= 75:
+                elif max_mem_pct >= 75:
                     mem_color = '#FF69B4'  # pink
                 else:
                     mem_color = '#666666'  # gray
 
-                # Unit name with current memory
-                html += f'<div style="margin-bottom: 6px; font-size: 13px; font-weight: bold;">{unit.name} <span style="font-weight: normal; color: {mem_color};">({mem_pct:.0f}% mem)</span></div>'
+                # Unit name with current/max memory
+                html += f'<div style="margin-bottom: 6px; font-size: 11px;">{unit.name} <span style="font-weight: normal; color: {mem_color};">({current_mem_pct:.0f}%/{max_mem_pct:.0f}% mem)</span></div>'
 
                 n_cpus = len(usage)
 
@@ -1286,7 +1323,7 @@ class CPUMonitor:
                         # Progress bar with tooltip and fixed width using calc()
                         width_pct = min(100, max(0, cpu_usage))
                         html += f'''
-                        <div style="width: calc((100% - {gap_width_px}px) / {num_cpus_in_row}); min-width: 20px; height: 12px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU {i}: {cpu_usage:.1f}%">
+                        <div style="width: calc((100% - {gap_width_px}px) / {num_cpus_in_row}); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU {i}: {cpu_usage:.1f}%">
                             <div style="width: {width_pct}%; height: 100%; background: {color}; transition: width 0.3s;"></div>
                         </div>
                         '''
@@ -1591,30 +1628,30 @@ try:
                  help='Number of CPU bars per row before wrapping (default: 15)')
         @argument('--group-by', '-g', type=str, default='node', choices=['node', 'task'],
                  help='Group CPU bars by "node" (default) or "task"')
-        def usage(self, line, cell):
+        def monitor(self, line, cell):
             """
             Monitor CPU usage during cell execution.
 
             Usage:
-                %%usage
+                %%monitor
                 # your code here
 
-                %%usage --width 100 --interval 1.0
+                %%monitor --width 100 --interval 1.0
                 # your code here
 
-                %%usage --persist
+                %%monitor --persist
                 # display remains after completion
 
-                %%usage --color
+                %%monitor --color
                 # use color coding (green/yellow/red)
 
-                %%usage --summary
+                %%monitor --summary
                 # show table with CPU and memory statistics
 
-                %%usage --group-by task
+                %%monitor --group-by task
                 # group by SLURM task instead of node
             """
-            args = parse_argstring(self.usage, line)
+            args = parse_argstring(self.monitor, line)
 
             with CPUMonitor(width=args.width, update_interval=args.interval,
                           persist=args.persist, color=args.color, summary_table=args.summary,

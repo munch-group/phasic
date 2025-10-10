@@ -27,6 +27,7 @@ dependencies = [
   'numpy',
   'eigen',
   'ipython',
+  'ipykernel',
   'graphviz',
   'seaborn',
   'pyyaml',

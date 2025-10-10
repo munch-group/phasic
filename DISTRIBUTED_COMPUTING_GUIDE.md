@@ -359,7 +359,7 @@ with CPUMonitor(
 
 **Cell magic** (Jupyter/VSCode):
 ```python
-%%usage --color --persist --summary
+%%monitor --color --persist --summary
 # Your computation
 ```
 
@@ -478,7 +478,7 @@ Each bar shows real-time CPU usage for one core. Memory percentage shows current
 For Jupyter/VSCode notebooks, use the cell magic:
 
 ```python
-%%usage --color
+%%monitor --color
 # Your distributed computation
 svgd = SVGD(model, data, n_particles=64)
 results = svgd.fit()
