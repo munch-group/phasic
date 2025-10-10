@@ -75,7 +75,7 @@
     "href": "pages/cpu_monitoring_showcase.html#cell-magic",
     "title": "CPU monitoring",
     "section": "Cell Magic",
-    "text": "Cell Magic\nThe %%usage cell magic is the simplest way to monitor CPU usage in Jupyter. Just add it at the top of any cell!\nBasic Usage:\n\n%%usage\n\n# A simple computation\nfor i in range(20):\n    result = sum(range(5_000_000))\n    time.sleep(0.5)\n\nYou can customize the display width:\n\n%%usage -w 100\n\nprint(\"Running with custom width...\")\nfor i in range(4):\n    x = sum(range(3_000_000))\n    time.sleep(0.5)\nprint(\"Complete!\")\n\nIncrease update frequency for smoother visualization:\n\n%%usage -i 0.25\n\n# Updates 4 times per second\nprint(\"Fast updates enabled...\")\nfor i in range(8):\n    result = sum(range(2_000_000))\n    time.sleep(0.3)\nprint(\"Done with fast updates!\")",
+    "text": "Cell Magic\nThe %%usage cell magic is the simplest way to monitor CPU usage in Jupyter. Just add it at the top of any cell!\nBasic Usage:\n\n%%usage -g task\n\n# A simple computation\nfor i in range(10):\n    result = sum(range(5_000_000))\n    time.sleep(0.5)\n\nYou can customize the display width:\n\n%%usage -w 100\n\nprint(\"Running with custom width...\")\nfor i in range(4):\n    x = sum(range(3_000_000))\n    time.sleep(0.5)\nprint(\"Complete!\")\n\nUsageError: Cell magic `%%usage` not found.\n\n\nIncrease update frequency for smoother visualization:\n\n%%usage -i 0.25\n\n# Updates 4 times per second\nprint(\"Fast updates enabled...\")\nfor i in range(8):\n    result = sum(range(2_000_000))\n    time.sleep(0.3)\nprint(\"Done with fast updates!\")",
     "crumbs": [
       "Distributed Computing",
       "CPU monitoring"
