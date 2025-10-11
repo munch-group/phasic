@@ -1,0 +1,415 @@
+/* NumPy-style Sidebar Styling (based on PyData Sphinx Theme) */
+
+/* Left sidebar (navigation) - wider padding like NumPy */
+.sidebar {
+  background-color: #f8f9fa;
+  border-right: 1px solid #dee2e6;
+  font-size: 0.9rem;
+  padding: 1.5rem 0;
+  width: 375px !important;
+  max-width: 375px !important;
+}
+
+.sidebar-navigation {
+  padding: 0 0.5rem;
+}
+
+/* Dark mode left sidebar */
+.quarto-dark .sidebar,
+[data-bs-theme="dark"] .sidebar {
+  background-color: #1a1a1a;
+  border-right-color: #3d3d3d;
+}
+
+/* Right sidebar - "On this page" TOC - move right to accommodate wider left sidebar */
+.sidebar-right,
+#quarto-margin-sidebar,
+.page-navigation {
+  background-color: #ffffff !important;
+  border-left: 1px solid #dee2e6 !important;
+  border-right: none !important;
+  padding: 1.5rem 0;
+  margin-right: -100px !important;
+  width: 125px !important;
+  max-width: 125px !important;
+}
+
+/* Dark mode right sidebar */
+.quarto-dark .sidebar-right,
+.quarto-dark #quarto-margin-sidebar,
+.quarto-dark .page-navigation,
+[data-bs-theme="dark"] .sidebar-right,
+[data-bs-theme="dark"] #quarto-margin-sidebar,
+[data-bs-theme="dark"] .page-navigation {
+  background-color: #1a1a1a !important;
+  border-left-color: #3d3d3d !important;
+}
+
+/* Expand body to allow right sidebar to extend */
+body {
+  margin-right: 100px !important;
+}
+
+/* Push main content right to avoid left sidebar overlap */
+#quarto-content,
+.page-columns,
+#quarto-document-content {
+  margin-left: 100px !important;
+}
+
+/* Make the overall page wider to give more space to main content */
+.page-columns {
+  max-width: 1800px !important;
+}
+
+#quarto-content {
+  max-width: 100% !important;
+}
+
+/* Main content area - wider with left margin */
+#quarto-document-content,
+main.content {
+  max-width: 1200px !important;
+  padding-left: 2rem !important;
+}
+
+/* Add margin to content for spacing from sidebar */
+.page-columns > .content,
+#quarto-content > .page-columns {
+  padding-left: 2rem !important;
+}
+
+/* Responsive adjustments - prevent content from hiding behind sidebar */
+@media (max-width: 1600px) {
+  /* At medium widths, reduce sidebar first before reducing offset */
+  .sidebar {
+    width: 325px !important;
+    max-width: 325px !important;
+  }
+
+  #quarto-content,
+  .page-columns,
+  #quarto-document-content {
+    margin-left: 75px !important;
+  }
+
+  body {
+    margin-right: 75px !important;
+  }
+
+  .sidebar-right,
+  #quarto-margin-sidebar,
+  .page-navigation {
+    margin-right: -75px !important;
+  }
+}
+
+@media (max-width: 1400px) {
+  /* Further reduce sidebar and margins */
+  .sidebar {
+    width: 280px !important;
+    max-width: 280px !important;
+  }
+
+  #quarto-content,
+  .page-columns,
+  #quarto-document-content {
+    margin-left: 30px !important;
+  }
+
+  body {
+    margin-right: 30px !important;
+  }
+
+  .sidebar-right,
+  #quarto-margin-sidebar,
+  .page-navigation {
+    margin-right: -30px !important;
+  }
+}
+
+@media (max-width: 1200px) {
+  /* Prepare for sidebar collapse - keep small offset */
+  .sidebar {
+    width: 250px !important;
+    max-width: 250px !important;
+  }
+
+  #quarto-content,
+  .page-columns,
+  #quarto-document-content {
+    margin-left: 0 !important;
+  }
+
+  body {
+    margin-right: 0 !important;
+  }
+
+  .sidebar-right,
+  #quarto-margin-sidebar,
+  .page-navigation {
+    margin-right: 0 !important;
+    width: 100px !important;
+    max-width: 100px !important;
+  }
+}
+
+@media (max-width: 1100px) {
+  /* Hide or collapse sidebar earlier to prevent overlap */
+  .sidebar {
+    position: fixed !important;
+    z-index: 1050 !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.2s ease-in-out !important;
+  }
+
+  .sidebar.show {
+    transform: translateX(0) !important;
+  }
+
+  #quarto-content,
+  .page-columns,
+  #quarto-document-content {
+    margin-left: 0 !important;
+  }
+}
+
+@media (max-width: 991px) {
+  /* On mobile, let Quarto handle the collapsing sidebars naturally */
+  .sidebar-right,
+  #quarto-margin-sidebar,
+  .page-navigation {
+    width: auto !important;
+    max-width: none !important;
+  }
+}
+
+/* Sidebar header/title */
+.sidebar .sidebar-title {
+  font-size: 1.0rem;
+  font-weight: 600;
+  color: #000;
+  padding: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.quarto-dark .sidebar .sidebar-title,
+[data-bs-theme="dark"] .sidebar .sidebar-title {
+  color: #fff;
+}
+
+/* Sidebar sections */
+.sidebar-item-section {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+/* Section headers - bold like NumPy */
+.sidebar .sidebar-section-title,
+.sidebar-item-container .text-start {
+  font-weight: 700 !important;
+  font-size: 0.95rem !important;
+  color: #000 !important;
+  padding: 0.75rem 1.25rem 0.5rem 1.25rem !important;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.quarto-dark .sidebar .sidebar-section-title,
+.quarto-dark .sidebar-item-container .text-start,
+[data-bs-theme="dark"] .sidebar .sidebar-section-title,
+[data-bs-theme="dark"] .sidebar-item-container .text-start {
+  color: #fff !important;
+}
+
+/* Sidebar nav links - wider margins like NumPy */
+.sidebar nav a.nav-link,
+.sidebar .sidebar-item a {
+  color: #495057;
+  padding: 0.0875rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 1.6;
+  border-left: 4px solid transparent;
+  transition: all 0.15s ease-in-out;
+  text-decoration: none;
+}
+
+.sidebar nav a.nav-link:hover,
+.sidebar .sidebar-item a:hover {
+  color: #0D7D92;
+  background-color: #ffffff;
+  border-left-color: #0D7D92;
+}
+
+.sidebar nav a.nav-link.active,
+.sidebar .sidebar-item a.active {
+  color: #0D7D92;
+  font-weight: 500;
+  background-color: #ffffff;
+  border-left-color: #0D7D92;
+}
+
+/* Dark mode links */
+.quarto-dark .sidebar nav a.nav-link,
+.quarto-dark .sidebar .sidebar-item a,
+[data-bs-theme="dark"] .sidebar nav a.nav-link,
+[data-bs-theme="dark"] .sidebar .sidebar-item a {
+  color: #adb5bd;
+}
+
+.quarto-dark .sidebar nav a.nav-link:hover,
+.quarto-dark .sidebar .sidebar-item a:hover,
+[data-bs-theme="dark"] .sidebar nav a.nav-link:hover,
+[data-bs-theme="dark"] .sidebar .sidebar-item a:hover {
+  color: #0D7D92;
+  background-color: #ffffff;
+  border-left-color: #0D7D92;
+}
+
+.quarto-dark .sidebar nav a.nav-link.active,
+.quarto-dark .sidebar .sidebar-item a.active,
+[data-bs-theme="dark"] .sidebar nav a.nav-link.active,
+[data-bs-theme="dark"] .sidebar .sidebar-item a.active {
+  color: #0D7D92;
+  background-color: #ffffff;
+  border-left-color: #0D7D92;
+}
+
+/* Nested items */
+.sidebar .sidebar-item .sidebar-item {
+  padding-left: 1rem;
+}
+
+.sidebar .sidebar-item .sidebar-item a {
+  font-size: 0.85rem;
+  padding-left: 1.5rem;
+}
+
+/* Remove default list styling */
+.sidebar ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.sidebar li {
+  margin: 0;
+}
+
+/* Sidebar search box (if present) */
+.sidebar .sidebar-search {
+  padding: 0.5rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.sidebar .sidebar-search input {
+  width: 100%;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.9rem;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  background-color: #fff;
+}
+
+.quarto-dark .sidebar .sidebar-search input,
+[data-bs-theme="dark"] .sidebar .sidebar-search input {
+  background-color: #2b2b2b;
+  border-color: #3d3d3d;
+  color: #e6e6e6;
+}
+
+/* Collapsible sections */
+.sidebar .sidebar-item-toggle {
+  cursor: pointer;
+  padding: 0.25rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 500;
+  color: #495057;
+}
+
+.quarto-dark .sidebar .sidebar-item-toggle,
+[data-bs-theme="dark"] .sidebar .sidebar-item-toggle {
+  color: #adb5bd;
+}
+
+.sidebar .sidebar-item-toggle:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.quarto-dark .sidebar .sidebar-item-toggle:hover,
+[data-bs-theme="dark"] .sidebar .sidebar-item-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Hide duplicate chevron/arrow - Quarto already provides this */
+.sidebar .sidebar-item-toggle::after {
+  display: none !important;
+}
+
+/* Clean spacing */
+.sidebar-item-container {
+  margin-bottom: 0;
+}
+
+/* Match NumPy's clean, minimal style */
+.sidebar nav {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+}
+
+/* Reduce excess padding on the sidebar itself */
+.sidebar.sidebar-navigation {
+  padding-top: 0.5rem;
+}
+
+/* Make sure items align properly */
+.sidebar-menu {
+  padding: 0;
+}
+
+/* Navbar styling to match NumPy */
+.navbar {
+  background-color: #fff;
+  border-bottom: 1px solid #dee2e6;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.quarto-dark .navbar,
+[data-bs-theme="dark"] .navbar {
+  background-color: #1a1a1a;
+  border-bottom-color: #3d3d3d;
+}
+
+.navbar-brand {
+  font-weight: 600;
+  font-size: 1.25rem;
+  color: #000;
+}
+
+.quarto-dark .navbar-brand,
+[data-bs-theme="dark"] .navbar-brand {
+  color: #fff;
+}
+
+.navbar .nav-link {
+  color: #495057;
+  font-weight: 400;
+  padding: 0.5rem 1rem;
+  transition: color 0.15s ease-in-out;
+}
+
+.navbar .nav-link:hover {
+  color: #007bff;
+}
+
+.quarto-dark .navbar .nav-link,
+[data-bs-theme="dark"] .navbar .nav-link {
+  color: #adb5bd;
+}
+
+.quarto-dark .navbar .nav-link:hover,
+[data-bs-theme="dark"] .navbar .nav-link:hover {
+  color: #5fa9ff;
+}

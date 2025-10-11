@@ -1,0 +1,92 @@
+---
+title: Phasic
+subtitle: "Modelling and inference using phase-type distributions"
+sidebar: false
+page-layout: full
+toc: false
+---
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+
+::: {.grid}
+
+::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-bounding-box"></i> **Graph representation**: <br>XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX.
+
+:::
+
+::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-rocket-takeoff"></i> **Graph algorithms**: <br>XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX.
+
+:::
+
+::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-bug"></i>**Continuous/Discrete**: <br>XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX.
+
+:::
+
+::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-infinity"></i> **Moments**: <br>XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX.
+
+:::
+
+::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-graph-down"></i> **Distributions**: <br>XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX.
+
+:::
+
+::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-code-slash"></i> **C/C++ backend**: <br>XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX.
+
+:::
+
+::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-question-circle"></i> **Parameter inference**: <br>XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX. 
+
+:::
+
+::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-cpu"></i> **Multiprocessing**: <br>XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX. 
+
+:::
+
+::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-eye"></i> **Visualization**: <br>XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX.
+
+:::
+
+:::
+
+
+---
+
+::: {.grid}
+
+::: {.g-col-12 .g-col-md-6}
+### Get Started
+
+- <i class="bi bi-box-seam"></i> [Install and quickstart](pages/getting_started.qmd) - Comprehensive guides
+- <i class="bi bi-box-seam"></i> [Documentation](pages/getting_started.qmd) - Comprehensive guides
+
+:::
+
+::: {.g-col-12 .g-col-md-6}
+### Get Help
+
+- <i class="bi bi-box-seam"></i> [Issue Tracker](https://github.com/munch-group/franklin-cli/issues) - Report bugs
+- <i class="bi bi-box-seam"></i> [Contact](mailto:kaspermunch@birc.au.dk) - Direct support
+
+:::
+
+:::
+
