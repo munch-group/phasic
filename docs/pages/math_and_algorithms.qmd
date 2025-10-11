@@ -1,10 +1,5 @@
 ---
-title: "My document"
-format:
-  html:
-    toc: true
-    html-math-method: katex
-    css: ../styles.css
+title: "Math and background"
 bibliography: bib.bib
 ---
 

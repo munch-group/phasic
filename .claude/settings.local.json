@@ -40,7 +40,8 @@
       "Bash(timeout 60 pixi run python:*)",
       "Bash(quarto render:*)",
       "Bash(pixi install:*)",
-      "Bash(timeout 10 pixi run python test_summary_display.py)"
+      "Bash(timeout 10 pixi run python test_summary_display.py)",
+      "Bash(timeout 300 python test_svgd_notebook.py)"
     ],
     "deny": []
   }

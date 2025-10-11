@@ -31,7 +31,9 @@ interlinks:
     scipy:
       url: https://docs.scipy.org/doc/scipy/
     statsmodels:
-      url: https://www.statsmodels.org/stable/      
+      url: https://www.statsmodels.org/stable/ 
+    jax:
+      url: https://docs.jax.dev/en/latest/     
     # quartodoc-test:
     #   url: https://machow.github.io/quartodoc
     #   inv: objects-test.txt
@@ -39,6 +41,12 @@ interlinks:
 website:
   title: "ptdalgorithms"
   page-navigation: true
+
+
+# margin-left, margin-right, margin-top, margin-bottom
+
+
+
   navbar:
     left:
       - href: api/
@@ -61,62 +69,67 @@ website:
         - pages/getting_started.qmd
         - section: "Basics"
           contents:
+            - pages/phase-type-distributions.qmd
             - pages/state_space.ipynb
             - pages/moments.ipynb
             - pages/distributions.ipynb
-            - pages/laplace.ipynb
-        - section: "Advanced"
+        - section: "Background"
+          contents:
+            - pages/math_and_algorithms.qmd
+        - section: "Modelling"
           contents:
             - pages/state_lumping.ipynb
+            - pages/laplace.ipynb
             - pages/epochs.ipynb
             - pages/joint_prob.ipynb
         - section: "Distributed Computing"
           contents:
-            - pages/distributed_computing_basics.ipynb
-            - pages/distributed_svgd_inference.ipynb
+            - pages/svgd.qmd
             - pages/slurm_cluster_setup.ipynb
-            - pages/architecture.qmd
-            - pages/auto_parallel_computing.ipynb
             - pages/cpu_monitoring_showcase.ipynb
-            - pages/distributed_computing_basics.ipynb
-            - pages/distributed_computing.qmd
-            - pages/distributed_svgd_inference.ipynb
-            - pages/graphbuilder_showcase.ipynb
-            - pages/math_and_algorithms.qmd
-            - pages/phase-type-distributions.qmd
-            - pages/slurm_multinode_guide.qmd
-            - pages/svgd_inference.ipynb
+            # - pages/distributed_computing_basics.ipynb
+            # - pages/distributed_svgd_inference.ipynb
+            # - pages/distributed_computing_basics.ipynb
+            # - pages/distributed_computing.qmd
+            # - pages/distributed_svgd_inference.ipynb
+            # - pages/graphbuilder_showcase.ipynb
+            # - pages/slurm_multinode_guide.qmd
+            # - pages/svgd_inference.ipynb
         - section: "Examples"
           contents:
             - examples/python/rabbits_full_py_api_example.ipynb
             - examples/python/coalescent-jointprob.ipynb
             - examples/python/experiments.ipynb
             - examples/python/isolation_migration.ipynb
-            - examples/python/getting_started.ipynb
             - examples/python/somecode.ipynb
-            - examples/python/laplace.ipynb
             - examples/python/two-island-two-locus-arg.ipynb
+            - examples/python/svgd.ipynb
             # - pages/
+        - section: "Development"
+          contents:
+            - pages/architecture.qmd
 
 lightbox: true
 
 format:
   html:
-#    theme: cosmo
+    theme: cosmo
+    # theme: 
+    #   light: [cosmo, numpy.theme]
+    #   dark: [darkly, numpy-dark.theme]    
     css:
       - api/_styles-quartodoc.css
-      # - styles.css
+      - custom.css
+      - styles.css
 
-      - numpy-navbar-sidebar.css
-      - styles.css  # for code highlighting styles
-    theme: 
-      light: [cosmo, custom.scss]
-      dark: [darkly, custom-dark.scss]    
-
-
+      # - numpy-navbar-sidebar.css
+      - numpy.css  # for code highlighting styles
+    code-overflow: wrap
+    html-math-method: katex
     toc: true
     mermaid:
       theme: neutral     
+    linkcolor: "#0D7D92"
 
 quartodoc:
   package: ptdalgorithms

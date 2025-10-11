@@ -26,6 +26,7 @@ html { font-family: 'Inter', sans-serif; }
 
 .sidebar-item-container .text-start {
   font-weight: 600;
+  color:#151617;
   font-size: 14.4px !important;
 }
 
