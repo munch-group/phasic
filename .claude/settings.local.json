@@ -1,48 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(make:*)",
-      "Bash(python3:*)",
-      "Bash(ldd:*)",
-      "Bash(otool:*)",
-      "Bash(g++:*)",
-      "Bash(./test_graph_api)",
-      "Bash(mkdir:*)",
-      "Bash(cp:*)",
-      "Bash(pip install:*)",
-      "Bash(pip show:*)",
-      "Bash(python:*)",
-      "Read(//Users/kmt/**)",
-      "Bash(cmake:*)",
-      "Bash(nm:*)",
-      "WebFetch(domain:docs.jax.dev)",
-      "WebFetch(domain:github.com)",
-      "Bash(jupyter nbconvert:*)",
-      "Read(//private/var/folders/**)",
-      "Bash(pixi run pytest:*)",
-      "WebSearch",
-      "Bash(pixi run:*)",
-      "Bash(timeout 30 pixi run python test_pmf_from_graph.py)",
-      "Bash(echo:*)",
-      "Read(//private/tmp/**)",
-      "Read(//tmp/**)",
-      "Bash(pkill:*)",
-      "Bash(timeout 10 pixi run python test_empty_theta.py)",
-      "Bash(timeout 10 pixi run python test_param_minimal.py)",
-      "Bash(timeout 180 pixi run python test_svgd_inference.py)",
-      "Bash(JAX_TRACEBACK_FILTERING=off pixi run python examples/svgd_regularized_example.py)",
-      "WebFetch(domain:jax.readthedocs.io)",
-      "Bash(JAX_PLATFORMS=cpu pixi run python test_ffi_wrappers.py)",
-      "Bash(export JAX_PLATFORMS=cpu)",
-      "Bash(JAX_PLATFORMS=cpu pixi run python examples/graphbuilder_showcase.py)",
-      "Bash(cat:*)",
-      "Bash(chmod:*)",
-      "Bash(timeout 60 pixi run python:*)",
-      "Bash(quarto render:*)",
-      "Bash(pixi install:*)",
-      "Bash(timeout 10 pixi run python test_summary_display.py)",
-      "Bash(timeout 300 python test_svgd_notebook.py)"
+      "Bash(/Users/kmt/PtDAlgorithms/.pixi/envs/default/bin/python -c \"import ptdalgorithms; import jax; print(f''Devices: {len(jax.devices())}'')\")"
     ],
-    "deny": []
+    "deny": [],
+    "ask": []
   }
 }

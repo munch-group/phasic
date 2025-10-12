@@ -11,10 +11,95 @@ import tempfile
 import ctypes
 import pathlib
 
+from functools import wraps
+from distro import name
+import numpy as np
+from collections import OrderedDict, UserDict
+
+class StateDict(UserDict):
+
+    def __init__(self, data):
+        self.data = OrderedDict(data)
+        self.list = list(self.data.values())
+
+    def __get__(self, key):
+        if type(key) is int:
+            return self.list[key]
+        return self.data[key]
+
+    def __set__(self, key, value):
+        if type(key) is int:
+            self.list[key] = value
+        self.data[key] = value     
+
+def labelled(labels):  # The factory function that accepts a parameter
+    def decorator(func):
+        @wraps(func)  # Apply @wraps to the wrapper
+        def wrapper(arr):
+            assert len(labels) == arr.size
+            l = list(zip(labels, arr))
+            print(l)
+            d = StateDict(l)
+            return [[np.array(list(state.values()), dtype=int), *rest] for state, *rest in func(d)]
+        return wrapper
+    return decorator
+
+# # state vector labels 
+# labels = ['foo', 'bar', 'baz']
+
+# @labeled(labels)
+# def callback(state):
+
+#     new_state = state.copy()
+#     new_state['foo'] += 1
+
+#     return [(new_state, 1)]
+
+# state = np.array([1, 2, 3])
+# callback(state)
+
 # Optional JAX support
 try:
     import os
     import sys
+
+    # Configure JAX for multi-CPU BEFORE importing JAX
+    # This sets XLA_FLAGS to use all available CPUs
+    if 'jax' not in sys.modules:
+        # Only configure if JAX hasn't been imported yet
+
+        # Detect performance cores on Apple Silicon
+        def get_performance_cores():
+            """Get number of performance cores on Apple Silicon, or total CPUs otherwise"""
+            try:
+                import subprocess
+                import platform
+
+                # Check if we're on Apple Silicon
+                if platform.system() == 'Darwin' and platform.machine() == 'arm64':
+                    # Get P-cores (performance cores)
+                    result = subprocess.run(
+                        ['sysctl', '-n', 'hw.perflevel0.physicalcpu'],
+                        capture_output=True, text=True, check=True
+                    )
+                    p_cores = int(result.stdout.strip())
+                    return p_cores
+            except (subprocess.CalledProcessError, FileNotFoundError, ValueError):
+                pass
+
+            # Fallback to total CPU count
+            return os.cpu_count() or 1
+
+        cpu_count = int(os.environ.get('PTDALG_CPUS', get_performance_cores()))
+        xla_flags = os.environ.get('XLA_FLAGS', '')
+        device_flag = f"--xla_force_host_platform_device_count={cpu_count}"
+
+        if '--xla_force_host_platform_device_count' not in xla_flags:
+            if xla_flags:
+                xla_flags += f" {device_flag}"
+            else:
+                xla_flags = device_flag
+            os.environ['XLA_FLAGS'] = xla_flags
 
     # Set JAX platform before import
     os.environ.setdefault('JAX_PLATFORMS', 'cpu')

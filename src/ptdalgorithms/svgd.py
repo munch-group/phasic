@@ -4,14 +4,16 @@ from time import time, sleep
 import numpy as np
 
 # environment variables for JAX must be set before running any JAX code
-if platform.system() == "Darwin" and platform.machine() == "arm64":
-    os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count=8"
-if platform.system() == "Linux" and os.environ.get('SLURM_JOB_CPUS_PER_NODE', ''):
-    os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={os.environ['SLURM_JOB_CPUS_PER_NODE']}"
+# Only set if not already configured (respect existing configuration from __init__.py or user)
+if '--xla_force_host_platform_device_count' not in os.environ.get('XLA_FLAGS', ''):
+    if platform.system() == "Darwin" and platform.machine() == "arm64":
+        os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count=8"
+    elif platform.system() == "Linux" and os.environ.get('SLURM_JOB_CPUS_PER_NODE', ''):
+        os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={os.environ['SLURM_JOB_CPUS_PER_NODE']}"
 import jax
 # print(jax.devices())
 import jax.numpy as jnp
-from jax import grad, vmap, jit
+from jax import grad, vmap, jit, pmap
 from jax.scipy.stats import norm
 import jax.nn as jnn
 import jax.sharding as jsh
@@ -540,7 +542,20 @@ def svgd_step(particles, log_prob_fn, kernel, step_size):
     n_particles = particles.shape[0]
 
     # Compute log probability gradients for each particle
-    grad_log_p = vmap(grad(log_prob_fn))(particles)
+    # Use pmap for parallelization if multiple devices available
+    n_devices = len(jax.devices())
+
+    if n_devices > 1 and n_particles % n_devices == 0:
+        # Parallel gradient computation across devices
+        particles_per_device = n_particles // n_devices
+        particles_sharded = particles.reshape(n_devices, particles_per_device, -1)
+
+        # pmap over devices, vmap over particles within each device
+        grad_log_p_sharded = pmap(vmap(grad(log_prob_fn)))(particles_sharded)
+        grad_log_p = grad_log_p_sharded.reshape(n_particles, -1)
+    else:
+        # Single device or non-divisible particles
+        grad_log_p = vmap(grad(log_prob_fn))(particles)
 
     # Compute kernel and kernel gradient
     K, grad_K = kernel.compute_kernel_grad(particles)
@@ -763,6 +778,15 @@ class SVGD:
                 "Either theta_init or theta_dim must be provided. "
                 "If you don't have initial particles, specify theta_dim (the number of parameters)."
             )
+
+        # Adjust n_particles to be divisible by number of devices for optimal parallelization
+        n_devices = len(jax.devices())
+        if n_devices > 1 and n_particles % n_devices != 0:
+            adjusted_n_particles = ((n_particles + n_devices - 1) // n_devices) * n_devices
+            if verbose:
+                print(f"Adjusted n_particles from {n_particles} to {adjusted_n_particles} for even distribution across {n_devices} devices")
+            n_particles = adjusted_n_particles
+            self.n_particles = n_particles
 
         # Initialize particles
         key = jax.random.PRNGKey(seed)
