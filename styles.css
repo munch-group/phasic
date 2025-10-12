@@ -11,12 +11,22 @@ html { font-family: 'Inter', sans-serif; }
 
 /* css styles */
 
-.cell-output pre code {
+/* .cell-output pre code {
   white-space: pre-wrap;
+} */
+
+#quarto-sidebar {
+  border-right: 1px solid #D1D5DB; 
 }
 
+#quarto-navbar {
+  border-bottom: 1px solid #D1D5DB;
+}
+
+.navbar
 
 /* sidebar formatting */
+
 
 .sidebar a.nav-link {
   font-size: 14.4px;

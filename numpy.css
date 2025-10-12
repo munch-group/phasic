@@ -4,6 +4,7 @@
 pre.sourceCode {
   background-color: #f8f8f8;
   border: 1px solid #e1e4e8;
+  /* border-left: 3px solid #01886f; */
   border-radius: 3px;
   padding: 12px;
   overflow-x: auto;
@@ -43,17 +44,17 @@ code:not(.sourceCode) {
   color: #000000;
 }
 
-.quarto-dark code:not(.sourceCode),
+/* .quarto-dark code:not(.sourceCode),
 [data-bs-theme="dark"] code:not(.sourceCode) {
   background-color: rgba(110, 118, 129, 0.2);
   color: #f8f8f2;
-}
+} */
 
 /* Output blocks (like NumPy's output style) */
 pre:not(.sourceCode) {
   background-color: #ffffff;
   border: 1px solid #e1e4e8;
-  border-left: 3px solid #0066cc;
+  /* border-left: 3px solid #0066cc; */
   border-radius: 3px;
   padding: 12px;
   font-size: 0.85em;
@@ -62,13 +63,13 @@ pre:not(.sourceCode) {
   margin: 0.5em 0;
 }
 
-.quarto-dark pre:not(.sourceCode),
+/* .quarto-dark pre:not(.sourceCode),
 [data-bs-theme="dark"] pre:not(.sourceCode) {
   background-color: #1a1a1a;
   border-color: #3d3d3d;
   border-left-color: #0088ff;
   color: #e6e6e6;
-}
+} */
 
 /* Copy button - NumPy style */
 .code-copy-button {
