@@ -1229,6 +1229,7 @@ struct ptd_graph *ptd_graph_create(size_t state_length) {
     struct ptd_graph *graph = (struct ptd_graph *) malloc(sizeof(*graph));
     graph->vertices_length = 0;
     graph->state_length = state_length;
+    graph->param_length = 0;  // Will be set when first parameterized edge is added
     graph->vertices = NULL;
     graph->reward_compute_graph = NULL;
     graph->parameterized_reward_compute_graph = NULL;
@@ -1521,7 +1522,7 @@ struct ptd_edge_parameterized *ptd_graph_add_edge_parameterized(
         double weight,
         double *edge_state
 ) {
-    //from->graph->parameterized = true;
+    from->graph->parameterized = true;
 
     struct ptd_edge_parameterized *edge = (struct ptd_edge_parameterized *) malloc(sizeof(*edge));
 
@@ -1602,9 +1603,18 @@ void ptd_edge_update_weight_parameterized(
 
     edge->weight = weight;
 
+    // Invalidate both regular and parameterized compute graphs
     if (edge->to->graph->reward_compute_graph != NULL) {
         free(edge->to->graph->reward_compute_graph->commands);
+        free(edge->to->graph->reward_compute_graph);
         edge->to->graph->reward_compute_graph = NULL;
+    }
+
+    if (edge->to->graph->parameterized_reward_compute_graph != NULL) {
+        ptd_parameterized_reward_compute_graph_destroy(
+                edge->to->graph->parameterized_reward_compute_graph
+        );
+        edge->to->graph->parameterized_reward_compute_graph = NULL;
     }
 }
 
@@ -1613,6 +1623,11 @@ void ptd_graph_update_weight_parameterized(
         double *scalars,
         size_t scalars_length
 ) {
+    // Store parameter length on first call
+    if (graph->param_length == 0 && scalars_length > 0) {
+        graph->param_length = scalars_length;
+    }
+
     for (size_t i = 0; i < graph->vertices_length; ++i) {
         for (size_t j = 0; j < graph->vertices[i]->edges_length; ++j) {
             if (graph->vertices[i]->edges[j]->parameterized) {
@@ -1622,6 +1637,21 @@ void ptd_graph_update_weight_parameterized(
             }
         }
     }
+
+    // Invalidate cached compute graphs after updating all edge weights
+    if (graph->reward_compute_graph != NULL) {
+        free(graph->reward_compute_graph->commands);
+        free(graph->reward_compute_graph);
+    }
+
+    if (graph->parameterized_reward_compute_graph != NULL) {
+        ptd_parameterized_reward_compute_graph_destroy(
+                graph->parameterized_reward_compute_graph
+        );
+    }
+
+    graph->reward_compute_graph = NULL;
+    graph->parameterized_reward_compute_graph = NULL;
 }
 
 
@@ -4783,4 +4813,327 @@ static void *stack_pop(struct ptd_stack *stack) {
 
 static int stack_empty(struct ptd_stack *stack) {
     return (stack->ll == NULL);
+}
+
+// ============================================================================
+// Symbolic Expression System Implementation
+// ============================================================================
+
+/**
+ * Create a constant expression node
+ */
+struct ptd_expression *ptd_expr_const(double value) {
+    struct ptd_expression *expr = (struct ptd_expression *) calloc(1, sizeof(*expr));
+    if (expr == NULL) {
+        DIE_ERROR(1, "Failed to allocate memory for constant expression");
+    }
+    expr->type = PTD_EXPR_CONST;
+    expr->const_value = value;
+    return expr;
+}
+
+/**
+ * Create a parameter reference expression node
+ */
+struct ptd_expression *ptd_expr_param(size_t param_idx) {
+    struct ptd_expression *expr = (struct ptd_expression *) calloc(1, sizeof(*expr));
+    if (expr == NULL) {
+        DIE_ERROR(1, "Failed to allocate memory for parameter expression");
+    }
+    expr->type = PTD_EXPR_PARAM;
+    expr->param_index = param_idx;
+    return expr;
+}
+
+/**
+ * Create a dot product expression node (optimized for linear combinations)
+ */
+struct ptd_expression *ptd_expr_dot(const size_t *indices, const double *coeffs, size_t n) {
+    struct ptd_expression *expr = (struct ptd_expression *) calloc(1, sizeof(*expr));
+    if (expr == NULL) {
+        DIE_ERROR(1, "Failed to allocate memory for dot expression");
+    }
+    expr->type = PTD_EXPR_DOT;
+    expr->n_terms = n;
+
+    // Allocate and copy indices
+    expr->param_indices = (size_t *) malloc(n * sizeof(size_t));
+    if (expr->param_indices == NULL) {
+        free(expr);
+        DIE_ERROR(1, "Failed to allocate memory for dot expression indices");
+    }
+    memcpy(expr->param_indices, indices, n * sizeof(size_t));
+
+    // Allocate and copy coefficients
+    expr->coefficients = (double *) malloc(n * sizeof(double));
+    if (expr->coefficients == NULL) {
+        free(expr->param_indices);
+        free(expr);
+        DIE_ERROR(1, "Failed to allocate memory for dot expression coefficients");
+    }
+    memcpy(expr->coefficients, coeffs, n * sizeof(double));
+
+    return expr;
+}
+
+/**
+ * Create an addition expression node
+ */
+struct ptd_expression *ptd_expr_add(struct ptd_expression *left, struct ptd_expression *right) {
+    struct ptd_expression *expr = (struct ptd_expression *) calloc(1, sizeof(*expr));
+    if (expr == NULL) {
+        DIE_ERROR(1, "Failed to allocate memory for addition expression");
+    }
+    expr->type = PTD_EXPR_ADD;
+    expr->left = left;
+    expr->right = right;
+    return expr;
+}
+
+/**
+ * Create a multiplication expression node
+ */
+struct ptd_expression *ptd_expr_mul(struct ptd_expression *left, struct ptd_expression *right) {
+    struct ptd_expression *expr = (struct ptd_expression *) calloc(1, sizeof(*expr));
+    if (expr == NULL) {
+        DIE_ERROR(1, "Failed to allocate memory for multiplication expression");
+    }
+    expr->type = PTD_EXPR_MUL;
+    expr->left = left;
+    expr->right = right;
+    return expr;
+}
+
+/**
+ * Create a division expression node
+ */
+struct ptd_expression *ptd_expr_div(struct ptd_expression *left, struct ptd_expression *right) {
+    struct ptd_expression *expr = (struct ptd_expression *) calloc(1, sizeof(*expr));
+    if (expr == NULL) {
+        DIE_ERROR(1, "Failed to allocate memory for division expression");
+    }
+    expr->type = PTD_EXPR_DIV;
+    expr->left = left;
+    expr->right = right;
+    return expr;
+}
+
+/**
+ * Create an inversion expression node (1/x)
+ */
+struct ptd_expression *ptd_expr_inv(struct ptd_expression *child) {
+    struct ptd_expression *expr = (struct ptd_expression *) calloc(1, sizeof(*expr));
+    if (expr == NULL) {
+        DIE_ERROR(1, "Failed to allocate memory for inversion expression");
+    }
+    expr->type = PTD_EXPR_INV;
+    expr->left = child;  // Use left for unary operations
+    return expr;
+}
+
+/**
+ * Create a subtraction expression node
+ */
+struct ptd_expression *ptd_expr_sub(struct ptd_expression *left, struct ptd_expression *right) {
+    struct ptd_expression *expr = (struct ptd_expression *) calloc(1, sizeof(*expr));
+    if (expr == NULL) {
+        DIE_ERROR(1, "Failed to allocate memory for subtraction expression");
+    }
+    expr->type = PTD_EXPR_SUB;
+    expr->left = left;
+    expr->right = right;
+    return expr;
+}
+
+/**
+ * Deep copy an expression tree
+ */
+struct ptd_expression *ptd_expr_copy(const struct ptd_expression *expr) {
+    if (expr == NULL) {
+        return NULL;
+    }
+
+    struct ptd_expression *copy = (struct ptd_expression *) calloc(1, sizeof(*copy));
+    if (copy == NULL) {
+        DIE_ERROR(1, "Failed to allocate memory for expression copy");
+    }
+
+    copy->type = expr->type;
+
+    switch (expr->type) {
+        case PTD_EXPR_CONST:
+            copy->const_value = expr->const_value;
+            break;
+
+        case PTD_EXPR_PARAM:
+            copy->param_index = expr->param_index;
+            break;
+
+        case PTD_EXPR_DOT:
+            copy->n_terms = expr->n_terms;
+            copy->param_indices = (size_t *) malloc(expr->n_terms * sizeof(size_t));
+            copy->coefficients = (double *) malloc(expr->n_terms * sizeof(double));
+            if (copy->param_indices == NULL || copy->coefficients == NULL) {
+                free(copy->param_indices);
+                free(copy->coefficients);
+                free(copy);
+                DIE_ERROR(1, "Failed to allocate memory for dot expression copy");
+            }
+            memcpy(copy->param_indices, expr->param_indices, expr->n_terms * sizeof(size_t));
+            memcpy(copy->coefficients, expr->coefficients, expr->n_terms * sizeof(double));
+            break;
+
+        case PTD_EXPR_INV:
+            copy->left = ptd_expr_copy(expr->left);
+            break;
+
+        case PTD_EXPR_ADD:
+        case PTD_EXPR_MUL:
+        case PTD_EXPR_DIV:
+        case PTD_EXPR_SUB:
+            copy->left = ptd_expr_copy(expr->left);
+            copy->right = ptd_expr_copy(expr->right);
+            break;
+
+        default:
+            free(copy);
+            DIE_ERROR(1, "Unknown expression type in ptd_expr_copy");
+    }
+
+    return copy;
+}
+
+/**
+ * Destroy an expression tree and free all memory
+ */
+void ptd_expr_destroy(struct ptd_expression *expr) {
+    if (expr == NULL) {
+        return;
+    }
+
+    // Recursively destroy children
+    switch (expr->type) {
+        case PTD_EXPR_INV:
+            ptd_expr_destroy(expr->left);
+            break;
+
+        case PTD_EXPR_ADD:
+        case PTD_EXPR_MUL:
+        case PTD_EXPR_DIV:
+        case PTD_EXPR_SUB:
+            ptd_expr_destroy(expr->left);
+            ptd_expr_destroy(expr->right);
+            break;
+
+        case PTD_EXPR_DOT:
+            free(expr->param_indices);
+            free(expr->coefficients);
+            break;
+
+        case PTD_EXPR_CONST:
+        case PTD_EXPR_PARAM:
+            // No children or allocated arrays
+            break;
+
+        default:
+            // Unknown type, but still free the node
+            break;
+    }
+
+    free(expr);
+}
+
+/**
+ * Evaluate an expression with given parameters
+ */
+double ptd_expr_evaluate(
+    const struct ptd_expression *expr,
+    const double *params,
+    size_t n_params
+) {
+    if (expr == NULL) {
+        return 0.0;
+    }
+
+    switch (expr->type) {
+        case PTD_EXPR_CONST:
+            return expr->const_value;
+
+        case PTD_EXPR_PARAM:
+            if (expr->param_index >= n_params) {
+                DIE_ERROR(1, "Parameter index out of bounds in expression evaluation");
+            }
+            return params[expr->param_index];
+
+        case PTD_EXPR_DOT: {
+            double result = 0.0;
+            for (size_t i = 0; i < expr->n_terms; i++) {
+                if (expr->param_indices[i] >= n_params) {
+                    DIE_ERROR(1, "Parameter index out of bounds in dot expression evaluation");
+                }
+                result += expr->coefficients[i] * params[expr->param_indices[i]];
+            }
+            return result;
+        }
+
+        case PTD_EXPR_ADD: {
+            double left_val = ptd_expr_evaluate(expr->left, params, n_params);
+            double right_val = ptd_expr_evaluate(expr->right, params, n_params);
+            return left_val + right_val;
+        }
+
+        case PTD_EXPR_MUL: {
+            double left_val = ptd_expr_evaluate(expr->left, params, n_params);
+            double right_val = ptd_expr_evaluate(expr->right, params, n_params);
+            return left_val * right_val;
+        }
+
+        case PTD_EXPR_DIV: {
+            double left_val = ptd_expr_evaluate(expr->left, params, n_params);
+            double right_val = ptd_expr_evaluate(expr->right, params, n_params);
+            if (right_val == 0.0) {
+                DIE_ERROR(1, "Division by zero in expression evaluation");
+            }
+            return left_val / right_val;
+        }
+
+        case PTD_EXPR_INV: {
+            double child_val = ptd_expr_evaluate(expr->left, params, n_params);
+            if (child_val == 0.0) {
+                DIE_ERROR(1, "Division by zero in inversion expression evaluation");
+            }
+            return 1.0 / child_val;
+        }
+
+        case PTD_EXPR_SUB: {
+            double left_val = ptd_expr_evaluate(expr->left, params, n_params);
+            double right_val = ptd_expr_evaluate(expr->right, params, n_params);
+            return left_val - right_val;
+        }
+
+        default:
+            DIE_ERROR(1, "Unknown expression type in evaluation");
+            return 0.0;
+    }
+}
+
+/**
+ * Evaluate an expression for multiple parameter sets (batch evaluation)
+ */
+void ptd_expr_evaluate_batch(
+    const struct ptd_expression *expr,
+    const double *params_batch,      // shape: (batch_size, n_params)
+    size_t batch_size,
+    size_t n_params,
+    double *output                   // shape: (batch_size,)
+) {
+    if (expr == NULL || params_batch == NULL || output == NULL) {
+        return;
+    }
+
+    // Evaluate for each parameter set
+    for (size_t i = 0; i < batch_size; i++) {
+        const double *params_i = params_batch + i * n_params;
+        output[i] = ptd_expr_evaluate(expr, params_i, n_params);
+    }
 }

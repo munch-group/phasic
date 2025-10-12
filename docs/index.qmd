@@ -3,6 +3,7 @@ title: Phasic
 subtitle: "Modelling and inference using phase-type distributions"
 sidebar: false
 page-layout: full
+title-block-banner: banner.png
 toc: false
 ---
 
@@ -13,57 +14,60 @@ toc: false
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-bounding-box"></i> **Graph representation**: <br>XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX.
+<i class="bi bi-bounding-box"></i> **Graph representation**: <br>Phase-type distributions are represented as directed graphs where vertices represent states and edges represent transitions. This intuitive representation supports both acyclic and cyclic structures, enabling efficient computation and manipulation of complex distributions.
 
 :::
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-rocket-takeoff"></i> **Graph algorithms**: <br>XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX.
+<i class="bi bi-rocket-takeoff"></i> **Graph algorithms**: <br>High-performance graph-based algorithms for computing phase-type distribution properties including rewards, probabilities, and state space reductions. Optimized C++ implementation ensures fast computation even for large state spaces.
 
 :::
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-bug"></i>**Continuous/Discrete**: <br>XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX.
+<i class="bi bi-bug"></i>**Continuous/Discrete**: <br>Seamlessly work with both continuous-time and discrete-time phase-type distributions. Convert between representations and discretize continuous distributions with flexible time step specifications for practical applications.
 
 :::
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-infinity"></i> **Moments**: <br>XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX.
+<i class="bi bi-infinity"></i> **Moments**: <br>Efficiently compute statistical moments including mean, variance, and higher-order moments through matrix operations on the graph representation. Essential for distribution characterization and parameter estimation.
 
 :::
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-graph-down"></i> **Distributions**: <br>XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX.
+<i class="bi bi-graph-down"></i> **Distributions**: <br>Compute probability mass functions (PMF), probability density functions (PDF), and cumulative distribution functions (CDF) with high precision. Support for a wide variety of phase-type distribution families and custom constructions.
 
 :::
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-code-slash"></i> **C/C++ backend**: <br>XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX.
+<i class="bi bi-code-slash"></i> **C/C++ backend**: <br>High-performance C/C++ core with bindings for Python, R, and direct C/C++ usage. Leverages Eigen for optimized linear algebra operations, providing both speed and numerical stability for production applications.
 
 :::
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-question-circle"></i> **Parameter inference**: <br>XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX. 
+<i class="bi bi-eye"></i> **Symbolic Gauss Elimination**: <br>Directed acyclic graphs produced by symbolic Gaussian elimination, allow extremely fast reparametrization and recomputation.
 
 :::
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-cpu"></i> **Multiprocessing**: <br>XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX. 
+<i class="bi bi-question-circle"></i> **JAX integration**: <br>Automatic differentiation for gradient-based inference methods including builtin SVGD (Stein Variational Gradient Descent).
+
+ Fit phase-type models to observed data with modern Bayesian inference techniques. 
 
 :::
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-eye"></i> **Visualization**: <br>XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX XXXX XXXX XXXXX.
+<i class="bi bi-cpu"></i> **Multiprocessing**: <br>Automatic parallel computation with JAX's pmap and vmap for batched operations. Efficiently utilize multi-core CPUs for inference tasks with automatic distribution across available performance cores. 
 
 :::
+
 
 :::
 

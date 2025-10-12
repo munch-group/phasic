@@ -1,7 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(timeout 180 pixi run python test_jax_config.py)"
+      "Bash(timeout 180 pixi run python test_jax_config.py)",
+      "Bash(cmake:*)",
+      "Bash(pixi run pip install:*)",
+      "Bash(pixi run:*)",
+      "Bash(python test:*)",
+      "Bash(python:*)",
+      "Bash(git stash:*)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []

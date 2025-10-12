@@ -3,30 +3,6 @@ title: "Math and background"
 bibliography: bib.bib
 ---
 
-**Statements and Declarations:**\
-The authors received no support from any organization for the submitted work and have no relevant financial or non-financial interests to disclose.
-
-# Abstract {#abstract .unnumbered}
-
-Phase-type distributions model the time until absorption in continuous or discrete-time Markov chains on finite state spaces. Multivariate phase-type distributions model rewards accumulated at visited states, enabling diverse applications. Traditional matrix-based computations become infeasible even for moderately sized state spaces. Since phase-type state spaces are often large but sparse, with few transitions per state, graph-based representations are more natural and efficient than matrix-based ones. We develop graph-based algorithms for analyzing phase-type distributions, including state space construction, reward transformation, moments calculation, marginal distribution functions of multivariate distributions, and state probability vectors for both time-homogeneous and time-inhomogeneous Markov chains. We implement these algorithms in `ptdalgorithms`, a numerically stable, memory-efficient open source C library with bindings for C and R. We compare `ptdalgorithms` to the fastest matrix-based tools for computing probability distributions (via matrix exponentiation) and moments (via matrix inversion). Our graph-based algorithms produce identical numerical results but run orders of magnitude faster. We demonstrate the advantages of `ptdalgorithms` using a classic population genetics problem.
-
-**Key words:** Phase-type distributions, computational statistics, moments, distribution, graph-based algorithms.
-
-# Introduction
-
-Phase-type distributions model the time until absorption in continuous-time Markov jump processes or discrete-time Markov chains on finite state spaces [@Neuts1981]. They are widely used in physics, telecommunication, queuing theory [@aalen1995phase; @faddy1999analysing; @he2014; @acal2019phase], and recently in population genetics to model coalescence processes [@hobolth2019phase]. Their solid theoretical foundation [@he2014; @bladt2017matrix] enables elegant matrix-based formulations and proofs, but matrix computations become infeasible for systems with thousands of states. For example, in the basic coalescence model [@hobolth2021sfs], state space size grows exponentially with the square root of sample size.
-
-Since most real-world models have sparsely connected states, graph-based representations are more natural and efficient than matrix-based ones. We develop graph-based algorithms for computing moments, probability distributions, state probability vectors, and reward transformations of phase-type distributions. Graph-based approaches offer three key advantages: (1) iterative state space construction simplifies modeling complex phenomena; (2) memory requirements are drastically reduced by avoiding matrix storage; and (3) moments and distributions are computed orders of magnitude faster. Our algorithms operate directly on graph structures and handle both continuous and discrete phase-type distributions. We provide algorithms for iterative state space construction, reward transformation (positive or zero rewards), marginal and joint moments of multivariate distributions, distribution functions, and state probability vectors for time-homogeneous and time-inhomogeneous processes.
-
-We present the theoretical principles and probabilistic interpretation of our algorithms with brief code examples. The algorithms are implemented in C and exposed as the open-source library `ptdalgorithms` with bindings for C and R. Install via:
-
-    library(devtools)
-    devtools::install_github("TobiasRoikjer/PtDAlgorithms")
-
-Full documentation is available at the GitHub website and in R man pages.
-
-The paper is organized as follows. Section 2.1 presents the graph representation of continuous phase-type distributions. Sections 2.2-2.3 cover state space construction and reward transformation. Section 2.4 shows how to compute moments recursively on acyclic graphs. Sections 2.5-2.6 describe converting cyclic graphs to acyclic form. Section 2.7 shows caching techniques for quadratic-time computation of higher-order moments. Section 2.8 covers multivariate distributions and joint moments. Sections 2.9-2.11 extend the framework to discrete phase-type distributions and their distribution functions, including arbitrary-precision approximations for continuous distributions. Section 2.12 addresses time-inhomogeneous models. Section 3 compares empirical running times to state-of-the-art matrix-based approaches. Section 4 demonstrates the method on an isolation-with-migration model from population genetics.
-
 # Graph-based algorithms for phase-type distributions
 
 ## Graph-representation of a phase-type distribution {#GPDsect}

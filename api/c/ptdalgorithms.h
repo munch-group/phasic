@@ -107,6 +107,7 @@ struct ptd_graph {
     struct ptd_vertex **vertices;
     struct ptd_vertex *starting_vertex;
     size_t state_length;
+    size_t param_length;  // Length of parameter/edge state vectors
     bool parameterized;
     struct ptd_desc_reward_compute *reward_compute_graph;
     struct ptd_desc_reward_compute_parameterized *parameterized_reward_compute_graph;
@@ -277,6 +278,146 @@ ptd_graph_build_ex_absorbation_time_comp_graph_parameterized(struct ptd_desc_rew
 void ptd_parameterized_reward_compute_graph_destroy(
         struct ptd_desc_reward_compute_parameterized *compute_graph
 );
+
+// ============================================================================
+// Symbolic Expression System for Efficient Parameter Evaluation
+// ============================================================================
+
+/**
+ * Expression node types for symbolic computation
+ */
+enum ptd_expr_type {
+    PTD_EXPR_CONST = 0,      // Constant value
+    PTD_EXPR_PARAM = 1,      // Parameter reference: theta[idx]
+    PTD_EXPR_DOT = 2,        // Dot product: dot(coeffs, params)
+    PTD_EXPR_ADD = 3,        // Binary: left + right
+    PTD_EXPR_MUL = 4,        // Binary: left * right
+    PTD_EXPR_DIV = 5,        // Binary: left / right
+    PTD_EXPR_INV = 6,        // Unary: 1 / child
+    PTD_EXPR_SUB = 7         // Binary: left - right
+};
+
+/**
+ * Symbolic expression tree node
+ * Represents a computation that can be evaluated with any parameter vector
+ */
+struct ptd_expression {
+    enum ptd_expr_type type;
+
+    // For PTD_EXPR_CONST
+    double const_value;
+
+    // For PTD_EXPR_PARAM
+    size_t param_index;
+
+    // For PTD_EXPR_DOT (optimized linear combination)
+    size_t *param_indices;
+    double *coefficients;
+    size_t n_terms;
+
+    // For binary/unary operations
+    struct ptd_expression *left;
+    struct ptd_expression *right;
+};
+
+/**
+ * Edge with symbolic weight expression
+ */
+struct ptd_edge_symbolic {
+    size_t to_index;                        // Target vertex index
+    struct ptd_expression *weight_expr;     // Symbolic weight expression
+    struct ptd_edge_symbolic *next;         // For linked list
+};
+
+/**
+ * Vertex in symbolic graph
+ */
+struct ptd_vertex_symbolic {
+    size_t edges_length;
+    struct ptd_edge_symbolic **edges;
+    size_t index;
+    int *state;                             // State vector (copied from original)
+    struct ptd_vertex *original_vertex;     // Link to original vertex
+    struct ptd_expression *rate_expr;       // Symbolic expression for 1/rate (scaling factor)
+};
+
+/**
+ * Symbolic graph (acyclic DAG with expression-weighted edges)
+ * This represents the result of graph elimination with symbolic edge weights
+ */
+struct ptd_graph_symbolic {
+    size_t vertices_length;
+    struct ptd_vertex_symbolic **vertices;
+    struct ptd_vertex_symbolic *starting_vertex;
+    size_t state_length;
+    size_t param_length;                    // Number of parameters required
+
+    // Metadata
+    bool is_acyclic;                        // True after elimination
+    bool is_discrete;                       // DPH vs PH
+
+    // Reference to original graph (for metadata only)
+    struct ptd_graph *original_graph;
+};
+
+// Expression creation functions
+struct ptd_expression *ptd_expr_const(double value);
+struct ptd_expression *ptd_expr_param(size_t param_idx);
+struct ptd_expression *ptd_expr_dot(const size_t *indices, const double *coeffs, size_t n);
+struct ptd_expression *ptd_expr_add(struct ptd_expression *left, struct ptd_expression *right);
+struct ptd_expression *ptd_expr_mul(struct ptd_expression *left, struct ptd_expression *right);
+struct ptd_expression *ptd_expr_div(struct ptd_expression *left, struct ptd_expression *right);
+struct ptd_expression *ptd_expr_inv(struct ptd_expression *child);
+struct ptd_expression *ptd_expr_sub(struct ptd_expression *left, struct ptd_expression *right);
+
+// Expression evaluation
+double ptd_expr_evaluate(
+    const struct ptd_expression *expr,
+    const double *params,
+    size_t n_params
+);
+
+void ptd_expr_evaluate_batch(
+    const struct ptd_expression *expr,
+    const double *params_batch,      // shape: (batch_size, n_params)
+    size_t batch_size,
+    size_t n_params,
+    double *output                   // shape: (batch_size,)
+);
+
+// Expression deep copy
+struct ptd_expression *ptd_expr_copy(const struct ptd_expression *expr);
+
+// Expression cleanup
+void ptd_expr_destroy(struct ptd_expression *expr);
+
+// Symbolic graph elimination (main function)
+struct ptd_graph_symbolic *ptd_graph_symbolic_elimination(
+    struct ptd_graph *parameterized_graph
+);
+
+// Instantiate symbolic graph with concrete parameters
+struct ptd_graph *ptd_graph_symbolic_instantiate(
+    const struct ptd_graph_symbolic *symbolic,
+    const double *params,
+    size_t n_params
+);
+
+// Batch instantiation (for vmap)
+void ptd_graph_symbolic_instantiate_batch(
+    const struct ptd_graph_symbolic *symbolic,
+    const double *params_batch,      // shape: (batch_size, n_params)
+    size_t batch_size,
+    size_t n_params,
+    struct ptd_graph **graphs_out    // output: array of batch_size graphs
+);
+
+// Serialization
+char *ptd_graph_symbolic_to_json(const struct ptd_graph_symbolic *symbolic);
+struct ptd_graph_symbolic *ptd_graph_symbolic_from_json(const char *json);
+
+// Cleanup
+void ptd_graph_symbolic_destroy(struct ptd_graph_symbolic *symbolic);
 
 
 struct ptd_scc_graph {

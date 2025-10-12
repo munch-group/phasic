@@ -1195,10 +1195,10 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
 
       )delim")
 
-    .def("update_parameterized_weights", &ptdalgorithms::Graph::update_weights_parameterized, 
-      py::arg("rewards"), 
+    .def("update_parameterized_weights", &ptdalgorithms::Graph::update_weights_parameterized,
+      py::arg("rewards"),
       R"delim(
-    Updates all parameterized edges of the graph by given scalars. Given a vector of scalars, 
+    Updates all parameterized edges of the graph by given scalars. Given a vector of scalars,
     computes a new weight of the parameterized edges in the graph by a simple inner product of
     the edge state vector and the scalar vector.
 
@@ -1219,6 +1219,28 @@ PYBIND11_MODULE(ptdalgorithmscpp_pybind, m) {
     graph.update_weights_parameterized([9,7])
     graph.starting_vertex().edges()[0]].weight() # => 5
     v1.edges()[0].weight() # => 59
+      )delim")
+
+    .def("_eliminate_to_dag_internal",
+      [](ptdalgorithms::Graph &graph) -> uintptr_t {
+        // Call C function to perform symbolic elimination
+        struct ptd_graph_symbolic *symbolic =
+            ptd_graph_symbolic_elimination(graph.c_graph());
+
+        if (symbolic == NULL) {
+          throw std::runtime_error("Symbolic elimination failed");
+        }
+
+        // Return pointer as integer for Python to store
+        return reinterpret_cast<uintptr_t>(symbolic);
+      },
+      R"delim(
+    Internal method: Performs symbolic graph elimination.
+
+    Returns an opaque pointer (as integer) to the symbolic DAG structure.
+    This is used internally by the Python SymbolicDAG class.
+
+    DO NOT call this directly from Python - use Graph.eliminate_to_dag() instead.
       )delim")
 
       
@@ -2693,6 +2715,113 @@ Computes the expected residence time of the phase-type distribution.
       )delim")
 
     ;
+
+  // =========================================================================
+  // Symbolic DAG Helper Functions
+  // =========================================================================
+
+  m.def("_symbolic_dag_instantiate",
+    [](uintptr_t symbolic_ptr, py::array_t<double> params) -> py::object {
+      // Convert pointer back to struct
+      struct ptd_graph_symbolic *symbolic =
+          reinterpret_cast<struct ptd_graph_symbolic*>(symbolic_ptr);
+
+      if (symbolic == NULL) {
+        throw std::runtime_error("Invalid symbolic DAG pointer");
+      }
+
+      // Get parameter array
+      py::buffer_info params_info = params.request();
+      const double *params_data = static_cast<const double*>(params_info.ptr);
+      size_t n_params = params_info.size;
+
+      // Call C function to instantiate
+      struct ptd_graph *concrete =
+          ptd_graph_symbolic_instantiate(symbolic, params_data, n_params);
+
+      if (concrete == NULL) {
+        throw std::runtime_error("Symbolic instantiation failed");
+      }
+
+      // Wrap in C++ Graph object and return
+      return py::cast(new ptdalgorithms::Graph(concrete));
+    },
+    py::arg("symbolic_ptr"),
+    py::arg("params"),
+    R"delim(
+  Internal helper: Instantiate symbolic DAG with concrete parameters.
+
+  This evaluates all expression trees with the given parameter vector
+  and returns a concrete Graph object. This is O(n) instead of O(n³)!
+
+  Parameters
+  ----------
+  symbolic_ptr : int
+      Opaque pointer to symbolic DAG structure
+  params : np.ndarray
+      Parameter vector, shape (n_params,)
+
+  Returns
+  -------
+  Graph
+      Instantiated graph with evaluated edge weights
+    )delim");
+
+  m.def("_symbolic_dag_destroy",
+    [](uintptr_t symbolic_ptr) {
+      // Convert pointer back to struct
+      struct ptd_graph_symbolic *symbolic =
+          reinterpret_cast<struct ptd_graph_symbolic*>(symbolic_ptr);
+
+      if (symbolic != NULL) {
+        ptd_graph_symbolic_destroy(symbolic);
+      }
+    },
+    py::arg("symbolic_ptr"),
+    R"delim(
+  Internal helper: Destroy symbolic DAG and free memory.
+
+  Parameters
+  ----------
+  symbolic_ptr : int
+      Opaque pointer to symbolic DAG structure
+    )delim");
+
+  m.def("_symbolic_dag_get_info",
+    [](uintptr_t symbolic_ptr) -> py::dict {
+      // Convert pointer back to struct
+      struct ptd_graph_symbolic *symbolic =
+          reinterpret_cast<struct ptd_graph_symbolic*>(symbolic_ptr);
+
+      if (symbolic == NULL) {
+        throw std::runtime_error("Invalid symbolic DAG pointer");
+      }
+
+      py::dict info;
+      info["vertices_length"] = symbolic->vertices_length;
+      info["state_length"] = symbolic->state_length;
+      info["param_length"] = symbolic->param_length;
+      info["is_acyclic"] = symbolic->is_acyclic;
+      info["is_discrete"] = symbolic->is_discrete;
+
+      return info;
+    },
+    py::arg("symbolic_ptr"),
+    R"delim(
+  Internal helper: Get metadata from symbolic DAG.
+
+  Parameters
+  ----------
+  symbolic_ptr : int
+      Opaque pointer to symbolic DAG structure
+
+  Returns
+  -------
+  dict
+      Dictionary with metadata (vertices_length, param_length, etc.)
+    )delim");
+
+  // =========================================================================
 
   py::class_<ptdalgorithms::Vertex>(m, "Vertex", R"delim(
 

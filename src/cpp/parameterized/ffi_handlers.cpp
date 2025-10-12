@@ -50,25 +50,26 @@ ffi::Error ComputePmfHandler(
 ) {
 
     try {
-        // Create GraphBuilder
-        GraphBuilder builder(structure_json);
+        // Create GraphBuilder (convert string_view to string)
+        std::string json_str(structure_json);
+        GraphBuilder builder(json_str);
 
         // Validate inputs
-        if (theta.dimensions.size() != 1) {
+        if (theta.dimensions().size() != 1) {
             return ffi::Error(ffi::ErrorCode::kInvalidArgument,
                 "theta must be 1-dimensional");
         }
-        if (times.dimensions.size() != 1) {
+        if (times.dimensions().size() != 1) {
             return ffi::Error(ffi::ErrorCode::kInvalidArgument,
                 "times must be 1-dimensional");
         }
 
         const double* theta_data = theta.typed_data();
         const double* times_data = times.typed_data();
-        double* pmf_data = pmf.typed_data();
+        double* pmf_data = pmf->typed_data();
 
-        size_t n_params = theta.dimensions[0];
-        size_t n_times = times.dimensions[0];
+        size_t n_params = theta.dimensions()[0];
+        size_t n_times = times.dimensions()[0];
 
         // Build graph with theta
         Graph g = builder.build(theta_data, n_params);
@@ -128,18 +129,19 @@ ffi::Error ComputeMomentsHandler(
 ) {
 
     try {
-        // Create GraphBuilder
-        GraphBuilder builder(structure_json);
+        // Create GraphBuilder (convert string_view to string)
+        std::string json_str(structure_json);
+        GraphBuilder builder(json_str);
 
         // Validate inputs
-        if (theta.dimensions.size() != 1) {
+        if (theta.dimensions().size() != 1) {
             return ffi::Error(ffi::ErrorCode::kInvalidArgument,
                 "theta must be 1-dimensional");
         }
 
         const double* theta_data = theta.typed_data();
-        double* moments_data = moments.typed_data();
-        size_t n_params = theta.dimensions[0];
+        double* moments_data = moments->typed_data();
+        size_t n_params = theta.dimensions()[0];
 
         // Build graph
         Graph g = builder.build(theta_data, n_params);
@@ -204,26 +206,27 @@ ffi::Error ComputePmfAndMomentsHandler(
 ) {
 
     try {
-        // Create GraphBuilder
-        GraphBuilder builder(structure_json);
+        // Create GraphBuilder (convert string_view to string)
+        std::string json_str(structure_json);
+        GraphBuilder builder(json_str);
 
         // Validate inputs
-        if (theta.dimensions.size() != 1) {
+        if (theta.dimensions().size() != 1) {
             return ffi::Error(ffi::ErrorCode::kInvalidArgument,
                 "theta must be 1-dimensional");
         }
-        if (times.dimensions.size() != 1) {
+        if (times.dimensions().size() != 1) {
             return ffi::Error(ffi::ErrorCode::kInvalidArgument,
                 "times must be 1-dimensional");
         }
 
         const double* theta_data = theta.typed_data();
         const double* times_data = times.typed_data();
-        double* pmf_data = pmf.typed_data();
-        double* moments_data = moments.typed_data();
+        double* pmf_data = pmf->typed_data();
+        double* moments_data = moments->typed_data();
 
-        size_t n_params = theta.dimensions[0];
-        size_t n_times = times.dimensions[0];
+        size_t n_params = theta.dimensions()[0];
+        size_t n_times = times.dimensions()[0];
 
         // Build graph ONCE (more efficient than separate calls)
         Graph g = builder.build(theta_data, n_params);

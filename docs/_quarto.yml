@@ -43,14 +43,20 @@ website:
   title: ""
   page-navigation: true
 
+  announcement: 
+    icon: info-circle
+    dismissable: true
+    content: "**Alert** - this is some information that you should pay attention to"
+    type: primary
+    position: above-navbar
 
 # margin-left, margin-right, margin-top, margin-bottom
 
 
   navbar:
-    logo: dummy.png
+    logo: logo.png
     logo-alt: "Phasic"  # For accessibility
-    logo-href: "/"  # Where clicking the logo goes
+    logo-href: "/index.html"  # Where clicking the logo goes
 
     left:
       - href: api/
@@ -71,16 +77,19 @@ website:
       align: left
       contents:
         - pages/getting_started.qmd
-        - section: "Basics"
+        - section: "Tutorials"
           contents:
+            - examples/python/rabbits_full_py_api_example.ipynb
+
             - pages/phase-type-distributions.qmd
-            - pages/state_space.ipynb
-            - pages/moments.ipynb
-            - pages/distributions.ipynb
-        - section: "Background"
+            - pages/state_space_construction.ipynb
+        - section: "How it works"
           contents:
-            - pages/math_and_algorithms.qmd
-        - section: "Modelling"
+            - pages/math.qmd
+            - pages/algorithms.qmd
+            - pages/architecture.qmd
+            - pages/symbolic_gauss_elimination.qmd
+        - section: "State space modelling"
           contents:
             - pages/state_lumping.ipynb
             - pages/laplace.ipynb
@@ -89,8 +98,8 @@ website:
         - section: "Distributed Computing"
           contents:
             - pages/svgd.qmd
+            - examples/python/svgd.ipynb
             - pages/slurm_cluster_setup.ipynb
-            - pages/cpu_monitoring_showcase.ipynb
             # - pages/distributed_computing_basics.ipynb
             # - pages/distributed_svgd_inference.ipynb
             # - pages/distributed_computing_basics.ipynb
@@ -99,19 +108,17 @@ website:
             # - pages/graphbuilder_showcase.ipynb
             # - pages/slurm_multinode_guide.qmd
             # - pages/svgd_inference.ipynb
-        - section: "Examples"
+        - section: "Utils"
           contents:
-            - examples/python/rabbits_full_py_api_example.ipynb
+            - pages/cpu_monitoring_showcase.ipynb
+        - section: "Popgen examples"
+          contents:
             - examples/python/coalescent-jointprob.ipynb
             - examples/python/experiments.ipynb
             - examples/python/isolation_migration.ipynb
             - examples/python/somecode.ipynb
             - examples/python/two-island-two-locus-arg.ipynb
-            - examples/python/svgd.ipynb
             # - pages/
-        - section: "Development"
-          contents:
-            - pages/architecture.qmd
 
 lightbox: true
 
