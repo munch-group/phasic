@@ -1,4 +1,124 @@
 /*-- scss:defaults --*/
+
+
+$white:    #fff !default;
+$gray-100: #f8f9fa !default;
+$gray-200: #e9ecef !default;
+$gray-300: #dee2e6 !default;
+$gray-400: #ced4da !default;
+$gray-500: #adb5bd !default;
+$gray-600: #868e96 !default;
+$gray-700: #495057 !default;
+$gray-800: #373a3c !default;
+$gray-900: #212529 !default;
+$black:    #000 !default;
+
+$blue:    #2780e3 !default;
+$indigo:  #6610f2 !default;
+$purple:  #613d7c !default;
+$pink:    #e83e8c !default;
+$red:     #ff0039 !default;
+$orange:  #f0ad4e !default;
+$yellow:  #ff7518 !default;
+$green:   #3fb618 !default;
+// $teal:    #20c997 !default;
+$teal:    #01886f !default;
+$cyan:    #9954bb !default;
+
+$primary:       $teal !default;
+$secondary:     $gray-800 !default;
+$success:       $green !default;
+$info:          $cyan !default;
+$warning:       $yellow !default;
+$danger:        $red !default;
+$light:         $gray-100 !default;
+$dark:          $gray-800 !default;
+
+
 $font-size-base:          0.9rem !default;
-$toc-active-border: #2da38d;
+$toc-active-border: $primary;
+
+$primary: $teal;           // Changes primary color throughout
+// $link-color: $primary;        // Default link color
+// $link-hover-color: darken($link-color, 15%);
+// $link-decoration: none;
+// $link-hover-decoration: underline;
+
+// // Navbar background colors
+// $navbar-light-bg: #ffffff;           // Light navbar background
+// $navbar-dark-bg: #2c3e50;           // Dark navbar background
+
+// For Quarto's default navbar
+$navbar-fg: $primary;
+$navbar-bg: $gray-100;                // Custom navbar background
+$navbar-brand-color: $primary;       // Logo/brand text color
+$navbar-brand-hover-color: $primary; // Brand hover color
+$navbar-light-color: $primary;          // Text color for light navbar
+$navbar-dark-color: $primary;           // Text color for dark navbar
+$navbar-brand-font-weight: 900;
+
+$navbar-padding-y: 0.25rem;  // Vertical padding
+$navbar-padding-x: 1rem;     // Horizontal padding
+$navbar-brand-padding-y: 0.25rem;
+$navbar-nav-link-padding-x: 0.5rem;
+
+// // Link colors in navbar
+// $navbar-light-active-color: $primary;
+// $navbar-light-hover-color: $primary;
+// $navbar-dark-active-color: #ffffff;
+// $navbar-dark-hover-color: #f0f0f0;
+
+// $title-block-banner-color: #009278;     // Text color
+// $title-block-banner-bg: white;        // Background color
+
+// // Font weights
+// $font-weight-bold: 600;
+// $font-weight-bolder: 700;
+
+// // Optional: Override more Cosmo defaults
+// $blue: #0066cc;
+// $orange: #ff6b35;
+// $body-color: #333;
+// $headings-font-weight: 600;
+
+// Main sidebar background and text
+$sidebar-bg: #ffffff;                  // Sidebar background color
+$sidebar-fg: #333333;                  // Sidebar text color
+$sidebar-border-color: #dee2e6;        // Sidebar border
+
+// Sidebar navigation colors
+$sidebar-active-color: $teal;        // Active item color
+$sidebar-hover-bg: #ffffff;            // Hover background
+$sidebar-hover-color: #000;            // Hover text color
+
+// // TOC (Table of Contents) specific
+// // $toc-color: #6c757d;                   // TOC text color
+// $toc-active-color: $teal;           // Active TOC item
+// // $toc-inactive-color: #6c757d;         // Inactive TOC items
+// // $toc-font-size: 0.875rem;             // TOC font size
+
+$callout-color-note: $primary;
+
 /*-- scss:rules --*/
+
+// // Custom CSS rules after variables
+// .primary {
+//     color: $primary;
+//     font-weight: 600;
+//     font-size: 1.1em;
+// }
+
+// // Additional link styling
+// a {
+//     transition: color 0.3s ease;
+// }
+
+// // Primary links
+// a.primary {
+//     color: $primary;
+//     font-weight: 600;
+    
+//     &:hover {
+//         color: darken($primary, 10%);
+//     }
+// }

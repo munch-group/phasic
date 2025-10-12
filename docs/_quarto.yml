@@ -39,15 +39,19 @@ interlinks:
     #   inv: objects-test.txt
 
 website:
-  title: "ptdalgorithms"
+  # title: "ptdalgorithms"
+  title: ""
   page-navigation: true
 
 
 # margin-left, margin-right, margin-top, margin-bottom
 
 
-
   navbar:
+    logo: dummy.png
+    logo-alt: "Phasic"  # For accessibility
+    logo-href: "/"  # Where clicking the logo goes
+
     left:
       - href: api/
         text: Python API reference
@@ -113,18 +117,26 @@ lightbox: true
 
 format:
   html:
-    theme: cosmo
+    grid:
+      sidebar-width: 300px
+      body-width: 900px
+      margin-width: 270px
+      gutter-width: 1.5rem
+
+    theme: [cosmo, numpy.theme, custom.scss] # numpy.theme for code highlighting
     # theme: 
     #   light: [cosmo, numpy.theme]
     #   dark: [darkly, numpy-dark.theme]    
     css:
       - api/_styles-quartodoc.css
-      - custom.css
+      - numpy.css  # for code box styles highlighting styles
       - styles.css
 
+      # - custom.css
       # - numpy-navbar-sidebar.css
-      - numpy.css  # for code highlighting styles
+
     code-overflow: wrap
+    fig-align: center    
     html-math-method: katex
     toc: true
     mermaid:

@@ -1,7 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(/Users/kmt/PtDAlgorithms/.pixi/envs/default/bin/python -c \"import ptdalgorithms; import jax; print(f''Devices: {len(jax.devices())}'')\")"
+      "Bash(timeout 180 pixi run python test_jax_config.py)"
     ],
     "deny": [],
     "ask": []

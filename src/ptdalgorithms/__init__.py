@@ -68,7 +68,15 @@ try:
     if 'jax' not in sys.modules:
         # Only configure if JAX hasn't been imported yet
 
-        # Detect performance cores on Apple Silicon
+        # Import compilation configuration system
+        from .jax_config import CompilationConfig, get_default_config, set_default_config
+
+        # Apply default balanced configuration (includes JAX persistent cache)
+        # This sets environment variables for JAX compilation optimization
+        default_config = get_default_config()
+        default_config.apply(force=False)  # Don't override existing user configuration
+
+        # Detect performance cores on Apple Silicon for multi-CPU
         def get_performance_cores():
             """Get number of performance cores on Apple Silicon, or total CPUs otherwise"""
             try:
@@ -90,6 +98,7 @@ try:
             # Fallback to total CPU count
             return os.cpu_count() or 1
 
+        # Configure multi-device CPU count (for pmap)
         cpu_count = int(os.environ.get('PTDALG_CPUS', get_performance_cores()))
         xla_flags = os.environ.get('XLA_FLAGS', '')
         device_flag = f"--xla_force_host_platform_device_count={cpu_count}"
@@ -2556,6 +2565,25 @@ def init_parallel(cpus: Optional[int] = None,
     set_parallel_config(config)
 
     return config
+
+
+# ============================================================================
+# Export JAX Configuration and Model Export Utilities
+# ============================================================================
+
+# Make CompilationConfig and utilities available to users
+if HAS_JAX:
+    from .jax_config import CompilationConfig, get_default_config as get_jax_config, set_default_config as set_jax_config
+    from . import model_export
+
+    # Expose common model_export functions at package level
+    from .model_export import (
+        clear_cache,
+        cache_info,
+        print_cache_info,
+        export_model_package,
+        generate_warmup_script
+    )
 
 
 # ============================================================================

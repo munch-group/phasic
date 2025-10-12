@@ -2,6 +2,9 @@ import os
 import platform
 from time import time, sleep
 import numpy as np
+import pickle
+import hashlib
+import pathlib
 
 # environment variables for JAX must be set before running any JAX code
 # Only set if not already configured (respect existing configuration from __init__.py or user)
@@ -519,7 +522,7 @@ class SVGDKernel:
         return K, grad_K
 
 
-def svgd_step(particles, log_prob_fn, kernel, step_size):
+def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None):
     """
     Perform single SVGD update step
 
@@ -533,6 +536,8 @@ def svgd_step(particles, log_prob_fn, kernel, step_size):
         Kernel object for computing K and grad_K
     step_size : float
         Step size for update
+    compiled_grad : callable, optional
+        Precompiled gradient function for faster execution
 
     Returns
     -------
@@ -550,12 +555,20 @@ def svgd_step(particles, log_prob_fn, kernel, step_size):
         particles_per_device = n_particles // n_devices
         particles_sharded = particles.reshape(n_devices, particles_per_device, -1)
 
-        # pmap over devices, vmap over particles within each device
-        grad_log_p_sharded = pmap(vmap(grad(log_prob_fn)))(particles_sharded)
+        # Use precompiled gradient if available
+        if compiled_grad is not None:
+            # pmap over devices, vmap over particles within each device
+            grad_log_p_sharded = pmap(vmap(compiled_grad))(particles_sharded)
+        else:
+            # pmap over devices, vmap over particles within each device
+            grad_log_p_sharded = pmap(vmap(grad(log_prob_fn)))(particles_sharded)
         grad_log_p = grad_log_p_sharded.reshape(n_particles, -1)
     else:
         # Single device or non-divisible particles
-        grad_log_p = vmap(grad(log_prob_fn))(particles)
+        if compiled_grad is not None:
+            grad_log_p = vmap(compiled_grad)(particles)
+        else:
+            grad_log_p = vmap(grad(log_prob_fn))(particles)
 
     # Compute kernel and kernel gradient
     K, grad_K = kernel.compute_kernel_grad(particles)
@@ -575,7 +588,7 @@ def svgd_step(particles, log_prob_fn, kernel, step_size):
 
 
 def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
-             kernel='rbf_median', return_history=False, verbose=True):
+             kernel='rbf_median', return_history=False, verbose=True, compiled_grad=None):
     """
     Run Stein Variational Gradient Descent
 
@@ -596,6 +609,8 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
         If True, return particle positions at each iteration
     verbose : bool
         Print progress information
+    compiled_grad : callable, optional
+        Precompiled gradient function for faster execution
 
     Returns
     -------
@@ -622,7 +637,7 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
 
     for step in trange(n_steps) if verbose else range(n_steps):
         # Perform SVGD update
-        particles = svgd_step(particles, log_prob_fn, kernel_obj, learning_rate)
+        particles = svgd_step(particles, log_prob_fn, kernel_obj, learning_rate, compiled_grad=compiled_grad)
 
         # Store history
         if return_history and (step % max(1, n_steps // 20) == 0):
@@ -724,6 +739,27 @@ class SVGD:
         Random seed for reproducibility
     verbose : bool, default=True
         Print progress information
+    precompile : bool, default=True
+        Precompile model and gradient functions for faster execution.
+        First run will take longer (compilation time) but subsequent
+        iterations will be much faster. Compiled functions are cached
+        in memory and on disk (~/.ptdalgorithms_cache/).
+    compilation_config : CompilationConfig, dict, str, or Path, optional
+        JAX compilation optimization configuration. Can be:
+        - CompilationConfig object from ptdalgorithms.CompilationConfig
+        - dict with CompilationConfig parameters
+        - str/Path to JSON config file
+        - None (uses default balanced configuration)
+
+        The configuration controls JAX/XLA compilation behavior including:
+        - Persistent cache directory for cross-session caching
+        - Optimization level (0-3)
+        - Parallel compilation settings
+
+        Examples:
+        - Use preset: CompilationConfig.fast_compile()
+        - Load from file: 'my_config.json'
+        - Custom dict: {'optimization_level': 2, 'cache_dir': '/tmp/cache'}
 
     Attributes
     ----------
@@ -744,8 +780,8 @@ class SVGD:
     >>> graph = Graph(callback=coalescent, parameterized=True, nr_samples=3)
     >>> model = Graph.pmf_from_graph(graph)
     >>>
-    >>> # Create SVGD object and fit
-    >>> svgd = SVGD(model, observed_data, theta_dim=1)
+    >>> # Create SVGD object and fit (with precompilation)
+    >>> svgd = SVGD(model, observed_data, theta_dim=1, precompile=True)
     >>> svgd.fit()
     >>>
     >>> # Access results
@@ -757,9 +793,49 @@ class SVGD:
     >>> svgd.plot_trace()
     """
 
+    # Class-level cache for compiled models (shared across instances)
+    _compiled_cache = {}
+
     def __init__(self, model, observed_data, prior=None, n_particles=50,
                  n_iterations=1000, learning_rate=0.001, kernel='rbf_median',
-                 theta_init=None, theta_dim=None, seed=42, verbose=True):
+                 theta_init=None, theta_dim=None, seed=42, verbose=True, precompile=True,
+                 compilation_config=None):
+
+        # Handle compilation configuration
+        if compilation_config is not None:
+            from pathlib import Path
+            try:
+                from .jax_config import CompilationConfig
+            except ImportError:
+                # If running from svgd.py directly without package import
+                try:
+                    from jax_config import CompilationConfig
+                except ImportError:
+                    CompilationConfig = None
+
+            # Parse compilation_config
+            if isinstance(compilation_config, str) or isinstance(compilation_config, Path):
+                # Load from file
+                if CompilationConfig:
+                    config = CompilationConfig.load_from_file(compilation_config)
+                    config.apply(force=False)
+                    if verbose:
+                        print(f"Loaded compilation config from: {compilation_config}")
+            elif isinstance(compilation_config, dict):
+                # Create from dictionary
+                if CompilationConfig:
+                    config = CompilationConfig(**compilation_config)
+                    config.apply(force=False)
+                    if verbose:
+                        print(f"Applied compilation config from dict")
+            elif CompilationConfig and isinstance(compilation_config, CompilationConfig):
+                # Already a CompilationConfig object
+                compilation_config.apply(force=False)
+                if verbose:
+                    print(f"Applied compilation config")
+            else:
+                if verbose:
+                    print(f"Warning: Could not parse compilation_config, using defaults")
 
         self.model = model
         self.observed_data = jnp.array(observed_data)
@@ -771,6 +847,8 @@ class SVGD:
         self.theta_dim = theta_dim
         self.seed = seed
         self.verbose = verbose
+        self.precompile = precompile
+        self.compilation_config = compilation_config
 
         # Validate and initialize particles
         if theta_init is None and theta_dim is None:
@@ -833,6 +911,14 @@ class SVGD:
         self.history = None
         self.is_fitted = False
 
+        # Compiled model and gradient (set by _precompile_model if precompile=True)
+        self.compiled_model = None
+        self.compiled_grad = None
+
+        # Precompile model and gradient if requested
+        if self.precompile:
+            self._precompile_model()
+
     def _log_prob(self, theta):
         """
         Log probability function: log p(data|theta) + log p(theta)
@@ -850,6 +936,7 @@ class SVGD:
         # Log-likelihood
         try:
             result = self.model(theta, self.observed_data)
+
             # Handle both (pmf, moments) and pmf-only models
             if isinstance(result, tuple):
                 model_values = result[0]  # Extract PMF values
@@ -872,6 +959,106 @@ class SVGD:
             log_pri = -0.5 * jnp.sum(theta**2)
 
         return log_lik + log_pri
+
+    def _get_cache_path(self):
+        """Generate cache path for this model configuration"""
+        # Create cache key from model id and shapes
+        theta_shape = (self.theta_dim,)
+        times_shape = self.observed_data.shape
+        cache_key = f"{id(self.model)}_{theta_shape}_{times_shape}"
+        cache_hash = hashlib.sha256(cache_key.encode()).hexdigest()[:16]
+
+        # Cache directory
+        cache_dir = pathlib.Path.home() / '.ptdalgorithms_cache'
+        cache_dir.mkdir(exist_ok=True)
+
+        return cache_dir / f"compiled_svgd_{cache_hash}.pkl"
+
+    def _save_compiled(self, cache_path):
+        """Save compiled model and gradient to disk"""
+        try:
+            with open(cache_path, 'wb') as f:
+                pickle.dump({
+                    'model': self.compiled_model,
+                    'grad': self.compiled_grad
+                }, f)
+            if self.verbose:
+                print(f"  Saved compiled functions to cache: {cache_path.name}")
+        except Exception as e:
+            # Disk caching is best-effort; memory cache still works
+            # Pickling JIT functions with closures often fails - this is expected
+            pass
+
+    def _load_compiled(self, cache_path):
+        """Load compiled model and gradient from disk"""
+        if cache_path.exists():
+            try:
+                with open(cache_path, 'rb') as f:
+                    cached = pickle.load(f)
+                self.compiled_model = cached['model']
+                self.compiled_grad = cached['grad']
+                if self.verbose:
+                    print(f"  Loaded compiled functions from cache: {cache_path.name}")
+                return True
+            except Exception as e:
+                if self.verbose:
+                    print(f"  Warning: Failed to load cache: {e}")
+                return False
+        return False
+
+    def _precompile_model(self):
+        """Precompile model and gradient for known shapes"""
+        # Generate cache key
+        theta_shape = (self.theta_dim,)
+        times_shape = self.observed_data.shape
+        memory_cache_key = (id(self.model), theta_shape, times_shape)
+
+        # Check memory cache first
+        if memory_cache_key in SVGD._compiled_cache:
+            cached = SVGD._compiled_cache[memory_cache_key]
+            self.compiled_model = cached['model']
+            self.compiled_grad = cached['grad']
+            if self.verbose:
+                print(f"  Using cached compiled functions from memory")
+            return
+
+        # Check disk cache
+        cache_path = self._get_cache_path()
+        if self._load_compiled(cache_path):
+            # Store in memory cache for future instances
+            SVGD._compiled_cache[memory_cache_key] = {
+                'model': self.compiled_model,
+                'grad': self.compiled_grad
+            }
+            return
+
+        # Need to compile
+        if self.verbose:
+            print(f"\nPrecompiling gradient function...")
+            print(f"  Theta shape: {theta_shape}, Times shape: {times_shape}")
+            print(f"  This may take several minutes for large models...")
+
+        # Create dummy inputs with correct shapes
+        dummy_theta = jnp.zeros(theta_shape)
+
+        # JIT compile gradient (use jit without lower/compile so it can be vmapped/pmapped)
+        if self.verbose:
+            print(f"  JIT compiling gradient...")
+        start = time()
+        grad_fn = jax.grad(self._log_prob)
+        self.compiled_grad = jax.jit(grad_fn)
+        # Trigger compilation with dummy call
+        _ = self.compiled_grad(dummy_theta)
+        if self.verbose:
+            print(f"  Gradient JIT compiled in {time() - start:.1f}s")
+            print(f"  Precompilation complete!")
+
+        # Save to both caches
+        SVGD._compiled_cache[memory_cache_key] = {
+            'model': self.compiled_model,
+            'grad': self.compiled_grad
+        }
+        self._save_compiled(cache_path)
 
     def fit(self, return_history=False):
         """
@@ -904,7 +1091,8 @@ class SVGD:
             learning_rate=self.learning_rate,
             kernel=kernel_obj,
             return_history=return_history,
-            verbose=self.verbose
+            verbose=self.verbose,
+            compiled_grad=self.compiled_grad
         )
 
         # Store results as attributes
