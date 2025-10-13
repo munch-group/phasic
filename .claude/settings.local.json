@@ -8,7 +8,9 @@
       "Bash(python test:*)",
       "Bash(python:*)",
       "Bash(git stash:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(timeout 60 pixi run python tests/test_api_comprehensive.py)",
+      "Bash(chmod:*)"
     ],
     "deny": [],
     "ask": []

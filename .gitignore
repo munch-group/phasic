@@ -27,3 +27,6 @@ build/
 # pixi environments
 .pixi
 *.egg-info
+
+docs/_inv/
+docs/objects.txt

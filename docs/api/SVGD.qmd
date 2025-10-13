@@ -13,6 +13,8 @@ ptdalgorithms.SVGD(
     theta_dim=None,
     seed=42,
     verbose=True,
+    precompile=True,
+    compilation_config=None,
 )
 ```
 
@@ -67,6 +69,14 @@ automatic result storage and diagnostic plotting capabilities.
 
 :   Print progress information
 
+<code>[**precompile**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   Precompile model and gradient functions for faster execution. First run will take longer (compilation time) but subsequent iterations will be much faster. Compiled functions are cached in memory and on disk (~/.ptdalgorithms_cache/).
+
+<code>[**compilation_config**]{.parameter-name} [:]{.parameter-annotation-sep} [CompilationConfig, dict, str, or Path]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   JAX compilation optimization configuration. Can be: - CompilationConfig object from ptdalgorithms.CompilationConfig - dict with CompilationConfig parameters - str/Path to JSON config file - None (uses default balanced configuration)  The configuration controls JAX/XLA compilation behavior including: - Persistent cache directory for cross-session caching - Optimization level (0-3) - Parallel compilation settings  Examples: - Use preset: CompilationConfig.fast_compile() - Load from file: 'my_config.json' - Custom dict: {'optimization_level': 2, 'cache_dir': '/tmp/cache'}
+
 ## Attributes {.doc-section .doc-section-attributes}
 
 <code>[**particles**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`)]{.parameter-annotation}</code>
@@ -96,8 +106,8 @@ automatic result storage and diagnostic plotting capabilities.
 >>> graph = Graph(callback=coalescent, parameterized=True, nr_samples=3)
 >>> model = Graph.pmf_from_graph(graph)
 >>>
->>> # Create SVGD object and fit
->>> svgd = SVGD(model, observed_data, theta_dim=1)
+>>> # Create SVGD object and fit (with precompilation)
+>>> svgd = SVGD(model, observed_data, theta_dim=1, precompile=True)
 >>> svgd.fit()
 >>>
 >>> # Access results

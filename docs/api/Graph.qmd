@@ -19,6 +19,7 @@ ptdalgorithms.Graph(
 | [copy](#ptdalgorithms.Graph.copy) | Returns a deep copy of the graph. |
 | [discretize](#ptdalgorithms.Graph.discretize) | Creates a graph for a discrete distribution from a continuous one. |
 | [dph_pmf_batch](#ptdalgorithms.Graph.dph_pmf_batch) | Compute discrete phase-type PMF at multiple jump counts with automatic parallelization. |
+| [eliminate_to_dag](#ptdalgorithms.Graph.eliminate_to_dag) | Perform symbolic graph elimination to create a reusable DAG structure. |
 | [from_matrices](#ptdalgorithms.Graph.from_matrices) | Construct a Graph from matrix representation. |
 | [make_discrete](#ptdalgorithms.Graph.make_discrete) | Takes a graph for a continuous distribution and turns |
 | [moments_batch](#ptdalgorithms.Graph.moments_batch) | Compute moments for multiple powers with automatic parallelization. |
@@ -162,6 +163,71 @@ For single values, use the standard dph_pmf() method instead (no overhead).
 
 - Requires a discrete phase-type model (use discretize() first)
 - Automatically parallelizes based on init_parallel() configuration
+
+### eliminate_to_dag { #ptdalgorithms.Graph.eliminate_to_dag }
+
+```python
+ptdalgorithms.Graph.eliminate_to_dag()
+```
+
+Perform symbolic graph elimination to create a reusable DAG structure.
+
+This method performs the O(n³) graph elimination algorithm ONCE and
+returns a symbolic DAG where edges contain expression trees instead
+of concrete values. The DAG can then be instantiated with different
+parameters in O(n) time each.
+
+This is the key optimization for SVGD and other inference methods
+that require evaluating the same graph structure with many different
+parameter vectors.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[SymbolicDAG](`ptdalgorithms.SymbolicDAG`)]{.parameter-annotation}</code>
+
+:   Symbolic DAG that can be instantiated with parameters
+
+#### Raises {.doc-section .doc-section-raises}
+
+<code>[:]{.parameter-annotation-sep} [[RuntimeError](`RuntimeError`)]{.parameter-annotation}</code>
+
+:   If the graph is not parameterized or elimination fails
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> # Create parameterized graph
+>>> g = Graph(state_length=1, parameterized=True)
+>>> v_a = g.create_vertex([0])
+>>> v_b = g.create_vertex([1])
+>>> v_c = g.create_vertex([2])
+>>> v_a.add_edge_parameterized(v_b, 0.0, [1.0, 0.0, 0.0])
+>>> v_b.add_edge_parameterized(v_c, 0.0, [0.0, 1.0, 0.0])
+```
+
+```python
+>>> # Eliminate to symbolic DAG (once)
+>>> dag = g.eliminate_to_dag()
+>>> print(dag)  # SymbolicDAG(vertices=3, params=3, acyclic=True)
+```
+
+```python
+>>> # Fast instantiation for SVGD (100-1000× faster!)
+>>> for theta in particle_swarm:
+...     g_concrete = dag.instantiate(theta)
+...     log_prob = -g_concrete.expectation()  # Fast!
+```
+
+#### Performance {.doc-section .doc-section-performance}
+
+- Elimination: O(n³) - performed once
+- Instantiation: O(n) - performed per particle
+- Expected speedup for SVGD: 100-1000×
+
+#### See Also {.doc-section .doc-section-see-also}
+
+SymbolicDAG : The returned symbolic DAG class
+SymbolicDAG.instantiate : Create concrete graph from parameters
 
 ### from_matrices { #ptdalgorithms.Graph.from_matrices }
 
