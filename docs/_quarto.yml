@@ -44,10 +44,10 @@ website:
   page-navigation: true
 
   announcement: 
-    icon: info-circle
+    icon: exclamation-lg
     dismissable: true
     content: "**Alert** - this is some information that you should pay attention to"
-    type: primary
+    type: warning
     position: above-navbar
 
 # margin-left, margin-right, margin-top, margin-bottom
@@ -84,8 +84,7 @@ website:
             - pages/tutorials/coalescent_showcase.ipynb
         - section: "How it works"
           contents:
-            - pages/implementation/math.qmd
-            - pages/implementation/algorithms.qmd
+            - pages/implementation/math_and_alg.qmd
             - pages/implementation/architecture.qmd
             - pages/implementation/symbolic_gauss_elimination.qmd
         - section: "State space modelling"
@@ -100,7 +99,7 @@ website:
             - pages/svgd/svgd_with_symbolic_dag.ipynb
         - section: "Distributed Computing"
           contents:
-            - pages/svgd/svgd.ipynb
+            - pages/distributed/docs/pages/distributed_computing_complete_guide.ipynb
             - pages/distributed/slurm_cluster_setup.ipynb
             - pages/distributed/cpu_monitoring.ipynb
             # - pages/distributed_computing_basics.ipynb
@@ -111,8 +110,6 @@ website:
             # - pages/graphbuilder_showcase.ipynb
             # - pages/slurm_multinode_guide.qmd
             # - pages/svgd_inference.ipynb
-        - section: "Utils"
-          contents:
         - section: "Popgen examples"
           contents:
             - pages/modelling/coalescent-jointprob.ipynb
