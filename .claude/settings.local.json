@@ -15,7 +15,8 @@
       "Bash(test:*)",
       "Bash(for:*)",
       "Bash(done)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []
