@@ -3,6 +3,8 @@ title: Phasic
 subtitle: "Modelling and inference using phase-type distributions"
 sidebar: false
 page-layout: full
+title-block-banner-color: black
+title-block-banner-bg: white
 title-block-banner: banner.png
 toc: false
 ---
@@ -50,15 +52,13 @@ toc: false
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-eye"></i> **Symbolic Gauss Elimination**: <br>Directed acyclic graphs produced by symbolic Gaussian elimination, allow extremely fast reparametrization and recomputation.
+<i class="bi bi-eye"></i> **Symbolic Gauss Elimination**: <br>Converting parameterized cyclic to acyclic graphs using symbolic Gaussian elimination, allows for extremely fast computation across parameter values.
 
 :::
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-question-circle"></i> **JAX integration**: <br>Automatic differentiation for gradient-based inference methods including builtin SVGD (Stein Variational Gradient Descent).
-
- Fit phase-type models to observed data with modern Bayesian inference techniques. 
+<i class="bi bi-question-circle"></i> **Bayesian Inference**: <br> JAX integration and automatic differentiation allow inference using SVGD (Stein Variational Gradient Descent) by fitting phase-type models to observed data.
 
 :::
 
@@ -87,7 +87,7 @@ toc: false
 ::: {.g-col-12 .g-col-md-6}
 ### Get Help
 
-- <i class="bi bi-box-seam"></i> [Issue Tracker](https://github.com/munch-group/franklin-cli/issues) - Report bugs
+- <i class="bi bi-box-seam"></i> [Issue Tracker](https://github.com/munch-group/ptdalgorithms/issues) - Report bugs
 - <i class="bi bi-box-seam"></i> [Contact](mailto:kaspermunch@birc.au.dk) - Direct support
 
 :::

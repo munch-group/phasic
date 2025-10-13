@@ -1,17 +1,24 @@
 ---
-title: Getting started
-# aliases:
-#   - ../index.html
+title: Getting Started
 ---
 
-::: {.callout-caution }
-## This pages is under construction
+The **ptdalgorithms** library provides fast and scalable algorithms for constructing and computing properties of phase-type distributions. It supports both continuous and discrete, unrewarded and rewarded, univariate and multivariate distributions. For sparse models, it can be **orders of magnitude faster** than traditional matrix-based methods.
 
-:::
+**Key Features:**
 
-The **ptdalgorithms** library provides fast and scalable algorithms for constructing and computing properties of phase-type distributions with support for both continuous and discrete, unrewarded and rewarded, univariate and multivariate distributions. For sparse models, it can be orders of magnitude faster. The code is written in C, but exposes an interface to both C, R and Python through a C++ layer. 
+- **Graph-based algorithms**: Replace expensive matrix operations with efficient graph traversal
+- **Multiple language support**: C, C++, Python, and R interfaces
+- **JAX integration**: Automatic differentiation, JIT compilation, and parallelization
+- **Bayesian inference**: Built-in SVGD (Stein Variational Gradient Descent)
+- **Distributed computing**: Scale from laptop to 100+ node SLURM clusters
+- **Symbolic computation**: Extremely fast evaluation for parameterized models
 
-The library computes moments (e.g. expectation, variance, covariance), distribution functions (pdf, cdf, pmf), laplace transform, and Markov chain stopping time probabilities. Although phase-type distributions are time-homogeneous, the library also computes moments and univariate distributions for epoch-wise time-inhomogeneous models as well as full joint probability distributions.
+The library computes:
+- **Moments**: expectation, variance, covariance, higher-order moments
+- **Distribution functions**: PDF, CDF, PMF
+- **Transforms**: Laplace transforms, reward transformations
+- **Markov properties**: stopping probabilities, residence times
+- **Time-inhomogeneous models**: epoch-wise distributions and joint probabilities
 
 <!-- The user iteratively builds the the state-space using a simple API. The state-space can be imported from and exported to a matrix representation allowing the library to seamlessly embed into matrix based workflows. -->
 
@@ -68,4 +75,230 @@ pip install ptdalgorithms[jax]
 ```
 
 :::
+
+## Quick Start
+
+### Python
+
+Here's a minimal example to get you started:
+
+```python
+import ptdalgorithms as ptd
+import numpy as np
+
+# Create a simple Erlang distribution (5 phases with rate 2)
+graph = ptd.Graph(state_length=1)
+
+# Build a chain of 5 states
+start = graph.starting_vertex()
+vertices = [start]
+for i in range(5):
+    v = graph.find_or_create_vertex([i + 1])
+    vertices.append(v)
+
+# Connect with edges (rate = 2.0)
+for i in range(5):
+    vertices[i].add_edge(vertices[i + 1], weight=2.0)
+
+# Compute properties
+print(f"Expectation: {graph.expectation():.3f}")    # E[X] = 5/2 = 2.5
+print(f"Variance: {graph.variance():.3f}")          # Var[X] = 5/4 = 1.25
+
+# Evaluate distribution functions
+times = np.linspace(0, 10, 100)
+pdf = graph.pdf(times)
+cdf = graph.cdf(times)
+
+# Sample from the distribution
+samples = graph.sample(1000)
+print(f"Sample mean: {np.mean(samples):.3f}")
+```
+
+**Output:**
+```
+Expectation: 2.500
+Variance: 1.250
+Sample mean: 2.487
+```
+
+### R
+
+```r
+library(ptdalgorithms)
+
+# Create Erlang distribution
+g <- create_graph(state_length = 1)
+
+# Build chain of states
+start <- starting_vertex(g)
+vertices <- list(start)
+for (i in 1:5) {
+    v <- find_or_create_vertex(g, i)
+    vertices[[i + 1]] <- v
+}
+
+# Connect with edges
+for (i in 1:5) {
+    add_edge(vertices[[i]], vertices[[i + 1]], 2.0)
+}
+
+# Compute properties
+expectation(g)  # 2.5
+variance(g)     # 1.25
+
+# Evaluate PDF
+times <- seq(0, 10, length.out = 100)
+pdf_vals <- pph(times, g)
+
+# Sample
+samples <- rph(1000, g)
+mean(samples)   # ~2.5
+```
+
+## Core Concepts
+
+### 1. Graph Construction
+
+Build phase-type distributions as directed graphs:
+
+- **Vertices** represent states (integer vectors)
+- **Edges** represent transitions with rates/probabilities
+- States are found or created automatically using AVL trees (O(log n) lookup)
+
+### 2. Continuous vs Discrete
+
+**Continuous** (time-based):
+```python
+graph = ptd.Graph(state_length=2)
+# ... build graph ...
+pdf = graph.pdf(times)        # Probability density
+cdf = graph.cdf(times)        # Cumulative distribution
+```
+
+**Discrete** (step-based):
+```python
+graph = ptd.Graph(state_length=2)
+# ... build graph ...
+graph.normalize()             # Convert to discrete-time
+pmf = graph.dph_pmf(steps)    # Probability mass
+```
+
+### 3. Rewards
+
+Add rewards to model accumulated values:
+
+```python
+# Define rewards per state
+rewards = np.array([0, 1, 2, 1, 0])
+
+# Compute expected accumulated reward
+E_reward = graph.expectation(rewards)
+
+# Or transform the distribution
+reward_graph = graph.reward_transform(rewards)
+pdf_reward = reward_graph.pdf(times)
+```
+
+### 4. Parameterized Models
+
+Build models that can be updated with different parameter values:
+
+```python
+def my_model_callback(state, n_samples=10):
+    # Return (next_state, weight, edge_coefficients)
+    # Edge coefficients multiply with parameter vector
+    if not state.size:
+        return [[[n_samples], 1, [1]]]
+
+    transitions = []
+    if state[0] > 1:
+        n = state[0]
+        rate = n * (n - 1) / 2
+        transitions.append([[n - 1], 0, [rate]])
+    return transitions
+
+# Build parameterized graph
+graph = ptd.Graph(callback=my_model_callback,
+                  parameterized=True,
+                  n_samples=10)
+
+# Update parameters and recompute
+theta = np.array([2.0])
+graph.update_weights_parameterized(theta)
+E = graph.expectation()
+```
+
+### 5. JAX Integration
+
+Convert graphs to JAX functions for automatic differentiation:
+
+```python
+import jax
+import jax.numpy as jnp
+
+# Convert to JAX-compatible function
+pmf_fn = ptd.Graph.pmf_from_graph(graph, discrete=False)
+
+# Now you can use JAX transformations
+pmf_jit = jax.jit(pmf_fn)           # JIT compile
+pmf_grad = jax.grad(pmf_fn)          # Gradient
+pmf_vmap = jax.vmap(pmf_fn)          # Vectorize
+
+# Evaluate
+theta = jnp.array([1.0])
+times = jnp.linspace(0, 5, 50)
+pdf_values = pmf_fn(theta, times)
+```
+
+## Examples and Tutorials
+
+### Tutorials
+
+- [Rabbits Example](tutorials/rabbits_full_py_api_example.ipynb) - Complete Python API walkthrough
+- [State Space Construction](modelling/state_space_construction.ipynb) - Building complex models
+- [Phase-Type Distributions](phase-type-distributions.qmd) - Theory and examples
+
+### Advanced Topics
+
+- [Symbolic Gaussian Elimination](symbolic_gauss_elimination.qmd) - Fast parameterized evaluation
+- [SVGD Inference](svgd/svgd.ipynb) - Bayesian parameter estimation
+- [Distributed Computing](distributed/distributed_computing.qmd) - Multi-node parallelization
+
+### State Space Modeling
+
+- [State Lumping](modelling/state_lumping.ipynb) - Reduce state space complexity
+- [Laplace Transforms](modelling/laplace.ipynb) - Transform analysis
+- [Epochs](modelling/epochs.ipynb) - Time-inhomogeneous models
+- [Joint Probabilities](modelling/joint_prob.ipynb) - Multivariate distributions
+
+### Population Genetics
+
+- [Coalescent Models](modelling/coalescent-jointprob.ipynb) - TMRCA distributions
+- [Isolation-Migration](popgen/isolation_migration.ipynb) - Population structure
+- [Two-Island ARG](popgen/two-island-two-locus-arg.ipynb) - Ancestral recombination
+
+## API Documentation
+
+- [Python API Reference](../api/index.html) - Complete Python documentation
+- [R API Reference](../r_api/index.html) - Complete R documentation
+- [C API Reference](../c_api/index.html) - C interface
+
+## Getting Help
+
+- [Issue Tracker](https://github.com/munch-group/ptdalgorithms/issues) - Report bugs or request features
+- [Email Support](mailto:kaspermunch@birc.au.dk) - Direct contact
+
+## Next Steps
+
+1. **Learn the basics**: Start with the [Rabbits Tutorial](tutorials/rabbits_full_py_api_example.ipynb)
+2. **Understand theory**: Read about [Phase-Type Distributions](phase-type-distributions.qmd)
+3. **Build models**: Follow [State Space Construction](modelling/state_space_construction.ipynb)
+4. **Scale up**: Explore [Distributed Computing](distributed/distributed_computing.qmd)
+5. **Do inference**: Try [SVGD Tutorial](svgd/svgd.ipynb)
+
+## Citation
+
+If you use this library in your research, please cite:
+
+> Røikjer, T., Hobolth, A., & Munch, K. (2022). Graph-based algorithms for phase-type distributions. *Statistics and Computing*, 32, 91.
 

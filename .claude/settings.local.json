@@ -10,7 +10,11 @@
       "Bash(git stash:*)",
       "Bash(python3:*)",
       "Bash(timeout 60 pixi run python tests/test_api_comprehensive.py)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(find:*)",
+      "Bash(test:*)",
+      "Bash(for:*)",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []

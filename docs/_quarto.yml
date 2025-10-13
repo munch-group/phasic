@@ -79,10 +79,8 @@ website:
         - pages/getting_started.qmd
         - section: "Tutorials"
           contents:
-            - examples/python/rabbits_full_py_api_example.ipynb
-
-            - pages/phase-type-distributions.qmd
-            - pages/state_space_construction.ipynb
+            - pages/tutorials/rabbits_full_py_api_example.ipynb
+            - pages/modelling/state_space_construction.ipynb
         - section: "How it works"
           contents:
             - pages/math.qmd
@@ -91,15 +89,14 @@ website:
             - pages/symbolic_gauss_elimination.qmd
         - section: "State space modelling"
           contents:
-            - pages/state_lumping.ipynb
-            - pages/laplace.ipynb
-            - pages/epochs.ipynb
-            - pages/joint_prob.ipynb
+            - pages/modelling/state_lumping.ipynb
+            - pages/modelling/laplace.ipynb
+            - pages/modelling/epochs.ipynb
+            - pages/modelling/joint_prob.ipynb
         - section: "Distributed Computing"
           contents:
-            - pages/svgd.qmd
-            - examples/python/svgd.ipynb
-            - pages/slurm_cluster_setup.ipynb
+            - pages/svgd/svgd.ipynb
+            - pages/distributed/slurm_cluster_setup.ipynb
             # - pages/distributed_computing_basics.ipynb
             # - pages/distributed_svgd_inference.ipynb
             # - pages/distributed_computing_basics.ipynb
@@ -110,14 +107,12 @@ website:
             # - pages/svgd_inference.ipynb
         - section: "Utils"
           contents:
-            - pages/cpu_monitoring_showcase.ipynb
+            - pages/tutorials/cpu_monitoring.ipynb
         - section: "Popgen examples"
           contents:
-            - examples/python/coalescent-jointprob.ipynb
-            - examples/python/experiments.ipynb
-            - examples/python/isolation_migration.ipynb
-            - examples/python/somecode.ipynb
-            - examples/python/two-island-two-locus-arg.ipynb
+            - pages/modelling/coalescent-jointprob.ipynb
+            - pages/popgen/isolation_migration.ipynb
+            - pages/popgen/two-island-two-locus-arg.ipynb
             # - pages/
 
 lightbox: true
