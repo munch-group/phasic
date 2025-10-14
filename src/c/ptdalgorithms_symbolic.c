@@ -195,12 +195,12 @@ static struct ptd_expression *sum_expressions(struct ptd_expression **exprs, siz
         return ptd_expr_const(0.0);
     }
     if (n == 1) {
-        return ptd_expr_copy(exprs[0]);
+        return ptd_expr_copy_iterative(exprs[0]);
     }
 
-    struct ptd_expression *sum = ptd_expr_copy(exprs[0]);
+    struct ptd_expression *sum = ptd_expr_copy_iterative(exprs[0]);
     for (size_t i = 1; i < n; i++) {
-        sum = ptd_expr_add(sum, ptd_expr_copy(exprs[i]));
+        sum = ptd_expr_add(sum, ptd_expr_copy_iterative(exprs[i]));
     }
     return sum;
 }
@@ -407,7 +407,7 @@ struct ptd_graph_symbolic *ptd_graph_symbolic_elimination(
 
             // Clean up temporary expressions
             for (size_t j = 0; j < v->edges_length; j++) {
-                ptd_expr_destroy(edge_exprs[j]);
+                ptd_expr_destroy_iterative(edge_exprs[j]);
             }
             free(edge_exprs);
         } else {
@@ -434,7 +434,7 @@ struct ptd_graph_symbolic *ptd_graph_symbolic_elimination(
 
             // prob = weight * rate
             struct ptd_expression *prob_expr =
-                ptd_expr_mul(weight_expr, ptd_expr_copy(sv->rate_expr));
+                ptd_expr_mul(weight_expr, ptd_expr_copy_iterative(sv->rate_expr));
 
             // Create symbolic edge
             struct ptd_edge_symbolic_ll *se =
@@ -506,8 +506,8 @@ struct ptd_graph_symbolic *ptd_graph_symbolic_elimination(
                     // scale = 1 / (1 - parent_to_me * me_to_parent)
                     struct ptd_expression *loop_prob =
                         ptd_expr_mul(
-                            ptd_expr_copy(parent_to_me_expr),
-                            ptd_expr_copy(me_to_child->prob_expr)
+                            ptd_expr_copy_iterative(parent_to_me_expr),
+                            ptd_expr_copy_iterative(me_to_child->prob_expr)
                         );
                     struct ptd_expression *one_minus_prob =
                         ptd_expr_sub(ptd_expr_const(1.0), loop_prob);
@@ -539,8 +539,8 @@ struct ptd_graph_symbolic *ptd_graph_symbolic_elimination(
                     // new_prob = old_prob + (parent_to_me * me_to_child)
                     struct ptd_expression *bypass =
                         ptd_expr_mul(
-                            ptd_expr_copy(parent_to_me_expr),
-                            ptd_expr_copy(me_to_child->prob_expr)
+                            ptd_expr_copy_iterative(parent_to_me_expr),
+                            ptd_expr_copy_iterative(me_to_child->prob_expr)
                         );
                     parent_to_child->prob_expr =
                         ptd_expr_add(parent_to_child->prob_expr, bypass);
@@ -549,8 +549,8 @@ struct ptd_graph_symbolic *ptd_graph_symbolic_elimination(
                     // new_prob = parent_to_me * me_to_child
                     struct ptd_expression *new_prob =
                         ptd_expr_mul(
-                            ptd_expr_copy(parent_to_me_expr),
-                            ptd_expr_copy(me_to_child->prob_expr)
+                            ptd_expr_copy_iterative(parent_to_me_expr),
+                            ptd_expr_copy_iterative(me_to_child->prob_expr)
                         );
 
                     struct ptd_edge_symbolic_ll *new_edge =
@@ -590,11 +590,11 @@ struct ptd_graph_symbolic *ptd_graph_symbolic_elimination(
                 // Normalize: prob = prob / total
                 edge = parent->first_edge->next;
                 while (edge != parent->last_edge) {
-                    edge->prob_expr = ptd_expr_div(edge->prob_expr, ptd_expr_copy(total));
+                    edge->prob_expr = ptd_expr_div(edge->prob_expr, ptd_expr_copy_iterative(total));
                     edge = edge->next;
                 }
 
-                ptd_expr_destroy(total);
+                ptd_expr_destroy_iterative(total);
                 free(parent_edge_exprs);
             }
 
@@ -636,7 +636,7 @@ struct ptd_graph_symbolic *ptd_graph_symbolic_elimination(
         memcpy(public_sv->state, sv->original->state, graph->state_length * sizeof(int));
 
         // Copy rate expression (1/rate scaling factor)
-        public_sv->rate_expr = ptd_expr_copy(sv->rate_expr);
+        public_sv->rate_expr = ptd_expr_copy_iterative(sv->rate_expr);
 
         // Count edges
         size_t n_edges = 0;
@@ -656,7 +656,7 @@ struct ptd_graph_symbolic *ptd_graph_symbolic_elimination(
             struct ptd_edge_symbolic *public_edge =
                 (struct ptd_edge_symbolic *) calloc(1, sizeof(*public_edge));
             public_edge->to_index = edge->to->index;  // Store index, not pointer!
-            public_edge->weight_expr = ptd_expr_copy(edge->prob_expr);
+            public_edge->weight_expr = ptd_expr_copy_iterative(edge->prob_expr);
             public_edge->next = NULL;
 
             public_sv->edges[j] = public_edge;
@@ -682,7 +682,7 @@ struct ptd_graph_symbolic *ptd_graph_symbolic_elimination(
         struct ptd_edge_symbolic_ll *edge = sv->first_edge->next;
         while (edge != sv->last_edge) {
             struct ptd_edge_symbolic_ll *next = edge->next;
-            ptd_expr_destroy(edge->prob_expr);
+            ptd_expr_destroy_iterative(edge->prob_expr);
             free(edge);
             edge = next;
         }
@@ -697,7 +697,7 @@ struct ptd_graph_symbolic *ptd_graph_symbolic_elimination(
             plink = next;
         }
 
-        ptd_expr_destroy(sv->rate_expr);
+        ptd_expr_destroy_iterative(sv->rate_expr);
         free(sv);
     }
 
@@ -732,7 +732,7 @@ void ptd_graph_symbolic_destroy(struct ptd_graph_symbolic *symbolic) {
                 if (sv->edges != NULL) {
                     for (size_t j = 0; j < sv->edges_length; j++) {
                         if (sv->edges[j] != NULL) {
-                            ptd_expr_destroy(sv->edges[j]->weight_expr);
+                            ptd_expr_destroy_iterative(sv->edges[j]->weight_expr);
                             free(sv->edges[j]);
                         }
                     }
@@ -741,7 +741,7 @@ void ptd_graph_symbolic_destroy(struct ptd_graph_symbolic *symbolic) {
 
                 // Free rate expression
                 if (sv->rate_expr != NULL) {
-                    ptd_expr_destroy(sv->rate_expr);
+                    ptd_expr_destroy_iterative(sv->rate_expr);
                 }
 
                 free(sv->state);
@@ -800,13 +800,13 @@ struct ptd_graph *ptd_graph_symbolic_instantiate(
         struct ptd_vertex *v = graph->vertices[i];
 
         // Evaluate rate expression (1/rate) for this vertex
-        double inv_rate = ptd_expr_evaluate(sv->rate_expr, params, n_params);
+        double inv_rate = ptd_expr_evaluate_iterative(sv->rate_expr, params, n_params);
 
         for (size_t j = 0; j < sv->edges_length; j++) {
             struct ptd_edge_symbolic *se = sv->edges[j];
 
             // Evaluate probability expression
-            double prob = ptd_expr_evaluate(se->weight_expr, params, n_params);
+            double prob = ptd_expr_evaluate_iterative(se->weight_expr, params, n_params);
 
             // Convert probability back to rate: weight = prob * rate = prob / (1/rate)
             double weight = prob / inv_rate;

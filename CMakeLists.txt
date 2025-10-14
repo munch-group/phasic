@@ -13,7 +13,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 project(ptdalgorithms VERSION 0.20.0 DESCRIPTION "Efficient graph based phase-type distribution algorithms")
 include(GNUInstallDirs)
 
-add_library(libptdalgorithms SHARED api/c/ptdalgorithms.h src/c/ptdalgorithms.c src/c/ptdalgorithms_symbolic.c)
+add_library(libptdalgorithms SHARED api/c/ptdalgorithms.h src/c/ptdalgorithms.c src/c/ptdalgorithms_symbolic.c src/c/ptdalgorithms_hash.c)
 
 set_target_properties(libptdalgorithms PROPERTIES
         VERSION ${PROJECT_VERSION}
@@ -29,7 +29,7 @@ install(TARGETS libptdalgorithms
 #         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
 
         
-add_library(libptdalgorithmscpp SHARED api/c/ptdalgorithms.h src/c/ptdalgorithms.c src/c/ptdalgorithms_symbolic.c src/c/ptdalgorithms.h src/cpp/ptdalgorithmscpp.cpp api/cpp/ptdalgorithmscpp.h src/cpp/ptdalgorithmscpp.h)
+add_library(libptdalgorithmscpp SHARED api/c/ptdalgorithms.h src/c/ptdalgorithms.c src/c/ptdalgorithms_symbolic.c src/c/ptdalgorithms_hash.c src/c/ptdalgorithms.h src/cpp/ptdalgorithmscpp.cpp api/cpp/ptdalgorithmscpp.h src/cpp/ptdalgorithmscpp.h)
 set_target_properties(libptdalgorithmscpp PROPERTIES
         VERSION ${PROJECT_VERSION}
         SOVERSION 1
@@ -71,8 +71,10 @@ endif()
 set(PYBIND_SOURCES
     src/cpp/ptdalgorithmscpp_pybind.cpp
     api/c/ptdalgorithms.h
+    api/c/ptdalgorithms_hash.h
     src/c/ptdalgorithms.c
     src/c/ptdalgorithms_symbolic.c
+    src/c/ptdalgorithms_hash.c
     src/c/ptdalgorithms.h
     src/cpp/ptdalgorithmscpp.cpp
     api/cpp/ptdalgorithmscpp.h

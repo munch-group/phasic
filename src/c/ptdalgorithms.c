@@ -4946,7 +4946,166 @@ struct ptd_expression *ptd_expr_sub(struct ptd_expression *left, struct ptd_expr
 }
 
 /**
- * Deep copy an expression tree
+ * Stack entry for iterative expression copying
+ */
+struct ptd_expr_copy_stack_entry {
+    const struct ptd_expression *src;      // Source node to copy
+    struct ptd_expression **dst_location;  // Where to store the copy pointer
+    bool processed;                        // Children already copied?
+};
+
+/**
+ * Deep copy an expression tree (iterative version to avoid stack overflow)
+ */
+struct ptd_expression *ptd_expr_copy_iterative(const struct ptd_expression *expr) {
+    if (expr == NULL) {
+        return NULL;
+    }
+
+    // Explicit stack for iterative traversal
+    size_t stack_capacity = 256;
+    size_t stack_size = 0;
+    struct ptd_expr_copy_stack_entry *stack = (struct ptd_expr_copy_stack_entry *)
+        malloc(stack_capacity * sizeof(struct ptd_expr_copy_stack_entry));
+
+    if (stack == NULL) {
+        DIE_ERROR(1, "Failed to allocate copy stack");
+    }
+
+    struct ptd_expression *root = NULL;
+
+    // Push root onto stack
+    stack[stack_size++] = (struct ptd_expr_copy_stack_entry){
+        .src = expr,
+        .dst_location = &root,
+        .processed = false
+    };
+
+    while (stack_size > 0) {
+        struct ptd_expr_copy_stack_entry *entry = &stack[stack_size - 1];
+
+        if (entry->processed) {
+            // This node and its children are done
+            stack_size--;
+            continue;
+        }
+
+        // Allocate copy for this node
+        struct ptd_expression *copy = (struct ptd_expression *)
+            calloc(1, sizeof(struct ptd_expression));
+        if (copy == NULL) {
+            free(stack);
+            DIE_ERROR(1, "Failed to allocate memory for expression copy");
+        }
+
+        copy->type = entry->src->type;
+        *(entry->dst_location) = copy;
+
+        // Mark as processed before pushing children
+        entry->processed = true;
+
+        // Handle node type and push children if needed
+        switch (entry->src->type) {
+            case PTD_EXPR_CONST:
+                copy->const_value = entry->src->const_value;
+                break;
+
+            case PTD_EXPR_PARAM:
+                copy->param_index = entry->src->param_index;
+                break;
+
+            case PTD_EXPR_DOT:
+                copy->n_terms = entry->src->n_terms;
+                copy->param_indices = (size_t *) malloc(entry->src->n_terms * sizeof(size_t));
+                copy->coefficients = (double *) malloc(entry->src->n_terms * sizeof(double));
+                if (copy->param_indices == NULL || copy->coefficients == NULL) {
+                    free(copy->param_indices);
+                    free(copy->coefficients);
+                    free(copy);
+                    free(stack);
+                    DIE_ERROR(1, "Failed to allocate memory for dot expression copy");
+                }
+                memcpy(copy->param_indices, entry->src->param_indices,
+                      entry->src->n_terms * sizeof(size_t));
+                memcpy(copy->coefficients, entry->src->coefficients,
+                      entry->src->n_terms * sizeof(double));
+                break;
+
+            case PTD_EXPR_INV:
+                if (entry->src->left != NULL) {
+                    // Grow stack if needed
+                    if (stack_size >= stack_capacity) {
+                        stack_capacity *= 2;
+                        struct ptd_expr_copy_stack_entry *new_stack =
+                            (struct ptd_expr_copy_stack_entry *)
+                            realloc(stack, stack_capacity * sizeof(struct ptd_expr_copy_stack_entry));
+                        if (new_stack == NULL) {
+                            free(stack);
+                            DIE_ERROR(1, "Failed to grow copy stack");
+                        }
+                        stack = new_stack;
+                        entry = &stack[stack_size - 1];  // Re-point after realloc
+                    }
+
+                    // Push left child
+                    stack[stack_size++] = (struct ptd_expr_copy_stack_entry){
+                        .src = entry->src->left,
+                        .dst_location = &copy->left,
+                        .processed = false
+                    };
+                }
+                break;
+
+            case PTD_EXPR_ADD:
+            case PTD_EXPR_MUL:
+            case PTD_EXPR_DIV:
+            case PTD_EXPR_SUB:
+                // Grow stack if needed for 2 children
+                while (stack_size + 2 > stack_capacity) {
+                    stack_capacity *= 2;
+                    struct ptd_expr_copy_stack_entry *new_stack =
+                        (struct ptd_expr_copy_stack_entry *)
+                        realloc(stack, stack_capacity * sizeof(struct ptd_expr_copy_stack_entry));
+                    if (new_stack == NULL) {
+                        free(stack);
+                        DIE_ERROR(1, "Failed to grow copy stack");
+                    }
+                    stack = new_stack;
+                    entry = &stack[stack_size - 1];  // Re-point after realloc
+                }
+
+                // Push children (right first, then left for proper ordering)
+                if (entry->src->right != NULL) {
+                    stack[stack_size++] = (struct ptd_expr_copy_stack_entry){
+                        .src = entry->src->right,
+                        .dst_location = &copy->right,
+                        .processed = false
+                    };
+                }
+                if (entry->src->left != NULL) {
+                    stack[stack_size++] = (struct ptd_expr_copy_stack_entry){
+                        .src = entry->src->left,
+                        .dst_location = &copy->left,
+                        .processed = false
+                    };
+                }
+                break;
+
+            default:
+                free(copy);
+                free(stack);
+                DIE_ERROR(1, "Unknown expression type in ptd_expr_copy_iterative");
+        }
+    }
+
+    free(stack);
+    return root;
+}
+
+/**
+ * Deep copy an expression tree (recursive version - kept for compatibility)
+ * WARNING: May cause stack overflow for deeply nested expressions (>1000 levels)
+ * Use ptd_expr_copy_iterative() for deep trees
  */
 struct ptd_expression *ptd_expr_copy(const struct ptd_expression *expr) {
     if (expr == NULL) {
@@ -5004,7 +5163,115 @@ struct ptd_expression *ptd_expr_copy(const struct ptd_expression *expr) {
 }
 
 /**
- * Destroy an expression tree and free all memory
+ * Stack entry for iterative expression destruction
+ */
+struct ptd_expr_destroy_stack_entry {
+    struct ptd_expression *expr;
+    bool children_pushed;
+};
+
+/**
+ * Destroy an expression tree and free all memory (iterative version, O(n))
+ */
+void ptd_expr_destroy_iterative(struct ptd_expression *expr) {
+    if (expr == NULL) {
+        return;
+    }
+
+    // Stack for post-order destruction
+    size_t stack_capacity = 256;
+    size_t stack_size = 0;
+    struct ptd_expr_destroy_stack_entry *stack =
+        (struct ptd_expr_destroy_stack_entry *)
+        malloc(stack_capacity * sizeof(struct ptd_expr_destroy_stack_entry));
+
+    if (stack == NULL) {
+        DIE_ERROR(1, "Failed to allocate destruction stack");
+    }
+
+    // Push root
+    stack[stack_size++] = (struct ptd_expr_destroy_stack_entry){
+        .expr = expr,
+        .children_pushed = false
+    };
+
+    while (stack_size > 0) {
+        struct ptd_expr_destroy_stack_entry *entry = &stack[stack_size - 1];
+
+        if (!entry->children_pushed) {
+            // First visit: push children
+            entry->children_pushed = true;
+            struct ptd_expression *node = entry->expr;
+
+            // Grow stack if needed (max 2 children)
+            if (stack_size + 2 > stack_capacity) {
+                stack_capacity *= 2;
+                struct ptd_expr_destroy_stack_entry *new_stack =
+                    (struct ptd_expr_destroy_stack_entry *)
+                    realloc(stack, stack_capacity * sizeof(struct ptd_expr_destroy_stack_entry));
+                if (new_stack == NULL) {
+                    free(stack);
+                    DIE_ERROR(1, "Failed to grow destruction stack");
+                }
+                stack = new_stack;
+                entry = &stack[stack_size - 1];  // Re-point after realloc
+            }
+
+            // Push children (right first for left-to-right processing)
+            switch (node->type) {
+                case PTD_EXPR_INV:
+                    if (node->left != NULL) {
+                        stack[stack_size++] = (struct ptd_expr_destroy_stack_entry){
+                            .expr = node->left,
+                            .children_pushed = false
+                        };
+                    }
+                    break;
+
+                case PTD_EXPR_ADD:
+                case PTD_EXPR_MUL:
+                case PTD_EXPR_DIV:
+                case PTD_EXPR_SUB:
+                    if (node->right != NULL) {
+                        stack[stack_size++] = (struct ptd_expr_destroy_stack_entry){
+                            .expr = node->right,
+                            .children_pushed = false
+                        };
+                    }
+                    if (node->left != NULL) {
+                        stack[stack_size++] = (struct ptd_expr_destroy_stack_entry){
+                            .expr = node->left,
+                            .children_pushed = false
+                        };
+                    }
+                    break;
+
+                default:
+                    // Leaf nodes (CONST, PARAM, DOT) - no children
+                    break;
+            }
+        } else {
+            // Second visit: children are done, destroy this node
+            struct ptd_expression *node = entry->expr;
+            stack_size--;
+
+            // Free node-specific data
+            if (node->type == PTD_EXPR_DOT) {
+                free(node->param_indices);
+                free(node->coefficients);
+            }
+
+            free(node);
+        }
+    }
+
+    free(stack);
+}
+
+/**
+ * Destroy an expression tree and free all memory (recursive version - kept for compatibility)
+ * WARNING: May cause stack overflow for deeply nested expressions (>1000 levels)
+ * Use ptd_expr_destroy_iterative() for deep trees
  */
 void ptd_expr_destroy(struct ptd_expression *expr) {
     if (expr == NULL) {
@@ -5044,7 +5311,275 @@ void ptd_expr_destroy(struct ptd_expression *expr) {
 }
 
 /**
- * Evaluate an expression with given parameters
+ * Stack entry for iterative expression evaluation
+ */
+struct ptd_expr_eval_stack_entry {
+    const struct ptd_expression *expr;
+    bool children_pushed;
+    double result;
+};
+
+/**
+ * Simple hash table for expression results (pointer -> double)
+ */
+struct ptd_expr_result_entry {
+    const struct ptd_expression *expr;
+    double result;
+    struct ptd_expr_result_entry *next;
+};
+
+struct ptd_expr_result_map {
+    struct ptd_expr_result_entry **buckets;
+    size_t capacity;
+};
+
+static struct ptd_expr_result_map *ptd_expr_result_map_create(size_t capacity) {
+    struct ptd_expr_result_map *map = (struct ptd_expr_result_map *)malloc(sizeof(struct ptd_expr_result_map));
+    if (map == NULL) return NULL;
+
+    map->capacity = capacity;
+    map->buckets = (struct ptd_expr_result_entry **)calloc(capacity, sizeof(struct ptd_expr_result_entry *));
+    if (map->buckets == NULL) {
+        free(map);
+        return NULL;
+    }
+    return map;
+}
+
+static void ptd_expr_result_map_put(struct ptd_expr_result_map *map, const struct ptd_expression *expr, double result) {
+    size_t bucket = ((size_t)expr / sizeof(void*)) % map->capacity;
+    struct ptd_expr_result_entry *entry = (struct ptd_expr_result_entry *)malloc(sizeof(struct ptd_expr_result_entry));
+    entry->expr = expr;
+    entry->result = result;
+    entry->next = map->buckets[bucket];
+    map->buckets[bucket] = entry;
+}
+
+static double ptd_expr_result_map_get(struct ptd_expr_result_map *map, const struct ptd_expression *expr) {
+    size_t bucket = ((size_t)expr / sizeof(void*)) % map->capacity;
+    struct ptd_expr_result_entry *entry = map->buckets[bucket];
+    while (entry != NULL) {
+        if (entry->expr == expr) {
+            return entry->result;
+        }
+        entry = entry->next;
+    }
+    return 0.0;  // Should not happen
+}
+
+static void ptd_expr_result_map_destroy(struct ptd_expr_result_map *map) {
+    for (size_t i = 0; i < map->capacity; i++) {
+        struct ptd_expr_result_entry *entry = map->buckets[i];
+        while (entry != NULL) {
+            struct ptd_expr_result_entry *next = entry->next;
+            free(entry);
+            entry = next;
+        }
+    }
+    free(map->buckets);
+    free(map);
+}
+
+/**
+ * Evaluate an expression with given parameters (iterative version, O(n))
+ * Uses post-order traversal with result hash map
+ */
+double ptd_expr_evaluate_iterative(
+    const struct ptd_expression *expr,
+    const double *params,
+    size_t n_params
+) {
+    if (expr == NULL) {
+        return 0.0;
+    }
+
+    // Create result map
+    struct ptd_expr_result_map *results = ptd_expr_result_map_create(256);
+    if (results == NULL) {
+        DIE_ERROR(1, "Failed to allocate result map");
+    }
+
+    // Stack for post-order traversal
+    size_t stack_capacity = 256;
+    size_t stack_size = 0;
+    struct ptd_expr_eval_stack_entry *stack = (struct ptd_expr_eval_stack_entry *)
+        malloc(stack_capacity * sizeof(struct ptd_expr_eval_stack_entry));
+
+    if (stack == NULL) {
+        ptd_expr_result_map_destroy(results);
+        DIE_ERROR(1, "Failed to allocate evaluation stack");
+    }
+
+    // Push root
+    stack[stack_size++] = (struct ptd_expr_eval_stack_entry){
+        .expr = expr,
+        .children_pushed = false,
+        .result = 0.0
+    };
+
+    while (stack_size > 0) {
+        struct ptd_expr_eval_stack_entry *entry = &stack[stack_size - 1];
+        const struct ptd_expression *e = entry->expr;
+
+        if (!entry->children_pushed) {
+            // First visit: push children for operators, compute leaves
+            entry->children_pushed = true;
+
+            switch (e->type) {
+                case PTD_EXPR_CONST: {
+                    double result = e->const_value;
+                    ptd_expr_result_map_put(results, e, result);
+                    stack_size--;  // Pop ourselves
+                    break;
+                }
+
+                case PTD_EXPR_PARAM: {
+                    if (e->param_index >= n_params) {
+                        free(stack);
+                        ptd_expr_result_map_destroy(results);
+                        DIE_ERROR(1, "Parameter index out of bounds in expression evaluation");
+                    }
+                    double result = params[e->param_index];
+                    ptd_expr_result_map_put(results, e, result);
+                    stack_size--;  // Pop ourselves
+                    break;
+                }
+
+                case PTD_EXPR_DOT: {
+                    double result = 0.0;
+                    for (size_t i = 0; i < e->n_terms; i++) {
+                        if (e->param_indices[i] >= n_params) {
+                            free(stack);
+                            ptd_expr_result_map_destroy(results);
+                            DIE_ERROR(1, "Parameter index out of bounds in dot expression evaluation");
+                        }
+                        result += e->coefficients[i] * params[e->param_indices[i]];
+                    }
+                    ptd_expr_result_map_put(results, e, result);
+                    stack_size--;  // Pop ourselves
+                    break;
+                }
+
+                case PTD_EXPR_INV:
+                case PTD_EXPR_ADD:
+                case PTD_EXPR_MUL:
+                case PTD_EXPR_DIV:
+                case PTD_EXPR_SUB:
+                    // Grow stack if needed
+                    if (stack_size + 2 > stack_capacity) {
+                        stack_capacity *= 2;
+                        struct ptd_expr_eval_stack_entry *new_stack =
+                            (struct ptd_expr_eval_stack_entry *)
+                            realloc(stack, stack_capacity * sizeof(struct ptd_expr_eval_stack_entry));
+                        if (new_stack == NULL) {
+                            free(stack);
+                            ptd_expr_result_map_destroy(results);
+                            DIE_ERROR(1, "Failed to grow evaluation stack");
+                        }
+                        stack = new_stack;
+                        entry = &stack[stack_size - 1];
+                    }
+
+                    // Push children (right first, then left)
+                    if (e->right != NULL) {
+                        stack[stack_size++] = (struct ptd_expr_eval_stack_entry){
+                            .expr = e->right,
+                            .children_pushed = false,
+                            .result = 0.0
+                        };
+                    }
+                    if (e->left != NULL) {
+                        stack[stack_size++] = (struct ptd_expr_eval_stack_entry){
+                            .expr = e->left,
+                            .children_pushed = false,
+                            .result = 0.0
+                        };
+                    }
+                    break;
+
+                default:
+                    free(stack);
+                    ptd_expr_result_map_destroy(results);
+                    DIE_ERROR(1, "Unknown expression type in evaluation");
+            }
+        } else {
+            // Second visit: children processed, compute result from children's results
+            switch (e->type) {
+                case PTD_EXPR_CONST:
+                case PTD_EXPR_PARAM:
+                case PTD_EXPR_DOT:
+                    // Already handled in first visit
+                    break;
+
+                case PTD_EXPR_INV: {
+                    double child_val = ptd_expr_result_map_get(results, e->left);
+                    if (child_val == 0.0) {
+                        free(stack);
+                        ptd_expr_result_map_destroy(results);
+                        DIE_ERROR(1, "Division by zero in inversion expression evaluation");
+                    }
+                    double result = 1.0 / child_val;
+                    ptd_expr_result_map_put(results, e, result);
+                    stack_size--;  // Pop ourselves
+                    break;
+                }
+
+                case PTD_EXPR_ADD:
+                case PTD_EXPR_MUL:
+                case PTD_EXPR_DIV:
+                case PTD_EXPR_SUB: {
+                    double left_val = ptd_expr_result_map_get(results, e->left);
+                    double right_val = ptd_expr_result_map_get(results, e->right);
+
+                    double result;
+                    switch (e->type) {
+                        case PTD_EXPR_ADD:
+                            result = left_val + right_val;
+                            break;
+                        case PTD_EXPR_MUL:
+                            result = left_val * right_val;
+                            break;
+                        case PTD_EXPR_DIV:
+                            if (right_val == 0.0) {
+                                free(stack);
+                                ptd_expr_result_map_destroy(results);
+                                DIE_ERROR(1, "Division by zero in expression evaluation");
+                            }
+                            result = left_val / right_val;
+                            break;
+                        case PTD_EXPR_SUB:
+                            result = left_val - right_val;
+                            break;
+                        default:
+                            result = 0.0;
+                            break;
+                    }
+
+                    ptd_expr_result_map_put(results, e, result);
+                    stack_size--;  // Pop ourselves
+                    break;
+                }
+
+                default:
+                    free(stack);
+                    ptd_expr_result_map_destroy(results);
+                    DIE_ERROR(1, "Unknown expression type in evaluation");
+            }
+        }
+    }
+
+    // Get result for root
+    double final_result = ptd_expr_result_map_get(results, expr);
+
+    free(stack);
+    ptd_expr_result_map_destroy(results);
+    return final_result;
+}
+
+/**
+ * Evaluate an expression with given parameters (recursive version - kept for compatibility)
+ * WARNING: May cause stack overflow for deeply nested expressions (>1000 levels)
+ * Use ptd_expr_evaluate_iterative() for deep trees
  */
 double ptd_expr_evaluate(
     const struct ptd_expression *expr,

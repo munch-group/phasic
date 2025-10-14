@@ -387,9 +387,18 @@ void ptd_expr_evaluate_batch(
 
 // Expression deep copy
 struct ptd_expression *ptd_expr_copy(const struct ptd_expression *expr);
+struct ptd_expression *ptd_expr_copy_iterative(const struct ptd_expression *expr);
 
 // Expression cleanup
 void ptd_expr_destroy(struct ptd_expression *expr);
+void ptd_expr_destroy_iterative(struct ptd_expression *expr);
+
+// Expression evaluation (iterative to avoid stack overflow)
+double ptd_expr_evaluate_iterative(
+    const struct ptd_expression *expr,
+    const double *params,
+    size_t n_params
+);
 
 // Symbolic graph elimination (main function)
 struct ptd_graph_symbolic *ptd_graph_symbolic_elimination(

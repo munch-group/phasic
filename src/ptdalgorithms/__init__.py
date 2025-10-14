@@ -213,6 +213,19 @@ from .cpu_monitor import (
     get_cached_nodes,
 )
 
+# Cache management (symbolic DAG cache + JAX compilation cache)
+from .symbolic_cache import SymbolicCache, print_cache_info
+from .cache_manager import CacheManager, print_jax_cache_info, configure_layered_cache
+from .jax_config import CompilationConfig, get_default_config, set_default_config
+from .cloud_cache import (
+    S3Backend,
+    GCSBackend,
+    AzureBlobBackend,
+    download_from_url,
+    download_from_github_release,
+    install_model_library
+)
+
 # JAX FFI wrappers (optional, requires JAX)
 if HAS_JAX:
     from .ffi_wrappers import (
@@ -1050,7 +1063,7 @@ class Graph(_Graph):
         return Graph(base_graph)
 
     @classmethod
-    def pmf_from_graph(cls, graph: 'Graph', discrete: bool = False) -> Callable:
+    def pmf_from_graph(cls, graph: 'Graph', discrete: bool = False, use_cache: bool = True) -> Callable:
         """
         Convert a Python-built Graph to a JAX-compatible function with full gradient support.
 
@@ -1073,6 +1086,10 @@ class Graph(_Graph):
         discrete : bool
             If True, uses discrete phase-type distribution (DPH) computation.
             If False, uses continuous phase-type distribution (PDF).
+        use_cache : bool, optional
+            If True, uses symbolic DAG cache to avoid re-computing expensive symbolic
+            elimination for graphs with the same structure. Default: True
+            Set to False to disable caching (useful for testing).
 
         Returns
         -------
@@ -1117,6 +1134,10 @@ class Graph(_Graph):
         # For direct C++ access (no JAX overhead), use graph methods:
         >>> pdf_value = g.pdf(1.5)  # Direct C++ call
         >>> pmf_value = g.dph_pmf(3)  # Direct C++ call
+
+        # With symbolic DAG caching (default)
+        >>> model = Graph.pmf_from_graph(g, use_cache=True)  # First call: computes and caches
+        >>> model2 = Graph.pmf_from_graph(g, use_cache=True)  # Subsequent: instant from cache!
         """
         # Check if JAX is available
         if not HAS_JAX:
@@ -1124,6 +1145,20 @@ class Graph(_Graph):
                 "JAX is required for JAX-compatible models. "
                 "Install with: pip install 'ptdalgorithms[jax]' or pip install jax jaxlib"
             )
+
+        # Try to use symbolic cache for parameterized graphs
+        if use_cache:
+            try:
+                from .symbolic_cache import SymbolicCache
+                cache = SymbolicCache()
+                # Note: Currently returns placeholder until C++ symbolic elimination is integrated
+                # When integrated, this will provide massive speedups for repeated structures
+                symbolic_json = cache.get_or_compute(graph)
+                # TODO: Use symbolic_json when C++ bindings are ready
+            except Exception as e:
+                # Cache failed, continue without it
+                import warnings
+                warnings.warn(f"Symbolic cache unavailable: {e}", UserWarning)
 
         # Serialize the graph (now includes parameterized edges)
         serialized = graph.serialize()

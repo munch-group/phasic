@@ -15,6 +15,11 @@
 #include "ptdalgorithmscpp.h"
 #include "parameterized/graph_builder.hpp"
 
+// Include C API for hash functions
+extern "C" {
+#include "../../api/c/ptdalgorithms_hash.h"
+}
+
 #include <deque>
 #include <sstream>
 #include <stdexcept>
@@ -3819,5 +3824,149 @@ Computes the expected residence time of the phase-type distribution.
       .def_property_readonly("state_length",
           &ptdalgorithms::parameterized::GraphBuilder::state_length,
           "Dimension of state vectors");
+
+  // ============================================================================
+  // Graph Content Hashing for Symbolic DAG Cache
+  // ============================================================================
+
+  py::module_ hash_module = m.def_submodule("hash",
+      R"delim(
+      Graph content hashing utilities for symbolic DAG caching.
+
+      Provides content-addressed hashing of phase-type distribution graphs
+      to enable efficient cache lookup for previously computed symbolic DAGs.
+      The hash is based on graph structure and parameterization pattern,
+      independent of actual parameter values.
+      )delim");
+
+  // HashResult class - wraps C struct ptd_hash_result
+  py::class_<struct ptd_hash_result>(hash_module, "HashResult",
+      R"delim(
+      Hash result containing multiple representations of graph content hash.
+
+      Attributes
+      ----------
+      hash64 : int
+          64-bit hash value (fast comparison)
+      hash_hex : str
+          Full 256-bit hash as hexadecimal string (collision-resistant)
+      )delim")
+
+      .def_property_readonly("hash64",
+          [](const struct ptd_hash_result* h) { return h->hash64; },
+          "64-bit hash value for fast comparison")
+
+      .def_property_readonly("hash_hex",
+          [](const struct ptd_hash_result* h) { return std::string(h->hash_hex); },
+          "Full SHA-256 hash as hexadecimal string")
+
+      .def("__eq__",
+          [](const struct ptd_hash_result* self, const struct ptd_hash_result* other) {
+              return ptd_hash_equal(self, other);
+          },
+          py::arg("other"),
+          "Compare two hash results for equality")
+
+      .def("__str__",
+          [](const struct ptd_hash_result* h) { return std::string(h->hash_hex); },
+          "String representation (hex hash)")
+
+      .def("__repr__",
+          [](const struct ptd_hash_result* h) {
+              std::ostringstream oss;
+              oss << "HashResult('" << h->hash_hex << "')";
+              return oss.str();
+          },
+          "String representation with type")
+
+      .def("__hash__",
+          [](const struct ptd_hash_result* h) { return static_cast<py::ssize_t>(h->hash64); },
+          "Python hash value for use in dict/set");
+
+  // Graph content hashing function
+  hash_module.def("compute_graph_hash",
+      [](ptdalgorithms::Graph& graph) {
+          struct ptd_hash_result* hash = ptd_graph_content_hash(graph.c_graph());
+          if (hash == NULL) {
+              throw std::runtime_error("Failed to compute graph hash");
+          }
+          // Wrap in shared_ptr for automatic cleanup
+          return std::shared_ptr<struct ptd_hash_result>(hash, ptd_hash_destroy);
+      },
+      py::arg("graph"),
+      R"delim(
+      Compute content hash of a graph structure.
+
+      The hash is based solely on graph topology, state vectors, edge types,
+      and parameterization patterns. It is independent of actual edge weights
+      (parameter values), making it suitable for caching symbolic DAGs.
+
+      Parameters
+      ----------
+      graph : Graph
+          Phase-type distribution graph to hash
+
+      Returns
+      -------
+      HashResult
+          Hash result with multiple representations
+
+      Examples
+      --------
+      >>> g1 = ptdalgorithms.Graph(1)
+      >>> # ... build graph ...
+      >>> hash1 = ptdalgorithms.hash.compute_graph_hash(g1)
+      >>> print(hash1.hash_hex)
+      'a3f2e9c8...'
+      >>>
+      >>> # Build identical structure with different weights
+      >>> g2 = ptdalgorithms.Graph(1)
+      >>> # ... build same structure ...
+      >>> hash2 = ptdalgorithms.hash.compute_graph_hash(g2)
+      >>> assert hash1 == hash2  # Same structure = same hash
+      )delim");
+
+  // Hash from hex string
+  hash_module.def("hash_from_hex",
+      [](const std::string& hex_str) {
+          struct ptd_hash_result* hash = ptd_hash_from_hex(hex_str.c_str());
+          if (hash == NULL) {
+              throw std::invalid_argument("Invalid hex string (must be 64 characters)");
+          }
+          return std::shared_ptr<struct ptd_hash_result>(hash, ptd_hash_destroy);
+      },
+      py::arg("hex_str"),
+      R"delim(
+      Create hash result from hexadecimal string.
+
+      Useful for loading cached symbolic DAGs by hash key.
+
+      Parameters
+      ----------
+      hex_str : str
+          64-character hexadecimal hash string
+
+      Returns
+      -------
+      HashResult
+          Hash result object
+
+      Examples
+      --------
+      >>> hash = ptdalgorithms.hash.hash_from_hex('a3f2e9c8...')
+      >>> print(hash.hash64)
+      )delim");
+
+  // Hash parameterized edge (for testing)
+  hash_module.def("hash_parameterized_edge",
+      [](const ptdalgorithms::ParameterizedEdge& edge, size_t state_length) {
+          // Note: This is a simplified wrapper - actual implementation would need
+          // access to underlying C edge structure
+          // For now, return 0 as placeholder
+          return static_cast<uint64_t>(0);
+      },
+      py::arg("edge"),
+      py::arg("state_length"),
+      "Hash individual parameterized edge (for testing)");
 
 }

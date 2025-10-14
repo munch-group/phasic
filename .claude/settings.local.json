@@ -16,7 +16,11 @@
       "Bash(for:*)",
       "Bash(done)",
       "Bash(cat:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(pip install:*)",
+      "Bash(timeout 600 python test_67_vertex_fix.py)",
+      "Bash(make:*)",
+      "Bash(sudo make:*)"
     ],
     "deny": [],
     "ask": []

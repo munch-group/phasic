@@ -29,13 +29,17 @@ class CompilationConfig:
     cache_dir : Path or str, optional
         Directory for persistent compilation cache across Python sessions.
         Default: ~/.jax_cache
+    shared_cache_dir : Path or str, optional
+        Optional shared cache directory (e.g., on network filesystem).
+        Used as read-only fallback when cache_strategy='layered'.
+        Default: None
     optimization_level : int, optional
         XLA backend optimization level (0-3):
         - 0: No optimization (fastest compile, slowest runtime)
         - 1: Basic optimization (fast compile, decent runtime)
         - 2: Moderate optimization (balanced)
         - 3: Full optimization (slow compile, fastest runtime)
-        Default: 3
+        Default: 2
     parallel_compile : bool, optional
         Enable parallel compilation using all CPU cores.
         Default: True
@@ -53,6 +57,12 @@ class CompilationConfig:
         Number of CPU threads for parallel operations.
         If None, uses all available performance cores.
         Default: None (auto-detect)
+    cache_strategy : str, optional
+        Caching strategy: 'local', 'shared', or 'layered'.
+        - 'local': Use only local cache_dir
+        - 'shared': Use only shared_cache_dir (read-only)
+        - 'layered': Check local, then shared, then compile
+        Default: 'local'
 
     Examples
     --------
@@ -75,6 +85,14 @@ class CompilationConfig:
     ... )
     >>> config.save_to_file('my_config.json')
 
+    >>> # Layered cache for distributed computing
+    >>> config = CompilationConfig(
+    ...     cache_dir='/home/user/.jax_cache',
+    ...     shared_cache_dir='/shared/project/jax_cache',
+    ...     cache_strategy='layered'
+    ... )
+    >>> config.apply()
+
     >>> # Load from file
     >>> config = CompilationConfig.load_from_file('my_config.json')
     >>> config.apply()
@@ -83,20 +101,24 @@ class CompilationConfig:
     def __init__(
         self,
         cache_dir: Optional[Union[Path, str]] = None,
+        shared_cache_dir: Optional[Union[Path, str]] = None,
         optimization_level: int = 2,
         parallel_compile: bool = True,
         min_cache_time: float = 1.0,
         enable_x64: bool = True,
         platform: str = 'cpu',
-        cpu_threads: Optional[int] = None
+        cpu_threads: Optional[int] = None,
+        cache_strategy: str = 'local'
     ):
         self.cache_dir = Path(cache_dir) if cache_dir else Path.home() / '.jax_cache'
+        self.shared_cache_dir = Path(shared_cache_dir) if shared_cache_dir else None
         self.optimization_level = optimization_level
         self.parallel_compile = parallel_compile
         self.min_cache_time = min_cache_time
         self.enable_x64 = enable_x64
         self.platform = platform
         self.cpu_threads = cpu_threads or self._get_performance_cores()
+        self.cache_strategy = cache_strategy
 
         # Validate inputs
         if not 0 <= optimization_level <= 3:
@@ -187,12 +209,14 @@ class CompilationConfig:
         """Export configuration as dictionary"""
         return {
             'cache_dir': str(self.cache_dir),
+            'shared_cache_dir': str(self.shared_cache_dir) if self.shared_cache_dir else None,
             'optimization_level': self.optimization_level,
             'parallel_compile': self.parallel_compile,
             'min_cache_time': self.min_cache_time,
             'enable_x64': self.enable_x64,
             'platform': self.platform,
-            'cpu_threads': self.cpu_threads
+            'cpu_threads': self.cpu_threads,
+            'cache_strategy': self.cache_strategy
         }
 
     def save_to_file(self, path: Union[Path, str]) -> None:
@@ -325,12 +349,14 @@ class CompilationConfig:
         return (
             f"CompilationConfig(\n"
             f"  cache_dir={self.cache_dir},\n"
+            f"  shared_cache_dir={self.shared_cache_dir},\n"
             f"  optimization_level={self.optimization_level},\n"
             f"  parallel_compile={self.parallel_compile},\n"
             f"  min_cache_time={self.min_cache_time},\n"
             f"  enable_x64={self.enable_x64},\n"
             f"  platform='{self.platform}',\n"
-            f"  cpu_threads={self.cpu_threads}\n"
+            f"  cpu_threads={self.cpu_threads},\n"
+            f"  cache_strategy='{self.cache_strategy}'\n"
             f")"
         )
 
