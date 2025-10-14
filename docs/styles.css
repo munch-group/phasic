@@ -65,6 +65,16 @@ html { font-family: 'Inter', sans-serif; }
 }
 
 
+
+.callout.callout-titled .callout-header {
+  padding-top: 0.2em;
+  margin-bottom: -0.2em;
+  font-weight: 600;
+  color:#151617;
+}
+
+
+
 td:first-child {
   text-wrap: nowrap;
   text-size-adjust: 100%;

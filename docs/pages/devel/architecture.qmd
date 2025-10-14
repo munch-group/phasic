@@ -2,11 +2,23 @@
 title: PtDAlgorithms Project Architecture
 ---
 
-## Overview
+PtDAlgorithms is a multi-language scientific computing library designed to provide efficient algorithms for phase-type distributions through graph-based computational approaches. The library's foundation rests on a core C implementation that provides the fundamental graph algorithms and data structures exposed through C++, R and Python APIs constructed to offer idiomatic interfaces for each target language.
 
-PtDAlgorithms represents a sophisticated multi-language scientific computing library designed to provide efficient algorithms for phase-type distributions through graph-based computational approaches. The project's architecture demonstrates a carefully orchestrated design that delivers unified functionality across Python, R, and C/C++ environments while maintaining the performance characteristics essential for scientific computing applications.
+::: {.callout-note icon=false}
 
-The library's foundation rests on a core C implementation that provides the fundamental graph algorithms and data structures, around which language-specific bindings have been constructed to offer idiomatic interfaces for each target language. This approach ensures that computational efficiency is maintained at the core while developers can access the library's capabilities through familiar programming paradigms in their language of choice.
+## R and C++ API limitations
+
+Phasic builds on the [PtDAlgorithms](https://github.com/TobiasRoikjer/PtDAlgorithms) project implementing the core algorithms. The C++ and R APIs of PtDAlgorithms are maintained and distributed as part of phasic, but only the Python API supports JAX integration, symbolic parametrization, multiprocessing, SVGD inference, and precomputed templates. For reference to core algotihms and R API please cite:
+
+| **Graph-Based Algorithms for Phase-Type Distributions**
+| Røikjer, Hobolth, and Munch, [Statistics and Computing (2022)](https://doi.org/10.1007/s11222-022-10174-3)  
+
+For reference to Phasic library, parameter inference, and computation of joint probability, laplace transform, run-length, and epochs, please cite:
+
+| **Exact computation and inference in Markov jump processes**
+| Munch [In preparation (2025)]()
+
+:::
 
 ## Project Structure and Organization
 
@@ -115,13 +127,3 @@ Recent additions include comprehensive distributed computing support for multi-n
 The documentation infrastructure has evolved to include interactive Jupyter notebooks covering distributed computing workflows, SVGD inference examples, and comprehensive guides for SLURM cluster deployment. The Quarto-based documentation system provides unified API reference across all language bindings, with quartodoc generating Python API documentation that seamlessly integrates C++ extension classes through dynamic introspection.
 
 Future directions include expanding the parameterized model library with pre-built coalescent, queuing, and reliability theory models, enhancing GPU optimization for large-scale phase-type distributions, and developing additional inference algorithms beyond SVGD. The architecture's flexibility positions the library to incorporate emerging computational paradigms while maintaining backward compatibility and performance characteristics.
-
-## Conclusion
-
-The PtDAlgorithms architecture demonstrates sophisticated engineering principles applied to create a robust, multi-language scientific computing library. The design successfully balances computational efficiency with developer accessibility, providing high-performance algorithms through a carefully optimized C core while offering idiomatic interfaces for multiple programming languages.
-
-The layered architecture ensures that computational efficiency is preserved at the algorithmic level while enabling each language binding to leverage its ecosystem's strengths. Python users benefit from NumPy integration, visualization capabilities, and seamless JAX integration for automatic differentiation and GPU acceleration. R users access familiar data structures and documentation conventions. C++ users enjoy modern programming practices with STL integration and RAII memory management, plus the ability to define custom models through the user model API.
-
-This architectural approach provides a template for developing scientific computing libraries that must serve diverse user communities while maintaining the performance characteristics essential for computational research. The careful attention to build systems, testing practices, and documentation ensures that the library can evolve and expand while maintaining reliability and consistency across its supported platforms. The successful integration of XLA FFI demonstrates the architecture's flexibility and ability to adapt to emerging computational paradigms while preserving the core strengths of the underlying C++ implementation.
-
-The unified build system, comprehensive documentation, and support for distributed computing workflows position PtDAlgorithms as a modern platform for phase-type distribution research, capable of scaling from exploratory analysis on laptops to large-scale inference on compute clusters. The architecture's evolution from a traditional scientific computing library to one that embraces automatic differentiation and distributed computing exemplifies how classical algorithms can be enhanced with contemporary tools without compromising their fundamental computational advantages.
