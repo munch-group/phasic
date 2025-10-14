@@ -12,7 +12,7 @@ This directory contains example C++ models that can be loaded using `Graph.pmf_f
 
 ## Two Approaches for Loading Models
 
-### 1. JAX-Compatible Approach (Default)
+### JAX-Compatible Approach (Default)
 ```python
 from ptdalgorithms import Graph
 import jax
@@ -48,7 +48,7 @@ batch_pdfs = vmap_model(batch_params)
 - Integration with JAX/ML libraries
 - Bayesian inference
 
-### 2. Direct C++ Approach (load_cpp_builder)
+### Direct C++ Approach (load_cpp_builder)
 ```python
 from ptdalgorithms import load_cpp_builder
 import numpy as np

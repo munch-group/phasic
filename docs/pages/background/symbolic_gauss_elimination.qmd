@@ -4,7 +4,7 @@
 
 We present a symbolic elimination algorithm for parameterized phase-type distributions that reduces the computational complexity of repeated evaluations from O(mn³) to O(n³ + mn), where m is the number of parameter vectors and n is the graph size. This optimization is crucial for inference algorithms such as Stein Variational Gradient Descent (SVGD) that require evaluating the distribution for hundreds or thousands of parameter configurations. Our approach performs the O(n³) graph elimination once to construct a directed acyclic graph (DAG) with symbolic expression trees at each edge, enabling O(n) instantiation for each subsequent parameter vector. We provide theoretical analysis, implementation details, and demonstrate 100-1000× speedup on representative inference workloads.
 
-## 1. Introduction
+## Introduction
 
 Phase-type distributions provide a flexible framework for modeling absorption times in continuous-time Markov chains (CTMCs) and discrete-time Markov chains (DTMCs). Computing distribution properties such as moments, probability density functions, and cumulative distribution functions requires solving systems of linear equations derived from the underlying graph structure. The standard approach employs a graph elimination algorithm that reduces the original graph to an equivalent acyclic representation, enabling efficient forward evaluation through dynamic programming.
 
@@ -18,9 +18,9 @@ We observe that when the graph structure remains fixed and only edge weights cha
 3. Expression evaluation system supporting all operations arising in elimination (Section 4)
 4. Empirical validation demonstrating 100-1000× speedup on inference workloads (Section 5)
 
-## 2. Background and Problem Formulation
+## Background and Problem Formulation
 
-### 2.1 Phase-Type Distributions
+### Phase-Type Distributions
 
 A continuous phase-type (PH) distribution is defined by an absorbing CTMC with transient states {1, ..., n} and a single absorbing state 0. The distribution describes the time until absorption starting from a specified initial distribution α over transient states. The sub-generator matrix T ∈ ℝⁿˣⁿ governs transitions between transient states, with tᵢⱼ representing the transition rate from state i to j, and exit vector **t** = -T**1** specifying absorption rates.
 
@@ -34,7 +34,7 @@ $$\mu_k = (-1)^k k! \alpha T^{-k} \mathbf{1}$$
 
 Discrete phase-type distributions are defined analogously using DTMCs with transition probability matrix P ∈ [0,1]ⁿˣⁿ.
 
-### 2.2 Graph Representation and Elimination
+### Graph Representation and Elimination
 
 Phase-type distributions admit a natural graph representation where vertices correspond to states and directed edges (i,j) with weight wᵢⱼ represent transitions. An absorbing state has no outgoing edges.
 
@@ -51,7 +51,7 @@ The algorithm maintains the property that the expected absorption time from the 
 
 **Complexity:** The elimination requires O(n³) operations in the worst case when vertices have O(n) degree.
 
-### 2.3 Parameterized Phase-Type Distributions
+### Parameterized Phase-Type Distributions
 
 We consider phase-type distributions where edge weights depend linearly on a parameter vector θ ∈ ℝᵖ:
 
@@ -77,11 +77,11 @@ Total: O(m(pn² + n³ + n)) = O(mn³)
 
 For m = 1000 particles and n = 100 states, this requires ~10⁹ operations per iteration, making inference intractable.
 
-## 3. Symbolic Elimination Algorithm
+## Symbolic Elimination Algorithm
 
 Our key insight is that the elimination algorithm's control flow (which vertices to eliminate, in what order, creating which edges) depends only on graph topology, not edge weights. Only the arithmetic operations (computing new edge weights) depend on numerical values. We therefore separate structure from computation by constructing a **symbolic computational graph**.
 
-### 3.1 Expression Representation
+### Expression Representation
 
 We represent edge weights as expression trees over a typed algebra:
 
@@ -123,7 +123,7 @@ After elimination creating a path of edges:
 $$\text{Probability: } p(\theta) = \frac{\theta_1 r_1}{\theta_1 r_1 + \theta_1 r_2} = \frac{r_1}{r_1 + r_2}$$
 $$\text{Expression: } \text{DIV}(\text{DOT}([r_1, 0]), \text{ADD}(\text{DOT}([r_1, 0]), \text{DOT}([r_2, 0])))$$
 
-### 3.2 Symbolic Elimination Algorithm
+### Symbolic Elimination Algorithm
 
 The symbolic elimination algorithm mirrors the numeric elimination but operates on expression trees instead of floating-point values.
 
@@ -218,7 +218,7 @@ $$\llbracket \hat{p}'_{pc} \rrbracket_\theta = \llbracket \hat{p}_{pc} \rrbracke
 
 Thus correctness is preserved. □
 
-### 3.3 Expression Evaluation and Graph Instantiation
+### Expression Evaluation and Graph Instantiation
 
 Given a symbolic DAG Ĝ and parameter vector θ, we instantiate a concrete graph through **expression evaluation**:
 
@@ -270,7 +270,7 @@ Given a symbolic DAG Ĝ and parameter vector θ, we instantiate a concrete graph
 
 **Proof.** Evaluating all edge expressions requires Σ_{(i,j)} s_{ij} = S operations by Lemma 3.2. Creating vertices and edges is O(n̂ + ê) = O(S). □
 
-## 4. Complexity Analysis
+## Complexity Analysis
 
 We now analyze the total computational cost of symbolic elimination followed by multiple instantiations.
 
@@ -316,9 +316,9 @@ $$\Rightarrow m > \frac{n^3}{n^3 - S} \approx \frac{n^3}{n^3} = O(1)$$
 
 Thus symbolic elimination is advantageous for **any** m > 1, with speedup increasing linearly in m.
 
-## 5. Numerical Stability and Practical Considerations
+## Numerical Stability and Practical Considerations
 
-### 5.1 Numerical Properties
+### Numerical Properties
 
 **Proposition 5.1** (Numerical Equivalence). Let ε_{mach} be machine epsilon. For expressions with depth d and n operations, the relative error in EVAL(e, θ) compared to direct computation is O(d · ε_{mach}).
 
@@ -326,7 +326,7 @@ Thus symbolic elimination is advantageous for **any** m > 1, with speedup increa
 
 In practice, expression evaluation exhibits identical numerical behavior to direct computation since both use IEEE 754 floating-point arithmetic in the same order.
 
-### 5.2 Expression Simplification
+### Expression Simplification
 
 While Algorithm 1 constructs expressions compositionally, we can apply algebraic simplifications:
 
@@ -337,7 +337,7 @@ While Algorithm 1 constructs expressions compositionally, we can apply algebraic
 
 These optimizations reduce expression size and evaluation cost, particularly for sparse parameterizations where many coefficients are zero.
 
-### 5.3 Memory Management
+### Memory Management
 
 The symbolic DAG requires O(n²) vertex/edge storage plus O(n³) expression storage. For large graphs (n > 1000), this may exceed memory capacity. Mitigation strategies include:
 
@@ -346,7 +346,7 @@ The symbolic DAG requires O(n²) vertex/edge storage plus O(n³) expression stor
 3. **Lazy evaluation:** Evaluate expressions on-demand rather than pre-computing all
 4. **Batch processing:** Partition parameter vectors and process in batches
 
-### 5.4 Implementation Complexity
+### Implementation Complexity
 
 The symbolic elimination algorithm requires approximately 775 lines of C code:
 - Expression data structures and creation: 300 lines
@@ -357,9 +357,9 @@ The symbolic elimination algorithm requires approximately 775 lines of C code:
 
 Python bindings add 180 lines (pybind11) to expose the C API with a 150-line Python wrapper class.
 
-## 6. Application to Inference Algorithms
+## Application to Inference Algorithms
 
-### 6.1 Stein Variational Gradient Descent
+### Stein Variational Gradient Descent
 
 SVGD [Liu & Wang, 2016] approximates a posterior distribution π(θ|D) using a particle system {θᵢ}ᵢ₌₁ᵐ that evolves under:
 
@@ -382,7 +382,7 @@ where φ* is the optimal perturbation direction. At each iteration, we must:
 
 **Speedup:** Θ(Tm) ≈ 100-1000× for typical values T ∈ [10, 100], m ∈ [10, 100].
 
-### 6.2 Markov Chain Monte Carlo
+### Markov Chain Monte Carlo
 
 Metropolis-Hastings and Hamiltonian Monte Carlo require evaluating the target density at each proposal:
 
@@ -390,7 +390,7 @@ Metropolis-Hastings and Hamiltonian Monte Carlo require evaluating the target de
 **Symbolic:** O(n³ + N · n)
 **Speedup:** Θ(N) ≈ 1000× for N = 10⁴ samples
 
-### 6.3 Sensitivity Analysis
+### Sensitivity Analysis
 
 Computing ∂E[T]/∂θ via finite differences requires m = 2p evaluations (forward differences) or m = p evaluations (automatic differentiation):
 
@@ -398,11 +398,11 @@ Computing ∂E[T]/∂θ via finite differences requires m = 2p evaluations (forw
 **Symbolic:** O(n³ + pn)
 **Speedup:** Θ(p) ≈ 10-100× for p ∈ [1, 100]
 
-## 7. Experimental Validation
+## Experimental Validation
 
 We implemented the symbolic elimination algorithm in C with Python bindings and evaluated performance on representative inference workloads.
 
-### 7.1 Coalescent Model
+### Coalescent Model
 
 A coalescent tree with k = 4 samples has n = 4 transient states (4, 3, 2, 1 lineages). The model has one parameter θ representing effective population size, with coalescence rates:
 
@@ -420,7 +420,7 @@ We measured performance for SVGD with varying particle counts m ∈ [10, 200]:
 
 **Observation:** Speedup stabilizes at ~10× regardless of m, matching theoretical prediction Θ(m) since the one-time O(n³) cost is negligible for repeated evaluations.
 
-### 7.2 Larger State Space
+### Larger State Space
 
 For a coalescent model with k = 10 samples (n = 10 states), we observe:
 
@@ -432,7 +432,7 @@ For a coalescent model with k = 10 samples (n = 10 states), we observe:
 
 **Observation:** Speedup increases to ~50× for larger graphs, approaching Θ(m) asymptotically.
 
-### 7.3 Expression Tree Statistics
+### Expression Tree Statistics
 
 For the coalescent model with k = 4:
 - Original graph: 4 vertices, 4 edges
@@ -443,7 +443,7 @@ For the coalescent model with k = 4:
 
 Memory overhead is modest even for large graphs: O(n³) expression storage vs O(n²) numeric storage, but with small constant factors.
 
-## 8. Related Work
+## Related Work
 
 **Symbolic computation in probabilistic inference:** Symbolic differentiation [Baydin et al., 2018] constructs expression graphs for gradients. Our work extends this to the elimination algorithm structure itself.
 
@@ -453,7 +453,7 @@ Memory overhead is modest even for large graphs: O(n³) expression storage vs O(
 
 **Amortized inference:** Amortized variational inference [Kingma & Welling, 2014] amortizes cost across data points. We amortize across parameter configurations.
 
-## 9. Conclusion
+## Conclusion
 
 We presented a symbolic elimination algorithm for parameterized phase-type distributions that reduces repeated evaluation cost from O(mn³) to O(n³ + mn). The algorithm constructs a symbolic DAG with expression trees, enabling O(n) instantiation for each parameter vector. Theoretical analysis proves correctness and establishes Θ(m) speedup. Experimental validation demonstrates 10-100× speedup on inference workloads, with speedup increasing for larger graphs and more particles.
 

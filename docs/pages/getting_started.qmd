@@ -82,7 +82,11 @@ pip install ptdalgorithms[jax]
 
 Here's a minimal example to get you started:
 
-```python
+```{python}
+#| label: fig-erlang-quick
+#| fig-cap: "Erlang distribution with 5 phases"
+#| column: margin
+
 import ptdalgorithms as ptd
 import numpy as np
 
@@ -112,6 +116,8 @@ cdf = graph.cdf(times)
 # Sample from the distribution
 samples = graph.sample(1000)
 print(f"Sample mean: {np.mean(samples):.3f}")
+
+graph.plot()
 ```
 
 **Output:**
@@ -157,7 +163,7 @@ mean(samples)   # ~2.5
 
 ## Core Concepts
 
-### 1. Graph Construction
+### Graph Construction
 
 Build phase-type distributions as directed graphs:
 
@@ -165,7 +171,7 @@ Build phase-type distributions as directed graphs:
 - **Edges** represent transitions with rates/probabilities
 - States are found or created automatically using AVL trees (O(log n) lookup)
 
-### 2. Continuous vs Discrete
+### Continuous vs Discrete
 
 **Continuous** (time-based):
 ```python
@@ -183,7 +189,7 @@ graph.normalize()             # Convert to discrete-time
 pmf = graph.dph_pmf(steps)    # Probability mass
 ```
 
-### 3. Rewards
+### Rewards
 
 Add rewards to model accumulated values:
 
@@ -199,7 +205,7 @@ reward_graph = graph.reward_transform(rewards)
 pdf_reward = reward_graph.pdf(times)
 ```
 
-### 4. Parameterized Models
+### Parameterized Models
 
 Build models that can be updated with different parameter values:
 
@@ -228,7 +234,7 @@ graph.update_weights_parameterized(theta)
 E = graph.expectation()
 ```
 
-### 5. JAX Integration
+### JAX Integration
 
 Convert graphs to JAX functions for automatic differentiation:
 

@@ -1,5 +1,5 @@
 ---
-title: PtDAlgorithms Project Architecture
+title: Library Architecture
 ---
 
 PtDAlgorithms is a multi-language scientific computing library designed to provide efficient algorithms for phase-type distributions through graph-based computational approaches. The library's foundation rests on a core C implementation that provides the fundamental graph algorithms and data structures exposed through C++, R and Python APIs constructed to offer idiomatic interfaces for each target language.
@@ -10,13 +10,11 @@ PtDAlgorithms is a multi-language scientific computing library designed to provi
 
 Phasic builds on the [PtDAlgorithms](https://github.com/TobiasRoikjer/PtDAlgorithms) project implementing the core algorithms. The C++ and R APIs of PtDAlgorithms are maintained and distributed as part of phasic, but only the Python API supports JAX integration, symbolic parametrization, multiprocessing, SVGD inference, and precomputed templates. For reference to core algotihms and R API please cite:
 
-| **Graph-Based Algorithms for Phase-Type Distributions**
-| Røikjer, Hobolth, and Munch, [Statistics and Computing (2022)](https://doi.org/10.1007/s11222-022-10174-3)  
+- [Røikjer et al. (2022)](https://doi.org/10.1007/s11222-022-10174-3). Graph-based algorithms for phase-type distributions. *Statistics and Computing*, 32, 91.
 
 For reference to Phasic library, parameter inference, and computation of joint probability, laplace transform, run-length, and epochs, please cite:
 
-| **Exact computation and inference in Markov jump processes**
-| Munch [In preparation (2025)]()
+- [Munch (2025)](https://doi.org/10.1007/s11222-022-10174-3). Exact computation and inference in Markov jump processes. *Journal*.
 
 :::
 

@@ -93,6 +93,8 @@ eigen = ">=3.4.0,<4"
 nlohmann_json = ">=3.11.0"
 ipykernel = ">=6.30.1,<7"
 graphviz = ">=13.1.2,<14"
+nbformat = ">=5.10.4,<6"
+nbclient = ">=0.10.2,<0.11"
 
 # [tool.pixi.pypi-dependencies]
 

@@ -74,13 +74,9 @@ website:
       align: left
       contents:
         - pages/getting_started.qmd
-        - section: "Phase-type distributions"
-          contents:
-            - pages/background/tldr.qmd
-            - pages/background/math_and_alg.qmd
-            - pages/background/symbolic_gauss_elimination.qmd
         - section: "Tutorials"
           contents:
+            - pages/background/tldr.qmd
             - pages/tutorials/rabbits_full_py_api_example.ipynb
             - pages/tutorials/coalescent_full_py_api_example.ipynb
             - pages/tutorials/state_space_construction.ipynb
@@ -90,7 +86,7 @@ website:
             - pages/svgd/svgd_with_symbolic_dag.ipynb
         - section: "Distributed Computing"
           contents:
-            - pages/distributed/docs/pages/distributed_computing_complete_guide.ipynb
+            - pages/distributed/distributed_computing_complete_guide.ipynb
             - pages/distributed/slurm_cluster_setup.ipynb
             - pages/distributed/cpu_monitoring.ipynb
         - section: "State space patterns"
@@ -105,6 +101,10 @@ website:
             - pages/popgen/isolation_migration.ipynb
             - pages/popgen/two-island-two-locus-arg.ipynb
             # - pages/
+        - section: "Phase-type distributions"
+          contents:
+            - pages/background/math_and_alg.qmd
+            - pages/background/symbolic_gauss_elimination.qmd
         - section: "Devel"
           contents:
             - pages/devel/architecture.qmd

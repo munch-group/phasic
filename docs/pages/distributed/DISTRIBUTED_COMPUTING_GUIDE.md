@@ -504,7 +504,7 @@ To see usage across all nodes, check SLURM logs or use cluster monitoring tools.
 
 ## Tips and Best Practices
 
-### 1. Use Coordinator Check for Logging
+### Use Coordinator Check for Logging
 
 Only the coordinator should print summary information:
 
@@ -513,7 +513,7 @@ if dist_info.is_coordinator:
     print(f"Starting computation with {dist_info.global_device_count} devices")
 ```
 
-### 2. Distribute Particles Evenly
+### Distribute Particles Evenly
 
 Ensure particles are divisible by device count:
 
@@ -522,7 +522,7 @@ particles_per_device = 4
 n_particles = dist_info.global_device_count * particles_per_device
 ```
 
-### 3. Use Different Seeds per Process
+### Use Different Seeds per Process
 
 Avoid identical random numbers across processes:
 
@@ -530,7 +530,7 @@ Avoid identical random numbers across processes:
 np.random.seed(42 + dist_info.process_id)
 ```
 
-### 4. Test Locally Before SLURM
+### Test Locally Before SLURM
 
 Your code should work both locally and on SLURM:
 
@@ -542,7 +542,7 @@ python my_script.py
 sbatch <(python generate_slurm_script.py --profile small --script my_script.py)
 ```
 
-### 5. Monitor Resource Usage
+### Monitor Resource Usage
 
 Use the built-in CPU monitor to ensure efficient resource utilization:
 
@@ -553,7 +553,7 @@ with CPUMonitor(persist=True):
 # Shows mean CPU usage after completion
 ```
 
-### 6. Create Custom Configs for Your Cluster
+### Create Custom Configs for Your Cluster
 
 Different clusters have different partitions, QoS, modules, etc:
 
@@ -629,7 +629,7 @@ n_particles = 37  # Won't divide evenly across devices
 
 Here's a complete workflow from development to production:
 
-### 1. Develop Locally
+### Develop Locally
 
 ```bash
 # Create your script
@@ -639,14 +639,14 @@ vim my_inference.py
 python my_inference.py
 ```
 
-### 2. Create Custom Config
+### Create Custom Config
 
 ```bash
 # Create config for your cluster
 vim slurm_configs/my_cluster.yaml
 ```
 
-### 3. Test on Small Scale
+### Test on Small Scale
 
 ```bash
 # Test with small profile (2 nodes)
@@ -656,14 +656,14 @@ sbatch <(python generate_slurm_script.py --profile small --script my_inference.p
 squeue -u $USER
 ```
 
-### 4. Scale to Production
+### Scale to Production
 
 ```bash
 # Run on full cluster
 sbatch <(python generate_slurm_script.py --profile production --script my_inference.py)
 ```
 
-### 5. Monitor Results
+### Monitor Results
 
 ```bash
 # Check logs
