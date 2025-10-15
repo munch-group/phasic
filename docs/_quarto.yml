@@ -56,6 +56,8 @@ website:
     logo-href: "/index.html"  # Where clicking the logo goes
 
     left:
+      - href: pages/index.html
+        text: Documentation
       - href: api/
         text: Python API reference
       - href: r_api/
@@ -108,17 +110,19 @@ website:
         - section: "Devel"
           contents:
             - pages/devel/architecture.qmd
+            - href: https://github.com/munch-group/ptdalgorithms/issues
+              text: Issue Tracker
+
 lightbox: true
 
 format:
   html:
     grid:
-      sidebar-width: 300px
+      sidebar-width: 330px
       body-width: 900px
       margin-width: 270px
       gutter-width: 1.5rem
       # margin-left, margin-right, margin-top, margin-bottom
-
 
     theme: [cosmo, numpy.theme, custom.scss] # numpy.theme for code highlighting
     # theme: 

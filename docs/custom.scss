@@ -14,7 +14,8 @@ $gray-900: #212529 !default;
 $black:    #000 !default;
 
 $blue:    #2780e3 !default;
-$indigo:  #6610f2 !default;
+// $indigo:  #6610f2 !default;
+$indigo:  #8045E5 !default;
 $purple:  #613d7c !default;
 $pink:    #e83e8c !default;
 $red:     #ff0039 !default;
@@ -22,7 +23,8 @@ $orange:  #f0ad4e !default;
 $yellow:  #ff7518 !default;
 $green:   #3fb618 !default;
 // $teal:    #20c997 !default;
-$teal:    #01886f !default;
+$teal:    #0D7D92 !default; // like numpy docs
+// $teal:    #01886f !default;
 $cyan:    #9954bb !default;
 
 $primary:       $teal !default;
@@ -34,6 +36,9 @@ $danger:        $red !default;
 $light:         $gray-100 !default;
 $dark:          $gray-800 !default;
 
+
+// $body-color: #222832; // like numpy docs
+// $body-color: $gray-800;
 
 $font-size-base:          0.9rem !default;
 $toc-active-border: $secondary;
@@ -97,7 +102,10 @@ $sidebar-hover-color: #000;            // Hover text color
 // // $toc-inactive-color: #6c757d;         // Inactive TOC items
 // // $toc-font-size: 0.875rem;             // TOC font size
 
-$callout-color-note: $primary;
+$callout-color-tip: $primary;
+
+$callout-color-note: $indigo;
+
 
 /*-- scss:rules --*/
 
@@ -150,7 +158,11 @@ html { font-family: 'Inter', sans-serif; }
   border-bottom: 1px solid #D1D5DB;
 }
 
-.navbar
+
+
+// .navbar .nav-item a[text='Quartopage.qmd'] {
+//   color: #164a58;
+// }
 
 /* sidebar formatting */
 
@@ -198,7 +210,7 @@ html { font-family: 'Inter', sans-serif; }
   // padding-top: 0.2em;
   // margin-bottom: -0.2em;
   font-weight: 600;
-  color: $primary;
+//  color: $primary;
 }
 
 .callout:not(.no-icon).callout-titled.callout-style-simple .callout-content {

@@ -3,6 +3,7 @@ title: Phasic
 subtitle: "Modelling and inference using phase-type distributions"
 sidebar: false
 page-layout: full
+# title-block-style: plain
 title-block-banner-color: black
 title-block-banner-bg: white
 title-block-banner: banner.png
@@ -16,79 +17,88 @@ toc: false
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-bounding-box"></i> **Graph representation**: <br>Phase-type distributions are represented as directed graphs where vertices represent states and edges represent transitions. This intuitive representation supports both acyclic and cyclic structures, enabling efficient computation and manipulation of complex distributions.
+<i class="bi bi-bounding-box"></i> **Graph representation**: <br>Intuitive graph representation makes constructing complex models straightforward.
 
 :::
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-rocket-takeoff"></i> **Graph algorithms**: <br>High-performance graph-based algorithms for computing phase-type distribution properties including rewards, probabilities, and state space reductions. Optimized C++ implementation ensures fast computation even for large state spaces.
+<i class="bi bi-code-slash"></i> **Graph algorithms**: <br>C backend using graph-based algorithms for computing probability distributions and any number of exact moments.
 
 :::
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-bug"></i>**Continuous/Discrete**: <br>Seamlessly work with both continuous-time and discrete-time phase-type distributions. Convert between representations and discretize continuous distributions with flexible time step specifications for practical applications.
+<i class="bi bi-bug"></i>**Continuous/Discrete**: <br>Automated conversion from continuous to discrete phase-type distributions with full support.
 
 :::
 
-::: {.g-col-12 .g-col-md-4}
+<!-- ::: {.g-col-12 .g-col-md-4}
 
 <i class="bi bi-infinity"></i> **Moments**: <br>Efficiently compute statistical moments including mean, variance, and higher-order moments through matrix operations on the graph representation. Essential for distribution characterization and parameter estimation.
 
-:::
+::: -->
 
-::: {.g-col-12 .g-col-md-4}
+<!-- ::: {.g-col-12 .g-col-md-4}
 
 <i class="bi bi-graph-down"></i> **Distributions**: <br>Compute probability mass functions (PMF), probability density functions (PDF), and cumulative distribution functions (CDF) with high precision. Support for a wide variety of phase-type distribution families and custom constructions.
 
-:::
+::: -->
 
-::: {.g-col-12 .g-col-md-4}
+<!-- ::: {.g-col-12 .g-col-md-4}
 
 <i class="bi bi-code-slash"></i> **C/C++ backend**: <br>High-performance C/C++ core with bindings for Python, R, and direct C/C++ usage. Leverages Eigen for optimized linear algebra operations, providing both speed and numerical stability for production applications.
 
-:::
+::: -->
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-eye"></i> **Symbolic Gauss Elimination**: <br>Converting parameterized cyclic to acyclic graphs using symbolic Gaussian elimination, allows for extremely fast computation across parameter values.
-
-:::
-
-::: {.g-col-12 .g-col-md-4}
-
-<i class="bi bi-question-circle"></i> **Bayesian Inference**: <br> JAX integration and automatic differentiation allow inference using SVGD (Stein Variational Gradient Descent) by fitting phase-type models to observed data.
+<i class="bi bi-arrow-bar-up"></i> **Parameterized DAGs**: <br>Computation model templates of allows cashing and model distribution.
 
 :::
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-cpu"></i> **Multiprocessing**: <br>Automatic parallel computation with JAX's pmap and vmap for batched operations. Efficiently utilize multi-core CPUs for inference tasks with automatic distribution across available performance cores. 
+<i class="bi bi-rocket-takeoff"></i> **Bayesian Inference**: <br> JAX integration and automatic differentiation allow inference using Stein Variational Gradient Descent.
+
+:::
+
+::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-cpu"></i> **Multiprocessing**: <br>Automatically parallelizes inference computation across CPUs on a single device or multiple devices on a SLURM cluster.
 
 :::
 
 
 :::
-
 
 ---
+
+
 
 ::: {.grid}
 
 ::: {.g-col-12 .g-col-md-6}
-### Get Started
 
-- <i class="bi bi-box-seam"></i> [Install and quickstart](pages/getting_started.qmd) - Comprehensive guides
-- <i class="bi bi-box-seam"></i> [Documentation](pages/getting_started.qmd) - Comprehensive guides
+# Documentation
 
 :::
 
 ::: {.g-col-12 .g-col-md-6}
-### Get Help
 
-- <i class="bi bi-box-seam"></i> [Issue Tracker](https://github.com/munch-group/ptdalgorithms/issues) - Report bugs
-- <i class="bi bi-box-seam"></i> [Contact](mailto:kaspermunch@birc.au.dk) - Direct support
+[![](pages/images/coalescent.png){ max-width=100px }](https://en.wikipedia.org/wiki/Elephant)
+
+:::
+
+::: {.g-col-12 .g-col-md-6}
+
+[![](pages/images/coalescent.png)](https://en.wikipedia.org/wiki/Elephant)
+
+:::
+
+::: {.g-col-12 .g-col-md-6}
+
+[![](pages/images/coalescent.png)](https://en.wikipedia.org/wiki/Elephant)
 
 :::
 
