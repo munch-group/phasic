@@ -56,7 +56,7 @@ website:
     logo-href: "/index.html"  # Where clicking the logo goes
 
     left:
-      - href: pages/index.html
+      - href: pages/getting_started.html
         text: Documentation
       - href: api/
         text: Python API reference
