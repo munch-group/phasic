@@ -76,13 +76,13 @@ pip install ptdalgorithms[jax]
 
 :::
 
-<!-- ## Quick Start
+## Quick Start
 
 ### Python
 
 Here's a minimal example to get you started:
 
-```{python}
+```python
 #| label: fig-erlang-quick
 #| fig-cap: "Erlang distribution with 5 phases"
 #| column: margin
@@ -159,7 +159,7 @@ pdf_vals <- pph(times, g)
 # Sample
 samples <- rph(1000, g)
 mean(samples)   # ~2.5
-``` -->
+```
 
 ## Core Concepts
 
