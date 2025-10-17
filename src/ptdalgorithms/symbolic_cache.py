@@ -129,41 +129,58 @@ class SymbolicCache:
         For now, uses Python-side hashing of serialized structure.
         TODO: Use C-level ptd_graph_content_hash() once bindings are ready.
         """
+        import numpy as np
+
         # Serialize graph structure
         serialized = graph.serialize()
 
         # Create hash from structure (not parameter values!)
         hash_dict = {
-            'state_length': serialized.get('state_length'),
-            'param_length': serialized.get('param_length'),
-            'vertices_length': serialized.get('vertices_length'),
-            'parameterized': serialized.get('parameterized', False),
-            'was_dph': serialized.get('was_dph', False),
+            'state_length': int(serialized.get('state_length', 0)),
+            'param_length': int(serialized.get('param_length', 0)),
+            'n_vertices': int(serialized.get('n_vertices', 0)),
         }
 
-        # Hash topology: edges structure
+        # Convert numpy arrays to lists for JSON serialization
+        # Hash topology: regular edges
         if 'edges' in serialized:
-            edges_structure = []
-            for from_idx, to_idx, weight, param_state in zip(
-                serialized.get('from_indices', []),
-                serialized.get('to_indices', []),
-                serialized.get('weights', []),
-                serialized.get('edge_states', []) if 'edge_states' in serialized else [[]] * len(serialized.get('from_indices', []))
-            ):
-                edges_structure.append({
-                    'from': int(from_idx),
-                    'to': int(to_idx),
-                    'is_parameterized': len(param_state) > 0 if param_state is not None else False,
-                    'param_pattern': list(param_state) if param_state is not None else None
-                })
-            hash_dict['edges'] = edges_structure
+            edges = serialized['edges']
+            if isinstance(edges, np.ndarray):
+                hash_dict['edges'] = edges.tolist()
+            else:
+                hash_dict['edges'] = edges
+
+        # Hash start edges
+        if 'start_edges' in serialized:
+            start_edges = serialized['start_edges']
+            if isinstance(start_edges, np.ndarray):
+                hash_dict['start_edges'] = start_edges.tolist()
+            else:
+                hash_dict['start_edges'] = start_edges
+
+        # Hash parameterized edges
+        if 'param_edges' in serialized:
+            param_edges = serialized['param_edges']
+            if isinstance(param_edges, np.ndarray):
+                hash_dict['param_edges'] = param_edges.tolist()
+            else:
+                hash_dict['param_edges'] = param_edges
+
+        # Hash start parameterized edges
+        if 'start_param_edges' in serialized:
+            start_param_edges = serialized['start_param_edges']
+            if isinstance(start_param_edges, np.ndarray):
+                hash_dict['start_param_edges'] = start_param_edges.tolist()
+            else:
+                hash_dict['start_param_edges'] = start_param_edges
 
         # Hash vertex states
         if 'states' in serialized:
-            import numpy as np
             states = serialized['states']
             if isinstance(states, np.ndarray):
                 hash_dict['states'] = states.tolist()
+            else:
+                hash_dict['states'] = states
 
         # Create deterministic JSON and hash it
         json_str = json.dumps(hash_dict, sort_keys=True)
@@ -383,11 +400,21 @@ class SymbolicCache:
         # symbolic_json = cpp.graph_symbolic_to_json(symbolic_graph)
 
         # For now, just cache the serialized graph itself as a marker
+        # Convert numpy arrays to lists for JSON serialization
+        import numpy as np
+        serialized = graph.serialize()
+        serialized_json_safe = {}
+        for key, value in serialized.items():
+            if isinstance(value, np.ndarray):
+                serialized_json_safe[key] = value.tolist()
+            else:
+                serialized_json_safe[key] = value
+
         symbolic_json = json.dumps({
             'placeholder': True,
             'message': 'C++ symbolic elimination not yet integrated',
             'graph_hash': hash_key,
-            'serialized_graph': graph.serialize()
+            'serialized_graph': serialized_json_safe
         })
 
         elimination_time_ms = (time.time() - start_time) * 1000
@@ -395,7 +422,7 @@ class SymbolicCache:
         # Save to cache
         metadata = {
             'vertices': graph.vertices_length(),
-            'edges': sum(v.edges().size() for v in graph.vertices()),
+            'edges': sum(len(v.edges()) for v in graph.vertices()),
             'elimination_time_ms': elimination_time_ms
         }
         self.save(hash_key, symbolic_json, metadata)

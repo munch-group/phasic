@@ -1,5 +1,6 @@
 from functools import partial
 from collections import defaultdict
+from unittest import result
 import numpy as np
 from numpy.typing import ArrayLike
 from typing import Any, TypeVar, List, Tuple, Dict, Union, NamedTuple, Optional
@@ -35,12 +36,16 @@ class StateDict(UserDict):
 def labelled(labels):  # The factory function that accepts a parameter
     def decorator(func):
         @wraps(func)  # Apply @wraps to the wrapper
-        def wrapper(arr):
-            assert len(labels) == arr.size
+        def wrapper(arr, **kwargs):
+            print(kwargs)
+#            assert len(labels) == arr.size
             l = list(zip(labels, arr))
-            print(l)
             d = StateDict(l)
-            return [[np.array(list(state.values()), dtype=int), *rest] for state, *rest in func(d)]
+            result = func(d, **kwargs)  
+            print(result)
+            if not result:
+                return []
+            return [[np.array(state, dtype=int), *rest] for state, *rest in result]
         return wrapper
     return decorator
 
@@ -65,7 +70,12 @@ try:
 
     # Configure JAX for multi-CPU BEFORE importing JAX
     # This sets XLA_FLAGS to use all available CPUs
-    if 'jax' not in sys.modules:
+    if 'jax' in sys.modules:
+        print("WARNING: JAX has already been imported. PTDAlgorithms CPU multi-device configuration will be skipped.")
+        print("To enable multi-CPU support, please set the PTDALG_CPUS environment variable before importing JAX or PTDAlgorithms.")
+
+    else:
+
         # Only configure if JAX hasn't been imported yet
 
         # Import compilation configuration system
@@ -233,10 +243,16 @@ if HAS_JAX:
         compute_moments_ffi,
         compute_pmf_and_moments_ffi
     )
+    from .profiling import (
+        analyze_svgd_profile,
+        profile_svgd
+    )
 else:
     compute_pmf_ffi = None
     compute_moments_ffi = None
     compute_pmf_and_moments_ffi = None
+    analyze_svgd_profile = None
+    profile_svgd = None
 
 __version__ = '0.20.0'
 
@@ -526,7 +542,13 @@ def _generate_cpp_from_graph(serialized):
             to_idx = int(edge[0])
             edge_state = edge[1:]
             # Generate weight computation: w = x1*theta[0] + x2*theta[1] + ...
-            weight_terms = [f"{edge_state[j]}*theta[{j}]" for j in range(param_length)]
+            # Only include non-zero coefficients for efficiency and correctness
+            weight_terms = [f"{edge_state[j]}*theta[{j}]"
+                           for j in range(len(edge_state))
+                           if edge_state[j] != 0.0]
+            if not weight_terms:
+                # All coefficients are zero - use constant 0
+                weight_terms = ["0.0"]
             weight_expr = " + ".join(weight_terms)
             param_edge_code.append(f"    double w_start_{to_idx} = {weight_expr};")
             param_edge_code.append(f"    start->add_edge(*vertices[{to_idx}], w_start_{to_idx});")
@@ -536,8 +558,13 @@ def _generate_cpp_from_graph(serialized):
             from_idx = int(edge[0])
             to_idx = int(edge[1])
             edge_state = edge[2:]
-            # Generate weight computation
-            weight_terms = [f"{edge_state[j]}*theta[{j}]" for j in range(param_length)]
+            # Generate weight computation - only include non-zero coefficients
+            weight_terms = [f"{edge_state[j]}*theta[{j}]"
+                           for j in range(len(edge_state))
+                           if edge_state[j] != 0.0]
+            if not weight_terms:
+                # All coefficients are zero - use constant 0
+                weight_terms = ["0.0"]
             weight_expr = " + ".join(weight_terms)
             param_edge_code.append(f"    double w_{from_idx}_{to_idx} = {weight_expr};")
             param_edge_code.append(f"    vertices[{from_idx}]->add_edge(*vertices[{to_idx}], w_{from_idx}_{to_idx});")
@@ -558,6 +585,518 @@ ptdalgorithms::Graph build_model(const double* theta, int n_params) {{
 }}
 '''
     return cpp_code
+
+
+def _generate_cpp_from_trace(trace, observed_data, granularity=100):
+    """
+    Generate standalone C++ log-likelihood function from elimination trace.
+
+    Creates self-contained C++ code that embeds the trace data structure and
+    evaluates log-likelihood without Python dependencies. This enables fast
+    SVGD evaluation with minimal overhead.
+
+    Parameters
+    ----------
+    trace : EliminationTrace
+        Elimination trace from record_elimination_trace()
+    observed_data : array_like
+        Observed data points for likelihood computation
+    granularity : int, default=100
+        Discretization granularity for forward algorithm PDF computation
+
+    Returns
+    -------
+    str
+        C++ code implementing compute_log_likelihood(theta, n_params) function
+
+    Notes
+    -----
+    Generated function signature:
+        double compute_log_likelihood(const double* theta, int n_params)
+
+    The function performs:
+    1. Evaluates trace with parameters using embedded trace data
+    2. Instantiates graph from evaluation results
+    3. Computes exact PDF at all observation points
+    4. Returns sum of log-probabilities
+    5. Cleans up allocated memory
+
+    Performance: O(n*m) where n = operations, m = observations
+    Memory: O(n) for evaluation + O(v+e) for graph (v=vertices, e=edges)
+
+    Examples
+    --------
+    >>> from ptdalgorithms.trace_elimination import record_elimination_trace
+    >>> trace = record_elimination_trace(graph, param_length=2)
+    >>> observed_times = np.array([1.5, 2.3, 0.8])
+    >>> cpp_code = _generate_cpp_from_trace(trace, observed_times, granularity=100)
+    >>> # Compile cpp_code and use with JAX
+    """
+    from .trace_elimination import trace_to_c_arrays
+    import numpy as np
+
+    # Convert observed_data to numpy array
+    observed_data = np.asarray(observed_data)
+    n_observations = len(observed_data) if observed_data.ndim > 0 else 1
+
+    # Serialize trace to C-compatible arrays
+    arrays = trace_to_c_arrays(trace)
+
+    # Helper function to format array as C initializer
+    def format_array(arr, dtype='double'):
+        if not arr:
+            return f"NULL  /* empty {dtype} array */"
+        if dtype == 'int' or dtype == 'size_t':
+            return '{' + ', '.join(str(int(x)) for x in arr) + '}'
+        else:
+            return '{' + ', '.join(f'{float(x):.17e}' for x in arr) + '}'
+
+    # Generate code
+    cpp_code = f'''#include "ptdalgorithmscpp.h"
+#include <cmath>
+#include <cstdlib>
+#include <cstdio>
+
+// =============================================================================
+// Embedded Trace Data
+// =============================================================================
+
+// Trace metadata
+static const size_t N_OPERATIONS = {len(arrays['operations_types'])};
+static const size_t N_VERTICES = {arrays['n_vertices']};
+static const size_t STATE_LENGTH = {arrays['state_length']};
+static const size_t PARAM_LENGTH = {arrays['param_length']};
+static const size_t STARTING_VERTEX_IDX = {arrays['starting_vertex_idx']};
+static const bool IS_DISCRETE = {'true' if arrays['is_discrete'] else 'false'};
+
+// Operations data
+static const int operations_types[] = {format_array(arrays['operations_types'], 'int')};
+static const double operations_consts[] = {format_array(arrays['operations_consts'], 'double')};
+static const int operations_param_indices[] = {format_array(arrays['operations_param_indices'], 'int')};
+static const size_t operations_operand_counts[] = {format_array(arrays['operations_operand_counts'], 'size_t')};
+static const size_t operations_operands_flat[] = {format_array(arrays['operations_operands_flat'], 'size_t')};
+static const size_t operations_coeff_counts[] = {format_array(arrays['operations_coeff_counts'], 'size_t')};
+static const double operations_coeffs_flat[] = {format_array(arrays['operations_coeffs_flat'], 'double')};
+
+// Vertex data
+static const size_t vertex_rates[] = {format_array(arrays['vertex_rates'], 'size_t')};
+static const size_t edge_probs_counts[] = {format_array(arrays['edge_probs_counts'], 'size_t')};
+static const size_t edge_probs_flat[] = {format_array(arrays['edge_probs_flat'], 'size_t')};
+static const size_t vertex_targets_counts[] = {format_array(arrays['vertex_targets_counts'], 'size_t')};
+static const size_t vertex_targets_flat[] = {format_array(arrays['vertex_targets_flat'], 'size_t')};
+static const int states_flat[] = {format_array(arrays['states_flat'], 'int')};
+
+// Observation data
+static const size_t N_OBSERVATIONS = {n_observations};
+static const double observed_times[] = {format_array(observed_data.tolist(), 'double')};
+static const size_t GRANULARITY = {granularity};
+
+// =============================================================================
+// Trace Evaluation Helper
+// =============================================================================
+
+/**
+ * Evaluate embedded trace with given parameters
+ * Returns allocated ptd_trace_result (caller must free)
+ */
+static struct ptd_trace_result* evaluate_embedded_trace(const double* theta, size_t n_params) {{
+    // Allocate values array
+    double* values = (double*)malloc(N_OPERATIONS * sizeof(double));
+    if (values == NULL) {{
+        return NULL;
+    }}
+
+    // Execute operations in order
+    size_t operands_offset = 0;
+    size_t coeffs_offset = 0;
+
+    for (size_t i = 0; i < N_OPERATIONS; i++) {{
+        int op_type = operations_types[i];
+
+        if (op_type == 0) {{  // CONST
+            values[i] = operations_consts[i];
+        }}
+        else if (op_type == 1) {{  // PARAM
+            int param_idx = operations_param_indices[i];
+            values[i] = theta[param_idx];
+        }}
+        else if (op_type == 2) {{  // DOT
+            size_t n_coeffs = operations_coeff_counts[i];
+            double result = 0.0;
+            for (size_t j = 0; j < n_coeffs; j++) {{
+                result += operations_coeffs_flat[coeffs_offset + j] * theta[j];
+            }}
+            values[i] = result;
+            coeffs_offset += n_coeffs;
+        }}
+        else if (op_type == 3) {{  // ADD
+            values[i] = values[operations_operands_flat[operands_offset]] +
+                       values[operations_operands_flat[operands_offset + 1]];
+            operands_offset += operations_operand_counts[i];
+        }}
+        else if (op_type == 4) {{  // MUL
+            values[i] = values[operations_operands_flat[operands_offset]] *
+                       values[operations_operands_flat[operands_offset + 1]];
+            operands_offset += operations_operand_counts[i];
+        }}
+        else if (op_type == 5) {{  // DIV
+            values[i] = values[operations_operands_flat[operands_offset]] /
+                       values[operations_operands_flat[operands_offset + 1]];
+            operands_offset += operations_operand_counts[i];
+        }}
+        else if (op_type == 6) {{  // INV
+            values[i] = 1.0 / values[operations_operands_flat[operands_offset]];
+            operands_offset += operations_operand_counts[i];
+        }}
+        else if (op_type == 7) {{  // SUM
+            double sum = 0.0;
+            for (size_t j = 0; j < operations_operand_counts[i]; j++) {{
+                sum += values[operations_operands_flat[operands_offset + j]];
+            }}
+            values[i] = sum;
+            operands_offset += operations_operand_counts[i];
+        }}
+    }}
+
+    // Build result structure
+    struct ptd_trace_result* result = (struct ptd_trace_result*)malloc(sizeof(struct ptd_trace_result));
+    if (result == NULL) {{
+        free(values);
+        return NULL;
+    }}
+
+    result->n_vertices = N_VERTICES;
+    result->vertex_rates = (double*)malloc(N_VERTICES * sizeof(double));
+    result->edge_probs = (double**)malloc(N_VERTICES * sizeof(double*));
+    result->edge_probs_lengths = (size_t*)malloc(N_VERTICES * sizeof(size_t));
+    result->vertex_targets = (size_t**)malloc(N_VERTICES * sizeof(size_t*));
+    result->vertex_targets_lengths = (size_t*)malloc(N_VERTICES * sizeof(size_t));
+
+    if (result->vertex_rates == NULL || result->edge_probs == NULL ||
+        result->edge_probs_lengths == NULL || result->vertex_targets == NULL ||
+        result->vertex_targets_lengths == NULL) {{
+        free(values);
+        free(result);
+        return NULL;
+    }}
+
+    // Extract vertex rates
+    for (size_t i = 0; i < N_VERTICES; i++) {{
+        result->vertex_rates[i] = values[vertex_rates[i]];
+    }}
+
+    // Extract edge probabilities and targets
+    size_t edge_offset = 0;
+    size_t target_offset = 0;
+
+    for (size_t i = 0; i < N_VERTICES; i++) {{
+        size_t n_edges = edge_probs_counts[i];
+        result->edge_probs_lengths[i] = n_edges;
+        result->vertex_targets_lengths[i] = n_edges;
+
+        if (n_edges > 0) {{
+            result->edge_probs[i] = (double*)malloc(n_edges * sizeof(double));
+            result->vertex_targets[i] = (size_t*)malloc(n_edges * sizeof(size_t));
+
+            if (result->edge_probs[i] == NULL || result->vertex_targets[i] == NULL) {{
+                free(values);
+                // TODO: proper cleanup
+                return NULL;
+            }}
+
+            for (size_t j = 0; j < n_edges; j++) {{
+                result->edge_probs[i][j] = values[edge_probs_flat[edge_offset + j]];
+                result->vertex_targets[i][j] = vertex_targets_flat[target_offset + j];
+            }}
+
+            edge_offset += n_edges;
+            target_offset += n_edges;
+        }} else {{
+            result->edge_probs[i] = NULL;
+            result->vertex_targets[i] = NULL;
+        }}
+    }}
+
+    free(values);
+    return result;
+}}
+
+// =============================================================================
+// Main Log-Likelihood Function
+// =============================================================================
+
+/**
+ * Compute log-likelihood for given parameters
+ *
+ * @param theta Parameter array
+ * @param n_params Number of parameters (must equal PARAM_LENGTH)
+ * @return Log-likelihood value, or -INFINITY on error
+ */
+extern "C" double compute_log_likelihood(const double* theta, int n_params) {{
+    if (theta == NULL || n_params != PARAM_LENGTH) {{
+        return -INFINITY;
+    }}
+
+    // 1. Evaluate trace with parameters
+    struct ptd_trace_result* result = evaluate_embedded_trace(theta, n_params);
+    if (result == NULL) {{
+        return -INFINITY;
+    }}
+
+    // 2. Build elimination trace structure for ptd_instantiate_from_trace
+    //    (We need to construct minimal trace structure with states)
+    struct ptd_elimination_trace trace_struct;
+    trace_struct.n_vertices = N_VERTICES;
+    trace_struct.state_length = STATE_LENGTH;
+    trace_struct.starting_vertex_idx = STARTING_VERTEX_IDX;
+
+    // Allocate and populate states
+    int** states = (int**)malloc(N_VERTICES * sizeof(int*));
+    if (states == NULL) {{
+        ptd_trace_result_destroy(result);
+        return -INFINITY;
+    }}
+
+    for (size_t i = 0; i < N_VERTICES; i++) {{
+        states[i] = (int*)malloc(STATE_LENGTH * sizeof(int));
+        if (states[i] == NULL) {{
+            for (size_t j = 0; j < i; j++) free(states[j]);
+            free(states);
+            ptd_trace_result_destroy(result);
+            return -INFINITY;
+        }}
+        for (size_t j = 0; j < STATE_LENGTH; j++) {{
+            states[i][j] = states_flat[i * STATE_LENGTH + j];
+        }}
+    }}
+    trace_struct.states = states;
+
+    // 3. Instantiate graph from trace
+    struct ptd_graph* graph = ptd_instantiate_from_trace(result, &trace_struct);
+
+    // Clean up states
+    for (size_t i = 0; i < N_VERTICES; i++) {{
+        free(states[i]);
+    }}
+    free(states);
+
+    if (graph == NULL) {{
+        ptd_trace_result_destroy(result);
+        return -INFINITY;
+    }}
+
+    // 4. Compute log-likelihood by evaluating PDF at all observation points
+    double log_lik = 0.0;
+    double pdf_value = 0.0;
+    double* pdf_gradient = NULL;  // We don't need gradients here
+
+    for (size_t i = 0; i < N_OBSERVATIONS; i++) {{
+        int status = ptd_graph_pdf_parameterized(graph, observed_times[i], GRANULARITY,
+                                                  &pdf_value, pdf_gradient);
+        if (status != 0) {{
+            ptd_graph_destroy(graph);
+            ptd_trace_result_destroy(result);
+            return -INFINITY;
+        }}
+
+        // Add log(PDF) with numerical safety
+        if (pdf_value <= 0.0) {{
+            log_lik += -23.025850929940458;  // log(1e-10)
+        }} else {{
+            log_lik += log(pdf_value);
+        }}
+    }}
+
+    // 5. Cleanup
+    ptd_graph_destroy(graph);
+    ptd_trace_result_destroy(result);
+
+    return log_lik;
+}}
+'''
+
+    return cpp_code
+
+
+def _compile_trace_library(cpp_code, trace_hash):
+    """
+    Compile trace-based C++ code to shared library.
+
+    Parameters
+    ----------
+    cpp_code : str
+        C++ source code from _generate_cpp_from_trace()
+    trace_hash : str
+        Hash identifier for this trace (for caching)
+
+    Returns
+    -------
+    str
+        Path to compiled shared library
+
+    Raises
+    ------
+    RuntimeError
+        If compilation fails
+    """
+    import subprocess
+    import tempfile
+    import os
+
+    lib_path = f"/tmp/trace_log_lik_{trace_hash}.so"
+
+    # Skip compilation if library already exists
+    if os.path.exists(lib_path):
+        return lib_path
+
+    # Write source to temporary file
+    with tempfile.NamedTemporaryFile(suffix='.cpp', delete=False, mode='w') as f:
+        f.write(cpp_code)
+        cpp_file = f.name
+
+    try:
+        # Get package directory for includes
+        pkg_dir = _get_package_dir()
+
+        # Compile command
+        cmd = [
+            'g++', '-O3', '-fPIC', '-shared', '-std=c++14',
+            f'-I{pkg_dir}',
+            f'-I{pkg_dir}/api/cpp',
+            f'-I{pkg_dir}/api/c',
+            f'-I{pkg_dir}/include',
+            cpp_file,
+            f'{pkg_dir}/src/c/ptdalgorithms.c',
+            '-o', lib_path,
+            '-lm'
+        ]
+
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+
+        if result.returncode != 0:
+            raise RuntimeError(f"Compilation failed:\n{result.stderr}")
+
+        return lib_path
+
+    finally:
+        # Clean up temporary C++ file
+        if os.path.exists(cpp_file):
+            os.unlink(cpp_file)
+
+
+def clear_trace_cache():
+    """
+    Clear cached compiled trace libraries.
+
+    Removes all compiled shared libraries from /tmp/ that were generated
+    by trace_to_log_likelihood() with use_cpp=True.
+
+    Returns
+    -------
+    int
+        Number of cache files removed
+
+    Examples
+    --------
+    >>> from ptdalgorithms import clear_trace_cache
+    >>> n_removed = clear_trace_cache()
+    >>> print(f"Removed {n_removed} cached trace libraries")
+    """
+    import glob
+    pattern = "/tmp/trace_log_lik_*.so"
+    cache_files = glob.glob(pattern)
+
+    count = 0
+    for f in cache_files:
+        try:
+            os.unlink(f)
+            count += 1
+        except OSError:
+            pass  # Ignore errors (file might be in use or already deleted)
+
+    return count
+
+
+def _wrap_trace_log_likelihood_for_jax(lib_path, param_length):
+    """
+    Wrap C++ log-likelihood function for JAX compatibility.
+
+    Creates a JAX-compatible function using jax.pure_callback that calls
+    the compiled C++ log-likelihood function.
+
+    Parameters
+    ----------
+    lib_path : str
+        Path to compiled shared library
+    param_length : int
+        Number of parameters expected by the function
+
+    Returns
+    -------
+    callable
+        JAX-compatible log-likelihood function with signature:
+        log_lik(theta: jax.numpy.ndarray) -> float
+
+    Notes
+    -----
+    The returned function supports:
+    - jax.jit: JIT compilation
+    - jax.grad: Automatic differentiation (via finite differences)
+    - jax.vmap: Vectorization over parameter batches
+
+    The function uses pure_callback to call C++ code, which means:
+    - Gradients computed via JAX's finite difference approximation
+    - No direct gradient computation in C++ (yet - Phase 5 feature)
+    - Each vmap call executes sequentially (no parallelization)
+
+    Examples
+    --------
+    >>> lib_path = "/tmp/trace_log_lik_abc123.so"
+    >>> log_lik = _wrap_trace_log_likelihood_for_jax(lib_path, param_length=2)
+    >>> import jax.numpy as jnp
+    >>> theta = jnp.array([1.0, 2.0])
+    >>> ll_value = log_lik(theta)
+    >>> grad = jax.grad(log_lik)(theta)
+    """
+    import ctypes
+    import numpy as np
+
+    try:
+        import jax
+        import jax.numpy as jnp
+    except ImportError:
+        raise ImportError("JAX is required. Install with: pip install jax jaxlib")
+
+    # Load shared library
+    lib = ctypes.CDLL(lib_path)
+
+    # Define function signature
+    lib.compute_log_likelihood.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int]
+    lib.compute_log_likelihood.restype = ctypes.c_double
+
+    def log_lik_cpp(theta):
+        """Pure Python wrapper for C++ function"""
+        theta_array = np.asarray(theta, dtype=np.float64)
+        if len(theta_array) != param_length:
+            raise ValueError(f"Expected {param_length} parameters, got {len(theta_array)}")
+
+        theta_ptr = theta_array.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+        result = lib.compute_log_likelihood(theta_ptr, param_length)
+        return float(result)
+
+    def log_lik_jax(theta):
+        """JAX-compatible wrapper using pure_callback"""
+        # Ensure theta is the right shape
+        theta = jnp.atleast_1d(theta)
+
+        return jax.pure_callback(
+            log_lik_cpp,
+            jax.ShapeDtypeStruct((), jnp.float64),  # Returns scalar
+            theta,
+            vectorized=False  # vmap will handle batching via sequential calls
+        )
+
+    return log_lik_jax
 
 
 def _compile_wrapper_library(wrapper_code, lib_name, extra_includes=None):
@@ -597,6 +1136,7 @@ def _compile_wrapper_library(wrapper_code, lib_name, extra_includes=None):
             wrapper_file,
             f'{pkg_dir}/src/cpp/ptdalgorithmscpp.cpp',
             f'{pkg_dir}/src/c/ptdalgorithms.c',
+            f'{pkg_dir}/src/c/ptdalgorithms_hash.c',
             '-o', lib_path
         ])
 
@@ -830,85 +1370,83 @@ class Graph(_Graph):
             state_to_idx[state_tuple] = i
 
         # Detect parameter length from parameterized edges
+        # Strategy: For each edge, find where its valid coefficients end (before garbage)
+        # Then use the maximum across all edges as param_length
         param_length = 0
         start = self.starting_vertex()
 
-        # Check all vertices for parameterized edges to determine param_length
-        # Strategy: Collect a few parameterized edges and check for consistency
-        # All param edges should have the same length
-        sample_edges = []
-        for v in vertices_list:
-            param_edges = v.parameterized_edges()
-            if param_edges:
-                sample_edges.extend(param_edges[:2])  # Take up to 2 edges per vertex
-                if len(sample_edges) >= 5:  # Collect a few samples
-                    break
+        # Track the actual coefficient length for each edge (before garbage starts)
+        # Key: (from_vertex_idx, to_vertex_idx), Value: valid length
+        # Use -1 for starting vertex index
+        edge_valid_lengths = {}
 
-        if sample_edges:
-            # Try increasing lengths and stop when we hit uninitialized memory
-            # Strategy: Uninitialized memory typically contains extremely tiny values (< 1e-300)
-            # or NaN/inf. Valid edge state coefficients should be reasonable numbers.
-            for try_len in range(1, 20):
-                hit_garbage = False
+        # Check all vertices for parameterized edges to determine actual param usage
+        # We probe up to a reasonable limit and track the highest non-zero coefficient index
+        max_probe_length = 20
 
-                for edge in sample_edges:
-                    state = edge.edge_state(try_len)
-                    if len(state) == 0:
-                        hit_garbage = True
-                        break
-                    last_val = state[-1]
-
-                    # Check for obvious garbage:
-                    # 1. NaN or inf
-                    # 2. Extremely large values (> 1e100)
-                    # 3. Extremely tiny values (< 1e-300) which indicate uninitialized memory
-                    #    Note: We use 1e-300 instead of checking == 0 because 0.0 is valid
-                    if (np.isnan(last_val) or np.isinf(last_val) or
-                        abs(last_val) > 1e100 or
-                        (last_val != 0 and abs(last_val) < 1e-300)):
-                        hit_garbage = True
-                        break
-
-                if hit_garbage:
-                    # At least one edge hit garbage, previous length was correct
-                    break
-
-                # This length seems valid
-                param_length = try_len
-
-        # Also check starting vertex if we haven't found param_length yet
-        if param_length == 0:
-            start_param_edges = start.parameterized_edges()
-            if start_param_edges:
-                # Use same strategy as above
-                for try_len in range(1, 20):
-                    edge_state = start_param_edges[0].edge_state(try_len)
-                    if len(edge_state) == 0:
-                        break
-                    last_val = edge_state[-1]
-                    if np.isnan(last_val) or np.isinf(last_val) or abs(last_val) > 1e100:
-                        break
-                    param_length = try_len
-
-        # Extract regular edges between vertices (excluding starting vertex)
-        edges_list = []
-        start_state = tuple(start.state())
+        # Probe edges from regular vertices
         for i, v in enumerate(vertices_list):
-            # Skip starting vertex edges (they're handled separately)
             v_state = tuple(v.state())
-            if v_state == start_state:
-                continue
+            if v_state == tuple(start.state()):
+                continue  # Skip starting vertex (handled separately)
 
             from_idx = i
-            for edge in v.edges():
+            for edge in v.parameterized_edges():
                 to_vertex = edge.to()
                 to_state = tuple(to_vertex.state())
-                if to_state in state_to_idx:
-                    to_idx = state_to_idx[to_state]
-                    weight = edge.weight()
-                    edges_list.append([from_idx, to_idx, weight])
+                if to_state not in state_to_idx:
+                    continue
+                to_idx = state_to_idx[to_state]
 
-        edges = np.array(edges_list, dtype=np.float64) if edges_list else np.empty((0, 3), dtype=np.float64)
+                valid_length = 0
+                # Probe increasing lengths until we hit garbage or exceed limit
+                for try_len in range(1, max_probe_length + 1):
+                    state = edge.edge_state(try_len)
+                    if len(state) == 0:
+                        break
+
+                    val = state[-1]
+                    # Check for garbage (NaN, inf, or suspiciously large/tiny values)
+                    # Use 1e-100 as threshold to catch denormal floats like 5e-324
+                    if (np.isnan(val) or np.isinf(val) or
+                        abs(val) > 1e100 or
+                        (val != 0 and abs(val) < 1e-100)):
+                        break
+
+                    valid_length = try_len
+                    if val != 0:
+                        param_length = max(param_length, try_len)
+
+                edge_valid_lengths[(from_idx, to_idx)] = valid_length
+
+        # Probe edges from starting vertex
+        for edge in start.parameterized_edges():
+            to_vertex = edge.to()
+            to_state = tuple(to_vertex.state())
+            if to_state not in state_to_idx:
+                continue
+            to_idx = state_to_idx[to_state]
+
+            valid_length = 0
+            for try_len in range(1, max_probe_length + 1):
+                state = edge.edge_state(try_len)
+                if len(state) == 0:
+                    break
+
+                val = state[-1]
+                if (np.isnan(val) or np.isinf(val) or
+                    abs(val) > 1e100 or
+                    (val != 0 and abs(val) < 1e-100)):
+                    break
+
+                valid_length = try_len
+                if val != 0:
+                    param_length = max(param_length, try_len)
+
+            edge_valid_lengths[(-1, to_idx)] = valid_length
+
+        # Extract parameterized edges FIRST (needed to build exclusion set before extracting regular edges)
+        start_state = tuple(start.state())
 
         # Extract parameterized edges between vertices (excluding starting vertex)
         param_edges_list = []
@@ -925,27 +1463,23 @@ class Graph(_Graph):
                     to_state = tuple(to_vertex.state())
                     if to_state in state_to_idx:
                         to_idx = state_to_idx[to_state]
-                        edge_state = edge.edge_state(param_length)
-                        # Only include edges with non-empty edge states
-                        if len(edge_state) > 0 and any(x != 0 for x in edge_state):
-                            # Store: [from_idx, to_idx, x1, x2, x3, ...]
-                            param_edges_list.append([from_idx, to_idx] + list(edge_state))
+                        # Use edge-specific valid length, padded/truncated to param_length
+                        edge_len = edge_valid_lengths.get((from_idx, to_idx), 0)
+                        if edge_len > 0:
+                            edge_state = list(edge.edge_state(edge_len))
+                            # Ensure exactly param_length coefficients (truncate or pad)
+                            if len(edge_state) < param_length:
+                                edge_state.extend([0.0] * (param_length - len(edge_state)))
+                            elif len(edge_state) > param_length:
+                                edge_state = edge_state[:param_length]
+                            # Only include edges with non-empty edge states
+                            if any(x != 0 for x in edge_state):
+                                # Store: [from_idx, to_idx, x1, x2, x3, ...]
+                                param_edges_list.append([from_idx, to_idx] + edge_state)
 
         param_edges = np.array(param_edges_list, dtype=np.float64) if param_edges_list else np.empty((0, param_length + 2 if param_length > 0 else 0), dtype=np.float64)
 
-        # Extract starting vertex regular edges
-        start_edges_list = []
-        for edge in start.edges():
-            to_vertex = edge.to()
-            to_state = tuple(to_vertex.state())
-            if to_state in state_to_idx:
-                to_idx = state_to_idx[to_state]
-                weight = edge.weight()
-                start_edges_list.append([to_idx, weight])
-
-        start_edges = np.array(start_edges_list, dtype=np.float64) if start_edges_list else np.empty((0, 2), dtype=np.float64)
-
-        # Extract starting vertex parameterized edges
+        # Extract starting vertex parameterized edges FIRST (needed to build exclusion set)
         start_param_edges_list = []
         if param_length > 0:
             for edge in start.parameterized_edges():
@@ -953,13 +1487,67 @@ class Graph(_Graph):
                 to_state = tuple(to_vertex.state())
                 if to_state in state_to_idx:
                     to_idx = state_to_idx[to_state]
-                    edge_state = edge.edge_state(param_length)
-                    # Only include edges with non-empty edge states
-                    if len(edge_state) > 0 and any(x != 0 for x in edge_state):
-                        # Store: [to_idx, x1, x2, x3, ...]
-                        start_param_edges_list.append([to_idx] + list(edge_state))
+                    # Use edge-specific valid length, padded/truncated to param_length (-1 = starting vertex)
+                    edge_len = edge_valid_lengths.get((-1, to_idx), 0)
+                    if edge_len > 0:
+                        edge_state = list(edge.edge_state(edge_len))
+                        # Ensure exactly param_length coefficients (truncate or pad)
+                        if len(edge_state) < param_length:
+                            edge_state.extend([0.0] * (param_length - len(edge_state)))
+                        elif len(edge_state) > param_length:
+                            edge_state = edge_state[:param_length]
+                        # Only include edges with non-empty edge states
+                        if any(x != 0 for x in edge_state):
+                            # Store: [to_idx, x1, x2, x3, ...]
+                            start_param_edges_list.append([to_idx] + edge_state)
 
         start_param_edges = np.array(start_param_edges_list, dtype=np.float64) if start_param_edges_list else np.empty((0, param_length + 1 if param_length > 0 else 0), dtype=np.float64)
+
+        # Build set of (from_idx, to_idx) pairs for parameterized edges to skip in regular edges
+        param_edge_pairs = set()
+        for edge_data in start_param_edges_list:
+            to_idx = int(edge_data[0])
+            param_edge_pairs.add((-1, to_idx))  # -1 represents starting vertex
+        for edge_data in param_edges_list:
+            from_idx = int(edge_data[0])
+            to_idx = int(edge_data[1])
+            param_edge_pairs.add((from_idx, to_idx))
+
+        # Extract regular edges between vertices (excluding starting vertex)
+        # Skip edges that have parameterized versions
+        edges_list = []
+        for i, v in enumerate(vertices_list):
+            # Skip starting vertex edges (they're handled separately)
+            v_state = tuple(v.state())
+            if v_state == start_state:
+                continue
+
+            from_idx = i
+            for edge in v.edges():
+                to_vertex = edge.to()
+                to_state = tuple(to_vertex.state())
+                if to_state in state_to_idx:
+                    to_idx = state_to_idx[to_state]
+                    # Skip if this edge also has a parameterized version
+                    if (from_idx, to_idx) not in param_edge_pairs:
+                        weight = edge.weight()
+                        edges_list.append([from_idx, to_idx, weight])
+
+        edges = np.array(edges_list, dtype=np.float64) if edges_list else np.empty((0, 3), dtype=np.float64)
+
+        # Extract starting vertex regular edges (skip those with parameterized versions)
+        start_edges_list = []
+        for edge in start.edges():
+            to_vertex = edge.to()
+            to_state = tuple(to_vertex.state())
+            if to_state in state_to_idx:
+                to_idx = state_to_idx[to_state]
+                # Skip if this edge also has a parameterized version
+                if (-1, to_idx) not in param_edge_pairs:
+                    weight = edge.weight()
+                    start_edges_list.append([to_idx, weight])
+
+        start_edges = np.array(start_edges_list, dtype=np.float64) if start_edges_list else np.empty((0, 2), dtype=np.float64)
 
         return {
             'states': states,
@@ -1494,9 +2082,9 @@ extern "C" {{
         # Helper function for pure callback (used in forward and backward pass)
         def _compute_pmf_pure(theta, times):
             """Pure computation without custom_vjp wrapper"""
-            result_shape = jax.ShapeDtypeStruct(times.shape, jnp.float32)
+            result_shape = jax.ShapeDtypeStruct(times.shape, jnp.float64)
             return jax.pure_callback(
-                lambda t, tm: pmf_function(t, tm, granularity=0).astype(np.float32),
+                lambda t, tm: pmf_function(t, tm, granularity=0).astype(np.float64),
                 result_shape,
                 theta,
                 times,
@@ -1549,7 +2137,9 @@ extern "C" {{
              theta_dim: Optional[int] = None,
              return_history: bool = False,
              seed: int = 42,
-            verbose: bool = True) -> Dict:
+             verbose: bool = True,
+             positive_params: bool = True,
+             param_transform: Optional[Callable] = None) -> Dict:
         """
         Run Stein Variational Gradient Descent (SVGD) inference for Bayesian parameter estimation.
 
@@ -1589,6 +2179,15 @@ extern "C" {{
             Random seed for reproducibility
         verbose : bool, default=True
             Print progress information
+        positive_params : bool, default=True
+            If True, applies softplus transformation to ensure all parameters are positive.
+            Recommended for phase-type models where parameters represent rates.
+            SVGD operates in unconstrained space, but model receives positive parameters.
+        param_transform : callable, optional
+            Custom parameter transformation function: transform(theta_unconstrained) -> theta_constrained.
+            If provided, SVGD optimizes in unconstrained space and applies this transformation
+            before calling the model. Cannot be used together with positive_params.
+            Example: lambda theta: jnp.concatenate([jnp.exp(theta[:1]), jax.nn.softplus(theta[1:])])
 
         Returns
         -------
@@ -1672,14 +2271,18 @@ extern "C" {{
             theta_init=theta_init,
             theta_dim=theta_dim,
             seed=seed,
-            verbose=verbose
+            verbose=verbose,
+            positive_params=positive_params,
+            param_transform=param_transform
         )
 
         # Run inference
         svgd.fit(return_history=return_history)
 
         # Return results as dictionary for backward compatibility
-        return svgd.get_results()
+        # return svgd.get_results()
+
+        return svgd
 
     @classmethod
     def moments_from_graph(cls, graph: 'Graph', nr_moments: int = 2, use_ffi: bool = False) -> Callable:

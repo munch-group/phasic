@@ -85,5 +85,27 @@
         "ptdalgorithmscpp"
     ],
     "python.terminal.activateEnvironment": false,
-    "cmake.cmakePath": "/Users/kmt/PtDAlgorithms/.pixi/envs/default/bin/cmake"
+    "cmake.cmakePath": "/Users/kmt/PtDAlgorithms/.pixi/envs/default/bin/cmake",
+    "favorites.resources": [
+        {
+            "filePath": "docs/_quarto.yml",
+            "group": "Default"
+        },
+        {
+            "filePath": "docs/pages",
+            "group": "Default"
+        },
+        {
+            "filePath": "pyproject.toml",
+            "group": "Default"
+        },
+        {
+            "filePath": "conda-build",
+            "group": "Default"
+        },
+        {
+            "filePath": "src/ptdalgorithms",
+            "group": "Default"
+        }
+    ]
 }

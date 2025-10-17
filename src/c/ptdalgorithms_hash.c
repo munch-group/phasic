@@ -168,7 +168,7 @@ static uint64_t hash_vertex_structure(const struct ptd_vertex *vertex) {
                   vertex->graph->state_length * sizeof(int));
 
     // Create sorted copy of edges for canonical ordering
-    struct ptd_edge **sorted_edges = malloc(vertex->edges_length * sizeof(struct ptd_edge *));
+    struct ptd_edge **sorted_edges = (struct ptd_edge **)malloc(vertex->edges_length * sizeof(struct ptd_edge *));
     if (sorted_edges == NULL) return 0;
 
     for (size_t i = 0; i < vertex->edges_length; i++) {
@@ -221,7 +221,7 @@ struct ptd_hash_result *ptd_graph_content_hash(const struct ptd_graph *graph) {
         return NULL;
     }
 
-    struct ptd_hash_result *result = malloc(sizeof(struct ptd_hash_result));
+    struct ptd_hash_result *result = (struct ptd_hash_result *)malloc(sizeof(struct ptd_hash_result));
     if (result == NULL) return NULL;
 
     sha256_context ctx;
@@ -289,7 +289,7 @@ struct ptd_hash_result *ptd_hash_from_hex(const char *hex_str) {
         return NULL;
     }
 
-    struct ptd_hash_result *result = malloc(sizeof(struct ptd_hash_result));
+    struct ptd_hash_result *result = (struct ptd_hash_result *)malloc(sizeof(struct ptd_hash_result));
     if (result == NULL) return NULL;
 
     // Parse hex string to bytes

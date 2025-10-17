@@ -5,6 +5,7 @@ import random
 from collections import defaultdict
 from IPython.display import display
 import seaborn as sns
+import matplotlib.pyplot as plt
 import matplotlib.colors
 from itertools import cycle
 
@@ -39,6 +40,12 @@ def set_theme(theme:str):
     """
     global _theme
     _theme = theme
+
+    if theme == 'dark':
+        plt.rcParams.update({'figure.facecolor': '#1F1F1F', 'axes.facecolor': '#1F1F1F'})
+    else:
+        plt.rcParams.update({'figure.facecolor': 'white', 'axes.facecolor': 'white'})
+
 
 
 GraphType = TypeVar('Graph') 

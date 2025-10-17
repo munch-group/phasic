@@ -72,6 +72,61 @@ except Exception as e:
 # Helper Functions
 # ============================================================================
 
+def _make_json_serializable(obj):
+    """
+    Convert an object to JSON-serializable format.
+
+    Recursively converts numpy arrays to lists.
+
+    Parameters
+    ----------
+    obj : any
+        Object to convert (can be dict, list, ndarray, or scalar)
+
+    Returns
+    -------
+    any
+        JSON-serializable version of obj
+    """
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {k: _make_json_serializable(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_make_json_serializable(item) for item in obj]
+    else:
+        return obj
+
+
+def _ensure_json_string(structure_json: Union[str, Dict]) -> str:
+    """
+    Ensure structure_json is a JSON string.
+
+    If input is a dict (from graph.serialize()), convert to JSON string.
+    If input is already a string, return as-is.
+
+    Parameters
+    ----------
+    structure_json : str or dict
+        Graph structure as JSON string or dict
+
+    Returns
+    -------
+    str
+        JSON string representation
+    """
+    if isinstance(structure_json, str):
+        return structure_json
+    elif isinstance(structure_json, dict):
+        # Convert numpy arrays to lists before JSON serialization
+        serializable = _make_json_serializable(structure_json)
+        return json.dumps(serializable)
+    else:
+        raise TypeError(
+            f"structure_json must be str or dict, got {type(structure_json)}"
+        )
+
+
 def _serialize_graph_structure(graph) -> str:
     """
     Serialize a Graph object to JSON string for FFI.
@@ -137,7 +192,7 @@ def _compute_pmf_impl(structure_json: str, theta_np: np.ndarray, times_np: np.nd
     return builder.compute_pmf(theta_np, times_np, discrete, granularity)
 
 
-def compute_pmf_fallback(structure_json: str, theta: jax.Array, times: jax.Array,
+def compute_pmf_fallback(structure_json: Union[str, Dict], theta: jax.Array, times: jax.Array,
                         discrete: bool = False, granularity: int = 100) -> jax.Array:
     """
     Compute PMF/PDF using pybind11 GraphBuilder (fallback when FFI not available).
@@ -147,8 +202,8 @@ def compute_pmf_fallback(structure_json: str, theta: jax.Array, times: jax.Array
 
     Parameters
     ----------
-    structure_json : str
-        JSON string representing the graph structure
+    structure_json : str or dict
+        JSON string or dict (from graph.serialize()) representing graph structure
     theta : jax.Array
         Parameter array, shape (n_params,)
     times : jax.Array
@@ -167,13 +222,16 @@ def compute_pmf_fallback(structure_json: str, theta: jax.Array, times: jax.Array
     if not _HAS_CPP_MODULE:
         raise RuntimeError("C++ module not available. Cannot compute PMF.")
 
+    # Ensure structure_json is a JSON string (convert dict if needed)
+    structure_json_str = _ensure_json_string(structure_json)
+
     # Use pure_callback to wrap the C++ call
     # This allows JIT compilation while calling out to Python/C++
     result_shape = jax.ShapeDtypeStruct(times.shape, jnp.float64)
 
     result = jax.pure_callback(
         lambda theta_jax, times_jax: _compute_pmf_impl(
-            structure_json,
+            structure_json_str,
             np.asarray(theta_jax),
             np.asarray(times_jax),
             discrete,
@@ -195,7 +253,7 @@ def _compute_moments_impl(structure_json: str, theta_np: np.ndarray,
     return builder.compute_moments(theta_np, nr_moments)
 
 
-def compute_moments_fallback(structure_json: str, theta: jax.Array,
+def compute_moments_fallback(structure_json: Union[str, Dict], theta: jax.Array,
                              nr_moments: int) -> jax.Array:
     """
     Compute distribution moments using pybind11 GraphBuilder (fallback).
@@ -204,8 +262,8 @@ def compute_moments_fallback(structure_json: str, theta: jax.Array,
 
     Parameters
     ----------
-    structure_json : str
-        JSON string representing the graph structure
+    structure_json : str or dict
+        JSON string or dict (from graph.serialize()) representing graph structure
     theta : jax.Array
         Parameter array, shape (n_params,)
     nr_moments : int
@@ -220,12 +278,15 @@ def compute_moments_fallback(structure_json: str, theta: jax.Array,
     if not _HAS_CPP_MODULE:
         raise RuntimeError("C++ module not available. Cannot compute moments.")
 
+    # Ensure structure_json is a JSON string (convert dict if needed)
+    structure_json_str = _ensure_json_string(structure_json)
+
     # Use pure_callback to wrap the C++ call
     result_shape = jax.ShapeDtypeStruct((nr_moments,), jnp.float64)
 
     result = jax.pure_callback(
         lambda theta_jax: _compute_moments_impl(
-            structure_json,
+            structure_json_str,
             np.asarray(theta_jax),
             nr_moments
         ),
@@ -247,7 +308,7 @@ def _compute_pmf_and_moments_impl(structure_json: str, theta_np: np.ndarray,
     )
 
 
-def compute_pmf_and_moments_fallback(structure_json: str, theta: jax.Array,
+def compute_pmf_and_moments_fallback(structure_json: Union[str, Dict], theta: jax.Array,
                                     times: jax.Array, nr_moments: int,
                                     discrete: bool = False,
                                     granularity: int = 100) -> tuple[jax.Array, jax.Array]:
@@ -259,8 +320,8 @@ def compute_pmf_and_moments_fallback(structure_json: str, theta: jax.Array,
 
     Parameters
     ----------
-    structure_json : str
-        JSON string representing the graph structure
+    structure_json : str or dict
+        JSON string or dict (from graph.serialize()) representing graph structure
     theta : jax.Array
         Parameter array, shape (n_params,)
     times : jax.Array
@@ -282,6 +343,9 @@ def compute_pmf_and_moments_fallback(structure_json: str, theta: jax.Array,
     if not _HAS_CPP_MODULE:
         raise RuntimeError("C++ module not available. Cannot compute PMF and moments.")
 
+    # Ensure structure_json is a JSON string (convert dict if needed)
+    structure_json_str = _ensure_json_string(structure_json)
+
     # Use pure_callback to wrap the C++ call
     pmf_shape = jax.ShapeDtypeStruct(times.shape, jnp.float64)
     moments_shape = jax.ShapeDtypeStruct((nr_moments,), jnp.float64)
@@ -289,7 +353,7 @@ def compute_pmf_and_moments_fallback(structure_json: str, theta: jax.Array,
 
     def callback_fn(theta_jax, times_jax):
         return _compute_pmf_and_moments_impl(
-            structure_json,
+            structure_json_str,
             np.asarray(theta_jax),
             np.asarray(times_jax),
             nr_moments,
@@ -312,7 +376,7 @@ def compute_pmf_and_moments_fallback(structure_json: str, theta: jax.Array,
 # Public API
 # ============================================================================
 
-def compute_pmf_ffi(structure_json: str, theta: jax.Array, times: jax.Array,
+def compute_pmf_ffi(structure_json: Union[str, Dict], theta: jax.Array, times: jax.Array,
                    discrete: bool = False, granularity: int = 100) -> jax.Array:
     """
     Compute PMF (discrete) or PDF (continuous) using JAX FFI.
@@ -323,8 +387,8 @@ def compute_pmf_ffi(structure_json: str, theta: jax.Array, times: jax.Array,
 
     Parameters
     ----------
-    structure_json : str
-        JSON string from Graph.serialize() containing graph structure
+    structure_json : str or dict
+        JSON string or dict (from Graph.serialize()) containing graph structure
     theta : jax.Array
         Parameter array, shape (n_params,)
     times : jax.Array
@@ -342,26 +406,29 @@ def compute_pmf_ffi(structure_json: str, theta: jax.Array, times: jax.Array,
 
     Notes
     -----
+    - Accepts both JSON string and dict from graph.serialize()
     - GIL is released during C++ computation
     - Supports batching via vmap
     - Differentiable with custom VJP rules
 
     Examples
     --------
+    >>> # Using dict from graph.serialize()
+    >>> structure_dict = graph.serialize()
     >>> theta = jnp.array([1.0, 0.5])
     >>> times = jnp.linspace(0.1, 5.0, 100)
-    >>> pmf = compute_pmf_ffi(structure_json, theta, times, discrete=False)
+    >>> pmf = compute_pmf_ffi(structure_dict, theta, times, discrete=False)
     >>>
     >>> # JIT compilation
     >>> jit_pmf = jax.jit(compute_pmf_ffi, static_argnums=(0, 3, 4))
-    >>> fast_pmf = jit_pmf(structure_json, theta, times, False, 100)
+    >>> fast_pmf = jit_pmf(structure_dict, theta, times, False, 100)
     """
     # For now, use fallback implementation
     # TODO: Replace with true FFI call once handlers are properly exposed
     return compute_pmf_fallback(structure_json, theta, times, discrete, granularity)
 
 
-def compute_moments_ffi(structure_json: str, theta: jax.Array,
+def compute_moments_ffi(structure_json: Union[str, Dict], theta: jax.Array,
                        nr_moments: int) -> jax.Array:
     """
     Compute distribution moments using JAX FFI.
@@ -371,8 +438,8 @@ def compute_moments_ffi(structure_json: str, theta: jax.Array,
 
     Parameters
     ----------
-    structure_json : str
-        JSON string from Graph.serialize() containing graph structure
+    structure_json : str or dict
+        JSON string or dict (from Graph.serialize()) containing graph structure
     theta : jax.Array
         Parameter array, shape (n_params,)
     nr_moments : int
@@ -386,7 +453,8 @@ def compute_moments_ffi(structure_json: str, theta: jax.Array,
 
     Examples
     --------
-    >>> moments = compute_moments_ffi(structure_json, theta, nr_moments=3)
+    >>> structure_dict = graph.serialize()
+    >>> moments = compute_moments_ffi(structure_dict, theta, nr_moments=3)
     >>> mean = moments[0]
     >>> variance = moments[1] - moments[0]**2
     """
@@ -395,7 +463,7 @@ def compute_moments_ffi(structure_json: str, theta: jax.Array,
     return compute_moments_fallback(structure_json, theta, nr_moments)
 
 
-def compute_pmf_and_moments_ffi(structure_json: str, theta: jax.Array,
+def compute_pmf_and_moments_ffi(structure_json: Union[str, Dict], theta: jax.Array,
                                times: jax.Array, nr_moments: int,
                                discrete: bool = False,
                                granularity: int = 100) -> tuple[jax.Array, jax.Array]:
@@ -409,8 +477,8 @@ def compute_pmf_and_moments_ffi(structure_json: str, theta: jax.Array,
 
     Parameters
     ----------
-    structure_json : str
-        JSON string from Graph.serialize() containing graph structure
+    structure_json : str or dict
+        JSON string or dict (from Graph.serialize()) containing graph structure
     theta : jax.Array
         Parameter array, shape (n_params,)
     times : jax.Array
@@ -431,8 +499,9 @@ def compute_pmf_and_moments_ffi(structure_json: str, theta: jax.Array,
 
     Examples
     --------
+    >>> structure_dict = graph.serialize()
     >>> pmf, moments = compute_pmf_and_moments_ffi(
-    ...     structure_json, theta, times, nr_moments=2, discrete=False
+    ...     structure_dict, theta, times, nr_moments=2, discrete=False
     ... )
     >>> # Use pmf for likelihood, moments for regularization
     >>> likelihood = jnp.sum(jnp.log(pmf))

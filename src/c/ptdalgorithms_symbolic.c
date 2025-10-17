@@ -188,9 +188,13 @@ static struct ptd_expression *edge_weight_to_expr(struct ptd_edge *edge, size_t 
 }
 
 /**
- * Sum an array of expressions
+ * Sum an array of expressions (with interning for CSE)
  */
-static struct ptd_expression *sum_expressions(struct ptd_expression **exprs, size_t n) {
+static struct ptd_expression *sum_expressions(
+    struct ptd_expr_intern_table *intern_table,
+    struct ptd_expression **exprs,
+    size_t n
+) {
     if (n == 0) {
         return ptd_expr_const(0.0);
     }
@@ -200,7 +204,8 @@ static struct ptd_expression *sum_expressions(struct ptd_expression **exprs, siz
 
     struct ptd_expression *sum = ptd_expr_copy_iterative(exprs[0]);
     for (size_t i = 1; i < n; i++) {
-        sum = ptd_expr_add(sum, ptd_expr_copy_iterative(exprs[i]));
+        sum = ptd_expr_add_interned(intern_table, sum,
+                                     ptd_expr_copy_iterative(exprs[i]));
     }
     return sum;
 }
@@ -326,6 +331,20 @@ struct ptd_graph_symbolic *ptd_graph_symbolic_elimination(
                 param_length, graph->vertices_length);
 
     // ========================================================================
+    // CREATE INTERN TABLE FOR CSE (Common Subexpression Elimination)
+    // ========================================================================
+    // Use 4096 buckets initially (can tune based on profiling)
+    // This enables automatic deduplication of identical expression subtrees
+    struct ptd_expr_intern_table *intern_table =
+        ptd_expr_intern_table_create(4096);
+
+    if (intern_table == NULL) {
+        DIE_ERROR(1, "Failed to create expression intern table");
+    }
+
+    DEBUG_PRINT("INFO: Created CSE intern table with 4096 buckets\n");
+
+    // ========================================================================
     // PHASE 1: Reordering (Topological Sort)
     // ========================================================================
 
@@ -402,8 +421,8 @@ struct ptd_graph_symbolic *ptd_graph_symbolic_elimination(
                 edge_exprs[j] = edge_weight_to_expr(v->edges[j], param_length);
             }
 
-            struct ptd_expression *sum = sum_expressions(edge_exprs, v->edges_length);
-            sv->rate_expr = ptd_expr_inv(sum);
+            struct ptd_expression *sum = sum_expressions(intern_table, edge_exprs, v->edges_length);
+            sv->rate_expr = ptd_expr_inv_interned(intern_table, sum);
 
             // Clean up temporary expressions
             for (size_t j = 0; j < v->edges_length; j++) {
@@ -432,9 +451,9 @@ struct ptd_graph_symbolic *ptd_graph_symbolic_elimination(
             // Get weight expression
             struct ptd_expression *weight_expr = edge_weight_to_expr(e, param_length);
 
-            // prob = weight * rate
+            // prob = weight * rate (using interned multiplication for CSE)
             struct ptd_expression *prob_expr =
-                ptd_expr_mul(weight_expr, ptd_expr_copy_iterative(sv->rate_expr));
+                ptd_expr_mul_interned(intern_table, weight_expr, ptd_expr_copy_iterative(sv->rate_expr));
 
             // Create symbolic edge
             struct ptd_edge_symbolic_ll *se =
@@ -504,21 +523,23 @@ struct ptd_graph_symbolic *ptd_graph_symbolic_elimination(
                 // CASE A: Self-loop (child == parent)
                 if (child_orig == parent_orig) {
                     // scale = 1 / (1 - parent_to_me * me_to_parent)
+                    // Using interned constructors for CSE
                     struct ptd_expression *loop_prob =
-                        ptd_expr_mul(
+                        ptd_expr_mul_interned(
+                            intern_table,
                             ptd_expr_copy_iterative(parent_to_me_expr),
                             ptd_expr_copy_iterative(me_to_child->prob_expr)
                         );
                     struct ptd_expression *one_minus_prob =
-                        ptd_expr_sub(ptd_expr_const(1.0), loop_prob);
-                    struct ptd_expression *scale = ptd_expr_inv(one_minus_prob);
+                        ptd_expr_sub_interned(intern_table, ptd_expr_const(1.0), loop_prob);
+                    struct ptd_expression *scale = ptd_expr_inv_interned(intern_table, one_minus_prob);
 
                     // Find parent's self-loop edge (if exists)
                     struct ptd_edge_symbolic_ll *self_loop = find_edge_ll(parent, parent_orig);
                     if (self_loop != NULL) {
                         // Multiply existing self-loop by scale
                         self_loop->prob_expr =
-                            ptd_expr_mul(self_loop->prob_expr, scale);
+                            ptd_expr_mul_interned(intern_table, self_loop->prob_expr, scale);
                     }
                     // If no self-loop exists, the scale factor affects all edges
                     // (implicitly incorporated in normalization)
@@ -537,18 +558,22 @@ struct ptd_graph_symbolic *ptd_graph_symbolic_elimination(
                 if (parent_to_child != NULL) {
                     // CASE B: Matching edge - add bypass probability
                     // new_prob = old_prob + (parent_to_me * me_to_child)
+                    // CRITICAL: Using interned constructors prevents exponential expression growth
                     struct ptd_expression *bypass =
-                        ptd_expr_mul(
+                        ptd_expr_mul_interned(
+                            intern_table,
                             ptd_expr_copy_iterative(parent_to_me_expr),
                             ptd_expr_copy_iterative(me_to_child->prob_expr)
                         );
                     parent_to_child->prob_expr =
-                        ptd_expr_add(parent_to_child->prob_expr, bypass);
+                        ptd_expr_add_interned(intern_table, parent_to_child->prob_expr, bypass);
                 } else {
                     // CASE C: New edge
                     // new_prob = parent_to_me * me_to_child
+                    // CRITICAL: Using interned constructors prevents exponential expression growth
                     struct ptd_expression *new_prob =
-                        ptd_expr_mul(
+                        ptd_expr_mul_interned(
+                            intern_table,
                             ptd_expr_copy_iterative(parent_to_me_expr),
                             ptd_expr_copy_iterative(me_to_child->prob_expr)
                         );
@@ -585,12 +610,12 @@ struct ptd_graph_symbolic *ptd_graph_symbolic_elimination(
                     edge = edge->next;
                 }
 
-                struct ptd_expression *total = sum_expressions(parent_edge_exprs, parent_n_edges);
+                struct ptd_expression *total = sum_expressions(intern_table, parent_edge_exprs, parent_n_edges);
 
-                // Normalize: prob = prob / total
+                // Normalize: prob = prob / total (using interned division for CSE)
                 edge = parent->first_edge->next;
                 while (edge != parent->last_edge) {
-                    edge->prob_expr = ptd_expr_div(edge->prob_expr, ptd_expr_copy_iterative(total));
+                    edge->prob_expr = ptd_expr_div_interned(intern_table, edge->prob_expr, ptd_expr_copy_iterative(total));
                     edge = edge->next;
                 }
 
@@ -605,6 +630,12 @@ struct ptd_graph_symbolic *ptd_graph_symbolic_elimination(
     }
 
     DEBUG_PRINT("INFO: Elimination loop complete, building result structure\n");
+
+    // ========================================================================
+    // CSE: Mark expressions for copying (not destruction)
+    // ========================================================================
+    // We'll copy expressions to result structure, then destroy intern table
+    // The intern table contains all unique expressions; copying happens next
 
     // ========================================================================
     // PHASE 5: Build Result Structure
@@ -675,14 +706,16 @@ struct ptd_graph_symbolic *ptd_graph_symbolic_elimination(
     }
 
     // Cleanup internal structures
+    // NOTE: Do NOT destroy expressions here - they're shared via intern table
+    // and will be destroyed when we destroy the intern table
     for (size_t i = 0; i < graph->vertices_length; i++) {
         struct ptd_vertex_symbolic_ll *sv = sym_vertices[i];
 
-        // Free edges
+        // Free edges (but not their expressions)
         struct ptd_edge_symbolic_ll *edge = sv->first_edge->next;
         while (edge != sv->last_edge) {
             struct ptd_edge_symbolic_ll *next = edge->next;
-            ptd_expr_destroy_iterative(edge->prob_expr);
+            // Don't destroy edge->prob_expr - it's in the intern table
             free(edge);
             edge = next;
         }
@@ -697,7 +730,7 @@ struct ptd_graph_symbolic *ptd_graph_symbolic_elimination(
             plink = next;
         }
 
-        ptd_expr_destroy_iterative(sv->rate_expr);
+        // Don't destroy sv->rate_expr - it's in the intern table
         free(sv);
     }
 
@@ -708,6 +741,21 @@ struct ptd_graph_symbolic *ptd_graph_symbolic_elimination(
     ptd_scc_graph_destroy(scc);
 
     DEBUG_PRINT("INFO: Symbolic elimination complete!\n");
+
+    // ========================================================================
+    // CSE Statistics and Cleanup
+    // ========================================================================
+    // Print intern table statistics if requested (for profiling/debugging)
+    if (getenv("PTD_CSE_STATS")) {
+        printf("\n");
+        ptd_expr_intern_table_stats(intern_table);
+        printf("\n");
+    }
+
+    // Clean up intern table
+    // Note: Expressions are still referenced by result structure, so don't destroy them
+    // The table only owns the hash table structure, not the expressions themselves
+    ptd_expr_intern_table_destroy(intern_table);
 
     return result;
 }
@@ -840,5 +888,195 @@ void ptd_graph_symbolic_instantiate_batch(
     for (size_t i = 0; i < batch_size; i++) {
         const double *params_i = params_batch + i * n_params;
         graphs_out[i] = ptd_graph_symbolic_instantiate(symbolic, params_i, n_params);
+    }
+}
+
+// ============================================================================
+// Symbolic Differentiation (Phase 5 Week 2)
+// ============================================================================
+
+/**
+ * Symbolically differentiate expression w.r.t. parameter
+ *
+ * Implements automatic differentiation using standard calculus rules.
+ * Returns a new expression tree representing ∂expr/∂θ[param_idx].
+ */
+struct ptd_expression *ptd_expr_derivative(
+    const struct ptd_expression *expr,
+    size_t param_idx
+) {
+    if (expr == NULL) {
+        return NULL;
+    }
+
+    switch (expr->type) {
+        case PTD_EXPR_CONST:
+            // d/dθ[c] = 0
+            return ptd_expr_const(0.0);
+
+        case PTD_EXPR_PARAM:
+            // d/dθᵢ[θⱼ] = δᵢⱼ (Kronecker delta)
+            return ptd_expr_const(expr->param_index == param_idx ? 1.0 : 0.0);
+
+        case PTD_EXPR_DOT: {
+            // d/dθᵢ[Σⱼ cⱼθⱼ] = cᵢ
+            // Need to find coefficient for param_idx
+            for (size_t i = 0; i < expr->n_terms; i++) {
+                if (expr->param_indices[i] == param_idx) {
+                    return ptd_expr_const(expr->coefficients[i]);
+                }
+            }
+            // param_idx not in this dot product
+            return ptd_expr_const(0.0);
+        }
+
+        case PTD_EXPR_ADD: {
+            // d/dθ[f + g] = df/dθ + dg/dθ (sum rule)
+            struct ptd_expression *df = ptd_expr_derivative(expr->left, param_idx);
+            struct ptd_expression *dg = ptd_expr_derivative(expr->right, param_idx);
+            if (df == NULL || dg == NULL) {
+                ptd_expr_destroy(df);
+                ptd_expr_destroy(dg);
+                return NULL;
+            }
+            return ptd_expr_add(df, dg);
+        }
+
+        case PTD_EXPR_SUB: {
+            // d/dθ[f - g] = df/dθ - dg/dθ (difference rule)
+            struct ptd_expression *df = ptd_expr_derivative(expr->left, param_idx);
+            struct ptd_expression *dg = ptd_expr_derivative(expr->right, param_idx);
+            if (df == NULL || dg == NULL) {
+                ptd_expr_destroy(df);
+                ptd_expr_destroy(dg);
+                return NULL;
+            }
+            return ptd_expr_sub(df, dg);
+        }
+
+        case PTD_EXPR_MUL: {
+            // d/dθ[f·g] = f·dg/dθ + g·df/dθ (product rule)
+            struct ptd_expression *df = ptd_expr_derivative(expr->left, param_idx);
+            struct ptd_expression *dg = ptd_expr_derivative(expr->right, param_idx);
+            if (df == NULL || dg == NULL) {
+                ptd_expr_destroy(df);
+                ptd_expr_destroy(dg);
+                return NULL;
+            }
+
+            // f·dg
+            struct ptd_expression *f_dg = ptd_expr_mul(
+                ptd_expr_copy(expr->left), dg
+            );
+            // g·df
+            struct ptd_expression *g_df = ptd_expr_mul(
+                ptd_expr_copy(expr->right), df
+            );
+
+            if (f_dg == NULL || g_df == NULL) {
+                ptd_expr_destroy(f_dg);
+                ptd_expr_destroy(g_df);
+                return NULL;
+            }
+
+            return ptd_expr_add(f_dg, g_df);
+        }
+
+        case PTD_EXPR_DIV: {
+            // d/dθ[f/g] = (g·df/dθ - f·dg/dθ)/g² (quotient rule)
+            struct ptd_expression *df = ptd_expr_derivative(expr->left, param_idx);
+            struct ptd_expression *dg = ptd_expr_derivative(expr->right, param_idx);
+            if (df == NULL || dg == NULL) {
+                ptd_expr_destroy(df);
+                ptd_expr_destroy(dg);
+                return NULL;
+            }
+
+            // g·df
+            struct ptd_expression *g_df = ptd_expr_mul(
+                ptd_expr_copy(expr->right), df
+            );
+            // f·dg
+            struct ptd_expression *f_dg = ptd_expr_mul(
+                ptd_expr_copy(expr->left), dg
+            );
+            // g·df - f·dg
+            struct ptd_expression *numerator = ptd_expr_sub(g_df, f_dg);
+            // g²
+            struct ptd_expression *denominator = ptd_expr_mul(
+                ptd_expr_copy(expr->right),
+                ptd_expr_copy(expr->right)
+            );
+
+            if (numerator == NULL || denominator == NULL) {
+                ptd_expr_destroy(numerator);
+                ptd_expr_destroy(denominator);
+                return NULL;
+            }
+
+            return ptd_expr_div(numerator, denominator);
+        }
+
+        case PTD_EXPR_INV: {
+            // d/dθ[1/f] = -df/dθ / f²
+            struct ptd_expression *df = ptd_expr_derivative(expr->left, param_idx);
+            if (df == NULL) {
+                return NULL;
+            }
+
+            // -df
+            struct ptd_expression *minus_df = ptd_expr_mul(
+                ptd_expr_const(-1.0), df
+            );
+            // f²
+            struct ptd_expression *f_squared = ptd_expr_mul(
+                ptd_expr_copy(expr->left),
+                ptd_expr_copy(expr->left)
+            );
+
+            if (minus_df == NULL || f_squared == NULL) {
+                ptd_expr_destroy(minus_df);
+                ptd_expr_destroy(f_squared);
+                return NULL;
+            }
+
+            return ptd_expr_div(minus_df, f_squared);
+        }
+
+        default:
+            return NULL;
+    }
+}
+
+/**
+ * Evaluate expression and all parameter gradients in one pass
+ *
+ * Uses forward-mode automatic differentiation. For each parameter,
+ * computes the symbolic derivative and evaluates it.
+ */
+void ptd_expr_evaluate_with_gradient(
+    const struct ptd_expression *expr,
+    const double *params,
+    size_t n_params,
+    double *value,
+    double *gradient
+) {
+    if (expr == NULL || params == NULL || value == NULL || gradient == NULL) {
+        return;
+    }
+
+    // Evaluate value
+    *value = ptd_expr_evaluate(expr, params, n_params);
+
+    // Evaluate gradient for each parameter
+    // TODO: Optimize by caching derivative expressions
+    for (size_t i = 0; i < n_params; i++) {
+        struct ptd_expression *deriv = ptd_expr_derivative(expr, i);
+        if (deriv != NULL) {
+            gradient[i] = ptd_expr_evaluate(deriv, params, n_params);
+            ptd_expr_destroy(deriv);
+        } else {
+            gradient[i] = 0.0;
+        }
     }
 }

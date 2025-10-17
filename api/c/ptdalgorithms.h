@@ -112,6 +112,10 @@ struct ptd_graph {
     struct ptd_desc_reward_compute *reward_compute_graph;
     struct ptd_desc_reward_compute_parameterized *parameterized_reward_compute_graph;
     bool was_dph;
+
+    /* Trace-based elimination (NULL until first parameter update) */
+    struct ptd_elimination_trace *elimination_trace;
+    double *current_params;  // Current parameter values (NULL until first update)
 };
 
 struct ptd_edge {
@@ -126,6 +130,7 @@ struct ptd_edge_parameterized {
     bool parameterized;
     double *state;
     bool should_free_state;
+    double base_weight;  // Original base weight (preserved for gradient computation)
 };
 
 
@@ -393,11 +398,88 @@ struct ptd_expression *ptd_expr_copy_iterative(const struct ptd_expression *expr
 void ptd_expr_destroy(struct ptd_expression *expr);
 void ptd_expr_destroy_iterative(struct ptd_expression *expr);
 
+// Expression hashing and equality (for CSE - Common Subexpression Elimination)
+uint64_t ptd_expr_hash(const struct ptd_expression *expr);
+bool ptd_expr_equal(const struct ptd_expression *a, const struct ptd_expression *b);
+
+// Expression interning for CSE
+struct ptd_expr_intern_table;
+
+struct ptd_expr_intern_table *ptd_expr_intern_table_create(size_t capacity);
+void ptd_expr_intern_table_destroy(struct ptd_expr_intern_table *table);
+struct ptd_expression *ptd_expr_intern(struct ptd_expr_intern_table *table,
+                                        struct ptd_expression *expr);
+void ptd_expr_intern_table_stats(const struct ptd_expr_intern_table *table);
+
+// Interned expression constructors (with CSE)
+struct ptd_expression *ptd_expr_add_interned(struct ptd_expr_intern_table *table,
+                                              struct ptd_expression *left,
+                                              struct ptd_expression *right);
+struct ptd_expression *ptd_expr_mul_interned(struct ptd_expr_intern_table *table,
+                                              struct ptd_expression *left,
+                                              struct ptd_expression *right);
+struct ptd_expression *ptd_expr_div_interned(struct ptd_expr_intern_table *table,
+                                              struct ptd_expression *left,
+                                              struct ptd_expression *right);
+struct ptd_expression *ptd_expr_sub_interned(struct ptd_expr_intern_table *table,
+                                              struct ptd_expression *left,
+                                              struct ptd_expression *right);
+struct ptd_expression *ptd_expr_inv_interned(struct ptd_expr_intern_table *table,
+                                              struct ptd_expression *child);
+
 // Expression evaluation (iterative to avoid stack overflow)
 double ptd_expr_evaluate_iterative(
     const struct ptd_expression *expr,
     const double *params,
     size_t n_params
+);
+
+/**
+ * Symbolically differentiate expression w.r.t. parameter
+ *
+ * Returns a new expression tree representing ∂expr/∂θ[param_idx].
+ * Uses standard calculus rules (sum, product, quotient, chain).
+ *
+ * The returned expression must be freed with ptd_expr_destroy() or
+ * ptd_expr_destroy_iterative() when no longer needed.
+ *
+ * @param expr Expression to differentiate
+ * @param param_idx Parameter index (0-based)
+ * @return New expression tree for derivative, or NULL on error
+ *
+ * @note This performs symbolic differentiation, not numeric.
+ *       The result is an expression that can be evaluated with
+ *       different parameter values.
+ *
+ * @note For efficiency, use ptd_expr_evaluate_with_gradient() to
+ *       compute value and all gradients in a single pass.
+ */
+struct ptd_expression *ptd_expr_derivative(
+    const struct ptd_expression *expr,
+    size_t param_idx
+);
+
+/**
+ * Evaluate expression and all parameter gradients in one pass
+ *
+ * More efficient than calling ptd_expr_derivative() and ptd_expr_evaluate()
+ * separately for each parameter. Uses forward-mode automatic differentiation.
+ *
+ * @param expr Expression to evaluate
+ * @param params Parameter array
+ * @param n_params Number of parameters (length of params and gradient arrays)
+ * @param value Output: f(θ)
+ * @param gradient Output: [∂f/∂θ₀, ∂f/∂θ₁, ..., ∂f/∂θₙ₋₁]
+ *
+ * @note gradient must be pre-allocated with size n_params
+ * @note Uses symbolic differentiation internally
+ */
+void ptd_expr_evaluate_with_gradient(
+    const struct ptd_expression *expr,
+    const double *params,
+    size_t n_params,
+    double *value,
+    double *gradient
 );
 
 // Symbolic graph elimination (main function)
@@ -427,6 +509,182 @@ struct ptd_graph_symbolic *ptd_graph_symbolic_from_json(const char *json);
 
 // Cleanup
 void ptd_graph_symbolic_destroy(struct ptd_graph_symbolic *symbolic);
+
+// ============================================================================
+// Trace-Based Elimination for Efficient Parameter Updates
+// ============================================================================
+
+/**
+ * Operation types for trace-based elimination
+ *
+ * These operations form a linear sequence that can be efficiently
+ * replayed with different parameter values.
+ */
+enum ptd_trace_op_type {
+    PTD_OP_CONST = 0,   /* Constant value */
+    PTD_OP_PARAM = 1,   /* Parameter reference θ[i] */
+    PTD_OP_DOT = 2,     /* Dot product: Σ(cᵢ * θᵢ) */
+    PTD_OP_ADD = 3,     /* Addition: a + b */
+    PTD_OP_MUL = 4,     /* Multiplication: a * b */
+    PTD_OP_DIV = 5,     /* Division: a / b */
+    PTD_OP_INV = 6,     /* Inverse: 1 / a */
+    PTD_OP_SUM = 7      /* Sum: sum([a, b, c, ...]) */
+};
+
+/**
+ * Single operation in elimination trace
+ */
+struct ptd_trace_operation {
+    enum ptd_trace_op_type op_type;
+
+    /* For CONST */
+    double const_value;
+
+    /* For PARAM */
+    size_t param_idx;
+
+    /* For DOT (optimized linear combination) */
+    double *coefficients;           /* Coefficient array */
+    size_t coefficients_length;     /* Length of coefficient array */
+
+    /* For binary/unary operations */
+    size_t *operands;               /* Indices of operand operations */
+    size_t operands_length;         /* Number of operands */
+};
+
+/**
+ * Complete elimination trace
+ *
+ * This structure records all operations needed to eliminate a graph,
+ * enabling fast replay with different parameter values.
+ */
+struct ptd_elimination_trace {
+    /* Operation sequence */
+    struct ptd_trace_operation *operations;
+    size_t operations_length;
+
+    /* Vertex rate mappings (vertex_idx → operation_idx) */
+    size_t *vertex_rates;
+
+    /* Edge probability mappings (vertex_idx → [operation_idx]) */
+    size_t **edge_probs;
+    size_t *edge_probs_lengths;
+
+    /* Target vertex mappings (vertex_idx → [target_vertex_idx]) */
+    size_t **vertex_targets;
+    size_t *vertex_targets_lengths;
+
+    /* Vertex states (copied from graph) */
+    int **states;
+    size_t state_length;
+
+    /* Metadata */
+    size_t starting_vertex_idx;
+    size_t n_vertices;
+    size_t param_length;
+    bool is_discrete;
+};
+
+/**
+ * Result of trace evaluation
+ *
+ * Contains evaluated vertex rates and edge probabilities for
+ * specific parameter values.
+ */
+struct ptd_trace_result {
+    double *vertex_rates;              /* Array[n_vertices] */
+    double **edge_probs;               /* Array[n_vertices][n_edges] */
+    size_t *edge_probs_lengths;        /* Array[n_vertices] */
+    size_t **vertex_targets;           /* Array[n_vertices][n_edges] */
+    size_t *vertex_targets_lengths;    /* Array[n_vertices] */
+    size_t n_vertices;
+};
+
+// Trace-based elimination functions
+
+/**
+ * Record elimination trace from parameterized graph
+ *
+ * Performs graph elimination while recording all arithmetic operations
+ * in a linear sequence. The trace can be efficiently replayed with
+ * different parameter values.
+ *
+ * @param graph Parameterized graph
+ * @return Elimination trace, or NULL on error
+ *
+ * Time complexity: O(n³) one-time cost
+ * Space complexity: O(n²) for trace storage
+ */
+struct ptd_elimination_trace *ptd_record_elimination_trace(
+    struct ptd_graph *graph
+);
+
+/**
+ * Evaluate elimination trace with concrete parameter values
+ *
+ * Executes the recorded operation sequence with given parameters
+ * to produce vertex rates and edge probabilities.
+ *
+ * @param trace Elimination trace
+ * @param params Parameter array
+ * @param params_length Length of parameter array
+ * @return Trace evaluation result, or NULL on error
+ *
+ * Time complexity: O(n) where n = number of operations
+ */
+struct ptd_trace_result *ptd_evaluate_trace(
+    const struct ptd_elimination_trace *trace,
+    const double *params,
+    size_t params_length
+);
+
+/**
+ * Build reward compute graph from trace evaluation result
+ *
+ * Converts trace evaluation results into the internal reward_compute_graph
+ * structure used by pdf/moment computations.
+ *
+ * @param result Trace evaluation result
+ * @param graph Graph structure (for vertex references)
+ * @return Reward compute graph, or NULL on error
+ */
+struct ptd_desc_reward_compute *ptd_build_reward_compute_from_trace(
+    const struct ptd_trace_result *result,
+    struct ptd_graph *graph
+);
+
+/**
+ * Instantiate a complete graph from trace evaluation result
+ *
+ * Creates a new graph with all vertices and edges from the evaluated trace.
+ * The graph will have concrete edge weights computed from the trace evaluation.
+ *
+ * @param result Trace evaluation result with concrete rates and probabilities
+ * @param trace Original elimination trace (for vertex states and structure)
+ * @return New graph instance, or NULL on error
+ *
+ * Notes:
+ * - The returned graph is NOT normalized
+ * - Caller must call ptd_graph_destroy() when done
+ * - Vertices are created from trace->states
+ * - Edge weights are computed as: weight = prob / inv_rate
+ *
+ * Time complexity: O(n + m) where n = vertices, m = edges
+ */
+struct ptd_graph *ptd_instantiate_from_trace(
+    const struct ptd_trace_result *result,
+    const struct ptd_elimination_trace *trace
+);
+
+/**
+ * Destroy elimination trace and free all memory
+ */
+void ptd_elimination_trace_destroy(struct ptd_elimination_trace *trace);
+
+/**
+ * Destroy trace evaluation result and free all memory
+ */
+void ptd_trace_result_destroy(struct ptd_trace_result *result);
 
 
 struct ptd_scc_graph {
@@ -517,6 +775,70 @@ void ptd_dph_probability_distribution_context_destroy(
 
 int ptd_dph_probability_distribution_step(
         struct ptd_dph_probability_distribution_context *context
+);
+
+/**
+ * Compute PDF and gradient w.r.t. parameters using forward algorithm
+ *
+ * This extends the standard forward algorithm (Algorithm 4) to track
+ * probability gradients through the DP recursion. Gradients are computed
+ * via chain rule through graph traversal - no matrix operations.
+ *
+ * @param graph Parameterized graph with symbolic edge expressions
+ * @param time Time point to evaluate PDF at
+ * @param granularity Discretization granularity (0 = auto-select)
+ * @param params Parameter vector θ
+ * @param n_params Length of params array
+ * @param pdf_value Output: PDF(time|θ)
+ * @param pdf_gradient Output: ∇PDF(time|θ), shape (n_params,)
+ *        Must be pre-allocated with size n_params
+ *
+ * @return 0 on success, non-zero on error
+ *
+ * @note This uses the same graph-based approach as pdf(), just with
+ *       gradient tracking. No matrix exponentiation.
+ *
+ * @note For multiple time points, call this function in a loop.
+ *       Each call is independent.
+ *
+ * @note Complexity: O(k·m·p) where k=max_jumps, m=edges, p=n_params
+ *       This is p× slower than forward-only, but still graph-based.
+ */
+int ptd_graph_pdf_with_gradient(
+    struct ptd_graph *graph,
+    double time,
+    size_t granularity,
+    const double *params,
+    size_t n_params,
+    double *pdf_value,
+    double *pdf_gradient
+);
+
+/**
+ * Compute PDF for parameterized graph using current parameters
+ *
+ * This function uses the parameters set via ptd_graph_update_weight_parameterized()
+ * to compute the PDF value and optionally its gradient. It provides a convenient
+ * interface that doesn't require passing parameters explicitly.
+ *
+ * @param graph Parameterized graph with current_params set via update_weight_parameterized
+ * @param time Time at which to evaluate PDF
+ * @param granularity Uniformization granularity (0 = auto-select)
+ * @param pdf_value Output: PDF value at specified time
+ * @param pdf_gradient Output: gradient array (size = param_length), or NULL if gradients not needed
+ * @return 0 on success, -1 on error
+ *
+ * @note Call ptd_graph_update_weight_parameterized() first to set parameters
+ * @note If pdf_gradient is NULL, only PDF is computed (faster)
+ * @note If pdf_gradient is non-NULL, both PDF and gradient are computed using
+ *       ptd_graph_pdf_with_gradient() for machine-precision accuracy
+ */
+int ptd_graph_pdf_parameterized(
+    struct ptd_graph *graph,
+    double time,
+    size_t granularity,
+    double *pdf_value,
+    double *pdf_gradient
 );
 
 #ifndef PTD_INTEGRATE_EXCEPTIONS

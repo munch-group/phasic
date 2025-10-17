@@ -231,8 +231,8 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/4e/2e/8f4051119f460cfc786aa91f212165bb6e643283b533db572d7b33952bd2/requests_cache-1.2.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/31/f6/5fc0574af5379606ffd57a4b68ed88f9b415eb222047fe023aefcc00a648/rich_argparse-1.7.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/83/11/00d3c3dfc25ad54e731d91449895a79e4bf2384dc3ac01809010ba88f6d5/seaborn-0.13.2-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/e9/a8/8bd2b6c09c3021278f10728d9e1c68633f04bb73d5994363cf0d383766d9/stonefish_license_manager-0.5.40-cp313-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/9c/a8/383dd6f4a24721cf67b43a228f00255f11576ce41d21528a16b0b706d35b/stonefish_runtime-0.3.4-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+      - pypi: https://files.pythonhosted.org/packages/2d/1e/bd37407f693f453a3f55f12b40e645bc96150d67d3c12bbbe49ae9d5a82c/stonefish_license_manager-0.5.42-cp313-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/db/ad/fa4136ab2d1471ce930f1bdac7ed9f2968c0ad9cf3bd8ea364cd8f0ac8c9/stonefish_runtime-0.3.5-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/d0/30/dc54f88dd4a2b5dc8a0279bdd7270e735851848b762aeb1c1184ed1f6b14/tqdm-4.67.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/5c/23/c7abc0ca0a1526a0774eca151daeb8de62ec457e77262b66b359c3c7679e/tzdata-2025.2-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/bc/d9/5ec15501b675f7bc07c5d16aa70d8d778b12375686b6efd47656efdc67cd/url_normalize-2.2.1-py3-none-any.whl
@@ -417,8 +417,8 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/4e/2e/8f4051119f460cfc786aa91f212165bb6e643283b533db572d7b33952bd2/requests_cache-1.2.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/31/f6/5fc0574af5379606ffd57a4b68ed88f9b415eb222047fe023aefcc00a648/rich_argparse-1.7.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/83/11/00d3c3dfc25ad54e731d91449895a79e4bf2384dc3ac01809010ba88f6d5/seaborn-0.13.2-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/e9/a8/8bd2b6c09c3021278f10728d9e1c68633f04bb73d5994363cf0d383766d9/stonefish_license_manager-0.5.40-cp313-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/36/71/bb4a419344700baf806f09330b232a619b99256fb3133a1ac16a4a558b69/stonefish_runtime-0.3.4-cp313-cp313-macosx_11_0_arm64.whl
+      - pypi: https://files.pythonhosted.org/packages/2d/1e/bd37407f693f453a3f55f12b40e645bc96150d67d3c12bbbe49ae9d5a82c/stonefish_license_manager-0.5.42-cp313-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/1b/82/840b959c9df5436e7e98b55b689daf9119ff64219ebf0fc2fdfdbe30b9ce/stonefish_runtime-0.3.5-cp313-cp313-macosx_11_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/d0/30/dc54f88dd4a2b5dc8a0279bdd7270e735851848b762aeb1c1184ed1f6b14/tqdm-4.67.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/5c/23/c7abc0ca0a1526a0774eca151daeb8de62ec457e77262b66b359c3c7679e/tzdata-2025.2-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/bc/d9/5ec15501b675f7bc07c5d16aa70d8d778b12375686b6efd47656efdc67cd/url_normalize-2.2.1-py3-none-any.whl
@@ -4210,10 +4210,10 @@ packages:
   - pkg:pypi/stack-data?source=hash-mapping
   size: 26988
   timestamp: 1733569565672
-- pypi: https://files.pythonhosted.org/packages/e9/a8/8bd2b6c09c3021278f10728d9e1c68633f04bb73d5994363cf0d383766d9/stonefish_license_manager-0.5.40-cp313-none-any.whl
+- pypi: https://files.pythonhosted.org/packages/2d/1e/bd37407f693f453a3f55f12b40e645bc96150d67d3c12bbbe49ae9d5a82c/stonefish_license_manager-0.5.42-cp313-none-any.whl
   name: stonefish-license-manager
-  version: 0.5.40
-  sha256: 9e05b782483d99042359bc784c1980f1b81772d989324a187342f274a3ac5dc7
+  version: 0.5.42
+  sha256: 788cb3dfe3f8bd148ce2dd64ae68f717d6478b533fd5a4c6c8ba5526c3c4a0fe
   requires_dist:
   - cryptography>=3.1
   - getmac
@@ -4224,17 +4224,17 @@ packages:
   - requests-cache>=1.2
   - rich
   - rich-argparse
-  - stonefish-runtime>=0.3.0
+  - stonefish-runtime>=0.3.5
   requires_python: '>=3.10'
-- pypi: https://files.pythonhosted.org/packages/36/71/bb4a419344700baf806f09330b232a619b99256fb3133a1ac16a4a558b69/stonefish_runtime-0.3.4-cp313-cp313-macosx_11_0_arm64.whl
+- pypi: https://files.pythonhosted.org/packages/1b/82/840b959c9df5436e7e98b55b689daf9119ff64219ebf0fc2fdfdbe30b9ce/stonefish_runtime-0.3.5-cp313-cp313-macosx_11_0_arm64.whl
   name: stonefish-runtime
-  version: 0.3.4
-  sha256: b2495f546a09fa000174aa7710f8d04bd0a75fcf53e31df19492a70cec4dde9e
+  version: 0.3.5
+  sha256: 62e58411d4faafe49e65a75daddb2bb30656d8f08b733177e32a0f7912be2548
   requires_python: '>=3.10'
-- pypi: https://files.pythonhosted.org/packages/9c/a8/383dd6f4a24721cf67b43a228f00255f11576ce41d21528a16b0b706d35b/stonefish_runtime-0.3.4-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+- pypi: https://files.pythonhosted.org/packages/db/ad/fa4136ab2d1471ce930f1bdac7ed9f2968c0ad9cf3bd8ea364cd8f0ac8c9/stonefish_runtime-0.3.5-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
   name: stonefish-runtime
-  version: 0.3.4
-  sha256: b72fb7a5ebd82e728052ac2eea65a82c1840b59db794afd94d46cb6b72406899
+  version: 0.3.5
+  sha256: 91a1f5646c7264e01cf7ae0fd5830d7d62dc02b0d3e50c3382b732c941f26461
   requires_python: '>=3.10'
 - conda: https://conda.anaconda.org/conda-forge/noarch/tabulate-0.9.0-pyhd8ed1ab_2.conda
   sha256: 090023bddd40d83468ef86573976af8c514f64119b2bd814ee63a838a542720a

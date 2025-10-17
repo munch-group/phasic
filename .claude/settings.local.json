@@ -1,26 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(timeout 180 pixi run python test_jax_config.py)",
-      "Bash(cmake:*)",
-      "Bash(pixi run pip install:*)",
+      "Bash(timeout:*)",
+      "WebFetch(domain:docs.jax.dev)",
+      "WebFetch(domain:github.com)",
       "Bash(pixi run:*)",
-      "Bash(python test:*)",
-      "Bash(python:*)",
-      "Bash(git stash:*)",
-      "Bash(python3:*)",
-      "Bash(timeout 60 pixi run python tests/test_api_comprehensive.py)",
-      "Bash(chmod:*)",
-      "Bash(find:*)",
-      "Bash(test:*)",
-      "Bash(for:*)",
-      "Bash(done)",
-      "Bash(cat:*)",
-      "WebSearch",
+      "Read(//private/tmp/**)",
       "Bash(pip install:*)",
-      "Bash(timeout 600 python test_67_vertex_fix.py)",
-      "Bash(make:*)",
-      "Bash(sudo make:*)"
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []

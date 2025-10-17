@@ -126,7 +126,7 @@ install(TARGETS ptdalgorithmscpp_pybind DESTINATION ptdalgorithms)
 
 # nanobind_add_module(${PROJECT_NAME} src/cpp/ptdalgorithmscpp_pybind.cpp) 
 
-# install( 
+# install(
 #     TARGETS ${PROJECT_NAME}
 #     EXPORT ${PROJECT_NAME}Targets
 #     LIBRARY DESTINATION ${PYTHON_SITE_PACKAGES}
@@ -134,3 +134,14 @@ install(TARGETS ptdalgorithmscpp_pybind DESTINATION ptdalgorithms)
 #     RUNTIME DESTINATION ${BINDIR}
 # )
 ####################
+
+# Test executables ###################################################
+# Phase 5 Week 2: Symbolic gradient tests
+add_executable(test_symbolic_gradient tests/test_symbolic_gradient.c)
+target_link_libraries(test_symbolic_gradient libptdalgorithms)
+target_include_directories(test_symbolic_gradient PRIVATE api/c)
+
+# Phase 5 Week 3: Forward algorithm gradient tests
+add_executable(test_pdf_gradient tests/test_pdf_gradient.c)
+target_link_libraries(test_pdf_gradient libptdalgorithms)
+target_include_directories(test_pdf_gradient PRIVATE api/c)
