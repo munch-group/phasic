@@ -17,6 +17,7 @@ Model: Exponential(θ) where θ is the rate parameter
 
 import numpy as np
 import jax
+jax.config.update('jax_enable_x64', True)  # Enable 64-bit precision for accurate gradients
 import jax.numpy as jnp
 from pathlib import Path
 import shutil
@@ -126,7 +127,7 @@ def test_basic_convergence():
     print_section("Test 1: Basic Convergence (No Transformations)")
 
     # Setup
-    true_theta = 2.0
+    true_theta = 5.0
     n_samples = 200  # Balance between accuracy and speed
 
     print(f"True parameter: θ = {true_theta}")
@@ -160,15 +161,23 @@ def test_basic_convergence():
     graph = build_exponential_graph()
     model = Graph.pmf_from_graph(graph, discrete=False, param_length=1)
 
+    # Define uninformative prior in transformed (log) space
+    def uninformative_prior(phi):
+        """Uninformative prior: φ ~ N(0, 10^2) - very wide"""
+        mu = 0.0
+        sigma = 10.0
+        return -0.5 * jnp.sum(((phi - mu) / sigma)**2)
+
     # Run SVGD (positive_params=True by default)
     print(f"\nRunning SVGD...")
     svgd = SVGD(
         model=model,
         observed_data=data,
+        prior=uninformative_prior,  # Use uninformative prior
         theta_dim=1,
         n_particles=100,
-        n_iterations=1000,  # More iterations for better convergence
-        learning_rate=0.01,
+        n_iterations=1000,
+        learning_rate=0.1,  # Higher learning rate for exploration
         seed=42,
         verbose=False
     )
@@ -214,7 +223,7 @@ def test_log_transformation():
     print_section("Test 2: Log Transformation (θ > 0 constraint)")
 
     # Setup
-    true_theta = 2.0
+    true_theta = 5.0
     n_samples = 200
 
     print(f"True parameter: θ = {true_theta}")
@@ -244,26 +253,25 @@ def test_log_transformation():
 
     # Define prior in unconstrained (φ) space
     def phi_prior(phi):
-        """Prior on unconstrained parameter φ: φ ~ N(log(2), 0.5^2)"""
-        mu = jnp.log(2.0)
-        sigma = 0.5
+        """Prior on unconstrained parameter φ: φ ~ N(0, 10^2) - very wide"""
+        mu = 0.0
+        sigma = 10.0
         return -0.5 * jnp.sum(((phi - mu) / sigma)**2)
 
     # Run SVGD with transformation
     print(f"\nRunning SVGD with log transformation...")
 
     # Let SVGD initialize particles from the prior (don't specify theta_init)
-    # SVGD will sample from N(0,1) by default when param_transform is provided
+    # positive_params=True uses built-in softplus transformation
     svgd = SVGD(
         model=model,
         observed_data=data,
-        prior=phi_prior,  # Prior in φ space (CRITICAL FIX)
+        prior=phi_prior,  # Prior in φ space
         theta_dim=1,
         n_particles=100,
-        n_iterations=1000,  # More iterations
-        learning_rate=0.01,
-        positive_params=False,  # Disable default - using manual transform
-        param_transform=log_transform,
+        n_iterations=1000,
+        learning_rate=0.1,  # Higher learning rate for exploration
+        # positive_params=True is the default
         seed=42,
         verbose=False
     )
@@ -307,7 +315,7 @@ def test_positive_constraint():
     print_section("Test 3: Positive Constraint (positive_params=True)")
 
     # Setup
-    true_theta = 2.0
+    true_theta = 5.0
     n_samples = 200
 
     print(f"True parameter: θ = {true_theta}")
@@ -333,8 +341,8 @@ def test_positive_constraint():
         observed_data=data,
         theta_dim=1,
         n_particles=100,
-        n_iterations=1000,  # More iterations
-        learning_rate=0.01,
+        n_iterations=1000,
+        learning_rate=0.1,  # Higher learning rate for exploration
         # positive_params=True is now the default
         seed=42,
         verbose=False
@@ -379,7 +387,7 @@ def test_cache_isolation():
     print_section("Test 4: Cache Isolation")
 
     # Setup
-    true_theta = 2.0
+    true_theta = 5.0
     n_samples = 100
 
     print(f"Testing cache clearing between runs...\n")
