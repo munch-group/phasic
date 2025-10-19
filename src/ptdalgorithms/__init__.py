@@ -1522,7 +1522,8 @@ class Graph(_Graph):
                     if to_state in state_to_idx:
                         to_idx = state_to_idx[to_state]
                         # Use edge-specific valid length, padded/truncated to param_length
-                        edge_len = edge_valid_lengths.get((from_idx, to_idx), 0)
+                        # If edge_valid_lengths is empty (when param_length explicitly provided), use param_length
+                        edge_len = edge_valid_lengths.get((from_idx, to_idx), param_length)
                         if edge_len > 0:
                             edge_state = list(edge.edge_state(edge_len))
                             # Ensure exactly param_length coefficients (truncate or pad)
@@ -1546,7 +1547,8 @@ class Graph(_Graph):
                 if to_state in state_to_idx:
                     to_idx = state_to_idx[to_state]
                     # Use edge-specific valid length, padded/truncated to param_length (-1 = starting vertex)
-                    edge_len = edge_valid_lengths.get((-1, to_idx), 0)
+                    # If edge_valid_lengths is empty (when param_length explicitly provided), use param_length
+                    edge_len = edge_valid_lengths.get((-1, to_idx), param_length)
                     if edge_len > 0:
                         edge_state = list(edge.edge_state(edge_len))
                         # Ensure exactly param_length coefficients (truncate or pad)
