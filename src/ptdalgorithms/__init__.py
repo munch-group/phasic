@@ -244,9 +244,9 @@ from .cpu_monitor import (
     get_cached_nodes,
 )
 
-# Cache management (symbolic DAG cache + JAX compilation cache)
-from .symbolic_cache import SymbolicCache, print_cache_info
+# Cache management (JAX compilation cache)
 from .cache_manager import CacheManager, print_jax_cache_info, configure_layered_cache
+from .model_export import clear_cache, cache_info, print_cache_info
 from .jax_config import CompilationConfig, get_default_config, set_default_config
 from .cloud_cache import (
     S3Backend,
@@ -1792,19 +1792,10 @@ class Graph(_Graph):
                 "Install with: pip install 'ptdalgorithms[jax]' or pip install jax jaxlib"
             )
 
-        # Try to use symbolic cache for parameterized graphs
-        if use_cache:
-            try:
-                from .symbolic_cache import SymbolicCache
-                cache = SymbolicCache()
-                # Note: Currently returns placeholder until C++ symbolic elimination is integrated
-                # When integrated, this will provide massive speedups for repeated structures
-                symbolic_json = cache.get_or_compute(graph)
-                # TODO: Use symbolic_json when C++ bindings are ready
-            except Exception as e:
-                # Cache failed, continue without it
-                import warnings
-                warnings.warn(f"Symbolic cache unavailable: {e}", UserWarning)
+        # Note: Symbolic cache (symbolic_cache.py) has been removed as obsolete.
+        # The trace-based elimination system (trace_elimination.py) is now used instead,
+        # providing better performance for repeated evaluations.
+        # See: CACHING_SYSTEM_OVERVIEW.md for details.
 
         # Serialize the graph (now includes parameterized edges)
         serialized = graph.serialize(param_length=param_length)

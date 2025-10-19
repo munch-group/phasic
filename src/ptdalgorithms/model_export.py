@@ -5,6 +5,9 @@ Provides tools for:
 - Exporting models with compilation configurations
 - Generating warmup scripts for pre-populating JAX cache
 - Managing JAX compilation cache
+
+Note: This module provides a simplified API by wrapping CacheManager.
+For advanced cache operations, use CacheManager directly.
 """
 
 import os
@@ -14,10 +17,15 @@ from pathlib import Path
 from typing import Optional, Dict, Any, Union
 from datetime import datetime
 
+# Import CacheManager for internal use
+from .cache_manager import CacheManager
+
 
 def clear_cache(cache_dir: Optional[Union[Path, str]] = None, verbose: bool = True) -> None:
     """
     Clear JAX compilation cache.
+
+    This is a simplified wrapper around CacheManager.clear().
 
     Parameters
     ----------
@@ -29,30 +37,30 @@ def clear_cache(cache_dir: Optional[Union[Path, str]] = None, verbose: bool = Tr
 
     Examples
     --------
-    >>> from ptdalgorithms.model_export import clear_cache
+    >>> from ptdalgorithms import clear_cache
     >>> clear_cache()  # Clear default cache
     >>> clear_cache('/custom/cache/dir')  # Clear specific cache
+
+    See Also
+    --------
+    CacheManager.clear : Advanced cache clearing with confirmation
     """
-    if cache_dir is None:
-        cache_dir = os.environ.get('JAX_COMPILATION_CACHE_DIR', str(Path.home() / '.jax_cache'))
+    manager = CacheManager(cache_dir=cache_dir)
 
-    cache_path = Path(cache_dir)
-
-    if not cache_path.exists():
+    if not manager.cache_dir.exists():
         if verbose:
-            print(f"Cache directory does not exist: {cache_path}")
+            print(f"Cache directory does not exist: {manager.cache_dir}")
         return
 
-    # Get cache size before clearing
+    # Get info before clearing
     if verbose:
-        total_size = sum(f.stat().st_size for f in cache_path.rglob('*') if f.is_file())
-        num_files = sum(1 for _ in cache_path.rglob('*') if _.is_file())
-        print(f"Clearing cache: {cache_path}")
-        print(f"  Files: {num_files}")
-        print(f"  Size: {total_size / 1024 / 1024:.1f} MB")
+        info = manager.info()
+        print(f"Clearing cache: {manager.cache_dir}")
+        print(f"  Files: {info['num_files']}")
+        print(f"  Size: {info['total_size_mb']:.1f} MB")
 
-    # Remove cache directory
-    shutil.rmtree(cache_path)
+    # Clear via CacheManager (which uses shutil.rmtree)
+    manager.clear(confirm=True)
 
     if verbose:
         print(f"✓ Cache cleared successfully")
@@ -61,6 +69,9 @@ def clear_cache(cache_dir: Optional[Union[Path, str]] = None, verbose: bool = Tr
 def cache_info(cache_dir: Optional[Union[Path, str]] = None) -> Dict[str, Any]:
     """
     Get information about JAX compilation cache.
+
+    This is a simplified wrapper around CacheManager.info() with
+    reformatted output for backward compatibility.
 
     Parameters
     ----------
@@ -80,55 +91,42 @@ def cache_info(cache_dir: Optional[Union[Path, str]] = None) -> Dict[str, Any]:
 
     Examples
     --------
-    >>> from ptdalgorithms.model_export import cache_info
+    >>> from ptdalgorithms import cache_info
     >>> info = cache_info()
     >>> print(f"Cache size: {info['total_size_mb']:.1f} MB")
     >>> print(f"Cached compilations: {info['num_files']}")
+
+    See Also
+    --------
+    CacheManager.info : Returns info in slightly different format
     """
-    if cache_dir is None:
-        cache_dir = os.environ.get('JAX_COMPILATION_CACHE_DIR', str(Path.home() / '.jax_cache'))
+    manager = CacheManager(cache_dir=cache_dir)
+    info = manager.info()
 
-    cache_path = Path(cache_dir)
-
-    if not cache_path.exists():
-        return {
-            'exists': False,
-            'path': str(cache_path),
-            'num_files': 0,
-            'total_size_mb': 0.0,
-            'files': []
-        }
-
-    # Collect file information
-    files = []
-    total_size = 0
-
-    for file_path in cache_path.rglob('*'):
-        if file_path.is_file():
-            size = file_path.stat().st_size
-            total_size += size
-            modified = datetime.fromtimestamp(file_path.stat().st_mtime)
-            files.append((
-                str(file_path.relative_to(cache_path)),
-                size / 1024,  # KB
-                modified.strftime('%Y-%m-%d %H:%M:%S')
-            ))
-
-    # Sort by modification time (newest first)
-    files.sort(key=lambda x: x[2], reverse=True)
+    # Reformat file list for backward compatibility
+    # CacheManager returns list of dicts, we return list of tuples
+    files_reformatted = []
+    for file_dict in info['files']:
+        files_reformatted.append((
+            file_dict['path'],
+            file_dict['size_kb'],
+            file_dict['modified']
+        ))
 
     return {
-        'exists': True,
-        'path': str(cache_path),
-        'num_files': len(files),
-        'total_size_mb': total_size / 1024 / 1024,
-        'files': files
+        'exists': info['exists'],
+        'path': info['cache_dir'],
+        'num_files': info['num_files'],
+        'total_size_mb': info['total_size_mb'],
+        'files': files_reformatted
     }
 
 
 def print_cache_info(cache_dir: Optional[Union[Path, str]] = None, max_files: int = 10) -> None:
     """
     Print formatted cache information.
+
+    This is a simplified wrapper around CacheManager functionality.
 
     Parameters
     ----------
@@ -139,8 +137,12 @@ def print_cache_info(cache_dir: Optional[Union[Path, str]] = None, max_files: in
 
     Examples
     --------
-    >>> from ptdalgorithms.model_export import print_cache_info
+    >>> from ptdalgorithms import print_cache_info
     >>> print_cache_info()  # Show cache statistics
+
+    See Also
+    --------
+    print_jax_cache_info : Alternative from cache_manager module
     """
     info = cache_info(cache_dir)
 
