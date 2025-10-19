@@ -869,17 +869,14 @@ class SVGD:
         - Use preset: CompilationConfig.fast_compile()
         - Load from file: 'my_config.json'
         - Custom dict: {'optimization_level': 2, 'cache_dir': '/tmp/cache'}
-    positive_params : bool, default=False
+    positive_params : bool, default=True
         If True, constrains parameters to positive domain using softplus transformation.
         SVGD operates in unconstrained space (can be negative) but results are
-        transformed to positive values. Use show_transformed=True in plotting methods
-        to view constrained (positive) values, or show_transformed=False for unconstrained.
+        transformed to positive values.
 
-        Note: For phase-type distributions with rate parameters, it's often better to
-        work in unconstrained space and interpret negative values appropriately, as
-        softplus transformation can lead to very large rates that cause numerical issues.
-        Use positive_params=True only when you need strict positivity constraints and
-        expect moderate parameter values.
+        DEFAULT=True because phase-type distribution parameters (rates) must be positive.
+        Set to False only if you have a specific reason to allow negative parameters
+        (e.g., regression coefficients, log-space parameterization).
     param_transform : callable, optional
         Custom parameter transformation function. Overrides positive_params if provided.
         Should map unconstrained space to constrained space (e.g., lambda x: jax.nn.sigmoid(x)
@@ -936,7 +933,7 @@ class SVGD:
                  parallel=None,         # NEW: 'vmap', 'pmap', 'none'
                  n_devices=None,        # NEW: explicit device count for pmap
                  precompile=True,       # Keep for backward compat
-                 compilation_config=None, positive_params=False, param_transform=None):
+                 compilation_config=None, positive_params=True, param_transform=None):
 
         if n_particles is None:
             n_particles = 20 * theta_dim
