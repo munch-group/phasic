@@ -20,6 +20,18 @@ extern "C" {
 #include "../../api/c/ptdalgorithms_hash.h"
 }
 
+// Only include FFI headers if XLA FFI is available
+#ifdef HAVE_XLA_FFI
+#include "parameterized/graph_builder_ffi.hpp"
+
+// DISABLED: Global FFI registration causes memory corruption (see graph_builder_ffi.cpp)
+// // Declare XLA FFI handler symbols (defined in graph_builder_ffi.cpp)
+// extern "C" {
+//     extern void* PtdComputePmf;
+//     extern void* PtdComputePmfAndMoments;
+// }
+#endif
+
 #include <deque>
 #include <sstream>
 #include <stdexcept>
@@ -3824,6 +3836,49 @@ Computes the expected residence time of the phase-type distribution.
       .def_property_readonly("state_length",
           &ptdalgorithms::parameterized::GraphBuilder::state_length,
           "Dimension of state vectors");
+
+  // ============================================================================
+  // JAX FFI Handler Capsules (Phase 2)
+  // ============================================================================
+
+// DISABLED: Global FFI registration causes memory corruption
+// The XLA_FFI_DEFINE_HANDLER_SYMBOL macro creates static globals that corrupt
+// XLA's registry when loaded before JAX initialization. See graph_builder_ffi.cpp.
+//
+// TODO: Implement alternative registration mechanism that works after JAX init
+// #ifdef HAVE_XLA_FFI
+//   param_module.def("get_compute_pmf_ffi_capsule", []() -> py::capsule {
+//       return py::capsule(reinterpret_cast<void*>(PtdComputePmf), "xla._CUSTOM_CALL_TARGET");
+//   }, R"delim(
+//   Get PyCapsule for JAX FFI compute_pmf handler.
+//
+//   This capsule can be registered with JAX using jax.ffi.register_ffi_target()
+//   to enable zero-copy, XLA-optimized PDF computation.
+//
+//   Returns
+//   -------
+//   capsule
+//       PyCapsule containing pointer to XLA FFI handler
+//
+//   Examples
+//   --------
+//   >>> import jax
+//   >>> from ptdalgorithms.ptdalgorithmscpp_pybind import parameterized
+//   >>> capsule = parameterized.get_compute_pmf_ffi_capsule()
+//   >>> jax.ffi.register_ffi_target("ptd_compute_pmf", capsule, platform="cpu")
+//   )delim");
+//
+//   param_module.def("get_compute_pmf_and_moments_ffi_capsule", []() -> py::capsule {
+//       return py::capsule(reinterpret_cast<void*>(PtdComputePmfAndMoments), "xla._CUSTOM_CALL_TARGET");
+//   }, R"delim(
+//   Get PyCapsule for JAX FFI compute_pmf_and_moments handler.
+//
+//   Returns
+//   -------
+//   capsule
+//       PyCapsule containing pointer to XLA FFI handler
+//   )delim");
+// #endif
 
   // ============================================================================
   // Graph Content Hashing for Symbolic DAG Cache

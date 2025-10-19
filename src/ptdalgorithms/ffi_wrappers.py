@@ -42,31 +42,30 @@ from jax import ffi
 from typing import Union, Dict, Any
 import numpy as np
 
-# Try to import the C++ module
+# Import configuration and exceptions
+from .config import get_config
+from .exceptions import PTDBackendError, PTDConfigError
+
+# Import the C++ module (required - not optional)
 try:
     from . import ptdalgorithmscpp_pybind as cpp_module
     _HAS_CPP_MODULE = True
-except ImportError:
-    _HAS_CPP_MODULE = False
-    cpp_module = None
+except ImportError as e:
+    raise PTDBackendError(
+        "C++ pybind11 module not available.\n"
+        "  This is a core dependency and should always be present.\n"
+        f"  Import error: {e}"
+    )
 
-# Check if XLA FFI is available
-try:
-    import sys
-    import ctypes
-    import ctypes.util
+# FFI is currently DISABLED due to memory corruption bug
+# See: FFI_MEMORY_CORRUPTION_FIX.md
+# XLA_FFI_DEFINE_HANDLER_SYMBOL macros create static globals that register
+# BEFORE JAX is initialized, corrupting XLA's FFI registry.
+_HAS_FFI = False
+_lib = None
 
-    # Get the path to the compiled module
-    if _HAS_CPP_MODULE:
-        _MODULE_PATH = cpp_module.__file__
-        _lib = ctypes.CDLL(_MODULE_PATH)
-        _HAS_FFI = True
-    else:
-        _HAS_FFI = False
-        _lib = None
-except Exception as e:
-    _HAS_FFI = False
-    _lib = None
+# Note: When FFI is re-enabled, registration must happen AFTER JAX initialization
+# using explicit registration, not static global constructors
 
 # ============================================================================
 # Helper Functions
@@ -155,30 +154,70 @@ def _serialize_graph_structure(graph) -> str:
 
 
 # ============================================================================
-# FFI Registration (Deferred until handlers are properly exposed)
+# FFI Registration (Phase 2 Implementation)
 # ============================================================================
-
-# TODO: Register FFI targets once we have proper capsule exposure from C++
-# This requires adding pybind11 bindings to expose the XLA FFI handler addresses
 
 _FFI_REGISTERED = False
 
 def _register_ffi_targets():
-    """Register FFI targets with JAX (internal function)."""
+    """Register FFI targets with JAX.
+
+    Currently DISABLED due to memory corruption bug.
+    See FFI_MEMORY_CORRUPTION_FIX.md for details.
+
+    When re-enabled, this should be called explicitly AFTER JAX initialization,
+    not from static global constructors.
+
+    Raises
+    ------
+    PTDBackendError
+        FFI backend is not available (currently always raises)
+    """
     global _FFI_REGISTERED
 
-    if _FFI_REGISTERED or not _HAS_FFI:
-        return
+    if _FFI_REGISTERED:
+        return True
 
-    # TODO: Register FFI targets here once we have capsule exposure
-    # Example:
-    # ffi.register_ffi_target(
-    #     "ptdalgorithms_compute_pmf",
-    #     ffi.pycapsule(_lib.ComputePmf),
-    #     platform="cpu"
-    # )
+    # FFI is currently completely disabled
+    if get_config().ffi:
+        raise PTDBackendError(
+            "FFI backend requested but currently disabled.\n"
+            "  Reason: Memory corruption from static global registration\n"
+            "  See: FFI_MEMORY_CORRUPTION_FIX.md\n"
+            "  Available backends: " + str(['jax', 'cpp'])
+        )
 
-    _FFI_REGISTERED = True
+    return False
+
+    # DISABLED CODE - DO NOT ENABLE WITHOUT FIXING STATIC INITIALIZATION
+    # try:
+    #     # Try to get FFI capsules from C++ module
+    #     from . import ptdalgorithmscpp_pybind as cpp_module
+    #
+    #     # Get capsules for FFI handlers
+    #     compute_pmf_capsule = cpp_module.parameterized.get_compute_pmf_ffi_capsule()
+    #     compute_pmf_and_moments_capsule = cpp_module.parameterized.get_compute_pmf_and_moments_ffi_capsule()
+    #
+    #     # Register with JAX
+    #     jax.ffi.register_ffi_target(
+    #         "ptd_compute_pmf",
+    #         compute_pmf_capsule,
+    #         platform="cpu"
+    #     )
+    #
+    #     jax.ffi.register_ffi_target(
+    #         "ptd_compute_pmf_and_moments",
+    #         compute_pmf_and_moments_capsule,
+    #         platform="cpu"
+    #     )
+    #
+    #     _FFI_REGISTERED = True
+    #     return True
+    #
+    # except (AttributeError, ImportError) as e:
+    #     # FFI capsules not available (older build or missing XLA headers)
+    #     # Fall back to pure_callback implementation
+    #     return False
 
 
 # ============================================================================
@@ -423,9 +462,31 @@ def compute_pmf_ffi(structure_json: Union[str, Dict], theta: jax.Array, times: j
     >>> jit_pmf = jax.jit(compute_pmf_ffi, static_argnums=(0, 3, 4))
     >>> fast_pmf = jit_pmf(structure_dict, theta, times, False, 100)
     """
-    # For now, use fallback implementation
-    # TODO: Replace with true FFI call once handlers are properly exposed
-    return compute_pmf_fallback(structure_json, theta, times, discrete, granularity)
+    # Try to register FFI targets (no-op if already registered)
+    ffi_available = _register_ffi_targets()
+
+    if ffi_available and _FFI_REGISTERED:
+        # Use true JAX FFI (Phase 2 - XLA-optimized zero-copy)
+        # Convert structure to JSON bytes (survives pickle boundary)
+        structure_str = _ensure_json_string(structure_json)
+        # Create owned array (not view) to ensure data persists until FFI accesses it
+        json_str_bytes = structure_str.encode('utf-8')
+        json_bytes = jnp.array(np.frombuffer(json_str_bytes, dtype=np.uint8))
+
+        # Call JAX FFI target with JSON
+        result = jax.ffi.ffi_call(
+            "ptd_compute_pmf",
+            jax.ShapeDtypeStruct(times.shape, times.dtype),
+            json_bytes,  # Arg 1: structure_json buffer
+            theta,       # Arg 2: theta buffer
+            times,       # Arg 3: times buffer
+            granularity=granularity,  # Attr: granularity
+            discrete=discrete          # Attr: discrete
+        )
+        return result
+    else:
+        # Fall back to pure_callback (Phase 1)
+        return compute_pmf_fallback(structure_json, theta, times, discrete, granularity)
 
 
 def compute_moments_ffi(structure_json: Union[str, Dict], theta: jax.Array,
@@ -507,23 +568,53 @@ def compute_pmf_and_moments_ffi(structure_json: Union[str, Dict], theta: jax.Arr
     >>> likelihood = jnp.sum(jnp.log(pmf))
     >>> moment_penalty = jnp.sum((moments - target_moments)**2)
     """
-    # For now, use fallback implementation
-    # TODO: Replace with true FFI call once handlers are properly exposed
-    return compute_pmf_and_moments_fallback(
-        structure_json, theta, times, nr_moments, discrete, granularity
-    )
+    # Try to register FFI targets (no-op if already registered)
+    ffi_available = _register_ffi_targets()
+
+    if ffi_available and _FFI_REGISTERED:
+        # Use true JAX FFI (Phase 2 - XLA-optimized zero-copy)
+        # Convert structure to JSON bytes (survives pickle boundary)
+        structure_str = _ensure_json_string(structure_json)
+        # Create owned array (not view) to ensure data persists until FFI accesses it
+        json_str_bytes = structure_str.encode('utf-8')
+        json_bytes = jnp.array(np.frombuffer(json_str_bytes, dtype=np.uint8))
+
+        # Call JAX FFI target with JSON
+        pmf_result, moments_result = jax.ffi.ffi_call(
+            "ptd_compute_pmf_and_moments",
+            (jax.ShapeDtypeStruct(times.shape, times.dtype),
+             jax.ShapeDtypeStruct((nr_moments,), jnp.float64)),
+            json_bytes,  # Arg 1: structure_json buffer
+            theta,       # Arg 2: theta buffer
+            times,       # Arg 3: times buffer
+            granularity=granularity,   # Attr: granularity
+            discrete=discrete,          # Attr: discrete
+            nr_moments=nr_moments       # Attr: nr_moments
+        )
+        return pmf_result, moments_result
+    else:
+        # Fall back to pure_callback (Phase 1)
+        return compute_pmf_and_moments_fallback(
+            structure_json, theta, times, nr_moments, discrete, granularity
+        )
 
 
 # ============================================================================
 # Module Initialization
 # ============================================================================
 
-# Attempt to register FFI targets on import
-try:
-    _register_ffi_targets()
-except Exception as e:
-    # Silently fail - fallback implementation will be used
-    pass
+# FFI registration is currently DISABLED
+# When re-enabled, registration must be explicit (not automatic on import)
+# to avoid memory corruption from static global constructors.
+# See FFI_MEMORY_CORRUPTION_FIX.md for details.
+#
+# Future implementation should use:
+#   def register_ffi():
+#       """Explicitly register FFI handlers AFTER JAX initialization"""
+#       if get_config().ffi:
+#           _register_ffi_targets()
+#
+# DO NOT attempt automatic registration on module import!
 
 
 __all__ = [

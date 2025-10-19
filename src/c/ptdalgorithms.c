@@ -1576,7 +1576,8 @@ struct ptd_edge_parameterized *ptd_graph_add_edge_parameterized(
         struct ptd_vertex *from,
         struct ptd_vertex *to,
         double weight,
-        double *edge_state
+        double *edge_state,
+        size_t edge_state_length
 ) {
     from->graph->parameterized = true;
 
@@ -1587,6 +1588,7 @@ struct ptd_edge_parameterized *ptd_graph_add_edge_parameterized(
     edge->base_weight = weight;  // Store original base weight for gradient computation
     edge->parameterized = true;
     edge->state = edge_state;
+    edge->state_length = edge_state_length;  // Store the actual allocated length
     edge->should_free_state = true;
 
     ptd_directed_graph_add_edge(
@@ -5120,11 +5122,13 @@ struct ptd_clone_res ptd_clone_graph(struct ptd_graph *graph, struct ptd_avl_tre
             struct ptd_edge *e = v->edges[j];
 
             if (e->parameterized) {
+                struct ptd_edge_parameterized *param_e = (struct ptd_edge_parameterized *) e;
                 ptd_graph_add_edge_parameterized(
                         v2,
                         res->vertices[e->to->index],
                         e->weight,
-                        ((struct ptd_edge_parameterized *) e)->state
+                        param_e->state,
+                        param_e->state_length
                 )->should_free_state = false;
             } else {
                 ptd_graph_add_edge(v2, res->vertices[e->to->index], e->weight);

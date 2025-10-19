@@ -1,6 +1,5 @@
 /*-- scss:defaults --*/
 
-
 $white:    #fff !default;
 $gray-100: #f8f9fa !default;
 $gray-200: #e9ecef !default;
@@ -204,6 +203,22 @@ html { font-family: 'Inter', sans-serif; }
 }
 
 
+.quarto-grid-item .card-body {
+  // background-color: #c5f7ff;
+  background-color: #60b8d8;
+  color: white;
+}
+
+.quarto-grid-item .listing-title {
+    font-size: 15px;
+    font-weight: 500;
+}
+
+// .quarto-grid .frontpage {
+//   // background-color: #c5f7ff;
+//   background-color: #27a7d5;
+// }
+
 /* callouts */
 
 .callout.callout-titled .callout-header {
@@ -233,50 +248,50 @@ td:first-child a {
 
 /* Example Gallery */
 
-.gallery .gallery-card-body {
-    height: 250px;
-    padding-bottom: 20px;
-}
+// .gallery .gallery-card-body {
+//     height: 250px;
+//     padding-bottom: 20px;
+// }
 
-.gallery .gallery-card-cta {
-  font-size: 32px;
-  text-align: center;
-  padding: 100px 45px 45px 45px;
-  width: 100%;
-  background-color: rgb(248, 249, 250);
-}
+// .gallery .gallery-card-cta {
+//   font-size: 32px;
+//   text-align: center;
+//   padding: 100px 45px 45px 45px;
+//   width: 100%;
+//   background-color: rgb(248, 249, 250);
+// }
 
-.gallery a {
-  text-decoration: none;
-}
+// .gallery a {
+//   text-decoration: none;
+// }
 
 
-.gallery .gallery-card-body img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-}
+// .gallery .gallery-card-body img {
+//     width: 100%;
+//     height: 100%;
+//     object-fit: contain;
+// }
 
-.gallery .card-header {
-    font-size: 14px;
-    text-decoration: none;
-    text-align: center;
-}
+// .gallery .card-header {
+//     font-size: 14px;
+//     text-decoration: none;
+//     text-align: center;
+// }
 
-.gallery .card-header h6 {
-  margin-top: 0.5rem;
-}
+// .gallery .card-header h6 {
+//   margin-top: 0.5rem;
+// }
 
-.gallery .card-header a {
-    text-decoration: none;
-}
+// .gallery .card-header a {
+//     text-decoration: none;
+// }
 
-.gallery-links ul {
-  list-style-type: none;
-}
+// .gallery-links ul {
+//   list-style-type: none;
+// }
 
-.gallery-links li {
-  display: inline;
-  margin-right: 60px;
+// .gallery-links li {
+//   display: inline;
+//   margin-right: 60px;
 
-}
+// }

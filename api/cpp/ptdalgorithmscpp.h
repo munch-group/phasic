@@ -929,11 +929,19 @@ namespace ptdalgorithms {
             return _weight;
         }
 
-        std::vector<double> edge_state(size_t state_length) {
+        std::vector<double> edge_state(size_t requested_length) {
             std::vector<double> state;
 
-            if (_state != NULL) {
-                for (size_t i = 0; i < state_length; ++i) {
+            if (_state != NULL && ((struct ptd_edge_parameterized*)_edge)->state_length > 0) {
+                size_t actual_length = ((struct ptd_edge_parameterized*)_edge)->state_length;
+
+                // If requesting more than allocated, return empty (signals out of bounds)
+                if (requested_length > actual_length) {
+                    return state;  // Empty vector
+                }
+
+                // Otherwise, return exactly the requested length
+                for (size_t i = 0; i < requested_length; ++i) {
                     state.push_back(_state[i]);
                 }
             }

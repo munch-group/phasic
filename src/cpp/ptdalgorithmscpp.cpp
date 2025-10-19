@@ -251,16 +251,17 @@ void ptdalgorithms::Vertex::add_edge_parameterized(Vertex &to, double weight, st
         );
     }
 
-    double *state = (double *) calloc(edge_state.size(), sizeof(*state));
+    size_t state_length = edge_state.size();
+    double *state = (double *) calloc(state_length, sizeof(*state));
 
-    for (size_t i = 0; i < edge_state.size(); ++i) {
+    for (size_t i = 0; i < state_length; ++i) {
         state[i] = edge_state[i];
     }
 
     graph.notify_change();
 
     ptd_graph_add_edge_parameterized(
-            this->vertex, to.vertex, weight, state
+            this->vertex, to.vertex, weight, state, state_length
     );
 }
 

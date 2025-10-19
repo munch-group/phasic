@@ -6,13 +6,12 @@ import pickle
 import hashlib
 import pathlib
 
-# environment variables for JAX must be set before running any JAX code
-# Only set if not already configured (respect existing configuration from __init__.py or user)
-if '--xla_force_host_platform_device_count' not in os.environ.get('XLA_FLAGS', ''):
-    if platform.system() == "Darwin" and platform.machine() == "arm64":
-        os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count=8"
-    elif platform.system() == "Linux" and os.environ.get('SLURM_JOB_CPUS_PER_NODE', ''):
-        os.environ["XLA_FLAGS"] = f"--xla_force_host_platform_device_count={os.environ['SLURM_JOB_CPUS_PER_NODE']}"
+# Note: JAX environment (XLA_FLAGS, device count) is configured by
+# ptdalgorithms.__init__.py before this module is imported.
+# Users should configure via:
+#   1. ptdalgorithms.configure() before import, OR
+#   2. PTDALG_CPUS environment variable
+# See: src/ptdalgorithms/__init__.py lines 101-133
 import jax
 # print(jax.devices())
 import jax.numpy as jnp
@@ -26,6 +25,10 @@ from jax.sharding import Mesh, NamedSharding, PartitionSpec as P
 from jax.experimental.pjit import pjit
 
 from functools import partial
+
+# Import configuration system
+from .config import get_config
+from .exceptions import PTDConfigError
 
 ## requires equinox dependency
 # from .decoders import VariableDimPTDDecoder, LessThanOneDecoder, 
@@ -587,7 +590,8 @@ def _svgd_update_jitted(particles, K, grad_K, grad_log_p, step_size):
     return particles + step_size * phi
 
 
-def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None):
+def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
+              parallel_mode='auto', n_devices=None):
     """
     Perform single SVGD update step
 
@@ -603,6 +607,11 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None):
         Step size for update
     compiled_grad : callable, optional
         Precompiled gradient function for faster execution
+    parallel_mode : str, default='auto'
+        Parallelization strategy: 'vmap', 'pmap', 'none', or 'auto'.
+        'auto' uses legacy SLURM-based detection for backward compatibility.
+    n_devices : int, optional
+        Number of devices to use for pmap (only used if parallel_mode='pmap')
 
     Returns
     -------
@@ -611,16 +620,23 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None):
     """
     n_particles = particles.shape[0]
 
-    # Compute log probability gradients for each particle
-    # Use pmap for parallelization only in SLURM distributed jobs
-    # For local machines, pmap adds unnecessary synchronization overhead
-    n_devices = len(jax.devices())
-    in_slurm = bool(os.environ.get('SLURM_JOB_ID', ''))
+    # Determine parallelization strategy
+    if parallel_mode == 'auto':
+        # Legacy behavior: auto-detect based on SLURM and device count
+        available_devices = len(jax.devices())
+        in_slurm = bool(os.environ.get('SLURM_JOB_ID', ''))
+        use_pmap = in_slurm and available_devices > 1 and n_particles % available_devices == 0
+        actual_parallel_mode = 'pmap' if use_pmap else 'vmap'
+        actual_n_devices = available_devices if use_pmap else None
+    else:
+        actual_parallel_mode = parallel_mode
+        actual_n_devices = n_devices
 
-    if in_slurm and n_devices > 1 and n_particles % n_devices == 0:
-        # Parallel gradient computation across devices (SLURM cluster only)
-        particles_per_device = n_particles // n_devices
-        particles_sharded = particles.reshape(n_devices, particles_per_device, -1)
+    # Compute log probability gradients based on parallelization strategy
+    if actual_parallel_mode == 'pmap' and actual_n_devices is not None:
+        # Parallel gradient computation across devices (pmap)
+        particles_per_device = n_particles // actual_n_devices
+        particles_sharded = particles.reshape(actual_n_devices, particles_per_device, -1)
 
         # Use precompiled gradient if available
         if compiled_grad is not None:
@@ -630,12 +646,21 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None):
             # pmap over devices, vmap over particles within each device
             grad_log_p_sharded = pmap(vmap(grad(log_prob_fn)))(particles_sharded)
         grad_log_p = grad_log_p_sharded.reshape(n_particles, -1)
-    else:
-        # Single device, non-divisible particles, or local machine - use vmap only
+    elif actual_parallel_mode == 'vmap':
+        # Single device vectorization - use vmap only
         if compiled_grad is not None:
             grad_log_p = vmap(compiled_grad)(particles)
         else:
             grad_log_p = vmap(grad(log_prob_fn))(particles)
+    elif actual_parallel_mode == 'none':
+        # No parallelization - sequential computation (useful for debugging)
+        if compiled_grad is not None:
+            grad_log_p = jnp.array([compiled_grad(p) for p in particles])
+        else:
+            grad_fn = grad(log_prob_fn)
+            grad_log_p = jnp.array([grad_fn(p) for p in particles])
+    else:
+        raise ValueError(f"Invalid parallel_mode: {actual_parallel_mode}")
 
     # Compute kernel and kernel gradient
     K, grad_K = kernel.compute_kernel_grad(particles)
@@ -645,7 +670,8 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None):
 
 
 def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
-             kernel='rbf_median', return_history=False, verbose=True, compiled_grad=None):
+             kernel='rbf_median', return_history=False, verbose=True, compiled_grad=None,
+             parallel_mode='auto', n_devices=None):
     """
     Run Stein Variational Gradient Descent
 
@@ -668,6 +694,10 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
         Print progress information
     compiled_grad : callable, optional
         Precompiled gradient function for faster execution
+    parallel_mode : str, default='auto'
+        Parallelization strategy: 'vmap', 'pmap', 'none', or 'auto'
+    n_devices : int, optional
+        Number of devices for pmap (only used if parallel_mode='pmap')
 
     Returns
     -------
@@ -687,6 +717,7 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
     # Initialize
     particles = theta_init
     history = [particles] if return_history else None
+    history_iterations = [0] if return_history else []  # Track iteration numbers for history snapshots
 
     # SVGD iterations
     if verbose:
@@ -695,15 +726,20 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
     # for step in range(n_steps) if verbose else range(n_steps):
     for step in trange(n_steps) if verbose else range(n_steps):
         # Perform SVGD update
-        particles = svgd_step(particles, log_prob_fn, kernel_obj, learning_rate, compiled_grad=compiled_grad)
+        particles = svgd_step(particles, log_prob_fn, kernel_obj, learning_rate,
+                             compiled_grad=compiled_grad,
+                             parallel_mode=parallel_mode,
+                             n_devices=n_devices)
 
         # Store history
-        if return_history and (step % max(1, n_steps // 20) == 0):
+        if return_history: # and (step % max(1, n_steps // 20) == 0):
             history.append(particles)
+            history_iterations.append(step)
 
     # Final history
     if return_history:
         history.append(particles)
+        history_iterations.append(n_steps)
 
     # Compute summary statistics
     theta_mean = jnp.mean(particles, axis=0)
@@ -717,11 +753,9 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
 
     if return_history:
         results['history'] = history
+        results['history_iterations'] = history_iterations
 
-    if verbose:
-        print(f"\nSVGD complete!")
-        print(f"Posterior mean: {theta_mean}")
-        print(f"Posterior std:  {theta_std}")
+    # Note: Final summary is printed by SVGD.fit() with transformed values
 
     return results
 
@@ -797,8 +831,25 @@ class SVGD:
         Random seed for reproducibility
     verbose : bool, default=True
         Print progress information
+    jit : bool or None, default=None
+        Enable JIT compilation. If None, uses value from ptdalgorithms.get_config().jit.
+        If True, requires JAX to be available (raises PTDConfigError otherwise).
+        JIT compilation provides significant speedup but adds initial compilation overhead.
+    parallel : str or None, default=None
+        Parallelization strategy:
+        - 'vmap': Vectorize across particles (single device, default for 1 device)
+        - 'pmap': Parallelize across devices (default when multiple devices available)
+        - 'none': No parallelization (sequential, useful for debugging)
+        - None: Auto-select based on device count
+    n_devices : int or None, default=None
+        Number of devices to use for pmap. Only used when parallel='pmap'.
+        If None, uses all available devices. Must be <= number of available JAX devices.
+        See: jax.devices() to check available devices, or configure via PTDALG_CPUS
+        environment variable before import.
     precompile : bool, default=True
+        (Deprecated: use jit parameter instead)
         Precompile model and gradient functions for faster execution.
+        Implies jit=True for backward compatibility.
         First run will take longer (compilation time) but subsequent
         iterations will be much faster. Compiled functions are cached
         in memory and on disk (~/.ptdalgorithms_cache/).
@@ -818,6 +869,21 @@ class SVGD:
         - Use preset: CompilationConfig.fast_compile()
         - Load from file: 'my_config.json'
         - Custom dict: {'optimization_level': 2, 'cache_dir': '/tmp/cache'}
+    positive_params : bool, default=False
+        If True, constrains parameters to positive domain using softplus transformation.
+        SVGD operates in unconstrained space (can be negative) but results are
+        transformed to positive values. Use show_transformed=True in plotting methods
+        to view constrained (positive) values, or show_transformed=False for unconstrained.
+
+        Note: For phase-type distributions with rate parameters, it's often better to
+        work in unconstrained space and interpret negative values appropriately, as
+        softplus transformation can lead to very large rates that cause numerical issues.
+        Use positive_params=True only when you need strict positivity constraints and
+        expect moderate parameter values.
+    param_transform : callable, optional
+        Custom parameter transformation function. Overrides positive_params if provided.
+        Should map unconstrained space to constrained space (e.g., lambda x: jax.nn.sigmoid(x)
+        for parameters in [0,1]). Cannot be used together with positive_params=True.
 
     Attributes
     ----------
@@ -834,12 +900,21 @@ class SVGD:
 
     Examples
     --------
-    >>> # Build parameterized model
-    >>> graph = Graph(callback=coalescent, parameterized=True, nr_samples=3)
-    >>> model = Graph.pmf_from_graph(graph)
+    >>> # Basic usage with auto-configuration
+    >>> svgd = SVGD(model, observed_data, theta_dim=1)
+    >>> svgd.fit()
     >>>
-    >>> # Create SVGD object and fit (with precompilation)
-    >>> svgd = SVGD(model, observed_data, theta_dim=1, precompile=True)
+    >>> # Explicit single-device configuration
+    >>> svgd = SVGD(model, observed_data, theta_dim=1, jit=True, parallel='vmap')
+    >>> svgd.fit()
+    >>>
+    >>> # Multi-device parallelization
+    >>> svgd = SVGD(model, observed_data, theta_dim=1,
+    ...             jit=True, parallel='pmap', n_devices=8)
+    >>> svgd.fit()
+    >>>
+    >>> # No JIT (for debugging)
+    >>> svgd = SVGD(model, observed_data, theta_dim=1, jit=False, parallel='none')
     >>> svgd.fit()
     >>>
     >>> # Access results
@@ -856,12 +931,71 @@ class SVGD:
 
     def __init__(self, model, observed_data, prior=None, n_particles=None,
                  n_iterations=1000, learning_rate=0.001, kernel='rbf_median',
-                 theta_init=None, theta_dim=None, seed=42, verbose=True, precompile=True,
+                 theta_init=None, theta_dim=None, seed=42, verbose=True,
+                 jit=None,              # NEW: explicit JIT control
+                 parallel=None,         # NEW: 'vmap', 'pmap', 'none'
+                 n_devices=None,        # NEW: explicit device count for pmap
+                 precompile=True,       # Keep for backward compat
                  compilation_config=None, positive_params=False, param_transform=None):
 
         if n_particles is None:
             n_particles = 20 * theta_dim
 
+        # Get configuration
+        config = get_config()
+
+        # Validate JIT parameter against config
+        if jit is None:
+            jit = config.jit  # Use config default
+        elif jit and not config.jax:
+            raise PTDConfigError(
+                "jit=True requires JAX.\n"
+                "  Current config: jax=False\n"
+                "  Fix: ptdalgorithms.configure(jax=True)"
+            )
+
+        # Validate parallel parameter
+        if parallel is None:
+            # Default: use pmap if multiple devices, vmap otherwise
+            parallel = 'pmap' if len(jax.devices()) > 1 else 'vmap'
+            if verbose:
+                print(f"Auto-selected parallel='{parallel}' ({len(jax.devices())} devices available)")
+        elif parallel not in ['vmap', 'pmap', 'none']:
+            raise ValueError(
+                f"parallel must be 'vmap', 'pmap', or 'none', got: {parallel}"
+            )
+
+        # Validate n_devices parameter
+        if parallel == 'pmap':
+            available_devices = len(jax.devices())
+            if n_devices is None:
+                n_devices = available_devices
+                if verbose:
+                    print(f"Using all {n_devices} devices for pmap")
+            elif n_devices > available_devices:
+                raise PTDConfigError(
+                    f"n_devices={n_devices} but only {available_devices} devices available.\n"
+                    f"  JAX devices: {jax.devices()}\n"
+                    f"  Fix: Set n_devices<={available_devices} or configure more devices\n"
+                    f"  See: PTDALG_CPUS environment variable or ptdalgorithms.configure()"
+                )
+            elif n_devices < 1:
+                raise ValueError(f"n_devices must be >= 1, got: {n_devices}")
+        elif n_devices is not None:
+            if verbose:
+                print(f"Warning: n_devices={n_devices} ignored (only used with parallel='pmap')")
+            n_devices = None
+
+        # Store configuration
+        self.jit_enabled = jit
+        self.parallel_mode = parallel
+        self.n_devices = n_devices
+
+        # Backward compatibility: precompile implies jit
+        if precompile and not jit:
+            if verbose:
+                print("Warning: precompile=True but jit=False. Setting jit=True for backward compatibility.")
+            self.jit_enabled = True
 
         # Handle compilation configuration
         if compilation_config is not None:
@@ -940,14 +1074,15 @@ class SVGD:
                 "If you don't have initial particles, specify theta_dim (the number of parameters)."
             )
 
-        # Adjust n_particles to be divisible by number of devices for optimal parallelization
-        n_devices = len(jax.devices())
-        if n_devices > 1 and n_particles % n_devices != 0:
-            adjusted_n_particles = ((n_particles + n_devices - 1) // n_devices) * n_devices
-            if verbose:
-                print(f"Adjusted n_particles from {n_particles} to {adjusted_n_particles} for even distribution across {n_devices} devices")
-            n_particles = adjusted_n_particles
-            self.n_particles = n_particles
+        # Adjust n_particles for pmap if needed
+        if self.parallel_mode == 'pmap' and self.n_devices is not None:
+            if n_particles % self.n_devices != 0:
+                adjusted_n_particles = ((n_particles + self.n_devices - 1) // self.n_devices) * self.n_devices
+                if verbose:
+                    print(f"Adjusted n_particles from {n_particles} to {adjusted_n_particles} "
+                          f"for even distribution across {self.n_devices} devices")
+                n_particles = adjusted_n_particles
+                self.n_particles = n_particles
 
         # Initialize particles
         key = jax.random.PRNGKey(seed)
@@ -1001,14 +1136,15 @@ class SVGD:
         self.theta_mean = None
         self.theta_std = None
         self.history = None
+        self.history_iterations = None
         self.is_fitted = False
 
-        # Compiled model and gradient (set by _precompile_model if precompile=True)
+        # Compiled model and gradient (set by _precompile_model if jit_enabled=True)
         self.compiled_model = None
         self.compiled_grad = None
 
-        # Precompile model and gradient if requested
-        if self.precompile:
+        # Precompile model and gradient if JIT is enabled
+        if self.jit_enabled:
             self._precompile_model()
 
     def _log_prob(self, theta):
@@ -1190,7 +1326,9 @@ class SVGD:
             kernel=kernel_obj,
             return_history=return_history,
             verbose=self.verbose,
-            compiled_grad=self.compiled_grad
+            compiled_grad=self.compiled_grad,
+            parallel_mode=self.parallel_mode,
+            n_devices=self.n_devices
         )
 
         # Store results as attributes
@@ -1200,8 +1338,16 @@ class SVGD:
 
         if return_history:
             self.history = results['history']
+            self.history_iterations = results['history_iterations']
 
         self.is_fitted = True
+
+        # Print summary with transformed values if verbose
+        if self.verbose:
+            print(f"\nSVGD complete!")
+            transformed_results = self.get_results()
+            print(f"Posterior mean: {transformed_results['theta_mean']}")
+            print(f"Posterior std:  {transformed_results['theta_std']}")
 
         return self
 
@@ -1350,7 +1496,9 @@ class SVGD:
             learning_rate=self.learning_rate,
             kernel=kernel_obj,
             return_history=return_history,
-            verbose=self.verbose
+            verbose=self.verbose,
+            parallel_mode=self.parallel_mode,
+            n_devices=self.n_devices
         )
 
         # Store results as attributes
@@ -1360,6 +1508,7 @@ class SVGD:
 
         if return_history:
             self.history = results['history']
+            self.history_iterations = results['history_iterations']
 
         self.is_fitted = True
 
@@ -1367,6 +1516,13 @@ class SVGD:
         self.regularization = regularization
         self.nr_moments = nr_moments
         self.sample_moments = sample_moments
+
+        # Print summary with transformed values if verbose
+        if self.verbose:
+            print(f"\nSVGD complete!")
+            transformed_results = self.get_results()
+            print(f"Posterior mean: {transformed_results['theta_mean']}")
+            print(f"Posterior std:  {transformed_results['theta_std']}")
 
         return self
 
@@ -1455,6 +1611,12 @@ class SVGD:
         # Get appropriate particle representation
         results = self.get_results()
         if show_transformed or self.param_transform is None:
+            if not show_transformed and self.param_transform is None:
+                raise ValueError(
+                    "show_transformed=False has no effect when no parameter transformation is used. "
+                    "Either set show_transformed=True, or use positive_params=True / param_transform "
+                    "to enable parameter transformation."
+                )
             particles = results['particles']
             theta_mean = results['theta_mean']
             space_label = " (transformed)" if self.param_transform is not None else ""
@@ -1519,7 +1681,7 @@ class SVGD:
         return fig, axes
 
     def plot_trace(self, param_names=None, figsize=None,
-                   max_particles=None, save_path=None, show_transformed=True,
+                   burnin=0, max_particles=None, save_path=None, show_transformed=True,
                    ):
         """
         Plot trace plots showing particle evolution over iterations.
@@ -1532,6 +1694,8 @@ class SVGD:
             Names for each parameter dimension
         figsize : tuple, optional
             Figure size (width, height)
+        burnin : int, optional
+            Number of initial iterations to skip. Defaults to 0.
         max_particles : int, optional
             Max number of particles to plot. Defaults to all particles.
         save_path : str, optional
@@ -1560,6 +1724,12 @@ class SVGD:
         # Get appropriate history representation
         results = self.get_results()
         if show_transformed or self.param_transform is None:
+            if not show_transformed and self.param_transform is None:
+                raise ValueError(
+                    "show_transformed=False has no effect when no parameter transformation is used. "
+                    "Either set show_transformed=True, or use positive_params=True / param_transform "
+                    "to enable parameter transformation."
+                )
             history = results.get('history', self.history)
             theta_mean = results['theta_mean']
             space_label = " (transformed)" if self.param_transform is not None else ""
@@ -1598,11 +1768,16 @@ class SVGD:
             max_plotted = self.n_particles if max_particles is None else max_particles
             print(max_plotted)
             for p in range(max_plotted):  # Plot first 10 particles
-                ax.plot(history_array[:, p, i], alpha=0.5, linewidth=1)
+                y = history_array[:, p, i]
+                x = np.arange(y.size)
+                ax.plot(x[burnin:], y[burnin:], alpha=0.5, linewidth=1)
 
             # Plot mean trajectory
             mean_trajectory = jnp.mean(history_array[:, :, i], axis=1)
-            ax.plot(mean_trajectory, color='black', linewidth=2,
+            y = mean_trajectory
+            x = np.arange(y.size)
+
+            ax.plot(x[burnin:], y[burnin:], color='black', linewidth=2,
                    label=f'Mean = {theta_mean[i]:.3f}')
 
             # Labels
@@ -1622,7 +1797,7 @@ class SVGD:
 
         return fig, axes
 
-    def plot_convergence(self, figsize=(7, 3), save_path=None, show_transformed=True):
+    def plot_convergence(self, figsize=(7, 3), save_path=None, burnin=0, show_transformed=True):
         """
         Plot convergence diagnostics showing mean and std over iterations.
 
@@ -1634,6 +1809,8 @@ class SVGD:
             Figure size (width, height)
         save_path : str, optional
             Path to save the plot
+        burnin : int, optional
+            Number of initial iterations to skip. Defaults to 0.
         show_transformed : bool, default=True
             If True, show transformed (constrained) parameter values.
             If False, show untransformed (unconstrained) values.
@@ -1658,6 +1835,12 @@ class SVGD:
         # Get appropriate history representation
         results = self.get_results()
         if show_transformed or self.param_transform is None:
+            if not show_transformed and self.param_transform is None:
+                raise ValueError(
+                    "show_transformed=False has no effect when no parameter transformation is used. "
+                    "Either set show_transformed=True, or use positive_params=True / param_transform "
+                    "to enable parameter transformation."
+                )
             history = results.get('history', self.history)
             space_label = " (transformed)" if self.param_transform is not None else ""
         else:
@@ -1671,13 +1854,17 @@ class SVGD:
         mean_over_time = jnp.mean(history_array, axis=1)  # (n_snapshots, theta_dim)
         std_over_time = jnp.std(history_array, axis=1)    # (n_snapshots, theta_dim)
 
+        # Get iteration numbers for x-axis
+        iterations = self.history_iterations if self.history_iterations is not None else range(len(history))
+
         fig, axes = plt.subplots(1, 2, figsize=figsize)
         ax1, ax2 = axes
 
         # Plot 1: Mean convergence
         for i in range(self.theta_dim):
             param_name = f'θ_{i}'
-            ax1.plot(mean_over_time[:, i], label=param_name, linewidth=2)
+            x, y = iterations, mean_over_time[:, i]
+            ax1.plot(x[burnin:], y[burnin:], label=param_name, linewidth=2)
 
         ax1.set_xlabel('SVGD Iteration', fontsize=12)
         ax1.set_ylabel('Posterior Mean' + space_label, fontsize=12)
@@ -1688,7 +1875,8 @@ class SVGD:
         # Plot 2: Std convergence
         for i in range(self.theta_dim):
             param_name = f'θ_{i}'
-            ax2.plot(std_over_time[:, i], label=param_name, linewidth=2)
+            x, y = iterations, std_over_time[:, i]
+            ax2.plot(x[burnin:], y[burnin:], label=param_name, linewidth=2)
 
         ax2.set_xlabel('SVGD Iteration', fontsize=12)
         ax2.set_ylabel('Posterior Std' + space_label, fontsize=12)
@@ -1744,6 +1932,12 @@ class SVGD:
         # Get appropriate particle representation
         results = self.get_results()
         if show_transformed or self.param_transform is None:
+            if not show_transformed and self.param_transform is None:
+                raise ValueError(
+                    "show_transformed=False has no effect when no parameter transformation is used. "
+                    "Either set show_transformed=True, or use positive_params=True / param_transform "
+                    "to enable parameter transformation."
+                )
             particles = results['particles']
             space_label = " (transformed)" if self.param_transform is not None else ""
         else:
@@ -1853,7 +2047,7 @@ class SVGD:
             return anim
 
     def animate(self, param_idx=0, true_theta=None, param_name=None,
-                figsize=(8, 6), skip=0, interval=100, bins=30,
+                figsize=(8, 6), skip=0, thin=20, interval=100, bins=30,
                 show_particles=True, max_particles=20,
                 save_as_gif=None, save_as_mp4=None, show_transformed=True):
         """
@@ -1875,6 +2069,8 @@ class SVGD:
             Figure size (width, height)
         skip : int, default=0
             Number of initial iterations to skip in the animation
+        thin : int, thin=20
+            Interval of interations to plot/annimate.
         interval : int, default=100
             Delay between frames in milliseconds
         bins : int, default=30
@@ -1912,6 +2108,12 @@ class SVGD:
         # Get appropriate history representation
         results = self.get_results()
         if show_transformed or self.param_transform is None:
+            if not show_transformed and self.param_transform is None:
+                raise ValueError(
+                    "show_transformed=False has no effect when no parameter transformation is used. "
+                    "Either set show_transformed=True, or use positive_params=True / param_transform "
+                    "to enable parameter transformation."
+                )
             full_history = results.get('history', self.history)
             space_label = " (transformed)" if self.param_transform is not None else ""
         else:
@@ -1919,7 +2121,7 @@ class SVGD:
             space_label = " (untransformed)"
 
         # Get history subset
-        history = jnp.stack(full_history[skip:])
+        history = jnp.stack(full_history[skip::thin])
         param_history = history[:, :, param_idx]
 
         # Compute axis limits
@@ -2017,7 +2219,7 @@ class SVGD:
         return self._return_animation_html(anim)
 
     def animate_pairwise(self, true_theta=None, param_names=None,
-                        figsize=None, skip=0, interval=100,
+                        figsize=None, skip=0, thin=20, interval=100,
                         save_as_gif=None, save_as_mp4=None, show_transformed=True):
         """
         Create an animated pairwise scatter plot showing SVGD particle evolution.
@@ -2032,6 +2234,8 @@ class SVGD:
             Figure size (width, height). Auto-sized based on parameter dimension if None.
         skip : int, default=0
             Number of initial iterations to skip in the animation
+        thin : int, thin=20
+            Interval of interations to plot/annimate.
         interval : int, default=100
             Delay between frames in milliseconds
         save_as_gif : str, optional
@@ -2073,6 +2277,12 @@ class SVGD:
         # Get appropriate history representation
         results = self.get_results()
         if show_transformed or self.param_transform is None:
+            if not show_transformed and self.param_transform is None:
+                raise ValueError(
+                    "show_transformed=False has no effect when no parameter transformation is used. "
+                    "Either set show_transformed=True, or use positive_params=True / param_transform "
+                    "to enable parameter transformation."
+                )
             full_history = results.get('history', self.history)
             space_label = " (transformed)" if self.param_transform is not None else ""
         else:
@@ -2083,7 +2293,7 @@ class SVGD:
         figsize = figsize or (min(14, 3 * n_params), min(12, 2.3 * n_params))
 
         # Get history subset
-        history = full_history[skip:]
+        history = full_history[skip::thin]
 
         # Compute global axis limits based on all history
         all_particles = jnp.concatenate(history, axis=0)

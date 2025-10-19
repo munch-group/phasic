@@ -5,6 +5,14 @@ project:
   # - objects.txt
   # - objects-test.txt
 
+  # pre-render: generate-gallery.ts
+  # # Hack to clean temporary file
+  # # post-render:
+  # #   - find galleries/ -name "gallery-styles.css" -delete
+
+
+
+
 execute:
   freeze: auto
   echo: true
@@ -112,6 +120,8 @@ website:
             - pages/devel/architecture.qmd
             - href: https://github.com/munch-group/ptdalgorithms/issues
               text: Issue Tracker
+        # - galleries/examples/index.qmd
+          
 
 lightbox: true
 

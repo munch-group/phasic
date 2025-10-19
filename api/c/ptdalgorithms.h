@@ -129,6 +129,7 @@ struct ptd_edge_parameterized {
     double weight;
     bool parameterized;
     double *state;
+    size_t state_length;  // Number of elements in state array
     bool should_free_state;
     double base_weight;  // Original base weight (preserved for gradient computation)
 };
@@ -173,7 +174,8 @@ struct ptd_edge_parameterized *ptd_graph_add_edge_parameterized(
         struct ptd_vertex *from,
         struct ptd_vertex *to,
         double weight,
-        double *edge_state
+        double *edge_state,
+        size_t edge_state_length
 );
 
 void ptd_edge_update_weight(

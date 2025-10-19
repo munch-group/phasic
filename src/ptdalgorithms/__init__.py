@@ -63,26 +63,38 @@ def labelled(labels):  # The factory function that accepts a parameter
 # state = np.array([1, 2, 3])
 # callback(state)
 
-# Optional JAX support
-try:
-    import os
+# Import configuration system FIRST (before any optional imports)
+from .config import (
+    configure,
+    get_config,
+    get_available_options,
+    PTDAlgorithmsConfig,
+    reset_config
+)
+from .exceptions import (
+    PTDAlgorithmsError,
+    PTDConfigError,
+    PTDBackendError,
+    PTDFeatureError,
+    PTDJAXError
+)
+
+# Get configuration (creates default if none exists)
+_config = get_config()
+
+# Configure JAX environment BEFORE importing (if JAX will be used)
+if _config.jax:
     import sys
 
     # Configure JAX for multi-CPU BEFORE importing JAX
-    # This sets XLA_FLAGS to use all available CPUs
     if 'jax' in sys.modules:
         print("WARNING: JAX has already been imported. PTDAlgorithms CPU multi-device configuration will be skipped.")
-        print("To enable multi-CPU support, please set the PTDALG_CPUS environment variable before importing JAX or PTDAlgorithms.")
-
+        print("To enable multi-CPU support, configure before importing: ptdalgorithms.configure(...) or set PTDALG_CPUS.")
     else:
-
-        # Only configure if JAX hasn't been imported yet
-
         # Import compilation configuration system
         from .jax_config import CompilationConfig, get_default_config, set_default_config
 
         # Apply default balanced configuration (includes JAX persistent cache)
-        # This sets environment variables for JAX compilation optimization
         default_config = get_default_config()
         default_config.apply(force=False)  # Don't override existing user configuration
 
@@ -158,11 +170,20 @@ try:
     if not isinstance(sys.stderr, _DeviceListFilter):
         sys.stderr = _DeviceListFilter(sys.stderr)
 
-    import jax
-    import jax.numpy as jnp
-    HAS_JAX = True
-
-except ImportError:
+    # Import JAX (raise clear error if unavailable)
+    try:
+        import jax
+        import jax.numpy as jnp
+        HAS_JAX = True
+    except ImportError as e:
+        raise PTDJAXError(
+            "jax=True but JAX not installed.\n"
+            "  Install: pip install jax jaxlib\n"
+            "  Or configure before import: ptdalgorithms.configure(jax=False)\n"
+            f"  Original error: {e}"
+        )
+else:
+    # JAX disabled by configuration
     jax = None
     jnp = None
     HAS_JAX = False
@@ -1334,9 +1355,16 @@ class Graph(_Graph):
 
 
 
-    def serialize(self) -> Dict[str, np.ndarray]:
+    def serialize(self, param_length: int = None) -> Dict[str, np.ndarray]:
         """
         Serialize graph to array representation for efficient computation.
+
+        Parameters
+        ----------
+        param_length : int, optional
+            Number of parameters for parameterized edges. If not provided, will be
+            auto-detected by probing edge states. Providing this explicitly avoids
+            potential issues with auto-detection reading garbage memory.
 
         Returns
         -------
@@ -1369,10 +1397,7 @@ class Graph(_Graph):
             state_tuple = tuple(state)
             state_to_idx[state_tuple] = i
 
-        # Detect parameter length from parameterized edges
-        # Strategy: For each edge, find where its valid coefficients end (before garbage)
-        # Then use the maximum across all edges as param_length
-        param_length = 0
+        # Detect or use provided parameter length
         start = self.starting_vertex()
 
         # Track the actual coefficient length for each edge (before garbage starts)
@@ -1380,18 +1405,60 @@ class Graph(_Graph):
         # Use -1 for starting vertex index
         edge_valid_lengths = {}
 
-        # Check all vertices for parameterized edges to determine actual param usage
-        # We probe up to a reasonable limit and track the highest non-zero coefficient index
-        max_probe_length = 20
+        # If param_length provided explicitly, use it directly
+        if param_length is not None:
+            # Use provided value - skip auto-detection
+            detected_param_length = param_length
+        else:
+            # Auto-detect parameter length from parameterized edges
+            # Strategy: Track the highest non-zero coefficient index
+            detected_param_length = 0
 
-        # Probe edges from regular vertices
-        for i, v in enumerate(vertices_list):
-            v_state = tuple(v.state())
-            if v_state == tuple(start.state()):
-                continue  # Skip starting vertex (handled separately)
+            # Check all vertices for parameterized edges to determine actual param usage
+            # We probe up to a reasonable limit and track the highest non-zero coefficient index
+            max_probe_length = 20
 
-            from_idx = i
-            for edge in v.parameterized_edges():
+            # Probe edges from regular vertices
+            for i, v in enumerate(vertices_list):
+                v_state = tuple(v.state())
+                if v_state == tuple(start.state()):
+                    continue  # Skip starting vertex (handled separately)
+
+                from_idx = i
+                for edge in v.parameterized_edges():
+                    to_vertex = edge.to()
+                    to_state = tuple(to_vertex.state())
+                    if to_state not in state_to_idx:
+                        continue
+                    to_idx = state_to_idx[to_state]
+
+                    valid_length = 0
+                    last_nonzero_pos = 0
+                    # Probe increasing lengths until we hit garbage or exceed limit
+                    for try_len in range(1, max_probe_length + 1):
+                        state = edge.edge_state(try_len)
+                        if len(state) == 0:
+                            break
+
+                        val = state[-1]
+                        # Check for garbage (NaN, inf, or suspiciously large/tiny values)
+                        # Use 1e-100 as threshold to catch denormal floats like 5e-324
+                        if (np.isnan(val) or np.isinf(val) or
+                            abs(val) > 1e100 or
+                            (val != 0 and abs(val) < 1e-100)):
+                            break
+
+                        # Track valid length up to here (before garbage)
+                        valid_length = try_len
+
+                        if val != 0:
+                            # Found non-zero: record as potential param position
+                            detected_param_length = max(detected_param_length, try_len)
+
+                    edge_valid_lengths[(from_idx, to_idx)] = valid_length
+
+            # Probe edges from starting vertex
+            for edge in start.parameterized_edges():
                 to_vertex = edge.to()
                 to_state = tuple(to_vertex.state())
                 if to_state not in state_to_idx:
@@ -1399,51 +1466,42 @@ class Graph(_Graph):
                 to_idx = state_to_idx[to_state]
 
                 valid_length = 0
-                # Probe increasing lengths until we hit garbage or exceed limit
+                last_nonzero_pos = 0
                 for try_len in range(1, max_probe_length + 1):
                     state = edge.edge_state(try_len)
                     if len(state) == 0:
                         break
 
                     val = state[-1]
-                    # Check for garbage (NaN, inf, or suspiciously large/tiny values)
-                    # Use 1e-100 as threshold to catch denormal floats like 5e-324
                     if (np.isnan(val) or np.isinf(val) or
                         abs(val) > 1e100 or
                         (val != 0 and abs(val) < 1e-100)):
                         break
 
+                    # Track valid length up to here (before garbage)
                     valid_length = try_len
+
                     if val != 0:
-                        param_length = max(param_length, try_len)
+                        # Found non-zero: record as potential param position
+                        detected_param_length = max(detected_param_length, try_len)
 
-                edge_valid_lengths[(from_idx, to_idx)] = valid_length
+                edge_valid_lengths[(-1, to_idx)] = valid_length
 
-        # Probe edges from starting vertex
-        for edge in start.parameterized_edges():
-            to_vertex = edge.to()
-            to_state = tuple(to_vertex.state())
-            if to_state not in state_to_idx:
-                continue
-            to_idx = state_to_idx[to_state]
+        # Use detected_param_length for all subsequent operations
+        param_length = detected_param_length
 
-            valid_length = 0
-            for try_len in range(1, max_probe_length + 1):
-                state = edge.edge_state(try_len)
-                if len(state) == 0:
-                    break
-
-                val = state[-1]
-                if (np.isnan(val) or np.isinf(val) or
-                    abs(val) > 1e100 or
-                    (val != 0 and abs(val) < 1e-100)):
-                    break
-
-                valid_length = try_len
-                if val != 0:
-                    param_length = max(param_length, try_len)
-
-            edge_valid_lengths[(-1, to_idx)] = valid_length
+        # Sanity check: param_length should never exceed max_probe_length (only applies to auto-detected)
+        # If it does, we likely read garbage/adjacent memory - use a conservative fallback
+        if param_length is None and param_length > max_probe_length:
+            # This shouldn't happen with proper garbage detection, but guard against it
+            param_length = max_probe_length
+            import warnings
+            warnings.warn(
+                f"Detected param_length={param_length} exceeds max_probe_length={max_probe_length}. "
+                f"This may indicate edge_state() is reading adjacent memory. "
+                f"Capping to {max_probe_length}.",
+                RuntimeWarning
+            )
 
         # Extract parameterized edges FIRST (needed to build exclusion set before extracting regular edges)
         start_state = tuple(start.state())
@@ -1651,7 +1709,7 @@ class Graph(_Graph):
         return Graph(base_graph)
 
     @classmethod
-    def pmf_from_graph(cls, graph: 'Graph', discrete: bool = False, use_cache: bool = True) -> Callable:
+    def pmf_from_graph(cls, graph: 'Graph', discrete: bool = False, use_cache: bool = True, param_length: int = None) -> Callable:
         """
         Convert a Python-built Graph to a JAX-compatible function with full gradient support.
 
@@ -1749,9 +1807,9 @@ class Graph(_Graph):
                 warnings.warn(f"Symbolic cache unavailable: {e}", UserWarning)
 
         # Serialize the graph (now includes parameterized edges)
-        serialized = graph.serialize()
-        param_length = serialized.get('param_length', 0)
-        has_param_edges = param_length > 0
+        serialized = graph.serialize(param_length=param_length)
+        detected_param_length = serialized.get('param_length', 0)
+        has_param_edges = detected_param_length > 0
 
         # Generate C++ build_model() code from the serialized graph
         cpp_code = _generate_cpp_from_graph(serialized)
@@ -1764,16 +1822,114 @@ class Graph(_Graph):
         with open(temp_file, 'w') as f:
             f.write(cpp_code)
 
-        # Use pmf_from_cpp() to compile and create JAX-compatible function
-        # This gives us full JAX support (jit, grad, vmap)
-        base_model = cls.pmf_from_cpp(temp_file, discrete=discrete)
-
         # Return appropriate signature based on parameterization
         if has_param_edges:
-            # Parameterized: return (theta, times) -> pmf
-            return base_model
+            # PARAMETERIZED MODEL: Use cached GraphBuilder for efficiency
+            # Create GraphBuilder ONCE to avoid JSON parsing on every call
+            import json
+            from . import ptdalgorithmscpp_pybind as cpp_module
+            from .ffi_wrappers import _make_json_serializable
+
+            # Serialize graph structure to JSON (one time)
+            structure_json_str = json.dumps(_make_json_serializable(serialized))
+
+            # Create GraphBuilder ONCE - captured in model closure
+            # This avoids recreating the builder from JSON on every PDF evaluation
+            builder = cpp_module.parameterized.GraphBuilder(structure_json_str)
+
+            # Create cached PDF computation function
+            def _compute_pdf_cached(theta_np, times_np):
+                """Uses cached builder - NO JSON parsing per call.
+
+                Execution stays in C++:
+                  builder.compute_pmf() → g.build() → g.pdf() (C++ forward algorithm)
+
+                Handles both single and batched theta for vmap compatibility.
+                """
+                # Check if theta is batched (from vmap with expand_dims)
+                if theta_np.ndim == 2:
+                    # Batched: theta shape [batch, params]
+                    # With vmap_method='expand_dims', times also gets batched: [batch, n_times]
+                    # But all batch elements have the same times, so we can use times_np[0]
+                    times_unbatched = times_np[0] if times_np.ndim == 2 else times_np
+
+                    # Process each batch element
+                    results = []
+                    for theta_single in theta_np:
+                        result = builder.compute_pmf(
+                            theta_single,  # 1D array
+                            times_unbatched,
+                            discrete=discrete,
+                            granularity=0
+                        )
+                        results.append(result)
+                    return np.array(results)
+                else:
+                    # Single: theta shape [params]
+                    return builder.compute_pmf(
+                        theta_np,  # numpy array
+                        times_np,  # numpy array
+                        discrete=discrete,
+                        granularity=0  # Auto-select based on max rate
+                    )
+
+            # JAX-compatible wrapper using pure_callback
+            def model_pure(theta, times):
+                """Pure callback wrapper for JAX compatibility.
+
+                Supports: jit, vmap, pmap, sharding (vmap_method='expand_dims')
+                """
+                # Use times.dtype to respect JAX's precision settings (float32/float64)
+                result_shape = jax.ShapeDtypeStruct(times.shape, times.dtype)
+                return jax.pure_callback(
+                    lambda t, tm: _compute_pdf_cached(
+                        np.asarray(t, dtype=np.float64),
+                        np.asarray(tm, dtype=np.float64)
+                    ).astype(times.dtype),  # Match output dtype to input
+                    result_shape,
+                    theta,
+                    times,
+                    vmap_method='expand_dims'  # Efficient batching for vmap/pmap
+                )
+
+            # Add custom VJP for gradients (finite differences)
+            @jax.custom_vjp
+            def jax_model(theta, times):
+                return model_pure(theta, times)
+
+            def jax_model_fwd(theta, times):
+                """Forward pass: compute PDF and save inputs for backward."""
+                pdf = model_pure(theta, times)
+                return pdf, (theta, times)
+
+            def jax_model_bwd(res, g):
+                """Backward pass: compute gradients via finite differences."""
+                theta, times = res
+                n_params = theta.shape[0]
+                eps = 1e-7
+
+                # Finite difference gradients
+                theta_bar = []
+                for i in range(n_params):
+                    theta_plus = theta.at[i].add(eps)
+                    theta_minus = theta.at[i].add(-eps)
+
+                    pdf_plus = model_pure(theta_plus, times)
+                    pdf_minus = model_pure(theta_minus, times)
+
+                    grad_i = jnp.sum(g * (pdf_plus - pdf_minus) / (2 * eps))
+                    theta_bar.append(grad_i)
+
+                return jnp.array(theta_bar), None
+
+            jax_model.defvjp(jax_model_fwd, jax_model_bwd)
+            return jax_model
+
         else:
-            # Non-parameterized: wrap to hide theta parameter
+            # NON-PARAMETERIZED MODEL: Use pmf_from_cpp (original flow)
+            base_model = cls.pmf_from_cpp(temp_file, discrete=discrete)
+
+            # Wrap to hide theta parameter
             # Return (times) -> pmf for backward compatibility
             def non_param_wrapper(times):
                 # Use dummy theta (not used by non-parameterized graphs)
@@ -2088,7 +2244,7 @@ extern "C" {{
                 result_shape,
                 theta,
                 times,
-                vmap_method='sequential'
+                vmap_method='expand_dims'
             )
 
         # Wrap for JAX compatibility with custom VJP for gradients
@@ -2447,7 +2603,7 @@ extern "C" {{
             """Pure computation without custom_vjp wrapper"""
             theta = jnp.atleast_1d(theta)
             result_shape = jax.ShapeDtypeStruct((nr_moments,), jnp.float64)
-            return jax.pure_callback(_compute_moments_pure, result_shape, theta, vmap_method='sequential')
+            return jax.pure_callback(_compute_moments_pure, result_shape, theta, vmap_method='expand_dims')
 
         # Wrap for JAX compatibility with custom VJP for gradients
         @jax.custom_vjp
@@ -2736,7 +2892,7 @@ extern "C" {{
                 _compute_pmf_and_moments_pure,
                 (pmf_shape, moments_shape),
                 theta, times,
-                vmap_method='sequential'
+                vmap_method='expand_dims'
             )
             return result
 
@@ -3391,3 +3547,23 @@ try:
 except (ImportError, NameError):
     # Not in IPython environment or magic not available
     pass
+
+
+# ============================================================================
+# Public Configuration API
+# ============================================================================
+
+# Export configuration system to package namespace
+# These are already imported at the top, just documenting them as public API
+__all_config__ = [
+    'configure',
+    'get_config',
+    'get_available_options',
+    'PTDAlgorithmsConfig',
+    'reset_config',
+    'PTDAlgorithmsError',
+    'PTDConfigError',
+    'PTDBackendError',
+    'PTDFeatureError',
+    'PTDJAXError',
+]

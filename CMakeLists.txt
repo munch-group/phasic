@@ -52,7 +52,7 @@ find_package(pybind11 CONFIG REQUIRED)
 find_package (Eigen3 REQUIRED NO_MODULE)
 find_package(nlohmann_json REQUIRED)
 
-# Get XLA FFI include directory from jaxlib
+# Get XLA FFI include directory from jaxlib or local install
 execute_process(
     COMMAND ${Python_EXECUTABLE} -c "from jax import ffi; print(ffi.include_dir())"
     OUTPUT_VARIABLE XLA_FFI_INCLUDE_DIR
@@ -61,10 +61,23 @@ execute_process(
 )
 
 if(XLA_FFI_RESULT EQUAL 0)
-    message(STATUS "Found XLA FFI headers: ${XLA_FFI_INCLUDE_DIR}")
+    message(STATUS "Found XLA FFI headers from JAX: ${XLA_FFI_INCLUDE_DIR}")
 else()
-    message(WARNING "Could not find XLA FFI headers. FFI handlers will not be compiled.")
-    set(XLA_FFI_INCLUDE_DIR "")
+    # Try to find headers in user's local include directory
+    find_path(LOCAL_XLA_INCLUDE
+        NAMES xla/ffi/api/ffi.h
+        PATHS $ENV{HOME}/.local/include /usr/local/include
+        NO_DEFAULT_PATH
+    )
+
+    if(LOCAL_XLA_INCLUDE)
+        set(XLA_FFI_INCLUDE_DIR "${LOCAL_XLA_INCLUDE}")
+        set(XLA_FFI_RESULT 0)
+        message(STATUS "Found XLA FFI headers in local install: ${XLA_FFI_INCLUDE_DIR}")
+    else()
+        message(WARNING "Could not find XLA FFI headers. FFI handlers will not be compiled.")
+        set(XLA_FFI_INCLUDE_DIR "")
+    endif()
 endif()
 
 # pybind11 method:
@@ -85,7 +98,10 @@ set(PYBIND_SOURCES
 
 # Add FFI handlers if XLA FFI is available
 if(XLA_FFI_RESULT EQUAL 0)
-    list(APPEND PYBIND_SOURCES src/cpp/parameterized/ffi_handlers.cpp)
+    list(APPEND PYBIND_SOURCES
+        src/cpp/parameterized/graph_builder_ffi.cpp
+        src/cpp/parameterized/graph_builder_ffi.hpp
+    )
     message(STATUS "FFI handlers will be compiled")
 endif()
 

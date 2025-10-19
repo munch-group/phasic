@@ -1,13 +1,20 @@
 {
   "permissions": {
     "allow": [
-      "Bash(timeout:*)",
-      "WebFetch(domain:docs.jax.dev)",
-      "WebFetch(domain:github.com)",
-      "Bash(pixi run:*)",
-      "Read(//private/tmp/**)",
+      "Bash(export XLA_FLAGS=\"--xla_force_host_platform_device_count=8\")",
+      "Bash(git clone:*)",
+      "Read(//private/tmp/jax-source/**)",
+      "Read(//private/tmp/xla-source/**)",
       "Bash(pip install:*)",
-      "Bash(python3:*)"
+      "Bash(python:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:pypi.org)",
+      "Bash(cat:*)",
+      "Bash(export LDFLAGS=\"-fsanitize=address\")",
+      "Bash(DYLD_INSERT_LIBRARIES=/Library/Developer/CommandLineTools/usr/lib/clang/17/lib/darwin/libclang_rt.asan_osx_dynamic.dylib python test_just_graph.py)",
+      "Bash(timeout 10 python:*)",
+      "Bash(timeout 90 python tests/test_svgd_jax.py)"
     ],
     "deny": [],
     "ask": []
