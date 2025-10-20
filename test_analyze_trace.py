@@ -113,7 +113,7 @@ print("Programmatic Access:")
 print(f"  Converged: {diag['converged']}")
 print(f"  Convergence iteration: {diag['convergence_point']}")
 print(f"  ESS ratio: {diag['diversity']['ess_ratio']:.2%}")
-print(f"  Pseudo R-hat: {diag['pseudo_rhat']:.3f}")
+print(f"  Variance collapse: {diag['variance_collapse']['collapsed']}")
 print(f"  Issues detected: {len(diag['issues'])}")
 for issue in diag['issues']:
     print(f"    - {issue}")

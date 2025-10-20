@@ -2564,12 +2564,6 @@ class SVGD:
         # Detect variance collapse
         variance_collapse = self._detect_variance_collapse(history_array)
 
-        # Compute pseudo R-hat (compare first vs second half)
-        mid_point = n_iterations // 2
-        first_half_var = jnp.var(mean_trajectory[:mid_point])
-        second_half_var = jnp.var(mean_trajectory[mid_point:])
-        pseudo_rhat = jnp.sqrt((first_half_var + second_half_var + 1e-10) / (second_half_var + 1e-10))
-
         # Build diagnostics dict
         diagnostics = {
             'converged': converged,
@@ -2580,7 +2574,6 @@ class SVGD:
             'theta_dim': theta_dim,
             'diversity': diversity,
             'variance_collapse': variance_collapse,
-            'pseudo_rhat': float(pseudo_rhat),
             'burnin': burnin,
         }
 
@@ -2596,8 +2589,6 @@ class SVGD:
             issues.append("⚠ Did not converge within n_iterations")
         if diversity['ess_ratio'] < 0.5:
             issues.append(f"⚠ Low effective sample size ({diversity['ess_ratio']:.1%})")
-        if pseudo_rhat > 1.1:
-            issues.append(f"⚠ High pseudo R-hat ({pseudo_rhat:.3f}) - poor mixing")
         if converged and mean_conv_point < n_iterations * 0.7:
             pct = mean_conv_point / n_iterations * 100
             issues.append(f"ℹ Converged at {pct:.1f}% of iterations - could reduce n_iterations")
@@ -2643,14 +2634,6 @@ class SVGD:
             print("  ⚠ Moderate particle diversity")
         else:
             print("  ✗ Low particle diversity")
-
-        print()
-        print("Convergence Quality:")
-        print(f"  Pseudo R-hat: {diag['pseudo_rhat']:.3f} (<1.1 is good)")
-        if diag['pseudo_rhat'] < 1.1:
-            print("  ✓ Good mixing")
-        else:
-            print("  ⚠ Poor mixing - particles not exploring well")
 
         if diag['variance_collapse']['collapsed']:
             print()

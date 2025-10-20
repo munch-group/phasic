@@ -20,16 +20,14 @@ The `analyze_trace()` method provides comprehensive convergence diagnostics for 
    - Effective Sample Size (ESS)
    - ESS ratio (ESS / n_particles)
 
-3. **Convergence Quality**
-   - Pseudo R-hat statistic (compares first vs second half)
+3. **Quality Assessment**
    - Variance collapse detection
-   - Mixing assessment
+   - Particle diversity assessment
 
 4. **Issue Detection**
    - Variance collapse
    - Non-convergence
    - Low ESS
-   - Poor mixing (high R-hat)
    - Early convergence (wasted iterations)
 
 ### Parameter Suggestions
@@ -98,10 +96,6 @@ Particle Diversity:
   Effective sample size (ESS): 50.0 / 50 particles (100.0%)
   ✓ Good particle diversity
 
-Convergence Quality:
-  Pseudo R-hat: 1.003 (<1.1 is good)
-  ✓ Good mixing
-
 Detected Issues:
   ℹ Converged at 5.7% of iterations - could reduce n_iterations
 
@@ -148,7 +142,6 @@ Iterations: Converged early
         'final_diversity': float,   # Final std
         'max_diversity': float      # Maximum std seen
     },
-    'pseudo_rhat': float,           # Pseudo R-hat statistic
     'burnin': int,                  # Auto-detected burn-in
     'issues': [str],                # List of detected issues
     'suggestions': {
@@ -177,11 +170,6 @@ Iterations: Converged early
 - **0.5-0.7**: Moderate diversity
 - **<0.5**: Poor diversity (increase particles)
 
-### Pseudo R-hat
-
-- **<1.1**: Good mixing
-- **>1.1**: Poor mixing (particles not exploring well)
-
 ### Common Issues
 
 1. **Variance Collapse**
@@ -196,11 +184,7 @@ Iterations: Converged early
    - **Symptom**: ESS ratio < 0.5
    - **Fix**: Increase n_particles
 
-4. **High R-hat**
-   - **Symptom**: R-hat > 1.1
-   - **Fix**: Check model specification, increase iterations
-
-5. **Early Convergence**
+4. **Early Convergence**
    - **Symptom**: Converged at <70% of iterations
    - **Fix**: Reduce n_iterations to save time
 
@@ -237,18 +221,6 @@ ess_estimate = n_particles * (overall_var / (overall_var + 1e-10))
 ```
 
 Higher variance → better ESS (particles are diverse).
-
-### Pseudo R-hat
-
-Adapts Gelman-Rubin R-hat to SVGD by comparing variance in first vs second half:
-
-```python
-first_half_var = jnp.var(trajectory[:mid])
-second_half_var = jnp.var(trajectory[mid:])
-pseudo_rhat = jnp.sqrt((first_half_var + second_half_var) / second_half_var)
-```
-
-Values close to 1 indicate good mixing.
 
 ## Integration with Schedule System
 
@@ -304,9 +276,8 @@ if not diag['converged']:
 ## Limitations
 
 1. **Requires history**: Must call `fit(return_history=True)`
-2. **Single-chain diagnostic**: Pseudo R-hat is approximate (SVGD uses deterministic updates, not chains)
-3. **ESS is heuristic**: Not the same as MCMC ESS (particles are not independent samples)
-4. **Convergence criteria**: Tuned for typical phase-type inference problems
+2. **ESS is heuristic**: Not the same as MCMC ESS (particles are not independent samples)
+3. **Convergence criteria**: Tuned for typical phase-type inference problems
 
 ## Future Enhancements
 
