@@ -26,6 +26,13 @@ from pathlib import Path
 import shutil
 from functools import partial
 
+# REQUIRED: Import ptdalgorithms FIRST (before JAX) to enable multi-CPU configuration
+from ptdalgorithms import Graph, SVGD, clear_cache, cache_info, get_config, print_cache_info, set_theme, get_available_options
+
+# Now import JAX (x64 precision and multi-CPU already configured by ptdalgorithms)
+import jax
+import jax.numpy as jnp
+
 
 def print_section(title):
     """Print formatted section header"""
@@ -194,13 +201,6 @@ def clear_all_caches():
 
 
 
-# REQUIRED: Import ptdalgorithms FIRST (before JAX) to enable multi-CPU configuration
-from ptdalgorithms import Graph, SVGD, clear_cache, cache_info, get_config, print_cache_info, set_theme, get_available_options
-
-# Now import JAX (x64 precision and multi-CPU already configured by ptdalgorithms)
-import jax
-import jax.numpy as jnp
-
 # Clear caches before running tests
 clear_all_caches()
 
@@ -223,7 +223,7 @@ def main():
     nr_iterations = 100
 
     # build_graph = build_simple_exponential
-    nr_samples = 20
+    nr_samples = 15
     build_graph = partial(build_coalescent, nr_samples=nr_samples)
 
     true_theta = [5.0]
@@ -383,6 +383,13 @@ def main():
             - Results gathered and reshaped back
 
             Best for: Large particle counts, multiple GPUs/TPUs
+
+            Note on CPU usage:
+            - On CPU, pmap creates {n_devices} virtual devices but they share cores
+            - Likelihood evaluation uses C++ callbacks (not parallelized by JAX)
+            - CPU usage may only show ~100-200% (not 800%) due to callback bottleneck
+            - pmap is primarily for distributed computing, not multi-core CPU
+            - For pure CPU workloads, vmap with XLA multi-threading is often faster
             """,
             svgd_kwargs={
                 **common_params,
@@ -395,10 +402,12 @@ def main():
             observed_data=observed_data
         )
         print(f"Running time: {running_time:.2f} seconds") if running_time else "N/A"
+        print(f"\nNote: CPU usage limited by C++ likelihood callbacks (not parallelized by JAX)")
+        print(f"      vmap may be faster than pmap for CPU-only workloads")
     else:
         print(f"Skipping pmap test (only {n_devices} device available)")
-        print("To test pmap, set PTDALG_CPUS environment variable before import:")
-        print("  export PTDALG_CPUS=4")
+        print("To enable multi-device, set PTDALG_CPUS before Python starts:")
+        print("  export PTDALG_CPUS=8")
         print("  python tests/test_svgd_jax.py")
 
     # ==========================================================================
