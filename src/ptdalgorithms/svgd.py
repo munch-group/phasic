@@ -2238,6 +2238,488 @@ class SVGD:
 
         return fig, axes
 
+    # ========================================================================
+    # Convergence Analysis and Diagnostics
+    # ========================================================================
+
+    def _compute_particle_diversity(self, particles):
+        """
+        Compute particle diversity metrics.
+
+        Parameters
+        ----------
+        particles : array (n_particles, theta_dim)
+            Particle positions
+
+        Returns
+        -------
+        dict
+            'mean_distance': Mean pairwise distance
+            'min_distance': Minimum pairwise distance
+            'ess': Effective sample size estimate
+        """
+        n_particles = particles.shape[0]
+
+        # Compute pairwise distances
+        distances = jnp.array([
+            jnp.linalg.norm(particles[i] - particles[j])
+            for i in range(n_particles)
+            for j in range(i + 1, n_particles)
+        ])
+
+        mean_dist = jnp.mean(distances)
+        min_dist = jnp.min(distances)
+
+        # Estimate ESS from particle weights (uniform weights for SVGD)
+        # Use inverse participation ratio: ESS ≈ 1 / sum(w_i^2)
+        # For SVGD, approximate based on particle spread
+        particle_var = jnp.var(particles, axis=0)
+        overall_var = jnp.mean(particle_var)
+
+        # Rough ESS estimate: higher variance → better ESS
+        # Normalize by expected variance for uniform particles
+        ess_estimate = n_particles * (overall_var / (overall_var + 1e-10))
+
+        return {
+            'mean_distance': float(mean_dist),
+            'min_distance': float(min_dist),
+            'ess': float(ess_estimate),
+            'ess_ratio': float(ess_estimate / n_particles)
+        }
+
+    def _detect_convergence_point(self, trajectory, window=50, threshold=0.01):
+        """
+        Detect iteration where trajectory converged.
+
+        Parameters
+        ----------
+        trajectory : array (n_iterations,)
+            Trajectory of mean or std over iterations
+        window : int
+            Window size for stability check
+        threshold : float
+            Relative change threshold for convergence
+
+        Returns
+        -------
+        int or None
+            Iteration where converged, or None if not converged
+        """
+        if len(trajectory) < window * 2:
+            return None
+
+        for i in range(window, len(trajectory) - window):
+            # Check if trajectory is stable in window around this point
+            window_vals = trajectory[i:i + window]
+            mean_val = jnp.mean(window_vals)
+
+            if abs(mean_val) < 1e-10:
+                continue  # Skip if near zero
+
+            # Compute relative variation
+            rel_var = jnp.std(window_vals) / abs(mean_val)
+
+            if rel_var < threshold:
+                return i
+
+        return None
+
+    def _detect_variance_collapse(self, history_array):
+        """
+        Detect if particles collapsed to same value (variance collapse).
+
+        Parameters
+        ----------
+        history_array : array (n_iterations, n_particles, theta_dim)
+            Full particle history
+
+        Returns
+        -------
+        dict
+            'collapsed': bool
+            'collapse_iteration': int or None
+            'final_diversity': float
+        """
+        n_iterations = history_array.shape[0]
+
+        # Check variance over time
+        std_over_time = jnp.std(history_array, axis=1)  # (n_iterations, theta_dim)
+        mean_std_over_time = jnp.mean(std_over_time, axis=1)  # (n_iterations,)
+
+        # Check if std drops to near-zero
+        final_std = mean_std_over_time[-1]
+        max_std = jnp.max(mean_std_over_time)
+
+        collapsed = final_std < 0.01 * max_std
+
+        # Find when collapse happened
+        collapse_iter = None
+        if collapsed:
+            threshold = 0.1 * max_std
+            for i in range(len(mean_std_over_time)):
+                if mean_std_over_time[i] < threshold:
+                    collapse_iter = i
+                    break
+
+        return {
+            'collapsed': bool(collapsed),
+            'collapse_iteration': int(collapse_iter) if collapse_iter is not None else None,
+            'final_diversity': float(final_std),
+            'max_diversity': float(max_std)
+        }
+
+    def _suggest_learning_rate(self, diagnostics):
+        """
+        Suggest learning rate improvements based on diagnostics.
+
+        Parameters
+        ----------
+        diagnostics : dict
+            Diagnostics from analyze_trace
+
+        Returns
+        -------
+        dict
+            'recommended': schedule object or float
+            'reason': str explaining suggestion
+        """
+        # Extract key metrics
+        converged = diagnostics['converged']
+        conv_point = diagnostics.get('convergence_point')
+        n_iterations = diagnostics['n_iterations']
+        variance_collapsed = diagnostics['variance_collapse']['collapsed']
+
+        # Get current learning rate info
+        current_schedule = self.step_schedule
+
+        # Decision logic
+        if variance_collapsed:
+            return {
+                'recommended': ExponentialDecayStepSize(
+                    max_step=0.005, min_step=0.0005, tau=500.0
+                ),
+                'reason': 'Variance collapsed - reduce learning rate significantly'
+            }
+        elif not converged:
+            # Not converged - might need more iterations or different schedule
+            if isinstance(current_schedule, ConstantStepSize):
+                return {
+                    'recommended': ExponentialDecayStepSize(
+                        max_step=current_schedule.step_size * 1.5,
+                        min_step=current_schedule.step_size * 0.1,
+                        tau=n_iterations * 0.5
+                    ),
+                    'reason': 'Not converged - use decay schedule for better convergence'
+                }
+            else:
+                return {
+                    'recommended': 'increase n_iterations',
+                    'reason': 'Not converged within current iterations'
+                }
+        elif conv_point and conv_point < n_iterations * 0.5:
+            # Converged very early - could use higher learning rate
+            if isinstance(current_schedule, ConstantStepSize):
+                return {
+                    'recommended': current_schedule.step_size * 1.5,
+                    'reason': f'Converged early (iteration {conv_point}) - could converge faster'
+                }
+            else:
+                return {
+                    'recommended': 'current schedule is good',
+                    'reason': 'Converged efficiently'
+                }
+        else:
+            return {
+                'recommended': 'current learning rate is appropriate',
+                'reason': 'Good convergence behavior'
+            }
+
+    def _suggest_particles(self, diagnostics):
+        """
+        Suggest particle count based on diagnostics.
+
+        Parameters
+        ----------
+        diagnostics : dict
+            Diagnostics from analyze_trace
+
+        Returns
+        -------
+        dict
+            'recommended': int
+            'reason': str
+        """
+        current_n = self.n_particles
+        ess_ratio = diagnostics['diversity']['ess_ratio']
+        variance_collapsed = diagnostics['variance_collapse']['collapsed']
+
+        if variance_collapsed:
+            return {
+                'recommended': current_n * 2,
+                'reason': 'Variance collapse detected - increase particles for diversity'
+            }
+        elif ess_ratio < 0.5:
+            return {
+                'recommended': int(current_n * 1.5),
+                'reason': f'Low ESS ratio ({ess_ratio:.2f}) - increase particles'
+            }
+        elif ess_ratio > 0.9:
+            return {
+                'recommended': max(20, int(current_n * 0.8)),
+                'reason': f'High ESS ratio ({ess_ratio:.2f}) - could reduce particles'
+            }
+        else:
+            return {
+                'recommended': current_n,
+                'reason': 'Particle count is appropriate'
+            }
+
+    def analyze_trace(self, burnin=None, verbose=True, return_dict=False):
+        """
+        Analyze SVGD convergence and suggest parameter improvements.
+
+        Computes convergence diagnostics, detects issues, and recommends
+        parameter updates for better performance.
+
+        Parameters
+        ----------
+        burnin : int, optional
+            Number of initial iterations to discard as burn-in.
+            If None, auto-detects using convergence detection.
+        verbose : bool, default=True
+            Print detailed diagnostic report
+        return_dict : bool, default=False
+            Return full diagnostics dictionary
+
+        Returns
+        -------
+        dict or None
+            If return_dict=True, returns diagnostics dictionary with:
+            - 'converged': bool - Whether SVGD converged
+            - 'convergence_point': int or None - Iteration where converged
+            - 'diversity': dict - Particle diversity metrics
+            - 'variance_collapse': dict - Variance collapse diagnostics
+            - 'suggestions': dict - Recommended parameter updates
+            - 'issues': list - Detected problems
+
+        Raises
+        ------
+        RuntimeError
+            If fit() not called or history not available
+
+        Examples
+        --------
+        >>> svgd = SVGD(model, data, theta_dim=1, n_iterations=1000)
+        >>> svgd.fit(return_history=True)
+        >>> svgd.analyze_trace()  # Prints diagnostic report
+
+        >>> # Get full diagnostics
+        >>> diag = svgd.analyze_trace(return_dict=True, verbose=False)
+        >>> if not diag['converged']:
+        >>>     print("Need more iterations!")
+        """
+        if not self.is_fitted:
+            raise RuntimeError("Must call fit() before analyzing trace")
+
+        if self.history is None:
+            raise RuntimeError(
+                "History not available. Call fit(return_history=True) first"
+            )
+
+        # Get history in appropriate space
+        results = self.get_results()
+        if self.param_transform is not None:
+            history = results.get('history', self.history)
+            space_label = " (transformed)"
+        else:
+            history = self.history
+            space_label = ""
+
+        # Convert to array
+        history_array = jnp.stack(history)  # (n_iterations, n_particles, theta_dim)
+        n_iterations, n_particles, theta_dim = history_array.shape
+
+        # Compute trajectories
+        mean_over_time = jnp.mean(history_array, axis=1)  # (n_iterations, theta_dim)
+        std_over_time = jnp.std(history_array, axis=1)    # (n_iterations, theta_dim)
+
+        # Average across dimensions for overall convergence
+        mean_trajectory = jnp.mean(mean_over_time, axis=1)
+        std_trajectory = jnp.mean(std_over_time, axis=1)
+
+        # Detect convergence
+        mean_conv_point = self._detect_convergence_point(mean_trajectory, window=50, threshold=0.01)
+        std_conv_point = self._detect_convergence_point(std_trajectory, window=50, threshold=0.05)
+
+        converged = mean_conv_point is not None
+
+        # Auto-detect burnin if not provided
+        if burnin is None:
+            burnin = mean_conv_point if mean_conv_point is not None else int(n_iterations * 0.2)
+
+        # Compute particle diversity
+        final_particles = history_array[-1]
+        diversity = self._compute_particle_diversity(final_particles)
+
+        # Detect variance collapse
+        variance_collapse = self._detect_variance_collapse(history_array)
+
+        # Compute pseudo R-hat (compare first vs second half)
+        mid_point = n_iterations // 2
+        first_half_var = jnp.var(mean_trajectory[:mid_point])
+        second_half_var = jnp.var(mean_trajectory[mid_point:])
+        pseudo_rhat = jnp.sqrt((first_half_var + second_half_var + 1e-10) / (second_half_var + 1e-10))
+
+        # Build diagnostics dict
+        diagnostics = {
+            'converged': converged,
+            'convergence_point': mean_conv_point,
+            'std_convergence_point': std_conv_point,
+            'n_iterations': n_iterations,
+            'n_particles': n_particles,
+            'theta_dim': theta_dim,
+            'diversity': diversity,
+            'variance_collapse': variance_collapse,
+            'pseudo_rhat': float(pseudo_rhat),
+            'burnin': burnin,
+        }
+
+        # Get suggestions
+        lr_suggestion = self._suggest_learning_rate(diagnostics)
+        particle_suggestion = self._suggest_particles(diagnostics)
+
+        # Detect issues
+        issues = []
+        if variance_collapse['collapsed']:
+            issues.append(f"⚠ Variance collapse at iteration {variance_collapse['collapse_iteration']}")
+        if not converged:
+            issues.append("⚠ Did not converge within n_iterations")
+        if diversity['ess_ratio'] < 0.5:
+            issues.append(f"⚠ Low effective sample size ({diversity['ess_ratio']:.1%})")
+        if pseudo_rhat > 1.1:
+            issues.append(f"⚠ High pseudo R-hat ({pseudo_rhat:.3f}) - poor mixing")
+        if converged and mean_conv_point < n_iterations * 0.7:
+            pct = mean_conv_point / n_iterations * 100
+            issues.append(f"ℹ Converged at {pct:.1f}% of iterations - could reduce n_iterations")
+
+        diagnostics['issues'] = issues
+        diagnostics['suggestions'] = {
+            'learning_rate': lr_suggestion,
+            'n_particles': particle_suggestion
+        }
+
+        # Print report if verbose
+        if verbose:
+            self._print_analysis_report(diagnostics, space_label)
+
+        if return_dict:
+            return diagnostics
+
+    def _print_analysis_report(self, diag, space_label=""):
+        """Print formatted analysis report."""
+        print("=" * 80)
+        print("SVGD Convergence Analysis")
+        print("=" * 80)
+        print()
+
+        # Convergence status
+        if diag['converged']:
+            print(f"✓ CONVERGED (iteration {diag['convergence_point']}/{diag['n_iterations']})")
+            print(f"  Mean stabilized at iteration {diag['convergence_point']}")
+            if diag['std_convergence_point']:
+                print(f"  Std stabilized at iteration {diag['std_convergence_point']}")
+        else:
+            print(f"✗ NOT CONVERGED after {diag['n_iterations']} iterations")
+
+        print()
+        print("Particle Diversity:")
+        div = diag['diversity']
+        print(f"  Mean inter-particle distance: {div['mean_distance']:.3f}")
+        print(f"  Effective sample size (ESS): {div['ess']:.1f} / {diag['n_particles']} particles ({div['ess_ratio']:.1%})")
+
+        if div['ess_ratio'] > 0.7:
+            print("  ✓ Good particle diversity")
+        elif div['ess_ratio'] > 0.5:
+            print("  ⚠ Moderate particle diversity")
+        else:
+            print("  ✗ Low particle diversity")
+
+        print()
+        print("Convergence Quality:")
+        print(f"  Pseudo R-hat: {diag['pseudo_rhat']:.3f} (<1.1 is good)")
+        if diag['pseudo_rhat'] < 1.1:
+            print("  ✓ Good mixing")
+        else:
+            print("  ⚠ Poor mixing - particles not exploring well")
+
+        if diag['variance_collapse']['collapsed']:
+            print()
+            print("Variance Collapse:")
+            vc = diag['variance_collapse']
+            print(f"  ✗ Particles collapsed at iteration {vc['collapse_iteration']}")
+            print(f"  Final diversity: {vc['final_diversity']:.4f} (max was {vc['max_diversity']:.4f})")
+
+        # Issues
+        if diag['issues']:
+            print()
+            print("Detected Issues:")
+            for issue in diag['issues']:
+                print(f"  {issue}")
+
+        # Suggestions
+        print()
+        print("=" * 80)
+        print("Suggested Parameter Updates")
+        print("=" * 80)
+        print()
+
+        print("Current Configuration:")
+        print(f"  learning_rate={self.step_schedule}")
+        print(f"  n_particles={self.n_particles}")
+        print(f"  n_iterations={self.n_iterations}")
+        print()
+
+        # Learning rate suggestion
+        lr_sug = diag['suggestions']['learning_rate']
+        print(f"Learning Rate: {lr_sug['reason']}")
+        if isinstance(lr_sug['recommended'], str):
+            print(f"  Recommendation: {lr_sug['recommended']}")
+        elif isinstance(lr_sug['recommended'], ExponentialDecayStepSize):
+            sched = lr_sug['recommended']
+            print(f"  Recommendation: ExponentialDecayStepSize(")
+            print(f"      max_step={sched.max_step},")
+            print(f"      min_step={sched.min_step},")
+            print(f"      tau={sched.tau}")
+            print(f"  )")
+        else:
+            print(f"  Recommendation: {lr_sug['recommended']}")
+
+        print()
+
+        # Particle suggestion
+        part_sug = diag['suggestions']['n_particles']
+        print(f"Particles: {part_sug['reason']}")
+        if part_sug['recommended'] != self.n_particles:
+            print(f"  Recommendation: n_particles={part_sug['recommended']}")
+        else:
+            print(f"  Recommendation: Keep n_particles={self.n_particles}")
+
+        print()
+
+        # Iteration suggestion
+        if diag['converged'] and diag['convergence_point'] < diag['n_iterations'] * 0.8:
+            suggested_iters = int(diag['convergence_point'] * 1.2)  # Add 20% buffer
+            print(f"Iterations: Converged early")
+            print(f"  Recommendation: Could reduce to n_iterations={suggested_iters}")
+            print()
+        elif not diag['converged']:
+            suggested_iters = int(diag['n_iterations'] * 1.5)
+            print(f"Iterations: Did not converge")
+            print(f"  Recommendation: Increase to n_iterations={suggested_iters}")
+            print()
+
+        print("=" * 80)
+
     def plot_pairwise(self, true_theta=None, param_names=None,
                      figsize=None, save_path=None, show_transformed=True):
         """
