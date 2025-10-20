@@ -7,19 +7,29 @@ It shows how to control JAX compilation, parallelization, and device usage expli
 
 The explicit configuration system eliminates all silent fallback behavior, giving users
 full control over how SVGD executes.
+
+Import Pattern
+--------------
+This file demonstrates the RECOMMENDED explicit import pattern:
+1. Import JAX first
+2. Enable x64 precision (REQUIRED for accurate gradients in SVGD)
+3. Then import ptdalgorithms
+
+Alternative: Let ptdalgorithms handle JAX import (see test_svgd_correctness.py)
 """
 
-from ptdalgorithms import Graph, SVGD, clear_cache, cache_info, print_cache_info, set_theme
-import ptdalgorithms as ptd
 import numpy as np
-import jax.numpy as jnp
+# RECOMMENDED: Import JAX with x64 BEFORE importing ptdalgorithms
+# This gives you full control over JAX configuration
 import jax
+jax.config.update('jax_enable_x64', True)  # REQUIRED: Enable 64-bit precision for accurate gradients
+import jax.numpy as jnp
 import time
 import os
 from pathlib import Path
+import shutil
 from functools import partial
 
-set_theme('dark')
 
 def print_section(title):
     """Print formatted section header"""
@@ -31,11 +41,11 @@ def print_section(title):
 def print_config_info():
     """Print current configuration and available options"""
     print("Current Configuration:")
-    config = ptd.get_config()
+    config = get_config()
     print(f"  jax={config.jax}, jit={config.jit}, backend='{config.backend}'")
 
     print("\nAvailable Options on This System:")
-    opts = ptd.get_available_options()
+    opts = get_available_options()
     print(f"  JAX available: {opts['jax']}")
     print(f"  Backends: {opts['backends']}")
     print(f"  Platforms: {opts['platforms']}")
@@ -141,10 +151,13 @@ def run_svgd_test(name, description, svgd_kwargs, observed_data):
         print(f"\nRunning SVGD...")
         svgd.fit(return_history=True)
 
+        # Get results in transformed (constrained) space
+        results = svgd.get_results()
+
         # Print results
         print(f"\n✓ Success!")
-        print(f"  Posterior mean: {svgd.theta_mean}")
-        print(f"  Posterior std:  {svgd.theta_std}")
+        print(f"  Posterior mean (θ space): {results['theta_mean']}")
+        print(f"  Posterior std (θ space):  {results['theta_std']}")
 
         total = time.time() - start
 
@@ -158,6 +171,39 @@ def run_svgd_test(name, description, svgd_kwargs, observed_data):
         print(f"  {type(e).__name__}: {str(e)[:200]}")
         return False
 
+# Clear caches before importing ptdalgorithms
+def clear_all_caches():
+    """Clear all PtDAlgorithms caches before testing"""
+    print("Clearing all caches...")
+
+    # Clear trace cache
+    trace_cache = Path.home() / '.ptdalgorithms_cache' / 'traces'
+    if trace_cache.exists():
+        n_files = len(list(trace_cache.glob('*.json')))
+        shutil.rmtree(trace_cache)
+        trace_cache.mkdir(parents=True, exist_ok=True)
+        print(f"  ✓ Cleared trace cache ({n_files} files)")
+
+    # Clear JAX cache
+    jax_cache = Path(os.environ.get('JAX_COMPILATION_CACHE_DIR',
+                                     str(Path.home() / '.jax_cache')))
+    if jax_cache.exists():
+        n_files = len(list(jax_cache.glob('*')))
+        shutil.rmtree(jax_cache)
+        jax_cache.mkdir(parents=True, exist_ok=True)
+        print(f"  ✓ Cleared JAX cache ({n_files} files)")
+
+    print()
+
+
+
+# Clear caches before importing
+clear_all_caches()
+
+from ptdalgorithms import Graph, SVGD, clear_cache, cache_info, get_config, print_cache_info, set_theme, get_available_options
+
+set_theme('dark')
+
 
 def main():
     """Run comprehensive SVGD configuration showcase"""
@@ -170,13 +216,13 @@ def main():
     # Generate test data
     print_section("Generating Test Data")
 
-    nr_observations = 50
-    nr_particles = 20
-    nr_iterations = 10
+    nr_observations = 5000
+    nr_particles = 50
+    nr_iterations = 1000
 
     build_graph = build_simple_exponential
-    # nr_samples = 100
-    # callback = partial(build_coalescent, nr_samples=10)
+    # nr_samples = 10
+    # build_graph = partial(build_coalescent, nr_samples=nr_samples)
 
     true_theta = [5.0]
 
@@ -197,6 +243,8 @@ def main():
     _graph.update_parameterized_weights(true_theta)
     observed_data = _graph.sample(nr_observations)
 
+
+
     # # observed_data = generate_test_data(true_theta, n_obs=50)
     # print(f"Generated {len(observed_data)} observations from Exponential({true_theta})")
     # print(f"Sample mean: {np.mean(observed_data):.3f} (theoretical: {1/true_theta:.3f})")
@@ -207,14 +255,38 @@ def main():
     # graph = build_simple_exponential()
     model = Graph.pmf_from_graph(graph, discrete=False, param_length=1)
 
-    # Common parameters for all tests
-    common_params = {
-        'model': model,
-        'observed_data': observed_data,
-        'theta_dim': len(true_theta),
-        'n_particles': nr_particles,
-        'n_iterations': nr_iterations,
-    }
+    # # Common parameters for all tests
+    # common_params = {
+    #     'model': model,
+    #     'observed_data': observed_data,
+    #     'theta_dim': len(true_theta),
+    #     'n_particles': nr_particles,
+    #     'n_iterations': nr_iterations,
+    # }
+
+    # Define uninformative prior in transformed (log) space
+    def uninformative_prior(phi):
+        """Uninformative prior: φ ~ N(0, 10^2) - very wide"""
+        mu = 0.0
+        sigma = 10.0
+        return -0.5 * jnp.sum(((phi - mu) / sigma)**2)
+    
+    # Use ExponentialDecayStepSize to prevent divergence with large datasets
+    from ptdalgorithms import ExponentialDecayStepSize
+    step_schedule = ExponentialDecayStepSize(max_step=0.01, min_step=0.001, tau=500.0)
+
+    common_params = dict(
+                model=model,
+                observed_data=observed_data,
+                prior=uninformative_prior,  # Use uninformative prior
+                theta_dim=len(true_theta),
+                n_particles=nr_particles,
+                n_iterations=nr_iterations,
+                learning_rate=step_schedule,  # Use schedule for stability
+                seed=42,
+                verbose=False
+    )
+
 
     # ==========================================================================
     # Test 1: Default Configuration (Auto-Select Everything)

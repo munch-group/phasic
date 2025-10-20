@@ -42,6 +42,260 @@ tqdm = partial(tqdm, bar_format="{bar}", leave=False)
 #from jax import random, vmap, grad, jit
 
 
+# ============================================================================
+# Schedule Classes for Step Size and Bandwidth Control
+# ============================================================================
+
+class StepSizeSchedule:
+    """
+    Base class for step size schedules.
+
+    Subclasses should implement __call__(iteration, particles) returning a scalar step size.
+    """
+    def __call__(self, iteration, particles=None):
+        """
+        Compute step size for given iteration.
+
+        Parameters
+        ----------
+        iteration : int
+            Current iteration number (0-indexed)
+        particles : jnp.ndarray, optional
+            Current particle positions, shape (n_particles, theta_dim)
+
+        Returns
+        -------
+        float
+            Step size for this iteration
+        """
+        raise NotImplementedError
+
+
+class ConstantStepSize(StepSizeSchedule):
+    """
+    Constant step size (default behavior).
+
+    Parameters
+    ----------
+    step_size : float
+        Fixed step size for all iterations
+
+    Examples
+    --------
+    >>> schedule = ConstantStepSize(0.01)
+    >>> schedule(0)  # iteration 0
+    0.01
+    >>> schedule(100)  # iteration 100
+    0.01
+    """
+    def __init__(self, step_size=0.01):
+        self.step_size = step_size
+
+    def __call__(self, iteration, particles=None):
+        return self.step_size
+
+
+class ExponentialDecayStepSize(StepSizeSchedule):
+    """
+    Exponential decay schedule: step_size = max_step * exp(-iteration/tau) + min_step.
+
+    This schedule helps prevent divergence with large datasets by gradually reducing
+    the step size as optimization progresses.
+
+    Parameters
+    ----------
+    max_step : float, default=0.01
+        Initial (maximum) step size
+    min_step : float, default=1e-6
+        Final (minimum) step size
+    tau : float, default=1000.0
+        Decay time constant (larger = slower decay)
+
+    Examples
+    --------
+    >>> schedule = ExponentialDecayStepSize(max_step=0.1, min_step=0.01, tau=500.0)
+    >>> schedule(0)      # iteration 0
+    0.1
+    >>> schedule(500)    # iteration 500 (≈63% decay)
+    0.037
+    >>> schedule(5000)   # iteration 5000 (full decay)
+    0.01
+    """
+    def __init__(self, max_step=0.01, min_step=1e-6, tau=1000.0):
+        self.max_step = max_step
+        self.min_step = min_step
+        self.tau = tau
+
+    def __call__(self, iteration, particles=None):
+        decay = jnp.exp(-iteration / self.tau)
+        return self.max_step * decay + self.min_step * (1 - decay)
+
+
+class AdaptiveStepSize(StepSizeSchedule):
+    """
+    Adaptive step size based on particle spread (KL divergence proxy).
+
+    Increases step size when particles are too concentrated (low KL),
+    decreases when particles are too dispersed (high KL).
+
+    Parameters
+    ----------
+    base_step : float, default=0.01
+        Base step size
+    kl_target : float, default=0.1
+        Target KL divergence (in log-space particle spread)
+    adjust_rate : float, default=0.1
+        Rate of adjustment (0 = no adjustment, 1 = immediate)
+
+    Examples
+    --------
+    >>> schedule = AdaptiveStepSize(base_step=0.01, kl_target=0.1)
+    >>> particles = jnp.array([[1.0], [1.1], [0.9]])  # concentrated
+    >>> schedule(10, particles)  # will increase step size
+    0.011
+    """
+    def __init__(self, base_step=0.01, kl_target=0.1, adjust_rate=0.1):
+        self.base_step = base_step
+        self.kl_target = kl_target
+        self.adjust_rate = adjust_rate
+        self.current_step = base_step
+
+    def __call__(self, iteration, particles=None):
+        if particles is None:
+            return self.current_step
+
+        # Estimate KL divergence using particle spread
+        particle_std = jnp.std(particles, axis=0)
+        kl_estimate = jnp.mean(jnp.log(particle_std + 1e-8))
+
+        # Adaptive adjustment
+        if kl_estimate > self.kl_target:
+            # Particles too spread out, reduce step size
+            adjustment = 1.0 - self.adjust_rate
+        else:
+            # Particles too concentrated, increase step size
+            adjustment = 1.0 + self.adjust_rate
+
+        self.current_step = self.current_step * adjustment
+        return self.current_step
+
+
+class BandwidthSchedule:
+    """
+    Base class for bandwidth schedules.
+
+    Subclasses should implement __call__(particles) returning bandwidth(s).
+    """
+    def __call__(self, particles):
+        """
+        Compute bandwidth for current particle configuration.
+
+        Parameters
+        ----------
+        particles : jnp.ndarray
+            Current particle positions, shape (n_particles, theta_dim)
+
+        Returns
+        -------
+        float or jnp.ndarray
+            Bandwidth (scalar for global, array for local)
+        """
+        raise NotImplementedError
+
+
+class MedianBandwidth(BandwidthSchedule):
+    """
+    Median heuristic bandwidth (default behavior).
+
+    Sets bandwidth to median of pairwise distances between particles.
+
+    Examples
+    --------
+    >>> schedule = MedianBandwidth()
+    >>> particles = jnp.array([[0.0], [1.0], [2.0]])
+    >>> schedule(particles)
+    1.0
+    """
+    def __call__(self, particles):
+        n_particles = particles.shape[0]
+        pairwise_dists = jnp.array([
+            jnp.linalg.norm(particles[i] - particles[j])
+            for i in range(n_particles)
+            for j in range(i + 1, n_particles)
+        ])
+        return jnp.median(pairwise_dists)
+
+
+class FixedBandwidth(BandwidthSchedule):
+    """
+    Fixed bandwidth for all iterations.
+
+    Parameters
+    ----------
+    bandwidth : float
+        Fixed bandwidth value
+
+    Examples
+    --------
+    >>> schedule = FixedBandwidth(1.0)
+    >>> particles = jnp.array([[0.0], [1.0]])
+    >>> schedule(particles)
+    1.0
+    """
+    def __init__(self, bandwidth=1.0):
+        self.bandwidth = bandwidth
+
+    def __call__(self, particles):
+        return self.bandwidth
+
+
+class LocalAdaptiveBandwidth(BandwidthSchedule):
+    """
+    Local adaptive bandwidth using k-nearest neighbors.
+
+    Computes per-particle bandwidth based on distance to k-nearest neighbors.
+
+    Parameters
+    ----------
+    alpha : float, default=0.9
+        Scaling factor for local bandwidth
+    k_frac : float, default=0.1
+        Fraction of particles to use as k-nearest neighbors
+
+    Examples
+    --------
+    >>> schedule = LocalAdaptiveBandwidth(alpha=0.9, k_frac=0.1)
+    >>> particles = jnp.array([[0.0], [1.0], [10.0]])
+    >>> bandwidths = schedule(particles)
+    >>> bandwidths.shape
+    (3,)
+    """
+    def __init__(self, alpha=0.9, k_frac=0.1):
+        self.alpha = alpha
+        self.k_frac = k_frac
+
+    def __call__(self, particles):
+        n_particles = particles.shape[0]
+        k_nn = max(1, int(n_particles * self.k_frac))
+
+        bandwidths = []
+        for i in range(n_particles):
+            # Compute distances to all other particles
+            distances = jnp.array([
+                jnp.linalg.norm(particles[i] - particles[j])
+                for j in range(n_particles) if j != i
+            ])
+            # Take k-nearest neighbors
+            knn_distances = jnp.sort(distances)[:k_nn]
+            local_bw = jnp.mean(knn_distances) * self.alpha
+            bandwidths.append(local_bw)
+
+        return jnp.array(bandwidths)
+
+
+# ============================================================================
+# End of Schedule Classes
+# ============================================================================
 
 
 # def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
@@ -665,6 +919,29 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
     # Compute kernel and kernel gradient
     K, grad_K = kernel.compute_kernel_grad(particles)
 
+    # ##############    
+
+    # # phi = jnp.zeros_like(particles)
+    # # for i in range(n_particles):
+    # #     positive_term = jnp.sum(K[i, :, None] * grad_log_p, axis=0) / n_particles
+    # #     negative_term = jnp.sum(grad_K[i, :, :], axis=0) / n_particles
+    # #     phi = phi.at[i].set(positive_term + negative_term)
+    
+    # positive_term = jnp.sum(K[:, :, None] * grad_log_p, axis=1) / n_particles
+    # negative_term = jnp.sum(grad_K, axis=1) / n_particles
+    # phi = positive_term + negative_term
+
+    # # Adaptive step
+    # # step_factor = kl_adaptive_step(particles, kl_target)
+    # # _step_size = jnp.clip(max_step * step_factor, 1e-7, max_step)  * phi 
+    # _step_size = step_size * phi   
+
+    #  # Call JIT-compiled update
+    # return _svgd_update_jitted(particles, K, grad_K, grad_log_p, _step_size)
+
+    # ##############
+
+
     # Call JIT-compiled update
     return _svgd_update_jitted(particles, K, grad_K, grad_log_p, step_size)
 
@@ -684,8 +961,10 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
         Initial particle positions
     n_steps : int
         Number of SVGD iterations
-    learning_rate : float
-        Step size (can be constant or use adaptive schedule)
+    learning_rate : float or StepSizeSchedule
+        Step size. Can be:
+        - float: constant step size (backward compatible)
+        - StepSizeSchedule object: dynamic schedule
     kernel : str or SVGDKernel
         Kernel specification. If string, creates SVGDKernel with that bandwidth method
     return_history : bool
@@ -719,14 +998,32 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
     history = [particles] if return_history else None
     history_iterations = [0] if return_history else []  # Track iteration numbers for history snapshots
 
+    # Handle step size schedule (backward compatible)
+    if isinstance(learning_rate, StepSizeSchedule):
+        step_schedule = learning_rate
+        use_schedule = True
+    elif isinstance(learning_rate, (int, float)):
+        step_schedule = ConstantStepSize(float(learning_rate))
+        use_schedule = False  # Can still use constant value
+    else:
+        raise TypeError(
+            f"learning_rate must be float or StepSizeSchedule, got: {type(learning_rate)}"
+        )
+
     # SVGD iterations
     if verbose:
         print(f"Running SVGD: {n_steps} steps, {len(particles)} particles")
 
     # for step in range(n_steps) if verbose else range(n_steps):
     for step in trange(n_steps) if verbose else range(n_steps):
+        # Compute current step size from schedule
+        if use_schedule:
+            current_step_size = step_schedule(step, particles)
+        else:
+            current_step_size = learning_rate
+
         # Perform SVGD update
-        particles = svgd_step(particles, log_prob_fn, kernel_obj, learning_rate,
+        particles = svgd_step(particles, log_prob_fn, kernel_obj, current_step_size,
                              compiled_grad=compiled_grad,
                              parallel_mode=parallel_mode,
                              n_devices=n_devices)
@@ -819,10 +1116,16 @@ class SVGD:
         Number of SVGD particles
     n_iterations : int, default=1000
         Number of SVGD optimization steps
-    learning_rate : float, default=0.001
-        SVGD step size
-    kernel : str, default='rbf_median'
-        Kernel bandwidth selection method
+    learning_rate : float or StepSizeSchedule, default=0.001
+        SVGD step size. Can be:
+        - float: constant step size (backward compatible)
+        - StepSizeSchedule object: dynamic step size schedule
+        Examples: ConstantStepSize(0.01), ExponentialDecayStepSize(0.1, 0.01, 500.0)
+    kernel : str or BandwidthSchedule, default='rbf_median'
+        Kernel bandwidth selection. Can be:
+        - str: 'rbf_median' for median heuristic (backward compatible)
+        - BandwidthSchedule object: dynamic bandwidth schedule
+        Examples: MedianBandwidth(), FixedBandwidth(1.0), LocalAdaptiveBandwidth()
     theta_init : array_like, optional
         Initial particle positions (n_particles, theta_dim)
     theta_dim : int, optional
@@ -912,6 +1215,24 @@ class SVGD:
     >>>
     >>> # No JIT (for debugging)
     >>> svgd = SVGD(model, observed_data, theta_dim=1, jit=False, parallel='none')
+    >>> svgd.fit()
+    >>>
+    >>> # Using step size schedules to prevent divergence
+    >>> from ptdalgorithms import ExponentialDecayStepSize
+    >>> schedule = ExponentialDecayStepSize(max_step=0.1, min_step=0.01, tau=500.0)
+    >>> svgd = SVGD(model, observed_data, theta_dim=1, learning_rate=schedule)
+    >>> svgd.fit()
+    >>>
+    >>> # Using adaptive step size based on particle spread
+    >>> from ptdalgorithms import AdaptiveStepSize
+    >>> schedule = AdaptiveStepSize(base_step=0.01, kl_target=0.1, adjust_rate=0.1)
+    >>> svgd = SVGD(model, observed_data, theta_dim=1, learning_rate=schedule)
+    >>> svgd.fit()
+    >>>
+    >>> # Using custom bandwidth schedule
+    >>> from ptdalgorithms import LocalAdaptiveBandwidth
+    >>> bandwidth = LocalAdaptiveBandwidth(alpha=0.9, k_frac=0.1)
+    >>> svgd = SVGD(model, observed_data, theta_dim=1, kernel=bandwidth)
     >>> svgd.fit()
     >>>
     >>> # Access results
@@ -1035,8 +1356,35 @@ class SVGD:
         self.prior = prior
         self.n_particles = n_particles
         self.n_iterations = n_iterations
-        self.learning_rate = learning_rate
-        self.kernel_str = kernel
+
+        # Handle step size schedule (backward compatible)
+        if isinstance(learning_rate, StepSizeSchedule):
+            self.step_schedule = learning_rate
+            self.learning_rate = None  # Will be computed dynamically
+        elif isinstance(learning_rate, (int, float)):
+            self.step_schedule = ConstantStepSize(float(learning_rate))
+            self.learning_rate = float(learning_rate)  # Keep for backward compat
+        else:
+            raise TypeError(
+                f"learning_rate must be float or StepSizeSchedule, got: {type(learning_rate)}"
+            )
+
+        # Handle bandwidth schedule (backward compatible)
+        if isinstance(kernel, BandwidthSchedule):
+            self.bandwidth_schedule = kernel
+            self.kernel_str = 'custom'  # Keep for backward compat
+        elif isinstance(kernel, str):
+            if kernel == 'rbf_median':
+                self.bandwidth_schedule = MedianBandwidth()
+            else:
+                # For other string values, keep old behavior
+                self.bandwidth_schedule = None
+            self.kernel_str = kernel
+        else:
+            raise TypeError(
+                f"kernel must be str or BandwidthSchedule, got: {type(kernel)}"
+            )
+
         self.theta_dim = theta_dim
         self.seed = seed
         self.verbose = verbose
@@ -1319,7 +1667,7 @@ class SVGD:
             log_prob_fn=self._log_prob,
             theta_init=self.theta_init,
             n_steps=self.n_iterations,
-            learning_rate=self.learning_rate,
+            learning_rate=self.step_schedule,  # Pass schedule object
             kernel=kernel_obj,
             return_history=return_history,
             verbose=self.verbose,

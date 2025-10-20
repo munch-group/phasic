@@ -16,9 +16,18 @@ Model: Exponential(θ) where θ is the rate parameter
 """
 
 import numpy as np
-import jax
-jax.config.update('jax_enable_x64', True)  # Enable 64-bit precision for accurate gradients
+# JAX import commented out - ptdalgorithms handles JAX import with x64 precision enabled
+# This demonstrates the "rely on ptdalgorithms" import pattern where the library
+# automatically configures JAX with the correct settings.
+#
+# Alternative explicit pattern (see test_svgd_jax.py):
+#   import jax
+#   jax.config.update('jax_enable_x64', True)
+#   import ptdalgorithms
+
+# Import jax.numpy for prior functions
 import jax.numpy as jnp
+
 from pathlib import Path
 import shutil
 import os
@@ -169,15 +178,19 @@ def test_basic_convergence():
         return -0.5 * jnp.sum(((phi - mu) / sigma)**2)
 
     # Run SVGD (positive_params=True by default)
+    # Use ExponentialDecayStepSize for stable convergence
+    from ptdalgorithms import ExponentialDecayStepSize
+    step_schedule = ExponentialDecayStepSize(max_step=0.01, min_step=0.001, tau=500.0)
+
     print(f"\nRunning SVGD...")
     svgd = SVGD(
         model=model,
         observed_data=data,
         prior=uninformative_prior,  # Use uninformative prior
         theta_dim=1,
-        n_particles=100,
+        n_particles=20,
         n_iterations=1000,
-        learning_rate=0.1,  # Higher learning rate for exploration
+        learning_rate=step_schedule,  # Use schedule for stability
         seed=42,
         verbose=False
     )
@@ -258,6 +271,10 @@ def test_log_transformation():
         sigma = 10.0
         return -0.5 * jnp.sum(((phi - mu) / sigma)**2)
 
+    # Use ExponentialDecayStepSize for stable convergence
+    from ptdalgorithms import ExponentialDecayStepSize
+    step_schedule = ExponentialDecayStepSize(max_step=0.01, min_step=0.001, tau=500.0)
+
     # Run SVGD with transformation
     print(f"\nRunning SVGD with log transformation...")
 
@@ -268,9 +285,9 @@ def test_log_transformation():
         observed_data=data,
         prior=phi_prior,  # Prior in φ space
         theta_dim=1,
-        n_particles=100,
+        n_particles=20,
         n_iterations=1000,
-        learning_rate=0.1,  # Higher learning rate for exploration
+        learning_rate=step_schedule,  # Use schedule for stability
         # positive_params=True is the default
         seed=42,
         verbose=False
@@ -334,15 +351,19 @@ def test_positive_constraint():
     graph = build_exponential_graph()
     model = Graph.pmf_from_graph(graph, discrete=False, param_length=1)
 
+    # Use ExponentialDecayStepSize for stable convergence
+    from ptdalgorithms import ExponentialDecayStepSize
+    step_schedule = ExponentialDecayStepSize(max_step=0.01, min_step=0.001, tau=500.0)
+
     # Run SVGD with positive_params (now default)
     print(f"\nRunning SVGD with positive_params=True (default)...")
     svgd = SVGD(
         model=model,
         observed_data=data,
         theta_dim=1,
-        n_particles=100,
+        n_particles=20,
         n_iterations=1000,
-        learning_rate=0.1,  # Higher learning rate for exploration
+        learning_rate=step_schedule,  # Use schedule for stability
         # positive_params=True is now the default
         seed=42,
         verbose=False
@@ -388,7 +409,7 @@ def test_cache_isolation():
 
     # Setup
     true_theta = 5.0
-    n_samples = 100
+    n_samples = 1000
 
     print(f"Testing cache clearing between runs...\n")
 
@@ -407,8 +428,8 @@ def test_cache_isolation():
         model=model,
         observed_data=data,
         theta_dim=1,
-        n_particles=50,
-        n_iterations=10,
+        n_particles=20,
+        n_iterations=1000,
         seed=42,
         verbose=False
     )
@@ -431,8 +452,8 @@ def test_cache_isolation():
         model=model2,
         observed_data=data,
         theta_dim=1,
-        n_particles=50,
-        n_iterations=10,
+        n_particles=20,
+        n_iterations=1000,
         seed=42,
         verbose=False
     )

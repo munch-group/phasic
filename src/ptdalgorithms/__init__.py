@@ -88,7 +88,32 @@ if _config.jax:
 
     # Configure JAX for multi-CPU BEFORE importing JAX
     if 'jax' in sys.modules:
-        print("WARNING: JAX has already been imported. PTDAlgorithms CPU multi-device configuration will be skipped.")
+        # JAX already imported - check and enforce x64 precision
+        import jax as _jax_check
+
+        if not _jax_check.config.jax_enable_x64:
+            # Try to enable x64 (this works even after JAX import)
+            try:
+                _jax_check.config.update('jax_enable_x64', True)
+                print("WARNING: JAX was imported without x64 precision. Enabled x64 for accurate gradients.")
+                print("To avoid this warning, enable x64 before importing ptdalgorithms:")
+                print("  import jax")
+                print("  jax.config.update('jax_enable_x64', True)")
+                print("  import ptdalgorithms")
+            except Exception as e:
+                # This should never happen (x64 can be set after import), but be defensive
+                raise ImportError(
+                    "JAX was imported without x64 precision and cannot be reconfigured.\n"
+                    "This will cause incorrect gradients in SVGD inference.\n"
+                    "Please import JAX with x64 BEFORE importing ptdalgorithms:\n"
+                    "  import jax\n"
+                    "  jax.config.update('jax_enable_x64', True)\n"
+                    "  import ptdalgorithms\n"
+                    f"Error: {e}"
+                )
+
+        # Multi-CPU configuration still skipped when JAX pre-imported
+        print("NOTE: JAX was already imported. PTDAlgorithms CPU multi-device configuration was skipped.")
         print("To enable multi-CPU support, configure before importing: ptdalgorithms.configure(...) or set PTDALG_CPUS.")
     else:
         # Import compilation configuration system
@@ -173,6 +198,7 @@ if _config.jax:
     # Import JAX (raise clear error if unavailable)
     try:
         import jax
+        jax.config.update('jax_enable_x64', True)  # Enable 64-bit precision for accurate gradients
         import jax.numpy as jnp
         HAS_JAX = True
     except ImportError as e:
@@ -200,9 +226,29 @@ from .plot import set_theme
 
 # Optional SVGD support (requires JAX)
 if HAS_JAX:
-    from .svgd import SVGD
+    from .svgd import (
+        SVGD,
+        # Step size schedules
+        StepSizeSchedule,
+        ConstantStepSize,
+        ExponentialDecayStepSize,
+        AdaptiveStepSize,
+        # Bandwidth schedules
+        BandwidthSchedule,
+        MedianBandwidth,
+        FixedBandwidth,
+        LocalAdaptiveBandwidth
+    )
 else:
     SVGD = None
+    StepSizeSchedule = None
+    ConstantStepSize = None
+    ExponentialDecayStepSize = None
+    AdaptiveStepSize = None
+    BandwidthSchedule = None
+    MedianBandwidth = None
+    FixedBandwidth = None
+    LocalAdaptiveBandwidth = None
 
 # Distributed computing utilities
 from .distributed_utils import (
