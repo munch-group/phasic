@@ -92,6 +92,7 @@ website:
             - pages/tutorials/state_space_construction.ipynb
         - section: "Bayesian inference"
           contents:
+            - pages/svgd/caching.qmd
             - pages/svgd/svgd.ipynb
             - pages/svgd/svgd_with_symbolic_dag.ipynb
         - section: "Distributed Computing"

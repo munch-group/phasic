@@ -30,12 +30,9 @@ from .exceptions import PTDConfigError, PTDJAXError, PTDBackendError
 
 
 def _check_jax_available() -> bool:
-    """Check if JAX is installed and importable."""
-    try:
-        import jax
-        return True
-    except ImportError:
-        return False
+    """Check if JAX is installed and importable (without actually importing it)."""
+    import importlib.util
+    return importlib.util.find_spec('jax') is not None
 
 
 def _check_cpp_available() -> bool:
