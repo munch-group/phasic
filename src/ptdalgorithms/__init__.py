@@ -88,33 +88,22 @@ if _config.jax:
 
     # Configure JAX for multi-CPU BEFORE importing JAX
     if 'jax' in sys.modules:
-        # JAX already imported - check and enforce x64 precision
-        import jax as _jax_check
-
-        if not _jax_check.config.jax_enable_x64:
-            # Try to enable x64 (this works even after JAX import)
-            try:
-                _jax_check.config.update('jax_enable_x64', True)
-                print("WARNING: JAX was imported without x64 precision. Enabled x64 for accurate gradients.")
-                print("To avoid this warning, enable x64 before importing ptdalgorithms:")
-                print("  import jax")
-                print("  jax.config.update('jax_enable_x64', True)")
-                print("  import ptdalgorithms")
-            except Exception as e:
-                # This should never happen (x64 can be set after import), but be defensive
-                raise ImportError(
-                    "JAX was imported without x64 precision and cannot be reconfigured.\n"
-                    "This will cause incorrect gradients in SVGD inference.\n"
-                    "Please import JAX with x64 BEFORE importing ptdalgorithms:\n"
-                    "  import jax\n"
-                    "  jax.config.update('jax_enable_x64', True)\n"
-                    "  import ptdalgorithms\n"
-                    f"Error: {e}"
-                )
-
-        # Multi-CPU configuration still skipped when JAX pre-imported
-        print("NOTE: JAX was already imported. PTDAlgorithms CPU multi-device configuration was skipped.")
-        print("To enable multi-CPU support, configure before importing: ptdalgorithms.configure(...) or set PTDALG_CPUS.")
+        # JAX already imported - this prevents multi-CPU configuration
+        raise ImportError(
+            "JAX must NOT be imported before ptdalgorithms.\n"
+            "This prevents multi-CPU device configuration and will cause poor performance.\n\n"
+            "REQUIRED import order:\n"
+            "  from ptdalgorithms import Graph, SVGD, ...\n"
+            "  import jax  # Import JAX AFTER ptdalgorithms\n"
+            "  import jax.numpy as jnp\n\n"
+            "Note: ptdalgorithms automatically:\n"
+            "  - Enables x64 precision for accurate gradients\n"
+            "  - Configures multi-CPU support (8 devices on this system)\n"
+            "  - Sets up JAX compilation cache\n\n"
+            "If you need to override CPU count, set PTDALG_CPUS before import:\n"
+            "  export PTDALG_CPUS=4\n"
+            "  python your_script.py"
+        )
     else:
         # Import compilation configuration system
         from .jax_config import CompilationConfig, get_default_config, set_default_config
@@ -156,6 +145,7 @@ if _config.jax:
             else:
                 xla_flags = device_flag
             os.environ['XLA_FLAGS'] = xla_flags
+
 
     # Set JAX platform before import
     os.environ.setdefault('JAX_PLATFORMS', 'cpu')

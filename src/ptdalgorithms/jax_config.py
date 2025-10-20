@@ -190,8 +190,8 @@ class CompilationConfig:
         # Parallel compilation
         if self.parallel_compile:
             xla_flags.append('--xla_cpu_multi_thread_eigen=true')
-            xla_flags.append(f'intra_op_parallelism_threads={self.cpu_threads}')
-            xla_flags.append(f'inter_op_parallelism_threads={self.cpu_threads}')
+            # Note: intra_op_parallelism_threads and inter_op_parallelism_threads
+            # are TensorFlow flags, not valid XLA flags. JAX uses thread pools automatically.
 
         # Combine with existing XLA_FLAGS if not forcing
         existing_xla = os.environ.get('XLA_FLAGS', '')

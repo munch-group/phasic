@@ -10,20 +10,16 @@ full control over how SVGD executes.
 
 Import Pattern
 --------------
-This file demonstrates the RECOMMENDED explicit import pattern:
-1. Import JAX first
-2. Enable x64 precision (REQUIRED for accurate gradients in SVGD)
-3. Then import ptdalgorithms
+REQUIRED import order for multi-CPU support:
+1. Import ptdalgorithms FIRST (configures JAX multi-CPU before JAX loads)
+2. Then import JAX (x64 precision already enabled by ptdalgorithms)
+3. Import JAX numpy
 
-Alternative: Let ptdalgorithms handle JAX import (see test_svgd_correctness.py)
+If you import JAX before ptdalgorithms, you will get an ImportError.
 """
 
+import sys
 import numpy as np
-# RECOMMENDED: Import JAX with x64 BEFORE importing ptdalgorithms
-# This gives you full control over JAX configuration
-import jax
-jax.config.update('jax_enable_x64', True)  # REQUIRED: Enable 64-bit precision for accurate gradients
-import jax.numpy as jnp
 import time
 import os
 from pathlib import Path
@@ -98,7 +94,6 @@ def build_coalescent(nr_samples=None):
             return transitions
 
     # Build the graph
-    nr_samples = 10
     graph = Graph(callback=coalescent, parameterized=True, nr_samples=nr_samples)
 
     return graph
@@ -164,6 +159,8 @@ def run_svgd_test(name, description, svgd_kwargs, observed_data):
         svgd.plot_convergence(save_path=name.replace(" ", "_") + "_convergence.png")
         svgd.plot_trace(save_path=name.replace(" ", "_") + "_trace.png")
 
+        svgd.analyze_trace()
+
         return total
 
     except Exception as e:
@@ -197,10 +194,15 @@ def clear_all_caches():
 
 
 
-# Clear caches before importing
-clear_all_caches()
-
+# REQUIRED: Import ptdalgorithms FIRST (before JAX) to enable multi-CPU configuration
 from ptdalgorithms import Graph, SVGD, clear_cache, cache_info, get_config, print_cache_info, set_theme, get_available_options
+
+# Now import JAX (x64 precision and multi-CPU already configured by ptdalgorithms)
+import jax
+import jax.numpy as jnp
+
+# Clear caches before running tests
+clear_all_caches()
 
 set_theme('dark')
 
@@ -217,12 +219,12 @@ def main():
     print_section("Generating Test Data")
 
     nr_observations = 5000
-    nr_particles = 50
-    nr_iterations = 1000
+    nr_particles = 24
+    nr_iterations = 100
 
-    build_graph = build_simple_exponential
-    # nr_samples = 10
-    # build_graph = partial(build_coalescent, nr_samples=nr_samples)
+    # build_graph = build_simple_exponential
+    nr_samples = 20
+    build_graph = partial(build_coalescent, nr_samples=nr_samples)
 
     true_theta = [5.0]
 
@@ -253,6 +255,7 @@ def main():
     # Build parameterized model
     graph = build_graph()
     # graph = build_simple_exponential()
+    print("Nr of vertices in graph:", graph.vertices_length())
     model = Graph.pmf_from_graph(graph, discrete=False, param_length=1)
 
     # # Common parameters for all tests
@@ -318,6 +321,7 @@ def main():
         observed_data=observed_data
     )
     print(f"Running time: {running_time:.2f} seconds") if running_time else "N/A"
+    
 
 
     # ==========================================================================
@@ -350,8 +354,7 @@ def main():
         observed_data=observed_data
     )
     print(f"Running time: {running_time:.2f} seconds") if running_time else "N/A"
-
-
+    
     # ==========================================================================
     # Test 3: Multi-Device (pmap) if available
     # ==========================================================================
