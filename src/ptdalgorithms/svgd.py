@@ -1326,6 +1326,14 @@ class SVGD:
                 print(f"Warning: n_devices={n_devices} ignored (only used with parallel='pmap')")
             n_devices = None
 
+        print("#############################################")
+        print(f"SVGD Configuration:")
+        print(f"  JIT compilation:        {jit}")
+        print(f"  Parallelization mode:   {parallel}")
+        if parallel == 'pmap':
+            print(f"  Number of devices:      {n_devices} (available: {available_devices})")    
+        print("#############################################")
+
         # Store configuration (parallel may have been modified by validation)
         self.jit_enabled = jit
         self.parallel_mode = parallel
