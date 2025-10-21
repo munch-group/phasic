@@ -29,4 +29,7 @@ build/
 *.egg-info
 
 docs/_inv/
+docs/_freeze/
 docs/objects.txt
+**/.DS_Store
+scripts/ptd_cache

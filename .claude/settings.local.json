@@ -1,20 +1,22 @@
 {
   "permissions": {
     "allow": [
-      "Bash(export XLA_FLAGS=\"--xla_force_host_platform_device_count=8\")",
-      "Bash(git clone:*)",
-      "Read(//private/tmp/jax-source/**)",
-      "Read(//private/tmp/xla-source/**)",
+      "Bash(timeout 120 python:*)",
+      "WebFetch(domain:docs.jax.dev)",
+      "Bash(pip index versions:*)",
+      "Read(//Users/kmt/.local/include/xla/ffi/api/**)",
+      "Bash(export OpenMP_ROOT=/opt/homebrew/opt/libomp)",
+      "Bash(export CMAKE_ARGS=\"-DOpenMP_ROOT=/opt/homebrew/opt/libomp\")",
+      "Bash(rm:*)",
       "Bash(pip install:*)",
+      "Bash(tee:*)",
+      "Read(//private/tmp/**)",
+      "Bash(python -m pip install:*)",
       "Bash(python:*)",
-      "WebSearch",
-      "WebFetch(domain:github.com)",
-      "WebFetch(domain:pypi.org)",
-      "Bash(cat:*)",
-      "Bash(export LDFLAGS=\"-fsanitize=address\")",
-      "Bash(DYLD_INSERT_LIBRARIES=/Library/Developer/CommandLineTools/usr/lib/clang/17/lib/darwin/libclang_rt.asan_osx_dynamic.dylib python test_just_graph.py)",
-      "Bash(timeout 10 python:*)",
-      "Bash(timeout 90 python tests/test_svgd_jax.py)"
+      "Bash(export:*)",
+      "Bash(echo:*)",
+      "Bash(timeout 300 python tests/test_svgd_jax.py)",
+      "Bash(timeout:*)"
     ],
     "deny": [],
     "ask": []

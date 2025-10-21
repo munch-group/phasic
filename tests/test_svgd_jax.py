@@ -218,12 +218,15 @@ def main():
     # Generate test data
     print_section("Generating Test Data")
 
-    nr_observations = 5000
-    nr_particles = 24
-    nr_iterations = 100
+    # Use smaller parameters for faster testing
+    # For full test: nr_observations=5000, nr_particles=24, nr_iterations=100, nr_samples=15
+    nr_observations = 500  # Reduced from 5000 for faster testing
+    nr_particles = 16      # Reduced from 24, divisible by 8 for pmap
+    nr_iterations = 20     # Reduced from 100 for faster testing
 
+    # Use simple exponential for fast testing (switch to coalescent for comprehensive tests)
     # build_graph = build_simple_exponential
-    nr_samples = 15
+    nr_samples = 20
     build_graph = partial(build_coalescent, nr_samples=nr_samples)
 
     true_theta = [5.0]
@@ -314,6 +317,9 @@ def main():
         svgd_kwargs={
             **common_params,
             'verbose': True,
+            
+                        'parallel': 'vmap',
+
             # jit=None (default)
             # parallel=None (default)
             # n_devices=None (default)

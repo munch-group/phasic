@@ -106,6 +106,10 @@
         {
             "filePath": "src/ptdalgorithms",
             "group": "Default"
+        },
+        {
+            "filePath": "tests/test_svgd_jax.py",
+            "group": "Default"
         }
     ]
 }

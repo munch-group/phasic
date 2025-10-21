@@ -450,3 +450,4 @@ pixi run test
 ---
 
 *Last updated: 2025-10-15*
+- When creating a markdown file summarizing changes made, please prompt to add changed and new files to git, commit them with a message from the markdown file, but do not add the markdown file itself. Prompt only once and then do git add, commit, and push without prompting further.

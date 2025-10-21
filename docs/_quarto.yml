@@ -86,15 +86,17 @@ website:
         - pages/getting_started.qmd
         - section: "Tutorials"
           contents:
-            - pages/background/tldr.qmd
+            - pages/background/quickstart.qmd
             - pages/tutorials/rabbits_full_py_api_example.ipynb
             - pages/tutorials/coalescent_full_py_api_example.ipynb
             - pages/tutorials/state_space_construction.ipynb
         - section: "Bayesian inference"
           contents:
-            - pages/svgd/caching.qmd
             - pages/svgd/svgd.ipynb
-            - pages/svgd/svgd_with_symbolic_dag.ipynb
+            - pages/svgd/caching.qmd
+            - pages/svgd/svgd_trace_eval.qmd
+            - pages/svgd/svgd_step_sizes.qmd
+            - pages/svgd/ffi_and_openmp.qmd
         - section: "Distributed Computing"
           contents:
             - pages/distributed/distributed_computing_complete_guide.ipynb
