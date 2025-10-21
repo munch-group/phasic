@@ -7,7 +7,7 @@ Graph components (Vertex and Edge are documented as part of Graph)
 
 | | |
 | --- | --- |
-| [Graph](Graph.qmd#ptdalgorithms.Graph) |  |
+| [Graph](Graph.qmd#phasic.Graph) |  |
 
 ## JAX-compatible utils
 
@@ -17,9 +17,9 @@ Supports JIT compilation, automatic differentiation, and vmap/pmap parallelizati
 
 | | |
 | --- | --- |
-| [compute_pmf_ffi](compute_pmf_ffi.qmd#ptdalgorithms.compute_pmf_ffi) | Compute PMF (discrete) or PDF (continuous) using JAX FFI. |
-| [compute_moments_ffi](compute_moments_ffi.qmd#ptdalgorithms.compute_moments_ffi) | Compute distribution moments using JAX FFI. |
-| [compute_pmf_and_moments_ffi](compute_pmf_and_moments_ffi.qmd#ptdalgorithms.compute_pmf_and_moments_ffi) | Compute both PMF and moments efficiently using JAX FFI. |
+| [compute_pmf_ffi](compute_pmf_ffi.qmd#phasic.compute_pmf_ffi) | Compute PMF (discrete) or PDF (continuous) using JAX FFI. |
+| [compute_moments_ffi](compute_moments_ffi.qmd#phasic.compute_moments_ffi) | Compute distribution moments using JAX FFI. |
+| [compute_pmf_and_moments_ffi](compute_pmf_and_moments_ffi.qmd#phasic.compute_pmf_and_moments_ffi) | Compute both PMF and moments efficiently using JAX FFI. |
 
 ## Inference
 
@@ -28,7 +28,7 @@ SVGD
 
 | | |
 | --- | --- |
-| [SVGD](SVGD.qmd#ptdalgorithms.SVGD) | Stein Variational Gradient Descent (SVGD) for Bayesian parameter inference. |
+| [SVGD](SVGD.qmd#phasic.SVGD) | Stein Variational Gradient Descent (SVGD) for Bayesian parameter inference. |
 
 ## Distributed Computing
 
@@ -39,14 +39,14 @@ JAX distributed initialization and configuration management.
 
 | | |
 | --- | --- |
-| [DistributedConfig](DistributedConfig.qmd#ptdalgorithms.DistributedConfig) | Configuration for distributed computing. |
-| [initialize_distributed](initialize_distributed.qmd#ptdalgorithms.initialize_distributed) | Initialize distributed computing with automatic environment detection. |
-| [detect_slurm_environment](detect_slurm_environment.qmd#ptdalgorithms.detect_slurm_environment) | Detect and parse SLURM environment variables. |
-| [get_coordinator_address](get_coordinator_address.qmd#ptdalgorithms.get_coordinator_address) | Determine the coordinator address for JAX distributed. |
-| [configure_jax_devices](configure_jax_devices.qmd#ptdalgorithms.configure_jax_devices) | Configure JAX device count using XLA_FLAGS. |
-| [initialize_jax_distributed](initialize_jax_distributed.qmd#ptdalgorithms.initialize_jax_distributed) | Initialize JAX distributed computing. |
-| [ClusterConfig](ClusterConfig.qmd#ptdalgorithms.ClusterConfig) | Configuration for a SLURM cluster setup. |
-| [load_config](load_config.qmd#ptdalgorithms.load_config) | Load cluster configuration from YAML file. |
-| [get_default_config](get_default_config.qmd#ptdalgorithms.get_default_config) | Get a pre-defined configuration profile. |
-| [validate_config](validate_config.qmd#ptdalgorithms.validate_config) | Validate configuration for a given number of particles. |
-| [suggest_config](suggest_config.qmd#ptdalgorithms.suggest_config) | Suggest optimal cluster configuration for a given particle count. |
+| [DistributedConfig](DistributedConfig.qmd#phasic.DistributedConfig) | Configuration for distributed computing. |
+| [initialize_distributed](initialize_distributed.qmd#phasic.initialize_distributed) | Initialize distributed computing with automatic environment detection. |
+| [detect_slurm_environment](detect_slurm_environment.qmd#phasic.detect_slurm_environment) | Detect and parse SLURM environment variables. |
+| [get_coordinator_address](get_coordinator_address.qmd#phasic.get_coordinator_address) | Determine the coordinator address for JAX distributed. |
+| [configure_jax_devices](configure_jax_devices.qmd#phasic.configure_jax_devices) | Configure JAX device count using XLA_FLAGS. |
+| [initialize_jax_distributed](initialize_jax_distributed.qmd#phasic.initialize_jax_distributed) | Initialize JAX distributed computing. |
+| [ClusterConfig](ClusterConfig.qmd#phasic.ClusterConfig) | Configuration for a SLURM cluster setup. |
+| [load_config](load_config.qmd#phasic.load_config) | Load cluster configuration from YAML file. |
+| [get_default_config](get_default_config.qmd#phasic.get_default_config) | Get a pre-defined configuration profile. |
+| [validate_config](validate_config.qmd#phasic.validate_config) | Validate configuration for a given number of particles. |
+| [suggest_config](suggest_config.qmd#phasic.suggest_config) | Suggest optimal cluster configuration for a given particle count. |

@@ -2,9 +2,9 @@
 # TODO: Remove this file when you have added equivalent testthat tests for the package in the tests dir
 
 setwd("~/school/PtDAlgorithms/test")
-Rcpp::sourceCpp('../src/ptdalgorithms.cpp')
+Rcpp::sourceCpp('../src/phasic.cpp')
 devtools::install_github("TobiasRoikjer/PtDalgorithms")
-library(ptdalgorithms)
+library(phasic)
 
 # Build Kingman graph
 n <- 4

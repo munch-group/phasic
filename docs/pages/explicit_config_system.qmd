@@ -8,9 +8,9 @@
 
 ## ✅ Completed
 
-### 1. Exception Classes (`src/ptdalgorithms/exceptions.py`)
+### 1. Exception Classes (`src/phasic/exceptions.py`)
 Created comprehensive error hierarchy:
-- `PTDAlgorithmsError` - Base exception
+- `phasicError` - Base exception
 - `PTDConfigError` - Configuration errors with fix suggestions
 - `PTDBackendError` - Backend unavailable errors
 - `PTDFeatureError` - Platform feature errors
@@ -18,17 +18,17 @@ Created comprehensive error hierarchy:
 
 **Usage**:
 ```python
-from ptdalgorithms.exceptions import PTDConfigError
+from phasic.exceptions import PTDConfigError
 
 raise PTDConfigError(
     "jax=True but JAX not installed.\n"
     "  Install: pip install jax\n"
-    "  Or: ptdalgorithms.configure(jax=False)"
+    "  Or: phasic.configure(jax=False)"
 )
 ```
 
-### 2. Configuration System (`src/ptdalgorithms/config.py`)
-Created `PTDAlgorithmsConfig` dataclass with:
+### 2. Configuration System (`src/phasic/config.py`)
+Created `phasicConfig` dataclass with:
 - **Parameters**:
   - `jax: bool` - Require JAX (error if unavailable)
   - `jit: bool` - Enable JIT compilation
@@ -51,7 +51,7 @@ Created `PTDAlgorithmsConfig` dataclass with:
 
 **Usage**:
 ```python
-import ptdalgorithms as ptd
+import phasic as ptd
 
 # Check availability
 print(ptd.get_available_options())
@@ -61,7 +61,7 @@ print(ptd.get_available_options())
 ptd.configure(jax=True, jit=True, ffi=False)
 
 # Or use factories
-config = ptd.PTDAlgorithmsConfig.jax_only()
+config = ptd.phasicConfig.jax_only()
 config.validate()
 ```
 
@@ -87,7 +87,7 @@ from .config import (
     configure,
     get_config,
     get_available_options,
-    PTDAlgorithmsConfig,
+    phasicConfig,
     reset_config
 )
 from .exceptions import *
@@ -105,7 +105,7 @@ if _config.jax:
         raise PTDJAXError(
             "jax=True but JAX not installed.\n"
             "  Install: pip install jax jaxlib\n"
-            "  Or: ptdalgorithms.configure(jax=False) before importing"
+            "  Or: phasic.configure(jax=False) before importing"
         )
 else:
     jax = None
@@ -124,7 +124,7 @@ __all__ = [
     'configure',
     'get_config',
     'get_available_options',
-    'PTDAlgorithmsConfig',
+    'phasicConfig',
     'PTDConfigError',
     'PTDBackendError',
     'PTDJAXError',
@@ -175,13 +175,13 @@ Add `backend` parameter as originally planned in section below.
    ```python
    # DELETE:
    try:
-       from . import ptdalgorithmscpp_pybind as cpp_module
+       from . import phasic_pybind as cpp_module
        _HAS_CPP_MODULE = True
    except ImportError:
        _HAS_CPP_MODULE = False  # SILENT FALLBACK!
 
    # REPLACE WITH:
-   from . import ptdalgorithmscpp_pybind as cpp_module
+   from . import phasic_pybind as cpp_module
    from .config import get_config
    from .exceptions import PTDBackendError
    ```
@@ -271,12 +271,12 @@ Add `backend` parameter as originally planned in section below.
 ```markdown
 ## Configuration
 
-PTDAlgorithms uses an explicit configuration system. No silent fallbacks.
+phasic uses an explicit configuration system. No silent fallbacks.
 
 ### Check what's available
 
 ```python
-import ptdalgorithms as ptd
+import phasic as ptd
 print(ptd.get_available_options())
 # {'jax': True, 'jit': True, 'ffi': False,
 #  'backends': ['jax', 'cpp'], 'platforms': ['cpu']}
@@ -302,7 +302,7 @@ Clear, actionable errors when features unavailable:
 ```
 PTDConfigError: jax=True but JAX not installed.
   Install: pip install jax jaxlib
-  Or: ptdalgorithms.configure(jax=False)
+  Or: phasic.configure(jax=False)
 ```
 ```
 
@@ -332,7 +332,7 @@ PTDConfigError: jax=True but JAX not installed.
 1. **Import sequence**:
    ```python
    # Test 1: Default config
-   import ptdalgorithms as ptd  # Should work if JAX installed
+   import phasic as ptd  # Should work if JAX installed
 
    # Test 2: Explicit config
    ptd.configure(jax=True, jit=True)
@@ -361,7 +361,7 @@ PTDConfigError: jax=True but JAX not installed.
 ### Before (Silent Fallbacks)
 
 ```python
-import ptdalgorithms as ptd
+import phasic as ptd
 
 # JAX imported silently if available
 # No way to know if JIT is enabled
@@ -374,7 +374,7 @@ graph = ptd.Graph(...)
 ### After (Explicit Configuration)
 
 ```python
-import ptdalgorithms as ptd
+import phasic as ptd
 
 # Check what's available
 opts = ptd.get_available_options()
@@ -413,7 +413,7 @@ pmf = compute_pmf_ffi(..., backend='jax')  # Explicit!
 
 ### Completed ✅
 1. ✅ exceptions.py - Error class hierarchy with actionable messages
-2. ✅ config.py - PTDAlgorithmsConfig with validation and global API
+2. ✅ config.py - phasicConfig with validation and global API
 3. ✅ __init__.py - Config-based JAX import with clear errors
 4. ✅ ffi_wrappers.py - Removed silent fallbacks, documented FFI disabled
 5. ✅ trace_elimination.py - Checked, no silent fallbacks found

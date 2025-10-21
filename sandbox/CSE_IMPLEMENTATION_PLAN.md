@@ -63,7 +63,7 @@ Symbolic Gaussian elimination creates exponentially growing expression trees, ca
 
 `ptd_expr_copy_iterative()` creates full deep copies during bypass edge construction in the elimination algorithm. Without **Common Subexpression Elimination (CSE)**, identical sub-expressions are duplicated throughout the tree, causing O(exp(n)) growth instead of the intended O(n²).
 
-**Critical Code**: `/Users/kmt/PtDAlgorithms/src/c/ptdalgorithms_symbolic.c:541-554, 593`
+**Critical Code**: `/Users/kmt/PtDAlgorithms/src/c/phasic_symbolic.c:541-554, 593`
 
 ### Solution
 
@@ -443,7 +443,7 @@ Reduce expression size by 2-5× through constant folding and identity eliminatio
 
 ### Files to Modify
 
-- `/Users/kmt/PtDAlgorithms/src/c/ptdalgorithms.c`
+- `/Users/kmt/PtDAlgorithms/src/c/phasic.c`
 
 ### Implementation
 
@@ -618,12 +618,12 @@ Implement CSE hash table for automatic deduplication of expressions.
 
 ### Files to Modify
 
-- `/Users/kmt/PtDAlgorithms/src/c/ptdalgorithms.c` (add ~300 lines)
-- `/Users/kmt/PtDAlgorithms/api/c/ptdalgorithms.h` (declare new functions)
+- `/Users/kmt/PtDAlgorithms/src/c/phasic.c` (add ~300 lines)
+- `/Users/kmt/PtDAlgorithms/api/c/phasic.h` (declare new functions)
 
 ### Step 2.1: Expression Hashing
 
-Add after line 5300 in `ptdalgorithms.c`:
+Add after line 5300 in `phasic.c`:
 
 ```c
 /**
@@ -1121,7 +1121,7 @@ struct ptd_expression *ptd_expr_inv_interned(
 
 ### Step 2.4: Update Header
 
-Add to `/Users/kmt/PtDAlgorithms/api/c/ptdalgorithms.h` (in expression section):
+Add to `/Users/kmt/PtDAlgorithms/api/c/phasic.h` (in expression section):
 
 ```c
 // Expression interning for CSE
@@ -1161,7 +1161,7 @@ bool ptd_expr_equal(const struct ptd_expression *a, const struct ptd_expression 
 from ctypes import CDLL, c_void_p, c_uint64, c_bool
 import os
 
-lib = CDLL("libptdalgorithms.so")
+lib = CDLL("libphasic.so")
 
 def test_expr_hashing():
     """Test that identical expressions have same hash"""
@@ -1183,7 +1183,7 @@ Use intern table throughout symbolic elimination algorithm.
 
 ### Files to Modify
 
-- `/Users/kmt/PtDAlgorithms/src/c/ptdalgorithms_symbolic.c`
+- `/Users/kmt/PtDAlgorithms/src/c/phasic_symbolic.c`
 
 ### Step 3.1: Add Intern Table to Elimination
 
@@ -1419,7 +1419,7 @@ Create `tests/test_cse_correctness.py`:
 Unit tests for CSE implementation correctness
 """
 import numpy as np
-from ptdalgorithms import Graph
+from phasic import Graph
 
 def construct_rabbit_model(n_rabbits):
     """Standard rabbit model constructor"""
@@ -1554,7 +1554,7 @@ Performance benchmarks for CSE implementation
 """
 import time
 import numpy as np
-from ptdalgorithms import Graph
+from phasic import Graph
 
 def construct_rabbit_model(n_rabbits):
     """Standard rabbit model constructor"""
@@ -1750,7 +1750,7 @@ Create `tests/test_cse_stress.py`:
 Stress tests for large models
 """
 import time
-from ptdalgorithms import Graph
+from phasic import Graph
 
 def construct_rabbit_model(n_rabbits):
     """Standard rabbit model constructor"""
@@ -2195,7 +2195,7 @@ Rabbits    Vertices   Total        Inst
 
 ## Support
 
-Questions or issues: https://github.com/munch-group/ptdalgorithms/issues
+Questions or issues: https://github.com/munch-group/phasic/issues
 ```
 
 ### 5.4 Update Test Suite

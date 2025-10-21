@@ -6,7 +6,7 @@ Verifies that the trace-based path produces identical results to the traditional
 """
 
 import numpy as np
-from ptdalgorithms import Graph
+from phasic import Graph
 
 def test_simple_graph_trace_vs_traditional():
     """Test simple parameterized graph: trace vs traditional path"""

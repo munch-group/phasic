@@ -21,19 +21,19 @@ bla bla bla bla
 bla bla bla bla
 }
 \examples{
-graph <- ptdalgorithms::create_graph(4)
-v1 <- ptdalgorithms::create_vertex(graph, c(1,2,3,4))
-v2 <- ptdalgorithms::create_vertex(graph, c(4,0,3,3))
-a <- ptdalgorithms::create_vertex(graph, c(0,0,0,0))
-ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), v1, 1)
-ptdalgorithms::add_edge(v1, v2, 4)
-ptdalgorithms::add_edge(v2, a, 10)
-ptdalgorithms::expected_residence_time(graph) # =>
+graph <- phasic::create_graph(4)
+v1 <- phasic::create_vertex(graph, c(1,2,3,4))
+v2 <- phasic::create_vertex(graph, c(4,0,3,3))
+a <- phasic::create_vertex(graph, c(0,0,0,0))
+phasic::add_edge(phasic::starting_vertex(graph), v1, 1)
+phasic::add_edge(v1, v2, 4)
+phasic::add_edge(v2, a, 10)
+phasic::expected_residence_time(graph) # =>
 # c(0.35, 0.35, 0.10, 0)
 # Rewards on absorbing and starting vertex has no effect
-ptdalgorithms::expected_residence_time(graph, c(0, 2, 0, 0)) # =>
+phasic::expected_residence_time(graph, c(0, 2, 0, 0)) # =>
 # c(0.5, 0.5, 0, 0)
-ptdalgorithms::expected_residence_time(graph, c(9999, 2, 0, 9999)) # =>
+phasic::expected_residence_time(graph, c(9999, 2, 0, 9999)) # =>
 # c(0.5, 0.5, 0, 0)
 }
 \seealso{

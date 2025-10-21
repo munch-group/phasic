@@ -12,11 +12,11 @@
 #include "../../include/user_model.h"
 #include <vector>
 
-ptdalgorithms::Graph build_model(const double* theta, int n_params) {
+phasic::Graph build_model(const double* theta, int n_params) {
     const int max_population = 20;
 
     // Create graph with state vectors of length 1
-    ptdalgorithms::Graph g(1);
+    phasic::Graph g(1);
 
     // Get starting vertex
     auto start = g.starting_vertex();
@@ -25,7 +25,7 @@ ptdalgorithms::Graph build_model(const double* theta, int n_params) {
     double death_rate = (n_params > 1) ? theta[1] : 0.0;
 
     // Create all states (population sizes 0 to max_population)
-    std::vector<ptdalgorithms::Vertex> vertices;
+    std::vector<phasic::Vertex> vertices;
     for (int i = 0; i <= max_population; i++) {
         std::vector<int> state = {i};
         vertices.push_back(g.find_or_create_vertex(state));

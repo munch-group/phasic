@@ -34,7 +34,7 @@ Implemented FFI+OpenMP as the default backend for PtDAlgorithms, removing all si
 
 ## Changes Made
 
-### 1. Configuration System (`src/ptdalgorithms/config.py`)
+### 1. Configuration System (`src/phasic/config.py`)
 
 #### Added `openmp` parameter:
 ```python
@@ -61,7 +61,7 @@ class PTDAlgorithmsConfig:
 - Updated docstring with FFI+OpenMP examples
 - Error message now includes `openmp` parameter
 
-### 2. FFI Wrappers (`src/ptdalgorithms/ffi_wrappers.py`)
+### 2. FFI Wrappers (`src/phasic/ffi_wrappers.py`)
 
 #### Removed hard-coded disable (line 60-68):
 ```python
@@ -94,8 +94,8 @@ raise PTDBackendError(
     "  pip install --no-build-isolation --force-reinstall --no-deps .\n"
     "\n"
     "Or disable FFI (slower, single-core only):\n"
-    "  import ptdalgorithms\n"
-    "  ptdalgorithms.configure(ffi=False, openmp=False)"
+    "  import phasic\n"
+    "  phasic.configure(ffi=False, openmp=False)"
 )
 ```
 
@@ -151,7 +151,7 @@ The `compute_pmf_fallback()`, `compute_moments_fallback()`, and `compute_pmf_and
 
 **Silent Degradation:**
 ```python
-import ptdalgorithms as ptd
+import phasic as ptd
 
 # Even if FFI was built, this would silently use pure_callback:
 result = compute_pmf_ffi(...)
@@ -178,7 +178,7 @@ _HAS_FFI = False  # Always disabled, even if built!
 
 **Explicit Errors:**
 ```python
-import ptdalgorithms as ptd
+import phasic as ptd
 
 # If FFI not built:
 result = compute_pmf_ffi(...)
@@ -217,7 +217,7 @@ result = compute_pmf_ffi(...)
 **No changes needed!** FFI+OpenMP will now be used automatically:
 
 ```python
-from ptdalgorithms import SVGD
+from phasic import SVGD
 
 # This now uses FFI+OpenMP by default
 svgd = SVGD(model, data, theta_dim=2, n_particles=100, parallel='vmap')
@@ -238,7 +238,7 @@ pip install --no-build-isolation --force-reinstall --no-deps .
 
 **Option 2: Disable FFI explicitly:**
 ```python
-import ptdalgorithms as ptd
+import phasic as ptd
 
 # Disable FFI+OpenMP (slower, single-core only)
 ptd.configure(ffi=False, openmp=False)
@@ -260,7 +260,7 @@ svgd = SVGD(..., parallel_mode='auto')  # ❌ Deprecated
 
 **After:**
 ```python
-from ptdalgorithms.distributed import initialize_distributed
+from phasic.distributed import initialize_distributed
 
 # Multi-node SLURM:
 initialize_distributed()  # Sets up device mesh
@@ -278,7 +278,7 @@ svgd = SVGD(..., parallel='vmap')  # Uses FFI+OpenMP
 
 **1. Default Configuration:**
 ```bash
-$ python -c "from ptdalgorithms import get_config; c=get_config(); print(f'ffi={c.ffi}, openmp={c.openmp}')"
+$ python -c "from phasic import get_config; c=get_config(); print(f'ffi={c.ffi}, openmp={c.openmp}')"
 ffi=True, openmp=True
 ```
 ✅ Pass
@@ -331,7 +331,7 @@ Clear error message:
      pip install --no-build-isolation --force-reinstall --no-deps .
 
    Or disable FFI (slower, single-core only):
-     ptdalgorithms.configure(ffi=False, openmp=False)"
+     phasic.configure(ffi=False, openmp=False)"
 ```
 
 ---
@@ -395,7 +395,7 @@ PTDBackendError (base class from exceptions.py)
 1. User calls: ptd.configure(ffi=True, openmp=True)
 2. config.validate() runs:
    a. Check if ffi=True and openmp=True
-   b. Try: import ptdalgorithmscpp_pybind
+   b. Try: import phasic_pybind
    c. Check: hasattr(cpp_module.parameterized, 'get_compute_pmf_ffi_capsule')
    d. If missing: raise PTDBackendError with rebuild instructions
    e. Check: openmp=True requires ffi=True
@@ -422,13 +422,13 @@ PTDBackendError (base class from exceptions.py)
 
 ## Files Modified
 
-1. **src/ptdalgorithms/config.py**
+1. **src/phasic/config.py**
    - Lines 134-135: Changed `ffi=True`, added `openmp=True`
    - Lines 109-116: Updated docstrings
    - Lines 186-217: Replaced FFI error with proper validation
    - Lines 363-415: Updated `configure()` function
 
-2. **src/ptdalgorithms/ffi_wrappers.py**
+2. **src/phasic/ffi_wrappers.py**
    - Lines 60-62: Removed `_HAS_FFI = False`
    - Lines 156-244: Replaced silent fallbacks with errors in `_register_ffi_targets()`
    - Lines 442-519: Removed fallback in `compute_pmf_ffi()`

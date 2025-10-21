@@ -54,7 +54,7 @@ On pdf/moment calls: Use cached compute graph (FAST)
 
 ### New: Elimination Trace Structures
 
-Add to `api/c/ptdalgorithms.h`:
+Add to `api/c/phasic.h`:
 
 ```c
 /**
@@ -145,7 +145,7 @@ struct ptd_graph {
 
 ### 1. Record Elimination Trace (NEW)
 
-**File**: `src/c/ptdalgorithms.c`
+**File**: `src/c/phasic.c`
 
 ```c
 /**
@@ -440,7 +440,7 @@ struct ptd_desc_reward_compute *ptd_build_reward_compute_from_trace(
 
 ### 4. Modified: ptd_graph_update_weight_parameterized()
 
-**File**: `src/c/ptdalgorithms.c`
+**File**: `src/c/phasic.c`
 **Existing function**: Find and modify
 
 ```c
@@ -502,7 +502,7 @@ fallback_symbolic:
 ### Phase 1: C Core Implementation (Week 1)
 
 **Day 1-2**: Data structures
-- [ ] Add trace structures to `api/c/ptdalgorithms.h`
+- [ ] Add trace structures to `api/c/phasic.h`
 - [ ] Add `elimination_trace` field to `struct ptd_graph`
 - [ ] Define helper structures (`ptd_trace_result`, etc.)
 
@@ -558,7 +558,7 @@ fallback_symbolic:
 ### Test File: `test/test_trace_c.c`
 
 ```c
-#include "ptdalgorithms.h"
+#include "phasic.h"
 #include <assert.h>
 #include <stdio.h>
 #include <math.h>
@@ -691,7 +691,7 @@ int main() {
 ```python
 def test_python_api_still_works():
     """Verify Python API unchanged after C trace integration"""
-    from ptdalgorithms import Graph
+    from phasic import Graph
     import numpy as np
 
     # Build parameterized graph
@@ -726,7 +726,7 @@ def test_python_api_still_works():
 ```cpp
 void test_cpp_api_still_works() {
     // Build graph
-    ptdalgorithms::Graph g(1);
+    phasic::Graph g(1);
     auto start = g.starting_vertex_p();
     auto v1 = g.find_or_create_vertex_p({1});
 

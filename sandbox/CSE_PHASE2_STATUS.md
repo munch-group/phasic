@@ -16,12 +16,12 @@ Successfully implemented the complete expression interning infrastructure for Co
 
 ### Files Modified
 
-- `/Users/kmt/PtDAlgorithms/src/c/ptdalgorithms.c` - Added ~500 lines of CSE infrastructure
-- `/Users/kmt/PtDAlgorithms/api/c/ptdalgorithms.h` - Added 28 lines of function declarations
+- `/Users/kmt/PtDAlgorithms/src/c/phasic.c` - Added ~500 lines of CSE infrastructure
+- `/Users/kmt/PtDAlgorithms/api/c/phasic.h` - Added 28 lines of function declarations
 
 ### Code Added
 
-Summary of major code additions to `ptdalgorithms.c`:
+Summary of major code additions to `phasic.c`:
 
 **Expression Hashing and Equality (Lines 5400-5522)**:
 - `ptd_expr_hash()` - ~78 lines - FNV-1a hash function with commutative handling
@@ -46,7 +46,7 @@ Summary of major code additions to `ptdalgorithms.c`:
 
 ### Code Modified in Header File
 
-Added to `ptdalgorithms.h` (after line 394):
+Added to `phasic.h` (after line 394):
 - Hash/equality function declarations (2 lines)
 - Opaque struct declaration for intern table (1 line)
 - Intern table management functions (4 declarations)
@@ -104,7 +104,7 @@ Testing 10 instantiations...
 - **Build system**: scikit-build-core with CMake
 - **Compiler warnings**: None
 - **Build time**: ~30 seconds
-- **Wheel**: `ptdalgorithms-0.21.3-cp313-cp313-macosx_15_0_arm64.whl` (537KB)
+- **Wheel**: `phasic-0.21.3-cp313-cp313-macosx_15_0_arm64.whl` (537KB)
 - **Platform**: macOS 15.0 ARM64
 
 ---

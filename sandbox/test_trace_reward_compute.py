@@ -4,7 +4,7 @@ Test ptd_build_reward_compute_from_trace() function (Phase 4.6)
 """
 
 import numpy as np
-from ptdalgorithms import Graph
+from phasic import Graph
 import ctypes
 
 def test_reward_compute_from_trace():
@@ -28,7 +28,7 @@ def test_reward_compute_from_trace():
 
     try:
         # Load the shared library
-        import ptdalgorithmscpp_pybind
+        import phasic_pybind
         print(f"  ✓ Library loaded successfully")
 
         # Note: We can't easily test the C functions directly from Python

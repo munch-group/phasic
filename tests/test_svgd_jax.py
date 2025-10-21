@@ -11,11 +11,11 @@ full control over how SVGD executes.
 Import Pattern
 --------------
 REQUIRED import order for multi-CPU support:
-1. Import ptdalgorithms FIRST (configures JAX multi-CPU before JAX loads)
-2. Then import JAX (x64 precision already enabled by ptdalgorithms)
+1. Import phasic FIRST (configures JAX multi-CPU before JAX loads)
+2. Then import JAX (x64 precision already enabled by phasic)
 3. Import JAX numpy
 
-If you import JAX before ptdalgorithms, you will get an ImportError.
+If you import JAX before phasic, you will get an ImportError.
 """
 
 import sys
@@ -26,10 +26,10 @@ from pathlib import Path
 import shutil
 from functools import partial
 
-# REQUIRED: Import ptdalgorithms FIRST (before JAX) to enable multi-CPU configuration
-from ptdalgorithms import Graph, SVGD, clear_cache, cache_info, get_config, print_cache_info, set_theme, get_available_options
+# REQUIRED: Import phasic FIRST (before JAX) to enable multi-CPU configuration
+from phasic import Graph, SVGD, clear_cache, cache_info, get_config, print_cache_info, set_theme, get_available_options
 
-# Now import JAX (x64 precision and multi-CPU already configured by ptdalgorithms)
+# Now import JAX (x64 precision and multi-CPU already configured by phasic)
 import jax
 import jax.numpy as jnp
 
@@ -175,13 +175,13 @@ def run_svgd_test(name, description, svgd_kwargs, observed_data):
         print(f"  {type(e).__name__}: {str(e)[:200]}")
         return False
 
-# Clear caches before importing ptdalgorithms
+# Clear caches before importing phasic
 def clear_all_caches():
     """Clear all PtDAlgorithms caches before testing"""
     print("Clearing all caches...")
 
     # Clear trace cache
-    trace_cache = Path.home() / '.ptdalgorithms_cache' / 'traces'
+    trace_cache = Path.home() / '.phasic_cache' / 'traces'
     if trace_cache.exists():
         n_files = len(list(trace_cache.glob('*.json')))
         shutil.rmtree(trace_cache)
@@ -278,7 +278,7 @@ def main():
         return -0.5 * jnp.sum(((phi - mu) / sigma)**2)
     
     # Use ExponentialDecayStepSize to prevent divergence with large datasets
-    from ptdalgorithms import ExponentialDecayStepSize
+    from phasic import ExponentialDecayStepSize
     step_schedule = ExponentialDecayStepSize(max_step=0.01, min_step=0.001, tau=500.0)
 
     common_params = dict(
@@ -526,7 +526,7 @@ def main():
 PtDAlgorithms uses a three-layer caching architecture:
 
 1. TRACE CACHE (Layer 1)
-   - Location: ~/.ptdalgorithms_cache/traces/*.json
+   - Location: ~/.phasic_cache/traces/*.json
    - Purpose: Cache graph elimination operations (O(n³) → O(1))
    - Key: SHA-256 hash of graph structure
    - Speedup: 10-1000ms → 0.1-1ms on cache hit
@@ -550,7 +550,7 @@ PtDAlgorithms uses a three-layer caching architecture:
     print("\n7a. Layer 1: Trace Cache Testing")
     print("-" * 80)
 
-    trace_cache_dir = Path.home() / '.ptdalgorithms_cache' / 'traces'
+    trace_cache_dir = Path.home() / '.phasic_cache' / 'traces'
 
     print(f"\nTrace cache location: {trace_cache_dir}")
 
@@ -597,7 +597,7 @@ PtDAlgorithms uses a three-layer caching architecture:
 
     print(f"\nHow trace cache works:")
     print(f"  1. Graph structure is serialized and hashed (SHA-256)")
-    print(f"  2. Check ~/.ptdalgorithms_cache/traces/{{hash}}.json")
+    print(f"  2. Check ~/.phasic_cache/traces/{{hash}}.json")
     print(f"  3. Hit: Load trace and skip elimination (0.1-1ms)")
     print(f"  4. Miss: Perform elimination (10-1000ms), save trace")
     print(f"  5. Future builds of same structure: instant")
@@ -751,7 +751,7 @@ Three-Layer Caching System Status:
 -----------------------------------
 
 ✓ Layer 1 (Trace Cache): Working
-  - Location: ~/.ptdalgorithms_cache/traces/
+  - Location: ~/.phasic_cache/traces/
   - Caches: Graph elimination operations
   - Hit rate: High (graph structures reused)
   - Speedup: 10-1000x on hit

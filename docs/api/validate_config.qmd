@@ -1,14 +1,14 @@
-# validate_config { #ptdalgorithms.validate_config }
+# validate_config { #phasic.validate_config }
 
 ```python
-ptdalgorithms.validate_config(config, num_particles)
+phasic.validate_config(config, num_particles)
 ```
 
 Validate configuration for a given number of particles.
 
 ## Parameters {.doc-section .doc-section-parameters}
 
-<code>[**config**]{.parameter-name} [:]{.parameter-annotation-sep} [[ClusterConfig](`ptdalgorithms.cluster_configs.ClusterConfig`)]{.parameter-annotation}</code>
+<code>[**config**]{.parameter-name} [:]{.parameter-annotation-sep} [[ClusterConfig](`phasic.cluster_configs.ClusterConfig`)]{.parameter-annotation}</code>
 
 :   Cluster configuration to validate
 

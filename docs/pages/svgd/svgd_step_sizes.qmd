@@ -16,7 +16,7 @@ Implemented a clean, extensible system for controlling step size and bandwidth s
 
 ## Implementation
 
-### 1. Schedule Base Classes (src/ptdalgorithms/svgd.py, lines 49-298)
+### 1. Schedule Base Classes (src/phasic/svgd.py, lines 49-298)
 
 **Step Size Schedules:**
 - `StepSizeSchedule` - Base class
@@ -42,11 +42,11 @@ Implemented a clean, extensible system for controlling step size and bandwidth s
 - String kernel values automatically wrapped in `MedianBandwidth`
 - All existing code continues to work unchanged
 
-### 3. API Exports (src/ptdalgorithms/__init__.py, lines 229-251)
+### 3. API Exports (src/phasic/__init__.py, lines 229-251)
 
 All schedule classes exported from main package:
 ```python
-from ptdalgorithms import (
+from phasic import (
     ExponentialDecayStepSize,
     AdaptiveStepSize,
     MedianBandwidth,
@@ -59,7 +59,7 @@ from ptdalgorithms import (
 ### Basic: Exponential Decay (Fixes Divergence)
 
 ```python
-from ptdalgorithms import SVGD, ExponentialDecayStepSize
+from phasic import SVGD, ExponentialDecayStepSize
 
 # Create schedule: starts at 0.1, decays to 0.01 over 500 iterations
 schedule = ExponentialDecayStepSize(max_step=0.1, min_step=0.01, tau=500.0)
@@ -76,7 +76,7 @@ svgd.fit()
 ### Adaptive Step Size
 
 ```python
-from ptdalgorithms import AdaptiveStepSize
+from phasic import AdaptiveStepSize
 
 # Adjusts step size based on particle spread
 schedule = AdaptiveStepSize(base_step=0.01, kl_target=0.1, adjust_rate=0.1)
@@ -88,7 +88,7 @@ svgd.fit()
 ### Custom Bandwidth
 
 ```python
-from ptdalgorithms import LocalAdaptiveBandwidth
+from phasic import LocalAdaptiveBandwidth
 
 # Per-particle bandwidth using k-nearest neighbors
 bandwidth = LocalAdaptiveBandwidth(alpha=0.9, k_frac=0.1)
@@ -175,15 +175,15 @@ svgd = SVGD(model, data, theta_dim=1, learning_rate=0.01)
 
 ### New Code (Recommended for Large Datasets)
 ```python
-from ptdalgorithms import ExponentialDecayStepSize
+from phasic import ExponentialDecayStepSize
 schedule = ExponentialDecayStepSize(max_step=0.1, min_step=0.01, tau=500.0)
 svgd = SVGD(model, data, theta_dim=1, learning_rate=schedule)
 ```
 
 ## Files Modified
 
-1. `src/ptdalgorithms/svgd.py` - Added schedule classes and integration
-2. `src/ptdalgorithms/__init__.py` - Exported schedule classes
+1. `src/phasic/svgd.py` - Added schedule classes and integration
+2. `src/phasic/__init__.py` - Exported schedule classes
 3. `test_schedule_fix.py` - Test demonstrating fix for divergence
 
 ## References

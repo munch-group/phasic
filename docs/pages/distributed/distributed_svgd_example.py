@@ -19,15 +19,15 @@ Usage:
     # Multi-node SLURM cluster
     sbatch <(python generate_slurm_script.py --profile medium --script distributed_svgd_example.py)
 
-Author: PtDAlgorithms Team
+Author: phasic Team
 Date: 2025-10-07
 """
 
 import numpy as np
 import jax
 import jax.numpy as jnp
-from ptdalgorithms import Graph, initialize_distributed, SVGD
-from ptdalgorithms.ffi_wrappers import compute_pmf_ffi
+from phasic import Graph, initialize_distributed, SVGD
+from phasic.ffi_wrappers import compute_pmf_ffi
 
 
 def build_coalescent_model(nr_samples: int = 4):

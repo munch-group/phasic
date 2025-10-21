@@ -14,8 +14,8 @@ Key Features:
 - Import/export for model libraries
 
 Example Usage:
-    >>> from ptdalgorithms import Graph
-    >>> from ptdalgorithms.symbolic_cache import SymbolicCache
+    >>> from phasic import Graph
+    >>> from phasic.symbolic_cache import SymbolicCache
     >>>
     >>> # Build parameterized graph
     >>> g = Graph(callback=my_callback, parameterized=True)
@@ -39,7 +39,7 @@ import tempfile
 import shutil
 
 try:
-    from . import ptdalgorithmscpp_pybind as cpp
+    from . import phasic_pybind as cpp
     HAS_CPP = True
 except ImportError:
     HAS_CPP = False
@@ -57,7 +57,7 @@ class SymbolicCache:
     Parameters
     ----------
     cache_dir : Path or str, optional
-        Directory for cache storage. Default: ~/.ptdalgorithms_cache/symbolic
+        Directory for cache storage. Default: ~/.phasic_cache/symbolic
     shared_cache_dir : Path or str, optional
         Optional shared cache directory (read-only, checked after local)
     max_cache_size_gb : float, optional
@@ -82,7 +82,7 @@ class SymbolicCache:
         enable_stats: bool = True
     ):
         self.cache_dir = Path(cache_dir) if cache_dir else (
-            Path.home() / '.ptdalgorithms_cache' / 'symbolic'
+            Path.home() / '.phasic_cache' / 'symbolic'
         )
         self.shared_cache_dir = Path(shared_cache_dir) if shared_cache_dir else None
         self.max_cache_size_bytes = int(max_cache_size_gb * 1024**3)
@@ -112,7 +112,7 @@ class SymbolicCache:
                     vertices INTEGER,
                     edges INTEGER,
                     elimination_time_ms REAL,
-                    ptdalgorithms_version TEXT,
+                    phasic_version TEXT,
                     metadata TEXT
                 )
             ''')
@@ -287,7 +287,7 @@ class SymbolicCache:
             conn.execute('''
                 INSERT OR REPLACE INTO cache_entries
                 (hash_key, file_path, created_at, accessed_at, size_bytes,
-                 vertices, edges, elimination_time_ms, ptdalgorithms_version, metadata)
+                 vertices, edges, elimination_time_ms, phasic_version, metadata)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 hash_key,
@@ -319,7 +319,7 @@ class SymbolicCache:
             conn.execute('''
                 INSERT OR IGNORE INTO cache_entries
                 (hash_key, file_path, created_at, accessed_at, size_bytes,
-                 vertices, edges, elimination_time_ms, ptdalgorithms_version, metadata)
+                 vertices, edges, elimination_time_ms, phasic_version, metadata)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 hash_key, str(dest_path), now, now, size_bytes,
@@ -473,7 +473,7 @@ class SymbolicCache:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute('''
                 SELECT hash_key, created_at, accessed_at, size_bytes,
-                       vertices, edges, elimination_time_ms, ptdalgorithms_version
+                       vertices, edges, elimination_time_ms, phasic_version
                 FROM cache_entries
                 ORDER BY accessed_at DESC
                 LIMIT ?

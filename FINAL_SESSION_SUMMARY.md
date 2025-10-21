@@ -48,11 +48,11 @@
 
 ## Files Modified (4 total)
 
-1. **src/ptdalgorithms/model_export.py**
+1. **src/phasic/model_export.py**
    - Refactored 3 functions to use CacheManager
    - Net: -30 lines (eliminated duplication)
 
-2. **src/ptdalgorithms/__init__.py**
+2. **src/phasic/__init__.py**
    - Removed symbolic_cache imports
    - Added model_export imports
    - Removed obsolete usage code
@@ -267,7 +267,7 @@ Performance: No regression (<1μs overhead)
 ### Test Consolidation
 ```bash
 python -c "
-import ptdalgorithms as ptd
+import phasic as ptd
 import tempfile
 from pathlib import Path
 

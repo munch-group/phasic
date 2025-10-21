@@ -32,7 +32,7 @@ from typing import Optional
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from ptdalgorithms.cluster_configs import ClusterConfig, load_config, get_default_config
+from phasic.cluster_configs import ClusterConfig, load_config, get_default_config
 
 
 SLURM_SCRIPT_TEMPLATE = """#!/bin/bash
@@ -75,14 +75,14 @@ eval "$(pixi shell-hook)"
 
 # Option 2: Conda (alternative)
 # source /path/to/conda/etc/profile.d/conda.sh
-# conda activate ptdalgorithms
+# conda activate phasic
 
 # Verify Python and dependencies
 echo "Python environment:"
 which python
 python --version
 python -c "import jax; print(f'JAX version: {{jax.__version__}}')" || echo "JAX not found!"
-python -c "import ptdalgorithms; print('PtDAlgorithms imported successfully')" || echo "PtDAlgorithms not found!"
+python -c "import phasic; print('PtDAlgorithms imported successfully')" || echo "PtDAlgorithms not found!"
 echo ""
 
 # Setup JAX coordinator for distributed computing

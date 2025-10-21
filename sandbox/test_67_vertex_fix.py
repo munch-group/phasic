@@ -5,7 +5,7 @@ Test script to verify that 67-vertex rabbit model works without stack overflow
 
 import sys
 import time
-from ptdalgorithms import Graph
+from phasic import Graph
 
 def construct_parameterized_rabbit_model(nr_rabbits):
     """

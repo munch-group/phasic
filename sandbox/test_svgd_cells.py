@@ -9,8 +9,8 @@ import jax.numpy as jnp
 # Enable 64-bit precision (needed for notebook cells)
 jax.config.update("jax_enable_x64", True)
 
-from ptdalgorithms import Graph
-from ptdalgorithms.ffi_wrappers import compute_pmf_ffi
+from phasic import Graph
+from phasic.ffi_wrappers import compute_pmf_ffi
 
 # Build a simple parameterized model (like notebook cell 187)
 print("Building parameterized rabbit model...")

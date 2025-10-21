@@ -3,13 +3,13 @@
 
 library(devtools)
 
-#remove.packages("ptdalgorithms")
+#remove.packages("phasic")
 # #devtools::install_github("kaspermunch/PtDAlgorithms")
 # devtools::install_local('../PtDAlgorithms', quiet=FALSE)
 #devtools::install_local()
 devtools::load_all(path="./", quiet=FALSE, recompile=TRUE)
 
-library(ptdalgorithms)
+library(phasic)
 
 Rcpp::compileAttributes() 
 

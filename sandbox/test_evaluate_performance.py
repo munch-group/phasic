@@ -3,7 +3,7 @@
 Test to measure evaluation performance of symbolic expressions
 """
 import time
-from ptdalgorithms import Graph
+from phasic import Graph
 
 def test_model(n_rabbits):
     """Test with n rabbits"""

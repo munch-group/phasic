@@ -1,6 +1,6 @@
 // cppimport
 #include <pybind11/pybind11.h>
-#include <ptdalgorithms.h>
+#include <phasic.h>
 
 namespace py = pybind11;
 
@@ -225,7 +225,7 @@ double *linspace(double a, double b, int num) {
  */
 // [[Rcpp::export]]
 
-// ptdalgorithms::Graph build(int starting_rabbits, float flooding_left, float flooding_right) {
+// phasic::Graph build(int starting_rabbits, float flooding_left, float flooding_right) {
 
 SEXP construct_coalescent_selection_graph(int sample_size, int n_derived, int pop_size, int n_freqbins, double sel_coef) {
 
@@ -521,6 +521,6 @@ SEXP construct_coalescent_selection_graph(int sample_size, int n_derived, int po
     free(child_state);
     free(bins);
     return Rcpp::XPtr<Graph>(
-            new ptdalgorithms::Graph(graph, avl_tree)
+            new phasic::Graph(graph, avl_tree)
     );
 }

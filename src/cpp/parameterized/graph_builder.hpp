@@ -6,11 +6,11 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include "../ptdalgorithmscpp.h"
+#include "../phasiccpp.h"
 
 namespace py = pybind11;
 
-namespace ptdalgorithms {
+namespace phasic {
 namespace parameterized {
 
 /**
@@ -180,6 +180,6 @@ private:
 };
 
 } // namespace parameterized
-} // namespace ptdalgorithms
+} // namespace phasic
 
 #endif // PTDALGORITHMS_PARAMETERIZED_GRAPH_BUILDER_HPP

@@ -239,7 +239,7 @@ Graph built: 22 vertices
 ```python
 import jax
 import jax.numpy as jnp
-from ptdalgorithms.trace_elimination import trace_to_jax_fn
+from phasic.trace_elimination import trace_to_jax_fn
 
 # Create JAX function
 jax_fn = trace_to_jax_fn(trace)
@@ -337,7 +337,7 @@ trace = record_elimination_trace(graph, param_length=3)  # Explicit
 
 ### Modified Files
 
-**src/ptdalgorithms/trace_elimination.py** (+200 lines)
+**src/phasic/trace_elimination.py** (+200 lines)
 - Added `OpType.DOT`
 - Updated `record_elimination_trace()` for parameterized edges
 - Added `evaluate_trace_jax()` and `trace_to_jax_fn()`
@@ -462,8 +462,8 @@ trace = record_elimination_trace(graph, param_length=3)  # Explicit
 ### Basic Parameterized Trace
 
 ```python
-from ptdalgorithms import Graph
-from ptdalgorithms.trace_elimination import record_elimination_trace, evaluate_trace
+from phasic import Graph
+from phasic.trace_elimination import record_elimination_trace, evaluate_trace
 
 # Build parameterized graph
 g = Graph(state_length=1)
@@ -493,7 +493,7 @@ result2 = evaluate_trace(trace, params2)
 ```python
 import jax
 import jax.numpy as jnp
-from ptdalgorithms.trace_elimination import trace_to_jax_fn
+from phasic.trace_elimination import trace_to_jax_fn
 
 # Convert to JAX function
 jax_fn = trace_to_jax_fn(trace)
@@ -525,8 +525,8 @@ print(f"Batch results shape: {results['vertex_rates'].shape}")  # (3, n_vertices
 
 ```python
 # Future API (not yet implemented)
-from ptdalgorithms import SVGD
-from ptdalgorithms.trace_elimination import trace_to_jax_fn
+from phasic import SVGD
+from phasic.trace_elimination import trace_to_jax_fn
 
 # Define likelihood using trace
 def log_likelihood(params, data):

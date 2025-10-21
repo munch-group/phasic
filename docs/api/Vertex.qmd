@@ -1,7 +1,7 @@
-# Vertex { #ptdalgorithms.Vertex }
+# Vertex { #phasic.Vertex }
 
 ```python
-ptdalgorithms.Vertex()
+phasic.Vertex()
 ```
 
 
@@ -10,21 +10,21 @@ ptdalgorithms.Vertex()
 
 | Name | Description |
 | --- | --- |
-| [add_edge](#ptdalgorithms.Vertex.add_edge) | add_edge(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, to: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, weight: float) -> None |
-| [add_edge_parameterized](#ptdalgorithms.Vertex.add_edge_parameterized) | add_edge_parameterized(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, to: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, weight: float, edge_state: list[float]) -> None |
-| [ae](#ptdalgorithms.Vertex.ae) | ae(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, to: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, weight: float) -> None |
-| [edges](#ptdalgorithms.Vertex.edges) | edges(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -> list[ptdalgorithms::Edge] |
-| [index](#ptdalgorithms.Vertex.index) | index(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -> int |
-| [rate](#ptdalgorithms.Vertex.rate) | rate(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -> float |
-| [state](#ptdalgorithms.Vertex.state) | state(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -> list[int] |
+| [add_edge](#phasic.Vertex.add_edge) | add_edge(self: phasic.phasic_pybind.Vertex, to: phasic.phasic_pybind.Vertex, weight: float) -> None |
+| [add_edge_parameterized](#phasic.Vertex.add_edge_parameterized) | add_edge_parameterized(self: phasic.phasic_pybind.Vertex, to: phasic.phasic_pybind.Vertex, weight: float, edge_state: list[float]) -> None |
+| [ae](#phasic.Vertex.ae) | ae(self: phasic.phasic_pybind.Vertex, to: phasic.phasic_pybind.Vertex, weight: float) -> None |
+| [edges](#phasic.Vertex.edges) | edges(self: phasic.phasic_pybind.Vertex) -> list[phasic::Edge] |
+| [index](#phasic.Vertex.index) | index(self: phasic.phasic_pybind.Vertex) -> int |
+| [rate](#phasic.Vertex.rate) | rate(self: phasic.phasic_pybind.Vertex) -> float |
+| [state](#phasic.Vertex.state) | state(self: phasic.phasic_pybind.Vertex) -> list[int] |
 
-### add_edge { #ptdalgorithms.Vertex.add_edge }
+### add_edge { #phasic.Vertex.add_edge }
 
 ```python
-ptdalgorithms.Vertex.add_edge()
+phasic.Vertex.add_edge()
 ```
 
-add_edge(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, to: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, weight: float) -> None
+add_edge(self: phasic.phasic_pybind.Vertex, to: phasic.phasic_pybind.Vertex, weight: float) -> None
 
 
 //' Adds an edge between two vertices in the graph
@@ -33,11 +33,11 @@ add_edge(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, to: ptdalgorithms.p
 //' The graph represents transitions between states as
 //' a weighted direction edge between two vertices.
 //' 
-//' @seealso [ptdalgorithms::expected_waiting_time()]
-//' @seealso [ptdalgorithms::moments()]
-//' @seealso [ptdalgorithms::variance()]
-//' @seealso [ptdalgorithms::covariance()]
-//' @seealso [ptdalgorithms::graph_update_weights_parameterized()]
+//' @seealso [phasic::expected_waiting_time()]
+//' @seealso [phasic::moments()]
+//' @seealso [phasic::variance()]
+//' @seealso [phasic::covariance()]
+//' @seealso [phasic::graph_update_weights_parameterized()]
 //' 
 //' @param phase_type_vertex_from The vertex that transitions from
 //' @param phase_type_vertex_to The vertex that transitions to
@@ -50,53 +50,53 @@ add_edge(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, to: ptdalgorithms.p
 //' vertex_b <- find_or_create_vertex(graph, c(2,0,1,0))
 //' add_edge(vertex_a, vertex_b, 1.5)
 
-### add_edge_parameterized { #ptdalgorithms.Vertex.add_edge_parameterized }
+### add_edge_parameterized { #phasic.Vertex.add_edge_parameterized }
 
 ```python
-ptdalgorithms.Vertex.add_edge_parameterized()
+phasic.Vertex.add_edge_parameterized()
 ```
 
-add_edge_parameterized(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, to: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, weight: float, edge_state: list[float]) -> None
+add_edge_parameterized(self: phasic.phasic_pybind.Vertex, to: phasic.phasic_pybind.Vertex, weight: float, edge_state: list[float]) -> None
 
-### ae { #ptdalgorithms.Vertex.ae }
+### ae { #phasic.Vertex.ae }
 
 ```python
-ptdalgorithms.Vertex.ae()
+phasic.Vertex.ae()
 ```
 
-ae(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, to: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex, weight: float) -> None
+ae(self: phasic.phasic_pybind.Vertex, to: phasic.phasic_pybind.Vertex, weight: float) -> None
 
 
 Alias for add_edge
 
-### edges { #ptdalgorithms.Vertex.edges }
+### edges { #phasic.Vertex.edges }
 
 ```python
-ptdalgorithms.Vertex.edges()
+phasic.Vertex.edges()
 ```
 
-edges(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -> list[ptdalgorithms::Edge]
+edges(self: phasic.phasic_pybind.Vertex) -> list[phasic::Edge]
 
-### index { #ptdalgorithms.Vertex.index }
+### index { #phasic.Vertex.index }
 
 ```python
-ptdalgorithms.Vertex.index()
+phasic.Vertex.index()
 ```
 
-index(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -> int
+index(self: phasic.phasic_pybind.Vertex) -> int
 
-### rate { #ptdalgorithms.Vertex.rate }
+### rate { #phasic.Vertex.rate }
 
 ```python
-ptdalgorithms.Vertex.rate()
+phasic.Vertex.rate()
 ```
 
-rate(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -> float
+rate(self: phasic.phasic_pybind.Vertex) -> float
 
-### state { #ptdalgorithms.Vertex.state }
+### state { #phasic.Vertex.state }
 
 ```python
-ptdalgorithms.Vertex.state()
+phasic.Vertex.state()
 ```
 
-state(self: ptdalgorithms.ptdalgorithmscpp_pybind.Vertex) -> list[int]
+state(self: phasic.phasic_pybind.Vertex) -> list[int]

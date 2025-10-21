@@ -39,7 +39,7 @@
 - Implemented fallback for `reward_vector` parameter (with warning)
 
 **Files Modified:**
-- `src/ptdalgorithms/trace_elimination.py` (lines 1123-1252)
+- `src/phasic/trace_elimination.py` (lines 1123-1252)
 - `tests/test_trace_exact_likelihood.py` (new, 233 lines)
 - `CLAUDE.md` (documentation updates)
 
@@ -57,8 +57,8 @@
 - Created forward-mode AD function for efficient gradient computation
 
 **Files Modified:**
-- `api/c/ptdalgorithms.h` (lines 436-482): Function declarations
-- `src/c/ptdalgorithms_symbolic.c` (lines 894-1082): Implementation (+189 lines)
+- `api/c/phasic.h` (lines 436-482): Function declarations
+- `src/c/phasic_symbolic.c` (lines 894-1082): Implementation (+189 lines)
 - `tests/test_symbolic_gradient.c` (new, 233 lines)
 - `CMakeLists.txt` (lines 138-142): Test build configuration
 
@@ -75,7 +75,7 @@
 ### Next Steps
 
 **Phase 5 Week 3** (Estimated: 3-5 days)
-- Implement `ptd_graph_pdf_with_gradient()` in `src/c/ptdalgorithms.c`
+- Implement `ptd_graph_pdf_with_gradient()` in `src/c/phasic.c`
 - Use symbolic derivatives through forward algorithm DP recursion
 - Graph-based gradients (NOT matrix exponentiation)
 - Test against finite differences
@@ -142,7 +142,7 @@
 
 ### 2.1 Existing Infrastructure
 
-**File: `src/ptdalgorithms/ffi_wrappers.py`**
+**File: `src/phasic/ffi_wrappers.py`**
 
 This file is already structured for JAX FFI but uses `pure_callback` as temporary fallback:
 
@@ -191,7 +191,7 @@ GraphBuilder class already provides:
 - ✅ `compute_pmf_and_moments(...)` - working
 - ❌ `compute_pmf_with_gradient(...)` - needs to be added
 
-**File: `src/c/ptdalgorithms_symbolic.c`**
+**File: `src/c/phasic_symbolic.c`**
 
 Symbolic expression system already provides:
 - ✅ Expression types: CONST, PARAM, DOT, ADD, MUL, DIV, INV
@@ -201,7 +201,7 @@ Symbolic expression system already provides:
 - ❌ `ptd_expr_derivative()` - needs to be added
 - ❌ `ptd_expr_evaluate_with_gradient()` - needs to be added
 
-**File: `src/c/ptdalgorithms.c`**
+**File: `src/c/phasic.c`**
 
 Forward algorithm (Algorithm 4):
 - ✅ `graph.pdf(time, granularity)` - working (via Python wrapper)
@@ -236,7 +236,7 @@ This is critical - don't break the library's fundamental advantage!
 
 ### 3.1 Overview
 
-**Current implementation** (`src/ptdalgorithms/trace_elimination.py:1186-1210`):
+**Current implementation** (`src/phasic/trace_elimination.py:1186-1210`):
 
 ```python
 def log_likelihood(params):
@@ -270,7 +270,7 @@ def log_likelihood(params):
 
 #### Step 1: Update `trace_to_log_likelihood()` signature
 
-**File**: `src/ptdalgorithms/trace_elimination.py:1123`
+**File**: `src/phasic/trace_elimination.py:1123`
 
 **Changes**:
 ```python
@@ -371,7 +371,7 @@ Examples
 >>> observed_times = np.array([1.5, 2.3, 0.8, 1.2])
 >>> log_lik = trace_to_log_likelihood(trace, observed_times, granularity=100)
 >>>
->>> from ptdalgorithms import SVGD
+>>> from phasic import SVGD
 >>> svgd = SVGD(log_lik, theta_dim=2, n_particles=100, n_iterations=1000)
 >>> results = svgd.fit()
 """
@@ -389,8 +389,8 @@ Test exact phase-type likelihood vs exponential approximation
 import numpy as np
 import jax.numpy as jnp
 import pytest
-from ptdalgorithms import Graph
-from ptdalgorithms.trace_elimination import (
+from phasic import Graph
+from phasic.trace_elimination import (
     record_elimination_trace,
     trace_to_log_likelihood
 )
@@ -521,7 +521,7 @@ results = svgd.fit()
 
 ### 4.1 Overview
 
-Extend the existing symbolic expression system (`src/c/ptdalgorithms_symbolic.c`) to support automatic differentiation.
+Extend the existing symbolic expression system (`src/c/phasic_symbolic.c`) to support automatic differentiation.
 
 **Current system**:
 ```c
@@ -568,7 +568,7 @@ All symbolic (not numeric):
 
 #### Step 1: Add API to header
 
-**File**: `api/c/ptdalgorithms.h`
+**File**: `api/c/phasic.h`
 
 Add after line 398 (after existing `ptd_expr_evaluate_iterative()`):
 
@@ -624,7 +624,7 @@ void ptd_expr_evaluate_with_gradient(
 
 #### Step 2: Implement `ptd_expr_derivative()`
 
-**File**: `src/c/ptdalgorithms_symbolic.c`
+**File**: `src/c/phasic_symbolic.c`
 
 Add after existing expression functions (around line 3000):
 
@@ -820,7 +820,7 @@ void ptd_expr_evaluate_with_gradient(
 **File**: `tests/test_symbolic_gradient.c` (new)
 
 ```c
-#include "../../api/c/ptdalgorithms.h"
+#include "../../api/c/phasic.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -1018,9 +1018,9 @@ int main() {
 
 ### 4.5 Week 2 Checklist
 
-- [ ] Add `ptd_expr_derivative()` to `api/c/ptdalgorithms.h`
+- [ ] Add `ptd_expr_derivative()` to `api/c/phasic.h`
 - [ ] Add `ptd_expr_evaluate_with_gradient()` to header
-- [ ] Implement `ptd_expr_derivative()` in `src/c/ptdalgorithms_symbolic.c`
+- [ ] Implement `ptd_expr_derivative()` in `src/c/phasic_symbolic.c`
 - [ ] Implement all differentiation rules (CONST, PARAM, DOT, ADD, MUL, DIV, INV, SUB)
 - [ ] Implement `ptd_expr_evaluate_with_gradient()`
 - [ ] Create `tests/test_symbolic_gradient.c`
@@ -1052,7 +1052,7 @@ This is just the chain rule applied to the DP recursion. No matrices!
 
 ### 5.2 C API Design
 
-**File**: `api/c/ptdalgorithms.h`
+**File**: `api/c/phasic.h`
 
 Add after existing graph functions (around line 800):
 
@@ -1097,7 +1097,7 @@ int ptd_graph_pdf_with_gradient(
 
 ### 5.3 Implementation
 
-**File**: `src/c/ptdalgorithms.c`
+**File**: `src/c/phasic.c`
 
 Add after existing forward algorithm implementation (search for `pdf` functions):
 
@@ -1326,7 +1326,7 @@ int ptd_graph_pdf_with_gradient(
 **File**: `tests/test_pdf_gradient.c` (new)
 
 ```c
-#include "../../api/c/ptdalgorithms.h"
+#include "../../api/c/phasic.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -1457,9 +1457,9 @@ int main() {
 
 ### 5.5 Week 3 Checklist
 
-- [ ] Add `ptd_graph_pdf_with_gradient()` to `api/c/ptdalgorithms.h`
+- [ ] Add `ptd_graph_pdf_with_gradient()` to `api/c/phasic.h`
 - [ ] Implement helper functions (`alloc_2d`, `free_2d`)
-- [ ] Implement `ptd_graph_pdf_with_gradient()` in `src/c/ptdalgorithms.c`
+- [ ] Implement `ptd_graph_pdf_with_gradient()` in `src/c/phasic.c`
 - [ ] Handle parameterized edge weight evaluation
 - [ ] Implement chain rule in DP recursion
 - [ ] Create `tests/test_pdf_gradient.c`
@@ -1495,11 +1495,11 @@ Complete the existing `ffi_wrappers.py` skeleton by:
 #include "parameterized/graph_builder.hpp"
 
 extern "C" {
-#include "../../api/c/ptdalgorithms.h"
+#include "../../api/c/phasic.h"
 }
 
 namespace py = pybind11;
-namespace ptdalgorithms {
+namespace phasic {
 namespace xla_ffi {
 
 /**
@@ -1547,7 +1547,7 @@ XLA_FFI_Error* ComputePmfHandler(
     try {
         // Build graph
         parameterized::GraphBuilder builder(structure_json);
-        ptdalgorithms::Graph g = builder.build(theta, n_params);
+        phasic::Graph g = builder.build(theta, n_params);
 
         // Compute PDF for each time point
         for (size_t i = 0; i < n_times; i++) {
@@ -1618,7 +1618,7 @@ XLA_FFI_Error* ComputePmfVjpHandler(
 
             // Call C function for PDF + gradient
             // Note: Need to build graph from theta first
-            ptdalgorithms::Graph g = builder.build(theta, n_params);
+            phasic::Graph g = builder.build(theta, n_params);
 
             int status = ptd_graph_pdf_with_gradient(
                 g.c_graph(),  // Get underlying C graph
@@ -1695,7 +1695,7 @@ XLA_FFI_Error* ComputePmfBatchHandler(
         #pragma omp parallel for
         for (size_t b = 0; b < batch_size; b++) {
             parameterized::GraphBuilder builder(structure_json);
-            ptdalgorithms::Graph g = builder.build(
+            phasic::Graph g = builder.build(
                 theta_batch + b * n_params,
                 n_params
             );
@@ -1716,12 +1716,12 @@ XLA_FFI_Error* ComputePmfBatchHandler(
 }
 
 }  // namespace xla_ffi
-}  // namespace ptdalgorithms
+}  // namespace phasic
 ```
 
 ### 6.3 Day 12: Expose via pybind11 Capsules
 
-**File**: `src/cpp/ptdalgorithmscpp_pybind.cpp`
+**File**: `src/cpp/phasic_pybind.cpp`
 
 Add at end of `PYBIND11_MODULE` block (before closing brace):
 
@@ -1732,7 +1732,7 @@ Add at end of `PYBIND11_MODULE` block (before closing brace):
 
 m.def("get_compute_pmf_capsule", []() {
     return py::capsule(
-        reinterpret_cast<void*>(&ptdalgorithms::xla_ffi::ComputePmfHandler),
+        reinterpret_cast<void*>(&phasic::xla_ffi::ComputePmfHandler),
         "xla._CUSTOM_CALL_TARGET"
     );
 }, R"delim(
@@ -1744,7 +1744,7 @@ This enables true XLA integration with zero Python overhead.
 
 m.def("get_compute_pmf_vjp_capsule", []() {
     return py::capsule(
-        reinterpret_cast<void*>(&ptdalgorithms::xla_ffi::ComputePmfVjpHandler),
+        reinterpret_cast<void*>(&phasic::xla_ffi::ComputePmfVjpHandler),
         "xla._CUSTOM_CALL_TARGET"
     );
 }, R"delim(
@@ -1753,7 +1753,7 @@ Get XLA FFI handler capsule for compute_pmf VJP (gradient).
 
 m.def("get_compute_pmf_batch_capsule", []() {
     return py::capsule(
-        reinterpret_cast<void*>(&ptdalgorithms::xla_ffi::ComputePmfBatchHandler),
+        reinterpret_cast<void*>(&phasic::xla_ffi::ComputePmfBatchHandler),
         "xla._CUSTOM_CALL_TARGET"
     );
 }, R"delim(
@@ -1763,7 +1763,7 @@ Get XLA FFI handler capsule for batched compute_pmf (for vmap).
 
 ### 6.4 Day 13: Complete FFI Registration
 
-**File**: `src/ptdalgorithms/ffi_wrappers.py`
+**File**: `src/phasic/ffi_wrappers.py`
 
 Replace lines 166-181 (the `_register_ffi_targets()` TODO):
 
@@ -1778,21 +1778,21 @@ def _register_ffi_targets():
     try:
         # Register compute_pmf forward handler
         ffi.register_ffi_target(
-            "ptdalgorithms_compute_pmf",
+            "phasic_compute_pmf",
             cpp_module.get_compute_pmf_capsule(),
             platform="cpu"
         )
 
         # Register compute_pmf VJP handler
         ffi.register_ffi_target(
-            "ptdalgorithms_compute_pmf_vjp",
+            "phasic_compute_pmf_vjp",
             cpp_module.get_compute_pmf_vjp_capsule(),
             platform="cpu"
         )
 
         # Register compute_pmf batch handler
         ffi.register_ffi_target(
-            "ptdalgorithms_compute_pmf_batch",
+            "phasic_compute_pmf_batch",
             cpp_module.get_compute_pmf_batch_capsule(),
             platform="cpu"
         )
@@ -1841,7 +1841,7 @@ def compute_pmf_via_ffi(structure_json: Union[str, Dict], theta: jax.Array, time
 
     # Call XLA custom call
     result = ffi.ffi_call(
-        "ptdalgorithms_compute_pmf",
+        "phasic_compute_pmf",
         result_shape=jax.ShapeDtypeStruct(times.shape, jnp.float64),
         structure_json=structure_bytes,
         theta=theta,
@@ -1882,7 +1882,7 @@ def compute_pmf_bwd(residuals, cotangent):
 
     # Call VJP handler
     grad_theta = ffi.ffi_call(
-        "ptdalgorithms_compute_pmf_vjp",
+        "phasic_compute_pmf_vjp",
         result_shape=jax.ShapeDtypeStruct((theta.shape[0],), jnp.float64),
         structure_json=structure_bytes,
         theta=theta,
@@ -1916,7 +1916,7 @@ def compute_pmf_batch_rule(batched_args, batch_dims):
         structure_bytes = structure_json_str.encode('utf-8')
 
         result = ffi.ffi_call(
-            "ptdalgorithms_compute_pmf_batch",
+            "phasic_compute_pmf_batch",
             result_shape=jax.ShapeDtypeStruct((theta.shape[0], times.shape[0]), jnp.float64),
             structure_json=structure_bytes,
             theta_batch=theta,
@@ -1954,7 +1954,7 @@ Day 11:
 - [ ] Add to CMakeLists.txt
 
 Day 12:
-- [ ] Add capsule exposure functions to `ptdalgorithmscpp_pybind.cpp`
+- [ ] Add capsule exposure functions to `phasic_pybind.cpp`
 - [ ] Test capsule creation in Python
 
 Day 13:
@@ -2074,13 +2074,13 @@ GraphBuilder::compute_pmf_with_gradient(
 
 ### 7.2 Expose via pybind11
 
-**File**: `src/cpp/ptdalgorithmscpp_pybind.cpp`
+**File**: `src/cpp/phasic_pybind.cpp`
 
 Add to GraphBuilder class binding (after `compute_pmf_and_moments`):
 
 ```cpp
 .def("compute_pmf_with_gradient",
-    &ptdalgorithms::parameterized::GraphBuilder::compute_pmf_with_gradient,
+    &phasic::parameterized::GraphBuilder::compute_pmf_with_gradient,
     py::arg("theta"),
     py::arg("times"),
     py::arg("discrete") = false,
@@ -2152,8 +2152,8 @@ Add to GraphBuilder class binding (after `compute_pmf_and_moments`):
 import jax
 import jax.numpy as jnp
 import numpy as np
-from ptdalgorithms import Graph
-from ptdalgorithms.ffi_wrappers import compute_pmf_ffi
+from phasic import Graph
+from phasic.ffi_wrappers import compute_pmf_ffi
 
 # Enable 64-bit
 jax.config.update("jax_enable_x64", True)
@@ -2248,7 +2248,7 @@ def test_svgd_convergence():
         return jnp.sum(jnp.log(pmf + 1e-10))
 
     # Run SVGD
-    from ptdalgorithms.svgd import SVGD
+    from phasic.svgd import SVGD
     svgd = SVGD(log_likelihood, theta_dim=2, n_particles=50, n_iterations=500)
     results = svgd.fit()
 
@@ -2265,9 +2265,9 @@ def test_svgd_convergence():
 import time
 import numpy as np
 import jax.numpy as jnp
-from ptdalgorithms import Graph
-from ptdalgorithms.trace_elimination import record_elimination_trace, trace_to_log_likelihood
-from ptdalgorithms.ffi_wrappers import compute_pmf_ffi
+from phasic import Graph
+from phasic.trace_elimination import record_elimination_trace, trace_to_log_likelihood
+from phasic.ffi_wrappers import compute_pmf_ffi
 
 def benchmark_phase4():
     """Benchmark Phase 4: Exact likelihood"""
@@ -2345,8 +2345,8 @@ if __name__ == "__main__":
 ### 9.1 Using Exact Likelihood (Phase 4)
 
 ```python
-from ptdalgorithms import Graph
-from ptdalgorithms.trace_elimination import (
+from phasic import Graph
+from phasic.trace_elimination import (
     record_elimination_trace,
     trace_to_log_likelihood
 )
@@ -2380,8 +2380,8 @@ print(f"Log-likelihood: {ll_value}")
 ```python
 import jax
 import jax.numpy as jnp
-from ptdalgorithms import Graph
-from ptdalgorithms.ffi_wrappers import compute_pmf_ffi
+from phasic import Graph
+from phasic.ffi_wrappers import compute_pmf_ffi
 
 # Enable 64-bit precision
 jax.config.update("jax_enable_x64", True)
@@ -2417,12 +2417,12 @@ results = vmap_loss(theta_batch)
 ### 9.3 SVGD with Exact Likelihood
 
 ```python
-from ptdalgorithms import Graph
-from ptdalgorithms.trace_elimination import (
+from phasic import Graph
+from phasic.trace_elimination import (
     record_elimination_trace,
     trace_to_log_likelihood
 )
-from ptdalgorithms.svgd import SVGD
+from phasic.svgd import SVGD
 import numpy as np
 import jax.numpy as jnp
 
@@ -2462,8 +2462,8 @@ print(f"Posterior std: {results['theta_std']}")
 ### 9.4 Debugging FFI Registration
 
 ```python
-from ptdalgorithms import ptdalgorithmscpp_pybind as cpp_module
-from ptdalgorithms.ffi_wrappers import _FFI_REGISTERED, _register_ffi_targets
+from phasic import phasic_pybind as cpp_module
+from phasic.ffi_wrappers import _FFI_REGISTERED, _register_ffi_targets
 
 # Check if FFI is available
 print(f"FFI registered: {_FFI_REGISTERED}")
@@ -2490,7 +2490,7 @@ except Exception as e:
 ### 10.1 Phase 4: Exact Likelihood ✅ COMPLETE (2025-10-15)
 
 **Files modified**:
-- [✓] `src/ptdalgorithms/trace_elimination.py` (lines 1123-1252)
+- [✓] `src/phasic/trace_elimination.py` (lines 1123-1252)
 - [✓] `tests/test_trace_exact_likelihood.py` (new, 233 lines)
 - [✓] `CLAUDE.md` (documentation updates)
 
@@ -2509,8 +2509,8 @@ except Exception as e:
 ### 10.2 Phase 5 Week 2: Symbolic Gradients ✅ COMPLETE (2025-10-15)
 
 **Files modified**:
-- [✓] `api/c/ptdalgorithms.h` (lines 436-482)
-- [✓] `src/c/ptdalgorithms_symbolic.c` (lines 894-1082, +189 lines)
+- [✓] `api/c/phasic.h` (lines 436-482)
+- [✓] `src/c/phasic_symbolic.c` (lines 894-1082, +189 lines)
 - [✓] `tests/test_symbolic_gradient.c` (new, 233 lines)
 - [✓] `CMakeLists.txt` (lines 138-142)
 
@@ -2529,8 +2529,8 @@ except Exception as e:
 ### 10.3 Phase 5 Week 3: Forward Algorithm Gradients (Days 11-15)
 
 **Files to modify**:
-- [ ] `api/c/ptdalgorithms.h`
-- [ ] `src/c/ptdalgorithms.c`
+- [ ] `api/c/phasic.h`
+- [ ] `src/c/phasic.c`
 - [ ] `tests/test_pdf_gradient.c` (new)
 
 **Tasks**:
@@ -2548,8 +2548,8 @@ except Exception as e:
 
 **Files to modify**:
 - [ ] `src/cpp/xla_handlers.cpp` (new)
-- [ ] `src/cpp/ptdalgorithmscpp_pybind.cpp`
-- [ ] `src/ptdalgorithms/ffi_wrappers.py`
+- [ ] `src/cpp/phasic_pybind.cpp`
+- [ ] `src/phasic/ffi_wrappers.py`
 - [ ] `CMakeLists.txt`
 
 **Tasks**:
@@ -2570,7 +2570,7 @@ except Exception as e:
 **Files to modify**:
 - [ ] `src/cpp/parameterized/graph_builder.hpp`
 - [ ] `src/cpp/parameterized/graph_builder.cpp` (or .hpp)
-- [ ] `src/cpp/ptdalgorithmscpp_pybind.cpp`
+- [ ] `src/cpp/phasic_pybind.cpp`
 
 **Tasks**:
 - [ ] Add `compute_pmf_with_gradient()` method
@@ -2725,7 +2725,7 @@ gradients = composed_fn(theta_batch)
 **Solutions**:
 ```python
 # Check if XLA handlers are compiled
-from ptdalgorithms import ptdalgorithmscpp_pybind as cpp
+from phasic import phasic_pybind as cpp
 print(hasattr(cpp, 'get_compute_pmf_capsule'))  # Should be True
 
 # Check capsule creation
@@ -2754,7 +2754,7 @@ print(f"JAX version: {jax.__version__}")
 **Debugging**:
 ```python
 # Test individual components
-from ptdalgorithms import Graph
+from phasic import Graph
 
 # 1. Test symbolic gradient
 expr = ptd_expr_mul(ptd_expr_param(0), ptd_expr_param(1))
@@ -2786,7 +2786,7 @@ import time
 import jax
 
 # Check if FFI is being used
-from ptdalgorithms.ffi_wrappers import _FFI_REGISTERED
+from phasic.ffi_wrappers import _FFI_REGISTERED
 print(f"Using FFI: {_FFI_REGISTERED}")
 
 # Profile with JAX
@@ -2828,10 +2828,10 @@ print(f"JIT cached: {time.time() - start:.6f}s")  # Should be <1ms
 # Check if batch handler is registered
 from jax import ffi
 # Check FFI targets
-# Should see 'ptdalgorithms_compute_pmf_batch'
+# Should see 'phasic_compute_pmf_batch'
 
 # Test batch handler directly
-from ptdalgorithms import ptdalgorithmscpp_pybind as cpp
+from phasic import phasic_pybind as cpp
 try:
     capsule = cpp.get_compute_pmf_batch_capsule()
     print("Batch handler available")
@@ -2959,18 +2959,18 @@ svgd = SVGD(
 ### 13.5 Project Files
 
 **Key headers**:
-- `api/c/ptdalgorithms.h` - C API
-- `api/cpp/ptdalgorithmscpp.h` - C++ wrapper API
+- `api/c/phasic.h` - C API
+- `api/cpp/phasiccpp.h` - C++ wrapper API
 
 **Key source files**:
-- `src/c/ptdalgorithms.c` - Core algorithms
-- `src/c/ptdalgorithms_symbolic.c` - Symbolic expressions
+- `src/c/phasic.c` - Core algorithms
+- `src/c/phasic_symbolic.c` - Symbolic expressions
 - `src/cpp/parameterized/graph_builder.hpp` - Parameterized graphs
 
 **Python**:
-- `src/ptdalgorithms/__init__.py` - Main Python API
-- `src/ptdalgorithms/ffi_wrappers.py` - JAX FFI integration
-- `src/ptdalgorithms/trace_elimination.py` - Trace-based elimination
+- `src/phasic/__init__.py` - Main Python API
+- `src/phasic/ffi_wrappers.py` - JAX FFI integration
+- `src/phasic/trace_elimination.py` - Trace-based elimination
 
 ---
 
@@ -2987,7 +2987,7 @@ XLA_FFI_Error* ComputePmfHandlerGPU(...);
 Register with:
 ```python
 ffi.register_ffi_target(
-    "ptdalgorithms_compute_pmf",
+    "phasic_compute_pmf",
     cpp_module.get_compute_pmf_gpu_capsule(),
     platform="cuda"  # or "rocm"
 )

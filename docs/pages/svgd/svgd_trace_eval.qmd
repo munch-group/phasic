@@ -42,7 +42,7 @@ Automatically suggests improvements for:
 ### Basic Usage
 
 ```python
-from ptdalgorithms import SVGD, ExponentialDecayStepSize
+from phasic import SVGD, ExponentialDecayStepSize
 
 # Run SVGD with history tracking
 svgd = SVGD(model, data, theta_dim=1, n_iterations=1000)
@@ -227,7 +227,7 @@ Higher variance → better ESS (particles are diverse).
 The `analyze_trace()` method integrates seamlessly with the schedule system introduced in the same update:
 
 ```python
-from ptdalgorithms import SVGD, ExponentialDecayStepSize
+from phasic import SVGD, ExponentialDecayStepSize
 
 # Initial run with constant learning rate
 svgd = SVGD(model, data, theta_dim=1, learning_rate=0.01)

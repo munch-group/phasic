@@ -8,9 +8,9 @@
 #include "../../include/user_model.h"
 #include <vector>
 
-ptdalgorithms::Graph build_model(const double* theta, int n_params) {
+phasic::Graph build_model(const double* theta, int n_params) {
     // Create graph with state vectors of length 1
-    ptdalgorithms::Graph g(1);
+    phasic::Graph g(1);
 
     // Get the rate parameter
     double rate = theta[0];

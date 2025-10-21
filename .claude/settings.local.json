@@ -16,7 +16,9 @@
       "Bash(export:*)",
       "Bash(echo:*)",
       "Bash(timeout 300 python tests/test_svgd_jax.py)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(gh repo view:*)",
+      "Bash(gh repo rename:*)"
     ],
     "deny": [],
     "ask": []

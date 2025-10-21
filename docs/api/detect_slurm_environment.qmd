@@ -1,7 +1,7 @@
-# detect_slurm_environment { #ptdalgorithms.detect_slurm_environment }
+# detect_slurm_environment { #phasic.detect_slurm_environment }
 
 ```python
-ptdalgorithms.detect_slurm_environment()
+phasic.detect_slurm_environment()
 ```
 
 Detect and parse SLURM environment variables.

@@ -16,7 +16,7 @@ Usage:
     # Multi-node (SLURM)
     sbatch <(python generate_slurm_script.py --profile small --script simple_multinode_example.py)
 
-Author: PtDAlgorithms Team
+Author: phasic Team
 Date: 2025-10-07
 """
 
@@ -26,8 +26,8 @@ import jax
 import jax.numpy as jnp
 
 # Import the magic module that handles all boilerplate!
-from ptdalgorithms.distributed_utils import initialize_distributed
-from ptdalgorithms.ffi_wrappers import compute_pmf_and_moments_ffi
+from phasic.distributed_utils import initialize_distributed
+from phasic.ffi_wrappers import compute_pmf_and_moments_ffi
 
 
 def create_erlang_structure(num_stages: int = 3) -> str:

@@ -45,7 +45,7 @@ void ptd_graph_update_weight_parameterized(graph, scalars, length) {
 
 ## Objectives
 
-1. Add trace data structures to `api/c/ptdalgorithms.h`
+1. Add trace data structures to `api/c/phasic.h`
 2. Add trace field to `struct ptd_graph`
 3. Document all new structures
 4. Compile successfully (no implementation yet)
@@ -54,7 +54,7 @@ void ptd_graph_update_weight_parameterized(graph, scalars, length) {
 
 ### Task 1.1: Define Trace Operation Structures
 
-**File:** `api/c/ptdalgorithms.h`
+**File:** `api/c/phasic.h`
 **Location:** After existing data structures, before function declarations
 
 ```c
@@ -147,7 +147,7 @@ struct ptd_trace_result {
 
 ### Task 1.2: Add Trace Field to Graph Structure
 
-**File:** `api/c/ptdalgorithms.h`
+**File:** `api/c/phasic.h`
 **Modify:** `struct ptd_graph`
 
 ```c
@@ -169,7 +169,7 @@ struct ptd_graph {
 
 ### Task 1.3: Declare New Functions
 
-**File:** `api/c/ptdalgorithms.h`
+**File:** `api/c/phasic.h`
 **Location:** After existing function declarations
 
 ```c
@@ -248,7 +248,7 @@ make -j4
 
 ## Deliverables
 
-- [ ] `api/c/ptdalgorithms.h` updated with trace structures
+- [ ] `api/c/phasic.h` updated with trace structures
 - [ ] `struct ptd_graph` has `elimination_trace` field
 - [ ] All new functions declared in header
 - [ ] Code compiles successfully
@@ -275,7 +275,7 @@ At end of Phase 1, create: `TRACE_PHASE4_1_STRUCTURES_STATUS.md`
 [List any issues]
 
 ## Changes Made
-- File: api/c/ptdalgorithms.h
+- File: api/c/phasic.h
   - Lines added: [ESTIMATE]
   - New structures: 4 (ptd_trace_op_type, ptd_trace_operation, ptd_elimination_trace, ptd_trace_result)
   - Modified structures: 1 (ptd_graph)
@@ -307,11 +307,11 @@ I am implementing Phase 4.2 of the trace-based elimination system for PtDAlgorit
 
 Context:
 - Phase 4.1 is complete (see TRACE_PHASE4_1_STRUCTURES_STATUS.md)
-- C data structures are defined in api/c/ptdalgorithms.h
+- C data structures are defined in api/c/phasic.h
 - Graph structure has elimination_trace field
 
 Task:
-Implement ptd_record_elimination_trace() and helper functions in src/c/ptdalgorithms.c
+Implement ptd_record_elimination_trace() and helper functions in src/c/phasic.c
 
 Reference:
 - See TRACE_PHASE4_MULTI_SESSION_PLAN.md - Phase 2
@@ -331,7 +331,7 @@ Please implement the trace recording functionality following the plan.
 
 ### Task 2.1: Implement Trace Builder Helpers
 
-**File:** `src/c/ptdalgorithms.c`
+**File:** `src/c/phasic.c`
 **Location:** Near other helper functions
 
 ```c
@@ -421,7 +421,7 @@ static size_t add_add_to_trace(
 
 ### Task 2.2: Implement Trace Recording
 
-**File:** `src/c/ptdalgorithms.c`
+**File:** `src/c/phasic.c`
 
 ```c
 struct ptd_elimination_trace *ptd_record_elimination_trace(
@@ -589,7 +589,7 @@ void ptd_elimination_trace_destroy(struct ptd_elimination_trace *trace) {
 **File:** `test/test_trace_c.c` (create new file)
 
 ```c
-#include "ptdalgorithms.h"
+#include "phasic.h"
 #include <stdio.h>
 #include <assert.h>
 
@@ -688,7 +688,7 @@ Context:
 - Phase 4.2 complete: Trace recording implemented (see TRACE_PHASE4_2_RECORDING_STATUS.md)
 
 Task:
-Implement ptd_evaluate_trace() and ptd_build_reward_compute_from_trace() in src/c/ptdalgorithms.c
+Implement ptd_evaluate_trace() and ptd_build_reward_compute_from_trace() in src/c/phasic.c
 
 Reference:
 - See TRACE_PHASE4_MULTI_SESSION_PLAN.md - Phase 3
@@ -708,7 +708,7 @@ Please implement the trace evaluation functionality.
 
 ### Task 3.1: Implement Trace Evaluation
 
-**File:** `src/c/ptdalgorithms.c`
+**File:** `src/c/phasic.c`
 
 ```c
 struct ptd_trace_result *ptd_evaluate_trace(
@@ -974,7 +974,7 @@ Please implement the integration.
 
 ### Task 4.1: Study Existing Implementation
 
-**File:** `src/c/ptdalgorithms.c`
+**File:** `src/c/phasic.c`
 
 ```c
 // Find and study the current implementation
@@ -1057,7 +1057,7 @@ void ptd_graph_update_weight_parameterized(
 **Python test:**
 ```python
 def test_api_unchanged():
-    from ptdalgorithms import Graph
+    from phasic import Graph
     import numpy as np
 
     # Build parameterized graph
@@ -1179,8 +1179,8 @@ Run all existing test suites:
 Implemented trace-based elimination at C level, preserving all API contracts.
 
 ## Implementation Summary
-- Trace structures: [LINES] in api/c/ptdalgorithms.h
-- Trace functions: [LINES] in src/c/ptdalgorithms.c
+- Trace structures: [LINES] in api/c/phasic.h
+- Trace functions: [LINES] in src/c/phasic.c
 - Tests: [COUNT] tests passing
 
 ## Performance Results
@@ -1192,8 +1192,8 @@ Implemented trace-based elimination at C level, preserving all API contracts.
 - R: ✅ All tests pass
 
 ## Files Modified
-- api/c/ptdalgorithms.h
-- src/c/ptdalgorithms.c
+- api/c/phasic.h
+- src/c/phasic.c
 - test/test_trace_c.c (new)
 
 ## Backward Compatibility

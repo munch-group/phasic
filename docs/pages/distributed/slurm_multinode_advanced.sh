@@ -92,7 +92,7 @@ echo ""
 
 # Option 1: Conda environment
 # source /path/to/conda/etc/profile.d/conda.sh
-# conda activate ptdalgorithms
+# conda activate phasic
 
 # Option 2: Pixi environment (recommended)
 eval "$(pixi shell-hook)"
@@ -102,7 +102,7 @@ echo "Python environment:"
 which python
 python --version
 python -c "import jax; print(f'JAX version: {jax.__version__}')"
-python -c "import ptdalgorithms; print('PtDAlgorithms imported successfully')"
+python -c "import phasic; print('phasic imported successfully')"
 echo ""
 
 # ============================================================================

@@ -23,7 +23,7 @@ This provides a high-performance C implementation that is fully integrated with 
 
 ### Phase 4.2: Trace Recording Helpers (~510 lines)
 
-**File:** `src/c/ptdalgorithms.c` (lines 6260-6692)
+**File:** `src/c/phasic.c` (lines 6260-6692)
 
 **Implemented:**
 - ✅ `ensure_trace_capacity()` - Dynamic array growth
@@ -45,7 +45,7 @@ This provides a high-performance C implementation that is fully integrated with 
 
 ### Phase 4.3: Full Elimination (~342 lines)
 
-**File:** `src/c/ptdalgorithms.c` (lines 6694-7036)
+**File:** `src/c/phasic.c` (lines 6694-7036)
 
 **Implemented:**
 - ✅ Phase 2: Edge probability recording
@@ -72,7 +72,7 @@ This provides a high-performance C implementation that is fully integrated with 
 
 ### Phase 4.4: Trace Evaluation (~222 lines)
 
-**File:** `src/c/ptdalgorithms.c` (lines 7105-7326)
+**File:** `src/c/phasic.c` (lines 7105-7326)
 
 **Implemented:**
 - ✅ `ptd_evaluate_trace()` - Execute trace with concrete parameters
@@ -97,7 +97,7 @@ This provides a high-performance C implementation that is fully integrated with 
 
 ### Phase 4.6: Build Reward Compute from Trace (~85 lines)
 
-**File:** `src/c/ptdalgorithms.c` (lines 7328-7410)
+**File:** `src/c/phasic.c` (lines 7328-7410)
 
 **Implemented:**
 - ✅ `ptd_build_reward_compute_from_trace()` - Convert trace results to reward_compute structure
@@ -123,7 +123,7 @@ This provides a high-performance C implementation that is fully integrated with 
 
 ### Phase 4.7: System Integration (~100 lines)
 
-**Files:** `api/c/ptdalgorithms.h`, `src/c/ptdalgorithms.c`
+**Files:** `api/c/phasic.h`, `src/c/phasic.c`
 
 **Implemented:**
 - ✅ Added `current_params` field to `ptd_graph` structure
@@ -294,10 +294,10 @@ python test_trace_recording_c.py
 ## Files Created/Modified
 
 ### Source Files
-- **api/c/ptdalgorithms.h**: +1 field to `ptd_graph` structure
+- **api/c/phasic.h**: +1 field to `ptd_graph` structure
   - Line 118: Added `current_params` field (Phase 4.7)
 
-- **src/c/ptdalgorithms.c**: +1,259 lines
+- **src/c/phasic.c**: +1,259 lines
   - Lines 1228-1243: Graph creation initialization (Phase 4.7)
   - Lines 1262-1294: Graph destruction cleanup (Phase 4.7)
   - Lines 556-638: Reward compute precomputation with trace support (Phase 4.7)

@@ -6,7 +6,7 @@
  * The path is currently ../ as we are in the same repository. This path
  * should be something like [full or relative path to cloned code]/api...
  */
-#include "../api/c/ptdalgorithms.h"
+#include "../api/c/phasic.h"
 
 /*
  * Including a .c file is very strange usually!
@@ -14,8 +14,8 @@
  * you would usually expect. Therefore this is by far
  * the easiest way of importing the code.
  */
-#include "../src/c/ptdalgorithms.c"
-#include "../api/cpp/ptdalgorithmscpp.h"
+#include "../src/c/phasic.c"
+#include "../api/cpp/phasiccpp.h"
 
 /* This is the binding layer such that R can invoke this function */
 #include <Rcpp.h>
@@ -25,7 +25,7 @@
 #include "stdlib.h"
 
 using namespace std;
-using namespace ptdalgorithms;
+using namespace phasic;
 using namespace Rcpp;
 
 static inline int get_matrix_index(int i, int j, int population, int matrix_size) {

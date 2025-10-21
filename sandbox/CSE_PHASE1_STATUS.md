@@ -16,7 +16,7 @@ Successfully implemented algebraic simplification in all expression constructor 
 
 ### Files Modified
 
-- `/Users/kmt/PtDAlgorithms/src/c/ptdalgorithms.c` - Added algebraic simplification logic to four expression constructor functions
+- `/Users/kmt/PtDAlgorithms/src/c/phasic.c` - Added algebraic simplification logic to four expression constructor functions
 
 ### Code Added
 
@@ -213,7 +213,7 @@ pixi run pip install -e . --force-reinstall --no-deps
 - Warnings: None
 - Errors: None
 - Build time: ~30 seconds
-- Successfully built wheel: `ptdalgorithms-0.21.3-cp313-cp313-macosx_15_0_arm64.whl`
+- Successfully built wheel: `phasic-0.21.3-cp313-cp313-macosx_15_0_arm64.whl`
 
 ---
 

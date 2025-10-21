@@ -1,7 +1,7 @@
-# suggest_config { #ptdalgorithms.suggest_config }
+# suggest_config { #phasic.suggest_config }
 
 ```python
-ptdalgorithms.suggest_config(num_particles, particles_per_device=4)
+phasic.suggest_config(num_particles, particles_per_device=4)
 ```
 
 Suggest optimal cluster configuration for a given particle count.
@@ -18,7 +18,7 @@ Suggest optimal cluster configuration for a given particle count.
 
 ## Returns {.doc-section .doc-section-returns}
 
-<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[ClusterConfig](`ptdalgorithms.cluster_configs.ClusterConfig`)]{.parameter-annotation}</code>
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[ClusterConfig](`phasic.cluster_configs.ClusterConfig`)]{.parameter-annotation}</code>
 
 :   Suggested configuration
 

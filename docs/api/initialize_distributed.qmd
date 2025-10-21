@@ -1,7 +1,7 @@
-# initialize_distributed { #ptdalgorithms.initialize_distributed }
+# initialize_distributed { #phasic.initialize_distributed }
 
 ```python
-ptdalgorithms.initialize_distributed(
+phasic.initialize_distributed(
     cpus_per_task=None,
     coordinator_port=12345,
     platform='cpu',
@@ -40,7 +40,7 @@ For multi-node SLURM setups, it initializes JAX distributed.
 
 ## Returns {.doc-section .doc-section-returns}
 
-<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[DistributedConfig](`ptdalgorithms.distributed_utils.DistributedConfig`)]{.parameter-annotation}</code>
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[DistributedConfig](`phasic.distributed_utils.DistributedConfig`)]{.parameter-annotation}</code>
 
 :   Configuration object with all distributed computing information
 

@@ -16,10 +16,10 @@ A matrix of size \code{\link[=vertices_length]{vertices_length()}} where the row
 Returns a matrix where each row is the state of the vertex at that index
 }
 \examples{
-graph <- ptdalgorithms::create_graph(4)
-ptdalgorithms::create_vertex(graph, c(1,2,3,4))
-ptdalgorithms::create_vertex(graph, c(4,3,3,3))
-ptdalgorithms::states(graph) # => 
+graph <- phasic::create_graph(4)
+phasic::create_vertex(graph, c(1,2,3,4))
+phasic::create_vertex(graph, c(4,3,3,3))
+phasic::states(graph) # => 
 # 0 0 0 0
 # 1 2 3 4
 # 4 3 3 3

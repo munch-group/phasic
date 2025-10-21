@@ -41,9 +41,9 @@ Each layer targets a different computational bottleneck.
                      ▼
 ┌─────────────────────────────────────────────────────────────┐
 │         LAYER 1: TRACE CACHE (Graph Elimination)            │
-│  Location: ~/.ptdalgorithms_cache/traces/*.json             │
+│  Location: ~/.phasic_cache/traces/*.json             │
 │  Purpose: Cache O(n³) graph elimination operations          │
-│  Managed by: C++ (ptdalgorithms.c) + trace_cache.py         │
+│  Managed by: C++ (phasic.c) + trace_cache.py         │
 │  Key: SHA-256 hash of graph structure                       │
 │  Hit → Instant (0.1-1ms), Miss → 10-1000ms                  │
 └────────────────────┬────────────────────────────────────────┘
@@ -51,7 +51,7 @@ Each layer targets a different computational bottleneck.
                      ▼
 ┌─────────────────────────────────────────────────────────────┐
 │      LAYER 2: SVGD COMPILATION CACHE (JIT Gradients)        │
-│  Location: Memory + ~/.ptdalgorithms_cache/*.pkl            │
+│  Location: Memory + ~/.phasic_cache/*.pkl            │
 │  Purpose: Cache JIT-compiled gradient functions             │
 │  Managed by: svgd.py (_compiled_cache, _precompile_model)   │
 │  Key: (model_id, theta_shape, times_shape)                  │
@@ -78,18 +78,18 @@ Each layer targets a different computational bottleneck.
 **Purpose**: Cache expensive graph elimination traces
 
 **Files**:
-- `src/ptdalgorithms/trace_cache.py` - Python utilities
-- `src/c/ptdalgorithms.c` - C-level caching (lines ~8000-8500)
-- `~/.ptdalgorithms_cache/traces/*.json` - Cache storage
+- `src/phasic/trace_cache.py` - Python utilities
+- `src/c/phasic.c` - C-level caching (lines ~8000-8500)
+- `~/.phasic_cache/traces/*.json` - Cache storage
 
 **Key Functions**:
 
-**C Level** (`ptdalgorithms.c`):
+**C Level** (`phasic.c`):
 ```c
 // Recording and caching
 ptd_graph* ptd_trace_record_elimination(...)
   └─> Computes SHA-256 hash of graph structure
-  └─> Checks cache at ~/.ptdalgorithms_cache/traces/{hash}.json
+  └─> Checks cache at ~/.phasic_cache/traces/{hash}.json
   └─> If hit: loads trace from JSON
   └─> If miss: performs elimination, saves to JSON
 
@@ -102,7 +102,7 @@ ptd_graph* ptd_trace_instantiate_from_trace(trace, theta)
 **Python Level** (`trace_cache.py`):
 ```python
 def get_cache_dir() -> Path
-    # Returns ~/.ptdalgorithms_cache/traces
+    # Returns ~/.phasic_cache/traces
 
 def clear_trace_cache() -> int
     # Clears all *.json files in trace cache
@@ -118,7 +118,7 @@ def list_cached_traces() -> List[Dict]
 1. User calls `Graph.pmf_from_graph(graph, discrete=False)`
 2. Python wrapper calls `record_elimination_trace(graph, param_length)`
 3. C code computes graph hash (SHA-256)
-4. C checks `~/.ptdalgorithms_cache/traces/{hash}.json`
+4. C checks `~/.phasic_cache/traces/{hash}.json`
 5. If hit: loads trace from JSON, returns immediately
 6. If miss: performs elimination, saves trace, returns
 
@@ -136,8 +136,8 @@ def list_cached_traces() -> List[Dict]
 **Purpose**: Cache JIT-compiled gradient functions for SVGD
 
 **Files**:
-- `src/ptdalgorithms/svgd.py` (lines 928-1295)
-- `~/.ptdalgorithms_cache/*.pkl` - Disk cache (optional)
+- `src/phasic/svgd.py` (lines 928-1295)
+- `~/.phasic_cache/*.pkl` - Disk cache (optional)
 
 **Key Components**:
 
@@ -185,7 +185,7 @@ def _get_cache_path(self):
     """Generate cache path from model signature"""
     cache_key = f"{id(self.model)}_{theta_shape}_{times_shape}"
     cache_hash = hashlib.sha256(cache_key.encode()).hexdigest()[:16]
-    return ~/.ptdalgorithms_cache / f"compiled_svgd_{cache_hash}.pkl"
+    return ~/.phasic_cache / f"compiled_svgd_{cache_hash}.pkl"
 ```
 
 **Call Flow**:
@@ -207,8 +207,8 @@ def _get_cache_path(self):
 **Purpose**: Cache low-level XLA compilations
 
 **Files**:
-- `src/ptdalgorithms/cache_manager.py` - Management utilities
-- `src/ptdalgorithms/model_export.py` - High-level API (`clear_cache`, `cache_info`)
+- `src/phasic/cache_manager.py` - Management utilities
+- `src/phasic/model_export.py` - High-level API (`clear_cache`, `cache_info`)
 - `~/.jax_cache/` - Actual cache (managed by JAX)
 
 **Management Functions**:
@@ -283,7 +283,7 @@ svgd.fit()
 1. Graph.pmf_from_graph()
    ├─> LAYER 1: Check trace cache
    │   ├─> Hash graph structure
-   │   ├─> Check ~/.ptdalgorithms_cache/traces/{hash}.json
+   │   ├─> Check ~/.phasic_cache/traces/{hash}.json
    │   ├─> MISS → Perform elimination (10-1000ms)
    │   └─> Save trace to cache
    ├─> Create FFI wrapper for model
@@ -314,7 +314,7 @@ svgd.fit()
 1. Graph.pmf_from_graph()
    ├─> LAYER 1: Check trace cache
    │   ├─> Hash graph structure
-   │   ├─> HIT! Load from ~/.ptdalgorithms_cache/traces/{hash}.json
+   │   ├─> HIT! Load from ~/.phasic_cache/traces/{hash}.json
    │   └─> Return instantly (0.1-1ms) ✓
    └─> Return model function
 
@@ -343,8 +343,8 @@ svgd.fit()
 ```
 PtDAlgorithms/
 ├── src/
-│   ├── c/ptdalgorithms.c              # C-level trace caching
-│   └── ptdalgorithms/
+│   ├── c/phasic.c              # C-level trace caching
+│   └── phasic/
 │       ├── trace_cache.py             # Python trace cache utilities
 │       ├── svgd.py                    # SVGD compilation cache
 │       ├── model_export.py            # High-level JAX cache API
@@ -353,7 +353,7 @@ PtDAlgorithms/
 ├── tests/
 │   └── test_symbolic_cache.py         # Tests for symbolic_cache.py
 │
-└── ~/.ptdalgorithms_cache/            # User's home directory
+└── ~/.phasic_cache/            # User's home directory
     ├── traces/                        # Trace cache (LAYER 1)
     │   └── {hash}.json                # Elimination traces
     └── compiled_svgd_{hash}.pkl       # SVGD cache (LAYER 2)
@@ -365,7 +365,7 @@ PtDAlgorithms/
 ### Experimental/Unused Files
 
 ```
-src/ptdalgorithms/
+src/phasic/
 ├── symbolic_cache.py          # ⚠ UNUSED - Symbolic DAG caching
 ├── cloud_cache.py             # ⚠ EXPERIMENTAL - Cloud storage
 └── ...
@@ -396,7 +396,7 @@ scripts/
 
 **Evidence**:
 ```bash
-$ grep -r "symbolic_cache" src/ptdalgorithms/*.py | grep -v "symbolic_cache.py"
+$ grep -r "symbolic_cache" src/phasic/*.py | grep -v "symbolic_cache.py"
 # No results - not imported or used anywhere
 ```
 
@@ -516,7 +516,7 @@ def _save_compiled(self, cache_path):
    - Expose `get_trace_cache_stats()` at package level
    - Users should easily see all cache stats
    ```python
-   import ptdalgorithms as ptd
+   import phasic as ptd
    ptd.trace_cache_stats()  # NEW
    ptd.jax_cache_info()      # Already exists
    ```

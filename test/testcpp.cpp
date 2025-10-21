@@ -3,10 +3,10 @@
 #include <stdio.h>
 #include <numeric>
 #include <string.h>
-#include "../api/cpp/ptdalgorithmscpp.h"
+#include "../api/cpp/phasiccpp.h"
 
 using namespace std;
-using namespace ptdalgorithms;
+using namespace phasic;
 
 #define assert(a) {\
     do {\

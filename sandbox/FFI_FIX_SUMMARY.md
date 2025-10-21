@@ -5,7 +5,7 @@
 The FFI wrapper functions (`compute_pmf_ffi`, etc.) expected JSON string inputs but `graph.serialize()` returns a dictionary with numpy arrays. This caused a `TypeError` when trying to use the FFI functions with graph serialization output.
 
 **Error:** `TypeError: __init__(): incompatible constructor arguments`
-**Location:** `src/ptdalgorithms/ffi_wrappers.py` line 136
+**Location:** `src/phasic/ffi_wrappers.py` line 136
 
 ## Solution
 
@@ -63,7 +63,7 @@ The `pure_callback` approach used in the FFI wrapper doesn't support automatic d
 2. Use trace-based evaluation with instantiated graphs (Phase 3 approach)
 3. Implement custom VJP rules (Phase 4+ work)
 
-**Code location:** `src/ptdalgorithms/ffi_wrappers.py` lines 195-246
+**Code location:** `src/phasic/ffi_wrappers.py` lines 195-246
 
 ### Notebook Status
 
@@ -74,7 +74,7 @@ The tutorial notebook (`docs/pages/tutorials/rabbits_full_py_api_example.ipynb`)
 
 ## Files Modified
 
-- `src/ptdalgorithms/ffi_wrappers.py` - Added dict/string compatibility
+- `src/phasic/ffi_wrappers.py` - Added dict/string compatibility
 - Test files created:
   - `test_ffi_dict_input.py` - Verifies dict/string inputs work
   - `test_svgd_cells.py` - Tests log-likelihood evaluation (no gradients)

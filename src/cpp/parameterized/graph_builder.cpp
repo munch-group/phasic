@@ -6,7 +6,7 @@
 
 using json = nlohmann::json;
 
-namespace ptdalgorithms {
+namespace phasic {
 namespace parameterized {
 
 GraphBuilder::GraphBuilder(const std::string& structure_json) {
@@ -389,4 +389,4 @@ GraphBuilder::compute_pmf_and_moments(
 }
 
 } // namespace parameterized
-} // namespace ptdalgorithms
+} // namespace phasic

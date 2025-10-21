@@ -54,11 +54,11 @@ Successfully consolidated JAX cache management code and removed obsolete referen
 
 ## Files Modified
 
-1. **src/ptdalgorithms/model_export.py**
+1. **src/phasic/model_export.py**
    - Refactored cache management functions to use CacheManager
    - Added comprehensive docstrings with "See Also" sections
 
-2. **src/ptdalgorithms/__init__.py**
+2. **src/phasic/__init__.py**
    - Removed symbolic_cache imports (line 248)
    - Added model_export imports (line 249)
    - Removed symbolic cache usage (lines 1795-1808)
@@ -114,8 +114,8 @@ Consolidation achievements:
 **Verified working**:
 ```python
 # All import methods still work
-from ptdalgorithms import clear_cache, cache_info, print_cache_info
-import ptdalgorithms as ptd
+from phasic import clear_cache, cache_info, print_cache_info
+import phasic as ptd
 ptd.clear_cache()
 ptd.cache_info()
 ptd.print_cache_info()
@@ -232,9 +232,9 @@ Run these to verify everything works:
 # Run consolidation tests
 python test_cache_consolidation.py
 
-# Test with actual ptdalgorithms import
+# Test with actual phasic import
 python -c "
-import ptdalgorithms as ptd
+import phasic as ptd
 import tempfile
 from pathlib import Path
 
@@ -254,9 +254,9 @@ print('✓ All functions working!')
 
 # Check that symbolic_cache is no longer imported
 python -c "
-import ptdalgorithms
+import phasic
 import sys
-assert 'ptdalgorithms.symbolic_cache' not in sys.modules
+assert 'phasic.symbolic_cache' not in sys.modules
 print('✓ symbolic_cache not imported')
 "
 ```

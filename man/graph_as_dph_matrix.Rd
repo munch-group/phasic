@@ -25,17 +25,17 @@ less, and the remaining probability is considered as a self-transition. The indi
 returned are 1-based, like the input to \code{\link[=vertex_at]{vertex_at()}}
 }
 \examples{
-graph <- ptdalgorithms::create_graph(4)
-v2 <- ptdalgorithms::create_vertex(graph, c(4,0,3,3))
-v1 <- ptdalgorithms::create_vertex(graph, c(1,2,3,4))
-a <- ptdalgorithms::create_vertex(graph, c(0,0,0,0))
-ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), v1, 0.5)
-ptdalgorithms::add_edge(v1, v2, 0.8)
-ptdalgorithms::add_edge(v2, a, 0.5)
+graph <- phasic::create_graph(4)
+v2 <- phasic::create_vertex(graph, c(4,0,3,3))
+v1 <- phasic::create_vertex(graph, c(1,2,3,4))
+a <- phasic::create_vertex(graph, c(0,0,0,0))
+phasic::add_edge(phasic::starting_vertex(graph), v1, 0.5)
+phasic::add_edge(v1, v2, 0.8)
+phasic::add_edge(v2, a, 0.5)
 # Note that if a defect is desired, the edge has to be explicitly
 # added to an absorbing vertex
-ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), a, 0.5)
-ptdalgorithms::graph_as_dph_matrix(graph) #>
+phasic::add_edge(phasic::starting_vertex(graph), a, 0.5)
+phasic::graph_as_dph_matrix(graph) #>
 # $`states`
 #         [,1] [,2] [,3] [,4]
 #   [1,]    1    2    3    4

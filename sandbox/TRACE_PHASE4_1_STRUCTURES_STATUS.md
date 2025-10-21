@@ -13,7 +13,7 @@
 None
 
 ## Changes Made
-- File: api/c/ptdalgorithms.h
+- File: api/c/phasic.h
   - Lines added: 95 (approximately)
   - New structures: 4 (ptd_trace_op_type, ptd_trace_operation, ptd_elimination_trace, ptd_trace_result)
   - Modified structures: 1 (ptd_graph)
@@ -43,7 +43,7 @@ None
 # Compilation test
 pixi run pip install -e .
 # Result: SUCCESS
-# Output: Successfully built ptdalgorithms-0.21.3
+# Output: Successfully built phasic-0.21.3
 ```
 
 Build completed without errors or warnings.

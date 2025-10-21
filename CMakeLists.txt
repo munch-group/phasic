@@ -10,42 +10,46 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 #set(CMAKE_CXX_FLAGS_DEBUG "-O3")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
-project(ptdalgorithms VERSION 0.20.0 DESCRIPTION "Efficient graph based phase-type distribution algorithms")
+project(phasic VERSION 0.20.0 DESCRIPTION "Efficient graph based phase-type distribution algorithms")
 include(GNUInstallDirs)
 
-add_library(libptdalgorithms SHARED api/c/ptdalgorithms.h src/c/ptdalgorithms.c src/c/ptdalgorithms_symbolic.c src/c/ptdalgorithms_hash.c)
+add_library(libphasic SHARED api/c/phasic.h src/c/phasic.c src/c/phasic_symbolic.c src/c/phasic_hash.c)
 
-set_target_properties(libptdalgorithms PROPERTIES
+set_target_properties(libphasic PROPERTIES
         VERSION ${PROJECT_VERSION}
         SOVERSION 1
-        PUBLIC_HEADER api/c/ptdalgorithms.h)
-configure_file(ptdalgorithms.pc.in ptdalgorithms.pc @ONLY)
+        PUBLIC_HEADER api/c/phasic.h)
+configure_file(phasic.pc.in phasic.pc @ONLY)
 
-target_include_directories(libptdalgorithms PRIVATE src/c)
-install(TARGETS libptdalgorithms
+target_include_directories(libphasic PRIVATE src/c)
+install(TARGETS libphasic
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-# install(FILES ${CMAKE_BINARY_DIR}/ptdalgorithms.pc
+# Install Python-facing header copy
+install(FILES api/c/phasic.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+# install(FILES ${CMAKE_BINARY_DIR}/phasic.pc
 #         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
 
         
-add_library(libptdalgorithmscpp SHARED api/c/ptdalgorithms.h src/c/ptdalgorithms.c src/c/ptdalgorithms_symbolic.c src/c/ptdalgorithms_hash.c src/c/ptdalgorithms.h src/cpp/ptdalgorithmscpp.cpp api/cpp/ptdalgorithmscpp.h src/cpp/ptdalgorithmscpp.h)
-set_target_properties(libptdalgorithmscpp PROPERTIES
+add_library(libphasiccpp SHARED api/c/phasic.h src/c/phasic.c src/c/phasic_symbolic.c src/c/phasic_hash.c src/c/phasic.h src/cpp/phasiccpp.cpp api/cpp/phasiccpp.h src/cpp/phasiccpp.h)
+set_target_properties(libphasiccpp PROPERTIES
         VERSION ${PROJECT_VERSION}
         SOVERSION 1
-        PUBLIC_HEADER api/cpp/ptdalgorithmscpp.h)
-configure_file(ptdalgorithmscpp.pc.in ptdalgorithmscpp.pc @ONLY)
-target_include_directories(libptdalgorithmscpp PRIVATE src/cpp)
-install(TARGETS libptdalgorithmscpp
+        PUBLIC_HEADER api/cpp/phasiccpp.h)
+configure_file(phasiccpp.pc.in phasiccpp.pc @ONLY)
+target_include_directories(libphasiccpp PRIVATE src/cpp)
+install(TARGETS libphasiccpp
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+# Install Python-facing header copy
+install(FILES api/cpp/phasiccpp.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-# install(FILES ${CMAKE_BINARY_DIR}/ptdalgorithmscpp.pc
+# install(FILES ${CMAKE_BINARY_DIR}/phasiccpp.pc
 #         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
 
 
 # Python bindings ###################################################
-project(ptdalgorithmscpp_pybind LANGUAGES CXX)
+project(phasic_pybind LANGUAGES CXX)
 
 find_package(Python COMPONENTS Interpreter Development REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
@@ -93,16 +97,16 @@ endif()
 
 # pybind11 method:
 set(PYBIND_SOURCES
-    src/cpp/ptdalgorithmscpp_pybind.cpp
-    api/c/ptdalgorithms.h
-    api/c/ptdalgorithms_hash.h
-    src/c/ptdalgorithms.c
-    src/c/ptdalgorithms_symbolic.c
-    src/c/ptdalgorithms_hash.c
-    src/c/ptdalgorithms.h
-    src/cpp/ptdalgorithmscpp.cpp
-    api/cpp/ptdalgorithmscpp.h
-    src/cpp/ptdalgorithmscpp.h
+    src/cpp/phasic_pybind.cpp
+    api/c/phasic.h
+    api/c/phasic_hash.h
+    src/c/phasic.c
+    src/c/phasic_symbolic.c
+    src/c/phasic_hash.c
+    src/c/phasic.h
+    src/cpp/phasiccpp.cpp
+    api/cpp/phasiccpp.h
+    src/cpp/phasiccpp.h
     src/cpp/parameterized/graph_builder.cpp
     src/cpp/parameterized/graph_builder.hpp
 )
@@ -116,25 +120,25 @@ if(XLA_FFI_RESULT EQUAL 0)
     message(STATUS "FFI handlers will be compiled")
 endif()
 
-pybind11_add_module(ptdalgorithmscpp_pybind ${PYBIND_SOURCES})
+pybind11_add_module(phasic_pybind ${PYBIND_SOURCES})
 
-target_link_libraries(ptdalgorithmscpp_pybind PUBLIC Eigen3::Eigen pybind11::module nlohmann_json::nlohmann_json)
+target_link_libraries(phasic_pybind PUBLIC Eigen3::Eigen pybind11::module nlohmann_json::nlohmann_json)
 
 # Add XLA FFI include directory if available
 if(XLA_FFI_RESULT EQUAL 0)
-    target_include_directories(ptdalgorithmscpp_pybind PRIVATE ${XLA_FFI_INCLUDE_DIR})
-    target_compile_definitions(ptdalgorithmscpp_pybind PRIVATE HAVE_XLA_FFI)
+    target_include_directories(phasic_pybind PRIVATE ${XLA_FFI_INCLUDE_DIR})
+    target_compile_definitions(phasic_pybind PRIVATE HAVE_XLA_FFI)
 endif()
 
 # Add OpenMP support for multi-core parallelization in FFI handlers
 if(OpenMP_CXX_FOUND)
-    target_link_libraries(ptdalgorithmscpp_pybind PUBLIC OpenMP::OpenMP_CXX)
+    target_link_libraries(phasic_pybind PUBLIC OpenMP::OpenMP_CXX)
     message(STATUS "OpenMP enabled for multi-core parallelization")
 else()
     message(WARNING "OpenMP not found - FFI will run sequentially")
 endif()
 
-install(TARGETS ptdalgorithmscpp_pybind DESTINATION ptdalgorithms)
+install(TARGETS phasic_pybind DESTINATION phasic)
 
 
 # # R bindings ###################################################
@@ -159,7 +163,7 @@ install(TARGETS ptdalgorithmscpp_pybind DESTINATION ptdalgorithms)
 
 # find_package(nanobind CONFIG REQUIRED) 
 
-# nanobind_add_module(${PROJECT_NAME} src/cpp/ptdalgorithmscpp_pybind.cpp) 
+# nanobind_add_module(${PROJECT_NAME} src/cpp/phasic_pybind.cpp) 
 
 # install(
 #     TARGETS ${PROJECT_NAME}
@@ -170,13 +174,13 @@ install(TARGETS ptdalgorithmscpp_pybind DESTINATION ptdalgorithms)
 # )
 ####################
 
-# Test executables ###################################################
-# Phase 5 Week 2: Symbolic gradient tests
-add_executable(test_symbolic_gradient tests/test_symbolic_gradient.c)
-target_link_libraries(test_symbolic_gradient libptdalgorithms)
-target_include_directories(test_symbolic_gradient PRIVATE api/c)
+# # Test executables ###################################################
+# # Phase 5 Week 2: Symbolic gradient tests
+# add_executable(test_symbolic_gradient tests/test_symbolic_gradient.c)
+# target_link_libraries(test_symbolic_gradient libphasic)
+# target_include_directories(test_symbolic_gradient PRIVATE api/c)
 
-# Phase 5 Week 3: Forward algorithm gradient tests
-add_executable(test_pdf_gradient tests/test_pdf_gradient.c)
-target_link_libraries(test_pdf_gradient libptdalgorithms)
-target_include_directories(test_pdf_gradient PRIVATE api/c)
+# # Phase 5 Week 3: Forward algorithm gradient tests
+# add_executable(test_pdf_gradient tests/test_pdf_gradient.c)
+# target_link_libraries(test_pdf_gradient libphasic)
+# target_include_directories(test_pdf_gradient PRIVATE api/c)

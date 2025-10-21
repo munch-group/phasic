@@ -1,7 +1,7 @@
 #include <string.h>
-#include "./../../../PtDAlgorithms/api/c/ptdalgorithms.h"
-#include "./../../../PtDAlgorithms/api/cpp/ptdalgorithmscpp.h"
-#include "./../../../PtDAlgorithms/src/c/ptdalgorithms.c"
+#include "./../../../phasic/api/c/phasic.h"
+#include "./../../../phasic/api/cpp/phasiccpp.h"
+#include "./../../../phasic/src/c/phasic.c"
 
 
 // for n in 1000 2000 3000 4000 5000 ; do ( echo ; echo $n ; time ./a.out $n ) >>file.txt 2>&1 ; done

@@ -19,7 +19,7 @@
 
 namespace ffi = xla::ffi;
 
-namespace ptdalgorithms {
+namespace phasic {
 namespace parameterized {
 namespace ffi_handlers {
 
@@ -273,4 +273,4 @@ XLA_FFI_DEFINE_HANDLER_SYMBOL(
 
 } // namespace ffi_handlers
 } // namespace parameterized
-} // namespace ptdalgorithms
+} // namespace phasic

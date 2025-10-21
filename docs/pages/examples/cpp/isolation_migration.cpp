@@ -2,13 +2,13 @@
 #include "stdint.h"
 #include "stdlib.h"
 
-#include "./../../../PtDAlgorithms/api/c/ptdalgorithms.h"
-#include "./../../../PtDAlgorithms/api/cpp/ptdalgorithmscpp.h"
+#include "./../../../phasic/api/c/phasic.h"
+#include "./../../../phasic/api/cpp/phasiccpp.h"
 
-#include "./../../../PtDAlgorithms/src/c/ptdalgorithms.c"
+#include "./../../../phasic/src/c/phasic.c"
 
 using namespace Rcpp;
-using namespace ptdalgorithms;
+using namespace phasic;
 
 static inline int get_matrix_index(int i, int j, int population, int matrix_size) {
     return (matrix_size * matrix_size * population) + i + j * matrix_size;
@@ -152,7 +152,7 @@ SEXP construct_ancestral_graph(int n1, int n2, float pop_size) {
     free(child_state);
 
     return Rcpp::XPtr<Graph>(
-            new ptdalgorithms::Graph(ancestral_graph, avl_tree)
+            new phasic::Graph(ancestral_graph, avl_tree)
     );
 }
 
@@ -271,6 +271,6 @@ SEXP construct_im_graph(int n1, int n2, float p1_size, float p2_size, float m12,
     }
 
     return Rcpp::XPtr<Graph>(
-            new ptdalgorithms::Graph(im_graph, avl_tree)
+            new phasic::Graph(im_graph, avl_tree)
     );
 }

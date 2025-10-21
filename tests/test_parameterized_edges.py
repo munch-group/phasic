@@ -8,7 +8,7 @@ Run this to confirm your installation supports gradient-based inference.
 
 import jax
 import jax.numpy as jnp
-from ptdalgorithms import Graph
+from phasic import Graph
 
 print("=" * 70)
 print("Testing Parameterized Edges Feature")

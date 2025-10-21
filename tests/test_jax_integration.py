@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Test suite for JAX integration in ptdalgorithms.
+Test suite for JAX integration in phasic.
 Tests pmf_from_graph, gradients, JIT compilation, and vectorization.
 """
 
@@ -15,8 +15,8 @@ except ImportError:
     HAS_JAX = False
 
 import numpy as np
-import ptdalgorithms as ptd
-from ptdalgorithms import Graph
+import phasic as ptd
+from phasic import Graph
 
 # Skip all tests if JAX is not available
 pytestmark = pytest.mark.skipif(not HAS_JAX, reason="JAX not available")

@@ -4,7 +4,7 @@ Test trace recording implementation in C (Phase 4.2-4.3)
 """
 
 import numpy as np
-from ptdalgorithms import Graph
+from phasic import Graph
 
 def test_trace_recording_simple():
     """Test trace recording on a simple parameterized graph"""

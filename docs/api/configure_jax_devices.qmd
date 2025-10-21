@@ -1,7 +1,7 @@
-# configure_jax_devices { #ptdalgorithms.configure_jax_devices }
+# configure_jax_devices { #phasic.configure_jax_devices }
 
 ```python
-ptdalgorithms.configure_jax_devices(num_devices, platform='cpu')
+phasic.configure_jax_devices(num_devices, platform='cpu')
 ```
 
 Configure JAX device count using XLA_FLAGS.

@@ -57,7 +57,7 @@ def record_elimination_trace(graph, param_length: Optional[int] = None) -> Elimi
 - After: 12/12 tests passing (100%) ✅
 
 **Files Modified:**
-- `src/ptdalgorithms/trace_elimination.py`: Updated function signature and logic
+- `src/phasic/trace_elimination.py`: Updated function signature and logic
 - `tests/test_trace_jax.py`: Updated all tests to use explicit `param_length`
 
 ---
@@ -77,7 +77,7 @@ observed_times = np.array([1.5, 2.3, 0.8, 1.2])
 log_lik = trace_to_log_likelihood(trace, observed_times)
 
 # Use with SVGD
-from ptdalgorithms import SVGD
+from phasic import SVGD
 svgd = SVGD(log_lik, theta_dim=2, n_particles=100, n_iterations=1000)
 svgd.fit()
 ```
@@ -250,19 +250,19 @@ For comparison, symbolic instantiation on 21-vertex model:
 
 ```python
 # SVGD likelihood wrapper
-from ptdalgorithms.trace_elimination import trace_to_log_likelihood
+from phasic.trace_elimination import trace_to_log_likelihood
 
 log_lik = trace_to_log_likelihood(trace, observed_data, reward_vector=None)
 # Returns: callable with signature log_lik(params) -> scalar
 
 # PMF/PDF evaluation
-from ptdalgorithms.trace_elimination import trace_to_pmf_function
+from phasic.trace_elimination import trace_to_pmf_function
 
 pmf_fn = trace_to_pmf_function(trace, times, discrete=False)
 # Returns: callable with signature pmf_fn(params) -> probabilities
 
 # Factory function
-from ptdalgorithms.trace_elimination import create_svgd_model_from_trace
+from phasic.trace_elimination import create_svgd_model_from_trace
 
 model = create_svgd_model_from_trace(
     trace,
@@ -276,7 +276,7 @@ model = create_svgd_model_from_trace(
 
 ```python
 # Now supports explicit param_length
-from ptdalgorithms.trace_elimination import record_elimination_trace
+from phasic.trace_elimination import record_elimination_trace
 
 trace = record_elimination_trace(graph, param_length=3)  # Explicit (recommended)
 trace = record_elimination_trace(graph)                  # Auto-detect (fallback)
@@ -292,8 +292,8 @@ trace = record_elimination_trace(graph)                  # Auto-detect (fallback
 import numpy as np
 import jax
 import jax.numpy as jnp
-from ptdalgorithms import Graph, SVGD
-from ptdalgorithms.trace_elimination import (
+from phasic import Graph, SVGD
+from phasic.trace_elimination import (
     record_elimination_trace,
     trace_to_log_likelihood
 )
@@ -356,7 +356,7 @@ For 22-vertex coalescent model with 1000 SVGD iterations:
 
 ### Modified Files
 
-**src/ptdalgorithms/trace_elimination.py** (+240 lines)
+**src/phasic/trace_elimination.py** (+240 lines)
 - Added `param_length` parameter to `record_elimination_trace()`
 - Improved param_length detection logic
 - Added SVGD integration functions:

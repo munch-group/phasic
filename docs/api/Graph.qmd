@@ -1,7 +1,7 @@
-# Graph { #ptdalgorithms.Graph }
+# Graph { #phasic.Graph }
 
 ```python
-ptdalgorithms.Graph(
+phasic.Graph(
     state_length=None,
     callback=None,
     parameterized=False,
@@ -15,28 +15,28 @@ ptdalgorithms.Graph(
 
 | Name | Description |
 | --- | --- |
-| [as_matrices](#ptdalgorithms.Graph.as_matrices) | Convert the graph to its matrix representation. |
-| [copy](#ptdalgorithms.Graph.copy) | Returns a deep copy of the graph. |
-| [discretize](#ptdalgorithms.Graph.discretize) | Creates a graph for a discrete distribution from a continuous one. |
-| [dph_pmf_batch](#ptdalgorithms.Graph.dph_pmf_batch) | Compute discrete phase-type PMF at multiple jump counts with automatic parallelization. |
-| [eliminate_to_dag](#ptdalgorithms.Graph.eliminate_to_dag) | Perform symbolic graph elimination to create a reusable DAG structure. |
-| [from_matrices](#ptdalgorithms.Graph.from_matrices) | Construct a Graph from matrix representation. |
-| [make_discrete](#ptdalgorithms.Graph.make_discrete) | Takes a graph for a continuous distribution and turns |
-| [moments_batch](#ptdalgorithms.Graph.moments_batch) | Compute moments for multiple powers with automatic parallelization. |
-| [moments_from_graph](#ptdalgorithms.Graph.moments_from_graph) | Convert a parameterized Graph to a JAX-compatible function that computes moments. |
-| [pdf_batch](#ptdalgorithms.Graph.pdf_batch) | Compute PDF at multiple time points with automatic parallelization. |
-| [plot](#ptdalgorithms.Graph.plot) | Plots the graph using graphviz. See plot::plot_graph.py for more details. |
-| [pmf_and_moments_from_graph](#ptdalgorithms.Graph.pmf_and_moments_from_graph) | Convert a parameterized Graph to a function that computes both PMF/PDF and moments. |
-| [pmf_from_cpp](#ptdalgorithms.Graph.pmf_from_cpp) | Load a phase-type model from a user's C++ file and return a JAX-compatible function. |
-| [pmf_from_graph](#ptdalgorithms.Graph.pmf_from_graph) | Convert a Python-built Graph to a JAX-compatible function with full gradient support. |
-| [pmf_from_graph_parameterized](#ptdalgorithms.Graph.pmf_from_graph_parameterized) | Convert a parameterized Python graph builder to a JAX-compatible function. |
-| [serialize](#ptdalgorithms.Graph.serialize) | Serialize graph to array representation for efficient computation. |
-| [svgd](#ptdalgorithms.Graph.svgd) | Run Stein Variational Gradient Descent (SVGD) inference for Bayesian parameter estimation. |
+| [as_matrices](#phasic.Graph.as_matrices) | Convert the graph to its matrix representation. |
+| [copy](#phasic.Graph.copy) | Returns a deep copy of the graph. |
+| [discretize](#phasic.Graph.discretize) | Creates a graph for a discrete distribution from a continuous one. |
+| [dph_pmf_batch](#phasic.Graph.dph_pmf_batch) | Compute discrete phase-type PMF at multiple jump counts with automatic parallelization. |
+| [eliminate_to_dag](#phasic.Graph.eliminate_to_dag) | Perform symbolic graph elimination to create a reusable DAG structure. |
+| [from_matrices](#phasic.Graph.from_matrices) | Construct a Graph from matrix representation. |
+| [make_discrete](#phasic.Graph.make_discrete) | Takes a graph for a continuous distribution and turns |
+| [moments_batch](#phasic.Graph.moments_batch) | Compute moments for multiple powers with automatic parallelization. |
+| [moments_from_graph](#phasic.Graph.moments_from_graph) | Convert a parameterized Graph to a JAX-compatible function that computes moments. |
+| [pdf_batch](#phasic.Graph.pdf_batch) | Compute PDF at multiple time points with automatic parallelization. |
+| [plot](#phasic.Graph.plot) | Plots the graph using graphviz. See plot::plot_graph.py for more details. |
+| [pmf_and_moments_from_graph](#phasic.Graph.pmf_and_moments_from_graph) | Convert a parameterized Graph to a function that computes both PMF/PDF and moments. |
+| [pmf_from_cpp](#phasic.Graph.pmf_from_cpp) | Load a phase-type model from a user's C++ file and return a JAX-compatible function. |
+| [pmf_from_graph](#phasic.Graph.pmf_from_graph) | Convert a Python-built Graph to a JAX-compatible function with full gradient support. |
+| [pmf_from_graph_parameterized](#phasic.Graph.pmf_from_graph_parameterized) | Convert a parameterized Python graph builder to a JAX-compatible function. |
+| [serialize](#phasic.Graph.serialize) | Serialize graph to array representation for efficient computation. |
+| [svgd](#phasic.Graph.svgd) | Run Stein Variational Gradient Descent (SVGD) inference for Bayesian parameter estimation. |
 
-### as_matrices { #ptdalgorithms.Graph.as_matrices }
+### as_matrices { #phasic.Graph.as_matrices }
 
 ```python
-ptdalgorithms.Graph.as_matrices()
+phasic.Graph.as_matrices()
 ```
 
 Convert the graph to its matrix representation.
@@ -46,7 +46,7 @@ matrices and associated information.
 
 #### Returns {.doc-section .doc-section-returns}
 
-<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[MatrixRepresentation](`ptdalgorithms.MatrixRepresentation`)]{.parameter-annotation}</code>
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[MatrixRepresentation](`phasic.MatrixRepresentation`)]{.parameter-annotation}</code>
 
 :   NamedTuple with the following attributes: - states: np.ndarray of shape (n_states, state_dim), dtype=int32     State vector for each vertex - sim: np.ndarray of shape (n_states, n_states), dtype=float64     Sub-intensity matrix - ipv: np.ndarray of shape (n_states,), dtype=float64     Initial probability vector - indices: np.ndarray of shape (n_states,), dtype=int32     1-based indices for vertices (for use with vertex_at())
 
@@ -68,18 +68,18 @@ matrices and associated information.
 >>> states, sim, ipv, indices = matrices
 ```
 
-### copy { #ptdalgorithms.Graph.copy }
+### copy { #phasic.Graph.copy }
 
 ```python
-ptdalgorithms.Graph.copy()
+phasic.Graph.copy()
 ```
 
 Returns a deep copy of the graph.
 
-### discretize { #ptdalgorithms.Graph.discretize }
+### discretize { #phasic.Graph.discretize }
 
 ```python
-ptdalgorithms.Graph.discretize(reward_rate, skip_states=[], skip_slots=[])
+phasic.Graph.discretize(reward_rate, skip_states=[], skip_slots=[])
 ```
 
 Creates a graph for a discrete distribution from a continuous one.
@@ -103,7 +103,7 @@ Creates a graph for a discrete distribution from a continuous one.
 ####         Examples {.doc-section .doc-section---------examples}
 
 
-        >>> from ptdalgorithms import Graph
+        >>> from phasic import Graph
         >>> def callback(state):
         ...     return [(state[0] + 1, [(state[0], 1)])]
         >>> g = Graph(callback=callback)
@@ -116,10 +116,10 @@ b")
         a
         b
 
-### dph_pmf_batch { #ptdalgorithms.Graph.dph_pmf_batch }
+### dph_pmf_batch { #phasic.Graph.dph_pmf_batch }
 
 ```python
-ptdalgorithms.Graph.dph_pmf_batch(jumps)
+phasic.Graph.dph_pmf_batch(jumps)
 ```
 
 Compute discrete phase-type PMF at multiple jump counts with automatic parallelization.
@@ -142,7 +142,7 @@ For single values, use the standard dph_pmf() method instead (no overhead).
 #### Examples {.doc-section .doc-section-examples}
 
 ```python
->>> import ptdalgorithms as pta
+>>> import phasic as pta
 >>> import numpy as np
 >>>
 >>> # Initialize parallel computing
@@ -164,10 +164,10 @@ For single values, use the standard dph_pmf() method instead (no overhead).
 - Requires a discrete phase-type model (use discretize() first)
 - Automatically parallelizes based on init_parallel() configuration
 
-### eliminate_to_dag { #ptdalgorithms.Graph.eliminate_to_dag }
+### eliminate_to_dag { #phasic.Graph.eliminate_to_dag }
 
 ```python
-ptdalgorithms.Graph.eliminate_to_dag()
+phasic.Graph.eliminate_to_dag()
 ```
 
 Perform symbolic graph elimination to create a reusable DAG structure.
@@ -183,7 +183,7 @@ parameter vectors.
 
 #### Returns {.doc-section .doc-section-returns}
 
-<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[SymbolicDAG](`ptdalgorithms.SymbolicDAG`)]{.parameter-annotation}</code>
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[SymbolicDAG](`phasic.SymbolicDAG`)]{.parameter-annotation}</code>
 
 :   Symbolic DAG that can be instantiated with parameters
 
@@ -229,10 +229,10 @@ parameter vectors.
 SymbolicDAG : The returned symbolic DAG class
 SymbolicDAG.instantiate : Create concrete graph from parameters
 
-### from_matrices { #ptdalgorithms.Graph.from_matrices }
+### from_matrices { #phasic.Graph.from_matrices }
 
 ```python
-ptdalgorithms.Graph.from_matrices(ipv, sim, states=None)
+phasic.Graph.from_matrices(ipv, sim, states=None)
 ```
 
 Construct a Graph from matrix representation.
@@ -253,7 +253,7 @@ Construct a Graph from matrix representation.
 
 #### Returns {.doc-section .doc-section-returns}
 
-<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[Graph](`ptdalgorithms.Graph`)]{.parameter-annotation}</code>
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[Graph](`phasic.Graph`)]{.parameter-annotation}</code>
 
 :   The reconstructed phase-type distribution graph
 
@@ -266,20 +266,20 @@ Construct a Graph from matrix representation.
 >>> pdf = g.pdf(1.0)
 ```
 
-### make_discrete { #ptdalgorithms.Graph.make_discrete }
+### make_discrete { #phasic.Graph.make_discrete }
 
 ```python
-ptdalgorithms.Graph.make_discrete(mutation_rate, skip_states=[], skip_slots=[])
+phasic.Graph.make_discrete(mutation_rate, skip_states=[], skip_slots=[])
 ```
 
 Takes a graph for a continuous distribution and turns
 it into a descrete one (inplace). Returns a matrix of
 rewards for computing marginal moments
 
-### moments_batch { #ptdalgorithms.Graph.moments_batch }
+### moments_batch { #phasic.Graph.moments_batch }
 
 ```python
-ptdalgorithms.Graph.moments_batch(powers)
+phasic.Graph.moments_batch(powers)
 ```
 
 Compute moments for multiple powers with automatic parallelization.
@@ -302,7 +302,7 @@ For single values, use the standard moments() method instead (no overhead).
 #### Examples {.doc-section .doc-section-examples}
 
 ```python
->>> import ptdalgorithms as pta
+>>> import phasic as pta
 >>> import numpy as np
 >>>
 >>> # Initialize parallel computing
@@ -322,10 +322,10 @@ For single values, use the standard moments() method instead (no overhead).
 - Automatically parallelizes based on init_parallel() configuration
 - Each moment computation is independent and can be parallelized
 
-### moments_from_graph { #ptdalgorithms.Graph.moments_from_graph }
+### moments_from_graph { #phasic.Graph.moments_from_graph }
 
 ```python
-ptdalgorithms.Graph.moments_from_graph(graph, nr_moments=2, use_ffi=False)
+phasic.Graph.moments_from_graph(graph, nr_moments=2, use_ffi=False)
 ```
 
 Convert a parameterized Graph to a JAX-compatible function that computes moments.
@@ -337,7 +337,7 @@ Moments are computed using the existing C++ `graph.moments(power)` method for ef
 
 #### Parameters {.doc-section .doc-section-parameters}
 
-<code>[**graph**]{.parameter-name} [:]{.parameter-annotation-sep} [[Graph](`ptdalgorithms.Graph`)]{.parameter-annotation}</code>
+<code>[**graph**]{.parameter-name} [:]{.parameter-annotation-sep} [[Graph](`phasic.Graph`)]{.parameter-annotation}</code>
 
 :   Parameterized graph built using the Python API with parameterized edges. Must have edges created with `add_edge_parameterized()`.
 
@@ -387,10 +387,10 @@ Moments are computed using the existing C++ `graph.moments(power)` method for ef
 - For variance, compute: Var[T] = E[T^2] - E[T]^2
 - For standard deviation: std[T] = sqrt(Var[T])
 
-### pdf_batch { #ptdalgorithms.Graph.pdf_batch }
+### pdf_batch { #phasic.Graph.pdf_batch }
 
 ```python
-ptdalgorithms.Graph.pdf_batch(times, granularity=100)
+phasic.Graph.pdf_batch(times, granularity=100)
 ```
 
 Compute PDF at multiple time points with automatic parallelization.
@@ -417,7 +417,7 @@ For single values, use the standard pdf() method instead (no overhead).
 #### Examples {.doc-section .doc-section-examples}
 
 ```python
->>> import ptdalgorithms as pta
+>>> import phasic as pta
 >>> import numpy as np
 >>>
 >>> # Initialize parallel computing (once at notebook start)
@@ -444,10 +444,10 @@ For single values, use the standard pdf() method instead (no overhead).
 - Uses pmap across devices, vmap for vectorization, or serial execution
 - No manual batching or parallelization code required
 
-### plot { #ptdalgorithms.Graph.plot }
+### plot { #phasic.Graph.plot }
 
 ```python
-ptdalgorithms.Graph.plot(*args, **kwargs)
+phasic.Graph.plot(*args, **kwargs)
 ```
 
 Plots the graph using graphviz. See plot::plot_graph.py for more details.
@@ -458,10 +458,10 @@ Plots the graph using graphviz. See plot::plot_graph.py for more details.
 
 :   _description_
 
-### pmf_and_moments_from_graph { #ptdalgorithms.Graph.pmf_and_moments_from_graph }
+### pmf_and_moments_from_graph { #phasic.Graph.pmf_and_moments_from_graph }
 
 ```python
-ptdalgorithms.Graph.pmf_and_moments_from_graph(
+phasic.Graph.pmf_and_moments_from_graph(
     graph,
     nr_moments=2,
     discrete=False,
@@ -476,7 +476,7 @@ separately because it builds the graph once and computes both quantities.
 
 #### Parameters {.doc-section .doc-section-parameters}
 
-<code>[**graph**]{.parameter-name} [:]{.parameter-annotation-sep} [[Graph](`ptdalgorithms.Graph`)]{.parameter-annotation}</code>
+<code>[**graph**]{.parameter-name} [:]{.parameter-annotation-sep} [[Graph](`phasic.Graph`)]{.parameter-annotation}</code>
 
 :   Parameterized graph built using the Python API with parameterized edges.
 
@@ -524,17 +524,17 @@ separately because it builds the graph once and computes both quantities.
 - Required for using moment-based regularization in SVGD.fit_regularized()
 - The moments are always computed from the same graph used for PMF/PDF
 
-### pmf_from_cpp { #ptdalgorithms.Graph.pmf_from_cpp }
+### pmf_from_cpp { #phasic.Graph.pmf_from_cpp }
 
 ```python
-ptdalgorithms.Graph.pmf_from_cpp(cpp_file, discrete=False)
+phasic.Graph.pmf_from_cpp(cpp_file, discrete=False)
 ```
 
 Load a phase-type model from a user's C++ file and return a JAX-compatible function.
 
 The C++ file should include 'user_model.h' and implement:
 
-ptdalgorithms::Graph build_model(const double* theta, int n_params) {
+phasic::Graph build_model(const double* theta, int n_params) {
     // Build and return Graph instance
 }
 
@@ -597,10 +597,10 @@ use load_cpp_builder() instead to get a builder function that creates Graph obje
 >>> pdf2 = graph.pdf(2.0)  # No rebuild needed
 ```
 
-### pmf_from_graph { #ptdalgorithms.Graph.pmf_from_graph }
+### pmf_from_graph { #phasic.Graph.pmf_from_graph }
 
 ```python
-ptdalgorithms.Graph.pmf_from_graph(graph, discrete=False)
+phasic.Graph.pmf_from_graph(graph, discrete=False)
 ```
 
 Convert a Python-built Graph to a JAX-compatible function with full gradient support.
@@ -620,7 +620,7 @@ graph.pdf(time), graph.dph_pmf(jump), graph.moments(power), etc.
 
 #### Parameters {.doc-section .doc-section-parameters}
 
-<code>[**graph**]{.parameter-name} [:]{.parameter-annotation-sep} [[Graph](`ptdalgorithms.Graph`)]{.parameter-annotation}</code>
+<code>[**graph**]{.parameter-name} [:]{.parameter-annotation-sep} [[Graph](`phasic.Graph`)]{.parameter-annotation}</code>
 
 :   Graph built using the Python API. Can have regular edges or parameterized edges.
 
@@ -677,10 +677,10 @@ graph.pdf(time), graph.dph_pmf(jump), graph.moments(power), etc.
 >>> pmf_value = g.dph_pmf(3)  # Direct C++ call
 ```
 
-### pmf_from_graph_parameterized { #ptdalgorithms.Graph.pmf_from_graph_parameterized }
+### pmf_from_graph_parameterized { #phasic.Graph.pmf_from_graph_parameterized }
 
 ```python
-ptdalgorithms.Graph.pmf_from_graph_parameterized(graph_builder, discrete=False)
+phasic.Graph.pmf_from_graph_parameterized(graph_builder, discrete=False)
 ```
 
 Convert a parameterized Python graph builder to a JAX-compatible function.
@@ -722,10 +722,10 @@ or edge weights depend on parameters.
 >>> pdf = model(theta, times)
 ```
 
-### serialize { #ptdalgorithms.Graph.serialize }
+### serialize { #phasic.Graph.serialize }
 
 ```python
-ptdalgorithms.Graph.serialize()
+phasic.Graph.serialize()
 ```
 
 Serialize graph to array representation for efficient computation.
@@ -736,10 +736,10 @@ Serialize graph to array representation for efficient computation.
 
 :   Dictionary containing: - 'states': Array of vertex states (n_vertices, state_dim) - 'edges': Array of regular edges [from_idx, to_idx, weight] (n_edges, 3) - 'start_edges': Array of starting vertex regular edges [to_idx, weight] (n_start_edges, 2) - 'param_edges': Array of parameterized edges [from_idx, to_idx, x1, x2, ...] (n_param_edges, param_length+2) - 'start_param_edges': Array of starting vertex parameterized edges [to_idx, x1, x2, ...] (n_start_param_edges, param_length+1) - 'param_length': Length of parameter vector (0 if no parameterized edges) - 'state_length': Integer state dimension - 'n_vertices': Number of vertices
 
-### svgd { #ptdalgorithms.Graph.svgd }
+### svgd { #phasic.Graph.svgd }
 
 ```python
-ptdalgorithms.Graph.svgd(
+phasic.Graph.svgd(
     model,
     observed_data,
     prior=None,
@@ -831,7 +831,7 @@ pmf_from_graph() or pmf_from_cpp() where the model signature is model(theta, tim
 
 ```python
 >>> import jax.numpy as jnp
->>> from ptdalgorithms import Graph
+>>> from phasic import Graph
 >>>
 >>> # Build parameterized coalescent model
 >>> def coalescent_callback(state, nr_samples=3):

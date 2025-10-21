@@ -4,7 +4,7 @@ Quick test to verify O(n) performance of iterative expression tree operations
 """
 
 import time
-from ptdalgorithms import Graph
+from phasic import Graph
 
 def construct_parameterized_rabbit_model(nr_rabbits):
     """Rabbit model: 2D state [left_island, right_island]"""

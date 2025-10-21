@@ -1,6 +1,6 @@
 // cppimport
 #include <pybind11/pybind11.h>
-#include <ptdalgorithms.h>
+#include <phasic.h>
 
 namespace py = pybind11;
 
@@ -13,7 +13,7 @@ using namespace pybind11::literals; // to bring in the `_a` literal
 /* ----------------- Don't change the code above! ----------------- */
 
 
-ptdalgorithms::Graph build(int starting_rabbits, float flooding_left, float flooding_right) {
+phasic::Graph build(int starting_rabbits, float flooding_left, float flooding_right) {
 
     /* Same state size (left_rabbits, right_rabbits) */
     size_t state_size = 2;
@@ -104,13 +104,13 @@ ptdalgorithms::Graph build(int starting_rabbits, float flooding_left, float floo
      * It has memory management by destructure, so no need
      * to manually free when done using.
      */
-    ptdalgorithms::Graph *result = new ptdalgorithms::Graph(graph, avl_tree);
+    phasic::Graph *result = new phasic::Graph(graph, avl_tree);
 
     /*
      * Use Rcpp to make this C++ instance visible to R. This is the
      * exact same type returned by `create_graph` in the R api,
      * which is why we need to make sure the cloned code is identical
-     * to the currently installed R library (ptdalgorithms).
+     * to the currently installed R library (phasic).
      */
     return *result;
 }

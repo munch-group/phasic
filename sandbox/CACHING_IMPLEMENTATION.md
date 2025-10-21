@@ -18,19 +18,19 @@ This document summarizes the comprehensive two-tier caching system implemented f
 
 #### Files Created
 
-1. **`api/c/ptdalgorithms_hash.h`** (164 lines)
+1. **`api/c/phasic_hash.h`** (164 lines)
    - C API for graph content hashing
    - `ptd_graph_content_hash()` - main hashing function
    - `ptd_hash_result` structure with multiple representations
    - SHA-256 based, collision-resistant
 
-2. **`src/c/ptdalgorithms_hash.c`** (395 lines)
+2. **`src/c/phasic_hash.c`** (395 lines)
    - Complete SHA-256 implementation (no external dependencies)
    - Modified Weisfeiler-Lehman graph hashing
    - Canonical vertex ordering for consistency
    - O(V log V + E) time complexity
 
-3. **`src/ptdalgorithms/symbolic_cache.py`** (602 lines)
+3. **`src/phasic/symbolic_cache.py`** (602 lines)
    - Content-addressed local cache with SQLite index
    - Automatic size management with LRU eviction
    - Export/import for model libraries
@@ -53,21 +53,21 @@ This document summarizes the comprehensive two-tier caching system implemented f
 
 #### Files Modified
 
-6. **`src/ptdalgorithms/__init__.py`**
+6. **`src/phasic/__init__.py`**
    - Added `use_cache=True` parameter to `pmf_from_graph()`
    - Automatic cache lookup via `SymbolicCache.get_or_compute()`
    - Graceful fallback on cache failures
 
-7. **`src/cpp/ptdalgorithmscpp_pybind.cpp`** (+154 lines)
+7. **`src/cpp/phasic_pybind.cpp`** (+154 lines)
    - Added `hash` submodule with pybind11 bindings
    - `HashResult` class wrapper
    - `compute_graph_hash()` function
    - Proper memory management with shared_ptr
 
 8. **`CMakeLists.txt`**
-   - Added `ptdalgorithms_hash.c` to all build targets
-   - Added `ptdalgorithms_hash.h` to sources
-   - Updated libptdalgorithms, libptdalgorithmscpp, and pybind module
+   - Added `phasic_hash.c` to all build targets
+   - Added `phasic_hash.h` to sources
+   - Updated libphasic, libphasiccpp, and pybind module
 
 #### Key Features
 
@@ -88,7 +88,7 @@ This document summarizes the comprehensive two-tier caching system implemented f
 
 #### Files Created
 
-9. **`src/ptdalgorithms/cache_manager.py`** (562 lines)
+9. **`src/phasic/cache_manager.py`** (562 lines)
    - `CacheManager` class for JAX cache operations
    - Cache inspection and statistics
    - Pre-warming utilities
@@ -113,7 +113,7 @@ This document summarizes the comprehensive two-tier caching system implemented f
 
 #### Files Modified
 
-11. **`src/ptdalgorithms/jax_config.py`**
+11. **`src/phasic/jax_config.py`**
     - Added `shared_cache_dir` parameter
     - Added `cache_strategy` parameter ('local', 'shared', 'layered')
     - Updated `as_dict()` and `__repr__()` methods
@@ -137,7 +137,7 @@ This document summarizes the comprehensive two-tier caching system implemented f
 
 #### Planned Files
 
-- `src/ptdalgorithms/cloud_cache.py`
+- `src/phasic/cloud_cache.py`
   - S3/GCS/Azure backend support
   - HTTP download support
   - GitHub releases integration
@@ -149,7 +149,7 @@ This document summarizes the comprehensive two-tier caching system implemented f
   - `ptd-cache import`
   - `ptd-cache sync`
 
-- GitHub repository: `ptdalgorithms-models`
+- GitHub repository: `phasic-models`
   - Pre-computed symbolic DAGs
   - Organized by domain (coalescent, queuing, etc.)
   - Versioned releases
@@ -176,7 +176,7 @@ This document summarizes the comprehensive two-tier caching system implemented f
                      ▼
 ┌─────────────────────────────────────────────────────────────┐
 │               Symbolic DAG Cache                            │
-│  ~/.ptdalgorithms_cache/symbolic/                          │
+│  ~/.phasic_cache/symbolic/                          │
 │  ├─ <hash>.json      (symbolic DAG)                        │
 │  ├─ <hash>.meta      (metadata)                            │
 │  └─ index.db         (SQLite index)                        │
@@ -257,7 +257,7 @@ Speedup: 19,980x
 ### Basic Usage
 
 ```python
-from ptdalgorithms import Graph
+from phasic import Graph
 import jax.numpy as jnp
 
 # Build model
@@ -276,8 +276,8 @@ pdf = model(theta, times)  # <1ms
 ### Cache Management
 
 ```python
-from ptdalgorithms.symbolic_cache import SymbolicCache, print_cache_info
-from ptdalgorithms.cache_manager import CacheManager, print_jax_cache_info
+from phasic.symbolic_cache import SymbolicCache, print_cache_info
+from phasic.cache_manager import CacheManager, print_jax_cache_info
 
 # Inspect caches
 print_cache_info()  # Symbolic cache
@@ -298,7 +298,7 @@ manager.export_cache('jax_cache_v1.tar.gz')
 ### Distributed Computing
 
 ```python
-from ptdalgorithms.jax_config import CompilationConfig
+from phasic.jax_config import CompilationConfig
 
 # Layered cache on cluster
 config = CompilationConfig(
@@ -309,7 +309,7 @@ config = CompilationConfig(
 config.apply()
 
 # Sync from shared storage
-from ptdalgorithms.cache_manager import CacheManager
+from phasic.cache_manager import CacheManager
 manager = CacheManager()
 manager.sync_from_remote('/shared/project/jax_cache')
 ```
@@ -379,16 +379,16 @@ pixi run build
 ### Verify Installation
 
 ```python
-import ptdalgorithms as pta
+import phasic as pta
 
 # Check hash module available
-from ptdalgorithms import ptdalgorithmscpp_pybind as cpp
+from phasic import phasic_pybind as cpp
 hash_result = cpp.hash.compute_graph_hash(graph)
 print(hash_result.hash_hex)
 
 # Check cache modules
-from ptdalgorithms.symbolic_cache import SymbolicCache
-from ptdalgorithms.cache_manager import CacheManager
+from phasic.symbolic_cache import SymbolicCache
+from phasic.cache_manager import CacheManager
 ```
 
 ---
@@ -448,7 +448,7 @@ from ptdalgorithms.cache_manager import CacheManager
 
 1. **Check cache directory permissions:**
    ```bash
-   ls -la ~/.ptdalgorithms_cache
+   ls -la ~/.phasic_cache
    ls -la ~/.jax_cache
    ```
 
@@ -482,7 +482,7 @@ from ptdalgorithms.cache_manager import CacheManager
 3. **Hash module not compiling:**
    ```bash
    # Check file exists
-   ls -l src/c/ptdalgorithms_hash.c
+   ls -l src/c/phasic_hash.c
 
    # Clean and rebuild
    rm -rf build && mkdir build && cd build
@@ -512,4 +512,4 @@ from ptdalgorithms.cache_manager import CacheManager
 **Timeline:** Estimated 3-5 days for Phase 3
 
 For questions or contributions, open an issue at:
-https://github.com/munch-group/ptdalgorithms/issues
+https://github.com/munch-group/phasic/issues

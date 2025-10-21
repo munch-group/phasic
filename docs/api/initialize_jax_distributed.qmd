@@ -1,7 +1,7 @@
-# initialize_jax_distributed { #ptdalgorithms.initialize_jax_distributed }
+# initialize_jax_distributed { #phasic.initialize_jax_distributed }
 
 ```python
-ptdalgorithms.initialize_jax_distributed(
+phasic.initialize_jax_distributed(
     coordinator_address,
     num_processes,
     process_id,

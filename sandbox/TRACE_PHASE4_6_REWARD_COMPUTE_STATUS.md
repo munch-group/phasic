@@ -14,7 +14,7 @@
 
 ### Function Implemented
 
-**File:** `src/c/ptdalgorithms.c`
+**File:** `src/c/phasic.c`
 **Lines:** 7328-7410 (~85 lines)
 **Function:** `ptd_build_reward_compute_from_trace()`
 
@@ -61,7 +61,7 @@ result[from] += result[to] * multiplier
 
 ### Integration Points
 
-**Declared in:** `api/c/ptdalgorithms.h` (lines 601-604)
+**Declared in:** `api/c/phasic.h` (lines 601-604)
 **Used by:** `ptd_expected_waiting_time()` (lines 3762-3765)
 
 The function is ready to be integrated into:

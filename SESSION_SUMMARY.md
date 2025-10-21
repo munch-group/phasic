@@ -22,8 +22,8 @@
 - Maintained 100% backward compatibility
 
 **Files modified**:
-- `src/ptdalgorithms/model_export.py` - Refactored to wrapper functions
-- `src/ptdalgorithms/__init__.py` - Updated imports, removed symbolic_cache
+- `src/phasic/model_export.py` - Refactored to wrapper functions
+- `src/phasic/__init__.py` - Updated imports, removed symbolic_cache
 
 **Testing**:
 - Created and ran comprehensive test suite
@@ -91,12 +91,12 @@
 
 ## Files Modified
 
-1. **src/ptdalgorithms/model_export.py**
+1. **src/phasic/model_export.py**
    - Refactored 3 functions to use CacheManager
    - Added comprehensive docstrings
    - Net change: -30 lines (eliminated duplication)
 
-2. **src/ptdalgorithms/__init__.py**
+2. **src/phasic/__init__.py**
    - Removed symbolic_cache imports (line 248)
    - Added model_export imports (line 249)
    - Removed symbolic cache usage (lines 1795-1808)
@@ -190,7 +190,7 @@ After:
 ### Caching System
 ```
 Layer 1: Trace Cache
-  - ~/.ptdalgorithms_cache/traces/
+  - ~/.phasic_cache/traces/
   - Graph elimination operations
   - 10-1000x speedup on hit
 
@@ -211,7 +211,7 @@ CacheManager (single source of truth)
     ↓
 model_export.py (user-friendly wrappers)
     ↓
-ptdalgorithms.__init__ (top-level imports)
+phasic.__init__ (top-level imports)
     ↓
 User code
 ```
@@ -316,7 +316,7 @@ SESSION_SUMMARY.md (this file)
 ```bash
 # Test cache consolidation
 python -c "
-import ptdalgorithms as ptd
+import phasic as ptd
 import tempfile
 from pathlib import Path
 
@@ -336,9 +336,9 @@ print('✓ All functions working!')
 
 # Check symbolic_cache not imported
 python -c "
-import ptdalgorithms
+import phasic
 import sys
-assert 'ptdalgorithms.symbolic_cache' not in sys.modules
+assert 'phasic.symbolic_cache' not in sys.modules
 print('✓ symbolic_cache not imported')
 "
 

@@ -1,0 +1,3286 @@
+import os
+import platform
+from time import time, sleep
+import numpy as np
+import pickle
+import hashlib
+import pathlib
+
+# Note: JAX environment (XLA_FLAGS, device count) is configured by
+# phasic.__init__.py before this module is imported.
+# Users should configure via:
+#   1. phasic.configure() before import, OR
+#   2. PTDALG_CPUS environment variable
+# See: src/phasic/__init__.py lines 101-133
+import jax
+# print(jax.devices())
+import jax.numpy as jnp
+from jax import grad, vmap, jit, pmap
+from jax.scipy.stats import norm
+import jax.nn as jnn
+import jax.sharding as jsh
+from jax.experimental import checkify
+from jax.experimental import mesh_utils
+from jax.sharding import Mesh, NamedSharding, PartitionSpec as P
+from jax.experimental.pjit import pjit
+
+from functools import partial
+
+# Import configuration system
+from .config import get_config
+from .exceptions import PTDConfigError
+
+## requires equinox dependency
+# from .decoders import VariableDimPTDDecoder, LessThanOneDecoder, 
+#     SumToOneDecoder, IndependentProbDecoder
+
+from tqdm import trange, tqdm
+trange = partial(trange, bar_format="{bar}", leave=False)
+tqdm = partial(tqdm, bar_format="{bar}", leave=False)
+
+
+#from jax import random, vmap, grad, jit
+
+
+# ============================================================================
+# Schedule Classes for Step Size and Bandwidth Control
+# ============================================================================
+
+class StepSizeSchedule:
+    """
+    Base class for step size schedules.
+
+    Subclasses should implement __call__(iteration, particles) returning a scalar step size.
+    """
+    def __call__(self, iteration, particles=None):
+        """
+        Compute step size for given iteration.
+
+        Parameters
+        ----------
+        iteration : int
+            Current iteration number (0-indexed)
+        particles : jnp.ndarray, optional
+            Current particle positions, shape (n_particles, theta_dim)
+
+        Returns
+        -------
+        float
+            Step size for this iteration
+        """
+        raise NotImplementedError
+
+
+class ConstantStepSize(StepSizeSchedule):
+    """
+    Constant step size (default behavior).
+
+    Parameters
+    ----------
+    step_size : float
+        Fixed step size for all iterations
+
+    Examples
+    --------
+    >>> schedule = ConstantStepSize(0.01)
+    >>> schedule(0)  # iteration 0
+    0.01
+    >>> schedule(100)  # iteration 100
+    0.01
+    """
+    def __init__(self, step_size=0.01):
+        self.step_size = step_size
+
+    def __call__(self, iteration, particles=None):
+        return self.step_size
+
+
+class ExponentialDecayStepSize(StepSizeSchedule):
+    """
+    Exponential decay schedule: step_size = max_step * exp(-iteration/tau) + min_step.
+
+    This schedule helps prevent divergence with large datasets by gradually reducing
+    the step size as optimization progresses.
+
+    Parameters
+    ----------
+    max_step : float, default=0.01
+        Initial (maximum) step size
+    min_step : float, default=1e-6
+        Final (minimum) step size
+    tau : float, default=1000.0
+        Decay time constant (larger = slower decay)
+
+    Examples
+    --------
+    >>> schedule = ExponentialDecayStepSize(max_step=0.1, min_step=0.01, tau=500.0)
+    >>> schedule(0)      # iteration 0
+    0.1
+    >>> schedule(500)    # iteration 500 (≈63% decay)
+    0.037
+    >>> schedule(5000)   # iteration 5000 (full decay)
+    0.01
+    """
+    def __init__(self, max_step=0.01, min_step=1e-6, tau=1000.0):
+        self.max_step = max_step
+        self.min_step = min_step
+        self.tau = tau
+
+    def __call__(self, iteration, particles=None):
+        decay = jnp.exp(-iteration / self.tau)
+        return self.max_step * decay + self.min_step * (1 - decay)
+
+
+class AdaptiveStepSize(StepSizeSchedule):
+    """
+    Adaptive step size based on particle spread (KL divergence proxy).
+
+    Increases step size when particles are too concentrated (low KL),
+    decreases when particles are too dispersed (high KL).
+
+    Parameters
+    ----------
+    base_step : float, default=0.01
+        Base step size
+    kl_target : float, default=0.1
+        Target KL divergence (in log-space particle spread)
+    adjust_rate : float, default=0.1
+        Rate of adjustment (0 = no adjustment, 1 = immediate)
+
+    Examples
+    --------
+    >>> schedule = AdaptiveStepSize(base_step=0.01, kl_target=0.1)
+    >>> particles = jnp.array([[1.0], [1.1], [0.9]])  # concentrated
+    >>> schedule(10, particles)  # will increase step size
+    0.011
+    """
+    def __init__(self, base_step=0.01, kl_target=0.1, adjust_rate=0.1):
+        self.base_step = base_step
+        self.kl_target = kl_target
+        self.adjust_rate = adjust_rate
+        self.current_step = base_step
+
+    def __call__(self, iteration, particles=None):
+        if particles is None:
+            return self.current_step
+
+        # Estimate KL divergence using particle spread
+        particle_std = jnp.std(particles, axis=0)
+        kl_estimate = jnp.mean(jnp.log(particle_std + 1e-8))
+
+        # Adaptive adjustment
+        if kl_estimate > self.kl_target:
+            # Particles too spread out, reduce step size
+            adjustment = 1.0 - self.adjust_rate
+        else:
+            # Particles too concentrated, increase step size
+            adjustment = 1.0 + self.adjust_rate
+
+        self.current_step = self.current_step * adjustment
+        return self.current_step
+
+
+class BandwidthSchedule:
+    """
+    Base class for bandwidth schedules.
+
+    Subclasses should implement __call__(particles) returning bandwidth(s).
+    """
+    def __call__(self, particles):
+        """
+        Compute bandwidth for current particle configuration.
+
+        Parameters
+        ----------
+        particles : jnp.ndarray
+            Current particle positions, shape (n_particles, theta_dim)
+
+        Returns
+        -------
+        float or jnp.ndarray
+            Bandwidth (scalar for global, array for local)
+        """
+        raise NotImplementedError
+
+
+class MedianBandwidth(BandwidthSchedule):
+    """
+    Median heuristic bandwidth (default behavior).
+
+    Sets bandwidth to median of pairwise distances between particles.
+
+    Examples
+    --------
+    >>> schedule = MedianBandwidth()
+    >>> particles = jnp.array([[0.0], [1.0], [2.0]])
+    >>> schedule(particles)
+    1.0
+    """
+    def __call__(self, particles):
+        n_particles = particles.shape[0]
+        pairwise_dists = jnp.array([
+            jnp.linalg.norm(particles[i] - particles[j])
+            for i in range(n_particles)
+            for j in range(i + 1, n_particles)
+        ])
+        return jnp.median(pairwise_dists)
+
+
+class FixedBandwidth(BandwidthSchedule):
+    """
+    Fixed bandwidth for all iterations.
+
+    Parameters
+    ----------
+    bandwidth : float
+        Fixed bandwidth value
+
+    Examples
+    --------
+    >>> schedule = FixedBandwidth(1.0)
+    >>> particles = jnp.array([[0.0], [1.0]])
+    >>> schedule(particles)
+    1.0
+    """
+    def __init__(self, bandwidth=1.0):
+        self.bandwidth = bandwidth
+
+    def __call__(self, particles):
+        return self.bandwidth
+
+
+class LocalAdaptiveBandwidth(BandwidthSchedule):
+    """
+    Local adaptive bandwidth using k-nearest neighbors.
+
+    Computes per-particle bandwidth based on distance to k-nearest neighbors.
+
+    Parameters
+    ----------
+    alpha : float, default=0.9
+        Scaling factor for local bandwidth
+    k_frac : float, default=0.1
+        Fraction of particles to use as k-nearest neighbors
+
+    Examples
+    --------
+    >>> schedule = LocalAdaptiveBandwidth(alpha=0.9, k_frac=0.1)
+    >>> particles = jnp.array([[0.0], [1.0], [10.0]])
+    >>> bandwidths = schedule(particles)
+    >>> bandwidths.shape
+    (3,)
+    """
+    def __init__(self, alpha=0.9, k_frac=0.1):
+        self.alpha = alpha
+        self.k_frac = k_frac
+
+    def __call__(self, particles):
+        n_particles = particles.shape[0]
+        k_nn = max(1, int(n_particles * self.k_frac))
+
+        bandwidths = []
+        for i in range(n_particles):
+            # Compute distances to all other particles
+            distances = jnp.array([
+                jnp.linalg.norm(particles[i] - particles[j])
+                for j in range(n_particles) if j != i
+            ])
+            # Take k-nearest neighbors
+            knn_distances = jnp.sort(distances)[:k_nn]
+            local_bw = jnp.mean(knn_distances) * self.alpha
+            bandwidths.append(local_bw)
+
+        return jnp.array(bandwidths)
+
+
+# ============================================================================
+# End of Schedule Classes
+# ============================================================================
+
+
+# def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
+#     new_cmap = colors.LinearSegmentedColormap.from_list(
+#         'trunc({n},{a:.2f},{b:.2f})'.format(n=cmap.name, a=minval, b=maxval),
+#         cmap(np.linspace(minval, maxval, n)))
+#     return new_cmap
+# # "_iridis" color map (viridis without the deep purple):
+# _iridis = truncate_colormap(plt.get_cmap('viridis'), 0.2, 1)
+
+
+@jit
+def calculate_param_dim(k, m):
+    """Calculate parameter dimension for discrete phase-type distribution
+    
+    Parameters:
+    - k: number of dimensions (absorption states)  
+    - m: number of transient states
+    
+    Returns:
+    - Total parameter dimension
+    """
+    # Initial distribution: m parameters (no constraint)
+    alpha_dim = m
+    
+    # Sub-intensity matrix: m×m parameters with row-sum constraints
+    # Each row sums to <= 0, so m-1 free parameters per row
+    sub_Q_dim = m * (m - 1) 
+    
+    # Exit rates: k×m parameters (all free)
+    exit_rates_dim = k * m
+    
+    return alpha_dim + sub_Q_dim + exit_rates_dim
+
+def example_ptd_spec(key, k=1, m=2):
+    """Generate example discrete phase-type distribution parameters
+    
+    Returns flattened parameter vector for the distribution with:
+    - k absorption states (dimensions)
+    - m transient states
+    """
+    # Generate initial distribution (normalized)
+    key, subkey = jax.random.split(key)
+    alpha_raw = jax.random.exponential(subkey, shape=(m,))
+    alpha = alpha_raw / jnp.sum(alpha_raw)
+    
+    # Generate sub-intensity matrix Q (m×m)
+    key, subkey = jax.random.split(key)
+    # Off-diagonal elements (positive, will be made negative)
+    off_diag = jax.random.exponential(subkey, shape=(m, m))
+    off_diag = off_diag.at[jnp.diag_indices(m)].set(0)  # Zero diagonal
+    
+    # Make off-diagonal negative and set diagonal to ensure row sums < 0
+    Q = -off_diag
+    row_sums = jnp.sum(Q, axis=1)
+    Q = Q.at[jnp.diag_indices(m)].set(-jnp.abs(row_sums) - 0.1)  # Ensure diagonal < row sum
+    
+    # Generate exit rates (k×m, all positive)
+    key, subkey = jax.random.split(key)
+    exit_rates = jax.random.exponential(subkey, shape=(k, m))
+    
+    # Flatten into parameter vector
+    # Structure: [alpha (m), Q off-diagonal (m*(m-1)), exit_rates (k*m)]
+    q_off_diag = jnp.concatenate([Q[i, :i].flatten() for i in range(m)] + 
+                                 [Q[i, i+1:].flatten() for i in range(m)])
+    
+    params = jnp.concatenate([alpha, q_off_diag, exit_rates.flatten()])
+    return params
+
+def unpack_theta(params, k, m):
+    """Unpack flattened parameter vector into components using JAX operations"""
+    # Calculate dimensions
+    alpha_dim = m
+    sub_Q_dim = m * (m - 1)
+    
+    # Extract components using standard slicing (will be handled by JAX)
+    alpha = params[:alpha_dim]
+    q_off_diag = params[alpha_dim:alpha_dim + sub_Q_dim]
+    exit_rates_flat = params[alpha_dim + sub_Q_dim:alpha_dim + sub_Q_dim + k * m]
+    
+    # Reconstruct Q matrix - simplified approach for any m
+    Q = jnp.zeros((m, m))
+    
+    # For general case, use a more systematic approach
+    # Fill off-diagonal elements in order
+    idx = 0
+    for i in range(m):
+        for j in range(m):
+            if i != j:  # Skip diagonal
+                Q = Q.at[i, j].set(q_off_diag[idx])
+                idx += 1
+    
+    # Set diagonal elements to ensure valid sub-intensity matrix
+    row_sums = jnp.sum(Q, axis=1)
+    Q = Q.at[jnp.diag_indices(m)].set(-jnp.abs(row_sums) - 0.1)
+    
+    # Reshape exit rates
+    exit_rates = exit_rates_flat.reshape(k, m)
+    
+    return alpha, Q, exit_rates
+
+def simulate_example_data(key, params, k, m, n_samples):
+    """Simulate data from discrete phase-type distribution"""
+    alpha, Q, exit_rates = unpack_theta(params, k, m)
+    
+    # Simple simulation - generate random absorption times
+    # This is a placeholder - real DPH simulation would be more complex
+    key, subkey = jax.random.split(key)
+    
+    # Generate samples using approximation
+    # Sample from geometric distributions and combine
+    samples = []
+    for _ in range(n_samples):
+        key, subkey = jax.random.split(key)
+        # Simple approximation: sample absorption times
+        absorption_times = jax.random.geometric(subkey, 0.3, shape=(k,))
+        samples.append(absorption_times)
+    
+    return jnp.array(samples)
+
+def log_pmf_dph(x, params, k, m):
+    """Log probability mass function for discrete phase-type distribution"""
+    alpha, Q, exit_rates = unpack_theta(params, k, m)
+    
+    # Simple approximation for discrete phase-type log-pmf
+    # Real implementation would involve matrix exponentials
+    
+    # Ensure x is properly shaped
+    x = jnp.atleast_1d(x)
+    if x.shape[0] != k:
+        # Pad or truncate to match k dimensions
+        if x.shape[0] < k:
+            x = jnp.concatenate([x, jnp.ones(k - x.shape[0])])
+        else:
+            x = x[:k]
+    
+    # Approximate log-pmf using geometric distribution mixture
+    log_prob = 0.0
+    for i in range(k):
+        for j in range(m):
+            rate = jnp.abs(exit_rates[i, j])
+            # Geometric log-pmf approximation
+            p = rate / (1.0 + rate)
+            log_prob += jnp.log(p) + (x[i] - 1) * jnp.log(1 - p)
+    
+    # Add initial distribution contribution
+    log_prob += jnp.sum(jnp.log(alpha + 1e-8))
+    
+    return log_prob
+
+# Simpler approach: direct parameter mapping
+@jit
+def z_to_theta(z):
+    """Convert latent variable to parameter space"""
+    return z  # Direct mapping for simplicity
+
+# SVGD functions
+@jit
+def rbf_kernel(x, y, bandwidth):
+    """RBF kernel function"""
+    diff = x - y
+    return jnp.exp(-jnp.sum(diff**2) / (2 * bandwidth**2))
+
+@jit
+def median_heuristic(particles):
+    """Median heuristic for bandwidth selection"""
+    n_particles = particles.shape[0]
+    distances = []
+    for i in range(n_particles):
+        for j in range(i+1, n_particles):
+            dist = jnp.linalg.norm(particles[i] - particles[j])
+            distances.append(dist)
+    distances = jnp.array(distances)
+    median_dist = jnp.median(distances)
+    return median_dist / jnp.log(n_particles + 1)
+
+@jit 
+def batch_median_heuristic(particles):
+    """Vectorized median heuristic"""
+    n_particles = particles.shape[0]
+    # Compute pairwise distances
+    diff = particles[:, None, :] - particles[None, :, :]
+    distances = jnp.linalg.norm(diff, axis=2)
+    # Get upper triangular part (excluding diagonal)
+    triu_indices = jnp.triu_indices(n_particles, k=1)
+    pairwise_dists = distances[triu_indices]
+    median_dist = jnp.median(pairwise_dists)
+    return median_dist / jnp.log(n_particles + 1)
+
+@jit
+def rbf_kernel_median(particles):
+    """RBF kernel with median heuristic bandwidth"""
+    bandwidth = batch_median_heuristic(particles)
+    n_particles = particles.shape[0]
+    
+    # Compute kernel matrix
+    K = jnp.zeros((n_particles, n_particles))
+    for i in range(n_particles):
+        for j in range(n_particles):
+            K = K.at[i, j].set(rbf_kernel(particles[i], particles[j], bandwidth))
+    
+    # Compute gradients
+    grad_K = jnp.zeros((n_particles, n_particles, particles.shape[1]))
+    for i in range(n_particles):
+        for j in range(n_particles):
+            diff = particles[i] - particles[j]
+            grad_K = grad_K.at[i, j].set(-K[i, j] * diff / bandwidth**2)
+    
+    return K, grad_K
+
+# Define log probability functions
+@jit
+def logp(theta, data, k, m):
+    """Log probability of data given parameters"""
+    return jnp.sum(vmap(lambda x: log_pmf_dph(x, theta, k, m))(data))
+
+@jit  
+def logp_z(z, k, m):
+    """Log probability function for latent variables"""
+    theta = z_to_theta(z)
+    # Add prior (standard normal on z)
+    log_prior = -0.5 * jnp.sum(z**2)
+    return log_prior
+
+# Adaptive step size functions
+@jit
+def decayed_kl_target(iteration, base=0.1, decay=0.01):
+    """Exponentially decaying KL target"""
+    return base * jnp.exp(-decay * iteration)
+
+@jit  
+def step_size_schedule(iteration, max_step=0.001, min_step=1e-6):
+    """Step size schedule"""
+    decay = jnp.exp(-iteration / 1000.0)
+    return max_step * decay + min_step * (1 - decay)
+
+@jit
+def local_adaptive_bandwidth(particles, alpha=0.9):
+    """Local adaptive bandwidth selection"""
+    n_particles = particles.shape[0]
+    # Use k-nearest neighbors approach
+    k_nn = max(1, n_particles // 10)
+    
+    bandwidths = []
+    for i in range(n_particles):
+        # Compute distances to all other particles
+        distances = jnp.array([jnp.linalg.norm(particles[i] - particles[j]) 
+                              for j in range(n_particles) if j != i])
+        # Take k-nearest neighbors
+        knn_distances = jnp.sort(distances)[:k_nn]
+        local_bw = jnp.mean(knn_distances) * alpha
+        bandwidths.append(local_bw)
+    
+    return jnp.array(bandwidths)
+
+@jit
+def kl_adaptive_step(particles, kl_target=0.1):
+    """Adaptive step size based on KL divergence estimate"""
+    # Estimate KL divergence using particle approximation
+    n_particles = particles.shape[0]
+    
+    # Simple KL estimate based on particle spread
+    particle_std = jnp.std(particles, axis=0)
+    kl_estimate = jnp.mean(jnp.log(particle_std + 1e-8))
+    
+    # Adaptive step using JAX conditional
+    step_factor = jnp.where(kl_estimate > kl_target, 0.9, 1.1)
+    
+    return step_factor
+
+# SVGD update functions
+def svgd_update_z(particles_z, data, k, m, step_size=0.001, kl_target=0.1):
+    """SVGD update for latent variables"""
+    n_particles = particles_z.shape[0]
+    
+    # Convert to parameter space for likelihood evaluation
+    particles_theta = jnp.array([z_to_theta(z) for z in particles_z])
+    
+    # Compute log probability gradients
+    def logp_single(theta):
+        return logp(theta, data, k, m)
+    
+    grad_logp = vmap(grad(logp_single))(particles_theta)
+    
+    # Compute kernels
+    K, grad_K = rbf_kernel_median(particles_z)
+    
+    # SVGD update
+    phi = jnp.zeros_like(particles_z)
+    for i in range(n_particles):
+        # Positive term: weighted gradient
+        positive_term = jnp.sum(K[i, :, None] * grad_logp, axis=0) / n_particles
+        
+        # Negative term: kernel gradient
+        negative_term = jnp.sum(grad_K[i, :, :], axis=0) / n_particles
+        
+        phi = phi.at[i].set(positive_term + negative_term)
+    
+    # Adaptive step size
+    step_factor = kl_adaptive_step(particles_z, kl_target)
+    adaptive_step = step_size * step_factor
+    
+    return particles_z + adaptive_step * phi
+
+# More sophisticated SVGD updates
+@jit
+def update_median_bw_kl_step(particles_z, k, m, kl_target=0.1, max_step=0.001):
+    """SVGD update with median bandwidth and KL-adaptive step"""
+    n_particles = particles_z.shape[0]
+    
+    # Gradients in latent space (prior only for now)
+    grad_logp_z = -particles_z  # Gradient of standard normal prior
+    
+    # Compute kernel and its gradients
+    K, grad_K = rbf_kernel_median(particles_z)
+    
+    # SVGD update
+    phi = jnp.zeros_like(particles_z)
+    for i in range(n_particles):
+        positive_term = jnp.sum(K[i, :, None] * grad_logp_z, axis=0) / n_particles
+        negative_term = jnp.sum(grad_K[i, :, :], axis=0) / n_particles
+        phi = phi.at[i].set(positive_term + negative_term)
+    
+    # Adaptive step
+    step_factor = kl_adaptive_step(particles_z, kl_target)
+    step_size = jnp.clip(max_step * step_factor, 1e-7, max_step)
+    
+    return particles_z + step_size * phi
+
+@jit
+def update_local_bw_kl_step(particles_z, k, m, kl_target=0.1, max_step=0.001):
+    """SVGD update with local bandwidth and KL-adaptive step"""
+    n_particles = particles_z.shape[0]
+    
+    # Get local bandwidths
+    local_bws = local_adaptive_bandwidth(particles_z)
+    
+    # Gradients  
+    grad_logp_z = -particles_z
+    
+    # Compute updates with local bandwidths
+    phi = jnp.zeros_like(particles_z)
+    for i in range(n_particles):
+        # Local kernel computations
+        local_K = jnp.array([rbf_kernel(particles_z[i], particles_z[j], local_bws[i]) 
+                            for j in range(n_particles)])
+        
+        # Local kernel gradients
+        local_grad_K = jnp.array([
+            -local_K[j] * (particles_z[i] - particles_z[j]) / (local_bws[i]**2)
+            for j in range(n_particles)
+        ])
+        
+        positive_term = jnp.sum(local_K[:, None] * grad_logp_z, axis=0) / n_particles
+        negative_term = jnp.sum(local_grad_K, axis=0) / n_particles
+        phi = phi.at[i].set(positive_term + negative_term)
+    
+    # Adaptive step
+    step_factor = kl_adaptive_step(particles_z, kl_target)
+    step_size = jnp.clip(max_step * step_factor, 1e-7, max_step)
+    
+    return particles_z + step_size * phi
+
+# Distributed SVGD
+def distributed_svgd_step(particles_z, k, m, kl_target=0.1, max_step=0.001):
+    """Distributed SVGD step using pjit"""
+    return update_median_bw_kl_step(particles_z, k, m, kl_target, max_step)
+
+# Main SVGD function
+def run_variable_dim_svgd(key, data, k, m, n_particles=40, n_steps=100, lr=0.001):
+    """Run SVGD for variable-dimension discrete phase-type distributions"""
+    
+    # Calculate parameter dimension
+    param_dim = calculate_param_dim(k, m)
+    print(f"Running SVGD for k={k}, m={m} (param_dim={param_dim})")
+    
+    # Generate true parameters
+    key, subkey = jax.random.split(key)
+    true_params = example_ptd_spec(subkey, k, m)
+    
+    # SVGD parameters
+    n_devices = min(8, n_particles)  # Don't exceed available devices
+    kl_target_base = 0.1
+    kl_target_decay = 0.01
+    max_step = lr
+    min_step = 1e-7
+    max_step_scaler = 0.1
+    
+    if n_particles % n_devices != 0:
+        n_particles = (n_particles // n_devices) * n_devices
+        print(f"Adjusted n_particles to {n_particles} for even sharding")
+    
+    # Initial particles
+    key, subkey = jax.random.split(key)
+    particles_z = jax.random.normal(subkey, shape=(n_particles, param_dim))
+    
+    # Shard particles over devices
+    devices = mesh_utils.create_device_mesh((n_devices,))
+    mesh = Mesh(devices, axis_names=("i",))
+    sharding = NamedSharding(mesh, P("i", None))
+    particles_z = jax.device_put(particles_z, sharding)
+    
+    # SVGD iterations
+    particle_z_history = [particles_z]
+    every = max(1, n_steps // 10)  # Save every 10% of iterations
+    prev = None
+    
+    with mesh:
+        # for i in range(n_steps):
+        for i in trange(n_steps):
+            kl_target = decayed_kl_target(i, base=kl_target_base, decay=kl_target_decay)
+            particles_z = distributed_svgd_step(particles_z, k, m, kl_target=kl_target, max_step=max_step)
+            
+            if not i % every:
+                particle_z_history.append(particles_z)
+    
+    # Extract final results
+    particles = jnp.array([z_to_theta(z) for z in particles_z])
+    
+    print(f"\nResults for k={k}, m={m}:")
+    print(f"True parameters shape: {true_params.shape}")
+    print(f"Estimated parameters shape: {particles.shape}")
+    print(f"Parameter means: {jnp.mean(particles, axis=0)}")
+    print(f"True parameters: {true_params}")
+    
+    return particles, particle_z_history, true_params
+
+# ==============================================================================
+# Main SVGD API for external use
+# ==============================================================================
+
+@jit
+def _compute_kernel_grad_impl(particles, bandwidth):
+    """
+    JIT-compiled RBF kernel computation (core implementation)
+
+    Parameters
+    ----------
+    particles : array (n_particles, theta_dim)
+        Current particle positions
+    bandwidth : float
+        Kernel bandwidth
+
+    Returns
+    -------
+    K : array (n_particles, n_particles)
+        Kernel matrix
+    grad_K : array (n_particles, n_particles, theta_dim)
+        Gradient of kernel matrix
+    """
+    # Vectorized computation - no Python loops!
+    # Shape: (n_particles, n_particles, theta_dim)
+    diff = particles[:, None, :] - particles[None, :, :]
+
+    # Squared distances: (n_particles, n_particles)
+    sq_dist = jnp.sum(diff**2, axis=2)
+
+    # Kernel matrix: K[i,j] = exp(-||x_i - x_j||^2 / (2*h^2))
+    K = jnp.exp(-sq_dist / (2 * bandwidth**2))
+
+    # Kernel gradient: ∇K[i,j] = -K[i,j] * (x_i - x_j) / h^2
+    # Shape: (n_particles, n_particles, theta_dim)
+    grad_K = -K[:, :, None] * diff / bandwidth**2
+
+    return K, grad_K
+
+
+class SVGDKernel:
+    """RBF kernel for SVGD with automatic bandwidth selection"""
+
+    def __init__(self, bandwidth='median'):
+        """
+        Parameters
+        ----------
+        bandwidth : str or float
+            Bandwidth selection method. Options:
+            - 'median': Median heuristic (default)
+            - float: Fixed bandwidth value
+        """
+        self.bandwidth_method = bandwidth
+
+    def compute_kernel_grad(self, particles):
+        """
+        Compute RBF kernel matrix and its gradient (JIT-compiled)
+
+        Parameters
+        ----------
+        particles : array (n_particles, theta_dim)
+            Current particle positions
+
+        Returns
+        -------
+        K : array (n_particles, n_particles)
+            Kernel matrix
+        grad_K : array (n_particles, n_particles, theta_dim)
+            Gradient of kernel matrix
+        """
+        # Compute bandwidth (not JIT-compiled due to conditional logic)
+        if isinstance(self.bandwidth_method, str) and self.bandwidth_method in ['median', 'rbf_median']:
+            bandwidth = batch_median_heuristic(particles)
+        else:
+            bandwidth = self.bandwidth_method
+
+        # Call JIT-compiled implementation
+        return _compute_kernel_grad_impl(particles, bandwidth)
+
+
+@jit
+def _svgd_update_jitted(particles, K, grad_K, grad_log_p, step_size):
+    """
+    JIT-compiled SVGD update (core computation)
+
+    Parameters
+    ----------
+    particles : array (n_particles, theta_dim)
+        Current particle positions
+    K : array (n_particles, n_particles)
+        Kernel matrix
+    grad_K : array (n_particles, n_particles, theta_dim)
+        Kernel gradient
+    grad_log_p : array (n_particles, theta_dim)
+        Log probability gradients
+    step_size : float
+        Step size for update
+
+    Returns
+    -------
+    array (n_particles, theta_dim)
+        Updated particles
+    """
+    n_particles = particles.shape[0]
+
+    # SVGD update: phi = (K @ grad_log_p + sum(grad_K)) / n
+    # Vectorized computation - no Python loop!
+    # K: (n_particles, n_particles)
+    # grad_log_p: (n_particles, theta_dim)
+    # K @ grad_log_p -> (n_particles, theta_dim)
+    positive_term = jnp.einsum('ij,jk->ik', K, grad_log_p) / n_particles
+
+    # grad_K: (n_particles, n_particles, theta_dim)
+    # Sum over all particle interactions -> (n_particles, theta_dim)
+    negative_term = jnp.sum(grad_K, axis=1) / n_particles
+
+    phi = positive_term + negative_term
+
+    return particles + step_size * phi
+
+
+def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
+              parallel_mode='vmap', n_devices=None):
+    """
+    Perform single SVGD update step
+
+    Parameters
+    ----------
+    particles : array (n_particles, theta_dim)
+        Current particle positions
+    log_prob_fn : callable
+        Log probability function: theta -> scalar
+    kernel : SVGDKernel
+        Kernel object for computing K and grad_K
+    step_size : float
+        Step size for update
+    compiled_grad : callable, optional
+        Precompiled gradient function for faster execution
+    parallel_mode : str, default='vmap'
+        Parallelization strategy: 'vmap', 'pmap', or 'none'
+    n_devices : int, optional
+        Number of devices to use for pmap (only used if parallel_mode='pmap')
+
+    Returns
+    -------
+    array (n_particles, theta_dim)
+        Updated particles
+    """
+    n_particles = particles.shape[0]
+
+    # Use provided parallelization strategy
+    actual_parallel_mode = parallel_mode
+    actual_n_devices = n_devices
+
+    # Compute log probability gradients based on parallelization strategy
+    if actual_parallel_mode == 'pmap' and actual_n_devices is not None:
+        # Parallel gradient computation across devices (pmap)
+        particles_per_device = n_particles // actual_n_devices
+        particles_sharded = particles.reshape(actual_n_devices, particles_per_device, -1)
+
+        # NOTE: JAX 0.8+ requires explicit device mesh to avoid conflicts
+        # Create mesh for current pmap operation
+        from jax.experimental import mesh_utils
+        from jax.sharding import Mesh, NamedSharding, PartitionSpec as P
+
+        devices = mesh_utils.create_device_mesh((actual_n_devices,))
+        mesh = Mesh(devices, axis_names=("batch",))
+
+        # Use explicit mesh context for pmap
+        # pmap over devices, vmap over particles within each device
+        with mesh:
+            grad_log_p_sharded = pmap(vmap(grad(log_prob_fn)), axis_name="batch")(particles_sharded)
+
+        grad_log_p = grad_log_p_sharded.reshape(n_particles, -1)
+    elif actual_parallel_mode == 'vmap':
+        # Single device vectorization - use vmap only
+        if compiled_grad is not None:
+            grad_log_p = vmap(compiled_grad)(particles)
+        else:
+            grad_log_p = vmap(grad(log_prob_fn))(particles)
+    elif actual_parallel_mode == 'none':
+        # No parallelization - sequential computation (useful for debugging)
+        if compiled_grad is not None:
+            grad_log_p = jnp.array([compiled_grad(p) for p in particles])
+        else:
+            grad_fn = grad(log_prob_fn)
+            grad_log_p = jnp.array([grad_fn(p) for p in particles])
+    else:
+        raise ValueError(f"Invalid parallel_mode: {actual_parallel_mode}")
+
+    # Compute kernel and kernel gradient
+    K, grad_K = kernel.compute_kernel_grad(particles)
+
+    # ##############    
+
+    # # phi = jnp.zeros_like(particles)
+    # # for i in range(n_particles):
+    # #     positive_term = jnp.sum(K[i, :, None] * grad_log_p, axis=0) / n_particles
+    # #     negative_term = jnp.sum(grad_K[i, :, :], axis=0) / n_particles
+    # #     phi = phi.at[i].set(positive_term + negative_term)
+    
+    # positive_term = jnp.sum(K[:, :, None] * grad_log_p, axis=1) / n_particles
+    # negative_term = jnp.sum(grad_K, axis=1) / n_particles
+    # phi = positive_term + negative_term
+
+    # # Adaptive step
+    # # step_factor = kl_adaptive_step(particles, kl_target)
+    # # _step_size = jnp.clip(max_step * step_factor, 1e-7, max_step)  * phi 
+    # _step_size = step_size * phi   
+
+    #  # Call JIT-compiled update
+    # return _svgd_update_jitted(particles, K, grad_K, grad_log_p, _step_size)
+
+    # ##############
+
+
+    # Call JIT-compiled update
+    return _svgd_update_jitted(particles, K, grad_K, grad_log_p, step_size)
+
+
+def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
+             kernel='rbf_median', return_history=False, verbose=True, compiled_grad=None,
+             parallel_mode='vmap', n_devices=None):
+    """
+    Run Stein Variational Gradient Descent
+
+    Parameters
+    ----------
+    log_prob_fn : callable
+        Log probability function: theta -> scalar
+        Should return log p(data|theta) + log p(theta)
+    theta_init : array (n_particles, theta_dim)
+        Initial particle positions
+    n_steps : int
+        Number of SVGD iterations
+    learning_rate : float or StepSizeSchedule
+        Step size. Can be:
+        - float: constant step size (backward compatible)
+        - StepSizeSchedule object: dynamic schedule
+    kernel : str or SVGDKernel
+        Kernel specification. If string, creates SVGDKernel with that bandwidth method
+    return_history : bool
+        If True, return particle positions at each iteration
+    verbose : bool
+        Print progress information
+    compiled_grad : callable, optional
+        Precompiled gradient function for faster execution
+    parallel_mode : str, default='vmap'
+        Parallelization strategy: 'vmap', 'pmap', or 'none'
+    n_devices : int, optional
+        Number of devices for pmap (only used if parallel_mode='pmap')
+
+    Returns
+    -------
+    dict
+        Results dictionary containing:
+        - 'particles': Final particles (n_particles, theta_dim)
+        - 'history': Particle history if return_history=True
+        - 'theta_mean': Posterior mean
+        - 'theta_std': Posterior standard deviation
+    """
+    # Create kernel if needed
+    if isinstance(kernel, str):
+        kernel_obj = SVGDKernel(bandwidth=kernel)
+    else:
+        kernel_obj = kernel
+
+    # Initialize
+    particles = theta_init
+    history = [particles] if return_history else None
+    history_iterations = [0] if return_history else []  # Track iteration numbers for history snapshots
+
+    # Handle step size schedule (backward compatible)
+    if isinstance(learning_rate, StepSizeSchedule):
+        step_schedule = learning_rate
+        use_schedule = True
+    elif isinstance(learning_rate, (int, float)):
+        step_schedule = ConstantStepSize(float(learning_rate))
+        use_schedule = False  # Can still use constant value
+    else:
+        raise TypeError(
+            f"learning_rate must be float or StepSizeSchedule, got: {type(learning_rate)}"
+        )
+
+    # SVGD iterations
+    if verbose:
+        print(f"Running SVGD: {n_steps} steps, {len(particles)} particles")
+
+    # for step in range(n_steps) if verbose else range(n_steps):
+    for step in trange(n_steps) if verbose else range(n_steps):
+        # Compute current step size from schedule
+        if use_schedule:
+            current_step_size = step_schedule(step, particles)
+        else:
+            current_step_size = learning_rate
+
+        # Perform SVGD update
+        particles = svgd_step(particles, log_prob_fn, kernel_obj, current_step_size,
+                             compiled_grad=compiled_grad,
+                             parallel_mode=parallel_mode,
+                             n_devices=n_devices)
+
+        # Store history
+        if return_history: # and (step % max(1, n_steps // 20) == 0):
+            history.append(particles)
+            history_iterations.append(step)
+
+    # Final history
+    if return_history:
+        history.append(particles)
+        history_iterations.append(n_steps)
+
+    # Compute summary statistics
+    theta_mean = jnp.mean(particles, axis=0)
+    theta_std = jnp.std(particles, axis=0)
+
+    results = {
+        'particles': particles,
+        'theta_mean': theta_mean,
+        'theta_std': theta_std,
+    }
+
+    if return_history:
+        results['history'] = history
+        results['history_iterations'] = history_iterations
+
+    # Note: Final summary is printed by SVGD.fit() with transformed values
+
+    return results
+
+
+# ============================================================================
+# Helper Functions for Moment-Based Regularization
+# ============================================================================
+
+def compute_sample_moments(data, nr_moments):
+    """
+    Compute sample moments from observed data.
+
+    Parameters
+    ----------
+    data : array_like
+        Observed data points (e.g., waiting times, event times)
+    nr_moments : int
+        Number of moments to compute
+
+    Returns
+    -------
+    jnp.array
+        Sample moments [mean(data), mean(data^2), ..., mean(data^k)]
+        Shape: (nr_moments,)
+
+    Examples
+    --------
+    >>> data = jnp.array([1.0, 2.0, 3.0, 4.0, 5.0])
+    >>> moments = compute_sample_moments(data, nr_moments=2)
+    >>> print(moments)  # [3.0, 11.0] = [mean, mean of squares]
+    >>> # Variance from moments: Var = E[X^2] - E[X]^2 = 11.0 - 3.0^2 = 2.0
+    """
+    data = jnp.array(data)
+    moments = []
+    for k in range(1, nr_moments + 1):
+        moments.append(jnp.mean(data**k))
+    return jnp.array(moments)
+
+
+# ============================================================================
+# SVGD Class for Object-Oriented Interface
+# ============================================================================
+
+class SVGD:
+    """
+    Stein Variational Gradient Descent (SVGD) for Bayesian parameter inference.
+
+    This class provides an object-oriented interface for SVGD inference with
+    automatic result storage and diagnostic plotting capabilities.
+
+    Parameters
+    ----------
+    model : callable
+        JAX-compatible parameterized model with signature: model(theta, data) -> values
+    observed_data : array_like
+        Observed data points
+    prior : callable, optional
+        Log prior function: prior(theta) -> scalar.
+        If None, uses standard normal prior: log p(theta) = -0.5 * sum(theta^2)
+    n_particles : int, default is 20 times length of theta
+        Number of SVGD particles
+    n_iterations : int, default=1000
+        Number of SVGD optimization steps
+    learning_rate : float or StepSizeSchedule, default=0.001
+        SVGD step size. Can be:
+        - float: constant step size (backward compatible)
+        - StepSizeSchedule object: dynamic step size schedule
+        Examples: ConstantStepSize(0.01), ExponentialDecayStepSize(0.1, 0.01, 500.0)
+    kernel : str or BandwidthSchedule, default='rbf_median'
+        Kernel bandwidth selection. Can be:
+        - str: 'rbf_median' for median heuristic (backward compatible)
+        - BandwidthSchedule object: dynamic bandwidth schedule
+        Examples: MedianBandwidth(), FixedBandwidth(1.0), LocalAdaptiveBandwidth()
+    theta_init : array_like, optional
+        Initial particle positions (n_particles, theta_dim)
+    theta_dim : int, optional
+        Dimension of theta parameter vector (required if theta_init is None)
+    seed : int, default=42
+        Random seed for reproducibility
+    verbose : bool, default=True
+        Print progress information
+    jit : bool or None, default=None
+        Enable JIT compilation. If None, uses value from phasic.get_config().jit.
+        If True, requires JAX to be available (raises PTDConfigError otherwise).
+        JIT compilation provides significant speedup but adds initial compilation overhead.
+    parallel : str or None, default=None
+        Parallelization strategy:
+        - 'vmap': Vectorize across particles (single device)
+        - 'pmap': Parallelize across devices (uses multiple CPUs/GPUs)
+        - 'none': No parallelization (sequential, useful for debugging)
+        - None: Auto-select (pmap if multiple devices, vmap otherwise)
+
+        **Single-machine multi-CPU**: Auto-selection uses pmap for multi-core parallelization.
+        **Multi-node SLURM**: Call initialize_distributed() then set parallel='pmap' explicitly.
+    n_devices : int or None, default=None
+        Number of devices to use for pmap. Only used when parallel='pmap'.
+        If None, uses all available devices. Must be <= number of available JAX devices.
+        See: jax.devices() to check available devices, or configure via PTDALG_CPUS
+        environment variable before import.
+    precompile : bool, default=True
+        (Deprecated: use jit parameter instead)
+        Precompile model and gradient functions for faster execution.
+        Implies jit=True for backward compatibility.
+        First run will take longer (compilation time) but subsequent
+        iterations will be much faster. Compiled functions are cached
+        in memory and on disk (~/.phasic_cache/).
+    compilation_config : CompilationConfig, dict, str, or Path, optional
+        JAX compilation optimization configuration. Can be:
+        - CompilationConfig object from phasic.CompilationConfig
+        - dict with CompilationConfig parameters
+        - str/Path to JSON config file
+        - None (uses default balanced configuration)
+
+        The configuration controls JAX/XLA compilation behavior including:
+        - Persistent cache directory for cross-session caching
+        - Optimization level (0-3)
+        - Parallel compilation settings
+
+        Examples:
+        - Use preset: CompilationConfig.fast_compile()
+        - Load from file: 'my_config.json'
+        - Custom dict: {'optimization_level': 2, 'cache_dir': '/tmp/cache'}
+    positive_params : bool, default=True
+        If True, constrains parameters to positive domain using softplus transformation.
+        SVGD operates in unconstrained space (can be negative) but results are
+        transformed to positive values.
+
+        DEFAULT=True because phase-type distribution parameters (rates) must be positive.
+        Set to False only if you have a specific reason to allow negative parameters
+        (e.g., regression coefficients, log-space parameterization).
+    param_transform : callable, optional
+        Custom parameter transformation function. Overrides positive_params if provided.
+        Should map unconstrained space to constrained space (e.g., lambda x: jax.nn.sigmoid(x)
+        for parameters in [0,1]). Cannot be used together with positive_params=True.
+
+    Attributes
+    ----------
+    particles : array
+        Final posterior samples (n_particles, theta_dim)
+    theta_mean : array
+        Posterior mean estimate
+    theta_std : array
+        Posterior standard deviation
+    history : list of arrays, optional
+        Particle evolution over iterations (if fit was called with return_history=True)
+    is_fitted : bool
+        Whether fit() has been called
+
+    Examples
+    --------
+    >>> # Basic usage with auto-configuration
+    >>> svgd = SVGD(model, observed_data, theta_dim=1)
+    >>> svgd.fit()
+    >>>
+    >>> # Explicit single-device configuration
+    >>> svgd = SVGD(model, observed_data, theta_dim=1, jit=True, parallel='vmap')
+    >>> svgd.fit()
+    >>>
+    >>> # Multi-device parallelization
+    >>> svgd = SVGD(model, observed_data, theta_dim=1,
+    ...             jit=True, parallel='pmap', n_devices=8)
+    >>> svgd.fit()
+    >>>
+    >>> # No JIT (for debugging)
+    >>> svgd = SVGD(model, observed_data, theta_dim=1, jit=False, parallel='none')
+    >>> svgd.fit()
+    >>>
+    >>> # Multi-node SLURM (explicit distributed initialization)
+    >>> from phasic import initialize_distributed
+    >>> dist = initialize_distributed()  # Auto-detects SLURM environment
+    >>> svgd = SVGD(model, observed_data, theta_dim=1,
+    ...             jit=True, parallel='pmap', n_devices=dist.num_processes)
+    >>> svgd.fit()
+    >>>
+    >>> # Using step size schedules to prevent divergence
+    >>> from phasic import ExponentialDecayStepSize
+    >>> schedule = ExponentialDecayStepSize(max_step=0.1, min_step=0.01, tau=500.0)
+    >>> svgd = SVGD(model, observed_data, theta_dim=1, learning_rate=schedule)
+    >>> svgd.fit()
+    >>>
+    >>> # Using adaptive step size based on particle spread
+    >>> from phasic import AdaptiveStepSize
+    >>> schedule = AdaptiveStepSize(base_step=0.01, kl_target=0.1, adjust_rate=0.1)
+    >>> svgd = SVGD(model, observed_data, theta_dim=1, learning_rate=schedule)
+    >>> svgd.fit()
+    >>>
+    >>> # Using custom bandwidth schedule
+    >>> from phasic import LocalAdaptiveBandwidth
+    >>> bandwidth = LocalAdaptiveBandwidth(alpha=0.9, k_frac=0.1)
+    >>> svgd = SVGD(model, observed_data, theta_dim=1, kernel=bandwidth)
+    >>> svgd.fit()
+    >>>
+    >>> # Access results
+    >>> print(svgd.theta_mean)
+    >>> print(svgd.theta_std)
+    >>>
+    >>> # Generate diagnostic plots
+    >>> svgd.plot_posterior()
+    >>> svgd.plot_trace()
+    """
+
+    # Class-level cache for compiled models (shared across instances)
+    _compiled_cache = {}
+
+    def __init__(self, model, observed_data, prior=None, n_particles=None,
+                 n_iterations=1000, learning_rate=0.001, kernel='rbf_median',
+                 theta_init=None, theta_dim=None, seed=42, verbose=True,
+                 jit=None,              # NEW: explicit JIT control
+                 parallel=None,         # NEW: 'vmap', 'pmap', 'none'
+                 n_devices=None,        # NEW: explicit device count for pmap
+                 precompile=True,       # Keep for backward compat
+                 compilation_config=None, positive_params=True, param_transform=None):
+
+        if n_particles is None:
+            n_particles = 20 * theta_dim
+
+        # Get configuration
+        config = get_config()
+
+        # Validate JIT parameter against config
+        if jit is None:
+            jit = config.jit  # Use config default
+        elif jit and not config.jax:
+            raise PTDConfigError(
+                "jit=True requires JAX.\n"
+                "  Current config: jax=False\n"
+                "  Fix: phasic.configure(jax=True)"
+            )
+
+        # Validate parallel parameter
+        if parallel is None:
+            # Default: use pmap if multiple devices, vmap otherwise
+            # This enables multi-core parallelization on single machines
+            # For multi-node SLURM: call initialize_distributed() + set parallel='pmap' explicitly
+            parallel = 'pmap' if len(jax.devices()) > 1 else 'vmap'
+            if verbose:
+                print(f"Auto-selected parallel='{parallel}' ({len(jax.devices())} devices available)")
+        elif parallel not in ['vmap', 'pmap', 'none']:
+            raise ValueError(
+                f"parallel must be 'vmap', 'pmap', or 'none', got: {parallel}"
+            )
+
+        # Validate n_devices parameter and check for misconfigurations
+        available_devices = len(jax.devices())
+
+        if parallel == 'pmap':
+            if available_devices == 1:
+                import warnings
+                warnings.warn(
+                    "parallel='pmap' requested but only 1 JAX device available. "
+                    "Using 'vmap' instead. To use pmap, configure more devices via "
+                    "PTDALG_CPUS environment variable or initialize_distributed().",
+                    UserWarning,
+                    stacklevel=2
+                )
+                parallel = 'vmap'
+                n_devices = None
+            else:
+                if n_devices is None:
+                    n_devices = available_devices
+                    if verbose:
+                        print(f"Using all {n_devices} devices for pmap")
+                elif n_devices > available_devices:
+                    raise PTDConfigError(
+                        f"n_devices={n_devices} but only {available_devices} devices available.\n"
+                        f"  JAX devices: {jax.devices()}\n"
+                        f"  Fix: Set n_devices<={available_devices} or configure more devices\n"
+                        f"  See: PTDALG_CPUS environment variable or phasic.configure()"
+                    )
+                elif n_devices < 1:
+                    raise ValueError(f"n_devices must be >= 1, got: {n_devices}")
+        elif n_devices is not None:
+            if verbose:
+                print(f"Warning: n_devices={n_devices} ignored (only used with parallel='pmap')")
+            n_devices = None
+
+        print("#############################################")
+        print(f"SVGD Configuration:")
+        print(f"  JIT compilation:        {jit}")
+        print(f"  Parallelization mode:   {parallel}")
+        if parallel == 'pmap':
+            print(f"  Number of devices:      {n_devices} (available: {available_devices})")    
+        print("#############################################")
+
+        # Store configuration (parallel may have been modified by validation)
+        self.jit_enabled = jit
+        self.parallel_mode = parallel
+        self.n_devices = n_devices
+
+        # Backward compatibility: precompile implies jit (deprecated)
+        if precompile is not None and not precompile:
+            import warnings
+            warnings.warn(
+                "precompile parameter is deprecated and will be removed in v1.0. "
+                "Use jit=True/False instead.",
+                DeprecationWarning,
+                stacklevel=2
+            )
+        if precompile and not jit:
+            if verbose:
+                print("Warning: precompile=True but jit=False. Setting jit=True for backward compatibility.")
+            self.jit_enabled = True
+
+        # Handle compilation configuration
+        if compilation_config is not None:
+            from pathlib import Path
+            try:
+                from .jax_config import CompilationConfig
+            except ImportError:
+                # If running from svgd.py directly without package import
+                try:
+                    from jax_config import CompilationConfig
+                except ImportError:
+                    CompilationConfig = None
+
+            # Parse compilation_config
+            if isinstance(compilation_config, str) or isinstance(compilation_config, Path):
+                # Load from file
+                if CompilationConfig:
+                    config = CompilationConfig.load_from_file(compilation_config)
+                    config.apply(force=False)
+                    if verbose:
+                        print(f"Loaded compilation config from: {compilation_config}")
+            elif isinstance(compilation_config, dict):
+                # Create from dictionary
+                if CompilationConfig:
+                    config = CompilationConfig(**compilation_config)
+                    config.apply(force=False)
+                    if verbose:
+                        print(f"Applied compilation config from dict")
+            elif CompilationConfig and isinstance(compilation_config, CompilationConfig):
+                # Already a CompilationConfig object
+                compilation_config.apply(force=False)
+                if verbose:
+                    print(f"Applied compilation config")
+            else:
+                if verbose:
+                    print(f"Warning: Could not parse compilation_config, using defaults")
+
+        self.model = model
+        self.observed_data = jnp.array(observed_data)
+        self.prior = prior
+        self.n_particles = n_particles
+        self.n_iterations = n_iterations
+
+        # Handle step size schedule (backward compatible)
+        if isinstance(learning_rate, StepSizeSchedule):
+            self.step_schedule = learning_rate
+            self.learning_rate = None  # Will be computed dynamically
+        elif isinstance(learning_rate, (int, float)):
+            self.step_schedule = ConstantStepSize(float(learning_rate))
+            self.learning_rate = float(learning_rate)  # Keep for backward compat
+        else:
+            raise TypeError(
+                f"learning_rate must be float or StepSizeSchedule, got: {type(learning_rate)}"
+            )
+
+        # Handle bandwidth schedule (backward compatible)
+        if isinstance(kernel, BandwidthSchedule):
+            self.bandwidth_schedule = kernel
+            self.kernel_str = 'custom'  # Keep for backward compat
+        elif isinstance(kernel, str):
+            if kernel == 'rbf_median':
+                self.bandwidth_schedule = MedianBandwidth()
+            else:
+                # For other string values, keep old behavior
+                self.bandwidth_schedule = None
+            self.kernel_str = kernel
+        else:
+            raise TypeError(
+                f"kernel must be str or BandwidthSchedule, got: {type(kernel)}"
+            )
+
+        self.theta_dim = theta_dim
+        self.seed = seed
+        self.verbose = verbose
+        self.precompile = precompile
+        self.compilation_config = compilation_config
+
+        # Handle parameter transformation
+        if positive_params and param_transform is not None:
+            raise ValueError(
+                "Cannot specify both positive_params=True and param_transform. "
+                "Use positive_params=True for automatic softplus transformation, "
+                "or provide a custom param_transform function."
+            )
+
+        if positive_params:
+            self.param_transform = lambda theta: jax.nn.softplus(theta)
+            if verbose:
+                print("Using softplus transformation to constrain parameters to positive domain")
+        elif param_transform is not None:
+            if not callable(param_transform):
+                raise ValueError("param_transform must be a callable function")
+            self.param_transform = param_transform
+            if verbose:
+                print("Using custom parameter transformation")
+        else:
+            self.param_transform = None
+
+        # Validate and initialize particles
+        if theta_init is None and theta_dim is None:
+            raise ValueError(
+                "Either theta_init or theta_dim must be provided. "
+                "If you don't have initial particles, specify theta_dim (the number of parameters)."
+            )
+
+        # Adjust n_particles for pmap if needed
+        if self.parallel_mode == 'pmap' and self.n_devices is not None:
+            if n_particles % self.n_devices != 0:
+                adjusted_n_particles = ((n_particles + self.n_devices - 1) // self.n_devices) * self.n_devices
+                if verbose:
+                    print(f"Adjusted n_particles from {n_particles} to {adjusted_n_particles} "
+                          f"for even distribution across {self.n_devices} devices")
+                n_particles = adjusted_n_particles
+                self.n_particles = n_particles
+
+        # Initialize particles
+        key = jax.random.PRNGKey(seed)
+        if theta_init is None:
+            if self.param_transform is not None:
+                # For transformed parameters, initialize in a range that maps to reasonable positive values
+                # softplus(x) ≈ x for x >> 0, and softplus(0) ≈ 0.69
+                # Initialize around N(1, 1) so softplus gives values around 1-2
+                self.theta_init = jax.random.normal(key, (n_particles, theta_dim)) + 1.0
+                if verbose:
+                    print(f"Initialized {n_particles} particles with theta_dim={theta_dim} from N(1,1)")
+                    print(f"  (Transformed range: softplus(N(1,1)) ≈ [0.7, 3.5])")
+            else:
+                self.theta_init = jax.random.normal(key, (n_particles, theta_dim))
+                if verbose:
+                    print(f"Initialized {n_particles} particles with theta_dim={theta_dim} from N(0,1)")
+        else:
+            self.theta_init = jnp.array(theta_init)
+            if self.theta_init.ndim != 2:
+                raise ValueError(
+                    f"theta_init must be 2D array (n_particles, theta_dim), "
+                    f"got shape {self.theta_init.shape}"
+                )
+            self.n_particles = self.theta_init.shape[0]
+            self.theta_dim = self.theta_init.shape[1]
+            if verbose:
+                print(f"Using provided initial particles: {self.theta_init.shape}")
+
+        # Detect model type: does it return (pmf, moments) or just pmf?
+        self.model_returns_moments = False
+        try:
+            test_theta = self.theta_init[0]
+            test_times = self.observed_data[:min(2, len(self.observed_data))]
+            result = self.model(test_theta, test_times)
+            if isinstance(result, tuple) and len(result) == 2:
+                # Model returns (pmf, moments)
+                self.model_returns_moments = True
+                if verbose:
+                    print("Detected model type: returns (pmf, moments)")
+            else:
+                if verbose:
+                    print("Detected model type: returns pmf only")
+        except Exception as e:
+            # If detection fails, assume pmf only
+            if verbose:
+                print(f"Model type detection failed (assuming pmf only): {e}")
+            pass
+
+        # Results (initialized after fit())
+        self.particles = None
+        self.theta_mean = None
+        self.theta_std = None
+        self.history = None
+        self.history_iterations = None
+        self.is_fitted = False
+
+        # Compiled model and gradient (set by _precompile_model if jit_enabled=True)
+        self.compiled_model = None
+        self.compiled_grad = None
+
+        # Precompile model and gradient if JIT is enabled
+        if self.jit_enabled:
+            self._precompile_model()
+
+    def _log_prob(self, theta):
+        """
+        Log probability function: log p(data|theta) + log p(theta)
+
+        Parameters
+        ----------
+        theta : array
+            Parameter vector (in unconstrained space if using transformation)
+
+        Returns
+        -------
+        scalar
+            Log probability
+        """
+        # Apply parameter transformation if specified
+        if self.param_transform is not None:
+            theta_transformed = self.param_transform(theta)
+        else:
+            theta_transformed = theta
+
+        # Log-likelihood
+        try:
+            result = self.model(theta_transformed, self.observed_data)
+
+            # Handle both (pmf, moments) and pmf-only models
+            if isinstance(result, tuple):
+                model_values = result[0]  # Extract PMF values
+            else:
+                model_values = result
+        except Exception as e:
+            raise ValueError(
+                f"Model evaluation failed. Ensure model has signature model(theta, times). "
+                f"Error: {e}"
+            )
+
+        # Prevent log(0) by adding small epsilon
+        log_lik = jnp.sum(jnp.log(model_values + 1e-10))
+
+        # Log-prior (evaluated in unconstrained space)
+        if self.prior is not None:
+            log_pri = self.prior(theta)
+        else:
+            # Default: standard normal prior on unconstrained parameters
+            log_pri = -0.5 * jnp.sum(theta**2)
+
+        return log_lik + log_pri
+
+    def _get_cache_path(self):
+        """Generate cache path for this model configuration"""
+        # Create cache key from model id and shapes
+        theta_shape = (self.theta_dim,)
+        times_shape = self.observed_data.shape
+        cache_key = f"{id(self.model)}_{theta_shape}_{times_shape}"
+        cache_hash = hashlib.sha256(cache_key.encode()).hexdigest()[:16]
+
+        # Cache directory
+        cache_dir = pathlib.Path.home() / '.phasic_cache'
+        cache_dir.mkdir(exist_ok=True)
+
+        return cache_dir / f"compiled_svgd_{cache_hash}.pkl"
+
+    def _save_compiled(self, cache_path):
+        """Save compiled model and gradient to disk"""
+        try:
+            with open(cache_path, 'wb') as f:
+                pickle.dump({
+                    'model': self.compiled_model,
+                    'grad': self.compiled_grad
+                }, f)
+            if self.verbose:
+                print(f"  Saved compiled functions to cache: {cache_path.name}")
+        except Exception as e:
+            # Disk caching is best-effort; memory cache still works
+            # Pickling JIT functions with closures often fails - this is expected
+            pass
+
+    def _load_compiled(self, cache_path):
+        """Load compiled model and gradient from disk"""
+        if cache_path.exists():
+            try:
+                with open(cache_path, 'rb') as f:
+                    cached = pickle.load(f)
+                self.compiled_model = cached['model']
+                self.compiled_grad = cached['grad']
+                if self.verbose:
+                    print(f"  Loaded compiled functions from cache: {cache_path.name}")
+                return True
+            except Exception as e:
+                if self.verbose:
+                    print(f"  Warning: Failed to load cache: {e}")
+                return False
+        return False
+
+    def _precompile_model(self):
+        """Precompile model and gradient for known shapes"""
+        # Generate cache key
+        theta_shape = (self.theta_dim,)
+        times_shape = self.observed_data.shape
+        memory_cache_key = (id(self.model), theta_shape, times_shape)
+
+        # Check memory cache first
+        if memory_cache_key in SVGD._compiled_cache:
+            cached = SVGD._compiled_cache[memory_cache_key]
+            self.compiled_model = cached['model']
+            self.compiled_grad = cached['grad']
+            if self.verbose:
+                print(f"  Using cached compiled functions from memory")
+            return
+
+        # Check disk cache
+        cache_path = self._get_cache_path()
+        if self._load_compiled(cache_path):
+            # Store in memory cache for future instances
+            SVGD._compiled_cache[memory_cache_key] = {
+                'model': self.compiled_model,
+                'grad': self.compiled_grad
+            }
+            return
+
+        # Need to compile
+        if self.verbose:
+            print(f"\nPrecompiling gradient function...")
+            print(f"  Theta shape: {theta_shape}, Times shape: {times_shape}")
+            print(f"  This may take several minutes for large models...")
+
+        # Create dummy inputs with correct shapes
+        dummy_theta = jnp.zeros(theta_shape)
+
+        # JIT compile gradient (use jit without lower/compile so it can be vmapped/pmapped)
+        if self.verbose:
+            print(f"  JIT compiling gradient...")
+        start = time()
+        grad_fn = jax.grad(self._log_prob)
+        self.compiled_grad = jax.jit(grad_fn)
+        # Trigger compilation with dummy call
+        _ = self.compiled_grad(dummy_theta)
+        if self.verbose:
+            print(f"  Gradient JIT compiled in {time() - start:.1f}s")
+            print(f"  Precompilation complete!")
+
+        # Save to both caches
+        SVGD._compiled_cache[memory_cache_key] = {
+            'model': self.compiled_model,
+            'grad': self.compiled_grad
+        }
+        self._save_compiled(cache_path)
+
+    def fit(self, return_history=False):
+        """
+        Run SVGD inference to approximate the posterior distribution.
+
+        Parameters
+        ----------
+        return_history : bool, default=False
+            If True, store particle positions throughout optimization
+
+        Returns
+        -------
+        self
+            Returns self for method chaining
+        """
+        # Create kernel
+        kernel_obj = SVGDKernel(bandwidth=self.kernel_str)
+
+        # Run SVGD
+        if self.verbose:
+            print(f"\nStarting SVGD inference...")
+            print(f"  Model: parameterized phase-type distribution")
+            print(f"  Data points: {len(self.observed_data)}")
+            print(f"  Prior: {'custom' if self.prior is not None else 'standard normal'}")
+
+        results = run_svgd(
+            log_prob_fn=self._log_prob,
+            theta_init=self.theta_init,
+            n_steps=self.n_iterations,
+            learning_rate=self.step_schedule,  # Pass schedule object
+            kernel=kernel_obj,
+            return_history=return_history,
+            verbose=self.verbose,
+            compiled_grad=self.compiled_grad,
+            parallel_mode=self.parallel_mode,
+            n_devices=self.n_devices
+        )
+
+        # Store results as attributes
+        self.particles = results['particles']
+        self.theta_mean = results['theta_mean']
+        self.theta_std = results['theta_std']
+
+        if return_history:
+            self.history = results['history']
+            self.history_iterations = results['history_iterations']
+
+        self.is_fitted = True
+
+        # Print summary with transformed values if verbose
+        if self.verbose:
+            print(f"\nSVGD complete!")
+            transformed_results = self.get_results()
+            print(f"Posterior mean: {transformed_results['theta_mean']}")
+            print(f"Posterior std:  {transformed_results['theta_std']}")
+
+        return self
+
+    def fit_regularized(self, observed_times=None, nr_moments=2,
+                       regularization=1.0, return_history=False):
+        """
+        Run SVGD with moment-based regularization.
+
+        Adds regularization term that penalizes difference between model moments
+        and sample moments, improving stability and convergence.
+
+        The regularized objective is:
+            log p(theta | data) = log p(data|theta) + log p(theta) - λ * Σ_k (E[T^k|theta] - mean(data^k))^2
+
+        Parameters
+        ----------
+        observed_times : array_like, optional
+            Actual observed data points (waiting times, not PMF values).
+            Used for computing sample moments.
+            If None, uses self.observed_data (assumes it contains times, not PMF values).
+        nr_moments : int, default=2
+            Number of moments to use for regularization.
+            Higher moments provide stronger constraints but may be less stable.
+            Example: nr_moments=2 uses E[T] and E[T^2]
+        regularization : float, default=1.0
+            Strength of moment regularization (λ in objective).
+            - 0.0: No regularization (equivalent to standard SVGD)
+            - 0.1-1.0: Mild regularization
+            - 1.0-10.0: Strong regularization
+            Higher values enforce moment matching more strongly.
+        return_history : bool, default=False
+            Whether to store particle history
+
+        Returns
+        -------
+        self
+            Returns self for method chaining
+
+        Raises
+        ------
+        ValueError
+            If model doesn't support moments (wasn't created with pmf_and_moments_from_graph)
+        ValueError
+            If observed_times is None and cannot determine sample moments
+
+        Examples
+        --------
+        >>> # Create parameterized model with moments
+        >>> graph = Graph(callback=coalescent, parameterized=True, nr_samples=4)
+        >>> model = Graph.pmf_and_moments_from_graph(graph, nr_moments=2)
+        >>>
+        >>> # Generate observed data
+        >>> true_theta = jnp.array([0.8])
+        >>> observed_times = jnp.array([0.5, 1.2, 0.8, 1.5, 2.0])
+        >>> observed_pmf = model(true_theta, observed_times)[0]  # Extract PMF values
+        >>>
+        >>> # Run regularized SVGD
+        >>> svgd = SVGD(model, observed_pmf, theta_dim=1)
+        >>> svgd.fit_regularized(observed_times=observed_times, nr_moments=2, regularization=1.0)
+        >>>
+        >>> # Access results
+        >>> print(f"Posterior mean: {svgd.theta_mean}")
+        >>> print(f"Posterior std: {svgd.theta_std}")
+
+        Notes
+        -----
+        - Requires model created with Graph.pmf_and_moments_from_graph()
+        - The regularization term stabilizes inference by matching distribution moments
+        - Particularly useful when observed data is sparse or noisy
+        - Start with regularization=1.0 and adjust based on performance
+        """
+        # Validate that model supports moments
+        if not self.model_returns_moments:
+            raise ValueError(
+                "Model must return both PMF and moments for regularized SVGD. "
+                "Use Graph.pmf_and_moments_from_graph() to create model, not Graph.pmf_from_graph()."
+            )
+
+        # Determine observed times
+        if observed_times is None:
+            # Try to use self.observed_data as times
+            observed_times = self.observed_data
+            if self.verbose:
+                print("Using self.observed_data as observed times for sample moment computation")
+        else:
+            observed_times = jnp.array(observed_times)
+
+        # Compute sample moments from observed data
+        sample_moments = compute_sample_moments(observed_times, nr_moments)
+        if self.verbose:
+            print(f"Sample moments from data: {sample_moments}")
+
+        # Define regularized log-probability function
+        def log_prob_regularized(theta):
+            """
+            Regularized log probability with moment matching term.
+
+            log p(theta | data, moments) = log p(data|theta) + log p(theta) - λ * ||E[T^k|theta] - sample_moments||^2
+            """
+            try:
+                result = self.model(theta, self.observed_data)
+                if isinstance(result, tuple) and len(result) == 2:
+                    pmf_vals, model_moments = result
+                else:
+                    raise ValueError("Model must return (pmf, moments) tuple for regularized SVGD")
+            except Exception as e:
+                raise ValueError(
+                    f"Model evaluation failed. Ensure model signature is model(theta, times) -> (pmf, moments). "
+                    f"Error: {e}"
+                )
+
+            # Standard log-likelihood term
+            log_lik = jnp.sum(jnp.log(pmf_vals + 1e-10))
+
+            # Log-prior term
+            if self.prior is not None:
+                log_pri = self.prior(theta)
+            else:
+                # Default: standard normal prior
+                log_pri = -0.5 * jnp.sum(theta**2)
+
+            # Moment regularization penalty
+            # We want to minimize (model_moments - sample_moments)^2
+            # So we subtract this from log probability
+            moment_diff = model_moments[:nr_moments] - sample_moments
+            moment_penalty = regularization * jnp.sum(moment_diff**2)
+
+            return log_lik + log_pri - moment_penalty
+
+        # Create kernel
+        kernel_obj = SVGDKernel(bandwidth=self.kernel_str)
+
+        # Run SVGD with regularized objective
+        if self.verbose:
+            print(f"\nStarting regularized SVGD inference...")
+            print(f"  Model: parameterized phase-type distribution")
+            print(f"  Data points: {len(self.observed_data)}")
+            print(f"  Prior: {'custom' if self.prior is not None else 'standard normal'}")
+            print(f"  Moment regularization: λ = {regularization}")
+            print(f"  Nr moments: {nr_moments}")
+
+        results = run_svgd(
+            log_prob_fn=log_prob_regularized,
+            theta_init=self.theta_init,
+            n_steps=self.n_iterations,
+            learning_rate=self.learning_rate,
+            kernel=kernel_obj,
+            return_history=return_history,
+            verbose=self.verbose,
+            parallel_mode=self.parallel_mode,
+            n_devices=self.n_devices
+        )
+
+        # Store results as attributes
+        self.particles = results['particles']
+        self.theta_mean = results['theta_mean']
+        self.theta_std = results['theta_std']
+
+        if return_history:
+            self.history = results['history']
+            self.history_iterations = results['history_iterations']
+
+        self.is_fitted = True
+
+        # Store regularization info
+        self.regularization = regularization
+        self.nr_moments = nr_moments
+        self.sample_moments = sample_moments
+
+        # Print summary with transformed values if verbose
+        if self.verbose:
+            print(f"\nSVGD complete!")
+            transformed_results = self.get_results()
+            print(f"Posterior mean: {transformed_results['theta_mean']}")
+            print(f"Posterior std:  {transformed_results['theta_std']}")
+
+        return self
+
+    def get_results(self):
+        """
+        Get inference results as a dictionary.
+
+        Returns
+        -------
+        dict
+            Dictionary containing:
+            - 'particles': Final posterior samples (in constrained space if using transformation)
+            - 'theta_mean': Posterior mean (in constrained space if using transformation)
+            - 'theta_std': Posterior standard deviation (in constrained space if using transformation)
+            - 'history': Particle evolution (if available, in constrained space if using transformation)
+            - 'particles_unconstrained': Particles in unconstrained space (only if using transformation)
+        """
+        if not self.is_fitted:
+            raise RuntimeError("Must call fit() before accessing results")
+
+        # Transform particles to constrained space if transformation is active
+        if self.param_transform is not None:
+            particles_constrained = jnp.array([self.param_transform(p) for p in self.particles])
+            theta_mean = particles_constrained.mean(axis=0)
+            theta_std = particles_constrained.std(axis=0)
+
+            results = {
+                'particles': particles_constrained,
+                'theta_mean': theta_mean,
+                'theta_std': theta_std,
+                'particles_unconstrained': self.particles,  # Also return unconstrained
+            }
+
+            if self.history is not None:
+                # Transform history as well
+                history_constrained = jnp.array([[self.param_transform(p) for p in step] for step in self.history])
+                results['history'] = history_constrained
+                results['history_unconstrained'] = self.history
+        else:
+            results = {
+                'particles': self.particles,
+                'theta_mean': self.theta_mean,
+                'theta_std': self.theta_std,
+            }
+
+            if self.history is not None:
+                results['history'] = self.history
+
+        return results
+
+    def plot_posterior(self, true_theta=None, param_names=None, bins=20,
+                      figsize=None, save_path=None, show_transformed=True):
+        """
+        Plot posterior distributions for each parameter.
+
+        Parameters
+        ----------
+        true_theta : array_like, optional
+            True parameter values (if known) to overlay on plot
+        param_names : list of str, optional
+            Names for each parameter dimension
+        bins : int, default=20
+            Number of histogram bins
+        figsize : tuple, optional
+            Figure size (width, height)
+        save_path : str, optional
+            Path to save the plot
+        show_transformed : bool, default=True
+            If True, show transformed (constrained) parameter values.
+            If False, show untransformed (unconstrained) values.
+            Only relevant when using parameter transformations.
+
+        Returns
+        -------
+        fig, axes
+            Matplotlib figure and axes objects
+        """
+        if not self.is_fitted:
+            raise RuntimeError("Must call fit() before plotting")
+
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            raise ImportError("matplotlib is required for plotting. Install with: pip install matplotlib")
+
+        # Get appropriate particle representation
+        results = self.get_results()
+        if show_transformed or self.param_transform is None:
+            if not show_transformed and self.param_transform is None:
+                raise ValueError(
+                    "show_transformed=False has no effect when no parameter transformation is used. "
+                    "Either set show_transformed=True, or use positive_params=True / param_transform "
+                    "to enable parameter transformation."
+                )
+            particles = results['particles']
+            theta_mean = results['theta_mean']
+            space_label = " (transformed)" if self.param_transform is not None else ""
+        else:
+            particles = results.get('particles_unconstrained', results['particles'])
+            theta_mean = jnp.mean(particles, axis=0)
+            space_label = " (untransformed)"
+
+        n_params = self.theta_dim
+
+        # Determine subplot layout
+        if n_params == 1:
+            nrows, ncols = 1, 1
+            figsize = figsize or (6, 4)
+        elif n_params == 2:
+            nrows, ncols = 1, 2
+            figsize = figsize or (12, 4)
+        else:
+            ncols = min(3, n_params)
+            nrows = (n_params + ncols - 1) // ncols
+            figsize = figsize or (4 * ncols, 4 * nrows)
+
+        fig, axes = plt.subplots(nrows, ncols, figsize=figsize, squeeze=False)
+        axes = axes.flatten()
+
+        for i in range(n_params):
+            ax = axes[i]
+
+            # Histogram of posterior samples
+            ax.hist(particles[:, i], bins=bins, alpha=0.7, density=True,
+                   edgecolor='black', label='Posterior')
+
+            # Posterior mean
+            ax.axvline(theta_mean[i], color='blue', linestyle='--',
+                      linewidth=2, label=f'Mean = {theta_mean[i]:.3f}')
+
+            # True value (if provided)
+            if true_theta is not None:
+                true_val = jnp.array(true_theta)[i]
+                ax.axvline(true_val, color='red', linestyle='--',
+                          linewidth=2, label=f'True = {true_val:.3f}')
+
+            # Labels
+            param_name = param_names[i] if param_names else f'θ_{i}'
+            ax.set_xlabel(param_name + space_label, fontsize=12)
+            ax.set_ylabel('Density', fontsize=12)
+            ax.set_title(f'Posterior: {param_name}', fontsize=14)
+            ax.legend()
+            ax.grid(alpha=0.3)
+
+        # Hide unused subplots
+        for i in range(n_params, len(axes)):
+            axes[i].axis('off')
+
+        plt.tight_layout()
+
+        if save_path:
+            plt.savefig(save_path, dpi=150, bbox_inches='tight')
+            if self.verbose:
+                print(f"Plot saved to: {save_path}")
+
+        return fig, axes
+
+    def plot_trace(self, param_names=None, figsize=None,
+                   burnin=0, max_particles=None, save_path=None, show_transformed=True,
+                   ):
+        """
+        Plot trace plots showing particle evolution over iterations.
+
+        Requires fit() to have been called with return_history=True.
+
+        Parameters
+        ----------
+        param_names : list of str, optional
+            Names for each parameter dimension
+        figsize : tuple, optional
+            Figure size (width, height)
+        burnin : int, optional
+            Number of initial iterations to skip. Defaults to 0.
+        max_particles : int, optional
+            Max number of particles to plot. Defaults to all particles.
+        save_path : str, optional
+            Path to save the plot
+        show_transformed : bool, default=True
+            If True, show transformed (constrained) parameter values.
+            If False, show untransformed (unconstrained) values.
+            Only relevant when using parameter transformations.
+
+        Returns
+        -------
+        fig, axes
+            Matplotlib figure and axes objects
+        """
+        if not self.is_fitted:
+            raise RuntimeError("Must call fit() before plotting")
+
+        if self.history is None:
+            raise RuntimeError("History not available. Call fit(return_history=True) first")
+
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            raise ImportError("matplotlib is required for plotting. Install with: pip install matplotlib")
+
+        # Get appropriate history representation
+        results = self.get_results()
+        if show_transformed or self.param_transform is None:
+            if not show_transformed and self.param_transform is None:
+                raise ValueError(
+                    "show_transformed=False has no effect when no parameter transformation is used. "
+                    "Either set show_transformed=True, or use positive_params=True / param_transform "
+                    "to enable parameter transformation."
+                )
+            history = results.get('history', self.history)
+            theta_mean = results['theta_mean']
+            space_label = " (transformed)" if self.param_transform is not None else ""
+        else:
+            history = results.get('history_unconstrained', self.history)
+            theta_mean = jnp.mean(history[-1], axis=0)
+            space_label = " (untransformed)"
+
+        n_params = self.theta_dim
+
+        cols = int(n_params > 1) + 1
+        rows = n_params // 2 + n_params % 2
+
+        # Determine subplot layout
+        if n_params == 1:
+            figsize = figsize or (6, 5)
+        else:
+            figsize = figsize or (min(14, 3.5 * cols), min(12, 2.7 * rows))
+
+        fig, axes = plt.subplots(rows, cols, figsize=figsize, squeeze=False)
+        axes = axes.flatten()
+
+        # Convert history to array: (n_snapshots, n_particles, theta_dim)
+        history_array = jnp.stack(history)
+        n_snapshots = len(history)
+
+        # for i in range(n_params):
+            # ax = axes[i]
+        for i, ax in enumerate(axes):
+
+            if i >= n_params:
+                ax.axis('off')
+                continue
+
+            # Plot each particle's trajectory
+            max_plotted = self.n_particles if max_particles is None else max_particles
+            print(max_plotted)
+            for p in range(max_plotted):  # Plot first 10 particles
+                y = history_array[:, p, i]
+                x = np.arange(y.size)
+                ax.plot(x[burnin:], y[burnin:], alpha=0.5, linewidth=1)
+
+            # Plot mean trajectory
+            mean_trajectory = jnp.mean(history_array[:, :, i], axis=1)
+            y = mean_trajectory
+            x = np.arange(y.size)
+
+            ax.plot(x[burnin:], y[burnin:], color='black', linewidth=2,
+                   label=f'Mean = {theta_mean[i]:.3f}')
+
+            # Labels
+            param_name = param_names[i] if param_names else f'θ_{i}'
+            ax.set_xlabel('SVGD Iteration', fontsize=12)
+            ax.set_ylabel(param_name + space_label, fontsize=12)
+            ax.set_title(f'Trace: {param_name}', fontsize=14)
+            ax.legend()
+#            ax.grid(alpha=0.3)
+
+        plt.tight_layout()
+
+        if save_path:
+            plt.savefig(save_path, dpi=150, bbox_inches='tight')
+            if self.verbose:
+                print(f"Plot saved to: {save_path}")
+
+        return fig, axes
+
+    def plot_convergence(self, figsize=(7, 3), save_path=None, burnin=0, show_transformed=True):
+        """
+        Plot convergence diagnostics showing mean and std over iterations.
+
+        Requires fit() to have been called with return_history=True.
+
+        Parameters
+        ----------
+        figsize : tuple, default=(7, 4)
+            Figure size (width, height)
+        save_path : str, optional
+            Path to save the plot
+        burnin : int, optional
+            Number of initial iterations to skip. Defaults to 0.
+        show_transformed : bool, default=True
+            If True, show transformed (constrained) parameter values.
+            If False, show untransformed (unconstrained) values.
+            Only relevant when using parameter transformations.
+
+        Returns
+        -------
+        fig, axes
+            Matplotlib figure and axes objects
+        """
+        if not self.is_fitted:
+            raise RuntimeError("Must call fit() before plotting")
+
+        if self.history is None:
+            raise RuntimeError("History not available. Call fit(return_history=True) first")
+
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            raise ImportError("matplotlib is required for plotting. Install with: pip install matplotlib")
+
+        # Get appropriate history representation
+        results = self.get_results()
+        if show_transformed or self.param_transform is None:
+            if not show_transformed and self.param_transform is None:
+                raise ValueError(
+                    "show_transformed=False has no effect when no parameter transformation is used. "
+                    "Either set show_transformed=True, or use positive_params=True / param_transform "
+                    "to enable parameter transformation."
+                )
+            history = results.get('history', self.history)
+            space_label = " (transformed)" if self.param_transform is not None else ""
+        else:
+            history = results.get('history_unconstrained', self.history)
+            space_label = " (untransformed)"
+
+        # Convert history to array
+        history_array = jnp.stack(history)
+
+        # Compute mean and std at each snapshot
+        mean_over_time = jnp.mean(history_array, axis=1)  # (n_snapshots, theta_dim)
+        std_over_time = jnp.std(history_array, axis=1)    # (n_snapshots, theta_dim)
+
+        # Get iteration numbers for x-axis
+        iterations = self.history_iterations if self.history_iterations is not None else range(len(history))
+
+        fig, axes = plt.subplots(1, 2, figsize=figsize)
+        ax1, ax2 = axes
+
+        # Plot 1: Mean convergence
+        for i in range(self.theta_dim):
+            param_name = f'θ_{i}'
+            x, y = iterations, mean_over_time[:, i]
+            ax1.plot(x[burnin:], y[burnin:], label=param_name, linewidth=2)
+
+        ax1.set_xlabel('SVGD Iteration', fontsize=12)
+        ax1.set_ylabel('Posterior Mean' + space_label, fontsize=12)
+        ax1.set_title('Mean Convergence', fontsize=14)
+        ax1.legend()
+        ax1.grid(alpha=0.3)
+
+        # Plot 2: Std convergence
+        for i in range(self.theta_dim):
+            param_name = f'θ_{i}'
+            x, y = iterations, std_over_time[:, i]
+            ax2.plot(x[burnin:], y[burnin:], label=param_name, linewidth=2)
+
+        ax2.set_xlabel('SVGD Iteration', fontsize=12)
+        ax2.set_ylabel('Posterior Std' + space_label, fontsize=12)
+        ax2.set_title('Std Convergence', fontsize=14)
+        ax2.legend()
+        ax2.grid(alpha=0.3)
+
+        plt.tight_layout()
+
+        if save_path:
+            plt.savefig(save_path, dpi=150, bbox_inches='tight')
+            if self.verbose:
+                print(f"Plot saved to: {save_path}")
+
+        return fig, axes
+
+    # ========================================================================
+    # Convergence Analysis and Diagnostics
+    # ========================================================================
+
+    def _compute_particle_diversity(self, particles):
+        """
+        Compute particle diversity metrics.
+
+        Parameters
+        ----------
+        particles : array (n_particles, theta_dim)
+            Particle positions
+
+        Returns
+        -------
+        dict
+            'mean_distance': Mean pairwise distance
+            'min_distance': Minimum pairwise distance
+            'ess': Effective sample size estimate
+        """
+        n_particles = particles.shape[0]
+
+        # Compute pairwise distances
+        distances = jnp.array([
+            jnp.linalg.norm(particles[i] - particles[j])
+            for i in range(n_particles)
+            for j in range(i + 1, n_particles)
+        ])
+
+        mean_dist = jnp.mean(distances)
+        min_dist = jnp.min(distances)
+
+        # Estimate ESS from particle weights (uniform weights for SVGD)
+        # Use inverse participation ratio: ESS ≈ 1 / sum(w_i^2)
+        # For SVGD, approximate based on particle spread
+        particle_var = jnp.var(particles, axis=0)
+        overall_var = jnp.mean(particle_var)
+
+        # Rough ESS estimate: higher variance → better ESS
+        # Normalize by expected variance for uniform particles
+        ess_estimate = n_particles * (overall_var / (overall_var + 1e-10))
+
+        return {
+            'mean_distance': float(mean_dist),
+            'min_distance': float(min_dist),
+            'ess': float(ess_estimate),
+            'ess_ratio': float(ess_estimate / n_particles)
+        }
+
+    def _detect_convergence_point(self, trajectory, window=50, threshold=0.01):
+        """
+        Detect iteration where trajectory converged.
+
+        Parameters
+        ----------
+        trajectory : array (n_iterations,)
+            Trajectory of mean or std over iterations
+        window : int
+            Window size for stability check
+        threshold : float
+            Relative change threshold for convergence
+
+        Returns
+        -------
+        int or None
+            Iteration where converged, or None if not converged
+        """
+        if len(trajectory) < window * 2:
+            return None
+
+        for i in range(window, len(trajectory) - window):
+            # Check if trajectory is stable in window around this point
+            window_vals = trajectory[i:i + window]
+            mean_val = jnp.mean(window_vals)
+
+            if abs(mean_val) < 1e-10:
+                continue  # Skip if near zero
+
+            # Compute relative variation
+            rel_var = jnp.std(window_vals) / abs(mean_val)
+
+            if rel_var < threshold:
+                return i
+
+        return None
+
+    def _detect_variance_collapse(self, history_array):
+        """
+        Detect if particles collapsed to same value (variance collapse).
+
+        Parameters
+        ----------
+        history_array : array (n_iterations, n_particles, theta_dim)
+            Full particle history
+
+        Returns
+        -------
+        dict
+            'collapsed': bool
+            'collapse_iteration': int or None
+            'final_diversity': float
+        """
+        n_iterations = history_array.shape[0]
+
+        # Check variance over time
+        std_over_time = jnp.std(history_array, axis=1)  # (n_iterations, theta_dim)
+        mean_std_over_time = jnp.mean(std_over_time, axis=1)  # (n_iterations,)
+
+        # Check if std drops to near-zero
+        final_std = mean_std_over_time[-1]
+        max_std = jnp.max(mean_std_over_time)
+
+        collapsed = final_std < 0.01 * max_std
+
+        # Find when collapse happened
+        collapse_iter = None
+        if collapsed:
+            threshold = 0.1 * max_std
+            for i in range(len(mean_std_over_time)):
+                if mean_std_over_time[i] < threshold:
+                    collapse_iter = i
+                    break
+
+        return {
+            'collapsed': bool(collapsed),
+            'collapse_iteration': int(collapse_iter) if collapse_iter is not None else None,
+            'final_diversity': float(final_std),
+            'max_diversity': float(max_std)
+        }
+
+    def _suggest_learning_rate(self, diagnostics):
+        """
+        Suggest learning rate improvements based on diagnostics.
+
+        Parameters
+        ----------
+        diagnostics : dict
+            Diagnostics from analyze_trace
+
+        Returns
+        -------
+        dict
+            'recommended': schedule object or float
+            'reason': str explaining suggestion
+        """
+        # Extract key metrics
+        converged = diagnostics['converged']
+        conv_point = diagnostics.get('convergence_point')
+        n_iterations = diagnostics['n_iterations']
+        variance_collapsed = diagnostics['variance_collapse']['collapsed']
+
+        # Get current learning rate info
+        current_schedule = self.step_schedule
+
+        # Decision logic
+        if variance_collapsed:
+            return {
+                'recommended': ExponentialDecayStepSize(
+                    max_step=0.005, min_step=0.0005, tau=500.0
+                ),
+                'reason': 'Variance collapsed - reduce learning rate significantly'
+            }
+        elif not converged:
+            # Not converged - might need more iterations or different schedule
+            if isinstance(current_schedule, ConstantStepSize):
+                return {
+                    'recommended': ExponentialDecayStepSize(
+                        max_step=current_schedule.step_size * 1.5,
+                        min_step=current_schedule.step_size * 0.1,
+                        tau=n_iterations * 0.5
+                    ),
+                    'reason': 'Not converged - use decay schedule for better convergence'
+                }
+            else:
+                return {
+                    'recommended': 'increase n_iterations',
+                    'reason': 'Not converged within current iterations'
+                }
+        elif conv_point and conv_point < n_iterations * 0.5:
+            # Converged very early - could use higher learning rate
+            if isinstance(current_schedule, ConstantStepSize):
+                return {
+                    'recommended': current_schedule.step_size * 1.5,
+                    'reason': f'Converged early (iteration {conv_point}) - could converge faster'
+                }
+            else:
+                return {
+                    'recommended': 'current schedule is good',
+                    'reason': 'Converged efficiently'
+                }
+        else:
+            return {
+                'recommended': 'current learning rate is appropriate',
+                'reason': 'Good convergence behavior'
+            }
+
+    def _suggest_particles(self, diagnostics):
+        """
+        Suggest particle count based on diagnostics.
+
+        Parameters
+        ----------
+        diagnostics : dict
+            Diagnostics from analyze_trace
+
+        Returns
+        -------
+        dict
+            'recommended': int
+            'reason': str
+        """
+        current_n = self.n_particles
+        ess_ratio = diagnostics['diversity']['ess_ratio']
+        variance_collapsed = diagnostics['variance_collapse']['collapsed']
+
+        if variance_collapsed:
+            return {
+                'recommended': current_n * 2,
+                'reason': 'Variance collapse detected - increase particles for diversity'
+            }
+        elif ess_ratio < 0.5:
+            return {
+                'recommended': int(current_n * 1.5),
+                'reason': f'Low ESS ratio ({ess_ratio:.2f}) - increase particles'
+            }
+        elif ess_ratio > 0.9:
+            return {
+                'recommended': max(20, int(current_n * 0.8)),
+                'reason': f'High ESS ratio ({ess_ratio:.2f}) - could reduce particles'
+            }
+        else:
+            return {
+                'recommended': current_n,
+                'reason': 'Particle count is appropriate'
+            }
+
+    def analyze_trace(self, burnin=None, verbose=True, return_dict=False):
+        """
+        Analyze SVGD convergence and suggest parameter improvements.
+
+        Computes convergence diagnostics, detects issues, and recommends
+        parameter updates for better performance.
+
+        Parameters
+        ----------
+        burnin : int, optional
+            Number of initial iterations to discard as burn-in.
+            If None, auto-detects using convergence detection.
+        verbose : bool, default=True
+            Print detailed diagnostic report
+        return_dict : bool, default=False
+            Return full diagnostics dictionary
+
+        Returns
+        -------
+        dict or None
+            If return_dict=True, returns diagnostics dictionary with:
+            - 'converged': bool - Whether SVGD converged
+            - 'convergence_point': int or None - Iteration where converged
+            - 'diversity': dict - Particle diversity metrics
+            - 'variance_collapse': dict - Variance collapse diagnostics
+            - 'suggestions': dict - Recommended parameter updates
+            - 'issues': list - Detected problems
+
+        Raises
+        ------
+        RuntimeError
+            If fit() not called or history not available
+
+        Examples
+        --------
+        >>> svgd = SVGD(model, data, theta_dim=1, n_iterations=1000)
+        >>> svgd.fit(return_history=True)
+        >>> svgd.analyze_trace()  # Prints diagnostic report
+
+        >>> # Get full diagnostics
+        >>> diag = svgd.analyze_trace(return_dict=True, verbose=False)
+        >>> if not diag['converged']:
+        >>>     print("Need more iterations!")
+        """
+        if not self.is_fitted:
+            raise RuntimeError("Must call fit() before analyzing trace")
+
+        if self.history is None:
+            raise RuntimeError(
+                "History not available. Call fit(return_history=True) first"
+            )
+
+        # Get history in appropriate space
+        results = self.get_results()
+        if self.param_transform is not None:
+            history = results.get('history', self.history)
+            space_label = " (transformed)"
+        else:
+            history = self.history
+            space_label = ""
+
+        # Convert to array
+        history_array = jnp.stack(history)  # (n_iterations, n_particles, theta_dim)
+        n_iterations, n_particles, theta_dim = history_array.shape
+
+        # Compute trajectories
+        mean_over_time = jnp.mean(history_array, axis=1)  # (n_iterations, theta_dim)
+        std_over_time = jnp.std(history_array, axis=1)    # (n_iterations, theta_dim)
+
+        # Average across dimensions for overall convergence
+        mean_trajectory = jnp.mean(mean_over_time, axis=1)
+        std_trajectory = jnp.mean(std_over_time, axis=1)
+
+        # Detect convergence
+        mean_conv_point = self._detect_convergence_point(mean_trajectory, window=50, threshold=0.01)
+        std_conv_point = self._detect_convergence_point(std_trajectory, window=50, threshold=0.05)
+
+        converged = mean_conv_point is not None
+
+        # Auto-detect burnin if not provided
+        if burnin is None:
+            burnin = mean_conv_point if mean_conv_point is not None else int(n_iterations * 0.2)
+
+        # Compute particle diversity
+        final_particles = history_array[-1]
+        diversity = self._compute_particle_diversity(final_particles)
+
+        # Detect variance collapse
+        variance_collapse = self._detect_variance_collapse(history_array)
+
+        # Build diagnostics dict
+        diagnostics = {
+            'converged': converged,
+            'convergence_point': mean_conv_point,
+            'std_convergence_point': std_conv_point,
+            'n_iterations': n_iterations,
+            'n_particles': n_particles,
+            'theta_dim': theta_dim,
+            'diversity': diversity,
+            'variance_collapse': variance_collapse,
+            'burnin': burnin,
+        }
+
+        # Get suggestions
+        lr_suggestion = self._suggest_learning_rate(diagnostics)
+        particle_suggestion = self._suggest_particles(diagnostics)
+
+        # Detect issues
+        issues = []
+        if variance_collapse['collapsed']:
+            issues.append(f"⚠ Variance collapse at iteration {variance_collapse['collapse_iteration']}")
+        if not converged:
+            issues.append("⚠ Did not converge within n_iterations")
+        if diversity['ess_ratio'] < 0.5:
+            issues.append(f"⚠ Low effective sample size ({diversity['ess_ratio']:.1%})")
+        if converged and mean_conv_point < n_iterations * 0.7:
+            pct = mean_conv_point / n_iterations * 100
+            issues.append(f"ℹ Converged at {pct:.1f}% of iterations - could reduce n_iterations")
+
+        diagnostics['issues'] = issues
+        diagnostics['suggestions'] = {
+            'learning_rate': lr_suggestion,
+            'n_particles': particle_suggestion
+        }
+
+        # Print report if verbose
+        if verbose:
+            self._print_analysis_report(diagnostics, space_label)
+
+        if return_dict:
+            return diagnostics
+
+    def _print_analysis_report(self, diag, space_label=""):
+        """Print formatted analysis report."""
+        print("=" * 80)
+        print("SVGD Convergence Analysis")
+        print("=" * 80)
+        print()
+
+        # Convergence status
+        if diag['converged']:
+            print(f"✓ CONVERGED (iteration {diag['convergence_point']}/{diag['n_iterations']})")
+            print(f"  Mean stabilized at iteration {diag['convergence_point']}")
+            if diag['std_convergence_point']:
+                print(f"  Std stabilized at iteration {diag['std_convergence_point']}")
+        else:
+            print(f"✗ NOT CONVERGED after {diag['n_iterations']} iterations")
+
+        print()
+        print("Particle Diversity:")
+        div = diag['diversity']
+        print(f"  Mean inter-particle distance: {div['mean_distance']:.3f}")
+        print(f"  Effective sample size (ESS): {div['ess']:.1f} / {diag['n_particles']} particles ({div['ess_ratio']:.1%})")
+
+        if div['ess_ratio'] > 0.7:
+            print("  ✓ Good particle diversity")
+        elif div['ess_ratio'] > 0.5:
+            print("  ⚠ Moderate particle diversity")
+        else:
+            print("  ✗ Low particle diversity")
+
+        if diag['variance_collapse']['collapsed']:
+            print()
+            print("Variance Collapse:")
+            vc = diag['variance_collapse']
+            print(f"  ✗ Particles collapsed at iteration {vc['collapse_iteration']}")
+            print(f"  Final diversity: {vc['final_diversity']:.4f} (max was {vc['max_diversity']:.4f})")
+
+        # Issues
+        if diag['issues']:
+            print()
+            print("Detected Issues:")
+            for issue in diag['issues']:
+                print(f"  {issue}")
+
+        # Suggestions
+        print()
+        print("=" * 80)
+        print("Suggested Parameter Updates")
+        print("=" * 80)
+        print()
+
+        print("Current Configuration:")
+        print(f"  learning_rate={self.step_schedule}")
+        print(f"  n_particles={self.n_particles}")
+        print(f"  n_iterations={self.n_iterations}")
+        print()
+
+        # Learning rate suggestion
+        lr_sug = diag['suggestions']['learning_rate']
+        print(f"Learning Rate: {lr_sug['reason']}")
+        if isinstance(lr_sug['recommended'], str):
+            print(f"  Recommendation: {lr_sug['recommended']}")
+        elif isinstance(lr_sug['recommended'], ExponentialDecayStepSize):
+            sched = lr_sug['recommended']
+            print(f"  Recommendation: ExponentialDecayStepSize(")
+            print(f"      max_step={sched.max_step},")
+            print(f"      min_step={sched.min_step},")
+            print(f"      tau={sched.tau}")
+            print(f"  )")
+        else:
+            print(f"  Recommendation: {lr_sug['recommended']}")
+
+        print()
+
+        # Particle suggestion
+        part_sug = diag['suggestions']['n_particles']
+        print(f"Particles: {part_sug['reason']}")
+        if part_sug['recommended'] != self.n_particles:
+            print(f"  Recommendation: n_particles={part_sug['recommended']}")
+        else:
+            print(f"  Recommendation: Keep n_particles={self.n_particles}")
+
+        print()
+
+        # Iteration suggestion
+        if diag['converged'] and diag['convergence_point'] < diag['n_iterations'] * 0.8:
+            suggested_iters = int(diag['convergence_point'] * 1.2)  # Add 20% buffer
+            print(f"Iterations: Converged early")
+            print(f"  Recommendation: Could reduce to n_iterations={suggested_iters}")
+            print()
+        elif not diag['converged']:
+            suggested_iters = int(diag['n_iterations'] * 1.5)
+            print(f"Iterations: Did not converge")
+            print(f"  Recommendation: Increase to n_iterations={suggested_iters}")
+            print()
+
+        print("=" * 80)
+
+    def plot_pairwise(self, true_theta=None, param_names=None,
+                     figsize=None, save_path=None, show_transformed=True):
+        """
+        Plot pairwise scatter plots for all parameter pairs.
+
+        Parameters
+        ----------
+        true_theta : array_like, optional
+            True parameter values (if known) to overlay on plot
+        param_names : list of str, optional
+            Names for each parameter dimension
+        figsize : tuple, optional
+            Figure size (width, height)
+        save_path : str, optional
+            Path to save the plot
+        show_transformed : bool, default=True
+            If True, show transformed (constrained) parameter values.
+            If False, show untransformed (unconstrained) values.
+            Only relevant when using parameter transformations.
+
+        Returns
+        -------
+        fig, axes
+            Matplotlib figure and axes objects
+        """
+        if not self.is_fitted:
+            raise RuntimeError("Must call fit() before plotting")
+
+        if self.theta_dim < 2:
+            raise ValueError("Pairwise plots require at least 2 parameters")
+
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            raise ImportError("matplotlib is required for plotting. Install with: pip install matplotlib")
+
+        # Get appropriate particle representation
+        results = self.get_results()
+        if show_transformed or self.param_transform is None:
+            if not show_transformed and self.param_transform is None:
+                raise ValueError(
+                    "show_transformed=False has no effect when no parameter transformation is used. "
+                    "Either set show_transformed=True, or use positive_params=True / param_transform "
+                    "to enable parameter transformation."
+                )
+            particles = results['particles']
+            space_label = " (transformed)" if self.param_transform is not None else ""
+        else:
+            particles = results.get('particles_unconstrained', results['particles'])
+            space_label = " (untransformed)"
+
+        n_params = self.theta_dim
+        figsize = figsize or (min(14, 3 * n_params), min(12, 2.3 * n_params))
+
+        fig, axes = plt.subplots(n_params, n_params, figsize=figsize)
+
+        for i in range(n_params):
+            for j in range(n_params):
+                ax = axes[i, j]
+
+                if i == j:
+                    # Diagonal: histogram
+                    ax.hist(particles[:, i], bins=20, alpha=0.7,
+                           edgecolor='black')
+                    param_name = param_names[i] if param_names else f'θ_{i}'
+                    ax.set_ylabel('Count')
+
+                    if true_theta is not None:
+                        true_val = jnp.array(true_theta)[i]
+                        ax.axvline(true_val, color='red', linestyle='--', linewidth=2)
+                else:
+                    # Off-diagonal: scatter plot
+                    ax.scatter(particles[:, j], particles[:, i],
+                             alpha=0.5, s=20)
+
+                    if true_theta is not None:
+                        true_val_i = jnp.array(true_theta)[i]
+                        true_val_j = jnp.array(true_theta)[j]
+                        ax.scatter([true_val_j], [true_val_i], color='red',
+                                 s=100, marker='x', linewidths=3)
+
+                # Labels
+                if i == n_params - 1:
+                    param_name_j = param_names[j] if param_names else f'θ_{j}'
+                    ax.set_xlabel(param_name_j + space_label)
+                if j == 0:
+                    param_name_i = param_names[i] if param_names else f'θ_{i}'
+                    ax.set_ylabel(param_name_i + space_label)
+
+                ax.grid(alpha=0.3)
+
+        plt.tight_layout()
+
+        if save_path:
+            plt.savefig(save_path, dpi=150, bbox_inches='tight')
+            if self.verbose:
+                print(f"Plot saved to: {save_path}")
+
+        return fig, axes
+
+    def _validate_animation_params(self, skip):
+        """Validate common animation parameters and import dependencies."""
+        if not self.is_fitted:
+            raise RuntimeError("Must call fit() before animating")
+
+        if self.history is None:
+            raise RuntimeError(
+                "No history available. Call fit(return_history=True) to record particle evolution."
+            )
+
+        # Validate skip parameter
+        n_iterations = len(self.history)
+        if skip >= n_iterations:
+            raise ValueError(
+                f"skip ({skip}) must be less than number of iterations ({n_iterations})"
+            )
+
+        try:
+            import matplotlib.pyplot as plt
+            from matplotlib.animation import FuncAnimation
+            return plt, FuncAnimation
+        except ImportError:
+            raise ImportError(
+                "matplotlib is required for animation. Install with: pip install matplotlib"
+            )
+
+    def _save_animation(self, anim, save_as_gif, save_as_mp4, interval):
+        """Save animation to file if requested."""
+        if save_as_gif:
+            try:
+                anim.save(save_as_gif, writer='pillow', fps=int(1000/interval))
+                if self.verbose:
+                    print(f"Animation saved as GIF: {save_as_gif}")
+            except Exception as e:
+                print(f"Warning: Could not save GIF: {e}")
+
+        if save_as_mp4:
+            try:
+                anim.save(save_as_mp4, writer='ffmpeg', fps=int(1000/interval))
+                if self.verbose:
+                    print(f"Animation saved as MP4: {save_as_mp4}")
+            except Exception as e:
+                print(f"Warning: Could not save MP4: {e}")
+
+    def _return_animation_html(self, anim):
+        """Return animation as HTML for Jupyter display."""
+        try:
+            from IPython.display import HTML
+            return HTML(anim.to_jshtml())
+        except ImportError:
+            print("Warning: IPython not available. Returning animation object.")
+            return anim
+
+    def animate(self, param_idx=0, true_theta=None, param_name=None,
+                figsize=(8, 6), skip=0, thin=20, interval=100, bins=30,
+                show_particles=True, max_particles=20,
+                save_as_gif=None, save_as_mp4=None, show_transformed=True):
+        """
+        Create an animation showing the evolution of a single parameter's distribution.
+
+        This method creates a side-by-side animation with:
+        - Left panel: Histogram of current parameter distribution
+        - Right panel: Particle trajectories over time
+
+        Parameters
+        ----------
+        param_idx : int, default=0
+            Index of the parameter to animate (0-indexed)
+        true_theta : array_like, optional
+            True parameter values. If provided, will overlay the true value for param_idx.
+        param_name : str, optional
+            Name for the parameter (e.g., 'jump rate'). If None, uses 'θ_{param_idx}'.
+        figsize : tuple, default=(8, 6)
+            Figure size (width, height)
+        skip : int, default=0
+            Number of initial iterations to skip in the animation
+        thin : int, thin=20
+            Interval of interations to plot/annimate.
+        interval : int, default=100
+            Delay between frames in milliseconds
+        bins : int, default=30
+            Number of histogram bins
+        show_particles : bool, default=True
+            If True, show individual particle trajectories in right panel
+        max_particles : int, default=20
+            Maximum number of particle trajectories to show (for clarity)
+        save_as_gif : str, optional
+            Path to save animation as GIF (requires pillow)
+        save_as_mp4 : str, optional
+            Path to save animation as MP4 (requires ffmpeg)
+        show_transformed : bool, default=True
+            If True, show transformed (constrained) parameter values.
+            If False, show untransformed (unconstrained) values.
+            Only relevant when using parameter transformations.
+
+        Returns
+        -------
+        IPython.display.HTML
+            Animation as HTML for Jupyter notebook display
+
+        Examples
+        --------
+        >>> svgd = SVGD(model, data, theta_dim=3, n_iterations=100)
+        >>> svgd.fit(return_history=True)
+        >>> anim = svgd.animate(param_idx=0, true_theta=[2.0, 3.0, 2.0],
+        ...                     param_name='jump rate')
+        """
+        plt, FuncAnimation = self._validate_animation_params(skip)
+
+        if param_idx < 0 or param_idx >= self.theta_dim:
+            raise ValueError(f"param_idx ({param_idx}) out of range [0, {self.theta_dim-1}]")
+
+        # Get appropriate history representation
+        results = self.get_results()
+        if show_transformed or self.param_transform is None:
+            if not show_transformed and self.param_transform is None:
+                raise ValueError(
+                    "show_transformed=False has no effect when no parameter transformation is used. "
+                    "Either set show_transformed=True, or use positive_params=True / param_transform "
+                    "to enable parameter transformation."
+                )
+            full_history = results.get('history', self.history)
+            space_label = " (transformed)" if self.param_transform is not None else ""
+        else:
+            full_history = results.get('history_unconstrained', self.history)
+            space_label = " (untransformed)"
+
+        # Get history subset
+        history = jnp.stack(full_history[skip::thin])
+        param_history = history[:, :, param_idx]
+
+        # Compute axis limits
+        param_min = jnp.min(param_history)
+        param_max = jnp.max(param_history)
+        param_range = param_max - param_min
+        param_lim = (param_min - 0.1 * param_range, param_max + 0.1 * param_range)
+
+        param_name = param_name or f'θ_{param_idx}'
+        true_val = jnp.array(true_theta)[param_idx] if true_theta is not None else None
+
+        # Create figure
+        fig, (ax_hist, ax_traj) = plt.subplots(1, 2, figsize=figsize)
+
+        # Setup histogram panel
+        ax_hist.set_xlim(param_lim)
+        ax_hist.set_ylim(0, self.n_particles * 0.4)
+        ax_hist.set_xlabel(param_name + space_label)
+        ax_hist.set_ylabel('Count')
+        ax_hist.set_title('Current Distribution')
+        ax_hist.grid(alpha=0.3)
+        if true_val is not None:
+            ax_hist.axvline(true_val, color='red', linestyle='--',
+                          linewidth=2, label='True value', zorder=10)
+            ax_hist.legend()
+
+        # Setup trajectory panel
+        ax_traj.set_xlim(0, len(history))
+        ax_traj.set_ylim(param_lim)
+        ax_traj.set_xlabel('Iteration')
+        ax_traj.set_ylabel(param_name + space_label)
+        ax_traj.set_title('Particle Trajectories')
+        ax_traj.grid(alpha=0.3)
+        if true_val is not None:
+            ax_traj.axhline(true_val, color='red', linestyle='--',
+                          linewidth=2, label='True value', zorder=10)
+
+        # Initialize trajectory lines
+        particle_lines = []
+        if show_particles:
+            n_show = min(max_particles, self.n_particles)
+            for _ in range(n_show):
+                line, = ax_traj.plot([], [], alpha=0.3, linewidth=1)
+                particle_lines.append(line)
+
+        mean_line, = ax_traj.plot([], [], color='black', linewidth=2.5, label='Mean', zorder=5)
+        current_marker = ax_traj.axvline(0, color='blue', linestyle=':', linewidth=1.5, alpha=0.7)
+        ax_traj.legend()
+
+        iteration_text = fig.text(0.5, 0.98, '', ha='center', va='top',
+                                 fontsize=14, fontweight='bold')
+        plt.tight_layout(rect=[0, 0, 1, 0.96])
+
+        def init():
+            for line in particle_lines:
+                line.set_data([], [])
+            mean_line.set_data([], [])
+            iteration_text.set_text('')
+            return particle_lines + [mean_line, iteration_text]
+
+        def update(frame):
+            particles_current = param_history[frame]
+
+            # Update histogram
+            ax_hist.clear()
+            ax_hist.hist(particles_current, bins=bins, alpha=0.7,
+                        edgecolor='black', range=param_lim)
+            ax_hist.set_xlim(param_lim)
+            ax_hist.set_xlabel(param_name)
+            ax_hist.set_ylabel('Count')
+            ax_hist.set_title('Current Distribution')
+            ax_hist.grid(alpha=0.3)
+            if true_val is not None:
+                ax_hist.axvline(true_val, color='red', linestyle='--', linewidth=2, zorder=10)
+
+            # Update trajectories
+            iterations = jnp.arange(frame + 1)
+            if show_particles:
+                n_show = min(max_particles, self.n_particles)
+                for p in range(n_show):
+                    particle_lines[p].set_data(iterations, param_history[:frame+1, p])
+
+            mean_trajectory = jnp.mean(param_history[:frame+1], axis=1)
+            mean_line.set_data(iterations, mean_trajectory)
+            current_marker.set_xdata([frame, frame])
+            iteration_text.set_text(f'Iteration: {skip + frame}/{skip + len(history) - 1}')
+
+            return particle_lines + [mean_line, iteration_text]
+
+        anim = FuncAnimation(fig, update, frames=len(history),
+                           init_func=init, blit=False, interval=interval)
+        plt.close(fig)
+
+        self._save_animation(anim, save_as_gif, save_as_mp4, interval)
+        return self._return_animation_html(anim)
+
+    def animate_pairwise(self, true_theta=None, param_names=None,
+                        figsize=None, skip=0, thin=20, interval=100,
+                        save_as_gif=None, save_as_mp4=None, show_transformed=True):
+        """
+        Create an animated pairwise scatter plot showing SVGD particle evolution.
+
+        Parameters
+        ----------
+        true_theta : array_like, optional
+            True parameter values (if known) to overlay as red 'x' markers
+        param_names : list of str, optional
+            Names for each parameter dimension (e.g., ['jump', 'flood_left', 'flood_right'])
+        figsize : tuple, optional
+            Figure size (width, height). Auto-sized based on parameter dimension if None.
+        skip : int, default=0
+            Number of initial iterations to skip in the animation
+        thin : int, thin=20
+            Interval of interations to plot/annimate.
+        interval : int, default=100
+            Delay between frames in milliseconds
+        save_as_gif : str, optional
+            Path to save animation as GIF (requires pillow)
+        save_as_mp4 : str, optional
+            Path to save animation as MP4 (requires ffmpeg)
+        show_transformed : bool, default=True
+            If True, show transformed (constrained) parameter values.
+            If False, show untransformed (unconstrained) values.
+            Only relevant when using parameter transformations.
+
+        Returns
+        -------
+        IPython.display.HTML
+            Animation as HTML for Jupyter notebook display
+
+        Raises
+        ------
+        RuntimeError
+            If fit() was not called with return_history=True
+        ImportError
+            If matplotlib or required animation backend is not installed
+
+        Examples
+        --------
+        >>> svgd = SVGD(model, data, theta_dim=3, n_iterations=100)
+        >>> svgd.fit(return_history=True)
+        >>> anim = svgd.animate_pairwise(
+        ...     true_theta=[2.0, 3.0, 2.0],
+        ...     param_names=['jump', 'flood_left', 'flood_right'],
+        ...     save_as_gif='svgd_evolution.gif'
+        ... )
+        """
+        plt, FuncAnimation = self._validate_animation_params(skip)
+
+        if self.theta_dim < 2:
+            raise ValueError("Pairwise plots require at least 2 parameters")
+
+        # Get appropriate history representation
+        results = self.get_results()
+        if show_transformed or self.param_transform is None:
+            if not show_transformed and self.param_transform is None:
+                raise ValueError(
+                    "show_transformed=False has no effect when no parameter transformation is used. "
+                    "Either set show_transformed=True, or use positive_params=True / param_transform "
+                    "to enable parameter transformation."
+                )
+            full_history = results.get('history', self.history)
+            space_label = " (transformed)" if self.param_transform is not None else ""
+        else:
+            full_history = results.get('history_unconstrained', self.history)
+            space_label = " (untransformed)"
+
+        n_params = self.theta_dim
+        figsize = figsize or (min(14, 3 * n_params), min(12, 2.3 * n_params))
+
+        # Get history subset
+        history = full_history[skip::thin]
+
+        # Compute global axis limits based on all history
+        all_particles = jnp.concatenate(history, axis=0)
+        param_mins = jnp.min(all_particles, axis=0)
+        param_maxs = jnp.max(all_particles, axis=0)
+        param_ranges = param_maxs - param_mins
+        param_lims = [(param_mins[i] - 0.1 * param_ranges[i],
+                       param_maxs[i] + 0.1 * param_ranges[i])
+                      for i in range(n_params)]
+
+        # Create figure and axes
+        fig, axes = plt.subplots(n_params, n_params, figsize=figsize)
+
+        # Initialize scatter plots and histograms
+        scatter_plots = {}
+        hist_data = {}
+
+        for i in range(n_params):
+            for j in range(n_params):
+                ax = axes[i, j]
+                ax.set_xlim(param_lims[j])
+
+                if i == j:
+                    # Diagonal: histogram (will be updated each frame)
+                    ax.set_ylim(0, self.n_particles * 0.3)  # Will adjust dynamically
+                    param_name = param_names[i] if param_names else f'θ_{i}'
+                    ax.set_ylabel('Count')
+
+                    if true_theta is not None:
+                        true_val = jnp.array(true_theta)[i]
+                        ax.axvline(true_val, color='red', linestyle='--', linewidth=2, zorder=10)
+
+                    hist_data[(i, j)] = None  # Placeholder for histogram artists
+                else:
+                    # Off-diagonal: scatter plot
+                    ax.set_ylim(param_lims[i])
+                    scatter = ax.scatter([], [], alpha=0.5, s=20)
+                    scatter_plots[(i, j)] = scatter
+
+                    if true_theta is not None:
+                        true_val_i = jnp.array(true_theta)[i]
+                        true_val_j = jnp.array(true_theta)[j]
+                        ax.scatter([true_val_j], [true_val_i], color='red',
+                                 s=100, marker='x', linewidths=3, zorder=10)
+
+                # Labels
+                if i == n_params - 1:
+                    param_name_j = param_names[j] if param_names else f'θ_{j}'
+                    ax.set_xlabel(param_name_j + space_label)
+                if j == 0:
+                    param_name_i = param_names[i] if param_names else f'θ_{i}'
+                    ax.set_ylabel(param_name_i + space_label)
+
+#                ax.grid(alpha=0.3)
+
+        # Add iteration counter
+        iteration_text = fig.text(0.5, 0.98, '', ha='center', va='top',
+                                 fontsize=14, fontweight='bold')
+
+        plt.tight_layout(rect=[0, 0, 1, 0.96])
+
+        def init():
+            """Initialize animation."""
+            for scatter in scatter_plots.values():
+                scatter.set_offsets(jnp.empty((0, 2)))
+            iteration_text.set_text('')
+            return list(scatter_plots.values()) + [iteration_text]
+
+        def update(frame):
+            """Update function for each animation frame."""
+            particles = history[frame]  # Shape: (n_particles, n_params)
+
+            # Update scatter plots
+            for (i, j), scatter in scatter_plots.items():
+                scatter.set_offsets(jnp.column_stack([particles[:, j], particles[:, i]]))
+
+            # Update histograms
+            for i in range(n_params):
+                ax = axes[i, i]
+                ax.clear()
+                ax.hist(particles[:, i], bins=20, alpha=0.7, edgecolor='black', range=param_lims[i])
+                ax.set_xlim(param_lims[i])
+                ax.set_ylabel('Count')
+
+                param_name = param_names[i] if param_names else f'θ_{i}'
+                if i == n_params - 1:
+                    ax.set_xlabel(param_name)
+
+                if true_theta is not None:
+                    true_val = jnp.array(true_theta)[i]
+                    ax.axvline(true_val, color='red', linestyle='--', linewidth=2, zorder=10)
+
+                ax.grid(alpha=0.3)
+
+            # Update iteration counter
+            iteration_text.set_text(f'Iteration: {skip + frame}/{skip + len(history) - 1}')
+
+            return list(scatter_plots.values()) + [iteration_text]
+
+        # Create animation
+        anim = FuncAnimation(fig, update, frames=len(history),
+                           init_func=init, blit=False, interval=interval)
+
+        plt.close(fig)  # Prevent duplicate display in notebooks
+
+        self._save_animation(anim, save_as_gif, save_as_mp4, interval)
+        return self._return_animation_html(anim)
+
+    def summary(self):
+        """Print a summary of the inference results."""
+        if not self.is_fitted:
+            raise RuntimeError("Must call fit() before getting summary")
+
+        # Get transformed results if using parameter transformation
+        results = self.get_results()
+        particles = results['particles']
+        theta_mean = results['theta_mean']
+        theta_std = results['theta_std']
+
+        print("=" * 70)
+        print("SVGD Inference Summary")
+        print("=" * 70)
+        print(f"Number of particles: {self.n_particles}")
+        print(f"Number of iterations: {self.n_iterations}")
+        print(f"Parameter dimension: {self.theta_dim}")
+
+        if self.param_transform is not None:
+            print(f"Parameter transformation: active (positive constraint)")
+
+        print(f"\nPosterior estimates:")
+        for i in range(self.theta_dim):
+            # Compute quantiles directly from particles for accurate CI
+            ci_lower = jnp.percentile(particles[:, i], 2.5)
+            ci_upper = jnp.percentile(particles[:, i], 97.5)
+
+            print(f"  θ_{i}: {theta_mean[i]:.4f} ± {theta_std[i]:.4f}")
+            print(f"       95% CI: [{ci_lower:.4f}, {ci_upper:.4f}]")
+        print("=" * 70)
+
+
+
+

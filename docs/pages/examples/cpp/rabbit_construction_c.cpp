@@ -6,7 +6,7 @@
  * The path is currently ../ as we are in the same repository. This path
  * should be something like [full or relative path to cloned code]/api...
  */
-#include "../api/c/ptdalgorithms.h"
+#include "../api/c/phasic.h"
 
 /*
  * Including a .c file is very strange usually!
@@ -14,8 +14,8 @@
  * you would usually expect. Therefore this is by far
  * the easiest way of importing the code.
  */
-#include "../src/c/ptdalgorithms.c"
-#include "../api/cpp/ptdalgorithmscpp.h"
+#include "../src/c/phasic.c"
+#include "../api/cpp/phasiccpp.h"
 
 /* This is the binding layer such that R can invoke this function */
 #include <Rcpp.h>
@@ -115,15 +115,15 @@ SEXP construct_rabbit_graph(int starting_rabbits, float flooding_left, float flo
      * It has memory management by destructure, so no need
      * to manually free when done using.
      */
-    ptdalgorithms::Graph *result = new ptdalgorithms::Graph(graph, avl_tree);
+    phasic::Graph *result = new phasic::Graph(graph, avl_tree);
 
     /*
      * Use Rcpp to make this C++ instance visible to R. This is the
      * exact same type returned by `create_graph` in the R api,
      * which is why we need to make sure the cloned code is identical
-     * to the currently installed R library (ptdalgorithms).
+     * to the currently installed R library (phasic).
      */
-    return Rcpp::XPtr<ptdalgorithms::Graph>(
+    return Rcpp::XPtr<phasic::Graph>(
             result
     );
 }

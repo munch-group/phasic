@@ -1,7 +1,7 @@
-# SVGD { #ptdalgorithms.SVGD }
+# SVGD { #phasic.SVGD }
 
 ```python
-ptdalgorithms.SVGD(
+phasic.SVGD(
     model,
     observed_data,
     prior=None,
@@ -71,11 +71,11 @@ automatic result storage and diagnostic plotting capabilities.
 
 <code>[**precompile**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
 
-:   Precompile model and gradient functions for faster execution. First run will take longer (compilation time) but subsequent iterations will be much faster. Compiled functions are cached in memory and on disk (~/.ptdalgorithms_cache/).
+:   Precompile model and gradient functions for faster execution. First run will take longer (compilation time) but subsequent iterations will be much faster. Compiled functions are cached in memory and on disk (~/.phasic_cache/).
 
 <code>[**compilation_config**]{.parameter-name} [:]{.parameter-annotation-sep} [CompilationConfig, dict, str, or Path]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
-:   JAX compilation optimization configuration. Can be: - CompilationConfig object from ptdalgorithms.CompilationConfig - dict with CompilationConfig parameters - str/Path to JSON config file - None (uses default balanced configuration)  The configuration controls JAX/XLA compilation behavior including: - Persistent cache directory for cross-session caching - Optimization level (0-3) - Parallel compilation settings  Examples: - Use preset: CompilationConfig.fast_compile() - Load from file: 'my_config.json' - Custom dict: {'optimization_level': 2, 'cache_dir': '/tmp/cache'}
+:   JAX compilation optimization configuration. Can be: - CompilationConfig object from phasic.CompilationConfig - dict with CompilationConfig parameters - str/Path to JSON config file - None (uses default balanced configuration)  The configuration controls JAX/XLA compilation behavior including: - Persistent cache directory for cross-session caching - Optimization level (0-3) - Parallel compilation settings  Examples: - Use preset: CompilationConfig.fast_compile() - Load from file: 'my_config.json' - Custom dict: {'optimization_level': 2, 'cache_dir': '/tmp/cache'}
 
 ## Attributes {.doc-section .doc-section-attributes}
 
@@ -123,19 +123,19 @@ automatic result storage and diagnostic plotting capabilities.
 
 | Name | Description |
 | --- | --- |
-| [fit](#ptdalgorithms.SVGD.fit) | Run SVGD inference to approximate the posterior distribution. |
-| [fit_regularized](#ptdalgorithms.SVGD.fit_regularized) | Run SVGD with moment-based regularization. |
-| [get_results](#ptdalgorithms.SVGD.get_results) | Get inference results as a dictionary. |
-| [plot_convergence](#ptdalgorithms.SVGD.plot_convergence) | Plot convergence diagnostics showing mean and std over iterations. |
-| [plot_pairwise](#ptdalgorithms.SVGD.plot_pairwise) | Plot pairwise scatter plots for all parameter pairs. |
-| [plot_posterior](#ptdalgorithms.SVGD.plot_posterior) | Plot posterior distributions for each parameter. |
-| [plot_trace](#ptdalgorithms.SVGD.plot_trace) | Plot trace plots showing particle evolution over iterations. |
-| [summary](#ptdalgorithms.SVGD.summary) | Print a summary of the inference results. |
+| [fit](#phasic.SVGD.fit) | Run SVGD inference to approximate the posterior distribution. |
+| [fit_regularized](#phasic.SVGD.fit_regularized) | Run SVGD with moment-based regularization. |
+| [get_results](#phasic.SVGD.get_results) | Get inference results as a dictionary. |
+| [plot_convergence](#phasic.SVGD.plot_convergence) | Plot convergence diagnostics showing mean and std over iterations. |
+| [plot_pairwise](#phasic.SVGD.plot_pairwise) | Plot pairwise scatter plots for all parameter pairs. |
+| [plot_posterior](#phasic.SVGD.plot_posterior) | Plot posterior distributions for each parameter. |
+| [plot_trace](#phasic.SVGD.plot_trace) | Plot trace plots showing particle evolution over iterations. |
+| [summary](#phasic.SVGD.summary) | Print a summary of the inference results. |
 
-### fit { #ptdalgorithms.SVGD.fit }
+### fit { #phasic.SVGD.fit }
 
 ```python
-ptdalgorithms.SVGD.fit(return_history=False)
+phasic.SVGD.fit(return_history=False)
 ```
 
 Run SVGD inference to approximate the posterior distribution.
@@ -152,10 +152,10 @@ Run SVGD inference to approximate the posterior distribution.
 
 :   Returns self for method chaining
 
-### fit_regularized { #ptdalgorithms.SVGD.fit_regularized }
+### fit_regularized { #phasic.SVGD.fit_regularized }
 
 ```python
-ptdalgorithms.SVGD.fit_regularized(
+phasic.SVGD.fit_regularized(
     observed_times=None,
     nr_moments=2,
     regularization=1.0,
@@ -233,10 +233,10 @@ The regularized objective is:
 - Particularly useful when observed data is sparse or noisy
 - Start with regularization=1.0 and adjust based on performance
 
-### get_results { #ptdalgorithms.SVGD.get_results }
+### get_results { #phasic.SVGD.get_results }
 
 ```python
-ptdalgorithms.SVGD.get_results()
+phasic.SVGD.get_results()
 ```
 
 Get inference results as a dictionary.
@@ -247,10 +247,10 @@ Get inference results as a dictionary.
 
 :   Dictionary containing: - 'particles': Final posterior samples - 'theta_mean': Posterior mean - 'theta_std': Posterior standard deviation - 'history': Particle evolution (if available)
 
-### plot_convergence { #ptdalgorithms.SVGD.plot_convergence }
+### plot_convergence { #phasic.SVGD.plot_convergence }
 
 ```python
-ptdalgorithms.SVGD.plot_convergence(figsize=(10, 4), save_path=None)
+phasic.SVGD.plot_convergence(figsize=(10, 4), save_path=None)
 ```
 
 Plot convergence diagnostics showing mean and std over iterations.
@@ -273,10 +273,10 @@ Requires fit() to have been called with return_history=True.
 
 :   Matplotlib figure and axes objects
 
-### plot_pairwise { #ptdalgorithms.SVGD.plot_pairwise }
+### plot_pairwise { #phasic.SVGD.plot_pairwise }
 
 ```python
-ptdalgorithms.SVGD.plot_pairwise(
+phasic.SVGD.plot_pairwise(
     true_theta=None,
     param_names=None,
     figsize=None,
@@ -310,10 +310,10 @@ Plot pairwise scatter plots for all parameter pairs.
 
 :   Matplotlib figure and axes objects
 
-### plot_posterior { #ptdalgorithms.SVGD.plot_posterior }
+### plot_posterior { #phasic.SVGD.plot_posterior }
 
 ```python
-ptdalgorithms.SVGD.plot_posterior(
+phasic.SVGD.plot_posterior(
     true_theta=None,
     param_names=None,
     bins=20,
@@ -352,10 +352,10 @@ Plot posterior distributions for each parameter.
 
 :   Matplotlib figure and axes objects
 
-### plot_trace { #ptdalgorithms.SVGD.plot_trace }
+### plot_trace { #phasic.SVGD.plot_trace }
 
 ```python
-ptdalgorithms.SVGD.plot_trace(param_names=None, figsize=None, save_path=None)
+phasic.SVGD.plot_trace(param_names=None, figsize=None, save_path=None)
 ```
 
 Plot trace plots showing particle evolution over iterations.
@@ -382,10 +382,10 @@ Requires fit() to have been called with return_history=True.
 
 :   Matplotlib figure and axes objects
 
-### summary { #ptdalgorithms.SVGD.summary }
+### summary { #phasic.SVGD.summary }
 
 ```python
-ptdalgorithms.SVGD.summary()
+phasic.SVGD.summary()
 ```
 
 Print a summary of the inference results.

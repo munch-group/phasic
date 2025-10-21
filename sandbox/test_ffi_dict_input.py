@@ -9,8 +9,8 @@ import jax.numpy as jnp
 # Enable 64-bit precision
 jax.config.update("jax_enable_x64", True)
 
-from ptdalgorithms import Graph
-from ptdalgorithms.ffi_wrappers import compute_pmf_ffi
+from phasic import Graph
+from phasic.ffi_wrappers import compute_pmf_ffi
 
 # Build a simple rabbit model
 def build_test_model():
@@ -74,7 +74,7 @@ except Exception as e:
 print("\n=== Test 2: JSON string input (backward compatibility) ===")
 try:
     import json
-    from ptdalgorithms.ffi_wrappers import _make_json_serializable
+    from phasic.ffi_wrappers import _make_json_serializable
 
     structure_dict = graph.serialize()
     structure_json = json.dumps(_make_json_serializable(structure_dict))

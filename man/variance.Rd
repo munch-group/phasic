@@ -19,18 +19,18 @@ This function invokes \code{\link[=expected_waiting_times]{expected_waiting_time
 twice to find the first and second moment
 }
 \examples{
-graph <- ptdalgorithms::create_graph(4)
-v1 <- ptdalgorithms::create_vertex(graph, c(1,2,3,4))
-v2 <- ptdalgorithms::create_vertex(graph, c(4,0,3,3))
-a <- ptdalgorithms::create_vertex(graph, c(0,0,0,0))
-ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), v1, 1)
-ptdalgorithms::add_edge(v1, v2, 4)
-ptdalgorithms::add_edge(v2, a, 10)
-ptdalgorithms::variance(graph) # =>
+graph <- phasic::create_graph(4)
+v1 <- phasic::create_vertex(graph, c(1,2,3,4))
+v2 <- phasic::create_vertex(graph, c(4,0,3,3))
+a <- phasic::create_vertex(graph, c(0,0,0,0))
+phasic::add_edge(phasic::starting_vertex(graph), v1, 1)
+phasic::add_edge(v1, v2, 4)
+phasic::add_edge(v2, a, 10)
+phasic::variance(graph) # =>
   0.0725
-ptdalgorithms::variance(graph, c(0,2,1,0)) # =>
+phasic::variance(graph, c(0,2,1,0)) # =>
   0.26
-ph <- ptdalgorithms::graph_as_matrix(graph)
+ph <- phasic::graph_as_matrix(graph)
 # This is a much faster version of
 2*ph$IPV\%*\%solve(-ph$SIM)\%*\%solve(-ph$SIM) \%*\% rep(1, length(ph$IPV)) - ph$IPV\%*\%solve(-ph$SIM) \%*\% rep(1, length(ph$IPV)) \%*\% ph$IPV\%*\%solve(-ph$SIM) \%*\% rep(1, length(ph$IPV)) # =>
   0.0725

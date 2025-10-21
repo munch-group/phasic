@@ -18,7 +18,7 @@ None
 
 ## Changes Made
 
-### File: src/c/ptdalgorithms.c
+### File: src/c/phasic.c
 - **Lines added:** ~342 (approximately)
 - **Location:** Lines 6694-7036
 - **Modifications:** Extended `ptd_record_elimination_trace()` function

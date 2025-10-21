@@ -23,7 +23,7 @@
 #' @examples
 #' graph <- create_graph(4)
 create_graph <- function(state_length) {
-    .Call(`_ptdalgorithms_create_graph`, state_length)
+    .Call(`_phasic_create_graph`, state_length)
 }
 
 #' Find or create a vertex matching `state`
@@ -34,12 +34,12 @@ create_graph <- function(state_length) {
 #' the graph object instead.
 #' 
 #' @details
-#' A faster and simpler version of calling [ptdalgorithms::find_vertex()] and  [ptdalgorithms::create_vertex()]
+#' A faster and simpler version of calling [phasic::find_vertex()] and  [phasic::create_vertex()]
 #' 
 #' @return The newly found or inserted vertex in the graph
 #' 
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
-#' @param state An integer vector of what vertex to look for. Has length as given by `state_length` in  [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
+#' @param state An integer vector of what vertex to look for. Has length as given by `state_length` in  [phasic::create_graph()]
 #' 
 #' @examples
 #' graph <- create_graph(4)
@@ -47,7 +47,7 @@ create_graph <- function(state_length) {
 #' find_or_create_vertex(graph, c(1,2,1,0)) # Only returns the vertex
 #' # `graph` is now changed permanently
 find_or_create_vertex <- function(phase_type_graph, state) {
-    .Call(`_ptdalgorithms_find_or_create_vertex`, phase_type_graph, state)
+    .Call(`_phasic_find_or_create_vertex`, phase_type_graph, state)
 }
 
 #' Adds an edge between two vertices in the graph
@@ -56,11 +56,11 @@ find_or_create_vertex <- function(phase_type_graph, state) {
 #' The graph represents transitions between states as
 #' a weighted direction edge between two vertices.
 #' 
-#' @seealso [ptdalgorithms::expected_waiting_time()]
-#' @seealso [ptdalgorithms::moments()]
-#' @seealso [ptdalgorithms::variance()]
-#' @seealso [ptdalgorithms::covariance()]
-#' @seealso [ptdalgorithms::graph_update_weights_parameterized()]
+#' @seealso [phasic::expected_waiting_time()]
+#' @seealso [phasic::moments()]
+#' @seealso [phasic::variance()]
+#' @seealso [phasic::covariance()]
+#' @seealso [phasic::graph_update_weights_parameterized()]
 #' 
 #' @param phase_type_vertex_from The vertex that transitions from
 #' @param phase_type_vertex_to The vertex that transitions to
@@ -73,7 +73,7 @@ find_or_create_vertex <- function(phase_type_graph, state) {
 #' vertex_b <- find_or_create_vertex(graph, c(2,0,1,0))
 #' add_edge(vertex_a, vertex_b, 1.5)
 add_edge <- function(phase_type_vertex_from, phase_type_vertex_to, weight, parameterized_edge_state = as.numeric( c())) {
-    invisible(.Call(`_ptdalgorithms_add_edge`, phase_type_vertex_from, phase_type_vertex_to, weight, parameterized_edge_state))
+    invisible(.Call(`_phasic_add_edge`, phase_type_vertex_from, phase_type_vertex_to, weight, parameterized_edge_state))
 }
 
 #' Updates all parameterized edges of the graph by given scalars.
@@ -88,11 +88,11 @@ add_edge <- function(phase_type_vertex_from, phase_type_vertex_to, weight, param
 #' the user wants to try multiple different weights.
 #'
 #' 
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
 #' @param scalars A numeric vector of multiplies for the edge states.
 #' 
-#' @seealso [ptdalgorithms::expected_waiting_time()]
-#' @seealso [ptdalgorithms::add_edge()]
+#' @seealso [phasic::expected_waiting_time()]
+#' @seealso [phasic::add_edge()]
 #' 
 #' @examples
 #' graph <- create_graph(4)
@@ -106,7 +106,7 @@ add_edge <- function(phase_type_vertex_from, phase_type_vertex_to, weight, param
 #' edges(starting_vertex(graph))[[1]]$weight # => 5
 #' edges(v1)[[1]]$weight # => 59
 graph_update_weights_parameterized <- function(phase_type_graph, scalars) {
-    invisible(.Call(`_ptdalgorithms_graph_update_weights_parameterized`, phase_type_graph, scalars))
+    invisible(.Call(`_phasic_graph_update_weights_parameterized`, phase_type_graph, scalars))
 }
 
 #' Obtain a list of all vertices in the graph
@@ -115,20 +115,20 @@ graph_update_weights_parameterized <- function(phase_type_graph, scalars) {
 #' Returns all vertices that have been added to the
 #' graph from either calling `find_or_create_vertex` or
 #' `create_vertex`. The first vertex in the list is
-#' *always* the starting vertex [ptdalgorithms::starting_vertex()].
-#' Importantly, for speed, use [ptdalgorithms::vertices_length()] to get the number
-#' of added vertices, and use [ptdalgorithms::vertex_at()] to
+#' *always* the starting vertex [phasic::starting_vertex()].
+#' Importantly, for speed, use [phasic::vertices_length()] to get the number
+#' of added vertices, and use [phasic::vertex_at()] to
 #' get a vertex at a particular index.
 #' 
 #' @details
 #' The list of vertices contains any added vertex, even
 #' if it does not have any in-going / out-going edges.
 #' 
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
 #' 
-#' @seealso [ptdalgorithms::starting_vertex()]
-#' @seealso [ptdalgorithms::vertices_length()]
-#' @seealso [ptdalgorithms::vertex_at()]
+#' @seealso [phasic::starting_vertex()]
+#' @seealso [phasic::vertices_length()]
+#' @seealso [phasic::vertex_at()]
 #' 
 #' @examples
 #' graph <- create_graph(4)
@@ -138,31 +138,31 @@ graph_update_weights_parameterized <- function(phase_type_graph, scalars) {
 #' vertices(graph)[[2]] == vertex_at(graph, 2)
 #' vertices_length(graph) == 3
 vertices <- function(phase_type_graph) {
-    .Call(`_ptdalgorithms_vertices`, phase_type_graph)
+    .Call(`_phasic_vertices`, phase_type_graph)
 }
 
 #' Returns a matrix where each row is the state of the vertex at that index
 #' 
-#' @return A matrix of size [ptdalgorithms::vertices_length()] where the rows match the state of the vertex at that index
+#' @return A matrix of size [phasic::vertices_length()] where the rows match the state of the vertex at that index
 #' 
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
 #' 
 #' @examples
-#' graph <- ptdalgorithms::create_graph(4)
-#' ptdalgorithms::create_vertex(graph, c(1,2,3,4))
-#' ptdalgorithms::create_vertex(graph, c(4,3,3,3))
-#' ptdalgorithms::states(graph) # => 
+#' graph <- phasic::create_graph(4)
+#' phasic::create_vertex(graph, c(1,2,3,4))
+#' phasic::create_vertex(graph, c(4,3,3,3))
+#' phasic::states(graph) # => 
 #' # 0 0 0 0
 #' # 1 2 3 4
 #' # 4 3 3 3
 states <- function(phase_type_graph) {
-    .Call(`_ptdalgorithms_states`, phase_type_graph)
+    .Call(`_phasic_states`, phase_type_graph)
 }
 
 #' Returns the number of vertices in the graph
 #' 
 #' @description
-#' This method is much faster than calling `length(ptdalgorithms::vertices())`
+#' This method is much faster than calling `length(phasic::vertices())`
 #' 
 #' @details
 #' There will *always* be a starting vertex, so the returned
@@ -170,82 +170,82 @@ states <- function(phase_type_graph) {
 #' 
 #' @return An integer of the number of vertices
 #' 
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
 vertices_length <- function(phase_type_graph) {
-    .Call(`_ptdalgorithms_vertices_length`, phase_type_graph)
+    .Call(`_phasic_vertices_length`, phase_type_graph)
 }
 
 #' Returns a vertex at a particular index.
 #' 
 #' @description
-#' This method is much faster than calling `ptdalgorithms::vertices()[i]`.
+#' This method is much faster than calling `phasic::vertices()[i]`.
 #' Uses 1-indexing like usual R, so first vertex is 1.
 #' 
 #' @return The vertex at index `index` in the graph
 #'
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
 #' @param index The index of the vertex to find
 vertex_at <- function(phase_type_graph, index) {
-    .Call(`_ptdalgorithms_vertex_at`, phase_type_graph, index)
+    .Call(`_phasic_vertex_at`, phase_type_graph, index)
 }
 
 #' Returns the special starting vertex of the graph
 #' 
 #' @description
 #' The starting vertex is always added to the graph
-#' after calling [ptdalgorithms::create_graph()], and
-#' always has the first index in [ptdalgorithms::vertex_at()]
+#' after calling [phasic::create_graph()], and
+#' always has the first index in [phasic::vertex_at()]
 #' 
 #' @return The starting vertex
 #' 
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
 #' 
 starting_vertex <- function(phase_type_graph) {
-    .Call(`_ptdalgorithms_starting_vertex`, phase_type_graph)
+    .Call(`_phasic_starting_vertex`, phase_type_graph)
 }
 
 #' Returns the out-going edges of a vertex
 #' 
 #' @description
-#' Returns a list of edges added by [ptdalgorithms::add_edge()]
+#' Returns a list of edges added by [phasic::add_edge()]
 #' 
 #' @return A list of out-going edges
 #' 
 #' @param phase_type_vertex The vertex to find the edges for
 #' 
 edges <- function(phase_type_vertex) {
-    .Call(`_ptdalgorithms_edges`, phase_type_vertex)
+    .Call(`_phasic_edges`, phase_type_vertex)
 }
 
 #' Create a vertex matching `state`
 #' 
 #' @description
 #' Creates the vertex and adds it to
-#' the graph object. Warning: the function [ptdalgorithms::find_or_create_vertex()]
+#' the graph object. Warning: the function [phasic::find_or_create_vertex()]
 #' should be preferred. This function will *not* update the lookup tree,
-#' so [ptdalgorithms::find_vertex()] will *not* return it.
+#' so [phasic::find_vertex()] will *not* return it.
 #' 
-#' @seealso [ptdalgorithms::find_or_create_vertex()]
+#' @seealso [phasic::find_or_create_vertex()]
 #' 
 #' @return The newly inserted vertex in the graph
 #' 
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
-#' @param state An integer vector of the newly added vertex. Has length as given by `state_length` in  [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
+#' @param state An integer vector of the newly added vertex. Has length as given by `state_length` in  [phasic::create_graph()]
 create_vertex <- function(phase_type_graph, state) {
-    .Call(`_ptdalgorithms_create_vertex`, phase_type_graph, state)
+    .Call(`_phasic_create_vertex`, phase_type_graph, state)
 }
 
 #' Finds a vertex matching `state`
 #' 
 #' 
-#' @seealso [ptdalgorithms::find_or_create_vertex()]
+#' @seealso [phasic::find_or_create_vertex()]
 #' 
 #' @return The found vertex in the graph or NA
 #' 
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
-#' @param state An integer vector of the newly added vertex. Has length as given by `state_length` in  [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
+#' @param state An integer vector of the newly added vertex. Has length as given by `state_length` in  [phasic::create_graph()]
 find_vertex <- function(phase_type_graph, state) {
-    .Call(`_ptdalgorithms_find_vertex`, phase_type_graph, state)
+    .Call(`_phasic_find_vertex`, phase_type_graph, state)
 }
 
 #' Converts the graph-based phase-type distribution into a traditional sub-intensity matrix and initial probability vector
@@ -254,26 +254,26 @@ find_vertex <- function(phase_type_graph, state) {
 #' Used to convert to the traditional matrix-based formulation.
 #' Has three entries: `$SIM` the sub-intensity matrix, `$IPV` the initial
 #' probability vector, `$states` the state of each vertex. Does
-#' *not* have the same order as [ptdalgorithms::vertices()]. The indices
-#' returned are 1-based, like the input to [ptdalgorithms::vertex_at()]
+#' *not* have the same order as [phasic::vertices()]. The indices
+#' returned are 1-based, like the input to [phasic::vertex_at()]
 #' 
-#' @seealso [ptdalgorithms::graph_as_dph_matrix()]
+#' @seealso [phasic::graph_as_dph_matrix()]
 #'
 #' @return A list of the sub-intensity matrix, states, and initial probability vector, and graph indices matching the matrix (1-indexed)
 #'
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
 #' 
 #' @examples
-#' graph <- ptdalgorithms::create_graph(4)
-#' v2 <- ptdalgorithms::create_vertex(graph, c(4,0,3,3))
-#' v1 <- ptdalgorithms::create_vertex(graph, c(1,2,3,4))
-#' a <- ptdalgorithms::create_vertex(graph, c(0,0,0,0))
+#' graph <- phasic::create_graph(4)
+#' v2 <- phasic::create_vertex(graph, c(4,0,3,3))
+#' v1 <- phasic::create_vertex(graph, c(1,2,3,4))
+#' a <- phasic::create_vertex(graph, c(0,0,0,0))
 #' # Note that if a defect is desired, the edge has to be explicitly
 #' # added to an absorbing vertex
-#' ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), v1, 1)
-#' ptdalgorithms::add_edge(v1, v2, 4)
-#' ptdalgorithms::add_edge(v2, a, 10)
-#' ptdalgorithms::graph_as_matrix(graph) #>
+#' phasic::add_edge(phasic::starting_vertex(graph), v1, 1)
+#' phasic::add_edge(v1, v2, 4)
+#' phasic::add_edge(v2, a, 10)
+#' phasic::graph_as_matrix(graph) #>
 #' # $`states`
 #' #         [,1] [,2] [,3] [,4]
 #' #   [1,]    1    2    3    4
@@ -287,7 +287,7 @@ find_vertex <- function(phase_type_graph, state) {
 #' # $indices
 #' #   [1] 3 2
 graph_as_matrix <- function(phase_type_graph) {
-    .Call(`_ptdalgorithms_graph_as_matrix`, phase_type_graph)
+    .Call(`_phasic_graph_as_matrix`, phase_type_graph)
 }
 
 #' Converts the the matrix-based representation into a phase-type graph
@@ -300,7 +300,7 @@ graph_as_matrix <- function(phase_type_graph) {
 #' `graph_as_matrix` may reorder the vertices to make the graph represented
 #' as strongly connected components in an acyclic manner.
 #' 
-#' @seealso [ptdalgorithms::matrix_as_graph()]
+#' @seealso [phasic::matrix_as_graph()]
 #'
 #' @return A graph object
 #'
@@ -317,7 +317,7 @@ graph_as_matrix <- function(phase_type_graph) {
 #' 
 #' graph_as_matrix(g)
 matrix_as_graph <- function(IPV, SIM, rewards = NULL) {
-    .Call(`_ptdalgorithms_matrix_as_graph`, IPV, SIM, rewards)
+    .Call(`_phasic_matrix_as_graph`, IPV, SIM, rewards)
 }
 
 #' Clones the graph, returning a new identical graph
@@ -327,10 +327,10 @@ matrix_as_graph <- function(IPV, SIM, rewards = NULL) {
 #' 
 #' @return A clone of the input graph
 #'
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
 #' 
 clone_graph <- function(phase_type_graph) {
-    .Call(`_ptdalgorithms_clone_graph`, phase_type_graph)
+    .Call(`_phasic_clone_graph`, phase_type_graph)
 }
 
 #' Converts the graph-based *discrete* phase-type distribution into a traditional sub-transition matrix and initial probability vector
@@ -339,28 +339,28 @@ clone_graph <- function(phase_type_graph) {
 #' Used to convert to the traditional matrix-based formulation.
 #' Has three entries: `$STM` the sub-transition matrix, `$IPV` the initial
 #' probability vector, `$states` the state of each vertex. Does
-#' *not* have the same order as [ptdalgorithms::vertices()]
+#' *not* have the same order as [phasic::vertices()]
 #' It is expected that all out-going edges have weights summing to 1 or
 #' less, and the remaining probability is considered as a self-transition. The indices
-#' returned are 1-based, like the input to [ptdalgorithms::vertex_at()]
+#' returned are 1-based, like the input to [phasic::vertex_at()]
 #'
-#' @seealso [ptdalgorithms::graph_as_matrix()]
+#' @seealso [phasic::graph_as_matrix()]
 #' @return A list of the sub-transition matrix, states, and initial probability vector, and graph indices matching the matrix (1-indexed) 
 #'
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
 #' 
 #' @examples
-#' graph <- ptdalgorithms::create_graph(4)
-#' v2 <- ptdalgorithms::create_vertex(graph, c(4,0,3,3))
-#' v1 <- ptdalgorithms::create_vertex(graph, c(1,2,3,4))
-#' a <- ptdalgorithms::create_vertex(graph, c(0,0,0,0))
-#' ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), v1, 0.5)
-#' ptdalgorithms::add_edge(v1, v2, 0.8)
-#' ptdalgorithms::add_edge(v2, a, 0.5)
+#' graph <- phasic::create_graph(4)
+#' v2 <- phasic::create_vertex(graph, c(4,0,3,3))
+#' v1 <- phasic::create_vertex(graph, c(1,2,3,4))
+#' a <- phasic::create_vertex(graph, c(0,0,0,0))
+#' phasic::add_edge(phasic::starting_vertex(graph), v1, 0.5)
+#' phasic::add_edge(v1, v2, 0.8)
+#' phasic::add_edge(v2, a, 0.5)
 #' # Note that if a defect is desired, the edge has to be explicitly
 #' # added to an absorbing vertex
-#' ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), a, 0.5)
-#' ptdalgorithms::graph_as_dph_matrix(graph) #>
+#' phasic::add_edge(phasic::starting_vertex(graph), a, 0.5)
+#' phasic::graph_as_dph_matrix(graph) #>
 #' # $`states`
 #' #         [,1] [,2] [,3] [,4]
 #' #   [1,]    1    2    3    4
@@ -374,7 +374,7 @@ clone_graph <- function(phase_type_graph) {
 #' # $indices
 #' #   [1] 3 2
 graph_as_dph_matrix <- function(phase_type_graph) {
-    .Call(`_ptdalgorithms_graph_as_dph_matrix`, phase_type_graph)
+    .Call(`_phasic_graph_as_dph_matrix`, phase_type_graph)
 }
 
 #' Performs a reward transformation, returning a phase-type distribution to model the total accumulated reward until abosorption
@@ -383,25 +383,25 @@ graph_as_dph_matrix <- function(phase_type_graph) {
 #' Returns a new `phase_type_graph` ... bla bla bla bla bla bla bla bla bla bla bla bla 
 #' bla bla bla bla bla bla bla bla bla 
 #' 
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
-#' @param rewards to give to each vertex, zero or positive real number. Must have length equal to [ptdalgorithms::vertices_length()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
+#' @param rewards to give to each vertex, zero or positive real number. Must have length equal to [phasic::vertices_length()]
 #' 
 #' @return A new phase-type graph ... bla bla bla 
 #' 
 #' @examples
-#' graph <- ptdalgorithms::create_graph(4)
-#' v1 <- ptdalgorithms::create_vertex(graph, c(1,2,3,4))
-#' v2 <- ptdalgorithms::create_vertex(graph, c(4,0,3,3))
-#' a <- ptdalgorithms::create_vertex(graph, c(0,0,0,0))
-#' ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), v1, 1)
-#' ptdalgorithms::add_edge(v1, v2, 4)
-#' ptdalgorithms::add_edge(v2, a, 10)
-#' graph <- ptdalgorithms::expectation_dag(graph, ptdalgorithms::states(graph)[,2])
+#' graph <- phasic::create_graph(4)
+#' v1 <- phasic::create_vertex(graph, c(1,2,3,4))
+#' v2 <- phasic::create_vertex(graph, c(4,0,3,3))
+#' a <- phasic::create_vertex(graph, c(0,0,0,0))
+#' phasic::add_edge(phasic::starting_vertex(graph), v1, 1)
+#' phasic::add_edge(v1, v2, 4)
+#' phasic::add_edge(v2, a, 10)
+#' graph <- phasic::expectation_dag(graph, phasic::states(graph)[,2])
 #' # bla bla bla 
 #' # bla bla bla 
 #' 
 # expectation_dag <- function(phase_type_graph, rewards = NULL) {
-#     .Call(`_ptdalgorithms_expectation_dag`, phase_type_graph, rewards)
+#     .Call(`_phasic_expectation_dag`, phase_type_graph, rewards)
 # }
 
 #' Performs a reward transformation, returning a phase-type distribution to model the total accumulated reward until abosorption
@@ -410,25 +410,25 @@ graph_as_dph_matrix <- function(phase_type_graph) {
 #' Returns a new `phase_type_graph` to instead model accumulated rewards until absorption,
 #' as described in the paper. 
 #' 
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
-#' @param rewards to give to each vertex, zero or positive real number. Must have length equal to [ptdalgorithms::vertices_length()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
+#' @param rewards to give to each vertex, zero or positive real number. Must have length equal to [phasic::vertices_length()]
 #' 
 #' @return A new phase-type graph with the reward transformation applied
 #' 
 #' @examples
-#' graph <- ptdalgorithms::create_graph(4)
-#' v1 <- ptdalgorithms::create_vertex(graph, c(1,2,3,4))
-#' v2 <- ptdalgorithms::create_vertex(graph, c(4,0,3,3))
-#' a <- ptdalgorithms::create_vertex(graph, c(0,0,0,0))
-#' ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), v1, 1)
-#' ptdalgorithms::add_edge(v1, v2, 4)
-#' ptdalgorithms::add_edge(v2, a, 10)
-#' graph <- ptdalgorithms::reward_transform(graph, ptdalgorithms::states(graph)[,2])
+#' graph <- phasic::create_graph(4)
+#' v1 <- phasic::create_vertex(graph, c(1,2,3,4))
+#' v2 <- phasic::create_vertex(graph, c(4,0,3,3))
+#' a <- phasic::create_vertex(graph, c(0,0,0,0))
+#' phasic::add_edge(phasic::starting_vertex(graph), v1, 1)
+#' phasic::add_edge(v1, v2, 4)
+#' phasic::add_edge(v2, a, 10)
+#' graph <- phasic::reward_transform(graph, phasic::states(graph)[,2])
 #' # Graph now only has starting state and vertex `v1 and the absorbing vertex `a`.
 #' # With edge weight 4/2 = 2
 #' 
 reward_transform <- function(phase_type_graph, rewards) {
-    .Call(`_ptdalgorithms_reward_transform`, phase_type_graph, rewards)
+    .Call(`_phasic_reward_transform`, phase_type_graph, rewards)
 }
 
 #' Performs a discrete reward transformation, returning a discrete phase-type distribution to model the total accumulated reward until abosorption
@@ -437,23 +437,23 @@ reward_transform <- function(phase_type_graph, rewards) {
 #' Changes `phase_type_graph` to instead model discrete rewarded jumps until absorption,
 #' as described in the paper.
 #' 
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
-#' @param rewards to give to each vertex, zero or positive integer. Must have length equal to [ptdalgorithms::vertices_length()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
+#' @param rewards to give to each vertex, zero or positive integer. Must have length equal to [phasic::vertices_length()]
 #' 
 #' @return A new discrete phase-type graph with the reward transformation applied
 #' 
 #' @examples
-#' graph <- ptdalgorithms::create_graph(4)
-#' v2 <- ptdalgorithms::create_vertex(graph, c(4,0,3,3))
-#' v1 <- ptdalgorithms::create_vertex(graph, c(1,2,3,4))
-#' a <- ptdalgorithms::create_vertex(graph, c(0,0,0,0))
-#' ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), v1, 0.5)
-#' ptdalgorithms::add_edge(v1, v2, 0.8)
-#' ptdalgorithms::add_edge(v2, a, 0.5)
+#' graph <- phasic::create_graph(4)
+#' v2 <- phasic::create_vertex(graph, c(4,0,3,3))
+#' v1 <- phasic::create_vertex(graph, c(1,2,3,4))
+#' a <- phasic::create_vertex(graph, c(0,0,0,0))
+#' phasic::add_edge(phasic::starting_vertex(graph), v1, 0.5)
+#' phasic::add_edge(v1, v2, 0.8)
+#' phasic::add_edge(v2, a, 0.5)
 #' # Note that if a defect is desired, the edge has to be explicitly
 #' # added to an absorbing vertex
-#' ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), a, 0.5)
-#' ptdalgorithms::graph_as_dph_matrix(graph) #>
+#' phasic::add_edge(phasic::starting_vertex(graph), a, 0.5)
+#' phasic::graph_as_dph_matrix(graph) #>
 #' # $`states`
 #' #         [,1] [,2] [,3] [,4]
 #' #   [1,]    1    2    3    4
@@ -464,8 +464,8 @@ reward_transform <- function(phase_type_graph, rewards) {
 #' #   [2,]   0.0   0.5
 #' # $IPV
 #' #   [1] 0.5 0
-#' graph <- ptdalgorithms::dph_reward_transform(graph, ptdalgorithms::states(graph)[,2])
-#' ptdalgorithms::graph_as_dph_matrix(graph) #>
+#' graph <- phasic::dph_reward_transform(graph, phasic::states(graph)[,2])
+#' phasic::graph_as_dph_matrix(graph) #>
 #' # $`states`
 #' # TODO: how will these look?
 #' #         [,1] [,2] [,3] [,4]
@@ -479,7 +479,7 @@ reward_transform <- function(phase_type_graph, rewards) {
 #' #   [1] 0 0.5
 #' 
 dph_reward_transform <- function(phase_type_graph, rewards) {
-    .Call(`_ptdalgorithms_dph_reward_transform`, phase_type_graph, rewards)
+    .Call(`_phasic_dph_reward_transform`, phase_type_graph, rewards)
 }
 
 #' Normalizes the phase-type distribution, such that all out-going weights sum to 1 for each vertex
@@ -488,10 +488,10 @@ dph_reward_transform <- function(phase_type_graph, rewards) {
 #' Changes `phase_type_graph` such that all out-going weight sum to 1 for each vertex
 #' as described in the paper, returns the associated inverse rates (new rewards). Mutates the phase-type graph permanently.
 #' 
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
 #' 
 normalize_graph <- function(phase_type_graph) {
-    .Call(`_ptdalgorithms_normalize_graph`, phase_type_graph)
+    .Call(`_phasic_normalize_graph`, phase_type_graph)
 }
 
 #' Normalizes the discrete phase-type distribution, by making self-loops go to an auxiliary vertex with reward 0 (such that all out-going weights sum to 1 for each vertex)
@@ -501,10 +501,10 @@ normalize_graph <- function(phase_type_graph) {
 #' and the self-loops go to a newly added vertex, with reward 0, that goes directly back,
 #' as described in the paper, returns the associated new rewards. Mutates the phase-type graph permanently.
 #' 
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
 #' 
 normalize_dph_graph <- function(phase_type_graph) {
-    .Call(`_ptdalgorithms_normalize_dph_graph`, phase_type_graph)
+    .Call(`_phasic_normalize_dph_graph`, phase_type_graph)
 }
 
 #' Computes the expected waiting time (or accumulated rewards) until absorption
@@ -517,31 +517,31 @@ normalize_dph_graph <- function(phase_type_graph) {
 #' 
 #' @return A numeric vector where entry `i` is the expected waiting time starting at vertex `i`
 #' 
-#' @seealso [ptdalgorithms::moments()]
-#' @seealso [ptdalgorithms::expectation()]
-#' @seealso [ptdalgorithms::variance()]
-#' @seealso [ptdalgorithms::covariance()]
+#' @seealso [phasic::moments()]
+#' @seealso [phasic::expectation()]
+#' @seealso [phasic::variance()]
+#' @seealso [phasic::covariance()]
 #' 
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
-#' @param rewards Optional rewards, which should be applied to the phase-type distribution. Must have length equal to [ptdalgorithms::vertices_length()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
+#' @param rewards Optional rewards, which should be applied to the phase-type distribution. Must have length equal to [phasic::vertices_length()]
 #' 
 #' @examples
-#' graph <- ptdalgorithms::create_graph(4)
-#' v1 <- ptdalgorithms::create_vertex(graph, c(1,2,3,4))
-#' v2 <- ptdalgorithms::create_vertex(graph, c(4,0,3,3))
-#' a <- ptdalgorithms::create_vertex(graph, c(0,0,0,0))
-#' ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), v1, 1)
-#' ptdalgorithms::add_edge(v1, v2, 4)
-#' ptdalgorithms::add_edge(v2, a, 10)
-#' ptdalgorithms::expected_waiting_time(graph) # =>
+#' graph <- phasic::create_graph(4)
+#' v1 <- phasic::create_vertex(graph, c(1,2,3,4))
+#' v2 <- phasic::create_vertex(graph, c(4,0,3,3))
+#' a <- phasic::create_vertex(graph, c(0,0,0,0))
+#' phasic::add_edge(phasic::starting_vertex(graph), v1, 1)
+#' phasic::add_edge(v1, v2, 4)
+#' phasic::add_edge(v2, a, 10)
+#' phasic::expected_waiting_time(graph) # =>
 #' # c(0.35, 0.35, 0.10, 0)
 #' # Rewards on absorbing and starting vertex has no effect
-#' ptdalgorithms::expected_waiting_time(graph, c(0, 2, 0, 0)) # =>
+#' phasic::expected_waiting_time(graph, c(0, 2, 0, 0)) # =>
 #' # c(0.5, 0.5, 0, 0)
-#' ptdalgorithms::expected_waiting_time(graph, c(9999, 2, 0, 9999)) # =>
+#' phasic::expected_waiting_time(graph, c(9999, 2, 0, 9999)) # =>
 #' # c(0.5, 0.5, 0, 0)
 expected_waiting_time <- function(phase_type_graph, rewards = NULL) {
-    .Call(`_ptdalgorithms_expected_waiting_time`, phase_type_graph, rewards)
+    .Call(`_phasic_expected_waiting_time`, phase_type_graph, rewards)
 }
 
 #' Computes the expected residence time (or accumulated rewards) in each state
@@ -554,31 +554,31 @@ expected_waiting_time <- function(phase_type_graph, rewards = NULL) {
 #' 
 #' @return A numeric vector where entry `i` is the expected waiting time starting at vertex `i`
 #' 
-#' @seealso [ptdalgorithms::moments()]
-#' @seealso [ptdalgorithms::expectation()]
-#' @seealso [ptdalgorithms::variance()]
-#' @seealso [ptdalgorithms::covariance()]
+#' @seealso [phasic::moments()]
+#' @seealso [phasic::expectation()]
+#' @seealso [phasic::variance()]
+#' @seealso [phasic::covariance()]
 #' 
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
-#' @param rewards Optional rewards, which should be applied to the phase-type distribution. Must have length equal to [ptdalgorithms::vertices_length()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
+#' @param rewards Optional rewards, which should be applied to the phase-type distribution. Must have length equal to [phasic::vertices_length()]
 #' 
 #' @examples
-#' graph <- ptdalgorithms::create_graph(4)
-#' v1 <- ptdalgorithms::create_vertex(graph, c(1,2,3,4))
-#' v2 <- ptdalgorithms::create_vertex(graph, c(4,0,3,3))
-#' a <- ptdalgorithms::create_vertex(graph, c(0,0,0,0))
-#' ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), v1, 1)
-#' ptdalgorithms::add_edge(v1, v2, 4)
-#' ptdalgorithms::add_edge(v2, a, 10)
-#' ptdalgorithms::expected_residence_time(graph) # =>
+#' graph <- phasic::create_graph(4)
+#' v1 <- phasic::create_vertex(graph, c(1,2,3,4))
+#' v2 <- phasic::create_vertex(graph, c(4,0,3,3))
+#' a <- phasic::create_vertex(graph, c(0,0,0,0))
+#' phasic::add_edge(phasic::starting_vertex(graph), v1, 1)
+#' phasic::add_edge(v1, v2, 4)
+#' phasic::add_edge(v2, a, 10)
+#' phasic::expected_residence_time(graph) # =>
 #' # c(0.35, 0.35, 0.10, 0)
 #' # Rewards on absorbing and starting vertex has no effect
-#' ptdalgorithms::expected_residence_time(graph, c(0, 2, 0, 0)) # =>
+#' phasic::expected_residence_time(graph, c(0, 2, 0, 0)) # =>
 #' # c(0.5, 0.5, 0, 0)
-#' ptdalgorithms::expected_residence_time(graph, c(9999, 2, 0, 9999)) # =>
+#' phasic::expected_residence_time(graph, c(9999, 2, 0, 9999)) # =>
 #' # c(0.5, 0.5, 0, 0)
 expected_residence_time <- function(phase_type_graph, rewards = NULL) {
-    .Call(`_ptdalgorithms_expected_residence_time`, phase_type_graph, rewards)
+    .Call(`_phasic_expected_residence_time`, phase_type_graph, rewards)
 }
 
 #' Computes the expected jumps (or accumulated rewards) until absorption
@@ -594,224 +594,224 @@ expected_residence_time <- function(phase_type_graph, rewards = NULL) {
 #' 
 #' @return A numeric vector where entry `i` is the expected rewarded jumps starting at vertex `i`
 #' 
-#' @seealso [ptdalgorithms::moments()]
-#' @seealso [ptdalgorithms::expectation()]
-#' @seealso [ptdalgorithms::variance()]
-#' @seealso [ptdalgorithms::covariance()]
+#' @seealso [phasic::moments()]
+#' @seealso [phasic::expectation()]
+#' @seealso [phasic::variance()]
+#' @seealso [phasic::covariance()]
 #' 
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
-#' @param rewards Optional rewards, which should be applied to the discrete phase-type distribution. Must have length equal to [ptdalgorithms::vertices_length()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
+#' @param rewards Optional rewards, which should be applied to the discrete phase-type distribution. Must have length equal to [phasic::vertices_length()]
 #' 
 dph_expected_visits <- function(phase_type_graph, rewards = NULL) {
-    .Call(`_ptdalgorithms_dph_expected_visits`, phase_type_graph, rewards)
+    .Call(`_phasic_dph_expected_visits`, phase_type_graph, rewards)
 }
 
 #' Computes the first `k` moments of the phase-type distribution
 #' 
 #' @description
-#' This function invokes [ptdalgorithms::expected_waiting_times()] consequtively to find the first moments,
+#' This function invokes [phasic::expected_waiting_times()] consequtively to find the first moments,
 #' given by the `power` argument
 #' 
 #' @return A numeric vector of the first `k` moments. The first entry is the first moment (mean)
 #' 
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
 #' @param power An integer of the first `k` moments.
-#' @param rewards Optional rewards, which should be applied to the phase-type distribution. Must have length equal to [ptdalgorithms::vertices_length()]
+#' @param rewards Optional rewards, which should be applied to the phase-type distribution. Must have length equal to [phasic::vertices_length()]
 #' 
-#' @seealso [ptdalgorithms::expected_waiting_time()]
-#' @seealso [ptdalgorithms::expectation()]
-#' @seealso [ptdalgorithms::variance()]
-#' @seealso [ptdalgorithms::covariance()]
+#' @seealso [phasic::expected_waiting_time()]
+#' @seealso [phasic::expectation()]
+#' @seealso [phasic::variance()]
+#' @seealso [phasic::covariance()]
 #' 
 #' @examples
-#' graph <- ptdalgorithms::create_graph(4)
-#' v1 <- ptdalgorithms::create_vertex(graph, c(1,2,3,4))
-#' v2 <- ptdalgorithms::create_vertex(graph, c(4,0,3,3))
-#' a <- ptdalgorithms::create_vertex(graph, c(0,0,0,0))
-#' ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), v1, 1)
-#' ptdalgorithms::add_edge(v1, v2, 4)
-#' ptdalgorithms::add_edge(v2, a, 10)
-#' ptdalgorithms::moments(graph, 3) # =>
+#' graph <- phasic::create_graph(4)
+#' v1 <- phasic::create_vertex(graph, c(1,2,3,4))
+#' v2 <- phasic::create_vertex(graph, c(4,0,3,3))
+#' a <- phasic::create_vertex(graph, c(0,0,0,0))
+#' phasic::add_edge(phasic::starting_vertex(graph), v1, 1)
+#' phasic::add_edge(v1, v2, 4)
+#' phasic::add_edge(v2, a, 10)
+#' phasic::moments(graph, 3) # =>
 #'   (0.350000 0.097500 0.025375)
-#' ptdalgorithms::moments(graph, 3, c(0,2,1,0)) # =>
+#' phasic::moments(graph, 3, c(0,2,1,0)) # =>
 #'   (0.600 0.160 0.041)
 moments <- function(phase_type_graph, power, rewards = NULL) {
-    .Call(`_ptdalgorithms_moments`, phase_type_graph, power, rewards)
+    .Call(`_phasic_moments`, phase_type_graph, power, rewards)
 }
 
 #' Computes the expectation (mean) of the phase-type distribution
 #' 
 #' @description
-#' This function invokes [ptdalgorithms::expected_waiting_times()]
+#' This function invokes [phasic::expected_waiting_times()]
 #' and takes the first entry (from starting vertex)
 #' 
 #' @return The expectation of the distribution
 #' 
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
-#' @param rewards Optional rewards, which should be applied to the phase-type distribution. Must have length equal to [ptdalgorithms::vertices_length()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
+#' @param rewards Optional rewards, which should be applied to the phase-type distribution. Must have length equal to [phasic::vertices_length()]
 #' 
-#' @seealso [ptdalgorithms::expected_waiting_time()]
-#' @seealso [ptdalgorithms::moments()]
-#' @seealso [ptdalgorithms::variance()]
-#' @seealso [ptdalgorithms::covariance()]
+#' @seealso [phasic::expected_waiting_time()]
+#' @seealso [phasic::moments()]
+#' @seealso [phasic::variance()]
+#' @seealso [phasic::covariance()]
 #' 
 #' @examples
-#' graph <- ptdalgorithms::create_graph(4)
-#' v1 <- ptdalgorithms::create_vertex(graph, c(1,2,3,4))
-#' v2 <- ptdalgorithms::create_vertex(graph, c(4,0,3,3))
-#' a <- ptdalgorithms::create_vertex(graph, c(0,0,0,0))
-#' ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), v1, 1)
-#' ptdalgorithms::add_edge(v1, v2, 4)
-#' ptdalgorithms::add_edge(v2, a, 10)
-#' ptdalgorithms::expectation(graph) # =>
+#' graph <- phasic::create_graph(4)
+#' v1 <- phasic::create_vertex(graph, c(1,2,3,4))
+#' v2 <- phasic::create_vertex(graph, c(4,0,3,3))
+#' a <- phasic::create_vertex(graph, c(0,0,0,0))
+#' phasic::add_edge(phasic::starting_vertex(graph), v1, 1)
+#' phasic::add_edge(v1, v2, 4)
+#' phasic::add_edge(v2, a, 10)
+#' phasic::expectation(graph) # =>
 #'   0.35
-#' ptdalgorithms::expectation(graph, c(0,2,1,0)) # =>
+#' phasic::expectation(graph, c(0,2,1,0)) # =>
 #'   0.6
-#' ph <- ptdalgorithms::graph_as_matrix(graph)
+#' ph <- phasic::graph_as_matrix(graph)
 #' # This is a much faster version of
 #' ph$IPV%*%solve(-ph$SIM) %*% rep(1, length(ph$IPV)) # =>
 #'   0.35
 #' ph$IPV%*%solve(-ph$SIM) %*% diag(c(2,1))%*% rep(1, length(ph$IPV)) # =>
 #'   0.35
 expectation <- function(phase_type_graph, rewards = NULL) {
-    .Call(`_ptdalgorithms_expectation`, phase_type_graph, rewards)
+    .Call(`_phasic_expectation`, phase_type_graph, rewards)
 }
 
 #' Computes the variance of the phase-type distribution
 #' 
 #' @description
-#' This function invokes [ptdalgorithms::expected_waiting_times()]
+#' This function invokes [phasic::expected_waiting_times()]
 #' twice to find the first and second moment
 #' 
 #' @return The variance of the distribution
 #' 
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
-#' @param rewards Optional rewards, which should be applied to the phase-type distribution. Must have length equal to [ptdalgorithms::vertices_length()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
+#' @param rewards Optional rewards, which should be applied to the phase-type distribution. Must have length equal to [phasic::vertices_length()]
 #' 
-#' @seealso [ptdalgorithms::expected_waiting_time()]
-#' @seealso [ptdalgorithms::expectation()]
-#' @seealso [ptdalgorithms::moments()]
-#' @seealso [ptdalgorithms::covariance()]
+#' @seealso [phasic::expected_waiting_time()]
+#' @seealso [phasic::expectation()]
+#' @seealso [phasic::moments()]
+#' @seealso [phasic::covariance()]
 #' 
 #' @examples
-#' graph <- ptdalgorithms::create_graph(4)
-#' v1 <- ptdalgorithms::create_vertex(graph, c(1,2,3,4))
-#' v2 <- ptdalgorithms::create_vertex(graph, c(4,0,3,3))
-#' a <- ptdalgorithms::create_vertex(graph, c(0,0,0,0))
-#' ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), v1, 1)
-#' ptdalgorithms::add_edge(v1, v2, 4)
-#' ptdalgorithms::add_edge(v2, a, 10)
-#' ptdalgorithms::variance(graph) # =>
+#' graph <- phasic::create_graph(4)
+#' v1 <- phasic::create_vertex(graph, c(1,2,3,4))
+#' v2 <- phasic::create_vertex(graph, c(4,0,3,3))
+#' a <- phasic::create_vertex(graph, c(0,0,0,0))
+#' phasic::add_edge(phasic::starting_vertex(graph), v1, 1)
+#' phasic::add_edge(v1, v2, 4)
+#' phasic::add_edge(v2, a, 10)
+#' phasic::variance(graph) # =>
 #'   0.0725
-#' ptdalgorithms::variance(graph, c(0,2,1,0)) # =>
+#' phasic::variance(graph, c(0,2,1,0)) # =>
 #'   0.26
-#' ph <- ptdalgorithms::graph_as_matrix(graph)
+#' ph <- phasic::graph_as_matrix(graph)
 #' # This is a much faster version of
 #' 2*ph$IPV%*%solve(-ph$SIM)%*%solve(-ph$SIM) %*% rep(1, length(ph$IPV)) - ph$IPV%*%solve(-ph$SIM) %*% rep(1, length(ph$IPV)) %*% ph$IPV%*%solve(-ph$SIM) %*% rep(1, length(ph$IPV)) # =>
 #'   0.0725
 #' 2*ph$IPV%*%solve(-ph$SIM)%*%diag(c(2,1))%*%solve(-ph$SIM)%*%diag(c(2,1)) %*% rep(1, length(ph$IPV)) - ph$IPV%*%solve(-ph$SIM)%*%diag(c(2,1)) %*% rep(1, length(ph$IPV)) %*% ph$IPV%*%solve(-ph$SIM)%*%diag(c(2,1)) %*% rep(1, length(ph$IPV)) # =>
 #'   0.26
 variance <- function(phase_type_graph, rewards = NULL) {
-    .Call(`_ptdalgorithms_variance`, phase_type_graph, rewards)
+    .Call(`_phasic_variance`, phase_type_graph, rewards)
 }
 
 #' Computes the covariance of the phase-type distribution
 #' 
 #' @description
-#' This function invokes [ptdalgorithms::expected_waiting_times()]
+#' This function invokes [phasic::expected_waiting_times()]
 #' twice to find the first and second moment for each of the two rewards
 #' 
 #' @return The covariance of the distribution given the two rewards
 #' 
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
-#' @param rewards1 First vector of rewards, which should be applied to the phase-type distribution. Must have length equal to [ptdalgorithms::vertices_length()]
-#' @param rewards2 Second vector of rewards, which should be applied to the phase-type distribution. Must have length equal to [ptdalgorithms::vertices_length()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
+#' @param rewards1 First vector of rewards, which should be applied to the phase-type distribution. Must have length equal to [phasic::vertices_length()]
+#' @param rewards2 Second vector of rewards, which should be applied to the phase-type distribution. Must have length equal to [phasic::vertices_length()]
 #'
-#' @seealso [ptdalgorithms::expected_waiting_time()]
-#' @seealso [ptdalgorithms::expectation()]
-#' @seealso [ptdalgorithms::variance()]
-#' @seealso [ptdalgorithms::moments()]
+#' @seealso [phasic::expected_waiting_time()]
+#' @seealso [phasic::expectation()]
+#' @seealso [phasic::variance()]
+#' @seealso [phasic::moments()]
 #' 
 #' @examples
-#' graph <- ptdalgorithms::create_graph(4)
-#' v1 <- ptdalgorithms::create_vertex(graph, c(1,2,3,4))
-#' v2 <- ptdalgorithms::create_vertex(graph, c(4,0,3,3))
-#' a <- ptdalgorithms::create_vertex(graph, c(0,0,0,0))
-#' ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), v1, 1)
-#' ptdalgorithms::add_edge(v1, v2, 4)
-#' ptdalgorithms::add_edge(v2, a, 10)
+#' graph <- phasic::create_graph(4)
+#' v1 <- phasic::create_vertex(graph, c(1,2,3,4))
+#' v2 <- phasic::create_vertex(graph, c(4,0,3,3))
+#' a <- phasic::create_vertex(graph, c(0,0,0,0))
+#' phasic::add_edge(phasic::starting_vertex(graph), v1, 1)
+#' phasic::add_edge(v1, v2, 4)
+#' phasic::add_edge(v2, a, 10)
 #' covariance(graph, c(0,2,1,0), c(0,2,1,0)) == variance(graph, c(0,2,1,0))
 #' covariance(graph, c(0,2,1,0), c(0,5,2,0)) # =>
 #'   0.645
-#' ph <- ptdalgorithms::graph_as_matrix(graph)
+#' ph <- phasic::graph_as_matrix(graph)
 #' # This is a much faster version of
 #' ph$IPV%*%solve(-ph$SIM)%*%diag(c(2,1))%*%solve(-ph$SIM)%*%diag(c(5,2)) %*% rep(1, length(ph$IPV)) + ph$IPV%*%solve(-ph$SIM)%*%diag(c(5,2))%*%solve(-ph$SIM)%*%diag(c(2,1)) %*% rep(1, length(ph$IPV)) - ph$IPV%*%solve(-ph$SIM)%*%diag(c(2,1)) %*% rep(1, length(ph$IPV)) %*% ph$IPV%*%solve(-ph$SIM)%*%diag(c(5,2)) %*% rep(1, length(ph$IPV)) # =>
 #'   0.645
 covariance <- function(phase_type_graph, rewards1, rewards2) {
-    .Call(`_ptdalgorithms_covariance`, phase_type_graph, rewards1, rewards2)
+    .Call(`_phasic_covariance`, phase_type_graph, rewards1, rewards2)
 }
 
 #' Computes the expectation (mean) of the discrete phase-type distribution
 #' 
 #' @description
-#' This function invokes [ptdalgorithms::moments()]
+#' This function invokes [phasic::moments()]
 #' and takes the first entry (from starting vertex)
 #' 
 #' @return The expectation of the distribution
 #' 
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
-#' @param rewards Optional rewards, which should be applied to the discrete phase-type distribution. Must have length equal to [ptdalgorithms::vertices_length()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
+#' @param rewards Optional rewards, which should be applied to the discrete phase-type distribution. Must have length equal to [phasic::vertices_length()]
 #' 
-#' @seealso [ptdalgorithms::dph_expected_visits()]
-#' @seealso [ptdalgorithms::expected_waiting_time()]
-#' @seealso [ptdalgorithms::dph_variance()]
-#' @seealso [ptdalgorithms::dph_covariance()]
+#' @seealso [phasic::dph_expected_visits()]
+#' @seealso [phasic::expected_waiting_time()]
+#' @seealso [phasic::dph_variance()]
+#' @seealso [phasic::dph_covariance()]
 #' 
 dph_expectation <- function(phase_type_graph, rewards = NULL) {
-    .Call(`_ptdalgorithms_dph_expectation`, phase_type_graph, rewards)
+    .Call(`_phasic_dph_expectation`, phase_type_graph, rewards)
 }
 
 #' Computes the variance of the discrete phase-type distribution
 #' 
 #' @description
-#' This function invokes [ptdalgorithms::moments()]
+#' This function invokes [phasic::moments()]
 #' twice to find the first and second moment
 #' 
 #' @return The variance of the distribution
 #' 
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
-#' @param rewards Optional rewards, which should be applied to the discrete phase-type distribution. Must have length equal to [ptdalgorithms::vertices_length()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
+#' @param rewards Optional rewards, which should be applied to the discrete phase-type distribution. Must have length equal to [phasic::vertices_length()]
 #' 
-#' @seealso [ptdalgorithms::dph_expected_visits()]
-#' @seealso [ptdalgorithms::dph_covariance()]
-#' @seealso [ptdalgorithms::dph_expectation()]
+#' @seealso [phasic::dph_expected_visits()]
+#' @seealso [phasic::dph_covariance()]
+#' @seealso [phasic::dph_expectation()]
 #' 
 dph_variance <- function(phase_type_graph, rewards = NULL) {
-    .Call(`_ptdalgorithms_dph_variance`, phase_type_graph, rewards)
+    .Call(`_phasic_dph_variance`, phase_type_graph, rewards)
 }
 
 #' Computes the covariance of the discrete phase-type distribution
 #' 
 #' @description
-#' This function invokes [ptdalgorithms::moments())]
+#' This function invokes [phasic::moments())]
 #' twice to find the first and second moment for each of the two rewards
 #' 
 #' @return The covariance of the discrete distribution given the two rewards
 #' 
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
-#' @param rewards1 First vector of rewards, which should be applied to the discrete phase-type distribution. Must have length equal to [ptdalgorithms::vertices_length()]
-#' @param rewards2 Second vector of rewards, which should be applied to the discrete  phase-type distribution. Must have length equal to [ptdalgorithms::vertices_length()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
+#' @param rewards1 First vector of rewards, which should be applied to the discrete phase-type distribution. Must have length equal to [phasic::vertices_length()]
+#' @param rewards2 Second vector of rewards, which should be applied to the discrete  phase-type distribution. Must have length equal to [phasic::vertices_length()]
 #'
-#' @seealso [ptdalgorithms::dph_expected_visits()]
-#' @seealso [ptdalgorithms::dph_expectation()]
-#' @seealso [ptdalgorithms::dph_variance()]
+#' @seealso [phasic::dph_expected_visits()]
+#' @seealso [phasic::dph_expectation()]
+#' @seealso [phasic::dph_variance()]
 #' 
 dph_covariance <- function(phase_type_graph, rewards1, rewards2) {
-    .Call(`_ptdalgorithms_dph_covariance`, phase_type_graph, rewards1, rewards2)
+    .Call(`_phasic_dph_covariance`, phase_type_graph, rewards1, rewards2)
 }
 
 is_graph_acyclic <- function(phase_type_graph) {
-    .Call(`_ptdalgorithms_is_graph_acyclic`, phase_type_graph)
+    .Call(`_phasic_is_graph_acyclic`, phase_type_graph)
 }
 
 #' Computes the defect, i.e. the probability of immediately transitioning to the absorbing state, of the phase-type distribution
@@ -821,13 +821,13 @@ is_graph_acyclic <- function(phase_type_graph) {
 #'
 #' @return A numeric value
 #'
-#' @seealso [ptdalgorithms::dph()]
-#' @seealso [ptdalgorithms::qph()]
+#' @seealso [phasic::dph()]
+#' @seealso [phasic::qph()]
 #'
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
 #'
 defect <- function(phase_type_graph) {
-    .Call(`_ptdalgorithms_defect`, phase_type_graph)
+    .Call(`_phasic_defect`, phase_type_graph)
 }
 
 #' Samples `n` outcomes of the phase-type distribution
@@ -835,14 +835,14 @@ defect <- function(phase_type_graph) {
 #' 
 #' @return A vector of numeric values
 #' 
-#' @seealso [ptdalgorithms::rmph()]
+#' @seealso [phasic::rmph()]
 #' 
 #' @param n The number of random samples to draw
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
-#' @param rewards Optional rewards, which should be applied to the phase-type distribution. Must have length equal to [ptdalgorithms::vertices_length()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
+#' @param rewards Optional rewards, which should be applied to the phase-type distribution. Must have length equal to [phasic::vertices_length()]
 #' 
 rph <- function(n, phase_type_graph, rewards = NULL) {
-    .Call(`_ptdalgorithms_rph`, n, phase_type_graph, rewards)
+    .Call(`_phasic_rph`, n, phase_type_graph, rewards)
 }
 
 #' Probability density function of the phase-type distribution
@@ -853,15 +853,15 @@ rph <- function(n, phase_type_graph, rewards = NULL) {
 #'
 #' @return A numeric vector of the density
 #'
-#' @seealso [ptdalgorithms::rph()]
-#' @seealso [ptdalgorithms::qph()]
+#' @seealso [phasic::rph()]
+#' @seealso [phasic::qph()]
 #'
 #' @param x Vector of the number of stopping times
 #' @param granularity Optional. Number of jumps per time unit (approximation)
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
 #'
 dph <- function(x, phase_type_graph, granularity = 0L) {
-    .Call(`_ptdalgorithms_dph`, x, phase_type_graph, granularity)
+    .Call(`_phasic_dph`, x, phase_type_graph, granularity)
 }
 
 #' Cumulative distribution function of the phase-type distribution
@@ -872,75 +872,75 @@ dph <- function(x, phase_type_graph, granularity = 0L) {
 #'
 #' @return A numeric vector of the distribution function
 #'
-#' @seealso [ptdalgorithms::rph()]
-#' @seealso [ptdalgorithms::dph()]
+#' @seealso [phasic::rph()]
+#' @seealso [phasic::dph()]
 #'
 #' @param q Vector of the quantiles (stopping times)
 #' @param granularity Optional. Number of jumps per time unit (approximation)
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
 #'
 pph <- function(q, phase_type_graph, granularity = 0L) {
-    .Call(`_ptdalgorithms_pph`, q, phase_type_graph, granularity)
+    .Call(`_phasic_pph`, q, phase_type_graph, granularity)
 }
 
 #' Computes the probability of the Markov Jump Process of the phase-type distribution standing at each vertex after time
 #'
 #' @return A numeric vector of the stop probabilities, for each vertex
 #'
-#' @seealso [ptdalgorithms::rph()]
-#' @seealso [ptdalgorithms::dph()]
-#' @seealso [ptdalgorithms::pph()]
+#' @seealso [phasic::rph()]
+#' @seealso [phasic::dph()]
+#' @seealso [phasic::pph()]
 #'
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
 #' @param time The time to wait
 #' @param granularity Optional. Number of jumps per time unit (approximation)
 #'
 stop_probability <- function(phase_type_graph, time, granularity = 0L) {
-    .Call(`_ptdalgorithms_stop_probability`, phase_type_graph, time, granularity)
+    .Call(`_phasic_stop_probability`, phase_type_graph, time, granularity)
 }
 
 #' Computes the accumulated visiting time (integral of stop probability) of the Markov Jump Process of the phase-type distribution standing at each vertex
 #'
 #' @return A numeric vector of the accumulated visiting time, for each vertex
 #'
-#' @seealso [ptdalgorithms::rph()]
-#' @seealso [ptdalgorithms::dph()]
-#' @seealso [ptdalgorithms::pph()]
+#' @seealso [phasic::rph()]
+#' @seealso [phasic::dph()]
+#' @seealso [phasic::pph()]
 #'
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
 #' @param time The time to wait
 #' @param granularity Optional. Number of jumps per time unit (approximation)
 #'
 accumulated_visiting_time <- function(phase_type_graph, time, granularity = 0L) {
-    .Call(`_ptdalgorithms_accumulated_visiting_time`, phase_type_graph, time, granularity)
+    .Call(`_phasic_accumulated_visiting_time`, phase_type_graph, time, granularity)
 }
 
 #' Samples `n` outcomes of the multivariate phase-type distribution
 #' 
 #' @return A matrix of numeric values, with the parameter `rewards` number of rows
 #' 
-#' @seealso [ptdalgorithms::rph()]
+#' @seealso [phasic::rph()]
 #' 
 #' @param n The number of random samples to draw
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
-#' @param rewards rewards which should be applied to the phase-type distribution. Must have rows equal to [ptdalgorithms::vertices_length()] and columns the dimensions of the multivariate phase-type distribution
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
+#' @param rewards rewards which should be applied to the phase-type distribution. Must have rows equal to [phasic::vertices_length()] and columns the dimensions of the multivariate phase-type distribution
 #' 
 rmph <- function(n, phase_type_graph, rewards) {
-    .Call(`_ptdalgorithms_rmph`, n, phase_type_graph, rewards)
+    .Call(`_phasic_rmph`, n, phase_type_graph, rewards)
 }
 
 #' Samples `n` stopping times of the phase-type distribution
 #'
 #' @return A vector of numeric values, the indices of the vertices at the stopping time
 #'
-#' @seealso [ptdalgorithms::rph()]
+#' @seealso [phasic::rph()]
 #'
 #' @param n The number of random samples to draw
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
 #' @param time The stopping time
 #'
 random_sample_stop_vertex <- function(n, phase_type_graph, time) {
-    .Call(`_ptdalgorithms_random_sample_stop_vertex`, n, phase_type_graph, time)
+    .Call(`_phasic_random_sample_stop_vertex`, n, phase_type_graph, time)
 }
 
 #' Samples `n` outcomes of the discrete phase-type distribution
@@ -951,15 +951,15 @@ random_sample_stop_vertex <- function(n, phase_type_graph, time) {
 #' 
 #' @return A numeric vector of the draws
 #' 
-#' @seealso [ptdalgorithms::rph()]
-#' @seealso [ptdalgorithms::rmdph()]
+#' @seealso [phasic::rph()]
+#' @seealso [phasic::rmdph()]
 #' 
 #' @param n The number of random samples to draw
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
-#' @param rewards Optional rewards, which should be applied to the discrete phase-type distribution. Must have length equal to [ptdalgorithms::vertices_length()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
+#' @param rewards Optional rewards, which should be applied to the discrete phase-type distribution. Must have length equal to [phasic::vertices_length()]
 #' 
 rdph <- function(n, phase_type_graph, rewards = NULL) {
-    .Call(`_ptdalgorithms_rdph`, n, phase_type_graph, rewards)
+    .Call(`_phasic_rdph`, n, phase_type_graph, rewards)
 }
 
 #' Probability mass function of the discrete phase-type distribution
@@ -969,14 +969,14 @@ rdph <- function(n, phase_type_graph, rewards = NULL) {
 #' 
 #' @return A numeric vector of the density
 #' 
-#' @seealso [ptdalgorithms::rdph()]
-#' @seealso [ptdalgorithms::qdph()]
+#' @seealso [phasic::rdph()]
+#' @seealso [phasic::qdph()]
 #' 
 #' @param x Vector of the number of jumps (discrete time)
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
 #' 
 ddph <- function(x, phase_type_graph) {
-    .Call(`_ptdalgorithms_ddph`, x, phase_type_graph)
+    .Call(`_phasic_ddph`, x, phase_type_graph)
 }
 
 #' Cumulative distribution function of the discrete phase-type distribution
@@ -986,44 +986,44 @@ ddph <- function(x, phase_type_graph) {
 #' 
 #' @return A numeric vector of the distribution function
 #' 
-#' @seealso [ptdalgorithms::rdph()]
-#' @seealso [ptdalgorithms::ddph()]
+#' @seealso [phasic::rdph()]
+#' @seealso [phasic::ddph()]
 #' 
 #' @param q Vector of the quantiles (jumps, discrete time)
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
 #' 
 pdph <- function(q, phase_type_graph) {
-    .Call(`_ptdalgorithms_pdph`, q, phase_type_graph)
+    .Call(`_phasic_pdph`, q, phase_type_graph)
 }
 
 #' Computes the probability of the Markov Chain of the discrete phase-type distribution standing at each vertex after n jumps
 #' 
 #' @return A numeric vector of the stop probabilities, for each vertex
 #' 
-#' @seealso [ptdalgorithms::rdph()]
-#' @seealso [ptdalgorithms::ddph()]
-#' @seealso [ptdalgorithms::pdph()]
+#' @seealso [phasic::rdph()]
+#' @seealso [phasic::ddph()]
+#' @seealso [phasic::pdph()]
 #' 
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
 #' @param jumps Number of jumps, discrete time
 #' 
 dph_stop_probability <- function(phase_type_graph, jumps) {
-    .Call(`_ptdalgorithms_dph_stop_probability`, phase_type_graph, jumps)
+    .Call(`_phasic_dph_stop_probability`, phase_type_graph, jumps)
 }
 
 #' Computes the number of visits of the Markov Chain of the discrete phase-type distribution at each vertex after n jumps
 #' 
 #' @return A numeric vector of the stop probabilities, for each vertex
 #' 
-#' @seealso [ptdalgorithms::rdph()]
-#' @seealso [ptdalgorithms::ddph()]
-#' @seealso [ptdalgorithms::pdph()]
+#' @seealso [phasic::rdph()]
+#' @seealso [phasic::ddph()]
+#' @seealso [phasic::pdph()]
 #' 
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
 #' @param jumps Number of jumps, discrete time
 #' 
 dph_accumulated_visits <- function(phase_type_graph, jumps) {
-    .Call(`_ptdalgorithms_dph_accumulated_visits`, phase_type_graph, jumps)
+    .Call(`_phasic_dph_accumulated_visits`, phase_type_graph, jumps)
 }
 
 #' Samples one outcome of the multivariate discrete phase-type distribution
@@ -1031,29 +1031,29 @@ dph_accumulated_visits <- function(phase_type_graph, jumps) {
 #' 
 #' @return A matrix of numeric values, with `rewards` number of rows and `n` number of columns
 #' 
-#' @seealso [ptdalgorithms::rmph()]
-#' @seealso [ptdalgorithms::rdph()]
+#' @seealso [phasic::rmph()]
+#' @seealso [phasic::rdph()]
 #' 
 #' @param n The number of random samples to draw
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
-#' @param rewards rewards which should be applied to the discrete phase-type distribution. Must have rows equal to [ptdalgorithms::vertices_length()] and columns the dimensions of the multivariate discrete phase-type distribution
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
+#' @param rewards rewards which should be applied to the discrete phase-type distribution. Must have rows equal to [phasic::vertices_length()] and columns the dimensions of the multivariate discrete phase-type distribution
 #' 
 rmdph <- function(n, phase_type_graph, rewards) {
-    .Call(`_ptdalgorithms_rmdph`, n, phase_type_graph, rewards)
+    .Call(`_phasic_rmdph`, n, phase_type_graph, rewards)
 }
 
 #' Samples `n` vertices at the stopping times of the discrete phase-type distribution
 #'
 #' @return A vector of numeric values, the indices of the vertices at the stopping time (jumps)
 #'
-#' @seealso [ptdalgorithms::rdph()]
+#' @seealso [phasic::rdph()]
 #'
 #' @param n The number of random samples to draw
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
 #' @param jumps The number of jumps before stopping
 #'
 dph_random_sample_stop_vertex <- function(n, phase_type_graph, jumps) {
-    .Call(`_ptdalgorithms_dph_random_sample_stop_vertex`, n, phase_type_graph, jumps)
+    .Call(`_phasic_dph_random_sample_stop_vertex`, n, phase_type_graph, jumps)
 }
 
 #' Builds a probability distribution context for the phase-type distribution.
@@ -1065,11 +1065,11 @@ dph_random_sample_stop_vertex <- function(n, phase_type_graph, jumps) {
 #' 
 #' @return A probability distribution context
 #' 
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
 #' @param granularity Optional. Number of jumps per time unit (approximation)
 #' 
 distribution_context <- function(phase_type_graph, granularity = 0L) {
-    .Call(`_ptdalgorithms_distribution_context`, phase_type_graph, granularity)
+    .Call(`_phasic_distribution_context`, phase_type_graph, granularity)
 }
 
 #' Performs one jump in the probability distribution context for the discrete phase-type distribution.
@@ -1079,12 +1079,12 @@ distribution_context <- function(phase_type_graph, granularity = 0L) {
 #' time-inhomogeneous distribution function or the expectation of a multivariate phase-type distribution.
 #' *mutates* the context
 #' 
-#' @seealso [ptdalgorithms::distribution_context()]
+#' @seealso [phasic::distribution_context()]
 #' 
-#' @param probability_distribution_context The context created by [ptdalgorithms::distribution_context()]
+#' @param probability_distribution_context The context created by [phasic::distribution_context()]
 #' 
 distribution_context_step <- function(probability_distribution_context) {
-    invisible(.Call(`_ptdalgorithms_distribution_context_step`, probability_distribution_context))
+    invisible(.Call(`_phasic_distribution_context_step`, probability_distribution_context))
 }
 
 #' Returns the PDF/PMF/CDF/time for the current probability distribution context for the phase-type distribution.
@@ -1094,12 +1094,12 @@ distribution_context_step <- function(probability_distribution_context) {
 #' time-inhomogeneous distribution function or the expectation of a multivariate phase-type distribution.
 #' *mutates* the context
 #' 
-#' @seealso [ptdalgorithms::distribution_context()]
+#' @seealso [phasic::distribution_context()]
 #' 
-#' @param probability_distribution_context The context created by [ptdalgorithms::distribution_context()]
+#' @param probability_distribution_context The context created by [phasic::distribution_context()]
 #' 
 distribution_context_state <- function(probability_distribution_context) {
-    .Call(`_ptdalgorithms_distribution_context_state`, probability_distribution_context)
+    .Call(`_phasic_distribution_context_state`, probability_distribution_context)
 }
 
 #' Returns the stop probability for the current probability distribution context for the phase-type distribution.
@@ -1109,12 +1109,12 @@ distribution_context_state <- function(probability_distribution_context) {
 #' time-inhomogeneous distribution function or the expectation of a multivariate phase-type distribution.
 #' *mutates* the context
 #' 
-#' @seealso [ptdalgorithms::distribution_context()]
+#' @seealso [phasic::distribution_context()]
 #' 
-#' @param probability_distribution_context The context created by [ptdalgorithms::distribution_context()]
+#' @param probability_distribution_context The context created by [phasic::distribution_context()]
 #' 
 distribution_context_stop_probability <- function(probability_distribution_context) {
-    .Call(`_ptdalgorithms_distribution_context_stop_probability`, probability_distribution_context)
+    .Call(`_phasic_distribution_context_stop_probability`, probability_distribution_context)
 }
 
 #' Returns the accumulated visiting time (integral of stop probability) for the current probability distribution context for the phase-type distribution.
@@ -1124,12 +1124,12 @@ distribution_context_stop_probability <- function(probability_distribution_conte
 #' time-inhomogeneous distribution function or the expectation of a multivariate phase-type distribution.
 #' *mutates* the context
 #' 
-#' @seealso [ptdalgorithms::distribution_context()]
+#' @seealso [phasic::distribution_context()]
 #' 
-#' @param probability_distribution_context The context created by [ptdalgorithms::distribution_context()]
+#' @param probability_distribution_context The context created by [phasic::distribution_context()]
 #' 
 distribution_context_accumulated_visiting_time <- function(probability_distribution_context) {
-    .Call(`_ptdalgorithms_distribution_context_accumulated_visiting_time`, probability_distribution_context)
+    .Call(`_phasic_distribution_context_accumulated_visiting_time`, probability_distribution_context)
 }
 
 #' Builds a probability distribution context for the discrete phase-type distribution.
@@ -1140,10 +1140,10 @@ distribution_context_accumulated_visiting_time <- function(probability_distribut
 #' 
 #' @return A probability distribution context
 #' 
-#' @param phase_type_graph A reference to the graph created by [ptdalgorithms::create_graph()]
+#' @param phase_type_graph A reference to the graph created by [phasic::create_graph()]
 #' 
 dph_distribution_context <- function(phase_type_graph) {
-    .Call(`_ptdalgorithms_dph_distribution_context`, phase_type_graph)
+    .Call(`_phasic_dph_distribution_context`, phase_type_graph)
 }
 
 #' Performs one jump in a probability distribution context for the discrete phase-type distribution.
@@ -1153,12 +1153,12 @@ dph_distribution_context <- function(phase_type_graph) {
 #' time-inhomogeneous distribution function or the expectation of a multivariate discrete phase-type distribution.
 #' *mutates* the context
 #' 
-#' @seealso [ptdalgorithms::dph_distribution_context()]
+#' @seealso [phasic::dph_distribution_context()]
 #' 
-#' @param probability_distribution_context The context created by [ptdalgorithms::dph_distribution_context()]
+#' @param probability_distribution_context The context created by [phasic::dph_distribution_context()]
 #' 
 dph_distribution_context_step <- function(probability_distribution_context) {
-    invisible(.Call(`_ptdalgorithms_dph_distribution_context_step`, probability_distribution_context))
+    invisible(.Call(`_phasic_dph_distribution_context_step`, probability_distribution_context))
 }
 
 #' Returns the PMF/CDF/time for the current probability distribution context for the discrete phase-type distribution.
@@ -1168,12 +1168,12 @@ dph_distribution_context_step <- function(probability_distribution_context) {
 #' time-inhomogeneous distribution function or the expectation of a  discrete multivariate phase-type distribution.
 #' *mutates* the context
 #' 
-#' @seealso [ptdalgorithms::dph_distribution_context()]
+#' @seealso [phasic::dph_distribution_context()]
 #' 
-#' @param probability_distribution_context The context created by [ptdalgorithms::dph_distribution_context()]
+#' @param probability_distribution_context The context created by [phasic::dph_distribution_context()]
 #' 
 dph_distribution_context_state <- function(probability_distribution_context) {
-    .Call(`_ptdalgorithms_dph_distribution_context_state`, probability_distribution_context)
+    .Call(`_phasic_dph_distribution_context_state`, probability_distribution_context)
 }
 
 #' Returns the stop probability for the current probability distribution context for the discrete phase-type distribution.
@@ -1183,12 +1183,12 @@ dph_distribution_context_state <- function(probability_distribution_context) {
 #' time-inhomogeneous distribution function or the expectation of a multivariate discrete phase-type distribution.
 #' *mutates* the context
 #' 
-#' @seealso [ptdalgorithms::dph_distribution_context()]
+#' @seealso [phasic::dph_distribution_context()]
 #' 
-#' @param probability_distribution_context The context created by [ptdalgorithms::dph_distribution_context()]
+#' @param probability_distribution_context The context created by [phasic::dph_distribution_context()]
 #' 
 dph_distribution_context_stop_probability <- function(probability_distribution_context) {
-    .Call(`_ptdalgorithms_dph_distribution_context_stop_probability`, probability_distribution_context)
+    .Call(`_phasic_dph_distribution_context_stop_probability`, probability_distribution_context)
 }
 
 #' Returns the accumulated visits for the current probability distribution context for the discrete phase-type distribution.
@@ -1198,11 +1198,11 @@ dph_distribution_context_stop_probability <- function(probability_distribution_c
 #' time-inhomogeneous distribution function or the expectation of a multivariate discrete phase-type distribution.
 #' *mutates* the context
 #' 
-#' @seealso [ptdalgorithms::dph_distribution_context()]
+#' @seealso [phasic::dph_distribution_context()]
 #' 
-#' @param probability_distribution_context The context created by [ptdalgorithms::dph_distribution_context()]
+#' @param probability_distribution_context The context created by [phasic::dph_distribution_context()]
 #' 
 dph_distribution_context_accumulated_visits <- function(probability_distribution_context) {
-    .Call(`_ptdalgorithms_dph_distribution_context_accumulated_visits`, probability_distribution_context)
+    .Call(`_phasic_dph_distribution_context_accumulated_visits`, probability_distribution_context)
 }
 

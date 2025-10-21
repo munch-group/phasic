@@ -6,8 +6,8 @@ Tests plotting, SVGD, distributed computing utilities, and other features.
 
 import pytest
 import numpy as np
-import ptdalgorithms as ptd
-from ptdalgorithms import Graph
+import phasic as ptd
+from phasic import Graph
 
 # Try to import optional dependencies
 try:
@@ -218,7 +218,7 @@ class TestCompilationConfig:
     @pytest.mark.skipif(not HAS_JAX, reason="JAX not available")
     def test_get_default_compilation_config(self):
         """Test getting default compilation config."""
-        from ptdalgorithms.jax_config import get_default_config
+        from phasic.jax_config import get_default_config
         config = get_default_config()
         assert config is not None
 

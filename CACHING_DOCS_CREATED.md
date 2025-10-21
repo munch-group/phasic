@@ -323,7 +323,7 @@ quarto render
 - Return types documented
 
 **Technical details verified:**
-- Cache locations correct (`~/.ptdalgorithms_cache/traces/`, `~/.jax_cache/`)
+- Cache locations correct (`~/.phasic_cache/traces/`, `~/.jax_cache/`)
 - Cache key computation (SHA-256 for traces, signature+shape for JAX)
 - Performance characteristics (realistic benchmarks)
 - Limitations documented (SVGD disk cache ~80% failure)

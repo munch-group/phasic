@@ -1,4 +1,4 @@
-# Distributed Computing with PtDAlgorithms
+# Distributed Computing with phasic
 
 **Simple, powerful multi-node parallelization with zero boilerplate**
 
@@ -50,7 +50,7 @@ if 'SLURM_JOB_ID' in os.environ:
 ### The New Way (1 line!) ✓
 
 ```python
-from ptdalgorithms import initialize_distributed
+from phasic import initialize_distributed
 
 dist_info = initialize_distributed()
 ```
@@ -65,7 +65,7 @@ dist_info = initialize_distributed()
 **File:** `distributed_inference_simple.py`
 
 ```python
-from ptdalgorithms import Graph, initialize_distributed
+from phasic import Graph, initialize_distributed
 
 # ONE LINE - replaces 200+ lines of boilerplate
 dist_info = initialize_distributed()
@@ -99,8 +99,8 @@ sbatch <(python generate_slurm_script.py --profile medium --script distributed_i
 This example shows SVGD (Stein Variational Gradient Descent) inference distributed across multiple nodes with CPU monitoring:
 
 ```python
-from ptdalgorithms import initialize_distributed, CPUMonitor
-from ptdalgorithms.ffi_wrappers import compute_pmf_and_moments_ffi
+from phasic import initialize_distributed, CPUMonitor
+from phasic.ffi_wrappers import compute_pmf_and_moments_ffi
 
 # Initialize distributed computing
 dist_info = initialize_distributed()
@@ -131,7 +131,7 @@ The new system uses **YAML files** to separate configuration from code.
 ### Using Predefined Profiles
 
 ```python
-from ptdalgorithms.cluster_configs import get_default_config
+from phasic.cluster_configs import get_default_config
 
 # Available profiles: debug, small, medium, large, production
 config = get_default_config("medium")
@@ -177,7 +177,7 @@ modules_to_load:
 **Load in Python:**
 
 ```python
-from ptdalgorithms.cluster_configs import load_config
+from phasic.cluster_configs import load_config
 
 config = load_config("docs/examples/slurm_configs/my_config.yaml")
 ```
@@ -283,7 +283,7 @@ srun --kill-on-bad-exit=1 python my_script.py
 The main entry point for distributed computing with **automatic SLURM detection**.
 
 ```python
-from ptdalgorithms import initialize_distributed
+from phasic import initialize_distributed
 
 dist_info = initialize_distributed(
     cpus_per_task=None,      # Auto-detected from SLURM_CPUS_PER_TASK
@@ -317,7 +317,7 @@ dist_info.job_id              # SLURM job ID (if running under SLURM)
 Get predefined cluster configuration.
 
 ```python
-from ptdalgorithms.cluster_configs import get_default_config
+from phasic.cluster_configs import get_default_config
 
 config = get_default_config("medium")
 ```
@@ -329,7 +329,7 @@ config = get_default_config("medium")
 Load custom configuration from YAML file.
 
 ```python
-from ptdalgorithms.cluster_configs import load_config
+from phasic.cluster_configs import load_config
 
 config = load_config("docs/examples/slurm_configs/my_config.yaml")
 ```
@@ -339,7 +339,7 @@ config = load_config("docs/examples/slurm_configs/my_config.yaml")
 Context manager for monitoring CPU usage with **automatic SLURM node detection**.
 
 ```python
-from ptdalgorithms import CPUMonitor
+from phasic import CPUMonitor
 
 with CPUMonitor(
     update_interval=0.5,    # Update every 0.5 seconds
@@ -370,7 +370,7 @@ with CPUMonitor(
 Manually detect SLURM environment variables.
 
 ```python
-from ptdalgorithms.distributed_utils import detect_slurm_environment
+from phasic.distributed_utils import detect_slurm_environment
 
 env = detect_slurm_environment()
 if env:
@@ -383,7 +383,7 @@ if env:
 Configure JAX device count (called automatically by `initialize_distributed`).
 
 ```python
-from ptdalgorithms.distributed_utils import configure_jax_devices
+from phasic.distributed_utils import configure_jax_devices
 
 configure_jax_devices(num_devices=8, platform="cpu")
 ```
@@ -393,7 +393,7 @@ configure_jax_devices(num_devices=8, platform="cpu")
 Initialize JAX distributed (called automatically by `initialize_distributed`).
 
 ```python
-from ptdalgorithms.distributed_utils import initialize_jax_distributed
+from phasic.distributed_utils import initialize_jax_distributed
 
 initialize_jax_distributed(
     coordinator_address="node01:12345",
@@ -437,7 +437,7 @@ dist_info = initialize_distributed()
 
 ## Monitoring Distributed Jobs
 
-PtDAlgorithms includes a built-in CPU monitoring system that **automatically detects SLURM nodes** and displays per-node, per-core CPU usage in real-time.
+phasic includes a built-in CPU monitoring system that **automatically detects SLURM nodes** and displays per-node, per-core CPU usage in real-time.
 
 ### Automatic Node Detection
 
@@ -449,7 +449,7 @@ The monitoring system automatically detects:
 ### Example: Monitoring Distributed SVGD
 
 ```python
-from ptdalgorithms import initialize_distributed, CPUMonitor
+from phasic import initialize_distributed, CPUMonitor
 import time
 
 # Initialize distributed computing (auto-detects SLURM)
@@ -571,7 +571,7 @@ modules_to_load:
 
 ## Troubleshooting
 
-### Issue: "Module 'ptdalgorithms' not found"
+### Issue: "Module 'phasic' not found"
 
 **Solution:** Ensure the package is installed in your environment:
 

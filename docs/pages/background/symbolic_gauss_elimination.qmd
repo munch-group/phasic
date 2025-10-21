@@ -463,7 +463,7 @@ We presented a symbolic elimination algorithm for parameterized phase-type distr
 3. **Automatic differentiation:** Extend to symbolic gradient computation for θ
 4. **Adaptive approximation:** Use symbolic DAG to guide sparse approximations
 
-**Code availability:** Implementation available in PtDAlgorithms v0.21.3+ at https://github.com/...
+**Code availability:** Implementation available in phasic v0.21.3+ at https://github.com/...
 
 ## References
 

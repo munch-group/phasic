@@ -8,17 +8,17 @@ format:
     number-sections: true
 ---
 
-# PtDAlgorithms Caching System
+# phasic Caching System
 
 **Version:** 0.21.3+
 **Last Updated:** October 2025
 **Status:** Production-ready
 
-This guide covers the comprehensive three-layer caching system in PtDAlgorithms, which provides **10-1000x speedups** for repeated model evaluations.
+This guide covers the comprehensive three-layer caching system in phasic, which provides **10-1000x speedups** for repeated model evaluations.
 
 ::: {.callout-tip}
 ## Quick Summary
-PtDAlgorithms uses three complementary cache layers:
+phasic uses three complementary cache layers:
 1. **Trace Cache** - Graph elimination operations (10-1000x speedup)
 2. **SVGD Compilation Cache** - JIT-compiled gradients (instant on hit)
 3. **JAX Compilation Cache** - XLA compilations (seconds → instant)
@@ -30,7 +30,7 @@ PtDAlgorithms uses three complementary cache layers:
 
 ### Three-Layer Architecture
 
-PtDAlgorithms optimizes performance through a three-layer caching system, each targeting a different computational bottleneck:
+phasic optimizes performance through a three-layer caching system, each targeting a different computational bottleneck:
 
 ```{mermaid}
 flowchart TB
@@ -82,7 +82,7 @@ The trace cache stores pre-computed **graph elimination traces** from `record_el
 - Parameterization patterns (edge coefficients)
 - **NOT** actual parameter values (structure-only)
 
-**Location:** `~/.ptdalgorithms_cache/traces/*.json`
+**Location:** `~/.phasic_cache/traces/*.json`
 
 ### How It Works
 
@@ -99,7 +99,7 @@ flowchart LR
 
 **Algorithm:**
 1. Graph structure is serialized and hashed (SHA-256)
-2. Check `~/.ptdalgorithms_cache/traces/{hash}.json`
+2. Check `~/.phasic_cache/traces/{hash}.json`
 3. **Hit:** Load trace and skip elimination (0.1-1ms)
 4. **Miss:** Perform elimination (10-1000ms), save trace
 5. Future builds of same structure: instant
@@ -109,7 +109,7 @@ flowchart LR
 The trace cache is used automatically when building graphs:
 
 ```python
-from ptdalgorithms import Graph
+from phasic import Graph
 import numpy as np
 
 # Define callback for parameterized graph
@@ -133,7 +133,7 @@ g = Graph(callback=coalescent_callback, parameterized=True)
 from pathlib import Path
 
 # Check trace cache directory
-trace_cache_dir = Path.home() / '.ptdalgorithms_cache' / 'traces'
+trace_cache_dir = Path.home() / '.phasic_cache' / 'traces'
 num_traces = len(list(trace_cache_dir.glob('*.json'))) if trace_cache_dir.exists() else 0
 
 print(f"Cached traces: {num_traces}")
@@ -188,7 +188,7 @@ flowchart LR
 Caching happens automatically in SVGD:
 
 ```python
-from ptdalgorithms import SVGD
+from phasic import SVGD
 import jax.numpy as jnp
 
 # Build model
@@ -266,13 +266,13 @@ os.environ['JAX_COMPILATION_CACHE_DIR'] = '/fast/ssd/jax_cache'
 
 # THEN import JAX
 import jax
-from ptdalgorithms import Graph
+from phasic import Graph
 ```
 
 #### Using CompilationConfig
 
 ```python
-from ptdalgorithms.jax_config import CompilationConfig
+from phasic.jax_config import CompilationConfig
 
 # Balanced preset (default)
 config = CompilationConfig.balanced()
@@ -303,7 +303,7 @@ All cache management functions now use `CacheManager` internally as a single sou
 :::
 
 ```python
-from ptdalgorithms import cache_info, print_cache_info, clear_cache
+from phasic import cache_info, print_cache_info, clear_cache
 
 # Get cache statistics
 info = cache_info()
@@ -331,7 +331,7 @@ clear_cache(verbose=False)  # Silent mode
 #### Advanced Management
 
 ```python
-from ptdalgorithms.cache_manager import CacheManager
+from phasic.cache_manager import CacheManager
 
 manager = CacheManager()
 
@@ -363,7 +363,7 @@ manager.sync_from_remote('/shared/project/jax_cache')
 ### Single Machine Workflow
 
 ```python
-from ptdalgorithms import Graph, SVGD, CompilationConfig
+from phasic import Graph, SVGD, CompilationConfig
 import jax.numpy as jnp
 import numpy as np
 
@@ -403,7 +403,7 @@ svgd2.fit()  # <10 seconds (mostly SVGD iterations)
 ### Pre-warming Cache for Production
 
 ```python
-from ptdalgorithms.cache_manager import CacheManager
+from phasic.cache_manager import CacheManager
 
 manager = CacheManager()
 
@@ -441,7 +441,7 @@ pdf = model(jnp.ones(2), jnp.linspace(0.1, 5, 50))  # <1ms
 All three caches work together seamlessly:
 
 ```python
-from ptdalgorithms import Graph, SVGD
+from phasic import Graph, SVGD
 import jax.numpy as jnp
 import time
 
@@ -488,7 +488,7 @@ print(f"  SVGD fit:    {t_fit/total*100:.1f}%")
 For clusters with shared filesystem:
 
 ```python
-from ptdalgorithms.jax_config import CompilationConfig
+from phasic.jax_config import CompilationConfig
 
 config = CompilationConfig(
     cache_dir='/home/user/.jax_cache',          # Local (fast)
@@ -503,7 +503,7 @@ config.apply()
 #### Cache Synchronization
 
 ```python
-from ptdalgorithms.cache_manager import CacheManager
+from phasic.cache_manager import CacheManager
 
 manager = CacheManager(cache_dir='/home/user/.jax_cache')
 
@@ -523,12 +523,12 @@ manager.sync_from_remote('/shared/project/jax_cache', dry_run=True)
 #SBATCH --ntasks-per-node=8
 
 # Shared cache on network storage
-export SHARED_CACHE=/shared/project/ptdalgorithms_cache
+export SHARED_CACHE=/shared/project/phasic_cache
 export LOCAL_CACHE=$HOME/.jax_cache
 
 # Sync cache at job start
 python -c "
-from ptdalgorithms.cache_manager import CacheManager
+from phasic.cache_manager import CacheManager
 manager = CacheManager(cache_dir='$LOCAL_CACHE')
 manager.sync_from_remote('$SHARED_CACHE')
 "
@@ -563,7 +563,7 @@ This demonstrates:
 ### Manual Cache Testing
 
 ```python
-from ptdalgorithms import Graph, cache_info, print_cache_info
+from phasic import Graph, cache_info, print_cache_info
 import time
 
 # Test trace cache
@@ -616,13 +616,13 @@ os.environ['JAX_COMPILATION_CACHE_DIR'] = '/fast/storage'
 
 # THEN import
 import jax
-from ptdalgorithms import Graph
+from phasic import Graph
 ```
 
 ### ✅ DO: Pre-warm for Production
 
 ```python
-from ptdalgorithms.cache_manager import CacheManager
+from phasic.cache_manager import CacheManager
 
 manager = CacheManager()
 manager.prewarm_model(model, expected_shapes, expected_grids)
@@ -632,8 +632,8 @@ manager.prewarm_model(model, expected_shapes, expected_grids)
 ### ✅ DO: Monitor Cache Size
 
 ```python
-from ptdalgorithms import cache_info
-from ptdalgorithms.cache_manager import CacheManager
+from phasic import cache_info
+from phasic.cache_manager import CacheManager
 
 # Check size regularly
 info = cache_info()
@@ -703,7 +703,7 @@ import jax
 3. **Check trace cache:**
    ```python
    from pathlib import Path
-   trace_dir = Path.home() / '.ptdalgorithms_cache' / 'traces'
+   trace_dir = Path.home() / '.phasic_cache' / 'traces'
    if not trace_dir.exists():
        trace_dir.mkdir(parents=True, exist_ok=True)
    ```
@@ -713,7 +713,7 @@ import jax
 **Solution:** Regular cleanup
 
 ```python
-from ptdalgorithms.cache_manager import CacheManager
+from phasic.cache_manager import CacheManager
 
 manager = CacheManager()
 manager.vacuum(max_age_days=7, max_size_gb=5.0)
@@ -725,7 +725,7 @@ manager.vacuum(max_age_days=7, max_size_gb=5.0)
 rm -rf ~/.jax_cache/*
 
 # Clear trace cache
-rm -rf ~/.ptdalgorithms_cache/traces/*
+rm -rf ~/.phasic_cache/traces/*
 ```
 
 ### Slow First Run?
@@ -801,7 +801,7 @@ rm -rf ~/.ptdalgorithms_cache/traces/*
 ::: {.callout-note}
 ## Questions or Issues?
 For questions or issues with caching, please open an issue at:
-https://github.com/munch-group/ptdalgorithms/issues
+https://github.com/munch-group/phasic/issues
 :::
 
 ---

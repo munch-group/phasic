@@ -1,15 +1,15 @@
-# PtDAlgorithms - Quick Reference
+# phasic - Quick Reference
 
 **Version:** 0.21.3
 **Paper:** [Røikjer, Hobolth & Munch (2022)](https://doi.org/10.1007/s11222-022-10155-6) - Statistics and Computing
-**Repository:** https://github.com/munch-group/ptdalgorithms
+**Repository:** https://github.com/munch-group/phasic
 **Contact:** Kasper Munch (kaspermunch@birc.au.dk)
 
 ---
 
 ## Overview
 
-**PtDAlgorithms** is a high-performance library for computing with **phase-type distributions** using graph-based algorithms. Phase-type distributions model the time until absorption in continuous or discrete-time Markov chains on finite state spaces.
+**phasic** is a high-performance library for computing with **phase-type distributions** using graph-based algorithms. Phase-type distributions model the time until absorption in continuous or discrete-time Markov chains on finite state spaces.
 
 ### Key Innovation
 
@@ -75,7 +75,7 @@ Supports:
 ### Building Graphs
 
 ```python
-from ptdalgorithms import Graph
+from phasic import Graph
 import numpy as np
 
 # Callback-based construction
@@ -115,7 +115,7 @@ pdf_values = graph.pdf(times, granularity=100)
 
 # JAX-compatible (for gradients)
 import jax.numpy as jnp
-from ptdalgorithms.ffi_wrappers import compute_pmf_ffi
+from phasic.ffi_wrappers import compute_pmf_ffi
 
 structure_json = graph.serialize()
 theta = jnp.array([1.0, 0.5])
@@ -130,7 +130,7 @@ grad_fn = jax.grad(lambda t: jnp.sum(compute_pmf_ffi(structure_json, t, times, F
 ### Trace Elimination Workflow
 
 ```python
-from ptdalgorithms.trace_elimination import (
+from phasic.trace_elimination import (
     record_elimination_trace,
     evaluate_trace_jax,
     instantiate_from_trace,
@@ -153,7 +153,7 @@ observed_times = np.array([1.5, 2.3, 0.8])
 log_lik = trace_to_log_likelihood(trace, observed_times, reward_vector=None, granularity=0)
 
 # Use with SVGD
-from ptdalgorithms import SVGD
+from phasic import SVGD
 svgd = SVGD(log_lik, theta_dim=2, n_particles=100, n_iterations=1000)
 results = svgd.fit()
 ```
@@ -162,7 +162,7 @@ results = svgd.fit()
 
 ```python
 # High-level SVGD API
-from ptdalgorithms import Graph
+from phasic import Graph
 
 # Build parameterized model
 model = Graph.pmf_from_graph(graph, discrete=False)
@@ -233,7 +233,7 @@ reward_matrix = np.array([
 
 ### JAX FFI Integration Pattern
 
-**Location**: `src/ptdalgorithms/ffi_wrappers.py`
+**Location**: `src/phasic/ffi_wrappers.py`
 
 **Pattern**:
 ```python
@@ -303,7 +303,7 @@ observed_times = np.array([1.5, 2.3, 0.8, 1.2])
 log_lik = trace_to_log_likelihood(trace, observed_times, granularity=100)
 
 # Use with SVGD
-from ptdalgorithms import SVGD
+from phasic import SVGD
 svgd = SVGD(log_lik, theta_dim=2, n_particles=100, n_iterations=1000)
 results = svgd.fit()
 ```
@@ -370,7 +370,7 @@ Added `base_weight` field to `struct ptd_edge_parameterized` to preserve origina
 
 **Python API (via trace)**:
 ```python
-from ptdalgorithms.trace_elimination import (
+from phasic.trace_elimination import (
     record_elimination_trace,
     instantiate_from_trace
 )
@@ -411,21 +411,21 @@ pdf = concrete_graph.pdf(time=1.0, granularity=100)
 
 ### Full API Documentation
 
-- **C API**: See `api/c/ptdalgorithms.h` (all C functions with comments)
-- **C++ API**: See `api/cpp/ptdalgorithmscpp.h` (object-oriented wrapper)
+- **C API**: See `api/c/phasic.h` (all C functions with comments)
+- **C++ API**: See `api/cpp/phasiccpp.h` (object-oriented wrapper)
 - **Python API**: Use `help(Graph)` or docstrings in code
 
 ### Key Files
 
 **Core Implementation:**
-- `src/c/ptdalgorithms.c` - Core C algorithms
-- `src/c/ptdalgorithms_symbolic.c` - Symbolic expression system
+- `src/c/phasic.c` - Core C algorithms
+- `src/c/phasic_symbolic.c` - Symbolic expression system
 
 **Python Modules:**
-- `src/ptdalgorithms/__init__.py` - Graph class, SVGD, main API
-- `src/ptdalgorithms/trace_elimination.py` - Trace recording and evaluation (Phases 1-4)
-- `src/ptdalgorithms/ffi_wrappers.py` - JAX FFI integration (Phase 5 in progress)
-- `src/ptdalgorithms/svgd.py` - SVGD implementation
+- `src/phasic/__init__.py` - Graph class, SVGD, main API
+- `src/phasic/trace_elimination.py` - Trace recording and evaluation (Phases 1-4)
+- `src/phasic/ffi_wrappers.py` - JAX FFI integration (Phase 5 in progress)
+- `src/phasic/svgd.py` - SVGD implementation
 
 **Tests:**
 - `tests/test_trace_recording.py` - Phase 1 tests

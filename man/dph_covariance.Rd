@@ -17,10 +17,10 @@ dph_covariance(phase_type_graph, rewards1, rewards2)
 The covariance of the discrete distribution given the two rewards
 }
 \description{
-This function invokes [ptdalgorithms::moments())]
+This function invokes [phasic::moments())]
 twice to find the first and second moment for each of the two rewards
 
-[ptdalgorithms::moments())]: R:ptdalgorithms::moments())
+[phasic::moments())]: R:phasic::moments())
 }
 \seealso{
 \code{\link[=dph_expected_visits]{dph_expected_visits()}}

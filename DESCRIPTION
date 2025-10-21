@@ -1,4 +1,4 @@
-Package: ptdalgorithms
+Package: phasic
 Type: Package
 Title: Phase-type distribution algorithms
 Version: 0.20.0

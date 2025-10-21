@@ -18,14 +18,14 @@ Usage:
     # Multi-node SLURM cluster
     sbatch <(python generate_slurm_script.py --profile small --script distributed_inference_simple.py)
 
-Author: PtDAlgorithms Team
+Author: phasic Team
 Date: 2025-10-07
 """
 
 import numpy as np
 import jax
 import jax.numpy as jnp
-from ptdalgorithms import Graph, initialize_distributed
+from phasic import Graph, initialize_distributed
 
 
 def build_erlang_model(num_stages: int = 3):
@@ -237,7 +237,7 @@ def main():
         print("     python generate_slurm_script.py --list-profiles")
         print()
         print("  3. Use in your own code:")
-        print("     from ptdalgorithms import initialize_distributed")
+        print("     from phasic import initialize_distributed")
         print("     dist_info = initialize_distributed()")
         print()
 

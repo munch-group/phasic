@@ -1,9 +1,9 @@
-# Caching Strategies for PtDAlgorithms
+# Caching Strategies for phasic
 
 **Version:** 0.21.3+
 **Last Updated:** October 2025
 
-This guide covers the comprehensive caching system in PtDAlgorithms, which provides **10-1000x speedups** for repeated model evaluations through two complementary caching mechanisms.
+This guide covers the comprehensive caching system in phasic, which provides **10-1000x speedups** for repeated model evaluations through two complementary caching mechanisms.
 
 ## Table of Contents
 
@@ -20,7 +20,7 @@ This guide covers the comprehensive caching system in PtDAlgorithms, which provi
 
 ## Overview
 
-PtDAlgorithms uses a **two-tier caching system**:
+phasic uses a **two-tier caching system**:
 
 1. **Symbolic DAG Cache**: Caches expensive O(n³) symbolic elimination results
 2. **JAX Compilation Cache**: Caches JIT-compiled XLA code
@@ -56,8 +56,8 @@ The symbolic cache stores pre-computed symbolic DAGs from `ptd_graph_symbolic_el
 ### Basic Usage
 
 ```python
-from ptdalgorithms import Graph
-from ptdalgorithms.symbolic_cache import SymbolicCache
+from phasic import Graph
+from phasic.symbolic_cache import SymbolicCache
 
 # Build parameterized graph
 def coalescent_callback(state, nr_samples=3):
@@ -86,7 +86,7 @@ pdf2 = model2(theta, times)
 ### Cache Inspection
 
 ```python
-from ptdalgorithms.symbolic_cache import SymbolicCache, print_cache_info
+from phasic.symbolic_cache import SymbolicCache, print_cache_info
 
 # Print cache statistics
 print_cache_info()
@@ -94,7 +94,7 @@ print_cache_info()
 # ============================================================
 # SYMBOLIC DAG CACHE INFO
 # ============================================================
-# Cache directory: /Users/you/.ptdalgorithms_cache/symbolic
+# Cache directory: /Users/you/.phasic_cache/symbolic
 # Cached DAGs: 15
 # Total size: 12.3 MB
 # Average vertices: 1024
@@ -144,7 +144,7 @@ JAX caches compiled XLA code based on:
 ### Basic Configuration
 
 ```python
-from ptdalgorithms.jax_config import CompilationConfig
+from phasic.jax_config import CompilationConfig
 
 # Balanced preset (default)
 config = CompilationConfig.balanced()
@@ -186,7 +186,7 @@ os.environ['JAX_COMPILATION_CACHE_DIR'] = '/custom/path'
 ### Cache Management
 
 ```python
-from ptdalgorithms.cache_manager import CacheManager, print_jax_cache_info
+from phasic.cache_manager import CacheManager, print_jax_cache_info
 
 # Inspect cache
 print_jax_cache_info()
@@ -225,7 +225,7 @@ manager.vacuum(max_age_days=30, max_size_gb=10.0)
 ### Single Machine
 
 ```python
-from ptdalgorithms import Graph, CompilationConfig
+from phasic import Graph, CompilationConfig
 import jax.numpy as jnp
 
 # 1. Configure JAX cache (once per session)
@@ -250,7 +250,7 @@ pdf2 = model(theta, times)  # <1ms!
 ### Pre-warming Cache
 
 ```python
-from ptdalgorithms.cache_manager import CacheManager
+from phasic.cache_manager import CacheManager
 
 manager = CacheManager()
 
@@ -287,7 +287,7 @@ manager.prewarm_model(model, theta_samples, time_grids)
 Create and share pre-computed symbolic DAGs:
 
 ```python
-from ptdalgorithms.symbolic_cache import SymbolicCache
+from phasic.symbolic_cache import SymbolicCache
 
 cache = SymbolicCache()
 
@@ -319,7 +319,7 @@ cache.export_library('population_genetics_models', hash_keys=hash_keys)
 
 ```bash
 # On machine with pre-computed caches
-cd ~/.ptdalgorithms_cache/symbolic
+cd ~/.phasic_cache/symbolic
 tar -czf my_models.tar.gz *.json *.meta index.db
 
 # Transfer to other machines
@@ -327,7 +327,7 @@ scp my_models.tar.gz user@cluster:~
 
 # On destination machine
 python -c "
-from ptdalgorithms.symbolic_cache import SymbolicCache
+from phasic.symbolic_cache import SymbolicCache
 cache = SymbolicCache()
 cache.import_library('my_models.tar.gz')
 "
@@ -342,7 +342,7 @@ cache.import_library('my_models.tar.gz')
 For clusters with shared filesystem:
 
 ```python
-from ptdalgorithms.jax_config import CompilationConfig
+from phasic.jax_config import CompilationConfig
 
 config = CompilationConfig(
     cache_dir='/home/user/.jax_cache',          # Local (fast, per-node)
@@ -357,7 +357,7 @@ config.apply()
 ### Cache Synchronization
 
 ```python
-from ptdalgorithms.cache_manager import CacheManager
+from phasic.cache_manager import CacheManager
 
 manager = CacheManager(cache_dir='/home/user/.jax_cache')
 
@@ -377,12 +377,12 @@ manager.sync_from_remote('/shared/project/jax_cache', dry_run=True)
 #SBATCH --ntasks-per-node=8
 
 # Shared cache on network storage
-export SHARED_CACHE=/shared/project/ptdalgorithms_cache
+export SHARED_CACHE=/shared/project/phasic_cache
 export LOCAL_CACHE=$HOME/.jax_cache
 
 # Sync cache from shared to local at job start
 python -c "
-from ptdalgorithms.cache_manager import CacheManager
+from phasic.cache_manager import CacheManager
 manager = CacheManager(cache_dir='$LOCAL_CACHE')
 manager.sync_from_remote('$SHARED_CACHE')
 "
@@ -411,20 +411,20 @@ model = Graph.pmf_from_graph(g, use_cache=False)  # Recomputes every time!
 ### Configure JAX Early
 
 ```python
-# BEFORE importing JAX or ptdalgorithms
+# BEFORE importing JAX or phasic
 import os
 os.environ['JAX_COMPILATION_CACHE_DIR'] = '/fast/storage'
 
 # THEN import
 import jax
-from ptdalgorithms import Graph
+from phasic import Graph
 ```
 
 ### Pre-warm for Production
 
 ```python
 # In deployment script
-from ptdalgorithms.cache_manager import CacheManager
+from phasic.cache_manager import CacheManager
 
 manager = CacheManager()
 manager.prewarm_model(model, expected_theta_shapes, expected_time_grids)
@@ -435,7 +435,7 @@ manager.prewarm_model(model, expected_theta_shapes, expected_time_grids)
 ### Monitor Cache Size
 
 ```python
-from ptdalgorithms.cache_manager import CacheManager
+from phasic.cache_manager import CacheManager
 
 manager = CacheManager()
 
@@ -512,7 +512,7 @@ with open('model_metadata.json', 'w') as f:
 **Solution:** Use symbolic cache (device-independent):
 ```python
 # Export symbolic cache (works across machines)
-from ptdalgorithms.symbolic_cache import SymbolicCache
+from phasic.symbolic_cache import SymbolicCache
 cache = SymbolicCache()
 cache.export_library('models_export')
 
@@ -524,7 +524,7 @@ cache.export_library('models_export')
 **Solution:** Regular cleanup
 
 ```python
-from ptdalgorithms.cache_manager import CacheManager
+from phasic.cache_manager import CacheManager
 
 manager = CacheManager()
 manager.vacuum(max_age_days=7, max_size_gb=5.0)
@@ -574,10 +574,10 @@ manager.vacuum(max_age_days=7, max_size_gb=5.0)
 ## See Also
 
 - [JAX Compilation Cache Documentation](https://jax.readthedocs.io/en/latest/persistent_compilation_cache.html)
-- [PtDAlgorithms API Reference](../api/index.md)
+- [phasic API Reference](../api/index.md)
 - [Distributed Computing Guide](../distributed/guide.md)
 - [Performance Optimization Tips](../performance/tips.md)
 
 ---
 
-*For questions or issues with caching, please open an issue at: https://github.com/munch-group/ptdalgorithms/issues*
+*For questions or issues with caching, please open an issue at: https://github.com/munch-group/phasic/issues*

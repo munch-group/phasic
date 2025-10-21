@@ -17,8 +17,8 @@ Brief 2-3 sentence summary of what was accomplished in this phase.
 ### Files Modified
 
 List all files changed with brief description:
-- `/Users/kmt/PtDAlgorithms/src/c/ptdalgorithms.c` - Description of changes
-- `/Users/kmt/PtDAlgorithms/api/c/ptdalgorithms.h` - Description of changes
+- `/Users/kmt/PtDAlgorithms/src/c/phasic.c` - Description of changes
+- `/Users/kmt/PtDAlgorithms/api/c/phasic.h` - Description of changes
 - Add more files as needed...
 
 ### Code Added

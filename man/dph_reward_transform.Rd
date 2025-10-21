@@ -19,17 +19,17 @@ Changes \code{phase_type_graph} to instead model discrete rewarded jumps until a
 as described in the paper.
 }
 \examples{
-graph <- ptdalgorithms::create_graph(4)
-v2 <- ptdalgorithms::create_vertex(graph, c(4,0,3,3))
-v1 <- ptdalgorithms::create_vertex(graph, c(1,2,3,4))
-a <- ptdalgorithms::create_vertex(graph, c(0,0,0,0))
-ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), v1, 0.5)
-ptdalgorithms::add_edge(v1, v2, 0.8)
-ptdalgorithms::add_edge(v2, a, 0.5)
+graph <- phasic::create_graph(4)
+v2 <- phasic::create_vertex(graph, c(4,0,3,3))
+v1 <- phasic::create_vertex(graph, c(1,2,3,4))
+a <- phasic::create_vertex(graph, c(0,0,0,0))
+phasic::add_edge(phasic::starting_vertex(graph), v1, 0.5)
+phasic::add_edge(v1, v2, 0.8)
+phasic::add_edge(v2, a, 0.5)
 # Note that if a defect is desired, the edge has to be explicitly
 # added to an absorbing vertex
-ptdalgorithms::add_edge(ptdalgorithms::starting_vertex(graph), a, 0.5)
-ptdalgorithms::graph_as_dph_matrix(graph) #>
+phasic::add_edge(phasic::starting_vertex(graph), a, 0.5)
+phasic::graph_as_dph_matrix(graph) #>
 # $`states`
 #         [,1] [,2] [,3] [,4]
 #   [1,]    1    2    3    4
@@ -40,8 +40,8 @@ ptdalgorithms::graph_as_dph_matrix(graph) #>
 #   [2,]   0.0   0.5
 # $IPV
 #   [1] 0.5 0
-graph <- ptdalgorithms::dph_reward_transform(graph, ptdalgorithms::states(graph)[,2])
-ptdalgorithms::graph_as_dph_matrix(graph) #>
+graph <- phasic::dph_reward_transform(graph, phasic::states(graph)[,2])
+phasic::graph_as_dph_matrix(graph) #>
 # $`states`
 # TODO: how will these look?
 #         [,1] [,2] [,3] [,4]

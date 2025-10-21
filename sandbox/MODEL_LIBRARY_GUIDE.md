@@ -11,7 +11,7 @@ This guide explains how to create a public or organization-wide repository of pr
 ### Install a Pre-Computed Library
 
 ```python
-from ptdalgorithms.cloud_cache import install_model_library
+from phasic.cloud_cache import install_model_library
 
 # Install official coalescent models
 install_model_library('coalescent')
@@ -27,7 +27,7 @@ ptd-cache install coalescent
 ### Use Cached Models
 
 ```python
-from ptdalgorithms import Graph
+from phasic import Graph
 
 # Build model (uses cache automatically)
 g = Graph(callback=coalescent_callback, parameterized=True)
@@ -41,10 +41,10 @@ pdf = model(theta, times)  # No symbolic elimination needed
 
 ## Repository Structure
 
-For a model library repository (e.g., `ptdalgorithms-models`):
+For a model library repository (e.g., `phasic-models`):
 
 ```
-ptdalgorithms-models/
+phasic-models/
 ├── README.md
 ├── coalescent/
 │   ├── n_samples_3.json
@@ -91,7 +91,7 @@ ptdalgorithms-models/
 {
   "model_name": "coalescent_n10",
   "description": "Coalescent model for 10 samples",
-  "ptdalgorithms_version": "0.21.3",
+  "phasic_version": "0.21.3",
   "created": "2025-10-13T10:30:00Z",
   "graph_hash": "a3f2e9c8b1d4...",
   "stats": {
@@ -143,8 +143,8 @@ ptdalgorithms-models/
 ### Step 1: Build and Cache Models
 
 ```python
-from ptdalgorithms import Graph
-from ptdalgorithms.symbolic_cache import SymbolicCache
+from phasic import Graph
+from phasic.symbolic_cache import SymbolicCache
 import numpy as np
 
 cache = SymbolicCache()
@@ -202,7 +202,7 @@ for model_name, hash_key in models:
     meta = {
         'model_name': model_name,
         'description': f'Coalescent model: {model_name}',
-        'ptdalgorithms_version': '0.21.3',
+        'phasic_version': '0.21.3',
         'created': '2025-10-13T10:30:00Z',
         'graph_hash': hash_key,
         # ... add more details
@@ -232,7 +232,7 @@ sha256sum coalescent_models_v1.0.0.tar.gz > coalescent_models_v1.0.0.tar.gz.sha2
 
 ```bash
 # Create repository
-gh repo create ptdalgorithms-models --public
+gh repo create phasic-models --public
 
 # Add files
 git add coalescent/ queuing/ reliability/
@@ -271,10 +271,10 @@ git push
 ### S3
 
 ```python
-from ptdalgorithms.cloud_cache import S3Backend
+from phasic.cloud_cache import S3Backend
 
 backend = S3Backend(
-    bucket_name='ptdalgorithms-models',
+    bucket_name='phasic-models',
     prefix='v1.0.0/'
 )
 
@@ -287,10 +287,10 @@ backend.upload_cache(
 ### GCS
 
 ```python
-from ptdalgorithms.cloud_cache import GCSBackend
+from phasic.cloud_cache import GCSBackend
 
 backend = GCSBackend(
-    bucket_name='ptdalgorithms-models',
+    bucket_name='phasic-models',
     prefix='v1.0.0/'
 )
 
@@ -307,13 +307,13 @@ backend.upload_cache(
 ### From GitHub Releases
 
 ```python
-from ptdalgorithms.cloud_cache import download_from_github_release
+from phasic.cloud_cache import download_from_github_release
 
 download_from_github_release(
-    repo='munch-group/ptdalgorithms-models',
+    repo='munch-group/phasic-models',
     tag='v1.0.0',
     asset_name='coalescent_models_v1.0.0.tar.gz',
-    extract_to='~/.ptdalgorithms_cache/symbolic',
+    extract_to='~/.phasic_cache/symbolic',
     verify_checksum='a3f2e9c8...'  # Optional but recommended
 )
 ```
@@ -321,15 +321,15 @@ download_from_github_release(
 ### From S3
 
 ```python
-from ptdalgorithms.cloud_cache import S3Backend
+from phasic.cloud_cache import S3Backend
 
 backend = S3Backend(
-    bucket_name='ptdalgorithms-models',
+    bucket_name='phasic-models',
     prefix='v1.0.0/coalescent/'
 )
 
 backend.download_cache(
-    local_cache_dir='~/.ptdalgorithms_cache/symbolic'
+    local_cache_dir='~/.phasic_cache/symbolic'
 )
 ```
 
@@ -353,8 +353,8 @@ ptd-cache import downloaded_models.tar.gz --symbolic
 For internal use within an organization:
 
 ```python
-from ptdalgorithms.symbolic_cache import SymbolicCache
-from ptdalgorithms.cloud_cache import S3Backend
+from phasic.symbolic_cache import SymbolicCache
+from phasic.cloud_cache import S3Backend
 
 # Build and cache organization-specific models
 cache = SymbolicCache()
@@ -362,7 +362,7 @@ cache = SymbolicCache()
 # Export to S3
 backend = S3Backend(
     bucket_name='my-org-models',
-    prefix='ptdalgorithms/',
+    prefix='phasic/',
     profile='my-aws-profile'
 )
 
@@ -373,7 +373,7 @@ backend.upload_cache(
 
 # Team members download:
 backend.download_cache(
-    local_cache_dir='~/.ptdalgorithms_cache/symbolic'
+    local_cache_dir='~/.phasic_cache/symbolic'
 )
 ```
 
@@ -394,8 +394,8 @@ Document compatible PtDAlgorithms versions in metadata:
 
 ```json
 {
-  "ptdalgorithms_min_version": "0.21.0",
-  "ptdalgorithms_max_version": "0.22.x",
+  "phasic_min_version": "0.21.0",
+  "phasic_max_version": "0.22.x",
   "format_version": "1.0"
 }
 ```
@@ -463,10 +463,10 @@ Ensures reproducibility.
 
 ---
 
-## Example Repository: ptdalgorithms-models
+## Example Repository: phasic-models
 
 See reference implementation at:
-https://github.com/munch-group/ptdalgorithms-models
+https://github.com/munch-group/phasic-models
 
 Features:
 - ✅ Pre-computed models for common use cases
@@ -517,11 +517,11 @@ jobs:
 ## Support and Contributions
 
 For questions about creating model libraries:
-- Open an issue at: https://github.com/munch-group/ptdalgorithms/issues
+- Open an issue at: https://github.com/munch-group/phasic/issues
 - Email: kaspermunch@birc.au.dk
 
 To contribute models to official library:
-- Fork: https://github.com/munch-group/ptdalgorithms-models
+- Fork: https://github.com/munch-group/phasic-models
 - Add your models following structure above
 - Submit pull request with documentation
 

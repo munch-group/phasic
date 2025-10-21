@@ -21,8 +21,8 @@ This session completed three related tasks improving PtDAlgorithms' caching syst
 ## What Changed
 
 ### Code
-- `src/ptdalgorithms/model_export.py` - Now uses CacheManager internally
-- `src/ptdalgorithms/__init__.py` - Removed obsolete symbolic_cache imports
+- `src/phasic/model_export.py` - Now uses CacheManager internally
+- `src/phasic/__init__.py` - Removed obsolete symbolic_cache imports
 - `tests/test_svgd_jax.py` - Added ~360 lines of cache testing
 
 ### Documentation
@@ -39,7 +39,7 @@ This session completed three related tasks improving PtDAlgorithms' caching syst
 ### Nothing to Change
 All existing code continues to work:
 ```python
-import ptdalgorithms as ptd
+import phasic as ptd
 
 # All still work exactly the same
 ptd.clear_cache()
@@ -139,7 +139,7 @@ User code
 
 ### Quick Test
 ```python
-import ptdalgorithms as ptd
+import phasic as ptd
 
 # Verify consolidated functions work
 info = ptd.cache_info()
@@ -202,7 +202,7 @@ python tests/test_svgd_jax.py
 ## Cache System Status
 
 ### Layer 1: Trace Cache ✓ Working
-- Location: `~/.ptdalgorithms_cache/traces/`
+- Location: `~/.phasic_cache/traces/`
 - Caches: Graph elimination operations
 - Speedup: 10-1000x on hit
 - Status: Production-ready

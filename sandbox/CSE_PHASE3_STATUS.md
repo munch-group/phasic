@@ -16,10 +16,10 @@ Successfully integrated the expression interning infrastructure into the symboli
 
 ### Files Modified
 
-- `/Users/kmt/PtDAlgorithms/src/c/ptdalgorithms_symbolic.c` - Integrated intern table into elimination (~100 lines changed)
-- `/Users/kmt/PtDAlgorithms/src/c/ptdalgorithms.c` - Modified intern table destroy (temporary fix for memory issue)
+- `/Users/kmt/PtDAlgorithms/src/c/phasic_symbolic.c` - Integrated intern table into elimination (~100 lines changed)
+- `/Users/kmt/PtDAlgorithms/src/c/phasic.c` - Modified intern table destroy (temporary fix for memory issue)
 
-### Code Added/Modified in ptdalgorithms_symbolic.c
+### Code Added/Modified in phasic_symbolic.c
 
 **Line 328-340**: Added intern table creation
 ```c
@@ -92,7 +92,7 @@ ptd_expr_intern_table_destroy(intern_table);
 
 **Total changes**: ~15 locations modified, ~20 lines added
 
-### Code Modified in ptdalgorithms.c
+### Code Modified in phasic.c
 
 **Line 5627-5645**: Temporarily disabled expression destruction in intern table cleanup
 ```c

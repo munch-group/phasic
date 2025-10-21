@@ -2,7 +2,7 @@
 title: Getting Started
 ---
 
-The **ptdalgorithms** library provides fast and scalable algorithms for constructing and computing properties of phase-type distributions. It supports both continuous and discrete, unrewarded and rewarded, univariate and multivariate distributions. For sparse models, it can be **orders of magnitude faster** than traditional matrix-based methods.
+The **phasic** library provides fast and scalable algorithms for constructing and computing properties of phase-type distributions. It supports both continuous and discrete, unrewarded and rewarded, univariate and multivariate distributions. For sparse models, it can be **orders of magnitude faster** than traditional matrix-based methods.
 
 **Key Features:**
 
@@ -37,13 +37,13 @@ pixi workspace channel add munch-group
 Install without `jax`:
 
 ```bash
-pixi install ptdalgorithms
+pixi install phasic
 ```
 
 For gradient-based inference using SVGD, the `jax` library is also required:
 
 ```bash
-pixi install ptdalgorithms jax
+pixi install phasic jax
 ```
 
 ## Conda
@@ -51,13 +51,13 @@ pixi install ptdalgorithms jax
 Install without `jax`:
 
 ```bash
-conda install -c munch-group -c conda-forge ptdalgorithms
+conda install -c munch-group -c conda-forge phasic
 ```
 
 For gradient-based inference using SVGD, the `jax` library is also required:
 
 ```bash
-conda install -c munch-group -c conda-forge ptdalgorithms jax
+conda install -c munch-group -c conda-forge phasic jax
 ```
 
 ## Pip
@@ -65,13 +65,13 @@ conda install -c munch-group -c conda-forge ptdalgorithms jax
 Install without `jax`:
 
 ```bash
-pip install ptdalgorithms
+pip install phasic
 ```
 
 For gradient-based inference using SVGD, the `jax` library is also required:
 
 ```bash
-pip install ptdalgorithms[jax]
+pip install phasic[jax]
 ```
 
 :::
@@ -87,7 +87,7 @@ Here's a minimal example to get you started:
 #| fig-cap: "Erlang distribution with 5 phases"
 #| column: margin
 
-import ptdalgorithms as ptd
+import phasic as ptd
 import numpy as np
 
 # Create a simple Erlang distribution (5 phases with rate 2)
@@ -130,7 +130,7 @@ Sample mean: 2.487
 ### R
 
 ```r
-library(ptdalgorithms)
+library(phasic)
 
 # Create Erlang distribution
 g <- create_graph(state_length = 1)
@@ -291,7 +291,7 @@ pdf_values = pmf_fn(theta, times)
 
 ## Getting Help
 
-- [Issue Tracker](https://github.com/munch-group/ptdalgorithms/issues) - Report bugs or request features
+- [Issue Tracker](https://github.com/munch-group/phasic/issues) - Report bugs or request features
 - [Email Support](mailto:kaspermunch@birc.au.dk) - Direct contact
 
 ## Next Steps

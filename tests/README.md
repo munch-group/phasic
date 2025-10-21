@@ -1,6 +1,6 @@
 # Comprehensive Python API Test Suite
 
-This directory contains a comprehensive test suite for the ptdalgorithms Python API.
+This directory contains a comprehensive test suite for the phasic Python API.
 
 ## Test Files
 
@@ -153,7 +153,7 @@ pytest tests/test_comprehensive_api.py::TestGraphConstruction -v
 pytest tests/test_comprehensive_api.py::TestGraphConstruction::test_construct_with_state_length -v
 
 # Run with coverage
-pytest tests/ --cov=ptdalgorithms --cov-report=html
+pytest tests/ --cov=phasic --cov-report=html
 ```
 
 ### Individual test files

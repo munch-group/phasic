@@ -19,7 +19,7 @@
 #include <vector>
 #include <cstring>  // for memcpy
 
-ptdalgorithms::Graph build_model(const double* theta, int n_params) {
+phasic::Graph build_model(const double* theta, int n_params) {
     // Extract parameters
     int starting_rabbits = (n_params > 0) ? static_cast<int>(theta[0]) : 3;
     double flooding_left = (n_params > 1) ? theta[1] : 0.5;
@@ -29,7 +29,7 @@ ptdalgorithms::Graph build_model(const double* theta, int n_params) {
     size_t state_size = 2;
 
     // Create the graph structure
-    ptdalgorithms::Graph g(state_size);
+    phasic::Graph g(state_size);
 
     // Get starting vertex
     auto start = g.starting_vertex();

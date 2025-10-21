@@ -5,7 +5,7 @@ import pytest
 pytest.main()
 
 
-import ptdalgorithms as ptd
+import phasic as ptd
 
 graph = ptd.Graph(10)
 

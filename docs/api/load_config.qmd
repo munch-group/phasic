@@ -1,7 +1,7 @@
-# load_config { #ptdalgorithms.load_config }
+# load_config { #phasic.load_config }
 
 ```python
-ptdalgorithms.load_config(filepath)
+phasic.load_config(filepath)
 ```
 
 Load cluster configuration from YAML file.
@@ -14,7 +14,7 @@ Load cluster configuration from YAML file.
 
 ## Returns {.doc-section .doc-section-returns}
 
-<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[ClusterConfig](`ptdalgorithms.cluster_configs.ClusterConfig`)]{.parameter-annotation}</code>
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[ClusterConfig](`phasic.cluster_configs.ClusterConfig`)]{.parameter-annotation}</code>
 
 :   Loaded configuration
 

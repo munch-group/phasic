@@ -82,7 +82,7 @@
     },
     "cSpell.words": [
         "iridis",
-        "ptdalgorithmscpp"
+        "phasiccpp"
     ],
     "python.terminal.activateEnvironment": false,
     "cmake.cmakePath": "/Users/kmt/PtDAlgorithms/.pixi/envs/default/bin/cmake",
@@ -104,7 +104,7 @@
             "group": "Default"
         },
         {
-            "filePath": "src/ptdalgorithms",
+            "filePath": "src/phasic",
             "group": "Default"
         },
         {

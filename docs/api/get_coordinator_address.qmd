@@ -1,7 +1,7 @@
-# get_coordinator_address { #ptdalgorithms.get_coordinator_address }
+# get_coordinator_address { #phasic.get_coordinator_address }
 
 ```python
-ptdalgorithms.get_coordinator_address(slurm_env, port=12345)
+phasic.get_coordinator_address(slurm_env, port=12345)
 ```
 
 Determine the coordinator address for JAX distributed.

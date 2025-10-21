@@ -5,7 +5,7 @@
 #include <memory>
 #include <iostream>
 
-namespace ptdalgorithms {
+namespace phasic {
 namespace parameterized {
 namespace ffi_handlers {
 
@@ -270,7 +270,7 @@ XLA_FFI_Handler* CreateComputePmfAndMomentsHandler() {
 }
 
 } // namespace parameterized
-} // namespace ptdalgorithms
+} // namespace phasic
 
 // IMPORTANT: Do NOT register FFI handlers as global symbols!
 // The XLA_FFI_DEFINE_HANDLER_SYMBOL macro creates static global objects that get
@@ -285,7 +285,7 @@ XLA_FFI_Handler* CreateComputePmfAndMomentsHandler() {
 
 // // DISABLED - causes memory corruption when library loads before JAX init
 // XLA_FFI_DEFINE_HANDLER_SYMBOL(
-//     PtdComputePmf, ptdalgorithms::parameterized::ffi_handlers::ComputePmfFfiImpl,
+//     PtdComputePmf, phasic::parameterized::ffi_handlers::ComputePmfFfiImpl,
 //     xla::ffi::Ffi::Bind()
 //         .Arg<xla::ffi::Buffer<xla::ffi::U8>>()   // structure_json
 //         .Attr<int32_t>("granularity")
@@ -296,7 +296,7 @@ XLA_FFI_Handler* CreateComputePmfAndMomentsHandler() {
 // );
 //
 // XLA_FFI_DEFINE_HANDLER_SYMBOL(
-//     PtdComputePmfAndMoments, ptdalgorithms::parameterized::ffi_handlers::ComputePmfAndMomentsFfiImpl,
+//     PtdComputePmfAndMoments, phasic::parameterized::ffi_handlers::ComputePmfAndMomentsFfiImpl,
 //     xla::ffi::Ffi::Bind()
 //         .Arg<xla::ffi::Buffer<xla::ffi::U8>>()   // structure_json
 //         .Attr<int32_t>("granularity")

@@ -57,7 +57,7 @@ Implemented true JAX FFI integration with vmap support for multi-core paralleliz
 - Attributes are static (not batched), buffers are batched
 
 #### Python Wrapper
-**File:** `src/ptdalgorithms/ffi_wrappers.py`
+**File:** `src/phasic/ffi_wrappers.py`
 - Pass JSON as keyword argument: `structure_json=structure_str`
 - Use `vmap_method="expand_dims"` for batch handling
 - theta/times passed as positional buffer arguments
@@ -145,8 +145,8 @@ Note: The `XLA_FFI_INCLUDE_DIR` is environment-specific, so this only works if y
 ```python
 import jax
 import jax.numpy as jnp
-from ptdalgorithms import Graph
-from ptdalgorithms.config import get_config
+from phasic import Graph
+from phasic.config import get_config
 
 # Enable FFI
 config = get_config()
@@ -264,7 +264,7 @@ result_b = result_data + (b * n_times)  // Batch b result
 ### Check FFI Registration
 
 ```python
-from ptdalgorithms.ffi_wrappers import _FFI_REGISTERED, _register_ffi_targets
+from phasic.ffi_wrappers import _FFI_REGISTERED, _register_ffi_targets
 print(f"FFI registered: {_FFI_REGISTERED}")
 _register_ffi_targets()
 ```
@@ -276,7 +276,7 @@ _register_ffi_targets()
 ls $(brew --prefix libomp)/lib/
 
 # Check if OpenMP is linked
-otool -L $(python -c "import ptdalgorithms; print(ptdalgorithms.__file__.replace('__init__.py', 'ptdalgorithmscpp_pybind.*.so'))" | head -1) | grep omp
+otool -L $(python -c "import phasic; print(phasic.__file__.replace('__init__.py', 'phasic_pybind.*.so'))" | head -1) | grep omp
 ```
 
 ### Monitor CPU Usage
@@ -323,7 +323,7 @@ JAX 0.8.0 changed pmap mesh management:
 
 ### Solution
 
-**File:** `src/ptdalgorithms/svgd.py`
+**File:** `src/phasic/svgd.py`
 
 1. **Remove compiled_grad from pmap**: Let pmap JIT-compile internally
 2. **Explicit mesh context**: Create device mesh and use with context manager

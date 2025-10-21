@@ -1,7 +1,7 @@
-# compute_moments_ffi { #ptdalgorithms.compute_moments_ffi }
+# compute_moments_ffi { #phasic.compute_moments_ffi }
 
 ```python
-ptdalgorithms.compute_moments_ffi(structure_json, theta, nr_moments)
+phasic.compute_moments_ffi(structure_json, theta, nr_moments)
 ```
 
 Compute distribution moments using JAX FFI.

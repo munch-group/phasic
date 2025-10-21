@@ -1,9 +1,9 @@
 
-import ptdalgorithms
+import phasic
 
-print(ptdalgorithms.__file__)
+print(phasic.__file__)
 
-graph = ptdalgorithms.Graph(3)
+graph = phasic.Graph(3)
 print(graph)
 
 print(dir(graph))

@@ -2,13 +2,13 @@
 #include "stdint.h"
 #include "stdlib.h"
 #include "assert.h"
-#include "./../../../PtDAlgorithms/api/c/ptdalgorithms.h"
-#include "./../../../PtDAlgorithms/api/cpp/ptdalgorithmscpp.h"
+#include "./../../../phasic/api/c/phasic.h"
+#include "./../../../phasic/api/cpp/phasiccpp.h"
 
-#include "./../../../PtDAlgorithms/src/c/ptdalgorithms.c"
+#include "./../../../phasic/src/c/phasic.c"
 
 using namespace Rcpp;
-using namespace ptdalgorithms;
+using namespace phasic;
 
 
 /**
@@ -287,6 +287,6 @@ SEXP construct_coalescent_selection_graph(int sample_size, double N,
     free(child_state);
 
     return Rcpp::XPtr<Graph>(
-            new ptdalgorithms::Graph(graph, avl_tree)
+            new phasic::Graph(graph, avl_tree)
     );
 }

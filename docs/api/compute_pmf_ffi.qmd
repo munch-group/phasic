@@ -1,7 +1,7 @@
-# compute_pmf_ffi { #ptdalgorithms.compute_pmf_ffi }
+# compute_pmf_ffi { #phasic.compute_pmf_ffi }
 
 ```python
-ptdalgorithms.compute_pmf_ffi(
+phasic.compute_pmf_ffi(
     structure_json,
     theta,
     times,

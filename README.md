@@ -5,7 +5,7 @@ or alternatively on mac
 
 with ptd lib:
 
-    g++ -O3 -std=c++17 -fPIC -I/path/to/ptdalgorithms/include -L/path/to/ptdalgorithms/lib -lptdalgorithms -shared -o libdph_param.so dph_param_kernel.cc
+    g++ -O3 -std=c++17 -fPIC -I/path/to/phasic/include -L/path/to/phasic/lib -lphasic -shared -o libdph_param.so dph_param_kernel.cc
 
 
 Ensure the symbol is exported correctly:

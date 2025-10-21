@@ -8,7 +8,7 @@ the C++ binding code.
 """
 
 import numpy as np
-from ptdalgorithms import Graph, MatrixRepresentation
+from phasic import Graph, MatrixRepresentation
 
 
 def test_as_matrices_simple():

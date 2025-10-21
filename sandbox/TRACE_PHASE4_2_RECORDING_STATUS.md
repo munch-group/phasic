@@ -18,7 +18,7 @@ None
 
 ## Changes Made
 
-### File: src/c/ptdalgorithms.c
+### File: src/c/phasic.c
 - **Lines added:** ~510 (approximately)
 - **New functions:** 10
   - Helper functions: 8 (ensure_trace_capacity, add_const_to_trace, add_dot_to_trace, add_add_to_trace, add_mul_to_trace, add_div_to_trace, add_inv_to_trace, add_sum_to_trace)

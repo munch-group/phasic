@@ -1,4 +1,4 @@
-# User-Defined C++ Models for PtDAlgorithms
+# User-Defined C++ Models for phasic
 
 This directory contains example C++ models that can be loaded using `Graph.pmf_from_cpp()`.
 
@@ -14,7 +14,7 @@ This directory contains example C++ models that can be loaded using `Graph.pmf_f
 
 ### JAX-Compatible Approach (Default)
 ```python
-from ptdalgorithms import Graph
+from phasic import Graph
 import jax
 import jax.numpy as jnp
 
@@ -50,7 +50,7 @@ batch_pdfs = vmap_model(batch_params)
 
 ### Direct C++ Approach (load_cpp_builder)
 ```python
-from ptdalgorithms import load_cpp_builder
+from phasic import load_cpp_builder
 import numpy as np
 
 # Load C++ model builder
@@ -89,8 +89,8 @@ Create a C++ file that includes `"user_model.h"` and implements:
 #include "user_model.h"
 #include <vector>
 
-ptdalgorithms::Graph build_model(const double* theta, int n_params) {
-    ptdalgorithms::Graph g(state_dimension);
+phasic::Graph build_model(const double* theta, int n_params) {
+    phasic::Graph g(state_dimension);
 
     // Get starting vertex
     auto start = g.starting_vertex();

@@ -5,7 +5,7 @@ Tests construction of graphs from matrix representations and round-trip conversi
 """
 
 import numpy as np
-from ptdalgorithms import Graph, MatrixRepresentation
+from phasic import Graph, MatrixRepresentation
 
 
 def test_from_matrices_basic():

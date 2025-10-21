@@ -2,13 +2,13 @@
  * Simple header for user-defined phase-type models
  *
  * Users should include this header and implement the build_model function
- * that returns a ptdalgorithms::Graph instance.
+ * that returns a phasic::Graph instance.
  */
 
 #ifndef USER_MODEL_H
 #define USER_MODEL_H
 
-#include "../api/cpp/ptdalgorithmscpp.h"
+#include "../api/cpp/phasiccpp.h"
 
 /**
  * User-implemented function to build a phase-type model.
@@ -19,8 +19,8 @@
  *
  * Example implementation:
  *
- * ptdalgorithms::Graph build_model(const double* theta, int n_params) {
- *     ptdalgorithms::Graph g(1);  // Create graph with state_length=1
+ * phasic::Graph build_model(const double* theta, int n_params) {
+ *     phasic::Graph g(1);  // Create graph with state_length=1
  *
  *     double rate = theta[0];
  *
@@ -34,6 +34,6 @@
  *     return g;
  * }
  */
-ptdalgorithms::Graph build_model(const double* theta, int n_params);
+phasic::Graph build_model(const double* theta, int n_params);
 
 #endif // USER_MODEL_H

@@ -25,7 +25,7 @@ Phase 1 of the trace-based elimination system has been successfully implemented 
 
 ### Files Created
 
-1. **src/ptdalgorithms/trace_elimination.py** (783 lines)
+1. **src/phasic/trace_elimination.py** (783 lines)
    - Core trace recording and evaluation
    - Data structures (OpType, Operation, EliminationTrace, TraceBuilder)
    - Serialization (pickle/JSON)
@@ -361,7 +361,7 @@ For trace with m operations:
 
 ### Current Integration
 ```python
-from ptdalgorithms.trace_elimination import (
+from phasic.trace_elimination import (
     record_elimination_trace,
     evaluate_trace,
     instantiate_from_trace,
@@ -379,7 +379,7 @@ graph_new = instantiate_from_trace(trace)
 
 ```python
 # With JAX
-from ptdalgorithms.trace_elimination import trace_to_jax
+from phasic.trace_elimination import trace_to_jax
 
 jax_fn = trace_to_jax(trace)
 output = jax_fn(params)              # jit-compiled
@@ -387,7 +387,7 @@ grad = jax.grad(jax_fn)(params)      # automatic differentiation
 batch = jax.vmap(jax_fn)(params_batch)  # vectorized
 
 # With SVGD
-from ptdalgorithms import SVGD
+from phasic import SVGD
 
 svgd = SVGD(trace=trace)
 particles = svgd.fit(initial_particles)
@@ -518,7 +518,7 @@ particles = svgd.fit(initial_particles)
 ```
 PtDAlgorithms/
 ├── src/
-│   └── ptdalgorithms/
+│   └── phasic/
 │       ├── __init__.py
 │       └── trace_elimination.py       # NEW: 783 lines
 ├── tests/
@@ -536,8 +536,8 @@ PtDAlgorithms/
 ### Basic Usage
 
 ```python
-from ptdalgorithms import Graph
-from ptdalgorithms.trace_elimination import (
+from phasic import Graph
+from phasic.trace_elimination import (
     record_elimination_trace,
     evaluate_trace,
     instantiate_from_trace
@@ -568,7 +568,7 @@ g_new.normalize()
 ### Serialization
 
 ```python
-from ptdalgorithms.trace_elimination import (
+from phasic.trace_elimination import (
     save_trace_pickle,
     load_trace_pickle,
     save_trace_json,

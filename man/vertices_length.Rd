@@ -13,7 +13,7 @@ vertices_length(phase_type_graph)
 An integer of the number of vertices
 }
 \description{
-This method is much faster than calling \code{length(ptdalgorithms::vertices())}
+This method is much faster than calling \code{length(phasic::vertices())}
 }
 \details{
 There will \emph{always} be a starting vertex, so the returned

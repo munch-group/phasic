@@ -13,9 +13,9 @@
 #include <vector>
 #include <cmath>
 
-ptdalgorithms::Graph build_model(const double* theta, int n_params) {
+phasic::Graph build_model(const double* theta, int n_params) {
     // Create graph with state vectors of length 1
-    ptdalgorithms::Graph g(1);
+    phasic::Graph g(1);
 
     // Get starting vertex
     auto start = g.starting_vertex();
@@ -24,7 +24,7 @@ ptdalgorithms::Graph build_model(const double* theta, int n_params) {
     int n_stages = (n_params > 1) ? static_cast<int>(theta[1]) : 3;
 
     // Create vertices for each stage
-    std::vector<ptdalgorithms::Vertex> vertices;
+    std::vector<phasic::Vertex> vertices;
     for (int i = 0; i <= n_stages; i++) {
         std::vector<int> state = {i};
         vertices.push_back(g.find_or_create_vertex(state));

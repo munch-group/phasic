@@ -16,7 +16,7 @@ Successfully consolidated JAX cache management code by eliminating duplication b
 
 ### 1. Refactored `model_export.py`
 
-**File**: `src/ptdalgorithms/model_export.py`
+**File**: `src/phasic/model_export.py`
 
 **Changes**:
 - `clear_cache()`: Now wrapper around `CacheManager.clear()`
@@ -62,7 +62,7 @@ def clear_cache(cache_dir=None, verbose=True):
 
 ### 2. Updated `__init__.py` Imports
 
-**File**: `src/ptdalgorithms/__init__.py`
+**File**: `src/phasic/__init__.py`
 
 **Changes**:
 - **Line 248**: Removed obsolete `from .symbolic_cache import SymbolicCache, print_cache_info`
@@ -90,7 +90,7 @@ def clear_cache(cache_dir=None, verbose=True):
 All three functions are now available from top-level import:
 
 ```python
-from ptdalgorithms import clear_cache, cache_info, print_cache_info
+from phasic import clear_cache, cache_info, print_cache_info
 ```
 
 #### `clear_cache(cache_dir=None, verbose=True)`
@@ -103,7 +103,7 @@ Clear JAX compilation cache.
 
 **Example**:
 ```python
-from ptdalgorithms import clear_cache
+from phasic import clear_cache
 
 # Clear default cache
 clear_cache()
@@ -134,7 +134,7 @@ Get information about JAX compilation cache.
 
 **Example**:
 ```python
-from ptdalgorithms import cache_info
+from phasic import cache_info
 
 info = cache_info()
 print(f"Cache size: {info['total_size_mb']:.1f} MB")
@@ -157,7 +157,7 @@ Print formatted cache information to stdout.
 
 **Example**:
 ```python
-from ptdalgorithms import print_cache_info
+from phasic import print_cache_info
 
 # Print default cache info
 print_cache_info()
@@ -304,8 +304,8 @@ def clear_cache(cache_dir: Optional[Union[Path, str]] = None, verbose: bool = Tr
 
 1. **CACHING_SYSTEM_OVERVIEW.md** - Identified obsolete code
 2. **CACHE_CONSOLIDATION_COMPLETE.md** - This document
-3. **src/ptdalgorithms/__init__.py** - Updated imports and comments
-4. **src/ptdalgorithms/model_export.py** - Added comprehensive docstrings
+3. **src/phasic/__init__.py** - Updated imports and comments
+4. **src/phasic/model_export.py** - Added comprehensive docstrings
 
 ### Docstring Improvements
 
@@ -332,8 +332,8 @@ All three wrapper functions now have:
 **Import compatibility**:
 ```python
 # All still work
-from ptdalgorithms import clear_cache, cache_info, print_cache_info
-from ptdalgorithms.model_export import clear_cache, cache_info, print_cache_info
+from phasic import clear_cache, cache_info, print_cache_info
+from phasic.model_export import clear_cache, cache_info, print_cache_info
 ```
 
 **Return format compatibility**:
@@ -378,7 +378,7 @@ This consolidation completes the cache management cleanup:
 ### Basic Usage
 
 ```python
-import ptdalgorithms as ptd
+import phasic as ptd
 
 # Check cache status
 ptd.print_cache_info()
@@ -393,7 +393,7 @@ if info['total_size_mb'] > 1000:  # Over 1GB
 ### Advanced Usage
 
 ```python
-from ptdalgorithms import cache_info, clear_cache
+from phasic import cache_info, clear_cache
 from pathlib import Path
 
 # Manage multiple cache directories
@@ -423,7 +423,7 @@ for cache_dir in caches:
 ### Integration with SVGD
 
 ```python
-import ptdalgorithms as ptd
+import phasic as ptd
 
 # Check cache before training
 print("Cache status before SVGD:")

@@ -109,7 +109,7 @@ def main():
         name="Comprehensive API (Standalone)",
         command="python tests/test_api_comprehensive.py",
         description="Standalone comprehensive test suite (no pytest required) - 31 tests",
-        required_deps=["ptdalgorithms"]
+        required_deps=["phasic"]
     )
 
     # Test 2: Comprehensive API with pytest
@@ -117,7 +117,7 @@ def main():
         name="Comprehensive API (pytest)",
         command="pytest tests/test_comprehensive_api.py -v",
         description="pytest-based comprehensive test suite - 80+ test methods, 500+ assertions",
-        required_deps=["pytest", "ptdalgorithms"]
+        required_deps=["pytest", "phasic"]
     )
 
     # Test 3: JAX integration tests
@@ -125,7 +125,7 @@ def main():
         name="JAX Integration",
         command="pytest tests/test_jax_integration.py -v",
         description="JAX-specific functionality tests - 60+ tests",
-        required_deps=["pytest", "JAX", "ptdalgorithms"]
+        required_deps=["pytest", "JAX", "phasic"]
     )
 
     # Test 4: Symbolic DAG tests
@@ -133,7 +133,7 @@ def main():
         name="Symbolic DAG",
         command="pytest tests/test_symbolic_dag.py -v",
         description="Symbolic DAG and parameterized edges - 40+ tests",
-        required_deps=["pytest", "JAX", "ptdalgorithms"]
+        required_deps=["pytest", "JAX", "phasic"]
     )
 
     # Test 5: Utilities and integration tests
@@ -141,7 +141,7 @@ def main():
         name="Utilities & Integration",
         command="pytest tests/test_utilities_integration.py -v",
         description="Utilities and integration features - 50+ tests",
-        required_deps=["pytest", "ptdalgorithms"]
+        required_deps=["pytest", "phasic"]
     )
 
     # Print final summary

@@ -7,7 +7,7 @@ requires = ["setuptools", "wheel", "scikit-build-core", "pybind11>=2.10.0", "eig
 build-backend = "scikit_build_core.build"
 
 [project]
-name = "ptdalgorithms"
+name = "phasic"
 version = "0.21.3"
 classifiers = [
   "Development Status :: 5 - Beta",
@@ -62,14 +62,14 @@ dev = [
 # ]
 
 [project.urls]
-Homepage = "https://munch-group.org/PtDAlgorithms]"
-Documentation = "https://munch-group.org/PtDAlgorithms"
-Repository = "https://github.com/munch-group/ptdalgorithms.git"
-Issues = "https://github.com/munch-group/ptdalgorithms/issues"
+Homepage = "https://munch-group.org/phasic"
+Documentation = "https://munch-group.org/phasic"
+Repository = "https://github.com/munch-group/phasic.git"
+Issues = "https://github.com/munch-group/phasic/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]  # list of folders that contain the packages (["."] by default)
-include = ["ptdalgorithms*"]  # package names should match these glob patterns (["*"] by default)
+include = ["phasic*"]  # package names should match these glob patterns (["*"] by default)
 # exclude = ["my_package.tests*"]  # exclude packages matching these glob patterns (empty by default)
 namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
 

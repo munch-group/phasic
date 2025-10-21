@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 """
-Comprehensive test suite for the ptdalgorithms Python API.
+Comprehensive test suite for the phasic Python API.
 Tests all core functionality of the Graph, Vertex, and Edge classes.
 """
 
 import numpy as np
-import ptdalgorithms as ptd
-from ptdalgorithms import Graph, Vertex, Edge, MatrixRepresentation
+import phasic as ptd
+from phasic import Graph, Vertex, Edge, MatrixRepresentation
 
 
 def approx(a, b, rel=1e-5):

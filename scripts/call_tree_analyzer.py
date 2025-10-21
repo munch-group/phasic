@@ -540,16 +540,16 @@ def main():
         epilog='''
 Examples:
   # Analyze entire package
-  %(prog)s src/ptdalgorithms
+  %(prog)s src/phasic
 
   # Show call tree for a specific function
-  %(prog)s src/ptdalgorithms --callable record_elimination_trace
+  %(prog)s src/phasic --callable record_elimination_trace
 
   # Show call tree for all methods of a class
-  %(prog)s src/ptdalgorithms --callable Graph
+  %(prog)s src/phasic --callable Graph
 
   # Show call tree for a specific method
-  %(prog)s src/ptdalgorithms --callable Graph.serialize
+  %(prog)s src/phasic --callable Graph.serialize
 
 Note: Only shows calls to functions/methods implemented in the specified package.
 External library calls (numpy, jax, etc.) are excluded.
@@ -648,12 +648,12 @@ if __name__ == "__main__":
 # python call_tree_analyzer.py /path/to/package -d 5
 
 # # Example with a package
-# python call_tree_analyzer.py ./src/ptdalgorithms
+# python call_tree_analyzer.py ./src/phasic
 # ```
 
 # ## Example Output
 # ```
-# Package Analysis Summary: ptdalgorithms
+# Package Analysis Summary: phasic
 # ============================================================
 # Total functions/methods found: 42
 # Functions with calls: 18
@@ -662,10 +662,10 @@ if __name__ == "__main__":
 # Call Tree:
 # ============================================================
 
-# └── src/ptdalgorithms/__init__.py::Graph.__init__(nodes, edges)
-#     ├── src/cpp/ptdalgorithmscpp_pybind.py::Graph:__init__()
-#     ├── src/ptdalgorithms/graph.py::validate_edges(edges)
-#     │   └── src/ptdalgorithms/utils.py::check_type(obj, expected_type)
-#     └── src/ptdalgorithms/graph.py::build_adjacency_list(nodes, edges)
-#         ├── src/ptdalgorithms/utils.py::create_dict()
-#         └── src/ptdalgorithms/graph.py::Edge:validate()
+# └── src/phasic/__init__.py::Graph.__init__(nodes, edges)
+#     ├── src/cpp/phasic_pybind.py::Graph:__init__()
+#     ├── src/phasic/graph.py::validate_edges(edges)
+#     │   └── src/phasic/utils.py::check_type(obj, expected_type)
+#     └── src/phasic/graph.py::build_adjacency_list(nodes, edges)
+#         ├── src/phasic/utils.py::create_dict()
+#         └── src/phasic/graph.py::Edge:validate()

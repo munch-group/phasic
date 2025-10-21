@@ -1,7 +1,7 @@
-# Edge { #ptdalgorithms.Edge }
+# Edge { #phasic.Edge }
 
 ```python
-ptdalgorithms.Edge()
+phasic.Edge()
 ```
 
 
@@ -10,30 +10,30 @@ ptdalgorithms.Edge()
 
 | Name | Description |
 | --- | --- |
-| [to](#ptdalgorithms.Edge.to) | to(self: ptdalgorithms.ptdalgorithmscpp_pybind.Edge) -> ptdalgorithms.ptdalgorithmscpp_pybind.Vertex |
-| [update_weight](#ptdalgorithms.Edge.update_weight) | update_weight(self: ptdalgorithms.ptdalgorithmscpp_pybind.Edge, arg0: float) -> None |
-| [weight](#ptdalgorithms.Edge.weight) | weight(self: ptdalgorithms.ptdalgorithmscpp_pybind.Edge) -> float |
+| [to](#phasic.Edge.to) | to(self: phasic.phasic_pybind.Edge) -> phasic.phasic_pybind.Vertex |
+| [update_weight](#phasic.Edge.update_weight) | update_weight(self: phasic.phasic_pybind.Edge, arg0: float) -> None |
+| [weight](#phasic.Edge.weight) | weight(self: phasic.phasic_pybind.Edge) -> float |
 
-### to { #ptdalgorithms.Edge.to }
-
-```python
-ptdalgorithms.Edge.to()
-```
-
-to(self: ptdalgorithms.ptdalgorithmscpp_pybind.Edge) -> ptdalgorithms.ptdalgorithmscpp_pybind.Vertex
-
-### update_weight { #ptdalgorithms.Edge.update_weight }
+### to { #phasic.Edge.to }
 
 ```python
-ptdalgorithms.Edge.update_weight()
+phasic.Edge.to()
 ```
 
-update_weight(self: ptdalgorithms.ptdalgorithmscpp_pybind.Edge, arg0: float) -> None
+to(self: phasic.phasic_pybind.Edge) -> phasic.phasic_pybind.Vertex
 
-### weight { #ptdalgorithms.Edge.weight }
+### update_weight { #phasic.Edge.update_weight }
 
 ```python
-ptdalgorithms.Edge.weight()
+phasic.Edge.update_weight()
 ```
 
-weight(self: ptdalgorithms.ptdalgorithmscpp_pybind.Edge) -> float
+update_weight(self: phasic.phasic_pybind.Edge, arg0: float) -> None
+
+### weight { #phasic.Edge.weight }
+
+```python
+phasic.Edge.weight()
+```
+
+weight(self: phasic.phasic_pybind.Edge) -> float

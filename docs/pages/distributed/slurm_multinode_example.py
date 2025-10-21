@@ -163,7 +163,7 @@ def distributed_svgd_example(
     dist_info : dict
         Distribution information from initialize_jax_distributed()
     """
-    from ptdalgorithms.ffi_wrappers import compute_pmf_and_moments_ffi
+    from phasic.ffi_wrappers import compute_pmf_and_moments_ffi
 
     global_device_count = dist_info['global_device_count']
     process_id = dist_info['process_id']

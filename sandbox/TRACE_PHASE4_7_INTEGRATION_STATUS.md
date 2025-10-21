@@ -17,7 +17,7 @@
 
 ### Changes Made
 
-**File:** `api/c/ptdalgorithms.h`
+**File:** `api/c/phasic.h`
 **Lines modified:** 1 structure field added
 
 ```c
@@ -28,7 +28,7 @@ struct ptd_graph {
 };
 ```
 
-**File:** `src/c/ptdalgorithms.c`
+**File:** `src/c/phasic.c`
 **Lines modified:** ~100
 
 #### 1. Graph Creation (lines 1228-1243)

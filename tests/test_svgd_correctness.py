@@ -15,18 +15,18 @@ Model: Exponential(θ) where θ is the rate parameter
 - Run SVGD to recover posterior
 """
 
-from ptdalgorithms import Graph, SVGD
-import ptdalgorithms as ptd
+from phasic import Graph, SVGD
+import phasic as ptd
 
 import numpy as np
-# JAX import commented out - ptdalgorithms handles JAX import with x64 precision enabled
-# This demonstrates the "rely on ptdalgorithms" import pattern where the library
+# JAX import commented out - phasic handles JAX import with x64 precision enabled
+# This demonstrates the "rely on phasic" import pattern where the library
 # automatically configures JAX with the correct settings.
 #
 # Alternative explicit pattern (see test_svgd_jax.py):
 #   import jax
 #   jax.config.update('jax_enable_x64', True)
-#   import ptdalgorithms
+#   import phasic
 
 # Import jax.numpy for prior functions
 import jax.numpy as jnp
@@ -36,13 +36,13 @@ import shutil
 import os
 import sys
 
-# Clear caches before importing ptdalgorithms
+# Clear caches before importing phasic
 def clear_all_caches():
     """Clear all PtDAlgorithms caches before testing"""
     print("Clearing all caches...")
 
     # Clear trace cache
-    trace_cache = Path.home() / '.ptdalgorithms_cache' / 'traces'
+    trace_cache = Path.home() / '.phasic_cache' / 'traces'
     if trace_cache.exists():
         n_files = len(list(trace_cache.glob('*.json')))
         shutil.rmtree(trace_cache)
@@ -179,7 +179,7 @@ def test_basic_convergence():
 
     # Run SVGD (positive_params=True by default)
     # Use ExponentialDecayStepSize for stable convergence
-    from ptdalgorithms import ExponentialDecayStepSize
+    from phasic import ExponentialDecayStepSize
     step_schedule = ExponentialDecayStepSize(max_step=0.01, min_step=0.001, tau=500.0)
 
     print(f"\nRunning SVGD...")
@@ -273,7 +273,7 @@ def test_log_transformation():
         return -0.5 * jnp.sum(((phi - mu) / sigma)**2)
 
     # Use ExponentialDecayStepSize for stable convergence
-    from ptdalgorithms import ExponentialDecayStepSize
+    from phasic import ExponentialDecayStepSize
     step_schedule = ExponentialDecayStepSize(max_step=0.01, min_step=0.001, tau=500.0)
 
     # Run SVGD with transformation
@@ -354,7 +354,7 @@ def test_positive_constraint():
     model = Graph.pmf_from_graph(graph, discrete=False, param_length=1)
 
     # Use ExponentialDecayStepSize for stable convergence
-    from ptdalgorithms import ExponentialDecayStepSize
+    from phasic import ExponentialDecayStepSize
     step_schedule = ExponentialDecayStepSize(max_step=0.01, min_step=0.001, tau=500.0)
 
     # Run SVGD with positive_params (now default)

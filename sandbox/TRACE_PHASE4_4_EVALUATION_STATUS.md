@@ -16,7 +16,7 @@ None
 
 ## Changes Made
 
-### File: src/c/ptdalgorithms.c
+### File: src/c/phasic.c
 - **Lines added:** ~222 (approximately)
 - **Location:** Lines 7105-7326
 - **New functions:** 2 (ptd_evaluate_trace, ptd_trace_result_destroy)

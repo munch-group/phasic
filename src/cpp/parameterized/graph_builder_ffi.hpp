@@ -6,7 +6,7 @@
 #include "graph_builder.hpp"
 #include <memory>
 
-namespace ptdalgorithms {
+namespace phasic {
 namespace parameterized {
 namespace ffi_handlers {
 
@@ -72,6 +72,6 @@ XLA_FFI_Handler* CreateComputePmfHandler();
 XLA_FFI_Handler* CreateComputePmfAndMomentsHandler();
 
 } // namespace parameterized
-} // namespace ptdalgorithms
+} // namespace phasic
 
 #endif // PTDALGORITHMS_PARAMETERIZED_GRAPH_BUILDER_FFI_HPP

@@ -1,15 +1,15 @@
 {% set pyproject = load_file_data("../pyproject.toml", from_recipe_dir=True) %}
 
 package:
-  name: ptdalgorithms
+  name: phasic
   version: {{ pyproject.get("project").get("version") }}
   # version: '0.20.0'
 
 source:
-  git_url: https://github.com/munch-group/ptdalgorithms.git
+  git_url: https://github.com/munch-group/phasic.git
 
 outputs:
-    - name: ptdalgorithms
+    - name: phasic
       requirements:
         build:
           - {{ compiler('c') }}
@@ -62,13 +62,13 @@ outputs:
         # - conda-package-handling
       test:
         imports:
-          - ptdalgorithms
+          - phasic
         # commands:
-        #   - "$PYTHON -c 'import ptdalgorithms as ptd ; print(ptd.Graph(4).vertices_length() == 1)'" # [not win]
-        #   - '"%PYTHON%" -c "import ptdalgorithms as ptd ; print(ptd.Graph(4).vertices_length() == 1)"' # [win]
+        #   - "$PYTHON -c 'import phasic as ptd ; print(ptd.Graph(4).vertices_length() == 1)'" # [not win]
+        #   - '"%PYTHON%" -c "import phasic as ptd ; print(ptd.Graph(4).vertices_length() == 1)"' # [win]
 
 
-    # - name: r-ptdalgorithms
+    # - name: r-phasic
     #   requirements:
     #     build:
     #       - {{ compiler('c') }} 
@@ -98,14 +98,14 @@ outputs:
 
     #   test:
     #     commands:
-    #       - $R -e "library('ptdalgorithms')"  # [not win]
-    #       - "%R% -e \"library('ptdalgorithms')\""  # [win]
+    #       - $R -e "library('phasic')"  # [not win]
+    #       - "%R% -e \"library('phasic')\""  # [win]
     #     # commands:
-    #     #   - "$R -e 'library('ptdalgorithms') ; print(vertices_length(create_graph(4)) == 1)'" # [not win]
-    #     #   - "%R% -e 'library('ptdalgorithms') ; print(vertices_length(create_graph(4)) == 1)'" # [win]
+    #     #   - "$R -e 'library('phasic') ; print(vertices_length(create_graph(4)) == 1)'" # [not win]
+    #     #   - "%R% -e 'library('phasic') ; print(vertices_length(create_graph(4)) == 1)'" # [win]
 
 about:
-  home: https://github.com/munch-group/ptdalgorithms.git
+  home: https://github.com/munch-group/phasic.git
   license: MIT
-  dev_url: https://github.com/munch-group/ptdalgorithms.git
-  doc_url: https://munch-group.org/ptdalgorithms
+  dev_url: https://github.com/munch-group/phasic.git
+  doc_url: https://munch-group.org/phasic

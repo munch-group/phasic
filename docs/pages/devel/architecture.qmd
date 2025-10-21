@@ -2,13 +2,13 @@
 title: Library Architecture
 ---
 
-PtDAlgorithms is a multi-language scientific computing library designed to provide efficient algorithms for phase-type distributions through graph-based computational approaches. The library's foundation rests on a core C implementation that provides the fundamental graph algorithms and data structures exposed through C++, R and Python APIs constructed to offer idiomatic interfaces for each target language.
+phasic is a multi-language scientific computing library designed to provide efficient algorithms for phase-type distributions through graph-based computational approaches. The library's foundation rests on a core C implementation that provides the fundamental graph algorithms and data structures exposed through C++, R and Python APIs constructed to offer idiomatic interfaces for each target language.
 
 ::: {.callout-note icon=false}
 
 ## R and C++ API limitations
 
-Phasic builds on the [PtDAlgorithms](https://github.com/TobiasRoikjer/PtDAlgorithms) project implementing the core algorithms. The C++ and R APIs of PtDAlgorithms are maintained and distributed as part of phasic, but only the Python API supports JAX integration, symbolic parametrization, multiprocessing, SVGD inference, and precomputed templates. For reference to core algotihms and R API please cite:
+Phasic builds on the [phasic](https://github.com/TobiasRoikjer/phasic) project implementing the core algorithms. The C++ and R APIs of phasic are maintained and distributed as part of phasic, but only the Python API supports JAX integration, symbolic parametrization, multiprocessing, SVGD inference, and precomputed templates. For reference to core algotihms and R API please cite:
 
 - [Røikjer et al. (2022)](https://doi.org/10.1007/s11222-022-10174-3). Graph-based algorithms for phase-type distributions. *Statistics and Computing*, 32, 91.
 
@@ -20,7 +20,7 @@ For reference to Phasic library, parameter inference, and computation of joint p
 
 ## Project Structure and Organization
 
-The PtDAlgorithms project follows a hierarchical organization that reflects its multi-layered architecture. At the root level, the `api/` directory houses the public interface definitions, with separate subdirectories for C and C++ APIs that establish the contract between the core implementation and its various language bindings. The `src/` directory contains the actual implementation files, organized to mirror the architectural layers, with core C code residing in `src/c/`, C++ wrappers and Python bindings in `src/cpp/`, and the Python package structure maintained within `src/ptdalgorithms/`.
+The phasic project follows a hierarchical organization that reflects its multi-layered architecture. At the root level, the `api/` directory houses the public interface definitions, with separate subdirectories for C and C++ APIs that establish the contract between the core implementation and its various language bindings. The `src/` directory contains the actual implementation files, organized to mirror the architectural layers, with core C code residing in `src/c/`, C++ wrappers and Python bindings in `src/cpp/`, and the Python package structure maintained within `src/phasic/`.
 
 The R integration follows standard R package conventions, with R-specific files located in the `R/` directory and compilation configuration managed through `src/Makevars` files. JAX integration is provided through parameterized graph functionality in `src/cpp/parameterized/`, offering GPU-accelerated computation capabilities with automatic differentiation through XLA FFI (Foreign Function Interface). The `include/` directory provides header files for user-defined models, enabling developers to implement custom phase-type models in C++ that integrate seamlessly with the JAX computational framework. Documentation, examples, and test suites are organized in their respective directories, supporting the development workflow across all target languages.
 
@@ -28,11 +28,11 @@ The R integration follows standard R package conventions, with R-specific files 
 
 ### The Core C Foundation
 
-The architectural foundation of PtDAlgorithms lies in its C implementation, which provides the essential graph algorithms and data structures that power phase-type distribution computations. This layer establishes the fundamental abstractions through structures like `ptd_graph`, `ptd_vertex`, and `ptd_edge`, which collectively represent the mathematical objects and their relationships within the computational framework.
+The architectural foundation of phasic lies in its C implementation, which provides the essential graph algorithms and data structures that power phase-type distribution computations. This layer establishes the fundamental abstractions through structures like `ptd_graph`, `ptd_vertex`, and `ptd_edge`, which collectively represent the mathematical objects and their relationships within the computational framework.
 
 The core C layer implements sophisticated algorithms for graph manipulation, including normalization procedures, reward transformation operations, and probability computations. A particularly important component is the AVL tree implementation (`ptd_avl_tree`) that enables efficient vertex lookup operations based on state vectors, ensuring that the library can handle large-scale problems with appropriate computational complexity guarantees.
 
-The C implementation maintains state through distribution contexts that support iterative probability calculations, allowing for efficient computation of probability density functions, cumulative distribution functions, and related statistical measures. The complete C API, documented in `api/c/ptdalgorithms.h`, spans over 400 lines of carefully designed interface definitions that establish the contract for all higher-level language bindings.
+The C implementation maintains state through distribution contexts that support iterative probability calculations, allowing for efficient computation of probability density functions, cumulative distribution functions, and related statistical measures. The complete C API, documented in `api/c/phasic.h`, spans over 400 lines of carefully designed interface definitions that establish the contract for all higher-level language bindings.
 
 Memory management within the C layer follows manual allocation and deallocation patterns typical of C programming, with careful attention to resource cleanup and error handling through a global error buffer mechanism. This approach ensures predictable performance characteristics while requiring careful coordination with higher-level language bindings to prevent memory leaks and ensure proper resource management.
 
@@ -66,11 +66,11 @@ The R bindings handle conversion between R's data structures and the library's i
 
 Compilation configuration for the R package occurs through `src/Makevars` files that specify the necessary compiler flags and include paths to link against the C++ implementation. The build process integrates smoothly with R's package management system, allowing users to install the package through standard R mechanisms while ensuring that all necessary dependencies are properly resolved.
 
-The R interface maintains consistency with the broader PtDAlgorithms API while respecting R's programming conventions and idioms. Functions accept and return R objects naturally, and error handling integrates with R's exception mechanism to provide meaningful feedback when operations fail or encounter invalid input.
+The R interface maintains consistency with the broader phasic API while respecting R's programming conventions and idioms. Functions accept and return R objects naturally, and error handling integrates with R's exception mechanism to provide meaningful feedback when operations fail or encounter invalid input.
 
 ### JAX Integration Through XLA FFI
 
-The JAX integration represents a sophisticated enhancement of PtDAlgorithms that leverages JAX's XLA Foreign Function Interface (FFI) to provide automatic differentiation and GPU acceleration capabilities. This implementation resides in `src/cpp/parameterized/`, fully integrated into the main build system and Python bindings through pybind11.
+The JAX integration represents a sophisticated enhancement of phasic that leverages JAX's XLA Foreign Function Interface (FFI) to provide automatic differentiation and GPU acceleration capabilities. This implementation resides in `src/cpp/parameterized/`, fully integrated into the main build system and Python bindings through pybind11.
 
 The architecture introduces parameterized graph functionality that enables edges to carry parameter state vectors alongside their weights. During graph construction, edges can be defined with expressions like `weight = θ₀ * coefficient₀ + θ₁ * coefficient₁`, where the coefficients are stored in the edge's state vector. This parameterization occurs at the graph structure level, allowing the same graph topology to represent different models based on parameter values.
 

@@ -20,7 +20,7 @@ Successfully implemented `ptd_graph_pdf_with_gradient()` and `ptd_graph_pdf_para
 ## Implementation Details
 
 ### Location
-- **File**: `src/c/ptdalgorithms.c`
+- **File**: `src/c/phasic.c`
 - **Lines**: 4722-5002
 
 ### Core Functions
@@ -106,7 +106,7 @@ Single Exponential Test (t=1.0, θ=2.0):
 
 ### C API (Direct)
 ```c
-#include "ptdalgorithms.h"
+#include "phasic.h"
 
 // Build parameterized graph
 struct ptd_graph *g = ptd_graph_create(1);
@@ -137,8 +137,8 @@ printf("Gradient: %.8f\n", grad[0]);
 
 ### Python API (via trace)
 ```python
-from ptdalgorithms import Graph
-from ptdalgorithms.trace_elimination import (
+from phasic import Graph
+from phasic.trace_elimination import (
     record_elimination_trace,
     instantiate_from_trace
 )
@@ -209,7 +209,7 @@ gradient = (pdf_plus - pdf) / epsilon
 ## Files Modified/Created
 
 ### Core Implementation
-- `src/c/ptdalgorithms.c` (lines 4722-5002)
+- `src/c/phasic.c` (lines 4722-5002)
   - `compute_pmf_with_gradient()` - PMF with gradient tracking
   - `ptd_graph_pdf_with_gradient()` - Main entry point
 

@@ -12,7 +12,7 @@
 
 **Phase 1**: Trace recording and evaluation (constant weights)
 - Status: ✅ Complete (14/14 tests passing)
-- File: `src/ptdalgorithms/trace_elimination.py`
+- File: `src/phasic/trace_elimination.py`
 - Key functions: `record_elimination_trace()`, `evaluate_trace()`
 
 **Phase 2**: Parameterization support + JAX integration
@@ -53,7 +53,7 @@ The C library already has the exact PDF computation (Algorithm 4 from paper). We
 
 ### Task 1: Update `trace_to_log_likelihood()` (PRIMARY)
 
-**File**: `src/ptdalgorithms/trace_elimination.py`
+**File**: `src/phasic/trace_elimination.py`
 **Lines to modify**: 1116-1205
 
 #### New Function Signature
@@ -175,7 +175,7 @@ def trace_to_log_likelihood(trace, observed_data, reward_matrix=None, granularit
 
 ### Task 2: Update `create_svgd_model_from_trace()` (SECONDARY)
 
-**File**: `src/ptdalgorithms/trace_elimination.py`
+**File**: `src/phasic/trace_elimination.py`
 **Lines**: 1286-1347
 
 #### Changes Needed
@@ -217,8 +217,8 @@ def create_svgd_model_from_trace(trace, model_type='log_likelihood', **kwargs):
 ```python
 def test_exact_matches_true_exponential():
     """For true exponential, exact PDF should work perfectly"""
-    from ptdalgorithms import Graph
-    from ptdalgorithms.trace_elimination import (
+    from phasic import Graph
+    from phasic.trace_elimination import (
         record_elimination_trace,
         trace_to_log_likelihood
     )
@@ -280,7 +280,7 @@ def test_trace_matches_direct_pdf():
     ll_trace = log_lik(jnp.array(theta))
 
     # Method 2: Direct (instantiate + pdf)
-    from ptdalgorithms.trace_elimination import instantiate_from_trace
+    from phasic.trace_elimination import instantiate_from_trace
     graph_direct = instantiate_from_trace(trace, theta)
     pdf_direct = graph_direct.pdf(times, granularity=0)
     ll_direct = np.sum(np.log(pdf_direct + 1e-10))
@@ -475,7 +475,7 @@ def test_rabbit_coalescent_correctness():
     assert ll < 0
 
     # Verify PDF sums correctly (integrate to ~1)
-    from ptdalgorithms.trace_elimination import instantiate_from_trace
+    from phasic.trace_elimination import instantiate_from_trace
     graph = instantiate_from_trace(trace, theta)
     fine_times = np.linspace(0.01, 10, 1000)
     pdf = graph.pdf(fine_times, granularity=200)
@@ -575,14 +575,14 @@ if __name__ == '__main__':
 
 **Directory structure**:
 ```
-src/ptdalgorithms/models/
+src/phasic/models/
 ├── __init__.py
 ├── coalescent.py
 ├── queuing.py
 └── reliability.py
 ```
 
-#### File: `src/ptdalgorithms/models/__init__.py`
+#### File: `src/phasic/models/__init__.py`
 
 ```python
 """
@@ -598,13 +598,13 @@ from . import reliability
 __all__ = ['coalescent', 'queuing', 'reliability']
 ```
 
-#### File: `src/ptdalgorithms/models/coalescent.py`
+#### File: `src/phasic/models/coalescent.py`
 
 ```python
 """Coalescent models for population genetics"""
 
 import numpy as np
-from ptdalgorithms import Graph
+from phasic import Graph
 
 def constant_population(nr_samples, parameterized=True):
     """
@@ -679,13 +679,13 @@ def exponential_growth(nr_samples, parameterized=True):
     raise NotImplementedError("Exponential growth coalescent not yet implemented")
 ```
 
-#### File: `src/ptdalgorithms/models/queuing.py`
+#### File: `src/phasic/models/queuing.py`
 
 ```python
 """Queuing theory models"""
 
 import numpy as np
-from ptdalgorithms import Graph
+from phasic import Graph
 
 def mm1_queue(max_queue_size=10, parameterized=True):
     """
@@ -743,13 +743,13 @@ def mm1_queue(max_queue_size=10, parameterized=True):
     )
 ```
 
-#### File: `src/ptdalgorithms/models/reliability.py`
+#### File: `src/phasic/models/reliability.py`
 
 ```python
 """Reliability models for system failure analysis"""
 
 import numpy as np
-from ptdalgorithms import Graph
+from phasic import Graph
 
 def series_system(n_components, parameterized=True):
     """
@@ -813,7 +813,7 @@ def series_system(n_components, parameterized=True):
 ### Week 2: Validation & Library
 5. **Day 1-2**: Create `tests/test_trace_vs_matrix.py` (correctness validation)
 6. **Day 3**: Performance benchmarks `tests/test_trace_phase4_performance.py`
-7. **Day 4-5**: Model library (3-5 models in `src/ptdalgorithms/models/`)
+7. **Day 4-5**: Model library (3-5 models in `src/phasic/models/`)
 
 ---
 
@@ -884,16 +884,16 @@ def jax_wrapper(jax_params):
 ## Files to Modify
 
 ### Modify Existing
-- [ ] `src/ptdalgorithms/trace_elimination.py` (lines 1116-1347)
+- [ ] `src/phasic/trace_elimination.py` (lines 1116-1347)
 
 ### Create New
 - [ ] `tests/test_trace_likelihood.py`
 - [ ] `tests/test_trace_vs_matrix.py`
 - [ ] `tests/test_trace_phase4_performance.py`
-- [ ] `src/ptdalgorithms/models/__init__.py`
-- [ ] `src/ptdalgorithms/models/coalescent.py`
-- [ ] `src/ptdalgorithms/models/queuing.py`
-- [ ] `src/ptdalgorithms/models/reliability.py`
+- [ ] `src/phasic/models/__init__.py`
+- [ ] `src/phasic/models/coalescent.py`
+- [ ] `src/phasic/models/queuing.py`
+- [ ] `src/phasic/models/reliability.py`
 - [ ] `TRACE_PHASE4_STATUS.md`
 
 ---

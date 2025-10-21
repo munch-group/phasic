@@ -41,7 +41,7 @@ Debugging requires that the module compiled and installed in editable mode:
 
    pip install -e ".[jax]" --force-reinstall
 
-> Tip: if compiling an editable install fails, it is often easier to identifying the problem by compiling/installing with regular `pip install .`. Just remember to uninstall (`pip uninstall ptdalgorithms`) and do the `pip install -e .` before you continue debugging.
+> Tip: if compiling an editable install fails, it is often easier to identifying the problem by compiling/installing with regular `pip install .`. Just remember to uninstall (`pip uninstall phasic`) and do the `pip install -e .` before you continue debugging.
 > 
 Debugging in vscode offers the debugging modes "Python API (python)" and "Python API (c++)". The Python debugger runs the unit tests in tests/ and then any code in `.vscode/debug.py`.
 

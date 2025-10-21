@@ -1,7 +1,7 @@
-# ClusterConfig { #ptdalgorithms.ClusterConfig }
+# ClusterConfig { #phasic.ClusterConfig }
 
 ```python
-ptdalgorithms.ClusterConfig(
+phasic.ClusterConfig(
     name='default',
     nodes=1,
     cpus_per_node=8,
@@ -83,21 +83,21 @@ Configuration for a SLURM cluster setup.
 
 | Name | Description |
 | --- | --- |
-| [to_dict](#ptdalgorithms.ClusterConfig.to_dict) | Convert to dictionary. |
-| [to_yaml](#ptdalgorithms.ClusterConfig.to_yaml) | Save configuration to YAML file. |
+| [to_dict](#phasic.ClusterConfig.to_dict) | Convert to dictionary. |
+| [to_yaml](#phasic.ClusterConfig.to_yaml) | Save configuration to YAML file. |
 
-### to_dict { #ptdalgorithms.ClusterConfig.to_dict }
+### to_dict { #phasic.ClusterConfig.to_dict }
 
 ```python
-ptdalgorithms.ClusterConfig.to_dict()
+phasic.ClusterConfig.to_dict()
 ```
 
 Convert to dictionary.
 
-### to_yaml { #ptdalgorithms.ClusterConfig.to_yaml }
+### to_yaml { #phasic.ClusterConfig.to_yaml }
 
 ```python
-ptdalgorithms.ClusterConfig.to_yaml(filepath)
+phasic.ClusterConfig.to_yaml(filepath)
 ```
 
 Save configuration to YAML file.

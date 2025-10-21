@@ -47,7 +47,7 @@ interlinks:
     #   inv: objects-test.txt
 
 website:
-  # title: "ptdalgorithms"
+  # title: "phasic"
   title: ""
   page-navigation: true
 
@@ -76,7 +76,7 @@ website:
       #   text: Examples
     right:
       - icon: github
-        href: https://github.com/munch-group/ptdalgorithms/
+        href: https://github.com/munch-group/phasic/
   sidebar:
     - id: pages
       title: Get Started
@@ -121,7 +121,7 @@ website:
         - section: "Devel"
           contents:
             - pages/devel/architecture.qmd
-            - href: https://github.com/munch-group/ptdalgorithms/issues
+            - href: https://github.com/munch-group/phasic/issues
               text: Issue Tracker
         # - galleries/examples/index.qmd
           
@@ -159,7 +159,7 @@ format:
     linkcolor: "#0D7D92"
 
 quartodoc:
-  package: ptdalgorithms
+  package: phasic
   # package: null
   # source_dir: ../src/cpp
   style: pkgdown
@@ -178,13 +178,13 @@ quartodoc:
   css: "api/_styles-quartodoc.css"
   sections:
     - title: Graph Construction
-      package: ptdalgorithms
+      package: phasic
       desc: |
         Graph components (Vertex and Edge are documented as part of Graph)
       contents:
         - Graph
     - title: JAX-compatible utils
-      package: ptdalgorithms
+      package: phasic
       desc: |
         JAX-compatible phase-type distribution computations with FFI integration.
         Supports JIT compilation, automatic differentiation, and vmap/pmap parallelization.
@@ -193,13 +193,13 @@ quartodoc:
         - compute_moments_ffi
         - compute_pmf_and_moments_ffi
     - title: Inference
-      package: ptdalgorithms
+      package: phasic
       desc: |
         SVGD
       contents:
         - SVGD
     - title: Distributed Computing
-      package: ptdalgorithms
+      package: phasic
       desc: |
         Multi-node distributed computing utilities for SLURM clusters.
         Simplifies scaling from single machine to 100+ nodes with automatic
@@ -223,7 +223,7 @@ quartodoc:
 
 
     # - title: Some other section
-    #   package: ptdalgorithms
+    #   package: phasic
     #   desc: |
     #     Some description...
     #   contents:

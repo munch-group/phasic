@@ -8,7 +8,7 @@
 
 ## What Was Done
 
-Implemented an explicit configuration system to replace all silent fallback behavior in PtDAlgorithms, per user request:
+Implemented an explicit configuration system to replace all silent fallback behavior in phasic, per user request:
 
 > "Please get rid of all fallback behaviour. All behaviour should be specified by the user, and if it fails, a error message should inform which options are functional on the system/platform. E.g. options jax=True, jit=True, ffi=True, which can then each be set to false if they fail as True"
 
@@ -16,12 +16,12 @@ Implemented an explicit configuration system to replace all silent fallback beha
 
 ## Files Created
 
-### 1. `src/ptdalgorithms/exceptions.py` (NEW)
+### 1. `src/phasic/exceptions.py` (NEW)
 **Purpose**: Clear, actionable error messages
 
 **Error Hierarchy**:
 ```python
-PTDAlgorithmsError (base)
+phasicError (base)
 ├── PTDConfigError - Configuration issues with fix suggestions
 ├── PTDBackendError - Backend unavailable errors
 ├── PTDFeatureError - Platform feature errors
@@ -32,14 +32,14 @@ PTDAlgorithmsError (base)
 ```
 PTDConfigError: jax=True but JAX not installed.
   Install: pip install jax jaxlib
-  Or configure: ptdalgorithms.configure(jax=False)
+  Or configure: phasic.configure(jax=False)
 ```
 
-### 2. `src/ptdalgorithms/config.py` (NEW)
+### 2. `src/phasic/config.py` (NEW)
 **Purpose**: Central configuration system with validation
 
 **Key Features**:
-- `PTDAlgorithmsConfig` dataclass with parameters:
+- `phasicConfig` dataclass with parameters:
   - `jax: bool` - Require JAX (error if unavailable)
   - `jit: bool` - Enable JIT compilation
   - `ffi: bool` - Enable FFI (currently always errors - disabled)
@@ -50,7 +50,7 @@ PTDConfigError: jax=True but JAX not installed.
 
 **Global API**:
 ```python
-import ptdalgorithms as ptd
+import phasic as ptd
 
 # Check what's available
 opts = ptd.get_available_options()
@@ -67,15 +67,15 @@ ptd.reset_config()
 ```
 
 **Factory Methods**:
-- `PTDAlgorithmsConfig.jax_only()` - JAX with JIT
-- `PTDAlgorithmsConfig.cpp_only()` - Pure C++, no JAX
-- `PTDAlgorithmsConfig.permissive()` - Warnings not errors
+- `phasicConfig.jax_only()` - JAX with JIT
+- `phasicConfig.cpp_only()` - Pure C++, no JAX
+- `phasicConfig.permissive()` - Warnings not errors
 
 ---
 
 ## Files Modified
 
-### 3. `src/ptdalgorithms/__init__.py`
+### 3. `src/phasic/__init__.py`
 **Changes**:
 1. Import config system at top (lines 67-80)
 2. Replaced try-except JAX import with config-based import
@@ -116,7 +116,7 @@ if _config.jax:
         raise PTDJAXError(
             "jax=True but JAX not installed.\n"
             "  Install: pip install jax jaxlib\n"
-            "  Or configure: ptdalgorithms.configure(jax=False)\n"
+            "  Or configure: phasic.configure(jax=False)\n"
             f"  Original error: {e}"
         )
 else:
@@ -125,7 +125,7 @@ else:
     HAS_JAX = False
 ```
 
-### 4. `src/ptdalgorithms/ffi_wrappers.py`
+### 4. `src/phasic/ffi_wrappers.py`
 **Changes**:
 1. Added config and exceptions imports
 2. Changed C++ module import from try-except to explicit requirement
@@ -136,7 +136,7 @@ else:
 **Before** (lines 46-51):
 ```python
 try:
-    from . import ptdalgorithmscpp_pybind as cpp_module
+    from . import phasic_pybind as cpp_module
     _HAS_CPP_MODULE = True
 except ImportError:
     _HAS_CPP_MODULE = False  # SILENT FALLBACK!
@@ -151,7 +151,7 @@ from .exceptions import PTDBackendError, PTDConfigError
 
 # Import the C++ module (required - not optional)
 try:
-    from . import ptdalgorithmscpp_pybind as cpp_module
+    from . import phasic_pybind as cpp_module
     _HAS_CPP_MODULE = True
 except ImportError as e:
     raise PTDBackendError(
@@ -186,7 +186,7 @@ except Exception as e:
 # DO NOT attempt automatic registration on module import!
 ```
 
-### 5. `src/ptdalgorithms/trace_elimination.py`
+### 5. `src/phasic/trace_elimination.py`
 **Changes**: None needed (no silent fallbacks found)
 
 ---
@@ -195,7 +195,7 @@ except Exception as e:
 
 ### Before (Silent Fallbacks)
 ```python
-import ptdalgorithms as ptd
+import phasic as ptd
 
 # JAX imported silently if available
 # No way to know if JIT is enabled
@@ -207,7 +207,7 @@ graph = ptd.Graph(...)
 
 ### After (Explicit Configuration)
 ```python
-import ptdalgorithms as ptd
+import phasic as ptd
 
 # Check what's available FIRST
 opts = ptd.get_available_options()
@@ -230,10 +230,10 @@ graph = ptd.Graph(...)
 
 **Example 1**: JAX not installed
 ```python
->>> import ptdalgorithms
+>>> import phasic
 PTDConfigError: jax=True but JAX not installed.
   Install: pip install jax jaxlib
-  Or configure: ptdalgorithms.configure(jax=False)
+  Or configure: phasic.configure(jax=False)
 ```
 
 **Example 2**: FFI requested (currently disabled)
@@ -253,13 +253,13 @@ PTDConfigError: ffi=True but FFI is currently disabled.
 
 1. **Basic import with JAX available**:
    ```bash
-   python -c "import ptdalgorithms; print(ptdalgorithms.get_config())"
+   python -c "import phasic; print(phasic.get_config())"
    # ✓ Works - config created with defaults
    ```
 
 2. **Get available options**:
    ```bash
-   python -c "import ptdalgorithms; print(ptdalgorithms.get_available_options())"
+   python -c "import phasic; print(phasic.get_available_options())"
    # ✓ Returns: {'jax': True, 'backends': ['cpp', 'jax'], 'platforms': ['cpu']}
    ```
 
@@ -273,14 +273,14 @@ PTDConfigError: ffi=True but FFI is currently disabled.
 
 4. **FFI wrappers import**:
    ```bash
-   python -c "from ptdalgorithms.ffi_wrappers import compute_pmf_ffi"
+   python -c "from phasic.ffi_wrappers import compute_pmf_ffi"
    # ✓ Imports successfully
    # ✓ _HAS_FFI = False (correctly disabled)
    ```
 
 ### Tests Remaining 📋
 
-- Unit tests for `PTDAlgorithmsConfig.validate()`
+- Unit tests for `phasicConfig.validate()`
 - Test invalid combinations (jit=True, jax=False)
 - Test backend='jax' without JAX
 - Test platform='gpu' on CPU-only system
@@ -353,18 +353,18 @@ PTDConfigError: ffi=True but FFI is currently disabled.
 ## Files Summary
 
 **Created**:
-- `src/ptdalgorithms/exceptions.py` (90 lines)
-- `src/ptdalgorithms/config.py` (458 lines)
+- `src/phasic/exceptions.py` (90 lines)
+- `src/phasic/config.py` (458 lines)
 - `EXPLICIT_CONFIG_SYSTEM.md` (implementation guide)
 - `CONFIG_SYSTEM_IMPLEMENTATION_SUMMARY.md` (this file)
 
 **Modified**:
-- `src/ptdalgorithms/__init__.py` (replaced lines 66-168)
-- `src/ptdalgorithms/ffi_wrappers.py` (lines 45-69, 162-220, 589-600)
-- `src/ptdalgorithms/svgd.py` (lines 9-31, 878-944, 1023-1031, 1119, 593-663, 672-732, 1321-1332, 1492-1502)
+- `src/phasic/__init__.py` (replaced lines 66-168)
+- `src/phasic/ffi_wrappers.py` (lines 45-69, 162-220, 589-600)
+- `src/phasic/svgd.py` (lines 9-31, 878-944, 1023-1031, 1119, 593-663, 672-732, 1321-1332, 1492-1502)
 
 **Checked**:
-- `src/ptdalgorithms/trace_elimination.py` (no changes needed)
+- `src/phasic/trace_elimination.py` (no changes needed)
 
 **Total**: ~600 lines of new code, ~300 lines modified
 
