@@ -845,7 +845,7 @@ def _svgd_update_jitted(particles, K, grad_K, grad_log_p, step_size):
 
 
 def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
-              parallel_mode='auto', n_devices=None):
+              parallel_mode='vmap', n_devices=None):
     """
     Perform single SVGD update step
 
@@ -861,9 +861,8 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
         Step size for update
     compiled_grad : callable, optional
         Precompiled gradient function for faster execution
-    parallel_mode : str, default='auto'
-        Parallelization strategy: 'vmap', 'pmap', 'none', or 'auto'.
-        'auto' uses legacy SLURM-based detection for backward compatibility.
+    parallel_mode : str, default='vmap'
+        Parallelization strategy: 'vmap', 'pmap', or 'none'
     n_devices : int, optional
         Number of devices to use for pmap (only used if parallel_mode='pmap')
 
@@ -874,17 +873,9 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
     """
     n_particles = particles.shape[0]
 
-    # Determine parallelization strategy
-    if parallel_mode == 'auto':
-        # Legacy behavior: auto-detect based on SLURM and device count
-        available_devices = len(jax.devices())
-        in_slurm = bool(os.environ.get('SLURM_JOB_ID', ''))
-        use_pmap = in_slurm and available_devices > 1 and n_particles % available_devices == 0
-        actual_parallel_mode = 'pmap' if use_pmap else 'vmap'
-        actual_n_devices = available_devices if use_pmap else None
-    else:
-        actual_parallel_mode = parallel_mode
-        actual_n_devices = n_devices
+    # Use provided parallelization strategy
+    actual_parallel_mode = parallel_mode
+    actual_n_devices = n_devices
 
     # Compute log probability gradients based on parallelization strategy
     if actual_parallel_mode == 'pmap' and actual_n_devices is not None:
@@ -954,7 +945,7 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
 
 def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
              kernel='rbf_median', return_history=False, verbose=True, compiled_grad=None,
-             parallel_mode='auto', n_devices=None):
+             parallel_mode='vmap', n_devices=None):
     """
     Run Stein Variational Gradient Descent
 
@@ -979,8 +970,8 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
         Print progress information
     compiled_grad : callable, optional
         Precompiled gradient function for faster execution
-    parallel_mode : str, default='auto'
-        Parallelization strategy: 'vmap', 'pmap', 'none', or 'auto'
+    parallel_mode : str, default='vmap'
+        Parallelization strategy: 'vmap', 'pmap', or 'none'
     n_devices : int, optional
         Number of devices for pmap (only used if parallel_mode='pmap')
 
@@ -1146,10 +1137,13 @@ class SVGD:
         JIT compilation provides significant speedup but adds initial compilation overhead.
     parallel : str or None, default=None
         Parallelization strategy:
-        - 'vmap': Vectorize across particles (single device, default for 1 device)
-        - 'pmap': Parallelize across devices (default when multiple devices available)
+        - 'vmap': Vectorize across particles (single device)
+        - 'pmap': Parallelize across devices (uses multiple CPUs/GPUs)
         - 'none': No parallelization (sequential, useful for debugging)
-        - None: Auto-select based on device count
+        - None: Auto-select (pmap if multiple devices, vmap otherwise)
+
+        **Single-machine multi-CPU**: Auto-selection uses pmap for multi-core parallelization.
+        **Multi-node SLURM**: Call initialize_distributed() then set parallel='pmap' explicitly.
     n_devices : int or None, default=None
         Number of devices to use for pmap. Only used when parallel='pmap'.
         If None, uses all available devices. Must be <= number of available JAX devices.
@@ -1223,6 +1217,13 @@ class SVGD:
     >>> svgd = SVGD(model, observed_data, theta_dim=1, jit=False, parallel='none')
     >>> svgd.fit()
     >>>
+    >>> # Multi-node SLURM (explicit distributed initialization)
+    >>> from ptdalgorithms import initialize_distributed
+    >>> dist = initialize_distributed()  # Auto-detects SLURM environment
+    >>> svgd = SVGD(model, observed_data, theta_dim=1,
+    ...             jit=True, parallel='pmap', n_devices=dist.num_processes)
+    >>> svgd.fit()
+    >>>
     >>> # Using step size schedules to prevent divergence
     >>> from ptdalgorithms import ExponentialDecayStepSize
     >>> schedule = ExponentialDecayStepSize(max_step=0.1, min_step=0.01, tau=500.0)
@@ -1281,6 +1282,8 @@ class SVGD:
         # Validate parallel parameter
         if parallel is None:
             # Default: use pmap if multiple devices, vmap otherwise
+            # This enables multi-core parallelization on single machines
+            # For multi-node SLURM: call initialize_distributed() + set parallel='pmap' explicitly
             parallel = 'pmap' if len(jax.devices()) > 1 else 'vmap'
             if verbose:
                 print(f"Auto-selected parallel='{parallel}' ({len(jax.devices())} devices available)")
@@ -1289,33 +1292,54 @@ class SVGD:
                 f"parallel must be 'vmap', 'pmap', or 'none', got: {parallel}"
             )
 
-        # Validate n_devices parameter
+        # Validate n_devices parameter and check for misconfigurations
+        available_devices = len(jax.devices())
+
         if parallel == 'pmap':
-            available_devices = len(jax.devices())
-            if n_devices is None:
-                n_devices = available_devices
-                if verbose:
-                    print(f"Using all {n_devices} devices for pmap")
-            elif n_devices > available_devices:
-                raise PTDConfigError(
-                    f"n_devices={n_devices} but only {available_devices} devices available.\n"
-                    f"  JAX devices: {jax.devices()}\n"
-                    f"  Fix: Set n_devices<={available_devices} or configure more devices\n"
-                    f"  See: PTDALG_CPUS environment variable or ptdalgorithms.configure()"
+            if available_devices == 1:
+                import warnings
+                warnings.warn(
+                    "parallel='pmap' requested but only 1 JAX device available. "
+                    "Using 'vmap' instead. To use pmap, configure more devices via "
+                    "PTDALG_CPUS environment variable or initialize_distributed().",
+                    UserWarning,
+                    stacklevel=2
                 )
-            elif n_devices < 1:
-                raise ValueError(f"n_devices must be >= 1, got: {n_devices}")
+                parallel = 'vmap'
+                n_devices = None
+            else:
+                if n_devices is None:
+                    n_devices = available_devices
+                    if verbose:
+                        print(f"Using all {n_devices} devices for pmap")
+                elif n_devices > available_devices:
+                    raise PTDConfigError(
+                        f"n_devices={n_devices} but only {available_devices} devices available.\n"
+                        f"  JAX devices: {jax.devices()}\n"
+                        f"  Fix: Set n_devices<={available_devices} or configure more devices\n"
+                        f"  See: PTDALG_CPUS environment variable or ptdalgorithms.configure()"
+                    )
+                elif n_devices < 1:
+                    raise ValueError(f"n_devices must be >= 1, got: {n_devices}")
         elif n_devices is not None:
             if verbose:
                 print(f"Warning: n_devices={n_devices} ignored (only used with parallel='pmap')")
             n_devices = None
 
-        # Store configuration
+        # Store configuration (parallel may have been modified by validation)
         self.jit_enabled = jit
         self.parallel_mode = parallel
         self.n_devices = n_devices
 
-        # Backward compatibility: precompile implies jit
+        # Backward compatibility: precompile implies jit (deprecated)
+        if precompile is not None and not precompile:
+            import warnings
+            warnings.warn(
+                "precompile parameter is deprecated and will be removed in v1.0. "
+                "Use jit=True/False instead.",
+                DeprecationWarning,
+                stacklevel=2
+            )
         if precompile and not jit:
             if verbose:
                 print("Warning: precompile=True but jit=False. Setting jit=True for backward compatibility.")
