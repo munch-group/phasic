@@ -1853,73 +1853,83 @@ class Graph(_Graph):
 
         # Return appropriate signature based on parameterization
         if has_param_edges:
-            # PARAMETERIZED MODEL: Use cached GraphBuilder for efficiency
-            # Create GraphBuilder ONCE to avoid JSON parsing on every call
+            # PARAMETERIZED MODEL: Use FFI for multi-core parallelization
             import json
-            from . import ptdalgorithmscpp_pybind as cpp_module
-            from .ffi_wrappers import _make_json_serializable
+            from .ffi_wrappers import _make_json_serializable, compute_pmf_ffi
+            from .config import get_config
 
             # Serialize graph structure to JSON (one time)
+            # FFI handlers cache GraphBuilder internally (thread-local cache)
             structure_json_str = json.dumps(_make_json_serializable(serialized))
 
-            # Create GraphBuilder ONCE - captured in model closure
-            # This avoids recreating the builder from JSON on every PDF evaluation
-            builder = cpp_module.parameterized.GraphBuilder(structure_json_str)
+            # Check if FFI is available
+            config = get_config()
+            use_ffi = config.ffi  # User can enable with config.ffi = True
 
-            # Create cached PDF computation function
-            def _compute_pdf_cached(theta_np, times_np):
-                """Uses cached builder - NO JSON parsing per call.
+            if use_ffi:
+                # FFI MODE: Zero-copy XLA-optimized computation with multi-core support
+                # FFI handlers cache GraphBuilder in thread-local storage
+                from functools import partial
 
-                Execution stays in C++:
-                  builder.compute_pmf() → g.build() → g.pdf() (C++ forward algorithm)
+                # Create a partially applied function with static structure_json
+                # This prevents vmap from adding a batch dimension to JSON
+                model_ffi_partial = partial(
+                    compute_pmf_ffi,
+                    structure_json_str,  # Static: not vmapped
+                    discrete=discrete,   # Static: not vmapped
+                    granularity=0        # Static: not vmapped
+                )
 
-                Handles both single and batched theta for vmap compatibility.
-                """
-                # Check if theta is batched (from vmap with expand_dims)
-                if theta_np.ndim == 2:
-                    # Batched: theta shape [batch, params]
-                    # With vmap_method='expand_dims', times also gets batched: [batch, n_times]
-                    # But all batch elements have the same times, so we can use times_np[0]
-                    times_unbatched = times_np[0] if times_np.ndim == 2 else times_np
+                def model_pure(theta, times):
+                    """FFI wrapper for multi-core parallelization.
 
-                    # Process each batch element
-                    results = []
-                    for theta_single in theta_np:
-                        result = builder.compute_pmf(
-                            theta_single,  # 1D array
-                            times_unbatched,
+                    Supports: jit, vmap, pmap with true multi-core execution
+                    FFI caching: GraphBuilder cached by JSON structure (no repeated parsing)
+                    """
+                    return model_ffi_partial(theta=theta, times=times)
+            else:
+                # FALLBACK MODE: pure_callback (single-core, no FFI)
+                from . import ptdalgorithmscpp_pybind as cpp_module
+
+                # Create GraphBuilder ONCE - captured in model closure
+                builder = cpp_module.parameterized.GraphBuilder(structure_json_str)
+
+                def _compute_pdf_cached(theta_np, times_np):
+                    """Uses cached builder - NO JSON parsing per call."""
+                    # Check if theta is batched (from vmap with expand_dims)
+                    if theta_np.ndim == 2:
+                        times_unbatched = times_np[0] if times_np.ndim == 2 else times_np
+                        results = []
+                        for theta_single in theta_np:
+                            result = builder.compute_pmf(
+                                theta_single,
+                                times_unbatched,
+                                discrete=discrete,
+                                granularity=0
+                            )
+                            results.append(result)
+                        return np.array(results)
+                    else:
+                        return builder.compute_pmf(
+                            theta_np,
+                            times_np,
                             discrete=discrete,
                             granularity=0
                         )
-                        results.append(result)
-                    return np.array(results)
-                else:
-                    # Single: theta shape [params]
-                    return builder.compute_pmf(
-                        theta_np,  # numpy array
-                        times_np,  # numpy array
-                        discrete=discrete,
-                        granularity=0  # Auto-select based on max rate
+
+                def model_pure(theta, times):
+                    """Pure callback wrapper (fallback when FFI disabled)."""
+                    result_shape = jax.ShapeDtypeStruct(times.shape, times.dtype)
+                    return jax.pure_callback(
+                        lambda t, tm: _compute_pdf_cached(
+                            np.asarray(t, dtype=np.float64),
+                            np.asarray(tm, dtype=np.float64)
+                        ).astype(times.dtype),
+                        result_shape,
+                        theta,
+                        times,
+                        vmap_method='expand_dims'
                     )
-
-            # JAX-compatible wrapper using pure_callback
-            def model_pure(theta, times):
-                """Pure callback wrapper for JAX compatibility.
-
-                Supports: jit, vmap, pmap, sharding (vmap_method='expand_dims')
-                """
-                # Use times.dtype to respect JAX's precision settings (float32/float64)
-                result_shape = jax.ShapeDtypeStruct(times.shape, times.dtype)
-                return jax.pure_callback(
-                    lambda t, tm: _compute_pdf_cached(
-                        np.asarray(t, dtype=np.float64),
-                        np.asarray(tm, dtype=np.float64)
-                    ).astype(times.dtype),  # Match output dtype to input
-                    result_shape,
-                    theta,
-                    times,
-                    vmap_method='expand_dims'  # Efficient batching for vmap/pmap
-                )
 
             # Add custom VJP for gradients (finite differences)
             @jax.custom_vjp

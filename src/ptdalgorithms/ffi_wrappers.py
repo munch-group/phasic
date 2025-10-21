@@ -162,62 +162,82 @@ _FFI_REGISTERED = False
 def _register_ffi_targets():
     """Register FFI targets with JAX.
 
-    Currently DISABLED due to memory corruption bug.
-    See FFI_MEMORY_CORRUPTION_FIX.md for details.
+    This function is called lazily on first use, AFTER JAX is initialized.
+    It creates FFI handlers on-demand to avoid static initialization issues.
 
-    When re-enabled, this should be called explicitly AFTER JAX initialization,
-    not from static global constructors.
+    Returns
+    -------
+    bool
+        True if FFI registration succeeded, False otherwise
 
     Raises
     ------
     PTDBackendError
-        FFI backend is not available (currently always raises)
+        If FFI backend is requested but not available
     """
     global _FFI_REGISTERED
 
     if _FFI_REGISTERED:
         return True
 
-    # FFI is currently completely disabled
-    if get_config().ffi:
-        raise PTDBackendError(
-            "FFI backend requested but currently disabled.\n"
-            "  Reason: Memory corruption from static global registration\n"
-            "  See: FFI_MEMORY_CORRUPTION_FIX.md\n"
-            "  Available backends: " + str(['jax', 'cpp'])
-        )
+    # Check if FFI backend is requested
+    config = get_config()
+    if not config.ffi:
+        # FFI not requested, silently return False
+        return False
 
-    return False
+    # FFI requested - try to register
+    try:
+        import jax
+        from . import ptdalgorithmscpp_pybind as cpp_module
 
-    # DISABLED CODE - DO NOT ENABLE WITHOUT FIXING STATIC INITIALIZATION
-    # try:
-    #     # Try to get FFI capsules from C++ module
-    #     from . import ptdalgorithmscpp_pybind as cpp_module
-    #
-    #     # Get capsules for FFI handlers
-    #     compute_pmf_capsule = cpp_module.parameterized.get_compute_pmf_ffi_capsule()
-    #     compute_pmf_and_moments_capsule = cpp_module.parameterized.get_compute_pmf_and_moments_ffi_capsule()
-    #
-    #     # Register with JAX
-    #     jax.ffi.register_ffi_target(
-    #         "ptd_compute_pmf",
-    #         compute_pmf_capsule,
-    #         platform="cpu"
-    #     )
-    #
-    #     jax.ffi.register_ffi_target(
-    #         "ptd_compute_pmf_and_moments",
-    #         compute_pmf_and_moments_capsule,
-    #         platform="cpu"
-    #     )
-    #
-    #     _FFI_REGISTERED = True
-    #     return True
-    #
-    # except (AttributeError, ImportError) as e:
-    #     # FFI capsules not available (older build or missing XLA headers)
-    #     # Fall back to pure_callback implementation
-    #     return False
+        # Get capsules for FFI handlers (created on-demand, safe after JAX init)
+        compute_pmf_capsule = cpp_module.parameterized.get_compute_pmf_ffi_capsule()
+        compute_pmf_and_moments_capsule = cpp_module.parameterized.get_compute_pmf_and_moments_ffi_capsule()
+
+        # Register with JAX FFI
+        # NOTE: Our C++ handlers use XLA FFI API v1.0 (new typed FFI)
+        # As of jaxlib 0.8.0, the framework still uses API v0.1 (old custom call)
+        # This version mismatch prevents FFI from working until jaxlib is updated
+        try:
+            jax.ffi.register_ffi_target(
+                "ptd_compute_pmf",
+                compute_pmf_capsule,
+                platform="cpu",
+                api_version=1  # New typed FFI API
+            )
+            jax.ffi.register_ffi_target(
+                "ptd_compute_pmf_and_moments",
+                compute_pmf_and_moments_capsule,
+                platform="cpu",
+                api_version=1  # New typed FFI API
+            )
+        except Exception as e:
+            # Known issue: XLA FFI v1.0 handlers incompatible with jaxlib 0.8.0 (uses v0.1)
+            # Fallback to pure_callback until jaxlib supports FFI API v1.0
+            if "api_version" in str(e).lower() or "version" in str(e).lower():
+                # FFI not available - will use pure_callback fallback
+                return False
+            else:
+                raise  # Re-raise if it's a different error
+
+        _FFI_REGISTERED = True
+        return True
+
+    except (AttributeError, ImportError) as e:
+        # FFI capsules not available (older build or missing XLA headers)
+        if config.ffi:
+            # FFI explicitly requested but not available - raise error
+            raise PTDBackendError(
+                f"FFI backend requested but not available.\n"
+                f"  Error: {e}\n"
+                f"  Possible causes:\n"
+                f"  - XLA headers not found during build\n"
+                f"  - C++ module missing get_compute_pmf_ffi_capsule() function\n"
+                f"  Available backends: {['jax', 'cpp']}"
+            ) from e
+        # FFI not explicitly requested, silently fall back
+        return False
 
 
 # ============================================================================
@@ -463,29 +483,44 @@ def compute_pmf_ffi(structure_json: Union[str, Dict], theta: jax.Array, times: j
     >>> fast_pmf = jit_pmf(structure_dict, theta, times, False, 100)
     """
     # Try to register FFI targets (no-op if already registered)
+    # This may raise PTDBackendError if FFI is requested but not available
     ffi_available = _register_ffi_targets()
 
     if ffi_available and _FFI_REGISTERED:
-        # Use true JAX FFI (Phase 2 - XLA-optimized zero-copy)
-        # Convert structure to JSON bytes (survives pickle boundary)
+        # Use true JAX FFI (XLA-optimized zero-copy, enables multi-core parallelization)
+        # JSON is passed as STRING ATTRIBUTE (static, not batched by vmap)
         structure_str = _ensure_json_string(structure_json)
-        # Create owned array (not view) to ensure data persists until FFI accesses it
-        json_str_bytes = structure_str.encode('utf-8')
-        json_bytes = jnp.array(np.frombuffer(json_str_bytes, dtype=np.uint8))
 
-        # Call JAX FFI target with JSON
-        result = jax.ffi.ffi_call(
+        # Call JAX FFI target
+        # NOTE: JSON passed as attribute (static), theta/times as buffers (batched)
+        # expand_dims: vmap adds batch dimension, FFI handler loops over batch
+        ffi_fn = jax.ffi.ffi_call(
             "ptd_compute_pmf",
             jax.ShapeDtypeStruct(times.shape, times.dtype),
-            json_bytes,  # Arg 1: structure_json buffer
-            theta,       # Arg 2: theta buffer
-            times,       # Arg 3: times buffer
-            granularity=granularity,  # Attr: granularity
-            discrete=discrete          # Attr: discrete
+            vmap_method="expand_dims"  # Batch dim added, handler processes all at once
+        )
+        result = ffi_fn(
+            theta,       # Arg 1: theta buffer (BATCHED by vmap)
+            times,       # Arg 2: times buffer (BATCHED by vmap)
+            structure_json=structure_str,           # Attr: JSON string (STATIC, not batched)
+            granularity=np.int32(granularity),      # Attr: granularity
+            discrete=np.bool_(discrete)             # Attr: discrete
         )
         return result
     else:
-        # Fall back to pure_callback (Phase 1)
+        # FFI not available or not requested
+        # Check if FFI was explicitly requested
+        config = get_config()
+        if config.ffi:
+            # FFI requested but not available - raise clear error
+            raise PTDBackendError(
+                "FFI backend requested but not available.\n"
+                "  This prevents multi-core parallelization with vmap/pmap.\n"
+                "  Set config.ffi = False to use pure_callback fallback (slower).\n"
+                f"  Current config: {config}"
+            )
+
+        # Fall back to pure_callback (slower, no multi-core support)
         return compute_pmf_fallback(structure_json, theta, times, discrete, granularity)
 
 

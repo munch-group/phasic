@@ -24,12 +24,7 @@ extern "C" {
 #ifdef HAVE_XLA_FFI
 #include "parameterized/graph_builder_ffi.hpp"
 
-// DISABLED: Global FFI registration causes memory corruption (see graph_builder_ffi.cpp)
-// // Declare XLA FFI handler symbols (defined in graph_builder_ffi.cpp)
-// extern "C" {
-//     extern void* PtdComputePmf;
-//     extern void* PtdComputePmfAndMoments;
-// }
+// No static symbols needed - we'll create handlers on-demand via functions
 #endif
 
 #include <deque>
@@ -3707,7 +3702,6 @@ Computes the expected residence time of the phase-type distribution.
           &ptdalgorithms::parameterized::GraphBuilder::compute_moments,
           py::arg("theta"),
           py::arg("nr_moments"),
-          // TODO(Phase 2): Add py::call_guard<py::gil_scoped_release>() for proper GIL management
           R"delim(
           Compute distribution moments: E[T^k] for k=1,2,...,nr_moments.
 
@@ -3742,7 +3736,6 @@ Computes the expected residence time of the phase-type distribution.
           py::arg("times"),
           py::arg("discrete") = false,
           py::arg("granularity") = 100,
-          // TODO(Phase 2): Add py::call_guard<py::gil_scoped_release>() for proper GIL management
           R"delim(
           Compute PMF (discrete) or PDF (continuous) values.
 
@@ -3785,7 +3778,6 @@ Computes the expected residence time of the phase-type distribution.
           py::arg("nr_moments"),
           py::arg("discrete") = false,
           py::arg("granularity") = 100,
-          // TODO(Phase 2): Add py::call_guard<py::gil_scoped_release>() for proper GIL management
           R"delim(
           Compute both PMF and moments efficiently in a single pass.
 
@@ -3841,44 +3833,47 @@ Computes the expected residence time of the phase-type distribution.
   // JAX FFI Handler Capsules (Phase 2)
   // ============================================================================
 
-// DISABLED: Global FFI registration causes memory corruption
-// The XLA_FFI_DEFINE_HANDLER_SYMBOL macro creates static globals that corrupt
-// XLA's registry when loaded before JAX initialization. See graph_builder_ffi.cpp.
-//
-// TODO: Implement alternative registration mechanism that works after JAX init
-// #ifdef HAVE_XLA_FFI
-//   param_module.def("get_compute_pmf_ffi_capsule", []() -> py::capsule {
-//       return py::capsule(reinterpret_cast<void*>(PtdComputePmf), "xla._CUSTOM_CALL_TARGET");
-//   }, R"delim(
-//   Get PyCapsule for JAX FFI compute_pmf handler.
-//
-//   This capsule can be registered with JAX using jax.ffi.register_ffi_target()
-//   to enable zero-copy, XLA-optimized PDF computation.
-//
-//   Returns
-//   -------
-//   capsule
-//       PyCapsule containing pointer to XLA FFI handler
-//
-//   Examples
-//   --------
-//   >>> import jax
-//   >>> from ptdalgorithms.ptdalgorithmscpp_pybind import parameterized
-//   >>> capsule = parameterized.get_compute_pmf_ffi_capsule()
-//   >>> jax.ffi.register_ffi_target("ptd_compute_pmf", capsule, platform="cpu")
-//   )delim");
-//
-//   param_module.def("get_compute_pmf_and_moments_ffi_capsule", []() -> py::capsule {
-//       return py::capsule(reinterpret_cast<void*>(PtdComputePmfAndMoments), "xla._CUSTOM_CALL_TARGET");
-//   }, R"delim(
-//   Get PyCapsule for JAX FFI compute_pmf_and_moments handler.
-//
-//   Returns
-//   -------
-//   capsule
-//       PyCapsule containing pointer to XLA FFI handler
-//   )delim");
-// #endif
+#ifdef HAVE_XLA_FFI
+  param_module.def("get_compute_pmf_ffi_capsule", []() -> py::capsule {
+      // Create handler on-demand (safe because JAX is already initialized)
+      auto* handler = ptdalgorithms::parameterized::CreateComputePmfHandler();
+      return py::capsule(reinterpret_cast<void*>(handler), "xla._CUSTOM_CALL_TARGET");
+  }, R"delim(
+  Get PyCapsule for JAX FFI compute_pmf handler.
+
+  This capsule can be registered with JAX using jax.ffi.register_ffi_target()
+  AFTER JAX is fully initialized. This enables zero-copy, XLA-optimized PDF
+  computation that can be parallelized by vmap/pmap for true multi-core usage.
+
+  IMPORTANT: Must be called AFTER JAX initialization. The handler is created
+  on-demand when this function is called, avoiding static initialization issues.
+
+  Returns
+  -------
+  capsule
+      PyCapsule containing pointer to XLA FFI handler
+
+  Examples
+  --------
+  >>> import jax  # Initialize JAX FIRST
+  >>> from ptdalgorithms.ptdalgorithmscpp_pybind import parameterized
+  >>> capsule = parameterized.get_compute_pmf_ffi_capsule()
+  >>> jax.ffi.register_ffi_target("ptd_compute_pmf", capsule, platform="cpu")
+  )delim");
+
+  param_module.def("get_compute_pmf_and_moments_ffi_capsule", []() -> py::capsule {
+      // Create handler on-demand (safe because JAX is already initialized)
+      auto* handler = ptdalgorithms::parameterized::CreateComputePmfAndMomentsHandler();
+      return py::capsule(reinterpret_cast<void*>(handler), "xla._CUSTOM_CALL_TARGET");
+  }, R"delim(
+  Get PyCapsule for JAX FFI compute_pmf_and_moments handler.
+
+  Returns
+  -------
+  capsule
+      PyCapsule containing pointer to XLA FFI handler
+  )delim");
+#endif
 
   // ============================================================================
   // Graph Content Hashing for Symbolic DAG Cache

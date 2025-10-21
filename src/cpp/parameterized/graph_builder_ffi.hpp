@@ -19,17 +19,17 @@ namespace ffi = xla::ffi;
  * distribution PDF values. The GraphBuilder is created from JSON and cached
  * in thread-local storage to avoid repeated parsing.
  *
- * @param structure_json JSON structure buffer (U8, shape: [json_length])
+ * @param structure_json JSON structure as string_view (STATIC attribute, not batched)
  * @param granularity PDF computation granularity (int32_t attribute)
  * @param discrete Whether to use discrete phase-type (bool attribute)
- * @param theta Parameter array buffer (F64, shape: [n_params])
- * @param times Time/jump points buffer (F64, shape: [n_times])
+ * @param theta Parameter array buffer (F64, shape: [n_params]) - BATCHED by vmap
+ * @param times Time/jump points buffer (F64, shape: [n_times]) - BATCHED by vmap
  * @param result Output buffer (F64, shape: [n_times])
  *
  * @return ffi::Error Success or error status
  */
 ffi::Error ComputePmfFfiImpl(
-    ffi::Buffer<ffi::U8> structure_json,
+    std::string_view structure_json,
     int32_t granularity,
     bool discrete,
     ffi::Buffer<ffi::F64> theta,
@@ -65,6 +65,12 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
 );
 
 } // namespace ffi_handlers
+
+// Functions to create FFI handlers for Python-side registration
+// These must be called AFTER JAX is fully initialized
+XLA_FFI_Handler* CreateComputePmfHandler();
+XLA_FFI_Handler* CreateComputePmfAndMomentsHandler();
+
 } // namespace parameterized
 } // namespace ptdalgorithms
 

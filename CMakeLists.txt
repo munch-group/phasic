@@ -51,32 +51,43 @@ find_package(Python COMPONENTS Interpreter Development REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
 find_package (Eigen3 REQUIRED NO_MODULE)
 find_package(nlohmann_json REQUIRED)
+find_package(OpenMP)
 
-# Get XLA FFI include directory from jaxlib or local install
-execute_process(
-    COMMAND ${Python_EXECUTABLE} -c "from jax import ffi; print(ffi.include_dir())"
-    OUTPUT_VARIABLE XLA_FFI_INCLUDE_DIR
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    RESULT_VARIABLE XLA_FFI_RESULT
-)
+# Get XLA FFI include directory from environment, jaxlib, or local install
+set(XLA_FFI_RESULT 1)
 
-if(XLA_FFI_RESULT EQUAL 0)
-    message(STATUS "Found XLA FFI headers from JAX: ${XLA_FFI_INCLUDE_DIR}")
+# First check environment variable (useful during pip install)
+if(DEFINED ENV{XLA_FFI_INCLUDE_DIR})
+    set(XLA_FFI_INCLUDE_DIR "$ENV{XLA_FFI_INCLUDE_DIR}")
+    set(XLA_FFI_RESULT 0)
+    message(STATUS "Found XLA FFI headers from environment: ${XLA_FFI_INCLUDE_DIR}")
 else()
-    # Try to find headers in user's local include directory
-    find_path(LOCAL_XLA_INCLUDE
-        NAMES xla/ffi/api/ffi.h
-        PATHS $ENV{HOME}/.local/include /usr/local/include
-        NO_DEFAULT_PATH
+    # Try to get from JAX
+    execute_process(
+        COMMAND ${Python_EXECUTABLE} -c "from jax import ffi; print(ffi.include_dir())"
+        OUTPUT_VARIABLE XLA_FFI_INCLUDE_DIR
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE XLA_FFI_RESULT
     )
 
-    if(LOCAL_XLA_INCLUDE)
-        set(XLA_FFI_INCLUDE_DIR "${LOCAL_XLA_INCLUDE}")
-        set(XLA_FFI_RESULT 0)
-        message(STATUS "Found XLA FFI headers in local install: ${XLA_FFI_INCLUDE_DIR}")
+    if(XLA_FFI_RESULT EQUAL 0)
+        message(STATUS "Found XLA FFI headers from JAX: ${XLA_FFI_INCLUDE_DIR}")
     else()
-        message(WARNING "Could not find XLA FFI headers. FFI handlers will not be compiled.")
-        set(XLA_FFI_INCLUDE_DIR "")
+        # Try to find headers in user's local include directory
+        find_path(LOCAL_XLA_INCLUDE
+            NAMES xla/ffi/api/ffi.h
+            PATHS $ENV{HOME}/.local/include /usr/local/include
+            NO_DEFAULT_PATH
+        )
+
+        if(LOCAL_XLA_INCLUDE)
+            set(XLA_FFI_INCLUDE_DIR "${LOCAL_XLA_INCLUDE}")
+            set(XLA_FFI_RESULT 0)
+            message(STATUS "Found XLA FFI headers in local install: ${XLA_FFI_INCLUDE_DIR}")
+        else()
+            message(WARNING "Could not find XLA FFI headers. FFI handlers will not be compiled.")
+            set(XLA_FFI_INCLUDE_DIR "")
+        endif()
     endif()
 endif()
 
@@ -113,6 +124,14 @@ target_link_libraries(ptdalgorithmscpp_pybind PUBLIC Eigen3::Eigen pybind11::mod
 if(XLA_FFI_RESULT EQUAL 0)
     target_include_directories(ptdalgorithmscpp_pybind PRIVATE ${XLA_FFI_INCLUDE_DIR})
     target_compile_definitions(ptdalgorithmscpp_pybind PRIVATE HAVE_XLA_FFI)
+endif()
+
+# Add OpenMP support for multi-core parallelization in FFI handlers
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(ptdalgorithmscpp_pybind PUBLIC OpenMP::OpenMP_CXX)
+    message(STATUS "OpenMP enabled for multi-core parallelization")
+else()
+    message(WARNING "OpenMP not found - FFI will run sequentially")
 endif()
 
 install(TARGETS ptdalgorithmscpp_pybind DESTINATION ptdalgorithms)

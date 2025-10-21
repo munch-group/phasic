@@ -892,13 +892,19 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
         particles_per_device = n_particles // actual_n_devices
         particles_sharded = particles.reshape(actual_n_devices, particles_per_device, -1)
 
-        # Use precompiled gradient if available
-        if compiled_grad is not None:
-            # pmap over devices, vmap over particles within each device
-            grad_log_p_sharded = pmap(vmap(compiled_grad))(particles_sharded)
-        else:
-            # pmap over devices, vmap over particles within each device
-            grad_log_p_sharded = pmap(vmap(grad(log_prob_fn)))(particles_sharded)
+        # NOTE: JAX 0.8+ requires explicit device mesh to avoid conflicts
+        # Create mesh for current pmap operation
+        from jax.experimental import mesh_utils
+        from jax.sharding import Mesh, NamedSharding, PartitionSpec as P
+
+        devices = mesh_utils.create_device_mesh((actual_n_devices,))
+        mesh = Mesh(devices, axis_names=("batch",))
+
+        # Use explicit mesh context for pmap
+        # pmap over devices, vmap over particles within each device
+        with mesh:
+            grad_log_p_sharded = pmap(vmap(grad(log_prob_fn)), axis_name="batch")(particles_sharded)
+
         grad_log_p = grad_log_p_sharded.reshape(n_particles, -1)
     elif actual_parallel_mode == 'vmap':
         # Single device vectorization - use vmap only

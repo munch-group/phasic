@@ -235,17 +235,30 @@ py::array_t<double> GraphBuilder::compute_moments(
     py::array_t<double> theta,
     int nr_moments
 ) {
-    // Extract theta data
+    // Step 1: Extract data from numpy arrays (requires GIL)
     auto theta_buf = theta.unchecked<1>();
     size_t theta_len = theta_buf.shape(0);
 
-    // Build graph
-    Graph g = build(theta.data(), theta_len);
+    // Copy theta to C++ vector
+    std::vector<double> theta_vec(theta_len);
+    for (size_t i = 0; i < theta_len; i++) {
+        theta_vec[i] = theta_buf(i);
+    }
 
-    // Compute moments
-    std::vector<double> moments = compute_moments_impl(g, nr_moments);
+    // Step 2: Release GIL for C++ computation
+    std::vector<double> moments;
+    {
+        py::gil_scoped_release release;
 
-    // Convert to numpy array
+        // Build graph (pure C++)
+        Graph g = build(theta_vec.data(), theta_len);
+
+        // Compute moments (pure C++)
+        moments = compute_moments_impl(g, nr_moments);
+    }
+    // GIL automatically reacquired here
+
+    // Step 3: Convert to numpy array (requires GIL, which we now have)
     py::array_t<double> result(moments.size());
     auto result_buf = result.mutable_unchecked<1>();
     for (size_t i = 0; i < moments.size(); i++) {
@@ -261,33 +274,49 @@ py::array_t<double> GraphBuilder::compute_pmf(
     bool discrete,
     int granularity
 ) {
-    // Extract theta data
+    // Step 1: Extract data from numpy arrays (requires GIL)
     auto theta_buf = theta.unchecked<1>();
     size_t theta_len = theta_buf.shape(0);
-
-    // Extract times data
     auto times_buf = times.unchecked<1>();
     size_t n_times = times_buf.shape(0);
 
-    // Build graph
-    Graph g = build(theta.data(), theta_len);
+    // Copy theta and times to C++ vectors (still have GIL)
+    std::vector<double> theta_vec(theta_len);
+    for (size_t i = 0; i < theta_len; i++) {
+        theta_vec[i] = theta_buf(i);
+    }
+    std::vector<double> times_vec(n_times);
+    for (size_t i = 0; i < n_times; i++) {
+        times_vec[i] = times_buf(i);
+    }
 
-    // Compute PMF/PDF
+    // Step 2: Release GIL for C++ computation
+    std::vector<double> result_vec(n_times);
+    {
+        py::gil_scoped_release release;
+
+        // Build graph (pure C++, no Python objects)
+        Graph g = build(theta_vec.data(), theta_len);
+
+        // Compute PMF/PDF (pure C++)
+        if (discrete) {
+            for (size_t i = 0; i < n_times; i++) {
+                int jump_count = static_cast<int>(times_vec[i]);
+                result_vec[i] = g.dph_pmf(jump_count);
+            }
+        } else {
+            for (size_t i = 0; i < n_times; i++) {
+                result_vec[i] = g.pdf(times_vec[i], granularity);
+            }
+        }
+    }
+    // GIL automatically reacquired here
+
+    // Step 3: Create numpy array from C++ vector (requires GIL, which we now have)
     py::array_t<double> result(n_times);
     auto result_buf = result.mutable_unchecked<1>();
-
-    if (discrete) {
-        // Discrete phase-type (DPH) - times are jump counts
-        for (size_t i = 0; i < n_times; i++) {
-            int jump_count = static_cast<int>(times_buf(i));
-            result_buf(i) = g.dph_pmf(jump_count);
-        }
-    } else {
-        // Continuous phase-type (PDF) - times are real values
-        for (size_t i = 0; i < n_times; i++) {
-            double time = times_buf(i);
-            result_buf(i) = g.pdf(time, granularity);
-        }
+    for (size_t i = 0; i < n_times; i++) {
+        result_buf(i) = result_vec[i];
     }
 
     return result;
@@ -301,37 +330,55 @@ GraphBuilder::compute_pmf_and_moments(
     bool discrete,
     int granularity
 ) {
-    // Extract theta data
+    // Step 1: Extract data from numpy arrays (requires GIL)
     auto theta_buf = theta.unchecked<1>();
     size_t theta_len = theta_buf.shape(0);
-
-    // Extract times data
     auto times_buf = times.unchecked<1>();
     size_t n_times = times_buf.shape(0);
 
-    // Build graph ONCE (more efficient than separate calls)
-    Graph g = build(theta.data(), theta_len);
-
-    // Compute PMF/PDF
-    py::array_t<double> pmf_result(n_times);
-    auto pmf_buf = pmf_result.mutable_unchecked<1>();
-
-    if (discrete) {
-        for (size_t i = 0; i < n_times; i++) {
-            int jump_count = static_cast<int>(times_buf(i));
-            pmf_buf(i) = g.dph_pmf(jump_count);
-        }
-    } else {
-        for (size_t i = 0; i < n_times; i++) {
-            double time = times_buf(i);
-            pmf_buf(i) = g.pdf(time, granularity);
-        }
+    // Copy to C++ vectors
+    std::vector<double> theta_vec(theta_len);
+    for (size_t i = 0; i < theta_len; i++) {
+        theta_vec[i] = theta_buf(i);
+    }
+    std::vector<double> times_vec(n_times);
+    for (size_t i = 0; i < n_times; i++) {
+        times_vec[i] = times_buf(i);
     }
 
-    // Compute moments using same graph
-    std::vector<double> moments = compute_moments_impl(g, nr_moments);
+    // Step 2: Release GIL for C++ computation
+    std::vector<double> pmf_vec(n_times);
+    std::vector<double> moments;
+    {
+        py::gil_scoped_release release;
 
-    // Convert moments to numpy array
+        // Build graph ONCE (pure C++)
+        Graph g = build(theta_vec.data(), theta_len);
+
+        // Compute PMF/PDF (pure C++)
+        if (discrete) {
+            for (size_t i = 0; i < n_times; i++) {
+                int jump_count = static_cast<int>(times_vec[i]);
+                pmf_vec[i] = g.dph_pmf(jump_count);
+            }
+        } else {
+            for (size_t i = 0; i < n_times; i++) {
+                pmf_vec[i] = g.pdf(times_vec[i], granularity);
+            }
+        }
+
+        // Compute moments using same graph (pure C++)
+        moments = compute_moments_impl(g, nr_moments);
+    }
+    // GIL automatically reacquired here
+
+    // Step 3: Convert to numpy arrays (requires GIL, which we now have)
+    py::array_t<double> pmf_result(n_times);
+    auto pmf_buf = pmf_result.mutable_unchecked<1>();
+    for (size_t i = 0; i < n_times; i++) {
+        pmf_buf(i) = pmf_vec[i];
+    }
+
     py::array_t<double> moments_result(moments.size());
     auto moments_buf = moments_result.mutable_unchecked<1>();
     for (size_t i = 0; i < moments.size(); i++) {
