@@ -1653,11 +1653,36 @@ try:
             """
             args = parse_argstring(self.monitor, line)
 
-            with CPUMonitor(width=args.width, update_interval=args.interval,
+            monitor = CPUMonitor(width=args.width, update_interval=args.interval,
                           persist=args.persist, color=args.color, summary_table=args.summary,
-                          fold=args.fold, group_by=args.group_by):
-                # Execute cell
-                self.shell.run_cell(cell)
+                          fold=args.fold, group_by=args.group_by)
+
+            monitor.start()
+            try:
+                # Execute cell and capture result
+                result = self.shell.run_cell(cell)
+            finally:
+                # Check if cell execution had an error
+                had_error = hasattr(result, 'error_in_exec') and result.error_in_exec is not None
+
+                # If there was an error, don't clear the display (preserve error output)
+                if had_error:
+                    # Stop monitoring but don't clear display
+                    monitor._monitoring = False
+                    if monitor._monitor_thread:
+                        monitor._monitor_thread.join(timeout=2.0)
+                    if monitor._jupyter_update_thread:
+                        monitor._jupyter_update_thread.join(timeout=2.0)
+                    if monitor._live:
+                        monitor._live.stop()
+                        monitor._live = None
+                    for bar in monitor._tqdm_bars:
+                        bar.close()
+                    monitor._tqdm_bars = []
+                    # Don't update or clear the HTML display - let error show
+                else:
+                    # Normal stop with display update/clear
+                    monitor.stop()
 
     HAS_IPYTHON_MAGIC = True
 
