@@ -36,11 +36,11 @@ from .plot import black_white
 # from .decoders import VariableDimPTDDecoder, LessThanOneDecoder, 
 #     SumToOneDecoder, IndependentProbDecoder
 
-def string_to_class(s, suffix=''):
-    class_name = ''.join(x.capitalize() for x in s.split('_')) + suffix
-    if class_name not in globals():
-        raise ValueError(f"Cannot translate string to class name: {s}")
-    return globals()[class_name]
+# def string_to_class(s, suffix=''):
+#     class_name = ''.join(x.capitalize() for x in s.split('_')) + suffix
+#     if class_name not in globals():
+#         raise ValueError(f"Cannot translate string to class name: {s}")
+#     return globals()[class_name]
 
 
 from tqdm import trange, tqdm
@@ -316,63 +316,63 @@ class AdaptiveStepSize(StepSizeSchedule):
 # _iridis = truncate_colormap(plt.get_cmap('viridis'), 0.2, 1)
 
 
-@jit
-def calculate_param_dim(k, m):
-    """Calculate parameter dimension for discrete phase-type distribution
+# @jit
+# def calculate_param_dim(k, m):
+#     """Calculate parameter dimension for discrete phase-type distribution
     
-    Parameters:
-    - k: number of dimensions (absorption states)  
-    - m: number of transient states
+#     Parameters:
+#     - k: number of dimensions (absorption states)  
+#     - m: number of transient states
     
-    Returns:
-    - Total parameter dimension
-    """
-    # Initial distribution: m parameters (no constraint)
-    alpha_dim = m
+#     Returns:
+#     - Total parameter dimension
+#     """
+#     # Initial distribution: m parameters (no constraint)
+#     alpha_dim = m
     
-    # Sub-intensity matrix: m×m parameters with row-sum constraints
-    # Each row sums to <= 0, so m-1 free parameters per row
-    sub_Q_dim = m * (m - 1) 
+#     # Sub-intensity matrix: m×m parameters with row-sum constraints
+#     # Each row sums to <= 0, so m-1 free parameters per row
+#     sub_Q_dim = m * (m - 1) 
     
-    # Exit rates: k×m parameters (all free)
-    exit_rates_dim = k * m
+#     # Exit rates: k×m parameters (all free)
+#     exit_rates_dim = k * m
     
-    return alpha_dim + sub_Q_dim + exit_rates_dim
+#     return alpha_dim + sub_Q_dim + exit_rates_dim
 
-def example_ptd_spec(key, k=1, m=2):
-    """Generate example discrete phase-type distribution parameters
+# def example_ptd_spec(key, k=1, m=2):
+#     """Generate example discrete phase-type distribution parameters
     
-    Returns flattened parameter vector for the distribution with:
-    - k absorption states (dimensions)
-    - m transient states
-    """
-    # Generate initial distribution (normalized)
-    key, subkey = jax.random.split(key)
-    alpha_raw = jax.random.exponential(subkey, shape=(m,))
-    alpha = alpha_raw / jnp.sum(alpha_raw)
+#     Returns flattened parameter vector for the distribution with:
+#     - k absorption states (dimensions)
+#     - m transient states
+#     """
+#     # Generate initial distribution (normalized)
+#     key, subkey = jax.random.split(key)
+#     alpha_raw = jax.random.exponential(subkey, shape=(m,))
+#     alpha = alpha_raw / jnp.sum(alpha_raw)
     
-    # Generate sub-intensity matrix Q (m×m)
-    key, subkey = jax.random.split(key)
-    # Off-diagonal elements (positive, will be made negative)
-    off_diag = jax.random.exponential(subkey, shape=(m, m))
-    off_diag = off_diag.at[jnp.diag_indices(m)].set(0)  # Zero diagonal
+#     # Generate sub-intensity matrix Q (m×m)
+#     key, subkey = jax.random.split(key)
+#     # Off-diagonal elements (positive, will be made negative)
+#     off_diag = jax.random.exponential(subkey, shape=(m, m))
+#     off_diag = off_diag.at[jnp.diag_indices(m)].set(0)  # Zero diagonal
     
-    # Make off-diagonal negative and set diagonal to ensure row sums < 0
-    Q = -off_diag
-    row_sums = jnp.sum(Q, axis=1)
-    Q = Q.at[jnp.diag_indices(m)].set(-jnp.abs(row_sums) - 0.1)  # Ensure diagonal < row sum
+#     # Make off-diagonal negative and set diagonal to ensure row sums < 0
+#     Q = -off_diag
+#     row_sums = jnp.sum(Q, axis=1)
+#     Q = Q.at[jnp.diag_indices(m)].set(-jnp.abs(row_sums) - 0.1)  # Ensure diagonal < row sum
     
-    # Generate exit rates (k×m, all positive)
-    key, subkey = jax.random.split(key)
-    exit_rates = jax.random.exponential(subkey, shape=(k, m))
+#     # Generate exit rates (k×m, all positive)
+#     key, subkey = jax.random.split(key)
+#     exit_rates = jax.random.exponential(subkey, shape=(k, m))
     
-    # Flatten into parameter vector
-    # Structure: [alpha (m), Q off-diagonal (m*(m-1)), exit_rates (k*m)]
-    q_off_diag = jnp.concatenate([Q[i, :i].flatten() for i in range(m)] + 
-                                 [Q[i, i+1:].flatten() for i in range(m)])
+#     # Flatten into parameter vector
+#     # Structure: [alpha (m), Q off-diagonal (m*(m-1)), exit_rates (k*m)]
+#     q_off_diag = jnp.concatenate([Q[i, :i].flatten() for i in range(m)] + 
+#                                  [Q[i, i+1:].flatten() for i in range(m)])
     
-    params = jnp.concatenate([alpha, q_off_diag, exit_rates.flatten()])
-    return params
+#     params = jnp.concatenate([alpha, q_off_diag, exit_rates.flatten()])
+#     return params
 
 def unpack_theta(params, k, m):
     """Unpack flattened parameter vector into components using JAX operations"""
@@ -406,24 +406,24 @@ def unpack_theta(params, k, m):
     
     return alpha, Q, exit_rates
 
-def simulate_example_data(key, params, k, m, n_samples):
-    """Simulate data from discrete phase-type distribution"""
-    alpha, Q, exit_rates = unpack_theta(params, k, m)
+# def simulate_example_data(key, params, k, m, n_samples):
+#     """Simulate data from discrete phase-type distribution"""
+#     alpha, Q, exit_rates = unpack_theta(params, k, m)
     
-    # Simple simulation - generate random absorption times
-    # This is a placeholder - real DPH simulation would be more complex
-    key, subkey = jax.random.split(key)
+#     # Simple simulation - generate random absorption times
+#     # This is a placeholder - real DPH simulation would be more complex
+#     key, subkey = jax.random.split(key)
     
-    # Generate samples using approximation
-    # Sample from geometric distributions and combine
-    samples = []
-    for _ in range(n_samples):
-        key, subkey = jax.random.split(key)
-        # Simple approximation: sample absorption times
-        absorption_times = jax.random.geometric(subkey, 0.3, shape=(k,))
-        samples.append(absorption_times)
+#     # Generate samples using approximation
+#     # Sample from geometric distributions and combine
+#     samples = []
+#     for _ in range(n_samples):
+#         key, subkey = jax.random.split(key)
+#         # Simple approximation: sample absorption times
+#         absorption_times = jax.random.geometric(subkey, 0.3, shape=(k,))
+#         samples.append(absorption_times)
     
-    return jnp.array(samples)
+#     return jnp.array(samples)
 
 def log_pmf_dph(x, params, k, m):
     """Log probability mass function for discrete phase-type distribution"""
@@ -468,18 +468,18 @@ def rbf_kernel(x, y, bandwidth):
     diff = x - y
     return jnp.exp(-jnp.sum(diff**2) / (2 * bandwidth**2))
 
-@jit
-def median_heuristic(particles):
-    """Median heuristic for bandwidth selection"""
-    n_particles = particles.shape[0]
-    distances = []
-    for i in range(n_particles):
-        for j in range(i+1, n_particles):
-            dist = jnp.linalg.norm(particles[i] - particles[j])
-            distances.append(dist)
-    distances = jnp.array(distances)
-    median_dist = jnp.median(distances)
-    return median_dist / jnp.log(n_particles + 1)
+# @jit
+# def median_heuristic(particles):
+#     """Median heuristic for bandwidth selection"""
+#     n_particles = particles.shape[0]
+#     distances = []
+#     for i in range(n_particles):
+#         for j in range(i+1, n_particles):
+#             dist = jnp.linalg.norm(particles[i] - particles[j])
+#             distances.append(dist)
+#     distances = jnp.array(distances)
+#     median_dist = jnp.median(distances)
+#     return median_dist / jnp.log(n_particles + 1)
 
 @jit 
 def batch_median_heuristic(particles):
@@ -521,25 +521,25 @@ def logp(theta, data, k, m):
     """Log probability of data given parameters"""
     return jnp.sum(vmap(lambda x: log_pmf_dph(x, theta, k, m))(data))
 
-@jit  
-def logp_z(z, k, m):
-    """Log probability function for latent variables"""
-    theta = z_to_theta(z)
-    # Add prior (standard normal on z)
-    log_prior = -0.5 * jnp.sum(z**2)
-    return log_prior
+# @jit  
+# def logp_z(z, k, m):
+#     """Log probability function for latent variables"""
+#     theta = z_to_theta(z)
+#     # Add prior (standard normal on z)
+#     log_prior = -0.5 * jnp.sum(z**2)
+#     return log_prior
 
-# Adaptive step size functions
-@jit
-def decayed_kl_target(iteration, base=0.1, decay=0.01):
-    """Exponentially decaying KL target"""
-    return base * jnp.exp(-decay * iteration)
+# # Adaptive step size functions
+# @jit
+# def decayed_kl_target(iteration, base=0.1, decay=0.01):
+#     """Exponentially decaying KL target"""
+#     return base * jnp.exp(-decay * iteration)
 
-@jit  
-def step_size_schedule(iteration, max_step=0.001, min_step=1e-6):
-    """Step size schedule"""
-    decay = jnp.exp(-iteration / 1000.0)
-    return max_step * decay + min_step * (1 - decay)
+# @jit  
+# def step_size_schedule(iteration, max_step=0.001, min_step=1e-6):
+#     """Step size schedule"""
+#     decay = jnp.exp(-iteration / 1000.0)
+#     return max_step * decay + min_step * (1 - decay)
 
 @jit
 def local_adaptive_bandwidth(particles, alpha=0.9):
@@ -575,98 +575,98 @@ def kl_adaptive_step(particles, kl_target=0.1):
     
     return step_factor
 
-# SVGD update functions
-def svgd_update_z(particles_z, data, k, m, step_size=0.001, kl_target=0.1):
-    """SVGD update for latent variables"""
-    n_particles = particles_z.shape[0]
+# # SVGD update functions
+# def svgd_update_z(particles_z, data, k, m, step_size=0.001, kl_target=0.1):
+#     """SVGD update for latent variables"""
+#     n_particles = particles_z.shape[0]
     
-    # Convert to parameter space for likelihood evaluation
-    particles_theta = jnp.array([z_to_theta(z) for z in particles_z])
+#     # Convert to parameter space for likelihood evaluation
+#     particles_theta = jnp.array([z_to_theta(z) for z in particles_z])
     
-    # Compute log probability gradients
-    def logp_single(theta):
-        return logp(theta, data, k, m)
+#     # Compute log probability gradients
+#     def logp_single(theta):
+#         return logp(theta, data, k, m)
     
-    grad_logp = vmap(grad(logp_single))(particles_theta)
+#     grad_logp = vmap(grad(logp_single))(particles_theta)
     
-    # Compute kernels
-    K, grad_K = rbf_kernel_median(particles_z)
+#     # Compute kernels
+#     K, grad_K = rbf_kernel_median(particles_z)
     
-    # SVGD update
-    phi = jnp.zeros_like(particles_z)
-    for i in range(n_particles):
-        # Positive term: weighted gradient
-        positive_term = jnp.sum(K[i, :, None] * grad_logp, axis=0) / n_particles
+#     # SVGD update
+#     phi = jnp.zeros_like(particles_z)
+#     for i in range(n_particles):
+#         # Positive term: weighted gradient
+#         positive_term = jnp.sum(K[i, :, None] * grad_logp, axis=0) / n_particles
         
-        # Negative term: kernel gradient
-        negative_term = jnp.sum(grad_K[i, :, :], axis=0) / n_particles
+#         # Negative term: kernel gradient
+#         negative_term = jnp.sum(grad_K[i, :, :], axis=0) / n_particles
         
-        phi = phi.at[i].set(positive_term + negative_term)
+#         phi = phi.at[i].set(positive_term + negative_term)
     
-    # Adaptive step size
-    step_factor = kl_adaptive_step(particles_z, kl_target)
-    adaptive_step = step_size * step_factor
+#     # Adaptive step size
+#     step_factor = kl_adaptive_step(particles_z, kl_target)
+#     adaptive_step = step_size * step_factor
     
-    return particles_z + adaptive_step * phi
+#     return particles_z + adaptive_step * phi
 
-# More sophisticated SVGD updates
-@jit
-def update_median_bw_kl_step(particles_z, k, m, kl_target=0.1, max_step=0.001):
-    """SVGD update with median bandwidth and KL-adaptive step"""
-    n_particles = particles_z.shape[0]
+# # More sophisticated SVGD updates
+# @jit
+# def update_median_bw_kl_step(particles_z, k, m, kl_target=0.1, max_step=0.001):
+#     """SVGD update with median bandwidth and KL-adaptive step"""
+#     n_particles = particles_z.shape[0]
     
-    # Gradients in latent space (prior only for now)
-    grad_logp_z = -particles_z  # Gradient of standard normal prior
+#     # Gradients in latent space (prior only for now)
+#     grad_logp_z = -particles_z  # Gradient of standard normal prior
     
-    # Compute kernel and its gradients
-    K, grad_K = rbf_kernel_median(particles_z)
+#     # Compute kernel and its gradients
+#     K, grad_K = rbf_kernel_median(particles_z)
     
-    # SVGD update
-    phi = jnp.zeros_like(particles_z)
-    for i in range(n_particles):
-        positive_term = jnp.sum(K[i, :, None] * grad_logp_z, axis=0) / n_particles
-        negative_term = jnp.sum(grad_K[i, :, :], axis=0) / n_particles
-        phi = phi.at[i].set(positive_term + negative_term)
+#     # SVGD update
+#     phi = jnp.zeros_like(particles_z)
+#     for i in range(n_particles):
+#         positive_term = jnp.sum(K[i, :, None] * grad_logp_z, axis=0) / n_particles
+#         negative_term = jnp.sum(grad_K[i, :, :], axis=0) / n_particles
+#         phi = phi.at[i].set(positive_term + negative_term)
     
-    # Adaptive step
-    step_factor = kl_adaptive_step(particles_z, kl_target)
-    step_size = jnp.clip(max_step * step_factor, 1e-7, max_step)
+#     # Adaptive step
+#     step_factor = kl_adaptive_step(particles_z, kl_target)
+#     step_size = jnp.clip(max_step * step_factor, 1e-7, max_step)
     
-    return particles_z + step_size * phi
+#     return particles_z + step_size * phi
 
-@jit
-def update_local_bw_kl_step(particles_z, k, m, kl_target=0.1, max_step=0.001):
-    """SVGD update with local bandwidth and KL-adaptive step"""
-    n_particles = particles_z.shape[0]
+# @jit
+# def update_local_bw_kl_step(particles_z, k, m, kl_target=0.1, max_step=0.001):
+#     """SVGD update with local bandwidth and KL-adaptive step"""
+#     n_particles = particles_z.shape[0]
     
-    # Get local bandwidths
-    local_bws = local_adaptive_bandwidth(particles_z)
+#     # Get local bandwidths
+#     local_bws = local_adaptive_bandwidth(particles_z)
     
-    # Gradients  
-    grad_logp_z = -particles_z
+#     # Gradients  
+#     grad_logp_z = -particles_z
     
-    # Compute updates with local bandwidths
-    phi = jnp.zeros_like(particles_z)
-    for i in range(n_particles):
-        # Local kernel computations
-        local_K = jnp.array([rbf_kernel(particles_z[i], particles_z[j], local_bws[i]) 
-                            for j in range(n_particles)])
+#     # Compute updates with local bandwidths
+#     phi = jnp.zeros_like(particles_z)
+#     for i in range(n_particles):
+#         # Local kernel computations
+#         local_K = jnp.array([rbf_kernel(particles_z[i], particles_z[j], local_bws[i]) 
+#                             for j in range(n_particles)])
         
-        # Local kernel gradients
-        local_grad_K = jnp.array([
-            -local_K[j] * (particles_z[i] - particles_z[j]) / (local_bws[i]**2)
-            for j in range(n_particles)
-        ])
+#         # Local kernel gradients
+#         local_grad_K = jnp.array([
+#             -local_K[j] * (particles_z[i] - particles_z[j]) / (local_bws[i]**2)
+#             for j in range(n_particles)
+#         ])
         
-        positive_term = jnp.sum(local_K[:, None] * grad_logp_z, axis=0) / n_particles
-        negative_term = jnp.sum(local_grad_K, axis=0) / n_particles
-        phi = phi.at[i].set(positive_term + negative_term)
+#         positive_term = jnp.sum(local_K[:, None] * grad_logp_z, axis=0) / n_particles
+#         negative_term = jnp.sum(local_grad_K, axis=0) / n_particles
+#         phi = phi.at[i].set(positive_term + negative_term)
     
-    # Adaptive step
-    step_factor = kl_adaptive_step(particles_z, kl_target)
-    step_size = jnp.clip(max_step * step_factor, 1e-7, max_step)
+#     # Adaptive step
+#     step_factor = kl_adaptive_step(particles_z, kl_target)
+#     step_size = jnp.clip(max_step * step_factor, 1e-7, max_step)
     
-    return particles_z + step_size * phi
+#     return particles_z + step_size * phi
 
 # # Distributed SVGD
 # def distributed_svgd_step(particles_z, k, m, kl_target=0.1, max_step=0.001):
@@ -903,7 +903,10 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
         # Use explicit mesh context for pmap
         # pmap over devices, vmap over particles within each device
         with mesh:
-            grad_log_p_sharded = pmap(vmap(grad(log_prob_fn)), axis_name="batch")(particles_sharded)
+            if compiled_grad is not None:
+                grad_log_p_sharded = pmap(vmap(compiled_grad), axis_name="batch")(particles_sharded)
+            else:
+                grad_log_p_sharded = pmap(vmap(grad(log_prob_fn)), axis_name="batch")(particles_sharded)
 
         grad_log_p = grad_log_p_sharded.reshape(n_particles, -1)
     elif actual_parallel_mode == 'vmap':
@@ -1852,6 +1855,16 @@ class SVGD:
         # Create kernel
         kernel = SVGDKernel(bandwidth=self.bandwidth)
 
+        # JIT compile gradient for regularized objective (for multi-core performance)
+        if self.verbose:
+            print(f"\nCompiling regularized gradient...")
+        grad_fn = jax.grad(log_prob_regularized)
+        compiled_grad_regularized = jax.jit(grad_fn)
+        # Trigger compilation with dummy call
+        _ = compiled_grad_regularized(self.theta_init[0])
+        if self.verbose:
+            print(f"  Gradient compiled successfully")
+
         # Run SVGD with regularized objective
         if self.verbose:
             print(f"\nStarting regularized SVGD inference...")
@@ -1865,10 +1878,11 @@ class SVGD:
             log_prob_fn=log_prob_regularized,
             theta_init=self.theta_init,
             n_steps=self.n_iterations,
-            learning_rate=self.learning_rate,
+            learning_rate=self.step_schedule,  # Pass schedule object
             kernel=kernel,
             return_history=return_history,
             verbose=self.verbose,
+            compiled_grad=compiled_grad_regularized,
             parallel_mode=self.parallel_mode,
             n_devices=self.n_devices
         )

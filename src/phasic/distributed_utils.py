@@ -277,121 +277,121 @@ def initialize_jax_distributed(
         raise
 
 
-def initialize_distributed(
-    cpus_per_task: Optional[int] = None,
-    coordinator_port: int = 12345,
-    platform: str = "cpu",
-    enable_x64: bool = True
-) -> DistributedConfig:
-    """
-    Initialize distributed computing with automatic environment detection.
+# def initialize_distributed(
+#     cpus_per_task: Optional[int] = None,
+#     coordinator_port: int = 12345,
+#     platform: str = "cpu",
+#     enable_x64: bool = True
+# ) -> DistributedConfig:
+#     """
+#     Initialize distributed computing with automatic environment detection.
 
-    This is the main entry point for distributed computing. It handles:
-    - SLURM environment detection
-    - Coordinator setup
-    - JAX distributed initialization
-    - Device configuration
+#     This is the main entry point for distributed computing. It handles:
+#     - SLURM environment detection
+#     - Coordinator setup
+#     - JAX distributed initialization
+#     - Device configuration
 
-    For single-node setups, it creates multiple local devices.
-    For multi-node SLURM setups, it initializes JAX distributed.
+#     For single-node setups, it creates multiple local devices.
+#     For multi-node SLURM setups, it initializes JAX distributed.
 
-    Parameters
-    ----------
-    cpus_per_task : int, optional
-        Number of CPUs per task (devices per node).
-        If None, auto-detected from SLURM_CPUS_PER_TASK or defaults to 1.
-    coordinator_port : int, default=12345
-        Port for coordinator communication (multi-node only)
-    platform : str, default="cpu"
-        Platform type: "cpu" or "gpu"
-    enable_x64 : bool, default=True
-        Enable 64-bit precision in JAX
+#     Parameters
+#     ----------
+#     cpus_per_task : int, optional
+#         Number of CPUs per task (devices per node).
+#         If None, auto-detected from SLURM_CPUS_PER_TASK or defaults to 1.
+#     coordinator_port : int, default=12345
+#         Port for coordinator communication (multi-node only)
+#     platform : str, default="cpu"
+#         Platform type: "cpu" or "gpu"
+#     enable_x64 : bool, default=True
+#         Enable 64-bit precision in JAX
 
-    Returns
-    -------
-    DistributedConfig
-        Configuration object with all distributed computing information
+#     Returns
+#     -------
+#     DistributedConfig
+#         Configuration object with all distributed computing information
 
-    Examples
-    --------
-    >>> # Single-node with 8 CPUs
-    >>> dist_info = initialize_distributed(cpus_per_task=8)
-    >>>
-    >>> # Multi-node SLURM (auto-detected)
-    >>> dist_info = initialize_distributed()
-    >>>
-    >>> # Use in your code
-    >>> if dist_info.is_coordinator:
-    >>>     print("I am the coordinator!")
-    """
-    # Detect SLURM environment
-    slurm_env = detect_slurm_environment()
+#     Examples
+#     --------
+#     >>> # Single-node with 8 CPUs
+#     >>> dist_info = initialize_distributed(cpus_per_task=8)
+#     >>>
+#     >>> # Multi-node SLURM (auto-detected)
+#     >>> dist_info = initialize_distributed()
+#     >>>
+#     >>> # Use in your code
+#     >>> if dist_info.is_coordinator:
+#     >>>     print("I am the coordinator!")
+#     """
+#     # Detect SLURM environment
+#     slurm_env = detect_slurm_environment()
 
-    # Determine number of devices per node
-    if cpus_per_task is None:
-        if slurm_env.get('is_slurm', False):
-            cpus_per_task = slurm_env['cpus_per_task']
-        else:
-            cpus_per_task = int(os.environ.get('NUM_DEVICES', 1))
+#     # Determine number of devices per node
+#     if cpus_per_task is None:
+#         if slurm_env.get('is_slurm', False):
+#             cpus_per_task = slurm_env['cpus_per_task']
+#         else:
+#             cpus_per_task = int(os.environ.get('NUM_DEVICES', 1))
 
-    # Configure JAX devices before importing jax
-    configure_jax_devices(cpus_per_task, platform)
+#     # Configure JAX devices before importing jax
+#     configure_jax_devices(cpus_per_task, platform)
 
-    # Now safe to import JAX
-    import jax
-    from jax import config
+#     # Now safe to import JAX
+#     import jax
+#     from jax import config
 
-    # Enable x64 if requested
-    if enable_x64:
-        config.update('jax_enable_x64', True)
-        logger.info("JAX x64 precision enabled")
+#     # Enable x64 if requested
+#     if enable_x64:
+#         config.update('jax_enable_x64', True)
+#         logger.info("JAX x64 precision enabled")
 
-    # Create configuration object
-    dist_config = DistributedConfig(
-        cpus_per_task=cpus_per_task,
-        coordinator_port=coordinator_port,
-        platform=platform,
-    )
+#     # Create configuration object
+#     dist_config = DistributedConfig(
+#         cpus_per_task=cpus_per_task,
+#         coordinator_port=coordinator_port,
+#         platform=platform,
+#     )
 
-    # Multi-node SLURM setup
-    if slurm_env.get('is_slurm', False) and slurm_env['num_processes'] > 1:
-        dist_config.num_processes = slurm_env['num_processes']
-        dist_config.process_id = slurm_env['process_id']
-        dist_config.job_id = slurm_env['job_id']
-        dist_config.is_coordinator = (dist_config.process_id == 0)
+#     # Multi-node SLURM setup
+#     if slurm_env.get('is_slurm', False) and slurm_env['num_processes'] > 1:
+#         dist_config.num_processes = slurm_env['num_processes']
+#         dist_config.process_id = slurm_env['process_id']
+#         dist_config.job_id = slurm_env['job_id']
+#         dist_config.is_coordinator = (dist_config.process_id == 0)
 
-        # Get coordinator address
-        coordinator_host_port = get_coordinator_address(slurm_env, coordinator_port)
-        dist_config.coordinator_address = coordinator_host_port
+#         # Get coordinator address
+#         coordinator_host_port = get_coordinator_address(slurm_env, coordinator_port)
+#         dist_config.coordinator_address = coordinator_host_port
 
-        # Initialize JAX distributed
-        initialize_jax_distributed(
-            coordinator_address=coordinator_host_port,
-            num_processes=dist_config.num_processes,
-            process_id=dist_config.process_id
-        )
-    else:
-        # Single-node setup
-        logger.info("Single-node setup - no distributed initialization needed")
-        dist_config.num_processes = 1
-        dist_config.process_id = 0
-        dist_config.is_coordinator = True
+#         # Initialize JAX distributed
+#         initialize_jax_distributed(
+#             coordinator_address=coordinator_host_port,
+#             num_processes=dist_config.num_processes,
+#             process_id=dist_config.process_id
+#         )
+#     else:
+#         # Single-node setup
+#         logger.info("Single-node setup - no distributed initialization needed")
+#         dist_config.num_processes = 1
+#         dist_config.process_id = 0
+#         dist_config.is_coordinator = True
 
-    # Get device information
-    dist_config.local_devices = jax.local_devices()
-    dist_config.global_devices = jax.devices()
-    dist_config.local_device_count = len(dist_config.local_devices)
-    dist_config.global_device_count = len(dist_config.global_devices)
+#     # Get device information
+#     dist_config.local_devices = jax.local_devices()
+#     dist_config.global_devices = jax.devices()
+#     dist_config.local_device_count = len(dist_config.local_devices)
+#     dist_config.global_device_count = len(dist_config.global_devices)
 
-    # Log configuration
-    logger.info("\n" + str(dist_config))
+#     # Log configuration
+#     logger.info("\n" + str(dist_config))
 
-    return dist_config
+#     return dist_config
 
 
 __all__ = [
     'DistributedConfig',
-    'initialize_distributed',
+    # 'initialize_distributed',
     'detect_slurm_environment',
     'get_coordinator_address',
     'configure_jax_devices',

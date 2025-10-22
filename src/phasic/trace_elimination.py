@@ -773,104 +773,104 @@ def evaluate_trace(trace: EliminationTrace, params: Optional[np.ndarray] = None)
 # Trace Serialization
 # ============================================================================
 
-def save_trace_pickle(trace: EliminationTrace, path: Union[str, Path]) -> None:
-    """Save trace to pickle file"""
-    path = Path(path)
-    with open(path, 'wb') as f:
-        pickle.dump(trace, f, protocol=pickle.HIGHEST_PROTOCOL)
+# def save_trace_pickle(trace: EliminationTrace, path: Union[str, Path]) -> None:
+#     """Save trace to pickle file"""
+#     path = Path(path)
+#     with open(path, 'wb') as f:
+#         pickle.dump(trace, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def load_trace_pickle(path: Union[str, Path]) -> EliminationTrace:
-    """Load trace from pickle file"""
-    path = Path(path)
-    with open(path, 'rb') as f:
-        return pickle.load(f)
+# def load_trace_pickle(path: Union[str, Path]) -> EliminationTrace:
+#     """Load trace from pickle file"""
+#     path = Path(path)
+#     with open(path, 'rb') as f:
+#         return pickle.load(f)
 
 
-def save_trace_json(trace: EliminationTrace, path: Union[str, Path]) -> None:
-    """
-    Save trace to JSON file
+# def save_trace_json(trace: EliminationTrace, path: Union[str, Path]) -> None:
+#     """
+#     Save trace to JSON file
 
-    Note: JSON is less efficient than pickle but more portable and human-readable.
-    """
-    path = Path(path)
+#     Note: JSON is less efficient than pickle but more portable and human-readable.
+#     """
+#     path = Path(path)
 
-    # Convert numpy types to Python native types for JSON serialization
-    def convert_to_native(obj):
-        """Recursively convert numpy types to Python native types"""
-        if isinstance(obj, np.integer):
-            return int(obj)
-        elif isinstance(obj, np.floating):
-            return float(obj)
-        elif isinstance(obj, np.ndarray):
-            return obj.tolist()
-        elif isinstance(obj, list):
-            return [convert_to_native(item) for item in obj]
-        elif isinstance(obj, dict):
-            return {key: convert_to_native(value) for key, value in obj.items()}
-        else:
-            return obj
+#     # Convert numpy types to Python native types for JSON serialization
+#     def convert_to_native(obj):
+#         """Recursively convert numpy types to Python native types"""
+#         if isinstance(obj, np.integer):
+#             return int(obj)
+#         elif isinstance(obj, np.floating):
+#             return float(obj)
+#         elif isinstance(obj, np.ndarray):
+#             return obj.tolist()
+#         elif isinstance(obj, list):
+#             return [convert_to_native(item) for item in obj]
+#         elif isinstance(obj, dict):
+#             return {key: convert_to_native(value) for key, value in obj.items()}
+#         else:
+#             return obj
 
-    # Convert to JSON-serializable format
-    data = {
-        'operations': [
-            {
-                'op_type': op.op_type.value,
-                'operands': convert_to_native(op.operands),
-                'const_value': convert_to_native(op.const_value),
-                'param_idx': convert_to_native(op.param_idx),
-                'coefficients': convert_to_native(op.coefficients) if op.coefficients is not None else None,
-            }
-            for op in trace.operations
-        ],
-        'vertex_rates': convert_to_native(trace.vertex_rates.tolist()),
-        'edge_probs': convert_to_native(trace.edge_probs),
-        'vertex_targets': convert_to_native(trace.vertex_targets),
-        'states': convert_to_native(trace.states.tolist()),
-        'starting_vertex_idx': int(trace.starting_vertex_idx),
-        'n_vertices': int(trace.n_vertices),
-        'state_length': int(trace.state_length),
-        'param_length': int(trace.param_length),
-        'is_discrete': bool(trace.is_discrete),
-        'metadata': convert_to_native(trace.metadata),
-    }
+#     # Convert to JSON-serializable format
+#     data = {
+#         'operations': [
+#             {
+#                 'op_type': op.op_type.value,
+#                 'operands': convert_to_native(op.operands),
+#                 'const_value': convert_to_native(op.const_value),
+#                 'param_idx': convert_to_native(op.param_idx),
+#                 'coefficients': convert_to_native(op.coefficients) if op.coefficients is not None else None,
+#             }
+#             for op in trace.operations
+#         ],
+#         'vertex_rates': convert_to_native(trace.vertex_rates.tolist()),
+#         'edge_probs': convert_to_native(trace.edge_probs),
+#         'vertex_targets': convert_to_native(trace.vertex_targets),
+#         'states': convert_to_native(trace.states.tolist()),
+#         'starting_vertex_idx': int(trace.starting_vertex_idx),
+#         'n_vertices': int(trace.n_vertices),
+#         'state_length': int(trace.state_length),
+#         'param_length': int(trace.param_length),
+#         'is_discrete': bool(trace.is_discrete),
+#         'metadata': convert_to_native(trace.metadata),
+#     }
 
-    with open(path, 'w') as f:
-        json.dump(data, f, indent=2)
+#     with open(path, 'w') as f:
+#         json.dump(data, f, indent=2)
 
 
-def load_trace_json(path: Union[str, Path]) -> EliminationTrace:
-    """Load trace from JSON file"""
-    path = Path(path)
+# def load_trace_json(path: Union[str, Path]) -> EliminationTrace:
+#     """Load trace from JSON file"""
+#     path = Path(path)
 
-    with open(path, 'r') as f:
-        data = json.load(f)
+#     with open(path, 'r') as f:
+#         data = json.load(f)
 
-    # Reconstruct operations
-    operations = [
-        Operation(
-            op_type=OpType(op_data['op_type']),
-            operands=op_data['operands'],
-            const_value=op_data['const_value'],
-            param_idx=op_data['param_idx'],
-            coefficients=np.array(op_data['coefficients']) if op_data.get('coefficients') is not None else None,
-        )
-        for op_data in data['operations']
-    ]
+#     # Reconstruct operations
+#     operations = [
+#         Operation(
+#             op_type=OpType(op_data['op_type']),
+#             operands=op_data['operands'],
+#             const_value=op_data['const_value'],
+#             param_idx=op_data['param_idx'],
+#             coefficients=np.array(op_data['coefficients']) if op_data.get('coefficients') is not None else None,
+#         )
+#         for op_data in data['operations']
+#     ]
 
-    return EliminationTrace(
-        operations=operations,
-        vertex_rates=np.array(data['vertex_rates'], dtype=np.int32),
-        edge_probs=data['edge_probs'],
-        vertex_targets=data['vertex_targets'],
-        states=np.array(data['states'], dtype=np.int32),
-        starting_vertex_idx=data['starting_vertex_idx'],
-        n_vertices=data['n_vertices'],
-        state_length=data['state_length'],
-        param_length=data['param_length'],
-        is_discrete=data['is_discrete'],
-        metadata=data['metadata'],
-    )
+#     return EliminationTrace(
+#         operations=operations,
+#         vertex_rates=np.array(data['vertex_rates'], dtype=np.int32),
+#         edge_probs=data['edge_probs'],
+#         vertex_targets=data['vertex_targets'],
+#         states=np.array(data['states'], dtype=np.int32),
+#         starting_vertex_idx=data['starting_vertex_idx'],
+#         n_vertices=data['n_vertices'],
+#         state_length=data['state_length'],
+#         param_length=data['param_length'],
+#         is_discrete=data['is_discrete'],
+#         metadata=data['metadata'],
+#     )
 
 
 def trace_to_c_arrays(trace: EliminationTrace):
@@ -1235,7 +1235,7 @@ def trace_to_jax_fn(trace: EliminationTrace):
 # SVGD Integration (Phase 3)
 # ============================================================================
 
-def trace_to_log_likelihood(trace: EliminationTrace, observed_data, reward_vector=None, granularity=100, use_cpp=True):
+def trace_to_log_likelihood(trace: EliminationTrace, observed_data, reward_vector=None, granularity=0, use_cpp=True):
     """
     Convert elimination trace to log-likelihood function for SVGD
 
@@ -1501,65 +1501,65 @@ def trace_to_pmf_function(trace: EliminationTrace, times, discrete=False):
     return pmf_function
 
 
-def create_svgd_model_from_trace(trace: EliminationTrace, model_type='log_likelihood', **kwargs):
-    """
-    Factory function to create SVGD-compatible model from trace
+# def create_svgd_model_from_trace(trace: EliminationTrace, model_type='log_likelihood', **kwargs):
+#     """
+#     Factory function to create SVGD-compatible model from trace
 
-    Convenience wrapper around trace_to_log_likelihood and trace_to_pmf_function
-    that provides a unified interface for creating SVGD models.
+#     Convenience wrapper around trace_to_log_likelihood and trace_to_pmf_function
+#     that provides a unified interface for creating SVGD models.
 
-    Parameters
-    ----------
-    trace : EliminationTrace
-        Elimination trace from parameterized graph
-    model_type : str, default='log_likelihood'
-        Type of model to create:
-        - 'log_likelihood': Log-likelihood function (recommended for SVGD)
-        - 'pmf': Probability mass function
-        - 'pdf': Probability density function
-    **kwargs
-        Additional arguments passed to the underlying function:
-        - For 'log_likelihood': observed_data, reward_vector
-        - For 'pmf'/'pdf': times, discrete
+#     Parameters
+#     ----------
+#     trace : EliminationTrace
+#         Elimination trace from parameterized graph
+#     model_type : str, default='log_likelihood'
+#         Type of model to create:
+#         - 'log_likelihood': Log-likelihood function (recommended for SVGD)
+#         - 'pmf': Probability mass function
+#         - 'pdf': Probability density function
+#     **kwargs
+#         Additional arguments passed to the underlying function:
+#         - For 'log_likelihood': observed_data, reward_vector
+#         - For 'pmf'/'pdf': times, discrete
 
-    Returns
-    -------
-    callable
-        JAX-compatible model function suitable for SVGD
+#     Returns
+#     -------
+#     callable
+#         JAX-compatible model function suitable for SVGD
 
-    Examples
-    --------
-    >>> # Create log-likelihood model (recommended)
-    >>> trace = record_elimination_trace(graph, param_length=2)
-    >>> model = create_svgd_model_from_trace(
-    ...     trace,
-    ...     model_type='log_likelihood',
-    ...     observed_data=observed_times
-    ... )
-    >>> svgd = SVGD(model, theta_dim=2)
-    >>> svgd.fit()
-    >>>
-    >>> # Create PMF model
-    >>> times = jnp.linspace(0, 10, 100)
-    >>> pmf_model = create_svgd_model_from_trace(
-    ...     trace,
-    ...     model_type='pmf',
-    ...     times=times
-    ... )
-    """
-    if model_type == 'log_likelihood':
-        observed_data = kwargs.get('observed_data')
-        if observed_data is None:
-            raise ValueError("observed_data required for log_likelihood model")
-        reward_vector = kwargs.get('reward_vector', None)
-        return trace_to_log_likelihood(trace, observed_data, reward_vector)
+#     Examples
+#     --------
+#     >>> # Create log-likelihood model (recommended)
+#     >>> trace = record_elimination_trace(graph, param_length=2)
+#     >>> model = create_svgd_model_from_trace(
+#     ...     trace,
+#     ...     model_type='log_likelihood',
+#     ...     observed_data=observed_times
+#     ... )
+#     >>> svgd = SVGD(model, theta_dim=2)
+#     >>> svgd.fit()
+#     >>>
+#     >>> # Create PMF model
+#     >>> times = jnp.linspace(0, 10, 100)
+#     >>> pmf_model = create_svgd_model_from_trace(
+#     ...     trace,
+#     ...     model_type='pmf',
+#     ...     times=times
+#     ... )
+#     """
+#     if model_type == 'log_likelihood':
+#         observed_data = kwargs.get('observed_data')
+#         if observed_data is None:
+#             raise ValueError("observed_data required for log_likelihood model")
+#         reward_vector = kwargs.get('reward_vector', None)
+#         return trace_to_log_likelihood(trace, observed_data, reward_vector)
 
-    elif model_type in ['pmf', 'pdf']:
-        times = kwargs.get('times')
-        if times is None:
-            raise ValueError("times required for pmf/pdf model")
-        discrete = model_type == 'pmf'
-        return trace_to_pmf_function(trace, times, discrete)
+#     elif model_type in ['pmf', 'pdf']:
+#         times = kwargs.get('times')
+#         if times is None:
+#             raise ValueError("times required for pmf/pdf model")
+#         discrete = model_type == 'pmf'
+#         return trace_to_pmf_function(trace, times, discrete)
 
-    else:
-        raise ValueError(f"Unknown model_type: {model_type}. Choose from: log_likelihood, pmf, pdf")
+#     else:
+#         raise ValueError(f"Unknown model_type: {model_type}. Choose from: log_likelihood, pmf, pdf")

@@ -281,178 +281,178 @@ def apply_vmap(func: Callable, args: Tuple) -> Any:
 # Auto-Parallel Decorator
 # ============================================================================
 
-def auto_parallel_batch(func: Callable) -> Callable:
-    """
-    Decorator for automatic batch parallelization.
+# def auto_parallel_batch(func: Callable) -> Callable:
+#     """
+#     Decorator for automatic batch parallelization.
 
-    Automatically applies pmap or vmap based on:
-    1. Current parallel configuration
-    2. Whether inputs are batched
-    3. Available devices
+#     Automatically applies pmap or vmap based on:
+#     1. Current parallel configuration
+#     2. Whether inputs are batched
+#     3. Available devices
 
-    Parameters
-    ----------
-    func : callable
-        Function to decorate. Should accept batched inputs.
+#     Parameters
+#     ----------
+#     func : callable
+#         Function to decorate. Should accept batched inputs.
 
-    Returns
-    -------
-    callable
-        Decorated function with automatic parallelization
+#     Returns
+#     -------
+#     callable
+#         Decorated function with automatic parallelization
 
-    Examples
-    --------
-    >>> @auto_parallel_batch
-    >>> def compute_pdf(theta, times):
-    >>>     # Single computation
-    >>>     return model(theta, times)
-    >>>
-    >>> # Automatically parallelized for batches
-    >>> theta_batch = jnp.array([[1.0], [2.0], [3.0]])
-    >>> times = jnp.array([1.0, 2.0, 3.0])
-    >>> result = compute_pdf(theta_batch, times)  # Uses pmap or vmap
+#     Examples
+#     --------
+#     >>> @auto_parallel_batch
+#     >>> def compute_pdf(theta, times):
+#     >>>     # Single computation
+#     >>>     return model(theta, times)
+#     >>>
+#     >>> # Automatically parallelized for batches
+#     >>> theta_batch = jnp.array([[1.0], [2.0], [3.0]])
+#     >>> times = jnp.array([1.0, 2.0, 3.0])
+#     >>> result = compute_pdf(theta_batch, times)  # Uses pmap or vmap
 
-    Notes
-    -----
-    - For single inputs, runs serially (no overhead)
-    - For batched inputs with pmap strategy, shards across devices
-    - For batched inputs with vmap strategy, vectorizes
-    - Falls back to manual looping if JAX not available
-    """
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        # Check if we have any batched inputs
-        has_batch = any(is_batched(arg) for arg in args)
+#     Notes
+#     -----
+#     - For single inputs, runs serially (no overhead)
+#     - For batched inputs with pmap strategy, shards across devices
+#     - For batched inputs with vmap strategy, vectorizes
+#     - Falls back to manual looping if JAX not available
+#     """
+#     @functools.wraps(func)
+#     def wrapper(*args, **kwargs):
+#         # Check if we have any batched inputs
+#         has_batch = any(is_batched(arg) for arg in args)
 
-        if not has_batch:
-            # Single input - no parallelization needed
-            return func(*args, **kwargs)
+#         if not has_batch:
+#             # Single input - no parallelization needed
+#             return func(*args, **kwargs)
 
-        # Get parallel config (delayed import to avoid circular dependency)
-        try:
-            from .auto_parallel import get_parallel_config
-            config = get_parallel_config()
-        except ImportError:
-            # If auto_parallel can't be imported, fall back to no config
-            config = None
+#         # Get parallel config (delayed import to avoid circular dependency)
+#         try:
+#             from .auto_parallel import get_parallel_config
+#             config = get_parallel_config()
+#         except ImportError:
+#             # If auto_parallel can't be imported, fall back to no config
+#             config = None
 
-        if config is None or config.strategy == 'none':
-            # No parallelization - use vmap if available, else loop
-            if HAS_JAX:
-                return apply_vmap(func, args)
-            else:
-                # Manual loop for numpy
-                batch_size = get_batch_size(args[0])
-                results = []
-                for i in range(batch_size):
-                    # Extract single item from each batched arg
-                    single_args = []
-                    for arg in args:
-                        if is_batched(arg):
-                            single_args.append(arg[i])
-                        else:
-                            single_args.append(arg)
-                    results.append(func(*single_args, **kwargs))
-                return np.array(results)
+#         if config is None or config.strategy == 'none':
+#             # No parallelization - use vmap if available, else loop
+#             if HAS_JAX:
+#                 return apply_vmap(func, args)
+#             else:
+#                 # Manual loop for numpy
+#                 batch_size = get_batch_size(args[0])
+#                 results = []
+#                 for i in range(batch_size):
+#                     # Extract single item from each batched arg
+#                     single_args = []
+#                     for arg in args:
+#                         if is_batched(arg):
+#                             single_args.append(arg[i])
+#                         else:
+#                             single_args.append(arg)
+#                     results.append(func(*single_args, **kwargs))
+#                 return np.array(results)
 
-        elif config.strategy == 'pmap':
-            # Use pmap across devices
-            return apply_pmap(func, args, config.device_count)
+#         elif config.strategy == 'pmap':
+#             # Use pmap across devices
+#             return apply_pmap(func, args, config.device_count)
 
-        elif config.strategy == 'vmap':
-            # Use vmap vectorization
-            return apply_vmap(func, args)
+#         elif config.strategy == 'vmap':
+#             # Use vmap vectorization
+#             return apply_vmap(func, args)
 
-        else:
-            # Unknown strategy - fallback to vmap
-            logger.warning(f"Unknown strategy '{config.strategy}', using vmap")
-            return apply_vmap(func, args)
+#         else:
+#             # Unknown strategy - fallback to vmap
+#             logger.warning(f"Unknown strategy '{config.strategy}', using vmap")
+#             return apply_vmap(func, args)
 
-    return wrapper
+#     return wrapper
 
 
 # ============================================================================
 # Batch Execution Helpers
 # ============================================================================
 
-def execute_batch(func: Callable,
-                  batch_args: Tuple,
-                  strategy: Optional[str] = None,
-                  n_devices: Optional[int] = None) -> Any:
-    """
-    Execute function on batch with specified strategy.
+# def execute_batch(func: Callable,
+#                   batch_args: Tuple,
+#                   strategy: Optional[str] = None,
+#                   n_devices: Optional[int] = None) -> Any:
+#     """
+#     Execute function on batch with specified strategy.
 
-    More explicit version of auto_parallel_batch for advanced use cases.
+#     More explicit version of auto_parallel_batch for advanced use cases.
 
-    Parameters
-    ----------
-    func : callable
-        Function to execute
-    batch_args : tuple
-        Batched arguments
-    strategy : str, optional
-        'pmap', 'vmap', or 'serial'. If None, uses global config.
-    n_devices : int, optional
-        Number of devices for pmap. If None, uses global config.
+#     Parameters
+#     ----------
+#     func : callable
+#         Function to execute
+#     batch_args : tuple
+#         Batched arguments
+#     strategy : str, optional
+#         'pmap', 'vmap', or 'serial'. If None, uses global config.
+#     n_devices : int, optional
+#         Number of devices for pmap. If None, uses global config.
 
-    Returns
-    -------
-    any
-        Batch results
+#     Returns
+#     -------
+#     any
+#         Batch results
 
-    Examples
-    --------
-    >>> # Force pmap with 4 devices
-    >>> result = execute_batch(compute_pdf, (theta_batch, times),
-    ...                        strategy='pmap', n_devices=4)
-    >>>
-    >>> # Force vmap
-    >>> result = execute_batch(compute_pdf, (theta_batch, times),
-    ...                        strategy='vmap')
-    """
-    if strategy is None:
-        # Use global config (with fallback if import fails)
-        try:
-            from .auto_parallel import get_parallel_config
-            config = get_parallel_config()
-            strategy = config.strategy if config else 'serial'
-            n_devices = config.device_count if config else 1
-        except ImportError:
-            strategy = 'serial'
-            n_devices = 1
+#     Examples
+#     --------
+#     >>> # Force pmap with 4 devices
+#     >>> result = execute_batch(compute_pdf, (theta_batch, times),
+#     ...                        strategy='pmap', n_devices=4)
+#     >>>
+#     >>> # Force vmap
+#     >>> result = execute_batch(compute_pdf, (theta_batch, times),
+#     ...                        strategy='vmap')
+#     """
+#     if strategy is None:
+#         # Use global config (with fallback if import fails)
+#         try:
+#             from .auto_parallel import get_parallel_config
+#             config = get_parallel_config()
+#             strategy = config.strategy if config else 'serial'
+#             n_devices = config.device_count if config else 1
+#         except ImportError:
+#             strategy = 'serial'
+#             n_devices = 1
 
-    if strategy == 'pmap':
-        if not HAS_JAX:
-            raise ImportError("JAX required for pmap")
-        return apply_pmap(func, batch_args, n_devices or 1)
+#     if strategy == 'pmap':
+#         if not HAS_JAX:
+#             raise ImportError("JAX required for pmap")
+#         return apply_pmap(func, batch_args, n_devices or 1)
 
-    elif strategy == 'vmap':
-        if not HAS_JAX:
-            raise ImportError("JAX required for vmap")
-        return apply_vmap(func, batch_args)
+#     elif strategy == 'vmap':
+#         if not HAS_JAX:
+#             raise ImportError("JAX required for vmap")
+#         return apply_vmap(func, batch_args)
 
-    else:  # serial
-        # Manual loop
-        batch_size = get_batch_size(batch_args[0])
-        results = []
-        for i in range(batch_size):
-            single_args = []
-            for arg in batch_args:
-                if is_batched(arg):
-                    single_args.append(arg[i] if HAS_JAX else arg[i])
-                else:
-                    single_args.append(arg)
-            results.append(func(*single_args))
+#     else:  # serial
+#         # Manual loop
+#         batch_size = get_batch_size(batch_args[0])
+#         results = []
+#         for i in range(batch_size):
+#             single_args = []
+#             for arg in batch_args:
+#                 if is_batched(arg):
+#                     single_args.append(arg[i] if HAS_JAX else arg[i])
+#                 else:
+#                     single_args.append(arg)
+#             results.append(func(*single_args))
 
-        if HAS_JAX:
-            return jnp.array(results)
-        else:
-            return np.array(results)
+#         if HAS_JAX:
+#             return jnp.array(results)
+#         else:
+#             return np.array(results)
 
 
 __all__ = [
-    'auto_parallel_batch',
-    'execute_batch',
+    # 'auto_parallel_batch',
+    # 'execute_batch',
     'is_batched',
     'get_batch_size',
     'apply_pmap',

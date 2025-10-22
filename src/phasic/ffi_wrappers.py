@@ -255,58 +255,58 @@ def _compute_pmf_impl(structure_json: str, theta_np: np.ndarray, times_np: np.nd
     return builder.compute_pmf(theta_np, times_np, discrete, granularity)
 
 
-def compute_pmf_fallback(structure_json: Union[str, Dict], theta: jax.Array, times: jax.Array,
-                        discrete: bool = False, granularity: int = 100) -> jax.Array:
-    """
-    Compute PMF/PDF using pybind11 GraphBuilder (fallback when FFI not available).
+# def compute_pmf_fallback(structure_json: Union[str, Dict], theta: jax.Array, times: jax.Array,
+#                         discrete: bool = False, granularity: int = 100) -> jax.Array:
+#     """
+#     Compute PMF/PDF using pybind11 GraphBuilder (fallback when FFI not available).
 
-    This uses JAX's pure_callback to wrap the C++ call, enabling JIT compilation
-    while maintaining compatibility with the pybind11 interface.
+#     This uses JAX's pure_callback to wrap the C++ call, enabling JIT compilation
+#     while maintaining compatibility with the pybind11 interface.
 
-    Parameters
-    ----------
-    structure_json : str or dict
-        JSON string or dict (from graph.serialize()) representing graph structure
-    theta : jax.Array
-        Parameter array, shape (n_params,)
-    times : jax.Array
-        Time points (continuous) or jump counts (discrete), shape (n_times,)
-    discrete : bool, default=False
-        If True, compute DPH (discrete phase-type)
-        If False, compute PDF (continuous phase-type)
-    granularity : int, default=100
-        Discretization granularity for PDF computation
+#     Parameters
+#     ----------
+#     structure_json : str or dict
+#         JSON string or dict (from graph.serialize()) representing graph structure
+#     theta : jax.Array
+#         Parameter array, shape (n_params,)
+#     times : jax.Array
+#         Time points (continuous) or jump counts (discrete), shape (n_times,)
+#     discrete : bool, default=False
+#         If True, compute DPH (discrete phase-type)
+#         If False, compute PDF (continuous phase-type)
+#     granularity : int, default=100
+#         Discretization granularity for PDF computation
 
-    Returns
-    -------
-    jax.Array
-        PMF/PDF values, shape (n_times,)
-    """
-    if not _HAS_CPP_MODULE:
-        raise RuntimeError("C++ module not available. Cannot compute PMF.")
+#     Returns
+#     -------
+#     jax.Array
+#         PMF/PDF values, shape (n_times,)
+#     """
+#     if not _HAS_CPP_MODULE:
+#         raise RuntimeError("C++ module not available. Cannot compute PMF.")
 
-    # Ensure structure_json is a JSON string (convert dict if needed)
-    structure_json_str = _ensure_json_string(structure_json)
+#     # Ensure structure_json is a JSON string (convert dict if needed)
+#     structure_json_str = _ensure_json_string(structure_json)
 
-    # Use pure_callback to wrap the C++ call
-    # This allows JIT compilation while calling out to Python/C++
-    result_shape = jax.ShapeDtypeStruct(times.shape, jnp.float64)
+#     # Use pure_callback to wrap the C++ call
+#     # This allows JIT compilation while calling out to Python/C++
+#     result_shape = jax.ShapeDtypeStruct(times.shape, jnp.float64)
 
-    result = jax.pure_callback(
-        lambda theta_jax, times_jax: _compute_pmf_impl(
-            structure_json_str,
-            np.asarray(theta_jax),
-            np.asarray(times_jax),
-            discrete,
-            granularity
-        ),
-        result_shape,
-        theta,
-        times,
-        vmap_method='sequential'  # Enable vmap support (JAX v0.6.0+)
-    )
+#     result = jax.pure_callback(
+#         lambda theta_jax, times_jax: _compute_pmf_impl(
+#             structure_json_str,
+#             np.asarray(theta_jax),
+#             np.asarray(times_jax),
+#             discrete,
+#             granularity
+#         ),
+#         result_shape,
+#         theta,
+#         times,
+#         vmap_method='sequential'  # Enable vmap support (JAX v0.6.0+)
+#     )
 
-    return result
+#     return result
 
 
 def _compute_moments_impl(structure_json: str, theta_np: np.ndarray,
@@ -316,49 +316,49 @@ def _compute_moments_impl(structure_json: str, theta_np: np.ndarray,
     return builder.compute_moments(theta_np, nr_moments)
 
 
-def compute_moments_fallback(structure_json: Union[str, Dict], theta: jax.Array,
-                             nr_moments: int) -> jax.Array:
-    """
-    Compute distribution moments using pybind11 GraphBuilder (fallback).
+# def compute_moments_fallback(structure_json: Union[str, Dict], theta: jax.Array,
+#                              nr_moments: int) -> jax.Array:
+#     """
+#     Compute distribution moments using pybind11 GraphBuilder (fallback).
 
-    Uses JAX's pure_callback for JIT compatibility.
+#     Uses JAX's pure_callback for JIT compatibility.
 
-    Parameters
-    ----------
-    structure_json : str or dict
-        JSON string or dict (from graph.serialize()) representing graph structure
-    theta : jax.Array
-        Parameter array, shape (n_params,)
-    nr_moments : int
-        Number of moments to compute
+#     Parameters
+#     ----------
+#     structure_json : str or dict
+#         JSON string or dict (from graph.serialize()) representing graph structure
+#     theta : jax.Array
+#         Parameter array, shape (n_params,)
+#     nr_moments : int
+#         Number of moments to compute
 
-    Returns
-    -------
-    jax.Array
-        Moments array, shape (nr_moments,)
-        Contains [E[T], E[T^2], ..., E[T^nr_moments]]
-    """
-    if not _HAS_CPP_MODULE:
-        raise RuntimeError("C++ module not available. Cannot compute moments.")
+#     Returns
+#     -------
+#     jax.Array
+#         Moments array, shape (nr_moments,)
+#         Contains [E[T], E[T^2], ..., E[T^nr_moments]]
+#     """
+#     if not _HAS_CPP_MODULE:
+#         raise RuntimeError("C++ module not available. Cannot compute moments.")
 
-    # Ensure structure_json is a JSON string (convert dict if needed)
-    structure_json_str = _ensure_json_string(structure_json)
+#     # Ensure structure_json is a JSON string (convert dict if needed)
+#     structure_json_str = _ensure_json_string(structure_json)
 
-    # Use pure_callback to wrap the C++ call
-    result_shape = jax.ShapeDtypeStruct((nr_moments,), jnp.float64)
+#     # Use pure_callback to wrap the C++ call
+#     result_shape = jax.ShapeDtypeStruct((nr_moments,), jnp.float64)
 
-    result = jax.pure_callback(
-        lambda theta_jax: _compute_moments_impl(
-            structure_json_str,
-            np.asarray(theta_jax),
-            nr_moments
-        ),
-        result_shape,
-        theta,
-        vmap_method='sequential'  # Enable vmap support (JAX v0.6.0+)
-    )
+#     result = jax.pure_callback(
+#         lambda theta_jax: _compute_moments_impl(
+#             structure_json_str,
+#             np.asarray(theta_jax),
+#             nr_moments
+#         ),
+#         result_shape,
+#         theta,
+#         vmap_method='sequential'  # Enable vmap support (JAX v0.6.0+)
+#     )
 
-    return result
+#     return result
 
 
 def _compute_pmf_and_moments_impl(structure_json: str, theta_np: np.ndarray,

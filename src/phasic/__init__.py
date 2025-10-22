@@ -243,7 +243,7 @@ else:
 # Distributed computing utilities
 from .distributed_utils import (
     DistributedConfig,
-    initialize_distributed,
+    # initialize_distributed,
     detect_slurm_environment,
     get_coordinator_address,
     configure_jax_devices,
@@ -284,14 +284,14 @@ from .cpu_monitor import (
 from .cache_manager import CacheManager, print_jax_cache_info, configure_layered_cache
 from .model_export import clear_cache, cache_info, print_cache_info
 from .jax_config import CompilationConfig, get_default_config, set_default_config
-from .cloud_cache import (
-    S3Backend,
-    GCSBackend,
-    AzureBlobBackend,
-    download_from_url,
-    download_from_github_release,
-    install_model_library
-)
+# from .cloud_cache import (
+#     S3Backend,
+#     GCSBackend,
+#     AzureBlobBackend,
+#     download_from_url,
+#     download_from_github_release,
+#     install_model_library
+# )
 from .trace_repository import (
     IPFSBackend,
     TraceRegistry,
@@ -684,7 +684,7 @@ phasic::Graph build_model(const double* theta, int n_params) {{
     return cpp_code
 
 
-def _generate_cpp_from_trace(trace, observed_data, granularity=100):
+def _generate_cpp_from_trace(trace, observed_data, granularity=0):
     """
     Generate standalone C++ log-likelihood function from elimination trace.
 
@@ -2885,7 +2885,7 @@ extern "C" {{
         cpp_code = _generate_cpp_from_graph(serialized)
 
         # Create wrapper that computes both PMF and moments
-        granularity = 100  # Default granularity for PDF computation
+        granularity = 0  # Default granularity for PDF computation
 
         if discrete:
             wrapper_code = f'''{cpp_code}
@@ -3022,31 +3022,65 @@ extern "C" {{
             theta_np = np.asarray(theta_flat, dtype=np.float64)
             times_np = np.asarray(times_flat, dtype=np.float64 if not discrete else np.int32)
 
-            pmf_output = np.zeros(len(times_np), dtype=np.float64)
-            moments_output = np.zeros(nr_moments, dtype=np.float64)
+            # Check if theta is batched (from vmap with expand_dims)
+            if theta_np.ndim == 2:
+                times_unbatched = times_np[0] if times_np.ndim == 2 else times_np
+                pmf_results = []
+                moments_results = []
+                for theta_single in theta_np:
+                    pmf_output = np.zeros(len(times_unbatched), dtype=np.float64)
+                    moments_output = np.zeros(nr_moments, dtype=np.float64)
 
-            if discrete:
-                lib.compute_pmf_and_moments(
-                    theta_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                    len(theta_np),
-                    times_np.ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
-                    len(times_np),
-                    nr_moments,
-                    pmf_output.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                    moments_output.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-                )
+                    if discrete:
+                        lib.compute_pmf_and_moments(
+                            theta_single.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                            len(theta_single),
+                            times_unbatched.ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
+                            len(times_unbatched),
+                            nr_moments,
+                            pmf_output.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                            moments_output.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+                        )
+                    else:
+                        lib.compute_pmf_and_moments(
+                            theta_single.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                            len(theta_single),
+                            times_unbatched.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                            len(times_unbatched),
+                            nr_moments,
+                            pmf_output.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                            moments_output.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+                        )
+                    pmf_results.append(pmf_output)
+                    moments_results.append(moments_output)
+                return np.array(pmf_results), np.array(moments_results)
             else:
-                lib.compute_pmf_and_moments(
-                    theta_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                    len(theta_np),
-                    times_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                    len(times_np),
-                    nr_moments,
-                    pmf_output.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                    moments_output.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-                )
+                # Unbatched case
+                pmf_output = np.zeros(len(times_np), dtype=np.float64)
+                moments_output = np.zeros(nr_moments, dtype=np.float64)
 
-            return pmf_output, moments_output
+                if discrete:
+                    lib.compute_pmf_and_moments(
+                        theta_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                        len(theta_np),
+                        times_np.ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
+                        len(times_np),
+                        nr_moments,
+                        pmf_output.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                        moments_output.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+                    )
+                else:
+                    lib.compute_pmf_and_moments(
+                        theta_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                        len(theta_np),
+                        times_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                        len(times_np),
+                        nr_moments,
+                        pmf_output.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                        moments_output.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+                    )
+
+                return pmf_output, moments_output
 
         # Helper function for pure callback (used in forward and backward pass)
         def _compute_pure(theta, times):
@@ -3054,7 +3088,7 @@ extern "C" {{
             theta = jnp.atleast_1d(theta)
             times = jnp.atleast_1d(times)
 
-            pmf_shape = jax.ShapeDtypeStruct((len(times),), jnp.float64)
+            pmf_shape = jax.ShapeDtypeStruct(times.shape, jnp.float64)
             moments_shape = jax.ShapeDtypeStruct((nr_moments,), jnp.float64)
 
             result = jax.pure_callback(
@@ -3132,168 +3166,168 @@ extern "C" {{
     # Batch-Aware Methods (Phase 2: Auto-Parallelization)
     # ========================================================================
 
-    def pdf_batch(self, times: ArrayLike, granularity: int = 100) -> np.ndarray:
-        """
-        Compute PDF at multiple time points with automatic parallelization.
+    # def pdf_batch(self, times: ArrayLike, granularity: int = 100) -> np.ndarray:
+    #     """
+    #     Compute PDF at multiple time points with automatic parallelization.
 
-        Automatically uses pmap/vmap based on parallel configuration and batch size.
-        For single values, use the standard pdf() method instead (no overhead).
+    #     Automatically uses pmap/vmap based on parallel configuration and batch size.
+    #     For single values, use the standard pdf() method instead (no overhead).
 
-        Parameters
-        ----------
-        times : array_like
-            Array of time points to evaluate PDF at
-        granularity : int, default=100
-            Discretization granularity for PDF computation
+    #     Parameters
+    #     ----------
+    #     times : array_like
+    #         Array of time points to evaluate PDF at
+    #     granularity : int, default=100
+    #         Discretization granularity for PDF computation
 
-        Returns
-        -------
-        np.ndarray
-            PDF values at each time point
+    #     Returns
+    #     -------
+    #     np.ndarray
+    #         PDF values at each time point
 
-        Examples
-        --------
-        >>> import phasic as pta
-        >>> import numpy as np
-        >>>
-        >>> # Initialize parallel computing (once at notebook start)
-        >>> config = pta.init_parallel()
-        >>>
-        >>> # Build a simple model
-        >>> g = pta.Graph(1)
-        >>> start = g.starting_vertex()
-        >>> v1 = g.find_or_create_vertex([1])
-        >>> start.add_edge(v1, 2.0)
-        >>> g.normalize()
-        >>>
-        >>> # Compute PDF at many time points (automatically parallelized)
-        >>> times = np.linspace(0.1, 5.0, 1000)
-        >>> pdf_values = g.pdf_batch(times)
-        >>>
-        >>> # For single values, use pdf() instead:
-        >>> single_value = g.pdf(1.0)
+    #     Examples
+    #     --------
+    #     >>> import phasic as pta
+    #     >>> import numpy as np
+    #     >>>
+    #     >>> # Initialize parallel computing (once at notebook start)
+    #     >>> config = pta.init_parallel()
+    #     >>>
+    #     >>> # Build a simple model
+    #     >>> g = pta.Graph(1)
+    #     >>> start = g.starting_vertex()
+    #     >>> v1 = g.find_or_create_vertex([1])
+    #     >>> start.add_edge(v1, 2.0)
+    #     >>> g.normalize()
+    #     >>>
+    #     >>> # Compute PDF at many time points (automatically parallelized)
+    #     >>> times = np.linspace(0.1, 5.0, 1000)
+    #     >>> pdf_values = g.pdf_batch(times)
+    #     >>>
+    #     >>> # For single values, use pdf() instead:
+    #     >>> single_value = g.pdf(1.0)
 
-        Notes
-        -----
-        - Automatically parallelizes based on init_parallel() configuration
-        - Uses pmap across devices, vmap for vectorization, or serial execution
-        - No manual batching or parallelization code required
-        """
-        from .parallel_utils import is_batched
+    #     Notes
+    #     -----
+    #     - Automatically parallelizes based on init_parallel() configuration
+    #     - Uses pmap across devices, vmap for vectorization, or serial execution
+    #     - No manual batching or parallelization code required
+    #     """
+    #     from .parallel_utils import is_batched
 
-        times_arr = np.asarray(times)
+    #     times_arr = np.asarray(times)
 
-        # For single values, delegate to C++ method directly
-        if not is_batched(times_arr):
-            return np.array([self.pdf(float(times_arr), granularity)])
+    #     # For single values, delegate to C++ method directly
+    #     if not is_batched(times_arr):
+    #         return np.array([self.pdf(float(times_arr), granularity)])
 
-        # For batched inputs, use vectorized numpy operations
-        # The C++ pdf method is called for each element
-        # This is a simple loop-based approach that can be parallelized by JAX if needed
-        result = np.array([self.pdf(float(t), granularity) for t in times_arr])
-        return result
+    #     # For batched inputs, use vectorized numpy operations
+    #     # The C++ pdf method is called for each element
+    #     # This is a simple loop-based approach that can be parallelized by JAX if needed
+    #     result = np.array([self.pdf(float(t), granularity) for t in times_arr])
+    #     return result
 
-    def dph_pmf_batch(self, jumps: ArrayLike) -> np.ndarray:
-        """
-        Compute discrete phase-type PMF at multiple jump counts with automatic parallelization.
+    # def dph_pmf_batch(self, jumps: ArrayLike) -> np.ndarray:
+    #     """
+    #     Compute discrete phase-type PMF at multiple jump counts with automatic parallelization.
 
-        Automatically uses pmap/vmap based on parallel configuration and batch size.
-        For single values, use the standard dph_pmf() method instead (no overhead).
+    #     Automatically uses pmap/vmap based on parallel configuration and batch size.
+    #     For single values, use the standard dph_pmf() method instead (no overhead).
 
-        Parameters
-        ----------
-        jumps : array_like
-            Array of jump counts (integers) to evaluate PMF at
+    #     Parameters
+    #     ----------
+    #     jumps : array_like
+    #         Array of jump counts (integers) to evaluate PMF at
 
-        Returns
-        -------
-        np.ndarray
-            PMF values at each jump count
+    #     Returns
+    #     -------
+    #     np.ndarray
+    #         PMF values at each jump count
 
-        Examples
-        --------
-        >>> import phasic as pta
-        >>> import numpy as np
-        >>>
-        >>> # Initialize parallel computing
-        >>> config = pta.init_parallel()
-        >>>
-        >>> # Build and discretize a model
-        >>> g = pta.Graph(1)
-        >>> # ... build model ...
-        >>> g_discrete, rewards = g.discretize(reward_rate=0.1)
-        >>> g_discrete.normalize()
-        >>>
-        >>> # Compute PMF at many jump counts (automatically parallelized)
-        >>> jumps = np.arange(0, 100)
-        >>> pmf_values = g_discrete.dph_pmf_batch(jumps)
+    #     Examples
+    #     --------
+    #     >>> import phasic as pta
+    #     >>> import numpy as np
+    #     >>>
+    #     >>> # Initialize parallel computing
+    #     >>> config = pta.init_parallel()
+    #     >>>
+    #     >>> # Build and discretize a model
+    #     >>> g = pta.Graph(1)
+    #     >>> # ... build model ...
+    #     >>> g_discrete, rewards = g.discretize(reward_rate=0.1)
+    #     >>> g_discrete.normalize()
+    #     >>>
+    #     >>> # Compute PMF at many jump counts (automatically parallelized)
+    #     >>> jumps = np.arange(0, 100)
+    #     >>> pmf_values = g_discrete.dph_pmf_batch(jumps)
 
-        Notes
-        -----
-        - Requires a discrete phase-type model (use discretize() first)
-        - Automatically parallelizes based on init_parallel() configuration
-        """
-        from .parallel_utils import is_batched
+    #     Notes
+    #     -----
+    #     - Requires a discrete phase-type model (use discretize() first)
+    #     - Automatically parallelizes based on init_parallel() configuration
+    #     """
+    #     from .parallel_utils import is_batched
 
-        jumps_arr = np.asarray(jumps, dtype=np.int32)
+    #     jumps_arr = np.asarray(jumps, dtype=np.int32)
 
-        # For single values, delegate to C++ method directly
-        if not is_batched(jumps_arr):
-            return np.array([self.dph_pmf(int(jumps_arr))])
+    #     # For single values, delegate to C++ method directly
+    #     if not is_batched(jumps_arr):
+    #         return np.array([self.dph_pmf(int(jumps_arr))])
 
-        # For batched inputs, vectorized evaluation
-        result = np.array([self.dph_pmf(int(j)) for j in jumps_arr])
-        return result
+    #     # For batched inputs, vectorized evaluation
+    #     result = np.array([self.dph_pmf(int(j)) for j in jumps_arr])
+    #     return result
 
-    def moments_batch(self, powers: ArrayLike) -> np.ndarray:
-        """
-        Compute moments for multiple powers with automatic parallelization.
+    # def moments_batch(self, powers: ArrayLike) -> np.ndarray:
+    #     """
+    #     Compute moments for multiple powers with automatic parallelization.
 
-        Automatically uses pmap/vmap based on parallel configuration and batch size.
-        For single values, use the standard moments() method instead (no overhead).
+    #     Automatically uses pmap/vmap based on parallel configuration and batch size.
+    #     For single values, use the standard moments() method instead (no overhead).
 
-        Parameters
-        ----------
-        powers : array_like
-            Array of moment orders to compute (e.g., [1, 2, 3] for E[T], E[T^2], E[T^3])
+    #     Parameters
+    #     ----------
+    #     powers : array_like
+    #         Array of moment orders to compute (e.g., [1, 2, 3] for E[T], E[T^2], E[T^3])
 
-        Returns
-        -------
-        np.ndarray
-            Moment values for each power
+    #     Returns
+    #     -------
+    #     np.ndarray
+    #         Moment values for each power
 
-        Examples
-        --------
-        >>> import phasic as pta
-        >>> import numpy as np
-        >>>
-        >>> # Initialize parallel computing
-        >>> config = pta.init_parallel()
-        >>>
-        >>> # Build a model
-        >>> g = pta.Graph(1)
-        >>> # ... build model ...
-        >>>
-        >>> # Compute multiple moments (automatically parallelized)
-        >>> powers = np.arange(1, 10)  # Moments 1 through 9
-        >>> moment_values = g.moments_batch(powers)
+    #     Examples
+    #     --------
+    #     >>> import phasic as pta
+    #     >>> import numpy as np
+    #     >>>
+    #     >>> # Initialize parallel computing
+    #     >>> config = pta.init_parallel()
+    #     >>>
+    #     >>> # Build a model
+    #     >>> g = pta.Graph(1)
+    #     >>> # ... build model ...
+    #     >>>
+    #     >>> # Compute multiple moments (automatically parallelized)
+    #     >>> powers = np.arange(1, 10)  # Moments 1 through 9
+    #     >>> moment_values = g.moments_batch(powers)
 
-        Notes
-        -----
-        - Automatically parallelizes based on init_parallel() configuration
-        - Each moment computation is independent and can be parallelized
-        """
-        from .parallel_utils import is_batched
+    #     Notes
+    #     -----
+    #     - Automatically parallelizes based on init_parallel() configuration
+    #     - Each moment computation is independent and can be parallelized
+    #     """
+    #     from .parallel_utils import is_batched
 
-        powers_arr = np.asarray(powers, dtype=np.int32)
+    #     powers_arr = np.asarray(powers, dtype=np.int32)
 
-        # For single values, delegate to C++ method directly
-        if not is_batched(powers_arr):
-            return np.array([self.moments(int(powers_arr))])
+    #     # For single values, delegate to C++ method directly
+    #     if not is_batched(powers_arr):
+    #         return np.array([self.moments(int(powers_arr))])
 
-        # For batched inputs, vectorized evaluation
-        result = np.array([self.moments(int(p)) for p in powers_arr])
-        return result
+    #     # For batched inputs, vectorized evaluation
+    #     result = np.array([self.moments(int(p)) for p in powers_arr])
+    #     return result
 
     def eliminate_to_dag(self) -> 'SymbolicDAG':
         """
