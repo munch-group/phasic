@@ -223,11 +223,11 @@ if HAS_JAX:
         ConstantStepSize,
         ExponentialDecayStepSize,
         AdaptiveStepSize,
-        # Bandwidth schedules
-        BandwidthSchedule,
-        MedianBandwidth,
-        FixedBandwidth,
-        LocalAdaptiveBandwidth
+        # # Bandwidth schedules
+        # BandwidthSchedule,
+        # MedianBandwidth,
+        # FixedBandwidth,
+        # LocalAdaptiveBandwidth
     )
 else:
     SVGD = None
@@ -235,10 +235,10 @@ else:
     ConstantStepSize = None
     ExponentialDecayStepSize = None
     AdaptiveStepSize = None
-    BandwidthSchedule = None
-    MedianBandwidth = None
-    FixedBandwidth = None
-    LocalAdaptiveBandwidth = None
+    # BandwidthSchedule = None
+    # MedianBandwidth = None
+    # FixedBandwidth = None
+    # LocalAdaptiveBandwidth = None
 
 # Distributed computing utilities
 from .distributed_utils import (
@@ -292,6 +292,46 @@ from .cloud_cache import (
     download_from_github_release,
     install_model_library
 )
+from .trace_repository import (
+    IPFSBackend,
+    TraceRegistry,
+    get_trace,
+    install_trace_library
+)
+
+# Hash-based trace lookup (convenience wrapper)
+def get_trace_by_hash(graph_hash: str, force_download: bool = False):
+    """
+    Get elimination trace by graph structure hash.
+
+    Convenience wrapper around TraceRegistry.get_trace_by_hash().
+
+    Parameters
+    ----------
+    graph_hash : str
+        SHA-256 hash of graph structure (from phasic.hash.compute_graph_hash)
+    force_download : bool, default=False
+        If True, re-download even if cached
+
+    Returns
+    -------
+    EliminationTrace or None
+        Trace if found, None otherwise
+
+    Examples
+    --------
+    >>> import phasic
+    >>> import phasic.hash
+    >>> graph = phasic.Graph(callback=my_callback, parameterized=True, nr_samples=5)
+    >>> hash_result = phasic.hash.compute_graph_hash(graph)
+    >>> trace = phasic.get_trace_by_hash(hash_result.hash_hex)
+    >>> if trace is None:
+    ...     # Record new trace
+    ...     from phasic.trace_elimination import record_elimination_trace
+    ...     trace = record_elimination_trace(graph, param_length=1)
+    """
+    registry = TraceRegistry()
+    return registry.get_trace_by_hash(graph_hash, force_download=force_download)
 
 # JAX FFI wrappers (optional, requires JAX)
 if HAS_JAX:
@@ -1337,58 +1377,130 @@ class Graph(_Graph):
             super().__init__(state_length)
 
 
-    def make_discrete(self, mutation_rate, skip_states=[], skip_slots=[]):
-        """
-        Takes a graph for a continuous distribution and turns
-        it into a descrete one (inplace). Returns a matrix of
-        rewards for computing marginal moments
+    # def make_discrete(self, mutation_rate, skip_states=[], skip_slots=[]):
+    #     """
+    #     Takes a graph for a continuous distribution and turns
+    #     it into a descrete one (inplace). Returns a matrix of
+    #     rewards for computing marginal moments
+    #     """
+
+    #     mutation_graph = self.copy()
+
+    #     # save current nr of states in graph
+    #     vlength = mutation_graph.vertices_length()
+
+    #     # number of fields in state vector (assumes all are the same length)
+    #     state_vector_length = len(mutation_graph.vertex_at(1).state())
+
+    #     # list state vector fields to reward at each auxiliary node
+    #     # rewarded_state_vector_indexes = [[] for _ in range(state_vector_length)]
+    #     rewarded_state_vector_indexes = defaultdict(list)
+
+    #     # loop all but starting node
+    #     for i in range(1, vlength):
+    #         if i in skip_states:
+    #             continue
+    #         vertex = mutation_graph.vertex_at(i)
+    #         if vertex.rate() > 0: # not absorbing
+    #             for j in range(state_vector_length):
+    #                 if j in skip_slots:
+    #                     continue
+    #                 val = vertex.state()[j]
+    #                 if val > 0: # only ones we may reward
+    #                     # add auxilliary node
+    #                     mutation_vertex = mutation_graph.create_vertex(np.repeat(0, state_vector_length))
+    #                     mutation_vertex.add_edge(vertex, 1)
+    #                     vertex.add_edge(mutation_vertex, mutation_rate*val)
+    #                     # print(mutation_vertex.index(), rewarded_state_vector_indexes[j], j)
+    #                     # rewarded_state_vector_indexes[mutation_vertex.index()] = rewarded_state_vector_indexes[j] + [j]
+    #                     rewarded_state_vector_indexes[mutation_vertex.index()].append(j)
+
+    #     # normalize graph
+    #     weights_were_multiplied_with = mutation_graph.normalize()
+
+    #     # build reward matrix
+    #     rewards = np.zeros((mutation_graph.vertices_length(), state_vector_length))
+    #     for state in rewarded_state_vector_indexes:
+    #         for i in rewarded_state_vector_indexes[state]:
+    #             rewards[state, i] = 1
+
+    #     rewards = np.transpose(rewards)
+    #     return NamedTuple("DiscreteGraph", (mutation_graph, rewards))
+
+
+    def discretize(self, reward_rate:float, skip_states:Sequence[int]=[], 
+                   skip_slots:Sequence[int]=[]) -> Tuple[GraphType, np.ndarray]:
+        """Creates a graph for a discrete distribution from a continuous one.
+
+        Creates a graph augmented with auxiliary vertices and edges to represent the discrete distribution. 
+
+        Parameters
+        ----------
+        reward_rate : 
+            Rate of discrete events.
+        skip_states : 
+            Vertex indices to not add auxiliary states to, by default []
+        skip_slots : 
+            State vector indices to not add rewards to, by default []
+
+        Returns
+        -------
+        :
+            A new graph and a matrix of rewards for computing marginal moments.
+
+        Examples
+        --------
+        
+        >>> from phasic import Graph
+        >>> def callback(state):
+        ...     return [(state[0] + 1, [(state[0], 1)])]
+        >>> g = Graph(callback=callback)
+        >>> g.discretize(0.1)
+        >>> a = [1, 2, 3]
+        >>> print([x + 3 for x in a])
+        [4, 5, 6]
+        >>> print("a\nb")
+        a
+        b            
         """
 
-        mutation_graph = self.copy()
+        new_graph = self.copy()
 
         # save current nr of states in graph
-        vlength = mutation_graph.vertices_length()
+        vlength = new_graph.vertices_length()
 
-        # number of fields in state vector (assumes all are the same length)
-        state_vector_length = len(mutation_graph.vertex_at(1).state())
+        state_vector_length = len(new_graph.vertex_at(1).state())
 
-        # list state vector fields to reward at each auxiliary node
-        # rewarded_state_vector_indexes = [[] for _ in range(state_vector_length)]
+        # record state vector fields for unit rewards
         rewarded_state_vector_indexes = defaultdict(list)
 
         # loop all but starting node
         for i in range(1, vlength):
             if i in skip_states:
                 continue
-            vertex = mutation_graph.vertex_at(i)
+            vertex = new_graph.vertex_at(i)
             if vertex.rate() > 0: # not absorbing
                 for j in range(state_vector_length):
                     if j in skip_slots:
                         continue
                     val = vertex.state()[j]
                     if val > 0: # only ones we may reward
-                        # add auxilliary node
-                        mutation_vertex = mutation_graph.create_vertex(np.repeat(0, state_vector_length))
+                        # add aux node
+                        mutation_vertex = new_graph.create_vertex(np.repeat(0, state_vector_length))
                         mutation_vertex.add_edge(vertex, 1)
-                        vertex.add_edge(mutation_vertex, mutation_rate*val)
-                        # print(mutation_vertex.index(), rewarded_state_vector_indexes[j], j)
-                        # rewarded_state_vector_indexes[mutation_vertex.index()] = rewarded_state_vector_indexes[j] + [j]
+                        vertex.add_edge(mutation_vertex, reward_rate*val)
                         rewarded_state_vector_indexes[mutation_vertex.index()].append(j)
 
         # normalize graph
-        weights_were_multiplied_with = mutation_graph.normalize()
+        weight_scaling = new_graph.normalize()
 
         # build reward matrix
-        rewards = np.zeros((mutation_graph.vertices_length(), state_vector_length))
+        rewards = np.zeros((new_graph.vertices_length(), state_vector_length)).astype(int)
         for state in rewarded_state_vector_indexes:
             for i in rewarded_state_vector_indexes[state]:
                 rewards[state, i] = 1
-
         rewards = np.transpose(rewards)
-        return NamedTuple("DiscreteGraph", (mutation_graph, rewards))
-
-
-
+        return new_graph, rewards
 
 
     def serialize(self, param_length: int = None) -> Dict[str, np.ndarray]:
@@ -2319,22 +2431,38 @@ extern "C" {{
         jax_model.defvjp(jax_model_fwd, jax_model_bwd)
         return jax_model
 
-    @classmethod
-    def svgd(cls,
-             model: Callable,
+
+    def svgd(self,
              observed_data: ArrayLike,
+             discrete: bool = False, param_length: int = 1,
              prior: Optional[Callable] = None,
              n_particles: int = 50,
              n_iterations: int = 1000,
              learning_rate: float = 0.001,
-             kernel: str = 'rbf_median',
+             bandwidth: str = 'median',
              theta_init: Optional[ArrayLike] = None,
              theta_dim: Optional[int] = None,
-             return_history: bool = False,
+             return_history: bool = True,
              seed: int = 42,
              verbose: bool = True,
              positive_params: bool = True,
-             param_transform: Optional[Callable] = None) -> Dict:
+             param_transform: Optional[Callable] = None) -> Dict:    
+    # @classmethod
+    # def svgd(cls,
+    #          model: Callable,
+    #          observed_data: ArrayLike,
+    #          prior: Optional[Callable] = None,
+    #          n_particles: int = 50,
+    #          n_iterations: int = 1000,
+    #          learning_rate: float = 0.001,
+    #          kernel: str = 'median',
+    #          theta_init: Optional[ArrayLike] = None,
+    #          theta_dim: Optional[int] = None,
+    #          return_history: bool = True,
+    #          seed: int = 42,
+    #          verbose: bool = True,
+    #          positive_params: bool = True,
+    #          param_transform: Optional[Callable] = None) -> Dict:
         """
         Run Stein Variational Gradient Descent (SVGD) inference for Bayesian parameter estimation.
 
@@ -2359,16 +2487,16 @@ extern "C" {{
             Number of SVGD optimization steps
         learning_rate : float, default=0.001
             SVGD step size. Larger values = faster convergence but may be unstable.
-        kernel : str, default='rbf_median'
+        kernel : str, default='median'
             Kernel bandwidth selection method:
-            - 'rbf_median': RBF kernel with median heuristic bandwidth (default)
+            - 'median': RBF kernel with median heuristic bandwidth (default)
             - 'rbf_adaptive': RBF kernel with adaptive bandwidth
         theta_init : array_like, optional
             Initial particle positions (n_particles, theta_dim).
             If None, initializes randomly from standard normal.
         theta_dim : int, optional
             Dimension of theta parameter vector. Required if theta_init is None.
-        return_history : bool, default=False
+        return_history : bool, default=True
             If True, return particle positions throughout optimization
         seed : int, default=42
             Random seed for reproducibility
@@ -2454,6 +2582,8 @@ extern "C" {{
 
         from .svgd import SVGD
 
+        model = Graph.pmf_from_graph(self, discrete=discrete, param_length=param_length)
+
         # Create SVGD object
         svgd = SVGD(
             model=model,
@@ -2462,7 +2592,7 @@ extern "C" {{
             n_particles=n_particles,
             n_iterations=n_iterations,
             learning_rate=learning_rate,
-            kernel=kernel,
+            bandwidth=bandwidth,
             theta_init=theta_init,
             theta_dim=theta_dim,
             seed=seed,
@@ -2997,80 +3127,6 @@ extern "C" {{
         # it into a descrete one (inplace). Returns a matrix of
         # rewards for computing marginal moments
         # """
-
-    def discretize(self, reward_rate:float, skip_states:Sequence[int]=[], 
-                   skip_slots:Sequence[int]=[]) -> Tuple[GraphType, np.ndarray]:
-        """Creates a graph for a discrete distribution from a continuous one.
-
-        Creates a graph augmented with auxiliary vertices and edges to represent the discrete distribution. 
-
-        Parameters
-        ----------
-        reward_rate : 
-            Rate of discrete events.
-        skip_states : 
-            Vertex indices to not add auxiliary states to, by default []
-        skip_slots : 
-            State vector indices to not add rewards to, by default []
-
-        Returns
-        -------
-        :
-            A new graph and a matrix of rewards for computing marginal moments.
-
-        Examples
-        --------
-        
-        >>> from phasic import Graph
-        >>> def callback(state):
-        ...     return [(state[0] + 1, [(state[0], 1)])]
-        >>> g = Graph(callback=callback)
-        >>> g.discretize(0.1)
-        >>> a = [1, 2, 3]
-        >>> print([x + 3 for x in a])
-        [4, 5, 6]
-        >>> print("a\nb")
-        a
-        b            
-        """
-
-        new_graph = self.copy()
-
-        # save current nr of states in graph
-        vlength = new_graph.vertices_length()
-
-        state_vector_length = len(new_graph.vertex_at(1).state())
-
-        # record state vector fields for unit rewards
-        rewarded_state_vector_indexes = defaultdict(list)
-
-        # loop all but starting node
-        for i in range(1, vlength):
-            if i in skip_states:
-                continue
-            vertex = new_graph.vertex_at(i)
-            if vertex.rate() > 0: # not absorbing
-                for j in range(state_vector_length):
-                    if j in skip_slots:
-                        continue
-                    val = vertex.state()[j]
-                    if val > 0: # only ones we may reward
-                        # add aux node
-                        mutation_vertex = new_graph.create_vertex(np.repeat(0, state_vector_length))
-                        mutation_vertex.add_edge(vertex, 1)
-                        vertex.add_edge(mutation_vertex, reward_rate*val)
-                        rewarded_state_vector_indexes[mutation_vertex.index()].append(j)
-
-        # normalize graph
-        weight_scaling = new_graph.normalize()
-
-        # build reward matrix
-        rewards = np.zeros((new_graph.vertices_length(), state_vector_length)).astype(int)
-        for state in rewarded_state_vector_indexes:
-            for i in rewarded_state_vector_indexes[state]:
-                rewards[state, i] = 1
-        rewards = np.transpose(rewards)
-        return new_graph, rewards
 
     # ========================================================================
     # Batch-Aware Methods (Phase 2: Auto-Parallelization)

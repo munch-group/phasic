@@ -30,9 +30,18 @@ from functools import partial
 from .config import get_config
 from .exceptions import PTDConfigError
 
+from .plot import black_white
+
 ## requires equinox dependency
 # from .decoders import VariableDimPTDDecoder, LessThanOneDecoder, 
 #     SumToOneDecoder, IndependentProbDecoder
+
+def string_to_class(s, suffix=''):
+    class_name = ''.join(x.capitalize() for x in s.split('_')) + suffix
+    if class_name not in globals():
+        raise ValueError(f"Cannot translate string to class name: {s}")
+    return globals()[class_name]
+
 
 from tqdm import trange, tqdm
 trange = partial(trange, bar_format="{bar}", leave=False)
@@ -180,117 +189,117 @@ class AdaptiveStepSize(StepSizeSchedule):
         return self.current_step
 
 
-class BandwidthSchedule:
-    """
-    Base class for bandwidth schedules.
+# class BandwidthSchedule:
+#     """
+#     Base class for bandwidth schedules.
 
-    Subclasses should implement __call__(particles) returning bandwidth(s).
-    """
-    def __call__(self, particles):
-        """
-        Compute bandwidth for current particle configuration.
+#     Subclasses should implement __call__(particles) returning bandwidth(s).
+#     """
+#     def __call__(self, particles):
+#         """
+#         Compute bandwidth for current particle configuration.
 
-        Parameters
-        ----------
-        particles : jnp.ndarray
-            Current particle positions, shape (n_particles, theta_dim)
+#         Parameters
+#         ----------
+#         particles : jnp.ndarray
+#             Current particle positions, shape (n_particles, theta_dim)
 
-        Returns
-        -------
-        float or jnp.ndarray
-            Bandwidth (scalar for global, array for local)
-        """
-        raise NotImplementedError
-
-
-class MedianBandwidth(BandwidthSchedule):
-    """
-    Median heuristic bandwidth (default behavior).
-
-    Sets bandwidth to median of pairwise distances between particles.
-
-    Examples
-    --------
-    >>> schedule = MedianBandwidth()
-    >>> particles = jnp.array([[0.0], [1.0], [2.0]])
-    >>> schedule(particles)
-    1.0
-    """
-    def __call__(self, particles):
-        n_particles = particles.shape[0]
-        pairwise_dists = jnp.array([
-            jnp.linalg.norm(particles[i] - particles[j])
-            for i in range(n_particles)
-            for j in range(i + 1, n_particles)
-        ])
-        return jnp.median(pairwise_dists)
+#         Returns
+#         -------
+#         float or jnp.ndarray
+#             Bandwidth (scalar for global, array for local)
+#         """
+#         raise NotImplementedError
 
 
-class FixedBandwidth(BandwidthSchedule):
-    """
-    Fixed bandwidth for all iterations.
+# class MedianBandwidth(BandwidthSchedule):
+#     """
+#     Median heuristic bandwidth (default behavior).
 
-    Parameters
-    ----------
-    bandwidth : float
-        Fixed bandwidth value
+#     Sets bandwidth to median of pairwise distances between particles.
 
-    Examples
-    --------
-    >>> schedule = FixedBandwidth(1.0)
-    >>> particles = jnp.array([[0.0], [1.0]])
-    >>> schedule(particles)
-    1.0
-    """
-    def __init__(self, bandwidth=1.0):
-        self.bandwidth = bandwidth
+#     Examples
+#     --------
+#     >>> schedule = MedianBandwidth()
+#     >>> particles = jnp.array([[0.0], [1.0], [2.0]])
+#     >>> schedule(particles)
+#     1.0
+#     """
+#     def __call__(self, particles):
+#         n_particles = particles.shape[0]
+#         pairwise_dists = jnp.array([
+#             jnp.linalg.norm(particles[i] - particles[j])
+#             for i in range(n_particles)
+#             for j in range(i + 1, n_particles)
+#         ])
+#         return jnp.median(pairwise_dists)
 
-    def __call__(self, particles):
-        return self.bandwidth
+
+# class FixedBandwidth(BandwidthSchedule):
+#     """
+#     Fixed bandwidth for all iterations.
+
+#     Parameters
+#     ----------
+#     bandwidth : float
+#         Fixed bandwidth value
+
+#     Examples
+#     --------
+#     >>> schedule = FixedBandwidth(1.0)
+#     >>> particles = jnp.array([[0.0], [1.0]])
+#     >>> schedule(particles)
+#     1.0
+#     """
+#     def __init__(self, bandwidth=1.0):
+#         self.bandwidth = bandwidth
+
+#     def __call__(self, particles):
+#         return self.bandwidth
 
 
-class LocalAdaptiveBandwidth(BandwidthSchedule):
-    """
-    Local adaptive bandwidth using k-nearest neighbors.
+# class LocalAdaptiveBandwidth(BandwidthSchedule):
+#     """
+#     Local adaptive bandwidth using k-nearest neighbors.
 
-    Computes per-particle bandwidth based on distance to k-nearest neighbors.
+#     Computes per-particle bandwidth based on distance to k-nearest neighbors.
 
-    Parameters
-    ----------
-    alpha : float, default=0.9
-        Scaling factor for local bandwidth
-    k_frac : float, default=0.1
-        Fraction of particles to use as k-nearest neighbors
+#     Parameters
+#     ----------
+#     alpha : float, default=0.9
+#         Scaling factor for local bandwidth
+#     k_frac : float, default=0.1
+#         Fraction of particles to use as k-nearest neighbors
 
-    Examples
-    --------
-    >>> schedule = LocalAdaptiveBandwidth(alpha=0.9, k_frac=0.1)
-    >>> particles = jnp.array([[0.0], [1.0], [10.0]])
-    >>> bandwidths = schedule(particles)
-    >>> bandwidths.shape
-    (3,)
-    """
-    def __init__(self, alpha=0.9, k_frac=0.1):
-        self.alpha = alpha
-        self.k_frac = k_frac
+#     Examples
+#     --------
+#     >>> schedule = LocalAdaptiveBandwidth(alpha=0.9, k_frac=0.1)
+#     >>> particles = jnp.array([[0.0], [1.0], [10.0]])
+#     >>> bandwidths = schedule(particles)
+#     >>> bandwidths.shape
+#     (3,)
+#     """
+#     def __init__(self, alpha=0.9, k_frac=0.1):
+#         self.alpha = alpha
+#         self.k_frac = k_frac
 
-    def __call__(self, particles):
-        n_particles = particles.shape[0]
-        k_nn = max(1, int(n_particles * self.k_frac))
+#     def __call__(self, particles):
+#         n_particles = particles.shape[0]
+#         k_nn = max(1, int(n_particles * self.k_frac))
 
-        bandwidths = []
-        for i in range(n_particles):
-            # Compute distances to all other particles
-            distances = jnp.array([
-                jnp.linalg.norm(particles[i] - particles[j])
-                for j in range(n_particles) if j != i
-            ])
-            # Take k-nearest neighbors
-            knn_distances = jnp.sort(distances)[:k_nn]
-            local_bw = jnp.mean(knn_distances) * self.alpha
-            bandwidths.append(local_bw)
+#         bandwidths = []
+#         for i in range(n_particles):
+#             # Compute distances to all other particles
+#             distances = jnp.array([
+#                 jnp.linalg.norm(particles[i] - particles[j])
+#                 for j in range(n_particles) if j != i
+#             ])
+#             # Take k-nearest neighbors
+#             knn_distances = jnp.sort(distances)[:k_nn]
+#             local_bw = jnp.mean(knn_distances) * self.alpha
+#             bandwidths.append(local_bw)
 
-        return jnp.array(bandwidths)
+#         return jnp.array(bandwidths)
 
 
 # ============================================================================
@@ -659,69 +668,69 @@ def update_local_bw_kl_step(particles_z, k, m, kl_target=0.1, max_step=0.001):
     
     return particles_z + step_size * phi
 
-# Distributed SVGD
-def distributed_svgd_step(particles_z, k, m, kl_target=0.1, max_step=0.001):
-    """Distributed SVGD step using pjit"""
-    return update_median_bw_kl_step(particles_z, k, m, kl_target, max_step)
+# # Distributed SVGD
+# def distributed_svgd_step(particles_z, k, m, kl_target=0.1, max_step=0.001):
+#     """Distributed SVGD step using pjit"""
+#     return update_median_bw_kl_step(particles_z, k, m, kl_target, max_step)
 
-# Main SVGD function
-def run_variable_dim_svgd(key, data, k, m, n_particles=40, n_steps=100, lr=0.001):
-    """Run SVGD for variable-dimension discrete phase-type distributions"""
+# # Main SVGD function
+# def run_variable_dim_svgd(key, data, k, m, n_particles=40, n_steps=100, lr=0.001):
+#     """Run SVGD for variable-dimension discrete phase-type distributions"""
     
-    # Calculate parameter dimension
-    param_dim = calculate_param_dim(k, m)
-    print(f"Running SVGD for k={k}, m={m} (param_dim={param_dim})")
+#     # Calculate parameter dimension
+#     param_dim = calculate_param_dim(k, m)
+#     print(f"Running SVGD for k={k}, m={m} (param_dim={param_dim})")
     
-    # Generate true parameters
-    key, subkey = jax.random.split(key)
-    true_params = example_ptd_spec(subkey, k, m)
+#     # Generate true parameters
+#     key, subkey = jax.random.split(key)
+#     true_params = example_ptd_spec(subkey, k, m)
     
-    # SVGD parameters
-    n_devices = min(8, n_particles)  # Don't exceed available devices
-    kl_target_base = 0.1
-    kl_target_decay = 0.01
-    max_step = lr
-    min_step = 1e-7
-    max_step_scaler = 0.1
+#     # SVGD parameters
+#     n_devices = min(8, n_particles)  # Don't exceed available devices
+#     kl_target_base = 0.1
+#     kl_target_decay = 0.01
+#     max_step = lr
+#     min_step = 1e-7
+#     max_step_scaler = 0.1
     
-    if n_particles % n_devices != 0:
-        n_particles = (n_particles // n_devices) * n_devices
-        print(f"Adjusted n_particles to {n_particles} for even sharding")
+#     if n_particles % n_devices != 0:
+#         n_particles = (n_particles // n_devices) * n_devices
+#         print(f"Adjusted n_particles to {n_particles} for even sharding")
     
-    # Initial particles
-    key, subkey = jax.random.split(key)
-    particles_z = jax.random.normal(subkey, shape=(n_particles, param_dim))
+#     # Initial particles
+#     key, subkey = jax.random.split(key)
+#     particles_z = jax.random.normal(subkey, shape=(n_particles, param_dim))
     
-    # Shard particles over devices
-    devices = mesh_utils.create_device_mesh((n_devices,))
-    mesh = Mesh(devices, axis_names=("i",))
-    sharding = NamedSharding(mesh, P("i", None))
-    particles_z = jax.device_put(particles_z, sharding)
+#     # Shard particles over devices
+#     devices = mesh_utils.create_device_mesh((n_devices,))
+#     mesh = Mesh(devices, axis_names=("i",))
+#     sharding = NamedSharding(mesh, P("i", None))
+#     particles_z = jax.device_put(particles_z, sharding)
     
-    # SVGD iterations
-    particle_z_history = [particles_z]
-    every = max(1, n_steps // 10)  # Save every 10% of iterations
-    prev = None
+#     # SVGD iterations
+#     particle_z_history = [particles_z]
+#     every = max(1, n_steps // 10)  # Save every 10% of iterations
+#     prev = None
     
-    with mesh:
-        # for i in range(n_steps):
-        for i in trange(n_steps):
-            kl_target = decayed_kl_target(i, base=kl_target_base, decay=kl_target_decay)
-            particles_z = distributed_svgd_step(particles_z, k, m, kl_target=kl_target, max_step=max_step)
+#     with mesh:
+#         # for i in range(n_steps):
+#         for i in trange(n_steps):
+#             kl_target = decayed_kl_target(i, base=kl_target_base, decay=kl_target_decay)
+#             particles_z = distributed_svgd_step(particles_z, k, m, kl_target=kl_target, max_step=max_step)
             
-            if not i % every:
-                particle_z_history.append(particles_z)
+#             if not i % every:
+#                 particle_z_history.append(particles_z)
     
-    # Extract final results
-    particles = jnp.array([z_to_theta(z) for z in particles_z])
+#     # Extract final results
+#     particles = jnp.array([z_to_theta(z) for z in particles_z])
     
-    print(f"\nResults for k={k}, m={m}:")
-    print(f"True parameters shape: {true_params.shape}")
-    print(f"Estimated parameters shape: {particles.shape}")
-    print(f"Parameter means: {jnp.mean(particles, axis=0)}")
-    print(f"True parameters: {true_params}")
+#     print(f"\nResults for k={k}, m={m}:")
+#     print(f"True parameters shape: {true_params.shape}")
+#     print(f"Estimated parameters shape: {particles.shape}")
+#     print(f"Parameter means: {jnp.mean(particles, axis=0)}")
+#     print(f"True parameters: {true_params}")
     
-    return particles, particle_z_history, true_params
+#     return particles, particle_z_history, true_params
 
 # ==============================================================================
 # Main SVGD API for external use
@@ -770,7 +779,7 @@ class SVGDKernel:
         """
         Parameters
         ----------
-        bandwidth : str or float
+        bandwidth : str or float default='median'
             Bandwidth selection method. Options:
             - 'median': Median heuristic (default)
             - float: Fixed bandwidth value
@@ -794,7 +803,7 @@ class SVGDKernel:
             Gradient of kernel matrix
         """
         # Compute bandwidth (not JIT-compiled due to conditional logic)
-        if isinstance(self.bandwidth_method, str) and self.bandwidth_method in ['median', 'rbf_median']:
+        if isinstance(self.bandwidth_method, str) and self.bandwidth_method == 'median':
             bandwidth = batch_median_heuristic(particles)
         else:
             bandwidth = self.bandwidth_method
@@ -944,7 +953,7 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
 
 
 def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
-             kernel='rbf_median', return_history=False, verbose=True, compiled_grad=None,
+             kernel=None, return_history=False, verbose=True, compiled_grad=None,
              parallel_mode='vmap', n_devices=None):
     """
     Run Stein Variational Gradient Descent
@@ -962,8 +971,8 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
         Step size. Can be:
         - float: constant step size (backward compatible)
         - StepSizeSchedule object: dynamic schedule
-    kernel : str or SVGDKernel
-        Kernel specification. If string, creates SVGDKernel with that bandwidth method
+    kernel : SVGDKernel
+        Kernel specification.
     return_history : bool
         If True, return particle positions at each iteration
     verbose : bool
@@ -984,11 +993,6 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
         - 'theta_mean': Posterior mean
         - 'theta_std': Posterior standard deviation
     """
-    # Create kernel if needed
-    if isinstance(kernel, str):
-        kernel_obj = SVGDKernel(bandwidth=kernel)
-    else:
-        kernel_obj = kernel
 
     # Initialize
     particles = theta_init
@@ -1020,7 +1024,7 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
             current_step_size = learning_rate
 
         # Perform SVGD update
-        particles = svgd_step(particles, log_prob_fn, kernel_obj, current_step_size,
+        particles = svgd_step(particles, log_prob_fn, kernel, current_step_size,
                              compiled_grad=compiled_grad,
                              parallel_mode=parallel_mode,
                              n_devices=n_devices)
@@ -1118,11 +1122,9 @@ class SVGD:
         - float: constant step size (backward compatible)
         - StepSizeSchedule object: dynamic step size schedule
         Examples: ConstantStepSize(0.01), ExponentialDecayStepSize(0.1, 0.01, 500.0)
-    kernel : str or BandwidthSchedule, default='rbf_median'
+    bandwidth : str default='median'
         Kernel bandwidth selection. Can be:
-        - str: 'rbf_median' for median heuristic (backward compatible)
-        - BandwidthSchedule object: dynamic bandwidth schedule
-        Examples: MedianBandwidth(), FixedBandwidth(1.0), LocalAdaptiveBandwidth()
+        - str: 'median' for median heuristic (backward compatible)
     theta_init : array_like, optional
         Initial particle positions (n_particles, theta_dim)
     theta_dim : int, optional
@@ -1255,7 +1257,7 @@ class SVGD:
     _compiled_cache = {}
 
     def __init__(self, model, observed_data, prior=None, n_particles=None,
-                 n_iterations=1000, learning_rate=0.001, kernel='rbf_median',
+                 n_iterations=1000, learning_rate=0.001, bandwidth='median',
                  theta_init=None, theta_dim=None, seed=42, verbose=True,
                  jit=None,              # NEW: explicit JIT control
                  parallel=None,         # NEW: 'vmap', 'pmap', 'none'
@@ -1326,13 +1328,15 @@ class SVGD:
                 print(f"Warning: n_devices={n_devices} ignored (only used with parallel='pmap')")
             n_devices = None
 
-        print("#############################################")
-        print(f"SVGD Configuration:")
-        print(f"  JIT compilation:        {jit}")
-        print(f"  Parallelization mode:   {parallel}")
-        if parallel == 'pmap':
-            print(f"  Number of devices:      {n_devices} (available: {available_devices})")    
-        print("#############################################")
+        # if verbose:
+        #     print("---------------------------------------------")
+        #     print(f"SVGD Configuration:")
+        #     print(f"  JIT compilation:        {jit}")
+        #     print(f"  Parallelization mode:   {parallel}")
+        #     if parallel == 'pmap':
+        #         print(f"  Number of devices:      {n_devices} (available: {available_devices})")    
+        #     print("---------------------------------------------")
+
 
         # Store configuration (parallel may have been modified by validation)
         self.jit_enabled = jit
@@ -1407,22 +1411,7 @@ class SVGD:
                 f"learning_rate must be float or StepSizeSchedule, got: {type(learning_rate)}"
             )
 
-        # Handle bandwidth schedule (backward compatible)
-        if isinstance(kernel, BandwidthSchedule):
-            self.bandwidth_schedule = kernel
-            self.kernel_str = 'custom'  # Keep for backward compat
-        elif isinstance(kernel, str):
-            if kernel == 'rbf_median':
-                self.bandwidth_schedule = MedianBandwidth()
-            else:
-                # For other string values, keep old behavior
-                self.bandwidth_schedule = None
-            self.kernel_str = kernel
-        else:
-            raise TypeError(
-                f"kernel must be str or BandwidthSchedule, got: {type(kernel)}"
-            )
-
+        self.bandwidth = bandwidth
         self.theta_dim = theta_dim
         self.seed = seed
         self.verbose = verbose
@@ -1692,7 +1681,7 @@ class SVGD:
             Returns self for method chaining
         """
         # Create kernel
-        kernel_obj = SVGDKernel(bandwidth=self.kernel_str)
+        kernel = SVGDKernel(bandwidth=self.bandwidth)
 
         # Run SVGD
         if self.verbose:
@@ -1706,7 +1695,7 @@ class SVGD:
             theta_init=self.theta_init,
             n_steps=self.n_iterations,
             learning_rate=self.step_schedule,  # Pass schedule object
-            kernel=kernel_obj,
+            kernel=kernel,
             return_history=return_history,
             verbose=self.verbose,
             compiled_grad=self.compiled_grad,
@@ -1861,7 +1850,7 @@ class SVGD:
             return log_lik + log_pri - moment_penalty
 
         # Create kernel
-        kernel_obj = SVGDKernel(bandwidth=self.kernel_str)
+        kernel = SVGDKernel(bandwidth=self.bandwidth)
 
         # Run SVGD with regularized objective
         if self.verbose:
@@ -1877,7 +1866,7 @@ class SVGD:
             theta_init=self.theta_init,
             n_steps=self.n_iterations,
             learning_rate=self.learning_rate,
-            kernel=kernel_obj,
+            kernel=kernel,
             return_history=return_history,
             verbose=self.verbose,
             parallel_mode=self.parallel_mode,
@@ -2048,7 +2037,7 @@ class SVGD:
             ax.set_ylabel('Density', fontsize=12)
             ax.set_title(f'Posterior: {param_name}', fontsize=14)
             ax.legend()
-            ax.grid(alpha=0.3)
+            # ax.grid(alpha=0.3)
 
         # Hide unused subplots
         for i in range(n_params, len(axes)):
@@ -2064,7 +2053,7 @@ class SVGD:
         return fig, axes
 
     def plot_trace(self, param_names=None, figsize=None,
-                   burnin=0, max_particles=None, save_path=None, show_transformed=True,
+                   skip=0, max_particles=None, save_path=None, show_transformed=True,
                    ):
         """
         Plot trace plots showing particle evolution over iterations.
@@ -2077,7 +2066,7 @@ class SVGD:
             Names for each parameter dimension
         figsize : tuple, optional
             Figure size (width, height)
-        burnin : int, optional
+        skip : int, optional
             Number of initial iterations to skip. Defaults to 0.
         max_particles : int, optional
             Max number of particles to plot. Defaults to all particles.
@@ -2128,7 +2117,7 @@ class SVGD:
 
         # Determine subplot layout
         if n_params == 1:
-            figsize = figsize or (6, 5)
+            figsize = figsize or (7, 4)
         else:
             figsize = figsize or (min(14, 3.5 * cols), min(12, 2.7 * rows))
 
@@ -2149,19 +2138,18 @@ class SVGD:
 
             # Plot each particle's trajectory
             max_plotted = self.n_particles if max_particles is None else max_particles
-            print(max_plotted)
             for p in range(max_plotted):  # Plot first 10 particles
                 y = history_array[:, p, i]
                 x = np.arange(y.size)
-                ax.plot(x[burnin:], y[burnin:], alpha=0.5, linewidth=1)
+                ax.plot(x[skip:], y[skip:], alpha=0.5, linewidth=1)
 
             # Plot mean trajectory
             mean_trajectory = jnp.mean(history_array[:, :, i], axis=1)
             y = mean_trajectory
             x = np.arange(y.size)
 
-            ax.plot(x[burnin:], y[burnin:], color='black', linewidth=2,
-                   label=f'Mean = {theta_mean[i]:.3f}')
+            ax.plot(x[skip:], y[skip:], color=black_white(ax), linewidth=2,
+                    linestyle='dashed', label=f'Mean = {theta_mean[i]:.3f}')
 
             # Labels
             param_name = param_names[i] if param_names else f'θ_{i}'
@@ -2169,7 +2157,7 @@ class SVGD:
             ax.set_ylabel(param_name + space_label, fontsize=12)
             ax.set_title(f'Trace: {param_name}', fontsize=14)
             ax.legend()
-#            ax.grid(alpha=0.3)
+            # ax.grid(alpha=0.3)
 
         plt.tight_layout()
 
@@ -2180,7 +2168,7 @@ class SVGD:
 
         return fig, axes
 
-    def plot_convergence(self, figsize=(7, 3), save_path=None, burnin=0, show_transformed=True):
+    def plot_convergence(self, figsize=(7, 3), save_path=None, skip=0, show_transformed=True):
         """
         Plot convergence diagnostics showing mean and std over iterations.
 
@@ -2192,7 +2180,7 @@ class SVGD:
             Figure size (width, height)
         save_path : str, optional
             Path to save the plot
-        burnin : int, optional
+        skip : int, optional
             Number of initial iterations to skip. Defaults to 0.
         show_transformed : bool, default=True
             If True, show transformed (constrained) parameter values.
@@ -2247,7 +2235,7 @@ class SVGD:
         for i in range(self.theta_dim):
             param_name = f'θ_{i}'
             x, y = iterations, mean_over_time[:, i]
-            ax1.plot(x[burnin:], y[burnin:], label=param_name, linewidth=2)
+            ax1.plot(x[skip:], y[skip:], label=param_name, linewidth=2)
 
         ax1.set_xlabel('SVGD Iteration', fontsize=12)
         ax1.set_ylabel('Posterior Mean' + space_label, fontsize=12)
@@ -2259,7 +2247,7 @@ class SVGD:
         for i in range(self.theta_dim):
             param_name = f'θ_{i}'
             x, y = iterations, std_over_time[:, i]
-            ax2.plot(x[burnin:], y[burnin:], label=param_name, linewidth=2)
+            ax2.plot(x[skip:], y[skip:], label=param_name, linewidth=2)
 
         ax2.set_xlabel('SVGD Iteration', fontsize=12)
         ax2.set_ylabel('Posterior Std' + space_label, fontsize=12)
@@ -2830,7 +2818,7 @@ class SVGD:
                     param_name_i = param_names[i] if param_names else f'θ_{i}'
                     ax.set_ylabel(param_name_i + space_label)
 
-                ax.grid(alpha=0.3)
+                # ax.grid(alpha=0.3)
 
         plt.tight_layout()
 
@@ -3234,7 +3222,7 @@ class SVGD:
                     true_val = jnp.array(true_theta)[i]
                     ax.axvline(true_val, color='red', linestyle='--', linewidth=2, zorder=10)
 
-                ax.grid(alpha=0.3)
+                # ax.grid(alpha=0.3)
 
             # Update iteration counter
             iteration_text.set_text(f'Iteration: {skip + frame}/{skip + len(history) - 1}')

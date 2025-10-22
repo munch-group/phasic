@@ -5,6 +5,7 @@ import random
 from collections import defaultdict
 from IPython.display import display
 import seaborn as sns
+import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.colors
 from itertools import cycle
@@ -46,6 +47,12 @@ def set_theme(theme:str):
     else:
         plt.rcParams.update({'figure.facecolor': 'white', 'axes.facecolor': 'white'})
 
+def black_white(ax):
+    """Returns black for light backgrounds, white for dark backgrounds."""
+    bg_color = ax.get_facecolor()
+    # Convert to grayscale to determine brightness
+    luminance = matplotlib.colors.rgb_to_hsv(matplotlib.colors.to_rgb(bg_color))[2]
+    return 'black' if luminance > 0.5 else '#FDFDFD'
 
 
 GraphType = TypeVar('Graph') 

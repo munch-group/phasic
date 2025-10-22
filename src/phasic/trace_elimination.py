@@ -925,8 +925,20 @@ def trace_to_c_arrays(trace: EliminationTrace):
     operations_coeff_counts = []
     operations_coeffs_flat = []
 
+    # Map OpType enum to integer values for C code
+    op_type_to_int = {
+        OpType.CONST: 0,
+        OpType.PARAM: 1,
+        OpType.DOT: 2,
+        OpType.ADD: 3,
+        OpType.MUL: 4,
+        OpType.DIV: 5,
+        OpType.INV: 6,
+        OpType.SUM: 7,
+    }
+
     for op in trace.operations:
-        operations_types.append(op.op_type.value)
+        operations_types.append(op_type_to_int[op.op_type])
         operations_consts.append(op.const_value if op.op_type == OpType.CONST else 0.0)
         operations_param_indices.append(op.param_idx if op.op_type == OpType.PARAM else -1)
 
@@ -1342,7 +1354,19 @@ def trace_to_log_likelihood(trace: EliminationTrace, observed_data, reward_vecto
         cpp_code = _generate_cpp_from_trace(trace, observed_data, granularity)
 
         # Create hash for caching (based on trace + observations + granularity)
-        trace_str = serialize_trace(trace)  # Serialize to JSON string
+        # Serialize trace to deterministic string for cache key
+        import json
+        trace_dict = {
+            'n_vertices': trace.n_vertices,
+            'param_length': trace.param_length,
+            'state_length': trace.state_length,
+            'is_discrete': trace.is_discrete,
+            'n_operations': len(trace.operations),
+            # Use hash of states and vertex_rates for compact key
+            'states_hash': hashlib.sha256(trace.states.tobytes()).hexdigest()[:8],
+            'vertex_rates_hash': hashlib.sha256(trace.vertex_rates.tobytes()).hexdigest()[:8],
+        }
+        trace_str = json.dumps(trace_dict, sort_keys=True)
         cache_key = f"{trace_str}_{observed_data.tobytes()}_{granularity}"
         trace_hash = hashlib.sha256(cache_key.encode()).hexdigest()[:16]
 
