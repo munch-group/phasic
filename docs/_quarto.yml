@@ -117,7 +117,10 @@ website:
         - section: "Phase-type distributions"
           contents:
             - pages/background/math_and_alg.qmd
-            - pages/background/symbolic_gauss_elimination.qmd
+            - pages/tutorials/caching_guide.md
+            - pages/tutorials/config_system.md
+            - pages/tutorials/explicit_config_system.md
+
         - section: "Devel"
           contents:
             - pages/devel/architecture.qmd

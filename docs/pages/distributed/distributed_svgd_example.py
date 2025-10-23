@@ -169,7 +169,7 @@ def run_distributed_svgd(dist_info, structure_json: str, observed_data: jnp.ndar
         n_particles=n_particles,
         n_iterations=n_iterations,
         learning_rate=0.01,
-        kernel='rbf_median',
+        kernel='median',
         theta_init=theta_init,
         theta_dim=1,
         seed=42,
