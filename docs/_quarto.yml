@@ -117,9 +117,9 @@ website:
         - section: "Phase-type distributions"
           contents:
             - pages/background/math_and_alg.qmd
-            - pages/tutorials/caching_guide.md
-            - pages/tutorials/config_system.md
-            - pages/tutorials/explicit_config_system.md
+            - pages/tutorials/caching_guide.qmd
+            - pages/tutorials/config_system.qmd
+            - pages/tutorials/explicit_config_system.qmd
 
         - section: "Devel"
           contents:
