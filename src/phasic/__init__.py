@@ -2434,7 +2434,7 @@ extern "C" {{
 
     def svgd(self,
              observed_data: ArrayLike,
-             discrete: bool = False, param_length: int = 1,
+             discrete: bool = False,
              prior: Optional[Callable] = None,
              n_particles: int = 50,
              n_iterations: int = 1000,
@@ -2445,6 +2445,13 @@ extern "C" {{
              return_history: bool = True,
              seed: int = 42,
              verbose: bool = True,
+             jit: Optional[bool] = None,
+             parallel: Optional[str] = None,
+             n_devices: Optional[int] = None,
+             precompile: bool = True,
+             compilation_config: Optional[object] = None,
+             regularization=10, 
+             nr_moments=2,
              positive_params: bool = True,
              param_transform: Optional[Callable] = None) -> Dict:    
     # @classmethod
@@ -2478,6 +2485,8 @@ extern "C" {{
         observed_data : array_like
             Observed data points. For continuous models (PDF), these are time points where
             the density was observed. For discrete models (PMF), these are jump counts.
+        discrete : bool, default=False
+            If True, computes discrete PMF. If False, computes continuous PDF.
         prior : callable, optional
             Log prior function: prior(theta) -> scalar.
             If None, uses standard normal prior: log p(theta) = -0.5 * sum(theta^2)
@@ -2502,6 +2511,28 @@ extern "C" {{
             Random seed for reproducibility
         verbose : bool, default=True
             Print progress information
+        jit : bool or None, default=None
+            Enable JIT compilation. If None, uses value from phasic.get_config().jit.
+            JIT compilation provides significant speedup but adds initial compilation overhead.
+        parallel : str or None, default=None
+            Parallelization strategy:
+            - 'vmap': Vectorize across particles (single device)
+            - 'pmap': Parallelize across devices (uses multiple CPUs/GPUs)
+            - 'none': No parallelization (sequential, useful for debugging)
+            - None: Auto-select (pmap if multiple devices, vmap otherwise)
+        n_devices : int or None, default=None
+            Number of devices to use for pmap. Only used when parallel='pmap'.
+            If None, uses all available devices.
+        precompile : bool, default=True
+            (Deprecated: use jit parameter instead)
+            Precompile model and gradient functions for faster execution.
+            First run will take longer but subsequent iterations will be much faster.
+        compilation_config : CompilationConfig, dict, str, or Path, optional
+            JAX compilation optimization configuration. Can be:
+            - CompilationConfig object from phasic.CompilationConfig
+            - dict with CompilationConfig parameters
+            - str/Path to JSON config file
+            - None (uses default balanced configuration)
         positive_params : bool, default=True
             If True, applies softplus transformation to ensure all parameters are positive.
             Recommended for phase-type models where parameters represent rates.
@@ -2582,12 +2613,13 @@ extern "C" {{
 
         from .svgd import SVGD
 
-        model = Graph.pmf_from_graph(self, discrete=discrete, param_length=param_length)
+        model = Graph.pmf_and_moments_from_graph(self, nr_moments=2, discrete=discrete,
+                                                  param_length=theta_dim)
 
         # Create SVGD object
         svgd = SVGD(
-            model=model,
             observed_data=observed_data,
+            model=model,
             prior=prior,
             n_particles=n_particles,
             n_iterations=n_iterations,
@@ -2597,6 +2629,13 @@ extern "C" {{
             theta_dim=theta_dim,
             seed=seed,
             verbose=verbose,
+            jit=jit,
+            parallel=parallel,
+            n_devices=n_devices,
+            precompile=precompile,
+            compilation_config=compilation_config,
+            regularization=regularization,
+            nr_moments=nr_moments,
             positive_params=positive_params,
             param_transform=param_transform
         )
@@ -2809,7 +2848,8 @@ extern "C" {{
 
     @classmethod
     def pmf_and_moments_from_graph(cls, graph: 'Graph', nr_moments: int = 2,
-                                   discrete: bool = False, use_ffi: bool = False) -> Callable:
+                                   discrete: bool = False, use_ffi: bool = False,
+                                   param_length: int = None) -> Callable:
         """
         Convert a parameterized Graph to a function that computes both PMF/PDF and moments.
 
@@ -2826,6 +2866,10 @@ extern "C" {{
             If True, computes discrete PMF. If False, computes continuous PDF.
         use_ffi : bool, default=False
             If True, uses Foreign Function Interface approach.
+        param_length : int, optional
+            Number of parameters for parameterized edges. If not provided, will be
+            auto-detected by probing edge states. Providing this explicitly avoids
+            potential issues with auto-detection reading garbage memory.
 
         Returns
         -------
@@ -2872,7 +2916,7 @@ extern "C" {{
         import jax.numpy as jnp
 
         # Serialize the graph
-        serialized = graph.serialize()
+        serialized = graph.serialize(param_length=param_length)
         param_length = serialized.get('param_length', 0)
 
         if param_length == 0:

@@ -1189,6 +1189,13 @@ class SVGD:
         Custom parameter transformation function. Overrides positive_params if provided.
         Should map unconstrained space to constrained space (e.g., lambda x: jax.nn.sigmoid(x)
         for parameters in [0,1]). Cannot be used together with positive_params=True.
+    regularization : float, default=0.0
+        Moment-based regularization strength. If 0.0, no regularization (standard SVGD).
+        If > 0.0, adds penalty term to match model moments to sample moments.
+        Sample moments are computed from observed_data at initialization.
+    nr_moments : int, default=2
+        Number of moments to use for regularization. Only used if regularization > 0.
+        Typical values: 2 (mean and variance) or 3 (mean, variance, skewness).
 
     Attributes
     ----------
@@ -1266,7 +1273,8 @@ class SVGD:
                  parallel=None,         # NEW: 'vmap', 'pmap', 'none'
                  n_devices=None,        # NEW: explicit device count for pmap
                  precompile=True,       # Keep for backward compat
-                 compilation_config=None, positive_params=True, param_transform=None):
+                 compilation_config=None, positive_params=True, param_transform=None,
+                 regularization=0.0, nr_moments=2):
 
         if n_particles is None:
             n_particles = 20 * theta_dim
@@ -1339,7 +1347,6 @@ class SVGD:
         #     if parallel == 'pmap':
         #         print(f"  Number of devices:      {n_devices} (available: {available_devices})")    
         #     print("---------------------------------------------")
-
 
         # Store configuration (parallel may have been modified by validation)
         self.jit_enabled = jit
@@ -1486,25 +1493,42 @@ class SVGD:
             if verbose:
                 print(f"Using provided initial particles: {self.theta_init.shape}")
 
-        # Detect model type: does it return (pmf, moments) or just pmf?
-        self.model_returns_moments = False
+        # Store regularization settings
+        self.regularization = regularization
+        self.nr_moments = nr_moments
+
+        # Compute sample moments if regularization > 0
+        if regularization > 0.0:
+            self.sample_moments = compute_sample_moments(self.observed_data, nr_moments)
+            if verbose:
+                print(f"Computed {nr_moments} sample moments for regularization={regularization}")
+        else:
+            self.sample_moments = None
+
+        # Validate that model returns (pmf, moments) tuple
+        # All models must use Graph.pmf_and_moments_from_graph()
         try:
             test_theta = self.theta_init[0]
             test_times = self.observed_data[:min(2, len(self.observed_data))]
             result = self.model(test_theta, test_times)
-            if isinstance(result, tuple) and len(result) == 2:
-                # Model returns (pmf, moments)
-                self.model_returns_moments = True
-                if verbose:
-                    print("Detected model type: returns (pmf, moments)")
-            else:
-                if verbose:
-                    print("Detected model type: returns pmf only")
-        except Exception as e:
-            # If detection fails, assume pmf only
+            if not isinstance(result, tuple) or len(result) != 2:
+                raise ValueError(
+                    "Model must return (pmf, moments) tuple. "
+                    f"Got: {type(result)}. "
+                    "Use Graph.pmf_and_moments_from_graph() to create model, "
+                    "not Graph.pmf_from_graph()."
+                )
             if verbose:
-                print(f"Model type detection failed (assuming pmf only): {e}")
-            pass
+                print("Model validated: returns (pmf, moments) tuple")
+        except ValueError:
+            # Re-raise validation errors
+            raise
+        except Exception as e:
+            # Other errors during model evaluation
+            raise ValueError(
+                f"Model validation failed. Error: {e}\n"
+                "Ensure model has signature: model(theta, times) -> (pmf, moments)"
+            )
 
         # Results (initialized after fit())
         self.particles = None
@@ -1518,9 +1542,9 @@ class SVGD:
         self.compiled_model = None
         self.compiled_grad = None
 
-        # Precompile model and gradient if JIT is enabled
-        if self.jit_enabled:
-            self._precompile_model()
+        # Precompilation now happens in optimize() based on regularization settings
+        # This allows caching for both regularized and non-regularized cases
+        # Old behavior: if self.jit_enabled: self._precompile_model()
 
     def _log_prob(self, theta):
         """
@@ -1628,6 +1652,89 @@ class SVGD:
 
         return log_lik + log_pri - moment_penalty
 
+    def _log_prob_unified(self, theta, nr_moments=0, sample_moments=None,
+                         regularization=0.0, rewards=None):
+        """
+        Unified log probability with optional moment regularization.
+
+        This replaces both _log_prob() and _log_prob_regularized() with a single
+        implementation that handles both cases based on the regularization parameter.
+
+        Parameters
+        ----------
+        theta : array
+            Parameter vector (in unconstrained space if using transformation)
+        nr_moments : int, default=0
+            Number of moments to use for regularization (only used if regularization > 0)
+        sample_moments : array or None
+            Sample moments from observed data (required if regularization > 0)
+        regularization : float, default=0.0
+            Strength of moment regularization (λ)
+            - 0.0: No regularization
+            - > 0.0: Moment-based regularization penalty
+        rewards : array or None
+            Reward vector for reward-transformed likelihood (not yet implemented)
+
+        Returns
+        -------
+        scalar
+            Log probability (with or without moment regularization penalty)
+
+        Raises
+        ------
+        ValueError
+            If regularization > 0 but model doesn't return moments
+        ValueError
+            If regularization > 0 but sample_moments is None
+        """
+        # Apply parameter transformation if specified
+        if self.param_transform is not None:
+            theta_transformed = self.param_transform(theta)
+        else:
+            theta_transformed = theta
+
+        # Evaluate model
+        try:
+            result = self.model(theta_transformed, self.observed_data)
+        except Exception as e:
+            raise ValueError(
+                f"Model evaluation failed. Ensure model has signature model(theta, times). "
+                f"Error: {e}"
+            )
+
+        # Always expect (pmf, moments) tuple
+        if not isinstance(result, tuple) or len(result) != 2:
+            raise ValueError(
+                "Model must return (pmf, moments) tuple. "
+                f"Got: {type(result)}. "
+                "Use Graph.pmf_and_moments_from_graph() to create model."
+            )
+
+        pmf_vals, model_moments = result
+
+        # Log-likelihood term
+        log_lik = jnp.sum(jnp.log(pmf_vals + 1e-10))
+
+        # Log-prior term (evaluated in unconstrained space)
+        if self.prior is not None:
+            log_pri = self.prior(theta)
+        else:
+            # Default: standard normal prior on unconstrained parameters
+            log_pri = -0.5 * jnp.sum(theta**2)
+
+        # Moment regularization penalty (only if regularization > 0)
+        if regularization > 0.0:
+            if sample_moments is None:
+                raise ValueError(
+                    f"regularization={regularization} requires sample_moments but got None"
+                )
+            moment_diff = model_moments[:nr_moments] - sample_moments
+            moment_penalty = regularization * jnp.sum(moment_diff**2)
+            return log_lik + log_pri - moment_penalty
+
+        # No regularization: moments computed but not used
+        return log_lik + log_pri
+
     def _get_cache_path(self):
         """Generate cache path for this model configuration"""
         # Create cache key from model id and shapes
@@ -1641,6 +1748,32 @@ class SVGD:
         cache_dir.mkdir(exist_ok=True)
 
         return cache_dir / f"compiled_svgd_{cache_hash}.pkl"
+
+    def _get_cache_key_unified(self, nr_moments, regularization):
+        """
+        Generate cache key including regularization parameters.
+
+        Different regularization settings require different compiled gradients,
+        so we include nr_moments and regularization in the cache key.
+
+        Parameters
+        ----------
+        nr_moments : int
+            Number of moments for regularization
+        regularization : float
+            Regularization strength
+
+        Returns
+        -------
+        str
+            Cache hash for this configuration
+        """
+        theta_shape = (self.theta_dim,)
+        times_shape = self.observed_data.shape
+        # Include nr_moments and regularization in cache key
+        cache_key = f"{id(self.model)}_{theta_shape}_{times_shape}_{nr_moments}_{regularization}"
+        cache_hash = hashlib.sha256(cache_key.encode()).hexdigest()[:16]
+        return cache_hash
 
     def _save_compiled(self, cache_path):
         """Save compiled model and gradient to disk"""
@@ -1728,9 +1861,237 @@ class SVGD:
         }
         self._save_compiled(cache_path)
 
+    def _precompile_unified(self, nr_moments, sample_moments, regularization):
+        """
+        Precompile gradient for unified log_prob with given regularization settings.
+
+        Handles caching (both memory and disk) for compiled gradients with different
+        regularization parameters.
+
+        Parameters
+        ----------
+        nr_moments : int
+            Number of moments for regularization
+        sample_moments : array or None
+            Sample moments from data
+        regularization : float
+            Regularization strength
+
+        Returns
+        -------
+        compiled_grad : callable
+            JIT-compiled gradient function
+        """
+        # Generate cache key including regularization params
+        cache_hash = self._get_cache_key_unified(nr_moments, regularization)
+        memory_cache_key = (id(self.model), self.theta_dim, self.observed_data.shape,
+                           nr_moments, regularization)
+
+        # Check memory cache first
+        if memory_cache_key in SVGD._compiled_cache:
+            cached = SVGD._compiled_cache[memory_cache_key]
+            compiled_grad = cached['grad']
+            if self.verbose:
+                print(f"  Using cached compiled gradient from memory")
+            return compiled_grad
+
+        # Check disk cache
+        cache_dir = pathlib.Path.home() / '.phasic_cache'
+        cache_dir.mkdir(exist_ok=True)
+        cache_path = cache_dir / f"compiled_svgd_{cache_hash}.pkl"
+
+        if cache_path.exists():
+            try:
+                with open(cache_path, 'rb') as f:
+                    cached = pickle.load(f)
+                compiled_grad = cached['grad']
+                if self.verbose:
+                    print(f"  Loaded compiled gradient from disk cache: {cache_path.name}")
+                # Store in memory cache
+                SVGD._compiled_cache[memory_cache_key] = {'grad': compiled_grad}
+                return compiled_grad
+            except Exception as e:
+                if self.verbose:
+                    print(f"  Warning: Failed to load cache: {e}")
+
+        # Need to compile
+        if self.verbose:
+            print(f"\nPrecompiling gradient function...")
+            print(f"  Theta shape: {(self.theta_dim,)}, Times shape: {self.observed_data.shape}")
+            if regularization > 0:
+                print(f"  Moment regularization: λ={regularization}, nr_moments={nr_moments}")
+            print(f"  This may take several minutes for large models...")
+
+        # Create log_prob function using partial
+        log_prob_fn = partial(
+            self._log_prob_unified,
+            nr_moments=nr_moments,
+            sample_moments=sample_moments,
+            regularization=regularization,
+            rewards=None
+        )
+
+        # JIT compile gradient
+        start = time()
+        grad_fn = jax.grad(log_prob_fn)
+        compiled_grad = jax.jit(grad_fn)
+        # Trigger compilation with dummy call
+        dummy_theta = jnp.zeros((self.theta_dim,))
+        _ = compiled_grad(dummy_theta)
+        if self.verbose:
+            print(f"  Gradient JIT compiled in {time() - start:.1f}s")
+            print(f"  Precompilation complete!")
+
+        # Save to both caches
+        SVGD._compiled_cache[memory_cache_key] = {'grad': compiled_grad}
+        try:
+            with open(cache_path, 'wb') as f:
+                pickle.dump({'grad': compiled_grad}, f)
+            if self.verbose:
+                print(f"  Saved compiled gradient to cache: {cache_path.name}")
+        except Exception:
+            # Disk caching is best-effort
+            pass
+
+        return compiled_grad
+
+    def optimize(self, rewards=None, return_history=True):
+        """
+        Run SVGD inference with optional moment-based regularization.
+
+        Regularization settings are configured at SVGD initialization via
+        regularization and nr_moments parameters.
+
+        Parameters
+        ----------
+        rewards : array_like, optional
+            Reward vector for reward-transformed likelihood (not yet implemented).
+            Length must match number of vertices (excluding start vertex).
+            Each reward serves as multiplier of vertex value in trace.
+        return_history : bool, default=True
+            If True, store particle positions throughout optimization
+
+        Returns
+        -------
+        self
+            Returns self for method chaining
+
+        Raises
+        ------
+        NotImplementedError
+            If rewards parameter is provided (not yet implemented)
+
+        Examples
+        --------
+        >>> # Standard SVGD (no regularization)
+        >>> model = Graph.pmf_and_moments_from_graph(graph)
+        >>> svgd = SVGD(model, observed_data, theta_dim=1, regularization=0.0)
+        >>> svgd.optimize()
+
+        >>> # SVGD with moment regularization
+        >>> model = Graph.pmf_and_moments_from_graph(graph, nr_moments=2)
+        >>> svgd = SVGD(model, observed_data, theta_dim=1, regularization=1.0, nr_moments=2)
+        >>> svgd.optimize()
+
+        >>> # With custom moments and strong regularization
+        >>> svgd = SVGD(model, observed_data, theta_dim=1, regularization=5.0, nr_moments=3)
+        >>> svgd.optimize()
+
+        Notes
+        -----
+        - Supports all JAX transformations: jit, grad, vmap, pmap
+        - Supports multi-core parallelization via parallel='vmap'/'pmap'
+        - Supports multi-machine distribution via initialize_distributed()
+        - Gradient compilation is cached (both memory and disk) for performance
+        - All functionality from fit() and fit_regularized() is preserved
+        """
+        # Validate rewards parameter
+        if rewards is not None:
+            raise NotImplementedError(
+                "Reward vector support is not yet implemented. "
+                "This requires extending the FFI to support reward transformation."
+            )
+
+        # Use regularization settings from __init__
+        use_regularization = (self.regularization > 0.0)
+
+        # Precompile gradient with caching (if JIT enabled)
+        if self.jit_enabled:
+            compiled_grad = self._precompile_unified(self.nr_moments, self.sample_moments, self.regularization)
+        else:
+            # Create log_prob function using partial (no JIT)
+            log_prob_fn = partial(
+                self._log_prob_unified,
+                nr_moments=self.nr_moments,
+                sample_moments=self.sample_moments,
+                regularization=self.regularization,
+                rewards=None
+            )
+            compiled_grad = jax.grad(log_prob_fn)  # Not JIT compiled
+
+        # Create log_prob function for run_svgd
+        log_prob_fn = partial(
+            self._log_prob_unified,
+            nr_moments=self.nr_moments,
+            sample_moments=self.sample_moments,
+            regularization=self.regularization,
+            rewards=None
+        )
+
+        # Create kernel
+        kernel = SVGDKernel(bandwidth=self.bandwidth)
+
+        # Run SVGD
+        if self.verbose:
+            print(f"\nStarting SVGD inference...")
+            print(f"  Model: parameterized phase-type distribution")
+            print(f"  Data points: {len(self.observed_data)}")
+            print(f"  Prior: {'custom' if self.prior is not None else 'standard normal'}")
+            if use_regularization:
+                print(f"  Moment regularization: λ = {self.regularization}")
+                print(f"  Nr moments: {self.nr_moments}")
+            else:
+                print(f"  Moment regularization: disabled")
+
+        results = run_svgd(
+            log_prob_fn=log_prob_fn,
+            theta_init=self.theta_init,
+            n_steps=self.n_iterations,
+            learning_rate=self.step_schedule,
+            kernel=kernel,
+            return_history=return_history,
+            verbose=self.verbose,
+            compiled_grad=compiled_grad,
+            parallel_mode=self.parallel_mode,
+            n_devices=self.n_devices
+        )
+
+        # Store results as attributes
+        self.particles = results['particles']
+        self.theta_mean = results['theta_mean']
+        self.theta_std = results['theta_std']
+
+        if return_history:
+            self.history = results['history']
+            self.history_iterations = results['history_iterations']
+
+        self.is_fitted = True
+
+        # Print summary with transformed values if verbose
+        if self.verbose:
+            print(f"\nSVGD complete!")
+            transformed_results = self.get_results()
+            print(f"Posterior mean: {transformed_results['theta_mean']}")
+            print(f"Posterior std:  {transformed_results['theta_std']}")
+
+        return self
+
     def fit(self, return_history=True):
         """
-        Run SVGD inference to approximate the posterior distribution.
+        Run SVGD inference.
+
+        Convenience wrapper for optimize(). Regularization settings are
+        configured at SVGD initialization via regularization and nr_moments parameters.
 
         Parameters
         ----------
@@ -1742,76 +2103,26 @@ class SVGD:
         self
             Returns self for method chaining
         """
-        # Create kernel
-        kernel = SVGDKernel(bandwidth=self.bandwidth)
+        return self.optimize(return_history=return_history)
 
-        # Run SVGD
-        if self.verbose:
-            print(f"\nStarting SVGD inference...")
-            print(f"  Model: parameterized phase-type distribution")
-            print(f"  Data points: {len(self.observed_data)}")
-            print(f"  Prior: {'custom' if self.prior is not None else 'standard normal'}")
-
-        results = run_svgd(
-            log_prob_fn=self._log_prob,
-            theta_init=self.theta_init,
-            n_steps=self.n_iterations,
-            learning_rate=self.step_schedule,  # Pass schedule object
-            kernel=kernel,
-            return_history=return_history,
-            verbose=self.verbose,
-            compiled_grad=self.compiled_grad,
-            parallel_mode=self.parallel_mode,
-            n_devices=self.n_devices
-        )
-
-        # Store results as attributes
-        self.particles = results['particles']
-        self.theta_mean = results['theta_mean']
-        self.theta_std = results['theta_std']
-
-        if return_history:
-            self.history = results['history']
-            self.history_iterations = results['history_iterations']
-
-        self.is_fitted = True
-
-        # Print summary with transformed values if verbose
-        if self.verbose:
-            print(f"\nSVGD complete!")
-            transformed_results = self.get_results()
-            print(f"Posterior mean: {transformed_results['theta_mean']}")
-            print(f"Posterior std:  {transformed_results['theta_std']}")
-
-        return self
-
-    def fit_regularized(self, observed_times=None, nr_moments=2,
-                       regularization=1.0, return_history=True):
+    def fit_regularized(self, observed_times=None, nr_moments=None,
+                       regularization=None, return_history=True):
         """
         Run SVGD with moment-based regularization.
 
-        Adds regularization term that penalizes difference between model moments
-        and sample moments, improving stability and convergence.
-
-        The regularized objective is:
-            log p(theta | data) = log p(data|theta) + log p(theta) - λ * Σ_k (E[T^k|theta] - mean(data^k))^2
+        .. deprecated::
+            This method is deprecated. Configure regularization settings via
+            SVGD(..., regularization=..., nr_moments=...) at initialization,
+            then call fit() or optimize().
 
         Parameters
         ----------
         observed_times : array_like, optional
-            Actual observed data points (waiting times, not PMF values).
-            Used for computing sample moments.
-            If None, uses self.observed_data (assumes it contains times, not PMF values).
-        nr_moments : int, default=2
-            Number of moments to use for regularization.
-            Higher moments provide stronger constraints but may be less stable.
-            Example: nr_moments=2 uses E[T] and E[T^2]
-        regularization : float, default=1.0
-            Strength of moment regularization (λ in objective).
-            - 0.0: No regularization (equivalent to standard SVGD)
-            - 0.1-1.0: Mild regularization
-            - 1.0-10.0: Strong regularization
-            Higher values enforce moment matching more strongly.
+            (Ignored) Observed times are now set at SVGD initialization.
+        nr_moments : int, optional
+            (Ignored) Number of moments is now set at SVGD initialization.
+        regularization : float, optional
+            (Ignored) Regularization strength is now set at SVGD initialization.
         return_history : bool, default=True
             Whether to store particle history
 
@@ -1819,130 +2130,25 @@ class SVGD:
         -------
         self
             Returns self for method chaining
-
-        Raises
-        ------
-        ValueError
-            If model doesn't support moments (wasn't created with pmf_and_moments_from_graph)
-        ValueError
-            If observed_times is None and cannot determine sample moments
-
-        Examples
-        --------
-        >>> # Create parameterized model with moments
-        >>> graph = Graph(callback=coalescent, parameterized=True, nr_samples=4)
-        >>> model = Graph.pmf_and_moments_from_graph(graph, nr_moments=2)
-        >>>
-        >>> # Generate observed data
-        >>> true_theta = jnp.array([0.8])
-        >>> observed_times = jnp.array([0.5, 1.2, 0.8, 1.5, 2.0])
-        >>> observed_pmf = model(true_theta, observed_times)[0]  # Extract PMF values
-        >>>
-        >>> # Run regularized SVGD
-        >>> svgd = SVGD(model, observed_pmf, theta_dim=1)
-        >>> svgd.fit_regularized(observed_times=observed_times, nr_moments=2, regularization=1.0)
-        >>>
-        >>> # Access results
-        >>> print(f"Posterior mean: {svgd.theta_mean}")
-        >>> print(f"Posterior std: {svgd.theta_std}")
-
-        Notes
-        -----
-        - Requires model created with Graph.pmf_and_moments_from_graph()
-        - The regularization term stabilizes inference by matching distribution moments
-        - Particularly useful when observed data is sparse or noisy
-        - Start with regularization=1.0 and adjust based on performance
         """
-        # Validate that model supports moments
-        if not self.model_returns_moments:
-            raise ValueError(
-                "Model must return both PMF and moments for regularized SVGD. "
-                "Use Graph.pmf_and_moments_from_graph() to create model, not Graph.pmf_from_graph()."
-            )
-
-        # Determine observed times
-        if observed_times is None:
-            # Try to use self.observed_data as times
-            observed_times = self.observed_data
-            if self.verbose:
-                print("Using self.observed_data as observed times for sample moment computation")
-        else:
-            observed_times = jnp.array(observed_times)
-
-        # Compute sample moments from observed data
-        sample_moments = compute_sample_moments(observed_times, nr_moments)
-        if self.verbose:
-            print(f"Sample moments from data: {sample_moments}")
-
-        # Create regularized log-probability function using partial
-        # This avoids creating a closure that captures large arrays (self.observed_data)
-        # which would cause JAX to accumulate compiled functions and leak memory
-        log_prob_regularized = partial(
-            self._log_prob_regularized,
-            sample_moments=sample_moments,
-            nr_moments=nr_moments,
-            regularization=regularization
+        import warnings
+        warnings.warn(
+            "fit_regularized() is deprecated. Configure regularization settings at "
+            "SVGD initialization: SVGD(..., regularization=1.0, nr_moments=2), "
+            "then call fit() or optimize().",
+            DeprecationWarning,
+            stacklevel=2
         )
 
-        # Create kernel
-        kernel = SVGDKernel(bandwidth=self.bandwidth)
+        # Warn if user tried to pass parameters
+        if observed_times is not None:
+            warnings.warn("observed_times parameter is ignored - data is set at SVGD initialization", UserWarning)
+        if nr_moments is not None:
+            warnings.warn("nr_moments parameter is ignored - set at SVGD initialization", UserWarning)
+        if regularization is not None:
+            warnings.warn("regularization parameter is ignored - set at SVGD initialization", UserWarning)
 
-        # JIT compile gradient for regularized objective (for multi-core performance)
-        if self.verbose:
-            print(f"\nCompiling regularized gradient...")
-        grad_fn = jax.grad(log_prob_regularized)
-        compiled_grad_regularized = jax.jit(grad_fn)
-        # Trigger compilation with dummy call
-        _ = compiled_grad_regularized(self.theta_init[0])
-        if self.verbose:
-            print(f"  Gradient compiled successfully")
-
-        # Run SVGD with regularized objective
-        if self.verbose:
-            print(f"\nStarting regularized SVGD inference...")
-            print(f"  Model: parameterized phase-type distribution")
-            print(f"  Data points: {len(self.observed_data)}")
-            print(f"  Prior: {'custom' if self.prior is not None else 'standard normal'}")
-            print(f"  Moment regularization: λ = {regularization}")
-            print(f"  Nr moments: {nr_moments}")
-
-        results = run_svgd(
-            log_prob_fn=log_prob_regularized,
-            theta_init=self.theta_init,
-            n_steps=self.n_iterations,
-            learning_rate=self.step_schedule,  # Pass schedule object
-            kernel=kernel,
-            return_history=return_history,
-            verbose=self.verbose,
-            compiled_grad=compiled_grad_regularized,
-            parallel_mode=self.parallel_mode,
-            n_devices=self.n_devices
-        )
-
-        # Store results as attributes
-        self.particles = results['particles']
-        self.theta_mean = results['theta_mean']
-        self.theta_std = results['theta_std']
-
-        if return_history:
-            self.history = results['history']
-            self.history_iterations = results['history_iterations']
-
-        self.is_fitted = True
-
-        # Store regularization info
-        self.regularization = regularization
-        self.nr_moments = nr_moments
-        self.sample_moments = sample_moments
-
-        # Print summary with transformed values if verbose
-        if self.verbose:
-            print(f"\nSVGD complete!")
-            transformed_results = self.get_results()
-            print(f"Posterior mean: {transformed_results['theta_mean']}")
-            print(f"Posterior std:  {transformed_results['theta_std']}")
-
-        return self
+        return self.optimize(return_history=return_history)
 
     def get_results(self):
         """
