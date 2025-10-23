@@ -1569,6 +1569,65 @@ class SVGD:
 
         return log_lik + log_pri
 
+    def _log_prob_regularized(self, theta, sample_moments, nr_moments, regularization):
+        """
+        Regularized log probability with moment matching term.
+
+        log p(theta | data, moments) = log p(data|theta) + log p(theta) - λ * ||E[T^k|theta] - sample_moments||^2
+
+        Parameters
+        ----------
+        theta : array
+            Parameter vector (in unconstrained space if using transformation)
+        sample_moments : array
+            Sample moments computed from observed data
+        nr_moments : int
+            Number of moments to use for regularization
+        regularization : float
+            Strength of moment regularization (λ in objective)
+
+        Returns
+        -------
+        scalar
+            Regularized log probability
+        """
+        # Apply parameter transformation if specified
+        if self.param_transform is not None:
+            theta_transformed = self.param_transform(theta)
+        else:
+            theta_transformed = theta
+
+        # Evaluate model to get PMF and moments
+        try:
+            result = self.model(theta_transformed, self.observed_data)
+            if isinstance(result, tuple) and len(result) == 2:
+                pmf_vals, model_moments = result
+            else:
+                raise ValueError("Model must return (pmf, moments) tuple for regularized SVGD")
+        except Exception as e:
+            raise ValueError(
+                f"Model evaluation failed. Ensure model signature is model(theta, times) -> (pmf, moments). "
+                f"Error: {e}"
+            )
+
+        # Standard log-likelihood term
+        log_lik = jnp.sum(jnp.log(pmf_vals + 1e-10))
+
+        # Log-prior term (evaluated in unconstrained space)
+        if self.prior is not None:
+            log_pri = self.prior(theta)
+        else:
+            # Default: standard normal prior
+            log_pri = -0.5 * jnp.sum(theta**2)
+
+        # Moment regularization penalty
+        # We want to minimize (model_moments - sample_moments)^2
+        # So we subtract this from log probability
+        moment_diff = model_moments[:nr_moments] - sample_moments
+        moment_penalty = regularization * jnp.sum(moment_diff**2)
+
+        return log_lik + log_pri - moment_penalty
+
     def _get_cache_path(self):
         """Generate cache path for this model configuration"""
         # Create cache key from model id and shapes
@@ -1669,13 +1728,13 @@ class SVGD:
         }
         self._save_compiled(cache_path)
 
-    def fit(self, return_history=False):
+    def fit(self, return_history=True):
         """
         Run SVGD inference to approximate the posterior distribution.
 
         Parameters
         ----------
-        return_history : bool, default=False
+        return_history : bool, default=True
             If True, store particle positions throughout optimization
 
         Returns
@@ -1727,7 +1786,7 @@ class SVGD:
         return self
 
     def fit_regularized(self, observed_times=None, nr_moments=2,
-                       regularization=1.0, return_history=False):
+                       regularization=1.0, return_history=True):
         """
         Run SVGD with moment-based regularization.
 
@@ -1753,7 +1812,7 @@ class SVGD:
             - 0.1-1.0: Mild regularization
             - 1.0-10.0: Strong regularization
             Higher values enforce moment matching more strongly.
-        return_history : bool, default=False
+        return_history : bool, default=True
             Whether to store particle history
 
         Returns
@@ -1815,42 +1874,15 @@ class SVGD:
         if self.verbose:
             print(f"Sample moments from data: {sample_moments}")
 
-        # Define regularized log-probability function
-        def log_prob_regularized(theta):
-            """
-            Regularized log probability with moment matching term.
-
-            log p(theta | data, moments) = log p(data|theta) + log p(theta) - λ * ||E[T^k|theta] - sample_moments||^2
-            """
-            try:
-                result = self.model(theta, self.observed_data)
-                if isinstance(result, tuple) and len(result) == 2:
-                    pmf_vals, model_moments = result
-                else:
-                    raise ValueError("Model must return (pmf, moments) tuple for regularized SVGD")
-            except Exception as e:
-                raise ValueError(
-                    f"Model evaluation failed. Ensure model signature is model(theta, times) -> (pmf, moments). "
-                    f"Error: {e}"
-                )
-
-            # Standard log-likelihood term
-            log_lik = jnp.sum(jnp.log(pmf_vals + 1e-10))
-
-            # Log-prior term
-            if self.prior is not None:
-                log_pri = self.prior(theta)
-            else:
-                # Default: standard normal prior
-                log_pri = -0.5 * jnp.sum(theta**2)
-
-            # Moment regularization penalty
-            # We want to minimize (model_moments - sample_moments)^2
-            # So we subtract this from log probability
-            moment_diff = model_moments[:nr_moments] - sample_moments
-            moment_penalty = regularization * jnp.sum(moment_diff**2)
-
-            return log_lik + log_pri - moment_penalty
+        # Create regularized log-probability function using partial
+        # This avoids creating a closure that captures large arrays (self.observed_data)
+        # which would cause JAX to accumulate compiled functions and leak memory
+        log_prob_regularized = partial(
+            self._log_prob_regularized,
+            sample_moments=sample_moments,
+            nr_moments=nr_moments,
+            regularization=regularization
+        )
 
         # Create kernel
         kernel = SVGDKernel(bandwidth=self.bandwidth)
