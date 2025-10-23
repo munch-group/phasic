@@ -2643,7 +2643,7 @@ class SVGD:
                    edgecolor='black', label='Posterior')
 
             # Posterior mean
-            ax.axvline(theta_mean[i], color='blue', linestyle='--',
+            ax.axvline(theta_mean[i], color=black_white(), linestyle='--',
                       linewidth=2, label=f'Mean = {theta_mean[i]:.3f}')
 
             # True value (if provided)
@@ -3624,7 +3624,7 @@ class SVGD:
                 line, = ax_traj.plot([], [], alpha=0.3, linewidth=1)
                 particle_lines.append(line)
 
-        mean_line, = ax_traj.plot([], [], color='black', linewidth=2.5, label='Mean', zorder=5)
+        mean_line, = ax_traj.plot([], [], color=black_white(), linewidth=2.5, label='Mean', zorder=5)
         current_marker = ax_traj.axvline(0, color='blue', linestyle=':', linewidth=1.5, alpha=0.7)
         ax_traj.legend()
 
