@@ -4,6 +4,7 @@
 #include <string>
 #include <memory>
 #include <iostream>
+#include <limits>
 
 namespace phasic {
 namespace parameterized {
@@ -141,24 +142,17 @@ ffi::Error ComputePmfFfiImpl(
 }
 
 ffi::Error ComputePmfAndMomentsFfiImpl(
-    ffi::Buffer<ffi::U8> structure_json,
+    std::string_view structure_json,
+    int32_t nr_moments,
     int32_t granularity,
     bool discrete,
-    int32_t nr_moments,
     ffi::Buffer<ffi::F64> theta,
     ffi::Buffer<ffi::F64> times,
     ffi::ResultBuffer<ffi::F64> pmf_result,
     ffi::ResultBuffer<ffi::F64> moments_result
 ) {
-    // Extract JSON string from buffer
-    auto json_dims = structure_json.dimensions();
-    if (json_dims.size() != 1) {
-        return ffi::Error::InvalidArgument("structure_json must be 1D array");
-    }
-
-    size_t json_length = json_dims[0];
-    const uint8_t* json_data = structure_json.typed_data();
-    std::string json_str(reinterpret_cast<const char*>(json_data), json_length);
+    // Convert string_view to string (direct conversion, no buffer extraction needed)
+    std::string json_str(structure_json);
 
     // Look up or create GraphBuilder in thread-local cache
     std::shared_ptr<GraphBuilder> builder;
@@ -178,18 +172,37 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
     }
 
     // Extract buffer dimensions
+    // With vmap, buffers may have batch dimension added
+    // theta: 1D (n_params,) OR 2D (batch, n_params)
+    // times: 1D (n_times,) OR 2D (1, n_times) when not mapped OR (batch, n_times) when mapped
     auto theta_dims = theta.dimensions();
     auto times_dims = times.dimensions();
 
-    if (theta_dims.size() != 1) {
-        return ffi::Error::InvalidArgument("theta must be 1D array");
-    }
-    if (times_dims.size() != 1) {
-        return ffi::Error::InvalidArgument("times must be 1D array");
+    size_t theta_len, n_times;
+    size_t theta_batch_size = 1;
+    size_t times_batch_size = 1;
+
+    if (theta_dims.size() == 1) {
+        // No batch dimension
+        theta_len = theta_dims[0];
+    } else if (theta_dims.size() == 2) {
+        // Batched (from vmap): shape is (batch, n_params)
+        theta_batch_size = theta_dims[0];
+        theta_len = theta_dims[1];
+    } else {
+        return ffi::Error::InvalidArgument("theta must be 1D or 2D array");
     }
 
-    size_t theta_len = theta_dims[0];
-    size_t n_times = times_dims[0];
+    if (times_dims.size() == 1) {
+        // No batch dimension
+        n_times = times_dims[0];
+    } else if (times_dims.size() == 2) {
+        // Batched OR singleton batch: shape is (batch, n_times)
+        times_batch_size = times_dims[0];
+        n_times = times_dims[1];
+    } else {
+        return ffi::Error::InvalidArgument("times must be 1D or 2D array");
+    }
 
     // Get raw data pointers
     const double* theta_data = theta.typed_data();
@@ -197,35 +210,90 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
     double* pmf_data = pmf_result->typed_data();
     double* moments_data = moments_result->typed_data();
 
-    try {
-        // Build graph ONCE (efficient!)
-        Graph g = builder->build(theta_data, theta_len);
+    // Check if batched (from vmap)
+    if (theta_batch_size > 1 || times_batch_size > 1) {
+        // BATCHED: Process multiple theta/times combinations
+        size_t batch_size = std::max(theta_batch_size, times_batch_size);
 
-        // Compute PMF/PDF
-        if (discrete) {
-            for (size_t i = 0; i < n_times; i++) {
-                int jump_count = static_cast<int>(times_data[i]);
-                pmf_data[i] = g.dph_pmf(jump_count);
-            }
-        } else {
-            for (size_t i = 0; i < n_times; i++) {
-                pmf_data[i] = g.pdf(times_data[i], granularity);
+        // Times can be either batched (same size as theta) or singleton (broadcast to all theta)
+        bool times_is_broadcast = (times_batch_size == 1 && theta_batch_size > 1);
+
+        // Process each batch element in parallel using OpenMP
+        #pragma omp parallel for if(batch_size > 1)
+        for (size_t b = 0; b < batch_size; b++) {
+            try {
+                // Build graph for this batch element
+                const double* theta_b = theta_data + (b * theta_len);
+                Graph g = builder->build(theta_b, theta_len);
+
+                // Get times for this batch (either indexed or broadcast)
+                const double* times_b = times_is_broadcast ? times_data : (times_data + (b * n_times));
+
+                // Get result pointers for this batch
+                double* pmf_b = pmf_data + (b * n_times);
+                double* moments_b = moments_data + (b * nr_moments);
+
+                // Compute PMF/PDF
+                if (discrete) {
+                    for (size_t i = 0; i < n_times; i++) {
+                        int jump_count = static_cast<int>(times_b[i]);
+                        pmf_b[i] = g.dph_pmf(jump_count);
+                    }
+                } else {
+                    for (size_t i = 0; i < n_times; i++) {
+                        pmf_b[i] = g.pdf(times_b[i], granularity);
+                    }
+                }
+
+                // Compute moments using same graph
+                std::vector<double> moments_vec = builder->compute_moments_impl(g, nr_moments);
+
+                // Copy moments to output buffer
+                for (int i = 0; i < nr_moments; i++) {
+                    moments_b[i] = moments_vec[i];
+                }
+            } catch (const std::exception& e) {
+                // In parallel region, we can't return error directly
+                // Set error in moments output as NaN to signal failure
+                double* moments_b = moments_data + (b * nr_moments);
+                for (int i = 0; i < nr_moments; i++) {
+                    moments_b[i] = std::numeric_limits<double>::quiet_NaN();
+                }
             }
         }
+    } else {
+        // NOT BATCHED: theta shape (n_params,), times shape (n_times,)
+        try {
+            Graph g = builder->build(theta_data, theta_len);
 
-        // Compute moments using same graph
-        std::vector<double> moments = builder->compute_moments_impl(g, nr_moments);
+            // Compute PMF/PDF
+            if (discrete) {
+                for (size_t i = 0; i < n_times; i++) {
+                    int jump_count = static_cast<int>(times_data[i]);
+                    pmf_data[i] = g.dph_pmf(jump_count);
+                }
+            } else {
+                for (size_t i = 0; i < n_times; i++) {
+                    pmf_data[i] = g.pdf(times_data[i], granularity);
+                }
+            }
 
-        // Copy moments to output buffer
-        for (int i = 0; i < nr_moments; i++) {
-            moments_data[i] = moments[i];
+            // Compute moments using same graph
+            std::vector<double> moments_vec = builder->compute_moments_impl(g, nr_moments);
+
+            // Copy moments to output buffer
+            for (int i = 0; i < nr_moments; i++) {
+                moments_data[i] = moments_vec[i];
+            }
+
+            return ffi::Error::Success();
+
+        } catch (const std::exception& e) {
+            return ffi::Error::Internal(e.what());
         }
-
-        return ffi::Error::Success();
-
-    } catch (const std::exception& e) {
-        return ffi::Error::Internal(e.what());
     }
+
+    return ffi::Error::Success();
 }
 
 } // namespace ffi_handlers
@@ -254,12 +322,12 @@ XLA_FFI_Handler* CreateComputePmfAndMomentsHandler() {
     // Create a static function pointer using the pattern from XLA_FFI_DEFINE_HANDLER
     static constexpr XLA_FFI_Handler* handler = +[](XLA_FFI_CallFrame* call_frame) {
         static auto* bound_handler = xla::ffi::Ffi::Bind()
-            .Arg<xla::ffi::Buffer<xla::ffi::U8>>()   // structure_json
+            .Attr<std::string_view>("structure_json")  // JSON as STATIC attribute (not batched)
+            .Attr<int32_t>("nr_moments")
             .Attr<int32_t>("granularity")
             .Attr<bool>("discrete")
-            .Attr<int32_t>("nr_moments")
-            .Arg<xla::ffi::Buffer<xla::ffi::F64>>()  // theta
-            .Arg<xla::ffi::Buffer<xla::ffi::F64>>()  // times
+            .Arg<xla::ffi::Buffer<xla::ffi::F64>>()  // theta (batched by vmap)
+            .Arg<xla::ffi::Buffer<xla::ffi::F64>>()  // times (batched by vmap)
             .Ret<xla::ffi::Buffer<xla::ffi::F64>>()  // pmf_result
             .Ret<xla::ffi::Buffer<xla::ffi::F64>>()  // moments_result
             .To(ffi_handlers::ComputePmfAndMomentsFfiImpl)

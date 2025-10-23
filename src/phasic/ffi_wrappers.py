@@ -609,23 +609,25 @@ def compute_pmf_and_moments_ffi(structure_json: Union[str, Dict], theta: jax.Arr
     _register_ffi_targets()
 
     # Use JAX FFI (XLA-optimized zero-copy with OpenMP parallelization)
-    # Convert structure to JSON bytes (survives pickle boundary)
+    # JSON is passed as STRING ATTRIBUTE (static, not batched by vmap)
     structure_str = _ensure_json_string(structure_json)
-    # Create owned array (not view) to ensure data persists until FFI accesses it
-    json_str_bytes = structure_str.encode('utf-8')
-    json_bytes = jnp.array(np.frombuffer(json_str_bytes, dtype=np.uint8))
 
-    # Call JAX FFI target with JSON
-    pmf_result, moments_result = jax.ffi.ffi_call(
+    # Call JAX FFI target
+    # NOTE: JSON passed as attribute (static), theta/times as buffers (batched)
+    # expand_dims: vmap adds batch dimension, FFI handler loops over batch with OpenMP
+    ffi_fn = jax.ffi.ffi_call(
         "ptd_compute_pmf_and_moments",
         (jax.ShapeDtypeStruct(times.shape, times.dtype),
          jax.ShapeDtypeStruct((nr_moments,), jnp.float64)),
-        json_bytes,  # Arg 1: structure_json buffer
-        theta,       # Arg 2: theta buffer
-        times,       # Arg 3: times buffer
-        granularity=granularity,   # Attr: granularity
-        discrete=discrete,          # Attr: discrete
-        nr_moments=nr_moments       # Attr: nr_moments
+        vmap_method="expand_dims"  # Batch dim added, handler processes all at once with OpenMP
+    )
+    pmf_result, moments_result = ffi_fn(
+        theta,       # Arg 1: theta buffer (BATCHED by vmap)
+        times,       # Arg 2: times buffer (BATCHED by vmap)
+        structure_json=structure_str,           # Attr: JSON string (STATIC, not batched)
+        granularity=np.int32(granularity),      # Attr: granularity
+        discrete=np.bool_(discrete),            # Attr: discrete
+        nr_moments=np.int32(nr_moments)         # Attr: nr_moments
     )
     return pmf_result, moments_result
 

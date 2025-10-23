@@ -54,10 +54,10 @@ ffi::Error ComputePmfFfiImpl(
  * @return ffi::Error Success or error status
  */
 ffi::Error ComputePmfAndMomentsFfiImpl(
-    ffi::Buffer<ffi::U8> structure_json,
+    std::string_view structure_json,
+    int32_t nr_moments,
     int32_t granularity,
     bool discrete,
-    int32_t nr_moments,
     ffi::Buffer<ffi::F64> theta,
     ffi::Buffer<ffi::F64> times,
     ffi::ResultBuffer<ffi::F64> pmf_result,

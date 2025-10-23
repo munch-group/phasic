@@ -2881,223 +2881,96 @@ extern "C" {{
                 "Create graph with parameterized=True and use add_edge_parameterized()."
             )
 
-        # Generate C++ build_model() code
-        cpp_code = _generate_cpp_from_graph(serialized)
+        # Check if FFI is available (same pattern as pmf_from_graph)
+        config = get_config()
+        use_ffi = config.ffi  # Enable FFI for multi-core parallelization (C++ binding fixed!)
 
-        # Create wrapper that computes both PMF and moments
-        granularity = 0  # Default granularity for PDF computation
+        if use_ffi:
+            # FFI MODE: Zero-copy XLA-optimized computation with multi-core support
+            from functools import partial
+            import json
+            from .ffi_wrappers import compute_pmf_and_moments_ffi, _make_json_serializable
 
-        if discrete:
-            wrapper_code = f'''{cpp_code}
+            structure_json_str = json.dumps(_make_json_serializable(serialized))
 
-#include <cmath>
-
-// Helper function to compute factorial
-double factorial(int n) {{
-    double result = 1.0;
-    for (int i = 2; i <= n; i++) {{
-        result *= i;
-    }}
-    return result;
-}}
-
-extern "C" {{
-    void compute_pmf_and_moments(
-        const double* theta, int n_params,
-        const int* times, int n_times,
-        int nr_moments,
-        double* pmf_output,
-        double* moments_output
-    ) {{
-        // Build graph from theta
-        phasic::Graph g = build_model(theta, n_params);
-
-        // Compute PMF for discrete case
-        for (int i = 0; i < n_times; i++) {{
-            pmf_output[i] = g.dph_pmf(times[i]);
-        }}
-
-        // Compute moments using expected_waiting_time() method
-        // This replicates the _moments() function from pybind11 code
-        std::vector<double> rewards;  // Empty rewards for standard moments
-        std::vector<double> rewards2 = g.expected_waiting_time(rewards);
-        std::vector<double> rewards3(rewards2.size());
-
-        moments_output[0] = rewards2[0];  // First moment (mean)
-
-        // Compute higher moments iteratively
-        for (int i = 1; i < nr_moments; i++) {{
-            for (int j = 0; j < (int)rewards3.size(); j++) {{
-                rewards3[j] = rewards2[j] * std::pow(rewards2[j], i);
-            }}
-            rewards2 = g.expected_waiting_time(rewards3);
-            moments_output[i] = factorial(i + 1) * rewards2[0];
-        }}
-    }}
-}}
-'''
-        else:
-            wrapper_code = f'''{cpp_code}
-
-#include <cmath>
-
-// Helper function to compute factorial
-double factorial(int n) {{
-    double result = 1.0;
-    for (int i = 2; i <= n; i++) {{
-        result *= i;
-    }}
-    return result;
-}}
-
-extern "C" {{
-    void compute_pmf_and_moments(
-        const double* theta, int n_params,
-        const double* times, int n_times,
-        int nr_moments,
-        double* pmf_output,
-        double* moments_output
-    ) {{
-        // Build graph from theta
-        phasic::Graph g = build_model(theta, n_params);
-
-        // Compute PDF for continuous case
-        for (int i = 0; i < n_times; i++) {{
-            pmf_output[i] = g.pdf(times[i], {granularity});
-        }}
-
-        // Compute moments using expected_waiting_time() method
-        // This replicates the _moments() function from pybind11 code
-        std::vector<double> rewards;  // Empty rewards for standard moments
-        std::vector<double> rewards2 = g.expected_waiting_time(rewards);
-        std::vector<double> rewards3(rewards2.size());
-
-        moments_output[0] = rewards2[0];  // First moment (mean)
-
-        // Compute higher moments iteratively
-        for (int i = 1; i < nr_moments; i++) {{
-            for (int j = 0; j < (int)rewards3.size(); j++) {{
-                rewards3[j] = rewards2[j] * std::pow(rewards2[j], i);
-            }}
-            rewards2 = g.expected_waiting_time(rewards3);
-            moments_output[i] = factorial(i + 1) * rewards2[0];
-        }}
-    }}
-}}
-'''
-
-        # Compile the wrapper
-        lib_name = f"pmf_moments_{hashlib.sha256(wrapper_code.encode()).hexdigest()[:16]}"
-        lib_path = _compile_wrapper_library(wrapper_code, lib_name)
-
-        # Load the library
-        lib = ctypes.PyDLL(lib_path)
-
-        # Define the function signature
-        if discrete:
-            lib.compute_pmf_and_moments.argtypes = [
-                ctypes.POINTER(ctypes.c_double),  # theta
-                ctypes.c_int,                      # n_params
-                ctypes.POINTER(ctypes.c_int),      # times
-                ctypes.c_int,                      # n_times
-                ctypes.c_int,                      # nr_moments
-                ctypes.POINTER(ctypes.c_double),   # pmf_output
-                ctypes.POINTER(ctypes.c_double)    # moments_output
-            ]
-        else:
-            lib.compute_pmf_and_moments.argtypes = [
-                ctypes.POINTER(ctypes.c_double),  # theta
-                ctypes.c_int,                      # n_params
-                ctypes.POINTER(ctypes.c_double),   # times
-                ctypes.c_int,                      # n_times
-                ctypes.c_int,                      # nr_moments
-                ctypes.POINTER(ctypes.c_double),   # pmf_output
-                ctypes.POINTER(ctypes.c_double)    # moments_output
-            ]
-        lib.compute_pmf_and_moments.restype = None
-
-        # Pure computation function
-        def _compute_pmf_and_moments_pure(theta_flat, times_flat):
-            """Pure function for combined PMF and moments computation"""
-            theta_np = np.asarray(theta_flat, dtype=np.float64)
-            times_np = np.asarray(times_flat, dtype=np.float64 if not discrete else np.int32)
-
-            # Check if theta is batched (from vmap with expand_dims)
-            if theta_np.ndim == 2:
-                times_unbatched = times_np[0] if times_np.ndim == 2 else times_np
-                pmf_results = []
-                moments_results = []
-                for theta_single in theta_np:
-                    pmf_output = np.zeros(len(times_unbatched), dtype=np.float64)
-                    moments_output = np.zeros(nr_moments, dtype=np.float64)
-
-                    if discrete:
-                        lib.compute_pmf_and_moments(
-                            theta_single.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                            len(theta_single),
-                            times_unbatched.ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
-                            len(times_unbatched),
-                            nr_moments,
-                            pmf_output.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                            moments_output.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-                        )
-                    else:
-                        lib.compute_pmf_and_moments(
-                            theta_single.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                            len(theta_single),
-                            times_unbatched.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                            len(times_unbatched),
-                            nr_moments,
-                            pmf_output.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                            moments_output.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-                        )
-                    pmf_results.append(pmf_output)
-                    moments_results.append(moments_output)
-                return np.array(pmf_results), np.array(moments_results)
-            else:
-                # Unbatched case
-                pmf_output = np.zeros(len(times_np), dtype=np.float64)
-                moments_output = np.zeros(nr_moments, dtype=np.float64)
-
-                if discrete:
-                    lib.compute_pmf_and_moments(
-                        theta_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                        len(theta_np),
-                        times_np.ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
-                        len(times_np),
-                        nr_moments,
-                        pmf_output.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                        moments_output.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-                    )
-                else:
-                    lib.compute_pmf_and_moments(
-                        theta_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                        len(theta_np),
-                        times_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                        len(times_np),
-                        nr_moments,
-                        pmf_output.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                        moments_output.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-                    )
-
-                return pmf_output, moments_output
-
-        # Helper function for pure callback (used in forward and backward pass)
-        def _compute_pure(theta, times):
-            """Pure computation without custom_vjp wrapper"""
-            theta = jnp.atleast_1d(theta)
-            times = jnp.atleast_1d(times)
-
-            pmf_shape = jax.ShapeDtypeStruct(times.shape, jnp.float64)
-            moments_shape = jax.ShapeDtypeStruct((nr_moments,), jnp.float64)
-
-            result = jax.pure_callback(
-                _compute_pmf_and_moments_pure,
-                (pmf_shape, moments_shape),
-                theta, times,
-                vmap_method='expand_dims'
+            # Create partially applied FFI function with static parameters
+            model_ffi_partial = partial(
+                compute_pmf_and_moments_ffi,
+                structure_json_str,
+                nr_moments=nr_moments,
+                discrete=discrete,
+                granularity=0
             )
-            return result
+
+            # FFI mode doesn't need batching - FFI handles it natively
+            def _compute_pure(theta, times):
+                """FFI wrapper for multi-core parallelization.
+
+                Supports: jit, vmap, pmap with true multi-core execution
+                FFI caching: GraphBuilder cached by JSON structure
+                """
+                theta = jnp.atleast_1d(theta)
+                times = jnp.atleast_1d(times)
+                return model_ffi_partial(theta=theta, times=times)
+        else:
+            # FALLBACK MODE: Use pybind11 GraphBuilder (same as pmf_from_graph)
+            import json
+            from . import phasic_pybind as cpp_module
+            from .ffi_wrappers import _make_json_serializable
+
+            structure_json_str = json.dumps(_make_json_serializable(serialized))
+
+            # Create GraphBuilder ONCE - captured in model closure
+            builder = cpp_module.parameterized.GraphBuilder(structure_json_str)
+
+            def _compute_pmf_and_moments_cached(theta_np, times_np):
+                """Uses cached builder - NO JSON parsing per call."""
+                # Check if theta is batched (from vmap with expand_dims)
+                if theta_np.ndim == 2:
+                    times_unbatched = times_np[0] if times_np.ndim == 2 else times_np
+                    pmf_results = []
+                    moments_results = []
+                    for theta_single in theta_np:
+                        pmf, moments = builder.compute_pmf_and_moments(
+                            theta_single,
+                            times_unbatched,
+                            nr_moments=nr_moments,
+                            discrete=discrete,
+                            granularity=0
+                        )
+                        pmf_results.append(pmf)
+                        moments_results.append(moments)
+                    return np.array(pmf_results), np.array(moments_results)
+                else:
+                    # Unbatched case
+                    pmf, moments = builder.compute_pmf_and_moments(
+                        theta_np,
+                        times_np,
+                        nr_moments=nr_moments,
+                        discrete=discrete,
+                        granularity=0
+                    )
+                    return pmf, moments
+
+            # Helper function for pure callback (used in forward and backward pass)
+            def _compute_pure(theta, times):
+                """Pure computation without custom_vjp wrapper"""
+                theta = jnp.atleast_1d(theta)
+                times = jnp.atleast_1d(times)
+
+                pmf_shape = jax.ShapeDtypeStruct(times.shape, jnp.float64)
+                moments_shape = jax.ShapeDtypeStruct((nr_moments,), jnp.float64)
+
+                result = jax.pure_callback(
+                    lambda theta_jax, times_jax: _compute_pmf_and_moments_cached(
+                        np.asarray(theta_jax),
+                        np.asarray(times_jax)
+                    ),
+                    (pmf_shape, moments_shape),
+                    theta, times,
+                    vmap_method='expand_dims'
+                )
+                return result
 
         # Wrap for JAX compatibility with custom VJP for gradients
         @jax.custom_vjp
