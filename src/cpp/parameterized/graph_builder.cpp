@@ -211,11 +211,19 @@ std::vector<double> GraphBuilder::compute_moments_impl(Graph& g, int nr_moments)
     result[0] = rewards2[0];
 
     // Higher moments: E[T^k]
+    // This follows the algorithm from _moments in phasic_pybind.cpp
+    std::vector<double> rewards3(rewards2.size());
+
     for (int k = 1; k < nr_moments; k++) {
-        // For moment k+1, we need: rewards3[i] = rewards2[i] * rewards2[i]^k
-        std::vector<double> rewards3(rewards2.size());
-        for (size_t i = 0; i < rewards2.size(); i++) {
-            rewards3[i] = rewards2[i] * std::pow(rewards2[i], k);
+        // For standard moments (empty rewards), just copy rewards2
+        // For custom rewards, multiply by the original rewards
+        if (!rewards.empty()) {
+            for (size_t i = 0; i < rewards2.size(); i++) {
+                rewards3[i] = rewards2[i] * rewards[i];
+            }
+        } else {
+            // Standard moments: copy rewards2 (not square it!)
+            rewards3 = rewards2;
         }
 
         rewards2 = g.expected_waiting_time(rewards3);
