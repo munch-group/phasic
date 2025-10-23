@@ -223,6 +223,11 @@ if HAS_JAX:
         ConstantStepSize,
         ExponentialDecayStepSize,
         AdaptiveStepSize,
+        # Regularization schedules
+        RegularizationSchedule,
+        ConstantRegularization,
+        ExponentialDecayRegularization,
+        ExponentialCDFRegularization,
         # # Bandwidth schedules
         # BandwidthSchedule,
         # MedianBandwidth,
@@ -235,6 +240,10 @@ else:
     ConstantStepSize = None
     ExponentialDecayStepSize = None
     AdaptiveStepSize = None
+    RegularizationSchedule = None
+    ConstantRegularization = None
+    ExponentialDecayRegularization = None
+    ExponentialCDFRegularization = None
     # BandwidthSchedule = None
     # MedianBandwidth = None
     # FixedBandwidth = None

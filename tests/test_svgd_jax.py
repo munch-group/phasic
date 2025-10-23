@@ -279,7 +279,7 @@ def main():
     
     # Use ExponentialDecayStepSize to prevent divergence with large datasets
     from phasic import ExponentialDecayStepSize
-    step_schedule = ExponentialDecayStepSize(max_step=0.01, min_step=0.001, tau=500.0)
+    step_schedule = ExponentialDecayStepSize(first_step=0.01, last_step=0.001, tau=500.0)
 
     common_params = dict(
                 model=model,

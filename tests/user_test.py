@@ -47,7 +47,7 @@ def uninformative_prior(phi):
 
 from phasic import SVGD, ExponentialDecayStepSize
 
-step_schedule = ExponentialDecayStepSize(max_step=0.001, min_step=0.00001, tau=500.0)
+step_schedule = ExponentialDecayStepSize(first_step=0.001, last_step=0.00001, tau=500.0)
 
 params = dict(
             bandwidth='median',

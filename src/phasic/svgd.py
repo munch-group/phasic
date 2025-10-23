@@ -79,6 +79,66 @@ class StepSizeSchedule:
         """
         raise NotImplementedError
 
+    def plot(self, nr_iter=1000, figsize=(4, 3), title=None, ax=None):
+        """
+        Plot the step size schedule over iterations.
+
+        Parameters
+        ----------
+        nr_iter : int, default=1000
+            Number of iterations to plot
+        figsize : tuple, default=(4, 3)
+            Figure size (width, height) in inches
+        title : str, optional
+            Plot title. If None, uses class name
+        ax : matplotlib.axes.Axes, optional
+            Axes to plot on. If None, creates new figure
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            Figure object
+        ax : matplotlib.axes.Axes
+            Axes object
+
+        Examples
+        --------
+        >>> schedule = ExponentialDecayStepSize(first_step=0.1, last_step=0.01, tau=500.0)
+        >>> fig, ax = schedule.plot(nr_iter=2000)
+        >>> plt.show()
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            raise ImportError("matplotlib is required for plotting. Install with: pip install matplotlib")
+
+        # Create figure if needed
+        if ax is None:
+            fig, ax = plt.subplots(figsize=figsize)
+        else:
+            fig = ax.get_figure()
+
+        # Compute schedule values
+        iterations = np.arange(nr_iter)
+        values = np.array([self(i) for i in iterations])
+
+        # Plot
+        ax.plot(iterations, values, 'b-', linewidth=2)
+        ax.set_xlabel('Iteration', fontsize=12)
+        ax.set_ylabel('Step Size', fontsize=12)
+        ax.set_title(title or f'{self.__class__.__name__}', fontsize=14)
+        # ax.grid(True, alpha=0.3)
+
+        # Add horizontal lines for first and last values if they exist
+        if hasattr(self, 'first_step') and hasattr(self, 'last_step'):
+            ax.axhline(self.first_step, color='g', linestyle='--', alpha=0.5,
+                      label=f'first_step={self.first_step:.4f}')
+            ax.axhline(self.last_step, color='r', linestyle='--', alpha=0.5,
+                      label=f'last_step={self.last_step:.4f}')
+            ax.legend(fontsize=10)
+
+        return fig, ax
+
 
 class ConstantStepSize(StepSizeSchedule):
     """
@@ -106,23 +166,23 @@ class ConstantStepSize(StepSizeSchedule):
 
 class ExponentialDecayStepSize(StepSizeSchedule):
     """
-    Exponential decay schedule: step_size = max_step * exp(-iteration/tau) + min_step.
+    Exponential decay schedule: step_size = first_step * exp(-iteration/tau) + last_step * (1 - exp(-iteration/tau)).
 
     This schedule helps prevent divergence with large datasets by gradually reducing
     the step size as optimization progresses.
 
     Parameters
     ----------
-    max_step : float, default=0.01
-        Initial (maximum) step size
-    min_step : float, default=1e-6
-        Final (minimum) step size
+    first_step : float, default=0.01
+        Initial (first) step size at iteration 0
+    last_step : float, default=1e-6
+        Final (last) step size as iteration → ∞
     tau : float, default=1000.0
         Decay time constant (larger = slower decay)
 
     Examples
     --------
-    >>> schedule = ExponentialDecayStepSize(max_step=0.1, min_step=0.01, tau=500.0)
+    >>> schedule = ExponentialDecayStepSize(first_step=0.1, last_step=0.01, tau=500.0)
     >>> schedule(0)      # iteration 0
     0.1
     >>> schedule(500)    # iteration 500 (≈63% decay)
@@ -130,14 +190,14 @@ class ExponentialDecayStepSize(StepSizeSchedule):
     >>> schedule(5000)   # iteration 5000 (full decay)
     0.01
     """
-    def __init__(self, max_step=0.01, min_step=1e-6, tau=1000.0):
-        self.max_step = max_step
-        self.min_step = min_step
+    def __init__(self, first_step=0.01, last_step=1e-6, tau=1000.0):
+        self.first_step = first_step
+        self.last_step = last_step
         self.tau = tau
 
     def __call__(self, iteration, particles=None):
         decay = jnp.exp(-iteration / self.tau)
-        return self.max_step * decay + self.min_step * (1 - decay)
+        return self.first_step * decay + self.last_step * (1 - decay)
 
 
 class AdaptiveStepSize(StepSizeSchedule):
@@ -187,6 +247,209 @@ class AdaptiveStepSize(StepSizeSchedule):
 
         self.current_step = self.current_step * adjustment
         return self.current_step
+
+
+# ============================================================================
+# Regularization Schedule Classes
+# ============================================================================
+
+class RegularizationSchedule:
+    """
+    Base class for regularization schedules.
+
+    Subclasses should implement __call__(iteration, particles) returning a scalar regularization value.
+    """
+    def __call__(self, iteration, particles=None):
+        """
+        Compute regularization strength for given iteration.
+
+        Parameters
+        ----------
+        iteration : int
+            Current iteration number (0-indexed)
+        particles : jnp.ndarray, optional
+            Current particle positions, shape (n_particles, theta_dim)
+
+        Returns
+        -------
+        float
+            Regularization strength for this iteration
+        """
+        raise NotImplementedError
+
+    def plot(self, nr_iter=1000, figsize=(4, 3), title=None, ax=None):
+        """
+        Plot the regularization schedule over iterations.
+
+        Parameters
+        ----------
+        nr_iter : int, default=1000
+            Number of iterations to plot
+        figsize : tuple, default=(4, 3)
+            Figure size (width, height) in inches
+        title : str, optional
+            Plot title. If None, uses class name
+        ax : matplotlib.axes.Axes, optional
+            Axes to plot on. If None, creates new figure
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            Figure object
+        ax : matplotlib.axes.Axes
+            Axes object
+
+        Examples
+        --------
+        >>> schedule = ExponentialDecayRegularization(first_reg=5.0, last_reg=0.1, tau=500.0)
+        >>> fig, ax = schedule.plot(nr_iter=2000)
+        >>> plt.show()
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            raise ImportError("matplotlib is required for plotting. Install with: pip install matplotlib")
+
+        # Create figure if needed
+        if ax is None:
+            fig, ax = plt.subplots(figsize=figsize)
+        else:
+            fig = ax.get_figure()
+
+        # Compute schedule values
+        iterations = np.arange(nr_iter)
+        values = np.array([self(i) for i in iterations])
+
+        # Plot
+        ax.plot(iterations, values, 'b-', linewidth=2)
+        ax.set_xlabel('Iteration', fontsize=12)
+        ax.set_ylabel('Regularization Strength', fontsize=12)
+        ax.set_title(title or f'{self.__class__.__name__}', fontsize=14)
+        # ax.grid(True, alpha=0.3)
+
+        # Add horizontal lines for first and last values if they exist
+        if hasattr(self, 'first_reg') and hasattr(self, 'last_reg'):
+            ax.axhline(self.first_reg, color='g', linestyle='--', alpha=0.5,
+                      label=f'first_reg={self.first_reg:.4f}')
+            ax.axhline(self.last_reg, color='r', linestyle='--', alpha=0.5,
+                      label=f'last_reg={self.last_reg:.4f}')
+            ax.legend(fontsize=10)
+
+        return fig, ax
+
+
+class ConstantRegularization(RegularizationSchedule):
+    """
+    Constant regularization (default behavior).
+
+    Parameters
+    ----------
+    regularization : float, default=0.0
+        Fixed regularization strength for all iterations
+
+    Examples
+    --------
+    >>> schedule = ConstantRegularization(1.0)
+    >>> schedule(0)  # iteration 0
+    1.0
+    >>> schedule(100)  # iteration 100
+    1.0
+    """
+    def __init__(self, regularization=0.0):
+        self.regularization = regularization
+
+    def __call__(self, iteration, particles=None):
+        return self.regularization
+
+
+class ExponentialDecayRegularization(RegularizationSchedule):
+    """
+    Exponential decay schedule: reg = first_reg * exp(-iteration/tau) + last_reg * (1 - exp(-iteration/tau)).
+
+    This schedule helps by starting with strong moment regularization to guide
+    initial exploration, then gradually reducing regularization as optimization
+    converges to allow fine-tuning.
+
+    Parameters
+    ----------
+    first_reg : float, default=1.0
+        Initial (first) regularization strength at iteration 0
+    last_reg : float, default=0.0
+        Final (last) regularization strength as iteration → ∞
+    tau : float, default=1000.0
+        Decay time constant (larger = slower decay)
+
+    Examples
+    --------
+    >>> schedule = ExponentialDecayRegularization(first_reg=5.0, last_reg=0.1, tau=500.0)
+    >>> schedule(0)      # iteration 0
+    5.0
+    >>> schedule(500)    # iteration 500 (≈63% decay)
+    0.1925
+    >>> schedule(5000)   # iteration 5000 (full decay)
+    0.1
+    """
+    def __init__(self, first_reg=1.0, last_reg=0.0, tau=1000.0):
+        self.first_reg = first_reg
+        self.last_reg = last_reg
+        self.tau = tau
+
+    def __call__(self, iteration, particles=None):
+        decay = jnp.exp(-iteration / self.tau)
+        return self.first_reg * decay + self.last_reg * (1 - decay)
+
+
+class ExponentialCDFRegularization(RegularizationSchedule):
+    """
+    Exponential CDF schedule: reg = first_reg + (last_reg - first_reg) * (1 - exp(-iteration/tau)).
+
+    This schedule uses the exponential cumulative distribution function (CDF) to create
+    a smooth S-curve transition between first_reg and last_reg. Unlike exponential decay,
+    this is bidirectional and works naturally for both increasing and decreasing schedules.
+
+    The CDF approach provides:
+    - Smooth, continuous transitions
+    - Fast initial change that gradually slows
+    - Natural interpretation: tau is the "characteristic time" (63% transition at tau)
+    - Works equally well for increasing or decreasing regularization
+
+    Parameters
+    ----------
+    first_reg : float, default=0.0
+        Initial (first) regularization strength at iteration 0
+    last_reg : float, default=1.0
+        Final (last) regularization strength as iteration → ∞
+    tau : float, default=1000.0
+        Transition time constant (larger = slower transition)
+
+    Examples
+    --------
+    >>> # Increasing regularization (useful for progressive regularization)
+    >>> schedule = ExponentialCDFRegularization(first_reg=0.0, last_reg=1.0, tau=500.0)
+    >>> schedule(0)      # iteration 0
+    0.0
+    >>> schedule(500)    # iteration 500 (≈63% transition)
+    0.632
+    >>> schedule(5000)   # iteration 5000 (nearly complete)
+    0.993
+
+    >>> # Decreasing regularization (similar to exponential decay)
+    >>> schedule = ExponentialCDFRegularization(first_reg=5.0, last_reg=0.1, tau=500.0)
+    >>> schedule(0)      # iteration 0
+    5.0
+    >>> schedule(500)    # iteration 500 (≈63% transition)
+    1.9
+    >>> schedule(5000)   # iteration 5000 (nearly complete)
+    0.1
+    """
+    def __init__(self, first_reg=0.0, last_reg=1.0, tau=1000.0):
+        self.first_reg = first_reg
+        self.last_reg = last_reg
+        self.tau = tau
+
+    def __call__(self, iteration, particles=None):
+        cdf = 1.0 - jnp.exp(-iteration / self.tau)
+        return self.first_reg + (self.last_reg - self.first_reg) * cdf
 
 
 # class BandwidthSchedule:
@@ -957,7 +1220,8 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
 
 def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
              kernel=None, return_history=False, verbose=True, compiled_grad=None,
-             parallel_mode='vmap', n_devices=None):
+             parallel_mode='vmap', n_devices=None,
+             log_prob_fn_factory=None, regularization_schedule=None):
     """
     Run Stein Variational Gradient Descent
 
@@ -1026,9 +1290,19 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
         else:
             current_step_size = learning_rate
 
+        # Compute current regularization and create log_prob_fn if using schedule
+        if regularization_schedule is not None:
+            current_reg = regularization_schedule(step, particles)
+            # Create log_prob_fn with current regularization
+            log_prob_fn = log_prob_fn_factory(current_reg)
+            # Gradient is computed on-the-fly (no precompilation benefit)
+            compiled_grad_to_use = None
+        else:
+            compiled_grad_to_use = compiled_grad
+
         # Perform SVGD update
         particles = svgd_step(particles, log_prob_fn, kernel, current_step_size,
-                             compiled_grad=compiled_grad,
+                             compiled_grad=compiled_grad_to_use,
                              parallel_mode=parallel_mode,
                              n_devices=n_devices)
 
@@ -1189,10 +1463,17 @@ class SVGD:
         Custom parameter transformation function. Overrides positive_params if provided.
         Should map unconstrained space to constrained space (e.g., lambda x: jax.nn.sigmoid(x)
         for parameters in [0,1]). Cannot be used together with positive_params=True.
-    regularization : float, default=0.0
-        Moment-based regularization strength. If 0.0, no regularization (standard SVGD).
+    regularization : float or RegularizationSchedule, default=0.0
+        Moment-based regularization strength. Can be:
+        - float: constant regularization (0.0 = no regularization, >0.0 = regularized SVGD)
+        - RegularizationSchedule object: dynamic regularization schedule
+        Examples: ConstantRegularization(1.0), ExponentialDecayRegularization(5.0, 0.1, 500.0)
+
         If > 0.0, adds penalty term to match model moments to sample moments.
         Sample moments are computed from observed_data at initialization.
+
+        **Note**: Using RegularizationSchedule disables gradient precompilation for flexibility,
+        which may be slower than constant regularization but allows dynamic strategies.
     nr_moments : int, default=2
         Number of moments to use for regularization. Only used if regularization > 0.
         Typical values: 2 (mean and variance) or 3 (mean, variance, skewness).
@@ -1238,7 +1519,7 @@ class SVGD:
     >>>
     >>> # Using step size schedules to prevent divergence
     >>> from phasic import ExponentialDecayStepSize
-    >>> schedule = ExponentialDecayStepSize(max_step=0.1, min_step=0.01, tau=500.0)
+    >>> schedule = ExponentialDecayStepSize(first_step=0.1, last_step=0.01, tau=500.0)
     >>> svgd = SVGD(model, observed_data, theta_dim=1, learning_rate=schedule)
     >>> svgd.fit()
     >>>
@@ -1246,6 +1527,24 @@ class SVGD:
     >>> from phasic import AdaptiveStepSize
     >>> schedule = AdaptiveStepSize(base_step=0.01, kl_target=0.1, adjust_rate=0.1)
     >>> svgd = SVGD(model, observed_data, theta_dim=1, learning_rate=schedule)
+    >>> svgd.fit()
+    >>>
+    >>> # Using regularization schedules for moment matching
+    >>> from phasic import ExponentialDecayRegularization
+    >>> reg_schedule = ExponentialDecayRegularization(first_reg=5.0, last_reg=0.1, tau=500.0)
+    >>> svgd = SVGD(model, observed_data, theta_dim=1,
+    ...             regularization=reg_schedule, nr_moments=2)
+    >>> svgd.fit()  # Starts with strong regularization, gradually reduces
+    >>>
+    >>> # Using CDF-based regularization schedule (bidirectional)
+    >>> from phasic import ExponentialCDFRegularization
+    >>> reg_schedule = ExponentialCDFRegularization(first_reg=0.0, last_reg=1.0, tau=500.0)
+    >>> svgd = SVGD(model, observed_data, theta_dim=1,
+    ...             regularization=reg_schedule, nr_moments=2)
+    >>> svgd.fit()  # Progressive regularization (increasing)
+    >>>
+    >>> # Constant regularization (no schedule)
+    >>> svgd = SVGD(model, observed_data, theta_dim=1, regularization=1.0, nr_moments=2)
     >>> svgd.fit()
     >>>
     >>> # Using custom bandwidth schedule
@@ -1493,15 +1792,31 @@ class SVGD:
             if verbose:
                 print(f"Using provided initial particles: {self.theta_init.shape}")
 
-        # Store regularization settings
-        self.regularization = regularization
+        # Store regularization settings and handle regularization schedule (backward compatible)
+        if isinstance(regularization, RegularizationSchedule):
+            self.regularization_schedule = regularization
+            self.use_regularization_schedule = True
+            # Evaluate at iteration 0 to get initial value
+            self.regularization = regularization(0)
+            if verbose:
+                print(f"Using regularization schedule (initial value: {self.regularization})")
+        elif isinstance(regularization, (int, float)):
+            self.regularization_schedule = ConstantRegularization(float(regularization))
+            self.use_regularization_schedule = False
+            self.regularization = float(regularization)
+        else:
+            raise TypeError(
+                f"regularization must be float or RegularizationSchedule, got: {type(regularization)}"
+            )
+
         self.nr_moments = nr_moments
 
-        # Compute sample moments if regularization > 0
-        if regularization > 0.0:
+        # Compute sample moments if initial regularization > 0 or using schedule
+        # (schedule might start at 0 but increase later, so we need moments ready)
+        if self.regularization > 0.0 or self.use_regularization_schedule:
             self.sample_moments = compute_sample_moments(self.observed_data, nr_moments)
-            if verbose:
-                print(f"Computed {nr_moments} sample moments for regularization={regularization}")
+            if verbose and self.regularization > 0.0:
+                print(f"Computed {nr_moments} sample moments for regularization={self.regularization}")
         else:
             self.sample_moments = None
 
@@ -1722,18 +2037,16 @@ class SVGD:
             # Default: standard normal prior on unconstrained parameters
             log_pri = -0.5 * jnp.sum(theta**2)
 
-        # Moment regularization penalty (only if regularization > 0)
-        if regularization > 0.0:
-            if sample_moments is None:
-                raise ValueError(
-                    f"regularization={regularization} requires sample_moments but got None"
-                )
+        # Moment regularization penalty
+        # Always compute penalty if moments available (but it's zero if regularization=0)
+        # This avoids Python control flow on potentially-traced values
+        if sample_moments is not None and nr_moments > 0:
             moment_diff = model_moments[:nr_moments] - sample_moments
             moment_penalty = regularization * jnp.sum(moment_diff**2)
             return log_lik + log_pri - moment_penalty
-
-        # No regularization: moments computed but not used
-        return log_lik + log_pri
+        else:
+            # No regularization: moments computed but not used
+            return log_lik + log_pri
 
     def _get_cache_path(self):
         """Generate cache path for this model configuration"""
@@ -1860,6 +2173,31 @@ class SVGD:
             'grad': self.compiled_grad
         }
         self._save_compiled(cache_path)
+
+    def _create_log_prob_fn_with_regularization(self, regularization_value):
+        """
+        Create log_prob function with specific regularization value.
+
+        This factory method is used for regularization schedules, where the
+        regularization value changes per iteration.
+
+        Parameters
+        ----------
+        regularization_value : float
+            Current regularization strength for this iteration
+
+        Returns
+        -------
+        callable
+            Log probability function with signature: theta -> scalar
+        """
+        return partial(
+            self._log_prob_unified,
+            nr_moments=self.nr_moments,
+            sample_moments=self.sample_moments,
+            regularization=regularization_value,
+            rewards=None
+        )
 
     def _precompile_unified(self, nr_moments, sample_moments, regularization):
         """
@@ -2012,14 +2350,56 @@ class SVGD:
                 "This requires extending the FFI to support reward transformation."
             )
 
-        # Use regularization settings from __init__
-        use_regularization = (self.regularization > 0.0)
+        # Create kernel
+        kernel = SVGDKernel(bandwidth=self.bandwidth)
 
-        # Precompile gradient with caching (if JIT enabled)
-        if self.jit_enabled:
-            compiled_grad = self._precompile_unified(self.nr_moments, self.sample_moments, self.regularization)
+        # Use regularization settings from __init__
+        use_regularization = (self.regularization > 0.0 or self.use_regularization_schedule)
+
+        # Run SVGD - split into two paths based on regularization type
+        if self.use_regularization_schedule:
+            # Dynamic regularization - cannot precompile gradient
+            # Gradient is computed on-the-fly each iteration with current regularization
+            if self.verbose:
+                print(f"\nStarting SVGD inference with regularization schedule...")
+                print(f"  Model: parameterized phase-type distribution")
+                print(f"  Data points: {len(self.observed_data)}")
+                print(f"  Prior: {'custom' if self.prior is not None else 'standard normal'}")
+                print(f"  Regularization: dynamic schedule (initial λ = {self.regularization})")
+                print(f"  Nr moments: {self.nr_moments}")
+                print(f"  Note: Gradient precompilation disabled for schedule flexibility")
+
+            results = run_svgd(
+                log_prob_fn=None,  # Created dynamically per iteration
+                theta_init=self.theta_init,
+                n_steps=self.n_iterations,
+                learning_rate=self.step_schedule,
+                kernel=kernel,
+                return_history=return_history,
+                verbose=self.verbose,
+                compiled_grad=None,  # Cannot precompile with dynamic regularization
+                parallel_mode=self.parallel_mode,
+                n_devices=self.n_devices,
+                log_prob_fn_factory=self._create_log_prob_fn_with_regularization,
+                regularization_schedule=self.regularization_schedule
+            )
         else:
-            # Create log_prob function using partial (no JIT)
+            # Static regularization - use current precompiled approach
+            # Precompile gradient with caching (if JIT enabled)
+            if self.jit_enabled:
+                compiled_grad = self._precompile_unified(self.nr_moments, self.sample_moments, self.regularization)
+            else:
+                # Create log_prob function using partial (no JIT)
+                log_prob_fn = partial(
+                    self._log_prob_unified,
+                    nr_moments=self.nr_moments,
+                    sample_moments=self.sample_moments,
+                    regularization=self.regularization,
+                    rewards=None
+                )
+                compiled_grad = jax.grad(log_prob_fn)  # Not JIT compiled
+
+            # Create log_prob function for run_svgd
             log_prob_fn = partial(
                 self._log_prob_unified,
                 nr_moments=self.nr_moments,
@@ -2027,44 +2407,33 @@ class SVGD:
                 regularization=self.regularization,
                 rewards=None
             )
-            compiled_grad = jax.grad(log_prob_fn)  # Not JIT compiled
 
-        # Create log_prob function for run_svgd
-        log_prob_fn = partial(
-            self._log_prob_unified,
-            nr_moments=self.nr_moments,
-            sample_moments=self.sample_moments,
-            regularization=self.regularization,
-            rewards=None
-        )
+            # Print info
+            if self.verbose:
+                print(f"\nStarting SVGD inference...")
+                print(f"  Model: parameterized phase-type distribution")
+                print(f"  Data points: {len(self.observed_data)}")
+                print(f"  Prior: {'custom' if self.prior is not None else 'standard normal'}")
+                if use_regularization:
+                    print(f"  Moment regularization: λ = {self.regularization}")
+                    print(f"  Nr moments: {self.nr_moments}")
+                else:
+                    print(f"  Moment regularization: disabled")
 
-        # Create kernel
-        kernel = SVGDKernel(bandwidth=self.bandwidth)
-
-        # Run SVGD
-        if self.verbose:
-            print(f"\nStarting SVGD inference...")
-            print(f"  Model: parameterized phase-type distribution")
-            print(f"  Data points: {len(self.observed_data)}")
-            print(f"  Prior: {'custom' if self.prior is not None else 'standard normal'}")
-            if use_regularization:
-                print(f"  Moment regularization: λ = {self.regularization}")
-                print(f"  Nr moments: {self.nr_moments}")
-            else:
-                print(f"  Moment regularization: disabled")
-
-        results = run_svgd(
-            log_prob_fn=log_prob_fn,
-            theta_init=self.theta_init,
-            n_steps=self.n_iterations,
-            learning_rate=self.step_schedule,
-            kernel=kernel,
-            return_history=return_history,
-            verbose=self.verbose,
-            compiled_grad=compiled_grad,
-            parallel_mode=self.parallel_mode,
-            n_devices=self.n_devices
-        )
+            results = run_svgd(
+                log_prob_fn=log_prob_fn,
+                theta_init=self.theta_init,
+                n_steps=self.n_iterations,
+                learning_rate=self.step_schedule,
+                kernel=kernel,
+                return_history=return_history,
+                verbose=self.verbose,
+                compiled_grad=compiled_grad,
+                parallel_mode=self.parallel_mode,
+                n_devices=self.n_devices,
+                log_prob_fn_factory=None,
+                regularization_schedule=None
+            )
 
         # Store results as attributes
         self.particles = results['particles']

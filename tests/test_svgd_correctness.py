@@ -180,7 +180,7 @@ def test_basic_convergence():
     # Run SVGD (positive_params=True by default)
     # Use ExponentialDecayStepSize for stable convergence
     from phasic import ExponentialDecayStepSize
-    step_schedule = ExponentialDecayStepSize(max_step=0.01, min_step=0.001, tau=500.0)
+    step_schedule = ExponentialDecayStepSize(first_step=0.01, last_step=0.001, tau=500.0)
 
     print(f"\nRunning SVGD...")
     svgd = SVGD(
@@ -274,7 +274,7 @@ def test_log_transformation():
 
     # Use ExponentialDecayStepSize for stable convergence
     from phasic import ExponentialDecayStepSize
-    step_schedule = ExponentialDecayStepSize(max_step=0.01, min_step=0.001, tau=500.0)
+    step_schedule = ExponentialDecayStepSize(first_step=0.01, last_step=0.001, tau=500.0)
 
     # Run SVGD with transformation
     print(f"\nRunning SVGD with log transformation...")
@@ -355,7 +355,7 @@ def test_positive_constraint():
 
     # Use ExponentialDecayStepSize for stable convergence
     from phasic import ExponentialDecayStepSize
-    step_schedule = ExponentialDecayStepSize(max_step=0.01, min_step=0.001, tau=500.0)
+    step_schedule = ExponentialDecayStepSize(first_step=0.01, last_step=0.001, tau=500.0)
 
     # Run SVGD with positive_params (now default)
     print(f"\nRunning SVGD with positive_params=True (default)...")

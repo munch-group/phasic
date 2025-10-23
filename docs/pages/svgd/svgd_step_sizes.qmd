@@ -62,7 +62,7 @@ from phasic import (
 from phasic import SVGD, ExponentialDecayStepSize
 
 # Create schedule: starts at 0.1, decays to 0.01 over 500 iterations
-schedule = ExponentialDecayStepSize(max_step=0.1, min_step=0.01, tau=500.0)
+schedule = ExponentialDecayStepSize(first_step=0.1, last_step=0.01, tau=500.0)
 
 svgd = SVGD(
     model=model,
@@ -132,7 +132,7 @@ Status: ✅ CONVERGED
 ```
 StepSizeSchedule
 ├── ConstantStepSize(step_size)
-├── ExponentialDecayStepSize(max_step, min_step, tau)
+├── ExponentialDecayStepSize(first_step, last_step, tau)
 └── AdaptiveStepSize(base_step, kl_target, adjust_rate)
 
 BandwidthSchedule
@@ -176,7 +176,7 @@ svgd = SVGD(model, data, theta_dim=1, learning_rate=0.01)
 ### New Code (Recommended for Large Datasets)
 ```python
 from phasic import ExponentialDecayStepSize
-schedule = ExponentialDecayStepSize(max_step=0.1, min_step=0.01, tau=500.0)
+schedule = ExponentialDecayStepSize(first_step=0.1, last_step=0.01, tau=500.0)
 svgd = SVGD(model, data, theta_dim=1, learning_rate=schedule)
 ```
 
