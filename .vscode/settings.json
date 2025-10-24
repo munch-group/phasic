@@ -110,6 +110,18 @@
         {
             "filePath": "tests/test_svgd_jax.py",
             "group": "Default"
+        },
+        {
+            "filePath": "docs/pages/tutorials/simple_example.ipynb",
+            "group": "Default"
+        },
+        {
+            "filePath": "tests/user_test.py",
+            "group": "Default"
+        },
+        {
+            "filePath": "scripts/call_tree.py",
+            "group": "Default"
         }
     ]
 }

@@ -18,7 +18,12 @@
       "Bash(timeout 300 python tests/test_svgd_jax.py)",
       "Bash(timeout:*)",
       "Bash(gh repo view:*)",
-      "Bash(gh repo rename:*)"
+      "Bash(gh repo rename:*)",
+      "Bash(python3:*)",
+      "Read(//Users/kmt/.phasic_traces/traces/coalescent_n5_theta1/**)",
+      "Read(//Users/kmt/.phasic_traces/**)",
+      "Bash(curl:*)",
+      "Bash(sudo python:*)"
     ],
     "deny": [],
     "ask": []
