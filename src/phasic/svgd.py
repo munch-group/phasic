@@ -30,7 +30,7 @@ from functools import partial
 from .config import get_config
 from .exceptions import PTDConfigError
 
-from .plot import black_white
+from .plot import black_white, Theme
 
 ## requires equinox dependency
 # from .decoders import VariableDimPTDDecoder, LessThanOneDecoder, 
@@ -55,7 +55,7 @@ tqdm = partial(tqdm, bar_format="{bar}", leave=False)
 # Schedule Classes for Step Size and Bandwidth Control
 # ============================================================================
 
-FIGSIZE = (5, 3.7)
+FIGSIZE = (4.5, 3.2)
 class StepSizeSchedule:
     """
     Base class for step size schedules.
@@ -124,19 +124,19 @@ class StepSizeSchedule:
         values = np.array([self(i) for i in iterations])
 
         # Plot
-        ax.plot(iterations, values, 'C1', linewidth=2)
-        ax.set_xlabel('Iteration', fontsize=12)
-        ax.set_ylabel('Step Size', fontsize=12)
-        ax.set_title(title or f'{self.__class__.__name__}')
-        # ax.grid(True, alpha=0.3)
+        with Theme():
+            ax.plot(iterations, values, 'C1')
+            ax.set_xlabel('Iteration')
+            ax.set_ylabel('Step Size')
+            ax.set_title(title or f'{self.__class__.__name__}')
+            # ax.grid(True, alpha=0.3)
 
-        # Add horizontal lines for first and last values if they exist
-        if hasattr(self, 'first_step') and hasattr(self, 'last_step'):
-            ax.axhline(self.first_step, color=black_white(ax), linestyle='--', alpha=0.5,
-                      label=f'first_step={self.first_step:.4f}')
-            ax.axhline(self.last_step, color=black_white(ax), linestyle='--', alpha=0.5,
-                      label=f'last_step={self.last_step:.4f}')
-            # ax.legend(fontsize=10)
+            # Add horizontal lines for first and last values if they exist
+            if hasattr(self, 'first_step') and hasattr(self, 'last_step'):
+                ax.axhline(self.first_step, color=black_white(ax), linestyle='--', alpha=0.5,
+                        label=f'first_step={self.first_step:.4f}')
+                ax.axhline(self.last_step, color=black_white(ax), linestyle='--', alpha=0.5,
+                        label=f'last_step={self.last_step:.4f}')
 
         return fig, ax
 
@@ -322,19 +322,19 @@ class RegularizationSchedule:
         values = np.array([self(i) for i in iterations])
 
         # Plot
-        ax.plot(iterations, values, 'C2', linewidth=2)
-        ax.set_xlabel('Iteration', fontsize=12)
-        ax.set_ylabel('Regularization Strength', fontsize=12)
-        ax.set_title(title or f'{self.__class__.__name__}')
-        # ax.grid(True, alpha=0.3)
+        with Theme():
+            ax.plot(iterations, values, 'C2')
+            ax.set_xlabel('Iteration')
+            ax.set_ylabel('Regularization Strength')
+            ax.set_title(title or f'{self.__class__.__name__}')
+            # ax.grid(True, alpha=0.3)
 
-        # Add horizontal lines for first and last values if they exist
-        if hasattr(self, 'first_reg') and hasattr(self, 'last_reg'):
-            ax.axhline(self.first_reg, color=black_white(ax), linestyle='--', alpha=0.5,
-                      label=f'first_reg={self.first_reg:.4f}')
-            ax.axhline(self.last_reg, color=black_white(ax), linestyle='--', alpha=0.5,
-                      label=f'last_reg={self.last_reg:.4f}')
-            # ax.legend(fontsize=10)
+            # Add horizontal lines for first and last values if they exist
+            if hasattr(self, 'first_reg') and hasattr(self, 'last_reg'):
+                ax.axhline(self.first_reg, color=black_white(ax), linestyle='--', alpha=0.5,
+                        label=f'first_reg={self.first_reg:.4f}')
+                ax.axhline(self.last_reg, color=black_white(ax), linestyle='--', alpha=0.5,
+                        label=f'last_reg={self.last_reg:.4f}')
 
         return fig, ax
 
@@ -1829,6 +1829,17 @@ class SVGD:
                     "Use Graph.pmf_and_moments_from_graph() to create model, "
                     "not Graph.pmf_from_graph()."
                 )
+
+            # Validate number of moments matches nr_moments parameter (if using regularization)
+            if self.nr_moments > 0 and (self.regularization > 0.0 or self.use_regularization_schedule):
+                pmf_vals, model_moments = result
+                actual_nr_moments = len(model_moments)
+                if actual_nr_moments < self.nr_moments:
+                    raise ValueError(
+                        f"Model returns {actual_nr_moments} moments but SVGD is configured to use {self.nr_moments} moments. "
+                        f"Create model with: Graph.pmf_and_moments_from_graph(graph, nr_moments={self.nr_moments})"
+                    )
+
             if verbose:
                 print("Model validated: returns (pmf, moments) tuple")
         except ValueError:
@@ -2664,9 +2675,9 @@ class SVGD:
 
             # Labels
             param_name = param_names[i] if param_names else f'θ_{i}'
-            ax.set_xlabel(param_name + space_label, fontsize=12)
-            ax.set_ylabel('Density', fontsize=12)
-            ax.set_title(f'Posterior: {param_name}', fontsize=14)
+            ax.set_xlabel(param_name + space_label)
+            ax.set_ylabel('Density')
+            ax.set_title(f'Posterior: {param_name}')
             ax.legend()
             # ax.grid(alpha=0.3)
 
@@ -2784,9 +2795,9 @@ class SVGD:
 
             # Labels
             param_name = param_names[i] if param_names else f'θ_{i}'
-            ax.set_xlabel('SVGD Iteration', fontsize=12)
-            ax.set_ylabel(param_name + space_label, fontsize=12)
-            ax.set_title(f'Trace: {param_name}', fontsize=14)
+            ax.set_xlabel('SVGD Iteration')
+            ax.set_ylabel(param_name + space_label)
+            ax.set_title(f'Trace: {param_name}')
             ax.legend()
             # ax.grid(alpha=0.3)
 
@@ -2799,7 +2810,7 @@ class SVGD:
 
         return fig, axes
 
-    def plot_convergence(self, figsize=(10, 3.7), save_path=None, skip=0, show_transformed=True):
+    def plot_convergence(self, figsize=(7, 3), save_path=None, skip=0, show_transformed=True):
         """
         Plot convergence diagnostics showing mean and std over iterations.
 
@@ -2868,9 +2879,9 @@ class SVGD:
             x, y = iterations, mean_over_time[:, i]
             ax1.plot(x[skip:], y[skip:], label=param_name, linewidth=2)
 
-        ax1.set_xlabel('SVGD Iteration', fontsize=12)
-        ax1.set_ylabel('Posterior Mean' + space_label, fontsize=12)
-        ax1.set_title('Mean Convergence', fontsize=14)
+        ax1.set_xlabel('SVGD Iteration')
+        ax1.set_ylabel('Posterior Mean' + space_label)
+        ax1.set_title('Mean Convergence')
         ax1.legend()
         ax1.grid(alpha=0.3)
 
@@ -2880,9 +2891,9 @@ class SVGD:
             x, y = iterations, std_over_time[:, i]
             ax2.plot(x[skip:], y[skip:], label=param_name, linewidth=2)
 
-        ax2.set_xlabel('SVGD Iteration', fontsize=12)
-        ax2.set_ylabel('Posterior Std' + space_label, fontsize=12)
-        ax2.set_title('Std Convergence', fontsize=14)
+        ax2.set_xlabel('SVGD Iteration')
+        ax2.set_ylabel('Posterior Std' + space_label)
+        ax2.set_title('Std Convergence')
         ax2.legend()
         ax2.grid(alpha=0.3)
 
@@ -3638,8 +3649,7 @@ class SVGD:
         current_marker = ax_traj.axvline(0, color='blue', linestyle=':', linewidth=1.5, alpha=0.7)
         ax_traj.legend()
 
-        iteration_text = fig.text(0.5, 0.98, '', ha='center', va='top',
-                                 fontsize=14, fontweight='bold')
+        iteration_text = fig.text(0.5, 0.98, '', ha='center', va='top')
         plt.tight_layout(rect=[0, 0, 1, 0.96])
 
         def init():
@@ -3817,8 +3827,7 @@ class SVGD:
 #                ax.grid(alpha=0.3)
 
         # Add iteration counter
-        iteration_text = fig.text(0.5, 0.98, '', ha='center', va='top',
-                                 fontsize=14, fontweight='bold')
+        iteration_text = fig.text(0.5, 0.98, '', ha='center', va='top')
 
         plt.tight_layout(rect=[0, 0, 1, 0.96])
 

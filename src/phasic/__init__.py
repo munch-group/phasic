@@ -2467,7 +2467,7 @@ extern "C" {{
              precompile: bool = True,
              compilation_config: Optional[object] = None,
              regularization=10, 
-             nr_moments=2,
+             nr_moments=0,
              positive_params: bool = True,
              param_transform: Optional[Callable] = None) -> Dict:    
     # @classmethod
@@ -2629,7 +2629,7 @@ extern "C" {{
 
         from .svgd import SVGD
 
-        model = Graph.pmf_and_moments_from_graph(self, nr_moments=2, discrete=discrete,
+        model = Graph.pmf_and_moments_from_graph(self, nr_moments=nr_moments, discrete=discrete,
                                                   param_length=theta_dim)
 
         # Create SVGD object
