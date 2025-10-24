@@ -52,6 +52,10 @@ jax = [
   'jax>=0.4.0',
 #  'jaxlib',
 ]
+ipfs = [
+    'ipfshttpclient>=0.8.0',
+    'requests>=2.25.0',
+]
 dev = [
     "pytest",
     "tszip>=0.2.5",
@@ -101,6 +105,8 @@ scikit-build-core = ">=0.11.6,<0.12"
 pybind11 = ">=2.10.0"
 jax = ">=0.7.2,<0.8"
 equinox = ">=0.13.2,<0.14"
+ipfshttpclient = ">=0.8.0a2,<0.9"
+py-spy = ">=0.4.1,<0.5"
 
 # [tool.pixi.pypi-dependencies]
 
