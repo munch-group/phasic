@@ -55,6 +55,7 @@ tqdm = partial(tqdm, bar_format="{bar}", leave=False)
 # Schedule Classes for Step Size and Bandwidth Control
 # ============================================================================
 
+FIGSIZE = (5, 3.7)
 class StepSizeSchedule:
     """
     Base class for step size schedules.
@@ -79,13 +80,13 @@ class StepSizeSchedule:
         """
         raise NotImplementedError
 
-    def plot(self, nr_iter=1000, figsize=(4, 3), title=None, ax=None):
+    def plot(self, nr_iter, figsize=FIGSIZE, title=None, ax=None):
         """
         Plot the step size schedule over iterations.
 
         Parameters
         ----------
-        nr_iter : int, default=1000
+        nr_iter : int
             Number of iterations to plot
         figsize : tuple, default=(4, 3)
             Figure size (width, height) in inches
@@ -114,7 +115,7 @@ class StepSizeSchedule:
 
         # Create figure if needed
         if ax is None:
-            fig, ax = plt.subplots(figsize=figsize)
+            fig, ax = plt.subplots(figsize=FIGSIZE)
         else:
             fig = ax.get_figure()
 
@@ -123,19 +124,19 @@ class StepSizeSchedule:
         values = np.array([self(i) for i in iterations])
 
         # Plot
-        ax.plot(iterations, values, 'b-', linewidth=2)
+        ax.plot(iterations, values, 'C1', linewidth=2)
         ax.set_xlabel('Iteration', fontsize=12)
         ax.set_ylabel('Step Size', fontsize=12)
-        ax.set_title(title or f'{self.__class__.__name__}', fontsize=14)
+        ax.set_title(title or f'{self.__class__.__name__}')
         # ax.grid(True, alpha=0.3)
 
         # Add horizontal lines for first and last values if they exist
         if hasattr(self, 'first_step') and hasattr(self, 'last_step'):
-            ax.axhline(self.first_step, color='g', linestyle='--', alpha=0.5,
+            ax.axhline(self.first_step, color=black_white(ax), linestyle='--', alpha=0.5,
                       label=f'first_step={self.first_step:.4f}')
-            ax.axhline(self.last_step, color='r', linestyle='--', alpha=0.5,
+            ax.axhline(self.last_step, color=black_white(ax), linestyle='--', alpha=0.5,
                       label=f'last_step={self.last_step:.4f}')
-            ax.legend(fontsize=10)
+            # ax.legend(fontsize=10)
 
         return fig, ax
 
@@ -277,13 +278,13 @@ class RegularizationSchedule:
         """
         raise NotImplementedError
 
-    def plot(self, nr_iter=1000, figsize=(4, 3), title=None, ax=None):
+    def plot(self, nr_iter, figsize=FIGSIZE, title=None, ax=None):
         """
         Plot the regularization schedule over iterations.
 
         Parameters
         ----------
-        nr_iter : int, default=1000
+        nr_iter : int
             Number of iterations to plot
         figsize : tuple, default=(4, 3)
             Figure size (width, height) in inches
@@ -312,7 +313,7 @@ class RegularizationSchedule:
 
         # Create figure if needed
         if ax is None:
-            fig, ax = plt.subplots(figsize=figsize)
+            fig, ax = plt.subplots(figsize=FIGSIZE)
         else:
             fig = ax.get_figure()
 
@@ -321,19 +322,19 @@ class RegularizationSchedule:
         values = np.array([self(i) for i in iterations])
 
         # Plot
-        ax.plot(iterations, values, 'b-', linewidth=2)
+        ax.plot(iterations, values, 'C2', linewidth=2)
         ax.set_xlabel('Iteration', fontsize=12)
         ax.set_ylabel('Regularization Strength', fontsize=12)
-        ax.set_title(title or f'{self.__class__.__name__}', fontsize=14)
+        ax.set_title(title or f'{self.__class__.__name__}')
         # ax.grid(True, alpha=0.3)
 
         # Add horizontal lines for first and last values if they exist
         if hasattr(self, 'first_reg') and hasattr(self, 'last_reg'):
-            ax.axhline(self.first_reg, color='g', linestyle='--', alpha=0.5,
+            ax.axhline(self.first_reg, color=black_white(ax), linestyle='--', alpha=0.5,
                       label=f'first_reg={self.first_reg:.4f}')
-            ax.axhline(self.last_reg, color='r', linestyle='--', alpha=0.5,
+            ax.axhline(self.last_reg, color=black_white(ax), linestyle='--', alpha=0.5,
                       label=f'last_reg={self.last_reg:.4f}')
-            ax.legend(fontsize=10)
+            # ax.legend(fontsize=10)
 
         return fig, ax
 
@@ -2221,7 +2222,12 @@ class SVGD:
             JIT-compiled gradient function
         """
         # Generate cache key including regularization params and rewards
-        rewards_tuple = tuple(rewards) if rewards is not None else None
+        # Convert rewards to hashable tuple (JAX arrays aren't hashable)
+        if rewards is not None:
+            import numpy as np
+            rewards_tuple = tuple(np.asarray(rewards).flatten())
+        else:
+            rewards_tuple = None
         cache_hash = self._get_cache_key_unified(nr_moments, regularization, rewards_tuple)
         memory_cache_key = (id(self.model), self.theta_dim, self.observed_data.shape,
                            nr_moments, regularization, rewards_tuple)
@@ -2459,69 +2465,69 @@ class SVGD:
 
         return self
 
-    def fit(self, return_history=True):
-        """
-        Run SVGD inference.
+    # def fit(self, return_history=True):
+    #     """
+    #     Run SVGD inference.
 
-        Convenience wrapper for optimize(). Regularization settings are
-        configured at SVGD initialization via regularization and nr_moments parameters.
+    #     Convenience wrapper for optimize(). Regularization settings are
+    #     configured at SVGD initialization via regularization and nr_moments parameters.
 
-        Parameters
-        ----------
-        return_history : bool, default=True
-            If True, store particle positions throughout optimization
+    #     Parameters
+    #     ----------
+    #     return_history : bool, default=True
+    #         If True, store particle positions throughout optimization
 
-        Returns
-        -------
-        self
-            Returns self for method chaining
-        """
-        return self.optimize(return_history=return_history)
+    #     Returns
+    #     -------
+    #     self
+    #         Returns self for method chaining
+    #     """
+    #     return self.optimize(return_history=return_history)
 
-    def fit_regularized(self, observed_times=None, nr_moments=None,
-                       regularization=None, return_history=True):
-        """
-        Run SVGD with moment-based regularization.
+    # def fit_regularized(self, observed_times=None, nr_moments=None,
+    #                    regularization=None, return_history=True):
+    #     """
+    #     Run SVGD with moment-based regularization.
 
-        .. deprecated::
-            This method is deprecated. Configure regularization settings via
-            SVGD(..., regularization=..., nr_moments=...) at initialization,
-            then call fit() or optimize().
+    #     .. deprecated::
+    #         This method is deprecated. Configure regularization settings via
+    #         SVGD(..., regularization=..., nr_moments=...) at initialization,
+    #         then call fit() or optimize().
 
-        Parameters
-        ----------
-        observed_times : array_like, optional
-            (Ignored) Observed times are now set at SVGD initialization.
-        nr_moments : int, optional
-            (Ignored) Number of moments is now set at SVGD initialization.
-        regularization : float, optional
-            (Ignored) Regularization strength is now set at SVGD initialization.
-        return_history : bool, default=True
-            Whether to store particle history
+    #     Parameters
+    #     ----------
+    #     observed_times : array_like, optional
+    #         (Ignored) Observed times are now set at SVGD initialization.
+    #     nr_moments : int, optional
+    #         (Ignored) Number of moments is now set at SVGD initialization.
+    #     regularization : float, optional
+    #         (Ignored) Regularization strength is now set at SVGD initialization.
+    #     return_history : bool, default=True
+    #         Whether to store particle history
 
-        Returns
-        -------
-        self
-            Returns self for method chaining
-        """
-        import warnings
-        warnings.warn(
-            "fit_regularized() is deprecated. Configure regularization settings at "
-            "SVGD initialization: SVGD(..., regularization=1.0, nr_moments=2), "
-            "then call fit() or optimize().",
-            DeprecationWarning,
-            stacklevel=2
-        )
+    #     Returns
+    #     -------
+    #     self
+    #         Returns self for method chaining
+    #     """
+    #     import warnings
+    #     warnings.warn(
+    #         "fit_regularized() is deprecated. Configure regularization settings at "
+    #         "SVGD initialization: SVGD(..., regularization=1.0, nr_moments=2), "
+    #         "then call fit() or optimize().",
+    #         DeprecationWarning,
+    #         stacklevel=2
+    #     )
 
-        # Warn if user tried to pass parameters
-        if observed_times is not None:
-            warnings.warn("observed_times parameter is ignored - data is set at SVGD initialization", UserWarning)
-        if nr_moments is not None:
-            warnings.warn("nr_moments parameter is ignored - set at SVGD initialization", UserWarning)
-        if regularization is not None:
-            warnings.warn("regularization parameter is ignored - set at SVGD initialization", UserWarning)
+    #     # Warn if user tried to pass parameters
+    #     if observed_times is not None:
+    #         warnings.warn("observed_times parameter is ignored - data is set at SVGD initialization", UserWarning)
+    #     if nr_moments is not None:
+    #         warnings.warn("nr_moments parameter is ignored - set at SVGD initialization", UserWarning)
+    #     if regularization is not None:
+    #         warnings.warn("regularization parameter is ignored - set at SVGD initialization", UserWarning)
 
-        return self.optimize(return_history=return_history)
+    #     return self.optimize(return_history=return_history)
 
     def get_results(self):
         """
@@ -2627,7 +2633,7 @@ class SVGD:
         # Determine subplot layout
         if n_params == 1:
             nrows, ncols = 1, 1
-            figsize = figsize or (6, 4)
+            figsize = figsize or FIGSIZE
         elif n_params == 2:
             nrows, ncols = 1, 2
             figsize = figsize or (12, 4)
@@ -2647,7 +2653,7 @@ class SVGD:
                    edgecolor='black', label='Posterior')
 
             # Posterior mean
-            ax.axvline(theta_mean[i], color=black_white(), linestyle='--',
+            ax.axvline(theta_mean[i], color=black_white(ax), linestyle='--',
                       linewidth=2, label=f'Mean = {theta_mean[i]:.3f}')
 
             # True value (if provided)
@@ -2677,7 +2683,7 @@ class SVGD:
 
         return fig, axes
 
-    def plot_trace(self, param_names=None, figsize=None,
+    def plot_trace(self, param_names=None, figsize=FIGSIZE,
                    skip=0, max_particles=None, save_path=None, show_transformed=True,
                    ):
         """
@@ -2742,7 +2748,7 @@ class SVGD:
 
         # Determine subplot layout
         if n_params == 1:
-            figsize = figsize or (7, 4)
+            figsize = figsize or FIGSIZE
         else:
             figsize = figsize or (min(14, 3.5 * cols), min(12, 2.7 * rows))
 
@@ -2793,7 +2799,7 @@ class SVGD:
 
         return fig, axes
 
-    def plot_convergence(self, figsize=(7, 3), save_path=None, skip=0, show_transformed=True):
+    def plot_convergence(self, figsize=(10, 3.7), save_path=None, skip=0, show_transformed=True):
         """
         Plot convergence diagnostics showing mean and std over iterations.
 
@@ -3508,7 +3514,7 @@ class SVGD:
             return anim
 
     def animate(self, param_idx=0, true_theta=None, param_name=None,
-                figsize=(8, 6), skip=0, thin=20, interval=100, bins=30,
+                figsize=FIGSIZE, skip=0, thin=20, interval=100, bins=30,
                 show_particles=True, max_particles=20,
                 save_as_gif=None, save_as_mp4=None, show_transformed=True):
         """
@@ -3628,7 +3634,7 @@ class SVGD:
                 line, = ax_traj.plot([], [], alpha=0.3, linewidth=1)
                 particle_lines.append(line)
 
-        mean_line, = ax_traj.plot([], [], color=black_white(), linewidth=2.5, label='Mean', zorder=5)
+        mean_line, = ax_traj.plot([], [], color=black_white(ax), linewidth=2.5, label='Mean', zorder=5)
         current_marker = ax_traj.axvline(0, color='blue', linestyle=':', linewidth=1.5, alpha=0.7)
         ax_traj.legend()
 

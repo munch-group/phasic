@@ -646,16 +646,18 @@ def _generate_cpp_from_graph(serialized):
         # Starting vertex parameterized edges
         for i, edge in enumerate(start_param_edges):
             to_idx = int(edge[0])
-            edge_state = edge[1:]
-            # Generate weight computation: w = x1*theta[0] + x2*theta[1] + ...
+            base_weight = edge[1]
+            edge_state = edge[2:]
+            # Generate weight computation: w = base_weight + x1*theta[0] + x2*theta[1] + ...
             # Only include non-zero coefficients for efficiency and correctness
             weight_terms = [f"{edge_state[j]}*theta[{j}]"
                            for j in range(len(edge_state))
                            if edge_state[j] != 0.0]
-            if not weight_terms:
-                # All coefficients are zero - use constant 0
-                weight_terms = ["0.0"]
-            weight_expr = " + ".join(weight_terms)
+            if weight_terms:
+                weight_expr = f"{base_weight} + " + " + ".join(weight_terms)
+            else:
+                # All coefficients are zero - use only base_weight
+                weight_expr = f"{base_weight}"
             param_edge_code.append(f"    double w_start_{to_idx} = {weight_expr};")
             param_edge_code.append(f"    start->add_edge(*vertices[{to_idx}], w_start_{to_idx});")
 
@@ -663,15 +665,18 @@ def _generate_cpp_from_graph(serialized):
         for i, edge in enumerate(param_edges):
             from_idx = int(edge[0])
             to_idx = int(edge[1])
-            edge_state = edge[2:]
-            # Generate weight computation - only include non-zero coefficients
+            base_weight = edge[2]
+            edge_state = edge[3:]
+            # Generate weight computation: w = base_weight + x1*theta[0] + x2*theta[1] + ...
+            # Only include non-zero coefficients for efficiency and correctness
             weight_terms = [f"{edge_state[j]}*theta[{j}]"
                            for j in range(len(edge_state))
                            if edge_state[j] != 0.0]
-            if not weight_terms:
-                # All coefficients are zero - use constant 0
-                weight_terms = ["0.0"]
-            weight_expr = " + ".join(weight_terms)
+            if weight_terms:
+                weight_expr = f"{base_weight} + " + " + ".join(weight_terms)
+            else:
+                # All coefficients are zero - use only base_weight
+                weight_expr = f"{base_weight}"
             param_edge_code.append(f"    double w_{from_idx}_{to_idx} = {weight_expr};")
             param_edge_code.append(f"    vertices[{from_idx}]->add_edge(*vertices[{to_idx}], w_{from_idx}_{to_idx});")
 
@@ -1530,8 +1535,8 @@ class Graph(_Graph):
             - 'states': Array of vertex states (n_vertices, state_dim)
             - 'edges': Array of regular edges [from_idx, to_idx, weight] (n_edges, 3)
             - 'start_edges': Array of starting vertex regular edges [to_idx, weight] (n_start_edges, 2)
-            - 'param_edges': Array of parameterized edges [from_idx, to_idx, x1, x2, ...] (n_param_edges, param_length+2)
-            - 'start_param_edges': Array of starting vertex parameterized edges [to_idx, x1, x2, ...] (n_start_param_edges, param_length+1)
+            - 'param_edges': Array of parameterized edges [from_idx, to_idx, base_weight, x1, x2, ...] (n_param_edges, param_length+3)
+            - 'start_param_edges': Array of starting vertex parameterized edges [to_idx, base_weight, x1, x2, ...] (n_start_param_edges, param_length+2)
             - 'param_length': Length of parameter vector (0 if no parameterized edges)
             - 'state_length': Integer state dimension
             - 'n_vertices': Number of vertices
@@ -1690,10 +1695,11 @@ class Graph(_Graph):
                                 edge_state = edge_state[:param_length]
                             # Only include edges with non-empty edge states
                             if any(x != 0 for x in edge_state):
-                                # Store: [from_idx, to_idx, x1, x2, x3, ...]
-                                param_edges_list.append([from_idx, to_idx] + edge_state)
+                                # Store: [from_idx, to_idx, base_weight, x1, x2, x3, ...]
+                                base_weight = edge.weight()
+                                param_edges_list.append([from_idx, to_idx, base_weight] + edge_state)
 
-        param_edges = np.array(param_edges_list, dtype=np.float64) if param_edges_list else np.empty((0, param_length + 2 if param_length > 0 else 0), dtype=np.float64)
+        param_edges = np.array(param_edges_list, dtype=np.float64) if param_edges_list else np.empty((0, param_length + 3 if param_length > 0 else 0), dtype=np.float64)
 
         # Extract starting vertex parameterized edges FIRST (needed to build exclusion set)
         start_param_edges_list = []
@@ -1715,10 +1721,11 @@ class Graph(_Graph):
                             edge_state = edge_state[:param_length]
                         # Only include edges with non-empty edge states
                         if any(x != 0 for x in edge_state):
-                            # Store: [to_idx, x1, x2, x3, ...]
-                            start_param_edges_list.append([to_idx] + edge_state)
+                            # Store: [to_idx, base_weight, x1, x2, x3, ...]
+                            base_weight = edge.weight()
+                            start_param_edges_list.append([to_idx, base_weight] + edge_state)
 
-        start_param_edges = np.array(start_param_edges_list, dtype=np.float64) if start_param_edges_list else np.empty((0, param_length + 1 if param_length > 0 else 0), dtype=np.float64)
+        start_param_edges = np.array(start_param_edges_list, dtype=np.float64) if start_param_edges_list else np.empty((0, param_length + 2 if param_length > 0 else 0), dtype=np.float64)
 
         # Build set of (from_idx, to_idx) pairs for parameterized edges to skip in regular edges
         param_edge_pairs = set()
@@ -2650,7 +2657,7 @@ extern "C" {{
         )
 
         # Run inference
-        svgd.fit(return_history=return_history)
+        svgd.optimize(return_history=return_history)
 
         # Return results as dictionary for backward compatibility
         # return svgd.get_results()

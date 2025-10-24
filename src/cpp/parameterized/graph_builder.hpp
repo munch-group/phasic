@@ -161,6 +161,7 @@ private:
     struct ParameterizedEdge {
         int from_idx;
         int to_idx;
+        double base_weight;  // Base weight (constant term)
         std::vector<double> coefficients;  // Length = param_length
     };
     std::vector<ParameterizedEdge> param_edges_;

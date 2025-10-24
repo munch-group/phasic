@@ -47,8 +47,12 @@ def set_theme(theme:str):
     else:
         plt.rcParams.update({'figure.facecolor': 'white', 'axes.facecolor': 'white'})
 
+
+
 def black_white(ax):
     """Returns black for light backgrounds, white for dark backgrounds."""
+    if ax is None:
+        ax = plt.gca()
     bg_color = ax.get_facecolor()
     # Convert to grayscale to determine brightness
     luminance = matplotlib.colors.rgb_to_hsv(matplotlib.colors.to_rgb(bg_color))[2]
