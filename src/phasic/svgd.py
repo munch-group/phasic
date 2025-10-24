@@ -1569,7 +1569,7 @@ class SVGD:
                  n_devices=None,        # NEW: explicit device count for pmap
                  precompile=True,       # Keep for backward compat
                  compilation_config=None, positive_params=True, param_transform=None,
-                 regularization=0.0, nr_moments=2):
+                 regularization=0.0, nr_moments=2, rewards=None):
 
         if n_particles is None:
             n_particles = 20 * theta_dim
@@ -1806,6 +1806,7 @@ class SVGD:
             )
 
         self.nr_moments = nr_moments
+        self.rewards = rewards  # Can be None, 1D (n_vertices,), or 2D (n_vertices, n_features)
 
         # Compute sample moments if initial regularization > 0 or using schedule
         # (schedule might start at 0 but increase later, so we need moments ready)
@@ -1821,7 +1822,18 @@ class SVGD:
         try:
             test_theta = self.theta_init[0]
             test_times = self.observed_data[:min(2, len(self.observed_data))]
-            result = self.model(test_theta, test_times)
+
+            # Test with rewards if provided
+            if self.rewards is not None:
+                # For 2D rewards, extract first 2 columns to match test_times
+                if jnp.asarray(self.rewards).ndim == 2 and test_times.ndim == 2:
+                    test_rewards = jnp.asarray(self.rewards)[:, :test_times.shape[1]]
+                else:
+                    test_rewards = self.rewards
+                result = self.model(test_theta, test_times, rewards=test_rewards)
+            else:
+                result = self.model(test_theta, test_times, rewards=None)
+
             if not isinstance(result, tuple) or len(result) != 2:
                 raise ValueError(
                     "Model must return (pmf, moments) tuple. "
@@ -1833,7 +1845,15 @@ class SVGD:
             # Validate number of moments matches nr_moments parameter (if using regularization)
             if self.nr_moments > 0 and (self.regularization > 0.0 or self.use_regularization_schedule):
                 pmf_vals, model_moments = result
-                actual_nr_moments = len(model_moments)
+
+                # Handle 2D moments (multivariate case)
+                if model_moments.ndim == 2:
+                    # Check shape: (n_features, nr_moments)
+                    actual_nr_moments = model_moments.shape[1]
+                else:
+                    # 1D moments
+                    actual_nr_moments = len(model_moments)
+
                 if actual_nr_moments < self.nr_moments:
                     raise ValueError(
                         f"Model returns {actual_nr_moments} moments but SVGD is configured to use {self.nr_moments} moments. "
@@ -1849,7 +1869,7 @@ class SVGD:
             # Other errors during model evaluation
             raise ValueError(
                 f"Model validation failed. Error: {e}\n"
-                "Ensure model has signature: model(theta, times) -> (pmf, moments)"
+                "Ensure model has signature: model(theta, times, rewards=None) -> (pmf, moments)"
             )
 
         # Results (initialized after fit())
@@ -2017,10 +2037,10 @@ class SVGD:
 
         # Evaluate model
         try:
-            result = self.model(theta_transformed, self.observed_data)
+            result = self.model(theta_transformed, self.observed_data, rewards=self.rewards)
         except Exception as e:
             raise ValueError(
-                f"Model evaluation failed. Ensure model has signature model(theta, times). "
+                f"Model evaluation failed. Ensure model has signature model(theta, times, rewards=None). "
                 f"Error: {e}"
             )
 
@@ -2048,7 +2068,16 @@ class SVGD:
         # Always compute penalty if moments available (but it's zero if regularization=0)
         # This avoids Python control flow on potentially-traced values
         if sample_moments is not None and nr_moments > 0:
-            moment_diff = model_moments[:nr_moments] - sample_moments
+            # Handle 2D moments (multivariate case)
+            if model_moments.ndim == 2:
+                # Aggregate moments across features by taking mean
+                # Shape: (n_features, nr_moments) -> (nr_moments,)
+                model_moments_agg = jnp.mean(model_moments, axis=0)
+                moment_diff = model_moments_agg[:nr_moments] - sample_moments
+            else:
+                # 1D moments (standard case)
+                moment_diff = model_moments[:nr_moments] - sample_moments
+
             moment_penalty = regularization * jnp.sum(moment_diff**2)
             return log_lik + log_pri - moment_penalty
         else:

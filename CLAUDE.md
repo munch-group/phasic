@@ -181,6 +181,74 @@ print(f"Posterior mean: {results['theta_mean']}")
 print(f"Posterior std: {results['theta_std']}")
 ```
 
+### Multivariate Phase-Type Models (2D Observations & Rewards)
+
+**New in v0.21.4**: Support for multivariate phase-type distributions where each feature dimension has its own reward vector.
+
+```python
+from phasic import Graph
+import jax.numpy as jnp
+
+# Create parameterized graph
+graph = Graph(callback=model_callback, parameterized=True)
+
+# Create multivariate model
+model = Graph.pmf_and_moments_from_graph_multivariate(
+    graph,
+    nr_moments=2,
+    discrete=False
+)
+
+# Setup multivariate data
+n_times = 100
+n_features = 3  # e.g., 3 marginal distributions
+n_vertices = graph.vertices_length()
+
+# 2D observations: (n_times, n_features)
+observed_data = jnp.array([
+    [obs_feature_0, obs_feature_1, obs_feature_2],
+    ...
+])  # Shape: (100, 3)
+
+# 2D rewards: (n_vertices, n_features)
+# Each column defines the reward vector for one marginal
+rewards_2d = jnp.array([
+    [r0_feat0, r0_feat1, r0_feat2],  # Vertex 0 rewards
+    [r1_feat0, r1_feat1, r1_feat2],  # Vertex 1 rewards
+    ...
+])  # Shape: (n_vertices, 3)
+
+# Run SVGD with multivariate model
+svgd_result = graph.svgd(
+    observed_data=observed_data,
+    theta_dim=2,
+    n_particles=100,
+    n_iterations=1000,
+    rewards=rewards_2d  # Pass 2D rewards
+)
+
+# Or use SVGD directly
+from phasic import SVGD
+svgd = SVGD(
+    model=model,
+    observed_data=observed_data,
+    theta_dim=2,
+    n_particles=100,
+    rewards=rewards_2d
+)
+svgd.optimize()
+```
+
+**Key Features:**
+- **Independent computation**: Each feature dimension computed separately with its reward vector
+- **Log-likelihood**: Sum over all observation elements: `Σᵢⱼ log(PMF[i,j])`
+- **Moment regularization**: Moments aggregated across features (mean)
+- **Backward compatible**: 1D rewards work exactly as before
+
+**Output Shapes:**
+- PMF: `(n_times, n_features)` for 2D rewards, `(n_times,)` for 1D
+- Moments: `(n_features, nr_moments)` for 2D rewards, `(nr_moments,)` for 1D
+
 ### Reward Transformation
 
 ```python

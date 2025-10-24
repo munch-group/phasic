@@ -2466,10 +2466,11 @@ extern "C" {{
              n_devices: Optional[int] = None,
              precompile: bool = True,
              compilation_config: Optional[object] = None,
-             regularization=10, 
+             regularization=10,
              nr_moments=0,
              positive_params: bool = True,
-             param_transform: Optional[Callable] = None) -> Dict:    
+             param_transform: Optional[Callable] = None,
+             rewards: Optional[ArrayLike] = None) -> Dict:    
     # @classmethod
     # def svgd(cls,
     #          model: Callable,
@@ -2558,6 +2559,13 @@ extern "C" {{
             If provided, SVGD optimizes in unconstrained space and applies this transformation
             before calling the model. Cannot be used together with positive_params.
             Example: lambda theta: jnp.concatenate([jnp.exp(theta[:1]), jax.nn.softplus(theta[1:])])
+        rewards : array_like, optional
+            Reward vectors for computing reward-transformed likelihoods. Can be:
+            - None: Standard phase-type likelihood (default)
+            - 1D array (n_vertices,): Single reward vector for univariate models
+            - 2D array (n_vertices, n_features): Multivariate rewards - one reward vector per feature
+              dimension. Requires use of pmf_and_moments_from_graph_multivariate() model.
+            For multivariate models, observed_data should also be 2D (n_times, n_features).
 
         Returns
         -------
@@ -2653,7 +2661,8 @@ extern "C" {{
             regularization=regularization,
             nr_moments=nr_moments,
             positive_params=positive_params,
-            param_transform=param_transform
+            param_transform=param_transform,
+            rewards=rewards
         )
 
         # Run inference
@@ -3100,6 +3109,154 @@ extern "C" {{
 
         model.defvjp(model_fwd, model_bwd)
         return model
+
+    @classmethod
+    def pmf_and_moments_from_graph_multivariate(cls, graph: 'Graph', nr_moments: int = 2,
+                                                discrete: bool = False, use_ffi: bool = False,
+                                                param_length: int = None) -> Callable:
+        """
+        Create a multivariate phase-type model that handles 2D observations and rewards.
+
+        This wrapper enables computing joint likelihoods for multivariate phase-type distributions
+        where each feature dimension has its own reward vector defining the marginal distribution.
+
+        Parameters
+        ----------
+        graph : Graph
+            Parameterized graph built using the Python API with parameterized edges.
+        nr_moments : int, default=2
+            Number of moments to compute per feature dimension
+        discrete : bool, default=False
+            If True, computes discrete PMF. If False, computes continuous PDF.
+        use_ffi : bool, default=False
+            If True, uses Foreign Function Interface approach.
+        param_length : int, optional
+            Number of parameters for parameterized edges.
+
+        Returns
+        -------
+        callable
+            JAX-compatible function with signature:
+            model(theta, times, rewards=None) -> (pmf_values, moments)
+
+            Where:
+            - theta: Parameter vector (theta_dim,)
+            - times: Time points - can be 1D (n_times,) or 2D (n_times, n_features)
+            - rewards: Reward vectors - can be:
+              * None: Standard moments
+              * 1D (n_vertices,): Single reward vector (backward compatible)
+              * 2D (n_vertices, n_features): Multivariate - one reward per feature
+            - pmf_values: PMF/PDF values - shape matches input:
+              * 1D rewards → 1D output (n_times,)
+              * 2D rewards → 2D output (n_times, n_features)
+            - moments: Moment values:
+              * 1D rewards → 1D output (nr_moments,)
+              * 2D rewards → 2D output (n_features, nr_moments)
+
+        Examples
+        --------
+        >>> # Create parameterized model
+        >>> graph = Graph(callback=coalescent, parameterized=True, nr_samples=3)
+        >>> model = Graph.pmf_and_moments_from_graph_multivariate(graph, nr_moments=2)
+        >>>
+        >>> # 1D case (backward compatible)
+        >>> theta = jnp.array([0.5])
+        >>> times = jnp.array([1.0, 2.0, 3.0])
+        >>> rewards_1d = jnp.array([1.0, 2.0, 0.5, 1.5])  # (n_vertices,)
+        >>> pmf_vals, moments = model(theta, times, rewards_1d)
+        >>> print(pmf_vals.shape)  # (3,)
+        >>> print(moments.shape)   # (2,)
+        >>>
+        >>> # 2D case (multivariate)
+        >>> rewards_2d = jnp.array([[1.0, 0.5],   # Feature 1, Feature 2
+        ...                          [2.0, 1.0],
+        ...                          [0.5, 2.0],
+        ...                          [1.5, 0.8]])  # (n_vertices, n_features)
+        >>> times_2d = jnp.array([[1.0, 1.5],
+        ...                        [2.0, 2.5],
+        ...                        [3.0, 3.5]])  # (n_times, n_features)
+        >>> pmf_vals, moments = model(theta, times_2d, rewards_2d)
+        >>> print(pmf_vals.shape)  # (3, 2)
+        >>> print(moments.shape)   # (2, 2)
+        >>>
+        >>> # Use in SVGD with 2D observations
+        >>> observed_data = jnp.array([[1.5, 2.1], [0.8, 1.2], [2.3, 3.1]])
+        >>> svgd = SVGD(model, observed_data, theta_dim=1, rewards=rewards_2d)
+        >>> results = svgd.optimize()
+
+        Notes
+        -----
+        - For 2D rewards, each feature dimension is computed independently using the
+          corresponding column of the rewards matrix
+        - Log-likelihood is computed as sum over all observation elements
+        - Backward compatible: 1D rewards behave exactly as pmf_and_moments_from_graph()
+        """
+        # Check if JAX is available
+        if not HAS_JAX:
+            raise ImportError(
+                "JAX is required for multivariate models. "
+                "Install with: pip install 'phasic[jax]' or pip install jax jaxlib"
+            )
+
+        import jax
+        import jax.numpy as jnp
+
+        # Get the 1D model
+        model_1d = cls.pmf_and_moments_from_graph(
+            graph, nr_moments=nr_moments, discrete=discrete,
+            use_ffi=use_ffi, param_length=param_length
+        )
+
+        def model_multivariate(theta, times, rewards=None):
+            """Multivariate wrapper handling 1D and 2D rewards"""
+
+            # Auto-detect dimensionality
+            if rewards is None:
+                # No rewards - use 1D model directly
+                return model_1d(theta, times, rewards=None)
+
+            rewards_arr = jnp.asarray(rewards)
+
+            if rewards_arr.ndim == 1:
+                # Backward compatible: 1D rewards
+                return model_1d(theta, times, rewards=rewards_arr)
+
+            elif rewards_arr.ndim == 2:
+                # 2D case: loop over features
+                n_features = rewards_arr.shape[1]
+                pmf_list = []
+                moments_list = []
+
+                times_arr = jnp.asarray(times)
+
+                for j in range(n_features):
+                    # Extract reward vector for feature j
+                    reward_j = rewards_arr[:, j]
+
+                    # Extract times for feature j (support both 1D and 2D times)
+                    if times_arr.ndim == 2:
+                        times_j = times_arr[:, j]
+                    else:
+                        times_j = times_arr  # Broadcast same times to all features
+
+                    # Compute PMF and moments for this feature
+                    pmf_j, moments_j = model_1d(theta, times_j, rewards=reward_j)
+                    pmf_list.append(pmf_j)
+                    moments_list.append(moments_j)
+
+                # Stack results
+                pmf = jnp.stack(pmf_list, axis=1)  # (n_times, n_features)
+                moments = jnp.stack(moments_list, axis=0)  # (n_features, nr_moments)
+
+                return pmf, moments
+
+            else:
+                raise ValueError(
+                    f"Rewards must be 1D (n_vertices,) or 2D (n_vertices, n_features). "
+                    f"Got shape: {rewards_arr.shape}"
+                )
+
+        return model_multivariate
 
     def plot(self, *args, **kwargs):
         """
