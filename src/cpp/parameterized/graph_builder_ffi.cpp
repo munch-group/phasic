@@ -148,6 +148,7 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
     bool discrete,
     ffi::Buffer<ffi::F64> theta,
     ffi::Buffer<ffi::F64> times,
+    ffi::Buffer<ffi::F64> rewards,
     ffi::ResultBuffer<ffi::F64> pmf_result,
     ffi::ResultBuffer<ffi::F64> moments_result
 ) {
@@ -204,9 +205,26 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
         return ffi::Error::InvalidArgument("times must be 1D or 2D array");
     }
 
+    // Extract rewards dimensions (always n_vertices, or 0 for standard moments)
+    auto rewards_dims = rewards.dimensions();
+    size_t n_rewards = 0;
+    size_t rewards_batch_size = 1;
+
+    if (rewards_dims.size() == 1) {
+        // No batch dimension: shape is (n_rewards,)
+        n_rewards = rewards_dims[0];
+    } else if (rewards_dims.size() == 2) {
+        // Batched: shape is (batch, n_rewards)
+        rewards_batch_size = rewards_dims[0];
+        n_rewards = rewards_dims[1];
+    } else if (rewards_dims.size() != 0) {
+        return ffi::Error::InvalidArgument("rewards must be 0D, 1D, or 2D array");
+    }
+
     // Get raw data pointers
     const double* theta_data = theta.typed_data();
     const double* times_data = times.typed_data();
+    const double* rewards_data = rewards.typed_data();
     double* pmf_data = pmf_result->typed_data();
     double* moments_data = moments_result->typed_data();
 
@@ -246,7 +264,14 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
                 }
 
                 // Compute moments using same graph
-                std::vector<double> moments_vec = builder->compute_moments_impl(g, nr_moments);
+                std::vector<double> rewards_vec;
+                if (n_rewards > 0) {
+                    const double* rewards_b = (rewards_batch_size > 1)
+                        ? (rewards_data + (b * n_rewards))
+                        : rewards_data;
+                    rewards_vec.assign(rewards_b, rewards_b + n_rewards);
+                }
+                std::vector<double> moments_vec = builder->compute_moments_impl(g, nr_moments, rewards_vec);
 
                 // Copy moments to output buffer
                 for (int i = 0; i < nr_moments; i++) {
@@ -279,7 +304,11 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
             }
 
             // Compute moments using same graph
-            std::vector<double> moments_vec = builder->compute_moments_impl(g, nr_moments);
+            std::vector<double> rewards_vec;
+            if (n_rewards > 0) {
+                rewards_vec.assign(rewards_data, rewards_data + n_rewards);
+            }
+            std::vector<double> moments_vec = builder->compute_moments_impl(g, nr_moments, rewards_vec);
 
             // Copy moments to output buffer
             for (int i = 0; i < nr_moments; i++) {
@@ -328,6 +357,7 @@ XLA_FFI_Handler* CreateComputePmfAndMomentsHandler() {
             .Attr<bool>("discrete")
             .Arg<xla::ffi::Buffer<xla::ffi::F64>>()  // theta (batched by vmap)
             .Arg<xla::ffi::Buffer<xla::ffi::F64>>()  // times (batched by vmap)
+            .Arg<xla::ffi::Buffer<xla::ffi::F64>>()  // rewards (batched by vmap)
             .Ret<xla::ffi::Buffer<xla::ffi::F64>>()  // pmf_result
             .Ret<xla::ffi::Buffer<xla::ffi::F64>>()  // moments_result
             .To(ffi_handlers::ComputePmfAndMomentsFfiImpl)

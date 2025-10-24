@@ -186,18 +186,20 @@ XLA_FFI_DEFINE_HANDLER_SYMBOL(
  *   - structure_json: Graph structure (string attribute)
  *   - theta: Parameter array, shape (n_params,)
  *   - times: Time points or jump counts, shape (n_times,)
+ *   - rewards: Optional reward vector, shape (n_vertices,) or (0,) for standard moments
  *   - nr_moments: Number of moments to compute
  *   - discrete: Boolean flag (0=PDF, 1=PMF)
  *   - granularity: Discretization granularity for PDF
  *
  * Outputs:
  *   - pmf: PMF/PDF values, shape (n_times,)
- *   - moments: Moments array, shape (nr_moments,)
+ *   - moments: Moments array E[R*T^k] if rewards provided, else E[T^k], shape (nr_moments,)
  */
 ffi::Error ComputePmfAndMomentsHandler(
     std::string_view structure_json,
     ffi::Buffer<ffi::DataType::F64> theta,
     ffi::Buffer<ffi::DataType::F64> times,
+    ffi::Buffer<ffi::DataType::F64> rewards,
     int32_t nr_moments,
     int32_t discrete,
     int32_t granularity,
@@ -219,14 +221,20 @@ ffi::Error ComputePmfAndMomentsHandler(
             return ffi::Error(ffi::ErrorCode::kInvalidArgument,
                 "times must be 1-dimensional");
         }
+        if (rewards.dimensions().size() != 1) {
+            return ffi::Error(ffi::ErrorCode::kInvalidArgument,
+                "rewards must be 1-dimensional");
+        }
 
         const double* theta_data = theta.typed_data();
         const double* times_data = times.typed_data();
+        const double* rewards_data = rewards.typed_data();
         double* pmf_data = pmf->typed_data();
         double* moments_data = moments->typed_data();
 
         size_t n_params = theta.dimensions()[0];
         size_t n_times = times.dimensions()[0];
+        size_t n_rewards = rewards.dimensions()[0];
 
         // Build graph ONCE (more efficient than separate calls)
         Graph g = builder.build(theta_data, n_params);
@@ -244,7 +252,13 @@ ffi::Error ComputePmfAndMomentsHandler(
         }
 
         // Compute moments using same graph
-        std::vector<double> result_vec = builder.compute_moments_impl(g, nr_moments);
+        // Convert rewards buffer to vector (empty if n_rewards == 0)
+        std::vector<double> rewards_vec;
+        if (n_rewards > 0) {
+            rewards_vec.assign(rewards_data, rewards_data + n_rewards);
+        }
+
+        std::vector<double> result_vec = builder.compute_moments_impl(g, nr_moments, rewards_vec);
         for (int i = 0; i < nr_moments; i++) {
             moments_data[i] = result_vec[i];
         }
@@ -264,6 +278,7 @@ XLA_FFI_DEFINE_HANDLER_SYMBOL(
         .Attr<std::string_view>("structure_json")
         .Arg<ffi::Buffer<ffi::DataType::F64>>()    // theta
         .Arg<ffi::Buffer<ffi::DataType::F64>>()    // times
+        .Arg<ffi::Buffer<ffi::DataType::F64>>()    // rewards
         .Attr<int32_t>("nr_moments")
         .Attr<int32_t>("discrete")
         .Attr<int32_t>("granularity")

@@ -1537,11 +1537,6 @@ class SVGD:
     >>> svgd.fit()  # Starts with strong regularization, gradually reduces
     >>>
     >>> # Using CDF-based regularization schedule (bidirectional)
-    >>> from phasic import ExponentialCDFRegularization
-    >>> reg_schedule = ExponentialCDFRegularization(first_reg=0.0, last_reg=1.0, tau=500.0)
-    >>> svgd = SVGD(model, observed_data, theta_dim=1,
-    ...             regularization=reg_schedule, nr_moments=2)
-    >>> svgd.fit()  # Progressive regularization (increasing)
     >>>
     >>> # Constant regularization (no schedule)
     >>> svgd = SVGD(model, observed_data, theta_dim=1, regularization=1.0, nr_moments=2)
@@ -2062,12 +2057,12 @@ class SVGD:
 
         return cache_dir / f"compiled_svgd_{cache_hash}.pkl"
 
-    def _get_cache_key_unified(self, nr_moments, regularization):
+    def _get_cache_key_unified(self, nr_moments, regularization, rewards=None):
         """
         Generate cache key including regularization parameters.
 
         Different regularization settings require different compiled gradients,
-        so we include nr_moments and regularization in the cache key.
+        so we include nr_moments, regularization, and rewards in the cache key.
 
         Parameters
         ----------
@@ -2075,6 +2070,8 @@ class SVGD:
             Number of moments for regularization
         regularization : float
             Regularization strength
+        rewards : tuple or None, optional
+            Reward vector as tuple for hashing
 
         Returns
         -------
@@ -2083,8 +2080,9 @@ class SVGD:
         """
         theta_shape = (self.theta_dim,)
         times_shape = self.observed_data.shape
-        # Include nr_moments and regularization in cache key
-        cache_key = f"{id(self.model)}_{theta_shape}_{times_shape}_{nr_moments}_{regularization}"
+        # Include nr_moments, regularization, and rewards in cache key
+        rewards_str = str(rewards) if rewards is not None else "None"
+        cache_key = f"{id(self.model)}_{theta_shape}_{times_shape}_{nr_moments}_{regularization}_{rewards_str}"
         cache_hash = hashlib.sha256(cache_key.encode()).hexdigest()[:16]
         return cache_hash
 
@@ -2199,7 +2197,7 @@ class SVGD:
             rewards=None
         )
 
-    def _precompile_unified(self, nr_moments, sample_moments, regularization):
+    def _precompile_unified(self, nr_moments, sample_moments, regularization, rewards=None):
         """
         Precompile gradient for unified log_prob with given regularization settings.
 
@@ -2214,16 +2212,19 @@ class SVGD:
             Sample moments from data
         regularization : float
             Regularization strength
+        rewards : array or None, optional
+            Optional reward vector for reward-transformed moments
 
         Returns
         -------
         compiled_grad : callable
             JIT-compiled gradient function
         """
-        # Generate cache key including regularization params
-        cache_hash = self._get_cache_key_unified(nr_moments, regularization)
+        # Generate cache key including regularization params and rewards
+        rewards_tuple = tuple(rewards) if rewards is not None else None
+        cache_hash = self._get_cache_key_unified(nr_moments, regularization, rewards_tuple)
         memory_cache_key = (id(self.model), self.theta_dim, self.observed_data.shape,
-                           nr_moments, regularization)
+                           nr_moments, regularization, rewards_tuple)
 
         # Check memory cache first
         if memory_cache_key in SVGD._compiled_cache:
@@ -2266,7 +2267,7 @@ class SVGD:
             nr_moments=nr_moments,
             sample_moments=sample_moments,
             regularization=regularization,
-            rewards=None
+            rewards=rewards
         )
 
         # JIT compile gradient
@@ -2343,13 +2344,6 @@ class SVGD:
         - Gradient compilation is cached (both memory and disk) for performance
         - All functionality from fit() and fit_regularized() is preserved
         """
-        # Validate rewards parameter
-        if rewards is not None:
-            raise NotImplementedError(
-                "Reward vector support is not yet implemented. "
-                "This requires extending the FFI to support reward transformation."
-            )
-
         # Create kernel
         kernel = SVGDKernel(bandwidth=self.bandwidth)
 
@@ -2369,6 +2363,16 @@ class SVGD:
                 print(f"  Nr moments: {self.nr_moments}")
                 print(f"  Note: Gradient precompilation disabled for schedule flexibility")
 
+            # Create factory that captures rewards parameter
+            def log_prob_factory(reg_value):
+                return partial(
+                    self._log_prob_unified,
+                    nr_moments=self.nr_moments,
+                    sample_moments=self.sample_moments,
+                    regularization=reg_value,
+                    rewards=rewards
+                )
+
             results = run_svgd(
                 log_prob_fn=None,  # Created dynamically per iteration
                 theta_init=self.theta_init,
@@ -2380,14 +2384,14 @@ class SVGD:
                 compiled_grad=None,  # Cannot precompile with dynamic regularization
                 parallel_mode=self.parallel_mode,
                 n_devices=self.n_devices,
-                log_prob_fn_factory=self._create_log_prob_fn_with_regularization,
+                log_prob_fn_factory=log_prob_factory,
                 regularization_schedule=self.regularization_schedule
             )
         else:
             # Static regularization - use current precompiled approach
             # Precompile gradient with caching (if JIT enabled)
             if self.jit_enabled:
-                compiled_grad = self._precompile_unified(self.nr_moments, self.sample_moments, self.regularization)
+                compiled_grad = self._precompile_unified(self.nr_moments, self.sample_moments, self.regularization, rewards)
             else:
                 # Create log_prob function using partial (no JIT)
                 log_prob_fn = partial(
@@ -2395,7 +2399,7 @@ class SVGD:
                     nr_moments=self.nr_moments,
                     sample_moments=self.sample_moments,
                     regularization=self.regularization,
-                    rewards=None
+                    rewards=rewards
                 )
                 compiled_grad = jax.grad(log_prob_fn)  # Not JIT compiled
 
@@ -2405,7 +2409,7 @@ class SVGD:
                 nr_moments=self.nr_moments,
                 sample_moments=self.sample_moments,
                 regularization=self.regularization,
-                rewards=None
+                rewards=rewards
             )
 
             # Print info

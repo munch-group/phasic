@@ -122,7 +122,8 @@ public:
         py::array_t<double> times,
         int nr_moments,
         bool discrete = false,
-        int granularity = 100
+        int granularity = 100,
+        py::object rewards = py::none()
     );
 
     // Getters for metadata
@@ -136,7 +137,7 @@ public:
      * Public for use by FFI handlers. Internal implementation used by
      * compute_moments() and compute_pmf_and_moments()
      */
-    std::vector<double> compute_moments_impl(Graph& g, int nr_moments);
+    std::vector<double> compute_moments_impl(Graph& g, int nr_moments, const std::vector<double>& rewards);
 
 private:
     // Cached structure data (parsed from JSON once)

@@ -3778,6 +3778,7 @@ Computes the expected residence time of the phase-type distribution.
           py::arg("nr_moments"),
           py::arg("discrete") = false,
           py::arg("granularity") = 100,
+          py::arg("rewards") = py::none(),
           R"delim(
           Compute both PMF and moments efficiently in a single pass.
 
@@ -3796,6 +3797,9 @@ Computes the expected residence time of the phase-type distribution.
               If True, use DPH mode; if False, use PDF mode
           granularity : int, default=100
               Discretization granularity for PDF (ignored for DPH)
+          rewards : numpy.ndarray or None, default=None
+              Optional reward vector (one per vertex). If None, computes standard moments E[T^k].
+              If provided, computes reward-transformed moments E[R·T^k].
 
           Returns
           -------

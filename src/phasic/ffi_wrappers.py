@@ -557,7 +557,8 @@ def compute_moments_ffi(structure_json: Union[str, Dict], theta: jax.Array,
 def compute_pmf_and_moments_ffi(structure_json: Union[str, Dict], theta: jax.Array,
                                times: jax.Array, nr_moments: int,
                                discrete: bool = False,
-                               granularity: int = 100) -> tuple[jax.Array, jax.Array]:
+                               granularity: int = 100,
+                               rewards: jax.Array = None) -> tuple[jax.Array, jax.Array]:
     """
     Compute both PMF and moments efficiently using JAX FFI.
 
@@ -580,6 +581,9 @@ def compute_pmf_and_moments_ffi(structure_json: Union[str, Dict], theta: jax.Arr
         If True, use DPH mode; if False, use PDF mode
     granularity : int, default=100
         Discretization granularity for PDF (ignored for DPH)
+    rewards : jax.Array or None, default=None
+        Optional reward vector (one per vertex). If None, computes standard moments E[T^k].
+        If provided, computes reward-transformed moments E[R·T^k].
 
     Returns
     -------
@@ -612,8 +616,14 @@ def compute_pmf_and_moments_ffi(structure_json: Union[str, Dict], theta: jax.Arr
     # JSON is passed as STRING ATTRIBUTE (static, not batched by vmap)
     structure_str = _ensure_json_string(structure_json)
 
+    # Handle optional rewards: use empty array if None
+    if rewards is None:
+        rewards = jnp.array([], dtype=jnp.float64)
+    else:
+        rewards = jnp.asarray(rewards, dtype=jnp.float64)
+
     # Call JAX FFI target
-    # NOTE: JSON passed as attribute (static), theta/times as buffers (batched)
+    # NOTE: JSON passed as attribute (static), theta/times/rewards as buffers (batched)
     # expand_dims: vmap adds batch dimension, FFI handler loops over batch with OpenMP
     ffi_fn = jax.ffi.ffi_call(
         "ptd_compute_pmf_and_moments",
@@ -624,6 +634,7 @@ def compute_pmf_and_moments_ffi(structure_json: Union[str, Dict], theta: jax.Arr
     pmf_result, moments_result = ffi_fn(
         theta,       # Arg 1: theta buffer (BATCHED by vmap)
         times,       # Arg 2: times buffer (BATCHED by vmap)
+        rewards,     # Arg 3: rewards buffer (empty array if None → standard moments)
         structure_json=structure_str,           # Attr: JSON string (STATIC, not batched)
         granularity=np.int32(granularity),      # Attr: granularity
         discrete=np.bool_(discrete),            # Attr: discrete

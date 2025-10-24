@@ -197,11 +197,12 @@ double GraphBuilder::factorial(int n) {
     return result;
 }
 
-std::vector<double> GraphBuilder::compute_moments_impl(Graph& g, int nr_moments) {
+std::vector<double> GraphBuilder::compute_moments_impl(Graph& g, int nr_moments, const std::vector<double>& rewards) {
     std::vector<double> result(nr_moments);
 
-    // First moment: E[T]
-    std::vector<double> rewards;  // Empty for standard moments
+    // First moment: E[T] or E[R·T] if rewards provided
+    // If rewards is empty → standard moments
+    // If rewards provided → reward-transformed moments
     std::vector<double> rewards2 = g.expected_waiting_time(rewards);
 
     if (rewards2.empty()) {
@@ -261,8 +262,9 @@ py::array_t<double> GraphBuilder::compute_moments(
         // Build graph (pure C++)
         Graph g = build(theta_vec.data(), theta_len);
 
-        // Compute moments (pure C++)
-        moments = compute_moments_impl(g, nr_moments);
+        // Compute moments (pure C++) - empty rewards = standard moments
+        std::vector<double> rewards;  // Empty for standard moments
+        moments = compute_moments_impl(g, nr_moments, rewards);
     }
     // GIL automatically reacquired here
 
@@ -336,7 +338,8 @@ GraphBuilder::compute_pmf_and_moments(
     py::array_t<double> times,
     int nr_moments,
     bool discrete,
-    int granularity
+    int granularity,
+    py::object rewards_obj
 ) {
     // Step 1: Extract data from numpy arrays (requires GIL)
     auto theta_buf = theta.unchecked<1>();
@@ -353,6 +356,19 @@ GraphBuilder::compute_pmf_and_moments(
     for (size_t i = 0; i < n_times; i++) {
         times_vec[i] = times_buf(i);
     }
+
+    // Extract optional rewards vector
+    std::vector<double> rewards_vec;
+    if (!rewards_obj.is_none()) {
+        auto rewards_array = rewards_obj.cast<py::array_t<double>>();
+        auto rewards_buf = rewards_array.unchecked<1>();
+        size_t n_rewards = rewards_buf.shape(0);
+        rewards_vec.resize(n_rewards);
+        for (size_t i = 0; i < n_rewards; i++) {
+            rewards_vec[i] = rewards_buf(i);
+        }
+    }
+    // If rewards_obj is None, rewards_vec remains empty → standard moments
 
     // Step 2: Release GIL for C++ computation
     std::vector<double> pmf_vec(n_times);
@@ -376,7 +392,8 @@ GraphBuilder::compute_pmf_and_moments(
         }
 
         // Compute moments using same graph (pure C++)
-        moments = compute_moments_impl(g, nr_moments);
+        // Pass rewards_vec (empty for standard moments, filled for reward transformation)
+        moments = compute_moments_impl(g, nr_moments, rewards_vec);
     }
     // GIL automatically reacquired here
 

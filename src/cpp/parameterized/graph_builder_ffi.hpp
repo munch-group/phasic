@@ -60,6 +60,7 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
     bool discrete,
     ffi::Buffer<ffi::F64> theta,
     ffi::Buffer<ffi::F64> times,
+    ffi::Buffer<ffi::F64> rewards,
     ffi::ResultBuffer<ffi::F64> pmf_result,
     ffi::ResultBuffer<ffi::F64> moments_result
 );

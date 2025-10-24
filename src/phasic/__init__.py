@@ -2884,11 +2884,14 @@ extern "C" {{
         -------
         callable
             JAX-compatible function with signature:
-            model(theta, times) -> (pmf_values, moments)
+            model(theta, times, rewards=None) -> (pmf_values, moments)
 
             Where:
+            - theta: Parameter vector
+            - times: Time points or jump counts
+            - rewards: Optional reward vector (one per vertex). If None, computes standard moments.
             - pmf_values: jnp.array(len(times),) - PMF/PDF values at each time
-            - moments: jnp.array(nr_moments,) - [E[T], E[T^2], ..., E[T^k]]
+            - moments: jnp.array(nr_moments,) - [E[T], E[T^2], ...] or [E[R·T], E[R·T^2], ...]
 
         Examples
         --------
@@ -2903,6 +2906,11 @@ extern "C" {{
         >>>
         >>> print(f"PMF at times: {pmf_vals}")
         >>> print(f"Moments: {moments}")  # [E[T], E[T^2]]
+        >>>
+        >>> # Compute reward-transformed moments
+        >>> rewards = jnp.array([1.0, 2.0, 0.5, 1.5])  # One per vertex
+        >>> pmf_vals, reward_moments = model(theta, times, rewards=rewards)
+        >>> print(f"Reward moments: {reward_moments}")  # [E[R·T], E[R·T^2]]
         >>>
         >>> # Use in SVGD with moment regularization
         >>> svgd = SVGD(model, observed_pmf, theta_dim=1)
@@ -2956,7 +2964,7 @@ extern "C" {{
             )
 
             # FFI mode doesn't need batching - FFI handles it natively
-            def _compute_pure(theta, times):
+            def _compute_pure(theta, times, rewards=None):
                 """FFI wrapper for multi-core parallelization.
 
                 Supports: jit, vmap, pmap with true multi-core execution
@@ -2964,7 +2972,7 @@ extern "C" {{
                 """
                 theta = jnp.atleast_1d(theta)
                 times = jnp.atleast_1d(times)
-                return model_ffi_partial(theta=theta, times=times)
+                return model_ffi_partial(theta=theta, times=times, rewards=rewards)
         else:
             # FALLBACK MODE: Use pybind11 GraphBuilder (same as pmf_from_graph)
             import json
@@ -2976,7 +2984,7 @@ extern "C" {{
             # Create GraphBuilder ONCE - captured in model closure
             builder = cpp_module.parameterized.GraphBuilder(structure_json_str)
 
-            def _compute_pmf_and_moments_cached(theta_np, times_np):
+            def _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np=None):
                 """Uses cached builder - NO JSON parsing per call."""
                 # Check if theta is batched (from vmap with expand_dims)
                 if theta_np.ndim == 2:
@@ -2989,7 +2997,8 @@ extern "C" {{
                             times_unbatched,
                             nr_moments=nr_moments,
                             discrete=discrete,
-                            granularity=0
+                            granularity=0,
+                            rewards=rewards_np  # Pass optional rewards
                         )
                         pmf_results.append(pmf)
                         moments_results.append(moments)
@@ -3001,15 +3010,19 @@ extern "C" {{
                         times_np,
                         nr_moments=nr_moments,
                         discrete=discrete,
-                        granularity=0
+                        granularity=0,
+                        rewards=rewards_np  # Pass optional rewards
                     )
                     return pmf, moments
 
             # Helper function for pure callback (used in forward and backward pass)
-            def _compute_pure(theta, times):
+            def _compute_pure(theta, times, rewards=None):
                 """Pure computation without custom_vjp wrapper"""
                 theta = jnp.atleast_1d(theta)
                 times = jnp.atleast_1d(times)
+
+                # Convert rewards to numpy if provided
+                rewards_np = np.asarray(rewards) if rewards is not None else None
 
                 pmf_shape = jax.ShapeDtypeStruct(times.shape, jnp.float64)
                 moments_shape = jax.ShapeDtypeStruct((nr_moments,), jnp.float64)
@@ -3017,7 +3030,8 @@ extern "C" {{
                 result = jax.pure_callback(
                     lambda theta_jax, times_jax: _compute_pmf_and_moments_cached(
                         np.asarray(theta_jax),
-                        np.asarray(times_jax)
+                        np.asarray(times_jax),
+                        rewards_np  # Pass optional rewards
                     ),
                     (pmf_shape, moments_shape),
                     theta, times,
@@ -3027,17 +3041,32 @@ extern "C" {{
 
         # Wrap for JAX compatibility with custom VJP for gradients
         @jax.custom_vjp
-        def model(theta, times):
-            """JAX-compatible model function returning (pmf, moments)"""
-            return _compute_pure(theta, times)
+        def model(theta, times, rewards=None):
+            """JAX-compatible model function returning (pmf, moments)
 
-        def model_fwd(theta, times):
+            Parameters
+            ----------
+            theta : jax.Array
+                Parameter vector
+            times : jax.Array
+                Time points
+            rewards : jax.Array or None, optional
+                Reward vector for reward-transformed moments
+
+            Returns
+            -------
+            tuple of (jax.Array, jax.Array)
+                (pmf_values, moments)
+            """
+            return _compute_pure(theta, times, rewards)
+
+        def model_fwd(theta, times, rewards=None):
             # Call the underlying computation, not model (avoid infinite recursion!)
-            pmf, moments = _compute_pure(theta, times)
-            return (pmf, moments), (theta, times)
+            pmf, moments = _compute_pure(theta, times, rewards)
+            return (pmf, moments), (theta, times, rewards)
 
         def model_bwd(res, g):
-            theta, times = res
+            theta, times, rewards = res
             g_pmf, g_moments = g  # Unpack gradient tuple
 
             n_params = theta.shape[0]
@@ -3050,8 +3079,8 @@ extern "C" {{
                 theta_minus = theta.at[i].add(-eps)
 
                 # Call underlying computation, not model
-                pmf_plus, moments_plus = _compute_pure(theta_plus, times)
-                pmf_minus, moments_minus = _compute_pure(theta_minus, times)
+                pmf_plus, moments_plus = _compute_pure(theta_plus, times, rewards)
+                pmf_minus, moments_minus = _compute_pure(theta_minus, times, rewards)
 
                 # Combine gradients from both PMF and moments
                 grad_pmf_i = jnp.sum(g_pmf * (pmf_plus - pmf_minus) / (2 * eps))
@@ -3060,7 +3089,7 @@ extern "C" {{
 
                 theta_bar.append(grad_i)
 
-            return jnp.array(theta_bar), None
+            return jnp.array(theta_bar), None, None  # gradients for theta, times, rewards
 
         model.defvjp(model_fwd, model_bwd)
         return model
