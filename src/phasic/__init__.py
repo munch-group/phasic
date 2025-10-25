@@ -2466,8 +2466,8 @@ extern "C" {{
              n_devices: Optional[int] = None,
              precompile: bool = True,
              compilation_config: Optional[object] = None,
-             regularization=10,
-             nr_moments=0,
+             regularization: float = 0.0,
+             nr_moments: int = 2,
              positive_params: bool = True,
              param_transform: Optional[Callable] = None,
              rewards: Optional[ArrayLike] = None) -> Dict:    
@@ -2637,8 +2637,28 @@ extern "C" {{
 
         from .svgd import SVGD
 
-        model = Graph.pmf_and_moments_from_graph(self, nr_moments=nr_moments, discrete=discrete,
-                                                  param_length=theta_dim)
+        # Auto-detect if we need multivariate model (2D rewards)
+        if rewards is not None:
+            import jax.numpy as jnp
+            rewards_arr = jnp.asarray(rewards, dtype=jnp.float64)  # Ensure float64 for C++ compatibility
+            if rewards_arr.ndim == 2:
+                # Use multivariate model for 2D rewards
+                model = Graph.pmf_and_moments_from_graph_multivariate(
+                    self, nr_moments=nr_moments, discrete=discrete,
+                    use_ffi=False, param_length=theta_dim
+                )
+            else:
+                # Use standard model for 1D rewards
+                model = Graph.pmf_and_moments_from_graph(
+                    self, nr_moments=nr_moments, discrete=discrete,
+                    param_length=theta_dim
+                )
+        else:
+            # No rewards - use standard model
+            model = Graph.pmf_and_moments_from_graph(
+                self, nr_moments=nr_moments, discrete=discrete,
+                param_length=theta_dim
+            )
 
         # Create SVGD object
         svgd = SVGD(
@@ -2958,9 +2978,12 @@ extern "C" {{
                 "Create graph with parameterized=True and use add_edge_parameterized()."
             )
 
-        # Check if FFI is available (same pattern as pmf_from_graph)
+        # Check if FFI is available - respect parameter, allow config override
         config = get_config()
-        use_ffi = config.ffi  # Enable FFI for multi-core parallelization (C++ binding fixed!)
+        if not use_ffi:  # If explicitly disabled, respect it
+            use_ffi = False
+        else:  # If True or default, check config
+            use_ffi = config.ffi  # Enable FFI for multi-core parallelization (C++ binding fixed!)
 
         if use_ffi:
             # FFI MODE: Zero-copy XLA-optimized computation with multi-core support
@@ -3037,20 +3060,37 @@ extern "C" {{
                 theta = jnp.atleast_1d(theta)
                 times = jnp.atleast_1d(times)
 
-                # Convert rewards to numpy if provided
-                rewards_np = np.asarray(rewards) if rewards is not None else None
-
                 pmf_shape = jax.ShapeDtypeStruct(times.shape, jnp.float64)
                 moments_shape = jax.ShapeDtypeStruct((nr_moments,), jnp.float64)
 
+                # Convert rewards to JAX array to allow passing through vmap (handles both batched & unbatched)
+                if rewards is not None:
+                    rewards_jax = jnp.atleast_1d(rewards).astype(jnp.float64)
+                else:
+                    rewards_jax = jnp.array([], dtype=jnp.float64)  # Empty array as sentinel for None
+
+                # Callback handles vmap batch dimension at runtime (not during tracing)
+                def callback_fn(theta_jax, times_jax, rewards_jax):
+                    """Runtime conversion (not traced) - handles vmap batching"""
+                    theta_np = np.asarray(theta_jax)
+                    times_np = np.asarray(times_jax)
+                    rewards_np = np.asarray(rewards_jax, dtype=np.float64)
+
+                    # Handle vmap batch dimension: rewards get batched but all copies identical
+                    # Remove batch dim (1st axis) if present
+                    if rewards_np.ndim == 2 and rewards_np.shape[0] > 0:
+                        rewards_np = rewards_np[0]  # All batch elements identical, take first
+
+                    # Convert empty array sentinel back to None
+                    if rewards_np.size == 0:
+                        rewards_np = None
+
+                    return _compute_pmf_and_moments_cached(theta_np, times_np, rewards_np)
+
                 result = jax.pure_callback(
-                    lambda theta_jax, times_jax: _compute_pmf_and_moments_cached(
-                        np.asarray(theta_jax),
-                        np.asarray(times_jax),
-                        rewards_np  # Pass optional rewards
-                    ),
+                    callback_fn,
                     (pmf_shape, moments_shape),
-                    theta, times,
+                    theta, times, rewards_jax,  # Pass all args to allow vmap
                     vmap_method='expand_dims'
                 )
                 return result
@@ -3222,16 +3262,17 @@ extern "C" {{
                 return model_1d(theta, times, rewards=rewards_arr)
 
             elif rewards_arr.ndim == 2:
-                # 2D case: loop over features
+                # 2D case: Loop over features
+                # Using Python loop here to avoid JAX FFI dtype issues with scan
                 n_features = rewards_arr.shape[1]
+                times_arr = jnp.asarray(times)
+
                 pmf_list = []
                 moments_list = []
 
-                times_arr = jnp.asarray(times)
-
                 for j in range(n_features):
-                    # Extract reward vector for feature j
-                    reward_j = rewards_arr[:, j]
+                    # Extract reward vector for feature j (ensure float64 for C++ compatibility)
+                    reward_j = rewards_arr[:, j].astype(jnp.float64)
 
                     # Extract times for feature j (support both 1D and 2D times)
                     if times_arr.ndim == 2:

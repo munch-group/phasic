@@ -440,7 +440,7 @@ def compute_pmf_and_moments_fallback(structure_json: Union[str, Dict], theta: ja
 # ============================================================================
 
 def compute_pmf_ffi(structure_json: Union[str, Dict], theta: jax.Array, times: jax.Array,
-                   discrete: bool = False, granularity: int = 100) -> jax.Array:
+                   discrete: bool = False, granularity: int = 0) -> jax.Array:
     """
     Compute PMF (discrete) or PDF (continuous) using JAX FFI.
 
@@ -557,7 +557,7 @@ def compute_moments_ffi(structure_json: Union[str, Dict], theta: jax.Array,
 def compute_pmf_and_moments_ffi(structure_json: Union[str, Dict], theta: jax.Array,
                                times: jax.Array, nr_moments: int,
                                discrete: bool = False,
-                               granularity: int = 100,
+                               granularity: int = 0,
                                rewards: jax.Array = None) -> tuple[jax.Array, jax.Array]:
     """
     Compute both PMF and moments efficiently using JAX FFI.

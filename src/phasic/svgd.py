@@ -32,6 +32,8 @@ from .exceptions import PTDConfigError
 
 from .plot import black_white, Theme
 
+from . import svgd_plots
+
 ## requires equinox dependency
 # from .decoders import VariableDimPTDDecoder, LessThanOneDecoder, 
 #     SumToOneDecoder, IndependentProbDecoder
@@ -47,6 +49,8 @@ from tqdm import trange, tqdm
 trange = partial(trange, bar_format="{bar}", leave=False)
 tqdm = partial(tqdm, bar_format="{bar}", leave=False)
 
+
+    
 
 #from jax import random, vmap, grad, jit
 
@@ -1222,7 +1226,7 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
 def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
              kernel=None, return_history=False, verbose=True, compiled_grad=None,
              parallel_mode='vmap', n_devices=None,
-             log_prob_fn_factory=None, regularization_schedule=None):
+             log_prob_fn_factory=None, regularization_schedule=None, lr_scale=1.0):
     """
     Run Stein Variational Gradient Descent
 
@@ -1264,6 +1268,7 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
 
     # Initialize
     particles = theta_init
+
     history = [particles] if return_history else None
     history_iterations = [0] if return_history else []  # Track iteration numbers for history snapshots
 
@@ -1287,9 +1292,9 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
     for step in trange(n_steps) if verbose else range(n_steps):
         # Compute current step size from schedule
         if use_schedule:
-            current_step_size = step_schedule(step, particles)
+            current_step_size = step_schedule(step, particles) * lr_scale
         else:
-            current_step_size = learning_rate
+            current_step_size = learning_rate * lr_scale
 
         # Compute current regularization and create log_prob_fn if using schedule
         if regularization_schedule is not None:
@@ -1705,12 +1710,22 @@ class SVGD:
         self.n_iterations = n_iterations
 
         # Handle step size schedule (backward compatible)
+        # Auto-scale learning rate by number of observations to prevent gradient explosion
+        # Gradients scale with n_observations (not total elements), so we normalize by that
+        n_observations = float(self.observed_data.shape[0])
+        lr_scale = 1.0 / max(1.0, n_observations / 1000.0)  # Scale down for > 1000 observations
+
         if isinstance(learning_rate, StepSizeSchedule):
             self.step_schedule = learning_rate
             self.learning_rate = None  # Will be computed dynamically
+            self.lr_scale = lr_scale
         elif isinstance(learning_rate, (int, float)):
-            self.step_schedule = ConstantStepSize(float(learning_rate))
-            self.learning_rate = float(learning_rate)  # Keep for backward compat
+            scaled_lr = float(learning_rate) * lr_scale
+            self.step_schedule = ConstantStepSize(scaled_lr)
+            self.learning_rate = scaled_lr
+            self.lr_scale = lr_scale
+            if verbose and lr_scale < 1.0:
+                print(f"Auto-scaled learning rate: {learning_rate} → {scaled_lr:.6f} ({int(n_observations)} observations)")
         else:
             raise TypeError(
                 f"learning_rate must be float or StepSizeSchedule, got: {type(learning_rate)}"
@@ -1807,6 +1822,12 @@ class SVGD:
 
         self.nr_moments = nr_moments
         self.rewards = rewards  # Can be None, 1D (n_vertices,), or 2D (n_vertices, n_features)
+
+        if self.regularization > 0.0 or self.use_regularization_schedule:
+            if self.nr_moments == 0:
+                raise ValueError(
+                    "nr_moments must be > 0 when using regularization."
+                )
 
         # Compute sample moments if initial regularization > 0 or using schedule
         # (schedule might start at 0 but increase later, so we need moments ready)
@@ -2037,7 +2058,7 @@ class SVGD:
 
         # Evaluate model
         try:
-            result = self.model(theta_transformed, self.observed_data, rewards=self.rewards)
+            result = self.model(theta_transformed, self.observed_data, rewards=rewards)
         except Exception as e:
             raise ValueError(
                 f"Model evaluation failed. Ensure model has signature model(theta, times, rewards=None). "
@@ -2235,7 +2256,7 @@ class SVGD:
             nr_moments=self.nr_moments,
             sample_moments=self.sample_moments,
             regularization=regularization_value,
-            rewards=None
+            rewards=self.rewards  # FIX: Use actual rewards, not None
         )
 
     def _precompile_unified(self, nr_moments, sample_moments, regularization, rewards=None):
@@ -2390,6 +2411,10 @@ class SVGD:
         - Gradient compilation is cached (both memory and disk) for performance
         - All functionality from fit() and fit_regularized() is preserved
         """
+        # FIX: Use self.rewards if rewards parameter not provided
+        if rewards is None:
+            rewards = self.rewards
+
         # Create kernel
         kernel = SVGDKernel(bandwidth=self.bandwidth)
 
@@ -2431,7 +2456,8 @@ class SVGD:
                 parallel_mode=self.parallel_mode,
                 n_devices=self.n_devices,
                 log_prob_fn_factory=log_prob_factory,
-                regularization_schedule=self.regularization_schedule
+                regularization_schedule=self.regularization_schedule,
+                lr_scale=self.lr_scale
             )
         else:
             # Static regularization - use current precompiled approach
@@ -2482,7 +2508,8 @@ class SVGD:
                 parallel_mode=self.parallel_mode,
                 n_devices=self.n_devices,
                 log_prob_fn_factory=None,
-                regularization_schedule=None
+                regularization_schedule=None,
+                lr_scale=self.lr_scale
             )
 
         # Store results as attributes
@@ -2812,7 +2839,7 @@ class SVGD:
             for p in range(max_plotted):  # Plot first 10 particles
                 y = history_array[:, p, i]
                 x = np.arange(y.size)
-                ax.plot(x[skip:], y[skip:], alpha=0.5, linewidth=1)
+                ax.plot(x[skip:], y[skip:], alpha=1, linewidth=1)
 
             # Plot mean trajectory
             mean_trajectory = jnp.mean(history_array[:, :, i], axis=1)
@@ -2934,6 +2961,96 @@ class SVGD:
                 print(f"Plot saved to: {save_path}")
 
         return fig, axes
+
+
+
+    def plot_svgd_posterior_1d(self, true_params=None, obs_stats=None, map_est=None, ax=None, title="SVGD Posterior Approximation"):
+        """
+        Plot ...
+
+        """
+        params = locals().copy()
+        del params['self']
+        svgd_plots.plot_svgd_posterior_1d(self.particles, **params)
+
+
+    def plot_svgd_posterior_2d(self, true_params=None, obs_stats=None, map_est=None, ax=None, title="SVGD Posterior Approximation"):
+        """
+        Plot ...
+
+        """
+        params = locals().copy()
+        del params['self']
+        svgd_plots.plot_svgd_posterior_2d(self.particles, **params)
+
+
+    def check_convergence(self, log_p_fn, data, every=1, text=None, param_indices=None):
+        """
+        Plot ...
+
+        """
+        params = locals().copy()
+        del params['self']
+        svgd_plots.check_convergence(self.particle_history, **params)
+        
+
+    def estimate_hdr(self, log_prob_fn, alpha=0.95):
+        """
+        Plot ...
+
+        """
+        params = locals().copy()
+        del params['self']
+        svgd_plots.estimate_hdr(self.particles, **params)
+
+
+    def visualize_hdr_2d(self, log_prob_fn, idx=[0, 1], alphas=[0.95], grid_size=50, margin=0.1, xlim=None, ylim=None):
+        """
+        Plot ...
+
+        """
+        params = locals().copy()
+        del params['self']
+        svgd_plots.visualize_hdr_2d(self.particles, **params)
+
+
+    def map_estimate_from_particles(self, log_prob_fn):
+        """
+        Plot ...
+
+        """
+        params = locals().copy()
+        del params['self']
+        svgd_plots.map_estimate_from_particles(self.particles, **params)
+
+
+    def map_estimate_with_optimization(self, log_prob_fn, n_steps=100, step_size=0.01):
+        """
+        Plot ...
+
+        """
+        params = locals().copy()
+        del params['self']
+        svgd_plots.map_estimate_with_optimization(self.particles, **params)
+
+    def plot_parameter_matrix(self, true_params=None, max_params=6, figsize=(12, 10)):
+        """
+        Plot ...
+
+        """
+        params = locals().copy()
+        del params['self']
+        svgd_plots.plot_parameter_matrix(self.particles, **params)
+
+
+    def animate_parameter_pairs(self, param_pairs=None, true_params=None, figsize=(15, 5), save_as_gif=None):    
+        """
+        Plot ...
+
+        """
+        params = locals().copy()
+        del params['self']
+        svgd_plots.animate_parameter_pairs(self.particle_history, **params)
 
     # ========================================================================
     # Convergence Analysis and Diagnostics
