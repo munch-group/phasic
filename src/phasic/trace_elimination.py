@@ -132,6 +132,10 @@ class EliminationTrace:
         Dimension of state vectors
     param_length : int
         Number of parameters (0 for unit weights)
+    reward_length : int
+        Number of reward parameters (0 for no reward transformation)
+        If >0, rewards are stored as extended parameters at indices
+        [param_length, param_length + reward_length)
     is_discrete : bool
         Whether this is a discrete phase-type distribution
     metadata : Dict[str, Any]
@@ -146,6 +150,7 @@ class EliminationTrace:
     n_vertices: int = 0
     state_length: int = 0
     param_length: int = 0
+    reward_length: int = 0
     is_discrete: bool = False
     metadata: Dict[str, Any] = field(default_factory=dict)
 
@@ -157,6 +162,7 @@ class EliminationTrace:
             f"Vertices:        {self.n_vertices}",
             f"State dimension: {self.state_length}",
             f"Parameters:      {self.param_length}",
+            f"Rewards:         {self.reward_length}",
             f"Operations:      {len(self.operations)}",
             f"Type:            {'Discrete' if self.is_discrete else 'Continuous'}",
             f"Starting vertex: {self.starting_vertex_idx}",
@@ -298,16 +304,13 @@ class TraceBuilder:
 # Graph Elimination with Trace Recording
 # ============================================================================
 
-def record_elimination_trace(graph, param_length: Optional[int] = None) -> EliminationTrace:
+def record_elimination_trace_simple(graph, param_length: Optional[int] = None) -> EliminationTrace:
     """
-    Record trace of graph elimination operations (Phase 2: supports parameterization)
+    Record trace of graph elimination operations (Original version without reward support)
 
-    This function performs standard graph elimination but records all arithmetic
-    operations instead of computing symbolic expressions. The result is a linear
-    sequence of operations that can be efficiently replayed.
-
-    Supports both regular edges (constants) and parameterized edges (linear
-    combinations of parameters).
+    This is the original implementation that does NOT support reward transformation.
+    It can serve as a backend for non-parameterized graphs and provides slightly
+    better performance when rewards are not needed.
 
     Parameters
     ----------
@@ -320,22 +323,79 @@ def record_elimination_trace(graph, param_length: Optional[int] = None) -> Elimi
     Returns
     -------
     EliminationTrace
+        Recorded trace of operations (reward_length=0)
+
+    Notes
+    -----
+    This version does NOT support reward transformation. For reward support,
+    use record_elimination_trace() with enable_rewards=True.
+
+    See Also
+    --------
+    record_elimination_trace : Version with reward transformation support
+    """
+    # Simply call the full version with rewards disabled
+    return record_elimination_trace(
+        graph,
+        param_length=param_length,
+        reward_length=0,
+        enable_rewards=False
+    )
+
+
+def record_elimination_trace(graph, param_length: Optional[int] = None,
+                            reward_length: Optional[int] = None,
+                            enable_rewards: bool = False) -> EliminationTrace:
+    """
+    Record trace of graph elimination operations (Phase 2: supports parameterization)
+
+    This function performs standard graph elimination but records all arithmetic
+    operations instead of computing symbolic expressions. The result is a linear
+    sequence of operations that can be efficiently replayed.
+
+    Supports both regular edges (constants) and parameterized edges (linear
+    combinations of parameters), with optional reward transformation support.
+
+    Parameters
+    ----------
+    graph : Graph
+        Input graph with regular and/or parameterized edges
+    param_length : int, optional
+        Explicit number of parameters. If not provided, will be auto-detected
+        using heuristics (may over-estimate in some edge cases).
+    reward_length : int, optional
+        Number of reward parameters for reward transformation. If provided,
+        edge weights will be multiplied by reward parameters during trace
+        recording. Rewards are stored as extended parameters at indices
+        [param_length, param_length + reward_length). If not provided,
+        defaults to n_vertices when enable_rewards=True.
+    enable_rewards : bool, default=False
+        If True, add MUL operations for reward transformation even if
+        reward_length is not explicitly provided (uses n_vertices).
+
+    Returns
+    -------
+    EliminationTrace
         Recorded trace of operations
 
     Notes
     -----
     - Phase 1: Supports constant edge weights
     - Phase 2: Supports parameterized edges with DOT product operations
+    - Phase 3: Supports reward transformation via extended parameters
     - Parameterized edges have weights: w = c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ + base_weight
+    - Reward transformation: w_transformed = w * reward[vertex_idx]
     - For parameterized graphs, explicitly providing param_length is recommended
       for accuracy, as auto-detection may over-estimate
+    - Extended parameter vector: [θ₀, θ₁, ..., θₙ, r₀, r₁, ..., rₘ] when rewards enabled
 
     Algorithm:
     ---------
     1. Topological sort of vertices (using SCC)
     2. For each vertex, compute rate = 1 / sum(edge_weights)
     3. Convert edge weights to probabilities: prob = weight * rate
-    4. Eliminate vertices in order:
+    4. Optionally multiply by reward parameter: prob = prob * reward[vertex_idx]
+    5. Eliminate vertices in order:
        - For each parent of current vertex:
          - For each child of current vertex:
            - Add bypass edge (or update existing edge)
@@ -423,6 +483,17 @@ def record_elimination_trace(graph, param_length: Optional[int] = None) -> Elimi
         # No parameterized edges, set to 0
         param_length = 0
 
+    # Determine reward_length
+    if reward_length is None:
+        if enable_rewards:
+            reward_length = n_vertices
+        else:
+            reward_length = 0
+
+    # Validate reward_length
+    if reward_length > 0 and reward_length < n_vertices:
+        raise ValueError(f"reward_length ({reward_length}) must be 0 or >= n_vertices ({n_vertices})")
+
     vertex_rates = np.zeros(n_vertices, dtype=np.int32)
 
     for i, v in enumerate(vertices_list):
@@ -503,6 +574,13 @@ def record_elimination_trace(graph, param_length: Optional[int] = None) -> Elimi
             # prob = weight * rate
             prob_idx = builder.add_mul(weight_idx, vertex_rates[i])
 
+            # Apply reward transformation if enabled
+            if reward_length > 0:
+                # Reward parameter is at index param_length + i
+                reward_param_idx = param_length + i
+                reward_idx = builder.add_param(reward_param_idx)
+                prob_idx = builder.add_mul(prob_idx, reward_idx)
+
             edge_probs[i].append(prob_idx)
             vertex_targets[i].append(to_idx)
             edge_map[(i, to_idx)] = len(edge_probs[i]) - 1
@@ -535,6 +613,13 @@ def record_elimination_trace(graph, param_length: Optional[int] = None) -> Elimi
 
             # prob = weight * rate
             prob_idx = builder.add_mul(weight_idx, vertex_rates[i])
+
+            # Apply reward transformation if enabled
+            if reward_length > 0:
+                # Reward parameter is at index param_length + i
+                reward_param_idx = param_length + i
+                reward_idx = builder.add_param(reward_param_idx)
+                prob_idx = builder.add_mul(prob_idx, reward_idx)
 
             edge_probs[i].append(prob_idx)
             vertex_targets[i].append(to_idx)
@@ -663,10 +748,12 @@ def record_elimination_trace(graph, param_length: Optional[int] = None) -> Elimi
         n_vertices=n_vertices,
         state_length=state_length,
         param_length=param_length,
+        reward_length=reward_length,
         is_discrete=False,  # TODO: detect from graph
         metadata={
-            "phase": 2 if has_parameterized else 1,
+            "phase": 3 if reward_length > 0 else (2 if has_parameterized else 1),
             "parameterized": has_parameterized,
+            "reward_transformation": reward_length > 0,
             "total_operations": len(builder.operations),
             "const_cached": len(builder._const_cache),
         }
@@ -686,7 +773,8 @@ def record_elimination_trace(graph, param_length: Optional[int] = None) -> Elimi
 # Trace Evaluation
 # ============================================================================
 
-def evaluate_trace(trace: EliminationTrace, params: Optional[np.ndarray] = None) -> Dict[str, Any]:
+def evaluate_trace(trace: EliminationTrace, params: Optional[np.ndarray] = None,
+                  rewards: Optional[np.ndarray] = None) -> Dict[str, Any]:
     """
     Evaluate elimination trace with concrete parameter values
 
@@ -696,6 +784,10 @@ def evaluate_trace(trace: EliminationTrace, params: Optional[np.ndarray] = None)
         Recorded elimination trace
     params : np.ndarray, optional
         Parameter vector (required if trace.param_length > 0)
+    rewards : np.ndarray, optional
+        Reward vector for reward transformation.
+        If None and trace.reward_length > 0, defaults to ones (neutral rewards).
+        Shape: (trace.reward_length,) or (trace.n_vertices,)
 
     Returns
     -------
@@ -719,6 +811,20 @@ def evaluate_trace(trace: EliminationTrace, params: Optional[np.ndarray] = None)
         if len(params) != trace.param_length:
             raise ValueError(f"Expected {trace.param_length} parameters, got {len(params)}")
 
+    # Validate rewards and apply defaults
+    if trace.reward_length > 0:
+        if rewards is None:
+            # Default to ones (neutral rewards)
+            rewards = np.ones(trace.n_vertices, dtype=np.float64)
+        elif len(rewards) < trace.n_vertices:
+            raise ValueError(f"Expected at least {trace.n_vertices} rewards, got {len(rewards)}")
+
+    # Create extended parameter vector: [θ₀, θ₁, ..., θₙ, r₀, r₁, ..., rₘ]
+    if trace.reward_length > 0:
+        extended_params = np.concatenate([params if params is not None else np.array([]), rewards])
+    else:
+        extended_params = params if params is not None else np.array([])
+
     # Allocate value array
     n_ops = len(trace.operations)
     values = np.zeros(n_ops, dtype=np.float64)
@@ -729,11 +835,12 @@ def evaluate_trace(trace: EliminationTrace, params: Optional[np.ndarray] = None)
             values[i] = op.const_value
 
         elif op.op_type == OpType.PARAM:
-            values[i] = params[op.param_idx]
+            values[i] = extended_params[op.param_idx]
 
         elif op.op_type == OpType.DOT:
             # Dot product: c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ
-            values[i] = np.dot(op.coefficients, params)
+            # DOT only uses theta parameters (not rewards)
+            values[i] = np.dot(op.coefficients, params if params is not None else np.array([]))
 
         elif op.op_type == OpType.ADD:
             values[i] = values[op.operands[0]] + values[op.operands[1]]
@@ -1001,7 +1108,8 @@ def trace_from_graph(graph) -> EliminationTrace:
     return record_elimination_trace(graph)
 
 
-def instantiate_from_trace(trace: EliminationTrace, params: Optional[np.ndarray] = None):
+def instantiate_from_trace(trace: EliminationTrace, params: Optional[np.ndarray] = None,
+                          rewards: Optional[np.ndarray] = None):
     """
     Instantiate graph from trace
 
@@ -1011,6 +1119,10 @@ def instantiate_from_trace(trace: EliminationTrace, params: Optional[np.ndarray]
         Elimination trace
     params : np.ndarray, optional
         Parameter vector (required if trace is parameterized)
+    rewards : np.ndarray, optional
+        Reward vector for reward transformation.
+        If None and trace.reward_length > 0, defaults to ones (neutral rewards).
+        Shape: (trace.reward_length,) or (trace.n_vertices,)
 
     Returns
     -------
@@ -1021,13 +1133,17 @@ def instantiate_from_trace(trace: EliminationTrace, params: Optional[np.ndarray]
     -----
     This creates a new graph with the structure and edge weights from the
     evaluated trace. The graph is NOT yet normalized - call normalize() if needed.
+
+    When rewards are provided, the edge weights already include the reward
+    transformation from the trace evaluation, so the returned graph reflects
+    the reward-transformed distribution.
     """
     # Import the wrapped Graph class from the module, not pybind directly
     # This ensures we get the full Python API with proper as_matrices() support
     from . import Graph as _Graph
 
-    # Evaluate trace
-    result = evaluate_trace(trace, params)
+    # Evaluate trace (with rewards if provided)
+    result = evaluate_trace(trace, params, rewards)
 
     # Create new graph
     graph = _Graph(state_length=trace.state_length)
@@ -1079,7 +1195,7 @@ def instantiate_from_trace(trace: EliminationTrace, params: Optional[np.ndarray]
 # JAX Integration (Phase 2)
 # ============================================================================
 
-def evaluate_trace_jax(trace: EliminationTrace, params):
+def evaluate_trace_jax(trace: EliminationTrace, params, rewards=None):
     """
     Evaluate elimination trace with JAX arrays (jit/grad/vmap compatible)
 
@@ -1094,6 +1210,10 @@ def evaluate_trace_jax(trace: EliminationTrace, params):
         Recorded elimination trace
     params : jax.numpy.ndarray
         Parameter vector (required if trace.param_length > 0)
+    rewards : jax.numpy.ndarray, optional
+        Reward vector for reward transformation.
+        If None and trace.reward_length > 0, defaults to ones (neutral rewards).
+        Shape: (trace.reward_length,) or (trace.n_vertices,)
 
     Returns
     -------
@@ -1136,6 +1256,20 @@ def evaluate_trace_jax(trace: EliminationTrace, params):
         if len(params) != trace.param_length:
             raise ValueError(f"Expected {trace.param_length} parameters, got {len(params)}")
 
+    # Validate rewards and apply defaults
+    if trace.reward_length > 0:
+        if rewards is None:
+            # Default to ones (neutral rewards)
+            rewards = jnp.ones(trace.n_vertices, dtype=jnp.float64)
+        elif len(rewards) < trace.n_vertices:
+            raise ValueError(f"Expected at least {trace.n_vertices} rewards, got {len(rewards)}")
+
+    # Create extended parameter vector: [θ₀, θ₁, ..., θₙ, r₀, r₁, ..., rₘ]
+    if trace.reward_length > 0:
+        extended_params = jnp.concatenate([params if params is not None else jnp.array([]), rewards])
+    else:
+        extended_params = params if params is not None else jnp.array([])
+
     # Allocate value array
     n_ops = len(trace.operations)
     values = jnp.zeros(n_ops, dtype=jnp.float64)
@@ -1146,11 +1280,12 @@ def evaluate_trace_jax(trace: EliminationTrace, params):
             values = values.at[i].set(op.const_value)
 
         elif op.op_type == OpType.PARAM:
-            values = values.at[i].set(params[op.param_idx])
+            values = values.at[i].set(extended_params[op.param_idx])
 
         elif op.op_type == OpType.DOT:
             # Dot product: c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ
-            values = values.at[i].set(jnp.dot(op.coefficients, params))
+            # DOT only uses theta parameters (not rewards)
+            values = values.at[i].set(jnp.dot(op.coefficients, params if params is not None else jnp.array([])))
 
         elif op.op_type == OpType.ADD:
             values = values.at[i].set(values[op.operands[0]] + values[op.operands[1]])
@@ -1332,13 +1467,12 @@ def trace_to_log_likelihood(trace: EliminationTrace, observed_data, reward_vecto
 
     observed_data = jnp.array(observed_data)
 
-    # Warn if reward_vector is provided (not yet supported with exact PDF)
-    if reward_vector is not None:
+    # C++ mode not yet supported with reward_vector (requires C++ code generation update)
+    if reward_vector is not None and use_cpp:
         import warnings
         warnings.warn(
-            "reward_vector is not yet supported with exact phase-type likelihood. "
-            "Falling back to exponential approximation and Python mode. "
-            "This will be fixed in a future update.",
+            "C++ mode not yet supported with reward_vector. Using Python mode instead. "
+            "This is still exact phase-type likelihood, just slightly slower than C++ mode.",
             UserWarning
         )
         use_cpp = False  # Force Python mode for reward vectors
@@ -1384,24 +1518,13 @@ def trace_to_log_likelihood(trace: EliminationTrace, observed_data, reward_vecto
     def log_likelihood(params):
         """Log-likelihood function for given parameters"""
 
-        # If reward vector provided, fall back to exponential approximation
-        # TODO: Implement reward transformation for exact phase-type likelihood
-        if reward_vector is not None:
-            result = evaluate_trace_jax(trace, params)
-            vertex_rates = result['vertex_rates']
-            rewards = jnp.array(reward_vector)
-            expected_values = rewards * vertex_rates
-            lambda_param = jnp.sum(expected_values)
-            lambda_param = jnp.maximum(lambda_param, 1e-10)
-            log_lik = jnp.sum(jnp.log(lambda_param) - lambda_param * observed_data)
-            return log_lik
-
         # Use exact phase-type PDF via forward algorithm
         # Note: instantiate_from_trace expects numpy arrays, not JAX arrays
         params_np = np.asarray(params)
+        rewards_np = np.asarray(reward_vector) if reward_vector is not None else None
 
-        # Instantiate concrete graph from trace
-        graph = instantiate_from_trace(trace, params_np)
+        # Instantiate concrete graph from trace (with rewards if provided)
+        graph = instantiate_from_trace(trace, params_np, rewards_np)
 
         # Compute exact PDF at observed time points
         # Handle both scalar and array observed_data
