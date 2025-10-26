@@ -1177,6 +1177,11 @@ def instantiate_from_trace(trace: EliminationTrace, params: Optional[np.ndarray]
         for j, to_idx in enumerate(result['vertex_targets'][i]):
             prob = result['edge_probs'][i][j]
 
+            # Skip edges with zero or negligible probability
+            # (these are spurious edges from add_edge_parameterized creating both regular and param edges)
+            if prob < 1e-12:
+                continue
+
             # Convert probability back to weight: weight = prob / inv_rate
             # Since rate = 1 / sum(weights), we have inv_rate = sum(weights)
             # And prob = weight / sum(weights) = weight * rate

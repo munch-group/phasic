@@ -1372,7 +1372,8 @@ def compute_sample_moments(data, nr_moments):
     data = jnp.array(data)
     moments = []
     for k in range(1, nr_moments + 1):
-        moments.append(jnp.mean(data**k))
+        # Use nanmean to ignore NaN values in sparse/multivariate observations
+        moments.append(jnp.nanmean(data**k))
     return jnp.array(moments)
 
 
@@ -2075,8 +2076,9 @@ class SVGD:
 
         pmf_vals, model_moments = result
 
-        # Log-likelihood term
-        log_lik = jnp.sum(jnp.log(pmf_vals + 1e-10))
+        # Log-likelihood term (handle missing data via NaN)
+        mask = ~jnp.isnan(pmf_vals)
+        log_lik = jnp.sum(jnp.where(mask, jnp.log(pmf_vals + 1e-10), 0.0))
 
         # Log-prior term (evaluated in unconstrained space)
         if self.prior is not None:
@@ -2721,16 +2723,16 @@ class SVGD:
 
             # Posterior mean
             ax.axvline(theta_mean[i], color=black_white(ax), linestyle='--',
-                      linewidth=2, label=f'Mean = {theta_mean[i]:.3f}')
+                       label=f'Mean = {theta_mean[i]:.3f}')
 
             # True value (if provided)
             if true_theta is not None:
                 true_val = jnp.array(true_theta)[i]
                 ax.axvline(true_val, color='red', linestyle='--',
-                          linewidth=2, label=f'True = {true_val:.3f}')
+                           label=f'True = {true_val:.3f}')
 
             # Labels
-            param_name = param_names[i] if param_names else f'θ_{i}'
+            param_name = param_names[i] if param_names else rf"$\theta_{i}$"
             ax.set_xlabel(param_name + space_label)
             ax.set_ylabel('Density')
             ax.set_title(f'Posterior: {param_name}')
@@ -2839,18 +2841,18 @@ class SVGD:
             for p in range(max_plotted):  # Plot first 10 particles
                 y = history_array[:, p, i]
                 x = np.arange(y.size)
-                ax.plot(x[skip:], y[skip:], alpha=1, linewidth=1)
+                ax.plot(x[skip:], y[skip:], alpha=1, )
 
             # Plot mean trajectory
             mean_trajectory = jnp.mean(history_array[:, :, i], axis=1)
             y = mean_trajectory
             x = np.arange(y.size)
 
-            ax.plot(x[skip:], y[skip:], color=black_white(ax), linewidth=2,
+            ax.plot(x[skip:], y[skip:], color=black_white(ax), 
                     linestyle='dashed', label=f'Mean = {theta_mean[i]:.3f}')
 
             # Labels
-            param_name = param_names[i] if param_names else f'θ_{i}'
+            param_name = param_names[i] if param_names else rf"$\theta_{i}$"
             ax.set_xlabel('SVGD Iteration')
             ax.set_ylabel(param_name + space_label)
             ax.set_title(f'Trace: {param_name}')
@@ -2931,9 +2933,9 @@ class SVGD:
 
         # Plot 1: Mean convergence
         for i in range(self.theta_dim):
-            param_name = f'θ_{i}'
+            param_name = rf"$\theta_{i}$"
             x, y = iterations, mean_over_time[:, i]
-            ax1.plot(x[skip:], y[skip:], label=param_name, linewidth=2)
+            ax1.plot(x[skip:], y[skip:], label=param_name, )
 
         ax1.set_xlabel('SVGD Iteration')
         ax1.set_ylabel('Posterior Mean' + space_label)
@@ -2943,9 +2945,9 @@ class SVGD:
 
         # Plot 2: Std convergence
         for i in range(self.theta_dim):
-            param_name = f'θ_{i}'
+            param_name = rf"$\theta_{i}$"
             x, y = iterations, std_over_time[:, i]
-            ax2.plot(x[skip:], y[skip:], label=param_name, linewidth=2)
+            ax2.plot(x[skip:], y[skip:], label=param_name, )
 
         ax2.set_xlabel('SVGD Iteration')
         ax2.set_ylabel('Posterior Std' + space_label)
@@ -3581,12 +3583,12 @@ class SVGD:
                     # Diagonal: histogram
                     ax.hist(particles[:, i], bins=20, alpha=0.7,
                            edgecolor='black')
-                    param_name = param_names[i] if param_names else f'θ_{i}'
+                    param_name = param_names[i] if param_names else rf"$\theta_{i}$"
                     ax.set_ylabel('Count')
 
                     if true_theta is not None:
                         true_val = jnp.array(true_theta)[i]
-                        ax.axvline(true_val, color='red', linestyle='--', linewidth=2)
+                        ax.axvline(true_val, color='red', linestyle='--', )
                 else:
                     # Off-diagonal: scatter plot
                     ax.scatter(particles[:, j], particles[:, i],
@@ -3600,10 +3602,10 @@ class SVGD:
 
                 # Labels
                 if i == n_params - 1:
-                    param_name_j = param_names[j] if param_names else f'θ_{j}'
+                    param_name_j = param_names[j] if param_names else rf"$\theta_{j}$"
                     ax.set_xlabel(param_name_j + space_label)
                 if j == 0:
-                    param_name_i = param_names[i] if param_names else f'θ_{i}'
+                    param_name_i = param_names[i] if param_names else rf"$\theta_{i}$"
                     ax.set_ylabel(param_name_i + space_label)
 
                 # ax.grid(alpha=0.3)
@@ -3769,7 +3771,7 @@ class SVGD:
         ax_hist.grid(alpha=0.3)
         if true_val is not None:
             ax_hist.axvline(true_val, color='red', linestyle='--',
-                          linewidth=2, label='True value', zorder=10)
+                           label='True value', zorder=10)
             ax_hist.legend()
 
         # Setup trajectory panel
@@ -3781,18 +3783,18 @@ class SVGD:
         ax_traj.grid(alpha=0.3)
         if true_val is not None:
             ax_traj.axhline(true_val, color='red', linestyle='--',
-                          linewidth=2, label='True value', zorder=10)
+                           label='True value', zorder=10)
 
         # Initialize trajectory lines
         particle_lines = []
         if show_particles:
             n_show = min(max_particles, self.n_particles)
             for _ in range(n_show):
-                line, = ax_traj.plot([], [], alpha=0.3, linewidth=1)
+                line, = ax_traj.plot([], [], alpha=0.3, )
                 particle_lines.append(line)
 
-        mean_line, = ax_traj.plot([], [], color=black_white(ax), linewidth=2.5, label='Mean', zorder=5)
-        current_marker = ax_traj.axvline(0, color='blue', linestyle=':', linewidth=1.5, alpha=0.7)
+        mean_line, = ax_traj.plot([], [], color=black_white(ax),  label='Mean', zorder=5)
+        current_marker = ax_traj.axvline(0, color='blue', linestyle=':',  alpha=0.7)
         ax_traj.legend()
 
         iteration_text = fig.text(0.5, 0.98, '', ha='center', va='top')
@@ -3818,7 +3820,7 @@ class SVGD:
             ax_hist.set_title('Current Distribution')
             ax_hist.grid(alpha=0.3)
             if true_val is not None:
-                ax_hist.axvline(true_val, color='red', linestyle='--', linewidth=2, zorder=10)
+                ax_hist.axvline(true_val, color='red', linestyle='--',  zorder=10)
 
             # Update trajectories
             iterations = jnp.arange(frame + 1)
@@ -3947,7 +3949,7 @@ class SVGD:
 
                     if true_theta is not None:
                         true_val = jnp.array(true_theta)[i]
-                        ax.axvline(true_val, color='red', linestyle='--', linewidth=2, zorder=10)
+                        ax.axvline(true_val, color='red', linestyle='--',  zorder=10)
 
                     hist_data[(i, j)] = None  # Placeholder for histogram artists
                 else:
@@ -3964,10 +3966,10 @@ class SVGD:
 
                 # Labels
                 if i == n_params - 1:
-                    param_name_j = param_names[j] if param_names else f'θ_{j}'
+                    param_name_j = param_names[j] if param_names else rf"$\theta_{j}$"
                     ax.set_xlabel(param_name_j + space_label)
                 if j == 0:
-                    param_name_i = param_names[i] if param_names else f'θ_{i}'
+                    param_name_i = param_names[i] if param_names else rf"$\theta_{i}$"
                     ax.set_ylabel(param_name_i + space_label)
 
 #                ax.grid(alpha=0.3)
@@ -4000,13 +4002,13 @@ class SVGD:
                 ax.set_xlim(param_lims[i])
                 ax.set_ylabel('Count')
 
-                param_name = param_names[i] if param_names else f'θ_{i}'
+                param_name = param_names[i] if param_names else rf"$\theta_{i}$"
                 if i == n_params - 1:
                     ax.set_xlabel(param_name)
 
                 if true_theta is not None:
                     true_val = jnp.array(true_theta)[i]
-                    ax.axvline(true_val, color='red', linestyle='--', linewidth=2, zorder=10)
+                    ax.axvline(true_val, color='red', linestyle='--',  zorder=10)
 
                 # ax.grid(alpha=0.3)
 
