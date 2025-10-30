@@ -228,14 +228,17 @@ class TraceBuilder:
         ))
         return idx
 
-    def add_dot(self, coefficients: np.ndarray) -> int:
+    def add_dot(self, coefficients: np.ndarray, base_weight: float = 0.0) -> int:
         """
-        Add dot product operation: c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ
+        Add dot product operation: base_weight + c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ
 
         Parameters
         ----------
         coefficients : np.ndarray
             Coefficient vector [c₁, c₂, ..., cₙ]
+        base_weight : float, default=0.0
+            Base weight to add to dot product. This allows edges with empty
+            coefficient arrays [] to have weight = base_weight.
 
         Returns
         -------
@@ -245,7 +248,8 @@ class TraceBuilder:
         idx = len(self.operations)
         self.operations.append(Operation(
             op_type=OpType.DOT,
-            coefficients=np.array(coefficients, dtype=np.float64)
+            coefficients=np.array(coefficients, dtype=np.float64),
+            const_value=base_weight  # Store base_weight in const_value field
         ))
         return idx
 
@@ -526,21 +530,14 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
                 coeffs = np.array(edge_state, dtype=np.float64)
 
                 # weight = dot(coeffs, params) + base_weight
-                base_weight = param_edge.weight()
+                base_weight = param_edge.base_weight()
 
                 if np.allclose(coeffs, 0.0):
                     # No parameterization, just constant weight
                     weight_idx = builder.add_const(base_weight)
                 else:
-                    # DOT product: c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ
-                    dot_idx = builder.add_dot(coeffs)
-
-                    # Add base weight if non-zero
-                    if base_weight != 0.0:
-                        base_idx = builder.add_const(base_weight)
-                        weight_idx = builder.add_add(base_idx, dot_idx)
-                    else:
-                        weight_idx = dot_idx
+                    # DOT product with base weight: base_weight + c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ
+                    weight_idx = builder.add_dot(coeffs, base_weight)
 
                 weight_indices.append(weight_idx)
 
@@ -596,20 +593,15 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
             edge_state = param_edge.edge_state(param_length if param_length > 0 else MAX_PARAM_TEST)
             edge_state = edge_state[:param_length]
             coeffs = np.array(edge_state, dtype=np.float64)
-            base_weight = param_edge.weight()
+            base_weight = param_edge.base_weight()
 
             # Compute weight expression
             if np.allclose(coeffs, 0.0):
                 # No parameterization
                 weight_idx = builder.add_const(base_weight)
             else:
-                # DOT product
-                dot_idx = builder.add_dot(coeffs)
-                if base_weight != 0.0:
-                    base_idx = builder.add_const(base_weight)
-                    weight_idx = builder.add_add(base_idx, dot_idx)
-                else:
-                    weight_idx = dot_idx
+                # DOT product with base weight: base_weight + c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ
+                weight_idx = builder.add_dot(coeffs, base_weight)
 
             # prob = weight * rate
             prob_idx = builder.add_mul(weight_idx, vertex_rates[i])
@@ -734,9 +726,11 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
     # Build Result
     # ========================================================================
 
-    # Find starting vertex
-    start_state = tuple(graph.starting_vertex().state())
-    starting_vertex_idx = state_to_idx[start_state]
+    # The starting vertex is always the first vertex in the elimination order (index 0)
+    # The graph.starting_vertex() method returns a special sentinel vertex that is not
+    # in the vertices() list, so we use the convention that vertex 0 in vertices_list
+    # is the functional starting vertex after elimination.
+    starting_vertex_idx = 0
 
     trace = EliminationTrace(
         operations=builder.operations,
@@ -838,9 +832,11 @@ def evaluate_trace(trace: EliminationTrace, params: Optional[np.ndarray] = None,
             values[i] = extended_params[op.param_idx]
 
         elif op.op_type == OpType.DOT:
-            # Dot product: c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ
+            # Dot product WITH base weight: base + c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ
             # DOT only uses theta parameters (not rewards)
-            values[i] = np.dot(op.coefficients, params if params is not None else np.array([]))
+            # const_value stores the base_weight (0.0 if not set)
+            base_weight = op.const_value if op.const_value is not None else 0.0
+            values[i] = base_weight + np.dot(op.coefficients, params if params is not None else np.array([]))
 
         elif op.op_type == OpType.ADD:
             values[i] = values[op.operands[0]] + values[op.operands[1]]
@@ -1148,30 +1144,29 @@ def instantiate_from_trace(trace: EliminationTrace, params: Optional[np.ndarray]
     # Create new graph
     graph = _Graph(state_length=trace.state_length)
 
-    # Build state-to-vertex mapping
-    state_to_vertex = {}
+    # Build index-to-vertex mapping (NOT state-to-vertex!)
+    # Multiple trace vertices can have the same state (e.g., after elimination)
+    idx_to_vertex = {}
 
     # Get or create starting vertex
-    start_state = tuple(trace.states[trace.starting_vertex_idx].tolist())
+    start_idx = trace.starting_vertex_idx
     start_vertex = graph.starting_vertex()
-    state_to_vertex[start_state] = start_vertex
+    idx_to_vertex[start_idx] = start_vertex
 
     # Create all other vertices
     for i in range(trace.n_vertices):
-        state = tuple(trace.states[i].tolist())
-        if state not in state_to_vertex:
+        if i not in idx_to_vertex:
             v = graph.find_or_create_vertex(trace.states[i].tolist())
-            state_to_vertex[state] = v
+            idx_to_vertex[i] = v
 
     # Add edges
     for i in range(trace.n_vertices):
-        from_state = tuple(trace.states[i].tolist())
-        from_vertex = state_to_vertex[from_state]
+        from_vertex = idx_to_vertex[i]
 
-        inv_rate = result['vertex_rates'][i]
+        rate = result['vertex_rates'][i]
 
-        # Skip if absorbing (rate = 0 means inv_rate would be inf or very large)
-        if inv_rate == 0.0 or len(result['vertex_targets'][i]) == 0:
+        # Skip if absorbing (rate = 0)
+        if rate == 0.0 or len(result['vertex_targets'][i]) == 0:
             continue
 
         for j, to_idx in enumerate(result['vertex_targets'][i]):
@@ -1182,14 +1177,11 @@ def instantiate_from_trace(trace: EliminationTrace, params: Optional[np.ndarray]
             if prob < 1e-12:
                 continue
 
-            # Convert probability back to weight: weight = prob / inv_rate
-            # Since rate = 1 / sum(weights), we have inv_rate = sum(weights)
-            # And prob = weight / sum(weights) = weight * rate
-            # So weight = prob * sum(weights) = prob / inv_rate
-            weight = prob / inv_rate
+            # Convert probability back to weight: weight = prob / rate
+            # Since prob = weight * rate, we have weight = prob / rate
+            weight = prob / rate
 
-            to_state = tuple(trace.states[to_idx].tolist())
-            to_vertex = state_to_vertex[to_state]
+            to_vertex = idx_to_vertex[to_idx]
 
             from_vertex.add_edge(to_vertex, weight)
 
@@ -1288,9 +1280,13 @@ def evaluate_trace_jax(trace: EliminationTrace, params, rewards=None):
             values = values.at[i].set(extended_params[op.param_idx])
 
         elif op.op_type == OpType.DOT:
-            # Dot product: c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ
+            # Dot product WITH base weight: base + c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ
             # DOT only uses theta parameters (not rewards)
-            values = values.at[i].set(jnp.dot(op.coefficients, params if params is not None else jnp.array([])))
+            # const_value stores the base_weight (0.0 if not set)
+            base_weight = op.const_value if op.const_value is not None else 0.0
+            values = values.at[i].set(
+                base_weight + jnp.dot(op.coefficients, params if params is not None else jnp.array([]))
+            )
 
         elif op.op_type == OpType.ADD:
             values = values.at[i].set(values[op.operands[0]] + values[op.operands[1]])

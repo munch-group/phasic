@@ -3054,11 +3054,16 @@ Computes the expected residence time of the phase-type distribution.
 
       )delim")
       
-    .def("weight", &phasic::ParameterizedEdge::weight, 
+    .def("weight", &phasic::ParameterizedEdge::weight,
       py::return_value_policy::reference_internal, R"delim(
 
       )delim")
-      
+
+    .def("base_weight", &phasic::ParameterizedEdge::base_weight,
+      py::return_value_policy::reference_internal, R"delim(
+
+      )delim")
+
     // .def("edge_state", 
     //   [](phasic::ParameterizedEdge &edge) {
     //     auto a = edge.state;

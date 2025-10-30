@@ -1654,7 +1654,9 @@ void ptd_edge_update_weight_parameterized(
         double *scalars,
         size_t scalars_length
 ) {
-    double weight = 0;
+    // Start with base weight, then add parameterized component
+    // This allows edges with empty coefficients [] to have weight = base_weight
+    double weight = ((struct ptd_edge_parameterized *) edge)->base_weight;
 
     for (size_t i = 0; i < scalars_length; ++i) {
         weight += scalars[i] * ((struct ptd_edge_parameterized *) edge)->state[i];
@@ -1685,6 +1687,38 @@ void ptd_graph_update_weight_parameterized(
     // Store parameter length on first call
     if (graph->param_length == 0 && scalars_length > 0) {
         graph->param_length = scalars_length;
+    }
+
+    // Validate parameter length matches graph's expected length
+    if (graph->param_length > 0 && scalars_length != graph->param_length) {
+        snprintf((char*)ptd_err, sizeof(ptd_err),
+                "Parameter length mismatch: graph expects %zu parameters, got %zu",
+                (unsigned long)graph->param_length, (unsigned long)scalars_length);
+        return;
+    }
+
+    // Validate all parameterized edges have consistent coefficient length
+    // (Skip starting vertex edges as they are not parameterized)
+    for (size_t i = 0; i < graph->vertices_length; ++i) {
+        if (graph->vertices[i] == graph->starting_vertex) {
+            continue;
+        }
+        for (size_t j = 0; j < graph->vertices[i]->edges_length; ++j) {
+            if (graph->vertices[i]->edges[j]->parameterized) {
+                struct ptd_edge_parameterized *param_edge =
+                    (struct ptd_edge_parameterized *) graph->vertices[i]->edges[j];
+                if (param_edge->state_length != graph->param_length) {
+                    snprintf((char*)ptd_err, sizeof(ptd_err),
+                            "Edge coefficient length mismatch at vertex %zu, edge %zu: "
+                            "expected %zu, got %zu. All parameterized edges must have "
+                            "coefficient arrays of the same length.",
+                            (unsigned long)i, (unsigned long)j,
+                            (unsigned long)graph->param_length,
+                            (unsigned long)param_edge->state_length);
+                    return;
+                }
+            }
+        }
     }
 
     // Store current parameters for trace evaluation
@@ -1728,6 +1762,12 @@ void ptd_graph_update_weight_parameterized(
     }
 
     for (size_t i = 0; i < graph->vertices_length; ++i) {
+        // SKIP starting vertex edges - they should always have probability 1.0
+        // and not be affected by parameter updates
+        if (graph->vertices[i] == graph->starting_vertex) {
+            continue;
+        }
+
         for (size_t j = 0; j < graph->vertices[i]->edges_length; ++j) {
             if (graph->vertices[i]->edges[j]->parameterized) {
                 ptd_edge_update_weight_parameterized(
@@ -4526,9 +4566,31 @@ struct ptd_dph_probability_distribution_context *_ptd_dph_probability_distributi
     res->pmf = 0;
     res->jumps = 0;
 
+    // Normalize starting edge weights to ensure PDF integrates to 1.0
+    // Phase-type distributions have PH(α, S) where α is the initial probability
+    // vector (must sum to 1.0). Starting edges represent α, so we normalize them.
+    double total_start_weight = 0.0;
+    struct ptd_vertex *start_vertex = graph->starting_vertex;
+
+    for (size_t i = 0; i < start_vertex->edges_length; ++i) {
+        total_start_weight += start_vertex->edges[i]->weight;
+    }
+
+    // Normalize starting edge weights if they don't sum to 1.0
+    if (total_start_weight > 0.0 && fabs(total_start_weight - 1.0) > 1e-10) {
+        double scale_factor = 1.0 / total_start_weight;
+        for (size_t i = 0; i < start_vertex->edges_length; ++i) {
+            start_vertex->edges[i]->weight *= scale_factor;
+        }
+    }
+
+    // Take initialization step to move from starting vertex (instantaneous transition)
+    // Starting vertex edges now sum to 1.0, ensuring correct PDF normalization
     ptd_dph_probability_distribution_step(res);
 
     res->jumps = 0;
+    res->cdf = 0;  // Reset CDF after initialization
+    res->pmf = 0;  // Reset PMF after initialization
 
     return res;
 }
@@ -4624,13 +4686,7 @@ struct ptd_probability_distribution_context *ptd_probability_distribution_contex
     }
 
     if (granularity == 0) {
-        // For parameterized graphs, use fixed granularity
-        // to avoid scaling PDF with parameter values
-        if (graph->param_length > 0) {
-            granularity = 1000;
-        } else {
-            granularity = max_rate * 2;
-        }
+        granularity = max_rate * 2;
     }
 
     for (size_t i = 0; i < graph->vertices_length; ++i) {
@@ -5009,14 +5065,8 @@ int ptd_graph_pdf_with_gradient(
 
     // 2. Determine granularity (auto-select if not specified)
     if (granularity == 0) {
-        // For parameterized graphs, use fixed granularity
-        // to avoid scaling PDF with parameter values
-        if (graph->param_length > 0) {
-            granularity = 1000;
-        } else {
-            granularity = (size_t)(lambda * 2.0);
-            if (granularity < 100) granularity = 100;
-        }
+        granularity = (size_t)(lambda * 2.0);
+        if (granularity < 100) granularity = 100;
     }
 
     // 3. Compute PMF and its gradient
