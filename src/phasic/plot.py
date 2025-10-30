@@ -59,6 +59,18 @@ def black_white(ax):
     return 'black' if luminance > 0.5 else '#FDFDFD'
 
 
+class Theme:
+    def __init__(self, name:str='dark'):
+        self.name = name
+
+    def __enter__(self):
+        self.prev_theme = _theme
+        set_theme(self.name)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        set_theme(self.prev_theme)
+
+
 GraphType = TypeVar('Graph') 
 
 

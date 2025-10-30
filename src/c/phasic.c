@@ -2147,10 +2147,23 @@ struct ptd_graph *_ptd_graph_reward_transform(struct ptd_graph *graph, double *_
     struct arr_c *old_edges_buffer =
             (struct arr_c *) calloc(vertices_length + 2, sizeof(*old_edges_buffer));
 
-    for (size_t i = 0; i < vertices_length; ++i) {
+    // Track which vertices have been bypassed (for final graph construction)
+    bool *bypassed = (bool *) calloc(vertices_length, sizeof(*bypassed));
+
+    // Process vertices in REVERSE topological order
+    // This ensures parents are still active when we process each vertex
+    for (size_t rev_idx = 0; rev_idx < vertices_length; ++rev_idx) {
+        size_t i = vertices_length - 1 - rev_idx;
+
         if (rewards[i] != 0) {
             continue;
         }
+
+        // Never bypass starting vertex
+        if (vertices[i] == graph->starting_vertex) {
+            continue;
+        }
+
 
         struct ptd_vertex *me = vertices[i];
         struct arr_c *my_children = vertex_edges[i];
@@ -2290,6 +2303,9 @@ struct ptd_graph *_ptd_graph_reward_transform(struct ptd_graph *graph, double *_
             struct arr_p child_to_move_parent = vertex_parents[me_to_child_v->index][index_to_remove];
             vertex_edges[child_to_move_parent.p->index][child_to_move_parent.arr_c_index].arr_p_index = index_to_remove;
         }
+
+        // Mark this vertex as bypassed
+        bypassed[i] = true;
     }
 
     struct ptd_graph *new_graph = ptd_graph_create(graph->state_length);
@@ -2300,14 +2316,14 @@ struct ptd_graph *_ptd_graph_reward_transform(struct ptd_graph *graph, double *_
     new_indicesNtoG[0] = graph->starting_vertex->index;
     new_indicesNtoO[0] = 0;
     size_t new_idx = 1;
-    memcpy(graph->starting_vertex->state, new_graph->starting_vertex->state, graph->state_length * sizeof(int));
+    memcpy(new_graph->starting_vertex->state, graph->starting_vertex->state, graph->state_length * sizeof(int));
 
     for (size_t i = 0; i < vertices_length; ++i) {
         if (vertices[i] == graph->starting_vertex) {
             continue;
         }
 
-        if (rewards[i] == 0) {
+        if (bypassed[i]) {
             continue;
         }
 
@@ -2320,15 +2336,26 @@ struct ptd_graph *_ptd_graph_reward_transform(struct ptd_graph *graph, double *_
     }
 
     for (size_t i = 0; i < vertices_length; ++i) {
-        if (rewards[i] == 0) {
+        if (bypassed[i]) {
             continue;
         }
 
         for (size_t j = 1; j < vertex_edges_length[i] - 1; ++j) {
+            size_t child_idx = vertex_edges[i][j].to->index;
+
+            // Skip edges to bypassed vertices
+            if (bypassed[child_idx]) {
+                continue;
+            }
+
+            double rate = vertex_edges[i][j].prob / rewards[i];
+            size_t new_from_idx = new_indicesGtoN[i];
+            size_t new_to_idx = new_indicesGtoN[child_idx];
+
             ptd_graph_add_edge(
-                    new_graph->vertices[new_indicesGtoN[i]],
-                    new_graph->vertices[new_indicesGtoN[vertex_edges[i][j].to->index]],
-                    vertex_edges[i][j].prob / rewards[i]
+                    new_graph->vertices[new_from_idx],
+                    new_graph->vertices[new_to_idx],
+                    rate
             );
         }
     }
@@ -2365,6 +2392,7 @@ struct ptd_graph *_ptd_graph_reward_transform(struct ptd_graph *graph, double *_
     free(original_indices);
     free(vertices);
     free(old_edges_buffer);
+    free(bypassed);
     free(v);
     ptd_scc_graph_destroy(scc);
     free(rewards);
@@ -4596,7 +4624,13 @@ struct ptd_probability_distribution_context *ptd_probability_distribution_contex
     }
 
     if (granularity == 0) {
-        granularity = max_rate * 2;
+        // For parameterized graphs, use fixed granularity
+        // to avoid scaling PDF with parameter values
+        if (graph->param_length > 0) {
+            granularity = 1000;
+        } else {
+            granularity = max_rate * 2;
+        }
     }
 
     for (size_t i = 0; i < graph->vertices_length; ++i) {
@@ -4975,8 +5009,14 @@ int ptd_graph_pdf_with_gradient(
 
     // 2. Determine granularity (auto-select if not specified)
     if (granularity == 0) {
-        granularity = (size_t)(lambda * 2.0);
-        if (granularity < 100) granularity = 100;
+        // For parameterized graphs, use fixed granularity
+        // to avoid scaling PDF with parameter values
+        if (graph->param_length > 0) {
+            granularity = 1000;
+        } else {
+            granularity = (size_t)(lambda * 2.0);
+            if (granularity < 100) granularity = 100;
+        }
     }
 
     // 3. Compute PMF and its gradient
