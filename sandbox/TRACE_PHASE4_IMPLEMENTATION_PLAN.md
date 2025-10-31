@@ -479,7 +479,7 @@ def test_rabbit_coalescent_correctness():
     graph = instantiate_from_trace(trace, theta)
     fine_times = np.linspace(0.01, 10, 1000)
     pdf = graph.pdf(fine_times, granularity=200)
-    integral = np.trapz(pdf, fine_times)
+    integral = np.trapezoid(pdf, fine_times)
     assert 0.95 < integral < 1.05, f"PDF doesn't integrate to 1: {integral}"
 ```
 
