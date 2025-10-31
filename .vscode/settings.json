@@ -82,6 +82,7 @@
     },
     "cSpell.words": [
         "iridis",
+        "issubdtype",
         "phasiccpp"
     ],
     "python.terminal.activateEnvironment": false,

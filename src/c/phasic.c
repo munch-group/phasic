@@ -2388,7 +2388,7 @@ struct ptd_graph *_ptd_graph_reward_transform(struct ptd_graph *graph, double *_
                 continue;
             }
 
-            double rate = vertex_edges[i][j].prob * rewards[i];
+            double rate = vertex_edges[i][j].prob / rewards[i];
             size_t new_from_idx = new_indicesGtoN[i];
             size_t new_to_idx = new_indicesGtoN[child_idx];
 

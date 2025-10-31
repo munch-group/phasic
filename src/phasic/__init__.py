@@ -31,7 +31,7 @@ class StateDict(UserDict):
     def __set__(self, key, value):
         if type(key) is int:
             self.list[key] = value
-        self.data[key] = value     
+        self.data[key] = value             
 
 def labelled(labels):  # The factory function that accepts a parameter
     def decorator(func):
@@ -48,6 +48,7 @@ def labelled(labels):  # The factory function that accepts a parameter
             return [[np.array(state, dtype=int), *rest] for state, *rest in result]
         return wrapper
     return decorator
+
 
 # # state vector labels 
 # labels = ['foo', 'bar', 'baz']
@@ -291,7 +292,7 @@ from .cpu_monitor import (
 
 # Cache management (JAX compilation cache)
 from .cache_manager import CacheManager, print_jax_cache_info, configure_layered_cache
-from .model_export import clear_cache, cache_info, print_cache_info
+from .model_export import clear_caches, clear_jax_cache, clear_model_cache, cache_info, print_cache_info
 from .jax_config import CompilationConfig, get_default_config, set_default_config
 # from .cloud_cache import (
 #     S3Backend,
@@ -1356,14 +1357,27 @@ def _setup_ctypes_signatures_from_arrays(lib, discrete=False):
 #         else:
 #             super().__init__(state_length)
 
+def starting_state(ipv: Union[List[int], List[Union[List[int], float]]]) -> List[Union[List[int], float]]:
+    def decorator(func):
+        @wraps(func)
+        def wrapper(state=None, **kwargs):
+            if state is None or len(state) == 0:
+                if sum([x[1] for x in ipv]) != 1.0:
+                    raise ValueError("Starting state probabilities do not sum to one")
+                return ipv
+            else:
+                return func(state, **kwargs)
+        return wrapper
+    return decorator
+
 class Graph(_Graph):
-    def __init__(self, state_length:int=None, callback:Callable=None, parameterized:bool=False, **kwargs):
+    def __init__(self, state_length:int=None, callback:Callable=None, ipv=None, parameterized:bool=False, **kwargs):
         """
         Create a graph representing a phase-type distribution. This is the primary entry-point of the library. A starting vertex will always be added to the graph upon initialization.
 
         The graph can be initialized in two ways:
-        - By providing a callback function that generates the graph. The callback function should take a list of integers as its only argument and return a list of tuples, where each tuple contains a state and a list of tuples, where each tuple contains a state and a rate.
-        - By providing an initial state and a list of transitions. The initial state is a list of integers representing the initial model state. The list of transitions is a list of tuples, where each tuple contains a state and a list of tuples, where each tuple contains a state and a rate.
+        - By providing a state length to create an empty graph.
+        - By providing a callback function that generates the graph. The callback function should take a list of integers as its only argument and return a list of tuples, where each tuple contains a state and a list of tuples, where each tuple contains a state and a rate. For parameterized edges, the callback should return 3-tuples (state, weight, edge_state). If the ipv argument is not provided, the function must return the ipv if given an empty state array as argument.
 
         Parameters
         ----------
@@ -1382,13 +1396,33 @@ class Graph(_Graph):
         """
         assert (callback is None) + (state_length is None) == 1, "Use either the state_length or callback argument"
 
+        # if callback:
+        #     if parameterized:  
+        #         if ipv is not None:
+        #             if isinstance(ipv[0], int) or np.issubdtype(ipv[0].dtype, np.integer):
+        #                 ipv = [[jnp.array(ipv), 1.0, []]] 
+        #             super().__init__(callback_tuples_parameterized=starting_state(ipv)(partial(callback, **kwargs)))
+        #         else:
+        #             super().__init__(callback_tuples_parameterized=partial(callback, **kwargs))
+        #     else:
+        #         if ipv is not None:
+        #             if isinstance(ipv[0], int) or np.issubdtype(ipv[0].dtype, np.integer):
+        #                 ipv = [[jnp.array(ipv), 1.0]] 
+        #             super().__init__(callback_tuples=starting_state(ipv)(partial(callback, **kwargs)))                
+        #         else:
+        #             super().__init__(callback_tuples=partial(callback, **kwargs))
+        # else:
+        #     super().__init__(state_length)
+
+
         if callback:
-            if parameterized:
+            if parameterized:  
                 super().__init__(callback_tuples_parameterized=partial(callback, **kwargs))
             else:
                 super().__init__(callback_tuples=partial(callback, **kwargs))
         else:
             super().__init__(state_length)
+
 
 
     # def make_discrete(self, mutation_rate, skip_states=[], skip_slots=[]):
@@ -3815,7 +3849,7 @@ if HAS_JAX:
 
     # Expose common model_export functions at package level
     from .model_export import (
-        clear_cache,
+        clear_jax_cache,
         cache_info,
         print_cache_info,
         export_model_package,

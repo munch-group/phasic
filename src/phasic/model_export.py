@@ -21,7 +21,7 @@ from datetime import datetime
 from .cache_manager import CacheManager
 
 
-def clear_cache(cache_dir: Optional[Union[Path, str]] = None, verbose: bool = True) -> None:
+def clear_jax_cache(verbose: bool = True) -> None:
     """
     Clear JAX compilation cache.
 
@@ -37,33 +37,79 @@ def clear_cache(cache_dir: Optional[Union[Path, str]] = None, verbose: bool = Tr
 
     Examples
     --------
-    >>> from phasic import clear_cache
-    >>> clear_cache()  # Clear default cache
-    >>> clear_cache('/custom/cache/dir')  # Clear specific cache
+    >>> from phasic import clear_jax_cache()
+    >>> clear_jax_cache()
 
     See Also
     --------
     CacheManager.clear : Advanced cache clearing with confirmation
     """
+    _clear_cache(os.path.expanduser('~/.jax_cache') if os.environ.get('JAX_COMPILATION_CACHE_DIR') is None else os.environ.get('JAX_COMPILATION_CACHE_DIR'), verbose=verbose)
+
+def clear_model_cache(verbose: bool = True) -> None:
+    """
+    Clear model cache.
+
+    This is a simplified wrapper around CacheManager.clear().
+
+    Parameters
+    ----------
+    verbose : bool, optional
+        Print information about cleared cache. Default: True
+
+    Examples
+    --------
+    >>> from phasic import clear_model_cache()
+    >>> clear_model_cache()
+
+    See Also
+    --------
+    CacheManager.clear : Advanced cache clearing with confirmation
+    """
+    _clear_cache(os.path.expanduser('~/.phasic_cache') if os.environ.get('PHASIC_COMPILATION_CACHE_DIR') is None else os.environ.get('PHASIC_COMPILATION_CACHE_DIR'), verbose=verbose)
+    _clear_cache(os.path.expanduser('~/.phasic_traces'), verbose=verbose)
+
+def clear_caches(verbose: bool = True):
+    """
+    Clear all caching.
+
+    Parameters
+    ----------
+    verbose : bool, optional
+        Print information about cleared cache. Default: True
+
+    Examples
+    --------
+    >>> from phasic import clear_caches()
+    >>> clear_caches()
+
+    See Also
+    --------
+    CacheManager.clear : Advanced cache clearing with confirmation
+    """
+    clear_jax_cache(verbose=verbose)
+    clear_model_cache(verbose=verbose)
+
+def _clear_cache(cache_dir: Optional[Union[Path, str]] = None, verbose: bool = True) -> None:
+
     manager = CacheManager(cache_dir=cache_dir)
 
     if not manager.cache_dir.exists():
-        if verbose:
-            print(f"Cache directory does not exist: {manager.cache_dir}")
+        print(f"Cache directory does not exist: {manager.cache_dir}")
         return
 
-    # Get info before clearing
-    if verbose:
-        info = manager.info()
-        print(f"Clearing cache: {manager.cache_dir}")
-        print(f"  Files: {info['num_files']}")
-        print(f"  Size: {info['total_size_mb']:.1f} MB")
+    # # Get info before clearing
+    # if verbose:
+    #     info = manager.info()
+    #     print(f"Clearing cache: {manager.cache_dir}")
+    #     print(f"  Files: {info['num_files']}")
+    #     print(f"  Size: {info['total_size_mb']:.1f} MB")
 
     # Clear via CacheManager (which uses shutil.rmtree)
     manager.clear(confirm=True)
 
-    if verbose:
-        print(f"✓ Cache cleared successfully")
+    # if verbose:
+    #     print(f"Cache cleared")
 
 
 def cache_info(cache_dir: Optional[Union[Path, str]] = None) -> Dict[str, Any]:

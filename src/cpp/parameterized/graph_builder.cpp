@@ -384,6 +384,14 @@ GraphBuilder::compute_pmf_and_moments(
         // Build graph ONCE (pure C++)
         Graph g = build(theta_vec.data(), theta_len);
 
+        /////////////////////////////////////////////////
+        // if (!rewards_vec.empty()) {
+        //     Graph g_rev  = g.reward_transform(rewards_vec);
+        // } else {
+        //     Graph g_rev  = g;  // No reward transformation
+        // }
+        /////////////////////////////////////////////////
+
         // Compute PMF/PDF (pure C++)
         if (discrete) {
             for (size_t i = 0; i < n_times; i++) {

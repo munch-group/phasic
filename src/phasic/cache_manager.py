@@ -51,15 +51,10 @@ class CacheManager:
 
     Parameters
     ----------
-    cache_dir : Path or str, optional
-        JAX cache directory. Default: from JAX_COMPILATION_CACHE_DIR env var
-        or ~/.jax_cache
+    cache_dir : Path or str
     """
 
-    def __init__(self, cache_dir: Optional[Union[Path, str]] = None):
-        if cache_dir is None:
-            cache_dir = os.environ.get('JAX_COMPILATION_CACHE_DIR',
-                                      str(Path.home() / '.jax_cache'))
+    def __init__(self, cache_dir: Optional[Union[Path, str]]):
         self.cache_dir = Path(cache_dir)
 
     def info(self) -> Dict[str, Any]:
@@ -126,11 +121,11 @@ class CacheManager:
 
         if self.cache_dir.exists():
             info = self.info()
-            print(f"Clearing JAX cache: {self.cache_dir}")
+            print(f"Clearing cache at {self.cache_dir}")
             print(f"  Files: {info['num_files']}")
             print(f"  Size: {info['total_size_mb']:.1f} MB")
             shutil.rmtree(self.cache_dir)
-            print("✓ Cache cleared")
+            # print("Cache cleared")
         else:
             print(f"Cache directory does not exist: {self.cache_dir}")
 
