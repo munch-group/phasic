@@ -131,7 +131,7 @@ struct ptd_edge_parameterized {
     double *state;
     size_t state_length;  // Number of elements in state array
     bool should_free_state;
-    double base_weight;  // Original base weight (preserved for gradient computation)
+    // base_weight removed - starting edges are never parameterized
 };
 
 

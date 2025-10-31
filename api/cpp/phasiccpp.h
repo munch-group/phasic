@@ -929,9 +929,7 @@ namespace phasic {
             return _weight;
         }
 
-        double base_weight() {
-            return ((struct ptd_edge_parameterized*)_edge)->base_weight;
-        }
+        // base_weight() method removed - starting edges are never parameterized
 
         std::vector<double> edge_state(size_t requested_length) {
             std::vector<double> state;

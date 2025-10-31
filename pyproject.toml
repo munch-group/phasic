@@ -8,7 +8,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "phasic"
-version = "0.21.3"
+version = "0.22.0"
 classifiers = [
   "Development Status :: 5 - Beta",
   "Intended Audience :: Education",

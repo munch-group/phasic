@@ -228,17 +228,14 @@ class TraceBuilder:
         ))
         return idx
 
-    def add_dot(self, coefficients: np.ndarray, base_weight: float = 0.0) -> int:
+    def add_dot(self, coefficients: np.ndarray) -> int:
         """
-        Add dot product operation: base_weight + c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ
+        Add dot product operation: c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ
 
         Parameters
         ----------
         coefficients : np.ndarray
             Coefficient vector [c₁, c₂, ..., cₙ]
-        base_weight : float, default=0.0
-            Base weight to add to dot product. This allows edges with empty
-            coefficient arrays [] to have weight = base_weight.
 
         Returns
         -------
@@ -249,7 +246,7 @@ class TraceBuilder:
         self.operations.append(Operation(
             op_type=OpType.DOT,
             coefficients=np.array(coefficients, dtype=np.float64),
-            const_value=base_weight  # Store base_weight in const_value field
+            const_value=None  # No longer used
         ))
         return idx
 
@@ -387,7 +384,8 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
     - Phase 1: Supports constant edge weights
     - Phase 2: Supports parameterized edges with DOT product operations
     - Phase 3: Supports reward transformation via extended parameters
-    - Parameterized edges have weights: w = c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ + base_weight
+    - Parameterized edges have weights: w = c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ
+    - Non-parameterized edges (including starting edges) have constant weights
     - Reward transformation: w_transformed = w * reward[vertex_idx]
     - For parameterized graphs, explicitly providing param_length is recommended
       for accuracy, as auto-detection may over-estimate
@@ -529,15 +527,9 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
                 edge_state = edge_state[:param_length]
                 coeffs = np.array(edge_state, dtype=np.float64)
 
-                # weight = dot(coeffs, params) + base_weight
-                base_weight = param_edge.base_weight()
-
-                if np.allclose(coeffs, 0.0):
-                    # No parameterization, just constant weight
-                    weight_idx = builder.add_const(base_weight)
-                else:
-                    # DOT product with base weight: base_weight + c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ
-                    weight_idx = builder.add_dot(coeffs, base_weight)
+                # weight = dot(coeffs, params)
+                # Note: Starting edges are never parameterized, so won't reach this code
+                weight_idx = builder.add_dot(coeffs)
 
                 weight_indices.append(weight_idx)
 
@@ -593,15 +585,9 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
             edge_state = param_edge.edge_state(param_length if param_length > 0 else MAX_PARAM_TEST)
             edge_state = edge_state[:param_length]
             coeffs = np.array(edge_state, dtype=np.float64)
-            base_weight = param_edge.base_weight()
 
-            # Compute weight expression
-            if np.allclose(coeffs, 0.0):
-                # No parameterization
-                weight_idx = builder.add_const(base_weight)
-            else:
-                # DOT product with base weight: base_weight + c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ
-                weight_idx = builder.add_dot(coeffs, base_weight)
+            # Compute weight expression (no base_weight)
+            weight_idx = builder.add_dot(coeffs)
 
             # prob = weight * rate
             prob_idx = builder.add_mul(weight_idx, vertex_rates[i])
@@ -832,11 +818,9 @@ def evaluate_trace(trace: EliminationTrace, params: Optional[np.ndarray] = None,
             values[i] = extended_params[op.param_idx]
 
         elif op.op_type == OpType.DOT:
-            # Dot product WITH base weight: base + c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ
+            # Dot product only (no base_weight): c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ
             # DOT only uses theta parameters (not rewards)
-            # const_value stores the base_weight (0.0 if not set)
-            base_weight = op.const_value if op.const_value is not None else 0.0
-            values[i] = base_weight + np.dot(op.coefficients, params if params is not None else np.array([]))
+            values[i] = np.dot(op.coefficients, params if params is not None else np.array([]))
 
         elif op.op_type == OpType.ADD:
             values[i] = values[op.operands[0]] + values[op.operands[1]]
@@ -1280,12 +1264,10 @@ def evaluate_trace_jax(trace: EliminationTrace, params, rewards=None):
             values = values.at[i].set(extended_params[op.param_idx])
 
         elif op.op_type == OpType.DOT:
-            # Dot product WITH base weight: base + c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ
+            # Dot product only (no base_weight): c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ
             # DOT only uses theta parameters (not rewards)
-            # const_value stores the base_weight (0.0 if not set)
-            base_weight = op.const_value if op.const_value is not None else 0.0
             values = values.at[i].set(
-                base_weight + jnp.dot(op.coefficients, params if params is not None else jnp.array([]))
+                jnp.dot(op.coefficients, params if params is not None else jnp.array([]))
             )
 
         elif op.op_type == OpType.ADD:

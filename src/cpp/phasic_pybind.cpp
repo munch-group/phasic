@@ -723,7 +723,13 @@ double _covariance_discrete(phasic::Graph &graph,
           graph = new phasic::Graph(child_state.size());
         }
         phasic::Vertex child_vertex = graph->find_or_create_vertex(child_state);
-        graph->starting_vertex().add_edge_parameterized(child_vertex, weight, edge_state);
+
+        // Starting edges: use add_edge() if coefficients empty, add_edge_parameterized() otherwise
+        if (edge_state.empty()) {
+            graph->starting_vertex().add_edge(child_vertex, weight);
+        } else {
+            graph->starting_vertex().add_edge_parameterized(child_vertex, weight, edge_state);
+        }
       }
 
         int index = 1;
@@ -753,7 +759,13 @@ double _covariance_discrete(phasic::Graph &graph,
             std::vector<double> edge_state = std::get<2>(tup);
 
             phasic::Vertex child_vertex = graph->find_or_create_vertex(child_state);
-            this_vertex.add_edge_parameterized(child_vertex, weight, edge_state);
+
+            // Use add_edge() if coefficients empty, add_edge_parameterized() otherwise
+            if (edge_state.empty()) {
+                this_vertex.add_edge(child_vertex, weight);
+            } else {
+                this_vertex.add_edge_parameterized(child_vertex, weight, edge_state);
+            }
           }
           ++index;
         }
@@ -3059,10 +3071,7 @@ Computes the expected residence time of the phase-type distribution.
 
       )delim")
 
-    .def("base_weight", &phasic::ParameterizedEdge::base_weight,
-      py::return_value_policy::reference_internal, R"delim(
-
-      )delim")
+    // base_weight() method removed - starting edges are never parameterized
 
     // .def("edge_state", 
     //   [](phasic::ParameterizedEdge &edge) {

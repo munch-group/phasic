@@ -1,6 +1,6 @@
 # phasic - Quick Reference
 
-**Version:** 0.21.3
+**Version:** 0.22.0
 **Paper:** [Røikjer, Hobolth & Munch (2022)](https://doi.org/10.1007/s11222-022-10155-6) - Statistics and Computing
 **Repository:** https://github.com/munch-group/phasic
 **Contact:** Kasper Munch (kaspermunch@birc.au.dk)

@@ -1585,7 +1585,7 @@ struct ptd_edge_parameterized *ptd_graph_add_edge_parameterized(
 
     edge->to = to;
     edge->weight = weight;
-    edge->base_weight = weight;  // Store original base weight for gradient computation
+    // base_weight removed - starting edges are never parameterized
     edge->parameterized = true;
     edge->state = edge_state;
     edge->state_length = edge_state_length;  // Store the actual allocated length
@@ -1654,9 +1654,9 @@ void ptd_edge_update_weight_parameterized(
         double *scalars,
         size_t scalars_length
 ) {
-    // Start with base weight, then add parameterized component
-    // This allows edges with empty coefficients [] to have weight = base_weight
-    double weight = ((struct ptd_edge_parameterized *) edge)->base_weight;
+    // Compute weight as dot product only (no base_weight)
+    // Starting edges are never parameterized, so this is only called for edges with non-empty coefficients
+    double weight = 0.0;
 
     for (size_t i = 0; i < scalars_length; ++i) {
         weight += scalars[i] * ((struct ptd_edge_parameterized *) edge)->state[i];
@@ -4899,7 +4899,7 @@ static int compute_pmf_with_gradient(
                 struct ptd_edge *edge = vertex->edges[e];
                 if (edge->parameterized) {
                     struct ptd_edge_parameterized *ep = (struct ptd_edge_parameterized *)edge;
-                    double w = ep->base_weight;  // Use base weight for gradient computation
+                    double w = 0.0;  // Compute weight as dot product only
                     if (ep->state != NULL) {
                         for (size_t i = 0; i < n_params; i++) {
                             w += ep->state[i] * params[i];
@@ -4938,7 +4938,7 @@ static int compute_pmf_with_gradient(
 
                 if (edge->parameterized) {
                     struct ptd_edge_parameterized *ep = (struct ptd_edge_parameterized *)edge;
-                    weight = ep->base_weight;  // Use base weight for gradient computation
+                    weight = 0.0;  // Compute weight as dot product only
                     if (ep->state != NULL) {
                         for (size_t i = 0; i < n_params; i++) {
                             weight += ep->state[i] * params[i];
