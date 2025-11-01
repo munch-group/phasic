@@ -1,0 +1,15 @@
+[workspace]
+authors = ["Kasper Munch <kaspermunch@birc.au.dk>"]
+channels = ["conda-forge", "munch-group"]
+name = "markov_cache"
+platforms = ["osx-arm64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
+zstd = ">=1.5.7,<2"
+cmake = ">=4.1.2,<5"
+libsqlite = ">=3.50.4,<4"
+openssl = ">=3.5.4,<4"
+pkgconfig = ">=1.5.5,<2"
