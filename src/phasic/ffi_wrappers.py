@@ -622,13 +622,28 @@ def compute_pmf_and_moments_ffi(structure_json: Union[str, Dict], theta: jax.Arr
     else:
         rewards = jnp.asarray(rewards, dtype=jnp.float64)
 
+    # Determine output shapes based on rewards dimensionality
+    # NOTE: For multivariate models with 2D rewards, use pmf_and_moments_from_graph_multivariate()
+    # which loops over features in Python. The 1D model always returns 1D outputs.
+    # Use len(rewards.shape) instead of ndim to work with JAX tracing
+    if len(rewards.shape) == 2:
+        # 2D rewards (n_vertices, n_features): multivariate case
+        # However, this codepath is not currently used - pmf_and_moments_from_graph_multivariate()
+        # loops in Python instead. Keeping this for future optimization.
+        n_features = rewards.shape[1]
+        pmf_shape = jax.ShapeDtypeStruct((times.shape[0], n_features), jnp.float64)
+        moments_shape = jax.ShapeDtypeStruct((n_features, nr_moments), jnp.float64)
+    else:
+        # No rewards or 1D rewards: univariate case
+        pmf_shape = jax.ShapeDtypeStruct(times.shape, times.dtype)
+        moments_shape = jax.ShapeDtypeStruct((nr_moments,), jnp.float64)
+
     # Call JAX FFI target
     # NOTE: JSON passed as attribute (static), theta/times/rewards as buffers (batched)
     # expand_dims: vmap adds batch dimension, FFI handler loops over batch with OpenMP
     ffi_fn = jax.ffi.ffi_call(
         "ptd_compute_pmf_and_moments",
-        (jax.ShapeDtypeStruct(times.shape, times.dtype),
-         jax.ShapeDtypeStruct((nr_moments,), jnp.float64)),
+        (pmf_shape, moments_shape),
         vmap_method="expand_dims"  # Batch dim added, handler processes all at once with OpenMP
     )
     pmf_result, moments_result = ffi_fn(

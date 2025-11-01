@@ -3093,8 +3093,16 @@ extern "C" {{
                 theta = jnp.atleast_1d(theta)
                 times = jnp.atleast_1d(times)
 
-                pmf_shape = jax.ShapeDtypeStruct(times.shape, jnp.float64)
-                moments_shape = jax.ShapeDtypeStruct((nr_moments,), jnp.float64)
+                # Determine output shapes based on rewards dimensionality
+                if rewards is not None and rewards.ndim == 2:
+                    # 2D rewards: multivariate case
+                    n_features = rewards.shape[1]
+                    pmf_shape = jax.ShapeDtypeStruct((times.shape[0], n_features), jnp.float64)
+                    moments_shape = jax.ShapeDtypeStruct((n_features, nr_moments), jnp.float64)
+                else:
+                    # No rewards or 1D rewards: univariate case
+                    pmf_shape = jax.ShapeDtypeStruct(times.shape, jnp.float64)
+                    moments_shape = jax.ShapeDtypeStruct((nr_moments,), jnp.float64)
 
                 # Convert rewards to JAX array to allow passing through vmap (handles both batched & unbatched)
                 if rewards is not None:
@@ -3109,10 +3117,20 @@ extern "C" {{
                     times_np = np.asarray(times_jax)
                     rewards_np = np.asarray(rewards_jax, dtype=np.float64)
 
-                    # Handle vmap batch dimension: rewards get batched but all copies identical
-                    # Remove batch dim (1st axis) if present
-                    if rewards_np.ndim == 2 and rewards_np.shape[0] > 0:
-                        rewards_np = rewards_np[0]  # All batch elements identical, take first
+                    # Handle vmap batch dimension for rewards
+                    # vmap adds a batch dimension to the front, but rewards should stay constant
+                    # Original rewards: 1D (n_vertices,) or 2D (n_vertices, n_features)
+                    # After vmap: 2D (batch, n_vertices) or 3D (batch, n_vertices, n_features)
+                    if rewards_np.ndim == 3:
+                        # 3D: batched 2D rewards, take first (all identical)
+                        rewards_np = rewards_np[0]
+                    elif rewards_np.ndim == 2:
+                        # Could be: (batch, n_vertices) from 1D vmap, or (n_vertices, n_features) multivariate
+                        # Check if theta is batched to determine if this is from vmap
+                        if theta_np.ndim == 2:
+                            # Batched case: take first reward vector
+                            rewards_np = rewards_np[0]
+                        # else: not batched, keep as-is (multivariate case)
 
                     # Convert empty array sentinel back to None
                     if rewards_np.size == 0:

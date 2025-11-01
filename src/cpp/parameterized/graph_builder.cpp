@@ -362,65 +362,162 @@ GraphBuilder::compute_pmf_and_moments(
         times_vec[i] = times_buf(i);
     }
 
-    // Extract optional rewards vector
-    std::vector<double> rewards_vec;
-    if (!rewards_obj.is_none()) {
+    // Detect reward dimensionality: None, 1D, or 2D
+    bool has_rewards = !rewards_obj.is_none();
+    bool is_2d_rewards = false;
+    size_t n_features = 1;
+    size_t n_vertices = 0;
+
+    std::vector<double> rewards_vec_1d;  // For 1D case
+    std::vector<std::vector<double>> rewards_2d;  // For 2D case: [feature][vertex]
+
+    if (has_rewards) {
         auto rewards_array = rewards_obj.cast<py::array_t<double>>();
-        auto rewards_buf = rewards_array.unchecked<1>();
-        size_t n_rewards = rewards_buf.shape(0);
-        rewards_vec.resize(n_rewards);
-        for (size_t i = 0; i < n_rewards; i++) {
-            rewards_vec[i] = rewards_buf(i);
+        auto rewards_info = rewards_array.request();
+
+        if (rewards_info.ndim == 1) {
+            // 1D rewards: (n_vertices,)
+            n_vertices = rewards_info.shape[0];
+            rewards_vec_1d.resize(n_vertices);
+            double* rewards_ptr = static_cast<double*>(rewards_info.ptr);
+            for (size_t i = 0; i < n_vertices; i++) {
+                rewards_vec_1d[i] = rewards_ptr[i];
+            }
+        } else if (rewards_info.ndim == 2) {
+            // 2D rewards: (n_vertices, n_features)
+            is_2d_rewards = true;
+            n_vertices = rewards_info.shape[0];
+            n_features = rewards_info.shape[1];
+
+            // Extract each feature's reward vector
+            rewards_2d.resize(n_features, std::vector<double>(n_vertices));
+            double* rewards_ptr = static_cast<double*>(rewards_info.ptr);
+
+            for (size_t j = 0; j < n_features; j++) {
+                for (size_t i = 0; i < n_vertices; i++) {
+                    // Row-major: rewards[i, j] = ptr[i * n_features + j]
+                    rewards_2d[j][i] = rewards_ptr[i * n_features + j];
+                }
+            }
+        } else {
+            throw std::runtime_error("Rewards must be 1D or 2D array");
         }
     }
-    // If rewards_obj is None, rewards_vec remains empty → standard moments
 
     // Step 2: Release GIL for C++ computation
-    std::vector<double> pmf_vec(n_times);
-    std::vector<double> moments;
+    std::vector<std::vector<double>> pmf_2d;  // [time][feature]
+    std::vector<std::vector<double>> moments_2d;  // [feature][moment]
+
     {
         py::gil_scoped_release release;
 
         // Build graph ONCE (pure C++)
         Graph g = build(theta_vec.data(), theta_len);
 
-        /////////////////////////////////////////////////
-        // if (!rewards_vec.empty()) {
-        //     Graph g_rev  = g.reward_transform(rewards_vec);
-        // } else {
-        //     Graph g_rev  = g;  // No reward transformation
-        // }
-        /////////////////////////////////////////////////
+        if (is_2d_rewards) {
+            // === MULTIVARIATE CASE: Compute PDF per feature ===
+            pmf_2d.resize(n_times, std::vector<double>(n_features));
+            moments_2d.resize(n_features, std::vector<double>(nr_moments));
 
-        // Compute PMF/PDF (pure C++)
-        if (discrete) {
-            for (size_t i = 0; i < n_times; i++) {
-                int jump_count = static_cast<int>(times_vec[i]);
-                pmf_vec[i] = g.dph_pmf(jump_count);
+            // Compute PDF/PMF and moments per feature (each with its own reward transformation)
+            for (size_t j = 0; j < n_features; j++) {
+                // Transform graph for feature j
+                Graph g_transformed = g.reward_transform(rewards_2d[j]);
+
+                // Compute PDF/PMF for feature j from transformed graph
+                if (discrete) {
+                    for (size_t t = 0; t < n_times; t++) {
+                        int jump_count = static_cast<int>(times_vec[t]);
+                        pmf_2d[t][j] = g_transformed.dph_pmf(jump_count);
+                    }
+                } else {
+                    for (size_t t = 0; t < n_times; t++) {
+                        pmf_2d[t][j] = g_transformed.pdf(times_vec[t], granularity);
+                    }
+                }
+
+                // Compute moments for feature j from transformed graph
+                // Note: g_transformed already has rewards applied, so pass empty vector
+                moments_2d[j] = compute_moments_impl(g_transformed, nr_moments, std::vector<double>());
             }
         } else {
-            for (size_t i = 0; i < n_times; i++) {
-                pmf_vec[i] = g.pdf(times_vec[i], granularity);
+            // === UNIVARIATE CASE: Single PDF ===
+            pmf_2d.resize(n_times, std::vector<double>(1));
+            moments_2d.resize(1, std::vector<double>(nr_moments));
+
+            // Check if we need to transform the graph
+            if (!rewards_vec_1d.empty()) {
+                // Transform graph with rewards
+                Graph g_transformed = g.reward_transform(rewards_vec_1d);
+
+                // Compute PDF/PMF from transformed graph
+                if (discrete) {
+                    for (size_t t = 0; t < n_times; t++) {
+                        int jump_count = static_cast<int>(times_vec[t]);
+                        pmf_2d[t][0] = g_transformed.dph_pmf(jump_count);
+                    }
+                } else {
+                    for (size_t t = 0; t < n_times; t++) {
+                        pmf_2d[t][0] = g_transformed.pdf(times_vec[t], granularity);
+                    }
+                }
+
+                // Compute moments from transformed graph
+                // Note: g_transformed already has rewards applied, so pass empty vector
+                moments_2d[0] = compute_moments_impl(g_transformed, nr_moments, std::vector<double>());
+            } else {
+                // Use original graph (no transformation)
+                if (discrete) {
+                    for (size_t t = 0; t < n_times; t++) {
+                        int jump_count = static_cast<int>(times_vec[t]);
+                        pmf_2d[t][0] = g.dph_pmf(jump_count);
+                    }
+                } else {
+                    for (size_t t = 0; t < n_times; t++) {
+                        pmf_2d[t][0] = g.pdf(times_vec[t], granularity);
+                    }
+                }
+
+                // Compute moments from original graph (no rewards)
+                moments_2d[0] = compute_moments_impl(g, nr_moments, std::vector<double>());
             }
         }
-
-        // Compute moments using same graph (pure C++)
-        // Pass rewards_vec (empty for standard moments, filled for reward transformation)
-        moments = compute_moments_impl(g, nr_moments, rewards_vec);
     }
     // GIL automatically reacquired here
 
     // Step 3: Convert to numpy arrays (requires GIL, which we now have)
-    py::array_t<double> pmf_result(n_times);
-    auto pmf_buf = pmf_result.mutable_unchecked<1>();
-    for (size_t i = 0; i < n_times; i++) {
-        pmf_buf(i) = pmf_vec[i];
-    }
+    py::array_t<double> pmf_result, moments_result;
 
-    py::array_t<double> moments_result(moments.size());
-    auto moments_buf = moments_result.mutable_unchecked<1>();
-    for (size_t i = 0; i < moments.size(); i++) {
-        moments_buf(i) = moments[i];
+    if (is_2d_rewards) {
+        // Return 2D arrays
+        pmf_result = py::array_t<double>({n_times, n_features});
+        auto pmf_buf = pmf_result.mutable_unchecked<2>();
+        for (size_t t = 0; t < n_times; t++) {
+            for (size_t j = 0; j < n_features; j++) {
+                pmf_buf(t, j) = pmf_2d[t][j];
+            }
+        }
+
+        moments_result = py::array_t<double>({n_features, (size_t)nr_moments});
+        auto moments_buf = moments_result.mutable_unchecked<2>();
+        for (size_t j = 0; j < n_features; j++) {
+            for (int m = 0; m < nr_moments; m++) {
+                moments_buf(j, m) = moments_2d[j][m];
+            }
+        }
+    } else {
+        // Return 1D arrays (backward compatible)
+        pmf_result = py::array_t<double>(n_times);
+        auto pmf_buf = pmf_result.mutable_unchecked<1>();
+        for (size_t t = 0; t < n_times; t++) {
+            pmf_buf(t) = pmf_2d[t][0];
+        }
+
+        moments_result = py::array_t<double>(nr_moments);
+        auto moments_buf = moments_result.mutable_unchecked<1>();
+        for (int m = 0; m < nr_moments; m++) {
+            moments_buf(m) = moments_2d[0][m];
+        }
     }
 
     return std::make_pair(pmf_result, moments_result);

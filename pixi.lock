@@ -56,6 +56,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/gdk-pixbuf-2.44.3-h2b0a6b4_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/gh-2.81.0-h76a2195_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/git-2.51.0-pl5321h8305f47_1.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/gitui-0.27.0-h53e704d_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/glib-tools-2.86.0-hf516916_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/graphite2-1.3.14-hecca717_2.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/graphviz-13.1.2-h87b6fe6_0.conda
@@ -326,6 +327,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/gdk-pixbuf-2.44.3-h7542897_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/gh-2.81.0-h4e0460a_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/git-2.51.0-pl5321h6ee1a4f_1.conda
+      - conda: https://conda.anaconda.org/conda-forge/osx-arm64/gitui-0.27.0-h6d77b79_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/glib-tools-2.86.0-hb9d6e3a_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/graphite2-1.3.14-hec049ff_2.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/graphviz-13.1.2-hcd33d8b_0.conda
@@ -1604,6 +1606,31 @@ packages:
   purls: []
   size: 11812476
   timestamp: 1756811409331
+- conda: https://conda.anaconda.org/conda-forge/linux-64/gitui-0.27.0-h53e704d_0.conda
+  sha256: 08701e5df20f4f59ac34dcdacb8e1666cabc37e7f582796c8a99d1f1e661d12b
+  md5: 4d57ed7693d1970904cc2120bd62b039
+  depends:
+  - __glibc >=2.17,<3.0.a0
+  - libgcc >=13
+  constrains:
+  - __glibc >=2.17
+  license: MIT
+  license_family: MIT
+  purls: []
+  size: 4988302
+  timestamp: 1737023716058
+- conda: https://conda.anaconda.org/conda-forge/osx-arm64/gitui-0.27.0-h6d77b79_0.conda
+  sha256: 6bcfaf8d9a6401c11ffd9fc867e970fe52ce68eeb641d3cc536c55cc1bbea496
+  md5: b72c55ae3ecd734a1e26de5efd4fe16e
+  depends:
+  - __osx >=11.0
+  constrains:
+  - __osx >=11.0
+  license: MIT
+  license_family: MIT
+  purls: []
+  size: 5054267
+  timestamp: 1737024199232
 - conda: https://conda.anaconda.org/conda-forge/linux-64/glib-tools-2.86.0-hf516916_0.conda
   sha256: b77316bd5c8680bde4e5a7ab7013c8f0f10c1702cc6c3b0fd0fac3923a31fec3
   md5: 1a8e49615381c381659de1bc6a3bf9ec

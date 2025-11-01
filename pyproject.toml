@@ -107,6 +107,7 @@ jax = ">=0.7.2,<0.8"
 equinox = ">=0.13.2,<0.14"
 ipfshttpclient = ">=0.8.0a2,<0.9"
 py-spy = ">=0.4.1,<0.5"
+gitui = ">=0.27.0,<0.28"
 
 # [tool.pixi.pypi-dependencies]
 
