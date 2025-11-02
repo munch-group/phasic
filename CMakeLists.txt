@@ -13,7 +13,9 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 project(phasic VERSION 0.20.0 DESCRIPTION "Efficient graph based phase-type distribution algorithms")
 include(GNUInstallDirs)
 
-add_library(libphasic SHARED api/c/phasic.h src/c/phasic.c src/c/phasic_symbolic.c src/c/phasic_hash.c)
+# NOTE: phasic_symbolic.c commented out due to missing function implementations
+# Symbolic elimination is obsolete - use trace-based elimination instead
+add_library(libphasic SHARED api/c/phasic.h src/c/phasic.c src/c/phasic_hash.c)
 
 set_target_properties(libphasic PROPERTIES
         VERSION ${PROJECT_VERSION}
@@ -31,7 +33,8 @@ install(FILES api/c/phasic.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 #         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
 
         
-add_library(libphasiccpp SHARED api/c/phasic.h src/c/phasic.c src/c/phasic_symbolic.c src/c/phasic_hash.c src/c/phasic.h src/cpp/phasiccpp.cpp api/cpp/phasiccpp.h src/cpp/phasiccpp.h)
+# NOTE: phasic_symbolic.c commented out due to missing function implementations
+add_library(libphasiccpp SHARED api/c/phasic.h src/c/phasic.c src/c/phasic_hash.c src/c/phasic.h src/cpp/phasiccpp.cpp api/cpp/phasiccpp.h src/cpp/phasiccpp.h)
 set_target_properties(libphasiccpp PROPERTIES
         VERSION ${PROJECT_VERSION}
         SOVERSION 1
@@ -96,12 +99,13 @@ else()
 endif()
 
 # pybind11 method:
+# NOTE: phasic_symbolic.c commented out due to missing function implementations
 set(PYBIND_SOURCES
     src/cpp/phasic_pybind.cpp
     api/c/phasic.h
     api/c/phasic_hash.h
     src/c/phasic.c
-    src/c/phasic_symbolic.c
+    # src/c/phasic_symbolic.c  # DISABLED - use trace-based elimination instead
     src/c/phasic_hash.c
     src/c/phasic.h
     src/cpp/phasiccpp.cpp

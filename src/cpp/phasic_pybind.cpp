@@ -1245,27 +1245,29 @@ PYBIND11_MODULE(phasic_pybind, m) {
     v1.edges()[0].weight() # => 59
       )delim")
 
-    .def("_eliminate_to_dag_internal",
-      [](phasic::Graph &graph) -> uintptr_t {
-        // Call C function to perform symbolic elimination
-        struct ptd_graph_symbolic *symbolic =
-            ptd_graph_symbolic_elimination(graph.c_graph());
-
-        if (symbolic == NULL) {
-          throw std::runtime_error("Symbolic elimination failed");
-        }
-
-        // Return pointer as integer for Python to store
-        return reinterpret_cast<uintptr_t>(symbolic);
-      },
-      R"delim(
-    Internal method: Performs symbolic graph elimination.
-
-    Returns an opaque pointer (as integer) to the symbolic DAG structure.
-    This is used internally by the Python SymbolicDAG class.
-
-    DO NOT call this directly from Python - use Graph.eliminate_to_dag() instead.
-      )delim")
+    // DISABLED: Symbolic elimination - missing function implementations
+    // Use trace-based elimination (ptd_record_elimination_trace) instead
+    // .def("_eliminate_to_dag_internal",
+    //   [](phasic::Graph &graph) -> uintptr_t {
+    //     // Call C function to perform symbolic elimination
+    //     struct ptd_graph_symbolic *symbolic =
+    //         ptd_graph_symbolic_elimination(graph.c_graph());
+    //
+    //     if (symbolic == NULL) {
+    //       throw std::runtime_error("Symbolic elimination failed");
+    //     }
+    //
+    //     // Return pointer as integer for Python to store
+    //     return reinterpret_cast<uintptr_t>(symbolic);
+    //   },
+    //   R"delim(
+    // Internal method: Performs symbolic graph elimination.
+    //
+    // Returns an opaque pointer (as integer) to the symbolic DAG structure.
+    // This is used internally by the Python SymbolicDAG class.
+    //
+    // DO NOT call this directly from Python - use Graph.eliminate_to_dag() instead.
+    //   )delim")
 
       
       // .def("moments", 
@@ -2741,9 +2743,12 @@ Computes the expected residence time of the phase-type distribution.
     ;
 
   // =========================================================================
-  // Symbolic DAG Helper Functions
+  // Symbolic DAG Helper Functions - DISABLED
   // =========================================================================
+  // These functions are disabled due to missing ptd_expr_* implementations
+  // Use trace-based elimination (ptd_record_elimination_trace) instead
 
+  /*
   m.def("_symbolic_dag_instantiate",
     [](uintptr_t symbolic_ptr, py::array_t<double> params) -> py::object {
       // Convert pointer back to struct
@@ -2844,6 +2849,7 @@ Computes the expected residence time of the phase-type distribution.
   dict
       Dictionary with metadata (vertices_length, param_length, etc.)
     )delim");
+  */
 
   // =========================================================================
 
