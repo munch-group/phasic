@@ -33,8 +33,18 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <limits.h>
 #include "phasic.h"
 #include "../../api/c/phasic_hash.h"
+
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
+
+// Debug printing macro
+#ifndef DEBUG_PRINT
+#define DEBUG_PRINT(...) do {} while(0)  // Disabled by default
+#endif
 
 volatile char ptd_err[4096] = {'\0'};
 
@@ -94,6 +104,902 @@ static int stack_push(struct ptd_stack *stack, void *entry);
 static void *stack_pop(struct ptd_stack *stack);
 
 static int stack_empty(struct ptd_stack *stack);
+
+// ============================================================================
+// Utility Data Structure Implementations
+// ============================================================================
+// Full implementations of vector, queue, and stack utilities needed for
+// SCC/topological sort and other graph algorithms.
+
+// Vector implementation
+static struct ptd_vector *vector_create() {
+    struct ptd_vector *vec = (struct ptd_vector *)calloc(1, sizeof(struct ptd_vector));
+    if (vec == NULL) {
+        sprintf((char*)ptd_err, "Failed to allocate vector");
+        return NULL;
+    }
+    vec->entries = 0;
+    vec->arr = NULL;
+    return vec;
+}
+
+static int vector_add(struct ptd_vector *vector, void *entry) {
+    if (vector == NULL) return -1;
+
+    // Check if we need to resize (use power of 2 sizing)
+    bool is_power_of_2 = (vector->entries & (vector->entries - 1)) == 0;
+
+    if (is_power_of_2) {
+        size_t new_size = (vector->entries == 0) ? 1 : vector->entries * 2;
+        void **new_arr = (void **)realloc(vector->arr, new_size * sizeof(void *));
+        if (new_arr == NULL) {
+            sprintf((char*)ptd_err, "Failed to grow vector");
+            return -1;
+        }
+        vector->arr = new_arr;
+    }
+
+    vector->arr[vector->entries++] = entry;
+    return 0;
+}
+
+static void *vector_get(struct ptd_vector *vector, size_t index) {
+    if (vector == NULL || index >= vector->entries) {
+        return NULL;
+    }
+    return vector->arr[index];
+}
+
+static size_t vector_length(struct ptd_vector *vector) {
+    if (vector == NULL) return 0;
+    return vector->entries;
+}
+
+static void vector_destroy(struct ptd_vector *vector) {
+    if (vector == NULL) return;
+    free(vector->arr);
+    free(vector);
+}
+
+// Queue implementation (using linked list)
+static struct ptd_queue *queue_create() {
+    struct ptd_queue *queue = (struct ptd_queue *)calloc(1, sizeof(struct ptd_queue));
+    if (queue == NULL) {
+        sprintf((char*)ptd_err, "Failed to allocate queue");
+        return NULL;
+    }
+    return queue;
+}
+
+static void queue_destroy(struct ptd_queue *queue) {
+    if (queue == NULL) return;
+
+    struct ptd_ll *current = queue->ll;
+    while (current != NULL) {
+        struct ptd_ll *next = current->next;
+        free(current);
+        current = next;
+    }
+    free(queue);
+}
+
+static int queue_enqueue(struct ptd_queue *queue, void *entry) {
+    if (queue == NULL) return -1;
+
+    struct ptd_ll *node = (struct ptd_ll *)malloc(sizeof(struct ptd_ll));
+    if (node == NULL) {
+        sprintf((char*)ptd_err, "Failed to allocate queue node");
+        return -1;
+    }
+
+    node->value = entry;
+    node->next = NULL;
+
+    if (queue->tail != NULL) {
+        queue->tail->next = node;
+    } else {
+        queue->ll = node;
+    }
+
+    queue->tail = node;
+
+    return 0;
+}
+
+static void *queue_dequeue(struct ptd_queue *queue) {
+    if (queue == NULL || queue->ll == NULL) {
+        return NULL;
+    }
+
+    struct ptd_ll *node = queue->ll;
+    void *value = node->value;
+
+    queue->ll = node->next;
+
+    if (queue->tail == node) {
+        queue->tail = NULL;
+    }
+
+    free(node);
+
+    return value;
+}
+
+static int queue_empty(struct ptd_queue *queue) {
+    if (queue == NULL) return 1;
+    return (queue->tail == NULL) ? 1 : 0;
+}
+
+// Stack implementation (using linked list)
+static struct ptd_stack *stack_create() {
+    struct ptd_stack *stack = (struct ptd_stack *)calloc(1, sizeof(struct ptd_stack));
+    if (stack == NULL) {
+        sprintf((char*)ptd_err, "Failed to allocate stack");
+        return NULL;
+    }
+    return stack;
+}
+
+static void stack_destroy(struct ptd_stack *stack) {
+    if (stack == NULL) return;
+
+    struct ptd_ll *current = stack->ll;
+    while (current != NULL) {
+        struct ptd_ll *next = current->next;
+        free(current);
+        current = next;
+    }
+    free(stack);
+}
+
+static int stack_push(struct ptd_stack *stack, void *entry) {
+    if (stack == NULL) return -1;
+
+    struct ptd_ll *node = (struct ptd_ll *)malloc(sizeof(struct ptd_ll));
+    if (node == NULL) {
+        sprintf((char*)ptd_err, "Failed to allocate stack node");
+        return -1;
+    }
+
+    node->value = entry;
+    node->next = stack->ll;
+    stack->ll = node;
+
+    return 0;
+}
+
+static void *stack_pop(struct ptd_stack *stack) {
+    if (stack == NULL || stack->ll == NULL) {
+        return NULL;
+    }
+
+    struct ptd_ll *node = stack->ll;
+    void *value = node->value;
+
+    stack->ll = node->next;
+    free(node);
+
+    return value;
+}
+
+static int stack_empty(struct ptd_stack *stack) {
+    if (stack == NULL) return 1;
+    return (stack->ll == NULL) ? 1 : 0;
+}
+
+// ============================================================================
+// Phase 2: Cache I/O Functions
+// ============================================================================
+
+/**
+ * Get path to cache directory (~/.phasic_cache/traces/)
+ * Creates directory if it doesn't exist
+ *
+ * @param buffer Output buffer for path (should be at least PATH_MAX bytes)
+ * @return 0 on success, -1 on error
+ */
+static int get_cache_dir(char *buffer, size_t buffer_size) {
+    const char *home = getenv("HOME");
+    if (home == NULL) {
+        sprintf((char*)ptd_err, "HOME environment variable not set");
+        return -1;
+    }
+
+    // Build path: ~/.phasic_cache/traces
+    int ret = snprintf(buffer, buffer_size, "%s/.phasic_cache/traces", home);
+    if (ret < 0 || (size_t)ret >= buffer_size) {
+        sprintf((char*)ptd_err, "Cache directory path too long");
+        return -1;
+    }
+
+    // Create directory if it doesn't exist (mkdir -p)
+    char parent_dir[PATH_MAX];
+    snprintf(parent_dir, sizeof(parent_dir), "%s/.phasic_cache", home);
+
+    // Create parent directory
+    struct stat st = {0};
+    if (stat(parent_dir, &st) == -1) {
+        if (mkdir(parent_dir, 0755) == -1) {
+            sprintf((char*)ptd_err, "Failed to create cache directory: %s", parent_dir);
+            return -1;
+        }
+    }
+
+    // Create traces subdirectory
+    if (stat(buffer, &st) == -1) {
+        if (mkdir(buffer, 0755) == -1) {
+            sprintf((char*)ptd_err, "Failed to create traces directory: %s", buffer);
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * Serialize elimination trace to JSON string
+ *
+ * @param trace Trace to serialize
+ * @return JSON string (caller must free), or NULL on error
+ */
+static char *trace_to_json(const struct ptd_elimination_trace *trace) {
+    if (trace == NULL) {
+        sprintf((char*)ptd_err, "trace is NULL");
+        return NULL;
+    }
+
+    // Start with large buffer (will grow as needed)
+    size_t capacity = 8192;
+    size_t length = 0;
+    char *json = malloc(capacity);
+    if (json == NULL) {
+        sprintf((char*)ptd_err, "Failed to allocate JSON buffer");
+        return NULL;
+    }
+
+    // Helper macro to append to buffer with automatic growth
+    #define APPEND(fmt, ...) do { \
+        while (length + 1024 > capacity) { \
+            capacity *= 2; \
+            char *new_json = realloc(json, capacity); \
+            if (new_json == NULL) { \
+                free(json); \
+                sprintf((char*)ptd_err, "Failed to grow JSON buffer"); \
+                return NULL; \
+            } \
+            json = new_json; \
+        } \
+        int written = snprintf(json + length, capacity - length, fmt, ##__VA_ARGS__); \
+        if (written < 0) { \
+            free(json); \
+            sprintf((char*)ptd_err, "snprintf failed"); \
+            return NULL; \
+        } \
+        length += written; \
+    } while(0)
+
+    // Start JSON object
+    APPEND("{");
+    APPEND("\"n_vertices\":%zu,", trace->n_vertices);
+    APPEND("\"param_length\":%zu,", trace->param_length);
+    APPEND("\"state_length\":%zu,", trace->state_length);
+    APPEND("\"starting_vertex_idx\":%zu,", trace->starting_vertex_idx);
+    APPEND("\"is_discrete\":%s,", trace->is_discrete ? "true" : "false");
+    APPEND("\"operations_length\":%zu,", trace->operations_length);
+
+    // Operations array
+    APPEND("\"operations\":[");
+    for (size_t i = 0; i < trace->operations_length; i++) {
+        if (i > 0) APPEND(",");
+
+        struct ptd_trace_operation *op = &trace->operations[i];
+        APPEND("{");
+        APPEND("\"op_type\":%d,", op->op_type);
+        APPEND("\"const_value\":%.17g,", op->const_value);
+        APPEND("\"param_idx\":%zu,", op->param_idx);
+
+        // Coefficients array
+        APPEND("\"coefficients\":[");
+        for (size_t j = 0; j < op->coefficients_length; j++) {
+            if (j > 0) APPEND(",");
+            APPEND("%.17g", op->coefficients[j]);
+        }
+        APPEND("],");
+
+        // Operands array
+        APPEND("\"operands\":[");
+        for (size_t j = 0; j < op->operands_length; j++) {
+            if (j > 0) APPEND(",");
+            APPEND("%zu", op->operands[j]);
+        }
+        APPEND("]");
+
+        APPEND("}");
+    }
+    APPEND("],");
+
+    // Vertex rates
+    APPEND("\"vertex_rates\":[");
+    for (size_t i = 0; i < trace->n_vertices; i++) {
+        if (i > 0) APPEND(",");
+        APPEND("%zu", trace->vertex_rates[i]);
+    }
+    APPEND("],");
+
+    // Edge probs lengths
+    APPEND("\"edge_probs_lengths\":[");
+    for (size_t i = 0; i < trace->n_vertices; i++) {
+        if (i > 0) APPEND(",");
+        APPEND("%zu", trace->edge_probs_lengths[i]);
+    }
+    APPEND("],");
+
+    // Edge probs (2D array)
+    APPEND("\"edge_probs\":[");
+    for (size_t i = 0; i < trace->n_vertices; i++) {
+        if (i > 0) APPEND(",");
+        APPEND("[");
+        for (size_t j = 0; j < trace->edge_probs_lengths[i]; j++) {
+            if (j > 0) APPEND(",");
+            APPEND("%zu", trace->edge_probs[i][j]);
+        }
+        APPEND("]");
+    }
+    APPEND("],");
+
+    // Vertex targets lengths
+    APPEND("\"vertex_targets_lengths\":[");
+    for (size_t i = 0; i < trace->n_vertices; i++) {
+        if (i > 0) APPEND(",");
+        APPEND("%zu", trace->vertex_targets_lengths[i]);
+    }
+    APPEND("],");
+
+    // Vertex targets (2D array)
+    APPEND("\"vertex_targets\":[");
+    for (size_t i = 0; i < trace->n_vertices; i++) {
+        if (i > 0) APPEND(",");
+        APPEND("[");
+        for (size_t j = 0; j < trace->vertex_targets_lengths[i]; j++) {
+            if (j > 0) APPEND(",");
+            APPEND("%zu", trace->vertex_targets[i][j]);
+        }
+        APPEND("]");
+    }
+    APPEND("],");
+
+    // States (2D array)
+    APPEND("\"states\":[");
+    for (size_t i = 0; i < trace->n_vertices; i++) {
+        if (i > 0) APPEND(",");
+        APPEND("[");
+        for (size_t j = 0; j < trace->state_length; j++) {
+            if (j > 0) APPEND(",");
+            APPEND("%d", trace->states[i][j]);
+        }
+        APPEND("]");
+    }
+    APPEND("]");
+
+    APPEND("}");
+
+    #undef APPEND
+    return json;
+}
+
+/**
+ * Helper: Skip whitespace in JSON string
+ */
+static const char *skip_whitespace(const char *s) {
+    while (*s == ' ' || *s == '\t' || *s == '\n' || *s == '\r') s++;
+    return s;
+}
+
+/**
+ * Helper: Find JSON field by name
+ * Returns pointer to value (after ":"), or NULL if not found
+ */
+static const char *find_field(const char *json, const char *field_name) {
+    char search[256];
+    snprintf(search, sizeof(search), "\"%s\":", field_name);
+    const char *field = strstr(json, search);
+    if (field == NULL) return NULL;
+    field += strlen(search);
+    return skip_whitespace(field);
+}
+
+/**
+ * Helper: Parse size_t from JSON
+ */
+static size_t parse_size_t(const char *s) {
+    return (size_t)strtoull(s, NULL, 10);
+}
+
+/**
+ * Helper: Parse double from JSON
+ */
+static double parse_double(const char *s) {
+    return strtod(s, NULL);
+}
+
+/**
+ * Helper: Parse int from JSON
+ */
+static int parse_int(const char *s) {
+    return (int)strtol(s, NULL, 10);
+}
+
+/**
+ * Helper: Parse bool from JSON
+ */
+static bool parse_bool(const char *s) {
+    s = skip_whitespace(s);
+    return (strncmp(s, "true", 4) == 0);
+}
+
+/**
+ * Helper: Parse array of size_t from JSON
+ * Format: [1,2,3]
+ *
+ * @param json Pointer to start of array (should be '[')
+ * @param out_length Output: number of elements parsed
+ * @return Array of size_t (caller must free), or NULL if empty array
+ */
+static size_t *parse_size_t_array(const char *json, size_t *out_length) {
+    json = skip_whitespace(json);
+    if (*json != '[') {
+        sprintf((char*)ptd_err, "Expected '[' at start of array");
+        return NULL;
+    }
+
+    // Count elements
+    size_t count = 0;
+    const char *p = json + 1;
+    p = skip_whitespace(p);
+    if (*p == ']') {
+        *out_length = 0;
+        return NULL;  // Empty array
+    }
+
+    while (*p && *p != ']') {
+        if (*p >= '0' && *p <= '9') {
+            count++;
+            while (*p && *p != ',' && *p != ']') p++;
+        }
+        if (*p == ',') p++;
+        p = skip_whitespace(p);
+    }
+
+    if (count == 0) {
+        *out_length = 0;
+        return NULL;
+    }
+
+    // Allocate and parse
+    size_t *arr = malloc(count * sizeof(size_t));
+    if (arr == NULL) {
+        sprintf((char*)ptd_err, "Failed to allocate array");
+        return NULL;
+    }
+
+    p = json + 1;
+    for (size_t i = 0; i < count; i++) {
+        p = skip_whitespace(p);
+        arr[i] = parse_size_t(p);
+        while (*p && *p != ',' && *p != ']') p++;
+        if (*p == ',') p++;
+    }
+
+    *out_length = count;
+    return arr;
+}
+
+/**
+ * Helper: Parse array of doubles from JSON
+ * Format: [1.5,2.3,3.7]
+ */
+static double *parse_double_array(const char *json, size_t *out_length) {
+    json = skip_whitespace(json);
+    if (*json != '[') {
+        sprintf((char*)ptd_err, "Expected '[' at start of array");
+        return NULL;
+    }
+
+    // Count elements
+    size_t count = 0;
+    const char *p = json + 1;
+    p = skip_whitespace(p);
+    if (*p == ']') {
+        *out_length = 0;
+        return NULL;  // Empty array
+    }
+
+    while (*p && *p != ']') {
+        // Look for numbers (including negative and decimal)
+        if (*p == '-' || *p == '+' || (*p >= '0' && *p <= '9')) {
+            count++;
+            while (*p && *p != ',' && *p != ']') p++;
+        }
+        if (*p == ',') p++;
+        p = skip_whitespace(p);
+    }
+
+    if (count == 0) {
+        *out_length = 0;
+        return NULL;
+    }
+
+    // Allocate and parse
+    double *arr = malloc(count * sizeof(double));
+    if (arr == NULL) {
+        sprintf((char*)ptd_err, "Failed to allocate double array");
+        return NULL;
+    }
+
+    p = json + 1;
+    for (size_t i = 0; i < count; i++) {
+        p = skip_whitespace(p);
+        arr[i] = parse_double(p);
+        while (*p && *p != ',' && *p != ']') p++;
+        if (*p == ',') p++;
+    }
+
+    *out_length = count;
+    return arr;
+}
+
+/**
+ * Helper: Parse array of ints from JSON
+ * Format: [1,2,3]
+ */
+static int *parse_int_array(const char *json, size_t *out_length) {
+    json = skip_whitespace(json);
+    if (*json != '[') {
+        sprintf((char*)ptd_err, "Expected '[' at start of array");
+        return NULL;
+    }
+
+    // Count elements
+    size_t count = 0;
+    const char *p = json + 1;
+    p = skip_whitespace(p);
+    if (*p == ']') {
+        *out_length = 0;
+        return NULL;  // Empty array
+    }
+
+    while (*p && *p != ']') {
+        if (*p == '-' || (*p >= '0' && *p <= '9')) {
+            count++;
+            while (*p && *p != ',' && *p != ']') p++;
+        }
+        if (*p == ',') p++;
+        p = skip_whitespace(p);
+    }
+
+    if (count == 0) {
+        *out_length = 0;
+        return NULL;
+    }
+
+    // Allocate and parse
+    int *arr = malloc(count * sizeof(int));
+    if (arr == NULL) {
+        sprintf((char*)ptd_err, "Failed to allocate int array");
+        return NULL;
+    }
+
+    p = json + 1;
+    for (size_t i = 0; i < count; i++) {
+        p = skip_whitespace(p);
+        arr[i] = parse_int(p);
+        while (*p && *p != ',' && *p != ']') p++;
+        if (*p == ',') p++;
+    }
+
+    *out_length = count;
+    return arr;
+}
+
+/**
+ * Deserialize JSON string to elimination trace
+ *
+ * @param json JSON string
+ * @return Trace structure (caller must call ptd_elimination_trace_destroy), or NULL on error
+ */
+static struct ptd_elimination_trace *json_to_trace(const char *json) {
+    if (json == NULL) {
+        sprintf((char*)ptd_err, "json is NULL");
+        return NULL;
+    }
+
+    struct ptd_elimination_trace *trace = calloc(1, sizeof(*trace));
+    if (trace == NULL) {
+        sprintf((char*)ptd_err, "Failed to allocate trace");
+        return NULL;
+    }
+
+    // Parse metadata fields
+    const char *field;
+
+    field = find_field(json, "n_vertices");
+    if (field == NULL) goto error;
+    trace->n_vertices = parse_size_t(field);
+
+    field = find_field(json, "param_length");
+    if (field == NULL) goto error;
+    trace->param_length = parse_size_t(field);
+
+    field = find_field(json, "state_length");
+    if (field == NULL) goto error;
+    trace->state_length = parse_size_t(field);
+
+    field = find_field(json, "starting_vertex_idx");
+    if (field == NULL) goto error;
+    trace->starting_vertex_idx = parse_size_t(field);
+
+    field = find_field(json, "is_discrete");
+    if (field == NULL) goto error;
+    trace->is_discrete = parse_bool(field);
+
+    field = find_field(json, "operations_length");
+    if (field == NULL) goto error;
+    trace->operations_length = parse_size_t(field);
+
+    // Parse operations array
+    field = find_field(json, "operations");
+    if (field == NULL) goto error;
+
+    trace->operations = calloc(trace->operations_length, sizeof(struct ptd_trace_operation));
+    if (trace->operations == NULL) goto error;
+
+    // Parse each operation (simplified - assumes well-formed JSON)
+    const char *op_start = field;
+    if (*op_start != '[') goto error;
+    op_start++;
+
+    for (size_t i = 0; i < trace->operations_length; i++) {
+        // Find operation object
+        op_start = skip_whitespace(op_start);
+        if (*op_start != '{') goto error;
+
+        // Parse op_type
+        const char *op_type_field = strstr(op_start, "\"op_type\":");
+        if (op_type_field == NULL) goto error;
+        op_type_field += strlen("\"op_type\":");
+        trace->operations[i].op_type = parse_int(op_type_field);
+
+        // Parse const_value
+        const char *const_val_field = strstr(op_start, "\"const_value\":");
+        if (const_val_field == NULL) goto error;
+        const_val_field += strlen("\"const_value\":");
+        trace->operations[i].const_value = parse_double(const_val_field);
+
+        // Parse param_idx
+        const char *param_idx_field = strstr(op_start, "\"param_idx\":");
+        if (param_idx_field == NULL) goto error;
+        param_idx_field += strlen("\"param_idx\":");
+        trace->operations[i].param_idx = parse_size_t(param_idx_field);
+
+        // Parse coefficients array
+        const char *coeffs_field = strstr(op_start, "\"coefficients\":");
+        if (coeffs_field == NULL) goto error;
+        coeffs_field += strlen("\"coefficients\":");
+        trace->operations[i].coefficients = parse_double_array(coeffs_field,
+                                                               &trace->operations[i].coefficients_length);
+
+        // Parse operands array
+        const char *operands_field = strstr(op_start, "\"operands\":");
+        if (operands_field == NULL) goto error;
+        operands_field += strlen("\"operands\":");
+        trace->operations[i].operands = parse_size_t_array(operands_field,
+                                                            &trace->operations[i].operands_length);
+
+        // Move to next operation
+        op_start = strchr(op_start, '}');
+        if (op_start == NULL) goto error;
+        op_start++;
+        op_start = skip_whitespace(op_start);
+        if (*op_start == ',') op_start++;
+    }
+
+    // Parse vertex_rates
+    field = find_field(json, "vertex_rates");
+    if (field == NULL) goto error;
+    size_t vr_len;
+    trace->vertex_rates = parse_size_t_array(field, &vr_len);
+
+    // Parse edge_probs_lengths
+    field = find_field(json, "edge_probs_lengths");
+    if (field == NULL) goto error;
+    size_t epl_len;
+    trace->edge_probs_lengths = parse_size_t_array(field, &epl_len);
+
+    // Parse vertex_targets_lengths
+    field = find_field(json, "vertex_targets_lengths");
+    if (field == NULL) goto error;
+    size_t vtl_len;
+    trace->vertex_targets_lengths = parse_size_t_array(field, &vtl_len);
+
+    // Allocate 2D arrays
+    trace->edge_probs = calloc(trace->n_vertices, sizeof(size_t *));
+    trace->vertex_targets = calloc(trace->n_vertices, sizeof(size_t *));
+    trace->states = calloc(trace->n_vertices, sizeof(int *));
+
+    // Parse edge_probs (2D array)
+    field = find_field(json, "edge_probs");
+    if (field == NULL) goto error;
+    field = skip_whitespace(field);
+    if (*field != '[') goto error;
+    field++;
+
+    for (size_t i = 0; i < trace->n_vertices; i++) {
+        field = skip_whitespace(field);
+        size_t len;
+        trace->edge_probs[i] = parse_size_t_array(field, &len);
+        // Skip to next sub-array
+        while (*field && *field != ']') field++;
+        if (*field == ']') field++;
+        field = skip_whitespace(field);
+        if (*field == ',') field++;
+    }
+
+    // Parse vertex_targets (2D array)
+    field = find_field(json, "vertex_targets");
+    if (field == NULL) goto error;
+    field = skip_whitespace(field);
+    if (*field != '[') goto error;
+    field++;
+
+    for (size_t i = 0; i < trace->n_vertices; i++) {
+        field = skip_whitespace(field);
+        size_t len;
+        trace->vertex_targets[i] = parse_size_t_array(field, &len);
+        // Skip to next sub-array
+        while (*field && *field != ']') field++;
+        if (*field == ']') field++;
+        field = skip_whitespace(field);
+        if (*field == ',') field++;
+    }
+
+    // Parse states (2D array of ints)
+    field = find_field(json, "states");
+    if (field == NULL) goto error;
+    field = skip_whitespace(field);
+    if (*field != '[') goto error;
+    field++;
+
+    for (size_t i = 0; i < trace->n_vertices; i++) {
+        field = skip_whitespace(field);
+        size_t len;
+        trace->states[i] = parse_int_array(field, &len);
+        // Skip to next sub-array
+        while (*field && *field != ']') field++;
+        if (*field == ']') field++;
+        field = skip_whitespace(field);
+        if (*field == ',') field++;
+    }
+
+    return trace;
+
+error:
+    sprintf((char*)ptd_err, "Failed to parse JSON trace");
+    ptd_elimination_trace_destroy(trace);
+    return NULL;
+}
+
+/**
+ * Load elimination trace from cache
+ *
+ * @param hash_hex Hash of graph structure (hex string)
+ * @return Trace if found in cache, NULL otherwise
+ */
+static struct ptd_elimination_trace *load_trace_from_cache(const char *hash_hex) {
+    if (hash_hex == NULL) return NULL;
+
+    // Get cache directory
+    char cache_dir[PATH_MAX];
+    if (get_cache_dir(cache_dir, sizeof(cache_dir)) != 0) {
+        return NULL;  // Cache directory unavailable
+    }
+
+    // Build cache file path
+    char cache_file[PATH_MAX];
+    snprintf(cache_file, sizeof(cache_file), "%s/%s.json", cache_dir, hash_hex);
+
+    // Check if file exists
+    FILE *f = fopen(cache_file, "r");
+    if (f == NULL) {
+        return NULL;  // Cache miss
+    }
+
+    // Read file into buffer
+    fseek(f, 0, SEEK_END);
+    long file_size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    if (file_size <= 0 || file_size > 100*1024*1024) {  // Max 100MB
+        fclose(f);
+        return NULL;
+    }
+
+    char *json = malloc(file_size + 1);
+    if (json == NULL) {
+        fclose(f);
+        return NULL;
+    }
+
+    size_t read = fread(json, 1, file_size, f);
+    fclose(f);
+
+    if ((long)read != file_size) {
+        free(json);
+        return NULL;
+    }
+
+    json[file_size] = '\0';
+
+    // Deserialize
+    struct ptd_elimination_trace *trace = json_to_trace(json);
+    free(json);
+
+    return trace;
+}
+
+/**
+ * Save elimination trace to cache
+ *
+ * @param hash_hex Hash of graph structure (hex string)
+ * @param trace Trace to save
+ * @return true on success, false on error
+ */
+static bool save_trace_to_cache(const char *hash_hex, const struct ptd_elimination_trace *trace) {
+    if (hash_hex == NULL || trace == NULL) return false;
+
+    // Get cache directory
+    char cache_dir[PATH_MAX];
+    if (get_cache_dir(cache_dir, sizeof(cache_dir)) != 0) {
+        return false;  // Silently fail if cache unavailable
+    }
+
+    // Build cache file path
+    char cache_file[PATH_MAX];
+    snprintf(cache_file, sizeof(cache_file), "%s/%s.json", cache_dir, hash_hex);
+
+    // Serialize to JSON
+    char *json = trace_to_json(trace);
+    if (json == NULL) {
+        return false;
+    }
+
+    // Write to file
+    FILE *f = fopen(cache_file, "w");
+    if (f == NULL) {
+        free(json);
+        return false;
+    }
+
+    size_t len = strlen(json);
+    size_t written = fwrite(json, 1, len, f);
+    fclose(f);
+    free(json);
+
+    return (written == len);
+}
+
+// Stub for ptd_clone_graph (missing implementation)
+struct ptd_clone_res ptd_clone_graph(struct ptd_graph *graph, struct ptd_avl_tree *avl_tree) {
+    struct ptd_clone_res res;
+    res.graph = NULL;
+    sprintf((char*)ptd_err, "ptd_clone_graph() not implemented");
+    return res;
+}
+
+// Stub for ptd_defect (commented out in original code)
+double ptd_defect(struct ptd_graph *graph) {
+    // Simple stub implementation
+    return 0.0;
+}
 
 struct ll_of_a {
     struct ll_of_a *next;
@@ -584,41 +1490,8 @@ int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
 
     if (graph->reward_compute_graph == NULL) {
         if (graph->parameterized) {
-            // Use trace-based path if trace exists and parameters are available
-            if (graph->elimination_trace != NULL && graph->current_params != NULL) {
-                // DEBUG_PRINT("INFO: using trace-based path for reward compute graph...\n");
-
-                // Evaluate trace with current parameters
-                struct ptd_trace_result *trace_result = ptd_evaluate_trace(
-                    graph->elimination_trace,
-                    graph->current_params,
-                    graph->param_length
-                );
-
-                if (trace_result == NULL) {
-                    DEBUG_PRINT("WARNING: trace evaluation failed, falling back to traditional path\n");
-                    goto traditional_path;
-                }
-
-                // Build reward_compute from trace result
-                graph->reward_compute_graph = ptd_build_reward_compute_from_trace(
-                    trace_result,
-                    graph
-                );
-
-                ptd_trace_result_destroy(trace_result);
-
-                if (graph->reward_compute_graph == NULL) {
-                    DEBUG_PRINT("WARNING: reward_compute building failed, falling back to traditional path\n");
-                    goto traditional_path;
-                }
-
-                // DEBUG_PRINT("INFO: trace-based reward compute graph built successfully\n");
-            } else {
-                // Traditional path
-traditional_path:
+            // Always use traditional path - handles vertex ordering correctly
             if (graph->parameterized_reward_compute_graph == NULL) {
-                DEBUG_PRINT("INFO: building parameterized compute graph...\n");
                 graph->parameterized_reward_compute_graph =
                         ptd_graph_ex_absorbation_time_comp_graph_parameterized(graph);
             }
@@ -628,12 +1501,10 @@ traditional_path:
                 free(graph->reward_compute_graph);
             }
 
-            DEBUG_PRINT("INFO: building reward compute graph from parameterized compute graph...\n");
             graph->reward_compute_graph =
                     ptd_graph_build_ex_absorbation_time_comp_graph_parameterized(
                             graph->parameterized_reward_compute_graph
                     );
-            }
         } else {
             // DEBUG_PRINT("INFO: building reward compute graph...\n");
             graph->reward_compute_graph = ptd_graph_ex_absorbation_time_comp_graph(graph);
@@ -2184,6 +3055,47 @@ struct ptd_graph *_ptd_graph_reward_transform(struct ptd_graph *graph, double *_
         }
     }
 
+    // // Special case: Ensure starting vertex is in parent lists for its children
+    // // The starting vertex may not be in the sorted vertices array if it has special properties
+    // // We need to explicitly add it as a parent for reward_transform bypass edge creation
+    // size_t start_idx = graph->starting_vertex->index;
+    // if (start_idx < vertices_length && vertices[start_idx] == graph->starting_vertex) {
+    //     // Starting vertex is in the vertices array, parents already added above
+    // } else {
+    //     // Starting vertex not in vertices array or has different index - add manually
+    //     // This handles the case where starting vertex has no incoming edges
+    //     for (size_t j = 0; j < graph->starting_vertex->edges_length; ++j) {
+    //         struct ptd_vertex *child = graph->starting_vertex->edges[j]->to;
+    //         size_t child_idx = child->index;
+
+    //         if (child_idx < vertices_length) {
+    //             // Check if starting vertex not already in child's parent list
+    //             bool already_parent = false;
+    //             for (size_t p = 0; p < vertex_parents_length[child_idx]; ++p) {
+    //                 if (vertex_parents[child_idx][p].p == graph->starting_vertex) {
+    //                     already_parent = true;
+    //                     break;
+    //                 }
+    //             }
+
+    //             if (!already_parent) {
+    //                 // Add starting vertex as parent
+    //                 if (vertex_parents_length[child_idx] >= vertex_parents_alloc_length[child_idx]) {
+    //                     vertex_parents_alloc_length[child_idx] *= 2;
+    //                     vertex_parents[child_idx] = (struct arr_p *) realloc(
+    //                         vertex_parents[child_idx],
+    //                         vertex_parents_alloc_length[child_idx] * sizeof(*(vertex_parents[child_idx]))
+    //                     );
+    //                 }
+
+    //                 vertex_parents[child_idx][vertex_parents_length[child_idx]].p = graph->starting_vertex;
+    //                 vertex_parents[child_idx][vertex_parents_length[child_idx]].arr_c_index = j + 1; // +1 because of dummy at index 0
+    //                 vertex_parents_length[child_idx]++;
+    //             }
+    //         }
+    //     }
+    // }
+
     struct arr_c *old_edges_buffer =
             (struct arr_c *) calloc(vertices_length + 2, sizeof(*old_edges_buffer));
 
@@ -2195,15 +3107,15 @@ struct ptd_graph *_ptd_graph_reward_transform(struct ptd_graph *graph, double *_
     // for (size_t rev_idx = 0; rev_idx < vertices_length; ++rev_idx) {
     //     size_t i = vertices_length - 1 - rev_idx;
 
-        // if (rewards[i] != 0) {
-        //     continue;
-        // }
-
-        // // Never bypass starting vertex
-        // if (vertices[i] == graph->starting_vertex) {
-        //     continue;
-        // }
     for (size_t i = 0; i < vertices_length; ++i) {
+        if (rewards[i] != 0) {
+            continue;
+        }
+
+        // Never bypass starting vertex
+        if (vertices[i] == graph->starting_vertex) {
+            continue;
+        }
 
         struct ptd_vertex *me = vertices[i];
         struct arr_c *my_children = vertex_edges[i];
@@ -3945,6 +4857,12 @@ double *ptd_expected_waiting_time(struct ptd_graph *graph, double *rewards) {
         struct ptd_reward_increase command = graph->reward_compute_graph->commands[j];
 
         result[command.from] += result[command.to] * command.multiplier;
+
+        // Debug: check for nan
+        if (isnan(result[command.from])) {
+            DEBUG_PRINT("WARNING: result[%zu] became nan at command %zu: from=%zu to=%zu multiplier=%f result[to]=%f\n",
+                command.from, j, command.from, command.to, command.multiplier, result[command.to]);
+        }
 
         //TODO: if inf, give error stating that there is an infinite loop
     }
@@ -8877,3 +9795,1322 @@ int ptd_probability_distribution_step(
 
 //     return success;
 // }
+
+// ============================================================================
+// Trace-Based Elimination Implementation - NEW CLEAN VERSION
+// ============================================================================
+
+/**
+ * Helper: Ensure trace operations array has sufficient capacity
+ *
+ * Grows the operations array to accommodate at least 'required' operations.
+ * Uses exponential growth strategy (doubling) for amortized O(1) append.
+ *
+ * @param trace Elimination trace to grow
+ * @param capacity Pointer to current capacity (will be updated)
+ * @param required Minimum required capacity
+ * @return 0 on success, -1 on allocation failure
+ */
+static int ensure_operation_capacity(
+    struct ptd_elimination_trace *trace,
+    size_t *capacity,
+    size_t required
+) {
+    if (required <= *capacity) {
+        return 0; // Already has sufficient capacity
+    }
+
+    // Exponential growth: double capacity until we meet requirement
+    size_t new_capacity = (*capacity) * 2;
+    if (new_capacity < required) {
+        new_capacity = required;
+    }
+
+    // Reallocate operations array
+    struct ptd_trace_operation *new_ops = (struct ptd_trace_operation *)realloc(
+        trace->operations,
+        new_capacity * sizeof(struct ptd_trace_operation)
+    );
+    if (new_ops == NULL) {
+        sprintf((char*)ptd_err, "Failed to allocate memory for trace operations (required: %zu)", new_capacity);
+        return -1;
+    }
+
+    trace->operations = new_ops;
+    *capacity = new_capacity;
+    return 0;
+}
+
+/**
+ * Helper: Add CONST operation to trace
+ *
+ * Records a constant value operation.
+ *
+ * @param trace Elimination trace
+ * @param capacity Pointer to current capacity
+ * @param value Constant value
+ * @return Operation index, or (size_t)-1 on error
+ */
+static size_t add_const_to_trace(
+    struct ptd_elimination_trace *trace,
+    size_t *capacity,
+    double value
+) {
+    if (ensure_operation_capacity(trace, capacity, trace->operations_length + 1) != 0) {
+        return (size_t)-1;
+    }
+
+    size_t idx = trace->operations_length++;
+    struct ptd_trace_operation *op = &trace->operations[idx];
+
+    op->op_type = PTD_OP_CONST;
+    op->const_value = value;
+    op->param_idx = 0;
+    op->coefficients = NULL;
+
+    // Debug: check for nan constants
+    if (isnan(value)) {
+        DEBUG_PRINT("WARNING: add_const_to_trace called with NAN value at op_idx=%zu\n", idx);
+    }
+    op->coefficients_length = 0;
+    op->operands = NULL;
+    op->operands_length = 0;
+
+    return idx;
+}
+
+/**
+ * Helper: Add DOT operation to trace
+ *
+ * Records a dot product operation: dot(coefficients, params)
+ *
+ * @param trace Elimination trace
+ * @param capacity Pointer to current capacity
+ * @param coefficients Coefficient array
+ * @param coefficients_length Length of coefficient array
+ * @return Operation index, or (size_t)-1 on error
+ */
+static size_t add_dot_to_trace(
+    struct ptd_elimination_trace *trace,
+    size_t *capacity,
+    const double *coefficients,
+    size_t coefficients_length
+) {
+    if (ensure_operation_capacity(trace, capacity, trace->operations_length + 1) != 0) {
+        return (size_t)-1;
+    }
+
+    size_t idx = trace->operations_length++;
+    struct ptd_trace_operation *op = &trace->operations[idx];
+
+    op->op_type = PTD_OP_DOT;
+    op->const_value = 0.0;
+    op->param_idx = 0;
+
+    // Copy coefficients
+    op->coefficients = (double *)malloc(coefficients_length * sizeof(double));
+    if (op->coefficients == NULL) {
+        trace->operations_length--; // Roll back
+        sprintf((char*)ptd_err, "Failed to allocate memory for DOT coefficients");
+        return (size_t)-1;
+    }
+    memcpy(op->coefficients, coefficients, coefficients_length * sizeof(double));
+    op->coefficients_length = coefficients_length;
+
+    op->operands = NULL;
+    op->operands_length = 0;
+
+    return idx;
+}
+
+/**
+ * Helper: Add binary operation to trace (ADD, MUL, DIV)
+ *
+ * @param trace Elimination trace
+ * @param capacity Pointer to current capacity
+ * @param op_type Operation type (PTD_OP_ADD, PTD_OP_MUL, PTD_OP_DIV)
+ * @param left_idx Left operand index
+ * @param right_idx Right operand index
+ * @return Operation index, or (size_t)-1 on error
+ */
+static size_t add_binary_op_to_trace(
+    struct ptd_elimination_trace *trace,
+    size_t *capacity,
+    enum ptd_trace_op_type op_type,
+    size_t left_idx,
+    size_t right_idx
+) {
+    if (ensure_operation_capacity(trace, capacity, trace->operations_length + 1) != 0) {
+        return (size_t)-1;
+    }
+
+    size_t idx = trace->operations_length++;
+    struct ptd_trace_operation *op = &trace->operations[idx];
+
+    op->op_type = op_type;
+    op->const_value = 0.0;
+    op->param_idx = 0;
+    op->coefficients = NULL;
+    op->coefficients_length = 0;
+
+    // Allocate operands array (size 2)
+    op->operands = (size_t *)malloc(2 * sizeof(size_t));
+    if (op->operands == NULL) {
+        trace->operations_length--; // Roll back
+        sprintf((char*)ptd_err, "Failed to allocate memory for binary op operands");
+        return (size_t)-1;
+    }
+    op->operands[0] = left_idx;
+    op->operands[1] = right_idx;
+    op->operands_length = 2;
+
+    return idx;
+}
+
+/**
+ * Helper: Add INV operation to trace (1 / x)
+ *
+ * @param trace Elimination trace
+ * @param capacity Pointer to current capacity
+ * @param operand_idx Operand index
+ * @return Operation index, or (size_t)-1 on error
+ */
+static size_t add_inv_to_trace(
+    struct ptd_elimination_trace *trace,
+    size_t *capacity,
+    size_t operand_idx
+) {
+    if (ensure_operation_capacity(trace, capacity, trace->operations_length + 1) != 0) {
+        return (size_t)-1;
+    }
+
+    size_t idx = trace->operations_length++;
+    struct ptd_trace_operation *op = &trace->operations[idx];
+
+    op->op_type = PTD_OP_INV;
+    op->const_value = 0.0;
+    op->param_idx = 0;
+    op->coefficients = NULL;
+    op->coefficients_length = 0;
+
+    // Allocate operands array (size 1)
+    op->operands = (size_t *)malloc(1 * sizeof(size_t));
+    if (op->operands == NULL) {
+        trace->operations_length--; // Roll back
+        sprintf((char*)ptd_err, "Failed to allocate memory for INV operand");
+        return (size_t)-1;
+    }
+    op->operands[0] = operand_idx;
+    op->operands_length = 1;
+
+    return idx;
+}
+
+/**
+ * Helper: Add SUM operation to trace
+ *
+ * Records a sum operation: sum(operands)
+ *
+ * @param trace Elimination trace
+ * @param capacity Pointer to current capacity
+ * @param operand_indices Array of operand indices
+ * @param n_operands Number of operands
+ * @return Operation index, or (size_t)-1 on error
+ */
+static size_t add_sum_to_trace(
+    struct ptd_elimination_trace *trace,
+    size_t *capacity,
+    const size_t *operand_indices,
+    size_t n_operands
+) {
+    if (n_operands == 0) {
+        return add_const_to_trace(trace, capacity, 0.0);
+    }
+    if (n_operands == 1) {
+        return operand_indices[0];
+    }
+
+    if (ensure_operation_capacity(trace, capacity, trace->operations_length + 1) != 0) {
+        return (size_t)-1;
+    }
+
+    size_t idx = trace->operations_length++;
+    struct ptd_trace_operation *op = &trace->operations[idx];
+
+    op->op_type = PTD_OP_SUM;
+    op->const_value = 0.0;
+    op->param_idx = 0;
+    op->coefficients = NULL;
+    op->coefficients_length = 0;
+
+    // Copy operand indices
+    op->operands = (size_t *)malloc(n_operands * sizeof(size_t));
+    if (op->operands == NULL) {
+        trace->operations_length--; // Roll back
+        sprintf((char*)ptd_err, "Failed to allocate memory for SUM operands");
+        return (size_t)-1;
+    }
+    memcpy(op->operands, operand_indices, n_operands * sizeof(size_t));
+    op->operands_length = n_operands;
+
+    return idx;
+}
+
+// ============================================================================
+// Public API Functions
+// ============================================================================
+
+/**
+ * Destroy elimination trace and free all memory
+ */
+void ptd_elimination_trace_destroy(struct ptd_elimination_trace *trace) {
+    if (trace == NULL) {
+        return;
+    }
+
+    // Free operations
+    if (trace->operations != NULL) {
+        for (size_t i = 0; i < trace->operations_length; i++) {
+            struct ptd_trace_operation *op = &trace->operations[i];
+
+            if (op->coefficients != NULL) {
+                free(op->coefficients);
+            }
+            if (op->operands != NULL) {
+                free(op->operands);
+            }
+        }
+        free(trace->operations);
+    }
+
+    // Free vertex_rates
+    if (trace->vertex_rates != NULL) {
+        free(trace->vertex_rates);
+    }
+
+    // Free edge_probs (2D array)
+    if (trace->edge_probs != NULL) {
+        for (size_t i = 0; i < trace->n_vertices; i++) {
+            if (trace->edge_probs[i] != NULL) {
+                free(trace->edge_probs[i]);
+            }
+        }
+        free(trace->edge_probs);
+    }
+    if (trace->edge_probs_lengths != NULL) {
+        free(trace->edge_probs_lengths);
+    }
+
+    // Free vertex_targets (2D array)
+    if (trace->vertex_targets != NULL) {
+        for (size_t i = 0; i < trace->n_vertices; i++) {
+            if (trace->vertex_targets[i] != NULL) {
+                free(trace->vertex_targets[i]);
+            }
+        }
+        free(trace->vertex_targets);
+    }
+    if (trace->vertex_targets_lengths != NULL) {
+        free(trace->vertex_targets_lengths);
+    }
+
+    // Free states (2D array)
+    if (trace->states != NULL) {
+        for (size_t i = 0; i < trace->n_vertices; i++) {
+            if (trace->states[i] != NULL) {
+                free(trace->states[i]);
+            }
+        }
+        free(trace->states);
+    }
+
+    free(trace);
+}
+
+/**
+ * Destroy trace evaluation result and free all memory
+ */
+void ptd_trace_result_destroy(struct ptd_trace_result *result) {
+    if (result == NULL) {
+        return;
+    }
+
+    // Free vertex_rates
+    if (result->vertex_rates != NULL) {
+        free(result->vertex_rates);
+    }
+
+    // Free edge_probs (2D array)
+    if (result->edge_probs != NULL) {
+        for (size_t i = 0; i < result->n_vertices; i++) {
+            if (result->edge_probs[i] != NULL) {
+                free(result->edge_probs[i]);
+            }
+        }
+        free(result->edge_probs);
+    }
+    if (result->edge_probs_lengths != NULL) {
+        free(result->edge_probs_lengths);
+    }
+
+    // Free vertex_targets (2D array)
+    if (result->vertex_targets != NULL) {
+        for (size_t i = 0; i < result->n_vertices; i++) {
+            if (result->vertex_targets[i] != NULL) {
+                free(result->vertex_targets[i]);
+            }
+        }
+        free(result->vertex_targets);
+    }
+    if (result->vertex_targets_lengths != NULL) {
+        free(result->vertex_targets_lengths);
+    }
+
+    free(result);
+}
+
+/**
+ * Evaluate elimination trace with concrete parameter values
+ *
+ * Executes the recorded operation sequence with given parameters to produce
+ * vertex rates and edge probabilities.
+ *
+ * @param trace Elimination trace
+ * @param params Parameter array
+ * @param params_length Length of parameter array
+ * @return Trace evaluation result, or NULL on error
+ *
+ * Time complexity: O(n) where n = number of operations
+ */
+struct ptd_trace_result *ptd_evaluate_trace(
+    const struct ptd_elimination_trace *trace,
+    const double *params,
+    size_t params_length
+) {
+    // Validate parameters
+    if (trace == NULL) {
+        sprintf((char*)ptd_err, "Trace is NULL");
+        return NULL;
+    }
+
+    if (trace->param_length > 0 && params == NULL) {
+        sprintf((char*)ptd_err, "Parameters required for parameterized trace");
+        return NULL;
+    }
+
+    if (params_length != trace->param_length) {
+        sprintf((char*)ptd_err, "Expected %zu parameters, got %zu", trace->param_length, params_length);
+        return NULL;
+    }
+
+    // Allocate values array for operation results
+    size_t n_ops = trace->operations_length;
+    double *values = (double *)calloc(n_ops, sizeof(double));
+    if (values == NULL) {
+        sprintf((char*)ptd_err, "Failed to allocate values array");
+        return NULL;
+    }
+
+    // Execute operations in order
+    for (size_t i = 0; i < n_ops; i++) {
+        const struct ptd_trace_operation *op = &trace->operations[i];
+
+        switch (op->op_type) {
+            case PTD_OP_CONST:
+                values[i] = op->const_value;
+                break;
+
+            case PTD_OP_PARAM:
+                values[i] = params[op->param_idx];
+                break;
+
+            case PTD_OP_DOT:
+                // Dot product: sum(coefficients[j] * params[j])
+                values[i] = 0.0;
+                for (size_t j = 0; j < op->coefficients_length; j++) {
+                    values[i] += op->coefficients[j] * params[j];
+                }
+                break;
+
+            case PTD_OP_ADD:
+                values[i] = values[op->operands[0]] + values[op->operands[1]];
+                break;
+
+            case PTD_OP_MUL:
+                values[i] = values[op->operands[0]] * values[op->operands[1]];
+                break;
+
+            case PTD_OP_DIV:
+                values[i] = values[op->operands[0]] / values[op->operands[1]];
+                break;
+
+            case PTD_OP_INV:
+                values[i] = 1.0 / values[op->operands[0]];
+                break;
+
+            case PTD_OP_SUM:
+                values[i] = 0.0;
+                for (size_t j = 0; j < op->operands_length; j++) {
+                    values[i] += values[op->operands[j]];
+                }
+                break;
+
+            default:
+                sprintf((char*)ptd_err, "Unknown operation type: %d", op->op_type);
+                free(values);
+                return NULL;
+        }
+
+        // Debug: Check for nan after operation
+        if (isnan(values[i])) {
+            DEBUG_PRINT("WARNING: Operation %zu produced nan (type=%d)\n", i, op->op_type);
+            if (op->op_type == PTD_OP_DIV) {
+                DEBUG_PRINT("  DIV: values[%zu]=%f / values[%zu]=%f\n",
+                    op->operands[0], values[op->operands[0]],
+                    op->operands[1], values[op->operands[1]]);
+            } else if (op->op_type == PTD_OP_INV) {
+                DEBUG_PRINT("  INV: 1.0 / values[%zu]=%f\n",
+                    op->operands[0], values[op->operands[0]]);
+            } else if (op->op_type == PTD_OP_CONST) {
+                DEBUG_PRINT("  CONST: const_value=%f\n", op->const_value);
+            }
+        }
+
+        // Debug: print first few operations
+        if (i < 5) {
+            DEBUG_PRINT("DEBUG: Op %zu type=%d result=%f\n", i, op->op_type, values[i]);
+        }
+    }
+
+    // Allocate result structure
+    struct ptd_trace_result *result = (struct ptd_trace_result *)calloc(1, sizeof(*result));
+    if (result == NULL) {
+        sprintf((char*)ptd_err, "Failed to allocate trace result");
+        free(values);
+        return NULL;
+    }
+
+    result->n_vertices = trace->n_vertices;
+
+    // Extract vertex rates
+    result->vertex_rates = (double *)malloc(trace->n_vertices * sizeof(double));
+    if (result->vertex_rates == NULL) {
+        sprintf((char*)ptd_err, "Failed to allocate vertex rates");
+        free(values);
+        free(result);
+        return NULL;
+    }
+    for (size_t i = 0; i < trace->n_vertices; i++) {
+        size_t op_idx = trace->vertex_rates[i];
+        result->vertex_rates[i] = values[op_idx];
+
+        // Debug: check for nan in vertex rates
+        if (isnan(result->vertex_rates[i])) {
+            DEBUG_PRINT("WARNING: vertex_rates[%zu] is nan (from values[%zu])\n", i, op_idx);
+        }
+    }
+
+    // Extract edge probabilities
+    result->edge_probs_lengths = (size_t *)malloc(trace->n_vertices * sizeof(size_t));
+    result->edge_probs = (double **)malloc(trace->n_vertices * sizeof(double *));
+    if (result->edge_probs_lengths == NULL || result->edge_probs == NULL) {
+        sprintf((char*)ptd_err, "Failed to allocate edge probs arrays");
+        free(values);
+        ptd_trace_result_destroy(result);
+        return NULL;
+    }
+
+    for (size_t i = 0; i < trace->n_vertices; i++) {
+        size_t n_edges = trace->edge_probs_lengths[i];
+        result->edge_probs_lengths[i] = n_edges;
+
+        if (n_edges > 0) {
+            result->edge_probs[i] = (double *)malloc(n_edges * sizeof(double));
+            if (result->edge_probs[i] == NULL) {
+                sprintf((char*)ptd_err, "Failed to allocate edge probs for vertex %zu", i);
+                free(values);
+                ptd_trace_result_destroy(result);
+                return NULL;
+            }
+
+            for (size_t j = 0; j < n_edges; j++) {
+                size_t op_idx = trace->edge_probs[i][j];
+                result->edge_probs[i][j] = values[op_idx];
+            }
+        } else {
+            result->edge_probs[i] = NULL;
+        }
+    }
+
+    // Copy vertex targets
+    result->vertex_targets_lengths = (size_t *)malloc(trace->n_vertices * sizeof(size_t));
+    result->vertex_targets = (size_t **)malloc(trace->n_vertices * sizeof(size_t *));
+    if (result->vertex_targets_lengths == NULL || result->vertex_targets == NULL) {
+        sprintf((char*)ptd_err, "Failed to allocate vertex targets arrays");
+        free(values);
+        ptd_trace_result_destroy(result);
+        return NULL;
+    }
+
+    for (size_t i = 0; i < trace->n_vertices; i++) {
+        size_t n_targets = trace->vertex_targets_lengths[i];
+        result->vertex_targets_lengths[i] = n_targets;
+
+        if (n_targets > 0) {
+            result->vertex_targets[i] = (size_t *)malloc(n_targets * sizeof(size_t));
+            if (result->vertex_targets[i] == NULL) {
+                sprintf((char*)ptd_err, "Failed to allocate vertex targets for vertex %zu", i);
+                free(values);
+                ptd_trace_result_destroy(result);
+                return NULL;
+            }
+
+            memcpy(result->vertex_targets[i], trace->vertex_targets[i], n_targets * sizeof(size_t));
+        } else {
+            result->vertex_targets[i] = NULL;
+        }
+    }
+
+    free(values);
+    return result;
+}
+
+/**
+ * Build reward compute graph from trace evaluation result
+ *
+ * Converts trace evaluation results into the internal reward_compute_graph
+ * structure used by pdf/moment computations.
+ *
+ * The command array encodes the eliminated graph as a sequence of operations:
+ * - Phase 1: Self-edges for vertex rates (from=to=vertex_idx)
+ * - Phase 2: Edges for transition probabilities (in reverse order for DAG)
+ * - Phase 3: Terminating command with NAN
+ *
+ * @param result Trace evaluation result
+ * @param graph Graph structure (for vertex references)
+ * @return Reward compute graph, or NULL on error
+ */
+struct ptd_desc_reward_compute *ptd_build_reward_compute_from_trace(
+    const struct ptd_trace_result *result,
+    struct ptd_graph *graph
+) {
+    if (result == NULL || graph == NULL) {
+        sprintf((char*)ptd_err, "Invalid arguments to ptd_build_reward_compute_from_trace");
+        return NULL;
+    }
+
+    size_t n_vertices = result->n_vertices;
+
+    // Count total edges for command array size
+    size_t total_edges = 0;
+    for (size_t i = 0; i < n_vertices; i++) {
+        total_edges += result->edge_probs_lengths[i];
+    }
+
+    // Allocate command array: vertex_rates + edges + terminator
+    size_t n_commands = n_vertices + total_edges + 1;
+    struct ptd_reward_increase *commands = (struct ptd_reward_increase *)calloc(
+        n_commands, sizeof(struct ptd_reward_increase)
+    );
+    if (commands == NULL) {
+        sprintf((char*)ptd_err, "Failed to allocate reward compute commands");
+        return NULL;
+    }
+
+    DEBUG_PRINT("DEBUG: Building reward_compute: n_vertices=%zu total_edges=%zu n_commands=%zu\n",
+        n_vertices, total_edges, n_commands);
+
+    size_t cmd_idx = 0;
+
+    // Phase 1: Add vertex rate commands (self-edges)
+    for (size_t i = 0; i < n_vertices; i++) {
+        commands[cmd_idx].from = i;
+        commands[cmd_idx].to = i;
+        commands[cmd_idx].multiplier = result->vertex_rates[i];
+
+        // Debug vertex 0
+        if (i == 0) {
+            DEBUG_PRINT("DEBUG: Building reward_compute cmd %zu: from=0 to=0 multiplier=%f\n",
+                cmd_idx, result->vertex_rates[i]);
+        }
+
+        cmd_idx++;
+    }
+
+    // Phase 2: Add edge probability commands (reverse order for DAG)
+    for (size_t ii = 0; ii < n_vertices; ii++) {
+        size_t i = n_vertices - ii - 1;  // Reverse order
+
+        for (size_t j = 0; j < result->edge_probs_lengths[i]; j++) {
+            size_t target = result->vertex_targets[i][j];
+            double prob = result->edge_probs[i][j];
+
+            commands[cmd_idx].from = i;
+            commands[cmd_idx].to = target;
+            commands[cmd_idx].multiplier = prob;
+            cmd_idx++;
+        }
+    }
+
+    // Create result structure
+    struct ptd_desc_reward_compute *res = (struct ptd_desc_reward_compute *)malloc(
+        sizeof(struct ptd_desc_reward_compute)
+    );
+    if (res == NULL) {
+        sprintf((char*)ptd_err, "Failed to allocate reward compute descriptor");
+        free(commands);
+        return NULL;
+    }
+
+    res->length = cmd_idx;  // No terminator needed
+    res->commands = commands;
+
+    return res;
+}
+
+/**
+ * Record elimination trace from parameterized graph
+ *
+ * Performs Gaussian elimination while recording all arithmetic operations
+ * as a linear sequence. The trace can be efficiently replayed with different
+ * parameter values without re-performing elimination.
+ *
+ * Algorithm: Gaussian elimination on graph structure (Algorithm 3 from paper)
+ *
+ * @param graph Parameterized graph (graph->parameterized must be true)
+ * @return Elimination trace, or NULL on error (sets ptd_err)
+ *
+ * Time complexity: O(n³) where n = number of vertices
+ * Space complexity: O(n²) for operation sequence
+ *
+ * This is a ONE-TIME cost - trace can be cached and reused.
+ */
+struct ptd_elimination_trace *ptd_record_elimination_trace(struct ptd_graph *graph) {
+    // Validate graph is parameterized
+    if (graph == NULL) {
+        sprintf((char*)ptd_err, "Graph is NULL");
+        return NULL;
+    }
+
+    if (!graph->parameterized) {
+        sprintf((char*)ptd_err, "Graph is not parameterized. Only parameterized graphs support trace recording.");
+        return NULL;
+    }
+
+    // Get graph structure
+    size_t n_vertices = graph->vertices_length;
+    if (n_vertices == 0) {
+        sprintf((char*)ptd_err, "Graph has no vertices");
+        return NULL;
+    }
+
+    // Allocate trace structure
+    struct ptd_elimination_trace *trace = (struct ptd_elimination_trace *)calloc(1, sizeof(*trace));
+    if (trace == NULL) {
+        sprintf((char*)ptd_err, "Failed to allocate trace structure");
+        return NULL;
+    }
+
+    // Initialize operations array with initial capacity
+    size_t operations_capacity = 1024;
+    trace->operations = (struct ptd_trace_operation *)malloc(
+        operations_capacity * sizeof(struct ptd_trace_operation)
+    );
+    if (trace->operations == NULL) {
+        sprintf((char*)ptd_err, "Failed to allocate operations array");
+        free(trace);
+        return NULL;
+    }
+    trace->operations_length = 0;
+
+    // Copy graph metadata
+    trace->n_vertices = n_vertices;
+    trace->param_length = graph->param_length;
+    trace->state_length = graph->state_length;
+    trace->starting_vertex_idx = 0;  // Convention: first vertex in list
+    trace->is_discrete = false;  // TODO: detect from graph
+
+    // Allocate vertex_rates array
+    trace->vertex_rates = (size_t *)malloc(n_vertices * sizeof(size_t));
+    if (trace->vertex_rates == NULL) {
+        sprintf((char*)ptd_err, "Failed to allocate vertex_rates");
+        ptd_elimination_trace_destroy(trace);
+        return NULL;
+    }
+
+    // Allocate edge_probs arrays (2D ragged array)
+    trace->edge_probs_lengths = (size_t *)calloc(n_vertices, sizeof(size_t));
+    trace->edge_probs = (size_t **)calloc(n_vertices, sizeof(size_t *));
+    if (trace->edge_probs_lengths == NULL || trace->edge_probs == NULL) {
+        sprintf((char*)ptd_err, "Failed to allocate edge_probs arrays");
+        ptd_elimination_trace_destroy(trace);
+        return NULL;
+    }
+
+    // Allocate vertex_targets arrays (2D ragged array)
+    trace->vertex_targets_lengths = (size_t *)calloc(n_vertices, sizeof(size_t));
+    trace->vertex_targets = (size_t **)calloc(n_vertices, sizeof(size_t *));
+    if (trace->vertex_targets_lengths == NULL || trace->vertex_targets == NULL) {
+        sprintf((char*)ptd_err, "Failed to allocate vertex_targets arrays");
+        ptd_elimination_trace_destroy(trace);
+        return NULL;
+    }
+
+    // Copy vertex states
+    trace->states = (int **)malloc(n_vertices * sizeof(int *));
+    if (trace->states == NULL) {
+        sprintf((char*)ptd_err, "Failed to allocate states array");
+        ptd_elimination_trace_destroy(trace);
+        return NULL;
+    }
+    for (size_t i = 0; i < n_vertices; i++) {
+        trace->states[i] = (int *)malloc(graph->state_length * sizeof(int));
+        if (trace->states[i] == NULL) {
+            sprintf((char*)ptd_err, "Failed to allocate state for vertex %zu", i);
+            ptd_elimination_trace_destroy(trace);
+            return NULL;
+        }
+        memcpy(trace->states[i], graph->vertices[i]->state,
+               graph->state_length * sizeof(int));
+    }
+
+    // ========================================================================
+    // PHASE 1: Compute vertex rates (rate = 1 / sum(edge_weights))
+    // ========================================================================
+
+    for (size_t i = 0; i < n_vertices; i++) {
+        struct ptd_vertex *vertex = graph->vertices[i];
+
+        // Count total edges (regular + parameterized)
+        size_t total_edges = vertex->edges_length;
+
+        if (total_edges == 0) {
+            // Absorbing state: rate = 0
+            trace->vertex_rates[i] = add_const_to_trace(trace, &operations_capacity, 0.0);
+            if (trace->vertex_rates[i] == (size_t)-1) {
+                ptd_elimination_trace_destroy(trace);
+                return NULL;
+            }
+        } else {
+            // Collect all edge weight operation indices
+            size_t *weight_indices = (size_t *)malloc(total_edges * sizeof(size_t));
+            if (weight_indices == NULL) {
+                sprintf((char*)ptd_err, "Failed to allocate weight_indices");
+                ptd_elimination_trace_destroy(trace);
+                return NULL;
+            }
+
+            size_t weight_idx = 0;
+
+            // Add parameterized edges
+            for (size_t j = 0; j < vertex->edges_length; j++) {
+                struct ptd_edge *edge = vertex->edges[j];
+
+                if (edge->parameterized) {
+                    // Parameterized edge: use DOT product
+                    struct ptd_edge_parameterized *param_edge =
+                        (struct ptd_edge_parameterized *)edge;
+
+                    // Get coefficient vector (state is the coefficient array)
+                    size_t op_idx = add_dot_to_trace(
+                        trace, &operations_capacity,
+                        param_edge->state,
+                        graph->param_length
+                    );
+                    if (op_idx == (size_t)-1) {
+                        free(weight_indices);
+                        ptd_elimination_trace_destroy(trace);
+                        return NULL;
+                    }
+                    weight_indices[weight_idx++] = op_idx;
+                } else {
+                    // Regular edge: constant weight
+                    if (i == 0) {
+                        DEBUG_PRINT("DEBUG: Adding const for vertex 0 edge: weight=%f\n", edge->weight);
+                    }
+                    size_t op_idx = add_const_to_trace(trace, &operations_capacity, edge->weight);
+                    if (op_idx == (size_t)-1) {
+                        free(weight_indices);
+                        ptd_elimination_trace_destroy(trace);
+                        return NULL;
+                    }
+                    if (i == 0) {
+                        DEBUG_PRINT("DEBUG: Const added at op_idx=%zu\n", op_idx);
+                    }
+                    weight_indices[weight_idx++] = op_idx;
+                }
+            }
+
+            // Sum all weights
+            size_t sum_idx = add_sum_to_trace(trace, &operations_capacity,
+                                              weight_indices, weight_idx);
+            if (sum_idx == (size_t)-1) {
+                free(weight_indices);
+                ptd_elimination_trace_destroy(trace);
+                return NULL;
+            }
+
+            // Debug: check vertex 0
+            if (i == 0) {
+                DEBUG_PRINT("DEBUG: vertex 0 has %zu edges, sum_idx=%zu\n", total_edges, sum_idx);
+                DEBUG_PRINT("DEBUG: vertex 0 edge 0: parameterized=%d, weight=%f\n",
+                    vertex->edges[0]->parameterized, vertex->edges[0]->weight);
+                if (weight_idx > 0) {
+                    DEBUG_PRINT("DEBUG: vertex 0 weight_indices[0]=%zu\n", weight_indices[0]);
+                }
+            }
+
+            // Rate = 1 / sum
+            trace->vertex_rates[i] = add_inv_to_trace(trace, &operations_capacity, sum_idx);
+            if (trace->vertex_rates[i] == (size_t)-1) {
+                free(weight_indices);
+                ptd_elimination_trace_destroy(trace);
+                return NULL;
+            }
+
+            // Debug: check vertex 0
+            if (i == 0) {
+                DEBUG_PRINT("DEBUG: vertex 0 rate op_idx=%zu\n", trace->vertex_rates[i]);
+            }
+
+            free(weight_indices);
+        }
+    }
+
+    // ========================================================================
+    // PHASE 2: Convert edges to probabilities and store in trace
+    // ========================================================================
+
+    // Allocate temporary edge map: (from, to) -> edge_prob_idx
+    // For simplicity, use linear search for now (could optimize with hash table)
+
+    for (size_t i = 0; i < n_vertices; i++) {
+        struct ptd_vertex *vertex = graph->vertices[i];
+        size_t n_edges = vertex->edges_length;
+
+        if (n_edges == 0) {
+            trace->edge_probs_lengths[i] = 0;
+            trace->edge_probs[i] = NULL;
+            trace->vertex_targets_lengths[i] = 0;
+            trace->vertex_targets[i] = NULL;
+            continue;
+        }
+
+        // Allocate arrays for this vertex's edges
+        trace->edge_probs[i] = (size_t *)malloc(n_edges * sizeof(size_t));
+        trace->vertex_targets[i] = (size_t *)malloc(n_edges * sizeof(size_t));
+        if (trace->edge_probs[i] == NULL || trace->vertex_targets[i] == NULL) {
+            sprintf((char*)ptd_err, "Failed to allocate edge arrays for vertex %zu", i);
+            ptd_elimination_trace_destroy(trace);
+            return NULL;
+        }
+        trace->edge_probs_lengths[i] = n_edges;
+        trace->vertex_targets_lengths[i] = n_edges;
+
+        // Process each edge
+        for (size_t j = 0; j < n_edges; j++) {
+            struct ptd_edge *edge = vertex->edges[j];
+            size_t to_idx = edge->to->index;
+
+            trace->vertex_targets[i][j] = to_idx;
+
+            // Get edge weight operation index (from Phase 1 logic)
+            size_t weight_idx;
+            if (edge->parameterized) {
+                struct ptd_edge_parameterized *param_edge =
+                    (struct ptd_edge_parameterized *)edge;
+                weight_idx = add_dot_to_trace(
+                    trace, &operations_capacity,
+                    param_edge->state,
+                    graph->param_length
+                );
+            } else {
+                weight_idx = add_const_to_trace(trace, &operations_capacity, edge->weight);
+            }
+
+            if (weight_idx == (size_t)-1) {
+                ptd_elimination_trace_destroy(trace);
+                return NULL;
+            }
+
+            // Probability = weight * rate
+            size_t prob_idx = add_binary_op_to_trace(
+                trace, &operations_capacity,
+                PTD_OP_MUL,
+                weight_idx,
+                trace->vertex_rates[i]
+            );
+            if (prob_idx == (size_t)-1) {
+                ptd_elimination_trace_destroy(trace);
+                return NULL;
+            }
+
+            trace->edge_probs[i][j] = prob_idx;
+        }
+    }
+
+    // ========================================================================
+    // PHASE 3: Gaussian Elimination
+    // ========================================================================
+    //
+    // Algorithm: For each vertex i in order:
+    //   - For each parent of i (where parent_idx >= i):
+    //     - For each child of i:
+    //       - Add bypass edge: parent -> child with prob = parent_to_i * i_to_child
+    //     - Remove edge from parent to i
+    //     - Renormalize parent's edges
+    //
+
+    // Build parent-child relationships (store parent indices, not pointers)
+    size_t **parents_lists = (size_t **)calloc(n_vertices, sizeof(size_t *));
+    size_t *parents_counts = (size_t *)calloc(n_vertices, sizeof(size_t));
+    size_t *parents_capacities = (size_t *)calloc(n_vertices, sizeof(size_t));
+
+    if (parents_lists == NULL || parents_counts == NULL || parents_capacities == NULL) {
+        sprintf((char*)ptd_err, "Failed to allocate parent tracking arrays");
+        free(parents_lists);
+        free(parents_counts);
+        free(parents_capacities);
+        ptd_elimination_trace_destroy(trace);
+        return NULL;
+    }
+
+    // Build parent lists (array of parent indices for each vertex)
+    for (size_t i = 0; i < n_vertices; i++) {
+        parents_lists[i] = NULL;
+        parents_counts[i] = 0;
+        parents_capacities[i] = 0;
+    }
+
+    for (size_t i = 0; i < n_vertices; i++) {
+        for (size_t j = 0; j < trace->vertex_targets_lengths[i]; j++) {
+            size_t to_idx = trace->vertex_targets[i][j];
+
+            // Add i to parents of to_idx
+            if (parents_counts[to_idx] >= parents_capacities[to_idx]) {
+                size_t new_cap = parents_capacities[to_idx] == 0 ? 4 : parents_capacities[to_idx] * 2;
+                size_t *new_parents = (size_t *)realloc(
+                    parents_lists[to_idx], new_cap * sizeof(size_t)
+                );
+                if (new_parents == NULL) {
+                    sprintf((char*)ptd_err, "Failed to resize parents list for vertex %zu", to_idx);
+                    for (size_t k = 0; k < n_vertices; k++) {
+                        free(parents_lists[k]);
+                    }
+                    free(parents_lists);
+                    free(parents_counts);
+                    free(parents_capacities);
+                    ptd_elimination_trace_destroy(trace);
+                    return NULL;
+                }
+                parents_lists[to_idx] = new_parents;
+                parents_capacities[to_idx] = new_cap;
+            }
+
+            parents_lists[to_idx][parents_counts[to_idx]++] = i;
+        }
+    }
+
+    // Helper: Find edge index from parent to target
+    // Returns (size_t)-1 if not found
+    #define FIND_EDGE_IDX(parent_idx, target_idx) ({ \
+        size_t __result = (size_t)-1; \
+        for (size_t __k = 0; __k < trace->vertex_targets_lengths[parent_idx]; __k++) { \
+            if (trace->vertex_targets[parent_idx][__k] == target_idx) { \
+                __result = __k; \
+                break; \
+            } \
+        } \
+        __result; \
+    })
+
+    // Eliminate vertices in order
+    for (size_t i = 0; i < n_vertices; i++) {
+        size_t n_children = trace->vertex_targets_lengths[i];
+
+        if (n_children == 0) {
+            // Absorbing state, nothing to eliminate
+            continue;
+        }
+
+        // For each parent of vertex i
+        for (size_t parent_list_idx = 0; parent_list_idx < parents_counts[i]; parent_list_idx++) {
+            size_t parent_idx = parents_lists[i][parent_list_idx];
+
+            // Skip if parent already processed
+            if (parent_idx < i) {
+                continue;
+            }
+
+            // Find edge from parent to i
+            size_t parent_to_i_edge_idx = FIND_EDGE_IDX(parent_idx, i);
+            if (parent_to_i_edge_idx == (size_t)-1) {
+                // Parent no longer has edge to i (removed in earlier iteration)
+                continue;
+            }
+
+            size_t parent_to_i_prob = trace->edge_probs[parent_idx][parent_to_i_edge_idx];
+
+            // For each child of i
+            for (size_t child_edge_idx = 0; child_edge_idx < n_children; child_edge_idx++) {
+                size_t child_idx = trace->vertex_targets[i][child_edge_idx];
+                size_t i_to_child_prob = trace->edge_probs[i][child_edge_idx];
+
+                // CASE A: Self-loop (child == parent)
+                if (child_idx == parent_idx) {
+                    // Skip self-loops for now (TODO: handle in future)
+                    continue;
+                }
+
+                // Skip edge back to i
+                if (child_idx == i) {
+                    continue;
+                }
+
+                // Bypass probability: parent_to_i * i_to_child
+                size_t bypass_prob = add_binary_op_to_trace(
+                    trace, &operations_capacity,
+                    PTD_OP_MUL,
+                    parent_to_i_prob,
+                    i_to_child_prob
+                );
+                if (bypass_prob == (size_t)-1) {
+                    for (size_t k = 0; k < n_vertices; k++) {
+                        free(parents_lists[k]);
+                    }
+                    free(parents_lists);
+                    free(parents_counts);
+                    free(parents_capacities);
+                    ptd_elimination_trace_destroy(trace);
+                    return NULL;
+                }
+
+                // Check if parent already has edge to child
+                size_t parent_to_child_edge_idx = FIND_EDGE_IDX(parent_idx, child_idx);
+
+                if (parent_to_child_edge_idx != (size_t)-1) {
+                    // CASE B: Update existing edge
+                    size_t old_prob = trace->edge_probs[parent_idx][parent_to_child_edge_idx];
+
+                    // new_prob = old_prob + bypass_prob
+                    size_t new_prob = add_binary_op_to_trace(
+                        trace, &operations_capacity,
+                        PTD_OP_ADD,
+                        old_prob,
+                        bypass_prob
+                    );
+                    if (new_prob == (size_t)-1) {
+                        for (size_t k = 0; k < n_vertices; k++) {
+                            free(parents_lists[k]);
+                        }
+                        free(parents_lists);
+                        free(parents_counts);
+                        free(parents_capacities);
+                        ptd_elimination_trace_destroy(trace);
+                        return NULL;
+                    }
+
+                    trace->edge_probs[parent_idx][parent_to_child_edge_idx] = new_prob;
+                } else {
+                    // CASE C: Create new edge
+                    // Need to resize edge_probs and vertex_targets arrays
+                    size_t old_length = trace->edge_probs_lengths[parent_idx];
+                    size_t new_length = old_length + 1;
+
+                    size_t *new_edge_probs = (size_t *)realloc(
+                        trace->edge_probs[parent_idx],
+                        new_length * sizeof(size_t)
+                    );
+                    size_t *new_vertex_targets = (size_t *)realloc(
+                        trace->vertex_targets[parent_idx],
+                        new_length * sizeof(size_t)
+                    );
+
+                    if (new_edge_probs == NULL || new_vertex_targets == NULL) {
+                        sprintf((char*)ptd_err, "Failed to resize edge arrays for vertex %zu", parent_idx);
+                        free(new_edge_probs);
+                        free(new_vertex_targets);
+                        for (size_t k = 0; k < n_vertices; k++) {
+                            free(parents_lists[k]);
+                        }
+                        free(parents_lists);
+                        free(parents_counts);
+                        free(parents_capacities);
+                        ptd_elimination_trace_destroy(trace);
+                        return NULL;
+                    }
+
+                    trace->edge_probs[parent_idx] = new_edge_probs;
+                    trace->vertex_targets[parent_idx] = new_vertex_targets;
+                    trace->edge_probs_lengths[parent_idx] = new_length;
+                    trace->vertex_targets_lengths[parent_idx] = new_length;
+
+                    trace->edge_probs[parent_idx][old_length] = bypass_prob;
+                    trace->vertex_targets[parent_idx][old_length] = child_idx;
+                }
+            }
+
+            // Remove edge from parent to i (mark as -1)
+            trace->edge_probs[parent_idx][parent_to_i_edge_idx] = (size_t)-1;
+
+            // NORMALIZATION: Renormalize parent's edges
+            // Collect indices of non-removed edges
+            size_t *valid_edge_indices = (size_t *)malloc(
+                trace->edge_probs_lengths[parent_idx] * sizeof(size_t)
+            );
+            if (valid_edge_indices == NULL) {
+                sprintf((char*)ptd_err, "Failed to allocate valid_edge_indices");
+                for (size_t k = 0; k < n_vertices; k++) {
+                    free(parents_lists[k]);
+                }
+                free(parents_lists);
+                free(parents_counts);
+                free(parents_capacities);
+                ptd_elimination_trace_destroy(trace);
+                return NULL;
+            }
+
+            size_t n_valid = 0;
+            for (size_t k = 0; k < trace->edge_probs_lengths[parent_idx]; k++) {
+                if (trace->edge_probs[parent_idx][k] != (size_t)-1) {
+                    valid_edge_indices[n_valid++] = k;
+                }
+            }
+
+            if (n_valid > 0) {
+                // Create array of probability operation indices
+                size_t *prob_ops = (size_t *)malloc(n_valid * sizeof(size_t));
+                if (prob_ops == NULL) {
+                    sprintf((char*)ptd_err, "Failed to allocate prob_ops");
+                    free(valid_edge_indices);
+                    for (size_t k = 0; k < n_vertices; k++) {
+                        free(parents_lists[k]);
+                    }
+                    free(parents_lists);
+                    free(parents_counts);
+                    free(parents_capacities);
+                    ptd_elimination_trace_destroy(trace);
+                    return NULL;
+                }
+
+                for (size_t k = 0; k < n_valid; k++) {
+                    prob_ops[k] = trace->edge_probs[parent_idx][valid_edge_indices[k]];
+                }
+
+                // Sum all valid probabilities
+                size_t total_idx = add_sum_to_trace(trace, &operations_capacity, prob_ops, n_valid);
+                free(prob_ops);
+
+                if (total_idx == (size_t)-1) {
+                    free(valid_edge_indices);
+                    for (size_t k = 0; k < n_vertices; k++) {
+                        free(parents_lists[k]);
+                    }
+                    free(parents_lists);
+                    free(parents_counts);
+                    free(parents_capacities);
+                    ptd_elimination_trace_destroy(trace);
+                    return NULL;
+                }
+
+                // Normalize: prob = prob / total
+                for (size_t k = 0; k < n_valid; k++) {
+                    size_t edge_idx = valid_edge_indices[k];
+                    size_t old_prob = trace->edge_probs[parent_idx][edge_idx];
+
+                    size_t new_prob = add_binary_op_to_trace(
+                        trace, &operations_capacity,
+                        PTD_OP_DIV,
+                        old_prob,
+                        total_idx
+                    );
+                    if (new_prob == (size_t)-1) {
+                        free(valid_edge_indices);
+                        for (size_t k = 0; k < n_vertices; k++) {
+                            free(parents_lists[k]);
+                        }
+                        free(parents_lists);
+                        free(parents_counts);
+                        free(parents_capacities);
+                        ptd_elimination_trace_destroy(trace);
+                        return NULL;
+                    }
+
+                    trace->edge_probs[parent_idx][edge_idx] = new_prob;
+                }
+            }
+
+            free(valid_edge_indices);
+        }
+    }
+
+    // ========================================================================
+    // PHASE 4: Clean up removed edges
+    // ========================================================================
+
+    for (size_t i = 0; i < n_vertices; i++) {
+        // Count valid edges
+        size_t n_valid = 0;
+        for (size_t j = 0; j < trace->edge_probs_lengths[i]; j++) {
+            if (trace->edge_probs[i][j] != (size_t)-1) {
+                n_valid++;
+            }
+        }
+
+        if (n_valid == 0) {
+            // No edges left
+            free(trace->edge_probs[i]);
+            free(trace->vertex_targets[i]);
+            trace->edge_probs[i] = NULL;
+            trace->vertex_targets[i] = NULL;
+            trace->edge_probs_lengths[i] = 0;
+            trace->vertex_targets_lengths[i] = 0;
+        } else if (n_valid < trace->edge_probs_lengths[i]) {
+            // Compact arrays to remove -1 entries
+            size_t *new_edge_probs = (size_t *)malloc(n_valid * sizeof(size_t));
+            size_t *new_vertex_targets = (size_t *)malloc(n_valid * sizeof(size_t));
+
+            if (new_edge_probs == NULL || new_vertex_targets == NULL) {
+                sprintf((char*)ptd_err, "Failed to allocate compacted edge arrays for vertex %zu", i);
+                free(new_edge_probs);
+                free(new_vertex_targets);
+                for (size_t k = 0; k < n_vertices; k++) {
+                    free(parents_lists[k]);
+                }
+                free(parents_lists);
+                free(parents_counts);
+                free(parents_capacities);
+                ptd_elimination_trace_destroy(trace);
+                return NULL;
+            }
+
+            size_t compact_idx = 0;
+            for (size_t j = 0; j < trace->edge_probs_lengths[i]; j++) {
+                if (trace->edge_probs[i][j] != (size_t)-1) {
+                    new_edge_probs[compact_idx] = trace->edge_probs[i][j];
+                    new_vertex_targets[compact_idx] = trace->vertex_targets[i][j];
+                    compact_idx++;
+                }
+            }
+
+            free(trace->edge_probs[i]);
+            free(trace->vertex_targets[i]);
+            trace->edge_probs[i] = new_edge_probs;
+            trace->vertex_targets[i] = new_vertex_targets;
+            trace->edge_probs_lengths[i] = n_valid;
+            trace->vertex_targets_lengths[i] = n_valid;
+        }
+    }
+
+    // Cleanup parent tracking structures
+    for (size_t i = 0; i < n_vertices; i++) {
+        free(parents_lists[i]);
+    }
+    free(parents_lists);
+    free(parents_counts);
+    free(parents_capacities);
+
+    #undef FIND_EDGE_IDX
+
+    return trace;
+}
