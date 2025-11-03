@@ -1,84 +1,54 @@
-"""Test if gradients are correct for multivariate model"""
-import phasic
-import numpy as np
+from phasic import Graph
 import jax
 import jax.numpy as jnp
+import numpy as np
 
-def coalescent(state, nr_samples=None):
-    if not state.size:
-        ipv = [[[nr_samples]+[0]*nr_samples, 1, []]]
-        return ipv
-    else:
-        transitions = []
-        for i in range(nr_samples):
-            for j in range(i, nr_samples):
-                same = int(i == j)
-                if same and state[i] < 2:
-                    continue
-                if not same and (state[i] < 1 or state[j] < 1):
-                    continue
-                new = state.copy()
-                new[i] -= 1
-                new[j] -= 1
-                new[i+j+1] += 1
-                transitions.append([new, 0.0, [state[i]*(state[j]-same)/(1+same)]])
-        return transitions
+g = Graph(state_length=1)
+v0 = g.starting_vertex()
+v1 = g.find_or_create_vertex([1])
+v2 = g.find_or_create_vertex([0])
 
-print("Testing gradient computation...")
+# Starting edge: constant
+v0.add_edge(v1, 1.0)
+# Parameterized edge
+v1.add_edge(v2, [1.0])
 
-true_theta = np.array([10.0])
-graph = phasic.Graph(callback=coalescent, parameterized=True, nr_samples=5)
+print("Graph structure:")
+print(f"  v0 (start) -> v1: {v0.edges()[0].weight()}")
+print(f"  v1 -> v2: {v1.edges()[0].weight()}")
 
-# Create test data
-_graph = phasic.Graph(callback=coalescent, parameterized=True, nr_samples=5)
-_graph.update_parameterized_weights(true_theta)
-states = _graph.states()
-rewards = states[:, :-1]
+# Test manual update_weights
+g.update_weights([2.0])
+print(f"\nAfter update_weights([2.0]):")
+print(f"  v0 -> v1: {v0.edges()[0].weight()}")
+print(f"  v1 -> v2: {v1.edges()[0].weight()}")
 
-# Sample small dataset
-observed_data = jnp.array([
-    [np.array(_graph.sample(3, rewards=rewards[:, i])) for i in range(rewards.shape[1])]
-]).T[0]  # Shape: (3, 5)
+# Test JAX model
+model = Graph.pmf_and_moments_from_graph(g, nr_moments=2, discrete=False)
 
-print(f"Observed data shape: {observed_data.shape}")
-print(f"Observed data:\n{observed_data}")
+theta = jnp.array([2.0])
+times = jnp.array([1.0])
 
-# Create model
-model = phasic.Graph.pmf_and_moments_from_graph_multivariate(
-    graph, nr_moments=0, discrete=False, use_ffi=False, param_length=1
-)
+print(f"\nTesting JAX model with theta={theta}:")
+pmf, moments = model(theta, times)
+print(f"  PDF: {pmf}")
+print(f"  Moments: {moments}")
 
-# Define log-likelihood function
-def log_likelihood(theta_val):
-    theta = jnp.array([theta_val])
-    pmf, _ = model(theta, observed_data, rewards=rewards)
-    return jnp.sum(jnp.log(pmf + 1e-10))
+# Test gradient
+def loss(t):
+    pmf, _ = model(t, times)
+    return jnp.sum(pmf)
 
-# Compute gradient at true theta
-grad_fn = jax.grad(log_likelihood)
-grad_at_true = grad_fn(true_theta[0])
-print(f"\nGradient at TRUE theta={true_theta[0]}: {grad_at_true}")
+grad = jax.grad(loss)(theta)
+print(f"  Gradient dPDF/dtheta: {grad}")
 
-# Compute gradient at theta=1
-grad_at_1 = grad_fn(1.0)
-print(f"Gradient at theta=1.0: {grad_at_1}")
+if abs(grad[0]) < 1e-10:
+    print("  ❌ GRADIENT IS ZERO!")
+else:
+    print("  ✓ Gradient is non-zero")
 
-# Compute gradient at theta=50
-grad_at_50 = grad_fn(50.0)
-print(f"Gradient at theta=50.0: {grad_at_50}")
-
-# Check numerical gradient
-eps = 0.01
-log_lik_plus = log_likelihood(true_theta[0] + eps)
-log_lik_minus = log_likelihood(true_theta[0] - eps)
-numerical_grad = (log_lik_plus - log_lik_minus) / (2 * eps)
-print(f"\nNumerical gradient at TRUE theta: {numerical_grad}")
-print(f"JAX gradient at TRUE theta: {grad_at_true}")
-print(f"Difference: {abs(numerical_grad - grad_at_true)}")
-
-# Test if gradient points toward MLE
-print(f"\nGradient direction test:")
-print(f"  At theta=1 (too low): grad={grad_at_1:.6f} (should be positive)")
-print(f"  At theta=10 (true): grad={grad_at_true:.6f} (should be ~0)")
-print(f"  At theta=50 (too high): grad={grad_at_50:.6f} (should be negative)")
-
+# Test at different theta values
+print(f"\nPDF values at different theta:")
+for t_val in [0.5, 1.0, 2.0, 3.0, 5.0]:
+    pmf, _ = model(jnp.array([t_val]), times)
+    print(f"  theta={t_val:.1f}: PDF={pmf[0]:.6f}")

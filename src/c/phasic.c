@@ -1896,8 +1896,10 @@ double *ptd_dph_normalize_graph(struct ptd_graph *graph) {
 
         if (1 - rate > 0.0000001) {
             struct ptd_vertex *auxiliary_vertex = ptd_vertex_create(graph);
-            ptd_graph_add_edge(vertex, auxiliary_vertex, 1 - rate);
-            ptd_graph_add_edge(auxiliary_vertex, vertex, 1);
+            double weight1 = 1 - rate;
+            double weight2 = 1.0;
+            ptd_graph_add_edge(vertex, auxiliary_vertex, &weight1, 1);
+            ptd_graph_add_edge(auxiliary_vertex, vertex, &weight2, 1);
             res[auxiliary_vertex->index] = 0;
         }
     }
@@ -2144,12 +2146,13 @@ struct ptd_graph *ptd_graph_create(size_t state_length) {
     struct ptd_graph *graph = (struct ptd_graph *) malloc(sizeof(*graph));
     graph->vertices_length = 0;
     graph->state_length = state_length;
-    graph->param_length = 0;  // Will be set when first parameterized edge is added
+    graph->param_length = 0;           // Set by first add_edge() call
+    graph->parameterized = false;      // Set by first add_edge() call
+    graph->param_length_locked = false; // Set by first add_edge() call
     graph->vertices = NULL;
     graph->reward_compute_graph = NULL;
     graph->parameterized_reward_compute_graph = NULL;
     graph->starting_vertex = ptd_vertex_create(graph);
-    graph->parameterized = false;
     graph->was_dph = false;
     graph->elimination_trace = NULL;
     graph->current_params = NULL;
@@ -2240,13 +2243,11 @@ double ptd_vertex_rate(struct ptd_vertex *vertex) {
 
 void ptd_vertex_destroy(struct ptd_vertex *vertex) {
     for (size_t i = 0; i < vertex->edges_length; ++i) {
-        if (vertex->edges[i]->parameterized) {
-            if (((struct ptd_edge_parameterized *) vertex->edges[i])->should_free_state) {
-                free(((struct ptd_edge_parameterized *) vertex->edges[i])->state);
-            }
+        struct ptd_edge *edge = vertex->edges[i];
+        if (edge->should_free_coefficients && edge->coefficients != NULL) {
+            free(edge->coefficients);
         }
-
-        free(vertex->edges[i]);
+        free(edge);
     }
 
     free(vertex->edges);
@@ -2324,31 +2325,12 @@ int ptd_validate_graph(const struct ptd_graph *graph) {
 struct ptd_edge *ptd_graph_add_edge(
         struct ptd_vertex *from,
         struct ptd_vertex *to,
-        double weight
+        double *coefficients,
+        size_t coefficients_length
 ) {
-    if (weight < 0) {
-        size_t debug_index = from->index;
-
-        if (PTD_DEBUG_1_INDEX) {
-            debug_index++;
-        }
-
-        char state[1024] = {'\0'};
-        char starting_vertex[] = " (starting vertex)";
-
-        if (from != from->graph->starting_vertex) {
-            starting_vertex[0] = '\0';
-        }
-
-        ptd_vertex_to_s(from, state, 1023);
-
-        snprintf(
-                (char *) ptd_err,
-                sizeof(ptd_err),
-                "Tried to add edge with non-positive weight '%f'. Vertex index %i%s (state %s). Weight must be strictly larger than 0.\n",
-                weight, (int) debug_index, starting_vertex, state
-        );
-
+    if (coefficients == NULL || coefficients_length == 0) {
+        snprintf((char*)ptd_err, sizeof(ptd_err),
+            "ptd_graph_add_edge: coefficients cannot be NULL or empty");
         return NULL;
     }
 
@@ -2378,95 +2360,84 @@ struct ptd_edge *ptd_graph_add_edge(
         return NULL;
     }
 
-    /*for (size_t i = 0; i < from->edges_length; ++i) {
-        if (from->edges[i]->to == to) {
-            size_t debug_index = from->index;
-
-            if (PTD_DEBUG_1_INDEX) {
-                debug_index++;
-            }
-            size_t debug_index_to = to->index;
-
-            if (PTD_DEBUG_1_INDEX) {
-                debug_index_to++;
-            }
-
-            char state[1024] = {'\0'};
-            char starting_vertex[] = " (starting vertex)";
-
-            if (from != from->graph->starting_vertex) {
-                starting_vertex[0] = '\0';
-            }
-
-            ptd_vertex_to_s(from, state, 1023);
-
-            char state_to[1024] = {'\0'};
-
-            ptd_vertex_to_s(to, state_to, 1023);
-
-            snprintf(
-                    (char *) ptd_err,
-                    sizeof(ptd_err),
-                    "Tried to add to a vertex with an already existing edge. Vertex index %i%s (state %s), to %i (state %s).\n",
-                    (int) debug_index, starting_vertex, state, (int) debug_index_to, state_to
-            );
-
+    // VALIDATION: Check consistency with existing edges
+    if (from->graph->param_length_locked) {
+        if (coefficients_length != from->graph->param_length) {
+            snprintf((char*)ptd_err, sizeof(ptd_err),
+                "Edge coefficient length mismatch: graph expects %zu parameters, got %zu. "
+                "All edges in a graph must have the same coefficient length.",
+                (unsigned long)from->graph->param_length,
+                (unsigned long)coefficients_length);
             return NULL;
         }
-    }*/
-
-    struct ptd_edge *edge = (struct ptd_edge *) malloc(sizeof(*edge));
-
-    edge->to = to;
-    edge->weight = weight;
-    edge->parameterized = false;
-
-    ptd_directed_graph_add_edge(
-            (struct ptd_directed_vertex *) from,
-            (struct ptd_directed_edge *) edge
-    );
-
-    if (from->graph->reward_compute_graph != NULL) {
-        free(from->graph->reward_compute_graph->commands);
-        free(from->graph->reward_compute_graph);
+    } else {
+        // First edge: set graph mode
+        from->graph->param_length = coefficients_length;
+        from->graph->parameterized = (coefficients_length > 1);
+        from->graph->param_length_locked = true;
     }
 
-    if (from->graph->parameterized_reward_compute_graph != NULL) {
-        ptd_parameterized_reward_compute_graph_destroy(
-                from->graph->parameterized_reward_compute_graph
+    // Create edge
+    struct ptd_edge *edge = (struct ptd_edge *)malloc(sizeof(*edge));
+    if (edge == NULL) {
+        snprintf((char*)ptd_err, sizeof(ptd_err), "Failed to allocate edge");
+        return NULL;
+    }
+
+    edge->to = to;
+    edge->coefficients_length = coefficients_length;
+    edge->coefficients = (double *)malloc(coefficients_length * sizeof(double));
+    if (edge->coefficients == NULL) {
+        free(edge);
+        snprintf((char*)ptd_err, sizeof(ptd_err), "Failed to allocate edge coefficients");
+        return NULL;
+    }
+
+    memcpy(edge->coefficients, coefficients, coefficients_length * sizeof(double));
+    edge->should_free_coefficients = true;
+
+    // Compute initial weight with default params (theta=[1,1,...])
+    edge->weight = 0.0;
+    for (size_t i = 0; i < coefficients_length; i++) {
+        edge->weight += coefficients[i] * 1.0;
+    }
+
+    // Validate weight is positive
+    if (edge->weight < 0) {
+        size_t debug_index = from->index;
+
+        if (PTD_DEBUG_1_INDEX) {
+            debug_index++;
+        }
+
+        char state[1024] = {'\0'};
+        char starting_vertex[] = " (starting vertex)";
+
+        if (from != from->graph->starting_vertex) {
+            starting_vertex[0] = '\0';
+        }
+
+        ptd_vertex_to_s(from, state, 1023);
+
+        snprintf(
+                (char *) ptd_err,
+                sizeof(ptd_err),
+                "Edge weight evaluates to non-positive value '%f'. Vertex index %i%s (state %s). Weight must be strictly larger than 0.\n",
+                edge->weight, (int) debug_index, starting_vertex, state
         );
+
+        free(edge->coefficients);
+        free(edge);
+        return NULL;
     }
 
-    from->graph->reward_compute_graph = NULL;
-    from->graph->parameterized_reward_compute_graph = NULL;
-
-    return edge;
-}
-
-struct ptd_edge_parameterized *ptd_graph_add_edge_parameterized(
-        struct ptd_vertex *from,
-        struct ptd_vertex *to,
-        double weight,
-        double *edge_state,
-        size_t edge_state_length
-) {
-    from->graph->parameterized = true;
-
-    struct ptd_edge_parameterized *edge = (struct ptd_edge_parameterized *) malloc(sizeof(*edge));
-
-    edge->to = to;
-    edge->weight = weight;
-    // base_weight removed - starting edges are never parameterized
-    edge->parameterized = true;
-    edge->state = edge_state;
-    edge->state_length = edge_state_length;  // Store the actual allocated length
-    edge->should_free_state = true;
-
+    // Add to vertex using directed graph API
     ptd_directed_graph_add_edge(
             (struct ptd_directed_vertex *) from,
             (struct ptd_directed_edge *) edge
     );
 
+    // Invalidate cached compute graphs
     if (from->graph->reward_compute_graph != NULL) {
         free(from->graph->reward_compute_graph->commands);
         free(from->graph->reward_compute_graph);
@@ -2520,109 +2491,69 @@ edge->to = vertex;
 
 }
 
-void ptd_edge_update_weight_parameterized(
-        struct ptd_edge *edge,
-        double *scalars,
-        size_t scalars_length
-) {
-    // Compute weight as dot product only (no base_weight)
-    // Starting edges are never parameterized, so this is only called for edges with non-empty coefficients
-    double weight = 0.0;
 
-    for (size_t i = 0; i < scalars_length; ++i) {
-        weight += scalars[i] * ((struct ptd_edge_parameterized *) edge)->state[i];
-    }
-
-    edge->weight = weight;
-
-    // Invalidate both regular and parameterized compute graphs
-    if (edge->to->graph->reward_compute_graph != NULL) {
-        free(edge->to->graph->reward_compute_graph->commands);
-        free(edge->to->graph->reward_compute_graph);
-        edge->to->graph->reward_compute_graph = NULL;
-    }
-
-    if (edge->to->graph->parameterized_reward_compute_graph != NULL) {
-        ptd_parameterized_reward_compute_graph_destroy(
-                edge->to->graph->parameterized_reward_compute_graph
-        );
-        edge->to->graph->parameterized_reward_compute_graph = NULL;
-    }
-}
-
-void ptd_graph_update_weight_parameterized(
+void ptd_graph_update_weights(
         struct ptd_graph *graph,
-        double *scalars,
-        size_t scalars_length
+        double *params,
+        size_t params_length
 ) {
-    // Store parameter length on first call
-    if (graph->param_length == 0 && scalars_length > 0) {
-        graph->param_length = scalars_length;
-    }
+    double *theta;
+    size_t theta_len;
+    bool need_free = false;
 
-    // Validate parameter length matches graph's expected length
-    if (graph->param_length > 0 && scalars_length != graph->param_length) {
-        snprintf((char*)ptd_err, sizeof(ptd_err),
+    if (params == NULL || params_length == 0) {
+        // Use default theta = [1, 1, ..., 1]
+        theta_len = graph->param_length;
+        if (theta_len == 0) {
+            // No edges yet, nothing to do
+            return;
+        }
+        theta = (double *)malloc(theta_len * sizeof(double));
+        if (theta == NULL) {
+            snprintf((char*)ptd_err, sizeof(ptd_err), "Failed to allocate default parameters");
+            return;
+        }
+        for (size_t i = 0; i < theta_len; i++) {
+            theta[i] = 1.0;
+        }
+        need_free = true;
+    } else {
+        // Validate parameter length
+        if (params_length != graph->param_length) {
+            snprintf((char*)ptd_err, sizeof(ptd_err),
                 "Parameter length mismatch: graph expects %zu parameters, got %zu",
-                (unsigned long)graph->param_length, (unsigned long)scalars_length);
-        return;
-    }
-
-    // Validate all parameterized edges have consistent coefficient length
-    // (Skip starting vertex edges as they are not parameterized)
-    for (size_t i = 0; i < graph->vertices_length; ++i) {
-        if (graph->vertices[i] == graph->starting_vertex) {
-            continue;
+                (unsigned long)graph->param_length,
+                (unsigned long)params_length);
+            return;
         }
-        for (size_t j = 0; j < graph->vertices[i]->edges_length; ++j) {
-            if (graph->vertices[i]->edges[j]->parameterized) {
-                struct ptd_edge_parameterized *param_edge =
-                    (struct ptd_edge_parameterized *) graph->vertices[i]->edges[j];
-                if (param_edge->state_length != graph->param_length) {
-                    snprintf((char*)ptd_err, sizeof(ptd_err),
-                            "Edge coefficient length mismatch at vertex %zu, edge %zu: "
-                            "expected %zu, got %zu. All parameterized edges must have "
-                            "coefficient arrays of the same length.",
-                            (unsigned long)i, (unsigned long)j,
-                            (unsigned long)graph->param_length,
-                            (unsigned long)param_edge->state_length);
-                    return;
-                }
-            }
-        }
+        theta = params;
+        theta_len = params_length;
     }
 
-    // Store current parameters for trace evaluation
-    if (graph->current_params == NULL && scalars_length > 0) {
-        graph->current_params = (double *) malloc(scalars_length * sizeof(double));
+    // Store current parameters
+    if (graph->current_params == NULL && theta_len > 0) {
+        graph->current_params = (double *)malloc(theta_len * sizeof(double));
     }
-    if (graph->current_params != NULL && scalars_length > 0) {
-        memcpy(graph->current_params, scalars, scalars_length * sizeof(double));
+    if (graph->current_params != NULL && theta_len > 0) {
+        memcpy(graph->current_params, theta, theta_len * sizeof(double));
     }
 
-    // Record trace on first call (if parameterized graph and not yet recorded)
-    if (graph->parameterized && graph->elimination_trace == NULL) {
-        // Compute graph hash for cache lookup
+    // Record/load trace if needed (ALWAYS - for all graphs!)
+    if (graph->elimination_trace == NULL) {
         struct ptd_hash_result *hash = ptd_graph_content_hash(graph);
 
         if (hash != NULL) {
-            // Try to load from cache
             graph->elimination_trace = load_trace_from_cache(hash->hash_hex);
-
             if (graph->elimination_trace != NULL) {
                 DEBUG_PRINT("INFO: loaded elimination trace from cache (%s)\n", hash->hash_hex);
             }
         }
 
-        // Cache miss or hash failed - record trace
         if (graph->elimination_trace == NULL) {
-            DEBUG_PRINT("INFO: recording elimination trace for parameterized graph...\n");
+            DEBUG_PRINT("INFO: recording elimination trace...\n");
             graph->elimination_trace = ptd_record_elimination_trace(graph);
 
-            if (graph->elimination_trace == NULL) {
-                DEBUG_PRINT("WARNING: trace recording failed, falling back to traditional path\n");
-            } else if (hash != NULL) {
-                // Save newly recorded trace to cache
+            if (graph->elimination_trace != NULL && hash != NULL) {
                 save_trace_to_cache(hash->hash_hex, graph->elimination_trace);
             }
         }
@@ -2632,36 +2563,45 @@ void ptd_graph_update_weight_parameterized(
         }
     }
 
-    for (size_t i = 0; i < graph->vertices_length; ++i) {
-        // SKIP starting vertex edges - they should always have probability 1.0
-        // and not be affected by parameter updates
-        if (graph->vertices[i] == graph->starting_vertex) {
+    // Update all edge weights using direct computation
+    for (size_t i = 0; i < graph->vertices_length; i++) {
+        struct ptd_vertex *vertex = graph->vertices[i];
+
+        // Skip starting vertex edges - they should never be rescaled
+        // Starting vertex edges represent the initial probability vector (IPV)
+        // and must remain constant regardless of parameter values
+        if (vertex == graph->starting_vertex) {
             continue;
         }
 
-        for (size_t j = 0; j < graph->vertices[i]->edges_length; ++j) {
-            if (graph->vertices[i]->edges[j]->parameterized) {
-                ptd_edge_update_weight_parameterized(
-                        graph->vertices[i]->edges[j], scalars, scalars_length
-                );
+        for (size_t j = 0; j < vertex->edges_length; j++) {
+            struct ptd_edge *edge = vertex->edges[j];
+
+            // Compute weight = dot(coefficients, theta)
+            edge->weight = 0.0;
+            for (size_t k = 0; k < edge->coefficients_length; k++) {
+                edge->weight += edge->coefficients[k] * theta[k];
             }
         }
     }
 
-    // Invalidate cached compute graphs after updating all edge weights
+    // Invalidate cached compute graphs
     if (graph->reward_compute_graph != NULL) {
         free(graph->reward_compute_graph->commands);
         free(graph->reward_compute_graph);
+        graph->reward_compute_graph = NULL;
     }
 
     if (graph->parameterized_reward_compute_graph != NULL) {
         ptd_parameterized_reward_compute_graph_destroy(
                 graph->parameterized_reward_compute_graph
         );
+        graph->parameterized_reward_compute_graph = NULL;
     }
 
-    graph->reward_compute_graph = NULL;
-    graph->parameterized_reward_compute_graph = NULL;
+    if (need_free) {
+        free(theta);
+    }
 }
 
 
@@ -3293,10 +3233,12 @@ struct ptd_graph *_ptd_graph_reward_transform(struct ptd_graph *graph, double *_
         }
 
         for (size_t j = 1; j < vertex_edges_length[i] - 1; ++j) {
+            double weight = vertex_edges[i][j].prob / rewards[i];
             ptd_graph_add_edge(
                     new_graph->vertices[new_indicesGtoN[i]],
                     new_graph->vertices[new_indicesGtoN[vertex_edges[i][j].to->index]],
-                    vertex_edges[i][j].prob / rewards[i]
+                    &weight,
+                    1
             );
         }
     }
@@ -3535,10 +3477,12 @@ struct ptd_graph *ptd_graph_dph_reward_transform(struct ptd_graph *_graph, int *
         size_t edges_length = vertex->edges_length;
 
         for (size_t j = 0; j < edges_length; ++j) {
+            double weight = vertex->edges[j]->weight;
             ptd_graph_add_edge(
                     auxiliary_vertices[non_zero_rewards[i] - 1],
                     vertex->edges[j]->to,
-                    vertex->edges[j]->weight
+                    &weight,
+                    1
             );
 
             free(vertex->edges[j]);
@@ -3547,18 +3491,22 @@ struct ptd_graph *ptd_graph_dph_reward_transform(struct ptd_graph *_graph, int *
         vertex->edges_length = 0;
 
         for (int k = 0; k < non_zero_rewards[i] - 1; ++k) {
+            double weight = 1.0;
             ptd_graph_add_edge(
                     auxiliary_vertices[k],
                     auxiliary_vertices[k + 1],
+                    &weight,
                     1
             );
         }
 
         if (1 - rate > REWARD_EPSILON) {
+            double weight = 1 - rate;
             ptd_graph_add_edge(
                     auxiliary_vertices[non_zero_rewards[i] - 1],
                     vertex,
-                    1 - rate
+                    &weight,
+                    1
             );
         }
 
@@ -10602,43 +10550,28 @@ struct ptd_elimination_trace *ptd_record_elimination_trace(struct ptd_graph *gra
 
             size_t weight_idx = 0;
 
-            // Add parameterized edges
+            // Add all edges (all edges now have coefficient arrays)
             for (size_t j = 0; j < vertex->edges_length; j++) {
                 struct ptd_edge *edge = vertex->edges[j];
 
-                if (edge->parameterized) {
-                    // Parameterized edge: use DOT product
-                    struct ptd_edge_parameterized *param_edge =
-                        (struct ptd_edge_parameterized *)edge;
-
-                    // Get coefficient vector (state is the coefficient array)
-                    size_t op_idx = add_dot_to_trace(
-                        trace, &operations_capacity,
-                        param_edge->state,
-                        graph->param_length
-                    );
-                    if (op_idx == (size_t)-1) {
-                        free(weight_indices);
-                        ptd_elimination_trace_destroy(trace);
-                        return NULL;
-                    }
-                    weight_indices[weight_idx++] = op_idx;
-                } else {
-                    // Regular edge: constant weight
-                    if (i == 0) {
-                        DEBUG_PRINT("DEBUG: Adding const for vertex 0 edge: weight=%f\n", edge->weight);
-                    }
-                    size_t op_idx = add_const_to_trace(trace, &operations_capacity, edge->weight);
-                    if (op_idx == (size_t)-1) {
-                        free(weight_indices);
-                        ptd_elimination_trace_destroy(trace);
-                        return NULL;
-                    }
-                    if (i == 0) {
-                        DEBUG_PRINT("DEBUG: Const added at op_idx=%zu\n", op_idx);
-                    }
-                    weight_indices[weight_idx++] = op_idx;
+                // All edges use DOT product with their coefficient arrays
+                // (constant edges have single-element arrays)
+                size_t op_idx = add_dot_to_trace(
+                    trace, &operations_capacity,
+                    edge->coefficients,
+                    edge->coefficients_length
+                );
+                if (op_idx == (size_t)-1) {
+                    free(weight_indices);
+                    ptd_elimination_trace_destroy(trace);
+                    return NULL;
                 }
+
+                if (i == 0 && j == 0) {
+                    DEBUG_PRINT("DEBUG: vertex 0 edge 0: coefficients_length=%zu, op_idx=%zu\n",
+                        edge->coefficients_length, op_idx);
+                }
+                weight_indices[weight_idx++] = op_idx;
             }
 
             // Sum all weights
@@ -10653,8 +10586,8 @@ struct ptd_elimination_trace *ptd_record_elimination_trace(struct ptd_graph *gra
             // Debug: check vertex 0
             if (i == 0) {
                 DEBUG_PRINT("DEBUG: vertex 0 has %zu edges, sum_idx=%zu\n", total_edges, sum_idx);
-                DEBUG_PRINT("DEBUG: vertex 0 edge 0: parameterized=%d, weight=%f\n",
-                    vertex->edges[0]->parameterized, vertex->edges[0]->weight);
+                DEBUG_PRINT("DEBUG: vertex 0 edge 0: coefficients_length=%zu, weight=%f\n",
+                    vertex->edges[0]->coefficients_length, vertex->edges[0]->weight);
                 if (weight_idx > 0) {
                     DEBUG_PRINT("DEBUG: vertex 0 weight_indices[0]=%zu\n", weight_indices[0]);
                 }
@@ -10714,19 +10647,13 @@ struct ptd_elimination_trace *ptd_record_elimination_trace(struct ptd_graph *gra
 
             trace->vertex_targets[i][j] = to_idx;
 
-            // Get edge weight operation index (from Phase 1 logic)
-            size_t weight_idx;
-            if (edge->parameterized) {
-                struct ptd_edge_parameterized *param_edge =
-                    (struct ptd_edge_parameterized *)edge;
-                weight_idx = add_dot_to_trace(
-                    trace, &operations_capacity,
-                    param_edge->state,
-                    graph->param_length
-                );
-            } else {
-                weight_idx = add_const_to_trace(trace, &operations_capacity, edge->weight);
-            }
+            // Get edge weight operation index
+            // All edges now use DOT product with their coefficient arrays
+            size_t weight_idx = add_dot_to_trace(
+                trace, &operations_capacity,
+                edge->coefficients,
+                edge->coefficients_length
+            );
 
             if (weight_idx == (size_t)-1) {
                 ptd_elimination_trace_destroy(trace);

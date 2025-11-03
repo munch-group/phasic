@@ -240,7 +240,13 @@ void phasic::Vertex::add_edge(Vertex &to, double weight) {
 
     graph.notify_change();
 
-    ptd_graph_add_edge(this->vertex, to.vertex, weight);
+    // Constant edge: single-element coefficient array
+    double coeff = weight;
+    struct ptd_edge *result = ptd_graph_add_edge(this->vertex, to.vertex, &coeff, 1);
+
+    if (result == NULL) {
+        throw std::runtime_error((char *) ptd_err);
+    }
 }
 
 
@@ -260,9 +266,14 @@ void phasic::Vertex::add_edge_parameterized(Vertex &to, double weight, std::vect
 
     graph.notify_change();
 
-    ptd_graph_add_edge_parameterized(
-            this->vertex, to.vertex, weight, state, state_length
-    );
+    // Unified API: use coefficient array directly
+    struct ptd_edge *result = ptd_graph_add_edge(this->vertex, to.vertex, state, state_length);
+
+    free(state);
+
+    if (result == NULL) {
+        throw std::runtime_error((char *) ptd_err);
+    }
 }
 
 
@@ -294,20 +305,19 @@ std::vector<phasic::ParameterizedEdge> phasic::Vertex::parameterized_edges() {
     std::vector<ParameterizedEdge> vector;
 
     for (size_t i = 0; i < this->vertex->edges_length; ++i) {
-        // Only include edges that are actually parameterized
-        if (this->vertex->edges[i]->parameterized) {
+        // Include edges with coefficient arrays (parameterized in unified interface)
+        // This includes single-parameter edges (coefficients_length == 1)
+        if (this->vertex->edges[i]->coefficients_length >= 1) {
             ParameterizedEdge edge_i(
                     this->vertex->edges[i]->to,
                     this->vertex->edges[i],
                     graph,
                     this->vertex->edges[i]->weight,
-                    ((struct ptd_edge_parameterized *) this->vertex->edges[i])->state
-
+                    this->vertex->edges[i]->coefficients
             );
 
             vector.push_back(edge_i);
         }
-        // Don't include non-parameterized edges in parameterized_edges() result
     }
 
     return vector;
@@ -354,7 +364,7 @@ phasic::Graph *phasic::Graph::reward_transform_p(std::vector<double> rewards) {
 }
 
 void phasic::Graph::update_weights_parameterized(std::vector<double> scalars) {
-    ptd_graph_update_weight_parameterized(
+    ptd_graph_update_weights(
             this->c_graph(),
             &scalars[0],
             scalars.size()

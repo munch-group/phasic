@@ -1,3 +1,4 @@
+from ast import arg
 from functools import partial
 from collections import defaultdict
 from unittest import result
@@ -1357,18 +1358,18 @@ def _setup_ctypes_signatures_from_arrays(lib, discrete=False):
 #         else:
 #             super().__init__(state_length)
 
-def starting_state(ipv: Union[List[int], List[Union[List[int], float]]]) -> List[Union[List[int], float]]:
-    def decorator(func):
-        @wraps(func)
-        def wrapper(state=None, **kwargs):
-            if state is None or len(state) == 0:
-                if sum([x[1] for x in ipv]) != 1.0:
-                    raise ValueError("Starting state probabilities do not sum to one")
-                return ipv
-            else:
-                return func(state, **kwargs)
-        return wrapper
-    return decorator
+# def starting_state(ipv: Union[List[int], List[Union[List[int], float]]]) -> List[Union[List[int], float]]:
+#     def decorator(func):
+#         @wraps(func)
+#         def wrapper(state=None, **kwargs):
+#             if state is None or len(state) == 0:
+#                 if sum([x[1] for x in ipv]) != 1.0:
+#                     raise ValueError("Starting state probabilities do not sum to one")
+#                 return ipv
+#             else:
+#                 return func(state, **kwargs)
+#         return wrapper
+#     return decorator
 
 class Graph(_Graph):
     def __init__(self, state_length:int=None, callback:Callable=None, ipv=None, parameterized:bool=False, **kwargs):
@@ -1415,11 +1416,42 @@ class Graph(_Graph):
         #     super().__init__(state_length)
 
 
+
+        def build_signature(ipv):
+            """
+            Turn callback functions with different signatures into a common one.
+            Also makes return the ipv when called with empty state.
+            """
+            def decorator(func):
+                @wraps(func)
+                def wrapper(state=[], **kwargs):
+
+                    if state is None or len(state) == 0:
+                        assert ipv is not None, "ipv must be provided if callback does not return it"
+                        _, prob = zip(*ipv)
+                        if sum(prob) != 1.0:
+                            raise ValueError("IPV does not sum to one")
+                        return [[s, a, []] for s, a in ipv]               
+
+                    transitions = func(state, **kwargs)
+                    if not transitions:
+                        return transitions
+                    if isinstance(transitions[0][1], float):
+                        return [[s, a, []] for s, a in transitions]
+                    else:
+                        return [[s, 0.0, a] for s, a in transitions]  
+                return wrapper
+            return decorator
+
+
         if callback:
-            if parameterized:  
-                super().__init__(callback_tuples_parameterized=partial(callback, **kwargs))
-            else:
-                super().__init__(callback_tuples=partial(callback, **kwargs))
+            super().__init__(callback_tuples_parameterized=build_signature(ipv)(partial(callback, **kwargs)))
+
+        # if callback:
+        #     if parameterized:  
+        #         super().__init__(callback_tuples_parameterized=partial(callback, **kwargs))
+        #     else:
+        #         super().__init__(callback_tuples=partial(callback, **kwargs))
         else:
             super().__init__(state_length)
 
@@ -1594,118 +1626,22 @@ class Graph(_Graph):
             state_tuple = tuple(state)
             state_to_idx[state_tuple] = i
 
-        # Detect or use provided parameter length
+        # Get parameter length directly from graph (set by first add_edge() call)
         start = self.starting_vertex()
 
-        # Track the actual coefficient length for each edge (before garbage starts)
-        # Key: (from_vertex_idx, to_vertex_idx), Value: valid length
-        # Use -1 for starting vertex index
-        edge_valid_lengths = {}
+        # Use provided param_length if given, otherwise get from graph
+        if param_length is None:
+            param_length = self.param_length()
 
-        # If param_length provided explicitly, use it directly
-        if param_length is not None:
-            # Use provided value - skip auto-detection
-            detected_param_length = param_length
-        else:
-            # Auto-detect parameter length from parameterized edges
-            # Strategy: Track the highest non-zero coefficient index
-            detected_param_length = 0
-
-            # Check all vertices for parameterized edges to determine actual param usage
-            # We probe up to a reasonable limit and track the highest non-zero coefficient index
-            max_probe_length = 20
-
-            # Probe edges from regular vertices
-            for i, v in enumerate(vertices_list):
-                v_state = tuple(v.state())
-                if v_state == tuple(start.state()):
-                    continue  # Skip starting vertex (handled separately)
-
-                from_idx = i
-                for edge in v.parameterized_edges():
-                    to_vertex = edge.to()
-                    to_state = tuple(to_vertex.state())
-                    if to_state not in state_to_idx:
-                        continue
-                    to_idx = state_to_idx[to_state]
-
-                    valid_length = 0
-                    last_nonzero_pos = 0
-                    # Probe increasing lengths until we hit garbage or exceed limit
-                    for try_len in range(1, max_probe_length + 1):
-                        state = edge.edge_state(try_len)
-                        if len(state) == 0:
-                            break
-
-                        val = state[-1]
-                        # Check for garbage (NaN, inf, or suspiciously large/tiny values)
-                        # Use 1e-100 as threshold to catch denormal floats like 5e-324
-                        if (np.isnan(val) or np.isinf(val) or
-                            abs(val) > 1e100 or
-                            (val != 0 and abs(val) < 1e-100)):
-                            break
-
-                        # Track valid length up to here (before garbage)
-                        valid_length = try_len
-
-                        if val != 0:
-                            # Found non-zero: record as potential param position
-                            detected_param_length = max(detected_param_length, try_len)
-
-                    edge_valid_lengths[(from_idx, to_idx)] = valid_length
-
-            # Probe edges from starting vertex
-            for edge in start.parameterized_edges():
-                to_vertex = edge.to()
-                to_state = tuple(to_vertex.state())
-                if to_state not in state_to_idx:
-                    continue
-                to_idx = state_to_idx[to_state]
-
-                valid_length = 0
-                last_nonzero_pos = 0
-                for try_len in range(1, max_probe_length + 1):
-                    state = edge.edge_state(try_len)
-                    if len(state) == 0:
-                        break
-
-                    val = state[-1]
-                    if (np.isnan(val) or np.isinf(val) or
-                        abs(val) > 1e100 or
-                        (val != 0 and abs(val) < 1e-100)):
-                        break
-
-                    # Track valid length up to here (before garbage)
-                    valid_length = try_len
-
-                    if val != 0:
-                        # Found non-zero: record as potential param position
-                        detected_param_length = max(detected_param_length, try_len)
-
-                edge_valid_lengths[(-1, to_idx)] = valid_length
-
-        # Use detected_param_length for all subsequent operations
-        param_length = detected_param_length
-
-        # Sanity check: param_length should never exceed max_probe_length (only applies to auto-detected)
-        # If it does, we likely read garbage/adjacent memory - use a conservative fallback
-        if param_length is None and param_length > max_probe_length:
-            # This shouldn't happen with proper garbage detection, but guard against it
-            param_length = max_probe_length
-            import warnings
-            warnings.warn(
-                f"Detected param_length={param_length} exceeds max_probe_length={max_probe_length}. "
-                f"This may indicate edge_state() is reading adjacent memory. "
-                f"Capping to {max_probe_length}.",
-                RuntimeWarning
-            )
+        # param_length is now always correct (no probing needed)
 
         # Extract parameterized edges FIRST (needed to build exclusion set before extracting regular edges)
         start_state = tuple(start.state())
 
         # Extract parameterized edges between vertices (excluding starting vertex)
+        # With unified interface: parameterized_edges() returns edges with coefficient arrays
         param_edges_list = []
-        if param_length > 0:
+        if param_length > 0:  # Export all edges with coefficient arrays
             for i, v in enumerate(vertices_list):
                 # Skip starting vertex edges (they're handled separately)
                 v_state = tuple(v.state())
@@ -1718,45 +1654,31 @@ class Graph(_Graph):
                     to_state = tuple(to_vertex.state())
                     if to_state in state_to_idx:
                         to_idx = state_to_idx[to_state]
-                        # Use edge-specific valid length, padded/truncated to param_length
-                        # If edge_valid_lengths is empty (when param_length explicitly provided), use param_length
-                        edge_len = edge_valid_lengths.get((from_idx, to_idx), param_length)
-                        if edge_len > 0:
-                            edge_state = list(edge.edge_state(edge_len))
-                            # Ensure exactly param_length coefficients (truncate or pad)
-                            if len(edge_state) < param_length:
-                                edge_state.extend([0.0] * (param_length - len(edge_state)))
-                            elif len(edge_state) > param_length:
-                                edge_state = edge_state[:param_length]
-                            # Only include edges with non-empty edge states
-                            if any(x != 0 for x in edge_state):
-                                # Store: [from_idx, to_idx, x1, x2, x3, ...]
-                                param_edges_list.append([from_idx, to_idx] + edge_state)
+                        # Get coefficient array (length is guaranteed to be param_length)
+                        edge_state = list(edge.edge_state(param_length))
+                        # Only include edges with non-empty edge states
+                        if edge_state and any(x != 0 for x in edge_state):
+                            # Store: [from_idx, to_idx, x1, x2, x3, ...]
+                            param_edges_list.append([from_idx, to_idx] + edge_state)
 
         param_edges = np.array(param_edges_list, dtype=np.float64) if param_edges_list else np.empty((0, param_length + 2 if param_length > 0 else 0), dtype=np.float64)
 
         # Extract starting vertex parameterized edges FIRST (needed to build exclusion set)
+        # NOTE: Starting vertex edges are NEVER rescaled by update_weights() (see starting vertex fix)
+        # So we should NOT export them as parameterized edges - they are effectively constant
         start_param_edges_list = []
-        if param_length > 0:
+        if False:  # Starting edges are never parameterized (always constant)
             for edge in start.parameterized_edges():
                 to_vertex = edge.to()
                 to_state = tuple(to_vertex.state())
                 if to_state in state_to_idx:
                     to_idx = state_to_idx[to_state]
-                    # Use edge-specific valid length, padded/truncated to param_length (-1 = starting vertex)
-                    # If edge_valid_lengths is empty (when param_length explicitly provided), use param_length
-                    edge_len = edge_valid_lengths.get((-1, to_idx), param_length)
-                    if edge_len > 0:
-                        edge_state = list(edge.edge_state(edge_len))
-                        # Ensure exactly param_length coefficients (truncate or pad)
-                        if len(edge_state) < param_length:
-                            edge_state.extend([0.0] * (param_length - len(edge_state)))
-                        elif len(edge_state) > param_length:
-                            edge_state = edge_state[:param_length]
-                        # Only include edges with non-empty edge states
-                        if any(x != 0 for x in edge_state):
-                            # Store: [to_idx, x1, x2, x3, ...]
-                            start_param_edges_list.append([to_idx] + edge_state)
+                    # Get coefficient array (length is guaranteed to be param_length)
+                    edge_state = list(edge.edge_state(param_length))
+                    # Only include edges with non-empty edge states
+                    if edge_state and any(x != 0 for x in edge_state):
+                        # Store: [to_idx, x1, x2, x3, ...]
+                        start_param_edges_list.append([to_idx] + edge_state)
 
         start_param_edges = np.array(start_param_edges_list, dtype=np.float64) if start_param_edges_list else np.empty((0, param_length + 1 if param_length > 0 else 0), dtype=np.float64)
 
