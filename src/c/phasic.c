@@ -1002,10 +1002,172 @@ static bool save_trace_to_cache(const char *hash_hex, const struct ptd_eliminati
 }
 
 // Stub for ptd_clone_graph (missing implementation)
+/**
+ * Deep clone a graph with all vertices, edges, and coefficient arrays
+ * Supports unified edge interface (all edges have coefficient arrays)
+ */
 struct ptd_clone_res ptd_clone_graph(struct ptd_graph *graph, struct ptd_avl_tree *avl_tree) {
     struct ptd_clone_res res;
     res.graph = NULL;
-    sprintf((char*)ptd_err, "ptd_clone_graph() not implemented");
+    res.avl_tree = NULL;
+
+    if (graph == NULL) {
+        snprintf((char*)ptd_err, sizeof(ptd_err), "Cannot clone NULL graph");
+        return res;
+    }
+
+    // Create new graph with same state_length
+    struct ptd_graph *new_graph = ptd_graph_create(graph->state_length);
+    if (new_graph == NULL) {
+        snprintf((char*)ptd_err, sizeof(ptd_err), "Failed to allocate new graph");
+        return res;
+    }
+
+    // Copy metadata
+    new_graph->param_length = graph->param_length;
+    new_graph->parameterized = graph->parameterized;
+    new_graph->param_length_locked = graph->param_length_locked;
+    new_graph->edge_mode = graph->edge_mode;
+    new_graph->was_dph = graph->was_dph;
+
+    // Create mapping from old vertices to new vertices
+    struct ptd_vertex **vertex_map = (struct ptd_vertex **)calloc(
+        graph->vertices_length, sizeof(struct ptd_vertex *)
+    );
+    if (vertex_map == NULL) {
+        ptd_graph_destroy(new_graph);
+        snprintf((char*)ptd_err, sizeof(ptd_err), "Failed to allocate vertex map");
+        return res;
+    }
+
+    // Clone all vertices (just structure, not edges yet)
+    // Note: Starting vertex may be in vertices array, so we must check for it
+    // to avoid creating a duplicate
+    for (size_t i = 0; i < graph->vertices_length; i++) {
+        struct ptd_vertex *old_v = graph->vertices[i];
+
+        // Check if this is the starting vertex by comparing pointer
+        if (old_v == graph->starting_vertex) {
+            // This is the starting vertex - map to new starting vertex (no duplicate)
+            vertex_map[i] = new_graph->starting_vertex;
+        } else {
+            // Create vertex with same state
+            struct ptd_vertex *new_v = ptd_vertex_create_state(new_graph, old_v->state);
+            if (new_v == NULL) {
+                free(vertex_map);
+                ptd_graph_destroy(new_graph);
+                snprintf((char*)ptd_err, sizeof(ptd_err), "Failed to clone vertex %zu", i);
+                return res;
+            }
+            vertex_map[i] = new_v;
+        }
+    }
+
+    // Clone starting vertex edges
+    struct ptd_vertex *old_start = graph->starting_vertex;
+    struct ptd_vertex *new_start = new_graph->starting_vertex;
+
+    for (size_t i = 0; i < old_start->edges_length; i++) {
+        struct ptd_edge *old_edge = old_start->edges[i];
+
+        // Find target vertex index in old graph
+        size_t target_idx = (size_t)-1;
+        for (size_t j = 0; j < graph->vertices_length; j++) {
+            if (graph->vertices[j] == old_edge->to) {
+                target_idx = j;
+                break;
+            }
+        }
+
+        if (target_idx == (size_t)-1) {
+            free(vertex_map);
+            ptd_graph_destroy(new_graph);
+            snprintf((char*)ptd_err, sizeof(ptd_err), "Starting vertex edge target not found");
+            return res;
+        }
+
+        struct ptd_vertex *new_target = vertex_map[target_idx];
+
+        // Add edge with cloned coefficients
+        struct ptd_edge *new_edge = ptd_graph_add_edge(
+            new_start, new_target,
+            old_edge->coefficients,
+            old_edge->coefficients_length
+        );
+
+        if (new_edge == NULL) {
+            free(vertex_map);
+            ptd_graph_destroy(new_graph);
+            snprintf((char*)ptd_err, sizeof(ptd_err), "Failed to clone starting vertex edge");
+            return res;
+        }
+    }
+
+    // Clone all edges (skip starting vertex - already cloned above)
+    for (size_t i = 0; i < graph->vertices_length; i++) {
+        struct ptd_vertex *old_v = graph->vertices[i];
+        struct ptd_vertex *new_v = vertex_map[i];
+
+        // Skip starting vertex - its edges were already cloned
+        if (old_v == graph->starting_vertex) {
+            continue;
+        }
+
+        for (size_t j = 0; j < old_v->edges_length; j++) {
+            struct ptd_edge *old_edge = old_v->edges[j];
+
+            // Find target vertex index
+            size_t target_idx = (size_t)-1;
+            for (size_t k = 0; k < graph->vertices_length; k++) {
+                if (graph->vertices[k] == old_edge->to) {
+                    target_idx = k;
+                    break;
+                }
+            }
+
+            if (target_idx == (size_t)-1) {
+                free(vertex_map);
+                ptd_graph_destroy(new_graph);
+                snprintf((char*)ptd_err, sizeof(ptd_err), "Edge target not found at vertex %zu", i);
+                return res;
+            }
+
+            struct ptd_vertex *new_target = vertex_map[target_idx];
+
+            // Add edge with cloned coefficients array
+            struct ptd_edge *new_edge = ptd_graph_add_edge(
+                new_v, new_target,
+                old_edge->coefficients,
+                old_edge->coefficients_length
+            );
+
+            if (new_edge == NULL) {
+                free(vertex_map);
+                ptd_graph_destroy(new_graph);
+                snprintf((char*)ptd_err, sizeof(ptd_err), "Failed to clone edge at vertex %zu", i);
+                return res;
+            }
+        }
+    }
+
+    free(vertex_map);
+
+    // Create new AVL tree for new graph
+    struct ptd_avl_tree *new_avl = ptd_avl_tree_create(graph->state_length);
+    if (new_avl == NULL) {
+        ptd_graph_destroy(new_graph);
+        snprintf((char*)ptd_err, sizeof(ptd_err), "Failed to create AVL tree for cloned graph");
+        return res;
+    }
+
+    // Rebuild AVL tree with new vertices
+    for (size_t i = 0; i < new_graph->vertices_length; i++) {
+        struct ptd_vertex *v = new_graph->vertices[i];
+        ptd_avl_tree_find_or_insert(new_avl, v->state, v);
+    }
+
+    res.graph = new_graph;
+    res.avl_tree = new_avl;
     return res;
 }
 

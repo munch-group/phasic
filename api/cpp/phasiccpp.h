@@ -104,6 +104,13 @@ namespace phasic {
             *(this->rf_graph->references) += 1;
         }
 
+        // Move constructor - transfers ownership without sharing references
+        // This enables clone() to return by value without triggering copy semantics
+        Graph(Graph &&o) noexcept {
+            this->rf_graph = o.rf_graph;
+            o.rf_graph = nullptr;
+        }
+
         Graph(size_t state_length) {
             this->rf_graph = (struct rf_graph *) malloc(sizeof(*this->rf_graph));
             this->rf_graph->references = (size_t *) malloc(sizeof(*this->rf_graph->references));
@@ -128,6 +135,11 @@ namespace phasic {
 
 
         ~Graph() {
+            // Handle moved-from objects (rf_graph is nullptr after move)
+            if (this->rf_graph == nullptr) {
+                return;
+            }
+
             *(this->rf_graph->references) -= 1;
 
             if (*this->rf_graph->references == 0) {
@@ -478,12 +490,20 @@ namespace phasic {
         Graph clone() {
             struct ptd_clone_res r = ptd_clone_graph(c_graph(), c_avl_tree());
 
+            if (r.graph == NULL) {
+                throw std::runtime_error((char*)ptd_err);
+            }
+
             return Graph(r.graph, r.avl_tree);
         }
 
 
         Graph *clone_p() {
             struct ptd_clone_res r = ptd_clone_graph(c_graph(), c_avl_tree());
+
+            if (r.graph == NULL) {
+                throw std::runtime_error((char*)ptd_err);
+            }
 
             return new Graph(r.graph, r.avl_tree);
         }
