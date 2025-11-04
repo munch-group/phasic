@@ -6,9 +6,9 @@ This script verifies that parameterized edges work correctly with full JAX suppo
 Run this to confirm your installation supports gradient-based inference.
 """
 
+from phasic import Graph
 import jax
 import jax.numpy as jnp
-from phasic import Graph
 
 print("=" * 70)
 print("Testing Parameterized Edges Feature")
@@ -20,7 +20,8 @@ g = Graph(state_length=2)
 
 # Create initial state
 initial = g.find_or_create_vertex([2, 0])
-g.starting_vertex().add_edge(initial, 1.0)
+# Use new unified API - pass coefficient array directly
+g.starting_vertex().add_edge(initial, [1.0, 0.0])
 
 # Add parameterized edges using iterative construction
 index = 1
@@ -32,13 +33,13 @@ while index < g.vertices_length():
     if state[0] > 0:
         child = g.find_or_create_vertex([state[0] - 1, state[1] + 1])
         # Parameterized edge: weight = theta[0]
-        vertex.add_edge_parameterized(child, weight=0.0, edge_state=[1.0, 0.0])
+        vertex.add_edge(child, [1.0, 0.0])
 
     # Death: right island floods
     if state[1] > 0:
         child = g.find_or_create_vertex([state[0], state[1] - 1])
         # Parameterized edge: weight = theta[1]
-        vertex.add_edge_parameterized(child, weight=0.0, edge_state=[0.0, 1.0])
+        vertex.add_edge(child, [0.0, 1.0])
 
     index += 1
 

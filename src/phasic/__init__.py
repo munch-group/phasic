@@ -1397,26 +1397,6 @@ class Graph(_Graph):
         """
         assert (callback is None) + (state_length is None) == 1, "Use either the state_length or callback argument"
 
-        # if callback:
-        #     if parameterized:  
-        #         if ipv is not None:
-        #             if isinstance(ipv[0], int) or np.issubdtype(ipv[0].dtype, np.integer):
-        #                 ipv = [[jnp.array(ipv), 1.0, []]] 
-        #             super().__init__(callback_tuples_parameterized=starting_state(ipv)(partial(callback, **kwargs)))
-        #         else:
-        #             super().__init__(callback_tuples_parameterized=partial(callback, **kwargs))
-        #     else:
-        #         if ipv is not None:
-        #             if isinstance(ipv[0], int) or np.issubdtype(ipv[0].dtype, np.integer):
-        #                 ipv = [[jnp.array(ipv), 1.0]] 
-        #             super().__init__(callback_tuples=starting_state(ipv)(partial(callback, **kwargs)))                
-        #         else:
-        #             super().__init__(callback_tuples=partial(callback, **kwargs))
-        # else:
-        #     super().__init__(state_length)
-
-
-
         def build_signature(ipv):
             """
             Turn callback functions with different signatures into a common one.
@@ -1426,6 +1406,9 @@ class Graph(_Graph):
                 @wraps(func)
                 def wrapper(state=[], **kwargs):
 
+                    # assert not (ipv is None and (state is None or len(state) == 0)), "ipv must be provided if callback does not return it"
+                    assert ipv is not None, "ipv must be provided when building with callback function"
+
                     if state is None or len(state) == 0:
                         assert ipv is not None, "ipv must be provided if callback does not return it"
                         _, prob = zip(*ipv)
@@ -1434,6 +1417,8 @@ class Graph(_Graph):
                         return [[s, a, []] for s, a in ipv]               
 
                     transitions = func(state, **kwargs)
+                    assert all(len(t[0]) == len(state) for t in transitions), ("ipv and state vectors must be same length", ipv, state)
+
                     if not transitions:
                         return transitions
                     if isinstance(transitions[0][1], float):
@@ -1443,18 +1428,10 @@ class Graph(_Graph):
                 return wrapper
             return decorator
 
-
         if callback:
             super().__init__(callback_tuples_parameterized=build_signature(ipv)(partial(callback, **kwargs)))
-
-        # if callback:
-        #     if parameterized:  
-        #         super().__init__(callback_tuples_parameterized=partial(callback, **kwargs))
-        #     else:
-        #         super().__init__(callback_tuples=partial(callback, **kwargs))
         else:
             super().__init__(state_length)
-
 
 
     # def make_discrete(self, mutation_rate, skip_states=[], skip_slots=[]):

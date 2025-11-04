@@ -934,8 +934,8 @@ namespace phasic {
         std::vector<double> edge_state(size_t requested_length) {
             std::vector<double> state;
 
-            if (_state != NULL && ((struct ptd_edge_parameterized*)_edge)->state_length > 0) {
-                size_t actual_length = ((struct ptd_edge_parameterized*)_edge)->state_length;
+            if (_state != NULL && _edge->coefficients_length > 0) {
+                size_t actual_length = _edge->coefficients_length;
 
                 // If requesting more than allocated, return empty (signals out of bounds)
                 if (requested_length > actual_length) {

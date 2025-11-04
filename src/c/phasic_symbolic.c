@@ -62,129 +62,62 @@ struct ptd_vertex_symbolic_ll {
 /**
  * Determine parameter length from graph
  *
- * Strategy:
- * 1. If graph->param_length is already set, return it
- * 2. Otherwise, scan parameterized edges and detect length by checking for
- *    garbage values in uninitialized memory beyond the allocated array
+ * With the unified edge interface, param_length is always set by the first
+ * edge added to the graph, so we just return it directly.
  */
 static size_t determine_param_length(struct ptd_graph *graph) {
-    // If already set, return it
-    if (graph->param_length > 0) {
-        return graph->param_length;
-    }
-
-    // Scan all vertices for parameterized edges
-    for (size_t i = 0; i < graph->vertices_length; i++) {
-        struct ptd_vertex *v = graph->vertices[i];
-
-        for (size_t j = 0; j < v->edges_length; j++) {
-            struct ptd_edge *e = v->edges[j];
-
-            if (!e->parameterized) {
-                continue;
-            }
-
-            struct ptd_edge_parameterized *ep = (struct ptd_edge_parameterized *)e;
-            if (ep->state == NULL) {
-                continue;
-            }
-
-            // Try increasing lengths to detect the actual array size
-            // Strategy: Find the last non-zero coefficient
-            // (calloc zeros memory, so beyond the real data we just see zeros)
-            size_t detected_len = 0;
-            for (size_t try_len = 1; try_len <= 20; try_len++) {
-                double val = ep->state[try_len - 1];
-
-                // Check for garbage values indicating we've gone beyond allocated memory
-                if (isnan(val) || isinf(val) || fabs(val) > 1e100 ||
-                    (val != 0.0 && fabs(val) < 1e-300)) {
-                    // Hit garbage
-                    break;
-                }
-
-                // If non-zero, this is probably real data
-                if (val != 0.0) {
-                    detected_len = try_len;
-                }
-                // If zero, it might be trailing zeros or uninitialized memory
-                // Keep the last detected_len (last non-zero position)
-            }
-
-            // Add 1 more to include trailing explicit zeros (common pattern: [1.0, 0.0])
-            if (detected_len > 0 && detected_len < 20) {
-                detected_len++;
-            }
-
-            // Return the first detected length
-            if (detected_len > 0) {
-                DEBUG_PRINT("INFO: Auto-detected param_length=%zu from edge state\n", detected_len);
-                return detected_len;
-            }
-        }
-    }
-
-    // No parameterized edges found
-    DEBUG_PRINT("WARNING: No parameterized edges found, param_length=0\n");
-    return 0;
+    // param_length is always set by first add_edge() call
+    return graph->param_length;
 }
 
 /**
  * Extract edge weight as symbolic expression
  *
- * For parameterized edges, creates DOT expression from edge state.
- * For regular edges, creates CONST expression.
+ * All edges now have coefficient arrays. Creates DOT expression from coefficients.
  */
 static struct ptd_expression *edge_weight_to_expr(struct ptd_edge *edge, size_t param_length) {
-    if (edge->parameterized) {
-        struct ptd_edge_parameterized *ep = (struct ptd_edge_parameterized *)edge;
-
-        // The edge state is stored in ep->state
-        // Need to check if state exists and extract non-zero terms
-        if (ep->state == NULL || param_length == 0) {
-            return ptd_expr_const(ep->weight);
-        }
-
-        // Count non-zero terms
-        size_t n_nonzero = 0;
-        for (size_t i = 0; i < param_length; i++) {
-            if (ep->state[i] != 0.0) {
-                n_nonzero++;
-            }
-        }
-
-        if (n_nonzero == 0) {
-            return ptd_expr_const(ep->weight);
-        }
-
-        // Build DOT expression
-        size_t *indices = (size_t *) malloc(n_nonzero * sizeof(size_t));
-        double *coeffs = (double *) malloc(n_nonzero * sizeof(double));
-        size_t idx = 0;
-
-        for (size_t i = 0; i < param_length; i++) {
-            if (ep->state[i] != 0.0) {
-                indices[idx] = i;
-                coeffs[idx] = ep->state[i];
-                idx++;
-            }
-        }
-
-        struct ptd_expression *expr;
-        if (n_nonzero == 1 && coeffs[0] == 1.0) {
-            // Simple parameter reference
-            expr = ptd_expr_param(indices[0]);
-        } else {
-            // Dot product
-            expr = ptd_expr_dot(indices, coeffs, n_nonzero);
-        }
-
-        free(indices);
-        free(coeffs);
-        return expr;
-    } else {
+    // All edges have coefficients
+    if (edge->coefficients == NULL || edge->coefficients_length == 0) {
         return ptd_expr_const(edge->weight);
     }
+
+    // Count non-zero terms
+    size_t n_nonzero = 0;
+    for (size_t i = 0; i < edge->coefficients_length; i++) {
+        if (edge->coefficients[i] != 0.0) {
+            n_nonzero++;
+        }
+    }
+
+    if (n_nonzero == 0) {
+        return ptd_expr_const(edge->weight);
+    }
+
+    // Build DOT expression
+    size_t *indices = (size_t *) malloc(n_nonzero * sizeof(size_t));
+    double *coeffs = (double *) malloc(n_nonzero * sizeof(double));
+    size_t idx = 0;
+
+    for (size_t i = 0; i < edge->coefficients_length; i++) {
+        if (edge->coefficients[i] != 0.0) {
+            indices[idx] = i;
+            coeffs[idx] = edge->coefficients[i];
+            idx++;
+        }
+    }
+
+    struct ptd_expression *expr;
+    if (n_nonzero == 1 && coeffs[0] == 1.0) {
+        // Simple parameter reference
+        expr = ptd_expr_param(indices[0]);
+    } else {
+        // Dot product
+        expr = ptd_expr_dot(indices, coeffs, n_nonzero);
+    }
+
+    free(indices);
+    free(coeffs);
+    return expr;
 }
 
 /**

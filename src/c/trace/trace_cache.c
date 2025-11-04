@@ -33,6 +33,11 @@
 
 #include "trace_internal.h"
 
+// Debug printing macro
+#ifndef DEBUG_PRINT
+#define DEBUG_PRINT(...) do {} while(0)  // Disabled by default
+#endif
+
 int get_cache_dir(char *buffer, size_t buffer_size) {
     const char *home = getenv("HOME");
     if (home == NULL) {
@@ -120,6 +125,8 @@ struct ptd_elimination_trace *load_trace_from_cache(const char *hash_hex) {
     struct ptd_elimination_trace *trace = json_to_trace(json);
     free(json);
 
+    DEBUG_PRINT("INFO: loaded trace from cache\n");
+
     return trace;
 }
 
@@ -153,6 +160,8 @@ bool save_trace_to_cache(const char *hash_hex, const struct ptd_elimination_trac
     size_t written = fwrite(json, 1, len, f);
     fclose(f);
     free(json);
+
+    DEBUG_PRINT("INFO: saved trace to cache\n");
 
     return (written == len);
 }

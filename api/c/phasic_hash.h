@@ -125,18 +125,6 @@ struct ptd_hash_result *ptd_graph_hash_from_json(const char *json_str);
  */
 struct ptd_hash_result *ptd_hash_from_hex(const char *hex_str);
 
-/**
- * @brief Compute hash of parameterized edge structure
- *
- * Internal function for hashing individual parameterized edges.
- * Exported for testing purposes.
- *
- * @param edge Parameterized edge to hash
- * @param state_length Length of edge state vector
- * @return 64-bit hash of edge structure
- */
-uint64_t ptd_hash_parameterized_edge(const struct ptd_edge_parameterized *edge,
-                                     size_t state_length);
 
 #ifdef __cplusplus
 }

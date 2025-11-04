@@ -151,9 +151,15 @@ static int compare_edges(const void *a, const void *b) {
     ptrdiff_t diff = edge_a->to->index - edge_b->to->index;
     if (diff != 0) return (diff > 0) ? 1 : -1;
 
-    // Then by parameterized flag
-    if (edge_a->parameterized != edge_b->parameterized)
-        return edge_a->parameterized ? 1 : -1;
+    // Then by coefficient array length
+    if (edge_a->coefficients_length != edge_b->coefficients_length)
+        return (edge_a->coefficients_length > edge_b->coefficients_length) ? 1 : -1;
+
+    // Then by coefficient values (lexicographic order)
+    for (size_t i = 0; i < edge_a->coefficients_length; i++) {
+        if (edge_a->coefficients[i] < edge_b->coefficients[i]) return -1;
+        if (edge_a->coefficients[i] > edge_b->coefficients[i]) return 1;
+    }
 
     return 0;
 }
@@ -184,20 +190,10 @@ static uint64_t hash_vertex_structure(const struct ptd_vertex *vertex) {
         size_t target_idx = edge->to->index;
         sha256_update(&ctx, (const uint8_t *)&target_idx, sizeof(size_t));
 
-        // Hash edge type
-        uint8_t edge_type = edge->parameterized ? 1 : 0;
-        sha256_update(&ctx, &edge_type, 1);
-
-        // Hash parameterized edge structure (not values!)
-        if (edge->parameterized) {
-            struct ptd_edge_parameterized *param_edge =
-                (struct ptd_edge_parameterized *)edge;
-
-            // Hash the parameter coefficients pattern
-            if (param_edge->state != NULL) {
-                sha256_update(&ctx, (const uint8_t *)param_edge->state,
-                             vertex->graph->param_length * sizeof(double));
-            }
+        // Hash edge coefficients (all edges have coefficients)
+        if (edge->coefficients != NULL && edge->coefficients_length > 0) {
+            sha256_update(&ctx, (const uint8_t *)edge->coefficients,
+                         edge->coefficients_length * sizeof(double));
         }
     }
 
@@ -315,35 +311,6 @@ struct ptd_hash_result *ptd_hash_from_hex(const char *hex_str) {
     return result;
 }
 
-uint64_t ptd_hash_parameterized_edge(const struct ptd_edge_parameterized *edge,
-                                     size_t state_length) {
-    if (edge == NULL || !edge->parameterized) {
-        return 0;
-    }
-
-    sha256_context ctx;
-    sha256_init(&ctx);
-
-    // Hash target index
-    size_t target_idx = edge->to->index;
-    sha256_update(&ctx, (const uint8_t *)&target_idx, sizeof(size_t));
-
-    // Hash parameter coefficients
-    if (edge->state != NULL && state_length > 0) {
-        sha256_update(&ctx, (const uint8_t *)edge->state,
-                     state_length * sizeof(double));
-    }
-
-    uint8_t hash_bytes[32];
-    sha256_final(&ctx, hash_bytes);
-
-    uint64_t result = 0;
-    for (int i = 0; i < 8; i++) {
-        result = (result << 8) | hash_bytes[i];
-    }
-
-    return result;
-}
 
 struct ptd_hash_result *ptd_graph_hash_from_json(const char *json_str) {
     // For now, return NULL - full JSON parsing would require json-c or similar
