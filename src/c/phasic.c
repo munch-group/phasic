@@ -2469,7 +2469,16 @@ void ptd_edge_update_weight(
         struct ptd_edge *edge,
         double weight
 ) {
+    // Update weight
     edge->weight = weight;
+
+    // UNIFIED INTERFACE: Also update coefficients for constant edges
+    // For constant edges (coefficients_length == 1), maintain invariant: coefficients[0] == weight
+    // For parameterized edges (coefficients_length > 1), this function shouldn't be used -
+    // use ptd_graph_update_weights() instead
+    if (edge->coefficients_length == 1) {
+        edge->coefficients[0] = weight;
+    }
 
     if (edge->to->graph->reward_compute_graph != NULL) {
         free(edge->to->graph->reward_compute_graph->commands);
