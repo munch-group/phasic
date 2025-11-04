@@ -102,13 +102,25 @@ int ptd_directed_vertex_add(struct ptd_directed_graph *graph, struct ptd_directe
 
 void ptd_directed_vertex_destroy(struct ptd_directed_vertex *vertex);
 
+/**
+ * Edge mode for graph: determines whether edges are constant or parameterized.
+ * Mode is locked after first non-IPV edge is added to prevent mixing.
+ */
+enum ptd_edge_mode {
+    PTD_EDGE_MODE_UNLOCKED = 0,      // No non-IPV edges added yet
+    PTD_EDGE_MODE_CONSTANT = 1,       // All non-IPV edges are constant (scalar syntax)
+    PTD_EDGE_MODE_PARAMETERIZED = 2   // All non-IPV edges are parameterized (array syntax)
+};
+
 struct ptd_graph {
     size_t vertices_length;
     struct ptd_vertex **vertices;
     struct ptd_vertex *starting_vertex;
     size_t state_length;
-    size_t param_length;  // Length of parameter/edge state vectors
-    bool parameterized;
+    size_t param_length;  // Length of parameter/edge state vectors (set by first add_edge)
+    bool parameterized;   // true if param_length > 1
+    bool param_length_locked;  // true after first edge added
+    enum ptd_edge_mode edge_mode;  // Locked after first non-IPV edge added
     struct ptd_desc_reward_compute *reward_compute_graph;
     struct ptd_desc_reward_compute_parameterized *parameterized_reward_compute_graph;
     bool was_dph;
@@ -120,18 +132,10 @@ struct ptd_graph {
 
 struct ptd_edge {
     struct ptd_vertex *to;
-    double weight;
-    bool parameterized;
-};
-
-struct ptd_edge_parameterized {
-    struct ptd_vertex *to;
-    double weight;
-    bool parameterized;
-    double *state;
-    size_t state_length;  // Number of elements in state array
-    bool should_free_state;
-    // base_weight removed - starting edges are never parameterized
+    double weight;              // Current evaluated weight
+    double *coefficients;       // ALWAYS non-NULL, length = graph->param_length
+    size_t coefficients_length; // Always = graph->param_length
+    bool should_free_coefficients;
 };
 
 
@@ -167,15 +171,8 @@ void ptd_vertex_destroy(struct ptd_vertex *vertex);
 struct ptd_edge *ptd_graph_add_edge(
         struct ptd_vertex *from,
         struct ptd_vertex *to,
-        double weight
-);
-
-struct ptd_edge_parameterized *ptd_graph_add_edge_parameterized(
-        struct ptd_vertex *from,
-        struct ptd_vertex *to,
-        double weight,
-        double *edge_state,
-        size_t edge_state_length
+        double *coefficients,
+        size_t coefficients_length
 );
 
 void ptd_edge_update_weight(
@@ -192,16 +189,10 @@ void ptd_notify_change(
         struct ptd_graph *graph
 );
 
-void ptd_edge_update_weight_parameterized(
-        struct ptd_edge *edge,
-        double *scalars,
-        size_t scalars_length
-);
-
-void ptd_graph_update_weight_parameterized(
+void ptd_graph_update_weights(
         struct ptd_graph *graph,
-        double *scalars,
-        size_t scalars_length
+        double *params,
+        size_t params_length
 );
 
 double *ptd_normalize_graph(struct ptd_graph *graph);

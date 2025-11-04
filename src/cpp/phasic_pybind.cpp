@@ -1214,14 +1214,82 @@ PYBIND11_MODULE(phasic_pybind, m) {
     .def("__repr__",
       [](phasic::Graph &g) {
           return "<Graph (" + std::to_string(g.vertices_length()) + " vertices)>";
-      }, py::return_value_policy::move, 
+      }, py::return_value_policy::move,
       R"delim(
 
       )delim")
 
-    .def("update_parameterized_weights", &phasic::Graph::update_weights_parameterized,
-      py::arg("rewards"),
+    .def("param_length",
+      [](phasic::Graph &g) {
+          return g.c_graph()->param_length;
+      }, R"delim(
+      Get the parameter length of the graph (number of coefficients per edge).
+
+      Returns 0 if no edges have been added yet, otherwise returns the coefficient
+      length set by the first add_edge() call.
+
+      Returns
+      -------
+      int
+          Number of parameters/coefficients per edge
+      )delim")
+
+    .def("is_parameterized",
+      [](phasic::Graph &g) {
+          return g.c_graph()->parameterized;
+      }, R"delim(
+      Check if this graph uses parameterized edges (param_length > 1).
+
+      Returns
+      -------
+      bool
+          True if param_length > 1, False otherwise
+      )delim")
+
+    .def("update_weights", &phasic::Graph::update_weights_parameterized,
+      py::arg("params"),
       R"delim(
+    Updates all edge weights using the provided parameter vector.
+
+    For parameterized graphs (param_length > 1), computes new edge weights via:
+        edge.weight = dot(edge.coefficients, params)
+
+    For constant graphs (param_length = 1), params should be [1.0] or omitted.
+
+    Parameters
+    ----------
+    params : ArrayLike
+        Parameter vector matching graph.param_length()
+
+    Examples
+    --------
+    # Parameterized graph
+    graph = Graph(state_length=2)
+    v1 = graph.find_or_create_vertex([1, 0])
+    v2 = graph.find_or_create_vertex([0, 1])
+    v1.add_edge(v2, [2.0, 3.0])  # weight = 2.0*theta[0] + 3.0*theta[1]
+
+    graph.update_weights([1.0, 2.0])  # weight becomes 2.0*1.0 + 3.0*2.0 = 8.0
+    print(v1.edges()[0].weight())  # => 8.0
+      )delim")
+
+    .def("update_parameterized_weights",
+        [](phasic::Graph& self, std::vector<double> params) {
+            // Issue deprecation warning
+            py::module_ warnings = py::module_::import("warnings");
+            py::object DeprecationWarning = py::module_::import("builtins").attr("DeprecationWarning");
+            warnings.attr("warn")(
+                "update_parameterized_weights() is deprecated. Use update_weights() instead.",
+                DeprecationWarning
+            );
+
+            // Call the underlying method
+            self.update_weights_parameterized(params);
+        },
+        py::arg("rewards"),
+        R"delim(
+    DEPRECATED: Use update_weights() instead.
+
     Updates all parameterized edges of the graph by given scalars. Given a vector of scalars,
     computes a new weight of the parameterized edges in the graph by a simple inner product of
     the edge state vector and the scalar vector.
@@ -2861,33 +2929,77 @@ Computes the expected residence time of the phase-type distribution.
 
       )delim")
       
-    .def("add_edge", &phasic::Vertex::add_edge, py::arg("to"), py::arg("weight"), R"delim(
-    Adds an edge between two vertices in the graph.
+    .def("add_edge", [](phasic::Vertex& self, phasic::Vertex& to, py::object weight_or_coeffs) {
+        if (py::isinstance<py::float_>(weight_or_coeffs) || py::isinstance<py::int_>(weight_or_coeffs)) {
+            // Scalar: constant edge
+            double weight = weight_or_coeffs.cast<double>();
+            self.add_edge(to, weight);
 
-    The graph represents transitions between states as a weighted direction edge between two vertices.
+            // Check for errors (e.g., edge mode locking)
+            if (ptd_err[0] != '\0') {
+                std::string error_msg((const char*)ptd_err);
+                ptd_err[0] = '\0';  // Clear error
+                throw std::runtime_error(error_msg);
+            }
+        } else if (py::isinstance<py::list>(weight_or_coeffs) || py::isinstance<py::array>(weight_or_coeffs)) {
+            // Array: parameterized edge
+            std::vector<double> coeffs = weight_or_coeffs.cast<std::vector<double>>();
+            if (coeffs.empty()) {
+                throw std::invalid_argument("Edge coefficients cannot be empty");
+            }
+            self.add_edge_parameterized(to, 0.0, coeffs);
+
+            // Check for errors (e.g., edge mode locking)
+            if (ptd_err[0] != '\0') {
+                std::string error_msg((const char*)ptd_err);
+                ptd_err[0] = '\0';  // Clear error
+                throw std::runtime_error(error_msg);
+            }
+        } else {
+            throw std::invalid_argument(
+                "add_edge() expects either a scalar (float/int) or array-like (list/ndarray) argument"
+            );
+        }
+    }, py::arg("to"), py::arg("weight_or_coeffs"), R"delim(
+    Add an edge to another vertex with constant or parameterized weight.
 
     Parameters
     ----------
-    phase_type_vertex_from : SEXP
-        The vertex that transitions from.
-    phase_type_vertex_to : SEXP
-        The vertex that transitions to.
-    weight : double
-        The weight of the edge, i.e. the transition rate.
-    parameterized_edge_state : NumericVector, optional
-        Associate a numeric vector to an edge, for faster computations of moments when weights are changed.
+    to : Vertex
+        Target vertex
+    weight_or_coeffs : float or array-like
+        If scalar: constant edge weight (e.g., 3.0)
+        If array: coefficient vector for parameterized edge (e.g., [2.0, 9.0])
+
+    Returns
+    -------
+    Edge
+        The created edge
+
+    Notes
+    -----
+    All edges in a graph must use the same form (all scalar or all array).
+    The first call to add_edge() sets the mode for the entire graph.
 
     Examples
     --------
-    >>> graph <- create_graph(4)
-    >>> vertex_a <- find_or_create_vertex(graph, c(1,2,1,0))
-    >>> vertex_b <- find_or_create_vertex(graph, c(2,0,1,0))
-    >>> add_edge(vertex_a, vertex_b, 1.5)
+    >>> # Constant edge
+    >>> v.add_edge(target, 3.0)
+
+    >>> # Parameterized edge: weight = 2.0*theta[0] + 9.0*theta[1]
+    >>> v.add_edge(target, [2.0, 9.0])
       )delim")
 
-    .def("ae", &phasic::Vertex::add_edge, py::arg("to"), py::arg("weight"), R"delim(
-      Alias for add_edge
-      )delim")
+    .def("ae", [](phasic::Vertex& self, phasic::Vertex& to, py::object weight_or_coeffs) {
+        // Alias for add_edge
+        if (py::isinstance<py::float_>(weight_or_coeffs) || py::isinstance<py::int_>(weight_or_coeffs)) {
+            double weight = weight_or_coeffs.cast<double>();
+            self.add_edge(to, weight);
+        } else {
+            std::vector<double> coeffs = weight_or_coeffs.cast<std::vector<double>>();
+            self.add_edge_parameterized(to, 0.0, coeffs);
+        }
+    }, py::arg("to"), py::arg("weight_or_coeffs"), R"delim(Alias for add_edge)delim")
 
     .def("__repr__",
       [](phasic::Vertex &v) {
@@ -2913,7 +3025,23 @@ Computes the expected residence time of the phase-type distribution.
   
         )delim")
 
-    .def("add_edge_parameterized", &phasic::Vertex::add_edge_parameterized, py::arg("to"), py::arg("weight"), py::arg("edge_state"), R"delim(
+    .def("add_edge_parameterized",
+        [](phasic::Vertex& self, phasic::Vertex& to, double weight, std::vector<double> edge_state) {
+            // Issue deprecation warning
+            py::module_ warnings = py::module_::import("warnings");
+            py::object DeprecationWarning = py::module_::import("builtins").attr("DeprecationWarning");
+            warnings.attr("warn")(
+                "add_edge_parameterized() is deprecated. Use add_edge(to, [coefficients]) instead.",
+                DeprecationWarning
+            );
+
+            // Call the underlying method
+            self.add_edge_parameterized(to, weight, edge_state);
+        },
+        py::arg("to"), py::arg("weight"), py::arg("edge_state"),
+        R"delim(
+      DEPRECATED: Use add_edge(to, [coefficients]) instead.
+
       Adds an edge between two vertices in the graph.
       The graph represents transitions between states as a weighted directed edge between two vertices.
       Parameters

@@ -2163,6 +2163,7 @@ struct ptd_graph *ptd_graph_create(size_t state_length) {
     graph->param_length = 0;           // Set by first add_edge() call
     graph->parameterized = false;      // Set by first add_edge() call
     graph->param_length_locked = false; // Set by first add_edge() call
+    graph->edge_mode = PTD_EDGE_MODE_UNLOCKED;  // Locked by first non-IPV edge
     graph->vertices = NULL;
     graph->reward_compute_graph = NULL;
     graph->parameterized_reward_compute_graph = NULL;
@@ -2391,6 +2392,10 @@ struct ptd_edge *ptd_graph_add_edge(
         from->graph->param_length_locked = true;
     }
 
+    // NOTE: Edge mode locking is now handled in C++ layer (phasiccpp.cpp)
+    // The C++ add_edge() and add_edge_parameterized() methods set graph->edge_mode
+    // before calling this function.
+
     // Create edge
     struct ptd_edge *edge = (struct ptd_edge *)malloc(sizeof(*edge));
     if (edge == NULL) {
@@ -2520,6 +2525,23 @@ void ptd_graph_update_weights(
         double *params,
         size_t params_length
 ) {
+    // VALIDATION: Ensure graph has edges
+    if (graph->edge_mode == PTD_EDGE_MODE_UNLOCKED) {
+        snprintf((char*)ptd_err, sizeof(ptd_err),
+            "Cannot call update_weights() on empty graph (no edges added yet). "
+            "Add edges using add_edge() before calling update_weights().");
+        return;
+    }
+
+    // VALIDATION: Ensure graph is parameterized (not constant)
+    if (graph->edge_mode == PTD_EDGE_MODE_CONSTANT) {
+        snprintf((char*)ptd_err, sizeof(ptd_err),
+            "Cannot call update_weights() on constant graph. "
+            "Graph has constant edges (created with scalar syntax: add_edge(v, 3.0)). "
+            "Use parameterized edges (array syntax: add_edge(v, [3.0])) if you need to update weights.");
+        return;
+    }
+
     double *theta;
     size_t theta_len;
     bool need_free = false;

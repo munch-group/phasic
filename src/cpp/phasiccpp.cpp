@@ -238,6 +238,23 @@ void phasic::Vertex::add_edge(Vertex &to, double weight) {
         );
     }
 
+    // EDGE MODE LOCKING: Lock to CONSTANT mode on first non-IPV edge with scalar syntax
+    // IPV (starting vertex) edges don't affect mode locking
+    if (this->vertex != this->vertex->graph->starting_vertex) {
+        if (this->vertex->graph->edge_mode == PTD_EDGE_MODE_UNLOCKED) {
+            // First non-IPV edge: lock to CONSTANT mode
+            this->vertex->graph->edge_mode = PTD_EDGE_MODE_CONSTANT;
+        } else if (this->vertex->graph->edge_mode == PTD_EDGE_MODE_PARAMETERIZED) {
+            // Graph is locked to PARAMETERIZED, reject scalar syntax
+            throw std::runtime_error(
+                "Cannot mix constant and parameterized edges. "
+                "Graph mode is PARAMETERIZED (locked by first non-IPV edge using array syntax). "
+                "This edge uses scalar syntax. "
+                "Use add_edge(vertex, [coefficients]) for parameterized edges."
+            );
+        }
+    }
+
     graph.notify_change();
 
     // Constant edge: single-element coefficient array
@@ -255,6 +272,23 @@ void phasic::Vertex::add_edge_parameterized(Vertex &to, double weight, std::vect
         throw new std::invalid_argument(
                 "The edge to add is between the same vertex\n"
         );
+    }
+
+    // EDGE MODE LOCKING: Lock to PARAMETERIZED mode on first non-IPV edge with array syntax
+    // IPV (starting vertex) edges don't affect mode locking
+    if (this->vertex != this->vertex->graph->starting_vertex) {
+        if (this->vertex->graph->edge_mode == PTD_EDGE_MODE_UNLOCKED) {
+            // First non-IPV edge: lock to PARAMETERIZED mode
+            this->vertex->graph->edge_mode = PTD_EDGE_MODE_PARAMETERIZED;
+        } else if (this->vertex->graph->edge_mode == PTD_EDGE_MODE_CONSTANT) {
+            // Graph is locked to CONSTANT, reject array syntax
+            throw std::runtime_error(
+                "Cannot mix constant and parameterized edges. "
+                "Graph mode is CONSTANT (locked by first non-IPV edge using scalar syntax). "
+                "This edge uses array syntax. "
+                "Use add_edge(vertex, scalar) for constant edges."
+            );
+        }
     }
 
     size_t state_length = edge_state.size();
@@ -369,6 +403,13 @@ void phasic::Graph::update_weights_parameterized(std::vector<double> scalars) {
             &scalars[0],
             scalars.size()
     );
+
+    // Check if error occurred and throw exception
+    if (ptd_err[0] != '\0') {
+        std::string error_msg((const char*)ptd_err);
+        ptd_err[0] = '\0';  // Clear error
+        throw std::runtime_error(error_msg);
+    }
 
     notify_change();
 }
