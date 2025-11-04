@@ -141,6 +141,8 @@ def plot_graph(graph:GraphType,
         start_fillcolor = '#777777'
         abs_edgecolor = 'black'
         abs_fillcolor = '#777777'
+        aux_edgecolor = 'black'
+        aux_fillcolor = '#373737'
         bgcolor = '#1F1F1F'
         subgraph_label_fontcolor = '#e6e6e6'
         subgraph_bgcolor='#3F3F3F'
@@ -154,6 +156,8 @@ def plot_graph(graph:GraphType,
         start_fillcolor='#eeeeee'
         abs_edgecolor='black'
         abs_fillcolor='#eeeeee'
+        aux_edgecolor='black'
+        aux_fillcolor='#eeeeee'
         bgcolor='transparent'
         subgraph_label_fontcolor = 'black'
         subgraph_bgcolor='whitesmoke'
@@ -196,6 +200,9 @@ def plot_graph(graph:GraphType,
         if i == 0:
             dot.node(str(vertex.index()), 'S', 
                      style='filled', edge_color=start_edgecolor, fillcolor=start_fillcolor)
+        elif not vertex.state().sum() and vertex.rate() == 1 and len(vertex.edges()) == 1:
+            dot.node(str(vertex.index()), 'AUX', 
+                     style='filled', edge_color=aux_edgecolor, fillcolor=aux_fillcolor)
         elif not vertex.edges():
             dot.node(str(vertex.index()), ','.join(map(str, vertex.state())), 
                      style='filled', edge_color=abs_edgecolor, fillcolor=abs_fillcolor)
