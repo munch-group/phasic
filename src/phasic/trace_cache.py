@@ -216,6 +216,81 @@ def cleanup_old_traces(max_size_mb: float = 100.0, max_age_days: Optional[int] =
     return removed
 
 
+def verify_cache_working() -> Dict[str, any]:
+    """
+    Verify that trace cache is working correctly
+
+    Returns:
+        Dictionary with cache status:
+        - cache_dir: Path to cache directory
+        - exists: Whether cache directory exists
+        - writable: Whether we can write to cache
+        - readable: Whether we can read from cache
+        - test_passed: Whether test write/read succeeded
+        - error: Error message if any test failed
+        - disabled: Whether cache is disabled via environment variable
+
+    Example:
+        >>> from phasic.trace_cache import verify_cache_working
+        >>> status = verify_cache_working()
+        >>> if not status['test_passed']:
+        ...     print(f"Cache not working: {status['error']}")
+    """
+    import tempfile
+    import time
+
+    cache_dir = get_cache_dir()
+
+    status = {
+        "cache_dir": str(cache_dir),
+        "exists": False,
+        "writable": False,
+        "readable": False,
+        "test_passed": False,
+        "error": None,
+        "disabled": os.environ.get('PHASIC_DISABLE_CACHE') == '1'
+    }
+
+    if status["disabled"]:
+        status["error"] = "Cache disabled via PHASIC_DISABLE_CACHE=1"
+        return status
+
+    # Check if directory exists
+    if not cache_dir.exists():
+        try:
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            status["exists"] = True
+        except Exception as e:
+            status["error"] = f"Failed to create cache directory: {e}"
+            return status
+    else:
+        status["exists"] = True
+
+    # Check if writable
+    try:
+        test_file = cache_dir / f"test_{time.time()}.tmp"
+        with open(test_file, 'w') as f:
+            f.write("test")
+        status["writable"] = True
+
+        # Check if readable
+        with open(test_file, 'r') as f:
+            content = f.read()
+        if content == "test":
+            status["readable"] = True
+            status["test_passed"] = True
+        else:
+            status["error"] = "Cache read returned incorrect data"
+
+        # Cleanup
+        test_file.unlink()
+
+    except Exception as e:
+        status["error"] = f"Cache read/write test failed: {e}"
+
+    return status
+
+
 def save_trace_to_cache_python(graph, trace):
     """
     Save elimination trace to cache (Python-level)
@@ -223,6 +298,9 @@ def save_trace_to_cache_python(graph, trace):
     Args:
         graph: The graph that was eliminated
         trace: The recorded elimination trace
+
+    Raises:
+        RuntimeError: If cache save fails (unless PHASIC_DISABLE_CACHE=1)
     """
     # Compute hash from graph
     graph_data = graph.serialize()
@@ -249,10 +327,16 @@ def save_trace_to_cache_python(graph, trace):
 
     # Save trace JSON
     cache_dir = get_cache_dir()
-    cache_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        cache_dir.mkdir(parents=True, exist_ok=True)
+    except Exception as e:
+        raise RuntimeError(f"Failed to create cache directory {cache_dir}: {e}")
 
     cache_file = cache_dir / f"{hash_hex}.json"
 
     # Use existing save_trace_json function from trace_elimination
-    from .trace_elimination import save_trace_json
-    save_trace_json(trace, str(cache_file))
+    try:
+        from .trace_elimination import save_trace_json
+        save_trace_json(trace, str(cache_file))
+    except Exception as e:
+        raise RuntimeError(f"Failed to save trace to cache file {cache_file}: {e}")

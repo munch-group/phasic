@@ -739,12 +739,10 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
         }
     )
 
-    # Save trace to cache
-    try:
-        from .trace_cache import save_trace_to_cache_python
-        save_trace_to_cache_python(graph, trace)
-    except Exception:
-        pass  # Silently ignore cache errors
+    # NOTE: Caching is handled at C level in ptd_graph_update_weights()
+    # No need for Python-level caching - C level is more efficient
+    # Cache location: ~/.phasic_cache/traces/
+    # Disable cache: Set PHASIC_DISABLE_CACHE=1 environment variable
 
     return trace
 

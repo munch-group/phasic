@@ -897,9 +897,16 @@ error:
 static struct ptd_elimination_trace *load_trace_from_cache(const char *hash_hex) {
     if (hash_hex == NULL) return NULL;
 
+    // Check if cache is disabled via environment variable
+    const char *disable_cache = getenv("PHASIC_DISABLE_CACHE");
+    if (disable_cache != NULL && strcmp(disable_cache, "1") == 0) {
+        return NULL;  // Cache disabled
+    }
+
     // Get cache directory
     char cache_dir[PATH_MAX];
     if (get_cache_dir(cache_dir, sizeof(cache_dir)) != 0) {
+        DEBUG_PRINT("WARNING: Cache directory unavailable\n");
         return NULL;  // Cache directory unavailable
     }
 
@@ -956,10 +963,17 @@ static struct ptd_elimination_trace *load_trace_from_cache(const char *hash_hex)
 static bool save_trace_to_cache(const char *hash_hex, const struct ptd_elimination_trace *trace) {
     if (hash_hex == NULL || trace == NULL) return false;
 
+    // Check if cache is disabled via environment variable
+    const char *disable_cache = getenv("PHASIC_DISABLE_CACHE");
+    if (disable_cache != NULL && strcmp(disable_cache, "1") == 0) {
+        return false;  // Cache disabled
+    }
+
     // Get cache directory
     char cache_dir[PATH_MAX];
     if (get_cache_dir(cache_dir, sizeof(cache_dir)) != 0) {
-        return false;  // Silently fail if cache unavailable
+        DEBUG_PRINT("WARNING: Cache directory unavailable, cannot save trace\n");
+        return false;  // Cache unavailable
     }
 
     // Build cache file path
@@ -2563,7 +2577,14 @@ void ptd_graph_update_weights(
             graph->elimination_trace = ptd_record_elimination_trace(graph);
 
             if (graph->elimination_trace != NULL && hash != NULL) {
-                save_trace_to_cache(hash->hash_hex, graph->elimination_trace);
+                bool saved = save_trace_to_cache(hash->hash_hex, graph->elimination_trace);
+                if (saved) {
+                    DEBUG_PRINT("INFO: saved elimination trace to cache (%s)\n", hash->hash_hex);
+                } else {
+                    DEBUG_PRINT("WARNING: failed to save elimination trace to cache\n");
+                }
+            } else if (graph->elimination_trace != NULL && hash == NULL) {
+                DEBUG_PRINT("WARNING: trace recorded but hash is NULL, cannot cache\n");
             }
         }
 
@@ -10449,8 +10470,11 @@ struct ptd_elimination_trace *ptd_record_elimination_trace(struct ptd_graph *gra
         return NULL;
     }
 
-    if (!graph->parameterized) {
-        sprintf((char*)ptd_err, "Graph is not parameterized. Only parameterized graphs support trace recording.");
+    // Allow trace recording for graphs with coefficient arrays (param_length >= 1)
+    // This includes both single-parameter (param_length=1, is_parameterized=False)
+    // and multi-parameter (param_length>1, is_parameterized=True) graphs
+    if (graph->param_length < 1) {
+        sprintf((char*)ptd_err, "Graph has no parameters (param_length=0). Trace recording requires parameterized edges.");
         return NULL;
     }
 
