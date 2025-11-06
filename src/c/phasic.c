@@ -72,10 +72,6 @@ static size_t vector_length(struct ptd_vector *vector);
 
 static void vector_destroy(struct ptd_vector *vector);
 
-/* Forward declarations for trace cache functions */
-static struct ptd_elimination_trace *load_trace_from_cache(const char *hash_hex);
-static bool save_trace_to_cache(const char *hash_hex, const struct ptd_elimination_trace *trace);
-
 struct ptd_queue {
     struct ptd_ll *ll;
     struct ptd_ll *tail;
@@ -894,7 +890,7 @@ error:
  * @param hash_hex Hash of graph structure (hex string)
  * @return Trace if found in cache, NULL otherwise
  */
-static struct ptd_elimination_trace *load_trace_from_cache(const char *hash_hex) {
+struct ptd_elimination_trace *ptd_load_trace_from_cache(const char *hash_hex) {
     if (hash_hex == NULL) return NULL;
 
     // Check if cache is disabled via environment variable
@@ -960,7 +956,7 @@ static struct ptd_elimination_trace *load_trace_from_cache(const char *hash_hex)
  * @param trace Trace to save
  * @return true on success, false on error
  */
-static bool save_trace_to_cache(const char *hash_hex, const struct ptd_elimination_trace *trace) {
+bool ptd_save_trace_to_cache(const char *hash_hex, const struct ptd_elimination_trace *trace) {
     if (hash_hex == NULL || trace == NULL) return false;
 
     // Check if cache is disabled via environment variable
@@ -2791,7 +2787,7 @@ void ptd_graph_update_weights(
         struct ptd_hash_result *hash = ptd_graph_content_hash(graph);
 
         if (hash != NULL) {
-            graph->elimination_trace = load_trace_from_cache(hash->hash_hex);
+            graph->elimination_trace = ptd_load_trace_from_cache(hash->hash_hex);
             if (graph->elimination_trace != NULL) {
                 DEBUG_PRINT("INFO: loaded elimination trace from cache (%s)\n", hash->hash_hex);
             }
@@ -2802,7 +2798,7 @@ void ptd_graph_update_weights(
             graph->elimination_trace = ptd_record_elimination_trace(graph);
 
             if (graph->elimination_trace != NULL && hash != NULL) {
-                bool saved = save_trace_to_cache(hash->hash_hex, graph->elimination_trace);
+                bool saved = ptd_save_trace_to_cache(hash->hash_hex, graph->elimination_trace);
                 if (saved) {
                     DEBUG_PRINT("INFO: saved elimination trace to cache (%s)\n", hash->hash_hex);
                 } else {

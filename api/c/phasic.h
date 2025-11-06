@@ -679,6 +679,33 @@ void ptd_elimination_trace_destroy(struct ptd_elimination_trace *trace);
  */
 void ptd_trace_result_destroy(struct ptd_trace_result *result);
 
+/**
+ * Load elimination trace from disk cache
+ *
+ * Traces are stored in ~/.phasic_cache/traces/ as JSON files.
+ * The cache can be disabled by setting PHASIC_DISABLE_CACHE=1.
+ *
+ * @param hash_hex Hexadecimal hash string identifying the trace (64 chars)
+ * @return Loaded trace (caller must call ptd_elimination_trace_destroy), or NULL if not found
+ *
+ * Time complexity: O(n) where n = trace size (file I/O + JSON parsing)
+ */
+struct ptd_elimination_trace *ptd_load_trace_from_cache(const char *hash_hex);
+
+/**
+ * Save elimination trace to disk cache
+ *
+ * Traces are stored in ~/.phasic_cache/traces/ as JSON files.
+ * The cache can be disabled by setting PHASIC_DISABLE_CACHE=1.
+ *
+ * @param hash_hex Hexadecimal hash string identifying the trace (64 chars)
+ * @param trace The trace to save
+ * @return true on success, false on error or if cache is disabled
+ *
+ * Time complexity: O(n) where n = trace size (JSON serialization + file I/O)
+ */
+bool ptd_save_trace_to_cache(const char *hash_hex, const struct ptd_elimination_trace *trace);
+
 
 struct ptd_scc_graph {
     size_t vertices_length;

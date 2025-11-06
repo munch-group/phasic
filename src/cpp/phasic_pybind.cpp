@@ -2891,6 +2891,279 @@ Computes the expected residence time of the phase-type distribution.
       });
 
   // =========================================================================
+  // Trace Cache Functions
+  // =========================================================================
+
+  m.def("_c_load_trace_from_cache",
+      [](const std::string& hash_hex) -> uintptr_t {
+          struct ptd_elimination_trace *trace = ptd_load_trace_from_cache(hash_hex.c_str());
+          return reinterpret_cast<uintptr_t>(trace);
+      },
+      py::arg("hash_hex"),
+      R"delim(
+Load elimination trace from disk cache (internal).
+
+Loads a trace from ~/.phasic_cache/traces/<hash>.json using C JSON deserializer.
+Returns opaque pointer to C struct ptd_elimination_trace.
+
+Parameters
+----------
+hash_hex : str
+    64-character hexadecimal hash identifying the trace
+
+Returns
+-------
+int
+    Pointer to C trace struct (0 if not found or error)
+
+Notes
+-----
+- Caller must call _c_elimination_trace_destroy to free memory
+- Cache can be disabled via PHASIC_DISABLE_CACHE=1 environment variable
+- This is an internal function, use trace_serialization.load_trace_from_cache instead
+)delim");
+
+  m.def("_c_save_trace_to_cache",
+      [](const std::string& hash_hex, uintptr_t trace_ptr) -> bool {
+          if (trace_ptr == 0) {
+              return false;
+          }
+          struct ptd_elimination_trace *trace =
+              reinterpret_cast<struct ptd_elimination_trace*>(trace_ptr);
+          return ptd_save_trace_to_cache(hash_hex.c_str(), trace);
+      },
+      py::arg("hash_hex"),
+      py::arg("trace_ptr"),
+      R"delim(
+Save elimination trace to disk cache (internal).
+
+Saves a trace to ~/.phasic_cache/traces/<hash>.json using C JSON serializer.
+
+Parameters
+----------
+hash_hex : str
+    64-character hexadecimal hash identifying the trace
+trace_ptr : int
+    Pointer to C struct ptd_elimination_trace
+
+Returns
+-------
+bool
+    True on success, False on error or if cache disabled
+
+Notes
+-----
+- Cache can be disabled via PHASIC_DISABLE_CACHE=1 environment variable
+- This is an internal function, use trace_serialization.save_trace_to_cache instead
+)delim");
+
+  m.def("_c_elimination_trace_destroy",
+      [](uintptr_t trace_ptr) {
+          if (trace_ptr != 0) {
+              struct ptd_elimination_trace *trace =
+                  reinterpret_cast<struct ptd_elimination_trace*>(trace_ptr);
+              ptd_elimination_trace_destroy(trace);
+          }
+      },
+      py::arg("trace_ptr"),
+      R"delim(
+Free C elimination trace memory (internal).
+
+Destroys a C trace struct and frees all associated memory.
+
+Parameters
+----------
+trace_ptr : int
+    Pointer to C struct ptd_elimination_trace
+
+Notes
+-----
+- Must be called for every trace loaded from cache
+- Safe to call with 0 (NULL pointer)
+- This is an internal function
+)delim");
+
+  // Accessor functions for C trace struct fields
+  m.def("_c_trace_get_n_vertices",
+      [](uintptr_t trace_ptr) -> size_t {
+          if (trace_ptr == 0) return 0;
+          struct ptd_elimination_trace *trace =
+              reinterpret_cast<struct ptd_elimination_trace*>(trace_ptr);
+          return trace->n_vertices;
+      },
+      py::arg("trace_ptr"));
+
+  m.def("_c_trace_get_state_length",
+      [](uintptr_t trace_ptr) -> size_t {
+          if (trace_ptr == 0) return 0;
+          struct ptd_elimination_trace *trace =
+              reinterpret_cast<struct ptd_elimination_trace*>(trace_ptr);
+          return trace->state_length;
+      },
+      py::arg("trace_ptr"));
+
+  m.def("_c_trace_get_param_length",
+      [](uintptr_t trace_ptr) -> size_t {
+          if (trace_ptr == 0) return 0;
+          struct ptd_elimination_trace *trace =
+              reinterpret_cast<struct ptd_elimination_trace*>(trace_ptr);
+          return trace->param_length;
+      },
+      py::arg("trace_ptr"));
+
+  m.def("_c_trace_get_starting_vertex_idx",
+      [](uintptr_t trace_ptr) -> size_t {
+          if (trace_ptr == 0) return 0;
+          struct ptd_elimination_trace *trace =
+              reinterpret_cast<struct ptd_elimination_trace*>(trace_ptr);
+          return trace->starting_vertex_idx;
+      },
+      py::arg("trace_ptr"));
+
+  m.def("_c_trace_get_is_discrete",
+      [](uintptr_t trace_ptr) -> bool {
+          if (trace_ptr == 0) return false;
+          struct ptd_elimination_trace *trace =
+              reinterpret_cast<struct ptd_elimination_trace*>(trace_ptr);
+          return trace->is_discrete;
+      },
+      py::arg("trace_ptr"));
+
+  m.def("_c_trace_get_operations_length",
+      [](uintptr_t trace_ptr) -> size_t {
+          if (trace_ptr == 0) return 0;
+          struct ptd_elimination_trace *trace =
+              reinterpret_cast<struct ptd_elimination_trace*>(trace_ptr);
+          return trace->operations_length;
+      },
+      py::arg("trace_ptr"));
+
+  m.def("_c_trace_get_states",
+      [](uintptr_t trace_ptr) -> py::array_t<int> {
+          if (trace_ptr == 0) {
+              return py::array_t<int>();
+          }
+          struct ptd_elimination_trace *trace =
+              reinterpret_cast<struct ptd_elimination_trace*>(trace_ptr);
+
+          // Create numpy array (n_vertices, state_length)
+          auto result = py::array_t<int>({trace->n_vertices, trace->state_length});
+          auto buf = result.mutable_unchecked<2>();
+
+          for (size_t i = 0; i < trace->n_vertices; i++) {
+              for (size_t j = 0; j < trace->state_length; j++) {
+                  buf(i, j) = trace->states[i][j];
+              }
+          }
+          return result;
+      },
+      py::arg("trace_ptr"));
+
+  m.def("_c_trace_get_vertex_rates",
+      [](uintptr_t trace_ptr) -> py::array_t<size_t> {
+          if (trace_ptr == 0) {
+              return py::array_t<size_t>();
+          }
+          struct ptd_elimination_trace *trace =
+              reinterpret_cast<struct ptd_elimination_trace*>(trace_ptr);
+
+          auto result = py::array_t<size_t>(trace->n_vertices);
+          auto buf = result.mutable_unchecked<1>();
+
+          for (size_t i = 0; i < trace->n_vertices; i++) {
+              buf(i) = trace->vertex_rates[i];
+          }
+          return result;
+      },
+      py::arg("trace_ptr"));
+
+  m.def("_c_trace_get_edge_probs",
+      [](uintptr_t trace_ptr) -> py::list {
+          if (trace_ptr == 0) {
+              return py::list();
+          }
+          struct ptd_elimination_trace *trace =
+              reinterpret_cast<struct ptd_elimination_trace*>(trace_ptr);
+
+          py::list result;
+          for (size_t i = 0; i < trace->n_vertices; i++) {
+              py::list vertex_edges;
+              for (size_t j = 0; j < trace->edge_probs_lengths[i]; j++) {
+                  vertex_edges.append(trace->edge_probs[i][j]);
+              }
+              result.append(vertex_edges);
+          }
+          return result;
+      },
+      py::arg("trace_ptr"));
+
+  m.def("_c_trace_get_vertex_targets",
+      [](uintptr_t trace_ptr) -> py::list {
+          if (trace_ptr == 0) {
+              return py::list();
+          }
+          struct ptd_elimination_trace *trace =
+              reinterpret_cast<struct ptd_elimination_trace*>(trace_ptr);
+
+          py::list result;
+          for (size_t i = 0; i < trace->n_vertices; i++) {
+              py::list targets;
+              for (size_t j = 0; j < trace->vertex_targets_lengths[i]; j++) {
+                  targets.append(trace->vertex_targets[i][j]);
+              }
+              result.append(targets);
+          }
+          return result;
+      },
+      py::arg("trace_ptr"));
+
+  m.def("_c_trace_get_operation",
+      [](uintptr_t trace_ptr, size_t idx) -> py::dict {
+          if (trace_ptr == 0) {
+              return py::dict();
+          }
+          struct ptd_elimination_trace *trace =
+              reinterpret_cast<struct ptd_elimination_trace*>(trace_ptr);
+
+          if (idx >= trace->operations_length) {
+              throw std::out_of_range("Operation index out of range");
+          }
+
+          struct ptd_trace_operation *op = &trace->operations[idx];
+          py::dict result;
+
+          result["op_type"] = static_cast<int>(op->op_type);
+          result["const_value"] = op->const_value;
+          result["param_idx"] = op->param_idx;
+
+          // Coefficients
+          if (op->coefficients_length > 0 && op->coefficients != NULL) {
+              py::list coeffs;
+              for (size_t i = 0; i < op->coefficients_length; i++) {
+                  coeffs.append(op->coefficients[i]);
+              }
+              result["coefficients"] = coeffs;
+          } else {
+              result["coefficients"] = py::list();
+          }
+
+          // Operands
+          if (op->operands_length > 0 && op->operands != NULL) {
+              py::list operands;
+              for (size_t i = 0; i < op->operands_length; i++) {
+                  operands.append(op->operands[i]);
+              }
+              result["operands"] = operands;
+          } else {
+              result["operands"] = py::list();
+          }
+
+          return result;
+      },
+      py::arg("trace_ptr"),
+      py::arg("idx"));
+
+  // =========================================================================
   // Symbolic DAG Helper Functions - DISABLED
   // =========================================================================
   // These functions are disabled due to missing ptd_expr_* implementations

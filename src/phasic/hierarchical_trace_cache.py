@@ -42,26 +42,14 @@ def _get_cache_path(graph_hash: str) -> Path:
 
 def _load_trace_from_cache(graph_hash: str):
     """Load trace from cache (returns None if not found)"""
-    from .trace_elimination import EliminationTrace
-
-    cache_file = _get_cache_path(graph_hash)
-    if not cache_file.exists():
-        return None
-
-    # Use existing C-level cache loading
-    # (delegates to ptd_load_trace_from_cache)
-    from . import Graph
-    # TODO: Implement trace deserialization
-    # For now, return None to force recomputation
-    return None
+    from .trace_serialization import load_trace_from_cache
+    return load_trace_from_cache(graph_hash)
 
 
 def _save_trace_to_cache(graph_hash: str, trace) -> bool:
     """Save trace to cache (returns True on success)"""
-    # Use existing C-level cache saving
-    # (delegates to ptd_save_trace_to_cache)
-    # TODO: Implement trace serialization
-    return False
+    from .trace_serialization import save_trace_to_cache
+    return save_trace_to_cache(graph_hash, trace)
 
 
 # ============================================================================
