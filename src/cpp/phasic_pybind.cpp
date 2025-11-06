@@ -1191,7 +1191,7 @@ PYBIND11_MODULE(phasic_pybind, m) {
 
     }, py::return_value_policy::reference_internal)
 
-    .def("vertices_length", &phasic::Graph::vertices_length, 
+    .def("vertices_length", &phasic::Graph::vertices_length,
       py::return_value_policy::reference_internal, R"delim(
       Returns the number of vertices in the graph. This method is much faster than `len(Graph.vertices())`.
 
@@ -1199,6 +1199,16 @@ PYBIND11_MODULE(phasic_pybind, m) {
       -------
       int
           The number of vertices.
+      )delim")
+
+    .def("parameterized", &phasic::Graph::parameterized,
+      py::return_value_policy::reference_internal, R"delim(
+      Returns whether the graph is parameterized (has parameterized edges).
+
+      Returns
+      -------
+      bool
+          True if the graph has parameterized edges, False otherwise.
       )delim")
 
     .def("states", &_states,
@@ -3000,6 +3010,88 @@ Computes the expected residence time of the phase-type distribution.
             self.add_edge_parameterized(to, 0.0, coeffs);
         }
     }, py::arg("to"), py::arg("weight_or_coeffs"), R"delim(Alias for add_edge)delim")
+
+    .def("add_aux_vertex", [](phasic::Vertex& self, py::object rate) -> phasic::Vertex {
+        bool is_parameterized = self.c_vertex()->graph->parameterized;
+
+        if (py::isinstance<py::float_>(rate) || py::isinstance<py::int_>(rate)) {
+            // Scalar: constant rate
+            if (is_parameterized) {
+                throw std::invalid_argument(
+                    "Graph is parameterized. add_aux_vertex() requires array of coefficients, not scalar. "
+                    "Example: v.add_aux_vertex([2.0, 1.0])"
+                );
+            }
+            double rate_val = rate.cast<double>();
+            return self.add_aux_vertex(rate_val);
+
+        } else if (py::isinstance<py::list>(rate) || py::isinstance<py::array>(rate)) {
+            // Array: parameterized rate
+            if (!is_parameterized) {
+                throw std::invalid_argument(
+                    "Graph is not parameterized. add_aux_vertex() requires scalar rate, not array. "
+                    "Example: v.add_aux_vertex(3.0)"
+                );
+            }
+            std::vector<double> rate_coeffs = rate.cast<std::vector<double>>();
+            if (rate_coeffs.empty()) {
+                throw std::invalid_argument("Rate coefficients cannot be empty");
+            }
+            return self.add_aux_vertex(rate_coeffs);
+
+        } else {
+            throw std::invalid_argument(
+                "add_aux_vertex() expects either a scalar (float/int) or array-like (list/ndarray) argument"
+            );
+        }
+    }, py::arg("rate"), py::return_value_policy::reference_internal, R"delim(
+Add an auxiliary vertex with all-zero state for discrete graphs.
+
+Creates a new vertex with state [0, 0, ..., 0] and adds two edges:
+1. From aux vertex to this vertex with constant weight 1.0
+2. From this vertex to aux vertex with the given rate
+
+Auxiliary vertices are typically used in discrete graphs to model intermediate
+states and should be skipped during parameter updates.
+
+Parameters
+----------
+rate : float or array-like
+    If graph.parameterized() is True: coefficient vector (e.g., [2.0, 1.0])
+    If graph.parameterized() is False: constant rate (e.g., 3.0)
+
+Returns
+-------
+Vertex
+    The created auxiliary vertex (with all-zero state)
+
+Raises
+------
+ValueError
+    If rate type doesn't match graph parameterization mode
+
+Examples
+--------
+>>> # Non-parameterized graph
+>>> g = phasic.Graph(2)
+>>> v = g.find_or_create_vertex([1, 0])
+>>> aux = v.add_aux_vertex(3.0)
+>>> print(aux.state())  # [0, 0]
+
+>>> # Parameterized graph: rate = 2.0*theta[0] + 1.0*theta[1]
+>>> g = phasic.Graph(2)
+>>> v1 = g.find_or_create_vertex([1, 0])
+>>> v2 = g.find_or_create_vertex([2, 0])
+>>> v1.add_edge(v2, [1.0, 0.0])  # Lock to parameterized mode
+>>> aux = v1.add_aux_vertex([2.0, 1.0])
+>>> print(aux.state())  # [0, 0]
+
+Notes
+-----
+- The edge from aux to parent is always constant (weight 1.0)
+- The edge from parent to aux matches the graph's parameterization mode
+- Auxiliary vertices can be identified by their all-zero state
+)delim")
 
     .def("__repr__",
       [](phasic::Vertex &v) {

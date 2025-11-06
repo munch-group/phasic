@@ -1371,8 +1371,59 @@ def _setup_ctypes_signatures_from_arrays(lib, discrete=False):
 #         return wrapper
 #     return decorator
 
+def callback(ipv):
+    """
+    Turn callback functions with different signatures into a common one.
+    Also makes return the ipv when called with empty state.
+    """
+    if all(isinstance(x, int) for x in ipv):
+        ipv = [[ipv, 1.0]]
+
+    def decorator(func):
+       # @wraps(func) don't use wraps to be able to check if decorated from callable name
+        def wrapper(state=[], **kwargs):
+
+            assert not (ipv is None and (state is None or len(state) == 0)), "ipv must be provided if callback does not return it"
+            assert ipv is not None, "ipv must be provided when building with callback function"
+
+            # return initial probability vector if no state is provided
+            if state is None or len(state) == 0:
+                assert ipv is not None, "ipv must be provided if callback does not return it"
+                _, prob = zip(*ipv)
+                if sum(prob) != 1.0:
+                    raise ValueError("IPV does not sum to one", ipv)
+                return [[s, a, []] for s, a in ipv]               
+
+            try:
+                transitions = func(state, **kwargs)
+            except:
+                # to help user a bit now the function name is 'wrapper' because of no @wraps
+                print("Exception raised in callback function")
+                raise
+    
+            for t in transitions:
+                assert len(t[0]) == len(state), ("Returned state and input state must be same length", t[0], state)
+
+            # assert all(len(t[0]) == len(state) for t in transitions), ("ipv and state vectors must be same length", transitions, state)
+
+            # empty transitions for absorbing states
+            if not transitions:
+                return transitions
+            
+            # make sure returned types are correct
+            if isinstance(transitions[0][1], list) or isinstance(transitions[0][1], np.ndarray):
+                return [[list(map(int, s)), 0.0, a] for s, a in transitions]  
+            if isinstance(transitions[0][1], tuple):
+                assert "Use lists of lists not lists of tuples for transitions"
+            else:
+                return [[list(map(int, s)), float(a), []] for s, a in transitions]
+
+        return wrapper
+    return decorator
+
 class Graph(_Graph):
-    def __init__(self, state_length:int=None, callback:Callable=None, ipv=None, parameterized:bool=False, **kwargs):
+    # def __init__(self, state_length:int=None, callback:Callable=None, ipv:List[Union[List[int], List[Union[List[int], float]]]] = None, parameterized:bool=False, **kwargs):
+    def __init__(self, arg=None, ipv=None, **kwargs):
         """
         Create a graph representing a phase-type distribution. This is the primary entry-point of the library. A starting vertex will always be added to the graph upon initialization.
 
@@ -1395,43 +1446,38 @@ class Graph(_Graph):
         :
             A graph object representing a phase-type distribution.
         """
-        assert (callback is None) + (state_length is None) == 1, "Use either the state_length or callback argument"
+        if callable(arg):
+            # turn integer kwargs into float kwargs
+            for key, value in kwargs.items():
+                if isinstance(value, int):
+                    kwargs[key] = float(value)
 
-        def build_signature(ipv):
-            """
-            Turn callback functions with different signatures into a common one.
-            Also makes return the ipv when called with empty state.
-            """
-            def decorator(func):
-                @wraps(func)
-                def wrapper(state=[], **kwargs):
+            if arg.__name__ != 'wrapper':
+                assert ipv is not None, "When providing a function not decorated with @callback, the ipv argument must be provided"
+                arg = callback(ipv)(arg)
+            else:
+                assert ipv is None, "When providing a function decorated with @callback, the ipv argument is ignored and should not be provided"
 
-                    # assert not (ipv is None and (state is None or len(state) == 0)), "ipv must be provided if callback does not return it"
-                    assert ipv is not None, "ipv must be provided when building with callback function"
-
-                    if state is None or len(state) == 0:
-                        assert ipv is not None, "ipv must be provided if callback does not return it"
-                        _, prob = zip(*ipv)
-                        if sum(prob) != 1.0:
-                            raise ValueError("IPV does not sum to one")
-                        return [[s, a, []] for s, a in ipv]               
-
-                    transitions = func(state, **kwargs)
-                    assert all(len(t[0]) == len(state) for t in transitions), ("ipv and state vectors must be same length", ipv, state)
-
-                    if not transitions:
-                        return transitions
-                    if isinstance(transitions[0][1], float):
-                        return [[s, a, []] for s, a in transitions]
-                    else:
-                        return [[s, 0.0, a] for s, a in transitions]  
-                return wrapper
-            return decorator
-
-        if callback:
-            super().__init__(callback_tuples_parameterized=build_signature(ipv)(partial(callback, **kwargs)))
+            super().__init__(callback_tuples_parameterized=partial(arg, **kwargs))
+        elif isinstance(arg, int):
+            super().__init__(state_length=arg)
+        elif isinstance(arg, _Graph):
+            super().__init__(arg)
         else:
-            super().__init__(state_length)
+            raise ValueError("First argument must be either an integer state length or a callback function")
+
+        # assert (callback is None) + (state_length is None) == 1, "Use either the state_length or callback argument"
+
+        # # turn integer kwargs into float kwargs
+        # for key, value in kwargs.items():
+        #     if isinstance(value, int):
+        #         kwargs[key] = float(value)
+
+        # if callback:
+        #     # super().__init__(callback_tuples_parameterized=build_signature(ipv)(partial(callback, **kwargs)))
+        #     super().__init__(callback_tuples_parameterized=partial(callback, **kwargs))
+        # else:
+        #     super().__init__(state_length)
 
 
     # def make_discrete(self, mutation_rate, skip_states=[], skip_slots=[]):
@@ -1484,80 +1530,120 @@ class Graph(_Graph):
     #     rewards = np.transpose(rewards)
     #     return NamedTuple("DiscreteGraph", (mutation_graph, rewards))
 
+    def discretize(self, rate, **kwargs) -> Tuple[GraphType, np.ndarray]:
 
-    def discretize(self, reward_rate:float, skip_states:Sequence[int]=[], 
-                   skip_slots:Sequence[int]=[]) -> Tuple[GraphType, np.ndarray]:
-        """Creates a graph for a discrete distribution from a continuous one.
+        # if not callable(rate):
+        #     def rate_fn(state):
+        #         rate = rate
+        #         return rate
+        #     rate = rate_fn
 
-        Creates a graph augmented with auxiliary vertices and edges to represent the discrete distribution. 
+        # new_graph = self.copy()
+        vlength = self.vertices_length()
 
-        Parameters
-        ----------
-        reward_rate : 
-            Rate of discrete events.
-        skip_states : 
-            Vertex indices to not add auxiliary states to, by default []
-        skip_slots : 
-            State vector indices to not add rewards to, by default []
+        aux_indices = []
 
-        Returns
-        -------
-        :
-            A new graph and a matrix of rewards for computing marginal moments.
-
-        Examples
-        --------
-        
-        >>> from phasic import Graph
-        >>> def callback(state):
-        ...     return [(state[0] + 1, [(state[0], 1)])]
-        >>> g = Graph(callback=callback)
-        >>> g.discretize(0.1)
-        >>> a = [1, 2, 3]
-        >>> print([x + 3 for x in a])
-        [4, 5, 6]
-        >>> print("a\nb")
-        a
-        b            
-        """
-
-        new_graph = self.copy()
-
-        # save current nr of states in graph
-        vlength = new_graph.vertices_length()
-
-        state_vector_length = len(new_graph.vertex_at(1).state())
-
-        # record state vector fields for unit rewards
-        rewarded_state_vector_indexes = defaultdict(list)
-
-        # loop all but starting node
-        for i in range(1, vlength):
-            if i in skip_states:
+        for vertex in self.vertices():
+            if vertex.index() == self.starting_vertex().index() or not vertex.edges():
+                # skip starting and absorbing nodes
                 continue
-            vertex = new_graph.vertex_at(i)
-            if vertex.rate() > 0: # not absorbing
-                for j in range(state_vector_length):
-                    if j in skip_slots:
-                        continue
-                    val = vertex.state()[j]
-                    if val > 0: # only ones we may reward
-                        # add aux node
-                        mutation_vertex = new_graph.create_vertex(np.repeat(0, state_vector_length))
-                        mutation_vertex.add_edge(vertex, 1)
-                        vertex.add_edge(mutation_vertex, reward_rate*val)
-                        rewarded_state_vector_indexes[mutation_vertex.index()].append(j)
 
-        # normalize graph
-        weight_scaling = new_graph.normalize()
+            _rate = rate(vertex.state(), **kwargs) if callable(rate) else rate
+            aux_vertex = vertex.add_aux_vertex(_rate)
 
-        # build reward matrix
-        rewards = np.zeros((new_graph.vertices_length(), state_vector_length)).astype(int)
-        for state in rewarded_state_vector_indexes:
-            for i in rewarded_state_vector_indexes[state]:
-                rewards[state, i] = 1
-        rewards = np.transpose(rewards)
-        return new_graph, rewards
+            # aux_vertex = new_graph.create_vertex(np.repeat(0, new_graph.state_length()))
+            # if isinstance(_rate, (list, np.ndarray, jnp.ndarray)):
+            #     if not self.parameterized():
+            #         raise ValueError("Graph not parameterized!")
+            #     aux_vertex.add_edge(vertex, np.repeat(1.0, len(_rate)))                    
+            #     vertex.add_edge(aux_vertex, _rate)
+            # else:
+            #     aux_vertex.add_edge(vertex, 1)
+            #     vertex.add_edge(aux_vertex, _rate)
+                
+            aux_indices.append(aux_vertex.index())
+
+        rewards = np.zeros(vlength+len(aux_indices), dtype=int)
+        for index in aux_indices:
+            rewards[index] = 1
+
+        weight_scaling = self.normalize()
+
+        return rewards
+
+    # def discretize(self, reward_rate:float, skip_states:Sequence[int]=[], 
+    #                skip_slots:Sequence[int]=[]) -> Tuple[GraphType, np.ndarray]:
+    #     """Creates a graph for a discrete distribution from a continuous one.
+
+    #     Creates a graph augmented with auxiliary vertices and edges to represent the discrete distribution. 
+
+    #     Parameters
+    #     ----------
+    #     reward_rate : 
+    #         Rate of discrete events.
+    #     skip_states : 
+    #         Vertex indices to not add auxiliary states to, by default []
+    #     skip_slots : 
+    #         State vector indices to not add rewards to, by default []
+
+    #     Returns
+    #     -------
+    #     :
+    #         A new graph and a matrix of rewards for computing marginal moments.
+
+    #     Examples
+    #     --------
+        
+    #     >>> from phasic import Graph
+    #     >>> def callback(state):
+    #     ...     return [(state[0] + 1, [(state[0], 1)])]
+    #     >>> g = Graph(callback=callback)
+    #     >>> g.discretize(0.1)
+    #     >>> a = [1, 2, 3]
+    #     >>> print([x + 3 for x in a])
+    #     [4, 5, 6]
+    #     >>> print("a\nb")
+    #     a
+    #     b            
+    #     """
+
+        # new_graph = self.clone()
+
+        # # save current nr of states in graph
+        # vlength = new_graph.vertices_length()
+
+        # state_vector_length = len(new_graph.vertex_at(1).state())
+
+        # # record state vector fields for unit rewards
+        # rewarded_state_vector_indexes = defaultdict(list)
+
+        # # loop all but starting node
+        # for i in range(1, vlength):
+        #     if i in skip_states:
+        #         continue
+        #     vertex = new_graph.vertex_at(i)
+        #     if vertex.rate() > 0: # not absorbing
+        #         for j in range(state_vector_length):
+        #             if j in skip_slots:
+        #                 continue
+        #             val = vertex.state()[j]
+        #             if val > 0: # only ones we may reward
+        #                 # add aux node
+        #                 mutation_vertex = new_graph.create_vertex(np.repeat(0, state_vector_length))
+        #                 mutation_vertex.add_edge(vertex, 1)
+        #                 vertex.add_edge(mutation_vertex, reward_rate*val)
+        #                 rewarded_state_vector_indexes[mutation_vertex.index()].append(j)
+
+        # # normalize graph
+        # weight_scaling = new_graph.normalize()
+
+        # # build reward matrix
+        # rewards = np.zeros((new_graph.vertices_length(), state_vector_length)).astype(int)
+        # for state in rewarded_state_vector_indexes:
+        #     for i in rewarded_state_vector_indexes[state]:
+        #         rewards[state, i] = 1
+        # rewards = np.transpose(rewards)
+        # return new_graph, rewards
 
 
     def serialize(self, param_length: int = None) -> Dict[str, np.ndarray]:
@@ -3263,14 +3349,26 @@ extern "C" {{
     def copy(self) -> GraphType:
         """
         Returns a deep copy of the graph.
+
+        Creates an independent copy with all vertices, edges, and metadata.
+        Modifications to the copy will not affect the original graph.
+
+        Returns
+        -------
+        Graph
+            Deep copy of the graph
         """
-        return Graph(self.clone())
+        return self.clone()  # clone() already wraps in Graph(), don't double-wrap!
 
         # """
         # Takes a graph for a continuous distribution and turns
         # it into a descrete one (inplace). Returns a matrix of
         # rewards for computing marginal moments
         # """
+
+    def clone(self):
+        # super().clone() returns C++ _Graph, wrap it in Python Graph
+        return Graph(super().clone())
 
     # ========================================================================
     # Batch-Aware Methods (Phase 2: Auto-Parallelization)

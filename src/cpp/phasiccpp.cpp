@@ -215,6 +215,10 @@ size_t phasic::Graph::vertices_length() {
     return c_graph()->vertices_length;
 }
 
+bool phasic::Graph::parameterized() {
+    return c_graph()->parameterized;
+}
+
 phasic::PhaseTypeDistribution phasic::Graph::phase_type_distribution() {
     struct ptd_phase_type_distribution *matrix = ptd_graph_as_phase_type_distribution(this->rf_graph->graph);
 
@@ -308,6 +312,94 @@ void phasic::Vertex::add_edge_parameterized(Vertex &to, double weight, std::vect
     if (result == NULL) {
         throw std::runtime_error((char *) ptd_err);
     }
+}
+
+
+phasic::Vertex phasic::Vertex::add_aux_vertex(double rate) {
+    // Create all-zero state vector
+    size_t state_len = this->vertex->graph->state_length;
+    std::vector<int> zero_state(state_len, 0);
+
+    // create the aux vertex
+    Vertex aux = graph.create_vertex(zero_state);
+
+    // Edge 1: FROM aux TO this vertex with constant weight 1.0
+    // Create edge manually to bypass validation (always constant weight 1.0)
+    struct ptd_edge *edge1 = (struct ptd_edge *)malloc(sizeof(*edge1));
+    if (edge1 == NULL) {
+        throw std::runtime_error("Failed to allocate edge");
+    }
+
+    edge1->to = this->vertex;
+    edge1->weight = 1.0;
+    edge1->coefficients_length = 0;  // No coefficients - pure constant
+    edge1->coefficients = NULL;
+    edge1->should_free_coefficients = false;
+
+    // Add edge to aux vertex's edge list
+    struct ptd_edge **new_edges = (struct ptd_edge **)realloc(
+        aux.vertex->edges,
+        (aux.vertex->edges_length + 1) * sizeof(struct ptd_edge *)
+    );
+    if (new_edges == NULL) {
+        free(edge1);
+        throw std::runtime_error("Failed to allocate edge array");
+    }
+    aux.vertex->edges = new_edges;
+    aux.vertex->edges[aux.vertex->edges_length] = edge1;
+    aux.vertex->edges_length++;
+
+    // Edge 2: FROM this vertex TO aux with given rate (constant)
+    // Use normal add_edge for proper validation
+    this->add_edge(aux, rate);
+
+    graph.notify_change();
+
+    return aux;
+}
+
+
+phasic::Vertex phasic::Vertex::add_aux_vertex(std::vector<double> rate_coeffs) {
+    // Create all-zero state vector
+    size_t state_len = this->vertex->graph->state_length;
+    std::vector<int> zero_state(state_len, 0);
+
+    // create the aux vertex
+    Vertex aux = graph.create_vertex(zero_state);
+
+    // Edge 1: FROM aux TO this vertex with constant weight 1.0
+    // Create edge manually to bypass validation (always constant weight 1.0)
+    struct ptd_edge *edge1 = (struct ptd_edge *)malloc(sizeof(*edge1));
+    if (edge1 == NULL) {
+        throw std::runtime_error("Failed to allocate edge");
+    }
+
+    edge1->to = this->vertex;
+    edge1->weight = 1.0;
+    edge1->coefficients_length = 0;  // No coefficients - pure constant
+    edge1->coefficients = NULL;
+    edge1->should_free_coefficients = false;
+
+    // Add edge to aux vertex's edge list
+    struct ptd_edge **new_edges = (struct ptd_edge **)realloc(
+        aux.vertex->edges,
+        (aux.vertex->edges_length + 1) * sizeof(struct ptd_edge *)
+    );
+    if (new_edges == NULL) {
+        free(edge1);
+        throw std::runtime_error("Failed to allocate edge array");
+    }
+    aux.vertex->edges = new_edges;
+    aux.vertex->edges[aux.vertex->edges_length] = edge1;
+    aux.vertex->edges_length++;
+
+    // Edge 2: FROM this vertex TO aux with given rate (parameterized)
+    // Use normal add_edge_parameterized for proper validation
+    this->add_edge_parameterized(aux, 0.0, rate_coeffs);
+
+    graph.notify_change();
+
+    return aux;
 }
 
 

@@ -156,7 +156,7 @@ namespace phasic {
                 free(this->rf_graph->references);
             }
 
-            free(this->rf_graph);
+            free(this->rf_graph);  // Each Graph has its own rf_graph struct to free
         }
 
 
@@ -288,6 +288,8 @@ namespace phasic {
         Vertex *vertex_at_p(size_t index);
 
         size_t vertices_length();
+
+        bool parameterized();
 
         long double random_sample(std::vector<double> rewards = std::vector<double>()) {
             return ptd_random_sample(c_graph(), &rewards[0]);
@@ -816,6 +818,10 @@ namespace phasic {
         void add_edge(Vertex &to, double weight);
 
         void add_edge_parameterized(Vertex &to, double weight, std::vector<double> edge_state);
+
+        Vertex add_aux_vertex(double rate);
+
+        Vertex add_aux_vertex(std::vector<double> rate_coeffs);
 
         std::vector<int> state();
 

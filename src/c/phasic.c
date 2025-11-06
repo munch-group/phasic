@@ -1088,19 +1088,54 @@ struct ptd_clone_res ptd_clone_graph(struct ptd_graph *graph, struct ptd_avl_tre
 
         struct ptd_vertex *new_target = vertex_map[target_idx];
 
-        // Add edge with cloned coefficients
-        struct ptd_edge *new_edge = ptd_graph_add_edge(
-            new_start, new_target,
-            old_edge->coefficients,
-            old_edge->coefficients_length
-        );
-
+        // Clone starting vertex edge directly (bypass validation for IPV edges)
+        // IPV edges may have different coefficient lengths than regular edges
+        struct ptd_edge *new_edge = (struct ptd_edge *)malloc(sizeof(*new_edge));
         if (new_edge == NULL) {
             free(vertex_map);
             ptd_graph_destroy(new_graph);
-            snprintf((char*)ptd_err, sizeof(ptd_err), "Failed to clone starting vertex edge");
+            snprintf((char*)ptd_err, sizeof(ptd_err), "Failed to allocate edge");
             return res;
         }
+
+        new_edge->to = new_target;
+        new_edge->weight = old_edge->weight;
+        new_edge->coefficients_length = old_edge->coefficients_length;
+
+        if (old_edge->coefficients != NULL && old_edge->coefficients_length > 0) {
+            // Clone coefficients array
+            new_edge->coefficients = (double *)malloc(old_edge->coefficients_length * sizeof(double));
+            if (new_edge->coefficients == NULL) {
+                free(new_edge);
+                free(vertex_map);
+                ptd_graph_destroy(new_graph);
+                snprintf((char*)ptd_err, sizeof(ptd_err), "Failed to allocate edge coefficients");
+                return res;
+            }
+            memcpy(new_edge->coefficients, old_edge->coefficients, old_edge->coefficients_length * sizeof(double));
+            new_edge->should_free_coefficients = true;
+        } else {
+            // No coefficients (shouldn't happen with unified interface, but handle it)
+            new_edge->coefficients = NULL;
+            new_edge->should_free_coefficients = false;
+        }
+
+        // Add edge to starting vertex's edge list
+        struct ptd_edge **new_edges = (struct ptd_edge **)realloc(
+            new_start->edges,
+            (new_start->edges_length + 1) * sizeof(struct ptd_edge *)
+        );
+        if (new_edges == NULL) {
+            if (new_edge->should_free_coefficients) free(new_edge->coefficients);
+            free(new_edge);
+            free(vertex_map);
+            ptd_graph_destroy(new_graph);
+            snprintf((char*)ptd_err, sizeof(ptd_err), "Failed to resize edges array");
+            return res;
+        }
+        new_start->edges = new_edges;
+        new_start->edges[new_start->edges_length] = new_edge;
+        new_start->edges_length++;
     }
 
     // Clone all edges (skip starting vertex - already cloned above)
@@ -2547,16 +2582,22 @@ struct ptd_edge *ptd_graph_add_edge(
                 (unsigned long)coefficients_length);
             return NULL;
         }
-    } else {
+    } else if (from->index != from->graph->starting_vertex->index) {
         // First edge: set graph mode
         from->graph->param_length = coefficients_length;
-        from->graph->parameterized = (coefficients_length > 1);
         from->graph->param_length_locked = true;
     }
 
     // NOTE: Edge mode locking is now handled in C++ layer (phasiccpp.cpp)
     // The C++ add_edge() and add_edge_parameterized() methods set graph->edge_mode
     // before calling this function.
+
+    // Set parameterized flag based on edge_mode
+    if (from->graph->edge_mode == PTD_EDGE_MODE_PARAMETERIZED) {
+        from->graph->parameterized = true;
+    } else if (from->graph->edge_mode == PTD_EDGE_MODE_CONSTANT) {
+        from->graph->parameterized = false;
+    }
 
     // Create edge
     struct ptd_edge *edge = (struct ptd_edge *)malloc(sizeof(*edge));
@@ -2790,6 +2831,12 @@ void ptd_graph_update_weights(
 
         for (size_t j = 0; j < vertex->edges_length; j++) {
             struct ptd_edge *edge = vertex->edges[j];
+
+            // Skip edges with no coefficients (pure constant, like aux→parent edges)
+            // These edges have hardcoded weights and should never be rescaled
+            if (edge->coefficients_length == 0) {
+                continue;
+            }
 
             // Compute weight = dot(coefficients, theta)
             edge->weight = 0.0;
