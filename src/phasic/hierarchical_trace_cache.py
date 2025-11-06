@@ -296,11 +296,236 @@ def compute_missing_traces_parallel(work_units: Dict[str, str],
 
 
 # ============================================================================
-# Trace Stitching
+# Trace Stitching - Helper Functions
 # ============================================================================
 
-def stitch_scc_traces(scc_graph: 'SCCGraph',
-                     scc_trace_dict: Dict[str, 'EliminationTrace']) -> 'EliminationTrace':
+def _build_vertex_mappings(
+    scc_graph: 'SCCGraph',
+    scc_trace_dict: Dict[str, 'EliminationTrace']
+) -> Tuple[Dict[Tuple[int, int], int], Dict[int, int]]:
+    """
+    Build vertex mappings for stitching.
+
+    With the modified SCC decomposition, SCC 0 always contains only the
+    starting vertex, simplifying the mapping significantly.
+
+    Parameters
+    ----------
+    scc_graph : SCCGraph
+        SCC decomposition (with starting vertex isolated in SCC 0)
+    scc_trace_dict : Dict[str, EliminationTrace]
+        Traces for each SCC
+
+    Returns
+    -------
+    vertex_to_original : Dict[(scc_idx, scc_v_idx), orig_v_idx]
+        Maps SCC trace vertex indices to original graph indices
+    original_to_merged : Dict[orig_v_idx, merged_v_idx]
+        Maps original graph indices to merged trace indices
+    """
+    original_graph = scc_graph.original_graph()
+    sccs = scc_graph.sccs_in_topo_order()
+
+    vertex_to_original = {}
+    original_to_merged = {}
+    next_merged_idx = 0
+
+    for scc_idx, scc in enumerate(sccs):
+        scc_hash = scc.hash()
+        scc_trace = scc_trace_dict[scc_hash]
+
+        # Get original vertex indices for this SCC
+        # These are the actual vertices from the original graph
+        internal_indices = scc.internal_vertex_indices()
+
+        # The SCC subgraph (created by as_graph()) has:
+        # - Vertex 0: The subgraph's starting vertex
+        # - Vertices 1, 2, 3, ...: The internal vertices
+
+        for scc_v_idx in range(scc_trace.n_vertices):
+            if scc_v_idx == 0:
+                # Trace vertex 0 is the subgraph's starting vertex
+                # For SCC 0, this is the original starting vertex
+                # For other SCCs, this is a proxy - we'll map it to the first internal vertex
+                if scc_idx == 0:
+                    # SCC 0 contains only the starting vertex
+                    orig_v_idx = internal_indices[0]
+                else:
+                    # For other SCCs, the subgraph starting vertex is a proxy
+                    # It doesn't correspond to a real original vertex
+                    # We'll map it to the first internal vertex as a placeholder
+                    orig_v_idx = internal_indices[0] if len(internal_indices) > 0 else 0
+            elif scc_v_idx - 1 < len(internal_indices):
+                # Internal vertices: trace index 1, 2, 3, ... → internal_indices[0, 1, 2, ...]
+                orig_v_idx = internal_indices[scc_v_idx - 1]
+            else:
+                raise ValueError(f"Trace has more vertices than expected for SCC {scc_idx}")
+
+            # Record mapping
+            vertex_to_original[(scc_idx, scc_v_idx)] = orig_v_idx
+
+            # Assign merged index if not already assigned
+            if orig_v_idx not in original_to_merged:
+                original_to_merged[orig_v_idx] = next_merged_idx
+                next_merged_idx += 1
+
+    return vertex_to_original, original_to_merged
+
+
+def _remap_operation(op: 'Operation', op_offset: int) -> 'Operation':
+    """
+    Remap operation indices by adding offset.
+
+    Parameters
+    ----------
+    op : Operation
+        Original operation from SCC trace
+    op_offset : int
+        Offset to add to operation indices
+
+    Returns
+    -------
+    Operation
+        Remapped operation for merged trace
+    """
+    from .trace_elimination import Operation, OpType
+
+    if op.op_type == OpType.CONST:
+        # No remapping needed
+        return Operation(op_type=OpType.CONST, const_value=op.const_value)
+
+    elif op.op_type == OpType.PARAM:
+        # No remapping needed (references parameter array)
+        return Operation(op_type=OpType.PARAM, param_idx=op.param_idx)
+
+    elif op.op_type == OpType.DOT:
+        # Remap operands, preserve coefficients
+        return Operation(
+            op_type=OpType.DOT,
+            coefficients=list(op.coefficients),
+            operands=[idx + op_offset for idx in op.operands]
+        )
+
+    elif op.op_type in [OpType.ADD, OpType.MUL, OpType.DIV]:
+        # Remap both operands
+        return Operation(
+            op_type=op.op_type,
+            operands=[idx + op_offset for idx in op.operands]
+        )
+
+    elif op.op_type == OpType.INV:
+        # Remap single operand
+        return Operation(
+            op_type=OpType.INV,
+            operands=[op.operands[0] + op_offset]
+        )
+
+    elif op.op_type == OpType.SUM:
+        # Remap all operands
+        return Operation(
+            op_type=OpType.SUM,
+            operands=[idx + op_offset for idx in op.operands]
+        )
+
+    else:
+        raise ValueError(f"Unknown operation type: {op.op_type}")
+
+
+def _add_boundary_edges(
+    merged: 'EliminationTrace',
+    scc_graph: 'SCCGraph',
+    vertex_to_original: Dict[Tuple[int, int], int],
+    original_to_merged: Dict[int, int]
+) -> None:
+    """
+    Add boundary edges (edges crossing SCC boundaries).
+
+    Modifies merged trace in-place.
+
+    Parameters
+    ----------
+    merged : EliminationTrace
+        Merged trace being constructed
+    scc_graph : SCCGraph
+        SCC decomposition
+    vertex_to_original : Dict
+        Maps (scc_idx, scc_v_idx) to original vertex indices
+    original_to_merged : Dict
+        Maps original vertex indices to merged vertex indices
+    """
+    from .trace_elimination import Operation, OpType
+
+    original_graph = scc_graph.original_graph()
+    sccs = scc_graph.sccs_in_topo_order()
+
+    # Build set of internal states for each SCC
+    scc_vertex_sets = []
+    for scc_idx, scc in enumerate(sccs):
+        internal_states = set()
+        scc_subgraph = scc.as_graph()
+        for v_idx in range(scc_subgraph.vertices_length()):
+            v = scc_subgraph.vertex_at(v_idx)
+            internal_states.add(tuple(v.state()))
+        scc_vertex_sets.append(internal_states)
+
+    # Iterate through SCCs and find boundary edges
+    for scc_idx, scc in enumerate(sccs):
+        current_scc_states = scc_vertex_sets[scc_idx]
+
+        # Check each vertex in this SCC
+        for (map_scc_idx, _), orig_v_idx in vertex_to_original.items():
+            if map_scc_idx != scc_idx:
+                continue
+
+            # Get original vertex
+            orig_vertex = original_graph.vertex_at(orig_v_idx)
+            merged_v_idx = original_to_merged[orig_v_idx]
+
+            # Check each outgoing edge
+            for edge_idx in range(orig_vertex.edges_length()):
+                edge = orig_vertex.edge_at(edge_idx)
+                target_state = tuple(edge.target.state())
+
+                # Is this a boundary edge?
+                if target_state not in current_scc_states:
+                    # Get target merged index
+                    target_orig_vertex = original_graph.find_vertex(edge.target.state())
+                    target_orig_idx = target_orig_vertex.index()
+                    target_merged_idx = original_to_merged[target_orig_idx]
+
+                    # Create operation for edge weight
+                    if edge.is_parameterized():
+                        # Parameterized edge: DOT operation
+                        coeffs = list(edge.edge_state)
+                        param_indices = list(range(len(coeffs)))
+
+                        edge_op = Operation(
+                            op_type=OpType.DOT,
+                            coefficients=np.array(coeffs),
+                            operands=param_indices
+                        )
+                    else:
+                        # Constant edge: CONST operation
+                        edge_op = Operation(
+                            op_type=OpType.CONST,
+                            const_value=edge.weight
+                        )
+
+                    # Add operation and update trace
+                    op_idx = len(merged.operations)
+                    merged.operations.append(edge_op)
+                    merged.edge_probs[merged_v_idx].append(op_idx)
+                    merged.vertex_targets[merged_v_idx].append(target_merged_idx)
+
+
+# ============================================================================
+# Trace Stitching - Main Function
+# ============================================================================
+
+def stitch_scc_traces(
+    scc_graph: 'SCCGraph',
+    scc_trace_dict: Dict[str, 'EliminationTrace']
+) -> 'EliminationTrace':
     """
     Merge SCC traces in topological order.
 
@@ -323,17 +548,118 @@ def stitch_scc_traces(scc_graph: 'SCCGraph',
     - Adjusts operation indices during merge
 
     Algorithm:
-    1. Iterate SCCs in topological order
-    2. For each SCC, append its operations to merged trace
-    3. Adjust operation indices to account for previous operations
-    4. Handle boundary edges from previous SCCs to current SCC
-    5. Update vertex_rates, edge_probs, vertex_targets accordingly
-    """
-    from .trace_elimination import EliminationTrace, Operation, OpType, TraceBuilder
+    1. Build vertex mappings (SCC → original → merged)
+    2. Initialize merged trace
+    3. Process each SCC in topological order:
+       a. Remap and append operations
+       b. Copy and remap vertex data
+    4. Add boundary edges
+    5. Set starting vertex and return
 
-    # TODO: Implement trace stitching algorithm
-    # For now, raise NotImplementedError
-    raise NotImplementedError("Trace stitching not yet implemented")
+    Raises
+    ------
+    ValueError
+        If scc_trace_dict is empty or missing required traces
+    """
+    from .trace_elimination import EliminationTrace
+
+    # Validate inputs
+    if not scc_trace_dict:
+        raise ValueError("scc_trace_dict is empty")
+
+    original_graph = scc_graph.original_graph()
+    sccs = scc_graph.sccs_in_topo_order()
+
+    if len(sccs) == 0:
+        raise ValueError("Cannot stitch empty SCC graph")
+
+    # Check all SCC traces present
+    for scc in sccs:
+        if scc.hash() not in scc_trace_dict:
+            raise ValueError(f"Missing trace for SCC {scc.hash()}")
+
+    # Get first trace for metadata
+    first_trace = next(iter(scc_trace_dict.values()))
+
+    # Step 1: Build vertex mappings
+    vertex_to_original, original_to_merged = _build_vertex_mappings(
+        scc_graph, scc_trace_dict
+    )
+
+    # Step 2: Initialize merged trace
+    n_vertices_merged = len(original_to_merged)
+
+    merged = EliminationTrace(
+        operations=[],
+        vertex_rates=np.zeros(n_vertices_merged, dtype=np.int64),
+        edge_probs=[[] for _ in range(n_vertices_merged)],
+        vertex_targets=[[] for _ in range(n_vertices_merged)],
+        states=np.zeros(
+            (n_vertices_merged, first_trace.state_length),
+            dtype=first_trace.states.dtype
+        ),
+        starting_vertex_idx=0,  # Will be set later
+        n_vertices=n_vertices_merged,
+        state_length=first_trace.state_length,
+        param_length=first_trace.param_length,
+        reward_length=first_trace.reward_length,
+        is_discrete=first_trace.is_discrete,
+        metadata={}
+    )
+
+    # Step 3: Process each SCC in topological order
+    op_remap = {}  # (scc_idx, scc_op_idx) -> merged_op_idx
+
+    for scc_idx, scc in enumerate(sccs):
+        scc_hash = scc.hash()
+        scc_trace = scc_trace_dict[scc_hash]
+
+        # 3a. Remap and append operations
+        op_offset = len(merged.operations)
+
+        for scc_op_idx, operation in enumerate(scc_trace.operations):
+            # Remap operation indices
+            new_op = _remap_operation(operation, op_offset)
+            merged.operations.append(new_op)
+
+            # Record mapping
+            op_remap[(scc_idx, scc_op_idx)] = op_offset + scc_op_idx
+
+        # 3b. Copy and remap vertex data
+        for scc_v_idx in range(scc_trace.n_vertices):
+            orig_v_idx = vertex_to_original[(scc_idx, scc_v_idx)]
+            merged_v_idx = original_to_merged[orig_v_idx]
+
+            # Copy state
+            merged.states[merged_v_idx] = scc_trace.states[scc_v_idx]
+
+            # Remap vertex_rates
+            scc_rate_op_idx = scc_trace.vertex_rates[scc_v_idx]
+            if (scc_idx, scc_rate_op_idx) in op_remap:
+                merged.vertex_rates[merged_v_idx] = op_remap[(scc_idx, scc_rate_op_idx)]
+
+            # Remap edge_probs and vertex_targets
+            for j, scc_edge_op_idx in enumerate(scc_trace.edge_probs[scc_v_idx]):
+                # Remap edge operation
+                merged_edge_op_idx = op_remap[(scc_idx, scc_edge_op_idx)]
+                merged.edge_probs[merged_v_idx].append(merged_edge_op_idx)
+
+                # Remap target vertex
+                scc_target_v_idx = scc_trace.vertex_targets[scc_v_idx][j]
+                orig_target_v_idx = vertex_to_original[(scc_idx, scc_target_v_idx)]
+                merged_target_v_idx = original_to_merged[orig_target_v_idx]
+                merged.vertex_targets[merged_v_idx].append(merged_target_v_idx)
+
+    # Step 4: Add boundary edges
+    _add_boundary_edges(merged, scc_graph, vertex_to_original, original_to_merged)
+
+    # Step 5: Set starting vertex
+    starting_state = original_graph.starting_vertex().state()
+    starting_orig_vertex = original_graph.find_vertex(starting_state)
+    starting_orig_idx = starting_orig_vertex.index()
+    merged.starting_vertex_idx = original_to_merged[starting_orig_idx]
+
+    return merged
 
 
 # ============================================================================
