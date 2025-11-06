@@ -83,7 +83,10 @@ GraphType = TypeVar('Graph')
 
 
 def plot_graph(graph:GraphType, 
-               subgraphfun:Callable=None, max_nodes:int=100, 
+               subgraphfun:Callable=None, 
+               by_state:Callable=None, 
+               by_index:Callable=None, 
+               max_nodes:int=100, 
                theme:str=None,
                constraint:bool=True, ranksep:float=1, nodesep:float=1, rankdir:str="LR",
                size:tuple=(7, 7), fontsize:int=12, rainbow:bool=True, penwidth:FloatingPointError=1,
@@ -129,7 +132,13 @@ def plot_graph(graph:GraphType,
     # except:
     subprocess.check_call(['dot', '-c']) # register layout engine
 
-        
+    # backwards comp
+    if by_state is None and subgraphfun is not None:
+        by_state = subgraphfun
+
+    if by_state and by_index:
+        assert "Do not use both by_index and by_state"
+
     if theme is None:
         theme = _theme
 
@@ -142,10 +151,10 @@ def plot_graph(graph:GraphType,
         abs_edgecolor = 'black'
         abs_fillcolor = '#777777'
         aux_edgecolor = 'black'
-        aux_fillcolor = '#373737'
+        aux_fillcolor = '#3e3e3e'
         bgcolor = '#1F1F1F'
         subgraph_label_fontcolor = '#e6e6e6'
-        subgraph_bgcolor='#3F3F3F'
+        subgraph_bgcolor='#272727'
         husl_colors = _get_color(10, lightness=0.7)
     else:
         edge_color = '#009900'
@@ -206,16 +215,21 @@ def plot_graph(graph:GraphType,
         elif not vertex.edges():
             dot.node(str(vertex.index()), ','.join(map(str, vertex.state())), 
                      style='filled', edge_color=abs_edgecolor, fillcolor=abs_fillcolor)
-        elif subgraphfun is not None:
-            subgraphs[f'cluster_{subgraphfun(vertex.state())}'].append(i)
         else:
             dot.node(str(vertex.index()), ','.join(map(str, vertex.state())),
                      style='filled', edge_color=node_edgecolor, fillcolor=node_fillcolor)
-    if subgraphfun is not None:
+
+        if by_state:
+            subgraphs[f'cluster_{by_state(vertex.state())}'].append(i)
+        elif by_index:
+            subgraphs[f'cluster_{by_index(vertex.index())}'].append(i)
+
+    if by_state or by_index:
         for sglabel in subgraphs:
             subgraph_attr['label'] = sglabel.replace('cluster_', '')
             with dot.subgraph(name=sglabel, graph_attr=subgraph_attr) as c:
                 for i in subgraphs[sglabel]:
                     vertex = graph.vertex_at(i)
-                    c.node(str(vertex.index()), ','.join(map(str, vertex.state())))
+                    # c.node(str(vertex.index()), ','.join(map(str, vertex.state())))
+                    c.node(str(vertex.index()))
     return dot
