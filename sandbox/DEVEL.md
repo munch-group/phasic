@@ -61,15 +61,29 @@ Debugging in vscode offers a "R API" debugging mode. You need to have an open R 
 
 # TODO
 
-- clean up obsolete code
-- inline comments in all source code
-- all new doc strings
-- pybind11 docs
+
   
+double *ptd_normalize_graph(struct ptd_graph *graph) {
+
+or
+
+double *ptd_dph_normalize_graph(struct ptd_graph *graph) {
+
+
+Is elimination done before or after making it discrete?
+
+Graph should have a discrete = True/False attribute that gets set when it is transformed to discrete
+
+
+
 - new documentation pages
 
-Now we need to clean up code made obsolete by the new unified edge handling an by the new unified
-  elimination / trace / caching approach 
+
+Before we go on, we need to find the code made obsolete by the new unified edge handling an by the new
+  unified elimination / trace / caching approach. Package is not released, so no need for backwards
+  compatibility. You should only comment out the obsolete code with a comment what replaces it. I will
+  delete it myself later. Make sure that the full api example still runs with code commented out. To test
+  this, convert docs/pages/tutorials/rabbits_full_api_example.ipynb to a python script and run that as test. 
 
 
 I intend to implement an approach that integrates SCC computation, caching and trace recording. 
@@ -81,6 +95,16 @@ For a safer migration, I would like to fist change the existing c codebase so th
 -  different backends fit the intended interface to trace computation. 
 
 That way I can test that first, develop new approach, drop it in and iteratively test old vs new approach. I think it would make the interface be a function called trace_from_graph that takes an original graph and returns a non-rewarded trace. reward transformation should then be computed using the returned trace. The implementation of trace_from_graph and all SCC and caching related code should be in src/c/trace. To drop in a new trace backend, I would put the new implementation in another folder beside src/c/trace and just call trace_from_graph_new_version instead of trace_from_graph. Please make a plan for how to refactor the current code to accommodate this interface
+
+
+- inline comments in all source code
+- all new doc strings
+- pybind11 docs
+
+
+
+
+
 
 
 

@@ -9,7 +9,7 @@ print("="*70)
 
 # Test 1: Basic clone with starting vertex
 print("\nTest 1: Basic clone with starting vertex")
-g1 = Graph(state_length=1)
+g1 = Graph(1)
 v0 = g1.starting_vertex()
 v1 = g1.find_or_create_vertex([1])
 v0.add_edge(v1, 2.0)
@@ -26,7 +26,7 @@ print("  ✅ Test 1 PASSED: Basic clone is independent")
 
 # Test 2: Clone with multiple vertices and edges
 print("\nTest 2: Clone with multiple vertices and edges")
-g2 = Graph(state_length=1)
+g2 = Graph(1)
 v0 = g2.starting_vertex()
 v1 = g2.find_or_create_vertex([1])
 v2 = g2.find_or_create_vertex([2])
@@ -51,7 +51,7 @@ print("  ✅ Test 2 PASSED: Multi-vertex clone preserves structure")
 
 # Test 3: Clone with graph containing vertex [0] (besides starting vertex)
 print("\nTest 3: Clone with multiple [0] state vertices")
-g3 = Graph(state_length=1)
+g3 = Graph(1)
 v0 = g3.starting_vertex()
 v1 = g3.find_or_create_vertex([1])
 v2 = g3.find_or_create_vertex([0])  # Another vertex with state [0]!
@@ -78,7 +78,7 @@ print("  ✅ Test 3 PASSED: Multiple [0] vertices handled correctly")
 
 # Test 4: Python copy() method works
 print("\nTest 4: Python copy() method")
-g4 = Graph(state_length=1)
+g4 = Graph(1)
 v0 = g4.starting_vertex()
 v1 = g4.find_or_create_vertex([1])
 v0.add_edge(v1, 1.0)
