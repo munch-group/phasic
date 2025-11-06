@@ -2018,7 +2018,7 @@ Computes the expected residence time of the phase-type distribution.
     >>> phasic::state_length(graph) # => 4
       )delim")
       
-    .def("is_acyclic", &phasic::Graph::is_acyclic, 
+    .def("is_acyclic", &phasic::Graph::is_acyclic,
       py::return_value_policy::copy, R"delim(
     Checks if the graph is acyclic.
 
@@ -2058,7 +2058,28 @@ Computes the expected residence time of the phase-type distribution.
     >>> graph <- phasic::create_graph(4)
     >>> phasic::validate(graph)
       )delim")
-      
+
+    .def("scc_decomposition", &phasic::Graph::scc_decomposition, R"delim(
+    Compute strongly connected component decomposition.
+
+    Decomposes this graph into SCCs (strongly connected components).
+    Returns a condensation graph where each vertex represents an SCC.
+
+    Returns
+    -------
+    SCCGraph
+        SCC decomposition (always a DAG)
+
+    Examples
+    --------
+    >>> graph = Graph(5)
+    >>> # ... build graph ...
+    >>> scc_graph = graph.scc_decomposition()
+    >>> print(f"Found {scc_graph.n_sccs()} SCCs")
+    >>> for scc in scc_graph.sccs_in_topo_order():
+    >>>     print(f"SCC {scc.index()}: {scc.size()} vertices")
+      )delim")
+
     // .def("expectation_dag", static_cast<phasic::Graph (phasic::Graph::*)(std::vector<double>)>(&phasic::Graph::expectation_dag), py::arg("rewards"), 
     //   py::return_value_policy::reference_internal, R"delim(
     // Computes the expectation of the directed acyclic graph (DAG) representation of the phase-type distribution.
@@ -2819,6 +2840,55 @@ Computes the expected residence time of the phase-type distribution.
       )delim")
 
     ;
+
+  // =========================================================================
+  // SCCVertex bindings
+  // =========================================================================
+  py::class_<phasic::SCCVertex>(m, "SCCVertex",
+      "Strongly connected component vertex (one SCC in condensation graph)")
+      .def("size", &phasic::SCCVertex::size,
+           "Number of vertices in this SCC")
+      .def("index", &phasic::SCCVertex::index,
+           "Index of this SCC in parent graph")
+      .def("as_graph", &phasic::SCCVertex::as_graph,
+           "Extract this SCC as a standalone Graph object")
+      .def("internal_vertex_indices", &phasic::SCCVertex::internal_vertex_indices,
+           "Get indices of internal vertices in original graph")
+      .def("hash", &phasic::SCCVertex::hash,
+           "Compute content hash of this SCC subgraph")
+      .def("outgoing_scc_edges", &phasic::SCCVertex::outgoing_scc_edges,
+           "Get indices of target SCCs for outgoing edges")
+      .def("__len__", &phasic::SCCVertex::size)
+      .def("__repr__", [](const phasic::SCCVertex& v) {
+          return "<SCCVertex index=" + std::to_string(v.index()) +
+                 " size=" + std::to_string(v.size()) + ">";
+      });
+
+  // =========================================================================
+  // SCCGraph bindings
+  // =========================================================================
+  py::class_<phasic::SCCGraph>(m, "SCCGraph",
+      "SCC decomposition of a graph (condensation/quotient graph)")
+      .def("n_sccs", &phasic::SCCGraph::n_sccs,
+           "Number of strongly connected components")
+      .def("scc_at", &phasic::SCCGraph::scc_at,
+           py::return_value_policy::reference_internal,
+           "Get SCC vertex by index")
+      .def("sccs_in_topo_order", &phasic::SCCGraph::sccs_in_topo_order,
+           "Get all SCCs in topological order")
+      .def("scc_sizes", &phasic::SCCGraph::scc_sizes,
+           "Get sizes (vertex counts) of all SCCs")
+      .def("original_graph", &phasic::SCCGraph::original_graph,
+           py::return_value_policy::reference_internal,
+           "Get reference to original graph")
+      .def("scc_hashes", &phasic::SCCGraph::scc_hashes,
+           "Compute content hashes for all SCCs")
+      .def("__len__", &phasic::SCCGraph::n_sccs)
+      .def("__getitem__", &phasic::SCCGraph::scc_at,
+           py::return_value_policy::reference_internal)
+      .def("__repr__", [](const phasic::SCCGraph& g) {
+          return "<SCCGraph n_sccs=" + std::to_string(g.n_sccs()) + ">";
+      });
 
   // =========================================================================
   // Symbolic DAG Helper Functions - DISABLED

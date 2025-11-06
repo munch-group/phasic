@@ -34,7 +34,7 @@ install(FILES api/c/phasic.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
         
 # NOTE: phasic_symbolic.c commented out due to missing function implementations
-add_library(libphasiccpp SHARED api/c/phasic.h src/c/phasic.c src/c/phasic_hash.c src/c/phasic.h src/cpp/phasiccpp.cpp api/cpp/phasiccpp.h src/cpp/phasiccpp.h)
+add_library(libphasiccpp SHARED api/c/phasic.h src/c/phasic.c src/c/phasic_hash.c src/c/phasic.h src/cpp/phasiccpp.cpp api/cpp/phasiccpp.h api/cpp/scc_graph.cpp api/cpp/scc_graph.h src/cpp/phasiccpp.h)
 set_target_properties(libphasiccpp PROPERTIES
         VERSION ${PROJECT_VERSION}
         SOVERSION 1
@@ -110,6 +110,8 @@ set(PYBIND_SOURCES
     src/c/phasic.h
     src/cpp/phasiccpp.cpp
     api/cpp/phasiccpp.h
+    api/cpp/scc_graph.cpp
+    api/cpp/scc_graph.h
     src/cpp/phasiccpp.h
     src/cpp/parameterized/graph_builder.cpp
     src/cpp/parameterized/graph_builder.hpp

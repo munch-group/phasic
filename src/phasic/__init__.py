@@ -214,7 +214,7 @@ from .phasic_pybind import Graph as _Graph
 from .phasic_pybind import Vertex, Edge
 
 from . import plot
-from .plot import set_theme
+from .plot import set_theme, phasic_theme
 
 # Optional SVGD support (requires JAX)
 if HAS_JAX:
@@ -3369,6 +3369,56 @@ extern "C" {{
     def clone(self):
         # super().clone() returns C++ _Graph, wrap it in Python Graph
         return Graph(super().clone())
+
+    def compute_trace(self, param_length: Optional[int] = None,
+                     hierarchical: bool = False,
+                     min_size: int = 50,
+                     parallel: str = 'auto'):
+        """
+        Compute elimination trace with optional hierarchical caching.
+
+        Parameters
+        ----------
+        param_length : int, optional
+            Number of parameters (auto-detect if None)
+        hierarchical : bool, default=False
+            If True, use hierarchical SCC-based caching for large graphs.
+            If False, use simple caching (existing behavior).
+            Recommended for graphs with >500 vertices.
+        min_size : int, default=50
+            Minimum vertices to subdivide (only used if hierarchical=True)
+        parallel : str, default='auto'
+            Parallelization: 'auto', 'vmap', 'pmap', or 'sequential'
+
+        Returns
+        -------
+        EliminationTrace
+            Elimination trace (from cache or computed)
+
+        Examples
+        --------
+        >>> # Small graph - use simple cache
+        >>> graph = Graph(callback=model, nr_samples=5)
+        >>> trace = graph.compute_trace()
+        >>>
+        >>> # Large graph - use hierarchical cache
+        >>> large_graph = Graph(callback=model, nr_samples=100)
+        >>> trace = large_graph.compute_trace(hierarchical=True)
+        >>>
+        >>> # Force vmap for multi-CPU
+        >>> trace = large_graph.compute_trace(hierarchical=True, parallel='vmap')
+        """
+        if hierarchical:
+            from .hierarchical_trace_cache import get_trace_hierarchical
+            return get_trace_hierarchical(
+                self,
+                param_length=param_length,
+                min_size=min_size,
+                parallel_strategy=parallel
+            )
+        else:
+            from .trace_elimination import record_elimination_trace
+            return record_elimination_trace(self, param_length=param_length)
 
     # ========================================================================
     # Batch-Aware Methods (Phase 2: Auto-Parallelization)

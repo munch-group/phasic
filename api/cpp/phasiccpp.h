@@ -33,6 +33,7 @@
 #include <iterator> 
 
 #include "../c/phasic.h"
+#include "scc_graph.h"
 
 namespace phasic {
     struct rf_graph {
@@ -384,7 +385,7 @@ namespace phasic {
             return res->index;
         }
 
-        size_t state_length() {
+        size_t state_length() const {
             return c_graph()->state_length;
         }
 
@@ -398,6 +399,34 @@ namespace phasic {
             if (ptd_validate_graph(c_graph())) {
                 throw std::runtime_error((char *) ptd_err);
             }
+        }
+
+        /**
+         * @brief Compute strongly connected component decomposition
+         *
+         * Decomposes this graph into SCCs (strongly connected components).
+         * Returns a condensation graph where each vertex represents an SCC.
+         *
+         * @return SCCGraph object (always a DAG)
+         *
+         * @example
+         * @code
+         * Graph g(5);
+         * // ... build graph ...
+         *
+         * SCCGraph scc = g.scc_decomposition();
+         * for (const auto& component : scc.sccs_in_topo_order()) {
+         *     std::cout << "SCC with " << component.size() << " vertices\n";
+         * }
+         * @endcode
+         */
+        SCCGraph scc_decomposition() {
+            // Access rf_graph->graph directly to avoid const overload resolution issue
+            struct ptd_scc_graph* scc_c = ptd_find_strongly_connected_components(rf_graph->graph);
+            if (!scc_c) {
+                throw std::runtime_error("Graph::scc_decomposition: failed to compute SCC");
+            }
+            return SCCGraph(scc_c);
         }
 
         // Graph expectation_dag(std::vector<double> rewards = std::vector<double>());
@@ -762,6 +791,10 @@ namespace phasic {
         }
 
         struct ptd_graph *c_graph() {
+            return rf_graph->graph;
+        }
+
+        const struct ptd_graph *c_graph() const {
             return rf_graph->graph;
         }
 
