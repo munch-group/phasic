@@ -911,21 +911,46 @@ PYBIND11_MODULE(phasic_pybind, m) {
     // .def(py::init(&MatrixRepresentation::init_factory))
       
     .def(py::init<const MatrixRepresentation>(), py::arg("graph"), R"delim(
+Construct MatrixRepresentation from a Graph object.
 
+Parameters
+----------
+graph : Graph
+    The phase-type graph to convert to matrix representation.
       )delim")
 
     .def_readwrite("states", &MatrixRepresentation::states, R"delim(
+State matrix where each row represents a vertex state.
 
+Returns
+-------
+iMatrix
+    Integer matrix of size (n_vertices, state_length).
       )delim")
       
     .def_readwrite("sim", &MatrixRepresentation::sim, R"delim(
+Sub-intensity matrix of the phase-type distribution.
 
+Returns
+-------
+dMatrix
+    Float matrix of size (n_vertices, n_vertices) representing transition rates.
       )delim")
     .def_readwrite("ipv", &MatrixRepresentation::ipv, R"delim(
+Initial probability vector of the phase-type distribution.
 
+Returns
+-------
+list of float
+    Vector of length n_vertices with initial probabilities.
       )delim")
     .def_readwrite("indices", &MatrixRepresentation::indices, R"delim(
+Vertex indices mapping matrix rows to graph vertices.
 
+Returns
+-------
+list of int
+    Vector of length n_vertices with 1-indexed vertex numbers.
       )delim")
   ;            
 
@@ -963,7 +988,16 @@ PYBIND11_MODULE(phasic_pybind, m) {
     // for jax interface
     .def("pointer", [](phasic::Graph* self) -> uintptr_t {
         return reinterpret_cast<uintptr_t>(self);
-    })
+    }, R"delim(
+Get memory address of the Graph object as an integer.
+
+Used internally for JAX FFI integration.
+
+Returns
+-------
+int
+    Memory address as unsigned integer.
+      )delim")
     ///////////////////////////////////////////////////////
 
 
@@ -1096,12 +1130,19 @@ PYBIND11_MODULE(phasic_pybind, m) {
           The found vertex in the graph or None.
       )delim")
       
-    .def("vertex_exists", static_cast<bool (phasic::Graph::*)(std::vector<int>)>(&phasic::Graph::vertex_exists), py::arg("state"), 
+    .def("vertex_exists", static_cast<bool (phasic::Graph::*)(std::vector<int>)>(&phasic::Graph::vertex_exists), py::arg("state"),
       py::return_value_policy::reference_internal, R"delim(
+Check if a vertex with the given state exists in the graph.
 
+Parameters
+----------
+state : list of int
+    Integer sequence defining the state to search for.
 
-
-
+Returns
+-------
+bool
+    True if vertex exists, False otherwise.
       )delim")
       
     .def("find_or_create_vertex", static_cast<phasic::Vertex (phasic::Graph::*)(std::vector<int>)>(&phasic::Graph::find_or_create_vertex), py::arg("state"), 
@@ -1189,7 +1230,19 @@ PYBIND11_MODULE(phasic_pybind, m) {
     .def("vertex_at",[](phasic::Graph &graph, double index) {
       return graph.vertex_at_p((int) index);
 
-    }, py::return_value_policy::reference_internal)
+    }, py::return_value_policy::reference_internal, R"delim(
+Get vertex at given index (float overload).
+
+Parameters
+----------
+index : float
+    Vertex index (will be cast to int).
+
+Returns
+-------
+Vertex
+    The vertex at the given index.
+      )delim")
 
     .def("vertices_length", &phasic::Graph::vertices_length,
       py::return_value_policy::reference_internal, R"delim(
@@ -1226,7 +1279,12 @@ PYBIND11_MODULE(phasic_pybind, m) {
           return "<Graph (" + std::to_string(g.vertices_length()) + " vertices)>";
       }, py::return_value_policy::move,
       R"delim(
+String representation of the Graph object.
 
+Returns
+-------
+str
+    String in format "<Graph (N vertices)>".
       )delim")
 
     .def("param_length",
@@ -3275,11 +3333,15 @@ Notes
   // =========================================================================
 
   py::class_<phasic::Vertex>(m, "Vertex", R"delim(
+Represents a vertex (state) in a phase-type graph.
 
+Each vertex has an integer state vector and can have outgoing edges to other vertices.
       )delim")
 
     .def(py::init(&phasic::Vertex::init_factory), R"delim(
+Create a Vertex object (internal use).
 
+Users should use Graph.find_or_create_vertex() instead.
       )delim")
       
     .def("add_edge", [](phasic::Vertex& self, phasic::Vertex& to, py::object weight_or_coeffs) {
@@ -3449,7 +3511,12 @@ Notes
         s << ")";
         return s.str();
       }, R"delim(
+String representation of the vertex showing its state.
 
+Returns
+-------
+str
+    State as comma-separated integers in parentheses, e.g., "(1,2,0)".
       )delim")
 
     .def("index",
@@ -3457,7 +3524,12 @@ Notes
           int idx = v.vertex->index; // why is index not already an int?
           return  idx;
         }, py::return_value_policy::copy, R"delim(
-  
+Get the vertex index in the parent graph.
+
+Returns
+-------
+int
+    Zero-based index of this vertex in the graph.
         )delim")
 
     .def("add_edge_parameterized",
@@ -3510,9 +3582,14 @@ Notes
           auto a = new std::vector<int>(v.state());
           auto capsule = py::capsule(a, [](void *a) { delete reinterpret_cast<std::vector<int>*>(a); });
           return py::array(a->size(), a->data(), capsule);
-        }, py::return_value_policy::copy, 
+        }, py::return_value_policy::copy,
         R"delim(
+Get the state vector of this vertex.
 
+Returns
+-------
+ndarray
+    Integer array representing the state (zero-copy).
       )delim")
 
     // .def("state", &phasic::Vertex::state, 
@@ -3557,26 +3634,45 @@ Notes
     .def(py::self == py::self)
     .def("__assign__", [](phasic::Vertex &v, const phasic::Vertex &o) {
           return v = o;
-    }, py::is_operator(), 
+    }, py::is_operator(),
     py::return_value_policy::move, R"delim(
+Assignment operator for Vertex objects.
 
+Parameters
+----------
+other : Vertex
+    The vertex to assign from.
+
+Returns
+-------
+Vertex
+    Reference to this vertex.
       )delim")
       
     // .def("c_vertex", &phasic::Vertex::c_vertex, R"delim(
 
     //   )delim")
       
-    .def("rate", &phasic::Vertex::rate, 
+    .def("rate", &phasic::Vertex::rate,
       py::return_value_policy::reference_internal, R"delim(
+Get the total exit rate from this vertex.
 
+The sum of all outgoing edge weights.
+
+Returns
+-------
+float
+    Total rate of leaving this vertex.
       )delim")
       
     ;
 
   py::class_<phasic::Edge>(m, "Edge", R"delim(
+Represents a directed edge between two vertices in a phase-type graph.
 
+Each edge has a weight (transition rate) and points to a target vertex.
       )delim")
-      
+
       .def("__repr__",
         [](phasic::Edge &e) {
           std::ostringstream s;
@@ -3589,55 +3685,108 @@ Notes
           s << ")";
           return s.str();
         }, R"delim(
-  
+String representation showing edge weight and target state.
+
+Returns
+-------
+str
+    Format: "weight-(state)", e.g., "3.5-(1,0,2)".
         )delim")
 
     .def(py::init(&phasic::Edge::init_factory), R"delim(
+Create an Edge object (internal use).
 
+Users should use Vertex.add_edge() instead.
       )delim")
       
-    .def("to", &phasic::Edge::to, 
+    .def("to", &phasic::Edge::to,
       py::return_value_policy::reference_internal, R"delim(
+Get the target vertex of this edge.
 
+Returns
+-------
+Vertex
+    The vertex this edge points to.
       )delim")
-      
-    .def("weight", &phasic::Edge::weight, 
+
+    .def("weight", &phasic::Edge::weight,
       py::return_value_policy::reference_internal, R"delim(
+Get the weight (transition rate/probability) of this edge.
 
+Returns
+-------
+float
+    The edge weight.
       )delim")
-      
+
     .def("update_to", &phasic::Edge::update_to, R"delim(
+Update the target vertex of this edge.
 
+Parameters
+----------
+to : Vertex
+    New target vertex.
       )delim")
-      
-    .def("update_weight", &phasic::Edge::update_weight, R"delim(
 
+    .def("update_weight", &phasic::Edge::update_weight, R"delim(
+Update the weight of this edge.
+
+Parameters
+----------
+weight : float
+    New edge weight.
       )delim")
 
     .def("__assign__", [](phasic::Edge &e, const phasic::Edge &o) {
           return e = o;
     }, py::is_operator(), R"delim(
+Assignment operator for Edge objects.
 
+Parameters
+----------
+other : Edge
+    The edge to assign from.
+
+Returns
+-------
+Edge
+    Reference to this edge.
       )delim")
       
     ;
 
   py::class_<phasic::ParameterizedEdge>(m, "ParameterizedEdge", R"delim(
+Represents a parameterized edge with coefficient vector.
 
+The edge weight is computed as dot(coefficients, theta) where theta is the parameter vector.
       )delim")
-      
+
     .def(py::init(&phasic::ParameterizedEdge::init_factory), R"delim(
+Create a ParameterizedEdge object (internal use).
 
+Users should use Vertex.add_edge(to, [coefficients]) instead.
       )delim")
-      
-    .def("to", &phasic::ParameterizedEdge::to, 
+
+    .def("to", &phasic::ParameterizedEdge::to,
       py::return_value_policy::reference_internal, R"delim(
+Get the target vertex of this edge.
 
+Returns
+-------
+Vertex
+    The vertex this edge points to.
       )delim")
-      
+
     .def("weight", &phasic::ParameterizedEdge::weight,
       py::return_value_policy::reference_internal, R"delim(
+Get the current weight of this edge.
 
+The weight is updated when Graph.update_weights() is called.
+
+Returns
+-------
+float
+    The current edge weight.
       )delim")
 
     // base_weight() method removed - starting edges are never parameterized
@@ -3650,95 +3799,168 @@ Notes
     //   }, R"delim(
 
     // )delim")  
-    .def("edge_state", &phasic::ParameterizedEdge::edge_state, 
+    .def("edge_state", &phasic::ParameterizedEdge::edge_state,
       py::return_value_policy::reference_internal, R"delim(
+Get the coefficient vector for this parameterized edge.
 
+Returns
+-------
+list of float
+    Coefficient vector used to compute weight as dot(coefficients, theta).
       )delim")
-      
+
     .def("__assign__", [](phasic::ParameterizedEdge &e, const phasic::ParameterizedEdge &o) {
           return e = o;
     }, py::is_operator(), py::return_value_policy::move, R"delim(
+Assignment operator for ParameterizedEdge objects.
 
+Parameters
+----------
+other : ParameterizedEdge
+    The edge to assign from.
+
+Returns
+-------
+ParameterizedEdge
+    Reference to this edge.
       )delim")
       
     ;
 
   py::class_<phasic::PhaseTypeDistribution>(m, "PhaseTypeDistribution", R"delim(
+Matrix representation of a phase-type distribution.
 
+Contains the sub-intensity matrix, initial probability vector, and vertex states.
       )delim")
-      
+
     .def(py::init(&phasic::PhaseTypeDistribution::init_factory), R"delim(
+Create a PhaseTypeDistribution object.
 
+Use Graph.as_matrices() to convert from graph representation.
       )delim")
-      
+
     // .def("c_distribution", &phasic::PhaseTypeDistribution::c_distribution, R"delim(
 
     //   )delim")
-      
-    .def_readwrite("length", &phasic::PhaseTypeDistribution::length, 
-      py::return_value_policy::reference_internal, R"delim(
 
+    .def_readwrite("length", &phasic::PhaseTypeDistribution::length,
+      py::return_value_policy::reference_internal, R"delim(
+Number of transient states in the distribution.
+
+Returns
+-------
+int
+    Length of the initial probability vector.
       )delim")
-      
+
     .def_readwrite("vertices", &phasic::PhaseTypeDistribution::vertices,
        py::return_value_policy::reference_internal, R"delim(
+List of vertices in the distribution.
 
+Returns
+-------
+list of Vertex
+    Vertices corresponding to transient states.
       )delim")      
     ;
 
 
   py::class_<phasic::AnyProbabilityDistributionContext>(m, "AnyProbabilityDistributionContext", R"delim(
+Base class for probability distribution contexts (continuous or discrete).
 
+Provides methods for computing PDFs, CDFs, and stepping through the distribution.
       )delim")
-      
+
     .def(py::init<>(), R"delim(
-
+Create an empty probability distribution context.
       )delim")
-      
-    .def("is_discrete", &phasic::AnyProbabilityDistributionContext::is_discrete, 
-      py::return_value_policy::copy, R"delim(
 
+    .def("is_discrete", &phasic::AnyProbabilityDistributionContext::is_discrete,
+      py::return_value_policy::copy, R"delim(
+Check if this is a discrete distribution context.
+
+Returns
+-------
+bool
+    True for discrete, False for continuous.
       )delim")
-      
-    .def("step", &phasic::AnyProbabilityDistributionContext::step, 
-      
-      py::return_value_policy::copy, R"delim(
 
+    .def("step", &phasic::AnyProbabilityDistributionContext::step,
+
+      py::return_value_policy::copy, R"delim(
+Perform one time step in the distribution.
+
+Advances the internal state for iterative computation.
       )delim")
-      
-    .def("pmf", &phasic::AnyProbabilityDistributionContext::pmf, 
-      py::return_value_policy::copy, R"delim(
 
+    .def("pmf", &phasic::AnyProbabilityDistributionContext::pmf,
+      py::return_value_policy::copy, R"delim(
+Get current probability mass function value (discrete distributions only).
+
+Returns
+-------
+float
+    PMF at current time/jump.
       )delim")
-      
-    .def("pdf", &phasic::AnyProbabilityDistributionContext::pdf, 
-      py::return_value_policy::copy, R"delim(
 
+    .def("pdf", &phasic::AnyProbabilityDistributionContext::pdf,
+      py::return_value_policy::copy, R"delim(
+Get current probability density function value (continuous distributions only).
+
+Returns
+-------
+float
+    PDF at current time.
       )delim")
-      
-    .def("cdf", &phasic::AnyProbabilityDistributionContext::cdf, 
-      py::return_value_policy::copy, R"delim(
 
+    .def("cdf", &phasic::AnyProbabilityDistributionContext::cdf,
+      py::return_value_policy::copy, R"delim(
+Get current cumulative distribution function value.
+
+Returns
+-------
+float
+    CDF at current time/jump.
       )delim")
-      
-    .def("time", &phasic::AnyProbabilityDistributionContext::time, 
-      py::return_value_policy::copy, R"delim(
 
+    .def("time", &phasic::AnyProbabilityDistributionContext::time,
+      py::return_value_policy::copy, R"delim(
+Get current time (continuous distributions only).
+
+Returns
+-------
+float
+    Current time value.
       )delim")
-      
-    .def("jumps", &phasic::AnyProbabilityDistributionContext::jumps, 
-      py::return_value_policy::copy, R"delim(
 
+    .def("jumps", &phasic::AnyProbabilityDistributionContext::jumps,
+      py::return_value_policy::copy, R"delim(
+Get current number of jumps (discrete distributions only).
+
+Returns
+-------
+int
+    Current jump count.
       )delim")
-      
-    .def("stop_probability", &phasic::AnyProbabilityDistributionContext::stop_probability, 
-      py::return_value_policy::copy, R"delim(
 
+    .def("stop_probability", &phasic::AnyProbabilityDistributionContext::stop_probability,
+      py::return_value_policy::copy, R"delim(
+Get stopping probability at each vertex.
+
+Returns
+-------
+list of float
+    Probability of being at each vertex at current time/jump.
       )delim")
-      
-    .def("accumulated_visits", &phasic::AnyProbabilityDistributionContext::accumulated_visits, 
-      py::return_value_policy::copy, R"delim(
 
+    .def("accumulated_visits", &phasic::AnyProbabilityDistributionContext::accumulated_visits,
+      py::return_value_policy::copy, R"delim(
+Get accumulated visit counts for each vertex.
+
+Returns
+-------
+list of float
+    Expected number of visits to each vertex.
       )delim")
       
     // .def("accumulated_visiting_time", &phasic::AnyProbabilityDistributionContext::accumulated_visiting_time, 
@@ -3752,21 +3974,30 @@ Notes
         auto a = new std::vector<long double>(context.accumulated_visiting_time());
         auto capsule = py::capsule(a, [](void *a) { delete reinterpret_cast<std::vector<long double>*>(a); });
         return py::array(a->size(), a->data(), capsule);
-      }, py::return_value_policy::copy, 
+      }, py::return_value_policy::copy,
       R"delim(
+Get accumulated visiting time for each vertex.
 
+Returns
+-------
+ndarray
+    Expected time spent at each vertex (zero-copy).
       )delim")
   
     ;
 
 
   py::class_<phasic::ProbabilityDistributionContext>(m, "ProbabilityDistributionContext", R"delim(
+Context for iterative computation of continuous phase-type distributions.
 
+Maintains internal state for stepping through time and computing PDF/CDF values incrementally.
       )delim")
-      
-    .def(py::init(&phasic::ProbabilityDistributionContext::init_factory),     
-      py::return_value_policy::reference_internal, R"delim(
 
+    .def(py::init(&phasic::ProbabilityDistributionContext::init_factory),
+      py::return_value_policy::reference_internal, R"delim(
+Create a ProbabilityDistributionContext for a graph.
+
+Use Graph.distribution_context(granularity) instead.
         )delim")
         
 
