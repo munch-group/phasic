@@ -3,12 +3,14 @@ import subprocess
 import graphviz
 import random
 from collections import defaultdict
-from IPython.display import display
+from IPython.display import Javascript, display
 import seaborn as sns
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.colors
 from itertools import cycle
+import time
+
 
 from typing import Any, TypeVar, List, Tuple, Dict, Union
 from collections.abc import Sequence, MutableSequence, Callable
@@ -27,7 +29,34 @@ def _format_rate(rate):
     else:
         return f"{rate:.2e}"
 
-_theme = 'dark'
+
+
+def get_theme():
+    """Automatically configure matplotlib for VS Code theme"""
+    
+    js_code = """
+    (function() {
+        const bg = window.getComputedStyle(document.body).backgroundColor;
+        const rgb = bg.match(/\d+/g);
+        if (rgb) {
+            const brightness = (parseInt(rgb[0]) + parseInt(rgb[1]) + parseInt(rgb[2])) / 3;
+            IPython.notebook.kernel.execute(
+                `_is_dark_theme = ${brightness < 128}`
+            );
+        }
+    })();
+    """
+    
+    display(Javascript(js_code))
+    time.sleep(0.5)
+    
+    try:
+        return "dark" if _is_dark_theme else "light"
+    except NameError:
+        print("Could not detect theme. Set it manually using phasic.set_theme('dark') or phasic.set_theme('light').")
+        return "light"
+
+_theme = get_theme()
 
 def set_theme(theme:str):
     """
@@ -43,10 +72,36 @@ def set_theme(theme:str):
     _theme = theme
 
     if theme == 'dark':
-        plt.rcParams.update({'figure.facecolor': '#1F1F1F', 'axes.facecolor': '#1F1F1F'})
+        plt.style.use('dark_background')
+        plt.rcParams.update({
+            'figure.facecolor': '#1F1F1F', 
+            'axes.facecolor': '#1F1F1F'
+            })
     else:
-        plt.rcParams.update({'figure.facecolor': 'white', 'axes.facecolor': 'white'})
-
+        plt.style.use('dark_background')
+        plt.rcParams.update({
+            'figure.facecolor': 'white', 
+            'axes.facecolor': 'white'
+            })
+    plt.rcParams.update({
+        'axes.grid': True,
+        'axes.grid.axis':     'both',
+        'axes.grid.which': 'major',
+        'axes.titlelocation': 'right',
+        'axes.titlesize': 'large',
+        'axes.titleweight': 'normal',
+        'axes.labelsize': 'medium',
+        'axes.labelweight': 'normal',
+        'axes.formatter.use_mathtext': True,
+        'axes.spines.left': False,
+        'axes.spines.bottom': False,
+        'axes.spines.top': False,
+        'axes.spines.right':  False,
+        'grid.linewidth': 0.4,
+        'grid.alpha': 0.3,
+        'xtick.bottom': False,
+        'ytick.left': False,
+    })
 
 
 def black_white(ax):
@@ -58,17 +113,20 @@ def black_white(ax):
     luminance = matplotlib.colors.rgb_to_hsv(matplotlib.colors.to_rgb(bg_color))[2]
     return 'black' if luminance > 0.5 else '#FDFDFD'
 
-
-class Theme:
-    def __init__(self, name:str='dark'):
+class phasic_theme:
+    def __init__(self, name:str = None):
+        if name is None:
+            name = get_theme()
+        else:
+            assert name in ['dark', 'light'], "Theme must be either 'dark' or 'light'"
         self.name = name
+        self.orig_rcParams = matplotlib.rcParams.copy()
 
     def __enter__(self):
-        self.prev_theme = _theme
         set_theme(self.name)
 
     def __exit__(self, exc_type, exc_value, traceback):
-        set_theme(self.prev_theme)
+        matplotlib.rcParams = self.orig_rcParams
 
 
 GraphType = TypeVar('Graph') 
@@ -154,7 +212,8 @@ def plot_graph(graph:GraphType,
         aux_fillcolor = '#3e3e3e'
         bgcolor = '#1F1F1F'
         subgraph_label_fontcolor = '#e6e6e6'
-        subgraph_bgcolor='#272727'
+        subgraph_bgcolor='#2e2e2e'
+        subgraph_edgecolor='#e6e6e6'
         husl_colors = _get_color(10, lightness=0.7)
     else:
         edge_color = '#009900'
@@ -169,11 +228,13 @@ def plot_graph(graph:GraphType,
         aux_fillcolor='#eeeeee'
         bgcolor='transparent'
         subgraph_label_fontcolor = 'black'
-        subgraph_bgcolor='whitesmoke'
+        subgraph_bgcolor='white'
+        subgraph_edgecolor='black'
         husl_colors = _get_color(10, lightness=0.4)
 
     if graph.vertices_length() > max_nodes:
-        raise ValueError(f"Graph has too many nodes ({graph.vertices_length()}). Please set max_nodes to a higher value.")
+        print(f"Graph has too many nodes ({graph.vertices_length()}). Please set max_nodes to a higher value.")
+        return None
 
     graph_attr = dict(compound='true', newrank='true', pad='0.5', 
                       ranksep=str(ranksep), nodesep=str(nodesep), 
@@ -201,8 +262,11 @@ def plot_graph(graph:GraphType,
             dot.edge(str(vertex.index()), str(edge.to().index()), 
                    xlabel=_format_rate(edge.weight()), color=color, fontcolor=color)
 
-    subgraph_attr = dict(rank='same', style='filled', color=subgraph_bgcolor,
-                          fontcolor=subgraph_label_fontcolor)
+    subgraph_attr = dict(rank='same',
+                         style='filled', 
+                         fillcolor=subgraph_bgcolor, 
+                         color=subgraph_edgecolor,
+                         fontcolor=subgraph_label_fontcolor)
     subgraphs = defaultdict(list)
     for i in range(graph.vertices_length()):
         vertex = graph.vertex_at(i)

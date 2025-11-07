@@ -1,0 +1,25 @@
+%%R -o units -o label -o expectation_max_construction_values_for_matrix -o moments100_max_construction_values_for_matrix -o cdf100_max_construction_values_for_matrix
+construction_fun <- function(x) {
+    graph <- create_graph(1)
+    s <- create_vertex(graph,1)
+    a <- create_vertex(graph,1)
+    add_edge(starting_vertex(graph),s , 1)
+    set.seed(1234)
+    for (i in 1:x) {
+        n <- create_vertex(graph, 1); 
+        k <- runif(1); 
+        l <- runif(1) * k; 
+        add_edge(n,s,k); 
+        add_edge(n,a,l);
+        s <- n
+    }
+    return(graph)
+}
+units <- "dimension"
+label <- "coxian"
+expectation_construction_values <- seq(4, 40, 2)
+expectation_max_construction_values_for_matrix <- 20
+moments100_construction_values <- seq(4, 40, 2)
+moments100_max_construction_values_for_matrix <- 20
+cdf100_construction_values <- seq(4, 40, 2)
+cdf100_max_construction_values_for_matrix <- 22

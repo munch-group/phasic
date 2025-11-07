@@ -30,7 +30,7 @@ from functools import partial
 from .config import get_config
 from .exceptions import PTDConfigError
 
-from .plot import black_white, Theme
+from .plot import black_white, phasic_theme
 
 from . import svgd_plots
 
@@ -128,7 +128,7 @@ class StepSizeSchedule:
         values = np.array([self(i) for i in iterations])
 
         # Plot
-        with Theme():
+        with phasic_theme():
             ax.plot(iterations, values, 'C1')
             ax.set_xlabel('Iteration')
             ax.set_ylabel('Step Size')
@@ -326,7 +326,7 @@ class RegularizationSchedule:
         values = np.array([self(i) for i in iterations])
 
         # Plot
-        with Theme():
+        with phasic_theme():
             ax.plot(iterations, values, 'C2')
             ax.set_xlabel('Iteration')
             ax.set_ylabel('Regularization Strength')
