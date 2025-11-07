@@ -924,7 +924,7 @@ State matrix where each row represents a vertex state.
 
 Returns
 -------
-iMatrix
+ndarray
     Integer matrix of size (n_vertices, state_length).
       )delim")
       
@@ -933,7 +933,7 @@ Sub-intensity matrix of the phase-type distribution.
 
 Returns
 -------
-dMatrix
+ndarray
     Float matrix of size (n_vertices, n_vertices) representing transition rates.
       )delim")
     .def_readwrite("ipv", &MatrixRepresentation::ipv, R"delim(
@@ -1099,13 +1099,13 @@ int
     .def("create_vertex", static_cast<phasic::Vertex (phasic::Graph::*)(std::vector<int>)>(&phasic::Graph::create_vertex), py::arg("state"), 
       py::return_value_policy::copy, R"delim(
       
-      Warning: the function [phasic::find_or_create_vertex()] should be preferred. 
-      This function will *not* update the lookup tree, so [phasic::find_vertex()] will *not* return it.
+      Warning: the function find_or_create_vertex() should be preferred. 
+      This function will *not* update the lookup tree, so find_vertex() will *not* return it.
       Creates a vertex matching `state`. Creates the vertex and adds it to the graph object. 
 
       Parameters
       ----------
-      state : ArrayLike
+      state : list of int or ndarray
           An integer sequence defining the state represented by the new vertex.
 
       Returns
@@ -1121,7 +1121,7 @@ int
 
       Parameters
       ----------
-      state : ArrayLike
+      state : list of int or ndarray
           An integer sequence defining the state represented by the new vertex.
 
       Returns
@@ -1151,7 +1151,7 @@ bool
 
       Parameters
       ----------
-      state : ArrayLike
+      state : list of int or ndarray
           An integer sequence defining the state represented by the new vertex.
 
       Returns
@@ -1216,8 +1216,8 @@ bool
 
       Parameters
       ----------
-      phase_type_graph : SEXP
-          A reference to the graph created by [phasic::create_graph()].
+      graph : Graph
+          A reference to the graph created by create_graph().
       index : int
           The index of the vertex to find.
 
@@ -1271,7 +1271,7 @@ Vertex
       Returns
       -------
       int
-         A matrix of size [phasic::vertices_length()] where the rows match the state of the vertex at that index
+         A matrix of size vertices_length() where the rows match the state of the vertex at that index
       )delim")
 
     .def("__repr__",
@@ -1326,7 +1326,7 @@ str
 
     Parameters
     ----------
-    params : ArrayLike
+    params : list of int or ndarray
         Parameter vector matching graph.param_length()
 
     Examples
@@ -1364,7 +1364,7 @@ str
 
     Parameters
     ----------
-    scalars : ArrayLike
+    scalars : list of int or ndarray
         A numeric vector of multiplies for the edge states.
 
     Examples
@@ -1423,7 +1423,7 @@ str
       ----------
       power : int
           The number of moments to compute.
-      rewards : ArrayLike, optional
+      rewards : list of int or ndarray, optional
           Rewards to apply to the phase-type distribution.
 
       Returns
@@ -1442,7 +1442,7 @@ str
       >>> v2.add_edge(a, 10)
       >>> graph.moments(3)
       (0.350000 0.097500 0.025375)
-      >>> phasic::moments(graph, 3, [0,2,1,0])
+      >>> graph.moments( 3, [0,2,1,0])
       (0.600 0.160 0.041)
    )delim")
     
@@ -1454,35 +1454,33 @@ str
 
       Computes the expectation (mean) of the phase-type distribution.
 
-    This function invokes `phasic::expected_waiting_times()` and takes the first entry (from starting vertex).
+    This function invokes `expected_waiting_times()` and takes the first entry (from starting vertex).
 
     Parameters
     ----------
-    phase_type_graph : SEXP
-        A reference to the graph created by `phasic::create_graph()`.
-    rewards : NumericVector, optional
-        Optional rewards, which should be applied to the phase-type distribution. Must have length equal to `phasic::vertices_length()`.
+    graph : Graph
+        The phase-type graph object.
+    rewards : list of float or ndarray, optional
+        Optional rewards, which should be applied to the phase-type distribution. Must have length equal to `vertices_length()`.
 
     Returns
     -------
-    double
+    float
         The expectation of the distribution.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> v1 <- phasic::create_vertex(graph, c(1,2,3,4))
-    >>> v2 <- phasic::create_vertex(graph, c(4,0,3,3))
-    >>> a <- phasic::create_vertex(graph, c(0,0,0,0))
-    >>> phasic::add_edge(phasic::starting_vertex(graph), v1, 1)
-    >>> phasic::add_edge(v1, v2, 4)
-    >>> phasic::add_edge(v2, a, 10)
-    >>> phasic::expectation(graph) # => 0.35
-    >>> phasic::expectation(graph, c(0,2,1,0)) # => 0.6
-    >>> ph <- phasic::graph_as_matrix(graph)
+    >>> graph = Graph(4)
+    >>> v1 = graph.create_vertex([1,2,3,4])
+    >>> v2 = graph.create_vertex([4,0,3,3])
+    >>> a = graph.create_vertex([0,0,0,0])
+    >>> graph.starting_vertex().add_edge(v1, 1)
+    >>> v1.add_edge(v2, 4)
+    >>> v2.add_edge(a, 10)
+    >>> graph.expectation() # => 0.35
+    >>> graph.expectation( [0,2,1,0]) # => 0.6
+    >>> ph = MatrixRepresentation(graph)
     >>> # This is a much faster version of
-    >>> ph$IPV %*% solve(-ph$SIM) %*% rep(1, length(ph$IPV)) # => 0.35
-    >>> ph$IPV %*% solve(-ph$SIM) %*% diag(c(2,1)) %*% rep(1, length(ph$IPV)) # => 0.35
       )delim")      
 
     .def("variance", &_variance,
@@ -1491,35 +1489,33 @@ str
         R"delim(
     Computes the variance of the phase-type distribution.
 
-    This function invokes `phasic::expected_waiting_times()` twice to find the first and second moment.
+    This function invokes `expected_waiting_times()` twice to find the first and second moment.
 
     Parameters
     ----------
-    phase_type_graph : SEXP
-        A reference to the graph created by `phasic::create_graph()`.
-    rewards : NumericVector, optional
-        Optional rewards, which should be applied to the phase-type distribution. Must have length equal to `phasic::vertices_length()`.
+    graph : Graph
+        The phase-type graph object.
+    rewards : list of float or ndarray, optional
+        Optional rewards, which should be applied to the phase-type distribution. Must have length equal to `vertices_length()`.
 
     Returns
     -------
-    double
+    float
         The variance of the distribution.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> v1 <- phasic::create_vertex(graph, c(1,2,3,4))
-    >>> v2 <- phasic::create_vertex(graph, c(4,0,3,3))
-    >>> a <- phasic::create_vertex(graph, c(0,0,0,0))
-    >>> phasic::add_edge(phasic::starting_vertex(graph), v1, 1)
-    >>> phasic::add_edge(v1, v2, 4)
-    >>> phasic::add_edge(v2, a, 10)
-    >>> phasic::variance(graph) # => 0.0725
-    >>> phasic::variance(graph, c(0,2,1,0)) # => 0.26
-    >>> ph <- phasic::graph_as_matrix(graph)
+    >>> graph = Graph(4)
+    >>> v1 = graph.create_vertex([1,2,3,4])
+    >>> v2 = graph.create_vertex([4,0,3,3])
+    >>> a = graph.create_vertex([0,0,0,0])
+    >>> graph.starting_vertex().add_edge(v1, 1)
+    >>> v1.add_edge(v2, 4)
+    >>> v2.add_edge(a, 10)
+    >>> graph.variance() # => 0.0725
+    >>> graph.variance( [0,2,1,0]) # => 0.26
+    >>> ph = MatrixRepresentation(graph)
     >>> # This is a much faster version of
-    >>> 2*ph$IPV%*%solve(-ph$SIM)%*%solve(-ph$SIM) %*% rep(1, length(ph$IPV)) - ph$IPV%*%solve(-ph$SIM) %*% rep(1, length(ph$IPV)) %*% ph$IPV%*%solve(-ph$SIM) %*% rep(1, length(ph$IPV)) # => 0.0725
-    >>> 2*ph$IPV%*%solve(-ph$SIM)%*%diag(c(2,1))%*%solve(-ph$SIM)%*%diag(c(2,1)) %*% rep(1, length(ph$IPV)) - ph$IPV%*%solve(-ph$SIM)%*%diag(c(2,1)) %*% rep(1, length(ph$IPV)) %*% ph$IPV%*%solve(-ph$SIM)%*%diag(c(2,1)) %*% rep(1, length(ph$IPV)) # => 0.26
       )delim")    
 
       .def("covariance", &_covariance,
@@ -1529,35 +1525,34 @@ str
         R"delim(
     Computes the covariance of the phase-type distribution.
 
-    This function invokes `phasic::expected_waiting_times()` twice to find the first and second moments for two sets of rewards.
+    This function invokes `expected_waiting_times()` twice to find the first and second moments for two sets of rewards.
 
     Parameters
     ----------
-    phase_type_graph : SEXP
-        A reference to the graph created by `phasic::create_graph()`.
-    rewards1 : NumericVector
-        The first set of rewards, which should be applied to the phase-type distribution. Must have length equal to `phasic::vertices_length()`.
-    rewards2 : NumericVector
-        The second set of rewards, which should be applied to the phase-type distribution. Must have length equal to `phasic::vertices_length()`.
+    graph : Graph
+        The phase-type graph object.
+    rewards1 : list of float or ndarray
+        The first set of rewards, which should be applied to the phase-type distribution. Must have length equal to `vertices_length()`.
+    rewards2 : list of float or ndarray
+        The second set of rewards, which should be applied to the phase-type distribution. Must have length equal to `vertices_length()`.
 
     Returns
     -------
-    double
+    float
         The covariance of the distribution.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> v1 <- phasic::create_vertex(graph, c(1,2,3,4))
-    >>> v2 <- phasic::create_vertex(graph, c(4,0,3,3))
-    >>> a <- phasic::create_vertex(graph, c(0,0,0,0))
-    >>> phasic::add_edge(phasic::starting_vertex(graph), v1, 1)
-    >>> phasic::add_edge(v1, v2, 4)
-    >>> phasic::add_edge(v2, a, 10)
-    >>> phasic::covariance(graph, c(0,2,1,0), c(1,0,2,1)) # => 0.15
-    >>> ph <- phasic::graph_as_matrix(graph)
+    >>> graph = Graph(4)
+    >>> v1 = graph.create_vertex([1,2,3,4])
+    >>> v2 = graph.create_vertex([4,0,3,3])
+    >>> a = graph.create_vertex([0,0,0,0])
+    >>> graph.starting_vertex().add_edge(v1, 1)
+    >>> v1.add_edge(v2, 4)
+    >>> v2.add_edge(a, 10)
+    >>> graph.covariance( [0,2,1,0], [1,0,2,1]) # => 0.15
+    >>> ph = MatrixRepresentation(graph)
     >>> # This is a much faster version of
-    >>> ph$IPV %*% solve(-ph$SIM) %*% diag(c(2,1)) %*% solve(-ph$SIM) %*% diag(c(1,2)) %*% rep(1, length(ph$IPV)) - (ph$IPV %*% solve(-ph$SIM) %*% diag(c(2,1)) %*% rep(1, length(ph$IPV))) * (ph$IPV %*% solve(-ph$SIM) %*% diag(c(1,2)) %*% rep(1, length(ph$IPV))) # => 0.15
          )delim")   
 
 
@@ -1568,35 +1563,34 @@ str
           R"delim(
     Computes the covariance of the discrete phase-type distribution.
 
-    This function invokes `phasic::dph_expected_waiting_times()` twice to find the first and second moments for two sets of rewards.
+    This function invokes `dph_expected_waiting_times()` twice to find the first and second moments for two sets of rewards.
 
     Parameters
     ----------
-    phase_type_graph : SEXP
-        A reference to the graph created by `phasic::create_graph()`.
-    rewards1 : NumericVector
-        The first set of rewards, which should be applied to the discrete phase-type distribution. Must have length equal to `phasic::vertices_length()`.
-    rewards2 : NumericVector
-        The second set of rewards, which should be applied to the discrete phase-type distribution. Must have length equal to `phasic::vertices_length()`.
+    graph : Graph
+        The phase-type graph object.
+    rewards1 : list of float or ndarray
+        The first set of rewards, which should be applied to the discrete phase-type distribution. Must have length equal to `vertices_length()`.
+    rewards2 : list of float or ndarray
+        The second set of rewards, which should be applied to the discrete phase-type distribution. Must have length equal to `vertices_length()`.
 
     Returns
     -------
-    double
+    float
         The covariance of the distribution.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> v1 <- phasic::create_vertex(graph, c(1,2,3,4))
-    >>> v2 <- phasic::create_vertex(graph, c(4,0,3,3))
-    >>> a <- phasic::create_vertex(graph, c(0,0,0,0))
-    >>> phasic::add_edge(phasic::starting_vertex(graph), v1, 1)
-    >>> phasic::add_edge(v1, v2, 4)
-    >>> phasic::add_edge(v2, a, 10)
-    >>> phasic::covariance_discrete(graph, c(0,2,1,0), c(1,0,2,1)) # => 0.15
-    >>> ph <- phasic::graph_as_matrix(graph)
+    >>> graph = Graph(4)
+    >>> v1 = graph.create_vertex([1,2,3,4])
+    >>> v2 = graph.create_vertex([4,0,3,3])
+    >>> a = graph.create_vertex([0,0,0,0])
+    >>> graph.starting_vertex().add_edge(v1, 1)
+    >>> v1.add_edge(v2, 4)
+    >>> v2.add_edge(a, 10)
+    >>> graph.covariance_discrete( [0,2,1,0], [1,0,2,1]) # => 0.15
+    >>> ph = MatrixRepresentation(graph)
     >>> # This is a much faster version of
-    >>> ph$IPV %*% solve(-ph$SIM) %*% diag(c(2,1)) %*% solve(-ph$SIM) %*% diag(c(1,2)) %*% rep(1, length(ph$IPV)) - (ph$IPV %*% solve(-ph$SIM) %*% diag(c(2,1)) %*% rep(1, length(ph$IPV))) * (ph$IPV %*% solve(-ph$SIM) %*% diag(c(1,2)) %*% rep(1, length(ph$IPV))) # => 0.15
          )delim")   
       
 
@@ -1609,27 +1603,27 @@ str
 
     Parameters
     ----------
-    phase_type_graph : SEXP
-        A reference to the graph created by `phasic::create_graph()`.
-    rewards : NumericVector, optional
-        Optional rewards, which should be applied to the phase-type distribution. Must have length equal to `phasic::vertices_length()`.
+    graph : Graph
+        The phase-type graph object.
+    rewards : list of float or ndarray, optional
+        Optional rewards, which should be applied to the phase-type distribution. Must have length equal to `vertices_length()`.
 
     Returns
     -------
-    NumericVector
+    list of float or ndarray
         A numeric vector of the expected waiting times.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> v1 <- phasic::create_vertex(graph, c(1,2,3,4))
-    >>> v2 <- phasic::create_vertex(graph, c(4,0,3,3))
-    >>> a <- phasic::create_vertex(graph, c(0,0,0,0))
-    >>> phasic::add_edge(phasic::starting_vertex(graph), v1, 1)
-    >>> phasic::add_edge(v1, v2, 4)
-    >>> phasic::add_edge(v2, a, 10)
-    >>> phasic::expected_waiting_time(graph) # => [0.35, 0.1, 0.05]
-    >>> phasic::expected_waiting_time(graph, c(0,2,1,0)) # => [0.6, 0.2, 0.1]
+    >>> graph = Graph(4)
+    >>> v1 = graph.create_vertex([1,2,3,4])
+    >>> v2 = graph.create_vertex([4,0,3,3])
+    >>> a = graph.create_vertex([0,0,0,0])
+    >>> graph.starting_vertex().add_edge(v1, 1)
+    >>> v1.add_edge(v2, 4)
+    >>> v2.add_edge(a, 10)
+    >>> expected_waiting_time(graph) # => [0.35, 0.1, 0.05]
+    >>> graph.expected_waiting_time( [0,2,1,0]) # => [0.6, 0.2, 0.1]
       )delim")
       
     .def("expected_residence_time", &phasic::Graph::expected_residence_time, py::arg("rewards")=std::vector<double>(), 
@@ -1640,27 +1634,27 @@ Computes the expected residence time of the phase-type distribution.
 
     Parameters
     ----------
-    phase_type_graph : SEXP
-        A reference to the graph created by `phasic::create_graph()`.
-    rewards : NumericVector, optional
-        Optional rewards, which should be applied to the phase-type distribution. Must have length equal to `phasic::vertices_length()`.
+    graph : Graph
+        The phase-type graph object.
+    rewards : list of float or ndarray, optional
+        Optional rewards, which should be applied to the phase-type distribution. Must have length equal to `vertices_length()`.
 
     Returns
     -------
-    NumericVector
+    list of float or ndarray
         A numeric vector of the expected residence times.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> v1 <- phasic::create_vertex(graph, c(1,2,3,4))
-    >>> v2 <- phasic::create_vertex(graph, c(4,0,3,3))
-    >>> a <- phasic::create_vertex(graph, c(0,0,0,0))
-    >>> phasic::add_edge(phasic::starting_vertex(graph), v1, 1)
-    >>> phasic::add_edge(v1, v2, 4)
-    >>> phasic::add_edge(v2, a, 10)
-    >>> phasic::expected_residence_time(graph) # => [0.35, 0.1, 0.05]
-    >>> phasic::expected_residence_time(graph, c(0,2,1,0)) # => [0.6, 0.2, 0.1]
+    >>> graph = Graph(4)
+    >>> v1 = graph.create_vertex([1,2,3,4])
+    >>> v2 = graph.create_vertex([4,0,3,3])
+    >>> a = graph.create_vertex([0,0,0,0])
+    >>> graph.starting_vertex().add_edge(v1, 1)
+    >>> v1.add_edge(v2, 4)
+    >>> v2.add_edge(a, 10)
+    >>> expected_residence_time(graph) # => [0.35, 0.1, 0.05]
+    >>> graph.expected_residence_time( [0,2,1,0]) # => [0.6, 0.2, 0.1]
       )delim")
       
       
@@ -1705,29 +1699,29 @@ Computes the expected residence time of the phase-type distribution.
 
     Parameters
     ----------
-    phase_type_graph : SEXP
-        A reference to the graph created by `phasic::create_graph()`.
+    graph : Graph
+        The phase-type graph object.
     n : int, optional
         The number of samples to generate. Default is 1.
-    rewards : NumericVector, optional
-        Optional rewards, which should be applied to the phase-type distribution. Must have length equal to `phasic::vertices_length()`.
+    rewards : list of float or ndarray, optional
+        Optional rewards, which should be applied to the phase-type distribution. Must have length equal to `vertices_length()`.
 
     Returns
     -------
-    NumericVector
+    list of float or ndarray
         A numeric vector of samples.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> v1 <- phasic::create_vertex(graph, c(1,2,3,4))
-    >>> v2 <- phasic::create_vertex(graph, c(4,0,3,3))
-    >>> a <- phasic::create_vertex(graph, c(0,0,0,0))
-    >>> phasic::add_edge(phasic::starting_vertex(graph), v1, 1)
-    >>> phasic::add_edge(v1, v2, 4)
-    >>> phasic::add_edge(v2, a, 10)
-    >>> phasic::sample(graph, 5) # => [0.35, 0.1, 0.05, 0.2, 0.15]
-    >>> phasic::sample(graph, 5, c(0,2,1,0)) # => [0.6, 0.2, 0.1, 0.4, 0.3]
+    >>> graph = Graph(4)
+    >>> v1 = graph.create_vertex([1,2,3,4])
+    >>> v2 = graph.create_vertex([4,0,3,3])
+    >>> a = graph.create_vertex([0,0,0,0])
+    >>> graph.starting_vertex().add_edge(v1, 1)
+    >>> v1.add_edge(v2, 4)
+    >>> v2.add_edge(a, 10)
+    >>> graph.sample( 5) # => [0.35, 0.1, 0.05, 0.2, 0.15]
+    >>> graph.sample( 5, [0,2,1,0]) # => [0.6, 0.2, 0.1, 0.4, 0.3]
     )delim")
 
 
@@ -1771,29 +1765,29 @@ Computes the expected residence time of the phase-type distribution.
 
     Parameters
     ----------
-    phase_type_graph : SEXP
-        A reference to the graph created by `phasic::create_graph()`.
+    graph : Graph
+        The phase-type graph object.
     n : int, optional
         The number of samples to generate. Default is 1.
-    rewards : NumericVector, optional
-        Optional rewards, which should be applied to the discrete phase-type distribution. Must have length equal to `phasic::vertices_length()`.
+    rewards : list of float or ndarray, optional
+        Optional rewards, which should be applied to the discrete phase-type distribution. Must have length equal to `vertices_length()`.
 
     Returns
     -------
-    NumericVector
+    list of float or ndarray
         A numeric vector of samples.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> v1 <- phasic::create_vertex(graph, c(1,2,3,4))
-    >>> v2 <- phasic::create_vertex(graph, c(4,0,3,3))
-    >>> a <- phasic::create_vertex(graph, c(0,0,0,0))
-    >>> phasic::add_edge(phasic::starting_vertex(graph), v1, 1)
-    >>> phasic::add_edge(v1, v2, 4)
-    >>> phasic::add_edge(v2, a, 10)
-    >>> phasic::sample_discrete(graph, 5) # => [0.35, 0.1, 0.05, 0.2, 0.15]
-    >>> phasic::sample_discrete(graph, 5, c(0,2,1,0)) # => [0.6, 0.2, 0.1, 0.4, 0.3]
+    >>> graph = Graph(4)
+    >>> v1 = graph.create_vertex([1,2,3,4])
+    >>> v2 = graph.create_vertex([4,0,3,3])
+    >>> a = graph.create_vertex([0,0,0,0])
+    >>> graph.starting_vertex().add_edge(v1, 1)
+    >>> v1.add_edge(v2, 4)
+    >>> v2.add_edge(a, 10)
+    >>> graph.sample_discrete( 5) # => [0.35, 0.1, 0.05, 0.2, 0.15]
+    >>> graph.sample_discrete( 5, [0,2,1,0]) # => [0.6, 0.2, 0.1, 0.4, 0.3]
     )delim")
 
     ///////////////////////////////////////////
@@ -1853,29 +1847,29 @@ Computes the expected residence time of the phase-type distribution.
 
     Parameters
     ----------
-    phase_type_graph : SEXP
-        A reference to the graph created by `phasic::create_graph()`.
+    graph : Graph
+        The phase-type graph object.
     n : int, optional
         The number of samples to generate. Default is 1.
-    rewards : dMatrix
+    rewards : ndarray
         A matrix of rewards, which should be applied to the phase-type distribution. The number of rows must match the number of vertices.
 
     Returns
     -------
-    dMatrix
+    ndarray
         A matrix of samples.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> v1 <- phasic::create_vertex(graph, c(1,2,3,4))
-    >>> v2 <- phasic::create_vertex(graph, c(4,0,3,3))
-    >>> a <- phasic::create_vertex(graph, c(0,0,0,0))
-    >>> phasic::add_edge(phasic::starting_vertex(graph), v1, 1)
-    >>> phasic::add_edge(v1, v2, 4)
-    >>> phasic::add_edge(v2, a, 10)
-    >>> rewards <- matrix(c(1,2,3,4,5,6,7,8), nrow=4, ncol=2)
-    >>> phasic::sample_multivariate(graph, 5, rewards)
+    >>> graph = create_graph(4)
+    >>> v1 = graph.create_vertex([1,2,3,4])
+    >>> v2 = graph.create_vertex([4,0,3,3])
+    >>> a = graph.create_vertex([0,0,0,0])
+    >>> add_edge(starting_vertex(graph), v1, 1)
+    >>> v1.add_edge(v2, 4)
+    >>> v2.add_edge(a, 10)
+    >>> rewards = matrix([1,2,3,4,5,6,7,8], nrow=4, ncol=2)
+    >>> graph.sample_multivariate( 5, rewards)
     )delim")
 
     
@@ -1939,29 +1933,29 @@ Computes the expected residence time of the phase-type distribution.
 
     Parameters
     ----------
-    phase_type_graph : SEXP
-        A reference to the graph created by `phasic::create_graph()`.
+    graph : Graph
+        The phase-type graph object.
     n : int, optional
         The number of samples to generate. Default is 1.
-    rewards : dMatrix
+    rewards : ndarray
         A matrix of rewards, which should be applied to the discrete phase-type distribution. The number of rows must match the number of vertices.
 
     Returns
     -------
-    dMatrix
+    ndarray
         A matrix of samples.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> v1 <- phasic::create_vertex(graph, c(1,2,3,4))
-    >>> v2 <- phasic::create_vertex(graph, c(4,0,3,3))
-    >>> a <- phasic::create_vertex(graph, c(0,0,0,0))
-    >>> phasic::add_edge(phasic::starting_vertex(graph), v1, 1)
-    >>> phasic::add_edge(v1, v2, 4)
-    >>> phasic::add_edge(v2, a, 10)
-    >>> rewards <- matrix(c(1,2,3,4,5,6,7,8), nrow=4, ncol=2)
-    >>> phasic::sample_multivariate_discrete(graph, 5, rewards)
+    >>> graph = create_graph(4)
+    >>> v1 = graph.create_vertex([1,2,3,4])
+    >>> v2 = graph.create_vertex([4,0,3,3])
+    >>> a = graph.create_vertex([0,0,0,0])
+    >>> add_edge(starting_vertex(graph), v1, 1)
+    >>> v1.add_edge(v2, 4)
+    >>> v2.add_edge(a, 10)
+    >>> rewards = matrix([1,2,3,4,5,6,7,8], nrow=4, ncol=2)
+    >>> graph.sample_multivariate_discrete( 5, rewards)
     )delim")
 
 
@@ -2002,9 +1996,9 @@ Computes the expected residence time of the phase-type distribution.
 
     Parameters
     ----------
-    phase_type_graph : SEXP
-        A reference to the graph created by `phasic::create_graph()`.
-    time : double
+    graph : Graph
+        The phase-type graph object.
+    time : float
         The stopping time.
 
     Returns
@@ -2014,14 +2008,14 @@ Computes the expected residence time of the phase-type distribution.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> v1 <- phasic::create_vertex(graph, c(1,2,3,4))
-    >>> v2 <- phasic::create_vertex(graph, c(4,0,3,3))
-    >>> a <- phasic::create_vertex(graph, c(0,0,0,0))
-    >>> phasic::add_edge(phasic::starting_vertex(graph), v1, 1)
-    >>> phasic::add_edge(v1, v2, 4)
-    >>> phasic::add_edge(v2, a, 10)
-    >>> phasic::random_sample_stop_vertex(graph, 0.5) # => Vertex at stopping time 0.5
+    >>> graph = create_graph(4)
+    >>> v1 = graph.create_vertex([1,2,3,4])
+    >>> v2 = graph.create_vertex([4,0,3,3])
+    >>> a = graph.create_vertex([0,0,0,0])
+    >>> add_edge(starting_vertex(graph), v1, 1)
+    >>> v1.add_edge(v2, 4)
+    >>> v2.add_edge(a, 10)
+    >>> graph.random_sample_stop_vertex( 0.5) # => Vertex at stopping time 0.5
       )delim")
       
     .def("random_sample_discrete_stop_vertex", &phasic::Graph::dph_random_sample_stop_vertex, py::arg("jumps"), 
@@ -2032,8 +2026,8 @@ Computes the expected residence time of the phase-type distribution.
 
     Parameters
     ----------
-    phase_type_graph : SEXP
-        A reference to the graph created by `phasic::create_graph()`.
+    graph : Graph
+        The phase-type graph object.
     jumps : int
         The number of jumps.
 
@@ -2044,14 +2038,14 @@ Computes the expected residence time of the phase-type distribution.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> v1 <- phasic::create_vertex(graph, c(1,2,3,4))
-    >>> v2 <- phasic::create_vertex(graph, c(4,0,3,3))
-    >>> a <- phasic::create_vertex(graph, c(0,0,0,0))
-    >>> phasic::add_edge(phasic::starting_vertex(graph), v1, 1)
-    >>> phasic::add_edge(v1, v2, 4)
-    >>> phasic::add_edge(v2, a, 10)
-    >>> phasic::random_sample_discrete_stop_vertex(graph, 3) # => Vertex at 3 jumps
+    >>> graph = create_graph(4)
+    >>> v1 = graph.create_vertex([1,2,3,4])
+    >>> v2 = graph.create_vertex([4,0,3,3])
+    >>> a = graph.create_vertex([0,0,0,0])
+    >>> add_edge(starting_vertex(graph), v1, 1)
+    >>> v1.add_edge(v2, 4)
+    >>> v2.add_edge(a, 10)
+    >>> graph.random_sample_discrete_stop_vertex( 3) # => Vertex at 3 jumps
       )delim")
       
     .def("state_length", &phasic::Graph::state_length, 
@@ -2062,8 +2056,8 @@ Computes the expected residence time of the phase-type distribution.
 
     Parameters
     ----------
-    phase_type_graph : SEXP
-        A reference to the graph created by `phasic::create_graph()`.
+    graph : Graph
+        The phase-type graph object.
 
     Returns
     -------
@@ -2072,8 +2066,8 @@ Computes the expected residence time of the phase-type distribution.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> phasic::state_length(graph) # => 4
+    >>> graph = create_graph(4)
+    >>> state_length(graph) # => 4
       )delim")
       
     .def("is_acyclic", &phasic::Graph::is_acyclic,
@@ -2084,8 +2078,8 @@ Computes the expected residence time of the phase-type distribution.
 
     Parameters
     ----------
-    phase_type_graph : SEXP
-        A reference to the graph created by `phasic::create_graph()`.
+    graph : Graph
+        The phase-type graph object.
 
     Returns
     -------
@@ -2094,8 +2088,8 @@ Computes the expected residence time of the phase-type distribution.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> phasic::is_acyclic(graph) # => True or False
+    >>> graph = Graph(4)
+    >>> is_acyclic(graph) # => True or False
       )delim")
       
     .def("validate", &phasic::Graph::validate, R"delim(
@@ -2113,8 +2107,8 @@ Computes the expected residence time of the phase-type distribution.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> phasic::validate(graph)
+    >>> graph = create_graph(4)
+    >>> validate(graph)
       )delim")
 
     .def("scc_decomposition", &phasic::Graph::scc_decomposition, R"delim(
@@ -2146,8 +2140,8 @@ Computes the expected residence time of the phase-type distribution.
 
     // Parameters
     // ----------
-    // rewards : NumericVector
-    //     A numeric vector of rewards to be applied to the phase-type distribution. Must have length equal to `phasic::vertices_length()`.
+    // rewards : list of float or ndarray
+    //     A numeric vector of rewards to be applied to the phase-type distribution. Must have length equal to `vertices_length()`.
 
     // Returns
     // -------
@@ -2156,9 +2150,9 @@ Computes the expected residence time of the phase-type distribution.
 
     // Examples
     // --------
-    // >>> graph <- phasic::create_graph(4)
-    // >>> rewards <- c(1.0, 2.0, 3.0, 4.0)
-    // >>> dag_expectation <- phasic::expectation_dag(graph, rewards)
+    // >>> graph = create_graph(4)
+    // >>> rewards = [1.0, 2.0, 3.0, 4.0]
+    // >>> dag_expectation = graph.expectation_dag(rewards)
     //   )delim")
       
     .def("reward_transform", static_cast<phasic::Graph (phasic::Graph::*)(std::vector<double>)>(&phasic::Graph::reward_transform), py::arg("rewards"), 
@@ -2169,8 +2163,8 @@ Computes the expected residence time of the phase-type distribution.
 
     Parameters
     ----------
-    rewards : NumericVector
-        A numeric vector of rewards to be applied to the edges of the graph. Must have length equal to `phasic::vertices_length()`.
+    rewards : list of float or ndarray
+        A numeric vector of rewards to be applied to the edges of the graph. Must have length equal to `vertices_length()`.
 
     Returns
     -------
@@ -2179,9 +2173,9 @@ Computes the expected residence time of the phase-type distribution.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> rewards <- c(1.0, 2.0, 3.0, 4.0)
-    >>> transformed_graph <- phasic::reward_transform(graph, rewards)
+    >>> graph = create_graph(4)
+    >>> rewards = [1.0, 2.0, 3.0, 4.0]
+    >>> transformed_graph = graph.reward_transform(rewards)
       )delim")
       
     .def("reward_transform_discrete", static_cast<phasic::Graph (phasic::Graph::*)(std::vector<int>)>(&phasic::Graph::dph_reward_transform), py::arg("rewards"), 
@@ -2192,8 +2186,8 @@ Computes the expected residence time of the phase-type distribution.
 
     Parameters
     ----------
-    rewards : NumericVector
-        A numeric vector of rewards to be applied to the edges of the graph. Must have length equal to `phasic::vertices_length()`.
+    rewards : list of float or ndarray
+        A numeric vector of rewards to be applied to the edges of the graph. Must have length equal to `vertices_length()`.
 
     Returns
     -------
@@ -2202,9 +2196,9 @@ Computes the expected residence time of the phase-type distribution.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> rewards <- c(1, 2, 3, 4)
-    >>> transformed_graph <- phasic::reward_transform_discrete(graph, rewards)
+    >>> graph = create_graph(4)
+    >>> rewards = [1, 2, 3, 4]
+    >>> transformed_graph = graph.reward_transform_discrete(rewards)
       )delim")
       
     .def("normalize", &phasic::Graph::normalize, 
@@ -2224,10 +2218,10 @@ Computes the expected residence time of the phase-type distribution.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> phasic::add_edge(phasic::starting_vertex(graph), phasic::create_vertex(graph, c(1,2,3,4)), 0.5)
-    >>> phasic::add_edge(phasic::starting_vertex(graph), phasic::create_vertex(graph, c(4,0,3,3)), 0.5)
-    >>> normalized_graph <- phasic::normalize(graph)
+    >>> graph = Graph(4)
+    >>> graph.starting_vertex().add_edge(graph.create_vertex( [1,2,3,4]), 0.5)
+    >>> graph.starting_vertex().add_edge(graph.create_vertex( [4,0,3,3]), 0.5)
+    >>> normalized_graph = normalize(graph)
       )delim")
       
     .def("normalize_discrete", &phasic::Graph::dph_normalize, 
@@ -2247,10 +2241,10 @@ Computes the expected residence time of the phase-type distribution.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> phasic::add_edge(phasic::starting_vertex(graph), phasic::create_vertex(graph, c(1,2,3,4)), 0.5)
-    >>> phasic::add_edge(phasic::starting_vertex(graph), phasic::create_vertex(graph, c(4,0,3,3)), 0.5)
-    >>> normalized_graph <- phasic::normalize_discrete(graph)
+    >>> graph = Graph(4)
+    >>> graph.starting_vertex().add_edge(graph.create_vertex( [1,2,3,4]), 0.5)
+    >>> graph.starting_vertex().add_edge(graph.create_vertex( [4,0,3,3]), 0.5)
+    >>> normalized_graph = normalize_discrete(graph)
       )delim")
       
     .def("notify_change", &phasic::Graph::notify_change, R"delim(
@@ -2268,9 +2262,9 @@ Computes the expected residence time of the phase-type distribution.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> phasic::add_edge(phasic::starting_vertex(graph), phasic::create_vertex(graph, c(1,2,3,4)), 0.5)
-    >>> phasic::notify_change(graph)
+    >>> graph = Graph(4)
+    >>> graph.starting_vertex().add_edge(graph.create_vertex( [1,2,3,4]), 0.5)
+    >>> notify_change(graph)
       )delim")
       
     .def("defect", &phasic::Graph::defect, 
@@ -2285,15 +2279,15 @@ Computes the expected residence time of the phase-type distribution.
 
     Returns
     -------
-    double
+    float
         The defect of the graph.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> phasic::add_edge(phasic::starting_vertex(graph), phasic::create_vertex(graph, c(1,2,3,4)), 0.5)
-    >>> phasic::add_edge(phasic::starting_vertex(graph), phasic::create_vertex(graph, c(4,0,3,3)), 0.5)
-    >>> defect_value <- phasic::defect(graph)
+    >>> graph = Graph(4)
+    >>> graph.starting_vertex().add_edge(graph.create_vertex( [1,2,3,4]), 0.5)
+    >>> graph.starting_vertex().add_edge(graph.create_vertex( [4,0,3,3]), 0.5)
+    >>> defect_value = defect(graph)
       )delim")
       
     .def("clone", &phasic::Graph::clone, 
@@ -2313,8 +2307,8 @@ Computes the expected residence time of the phase-type distribution.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> graph_copy <- phasic::clone(graph)
+    >>> graph = create_graph(4)
+    >>> graph_copy = clone(graph)
       )delim")
       
 
@@ -2343,8 +2337,8 @@ Computes the expected residence time of the phase-type distribution.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> context <- phasic::distribution_context(graph, 10)
+    >>> graph = create_graph(4)
+    >>> context = graph.distribution_context(10)
      )delim")      
       
 
@@ -2372,8 +2366,8 @@ Computes the expected residence time of the phase-type distribution.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> context <- phasic::distribution_context_discrete(graph)
+    >>> graph = create_graph(4)
+    >>> context = distribution_context_discrete(graph)
      )delim")      
       
 
@@ -2387,21 +2381,21 @@ Computes the expected residence time of the phase-type distribution.
 
     Parameters
     ----------
-    time : double
+    time : float
         The time at which to evaluate the PDF.
     granularity : int, optional
         The granularity of the computation. Default is 0.
 
     Returns
     -------
-    double
+    float
         The value of the PDF at the specified time.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> phasic::pdf(graph, 1.0) # => PDF value at time 1.0
-    >>> phasic::pdf(graph, 1.0, 10) # => PDF value at time 1.0 with granularity 10
+    >>> graph = create_graph(4)
+    >>> graph.pdf( 1.0) # => PDF value at time 1.0
+    >>> graph.pdf( 1.0, 10) # => PDF value at time 1.0 with granularity 10
       )delim")
       
     .def("cdf",
@@ -2413,21 +2407,21 @@ Computes the expected residence time of the phase-type distribution.
 
     Parameters
     ----------
-    time : double
+    time : float
         The time at which to evaluate the CDF.
     granularity : int, optional
         The granularity of the computation. Default is 0.
 
     Returns
     -------
-    double
+    float
         The value of the CDF at the specified time.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> phasic::cdf(graph, 1.0) # => CDF value at time 1.0
-    >>> phasic::cdf(graph, 1.0, 10) # => CDF value at time 1.0 with granularity 10
+    >>> graph = create_graph(4)
+    >>> graph.cdf( 1.0) # => CDF value at time 1.0
+    >>> graph.cdf( 1.0, 10) # => CDF value at time 1.0 with granularity 10
       )delim")
       
     .def("pmf_discrete", py::vectorize(&phasic::Graph::dph_pmf), py::arg("jumps"), 
@@ -2440,18 +2434,18 @@ Computes the expected residence time of the phase-type distribution.
     ----------
     x : IntegerVector
         Vector of the number of jumps (discrete time).
-    phase_type_graph : SEXP
-        A reference to the graph created by `phasic::create_graph()`.
+    graph : Graph
+        The phase-type graph object.
 
     Returns
     -------
-    NumericVector
+    list of float or ndarray
         A numeric vector of the density.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> phasic::ddph(c(1, 2, 3), graph) # => density values at jumps 1, 2, and 3
+    >>> graph = Graph(4)
+    >>> ddph([1, 2, 3], graph) # => density values at jumps 1, 2, and 3
       )delim")
       
     .def("cdf_discrete", py::vectorize(&phasic::Graph::dph_cdf), py::arg("jumps"), 
@@ -2464,18 +2458,18 @@ Computes the expected residence time of the phase-type distribution.
     ----------
     q : IntegerVector
         Vector of the quantiles (jumps, discrete time).
-    phase_type_graph : SEXP
-        A reference to the graph created by `phasic::create_graph()`.
+    graph : Graph
+        The phase-type graph object.
 
     Returns
     -------
-    NumericVector
+    list of float or ndarray
         A numeric vector of the distribution function.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> phasic::pdph(c(1, 2, 3), graph) # => CDF values at jumps 1, 2, and 3
+    >>> graph = Graph(4)
+    >>> pdph([1, 2, 3], graph) # => CDF values at jumps 1, 2, and 3
       )delim")
 
     .def("stop_probability", &phasic::Graph::stop_probability, py::arg("time"), py::arg("granularity") = 0, 
@@ -2486,21 +2480,21 @@ Computes the expected residence time of the phase-type distribution.
 
     Parameters
     ----------
-    time : double
+    time : float
         The time at which to evaluate the stopping probability.
     granularity : int, optional
         The granularity of the computation. Default is 0.
 
     Returns
     -------
-    double
+    float
         The stopping probability at the specified time.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> phasic::stop_probability(graph, 1.0) # => Stopping probability at time 1.0
-    >>> phasic::stop_probability(graph, 1.0, 10) # => Stopping probability at time 1.0 with granularity 10
+    >>> graph = create_graph(4)
+    >>> graph.stop_probability( 1.0) # => Stopping probability at time 1.0
+    >>> graph.stop_probability( 1.0, 10) # => Stopping probability at time 1.0 with granularity 10
       )delim")
 
     .def("accumulated_visiting_time", &phasic::Graph::accumulated_visiting_time, py::arg("time"), py::arg("granularity") = 0, 
@@ -2511,21 +2505,21 @@ Computes the expected residence time of the phase-type distribution.
 
     Parameters
     ----------
-    time : double
+    time : float
         The time at which to evaluate the accumulated visiting time.
     granularity : int, optional
         The granularity of the computation. Default is 0.
 
     Returns
     -------
-    double
+    float
         The accumulated visiting time at the specified time.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> phasic::accumulated_visiting_time(graph, 1.0) # => Accumulated visiting time at time 1.0
-    >>> phasic::accumulated_visiting_time(graph, 1.0, 10) # => Accumulated visiting time at time 1.0 with granularity 10
+    >>> graph = create_graph(4)
+    >>> graph.accumulated_visiting_time( 1.0) # => Accumulated visiting time at time 1.0
+    >>> graph.accumulated_visiting_time( 1.0, 10) # => Accumulated visiting time at time 1.0 with granularity 10
       )delim")
 
     // .def("stop_probability", 
@@ -2553,19 +2547,19 @@ Computes the expected residence time of the phase-type distribution.
 
     Parameters
     ----------
-    rewards : std::vector<double>
-        A vector of rewards to be applied to the discrete phase-type distribution. Must have length equal to `phasic::vertices_length()`.
+    rewards : list of float
+        A vector of rewards to be applied to the discrete phase-type distribution. Must have length equal to `vertices_length()`.
 
     Returns
     -------
-    double
+    float
         The expectation of the discrete phase-type distribution.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> rewards <- c(1.0, 2.0, 3.0, 4.0)
-    >>> phasic::expectation_discrete(graph, rewards) # => Expectation value
+    >>> graph = create_graph(4)
+    >>> rewards = [1.0, 2.0, 3.0, 4.0]
+    >>> graph.expectation_discrete( rewards) # => Expectation value
     )delim")
 
 
@@ -2579,19 +2573,19 @@ Computes the expected residence time of the phase-type distribution.
 
     Parameters
     ----------
-    rewards : std::vector<double>
-        A vector of rewards to be applied to the discrete phase-type distribution. Must have length equal to `phasic::vertices_length()`.
+    rewards : list of float
+        A vector of rewards to be applied to the discrete phase-type distribution. Must have length equal to `vertices_length()`.
 
     Returns
     -------
-    double
+    float
         The variance of the discrete phase-type distribution.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> rewards <- c(1.0, 2.0, 3.0, 4.0)
-    >>> phasic::variance_discrete(graph, rewards) # => Variance value
+    >>> graph = create_graph(4)
+    >>> rewards = [1.0, 2.0, 3.0, 4.0]
+    >>> graph.variance_discrete( rewards) # => Variance value
     )delim")
 
 
@@ -2608,19 +2602,19 @@ Computes the expected residence time of the phase-type distribution.
 
     Returns
     -------
-    NumericVector
+    list of float or ndarray
         A numeric vector of the stop probabilities for each vertex.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> v1 <- phasic::create_vertex(graph, c(1,2,3,4))
-    >>> v2 <- phasic::create_vertex(graph, c(4,0,3,3))
-    >>> a <- phasic::create_vertex(graph, c(0,0,0,0))
-    >>> phasic::add_edge(phasic::starting_vertex(graph), v1, 0.5)
-    >>> phasic::add_edge(v1, v2, 0.8)
-    >>> phasic::add_edge(v2, a, 0.5)
-    >>> phasic::dph_stop_probability(graph, 3) # => Stop probabilities after 3 jumps
+    >>> graph = create_graph(4)
+    >>> v1 = graph.create_vertex([1,2,3,4])
+    >>> v2 = graph.create_vertex([4,0,3,3])
+    >>> a = graph.create_vertex([0,0,0,0])
+    >>> add_edge(starting_vertex(graph), v1, 0.5)
+    >>> v1.add_edge(v2, 0.8)
+    >>> v2.add_edge(a, 0.5)
+    >>> graph.dph_stop_probability( 3) # => Stop probabilities after 3 jumps
       )delim")
 
     .def("accumulated_visits_discrete", &phasic::Graph::dph_accumulated_visits, py::arg("jumps"), 
@@ -2636,19 +2630,19 @@ Computes the expected residence time of the phase-type distribution.
 
     Returns
     -------
-    NumericVector
+    list of float or ndarray
         A numeric vector of the accumulated visits for each vertex.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> v1 <- phasic::create_vertex(graph, c(1,2,3,4))
-    >>> v2 <- phasic::create_vertex(graph, c(4,0,3,3))
-    >>> a <- phasic::create_vertex(graph, c(0,0,0,0))
-    >>> phasic::add_edge(phasic::starting_vertex(graph), v1, 0.5)
-    >>> phasic::add_edge(v1, v2, 0.8)
-    >>> phasic::add_edge(v2, a, 0.5)
-    >>> phasic::dph_accumulated_visits(graph, 3) # => Accumulated visits after 3 jumps
+    >>> graph = create_graph(4)
+    >>> v1 = graph.create_vertex([1,2,3,4])
+    >>> v2 = graph.create_vertex([4,0,3,3])
+    >>> a = graph.create_vertex([0,0,0,0])
+    >>> add_edge(starting_vertex(graph), v1, 0.5)
+    >>> v1.add_edge(v2, 0.8)
+    >>> v2.add_edge(a, 0.5)
+    >>> graph.dph_accumulated_visits( 3) # => Accumulated visits after 3 jumps
       )delim")
 
     .def("expected_visits_discrete", &phasic::Graph::dph_expected_visits, py::arg("jumps"), 
@@ -2659,25 +2653,25 @@ Computes the expected residence time of the phase-type distribution.
     The function takes in non-integers as rewards, but to be a *strictly* valid rewarded discrete phase-type distribution these should be integers.
     Parameters
     ----------
-    phase_type_graph : SEXP
-        A reference to the graph created by `phasic::create_graph()`.
-    rewards : Nullable<NumericVector>, optional
-        Optional rewards, which should be applied to the discrete phase-type distribution. Must have length equal to `phasic::vertices_length()`.
+    graph : Graph
+        The phase-type graph object.
+    rewards : Nullable<list of float or ndarray>, optional
+        Optional rewards, which should be applied to the discrete phase-type distribution. Must have length equal to `vertices_length()`.
     Returns
     -------
-    NumericVector
+    list of float or ndarray
         A numeric vector where entry `i` is the expected rewarded jumps starting at vertex `i`.
     See Also
     --------
-    phasic::moments
-    phasic::expectation
-    phasic::variance
-    phasic::covariance
+    moments
+    expectation
+    variance
+    covariance
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> rewards <- c(1.0, 2.0, 3.0, 4.0)
-    >>> phasic::dph_expected_visits(graph, rewards) # => Expected visits value
+    >>> graph = create_graph(4)
+    >>> rewards = [1.0, 2.0, 3.0, 4.0]
+    >>> graph.dph_expected_visits( rewards) # => Expected visits value
       )delim")
       
     .def("as_matrices",
@@ -2734,12 +2728,12 @@ Computes the expected residence time of the phase-type distribution.
       }, R"delim(
     Converts the graph-based phase-type distribution into a traditional sub-intensity matrix and initial probability vector.
 
-    Used to convert to the traditional matrix-based formulation. Has three entries: `$SIM` the sub-intensity matrix, `$IPV` the initial probability vector, `$states` the state of each vertex. Does *not* have the same order as [phasic::vertices()]. The indices returned are 1-based, like the input to [phasic::vertex_at()].
+    Used to convert to the traditional matrix-based formulation. Has three entries: `.SIM` the sub-intensity matrix, `.IPV` the initial probability vector, `.states` the state of each vertex. Does *not* have the same order as vertices(). The indices returned are 1-based, like the input to vertex_at().
 
     Parameters
     ----------
-    phase_type_graph : SEXP
-        A reference to the graph created by [phasic::create_graph()].
+    graph : Graph
+        A reference to the graph created by Graph().
 
     Returns
     -------
@@ -2748,25 +2742,25 @@ Computes the expected residence time of the phase-type distribution.
 
     Examples
     --------
-    >>> graph <- phasic::create_graph(4)
-    >>> v2 <- phasic::create_vertex(graph, c(4,0,3,3))
-    >>> v1 <- phasic::create_vertex(graph, c(1,2,3,4))
-    >>> a <- phasic::create_vertex(graph, c(0,0,0,0))
-    >>> phasic::add_edge(phasic::starting_vertex(graph), v1, 1)
-    >>> phasic::add_edge(v1, v2, 4)
-    >>> phasic::add_edge(v2, a, 10)
-    >>> phasic::graph_as_matrix(graph)
-    >>> # $`states`
+    >>> graph = Graph(4)
+    >>> v2 = graph.create_vertex([4,0,3,3])
+    >>> v1 = graph.create_vertex([1,2,3,4])
+    >>> a = graph.create_vertex([0,0,0,0])
+    >>> graph.starting_vertex().add_edge(v1, 1)
+    >>> v1.add_edge(v2, 4)
+    >>> v2.add_edge(a, 10)
+    >>> MatrixRepresentation(graph)
+    >>> # .`states`
     >>> #         [,1] [,2] [,3] [,4]
     >>> #   [1,]    1    2    3    4
     >>> #   [2,]    4    0    3    3
-    >>> # $SIM
+    >>> # .SIM
     >>> #         [,1]  [,2]
     >>> #   [1,]   -4     4
     >>> #   [2,]    0   -10
-    >>> # $IPV
+    >>> # .IPV
     >>> #   [1] 1 0
-    >>> # $indices
+    >>> # .indices
     >>> #   [1] 3 2
       )delim")
 
@@ -2875,7 +2869,7 @@ Computes the expected residence time of the phase-type distribution.
 
     Parameters
     ----------
-    IPV : NumericVector
+    IPV : list of float or ndarray
         The initial probability vector (alpha).
     SIM : NumericMatrix
         The sub-intensity matrix (S).
@@ -2889,10 +2883,10 @@ Computes the expected residence time of the phase-type distribution.
 
     Examples
     --------
-    >>> g <- matrix_as_graph(
-    >>>     c(0.5,0.3, 0),
-    >>>     matrix(c(-3, 0, 0, 2, -4, 1, 0, 1,-3), ncol=3),
-    >>>     matrix(c(1,4,5,9,2,7), ncol=2)
+    >>> g = matrix_as_graph(
+    >>>     [0.5,0.3, 0],
+    >>>     matrix([-3, 0, 0, 2, -4, 1, 0, 1,-3], ncol=3),
+    >>>     matrix([1,4,5,9,2,7], ncol=2)
     >>> )
     >>> graph_as_matrix(g)
       )delim")
@@ -3557,23 +3551,23 @@ int
           The vertex that transitions from.
       phase_type_vertex_to : SEXP
           The vertex that transitions to.
-      weight : double
+      weight : float
           The weight of the edge, i.e., the transition rate.
-      parameterized_edge_state : NumericVector, optional
+      parameterized_edge_state : list of float or ndarray, optional
           Associate a numeric vector to an edge, for faster computations of moments when weights are changed.
       See Also
       --------
-      phasic::expected_waiting_time
-      phasic::moments
-      phasic::variance
-      phasic::covariance
-      phasic::graph_update_weights_parameterized
+      expected_waiting_time
+      moments
+      variance
+      covariance
+      graph_update_weights_parameterized
       Examples
       --------
-      >>> graph <- create_graph(4)
-      >>> vertex_a <- find_or_create_vertex(graph, c(1,2,1,0))
-      >>> vertex_b <- find_or_create_vertex(graph, c(2,0,1,0))
-      >>> add_edge(vertex_a, vertex_b, 1.5)
+      >>> graph = create_graph(4)
+      >>> vertex_a = graph.find_or_create_vertex([1,2,1,0])
+      >>> vertex_b = graph.find_or_create_vertex([2,0,1,0])
+      >>> vertex_a.add_edge(vertex_b, 1.5)
       )delim")
 
     .def("state",
@@ -3601,7 +3595,7 @@ ndarray
       py::return_value_policy::reference_internal, R"delim(
     Returns the out-going edges of a vertex.
 
-    Returns a list of edges added by [phasic::add_edge()].
+    Returns a list of edges added by add_edge().
 
     Parameters
     ----------
@@ -3618,7 +3612,7 @@ ndarray
       py::return_value_policy::reference_internal, R"delim(
     Returns the out-going parameterized edges of a vertex.
 
-    Returns a list of parameterized edges added by [phasic::add_edge_parameterized()].
+    Returns a list of parameterized edges added by add_edge_parameterized().
 
     Parameters
     ----------
@@ -4037,10 +4031,10 @@ Use Graph.distribution_context(granularity) instead.
       Parameters
       ----------
       probability_distribution_context : SEXP
-          The context created by `phasic::distribution_context()`.
+          The context created by `distribution_context()`.
       See Also
       --------
-      phasic::distribution_context
+      distribution_context
       )delim")
       
     .def("pdf", &phasic::ProbabilityDistributionContext::pdf, 
@@ -4053,11 +4047,11 @@ Use Graph.distribution_context(granularity) instead.
       Parameters
       ----------
       probability_distribution_context : SEXP
-          The context created by `phasic::distribution_context()`.
+          The context created by `distribution_context()`.
 
       See Also
       --------
-      phasic::distribution_context
+      distribution_context
 
       Returns
       -------
@@ -4076,11 +4070,11 @@ Use Graph.distribution_context(granularity) instead.
       Parameters
       ----------
       probability_distribution_context : SEXP
-          The context created by `phasic::distribution_context()`.
+          The context created by `distribution_context()`.
 
       See Also
       --------
-      phasic::distribution_context
+      distribution_context
 
       Returns
       -------
@@ -4100,11 +4094,11 @@ Use Graph.distribution_context(granularity) instead.
       Parameters
       ----------
       probability_distribution_context : SEXP
-          The context created by `phasic::distribution_context()`.
+          The context created by `distribution_context()`.
 
       See Also
       --------
-      phasic::distribution_context
+      distribution_context
 
       Returns
       -------
@@ -4177,9 +4171,9 @@ Use Graph.distribution_context(granularity) instead.
 //' time-inhomogeneous distribution function or the expectation of a multivariate discrete phase-type distribution.
 //' *mutates* the context
 //' 
-//' @seealso [phasic::dph_distribution_context()]
+//' @seealso dph_distribution_context()
 //' 
-//' @param probability_distribution_context The context created by [phasic::dph_distribution_context()]
+//' @param probability_distribution_context The context created by dph_distribution_context()
 //' 
 // [[Rcpp::export]]
       )delim")
@@ -4194,11 +4188,11 @@ Use Graph.distribution_context(granularity) instead.
       Parameters
       ----------
       probability_distribution_context : SEXP
-          The context created by `phasic::dph_distribution_context()`.
+          The context created by `dph_distribution_context()`.
 
       See Also
       --------
-      phasic::dph_distribution_context
+      dph_distribution_context
 
       Returns
       -------
@@ -4216,11 +4210,11 @@ Use Graph.distribution_context(granularity) instead.
       Parameters
       ----------
       probability_distribution_context : SEXP
-          The context created by `phasic::dph_distribution_context()`.
+          The context created by `dph_distribution_context()`.
 
       See Also
       --------
-      phasic::dph_distribution_context
+      dph_distribution_context
 
       Returns
       -------
@@ -4238,11 +4232,11 @@ Use Graph.distribution_context(granularity) instead.
       Parameters
       ----------
       probability_distribution_context : SEXP
-          The context created by `phasic::dph_distribution_context()`.
+          The context created by `dph_distribution_context()`.
 
       See Also
       --------
-      phasic::dph_distribution_context
+      dph_distribution_context
 
       Returns
       -------
@@ -4259,9 +4253,9 @@ Use Graph.distribution_context(granularity) instead.
 //' time-inhomogeneous distribution function or the expectation of a multivariate discrete phase-type distribution.
 //' *mutates* the context
 //' 
-//' @seealso [phasic::dph_distribution_context()]
+//' @seealso dph_distribution_context()
 //' 
-//' @param probability_distribution_context The context created by [phasic::dph_distribution_context()]
+//' @param probability_distribution_context The context created by dph_distribution_context()
 //' 
 // [[Rcpp::export]]
       )delim")
@@ -4275,9 +4269,9 @@ Use Graph.distribution_context(granularity) instead.
 //' time-inhomogeneous distribution function or the expectation of a multivariate discrete phase-type distribution.
 //' *mutates* the context
 //' 
-//' @seealso [phasic::dph_distribution_context()]
+//' @seealso dph_distribution_context()
 //' 
-//' @param probability_distribution_context The context created by [phasic::dph_distribution_context()]
+//' @param probability_distribution_context The context created by dph_distribution_context()
 //' 
 // [[Rcpp::export]]
       )delim")
@@ -4410,7 +4404,7 @@ Use Graph.distribution_context(granularity) instead.
       Load a C++ model builder from a file and return a Python function that builds Graph objects.
 
       The C++ file should include "user_model.h" and implement:
-      phasic::Graph build_model(const double* theta, int n_params);
+      Graph build_model(const float* theta, int n_params);
 
       Parameters
       ----------
