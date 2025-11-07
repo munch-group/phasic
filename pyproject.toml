@@ -3,8 +3,13 @@
 # requires = ["setuptools >= 77.0.3", "pybind11>=2.10.0", "eigen"]
 # build-backend = "setuptools.build_meta"
 [build-system]
-requires = ["setuptools", "wheel", "scikit-build-core", "pybind11>=2.10.0", "eigen"]
+requires = ["setuptools", "wheel", "scikit-build-core", "pybind11>=2.10.0", "eigen", "jax>=0.4.0"]
 build-backend = "scikit_build_core.build"
+
+[tool.scikit-build]
+cmake.verbose = true
+cmake.minimum-version = "3.30"
+wheel.packages = ["src/phasic"]
 
 [project]
 name = "phasic"
@@ -118,6 +123,10 @@ default = {solve-group = "default"}
 [tool.pixi.tasks.git-remove-untracked]
 cmd = "git clean -fd"
 description = "Removes untracked files and directories but respects your .gitignores"
+
+[tool.pixi.tasks.install-dev]
+cmd = "XLA_FFI_INCLUDE_DIR=$(python -c 'from jax import ffi; print(ffi.include_dir())') pip install --no-build-isolation --force-reinstall --no-deps ."
+description = "Install phasic in development mode with FFI support"
 
 # [tool.pixi.tasks.test]
 # cmd = "python -m unittest"

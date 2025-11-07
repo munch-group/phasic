@@ -61,25 +61,35 @@ find_package(nlohmann_json REQUIRED)
 find_package(OpenMP)
 
 # Get XLA FFI include directory from environment, jaxlib, or local install
+message(STATUS "========================================")
+message(STATUS "Detecting XLA FFI headers for JAX integration...")
+message(STATUS "Python executable: ${Python_EXECUTABLE}")
 set(XLA_FFI_RESULT 1)
 
 # First check environment variable (useful during pip install)
 if(DEFINED ENV{XLA_FFI_INCLUDE_DIR})
     set(XLA_FFI_INCLUDE_DIR "$ENV{XLA_FFI_INCLUDE_DIR}")
     set(XLA_FFI_RESULT 0)
-    message(STATUS "Found XLA FFI headers from environment: ${XLA_FFI_INCLUDE_DIR}")
+    message(STATUS "✓ Method 1/3: Found XLA FFI via environment variable")
+    message(STATUS "  XLA_FFI_INCLUDE_DIR = ${XLA_FFI_INCLUDE_DIR}")
 else()
+    message(STATUS "✗ Method 1/3: XLA_FFI_INCLUDE_DIR not set")
+
     # Try to get from JAX
     execute_process(
         COMMAND ${Python_EXECUTABLE} -c "from jax import ffi; print(ffi.include_dir())"
         OUTPUT_VARIABLE XLA_FFI_INCLUDE_DIR
         OUTPUT_STRIP_TRAILING_WHITESPACE
         RESULT_VARIABLE XLA_FFI_RESULT
+        ERROR_QUIET
     )
 
     if(XLA_FFI_RESULT EQUAL 0)
-        message(STATUS "Found XLA FFI headers from JAX: ${XLA_FFI_INCLUDE_DIR}")
+        message(STATUS "✓ Method 2/3: Auto-detected from JAX Python package")
+        message(STATUS "  XLA FFI directory = ${XLA_FFI_INCLUDE_DIR}")
     else()
+        message(STATUS "✗ Method 2/3: JAX package not available or import failed")
+
         # Try to find headers in user's local include directory
         find_path(LOCAL_XLA_INCLUDE
             NAMES xla/ffi/api/ffi.h
@@ -90,13 +100,23 @@ else()
         if(LOCAL_XLA_INCLUDE)
             set(XLA_FFI_INCLUDE_DIR "${LOCAL_XLA_INCLUDE}")
             set(XLA_FFI_RESULT 0)
-            message(STATUS "Found XLA FFI headers in local install: ${XLA_FFI_INCLUDE_DIR}")
+            message(STATUS "✓ Method 3/3: Found in local installation path")
+            message(STATUS "  XLA FFI directory = ${XLA_FFI_INCLUDE_DIR}")
         else()
-            message(WARNING "Could not find XLA FFI headers. FFI handlers will not be compiled.")
+            message(STATUS "✗ Method 3/3: Not found in ~/.local/include or /usr/local/include")
+            message(WARNING "")
+            message(WARNING "XLA FFI headers NOT FOUND - FFI handlers will not be compiled")
+            message(WARNING "This means JAX integration will be slower (Python callbacks instead of C++)")
+            message(WARNING "")
+            message(WARNING "To enable FFI support, install JAX before building:")
+            message(WARNING "  pip install 'jax>=0.4.0'")
+            message(WARNING "  pip install --no-build-isolation --force-reinstall --no-deps .")
+            message(WARNING "")
             set(XLA_FFI_INCLUDE_DIR "")
         endif()
     endif()
 endif()
+message(STATUS "========================================")
 
 # pybind11 method:
 # NOTE: phasic_symbolic.c commented out due to missing function implementations
@@ -123,7 +143,9 @@ if(XLA_FFI_RESULT EQUAL 0)
         src/cpp/parameterized/graph_builder_ffi.cpp
         src/cpp/parameterized/graph_builder_ffi.hpp
     )
-    message(STATUS "FFI handlers will be compiled")
+    message(STATUS "")
+    message(STATUS "✓✓✓ FFI handlers WILL be compiled (fast C++ JAX integration)")
+    message(STATUS "")
 endif()
 
 pybind11_add_module(phasic_pybind ${PYBIND_SOURCES})
