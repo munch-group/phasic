@@ -27,6 +27,7 @@ Example
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Union
 import numpy as np
+import numpy.typing as npt
 
 
 @dataclass(frozen=True)
@@ -168,8 +169,21 @@ class StateSpace:
     >>> assert idx == 15
     """
 
-    def __init__(self, properties: List[Property]):
-        """Initialize state space with property definitions."""
+    def __init__(self, properties: List[Property]) -> None:
+        """
+        Initialize state space with property definitions.
+
+        Parameters
+        ----------
+        properties : list of Property
+            List of properties defining the state space, ordered from least
+            to most significant digit in the mixed-radix system.
+
+        Raises
+        ------
+        ValueError
+            If property names are not unique.
+        """
         self.properties = properties
         self.property_dict = {p.name: p for p in properties}
 
@@ -188,25 +202,25 @@ class StateSpace:
 
     def index_to_props(
         self,
-        index: Union[int, np.ndarray],
+        index: Union[int, npt.NDArray[np.integer]],
         as_dict: bool = True
-    ) -> Union[Dict[str, int], np.ndarray]:
+    ) -> Union[Dict[str, int], List[Dict[str, int]], npt.NDArray[np.integer]]:
         """
         Convert linear index to property values.
 
         Parameters
         ----------
-        index : int or np.ndarray
-            Linear index or array of indices to convert
-        as_dict : bool, optional
+        index : int or ndarray of int
+            Linear index or array of indices to convert.
+        as_dict : bool, default=True
             If True, return dict. If False, return array of encoded values.
-            Default True.
 
         Returns
         -------
-        dict or np.ndarray
-            If as_dict=True: dictionary mapping property names to values
-            If as_dict=False: array of encoded values (length = n_properties)
+        dict or list of dict or ndarray of int
+            If scalar index and as_dict=True: dictionary mapping property names to values.
+            If array index and as_dict=True: list of dictionaries.
+            If as_dict=False: array of encoded values (shape: (n_properties,) or (n_indices, n_properties)).
 
         Examples
         --------
@@ -255,25 +269,31 @@ class StateSpace:
 
     def props_to_index(
         self,
-        props: Union[Dict[str, int], np.ndarray, None] = None,
-        **kwargs
-    ) -> Union[int, np.ndarray]:
+        props: Union[Dict[str, int], npt.NDArray[np.integer], None] = None,
+        **kwargs: int
+    ) -> Union[int, npt.NDArray[np.integer]]:
         """
         Convert property values to linear index.
 
         Parameters
         ----------
-        props : dict, np.ndarray, or None
-            If dict: mapping from property names to values
-            If array: encoded values in same order as self.properties
-            If None: use kwargs
-        **kwargs
-            Alternative to dict: pass properties as keyword arguments
+        props : dict or ndarray of int or None, optional
+            Property values to convert. Can be:
+            - dict: mapping from property names to values
+            - ndarray: encoded values in same order as self.properties
+            - None: use kwargs instead
+        **kwargs : int
+            Alternative to dict: pass properties as keyword arguments.
 
         Returns
         -------
-        int or np.ndarray
-            Linear index or array of indices
+        int or ndarray of int
+            Linear index (scalar) or array of indices (if props is 2D array).
+
+        Raises
+        ------
+        ValueError
+            If both props and kwargs are specified, or neither is specified.
 
         Examples
         --------
@@ -372,8 +392,24 @@ class StateVector:
         state_space: StateSpace,
         index: Optional[int] = None,
         props: Optional[Dict[str, int]] = None
-    ):
-        """Initialize state vector from index or properties."""
+    ) -> None:
+        """
+        Initialize state vector from index or properties.
+
+        Parameters
+        ----------
+        state_space : StateSpace
+            State space defining valid properties.
+        index : int, optional
+            Linear index to initialize from.
+        props : dict, optional
+            Property dictionary to initialize from.
+
+        Raises
+        ------
+        ValueError
+            If both index and props are specified, or neither is specified.
+        """
         self.state_space = state_space
 
         if index is not None and props is not None:
@@ -390,38 +426,109 @@ class StateVector:
 
     @property
     def index(self) -> int:
-        """Current linear index."""
+        """
+        Current linear index.
+
+        Returns
+        -------
+        int
+            Linear index in state space.
+        """
         return self._index
 
     @property
     def props(self) -> Dict[str, int]:
-        """Current property values."""
+        """
+        Current property values.
+
+        Returns
+        -------
+        dict
+            Copy of property dictionary.
+        """
         return self._props.copy()
 
     def __getitem__(self, key: str) -> int:
-        """Get property value by name."""
+        """
+        Get property value by name.
+
+        Parameters
+        ----------
+        key : str
+            Property name.
+
+        Returns
+        -------
+        int
+            Property value.
+
+        Raises
+        ------
+        KeyError
+            If property name is not found.
+        """
         return self._props[key]
 
     def __setitem__(self, key: str, value: int) -> None:
-        """Set property value by name (doesn't update index automatically)."""
+        """
+        Set property value by name.
+
+        Note: Does not automatically update the linear index. Call update_index() after.
+
+        Parameters
+        ----------
+        key : str
+            Property name.
+        value : int
+            New property value.
+
+        Raises
+        ------
+        KeyError
+            If property name is not found.
+        ValueError
+            If value is out of valid range for this property.
+        """
         if key not in self.state_space.property_dict:
             raise KeyError(f"Unknown property: {key}")
         self.state_space.property_dict[key].validate_value(value)
         self._props[key] = value
 
     def update_index(self) -> None:
-        """Update linear index from current property values."""
+        """
+        Update linear index from current property values.
+
+        Call this after modifying property values via __setitem__.
+        """
         self._index = self.state_space.props_to_index(self._props)
 
     def update_props(self) -> None:
-        """Update property values from current linear index."""
+        """
+        Update property values from current linear index.
+
+        Call this after modifying the index directly.
+        """
         self._props = self.state_space.index_to_props(self._index)
 
     def copy(self) -> 'StateVector':
-        """Create a copy of this state vector."""
+        """
+        Create a copy of this state vector.
+
+        Returns
+        -------
+        StateVector
+            New StateVector with same state space and property values.
+        """
         return StateVector(self.state_space, props=self._props)
 
     def __repr__(self) -> str:
-        """String representation."""
+        """
+        String representation of state vector.
+
+        Returns
+        -------
+        str
+            Human-readable representation showing index and properties.
+        """
         props_str = ', '.join(f"{k}={v}" for k, v in self._props.items())
         return f"StateVector(index={self._index}, {props_str})"
