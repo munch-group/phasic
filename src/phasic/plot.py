@@ -31,32 +31,85 @@ def _format_rate(rate):
 
 
 
-def get_theme():
-    """Automatically configure matplotlib for VS Code theme"""
-    
-    js_code = """
-    (function() {
-        const bg = window.getComputedStyle(document.body).backgroundColor;
-        const rgb = bg.match(/\d+/g);
-        if (rgb) {
-            const brightness = (parseInt(rgb[0]) + parseInt(rgb[1]) + parseInt(rgb[2])) / 3;
-            IPython.notebook.kernel.execute(
-                `_is_dark_theme = ${brightness < 128}`
-            );
-        }
-    })();
-    """
-    
-    display(Javascript(js_code))
-    time.sleep(0.5)
-    
-    try:
-        return "dark" if _is_dark_theme else "light"
-    except NameError:
-        print("Could not detect theme. Set it manually using phasic.set_theme('dark') or phasic.set_theme('light').")
-        return "light"
+_theme = None  # Will be set on first use or by set_theme()
+_detected_theme = None  # Set by JavaScript detection
 
-_theme = get_theme()
+def get_theme():
+    """
+    Attempt to detect the current theme (dark or light).
+
+    Returns
+    -------
+    str
+        Either 'dark' or 'light'. Defaults to 'dark' if detection fails.
+
+    Notes
+    -----
+    This function attempts to detect the theme by examining the notebook's
+    background color via JavaScript. If detection fails or we're not in a
+    notebook environment, it returns 'dark' as the default.
+
+    For manual control, use phasic.set_theme('dark') or phasic.set_theme('light').
+    """
+    global _theme, _detected_theme
+
+    # If theme already set manually, return it
+    if _theme is not None:
+        return _theme
+
+    # Try to detect theme in Jupyter environment
+    try:
+        from IPython import get_ipython
+        ipython = get_ipython()
+
+        # Only attempt detection in notebook environments
+        if ipython is None or 'IPKernelApp' not in ipython.config:
+            # Not in a notebook, use default
+            return "dark"
+
+        # Clear previous detection
+        _detected_theme = None
+
+        # Use JavaScript to detect background brightness
+        js_code = """
+        (function() {
+            try {
+                const bg = window.getComputedStyle(document.body).backgroundColor;
+                const rgb = bg.match(/\\d+/g);
+                if (rgb) {
+                    const brightness = (parseInt(rgb[0]) + parseInt(rgb[1]) + parseInt(rgb[2])) / 3;
+                    const isDark = brightness < 128;
+                    // Store in Python namespace
+                    IPython.notebook.kernel.execute(
+                        'import phasic.plot; phasic.plot._detected_theme = "' +
+                        (isDark ? 'dark' : 'light') + '"'
+                    );
+                }
+            } catch(e) {
+                // If detection fails, set to default
+                IPython.notebook.kernel.execute(
+                    'import phasic.plot; phasic.plot._detected_theme = "dark"'
+                );
+            }
+        })();
+        """
+
+        display(Javascript(js_code))
+
+        # Wait briefly for JavaScript to execute
+        time.sleep(0.2)
+
+        # Check if detection succeeded
+        if _detected_theme is not None:
+            print(f"'{_detected_theme}'")
+            return _detected_theme
+        else:
+            print("Could not detect theme. Set it manually using phasic.set_theme('dark') or phasic.set_theme('light').")
+            return "dark"
+
+    except Exception as e:
+        # Not in Jupyter or detection failed, use default
+        return "dark"
 
 def set_theme(theme:str):
     """
@@ -198,7 +251,8 @@ def plot_graph(graph:GraphType,
         assert "Do not use both by_index and by_state"
 
     if theme is None:
-        theme = _theme
+        # Use manually set theme, or default to 'dark'
+        theme = _theme if _theme is not None else 'dark'
 
     if theme == 'dark':
         edge_color = '#e6e6e6'

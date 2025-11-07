@@ -214,7 +214,7 @@ from .phasic_pybind import Graph as _Graph
 from .phasic_pybind import Vertex, Edge
 
 from . import plot
-from .plot import set_theme, phasic_theme
+from .plot import set_theme, get_theme, phasic_theme
 
 # Optional SVGD support (requires JAX)
 if HAS_JAX:
