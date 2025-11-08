@@ -36,14 +36,10 @@
 #include <limits.h>
 #include "phasic.h"
 #include "../../api/c/phasic_hash.h"
+#include "phasic_log.h"
 
 #ifndef PATH_MAX
 #define PATH_MAX 4096
-#endif
-
-// Debug printing macro
-#ifndef DEBUG_PRINT
-#define DEBUG_PRINT(...) do {} while(0)  // Disabled by default
 #endif
 
 volatile char ptd_err[4096] = {'\0'};
@@ -10582,21 +10578,30 @@ struct ptd_trace_result *ptd_evaluate_trace(
     const double *params,
     size_t params_length
 ) {
+    PTD_LOG_DEBUG("Evaluating trace with %zu parameters", params_length);
+
     // Validate parameters
     if (trace == NULL) {
+        PTD_LOG_ERROR("Cannot evaluate trace: trace is NULL");
         sprintf((char*)ptd_err, "Trace is NULL");
         return NULL;
     }
 
     if (trace->param_length > 0 && params == NULL) {
+        PTD_LOG_ERROR("Cannot evaluate trace: parameters required but not provided");
         sprintf((char*)ptd_err, "Parameters required for parameterized trace");
         return NULL;
     }
 
     if (params_length != trace->param_length) {
+        PTD_LOG_ERROR("Cannot evaluate trace: expected %zu parameters, got %zu",
+                      trace->param_length, params_length);
         sprintf((char*)ptd_err, "Expected %zu parameters, got %zu", trace->param_length, params_length);
         return NULL;
     }
+
+    PTD_LOG_DEBUG("Evaluating %zu operations for %zu vertices",
+                  trace->operations_length, trace->n_vertices);
 
     // Allocate values array for operation results
     size_t n_ops = trace->operations_length;
@@ -10881,16 +10886,23 @@ struct ptd_desc_reward_compute *ptd_build_reward_compute_from_trace(
  * This is a ONE-TIME cost - trace can be cached and reused.
  */
 struct ptd_elimination_trace *ptd_record_elimination_trace(struct ptd_graph *graph) {
+    PTD_LOG_DEBUG("Starting trace recording...");
+
     // Validate graph is parameterized
     if (graph == NULL) {
+        PTD_LOG_ERROR("Cannot record trace: graph is NULL");
         sprintf((char*)ptd_err, "Graph is NULL");
         return NULL;
     }
+
+    PTD_LOG_DEBUG("Recording trace for graph: %zu vertices, param_length=%zu",
+                  graph->vertices_length, graph->param_length);
 
     // Allow trace recording for graphs with coefficient arrays (param_length >= 1)
     // This includes both single-parameter (param_length=1, is_parameterized=False)
     // and multi-parameter (param_length>1, is_parameterized=True) graphs
     if (graph->param_length < 1) {
+        PTD_LOG_ERROR("Cannot record trace: graph has no parameters (param_length=0)");
         sprintf((char*)ptd_err, "Graph has no parameters (param_length=0). Trace recording requires parameterized edges.");
         return NULL;
     }
@@ -10898,9 +10910,12 @@ struct ptd_elimination_trace *ptd_record_elimination_trace(struct ptd_graph *gra
     // Get graph structure
     size_t n_vertices = graph->vertices_length;
     if (n_vertices == 0) {
+        PTD_LOG_ERROR("Cannot record trace: graph has no vertices");
         sprintf((char*)ptd_err, "Graph has no vertices");
         return NULL;
     }
+
+    PTD_LOG_DEBUG("Allocating trace structure for %zu vertices", n_vertices);
 
     // Allocate trace structure
     struct ptd_elimination_trace *trace = (struct ptd_elimination_trace *)calloc(1, sizeof(*trace));
@@ -11488,6 +11503,9 @@ struct ptd_elimination_trace *ptd_record_elimination_trace(struct ptd_graph *gra
     free(parents_capacities);
 
     #undef FIND_EDGE_IDX
+
+    PTD_LOG_INFO("Trace recording complete: %zu vertices, %zu operations, param_length=%zu",
+                 trace->n_vertices, trace->operations_length, trace->param_length);
 
     return trace;
 }

@@ -41,6 +41,9 @@ import numpy as np
 import pickle
 import json
 from pathlib import Path
+from .logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 # ============================================================================
@@ -412,11 +415,16 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
     vertices_list = list(graph.vertices())
     n_vertices = len(vertices_list)
 
+    logger.debug("Starting trace recording: %d vertices, param_length=%s, reward_length=%s, enable_rewards=%s",
+                 n_vertices, param_length, reward_length, enable_rewards)
+
     if n_vertices == 0:
+        logger.error("Cannot record trace: graph has no vertices")
         raise ValueError("Graph has no vertices")
 
     # Create trace builder
     builder = TraceBuilder()
+    logger.debug("Created trace builder")
 
     # Extract states
     state_length = graph.state_length()
@@ -446,8 +454,14 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
             has_parameterized = True
             break
 
+    if has_parameterized:
+        logger.debug("Graph has parameterized edges")
+    else:
+        logger.debug("Graph has no parameterized edges (constant weights only)")
+
     # If param_length not provided, auto-detect it
     if param_length is None and has_parameterized:
+        logger.debug("Auto-detecting param_length via garbage detection...")
         # Sample multiple edges and find the minimum garbage threshold
         MAX_PARAM_TEST = 200
 
@@ -481,21 +495,32 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
                 break  # Only need to check one vertex
 
         param_length = detected_param_length
+        logger.info("Auto-detected param_length=%d", param_length)
     elif param_length is None:
         # No parameterized edges, set to 0
         param_length = 0
+        logger.debug("No parameterized edges, param_length=0")
+    else:
+        logger.debug("Using explicit param_length=%d", param_length)
 
     # Determine reward_length
     if reward_length is None:
         if enable_rewards:
             reward_length = n_vertices
+            logger.debug("Enabling rewards with reward_length=%d (=n_vertices)", reward_length)
         else:
             reward_length = 0
+            logger.debug("Rewards disabled, reward_length=0")
+    else:
+        logger.debug("Using explicit reward_length=%d", reward_length)
 
     # Validate reward_length
     if reward_length > 0 and reward_length < n_vertices:
+        logger.error("Invalid reward_length=%d (must be 0 or >= n_vertices=%d)",
+                     reward_length, n_vertices)
         raise ValueError(f"reward_length ({reward_length}) must be 0 or >= n_vertices ({n_vertices})")
 
+    logger.debug("PHASE 1: Computing vertex rates...")
     vertex_rates = np.zeros(n_vertices, dtype=np.int32)
 
     for i, v in enumerate(vertices_list):
@@ -743,6 +768,13 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
     # No need for Python-level caching - C level is more efficient
     # Cache location: ~/.phasic_cache/traces/
     # Disable cache: Set PHASIC_DISABLE_CACHE=1 environment variable
+
+    logger.info("Trace recording complete: %d vertices, %d operations, phase %d, param_length=%d, reward_length=%d",
+                trace.n_vertices, len(trace.operations), trace.metadata["phase"],
+                trace.param_length, trace.reward_length)
+    logger.debug("Trace stats: %d cached constants, parameterized=%s, rewards=%s",
+                 trace.metadata["const_cached"], trace.metadata["parameterized"],
+                 trace.metadata["reward_transformation"])
 
     return trace
 
@@ -1120,10 +1152,14 @@ def instantiate_from_trace(trace: EliminationTrace, params: Optional[np.ndarray]
     # This ensures we get the full Python API with proper as_matrices() support
     from . import Graph as _Graph
 
+    logger.debug("Instantiating graph from trace: %d vertices, param_length=%d, reward_length=%d",
+                 trace.n_vertices, trace.param_length, trace.reward_length)
+
     # Evaluate trace (with rewards if provided)
     result = evaluate_trace(trace, params, rewards)
 
     # Create new graph
+    logger.debug("Creating graph with state_length=%d", trace.state_length)
     graph = _Graph(trace.state_length)
 
     # Build index-to-vertex mapping (NOT state-to-vertex!)
@@ -1166,6 +1202,9 @@ def instantiate_from_trace(trace: EliminationTrace, params: Optional[np.ndarray]
             to_vertex = idx_to_vertex[to_idx]
 
             from_vertex.add_edge(to_vertex, weight)
+
+    logger.debug("Graph instantiated: %d vertices, %d edges",
+                 len(list(graph.vertices())), sum(len(list(v.edges())) for v in graph.vertices()))
 
     return graph
 
@@ -1448,6 +1487,10 @@ def trace_to_log_likelihood(trace: EliminationTrace, observed_data, reward_vecto
 
     observed_data = jnp.array(observed_data)
 
+    logger.debug("Creating log-likelihood function: %d observations, param_length=%d, granularity=%d, use_cpp=%s",
+                 len(observed_data) if hasattr(observed_data, '__len__') else 1,
+                 trace.param_length, granularity, use_cpp)
+
     # C++ mode not yet supported with reward_vector (requires C++ code generation update)
     if reward_vector is not None and use_cpp:
         import warnings
@@ -1462,10 +1505,12 @@ def trace_to_log_likelihood(trace: EliminationTrace, observed_data, reward_vecto
     # C++ Mode: Standalone compiled C++ code for maximum performance
     # ===========================================================================
     if use_cpp and reward_vector is None:
+        logger.debug("Using C++ mode for log-likelihood (10x faster than Python mode)")
         import hashlib
         from . import _generate_cpp_from_trace, _compile_trace_library, _wrap_trace_log_likelihood_for_jax
 
         # Generate C++ code embedding trace data and observations
+        logger.debug("Generating C++ code from trace...")
         cpp_code = _generate_cpp_from_trace(trace, observed_data, granularity)
 
         # Create hash for caching (based on trace + observations + granularity)
@@ -1485,17 +1530,24 @@ def trace_to_log_likelihood(trace: EliminationTrace, observed_data, reward_vecto
         cache_key = f"{trace_str}_{observed_data.tobytes()}_{granularity}"
         trace_hash = hashlib.sha256(cache_key.encode()).hexdigest()[:16]
 
+        logger.debug("Trace hash for C++ cache: %s", trace_hash)
+
         # Compile to shared library (cached if already exists)
+        logger.debug("Compiling C++ library (or loading from cache)...")
         lib_path = _compile_trace_library(cpp_code, trace_hash)
+        logger.info("C++ library ready: %s", lib_path)
 
         # Wrap for JAX
         log_likelihood = _wrap_trace_log_likelihood_for_jax(lib_path, trace.param_length)
 
+        logger.debug("C++ log-likelihood function created successfully")
         return log_likelihood
 
     # ===========================================================================
     # Python Mode: Fallback for debugging or when reward_vector is provided
     # ===========================================================================
+    logger.debug("Using Python mode for log-likelihood (exact phase-type PDF via forward algorithm)")
+
     def log_likelihood(params):
         """Log-likelihood function for given parameters"""
 
@@ -1505,6 +1557,7 @@ def trace_to_log_likelihood(trace: EliminationTrace, observed_data, reward_vecto
         rewards_np = np.asarray(reward_vector) if reward_vector is not None else None
 
         # Instantiate concrete graph from trace (with rewards if provided)
+        logger.debug("Evaluating log-likelihood with params=%s", params_np[:3] if len(params_np) > 3 else params_np)
         graph = instantiate_from_trace(trace, params_np, rewards_np)
 
         # Compute exact PDF at observed time points
