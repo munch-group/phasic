@@ -4702,7 +4702,8 @@ Use Graph.distribution_context(granularity) instead.
       )delim");
 
   // HashResult class - wraps C struct ptd_hash_result
-  py::class_<struct ptd_hash_result>(hash_module, "HashResult",
+  // Use shared_ptr as holder since compute_graph_hash returns shared_ptr
+  py::class_<struct ptd_hash_result, std::shared_ptr<struct ptd_hash_result>>(hash_module, "HashResult",
       R"delim(
       Hash result containing multiple representations of graph content hash.
 

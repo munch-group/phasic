@@ -3371,7 +3371,7 @@ extern "C" {{
         return Graph(super().clone())
 
     def compute_trace(self, param_length: Optional[int] = None,
-                     hierarchical: bool = False,
+                     hierarchical: bool = True,
                      min_size: int = 50,
                      parallel: str = 'auto'):
         """
@@ -3381,10 +3381,10 @@ extern "C" {{
         ----------
         param_length : int, optional
             Number of parameters (auto-detect if None)
-        hierarchical : bool, default=False
-            If True, use hierarchical SCC-based caching for large graphs.
-            If False, use simple caching (existing behavior).
-            Recommended for graphs with >500 vertices.
+        hierarchical : bool, default=True
+            If True, use hierarchical SCC-based caching (recommended).
+            If False, use direct trace recording without caching.
+            Caching provides 10-100x speedup on repeated calls.
         min_size : int, default=50
             Minimum vertices to subdivide (only used if hierarchical=True)
         parallel : str, default='auto'
