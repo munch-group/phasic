@@ -20,12 +20,11 @@ import os
 import numpy as np
 from pathlib import Path
 from typing import Optional
-import logging
 
 from .trace_elimination import EliminationTrace, Operation, OpType
+from .logging_config import get_logger
 
-# Configure logging
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 # Import C bindings

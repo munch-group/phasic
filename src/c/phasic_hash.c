@@ -7,6 +7,7 @@
  */
 
 #include "../../api/c/phasic_hash.h"
+#include "phasic_log.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -214,11 +215,19 @@ static uint64_t hash_vertex_structure(const struct ptd_vertex *vertex) {
 
 struct ptd_hash_result *ptd_graph_content_hash(const struct ptd_graph *graph) {
     if (graph == NULL || graph->vertices == NULL) {
+        PTD_LOG_WARNING("graph_content_hash: NULL graph or vertices");
         return NULL;
     }
 
+    PTD_LOG_DEBUG("Computing content hash for graph: %zu vertices, %zu params, %s",
+                  graph->vertices_length, graph->param_length,
+                  graph->parameterized ? "parameterized" : "concrete");
+
     struct ptd_hash_result *result = (struct ptd_hash_result *)malloc(sizeof(struct ptd_hash_result));
-    if (result == NULL) return NULL;
+    if (result == NULL) {
+        PTD_LOG_ERROR("Failed to allocate hash result");
+        return NULL;
+    }
 
     sha256_context ctx;
     sha256_init(&ctx);
@@ -255,6 +264,9 @@ struct ptd_hash_result *ptd_graph_content_hash(const struct ptd_graph *graph) {
         sprintf(&result->hash_hex[i * 2], "%02x", result->hash_full[i]);
     }
     result->hash_hex[64] = '\0';
+
+    PTD_LOG_DEBUG("Content hash computed: %.16s... (hash64=%016llx)",
+                  result->hash_hex, (unsigned long long)result->hash64);
 
     return result;
 }

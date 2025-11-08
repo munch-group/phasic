@@ -26,14 +26,13 @@ Date: 2025-10-08
 
 import os
 import sys
-import logging
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any, List
 import warnings
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
-logger = logging.getLogger(__name__)
+from .logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 # ============================================================================

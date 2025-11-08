@@ -28,9 +28,10 @@ Date: 2025-10-08
 import functools
 import numpy as np
 from typing import Any, Callable, Optional, Tuple, Union
-import logging
 
-logger = logging.getLogger(__name__)
+from .logging_config import get_logger
+
+logger = get_logger(__name__)
 
 # Optional JAX import
 try:

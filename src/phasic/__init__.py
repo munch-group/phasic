@@ -213,6 +213,10 @@ from .phasic_pybind import *
 from .phasic_pybind import Graph as _Graph
 from .phasic_pybind import Vertex, Edge
 
+# Configure package-wide logging
+from .logging_config import setup_logging, get_logger
+setup_logging()
+
 from . import plot
 from .plot import set_theme, get_theme, phasic_theme
 

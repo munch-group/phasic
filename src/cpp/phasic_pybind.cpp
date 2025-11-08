@@ -15,9 +15,10 @@
 #include "phasiccpp.h"
 #include "parameterized/graph_builder.hpp"
 
-// Include C API for hash functions
+// Include C API for hash functions and logging
 extern "C" {
 #include "../../api/c/phasic_hash.h"
+#include "../../src/c/phasic_log.h"
 }
 
 // Only include FFI headers if XLA FFI is available
@@ -4831,5 +4832,78 @@ Use Graph.distribution_context(granularity) instead.
       py::arg("edge"),
       py::arg("state_length"),
       "Hash individual parameterized edge (for testing)");
+
+  // ============================================================================
+  // C Logging Bridge
+  // ============================================================================
+
+  // Internal functions for C logging (not exposed to Python directly)
+  m.def("_c_log_set_callback",
+      [](py::function callback) {
+          // Store callback in a way that survives but can be safely ignored during shutdown
+          // We intentionally leak this memory to avoid shutdown crashes
+          static py::function* py_callback = new py::function(callback);
+          *py_callback = callback;  // Update existing callback
+
+          // Set C callback that forwards to Python
+          ptd_set_log_callback([](ptd_log_level_t level, const char* message) {
+              // Check if Python is still alive before attempting callback
+              if (Py_IsInitialized()) {
+                  try {
+                      // Acquire GIL for Python call
+                      py::gil_scoped_acquire acquire;
+
+                      // Map C level to Python level
+                      int py_level;
+                      switch (level) {
+                          case PTD_LOG_DEBUG: py_level = 10; break;
+                          case PTD_LOG_INFO: py_level = 20; break;
+                          case PTD_LOG_WARNING: py_level = 30; break;
+                          case PTD_LOG_ERROR: py_level = 40; break;
+                          case PTD_LOG_CRITICAL: py_level = 50; break;
+                          default: py_level = 30; break;  // Default to WARNING
+                      }
+
+                      // Call Python callback (dereference pointer)
+                      (*py_callback)(py_level, message);
+                  } catch (py::error_already_set &e) {
+                      // Error in Python callback - print to stderr and continue
+                      std::cerr << "Error in C logging callback: " << e.what() << std::endl;
+                  } catch (...) {
+                      // Catch any other exceptions
+                      // Silently ignore to avoid crash
+                  }
+              }
+          });
+      },
+      py::arg("callback"),
+      R"delim(
+      Set callback function for C logging (internal use only).
+
+      This function is called automatically during module initialization
+      to connect C logging to the Python logging system.
+      )delim");
+
+  m.def("_c_log_set_level",
+      [](int level) {
+          // Map Python level to C level
+          ptd_log_level_t c_level;
+          if (level <= 10) c_level = PTD_LOG_DEBUG;
+          else if (level <= 20) c_level = PTD_LOG_INFO;
+          else if (level <= 30) c_level = PTD_LOG_WARNING;
+          else if (level <= 40) c_level = PTD_LOG_ERROR;
+          else c_level = PTD_LOG_CRITICAL;
+
+          ptd_set_log_level(c_level);
+      },
+      py::arg("level"),
+      "Set C logging level (internal use only)");
+
+  m.def("_c_log_get_level",
+      []() {
+          ptd_log_level_t c_level = ptd_get_log_level();
+          return static_cast<int>(c_level);
+      },
+      "Get current C logging level (internal use only)");
 
 }

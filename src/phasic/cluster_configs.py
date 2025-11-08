@@ -23,9 +23,10 @@ import os
 from dataclasses import dataclass, field, asdict
 from typing import Optional, Dict, Any, List
 from pathlib import Path
-import logging
 
-logger = logging.getLogger(__name__)
+from .logging_config import get_logger
+
+logger = get_logger(__name__)
 
 try:
     import yaml

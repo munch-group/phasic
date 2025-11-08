@@ -32,15 +32,12 @@
  */
 
 #include "trace_internal.h"
-
-// Debug printing macro
-#ifndef DEBUG_PRINT
-#define DEBUG_PRINT(...) do {} while(0)  // Disabled by default
-#endif
+#include "../phasic_log.h"
 
 int get_cache_dir(char *buffer, size_t buffer_size) {
     const char *home = getenv("HOME");
     if (home == NULL) {
+        PTD_LOG_WARNING("Cache unavailable: HOME environment variable not set");
         sprintf((char*)ptd_err, "HOME environment variable not set");
         return -1;
     }
@@ -48,6 +45,7 @@ int get_cache_dir(char *buffer, size_t buffer_size) {
     // Build path: ~/.phasic_cache/traces
     int ret = snprintf(buffer, buffer_size, "%s/.phasic_cache/traces", home);
     if (ret < 0 || (size_t)ret >= buffer_size) {
+        PTD_LOG_ERROR("Cache directory path too long");
         sprintf((char*)ptd_err, "Cache directory path too long");
         return -1;
     }
@@ -60,17 +58,21 @@ int get_cache_dir(char *buffer, size_t buffer_size) {
     struct stat st = {0};
     if (stat(parent_dir, &st) == -1) {
         if (mkdir(parent_dir, 0755) == -1) {
+            PTD_LOG_WARNING("Failed to create cache directory: %s", parent_dir);
             sprintf((char*)ptd_err, "Failed to create cache directory: %s", parent_dir);
             return -1;
         }
+        PTD_LOG_DEBUG("Created cache directory: %s", parent_dir);
     }
 
     // Create traces subdirectory
     if (stat(buffer, &st) == -1) {
         if (mkdir(buffer, 0755) == -1) {
+            PTD_LOG_WARNING("Failed to create traces directory: %s", buffer);
             sprintf((char*)ptd_err, "Failed to create traces directory: %s", buffer);
             return -1;
         }
+        PTD_LOG_DEBUG("Created traces directory: %s", buffer);
     }
 
     return 0;
@@ -79,9 +81,12 @@ int get_cache_dir(char *buffer, size_t buffer_size) {
 struct ptd_elimination_trace *load_trace_from_cache(const char *hash_hex) {
     if (hash_hex == NULL) return NULL;
 
+    PTD_LOG_DEBUG("Attempting to load trace from cache: %.16s...", hash_hex);
+
     // Get cache directory
     char cache_dir[PATH_MAX];
     if (get_cache_dir(cache_dir, sizeof(cache_dir)) != 0) {
+        PTD_LOG_DEBUG("Cache directory unavailable");
         return NULL;  // Cache directory unavailable
     }
 
@@ -92,6 +97,7 @@ struct ptd_elimination_trace *load_trace_from_cache(const char *hash_hex) {
     // Check if file exists
     FILE *f = fopen(cache_file, "r");
     if (f == NULL) {
+        PTD_LOG_DEBUG("Cache miss for hash %.16s...", hash_hex);
         return NULL;  // Cache miss
     }
 
@@ -101,12 +107,15 @@ struct ptd_elimination_trace *load_trace_from_cache(const char *hash_hex) {
     fseek(f, 0, SEEK_SET);
 
     if (file_size <= 0 || file_size > 100*1024*1024) {  // Max 100MB
+        PTD_LOG_WARNING("Cache file invalid size (%ld bytes) for hash %.16s...",
+                        file_size, hash_hex);
         fclose(f);
         return NULL;
     }
 
     char *json = malloc(file_size + 1);
     if (json == NULL) {
+        PTD_LOG_ERROR("Failed to allocate memory for cache file (%ld bytes)", file_size);
         fclose(f);
         return NULL;
     }
@@ -115,6 +124,7 @@ struct ptd_elimination_trace *load_trace_from_cache(const char *hash_hex) {
     fclose(f);
 
     if ((long)read != file_size) {
+        PTD_LOG_WARNING("Failed to read complete cache file for hash %.16s...", hash_hex);
         free(json);
         return NULL;
     }
@@ -125,7 +135,13 @@ struct ptd_elimination_trace *load_trace_from_cache(const char *hash_hex) {
     struct ptd_elimination_trace *trace = json_to_trace(json);
     free(json);
 
-    DEBUG_PRINT("INFO: loaded trace from cache\n");
+    if (trace != NULL) {
+        PTD_LOG_INFO("Cache hit: loaded trace for hash %.16s... (%ld bytes)",
+                     hash_hex, file_size);
+    } else {
+        PTD_LOG_WARNING("Cache file corrupt: failed to deserialize trace for hash %.16s...",
+                        hash_hex);
+    }
 
     return trace;
 }
@@ -133,9 +149,12 @@ struct ptd_elimination_trace *load_trace_from_cache(const char *hash_hex) {
 bool save_trace_to_cache(const char *hash_hex, const struct ptd_elimination_trace *trace) {
     if (hash_hex == NULL || trace == NULL) return false;
 
+    PTD_LOG_DEBUG("Attempting to save trace to cache: %.16s...", hash_hex);
+
     // Get cache directory
     char cache_dir[PATH_MAX];
     if (get_cache_dir(cache_dir, sizeof(cache_dir)) != 0) {
+        PTD_LOG_DEBUG("Cache directory unavailable, cannot save trace");
         return false;  // Silently fail if cache unavailable
     }
 
@@ -146,12 +165,14 @@ bool save_trace_to_cache(const char *hash_hex, const struct ptd_elimination_trac
     // Serialize to JSON
     char *json = trace_to_json(trace);
     if (json == NULL) {
+        PTD_LOG_ERROR("Failed to serialize trace to JSON for hash %.16s...", hash_hex);
         return false;
     }
 
     // Write to file
     FILE *f = fopen(cache_file, "w");
     if (f == NULL) {
+        PTD_LOG_WARNING("Failed to open cache file for writing: %s", cache_file);
         free(json);
         return false;
     }
@@ -161,7 +182,12 @@ bool save_trace_to_cache(const char *hash_hex, const struct ptd_elimination_trac
     fclose(f);
     free(json);
 
-    DEBUG_PRINT("INFO: saved trace to cache\n");
-
-    return (written == len);
+    if (written == len) {
+        PTD_LOG_INFO("Saved trace to cache: %.16s... (%zu bytes)", hash_hex, len);
+        return true;
+    } else {
+        PTD_LOG_ERROR("Failed to write complete cache file for hash %.16s... (%zu/%zu bytes)",
+                      hash_hex, written, len);
+        return false;
+    }
 }

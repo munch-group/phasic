@@ -38,7 +38,8 @@ import subprocess
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any, Callable
 from collections import defaultdict
-import logging
+
+from .logging_config import get_logger
 
 # Core dependencies
 import psutil
@@ -61,7 +62,7 @@ except ImportError:
     HAS_NOTEBOOK_TQDM = False
     notebook_tqdm = std_tqdm
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 # ============================================================================

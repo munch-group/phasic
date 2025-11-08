@@ -477,6 +477,90 @@ pdf = concrete_graph.pdf(time=1.0, granularity=100)
 
 ## Quick Reference
 
+### Logging
+
+**phasic** provides a unified logging system that integrates Python and C/C++ code logging into a single consistent interface.
+
+**Default Behavior**: Logging is configured at WARNING level by default, so only important messages are shown unless explicitly enabled.
+
+**Environment Variables**:
+```bash
+# Set logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+export PHASIC_LOG_LEVEL=DEBUG
+
+# Write logs to file (in addition to console)
+export PHASIC_LOG_FILE=/path/to/logfile.log
+
+# Force colored output on/off (auto-detected by default)
+export PHASIC_LOG_COLOR=1  # or 0 to disable
+```
+
+**Python API**:
+```python
+from phasic.logging_config import set_log_level, get_logger
+
+# Enable debug logging for entire package
+set_log_level('DEBUG')
+
+# Enable debug logging for specific module
+set_log_level('DEBUG', module='trace_elimination')
+
+# Get logger for your module
+logger = get_logger(__name__)
+logger.debug("Detailed debug information")
+logger.info("General information")
+logger.warning("Warning message")
+logger.error("Error message")
+```
+
+**Logger Hierarchy**:
+- `phasic` - Root logger for entire package
+- `phasic.c` - All C/C++ code logs appear here
+- `phasic.module_name` - Module-specific loggers (e.g., `phasic.trace_elimination`)
+
+**Examples**:
+```python
+# Example 1: Debug cache operations
+from phasic.logging_config import set_log_level
+set_log_level('DEBUG')
+
+# Now you'll see detailed logs about:
+# - Cache hits/misses
+# - Hash computation
+# - Trace serialization/deserialization
+# - Graph operations
+
+# Example 2: Silence all logging
+from phasic.logging_config import disable_logging
+disable_logging()
+
+# Example 3: View only errors
+set_log_level('ERROR')
+```
+
+**C Logging** (for developers):
+```c
+#include "phasic_log.h"
+
+PTD_LOG_DEBUG("Processing vertex %d with rate %f", v_idx, rate);
+PTD_LOG_INFO("Cache hit for hash %s", hash_hex);
+PTD_LOG_WARNING("Parameter out of range: %d", param_idx);
+PTD_LOG_ERROR("Failed to allocate memory for %zu bytes", size);
+```
+
+**Key Features**:
+- Thread-safe logging from C code
+- Automatic integration of C logs into Python logging hierarchy
+- Colored console output (when terminal supports it)
+- Zero overhead when logging is disabled
+- File and console output simultaneously
+
+**Implementation Details**:
+- Python: `src/phasic/logging_config.py` - Unified logging configuration
+- C API: `src/c/phasic_log.h/c` - Thread-safe C logging with callback mechanism
+- Bridge: `src/cpp/phasic_pybind.cpp` - pybind11 bridge connecting C to Python logging
+- Strategic logging in: `phasic_hash.c` (hash computation), `trace_cache.c` (cache operations)
+
 ### Full API Documentation
 
 - **C API**: See `api/c/phasic.h` (all C functions with comments)
