@@ -1124,7 +1124,7 @@ def instantiate_from_trace(trace: EliminationTrace, params: Optional[np.ndarray]
     result = evaluate_trace(trace, params, rewards)
 
     # Create new graph
-    graph = _Graph(state_length=trace.state_length)
+    graph = _Graph(trace.state_length)
 
     # Build index-to-vertex mapping (NOT state-to-vertex!)
     # Multiple trace vertices can have the same state (e.g., after elimination)
