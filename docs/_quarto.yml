@@ -58,6 +58,13 @@ website:
   #   type: info
   #   position: above-navbar
 
+
+  # render:
+  #   # - "**/*.qmd"  # render all qmd files
+  #   # - "!draft-*.qmd"  # except those starting with draft-
+  #   # - "!internal/"  # exclude entire directories
+  #   - "!pages/tutorials/rabbits_full_py_api_example.ipynb"
+
   navbar:
     logo: logo.png
     logo-alt: "Phasic"  # For accessibility
@@ -90,6 +97,12 @@ website:
             - pages/tutorials/rabbits_full_py_api_example.ipynb
             - pages/tutorials/coalescent_full_py_api_example.ipynb
             - pages/tutorials/state_space_construction.ipynb
+            - pages/tutorials/caching_guide.qmd
+            - pages/tutorials/config_system.qmd
+            - pages/tutorials/explicit_config_system.qmd
+            - pages/tutorials/simple_example.ipynb
+            - pages/tutorials/somecode.ipynb
+            - pages/tutorials/test_hierarchical_caching.ipynb
         - section: "Bayesian inference"
           contents:
             - pages/svgd/svgd.ipynb
@@ -97,6 +110,12 @@ website:
             - pages/svgd/svgd_trace_eval.qmd
             - pages/svgd/svgd_step_sizes.qmd
             - pages/svgd/ffi_and_openmp.qmd
+            - pages/svgd/caching.qmd
+            - pages/svgd/ffi_and_openmp.qmd
+            - pages/svgd/svgd_step_sizes.qmd
+            - pages/svgd/svgd_trace_eval.qmd
+            - pages/svgd/svgd.ipynb
+            - pages/svgd/trace_ipfs.ipynb
         - section: "Distributed Computing"
           contents:
             - pages/distributed/distributed_computing_complete_guide.ipynb
@@ -108,11 +127,33 @@ website:
             - pages/modelling/laplace.ipynb
             - pages/modelling/epochs.ipynb
             - pages/modelling/joint_prob.ipynb
+            - pages/modelling/cont_and_discrete.ipynb
+            - pages/modelling/epochs.ipynb
+            - pages/modelling/joint_prob.ipynb
+            - pages/modelling/laplace.ipynb
+            - pages/modelling/state_lumping.ipynb
         - section: "Popgen examples"
           contents:
             - pages/modelling/coalescent-jointprob.ipynb
             - pages/popgen/isolation_migration.ipynb
             - pages/popgen/two-island-two-locus-arg.ipynb
+            - pages/popgen/arg-two-island.ipynb
+            - pages/popgen/coalescent-epoques.ipynb
+            - pages/popgen/coalescent-im-model.ipynb
+            - pages/popgen/coalescent-jointprob-ffi.ipynb
+            - pages/popgen/coalescent-laplace.ipynb
+            - pages/popgen/coalescent-minvar-theta.ipynb
+            - pages/popgen/coalescent-partitions.ipynb
+            - pages/popgen/coalescent-selection.ipynb
+            - pages/popgen/coalescent.ipynb
+            - pages/popgen/im_model.ipynb
+            - pages/popgen/index_prop_mapping.ipynb
+            - pages/popgen/plot.ipynb
+            - pages/popgen/SFS.ipynb
+            - pages/popgen/showcase.ipynb
+            - pages/popgen/smc-prime-tree-levels.py
+            - pages/popgen/two_locus_two_island-discrete.ipynb
+            - pages/popgen/two_locus_two_island.ipynb
             # - pages/
         - section: "Phase-type distributions"
           contents:
@@ -120,14 +161,12 @@ website:
             - pages/tutorials/caching_guide.qmd
             - pages/tutorials/config_system.qmd
             - pages/tutorials/explicit_config_system.qmd
-
         - section: "Devel"
           contents:
             - pages/devel/architecture.qmd
             - href: https://github.com/munch-group/phasic/issues
               text: Issue Tracker
         # - galleries/examples/index.qmd
-          
 
 lightbox: true
 
@@ -161,6 +200,7 @@ format:
       theme: neutral     
     linkcolor: "#0D7D92"
 
+
 quartodoc:
   package: phasic
   # package: null
@@ -179,6 +219,7 @@ quartodoc:
     table_style: description-list
   sidebar: "api/_sidebar.yml"
   css: "api/_styles-quartodoc.css"
+
   sections:
     - title: Graph Construction
       package: phasic
@@ -186,6 +227,7 @@ quartodoc:
         Graph components (Vertex and Edge are documented as part of Graph)
       contents:
         - Graph
+
     - title: JAX-compatible utils
       package: phasic
       desc: |
@@ -195,12 +237,14 @@ quartodoc:
         - compute_pmf_ffi
         - compute_moments_ffi
         - compute_pmf_and_moments_ffi
+
     - title: Inference
       package: phasic
       desc: |
         SVGD
       contents:
         - SVGD
+
     - title: Distributed Computing
       package: phasic
       desc: |
@@ -223,72 +267,3 @@ quartodoc:
         - get_default_config
         - validate_config
         - suggest_config
-
-
-    # - title: Some other section
-    #   package: phasic
-    #   desc: |
-    #     Some description...
-    #   contents:
-    #     - scriptname
-
-
-# quartodoc:
-#   package: genominterv
-#   style: pkgdown
-#   dir: api
-#   render_interlinks: true
-#   options:
-#     signature_name: full
-#   renderer:
-#     style: markdown
-#     table_style: description-list
-#   sidebar: "api/_sidebar.yml"
-#   css: "api/_styles-quartodoc.css"
-
-#   sections:
-#     - title: Genomic set operations
-#       package: genominterv
-#       desc: |
-#         Set operations on pandas.DataFrames with columns for chromosome, start, and end.
-#       contents:
-#         - interval_diff     
-#         - interval_union   
-#         - interval_intersect 
-#         - interval_collapse
-#     - title: Remapping
-#       package: genominterv.remapping
-#       desc: |
-#         Mapping intervals relative to other coordinates.
-#       contents:        
-#         - interval_distance
-#         - remap_interval_data
-#     - title: Statistics
-#       package: genominterv.stats
-#       desc: Mapping intervals relative to other coordinates.
-#       contents:
-#         - proximity_test        
-#         - jaccard_stat
-#     - title: Decorators
-#       package: genominterv.decorators
-#       desc: |
-#         Utilities for user created genomic intervals and bootstrap tests.
-#       contents:
-#         - genomic 
-#         - bootstrap
-#     - title: Interval set utilities
-#       package: genominterv.interval_set_op
-#       desc: |
-#         Set operations on sorted lists of (start, end) tuples.
-#       contents:
-#         - union 
-#         - diff
-#         - invert
-#         - intersect
-#         - collapse
-#     - title: Interval mapping utilities
-#       package: genominterv.remapping
-#       desc: |
-#         Set operations on sorted lists of (start, end) tuples.
-#       contents:
-#         - remap 

@@ -47,7 +47,8 @@
       "Bash(PHASIC_DISABLE_TRACES=1 python -u test_svgd_pdf_fix_verification.py)",
       "Bash(PHASIC_DISABLE_TRACES=1 python debug_pdf_param.py)",
       "Bash(PYTHONDONTWRITEBYTECODE=1 python test_instantiate_debug.py)",
-      "Bash(/dev/null)"
+      "Bash(/dev/null)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

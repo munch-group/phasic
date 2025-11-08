@@ -105,23 +105,15 @@
             "group": "Default"
         },
         {
-            "filePath": "src/phasic",
-            "group": "Default"
-        },
-        {
-            "filePath": "tests/test_svgd_jax.py",
-            "group": "Default"
-        },
-        {
             "filePath": "docs/pages/tutorials/simple_example.ipynb",
             "group": "Default"
         },
         {
-            "filePath": "tests/user_test.py",
+            "filePath": "scripts/call_tree.py",
             "group": "Default"
         },
         {
-            "filePath": "scripts/call_tree.py",
+            "filePath": "src",
             "group": "Default"
         }
     ]

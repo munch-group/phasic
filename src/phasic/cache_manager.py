@@ -67,13 +67,14 @@ class CacheManager:
             Cache statistics including size, file count, etc.
         """
         if not self.cache_dir.exists():
-            return {
-                'exists': False,
-                'cache_dir': str(self.cache_dir),
-                'num_files': 0,
-                'total_size_mb': 0.0,
-                'files': []
-            }
+            os.makedirs(self.cache_dir)
+            # return {
+            #     'exists': False,
+            #     'cache_dir': str(self.cache_dir),
+            #     'num_files': 0,
+            #     'total_size_mb': 0.0,
+            #     'files': []
+            # }
 
         # Collect file information
         files = []

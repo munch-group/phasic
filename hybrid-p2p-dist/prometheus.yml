@@ -1,0 +1,36 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'hybrid-p2p'
+    environment: 'production'
+
+scrape_configs:
+  # IPFS metrics
+  - job_name: 'ipfs'
+    static_configs:
+      - targets: ['ipfs:5001']
+    metrics_path: '/debug/metrics/prometheus'
+    scheme: http
+
+  # IPFS Cluster metrics
+  - job_name: 'ipfs-cluster'
+    static_configs:
+      - targets: ['ipfs-cluster:9094']
+    metrics_path: '/metrics'
+    scheme: http
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+# Alert rules (optional)
+rule_files:
+  # - "alert_rules.yml"
+
+# Alertmanager configuration (optional)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ['alertmanager:9093']

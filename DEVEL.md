@@ -56,3 +56,9 @@ Debugging in vscode offers a "R API" debugging mode. You need to have an open R 
     pixi run bump-version
     pixi run github-release
 
+
+
+
+The default ipc should only store "anonymous" traces without any meta info, but with the option to store metainfo about model parameterization, statespace, orig, graph, etc, making it possible to run inference using cached data alone.
+
+ so that inference can be made without

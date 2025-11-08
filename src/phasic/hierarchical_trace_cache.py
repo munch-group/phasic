@@ -20,6 +20,9 @@ import hashlib
 from typing import Dict, List, Tuple, Optional
 from pathlib import Path
 import numpy as np
+from .logging_config import get_logger
+
+logger = get_logger(__name__)
 
 try:
     import jax
@@ -72,15 +75,31 @@ def get_scc_graphs(graph, min_size: int = 50) -> List[Tuple[str, 'Graph']]:
     List[Tuple[str, Graph]]
         List of (hash, scc_graph) pairs in topological order
     """
+    logger.debug("Starting SCC decomposition for graph with %d vertices",
+                 graph.vertices_length())
+
     scc_decomp = graph.scc_decomposition()
 
     result = []
+    scc_sizes = []
     for scc in scc_decomp.sccs_in_topo_order():
         # Extract as standalone graph
         scc_graph = scc.as_graph()
         scc_hash = scc.hash()
+        scc_size = scc_graph.vertices_length()
+        scc_sizes.append(scc_size)
 
         result.append((scc_hash, scc_graph))
+
+    total_vertices = graph.vertices_length()
+    logger.info("SCC decomposition: found %d components with sizes %s",
+                len(result), scc_sizes)
+    logger.debug("SCC component details:")
+    for i, (hash_val, scc_g) in enumerate(result):
+        size = scc_g.vertices_length()
+        pct = (size / total_vertices) * 100
+        logger.debug("  SCC %d: %d vertices (%.1f%% of graph), hash=%s...",
+                     i, size, pct, hash_val[:16])
 
     return result
 
@@ -113,39 +132,85 @@ def collect_missing_traces_batch(graph, param_length: Optional[int] = None,
     """
     from . import Graph
 
-    work_units = {}  # hash -> serialized graph JSON
+    logger.debug("Starting recursive trace collection: graph has %d vertices, min_size=%d",
+                 graph.vertices_length(), min_size)
 
-    def collect_recursive(g):
+    work_units = {}  # hash -> serialized graph JSON
+    cache_hits = []
+    cache_misses = []
+    scc_stats = {'total_sccs': 0, 'cached_sccs': 0, 'too_small': 0, 'subdivided': 0}
+
+    def collect_recursive(g, depth=0):
         """Recursively collect missing traces"""
+        indent = "  " * depth
+        n_vertices = g.vertices_length()
+
         # Compute hash for this graph
         g_hash_result = g.content_hash()
         if g_hash_result is None:
-            # Skip unhashable graphs
+            logger.warning("%sSkipping unhashable graph (%d vertices)", indent, n_vertices)
             return
 
         g_hash = g_hash_result
+        logger.debug("%sChecking graph: %d vertices, hash=%s...", indent, n_vertices, g_hash[:16])
 
         # Check cache
         cached = _load_trace_from_cache(g_hash)
         if cached is not None:
+            cache_hits.append((g_hash[:16], n_vertices))
+            scc_stats['cached_sccs'] += 1
+            logger.debug("%s✓ Cache hit for %d vertices", indent, n_vertices)
             return  # Cache hit
 
+        cache_misses.append((g_hash[:16], n_vertices))
+        logger.debug("%s✗ Cache miss for %d vertices", indent, n_vertices)
+
         # Check if too small to subdivide
-        if g.vertices_length() < min_size:
+        if n_vertices < min_size:
+            scc_stats['too_small'] += 1
             # This is a work unit
             if g_hash not in work_units:
                 # Serialize graph to JSON for cross-machine transport
                 work_units[g_hash] = g.serialize()
+                logger.debug("%s→ Added as work unit (%d vertices, below min_size)",
+                           indent, n_vertices)
+            else:
+                logger.debug("%s→ Already in work units (deduplicated)", indent)
             return
 
         # Subdivide into SCCs and recurse
+        logger.debug("%s→ Subdividing into SCCs (%d vertices >= min_size=%d)...",
+                   indent, n_vertices, min_size)
         scc_decomp = g.scc_decomposition()
-        for scc in scc_decomp.sccs_in_topo_order():
+        sccs = list(scc_decomp.sccs_in_topo_order())
+        scc_stats['total_sccs'] += len(sccs)
+        scc_stats['subdivided'] += 1
+
+        logger.debug("%s  Found %d SCCs", indent, len(sccs))
+        for i, scc in enumerate(sccs):
             scc_graph = scc.as_graph()
-            collect_recursive(scc_graph)
+            scc_vertices = scc_graph.vertices_length()
+            logger.debug("%s  SCC %d/%d: %d vertices", indent, i+1, len(sccs), scc_vertices)
+            collect_recursive(scc_graph, depth + 1)
 
     # Start recursive collection
     collect_recursive(graph)
+
+    # Summary statistics
+    total_cached_vertices = sum(v for _, v in cache_hits)
+    total_missing_vertices = sum(v for _, v in cache_misses)
+    total_vertices = graph.vertices_length()
+
+    if total_vertices > 0:
+        cached_pct = (total_cached_vertices / total_vertices) * 100
+    else:
+        cached_pct = 0
+
+    logger.info("Trace collection complete: %d work units needed", len(work_units))
+    logger.info("Cache statistics: %d hits, %d misses", len(cache_hits), len(cache_misses))
+    logger.info("Cached vertices: %d/%d (%.1f%% of graph)",
+                total_cached_vertices, total_vertices, cached_pct)
+    logger.debug("SCC statistics: %s", scc_stats)
 
     return work_units
 
@@ -632,13 +697,19 @@ def stitch_scc_traces(
 
     # Validate inputs
     if not scc_trace_dict:
+        logger.error("Cannot stitch traces: scc_trace_dict is empty")
         raise ValueError("scc_trace_dict is empty")
 
     original_graph = scc_graph.original_graph()
     sccs = scc_graph.sccs_in_topo_order()
 
     if len(sccs) == 0:
+        logger.error("Cannot stitch traces: no SCCs in graph")
         raise ValueError("Cannot stitch empty SCC graph")
+
+    logger.debug("Starting trace stitching: %d SCCs, %d vertices total",
+                 len(sccs), original_graph.vertices_length())
+    logger.debug("SCC traces available: %d", len(scc_trace_dict))
 
     # Check all SCC traces present
     for scc in sccs:
@@ -679,6 +750,7 @@ def stitch_scc_traces(
         merged.states[merged_v_idx] = original_graph.vertex_at(orig_v_idx).state()
 
     # Step 3: Process SCCs in topological order
+    logger.debug("Processing %d SCCs in topological order...", len(sccs))
     op_remap = {}  # (scc_idx, scc_op_idx) -> merged_op_idx
 
     for scc_idx, scc in enumerate(sccs):
@@ -686,12 +758,25 @@ def stitch_scc_traces(
         scc_trace = scc_trace_dict[scc_hash]
         internal_indices = set(scc.internal_vertex_indices())
 
+        n_internal = len(internal_indices)
+        n_connecting = scc_trace.n_vertices - n_internal
+
+        logger.debug("SCC %d/%d: hash=%s..., %d internal vertices, %d connecting vertices",
+                     scc_idx + 1, len(sccs), scc_hash[:16], n_internal, n_connecting)
+        logger.debug("  %d operations to merge", len(scc_trace.operations))
+
         # Append operations
         op_offset = len(merged.operations)
+        logger.debug("  Operation offset: %d (merged trace has %d operations before this SCC)",
+                     op_offset, op_offset)
+
         for scc_op_idx, operation in enumerate(scc_trace.operations):
             new_op = _remap_operation(operation, op_offset)
             merged.operations.append(new_op)
             op_remap[(scc_idx, scc_op_idx)] = op_offset + scc_op_idx
+
+        logger.debug("  Copied %d operations (merged trace now has %d operations)",
+                     len(scc_trace.operations), len(merged.operations))
 
         # Map trace vertices to original vertices by matching states
         trace_to_orig = {}
@@ -702,7 +787,12 @@ def stitch_scc_traces(
                     trace_to_orig[trace_v_idx] = orig_v_idx
                     break
 
+        logger.debug("  Mapped %d trace vertices to original graph", len(trace_to_orig))
+
         # Copy data for INTERNAL vertices only (connecting vertices handled by their own SCC)
+        n_vertices_set = 0
+        n_edges_set = 0
+
         for trace_v_idx, orig_v_idx in trace_to_orig.items():
             if orig_v_idx not in internal_indices:
                 continue  # Skip connecting vertices
@@ -716,6 +806,8 @@ def stitch_scc_traces(
             else:
                 merged.vertex_rates[merged_v_idx] = scc_rate_op_idx
 
+            n_vertices_set += 1
+
             # Set edge_probs and vertex_targets
             for j, scc_edge_op_idx in enumerate(scc_trace.edge_probs[trace_v_idx]):
                 merged_edge_op_idx = op_remap[(scc_idx, scc_edge_op_idx)]
@@ -726,8 +818,24 @@ def stitch_scc_traces(
                 merged_target_v_idx = original_to_merged[orig_target_v_idx]
                 merged.vertex_targets[merged_v_idx].append(merged_target_v_idx)
 
+                n_edges_set += 1
+
+        logger.debug("  Set vertex data for %d internal vertices, %d edges",
+                     n_vertices_set, n_edges_set)
+        logger.debug("SCC %d/%d merge complete", scc_idx + 1, len(sccs))
+
     # Set starting vertex
     merged.starting_vertex_idx = original_to_merged[original_graph.starting_vertex().index()]
+
+    # Final summary statistics
+    logger.info("Trace stitching complete: %d vertices, %d operations",
+                merged.n_vertices, len(merged.operations))
+    logger.debug("Final trace statistics:")
+    logger.debug("  Vertices: %d", merged.n_vertices)
+    logger.debug("  Operations: %d", len(merged.operations))
+    logger.debug("  Parameters: %d", merged.param_length)
+    logger.debug("  State length: %d", merged.state_length)
+    logger.debug("  Starting vertex: %d", merged.starting_vertex_idx)
 
     return merged
 

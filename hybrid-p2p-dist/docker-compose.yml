@@ -1,0 +1,111 @@
+version: '3.8'
+
+services:
+  # Main IPFS node
+  ipfs:
+    image: ipfs/go-ipfs:latest
+    container_name: hybrid-p2p-ipfs
+    environment:
+      - IPFS_PROFILE=server
+    volumes:
+      - ipfs-data:/data/ipfs
+      - ipfs-staging:/export
+    ports:
+      - "4001:4001"     # P2P swarm
+      - "4001:4001/udp" # P2P swarm UDP
+      - "5001:5001"     # API
+      - "8080:8080"     # Gateway
+    networks:
+      - hybrid-p2p
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ipfs", "id"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # IPFS Cluster for distributed pinning
+  ipfs-cluster:
+    image: ipfs/ipfs-cluster:latest
+    container_name: hybrid-p2p-cluster
+    depends_on:
+      - ipfs
+    environment:
+      - CLUSTER_PEERNAME=cluster0
+      - CLUSTER_SECRET=${CLUSTER_SECRET:-change_this_secret}
+      - CLUSTER_IPFSHTTP_NODEMULTIADDRESS=/dns4/ipfs/tcp/5001
+      - CLUSTER_CRDT_TRUSTEDPEERS=*
+      - CLUSTER_RESTAPI_HTTPLISTENMULTIADDRESS=/ip4/0.0.0.0/tcp/9094
+      - CLUSTER_MONITORPINGINTERVAL=2s
+    volumes:
+      - cluster-data:/data/ipfs-cluster
+    ports:
+      - "9094:9094"     # REST API
+      - "9095:9095"     # Cluster swarm
+      - "9096:9096"     # Cluster swarm
+    networks:
+      - hybrid-p2p
+    restart: unless-stopped
+
+  # Prometheus for monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: hybrid-p2p-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - hybrid-p2p
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: hybrid-p2p-grafana
+    depends_on:
+      - prometheus
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - hybrid-p2p
+    restart: unless-stopped
+
+  # Optional: BitTorrent tracker
+  opentracker:
+    image: lednerb/opentracker-docker:latest
+    container_name: hybrid-p2p-tracker
+    ports:
+      - "6969:6969"
+      - "6969:6969/udp"
+    networks:
+      - hybrid-p2p
+    restart: unless-stopped
+
+volumes:
+  ipfs-data:
+    driver: local
+  ipfs-staging:
+    driver: local
+  cluster-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+
+networks:
+  hybrid-p2p:
+    driver: bridge

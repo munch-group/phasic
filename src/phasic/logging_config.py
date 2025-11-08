@@ -7,7 +7,8 @@ file output, and colored console output.
 Environment Variables
 ---------------------
 PHASIC_LOG_LEVEL : str
-    Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). Default: WARNING
+    Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL, NONE). Default: WARNING
+    Use NONE to completely disable all logging output.
 PHASIC_LOG_FILE : str
     Path to log file. If set, logs are written to both console and file.
 PHASIC_LOG_FORMAT : str
@@ -44,6 +45,10 @@ from typing import Optional
 # Package-level logger
 _PACKAGE_LOGGER_NAME = 'phasic'
 _logging_configured = False
+
+# Define NONE level - higher than CRITICAL to disable all logging
+NONE = logging.CRITICAL + 10
+logging.addLevelName(NONE, 'NONE')
 
 
 class ColoredFormatter(logging.Formatter):
@@ -92,8 +97,9 @@ def _should_use_colors() -> bool:
     elif color_env in ('0', 'false', 'no', 'off'):
         return False
 
-    # Auto-detect: use colors if outputting to terminal
-    return hasattr(sys.stderr, 'isatty') and sys.stderr.isatty()
+    # Default: NO colors (to avoid issues with notebook rendering)
+    # Previously auto-detected terminal, but this caused rendering issues
+    return False
 
 
 def setup_logging(
@@ -146,7 +152,10 @@ def setup_logging(
                             '[%(levelname)s] %(name)s: %(message)s')
 
     # Convert level string to logging constant
-    numeric_level = getattr(logging, level.upper(), logging.WARNING)
+    if level.upper() == 'NONE':
+        numeric_level = NONE
+    else:
+        numeric_level = getattr(logging, level.upper(), logging.WARNING)
 
     # Get package logger
     logger = logging.getLogger(_PACKAGE_LOGGER_NAME)
@@ -265,7 +274,8 @@ def set_log_level(level: str, module: Optional[str] = None) -> None:
     Parameters
     ----------
     level : str
-        New logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+        New logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL, NONE)
+        Use NONE to completely disable all logging.
     module : str, optional
         Specific module to configure (e.g., 'svgd', 'trace_elimination').
         If None, sets level for entire package.
@@ -278,8 +288,14 @@ def set_log_level(level: str, module: Optional[str] = None) -> None:
     >>>
     >>> # Enable debug only for SVGD module
     >>> set_log_level('DEBUG', module='svgd')
+    >>>
+    >>> # Disable all logging
+    >>> set_log_level('NONE')
     """
-    numeric_level = getattr(logging, level.upper(), logging.WARNING)
+    if level.upper() == 'NONE':
+        numeric_level = NONE
+    else:
+        numeric_level = getattr(logging, level.upper(), logging.WARNING)
 
     if module is None:
         # Set for entire package
@@ -308,14 +324,14 @@ def disable_logging() -> None:
     Disable all phasic logging.
 
     Useful for testing or when you want complete silence.
+    Equivalent to set_log_level('NONE').
 
     Examples
     --------
     >>> from phasic.logging_config import disable_logging
     >>> disable_logging()
     """
-    logger = logging.getLogger(_PACKAGE_LOGGER_NAME)
-    logger.setLevel(logging.CRITICAL + 1)  # Higher than CRITICAL
+    set_log_level('NONE')
 
 
 def enable_logging(level: str = 'INFO') -> None:
