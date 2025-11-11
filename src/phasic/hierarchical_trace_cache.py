@@ -1302,6 +1302,13 @@ def stitch_scc_traces(
         scc_metadata_dict = {}
         for scc in sccs:
             scc_hash = scc.hash()
+
+            # Skip SCCs that don't have traces (small SCCs below min_size threshold)
+            # These SCCs' vertices are already included in the enhanced subgraphs of large SCCs
+            if scc_hash not in scc_trace_dict:
+                logger.debug("  Skipping SCC %s (no trace - likely below min_size threshold)", scc_hash[:16])
+                continue
+
             scc_trace = scc_trace_dict[scc_hash]
 
             # Infer ordered_vertices by matching trace states to original graph
@@ -1364,11 +1371,24 @@ def stitch_scc_traces(
             logger.debug("  SCC %s: inferred %d vertices, upstream=%d, internal=%d, downstream=%d",
                         scc_hash[:16], len(ordered_vertices), len(upstream_vertices), len(internal_in_trace), len(downstream_vertices))
 
-    # Initialize merged trace with first SCC
-    first_scc = sccs[0]
-    first_hash = first_scc.hash()
-    first_trace = scc_trace_dict[first_hash]
-    first_metadata = scc_metadata_dict[first_hash]
+    # Initialize merged trace with first SCC that has a trace
+    first_scc = None
+    first_hash = None
+    first_trace = None
+    first_metadata = None
+
+    for scc in sccs:
+        scc_hash = scc.hash()
+        if scc_hash in scc_trace_dict:
+            first_scc = scc
+            first_hash = scc_hash
+            first_trace = scc_trace_dict[first_hash]
+            first_metadata = scc_metadata_dict[first_hash]
+            break
+
+    if first_scc is None:
+        logger.error("No SCCs with traces found - this should not happen!")
+        raise ValueError("No SCCs with traces in scc_trace_dict")
 
     logger.info("Initializing with first SCC (hash=%s..., %d vertices, %d operations)",
                 first_hash[:16], first_trace.n_vertices, len(first_trace.operations))
@@ -1439,9 +1459,21 @@ def stitch_scc_traces(
                 len(merged.operations), len([r for r in merged.vertex_rates if r >= 0]))
 
     # Process remaining SCCs in topological order
-    for scc_idx in range(1, len(sccs)):
+    for scc_idx in range(len(sccs)):
         scc = sccs[scc_idx]
         scc_hash = scc.hash()
+
+        # Skip the first SCC that we already processed
+        if scc_hash == first_hash:
+            logger.debug("  Skipping SCC %d/%d (already processed as first SCC)", scc_idx + 1, len(sccs))
+            continue
+
+        # Skip SCCs that don't have traces (small SCCs below min_size threshold)
+        if scc_hash not in scc_trace_dict:
+            logger.debug("  Skipping SCC %d/%d (hash=%s..., no trace - likely below min_size threshold)",
+                        scc_idx + 1, len(sccs), scc_hash[:16])
+            continue
+
         scc_trace = scc_trace_dict[scc_hash]
         scc_metadata = scc_metadata_dict[scc_hash]
 
