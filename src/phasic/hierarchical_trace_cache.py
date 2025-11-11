@@ -46,13 +46,34 @@ def _get_cache_path(graph_hash: str) -> Path:
 def _load_trace_from_cache(graph_hash: str):
     """Load trace from cache (returns None if not found)"""
     from .trace_serialization import load_trace_from_cache
-    return load_trace_from_cache(graph_hash)
+
+    logger.debug("Cache query: hash=%s...", graph_hash[:16])
+    trace = load_trace_from_cache(graph_hash)
+
+    if trace is not None:
+        logger.debug("  ✓ Cache HIT: hash=%s..., %d vertices, %d operations",
+                     graph_hash[:16], trace.n_vertices, len(trace.operations))
+    else:
+        logger.debug("  ✗ Cache MISS: hash=%s...", graph_hash[:16])
+
+    return trace
 
 
 def _save_trace_to_cache(graph_hash: str, trace) -> bool:
     """Save trace to cache (returns True on success)"""
     from .trace_serialization import save_trace_to_cache
-    return save_trace_to_cache(graph_hash, trace)
+
+    logger.debug("Saving trace to cache: hash=%s..., %d vertices, %d operations",
+                 graph_hash[:16], trace.n_vertices, len(trace.operations))
+
+    success = save_trace_to_cache(graph_hash, trace)
+
+    if success:
+        logger.debug("  ✓ Cache save successful: hash=%s...", graph_hash[:16])
+    else:
+        logger.debug("  ✗ Cache save failed: hash=%s...", graph_hash[:16])
+
+    return success
 
 
 # ============================================================================
@@ -78,16 +99,26 @@ def get_scc_graphs(graph, min_size: int = 50) -> List[Tuple[str, 'Graph']]:
     logger.debug("Starting SCC decomposition for graph with %d vertices",
                  graph.vertices_length())
 
+    logger.debug("Computing SCC decomposition...")
     scc_decomp = graph.scc_decomposition()
+    logger.debug("SCC decomposition computed")
 
     result = []
     scc_sizes = []
-    for scc in scc_decomp.sccs_in_topo_order():
+    scc_list = list(scc_decomp.sccs_in_topo_order())
+    logger.debug("Processing %d SCCs in topological order...", len(scc_list))
+
+    for i, scc in enumerate(scc_list):
+        logger.debug("  Extracting SCC %d/%d...", i + 1, len(scc_list))
+
         # Extract as standalone graph
         scc_graph = scc.as_graph()
         scc_hash = scc.hash()
         scc_size = scc_graph.vertices_length()
         scc_sizes.append(scc_size)
+
+        logger.debug("    → SCC %d: %d vertices, hash=%s...",
+                     i + 1, scc_size, scc_hash[:16])
 
         result.append((scc_hash, scc_graph))
 
@@ -126,75 +157,139 @@ def collect_missing_traces_batch(graph, param_length: Optional[int] = None,
 
     Returns
     -------
-    Dict[str, str]
-        Mapping: graph_hash -> serialized_graph_json
-        Deduplicated by hash (same SCC across different graphs = one work unit)
+    Tuple[Dict[str, Graph], List[str], SCCGraph]
+        - work_units: Mapping graph_hash -> graph_object (deduplicated)
+        - all_scc_hashes: List of all top-level SCC hashes in topological order
+        - top_level_scc_decomp: SCC decomposition of the top-level graph (for stitching)
     """
     from . import Graph
 
-    logger.debug("Starting recursive trace collection: graph has %d vertices, min_size=%d",
-                 graph.vertices_length(), min_size)
+    n_vertices = graph.vertices_length()
+    logger.debug("Collecting missing traces: graph has %d vertices, min_size=%d",
+                 n_vertices, min_size)
 
-    work_units = {}  # hash -> serialized graph JSON
+    work_units = {}  # hash -> enhanced subgraph
+    all_scc_hashes = []  # All SCC hashes in topological order
     cache_hits = []
     cache_misses = []
-    scc_stats = {'total_sccs': 0, 'cached_sccs': 0, 'too_small': 0, 'subdivided': 0}
 
-    def collect_recursive(g, depth=0):
-        """Recursively collect missing traces"""
-        indent = "  " * depth
-        n_vertices = g.vertices_length()
+    # If graph too small, don't subdivide
+    if n_vertices < min_size:
+        logger.debug("Graph too small for subdivision (%d < %d), recording directly",
+                    n_vertices, min_size)
+        try:
+            from . import hash as phasic_hash
+            g_hash_result = phasic_hash.compute_graph_hash(graph)
+            g_hash = g_hash_result.hash_hex
+            work_units[g_hash] = graph
+            all_scc_hashes = [g_hash]
+            return work_units, all_scc_hashes, None
+        except Exception as e:
+            logger.warning("Failed to hash graph: %s", str(e))
+            return {}, [], None
 
-        # Compute hash for this graph
-        g_hash_result = g.content_hash()
-        if g_hash_result is None:
-            logger.warning("%sSkipping unhashable graph (%d vertices)", indent, n_vertices)
-            return
+    # Decompose into SCCs
+    logger.debug("Computing SCC decomposition...")
+    scc_decomp = graph.scc_decomposition()
+    sccs = list(scc_decomp.sccs_in_topo_order())
+    top_level_scc_decomp = scc_decomp  # Store for stitching
+    logger.debug("✓ Found %d SCCs", len(sccs))
 
-        g_hash = g_hash_result
-        logger.debug("%sChecking graph: %d vertices, hash=%s...", indent, n_vertices, g_hash[:16])
+    # Log SCC sizes
+    scc_sizes = [scc.size() for scc in sccs]
+    logger.debug("SCC sizes: %s", scc_sizes)
+
+    # Group SCCs by size: large SCCs (≥ min_size) processed separately,
+    # small SCCs (< min_size) should not be processed separately
+    large_sccs = []  # SCCs to process separately
+    small_sccs = []  # SCCs that are too small
+
+    for i, scc in enumerate(sccs):
+        scc_size = scc.size()
+        if scc_size >= min_size:
+            large_sccs.append((i, scc))
+        else:
+            small_sccs.append((i, scc))
+
+    total_small_vertices = sum(scc.size() for _, scc in small_sccs)
+
+    logger.info("SCC grouping: %d large SCCs (≥%d vertices), %d small SCCs (<%d vertices, %d total vertices)",
+                len(large_sccs), min_size, len(small_sccs), min_size, total_small_vertices)
+
+    # If ALL SCCs are small, fall back to recording full graph directly (no subdivision)
+    if len(large_sccs) == 0:
+        logger.info("All SCCs are below min_size=%d, recording full graph directly (no subdivision)", min_size)
+        try:
+            from . import hash as phasic_hash
+            g_hash_result = phasic_hash.compute_graph_hash(graph)
+            g_hash = g_hash_result.hash_hex
+            work_units[g_hash] = graph
+            all_scc_hashes = [g_hash]
+            return work_units, all_scc_hashes, None
+        except Exception as e:
+            logger.warning("Failed to hash graph: %s", str(e))
+            return {}, [], None
+
+    # If we have ONLY large SCCs (no small ones), proceed normally
+    if len(small_sccs) == 0:
+        logger.debug("All SCCs meet min_size threshold, processing all separately")
+
+    # Process large SCCs separately (these get cached)
+    for orig_idx, scc in large_sccs:
+        scc_hash = scc.hash()
+        scc_size = scc.size()
+        all_scc_hashes.append(scc_hash)
+
+        logger.debug("Processing LARGE SCC %d: %d vertices, hash=%s...",
+                    orig_idx, scc_size, scc_hash[:16])
 
         # Check cache
-        cached = _load_trace_from_cache(g_hash)
+        logger.debug("Cache query: hash=%s...", scc_hash[:16])
+        cached = _load_trace_from_cache(scc_hash)
+
         if cached is not None:
-            cache_hits.append((g_hash[:16], n_vertices))
-            scc_stats['cached_sccs'] += 1
-            logger.debug("%s✓ Cache hit for %d vertices", indent, n_vertices)
-            return  # Cache hit
+            logger.debug("✓ Cache HIT: hash=%s..., %d vertices, %d operations",
+                        scc_hash[:16], cached.n_vertices, len(cached.operations))
+            cache_hits.append((scc_hash[:16], scc_size))
+            logger.debug("✓ Cache hit for %d vertices", scc_size)
+            continue  # Cache hit - no work needed
 
-        cache_misses.append((g_hash[:16], n_vertices))
-        logger.debug("%s✗ Cache miss for %d vertices", indent, n_vertices)
+        cache_misses.append((scc_hash[:16], scc_size))
+        logger.debug("✗ Cache miss for %d vertices", scc_size)
 
-        # Check if too small to subdivide
-        if n_vertices < min_size:
-            scc_stats['too_small'] += 1
-            # This is a work unit
-            if g_hash not in work_units:
-                # Serialize graph to JSON for cross-machine transport
-                work_units[g_hash] = g.serialize()
-                logger.debug("%s→ Added as work unit (%d vertices, below min_size)",
-                           indent, n_vertices)
-            else:
-                logger.debug("%s→ Already in work units (deduplicated)", indent)
-            return
+        # Build subgraph (first SCC vs other SCCs)
+        if orig_idx == 0:
+            # First SCC - contains starting vertex
+            logger.debug("Building FIRST SCC subgraph (starting vertex)...")
+            enhanced_subgraph, metadata = _build_first_scc_subgraph(
+                graph, graph.starting_vertex().index(), scc, scc_decomp
+            )
+        else:
+            # Other SCCs - have upstream vertices
+            logger.debug("Building SCC subgraph with upstream/downstream vertices...")
+            enhanced_subgraph, metadata = _build_scc_subgraph(graph, scc, scc_decomp)
 
-        # Subdivide into SCCs and recurse
-        logger.debug("%s→ Subdividing into SCCs (%d vertices >= min_size=%d)...",
-                   indent, n_vertices, min_size)
-        scc_decomp = g.scc_decomposition()
-        sccs = list(scc_decomp.sccs_in_topo_order())
-        scc_stats['total_sccs'] += len(sccs)
-        scc_stats['subdivided'] += 1
+        enhanced_size = enhanced_subgraph.vertices_length()
+        logger.debug("✓ Subgraph built: %d vertices (%d internal + %d connecting)",
+                    enhanced_size, scc_size, enhanced_size - scc_size)
 
-        logger.debug("%s  Found %d SCCs", indent, len(sccs))
-        for i, scc in enumerate(sccs):
-            scc_graph = scc.as_graph()
-            scc_vertices = scc_graph.vertices_length()
-            logger.debug("%s  SCC %d/%d: %d vertices", indent, i+1, len(sccs), scc_vertices)
-            collect_recursive(scc_graph, depth + 1)
+        # Store metadata with subgraph for later retrieval
+        # We'll store it in a dict keyed by SCC hash
+        if not hasattr(collect_missing_traces_batch, '_metadata_cache'):
+            collect_missing_traces_batch._metadata_cache = {}
+        collect_missing_traces_batch._metadata_cache[scc_hash] = metadata
 
-    # Start recursive collection
-    collect_recursive(graph)
+        # Add as work unit (keyed by SCC hash, not enhanced subgraph hash)
+        work_units[scc_hash] = enhanced_subgraph
+        logger.debug("→ Added as work unit")
+
+        logger.debug("✓ Completed large SCC %d", orig_idx)
+
+    # If we have a mix of large and small SCCs, warn the user
+    if len(small_sccs) > 0 and len(large_sccs) > 0:
+        logger.warning("Graph has %d small SCCs (<%d vertices) that will be included in large SCC subgraphs",
+                      len(small_sccs), min_size)
+        logger.warning("This may reduce cache reuse. Consider increasing min_size to avoid subdivision.")
 
     # Summary statistics
     total_cached_vertices = sum(v for _, v in cache_hits)
@@ -210,23 +305,23 @@ def collect_missing_traces_batch(graph, param_length: Optional[int] = None,
     logger.info("Cache statistics: %d hits, %d misses", len(cache_hits), len(cache_misses))
     logger.info("Cached vertices: %d/%d (%.1f%% of graph)",
                 total_cached_vertices, total_vertices, cached_pct)
-    logger.debug("SCC statistics: %s", scc_stats)
+    logger.debug("Collected %d top-level SCC hashes", len(all_scc_hashes))
 
-    return work_units
+    return work_units, all_scc_hashes, top_level_scc_decomp
 
 
 # ============================================================================
 # Parallel Trace Computation
 # ============================================================================
 
-def compute_trace_work_unit(hash_and_json: Tuple[str, str]) -> Tuple[str, 'EliminationTrace']:
+def compute_trace_work_unit(hash_and_graph: Tuple[str, 'Graph']) -> Tuple[str, 'EliminationTrace']:
     """
     Single work unit for vmap/pmap.
 
     Parameters
     ----------
-    hash_and_json : Tuple[str, str]
-        (graph_hash, serialized_graph_json)
+    hash_and_graph : Tuple[str, Graph]
+        (graph_hash, graph_object)
 
     Returns
     -------
@@ -236,26 +331,20 @@ def compute_trace_work_unit(hash_and_json: Tuple[str, str]) -> Tuple[str, 'Elimi
     Notes
     -----
     - Checks cache again (race condition safety)
-    - Deserializes graph from JSON
     - Computes trace via record_elimination_trace()
     - Caches result atomically
     """
     from .trace_elimination import record_elimination_trace
-    from . import Graph
 
-    graph_hash, graph_json = hash_and_json
+    graph_hash, graph = hash_and_graph
 
     # Check cache again (another worker may have computed it)
     cached = _load_trace_from_cache(graph_hash)
     if cached is not None:
         return (graph_hash, cached)
 
-    # Deserialize graph
-    graph_dict = json.loads(graph_json)
-    graph = Graph.deserialize(graph_dict)
-
-    # Compute trace
-    trace = record_elimination_trace(graph)
+    # Compute trace (param_length auto-detected from graph)
+    trace = record_elimination_trace(graph, param_length=None)
 
     # Cache result
     _save_trace_to_cache(graph_hash, trace)
@@ -263,21 +352,24 @@ def compute_trace_work_unit(hash_and_json: Tuple[str, str]) -> Tuple[str, 'Elimi
     return (graph_hash, trace)
 
 
-def compute_missing_traces_parallel(work_units: Dict[str, str],
-                                   strategy: str = 'auto') -> Dict[str, 'EliminationTrace']:
+def compute_missing_traces_parallel(work_units: Dict[str, 'Graph'],
+                                   strategy: str = 'auto',
+                                   min_size: int = 50) -> Dict[str, 'EliminationTrace']:
     """
     Distribute work across CPUs/devices using vmap or pmap.
 
     Parameters
     ----------
-    work_units : Dict[str, str]
-        Mapping: graph_hash -> serialized_graph_json
+    work_units : Dict[str, Graph]
+        Mapping: graph_hash -> graph_object
     strategy : str, default='auto'
         Parallelization strategy:
         - 'auto': Use vmap for single machine, pmap for multi-device
         - 'vmap': Vectorize over batch (single machine, multi-CPU)
         - 'pmap': Parallelize over devices (multi-GPU or multi-machine)
         - 'sequential': No parallelization (debugging)
+    min_size : int, default=50
+        Minimum vertices to subdivide (for recursive subdivision)
 
     Returns
     -------
@@ -286,17 +378,17 @@ def compute_missing_traces_parallel(work_units: Dict[str, str],
 
     Notes
     -----
-    Uses JAX vmap/pmap for automatic parallelization.
-    Work units are automatically distributed across available CPUs/devices.
+    Currently uses sequential processing since work units contain Graph objects.
+    JAX vmap/pmap would require serialized graphs, which is a future enhancement.
     """
-    if not HAS_JAX:
-        # Fallback to sequential
-        strategy = 'sequential'
-
     if len(work_units) == 0:
         return {}
 
-    # Convert to list for JAX
+    # Force sequential processing for Graph objects
+    # TODO: Add serialization support for parallel processing
+    strategy = 'sequential'
+
+    # Convert to list
     work_list = list(work_units.items())
 
     # Auto-detect strategy
@@ -354,8 +446,49 @@ def compute_missing_traces_parallel(work_units: Dict[str, str],
     # ========================================================================
     else:  # sequential
         results = {}
-        for graph_hash, graph_json in work_list:
-            _, trace = compute_trace_work_unit((graph_hash, graph_json))
+        for graph_hash, graph in work_list:
+            # Check cache again (race condition safety)
+            cached = _load_trace_from_cache(graph_hash)
+            if cached is not None:
+                results[graph_hash] = cached
+                continue
+
+            # Check if this enhanced subgraph can be meaningfully subdivided
+            # (has multiple non-trivial SCCs, not just the original SCC + absorbing vertices)
+            can_subdivide = False
+            if graph.vertices_length() >= min_size:
+                scc_test = graph.scc_decomposition()
+                sccs_test = list(scc_test.sccs_in_topo_order())
+                # Count non-trivial SCCs (> 1 vertex)
+                non_trivial_sccs = [s for s in sccs_test if s.size() > 1]
+
+                # Can subdivide ONLY if:
+                # 1. There are multiple non-trivial SCCs AND
+                # 2. At least one SCC is >= min_size (otherwise we'll just loop forever)
+                large_sccs = [s for s in sccs_test if s.size() >= min_size]
+                can_subdivide = len(non_trivial_sccs) > 1 and len(large_sccs) > 0
+
+                logger.debug(f"  Enhanced subgraph: {graph.vertices_length()} vertices, {len(sccs_test)} SCCs ({len(non_trivial_sccs)} non-trivial, {len(large_sccs)} large)")
+
+            if can_subdivide:
+                logger.debug(f"  Recursively subdividing (has large SCCs >= min_size)")
+                trace = get_trace_hierarchical(
+                    graph,
+                    param_length=None,
+                    min_size=min_size,
+                    parallel_strategy='sequential',
+                    use_scc_subdivision=True
+                )
+            else:
+                logger.debug(f"  Recording trace directly (no large SCCs or can't subdivide)")
+                from .trace_elimination import record_elimination_trace
+                # Use graph's param_length explicitly instead of auto-detection (which is broken)
+                trace = record_elimination_trace(graph, param_length=graph.param_length())
+                print(f"[DEBUG] Recorded trace: trace.param_length={trace.param_length}, trace operations={len(trace.operations)}")
+                logger.info(f"  Recorded trace: trace.param_length={trace.param_length}, trace operations={len(trace.operations)}")
+
+            # Cache the result
+            _save_trace_to_cache(graph_hash, trace)
             results[graph_hash] = trace
         return results
 
@@ -364,120 +497,475 @@ def compute_missing_traces_parallel(work_units: Dict[str, str],
 # Trace Stitching - Helper Functions
 # ============================================================================
 
-def _build_enhanced_scc_subgraph(
+def _find_upstream_vertices(
+    original_graph: 'Graph',
+    internal_indices: List[int],
+    scc_graph: 'SCCGraph'
+) -> List[int]:
+    """
+    Find vertices in upstream SCCs that connect to the current SCC.
+
+    These are vertices that have edges TO the current SCC's internal vertices.
+    They will be treated as "fake starting vertices" in the enhanced subgraph.
+
+    Parameters
+    ----------
+    original_graph : Graph
+        The original graph
+    internal_indices : List[int]
+        Internal vertex indices of the current SCC
+    scc_graph : SCCGraph
+        The SCC decomposition
+
+    Returns
+    -------
+    List[int]
+        List of original vertex indices in upstream SCCs
+    """
+    internal_set = set(internal_indices)
+    upstream_vertices = set()
+
+    # For each vertex in the original graph
+    for v_idx in range(original_graph.vertices_length()):
+        # Skip internal vertices
+        if v_idx in internal_set:
+            continue
+
+        vertex = original_graph.vertex_at(v_idx)
+        edges = vertex.parameterized_edges() if original_graph.parameterized() else vertex.edges()
+
+        # Check if this vertex has edges TO any internal vertex
+        for edge in edges:
+            target_idx = edge.to().index()
+            if target_idx in internal_set:
+                # This is an upstream vertex
+                upstream_vertices.add(v_idx)
+                break
+
+    return sorted(list(upstream_vertices))
+
+
+def _find_upstream_connecting(
+    internal_indices: List[int],
+    upstream_vertices: List[int],
+    original_graph: 'Graph'
+) -> List[int]:
+    """
+    Find internal vertices that receive edges from upstream vertices.
+
+    These are the "upstream-connecting" vertices in the enhanced subgraph ordering.
+
+    Parameters
+    ----------
+    internal_indices : List[int]
+        Internal vertex indices of the current SCC
+    upstream_vertices : List[int]
+        Upstream vertex indices
+    original_graph : Graph
+        The original graph
+
+    Returns
+    -------
+    List[int]
+        List of internal vertex indices that connect to upstream
+    """
+    internal_set = set(internal_indices)
+    upstream_set = set(upstream_vertices)
+    upstream_connecting = set()
+
+    # Check which internal vertices receive from upstream
+    for up_idx in upstream_vertices:
+        up_vertex = original_graph.vertex_at(up_idx)
+        edges = up_vertex.parameterized_edges() if original_graph.parameterized() else up_vertex.edges()
+
+        for edge in edges:
+            target_idx = edge.to().index()
+            if target_idx in internal_set:
+                upstream_connecting.add(target_idx)
+
+    return sorted(list(upstream_connecting))
+
+
+def _find_downstream_connecting(
+    internal_indices: List[int],
+    original_graph: 'Graph'
+) -> List[int]:
+    """
+    Find internal vertices that have edges to vertices outside the SCC.
+
+    These are the "downstream-connecting" vertices in the enhanced subgraph ordering.
+
+    Parameters
+    ----------
+    internal_indices : List[int]
+        Internal vertex indices of the current SCC
+    original_graph : Graph
+        The original graph
+
+    Returns
+    -------
+    List[int]
+        List of internal vertex indices that connect to downstream
+    """
+    internal_set = set(internal_indices)
+    downstream_connecting = set()
+
+    for v_idx in internal_indices:
+        vertex = original_graph.vertex_at(v_idx)
+        edges = vertex.parameterized_edges() if original_graph.parameterized() else vertex.edges()
+
+        for edge in edges:
+            target_idx = edge.to().index()
+            if target_idx not in internal_set:
+                # This internal vertex has an edge to outside the SCC
+                downstream_connecting.add(v_idx)
+                break
+
+    return sorted(list(downstream_connecting))
+
+
+def _find_downstream_vertices(
+    original_graph: 'Graph',
+    downstream_connecting: List[int],
+    internal_indices: List[int]
+) -> List[int]:
+    """
+    Find vertices that receive edges from downstream-connecting vertices.
+
+    These are vertices outside the SCC that will be treated as "fake absorbing"
+    vertices in the enhanced subgraph.
+
+    Parameters
+    ----------
+    original_graph : Graph
+        The original graph
+    downstream_connecting : List[int]
+        Downstream-connecting vertex indices
+    internal_indices : List[int]
+        Internal vertex indices of the current SCC
+
+    Returns
+    -------
+    List[int]
+        List of original vertex indices in downstream SCCs
+    """
+    internal_set = set(internal_indices)
+    downstream_vertices = set()
+
+    for v_idx in downstream_connecting:
+        vertex = original_graph.vertex_at(v_idx)
+        edges = vertex.parameterized_edges() if original_graph.parameterized() else vertex.edges()
+
+        for edge in edges:
+            target_idx = edge.to().index()
+            if target_idx not in internal_set:
+                downstream_vertices.add(target_idx)
+
+    return sorted(list(downstream_vertices))
+
+
+def _build_scc_subgraph(
     original_graph: 'Graph',
     scc: 'SCCVertex',
     scc_graph: 'SCCGraph'
-) -> 'Graph':
+) -> Tuple['Graph', Dict[str, any]]:
     """
-    Build enhanced SCC subgraph that includes downstream connecting vertices.
+    Build SCC subgraph for non-first SCCs (with upstream vertices).
 
-    The enhanced subgraph contains:
-    - All internal vertices of the SCC
-    - Downstream connecting vertices (targets of boundary edges) as absorbing vertices
-    - Boundary edges from internal vertices to connecting vertices
+    This handles SCCs that have upstream vertices from previous SCCs.
+    The auto-starting vertex is NOT part of the original graph.
 
-    This allows elimination to naturally handle boundary edges.
+    Vertex ordering: {*upstream, *upstream-connecting, *internal,
+                      *downstream-connecting, *downstream}
+
+    - Upstream vertices: From previous SCCs (fake starting vertices)
+    - Upstream-connecting: Internal vertices receiving from upstream
+    - Internal: Pure internal SCC vertices
+    - Downstream-connecting: Internal vertices connecting to downstream
+    - Downstream vertices: From future SCCs (fake absorbing vertices)
 
     Parameters
     ----------
     original_graph : Graph
         The original graph
     scc : SCCVertex
-        The SCC to build subgraph for
+        The SCC to build subgraph for (NOT the first SCC)
     scc_graph : SCCGraph
         The SCC decomposition
 
     Returns
     -------
-    Graph
-        Enhanced subgraph
+    scc_subgraph : Graph
+        Subgraph with auto-start at index 0 (not in original)
+    metadata : Dict
+        Contains vertex categorization and mapping:
+        - 'upstream': List[int] - upstream vertex indices (original)
+        - 'upstream_connecting': List[int] - upstream-connecting indices (original)
+        - 'internal': List[int] - internal vertex indices (original)
+        - 'downstream_connecting': List[int] - downstream-connecting indices (original)
+        - 'downstream': List[int] - downstream vertex indices (original)
+        - 'vertex_map': Dict[int, int] - orig_idx -> subgraph_idx
+        - 'ordered_vertices': List[int | None] - trace[0]=None, trace[i+1]=ordered[i]
     """
     from . import Graph
-    import numpy as np
 
-    # Start with the standard SCC subgraph
-    base_subgraph = scc.as_graph()
-
-    # Get internal vertex indices
+    # Step 1: Get internal vertex indices
     internal_indices = scc.internal_vertex_indices()
-    internal_states = {tuple(original_graph.vertex_at(i).state()) for i in internal_indices}
 
-    # Find downstream connecting vertices (targets of boundary edges)
-    connecting_vertices = {}  # orig_idx -> state
-    boundary_edges = []  # (from_orig_idx, to_orig_idx, edge)
+    logger.debug(f"Building enhanced subgraph for SCC with {len(internal_indices)} internal vertices")
 
-    for orig_v_idx in internal_indices:
-        orig_vertex = original_graph.vertex_at(orig_v_idx)
-        edges = orig_vertex.parameterized_edges() if original_graph.parameterized() else orig_vertex.edges()
+    # Step 2: Find vertex categories
+    upstream_vertices = _find_upstream_vertices(original_graph, internal_indices, scc_graph)
+    upstream_connecting = _find_upstream_connecting(internal_indices, upstream_vertices, original_graph)
+    downstream_connecting = _find_downstream_connecting(internal_indices, original_graph)
+    downstream_vertices = _find_downstream_vertices(original_graph, downstream_connecting, internal_indices)
 
-        for edge in edges:
-            target_vertex = edge.to()
-            target_state = tuple(target_vertex.state())
+    # Compute pure internal vertices (not connecting to upstream or downstream)
+    connecting_set = set(upstream_connecting + downstream_connecting)
+    internal_only = [v for v in internal_indices if v not in connecting_set]
 
-            # Is this a boundary edge?
-            if target_state not in internal_states:
-                target_orig_idx = target_vertex.index()
-                connecting_vertices[target_orig_idx] = target_vertex.state()
-                boundary_edges.append((orig_v_idx, target_orig_idx, edge))
+    logger.debug(f"  Internal indices: {internal_indices}")
+    logger.debug(f"  Upstream: {upstream_vertices} ({len(upstream_vertices)})")
+    logger.debug(f"  Upstream-connecting: {upstream_connecting} ({len(upstream_connecting)})")
+    logger.debug(f"  Internal-only: {internal_only} ({len(internal_only)})")
+    logger.debug(f"  Downstream-connecting: {downstream_connecting} ({len(downstream_connecting)})")
+    logger.debug(f"  Downstream: {downstream_vertices} ({len(downstream_vertices)})")
 
-    # If no boundary edges, just return the base subgraph
-    if not connecting_vertices:
-        return base_subgraph
+    # Step 3: Create ordered vertex list (critical for elimination!)
+    # Ordering: {*upstream, *upstream-connecting, *internal, *downstream-connecting, *downstream}
+    #
+    # IMPORTANT: A vertex can appear in multiple categories (e.g., both upstream_connecting
+    # and downstream_connecting). We must ensure each vertex appears ONLY ONCE.
+    # Priority: upstream > upstream_connecting > internal_only > downstream_connecting > downstream
 
-    # Build enhanced subgraph
-    # Create new graph with same parameters
-    enhanced = Graph(
+    ordered_vertices = []
+    seen = set()
+
+    # Add each category in priority order, skipping duplicates
+    for category in [upstream_vertices, upstream_connecting, internal_only,
+                     downstream_connecting, downstream_vertices]:
+        for v in category:
+            if v not in seen:
+                ordered_vertices.append(v)
+                seen.add(v)
+
+    logger.debug(f"  Total vertices in enhanced subgraph: {len(ordered_vertices)}")
+
+    # Verify no duplicates
+    if len(ordered_vertices) != len(seen):
+        logger.error("DUPLICATE VERTICES IN ordered_vertices!")
+        from collections import Counter
+        counts = Counter(ordered_vertices)
+        duplicates = {v: c for v, c in counts.items() if c > 1}
+        logger.error(f"  Duplicates: {duplicates}")
+        raise ValueError(f"ordered_vertices contains duplicates: {duplicates}")
+
+    # Step 4: Build subgraph
+    scc_subgraph = Graph(
         original_graph.state_length(),
-        parameterized=original_graph.parameterized(),
-        param_length=original_graph.param_length() if original_graph.parameterized() else 0
+        parameterized=original_graph.parameterized()
     )
 
-    # Add internal vertices (copying from original graph)
-    vertex_map = {}  # orig_idx -> new_vertex
-    for orig_v_idx in internal_indices:
-        orig_vertex = original_graph.vertex_at(orig_v_idx)
-        state = orig_vertex.state()
-        new_vertex = enhanced.find_or_create_vertex(state)
-        vertex_map[orig_v_idx] = new_vertex
+    vertex_map = {}  # orig_idx -> subgraph_vertex
 
-    # Add connecting vertices as absorbing vertices (no outgoing edges)
-    for orig_v_idx, state in connecting_vertices.items():
-        new_vertex = enhanced.find_or_create_vertex(state)
-        vertex_map[orig_v_idx] = new_vertex
+    # For non-first SCCs: auto-starting vertex is NOT in original graph
+    # Create NEW vertices for ALL ordered vertices (don't reuse auto-start)
+    for orig_idx in ordered_vertices:
+        orig_vertex = original_graph.vertex_at(orig_idx)
+        new_vertex = scc_subgraph.create_vertex(orig_vertex.state())
+        vertex_map[orig_idx] = new_vertex
 
-    # Add internal edges
-    for orig_v_idx in internal_indices:
-        orig_vertex = original_graph.vertex_at(orig_v_idx)
-        edges = orig_vertex.parameterized_edges() if original_graph.parameterized() else orig_vertex.edges()
+    logger.debug(f"  Created {scc_subgraph.vertices_length()} vertices in subgraph (from {len(ordered_vertices)} ordered)")
+
+    # Step 5: Add edges
+    # Define which vertices are in the subgraph
+    subgraph_vertices_set = set(ordered_vertices)
+    internal_set = set(internal_indices)
+
+    # Add edges FROM upstream vertices TO subgraph vertices (not back to their home SCC)
+    for up_idx in upstream_vertices:
+        up_vertex = original_graph.vertex_at(up_idx)
+        edges = up_vertex.parameterized_edges() if original_graph.parameterized() else up_vertex.edges()
 
         for edge in edges:
-            target_orig_idx = edge.to().index()
-            target_state = tuple(edge.to().state())
-
-            # Only add edges to internal vertices (not connecting vertices yet)
-            if target_state in internal_states:
-                from_vertex = vertex_map[orig_v_idx]
-                to_vertex = vertex_map[target_orig_idx]
+            target_idx = edge.to().index()
+            # Only add edges going INTO the subgraph (to internal vertices)
+            if target_idx in internal_set:
+                from_vertex = vertex_map[up_idx]
+                to_vertex = vertex_map[target_idx]
 
                 if original_graph.parameterized():
                     coeffs = list(edge.edge_state(original_graph.param_length()))
-                    from_vertex.add_edge_parameterized(to_vertex, 0.0, coeffs)
+                    from_vertex.add_edge_parameterized(to_vertex, edge.weight(), coeffs)
                 else:
                     from_vertex.add_edge(to_vertex, edge.weight())
 
-    # Add boundary edges to connecting vertices
-    for from_orig_idx, to_orig_idx, edge in boundary_edges:
-        from_vertex = vertex_map[from_orig_idx]
-        to_vertex = vertex_map[to_orig_idx]
+    # Add edges FROM internal vertices (all 3 categories)
+    for v_idx in internal_indices:
+        vertex = original_graph.vertex_at(v_idx)
+        edges = vertex.parameterized_edges() if original_graph.parameterized() else vertex.edges()
 
-        if original_graph.parameterized():
-            coeffs = list(edge.edge_state(original_graph.param_length()))
-            from_vertex.add_edge_parameterized(to_vertex, 0.0, coeffs)
-        else:
-            from_vertex.add_edge(to_vertex, edge.weight())
+        for edge in edges:
+            target_idx = edge.to().index()
+            # Add edge if target is in subgraph
+            if target_idx in subgraph_vertices_set:
+                from_vertex = vertex_map[v_idx]
+                to_vertex = vertex_map[target_idx]
 
-    return enhanced
+                if original_graph.parameterized():
+                    coeffs = list(edge.edge_state(original_graph.param_length()))
+                    from_vertex.add_edge_parameterized(to_vertex, edge.weight(), coeffs)
+                else:
+                    from_vertex.add_edge(to_vertex, edge.weight())
+
+    # Downstream vertices have NO outgoing edges (they're absorbing)
+
+    logger.debug(f"  Added edges to enhanced subgraph")
+
+    # Step 6: Create metadata
+    # For non-first SCCs, the auto-starting vertex (subgraph index 0) is NOT in original graph
+    # Build mapping for TRACE: trace_idx -> orig_idx
+    #
+    # Trace structure:
+    #   trace[0] = auto-start vertex (NOT in original) → None
+    #   trace[1] = created vertex 0 → ordered_vertices[0]
+    #   trace[2] = created vertex 1 → ordered_vertices[1]
+    #   ...
+    #
+    # So: trace[i] -> ordered_vertices[i-1] for i >= 1, trace[0] -> None
+
+    trace_ordered_vertices = [None]  # trace[0] = auto-start, skip during stitching
+    trace_ordered_vertices.extend(ordered_vertices)  # trace[i+1] = ordered[i]
+
+    metadata = {
+        'upstream': upstream_vertices,
+        'upstream_connecting': upstream_connecting,
+        'internal': internal_only,
+        'downstream_connecting': downstream_connecting,
+        'downstream': downstream_vertices,
+        'vertex_map': {orig_idx: vertex_map[orig_idx].index() for orig_idx in ordered_vertices},
+        'ordered_vertices': trace_ordered_vertices  # [None, *ordered_vertices]
+    }
+
+    logger.info(f"SCC subgraph: {scc_subgraph.vertices_length()} vertices, "
+                f"param={scc_subgraph.parameterized()}, param_length={scc_subgraph.param_length()}")
+
+    return scc_subgraph, metadata
+
+
+def _build_first_scc_subgraph(
+    original_graph: 'Graph',
+    starting_vertex_idx: int,
+    scc: 'SCCVertex',
+    scc_graph: 'SCCGraph'
+) -> Tuple['Graph', Dict[str, any]]:
+    """
+    Build special subgraph for the first SCC (contains starting vertex).
+
+    The first SCC is special because:
+    - Auto-starting vertex (index 0) IS the actual starting vertex of original graph
+    - NO upstream vertices (this is the first SCC!)
+    - Only contains: {starting_vertex, *downstream_connecting}
+
+    Parameters
+    ----------
+    original_graph : Graph
+        The original graph
+    starting_vertex_idx : int
+        Index of the starting vertex in original graph
+    scc : SCCVertex
+        The first SCC
+    scc_graph : SCCGraph
+        The SCC decomposition
+
+    Returns
+    -------
+    first_subgraph : Graph
+        Subgraph with starting vertex at index 0
+    metadata : Dict
+        Contains:
+        - 'upstream': [] (empty - no upstream for first SCC)
+        - 'internal': [starting_vertex_idx]
+        - 'downstream': List[int] - downstream connecting vertices
+        - 'vertex_map': Dict[int, int] - orig_idx -> subgraph_idx
+        - 'ordered_vertices': List[int] - maps trace[i] -> orig_idx
+    """
+    from . import Graph
+
+    logger.debug(f"Building FIRST SCC subgraph for starting vertex {starting_vertex_idx}")
+
+    # Step 1: Get internal vertices (should be just the starting vertex for first SCC)
+    internal_indices = scc.internal_vertex_indices()
+
+    # Step 2: Find downstream connecting vertices
+    # These are vertices that the starting vertex connects to (in next SCCs)
+    downstream_connecting = _find_downstream_connecting(internal_indices, original_graph)
+    downstream_vertices = _find_downstream_vertices(original_graph, downstream_connecting, internal_indices)
+
+    logger.debug(f"  Starting vertex: {starting_vertex_idx}")
+    logger.debug(f"  Internal indices: {internal_indices}")
+    logger.debug(f"  Downstream connecting: {downstream_connecting}")
+    logger.debug(f"  Downstream vertices: {downstream_vertices}")
+
+    # Step 3: Create ordered vertex list
+    # Ordering for first SCC: [starting_vertex, *downstream]
+    ordered_vertices = [starting_vertex_idx] + downstream_vertices
+
+    # Step 4: Build subgraph
+    first_subgraph = Graph(
+        original_graph.state_length(),
+        parameterized=original_graph.parameterized()
+    )
+
+    vertex_map = {}
+    auto_starting_vertex = first_subgraph.starting_vertex()
+
+    # Reuse auto-starting vertex for the actual starting vertex
+    vertex_map[starting_vertex_idx] = auto_starting_vertex
+
+    # Create downstream vertices
+    for downstream_idx in downstream_vertices:
+        downstream_orig = original_graph.vertex_at(downstream_idx)
+        new_vertex = first_subgraph.create_vertex(downstream_orig.state())
+        vertex_map[downstream_idx] = new_vertex
+
+    logger.debug(f"  Created {first_subgraph.vertices_length()} vertices in first subgraph")
+
+    # Step 5: Add edges from starting vertex to downstream
+    starting_vertex = original_graph.vertex_at(starting_vertex_idx)
+    edges = starting_vertex.parameterized_edges() if original_graph.parameterized() else starting_vertex.edges()
+
+    for edge in edges:
+        target_idx = edge.to().index()
+        # Only add edges to vertices in our subgraph
+        if target_idx in vertex_map:
+            from_vertex = vertex_map[starting_vertex_idx]
+            to_vertex = vertex_map[target_idx]
+
+            if original_graph.parameterized():
+                coeffs = list(edge.edge_state(original_graph.param_length()))
+                from_vertex.add_edge_parameterized(to_vertex, edge.weight(), coeffs)
+            else:
+                from_vertex.add_edge(to_vertex, edge.weight())
+
+    # Downstream vertices are absorbing in this subgraph (no outgoing edges)
+
+    # Step 6: Create metadata
+    # For first SCC, trace mapping is direct: trace[i] -> ordered_vertices[i]
+    metadata = {
+        'upstream': [],  # No upstream for first SCC
+        'upstream_connecting': [],
+        'internal': [starting_vertex_idx],
+        'downstream_connecting': downstream_connecting,
+        'downstream': downstream_vertices,
+        'vertex_map': {orig_idx: vertex_map[orig_idx].index() for orig_idx in ordered_vertices},
+        'ordered_vertices': ordered_vertices  # Direct mapping: trace[i] -> ordered[i]
+    }
+
+    logger.info(f"First SCC subgraph: {first_subgraph.vertices_length()} vertices, "
+                f"{len(ordered_vertices)} in ordered list")
+
+    return first_subgraph, metadata
 
 
 def _identify_trace_vertices(
@@ -509,7 +997,7 @@ def _identify_trace_vertices(
         Maps trace vertices to original graph for connecting vertices
     """
     original_graph = scc_graph.original_graph()
-    sccs = scc_graph.sccs_in_topo_order()
+    sccs = list(scc_graph.sccs_in_topo_order())  # Convert to list to avoid iterator exhaustion
     scc = sccs[scc_idx]
 
     internal_indices = set(scc.internal_vertex_indices())
@@ -544,6 +1032,91 @@ def _identify_trace_vertices(
                 raise ValueError(f"Could not find original vertex for trace vertex {trace_v_idx} in SCC {scc_idx}")
 
     return internal_mapping, connecting_mapping
+
+
+def _find_sister_vertices(
+    upstream_metadata: Dict[str, any],
+    downstream_metadata: Dict[str, any],
+    original_graph: 'Graph'
+) -> List[Tuple[int, int]]:
+    """
+    Find sister vertices between upstream and downstream subgraphs.
+
+    Sister vertices are vertices with the same state vector that appear:
+    - As downstream vertices in the upstream subgraph
+    - As upstream vertices in the downstream subgraph
+
+    Parameters
+    ----------
+    upstream_metadata : Dict
+        Metadata from upstream enhanced subgraph
+    downstream_metadata : Dict
+        Metadata from downstream enhanced subgraph
+    original_graph : Graph
+        The original graph
+
+    Returns
+    -------
+    List[Tuple[int, int]]
+        List of (upstream_downstream_idx, downstream_upstream_idx) pairs
+        where indices are original graph indices
+    """
+    sisters = []
+
+    # Get downstream vertices from upstream subgraph
+    upstream_downstream = upstream_metadata.get('downstream', [])
+
+    # Get upstream vertices from downstream subgraph
+    downstream_upstream = downstream_metadata.get('upstream', [])
+
+    logger.debug(f"  Finding sisters: upstream has {len(upstream_downstream)} downstream, "
+                f"downstream has {len(downstream_upstream)} upstream")
+
+    # Match by state vector
+    for up_down_idx in upstream_downstream:
+        up_down_state = tuple(original_graph.vertex_at(up_down_idx).state())
+
+        for down_up_idx in downstream_upstream:
+            down_up_state = tuple(original_graph.vertex_at(down_up_idx).state())
+
+            if up_down_state == down_up_state:
+                sisters.append((up_down_idx, down_up_idx))
+                logger.debug(f"    Found sister pair: {up_down_idx} (upstream→downstream) ↔ "
+                           f"{down_up_idx} (downstream→upstream)")
+
+    logger.debug(f"  Found {len(sisters)} sister vertex pairs")
+
+    return sisters
+
+
+def _get_vertex_categories_from_metadata(
+    metadata: Dict[str, any]
+) -> Dict[str, List[int]]:
+    """
+    Extract vertex categories from enhanced subgraph metadata.
+
+    Parameters
+    ----------
+    metadata : Dict
+        Metadata from _build_scc_subgraph or _build_first_scc_subgraph
+
+    Returns
+    -------
+    Dict[str, List[int]]
+        Dictionary mapping category names to lists of original vertex indices:
+        - 'upstream': Upstream vertices
+        - 'upstream_connecting': Upstream-connecting vertices
+        - 'internal': Internal vertices
+        - 'downstream_connecting': Downstream-connecting vertices
+        - 'downstream': Downstream vertices
+    """
+    return {
+        'upstream': metadata.get('upstream', []),
+        'upstream_connecting': metadata.get('upstream_connecting', []),
+        'internal': metadata.get('internal', []),
+        'downstream_connecting': metadata.get('downstream_connecting', []),
+        'downstream': metadata.get('downstream', [])
+    }
 
 
 def _remap_operation(op: 'Operation', op_offset: int) -> 'Operation':
@@ -612,12 +1185,12 @@ def _remap_operation(op: 'Operation', op_offset: int) -> 'Operation':
 def record_enhanced_scc_traces(
     scc_graph: 'SCCGraph',
     param_length: int
-) -> Dict[str, 'EliminationTrace']:
+) -> Tuple[Dict[str, 'EliminationTrace'], Dict[str, Dict[str, any]]]:
     """
     Record elimination traces for each SCC using enhanced subgraphs.
 
-    Enhanced subgraphs include downstream connecting vertices as absorbing vertices,
-    allowing boundary edges to be handled naturally during elimination.
+    Enhanced subgraphs include upstream and downstream vertices with proper
+    5-part vertex ordering for correct elimination.
 
     Parameters
     ----------
@@ -628,39 +1201,53 @@ def record_enhanced_scc_traces(
 
     Returns
     -------
-    Dict[str, EliminationTrace]
+    scc_trace_dict : Dict[str, EliminationTrace]
         Traces for each SCC, keyed by SCC hash
+    scc_metadata_dict : Dict[str, Dict]
+        Metadata for each SCC's enhanced subgraph, keyed by SCC hash
     """
     from .trace_elimination import record_elimination_trace
 
     original_graph = scc_graph.original_graph()
-    sccs = scc_graph.sccs_in_topo_order()
+    sccs = list(scc_graph.sccs_in_topo_order())
 
     scc_trace_dict = {}
-    for scc in sccs:
-        # Build enhanced subgraph with connecting vertices
-        enhanced_subgraph = _build_enhanced_scc_subgraph(original_graph, scc, scc_graph)
+    scc_metadata_dict = {}
 
-        # Record trace for enhanced subgraph
+    for i, scc in enumerate(sccs):
+        # Build subgraph (first SCC vs other SCCs)
+        if i == 0:
+            # First SCC - contains starting vertex
+            enhanced_subgraph, metadata = _build_first_scc_subgraph(
+                original_graph, original_graph.starting_vertex().index(), scc, scc_graph
+            )
+        else:
+            # Other SCCs - have upstream vertices
+            enhanced_subgraph, metadata = _build_scc_subgraph(original_graph, scc, scc_graph)
+
+        # Record trace for subgraph
         trace = record_elimination_trace(enhanced_subgraph, param_length)
 
         # Store with SCC hash
         scc_hash = scc.hash()
         scc_trace_dict[scc_hash] = trace
+        scc_metadata_dict[scc_hash] = metadata
 
-    return scc_trace_dict
+    return scc_trace_dict, scc_metadata_dict
 
 
 def stitch_scc_traces(
     scc_graph: 'SCCGraph',
-    scc_trace_dict: Dict[str, 'EliminationTrace']
+    scc_trace_dict: Dict[str, 'EliminationTrace'],
+    scc_metadata_dict: Optional[Dict[str, Dict[str, any]]] = None
 ) -> 'EliminationTrace':
     """
-    Merge SCC traces in topological order.
+    Merge SCC traces using sister vertex merging.
 
-    SCC traces are recorded using enhanced subgraphs that include downstream
-    connecting vertices. When stitching, we merge operations for connecting
-    vertices that appear in multiple traces.
+    Sister vertices (vertices appearing in multiple SCCs) are merged by:
+    1. Removing downstream sisters from the merged trace
+    2. Attaching downstream sister's outgoing edges to upstream sister
+    3. Keeping upstream sister's incoming edges
 
     Parameters
     ----------
@@ -668,25 +1255,21 @@ def stitch_scc_traces(
         SCC decomposition with topological ordering
     scc_trace_dict : Dict[str, EliminationTrace]
         Traces for each SCC (recorded with enhanced subgraphs)
+    scc_metadata_dict : Dict[str, Dict], optional
+        Metadata for each SCC (from _build_scc_subgraph or _build_first_scc_subgraph).
+        If None, metadata will be regenerated from SCC decomposition.
 
     Returns
     -------
     EliminationTrace
-        Full graph trace stitched from SCC traces
+        Full graph trace stitched from SCC traces with sister merging
 
     Notes
     -----
     - Processes SCCs in topological order (dependencies first)
-    - Connecting vertices appear in both upstream and own SCC traces
-    - Operations are merged for connecting vertices
-
-    Algorithm:
-    1. Initialize merged trace with all original vertices
-    2. Process SCCs in topological order
-    3. For each SCC:
-       - Copy operations from enhanced SCC trace
-       - For internal vertices: set vertex_rates, edge_probs, vertex_targets
-       - Connecting vertices (from upstream SCCs) are handled automatically
+    - Sister vertices are merged to avoid duplication
+    - Uses Option 2 (sequential merging) for multiple upstream SCCs
+    - Metadata can be regenerated deterministically if not provided
 
     Raises
     ------
@@ -701,141 +1284,291 @@ def stitch_scc_traces(
         raise ValueError("scc_trace_dict is empty")
 
     original_graph = scc_graph.original_graph()
-    sccs = scc_graph.sccs_in_topo_order()
+    sccs = list(scc_graph.sccs_in_topo_order())
 
     if len(sccs) == 0:
         logger.error("Cannot stitch traces: no SCCs in graph")
         raise ValueError("Cannot stitch empty SCC graph")
 
-    logger.debug("Starting trace stitching: %d SCCs, %d vertices total",
-                 len(sccs), original_graph.vertices_length())
-    logger.debug("SCC traces available: %d", len(scc_trace_dict))
+    logger.info("Starting sister vertex merging: %d SCCs, %d vertices total",
+                len(sccs), original_graph.vertices_length())
 
-    # Check all SCC traces present
-    for scc in sccs:
-        if scc.hash() not in scc_trace_dict:
-            raise ValueError(f"Missing trace for SCC {scc.hash()}")
+    # Track which vertices have been processed to avoid duplicates
+    processed_vertices = set()
 
-    # Step 1: Build mapping from original vertices to merged indices (identity mapping)
-    original_to_merged = {}
-    for orig_v_idx in range(original_graph.vertices_length()):
-        original_to_merged[orig_v_idx] = orig_v_idx
+    # Generate metadata if not provided - INFER from traces instead of regenerating!
+    if scc_metadata_dict is None:
+        logger.info("Inferring SCC metadata from cached traces...")
+        scc_metadata_dict = {}
+        for scc in sccs:
+            scc_hash = scc.hash()
+            scc_trace = scc_trace_dict[scc_hash]
 
-    n_vertices_merged = original_graph.vertices_length()
+            # Infer ordered_vertices by matching trace states to original graph
+            # NOTE: The trace may have duplicate states (e.g., starting vertex appearing multiple times)
+            # We map each trace index to an original graph index, even if there are duplicates
+            ordered_vertices = []
 
-    # Step 2: Initialize merged trace
-    first_trace = next(iter(scc_trace_dict.values()))
+            for trace_idx in range(scc_trace.n_vertices):
+                trace_state = tuple(scc_trace.states[trace_idx])
 
+                # Find matching vertex in original graph
+                found = False
+                for orig_idx in range(original_graph.vertices_length()):
+                    orig_state = tuple(original_graph.vertex_at(orig_idx).state())
+                    if orig_state == trace_state:
+                        ordered_vertices.append(orig_idx)
+                        found = True
+                        break
+
+                if not found:
+                    logger.error("  Could not find vertex with state %s in original graph!", trace_state)
+                    raise ValueError(f"Trace state {trace_state} not found in original graph")
+
+            # Log if there are duplicates
+            if len(ordered_vertices) != len(set(ordered_vertices)):
+                from collections import Counter
+                counts = Counter(ordered_vertices)
+                duplicates = {v: c for v, c in counts.items() if c > 1}
+                logger.warning("  Trace has duplicate vertices: %s", duplicates)
+
+            # Recompute vertex categories using same logic as _build_scc_subgraph
+            internal_indices = scc.internal_vertex_indices()
+            upstream_vertices = _find_upstream_vertices(original_graph, internal_indices, scc_graph)
+            upstream_connecting = _find_upstream_connecting(internal_indices, upstream_vertices, original_graph)
+            downstream_connecting = _find_downstream_connecting(internal_indices, original_graph)
+            downstream_vertices = _find_downstream_vertices(original_graph, downstream_connecting, internal_indices)
+
+            connecting_set = set(upstream_connecting + downstream_connecting)
+            internal_only = [v for v in internal_indices if v not in connecting_set]
+
+            # IMPORTANT: internal should be based on ordered_vertices, not internal_indices!
+            # ordered_vertices may include upstream/downstream, so we need to filter them out
+            upstream_set = set(upstream_vertices)
+            downstream_set = set(downstream_vertices)
+            internal_in_trace = [v for v in ordered_vertices if v not in upstream_set and v not in downstream_set]
+
+            # Create full metadata with all vertex categories
+            # (ordered_vertices is already deduplicated during subgraph building)
+            metadata = {
+                'ordered_vertices': ordered_vertices,
+                'vertex_map': {orig_idx: idx for idx, orig_idx in enumerate(ordered_vertices)},
+                'upstream': upstream_vertices,
+                'upstream_connecting': upstream_connecting,
+                'internal': internal_in_trace,  # Use the filtered internal list from ordered_vertices
+                'downstream_connecting': downstream_connecting,
+                'downstream': downstream_vertices
+            }
+            scc_metadata_dict[scc_hash] = metadata
+
+            logger.debug("  SCC %s: inferred %d vertices, upstream=%d, internal=%d, downstream=%d",
+                        scc_hash[:16], len(ordered_vertices), len(upstream_vertices), len(internal_in_trace), len(downstream_vertices))
+
+    # Initialize merged trace with first SCC
+    first_scc = sccs[0]
+    first_hash = first_scc.hash()
+    first_trace = scc_trace_dict[first_hash]
+    first_metadata = scc_metadata_dict[first_hash]
+
+    logger.info("Initializing with first SCC (hash=%s..., %d vertices, %d operations)",
+                first_hash[:16], first_trace.n_vertices, len(first_trace.operations))
+
+    # Validate that metadata matches trace
+    first_ordered = first_metadata['ordered_vertices']
+    logger.info("  First ordered vertices: %d", len(first_ordered))
+    logger.info("  First trace vertices: %d", first_trace.n_vertices)
+
+    if len(first_ordered) != first_trace.n_vertices:
+        logger.error("MISMATCH: ordered_vertices length (%d) != trace n_vertices (%d)",
+                    len(first_ordered), first_trace.n_vertices)
+        logger.error("  This indicates metadata doesn't match the cached trace!")
+        logger.error("  ordered_vertices: %s", first_ordered)
+        raise ValueError("Metadata mismatch: ordered_vertices length != trace n_vertices")
+
+    # Create merged trace structure
     merged = EliminationTrace(
-        operations=[],
-        vertex_rates=np.full(n_vertices_merged, -1, dtype=np.int64),  # -1 = not set
-        edge_probs=[[] for _ in range(n_vertices_merged)],
-        vertex_targets=[[] for _ in range(n_vertices_merged)],
-        states=np.zeros(
-            (n_vertices_merged, first_trace.state_length),
-            dtype=first_trace.states.dtype
-        ),
-        starting_vertex_idx=0,  # Will be set later
-        n_vertices=n_vertices_merged,
+        operations=list(first_trace.operations),  # Copy operations
+        vertex_rates=np.full(original_graph.vertices_length(), -1, dtype=np.int64),
+        edge_probs=[[] for _ in range(original_graph.vertices_length())],
+        vertex_targets=[[] for _ in range(original_graph.vertices_length())],
+        states=np.array([original_graph.vertex_at(i).state()
+                        for i in range(original_graph.vertices_length())]),
+        starting_vertex_idx=original_graph.starting_vertex().index(),
+        n_vertices=original_graph.vertices_length(),
         state_length=first_trace.state_length,
-        param_length=first_trace.param_length,
+        param_length=original_graph.param_length(),
         reward_length=first_trace.reward_length,
         is_discrete=first_trace.is_discrete,
-        metadata={}
+        metadata={'scc_metadata': {first_hash: first_metadata}}
     )
 
-    # Copy states from original graph
-    for orig_v_idx in range(original_graph.vertices_length()):
-        merged_v_idx = original_to_merged[orig_v_idx]
-        merged.states[merged_v_idx] = original_graph.vertex_at(orig_v_idx).state()
+    # Map first SCC's trace vertices to original graph vertices
+    first_ordered = first_metadata['ordered_vertices']
+    for subgraph_idx, orig_idx in enumerate(first_ordered):
+        # Copy vertex data from first trace to merged trace
+        if first_trace.vertex_rates[subgraph_idx] >= 0:
+            merged.vertex_rates[orig_idx] = first_trace.vertex_rates[subgraph_idx]
 
-    # Step 3: Process SCCs in topological order
-    logger.debug("Processing %d SCCs in topological order...", len(sccs))
-    op_remap = {}  # (scc_idx, scc_op_idx) -> merged_op_idx
+        n_edges = len(first_trace.edge_probs[subgraph_idx])
+        if n_edges > 0:
+            logger.debug(f"    Adding {n_edges} edges from trace[{subgraph_idx}] to merged[{orig_idx}]")
 
-    for scc_idx, scc in enumerate(sccs):
+        for edge_idx, edge_prob_op in enumerate(first_trace.edge_probs[subgraph_idx]):
+            merged.edge_probs[orig_idx].append(edge_prob_op)
+
+            target_subgraph_idx = first_trace.vertex_targets[subgraph_idx][edge_idx]
+
+            # Bounds check: target_subgraph_idx should be within first_ordered
+            if target_subgraph_idx < len(first_ordered):
+                target_orig_idx = first_ordered[target_subgraph_idx]
+                merged.vertex_targets[orig_idx].append(target_orig_idx)
+                logger.debug(f"      Edge {edge_idx}: trace[{subgraph_idx}]→trace[{target_subgraph_idx}] becomes merged[{orig_idx}]→merged[{target_orig_idx}]")
+            else:
+                logger.error("Target index %d out of range for first_ordered (length=%d)",
+                           target_subgraph_idx, len(first_ordered))
+                logger.error("  Source vertex: subgraph_idx=%d, orig_idx=%d",
+                           subgraph_idx, orig_idx)
+                logger.error("  First ordered vertices: %d", len(first_ordered))
+                logger.error("  First trace vertices: %d", first_trace.n_vertices)
+                raise IndexError(f"Target vertex index {target_subgraph_idx} out of range")
+
+        # Mark as processed
+        processed_vertices.add(orig_idx)
+
+    logger.info("  First SCC merged: %d operations, %d vertices processed",
+                len(merged.operations), len([r for r in merged.vertex_rates if r >= 0]))
+
+    # Process remaining SCCs in topological order
+    for scc_idx in range(1, len(sccs)):
+        scc = sccs[scc_idx]
         scc_hash = scc.hash()
         scc_trace = scc_trace_dict[scc_hash]
-        internal_indices = set(scc.internal_vertex_indices())
+        scc_metadata = scc_metadata_dict[scc_hash]
 
-        n_internal = len(internal_indices)
-        n_connecting = scc_trace.n_vertices - n_internal
+        logger.info("Merging SCC %d/%d (hash=%s..., %d vertices, %d operations)",
+                    scc_idx + 1, len(sccs), scc_hash[:16],
+                    scc_trace.n_vertices, len(scc_trace.operations))
 
-        logger.debug("SCC %d/%d: hash=%s..., %d internal vertices, %d connecting vertices",
-                     scc_idx + 1, len(sccs), scc_hash[:16], n_internal, n_connecting)
-        logger.debug("  %d operations to merge", len(scc_trace.operations))
+        # Find sister vertices with previous SCCs (already in merged trace)
+        merged_metadata = merged.metadata.get('scc_metadata', {})
+        sisters = []
 
-        # Append operations
+        for prev_hash, prev_metadata in merged_metadata.items():
+            scc_sisters = _find_sister_vertices(prev_metadata, scc_metadata, original_graph)
+            sisters.extend(scc_sisters)
+
+        logger.info("  Found %d sister vertex pairs", len(sisters))
+
+        # Append SCC operations to merged trace
         op_offset = len(merged.operations)
-        logger.debug("  Operation offset: %d (merged trace has %d operations before this SCC)",
-                     op_offset, op_offset)
+        for operation in scc_trace.operations:
+            remapped_op = _remap_operation(operation, op_offset)
+            merged.operations.append(remapped_op)
 
-        for scc_op_idx, operation in enumerate(scc_trace.operations):
-            new_op = _remap_operation(operation, op_offset)
-            merged.operations.append(new_op)
-            op_remap[(scc_idx, scc_op_idx)] = op_offset + scc_op_idx
+        logger.info("  Appended %d operations (offset=%d, total now=%d)",
+                    len(scc_trace.operations), op_offset, len(merged.operations))
 
-        logger.debug("  Copied %d operations (merged trace now has %d operations)",
-                     len(scc_trace.operations), len(merged.operations))
+        # Build mapping from SCC trace indices to original indices
+        scc_ordered = scc_metadata['ordered_vertices']
 
-        # Map trace vertices to original vertices by matching states
-        trace_to_orig = {}
-        for trace_v_idx in range(scc_trace.n_vertices):
-            trace_state = tuple(scc_trace.states[trace_v_idx])
-            for orig_v_idx in range(original_graph.vertices_length()):
-                if tuple(original_graph.vertex_at(orig_v_idx).state()) == trace_state:
-                    trace_to_orig[trace_v_idx] = orig_v_idx
-                    break
+        # Get upstream vertices in current SCC (fake starting vertices from previous SCCs)
+        # These were already processed in their home SCC, so skip them here
+        upstream_in_current_scc = set(scc_metadata.get('upstream', []))
 
-        logger.debug("  Mapped %d trace vertices to original graph", len(trace_to_orig))
+        # Get downstream vertices in current SCC (fake absorbing vertices for downstream SCCs)
+        # These will be processed as internal vertices when we reach their home SCC
+        downstream_in_current_scc = set(scc_metadata.get('downstream', []))
 
-        # Copy data for INTERNAL vertices only (connecting vertices handled by their own SCC)
-        n_vertices_set = 0
-        n_edges_set = 0
+        logger.debug("  Processing SCC %d: ordered=%s", scc_idx + 1, scc_ordered)
+        logger.debug("    upstream_in_current: %s", upstream_in_current_scc)
+        logger.debug("    downstream_in_current: %s", downstream_in_current_scc)
+        logger.debug("    sisters: %s", sisters)
 
-        for trace_v_idx, orig_v_idx in trace_to_orig.items():
-            if orig_v_idx not in internal_indices:
-                continue  # Skip connecting vertices
+        # Merge vertex data
+        for subgraph_idx, orig_idx in enumerate(scc_ordered):
+            # SKIP None entries (auto-starting vertex, not in original graph)
+            if orig_idx is None:
+                logger.debug("    Skipping trace vertex %d (auto-starting vertex, not in original)",
+                            subgraph_idx)
+                continue
 
-            merged_v_idx = original_to_merged[orig_v_idx]
+            # SKIP upstream vertices - they were already processed in their home SCC
+            if orig_idx in upstream_in_current_scc:
+                logger.debug("    Skipping upstream vertex %d (already processed in previous SCC)",
+                            orig_idx)
+                continue
 
-            # Set vertex_rates
-            scc_rate_op_idx = scc_trace.vertex_rates[trace_v_idx]
-            if scc_rate_op_idx >= 0 and (scc_idx, scc_rate_op_idx) in op_remap:
-                merged.vertex_rates[merged_v_idx] = op_remap[(scc_idx, scc_rate_op_idx)]
-            else:
-                merged.vertex_rates[merged_v_idx] = scc_rate_op_idx
+            # SKIP downstream sisters - they will be processed in their home SCC
+            # But first, attach their edges to upstream sister if this is a sister pair
+            if orig_idx in downstream_in_current_scc:
+                is_sister = any(s[1] == orig_idx for s in sisters)
+                if is_sister:
+                    upstream_sister = next((s[0] for s in sisters if s[1] == orig_idx), None)
+                    if upstream_sister is not None:
+                        logger.debug("    Attaching edges from downstream sister %d to upstream sister %d",
+                                    orig_idx, upstream_sister)
 
-            n_vertices_set += 1
+                        # Attach this vertex's edges to upstream sister
+                        for edge_idx, edge_prob_op in enumerate(scc_trace.edge_probs[subgraph_idx]):
+                            remapped_prob_op = edge_prob_op + op_offset if edge_prob_op >= 0 else edge_prob_op
+                            merged.edge_probs[upstream_sister].append(remapped_prob_op)
 
-            # Set edge_probs and vertex_targets
-            for j, scc_edge_op_idx in enumerate(scc_trace.edge_probs[trace_v_idx]):
-                merged_edge_op_idx = op_remap[(scc_idx, scc_edge_op_idx)]
-                merged.edge_probs[merged_v_idx].append(merged_edge_op_idx)
+                            target_subgraph_idx = scc_trace.vertex_targets[subgraph_idx][edge_idx]
+                            target_orig_idx = scc_ordered[target_subgraph_idx]
 
-                scc_target_v_idx = scc_trace.vertex_targets[trace_v_idx][j]
-                orig_target_v_idx = trace_to_orig[scc_target_v_idx]
-                merged_target_v_idx = original_to_merged[orig_target_v_idx]
-                merged.vertex_targets[merged_v_idx].append(merged_target_v_idx)
+                            # Skip if target is None
+                            if target_orig_idx is None:
+                                logger.warning("    Sister edge target is None, skipping")
+                                continue
 
-                n_edges_set += 1
+                            merged.vertex_targets[upstream_sister].append(target_orig_idx)
 
-        logger.debug("  Set vertex data for %d internal vertices, %d edges",
-                     n_vertices_set, n_edges_set)
-        logger.debug("SCC %d/%d merge complete", scc_idx + 1, len(sccs))
+                # Skip processing this downstream vertex's own rate/edges
+                logger.debug("    Skipping downstream vertex %d (will process in home SCC)",
+                            orig_idx)
+                continue
 
-    # Set starting vertex
-    merged.starting_vertex_idx = original_to_merged[original_graph.starting_vertex().index()]
+            # Check if already processed (handles duplicates in ordered_vertices)
+            if orig_idx in processed_vertices:
+                logger.debug("    Skipping vertex %d (already processed in earlier SCC)", orig_idx)
+                continue
 
-    # Final summary statistics
-    logger.info("Trace stitching complete: %d vertices, %d operations",
-                merged.n_vertices, len(merged.operations))
-    logger.debug("Final trace statistics:")
-    logger.debug("  Vertices: %d", merged.n_vertices)
-    logger.debug("  Operations: %d", len(merged.operations))
-    logger.debug("  Parameters: %d", merged.param_length)
-    logger.debug("  State length: %d", merged.state_length)
-    logger.debug("  Starting vertex: %d", merged.starting_vertex_idx)
+            # Not a sister, or is upstream vertex in this SCC - process normally
+            if scc_trace.vertex_rates[subgraph_idx] >= 0:
+                remapped_rate = scc_trace.vertex_rates[subgraph_idx] + op_offset
+                merged.vertex_rates[orig_idx] = remapped_rate
+
+            for edge_idx, edge_prob_op in enumerate(scc_trace.edge_probs[subgraph_idx]):
+                remapped_prob_op = edge_prob_op + op_offset if edge_prob_op >= 0 else edge_prob_op
+                merged.edge_probs[orig_idx].append(remapped_prob_op)
+
+                target_subgraph_idx = scc_trace.vertex_targets[subgraph_idx][edge_idx]
+                target_orig_idx = scc_ordered[target_subgraph_idx]
+
+                # Skip if target is None (shouldn't happen, but safety check)
+                if target_orig_idx is None:
+                    logger.warning("    Edge target is None (auto-start), skipping edge from %d", orig_idx)
+                    continue
+
+                merged.vertex_targets[orig_idx].append(target_orig_idx)
+
+            # Mark as processed
+            processed_vertices.add(orig_idx)
+
+        # Store metadata for future sister matching
+        merged.metadata['scc_metadata'][scc_hash] = scc_metadata
+
+        logger.info("  SCC %d/%d merged: total operations=%d, vertices processed=%d",
+                    scc_idx + 1, len(sccs), len(merged.operations),
+                    len([r for r in merged.vertex_rates if r >= 0]))
+
+    # Final validation
+    vertices_with_rates = sum(1 for r in merged.vertex_rates if r >= 0)
+    total_edges = sum(len(edge_list) for edge_list in merged.edge_probs)
+
+    logger.info("✓ Sister merging complete: %d vertices, %d operations, %d edges",
+                merged.n_vertices, len(merged.operations), total_edges)
+    logger.info("  Vertices with rates: %d / %d", vertices_with_rates, merged.n_vertices)
 
     return merged
 
@@ -847,30 +1580,36 @@ def stitch_scc_traces(
 def get_trace_hierarchical(graph,
                           param_length: Optional[int] = None,
                           min_size: int = 50,
-                          parallel_strategy: str = 'auto') -> 'EliminationTrace':
+                          parallel_strategy: str = 'auto',
+                          use_scc_subdivision: bool = True) -> 'EliminationTrace':
     """
-    Main entry point: Get trace with hierarchical caching.
-
-    CURRENT IMPLEMENTATION (Phase 3a):
-    - Simplified approach without trace stitching
-    - Caches full graph traces only
-    - Future: Will cache SCC-level traces for cross-graph reuse
+    Main entry point: Get trace with hierarchical SCC-based caching.
 
     Workflow:
     1. Check cache for full graph → return if hit
-    2. If not cached, compute trace directly for full graph
-    3. Cache the result
+    2. If cache miss and use_scc_subdivision=True:
+       a. Decompose graph into SCCs
+       b. Recursively collect missing traces (with caching)
+       c. Compute missing traces (potentially in parallel)
+       d. Stitch SCC traces together
+    3. If cache miss and use_scc_subdivision=False:
+       - Compute trace directly for full graph
+    4. Cache the result
 
     Parameters
     ----------
     graph : Graph
         Input graph (may be very large)
     param_length : int, optional
-        Number of parameters
-    min_size : int
-        Minimum vertices to subdivide (currently ignored - no subdivision yet)
+        Number of parameters (auto-detected if None)
+    min_size : int, default=50
+        Minimum vertices to subdivide into SCCs
+        Graphs with < min_size vertices are computed directly
     parallel_strategy : str, default='auto'
-        Parallelization strategy (currently ignored - no SCC parallelization yet)
+        Parallelization strategy: 'auto', 'vmap', 'pmap', or 'sequential'
+    use_scc_subdivision : bool, default=True
+        If True, use hierarchical SCC-based subdivision and caching
+        If False, compute full graph directly (Phase 3a behavior)
 
     Returns
     -------
@@ -879,42 +1618,107 @@ def get_trace_hierarchical(graph,
 
     Examples
     --------
-    >>> # Simple caching (no subdivision)
-    >>> trace = get_trace_hierarchical(graph)
+    >>> # Hierarchical caching with SCC subdivision (recommended for large graphs)
+    >>> trace = graph.compute_trace(hierarchical=True)
     >>>
-    >>> # All parameters are accepted but min_size/parallel currently ignored
-    >>> trace = get_trace_hierarchical(graph, hierarchical=True, min_size=50)
+    >>> # Adjust minimum subdivision size
+    >>> trace = graph.compute_trace(hierarchical=True, min_size=100)
+    >>>
+    >>> # Disable SCC subdivision (simple full-graph caching)
+    >>> trace = graph.compute_trace(hierarchical=True, min_size=50, use_scc_subdivision=False)
 
     Notes
     -----
-    Phase 3a Limitations:
-    - No SCC-level caching yet (coming in Phase 3b)
-    - No trace stitching yet (complex algorithm, future work)
-    - No parallel SCC computation yet
-    - Still provides full-graph caching and clean API
-
-    Future (Phase 3b):
-    - SCC decomposition and caching
-    - Trace stitching algorithm
-    - Parallel SCC trace computation via vmap/pmap
+    Benefits of SCC subdivision:
+    - Reuses cached SCCs across different graphs
+    - Enables parallel computation of independent components
+    - Handles very large graphs (10K+ vertices)
+    - Reduces redundant computation when graphs share structure
     """
     from .trace_elimination import record_elimination_trace
     from . import hash as phasic_hash
+
+    logger.debug("get_trace_hierarchical: graph=%d vertices, min_size=%d, use_scc_subdivision=%s",
+                 graph.vertices_length(), min_size, use_scc_subdivision)
 
     # Step 1: Try full graph hash cache
     try:
         hash_result = phasic_hash.compute_graph_hash(graph)
         graph_hash = hash_result.hash_hex
+        logger.debug("Full graph hash: %s...", graph_hash[:16])
+
         trace = _load_trace_from_cache(graph_hash)
         if trace is not None:
+            logger.info("✓ Full graph cache HIT: returning cached trace")
             return trace  # Cache hit!
-    except Exception:
+
+        logger.debug("Full graph cache MISS: need to compute trace")
+    except Exception as e:
         # Hash computation failed - proceed without caching
+        logger.warning("Failed to compute graph hash: %s", str(e))
         graph_hash = None
 
-    # Step 2: Compute trace directly (no subdivision in Phase 3a)
-    # Future: Will decompose into SCCs and cache/stitch
-    trace = record_elimination_trace(graph, param_length=param_length)
+    # Step 2: Decide whether to use SCC subdivision
+    n_vertices = graph.vertices_length()
+
+    if not use_scc_subdivision or n_vertices < min_size:
+        # Compute directly without subdivision
+        logger.debug("Computing trace directly (use_scc_subdivision=%s, %d < min_size=%d)",
+                     use_scc_subdivision, n_vertices, min_size)
+        # Use graph's param_length if not explicitly provided (auto-detection is broken)
+        if param_length is None:
+            param_length = graph.param_length()
+        trace = record_elimination_trace(graph, param_length=param_length)
+    else:
+        # Use hierarchical SCC-based subdivision
+        logger.info("Using hierarchical SCC subdivision (graph=%d vertices, min_size=%d)",
+                    n_vertices, min_size)
+
+        # Collect missing traces recursively
+        logger.debug("Step 1: Collecting missing SCC traces...")
+        work_units, all_scc_hashes, scc_decomp = collect_missing_traces_batch(graph, param_length=param_length, min_size=min_size)
+
+        if len(work_units) > 0:
+            # Compute missing traces (potentially in parallel)
+            logger.debug("Step 2: Computing %d missing traces...", len(work_units))
+            scc_traces = compute_missing_traces_parallel(work_units, strategy=parallel_strategy, min_size=min_size)
+            logger.debug("✓ Computed %d missing traces", len(scc_traces))
+        else:
+            logger.debug("Step 2: No missing traces to compute (all cached)")
+            scc_traces = {}
+
+        # Build complete scc_trace_dict by loading from cache using collected hashes
+        logger.debug("Step 3: Loading all %d SCC traces from cache...", len(all_scc_hashes))
+        scc_trace_dict = {}
+
+        for i, scc_hash in enumerate(all_scc_hashes):
+            logger.debug("  Loading SCC %d/%d: hash=%s...", i+1, len(all_scc_hashes), scc_hash[:16])
+            trace = _load_trace_from_cache(scc_hash)
+            if trace is None:
+                logger.error("SCC trace not found in cache: %s... (should have been computed!)", scc_hash[:16])
+                raise RuntimeError(f"Missing SCC trace for hash {scc_hash}")
+            logger.info("  SCC %d/%d: %d vertices, %d operations, param_length=%d",
+                       i+1, len(all_scc_hashes), trace.n_vertices, len(trace.operations), trace.param_length)
+            scc_trace_dict[scc_hash] = trace
+
+        logger.debug("✓ Loaded %d SCC traces from cache", len(scc_trace_dict))
+
+        # Stitch traces together using the saved SCC decomposition
+        # If scc_decomp is None, it means we recorded the full graph directly (no subdivision)
+        if scc_decomp is None or len(scc_trace_dict) == 1:
+            # Full graph was recorded directly - just use the single trace
+            logger.debug("No stitching needed (single trace or no subdivision)")
+            trace = list(scc_trace_dict.values())[0]
+            logger.info("✓ Hierarchical trace computation complete (no stitching)")
+        else:
+            # Multiple SCC traces - need to stitch
+            logger.debug("Step 4: Stitching %d SCC traces together...", len(scc_trace_dict))
+            try:
+                trace = stitch_scc_traces(scc_decomp, scc_trace_dict)
+                logger.info("✓ Hierarchical trace computation complete")
+            except Exception as e:
+                logger.error("  ✗ Trace stitching failed: %s", str(e))
+                raise
 
     # Step 3: Cache the full result
     if graph_hash is not None:

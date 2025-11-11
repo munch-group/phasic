@@ -157,6 +157,12 @@ class EliminationTrace:
     is_discrete: bool = False
     metadata: Dict[str, Any] = field(default_factory=dict)
 
+    def __repr__(self) -> str:
+        """Concise representation for notebooks/REPL"""
+        return (f"EliminationTrace(n_vertices={self.n_vertices}, "
+                f"operations={len(self.operations)}, "
+                f"param_length={self.param_length})")
+
     def summary(self) -> str:
         """Generate human-readable summary"""
         lines = [
@@ -459,11 +465,13 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
     else:
         logger.debug("Graph has no parameterized edges (constant weights only)")
 
+    # Define constant for max parameter testing
+    MAX_PARAM_TEST = 200
+
     # If param_length not provided, auto-detect it
     if param_length is None and has_parameterized:
         logger.debug("Auto-detecting param_length via garbage detection...")
         # Sample multiple edges and find the minimum garbage threshold
-        MAX_PARAM_TEST = 200
 
         for v in vertices_list:
             param_edges = v.parameterized_edges()
@@ -574,12 +582,38 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
         edges = v.edges()
         param_edges = v.parameterized_edges()
 
-        # Process regular edges
+        # BUG FIX: edges() returns ALL edges, parameterized_edges() returns edges with coefficients_length >= 1
+        # This causes parameterized edges to be processed TWICE, creating duplicates.
+        # Build set of parameterized edge pointers to identify which edges to skip in edges() loop
+        param_edge_ids = set()
+        for param_edge in param_edges:
+            # Use id() to identify the same underlying C++ edge object
+            # Note: We can't use edge object directly, so we use (to_idx, weight) as a proxy
+            to_state = tuple(param_edge.to().state())
+            to_idx = state_to_idx[to_state]
+            param_edge_ids.add((to_idx, id(param_edge)))
+
+        # Process regular (non-parameterized) edges only
         for j, edge in enumerate(edges):
             # Get target vertex
             to_vertex = edge.to()
             to_state = tuple(to_vertex.state())
             to_idx = state_to_idx[to_state]
+
+            # Skip if this edge will be processed as a parameterized edge
+            # Check if any parameterized edge points to the same target
+            is_parameterized = False
+            for param_edge in param_edges:
+                param_to_state = tuple(param_edge.to().state())
+                param_to_idx = state_to_idx[param_to_state]
+                if param_to_idx == to_idx:
+                    # Found a parameterized edge to the same target - skip this edge
+                    is_parameterized = True
+                    break
+
+            if is_parameterized:
+                logger.debug("Skipping edge %d → %d (will be processed as parameterized edge)", i, to_idx)
+                continue
 
             # Get edge weight
             weight = edge.weight()
