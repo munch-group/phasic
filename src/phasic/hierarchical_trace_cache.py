@@ -1675,8 +1675,19 @@ def get_trace_hierarchical(graph,
     from .trace_elimination import record_elimination_trace
     from . import hash as phasic_hash
 
+    n_vertices = graph.vertices_length()
     logger.debug("get_trace_hierarchical: graph=%d vertices, min_size=%d, use_scc_subdivision=%s",
-                 graph.vertices_length(), min_size, use_scc_subdivision)
+                 n_vertices, min_size, use_scc_subdivision)
+
+    # Check if graph is empty (happens when compute_trace() is called multiple times)
+    # This is because record_elimination_trace() is destructive - it eliminates vertices
+    if n_vertices == 0:
+        raise ValueError(
+            "Cannot compute trace: graph has no vertices. "
+            "This usually means compute_trace() was called multiple times on the same graph. "
+            "Note: compute_trace() with hierarchical=False is destructive and empties the graph. "
+            "Use hierarchical=True (default) for caching, or create a new graph for each call."
+        )
 
     # Step 1: Try full graph hash cache
     try:
@@ -1696,8 +1707,6 @@ def get_trace_hierarchical(graph,
         graph_hash = None
 
     # Step 2: Decide whether to use SCC subdivision
-    n_vertices = graph.vertices_length()
-
     if not use_scc_subdivision or n_vertices < min_size:
         # Compute directly without subdivision
         logger.debug("Computing trace directly (use_scc_subdivision=%s, %d < min_size=%d)",

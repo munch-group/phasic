@@ -3418,6 +3418,15 @@ extern "C" {{
         >>> # Force vmap for multi-CPU
         >>> trace = large_graph.compute_trace(hierarchical=True, parallel='vmap')
         """
+        # Check if graph is empty
+        if self.vertices_length() == 0:
+            raise ValueError(
+                "Cannot compute trace: graph has no vertices. "
+                "This usually means compute_trace() was called multiple times on the same graph. "
+                "Note: compute_trace() is destructive and eliminates vertices during trace recording. "
+                "Create a new graph for each call, or use hierarchical=True (default) for caching."
+            )
+
         if hierarchical:
             from .hierarchical_trace_cache import get_trace_hierarchical
             return get_trace_hierarchical(
