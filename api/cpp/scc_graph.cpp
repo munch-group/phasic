@@ -1,6 +1,7 @@
 #include "scc_graph.h"
 #include "phasiccpp.h"
 #include "../c/phasic_hash.h"
+#include "../../src/c/phasic_log.h"
 #include <stdexcept>
 #include <algorithm>
 
@@ -132,6 +133,7 @@ size_t SCCVertex::index() const {
 
 Graph SCCVertex::as_graph() const {
     // Create new graph with same state length as original
+    // Note: parameterized flag is set automatically when adding parameterized edges
     Graph& orig_graph = const_cast<Graph&>(parent_scc_graph_->original_graph());
     Graph scc_graph(orig_graph.state_length());
 
@@ -154,12 +156,15 @@ Graph SCCVertex::as_graph() const {
     }
 
     // Step 2: Copy edges (only internal edges within this SCC)
+    bool has_param_edges = false;
+    size_t total_edges_copied = 0;
+    size_t param_edges_copied = 0;
     for (size_t i = 0; i < scc_vertex_->internal_vertices_length; ++i) {
         struct ptd_vertex* orig_vertex = scc_vertex_->internal_vertices[i];
         std::vector<int> from_state = vertex_state_map[orig_vertex];
         Vertex from_vertex = scc_graph.find_vertex(from_state);
 
-        // Copy regular edges
+        // Copy edges (both regular and parameterized)
         for (size_t j = 0; j < orig_vertex->edges_length; ++j) {
             struct ptd_edge* edge = orig_vertex->edges[j];
 
@@ -167,12 +172,38 @@ Graph SCCVertex::as_graph() const {
             auto it = vertex_state_map.find(edge->to);
             if (it != vertex_state_map.end()) {
                 Vertex to_vertex = scc_graph.find_vertex(it->second);
-                from_vertex.add_edge(to_vertex, edge->weight);
+                total_edges_copied++;
+
+                // Check if edge has parameterization
+                // Note: In parameterized graphs, ALL edges have coefficients (even if values are 0)
+                // So we check the graph's parameterized flag instead
+                if (orig_vertex->graph->parameterized && edge->coefficients_length > 0) {
+                    // Copy parameterized edge with coefficients
+                    std::vector<double> coeffs(edge->coefficients,
+                                              edge->coefficients + edge->coefficients_length);
+                    from_vertex.add_edge_parameterized(to_vertex, edge->weight, coeffs);
+                    has_param_edges = true;
+                    param_edges_copied++;
+                } else {
+                    // Copy concrete edge
+                    from_vertex.add_edge(to_vertex, edge->weight);
+                }
             }
         }
+    }
 
-        // TODO: Add support for parameterized edges in future
-        // Parameterized edges are not handled in this initial implementation
+    // Debug output
+    PTD_LOG_DEBUG("as_graph: Copied %zu edges (%zu parameterized, %zu concrete)",
+                total_edges_copied, param_edges_copied, total_edges_copied - param_edges_copied);
+    PTD_LOG_DEBUG("  Original graph: parameterized=%d, param_length=%zu",
+                orig_graph.parameterized(), orig_graph.c_graph()->param_length);
+    PTD_LOG_DEBUG("  SCC subgraph: parameterized=%d, param_length=%zu",
+                scc_graph.parameterized(), scc_graph.c_graph()->param_length);
+
+    if (total_edges_copied > 0 && param_edges_copied == 0 && orig_graph.parameterized()) {
+        PTD_LOG_WARNING("as_graph: Original graph is parameterized but copied 0/%zu parameterized edges (all edges were concrete!)",
+                       total_edges_copied);
+        PTD_LOG_WARNING("  This indicates edges don't have coefficients_length > 0");
     }
 
     return scc_graph;

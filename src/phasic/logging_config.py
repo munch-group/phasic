@@ -349,3 +349,15 @@ def enable_logging(level: str = 'INFO') -> None:
     >>> enable_logging('DEBUG')
     """
     set_log_level(level)
+
+
+class Logging:
+    def __init__(self, level="INFO"):
+        self.level = level
+
+    def __enter__(self):
+        enable_logging(self.level)
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        disable_logging()

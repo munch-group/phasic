@@ -80,6 +80,12 @@ from .exceptions import (
     PTDFeatureError,
     PTDJAXError
 )
+from .logging_config import (
+    set_log_level, 
+    get_logger,
+    set_log_level,
+    Logging,
+)
 
 # Get configuration (creates default if none exists)
 _config = get_config()
