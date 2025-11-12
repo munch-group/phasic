@@ -90,6 +90,16 @@ def clear_caches(verbose: bool = True):
     clear_jax_cache(verbose=verbose)
     clear_model_cache(verbose=verbose)
 
+    # Clear in-memory metadata cache used by hierarchical trace caching
+    try:
+        from .hierarchical_trace_cache import collect_missing_traces_batch
+        if hasattr(collect_missing_traces_batch, '_metadata_cache'):
+            collect_missing_traces_batch._metadata_cache.clear()
+            if verbose:
+                print("Cleared hierarchical trace metadata cache")
+    except (ImportError, AttributeError):
+        pass
+
 def _clear_cache(cache_dir: Optional[Union[Path, str]] = None, verbose: bool = True) -> None:
 
     manager = CacheManager(cache_dir=cache_dir)

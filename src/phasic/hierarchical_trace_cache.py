@@ -490,6 +490,11 @@ def compute_missing_traces_parallel(work_units: Dict[str, 'Graph'],
             # Cache the result
             _save_trace_to_cache(graph_hash, trace)
             results[graph_hash] = trace
+
+            # Explicitly delete graph to free C memory immediately
+            # This prevents memory accumulation during long-running computations
+            del graph
+
         return results
 
 
@@ -1715,6 +1720,10 @@ def get_trace_hierarchical(graph,
             logger.debug("Step 2: Computing %d missing traces...", len(work_units))
             scc_traces = compute_missing_traces_parallel(work_units, strategy=parallel_strategy, min_size=min_size)
             logger.debug("✓ Computed %d missing traces", len(scc_traces))
+
+            # Explicitly delete work_units to free Graph objects and their C memory
+            # This prevents memory accumulation when running cells multiple times
+            del work_units
         else:
             logger.debug("Step 2: No missing traces to compute (all cached)")
             scc_traces = {}
