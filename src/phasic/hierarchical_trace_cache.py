@@ -484,16 +484,17 @@ def compute_missing_traces_parallel(work_units: Dict[str, 'Graph'],
                 from .trace_elimination import record_elimination_trace
                 # Use graph's param_length explicitly instead of auto-detection (which is broken)
                 trace = record_elimination_trace(graph, param_length=graph.param_length())
-                print(f"[DEBUG] Recorded trace: trace.param_length={trace.param_length}, trace operations={len(trace.operations)}")
                 logger.info(f"  Recorded trace: trace.param_length={trace.param_length}, trace operations={len(trace.operations)}")
 
             # Cache the result
             _save_trace_to_cache(graph_hash, trace)
             results[graph_hash] = trace
 
-            # Explicitly delete graph to free C memory immediately
-            # This prevents memory accumulation during long-running computations
-            del graph
+            # NOTE: Do NOT explicitly delete graph here!
+            # The graph might be the original input (borrowed reference) or an enhanced subgraph.
+            # If it's the original, deleting it causes double-free when caller tries to delete.
+            # If it's a subgraph, Python GC will clean it up when work_units goes out of scope.
+            # Explicit deletion was causing crashes with clone() + compute_trace()
 
         return results
 
@@ -1730,9 +1731,10 @@ def get_trace_hierarchical(graph,
             scc_traces = compute_missing_traces_parallel(work_units, strategy=parallel_strategy, min_size=min_size)
             logger.debug("✓ Computed %d missing traces", len(scc_traces))
 
-            # Explicitly delete work_units to free Graph objects and their C memory
-            # This prevents memory accumulation when running cells multiple times
-            del work_units
+            # NOTE: Do NOT explicitly delete work_units!
+            # work_units may contain the original input graph (borrowed reference).
+            # Explicit deletion causes double-free when caller tries to delete the same graph.
+            # Python GC will clean up work_units when function returns.
         else:
             logger.debug("Step 2: No missing traces to compute (all cached)")
             scc_traces = {}

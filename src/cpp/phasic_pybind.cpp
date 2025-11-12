@@ -2291,7 +2291,7 @@ Computes the expected residence time of the phase-type distribution.
     >>> defect_value = defect(graph)
       )delim")
       
-    .def("clone", &phasic::Graph::clone, 
+    .def("clone", &phasic::Graph::clone,
       py::return_value_policy::reference_internal, R"delim(
     Creates a copy of the graph.
 
@@ -2312,8 +2312,6 @@ Computes the expected residence time of the phase-type distribution.
     >>> graph_copy = clone(graph)
       )delim")
       
-
-
     .def("distribution_context",
       [](phasic::Graph &graph, int granularity) {
         return new phasic::ProbabilityDistributionContext(graph, granularity);

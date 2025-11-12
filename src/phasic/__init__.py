@@ -3387,6 +3387,13 @@ extern "C" {{
         """
         Compute elimination trace with optional hierarchical caching.
 
+        **WARNING**: This operation is DESTRUCTIVE and will empty the graph during
+        trace recording. After calling this method, the graph will have no vertices.
+
+        To compute traces for the same model repeatedly, use hierarchical=True (default)
+        which provides disk caching. This allows you to rebuild the graph and get cached
+        traces without re-recording.
+
         Parameters
         ----------
         param_length : int, optional
@@ -3405,17 +3412,28 @@ extern "C" {{
         EliminationTrace
             Elimination trace (from cache or computed)
 
+        Notes
+        -----
+        **Destructive Operation**: The graph elimination algorithm works by progressively
+        eliminating vertices and creating bypass edges. This is the fundamental nature
+        of the algorithm - it cannot be made non-destructive without significant overhead.
+
+        **Why not clone()**: We previously tried cloning the graph before recording,
+        but this causes memory management issues with pybind11's ownership model,
+        leading to segfaults. The proper solution is to use hierarchical caching
+        (hierarchical=True, the default) which provides disk caching of computed traces.
+
         Examples
         --------
-        >>> # Small graph - use simple cache
+        >>> # With hierarchical caching (recommended) - graph will be emptied
         >>> graph = Graph(callback=model, nr_samples=5)
-        >>> trace = graph.compute_trace()
+        >>> trace = graph.compute_trace()  # Graph is now empty
+        >>> # To reuse: rebuild graph and it will load from cache
+        >>> graph = Graph(callback=model, nr_samples=5)
+        >>> trace = graph.compute_trace()  # Fast - loaded from cache
         >>>
-        >>> # Large graph - use hierarchical cache
+        >>> # Large graph with explicit parallelization
         >>> large_graph = Graph(callback=model, nr_samples=100)
-        >>> trace = large_graph.compute_trace(hierarchical=True)
-        >>>
-        >>> # Force vmap for multi-CPU
         >>> trace = large_graph.compute_trace(hierarchical=True, parallel='vmap')
         """
         # Check if graph is empty
@@ -3423,18 +3441,19 @@ extern "C" {{
             raise ValueError(
                 "Cannot compute trace: graph has no vertices. "
                 "This usually means compute_trace() was called multiple times on the same graph. "
-                "Note: compute_trace() is destructive and eliminates vertices during trace recording. "
-                "Create a new graph for each call, or use hierarchical=True (default) for caching."
+                "Note: compute_trace() is DESTRUCTIVE and eliminates vertices during trace recording. "
+                "You must rebuild the graph for each call, or use hierarchical=True (default) for caching."
             )
 
         if hierarchical:
             from .hierarchical_trace_cache import get_trace_hierarchical
-            return get_trace_hierarchical(
+            trace = get_trace_hierarchical(
                 self,
                 param_length=param_length,
                 min_size=min_size,
                 parallel_strategy=parallel
             )
+            return trace
         else:
             from .trace_elimination import record_elimination_trace
             return record_elimination_trace(self, param_length=param_length)

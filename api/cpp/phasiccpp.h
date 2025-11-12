@@ -144,20 +144,18 @@ namespace phasic {
             *(this->rf_graph->references) -= 1;
 
             if (*this->rf_graph->references == 0) {
+                // Last reference - destroy shared resources
                 ptd_dph_probability_distribution_context_destroy(this->rf_graph->dph_context);
                 ptd_probability_distribution_context_destroy(this->rf_graph->ph_context);
                 ptd_dph_probability_distribution_context_destroy(this->rf_graph->dph_context_markov);
                 ptd_probability_distribution_context_destroy(this->rf_graph->ph_context_markov);
                 ptd_avl_tree_destroy(this->rf_graph->tree);
                 ptd_graph_destroy(this->rf_graph->graph);
-                this->rf_graph->dph_context = NULL;
-                this->rf_graph->ph_context = NULL;
-                this->rf_graph->dph_context_markov = NULL;
-                this->rf_graph->ph_context_markov = NULL;
                 free(this->rf_graph->references);
             }
 
-            free(this->rf_graph);  // Each Graph has its own rf_graph struct to free
+            // Always free this instance's rf_graph struct (each copy allocates its own)
+            free(this->rf_graph);
         }
 
 
@@ -805,7 +803,7 @@ namespace phasic {
     private:
         Graph(struct rf_graph *rf_graph) {
             this->rf_graph = rf_graph;
-            rf_graph->references++;
+            *(rf_graph->references) += 1;  // Fixed: dereference to increment count, not pointer
         }
 
         struct rf_graph *rf_graph;

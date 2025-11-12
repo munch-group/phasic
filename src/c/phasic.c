@@ -1041,16 +1041,41 @@ struct ptd_clone_res ptd_clone_graph(struct ptd_graph *graph, struct ptd_avl_tre
         // Check if this is the starting vertex by comparing pointer
         if (old_v == graph->starting_vertex) {
             // This is the starting vertex - map to new starting vertex (no duplicate)
+            // But we need to copy its state array!
+            int *new_state = (int *)malloc(graph->state_length * sizeof(int));
+            if (new_state == NULL) {
+                free(vertex_map);
+                ptd_graph_destroy(new_graph);
+                snprintf((char*)ptd_err, sizeof(ptd_err), "Failed to allocate state for starting vertex");
+                return res;
+            }
+            memcpy(new_state, old_v->state, graph->state_length * sizeof(int));
+            free(new_graph->starting_vertex->state);  // Free the default state
+            new_graph->starting_vertex->state = new_state;
             vertex_map[i] = new_graph->starting_vertex;
         } else {
-            // Create vertex with same state
-            struct ptd_vertex *new_v = ptd_vertex_create_state(new_graph, old_v->state);
+            // Create vertex with COPIED state (not shared pointer)
+            int *new_state = (int *)malloc(graph->state_length * sizeof(int));
+            if (new_state == NULL) {
+                free(vertex_map);
+                ptd_graph_destroy(new_graph);
+                snprintf((char*)ptd_err, sizeof(ptd_err), "Failed to allocate state for vertex %zu", i);
+                return res;
+            }
+            memcpy(new_state, old_v->state, graph->state_length * sizeof(int));
+
+            struct ptd_vertex *new_v = ptd_vertex_create_state(new_graph, new_state);
             if (new_v == NULL) {
+                free(new_state);
                 free(vertex_map);
                 ptd_graph_destroy(new_graph);
                 snprintf((char*)ptd_err, sizeof(ptd_err), "Failed to clone vertex %zu", i);
                 return res;
             }
+
+            // Free the temporary state since ptd_vertex_create_state() makes a copy
+            free(new_state);
+
             vertex_map[i] = new_v;
         }
     }
@@ -2608,14 +2633,29 @@ void ptd_graph_destroy(struct ptd_graph *graph) {
 struct ptd_vertex *ptd_vertex_create(struct ptd_graph *graph) {
     int *state = (int *) calloc(graph->state_length, sizeof(*state));
 
-    return ptd_vertex_create_state(graph, state);
+    struct ptd_vertex *vertex = ptd_vertex_create_state(graph, state);
+
+    // Free the temporary state since ptd_vertex_create_state() makes a copy
+    free(state);
+
+    return vertex;
 }
 
 struct ptd_vertex *ptd_vertex_create_state(struct ptd_graph *graph, int *state) {
     struct ptd_vertex *vertex = (struct ptd_vertex *) malloc(sizeof(*vertex));
     vertex->graph = graph;
     vertex->edges_length = 0;
-    vertex->state = state;
+
+    // ALWAYS copy the state to avoid shared ownership issues
+    // This prevents bugs where Python passes a pointer it doesn't own
+    int *state_copy = (int *)malloc(graph->state_length * sizeof(int));
+    if (state_copy == NULL) {
+        free(vertex);
+        return NULL;
+    }
+    memcpy(state_copy, state, graph->state_length * sizeof(int));
+    vertex->state = state_copy;
+
     vertex->edges = NULL;
     ptd_directed_vertex_add(
             (struct ptd_directed_graph *) graph,

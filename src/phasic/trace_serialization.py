@@ -305,8 +305,10 @@ def save_trace_to_cache(hash_hex: str, trace: EliminationTrace) -> bool:
 
         # Write to temporary file first, then rename atomically
         temp_file = cache_file.with_suffix('.tmp')
+
         with open(temp_file, 'wb') as f:
             pickle.dump(trace, f, protocol=pickle.HIGHEST_PROTOCOL)
+
         temp_file.rename(cache_file)
         logger.debug(f"Saved trace to cache (pickle): {hash_hex}")
         return True
