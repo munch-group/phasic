@@ -1,5 +1,6 @@
 
 from functools import wraps, partial
+import time
 
 def hand_off(target_func):
     """Decorator that forwards all parameters to a another function"""
@@ -11,20 +12,8 @@ def hand_off(target_func):
     return decorator
 
 
-# Auto-detect notebook environment and setup tqdm wrappers
-try:
-    from tqdm.notebook import tqdm as notebook_tqdm, trange as notebook_trange
-    HAS_NOTEBOOK_TQDM = True
-except ImportError:
-    HAS_NOTEBOOK_TQDM = False
-    notebook_tqdm = None
-    notebook_trange = None
-
-from tqdm import tqdm as std_tqdm, trange as std_trange
-
-
 def _is_notebook():
-    """Detect if running in Jupyter notebook environment."""
+    """Detect if running in Jupyter/VS Code notebook environment."""
     try:
         from IPython import get_ipython
         shell = get_ipython()
@@ -35,20 +24,141 @@ def _is_notebook():
         return False
 
 
-# Select appropriate tqdm based on environment
-if HAS_NOTEBOOK_TQDM and _is_notebook():
-    _base_tqdm = notebook_tqdm
-    _base_trange = notebook_trange
-else:
-    _base_tqdm = std_tqdm
-    _base_trange = std_trange
+class HTMLProgressBar:
+    """
+    HTML-based progress bar for notebooks with tqdm fallback for terminal.
+    Renders as thin, sleek bars matching cpu_monitor.py style in VS Code/Jupyter.
+    """
 
-# Create wrappers - notebook widgets don't support bar_format parameter
-if HAS_NOTEBOOK_TQDM and _is_notebook():
-    # Notebook: use native widgets (thin, sleek style matching VS Code)
-    pqdm = partial(_base_tqdm)
-    prange = partial(_base_trange)
-else:
-    # Terminal: use custom bar_format for consistent styling
-    pqdm = partial(_base_tqdm, bar_format="{desc}: {percentage:3.0f}%|{bar}| {postfix}")
-    prange = partial(_base_trange, bar_format="{desc}: {percentage:3.0f}%|{bar}| {postfix}")
+    def __init__(self, iterable=None, total=None, desc='', color='#4CAF50', **kwargs):
+        self.iterable = iterable
+        self.total = total if total is not None else (len(iterable) if iterable is not None and hasattr(iterable, '__len__') else None)
+        self.desc = desc
+        self.color = color
+        self.n = 0
+        self.start_time = time.time()
+        self._display_handle = None
+        self._use_html = _is_notebook()
+
+        # For terminal fallback
+        if not self._use_html:
+            from tqdm import tqdm
+            self._tqdm = tqdm(iterable=iterable, total=total, desc=desc, **kwargs)
+        else:
+            self._tqdm = None
+            self._initialize_display()
+
+    def _initialize_display(self):
+        """Initialize HTML display in notebook."""
+        if self._use_html:
+            try:
+                from IPython.display import display, HTML
+                html = self._generate_html()
+                self._display_handle = display(HTML(html), display_id=True)
+            except ImportError:
+                # Fallback if IPython not available
+                self._use_html = False
+
+    def _generate_html(self):
+        """Generate HTML for progress bar matching cpu_monitor.py style."""
+        if self.total and self.total > 0:
+            percentage = min(100, max(0, (self.n / self.total) * 100))
+        else:
+            percentage = 0
+
+        # Calculate elapsed time and rate
+        elapsed = time.time() - self.start_time
+        rate = self.n / elapsed if elapsed > 0 else 0
+
+        # Estimate remaining time
+        if self.total and rate > 0:
+            remaining = (self.total - self.n) / rate
+            eta_str = f"{remaining:.1f}s"
+        else:
+            eta_str = "?"
+
+        # Progress info
+        if self.total:
+            progress_text = f"{self.n}/{self.total}"
+        else:
+            progress_text = f"{self.n}"
+
+        # Build HTML (matching cpu_monitor.py style at lines 1327-1329)
+        html = f'''
+        <div style="font-family: monospace; font-size: 11px; margin: 5px 0;">
+            <div style="margin-bottom: 3px;">
+                {self.desc}: {percentage:.0f}% | {progress_text} [{elapsed:.1f}s<{eta_str}, {rate:.2f}it/s]
+            </div>
+            <div style="width: 100%; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;">
+                <div style="width: {percentage}%; height: 100%; background: {self.color}; transition: width 0.1s;"></div>
+            </div>
+        </div>
+        '''
+        return html
+
+    def update(self, n=1):
+        """Update progress by n steps."""
+        if self._tqdm is not None:
+            self._tqdm.update(n)
+        else:
+            self.n += n
+            if self._display_handle is not None:
+                from IPython.display import HTML
+                self._display_handle.update(HTML(self._generate_html()))
+
+    def __iter__(self):
+        """Iterate over the iterable, updating progress."""
+        if self._tqdm is not None:
+            return iter(self._tqdm)
+
+        if self.iterable is None:
+            raise ValueError("iterable must be provided for iteration")
+
+        for item in self.iterable:
+            yield item
+            self.update(1)
+
+    def __enter__(self):
+        """Context manager entry."""
+        if self._tqdm is not None:
+            return self._tqdm.__enter__()
+        return self
+
+    def __exit__(self, *args):
+        """Context manager exit."""
+        if self._tqdm is not None:
+            return self._tqdm.__exit__(*args)
+        # Finalize HTML display
+        if self._display_handle is not None:
+            from IPython.display import HTML
+            self.n = self.total if self.total else self.n
+            self._display_handle.update(HTML(self._generate_html()))
+
+    def close(self):
+        """Close the progress bar."""
+        if self._tqdm is not None:
+            self._tqdm.close()
+
+
+def pqdm(iterable=None, total=None, desc='', **kwargs):
+    """
+    HTML progress bar for notebooks, tqdm for terminal.
+    Renders as thin bar matching cpu_monitor.py style.
+
+    Usage:
+        for item in pqdm(iterable, desc="Processing"):
+            process(item)
+    """
+    return HTMLProgressBar(iterable=iterable, total=total, desc=desc, **kwargs)
+
+
+def prange(n, desc='', **kwargs):
+    """
+    HTML progress bar for range() in notebooks, tqdm for terminal.
+    Renders as thin bar matching cpu_monitor.py style.
+
+    Usage:
+        for i in prange(100, desc="Processing"):
+            process(i)
+    """
+    return HTMLProgressBar(iterable=range(n), total=n, desc=desc, **kwargs)
