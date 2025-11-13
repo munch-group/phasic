@@ -261,6 +261,9 @@ else:
     # FixedBandwidth = None
     # LocalAdaptiveBandwidth = None
 
+# Progress bar utilities
+from .utils import pqdm, prange
+
 # Distributed computing utilities
 from .distributed_utils import (
     DistributedConfig,
