@@ -43,6 +43,12 @@ else:
     _base_tqdm = std_tqdm
     _base_trange = std_trange
 
-# Create wrappers with sensible defaults matching cpu_monitor.py style
-pqdm = partial(_base_tqdm, bar_format="{desc}: {percentage:3.0f}%|{bar}| {postfix}", leave=False)
-prange = partial(_base_trange, bar_format="{desc}: {percentage:3.0f}%|{bar}| {postfix}", leave=False)
+# Create wrappers - notebook widgets don't support bar_format parameter
+if HAS_NOTEBOOK_TQDM and _is_notebook():
+    # Notebook: use native widgets (thin, sleek style matching VS Code)
+    pqdm = partial(_base_tqdm)
+    prange = partial(_base_trange)
+else:
+    # Terminal: use custom bar_format for consistent styling
+    pqdm = partial(_base_tqdm, bar_format="{desc}: {percentage:3.0f}%|{bar}| {postfix}")
+    prange = partial(_base_trange, bar_format="{desc}: {percentage:3.0f}%|{bar}| {postfix}")
