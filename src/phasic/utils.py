@@ -30,7 +30,7 @@ class HTMLProgressBar:
     Renders as thin, sleek bars matching cpu_monitor.py style in VS Code/Jupyter.
     """
 
-    def __init__(self, iterable=None, total=None, desc='', color='#4CAF50', **kwargs):
+    def __init__(self, iterable=None, total=None, desc='', color='auto', **kwargs):
         self.iterable = iterable
         self.total = total if total is not None else (len(iterable) if iterable is not None and hasattr(iterable, '__len__') else None)
         self.desc = desc
@@ -83,14 +83,27 @@ class HTMLProgressBar:
         else:
             progress_text = f"{self.n}"
 
-        # Build HTML (matching cpu_monitor.py style at lines 1327-1329)
+        # Determine color based on percentage (matching cpu_monitor.py lines 1312-1322)
+        if self.color == 'auto':
+            # Auto color mode: green/yellow/red based on percentage
+            if percentage < 50:
+                bar_color = '#4CAF50'  # green
+            elif percentage < 80:
+                bar_color = '#FFC107'  # yellow
+            else:
+                bar_color = '#F44336'  # red
+        else:
+            # Use specified color
+            bar_color = self.color
+
+        # Build HTML (matching cpu_monitor.py style at lines 1203, 1327-1329)
         html = f'''
-        <div style="font-family: monospace; font-size: 11px; margin: 5px 0;">
-            <div style="margin-bottom: 3px;">
+        <div style="font-family: monospace; font-size: 10px; padding: 10px;">
+            <div style="margin-bottom: 6px;">
                 {self.desc}: {percentage:.0f}% | {progress_text} [{elapsed:.1f}s<{eta_str}, {rate:.2f}it/s]
             </div>
             <div style="width: 100%; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;">
-                <div style="width: {percentage}%; height: 100%; background: {self.color}; transition: width 0.1s;"></div>
+                <div style="width: {percentage}%; height: 100%; background: {bar_color}; transition: width 0.3s;"></div>
             </div>
         </div>
         '''
