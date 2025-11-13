@@ -648,37 +648,18 @@ def compute_missing_traces_parallel(work_units: Dict[str, str],
                     f"Sequential: Failed to deserialize {graph_hash[:16]}: {type(e).__name__}: {e}"
                 ) from e
 
-            # Check if this enhanced subgraph can be meaningfully subdivided
-            # (has multiple non-trivial SCCs, not just the original SCC + absorbing vertices)
-            can_subdivide = False
-            if graph.vertices_length() >= min_size:
-                scc_test = graph.scc_decomposition()
-                sccs_test = list(scc_test.sccs_in_topo_order())
-                # Count non-trivial SCCs (> 1 vertex)
-                non_trivial_sccs = [s for s in sccs_test if s.size() > 1]
-
-                # Can subdivide ONLY if:
-                # 1. There are multiple non-trivial SCCs AND
-                # 2. At least one SCC is >= min_size (otherwise we'll just loop forever)
-                large_sccs = [s for s in sccs_test if s.size() >= min_size]
-                can_subdivide = len(non_trivial_sccs) > 1 and len(large_sccs) > 0
-
-                logger.debug(f"  Enhanced subgraph: {graph.vertices_length()} vertices, {len(sccs_test)} SCCs ({len(non_trivial_sccs)} non-trivial, {len(large_sccs)} large)")
-
-            if can_subdivide:
-                logger.debug(f"  Recursively subdividing (has large SCCs >= min_size)")
-                trace = get_trace_hierarchical(
-                    graph,
-                    param_length=None,
-                    min_size=min_size,
-                    parallel_strategy='sequential',
-                    use_scc_subdivision=True
-                )
-            else:
-                logger.debug(f"  Recording trace directly (no large SCCs or can't subdivide)")
+            # Record trace directly (no recursive subdivision needed)
+            # Hierarchical decomposition already happened in collect_missing_traces_batch()
+            # Workers should just compute traces atomically to avoid unnecessary overhead
+            logger.debug(f"  Recording trace for {graph.vertices_length()} vertex subgraph")
+            try:
                 # Use graph's param_length explicitly instead of auto-detection (which is broken)
                 trace = record_elimination_trace(graph, param_length=graph.param_length())
-                logger.info(f"  Recorded trace: trace.param_length={trace.param_length}, trace operations={len(trace.operations)}")
+                logger.debug(f"  Recorded trace: {len(trace.operations)} operations, param_length={trace.param_length}")
+            except Exception as e:
+                raise RuntimeError(
+                    f"Sequential: Failed to record trace for {graph_hash[:16]}: {type(e).__name__}: {e}"
+                ) from e
 
             # Cache the result
             _save_trace_to_cache(graph_hash, trace)
