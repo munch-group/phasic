@@ -1843,6 +1843,11 @@ class SVGD:
         # All models must use Graph.pmf_and_moments_from_graph()
         try:
             test_theta = self.theta_init[0]
+            # Use abs() to ensure positive test values when param_transform is set
+            # (Actual transformation applied in _log_prob methods during optimization)
+            # This avoids negative edge weights and FFI initialization crashes
+            if self.param_transform is not None:
+                test_theta = jnp.abs(test_theta)
             test_times = self.observed_data[:min(2, len(self.observed_data))]
 
             # Test with rewards if provided
