@@ -30,7 +30,7 @@ class HTMLProgressBar:
     Renders as thin, sleek bars matching cpu_monitor.py style in VS Code/Jupyter.
     """
 
-    def __init__(self, iterable=None, total=None, desc='', color='auto', **kwargs):
+    def __init__(self, iterable=None, total=None, desc='', color=None, **kwargs):
         self.iterable = iterable
         self.total = total if total is not None else (len(iterable) if iterable is not None and hasattr(iterable, '__len__') else None)
         self.desc = desc
@@ -84,7 +84,10 @@ class HTMLProgressBar:
             progress_text = f"{self.n}"
 
         # Determine color based on percentage (matching cpu_monitor.py lines 1312-1322)
-        if self.color == 'auto':
+        if self.color is None:
+            # Default: monochrome gray (matching cpu_monitor.py default)
+            bar_color = '#666666'  # gray
+        elif self.color == 'auto':
             # Auto color mode: green/yellow/red based on percentage
             if percentage < 50:
                 bar_color = '#4CAF50'  # green
