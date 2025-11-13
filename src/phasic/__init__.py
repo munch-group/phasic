@@ -1812,6 +1812,354 @@ class Graph(_Graph):
             'n_vertices': n_vertices
         }
 
+    @classmethod
+    def from_serialized(cls, data: Dict[str, Any]) -> 'Graph':
+        """
+        Reconstruct Graph from serialize() output.
+
+        This method enables distributed trace recording by allowing graphs
+        to be serialized to JSON, sent across the network via JAX pmap,
+        and reconstructed on worker processes.
+
+        Parameters
+        ----------
+        data : Dict[str, Any]
+            Dictionary returned by Graph.serialize() containing:
+            - states: np.ndarray of shape (n_vertices, state_length)
+            - edges: np.ndarray of shape (n_edges, 3) with [from_idx, to_idx, weight]
+            - start_edges: np.ndarray of shape (n_start_edges, 2) with [to_idx, weight]
+            - param_edges: np.ndarray of shape (n_param_edges, 2+param_length)
+              Format (v0.22.0+): [from_idx, to_idx, coeff1, coeff2, ...]
+            - start_param_edges: np.ndarray of shape (n_start_param_edges, 1+param_length)
+              Format (v0.22.0+): [to_idx, coeff1, coeff2, ...]
+            - param_length: int
+            - state_length: int
+            - n_vertices: int
+
+        Returns
+        -------
+        Graph
+            Reconstructed graph with identical structure to the original
+
+        Raises
+        ------
+        ValueError
+            If data is missing required fields, has wrong shapes, or malformed arrays
+        RuntimeError
+            If graph reconstruction fails (e.g., edges to non-existent vertices)
+
+        Examples
+        --------
+        >>> import json
+        >>> import numpy as np
+        >>> from phasic import Graph
+        >>>
+        >>> # Create and serialize graph
+        >>> g = Graph(1)
+        >>> v0 = g.starting_vertex()
+        >>> v1 = g.find_or_create_vertex([1])
+        >>> v0.add_edge_parameterized(v1, 0.0, [2.0])
+        >>> serialized = g.serialize(param_length=1)
+        >>>
+        >>> # Convert to JSON (for network transmission)
+        >>> json_dict = {k: v.tolist() if isinstance(v, np.ndarray) else v
+        ...              for k, v in serialized.items()}
+        >>> json_str = json.dumps(json_dict)
+        >>>
+        >>> # Reconstruct on worker (e.g., different machine)
+        >>> received_dict = json.loads(json_str)
+        >>> received_dict['states'] = np.array(received_dict['states'], dtype=np.int32)
+        >>> received_dict['edges'] = np.array(received_dict['edges'], dtype=np.float64)
+        >>> received_dict['start_edges'] = np.array(received_dict['start_edges'], dtype=np.float64)
+        >>> received_dict['param_edges'] = np.array(received_dict['param_edges'], dtype=np.float64)
+        >>> received_dict['start_param_edges'] = np.array(received_dict['start_param_edges'], dtype=np.float64)
+        >>> g_reconstructed = Graph.from_serialized(received_dict)
+        >>> assert g_reconstructed.vertices_length() == g.vertices_length()
+        """
+        import numpy as np
+
+        # Validate required fields
+        required = ['states', 'edges', 'start_edges', 'param_edges',
+                    'start_param_edges', 'param_length', 'state_length', 'n_vertices']
+        missing = [f for f in required if f not in data]
+        if missing:
+            raise ValueError(
+                f"Graph deserialization failed: missing required fields {missing}\n"
+                f"  Available fields: {list(data.keys())}\n"
+                f"  This usually indicates corrupted cache or version mismatch.\n"
+                f"  Resolution: Clear cache with phasic.clear_caches() and rebuild graph"
+            )
+
+        # Extract and validate metadata
+        try:
+            n_vertices = int(data['n_vertices'])
+            state_length = int(data['state_length'])
+            param_length = int(data['param_length'])
+        except (ValueError, TypeError) as e:
+            raise ValueError(
+                f"Graph deserialization failed: invalid metadata types\n"
+                f"  n_vertices={data.get('n_vertices')!r}, "
+                f"state_length={data.get('state_length')!r}, "
+                f"param_length={data.get('param_length')!r}\n"
+                f"  Error: {e}"
+            ) from e
+
+        # Validate and convert arrays
+        try:
+            states = np.asarray(data['states'], dtype=np.int32)
+        except (ValueError, TypeError) as e:
+            raise ValueError(
+                f"Graph deserialization failed: cannot convert 'states' to int32 array\n"
+                f"  Type: {type(data['states'])}\n"
+                f"  Error: {e}"
+            ) from e
+
+        if states.shape != (n_vertices, state_length):
+            raise ValueError(
+                f"Graph deserialization failed: states array shape mismatch\n"
+                f"  Expected: ({n_vertices}, {state_length}) from metadata\n"
+                f"  Actual: {states.shape} from 'states' field\n"
+                f"  Resolution: This indicates corrupted data. Clear cache and rebuild."
+            )
+
+        try:
+            edges = np.asarray(data['edges'], dtype=np.float64)
+            start_edges = np.asarray(data['start_edges'], dtype=np.float64)
+            param_edges = np.asarray(data['param_edges'], dtype=np.float64)
+            start_param_edges = np.asarray(data['start_param_edges'], dtype=np.float64)
+        except (ValueError, TypeError) as e:
+            raise ValueError(
+                f"Graph deserialization failed: cannot convert edge arrays to float64\n"
+                f"  Error: {e}"
+            ) from e
+
+        # Validate edge array shapes
+        # Handle empty arrays: they may be shape (0,) or (0, n_cols)
+        if edges.ndim == 1:
+            if edges.shape[0] != 0:
+                raise ValueError(
+                    f"Graph deserialization failed: edges array has wrong shape\n"
+                    f"  Expected: (n_edges, 3) or empty (0,)\n"
+                    f"  Actual: {edges.shape}"
+                )
+            edges = edges.reshape((0, 3))
+        elif edges.ndim != 2 or edges.shape[1] != 3:
+            raise ValueError(
+                f"Graph deserialization failed: edges array has wrong shape\n"
+                f"  Expected: (n_edges, 3)\n"
+                f"  Actual: {edges.shape}"
+            )
+
+        if start_edges.ndim == 1:
+            if start_edges.shape[0] != 0:
+                raise ValueError(
+                    f"Graph deserialization failed: start_edges array has wrong shape\n"
+                    f"  Expected: (n_start_edges, 2) or empty (0,)\n"
+                    f"  Actual: {start_edges.shape}"
+                )
+            start_edges = start_edges.reshape((0, 2))
+        elif start_edges.ndim != 2 or start_edges.shape[1] != 2:
+            raise ValueError(
+                f"Graph deserialization failed: start_edges array has wrong shape\n"
+                f"  Expected: (n_start_edges, 2)\n"
+                f"  Actual: {start_edges.shape}"
+            )
+
+        # Note: As of v0.22.0, base_weight was removed from parameterized edges
+        # Format is now [from, to, c1, c2, ...] with 2+param_length columns
+        # Special case: when param_length=0, serialize() creates (0,0) arrays
+        expected_param_edge_cols = 2 + param_length if param_length > 0 else 0
+        if param_edges.ndim == 1:
+            if param_edges.shape[0] != 0:
+                raise ValueError(
+                    f"Graph deserialization failed: param_edges array has wrong shape\n"
+                    f"  Expected: (n_param_edges, {expected_param_edge_cols}) or empty (0,)\n"
+                    f"  Actual: {param_edges.shape}"
+                )
+            param_edges = param_edges.reshape((0, expected_param_edge_cols)) if expected_param_edge_cols > 0 else param_edges.reshape((0, 0))
+        elif param_edges.ndim == 2:
+            # Accept (0, 0) for param_length=0, or (n, 2+param_length) for param_length>0
+            if param_length == 0:
+                if param_edges.shape != (0, 0):
+                    raise ValueError(
+                        f"Graph deserialization failed: param_edges array has wrong shape\n"
+                        f"  Expected: (0, 0) when param_length=0\n"
+                        f"  Actual: {param_edges.shape}"
+                    )
+            elif param_edges.shape[1] != expected_param_edge_cols:
+                raise ValueError(
+                    f"Graph deserialization failed: param_edges array has wrong shape\n"
+                    f"  Expected: (n_param_edges, {expected_param_edge_cols})\n"
+                    f"  Actual: {param_edges.shape}\n"
+                    f"  Note: param_length={param_length}, so columns should be 2+{param_length}={expected_param_edge_cols}\n"
+                    f"  Format: [from_idx, to_idx, coeff1, coeff2, ...] (no base_weight as of v0.22.0)"
+                )
+
+        expected_start_param_edge_cols = 1 + param_length if param_length > 0 else 0
+        if start_param_edges.ndim == 1:
+            if start_param_edges.shape[0] != 0:
+                raise ValueError(
+                    f"Graph deserialization failed: start_param_edges array has wrong shape\n"
+                    f"  Expected: (n_start_param_edges, {expected_start_param_edge_cols}) or empty (0,)\n"
+                    f"  Actual: {start_param_edges.shape}"
+                )
+            start_param_edges = start_param_edges.reshape((0, expected_start_param_edge_cols)) if expected_start_param_edge_cols > 0 else start_param_edges.reshape((0, 0))
+        elif start_param_edges.ndim == 2:
+            # Accept (0, 0) for param_length=0, or (n, 1+param_length) for param_length>0
+            if param_length == 0:
+                if start_param_edges.shape != (0, 0):
+                    raise ValueError(
+                        f"Graph deserialization failed: start_param_edges array has wrong shape\n"
+                        f"  Expected: (0, 0) when param_length=0\n"
+                        f"  Actual: {start_param_edges.shape}"
+                    )
+            elif start_param_edges.shape[1] != expected_start_param_edge_cols:
+                raise ValueError(
+                    f"Graph deserialization failed: start_param_edges array has wrong shape\n"
+                    f"  Expected: (n_start_param_edges, {expected_start_param_edge_cols})\n"
+                    f"  Actual: {start_param_edges.shape}\n"
+                    f"  Note: param_length={param_length}, so columns should be 1+{param_length}={expected_start_param_edge_cols}\n"
+                    f"  Format: [to_idx, coeff1, coeff2, ...] (no base_weight as of v0.22.0)"
+                )
+
+        # Create empty graph
+        graph = cls(state_length)
+        start = graph.starting_vertex()
+        start_state = tuple(start.state())
+
+        # Create all vertices first
+        # Note: The starting vertex may be included in the states array,
+        # so we need to check for it and reuse it instead of creating a duplicate
+        idx_to_vertex = {}
+        for idx in range(n_vertices):
+            state = states[idx].tolist()
+            state_tuple = tuple(state)
+
+            # Check if this is the starting vertex
+            if state_tuple == start_state:
+                idx_to_vertex[idx] = start
+            else:
+                try:
+                    vertex = graph.find_or_create_vertex(state)
+                    idx_to_vertex[idx] = vertex
+                except Exception as e:
+                    raise RuntimeError(
+                        f"Graph deserialization failed: cannot create vertex {idx}\n"
+                        f"  State: {state}\n"
+                        f"  Error: {e}"
+                    ) from e
+
+        # Add regular edges (non-parameterized)
+        for edge_data in edges:
+            from_idx = int(edge_data[0])
+            to_idx = int(edge_data[1])
+            weight = float(edge_data[2])
+
+            if from_idx < 0 or from_idx >= n_vertices:
+                raise RuntimeError(
+                    f"Graph deserialization failed: edge has invalid from_idx\n"
+                    f"  from_idx={from_idx}, valid range=[0, {n_vertices})"
+                )
+            if to_idx < 0 or to_idx >= n_vertices:
+                raise RuntimeError(
+                    f"Graph deserialization failed: edge has invalid to_idx\n"
+                    f"  to_idx={to_idx}, valid range=[0, {n_vertices})"
+                )
+
+            try:
+                from_vertex = idx_to_vertex[from_idx]
+                to_vertex = idx_to_vertex[to_idx]
+                from_vertex.add_edge(to_vertex, weight)
+            except Exception as e:
+                raise RuntimeError(
+                    f"Graph deserialization failed: cannot add edge\n"
+                    f"  From vertex {from_idx} (state={states[from_idx].tolist()})\n"
+                    f"  To vertex {to_idx} (state={states[to_idx].tolist()})\n"
+                    f"  Weight: {weight}\n"
+                    f"  Error: {e}"
+                ) from e
+
+        # Add starting vertex regular edges
+        start = graph.starting_vertex()
+        for edge_data in start_edges:
+            to_idx = int(edge_data[0])
+            weight = float(edge_data[1])
+
+            if to_idx < 0 or to_idx >= n_vertices:
+                raise RuntimeError(
+                    f"Graph deserialization failed: start edge has invalid to_idx\n"
+                    f"  to_idx={to_idx}, valid range=[0, {n_vertices})"
+                )
+
+            try:
+                to_vertex = idx_to_vertex[to_idx]
+                start.add_edge(to_vertex, weight)
+            except Exception as e:
+                raise RuntimeError(
+                    f"Graph deserialization failed: cannot add start edge\n"
+                    f"  To vertex {to_idx} (state={states[to_idx].tolist()})\n"
+                    f"  Weight: {weight}\n"
+                    f"  Error: {e}"
+                ) from e
+
+        # Add parameterized edges
+        # Format (v0.22.0+): [from_idx, to_idx, coeff1, coeff2, ...]
+        for edge_data in param_edges:
+            from_idx = int(edge_data[0])
+            to_idx = int(edge_data[1])
+            edge_state = edge_data[2:].tolist()
+
+            if from_idx < 0 or from_idx >= n_vertices:
+                raise RuntimeError(
+                    f"Graph deserialization failed: parameterized edge has invalid from_idx\n"
+                    f"  from_idx={from_idx}, valid range=[0, {n_vertices})"
+                )
+            if to_idx < 0 or to_idx >= n_vertices:
+                raise RuntimeError(
+                    f"Graph deserialization failed: parameterized edge has invalid to_idx\n"
+                    f"  to_idx={to_idx}, valid range=[0, {n_vertices})"
+                )
+
+            try:
+                from_vertex = idx_to_vertex[from_idx]
+                to_vertex = idx_to_vertex[to_idx]
+                # As of v0.22.0, base_weight=0.0 for all parameterized edges
+                from_vertex.add_edge_parameterized(to_vertex, 0.0, edge_state)
+            except Exception as e:
+                raise RuntimeError(
+                    f"Graph deserialization failed: cannot add parameterized edge\n"
+                    f"  From vertex {from_idx} (state={states[from_idx].tolist()})\n"
+                    f"  To vertex {to_idx} (state={states[to_idx].tolist()})\n"
+                    f"  Edge state (coefficients): {edge_state}\n"
+                    f"  Error: {e}"
+                ) from e
+
+        # Add starting vertex parameterized edges
+        # Format (v0.22.0+): [to_idx, coeff1, coeff2, ...]
+        for edge_data in start_param_edges:
+            to_idx = int(edge_data[0])
+            edge_state = edge_data[1:].tolist()
+
+            if to_idx < 0 or to_idx >= n_vertices:
+                raise RuntimeError(
+                    f"Graph deserialization failed: start parameterized edge has invalid to_idx\n"
+                    f"  to_idx={to_idx}, valid range=[0, {n_vertices})"
+                )
+
+            try:
+                to_vertex = idx_to_vertex[to_idx]
+                # As of v0.22.0, base_weight=0.0 for all parameterized edges
+                start.add_edge_parameterized(to_vertex, 0.0, edge_state)
+            except Exception as e:
+                raise RuntimeError(
+                    f"Graph deserialization failed: cannot add start parameterized edge\n"
+                    f"  To vertex {to_idx} (state={states[to_idx].tolist()})\n"
+                    f"  Edge state (coefficients): {edge_state}\n"
+                    f"  Error: {e}"
+                ) from e
+
+        return graph
+
     def as_matrices(self) -> MatrixRepresentation:
         """
         Convert the graph to its matrix representation.
@@ -3383,7 +3731,8 @@ extern "C" {{
     def compute_trace(self, param_length: Optional[int] = None,
                      hierarchical: bool = True,
                      min_size: int = 50,
-                     parallel: str = 'auto'):
+                     parallel: str = 'auto',
+                     verbose: bool = False):
         """
         Compute elimination trace with optional hierarchical caching.
 
@@ -3406,6 +3755,8 @@ extern "C" {{
             Minimum vertices to subdivide (only used if hierarchical=True)
         parallel : str, default='auto'
             Parallelization: 'auto', 'vmap', 'pmap', or 'sequential'
+        verbose : bool, default=False
+            If True, show progress bars for major computation stages
 
         Returns
         -------
@@ -3451,7 +3802,8 @@ extern "C" {{
                 self,
                 param_length=param_length,
                 min_size=min_size,
-                parallel_strategy=parallel
+                parallel_strategy=parallel,
+                verbose=verbose
             )
             return trace
         else:

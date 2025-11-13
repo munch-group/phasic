@@ -20,6 +20,7 @@ import hashlib
 from typing import Dict, List, Tuple, Optional
 from pathlib import Path
 import numpy as np
+from tqdm.auto import tqdm
 from .logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -140,7 +141,8 @@ def get_scc_graphs(graph, min_size: int = 50) -> List[Tuple[str, 'Graph']]:
 # ============================================================================
 
 def collect_missing_traces_batch(graph, param_length: Optional[int] = None,
-                                 min_size: int = 50) -> Dict[str, str]:
+                                 min_size: int = 50,
+                                 verbose: bool = False) -> Dict[str, str]:
     """
     Recursively collect ALL missing trace work units (deduplicated).
 
@@ -249,7 +251,18 @@ def collect_missing_traces_batch(graph, param_length: Optional[int] = None,
         logger.debug("All SCCs meet min_size threshold, processing all separately")
 
     # Process large SCCs separately (these get cached)
-    for orig_idx, scc in large_sccs:
+    # Add progress bar for large SCC collection
+    if verbose:
+        large_scc_iterator = tqdm(
+            large_sccs,
+            desc="Collecting work units",
+            unit="SCC",
+            leave=False
+        )
+    else:
+        large_scc_iterator = large_sccs
+
+    for orig_idx, scc in large_scc_iterator:
         scc_hash = scc.hash()
         scc_size = scc.size()
         all_scc_hashes.append(scc_hash)
@@ -421,7 +434,8 @@ def _record_trace_callback(idx: int) -> Tuple[str, 'EliminationTrace']:
 
 def compute_missing_traces_parallel(work_units: Dict[str, str],
                                    strategy: str = 'auto',
-                                   min_size: int = 50) -> Dict[str, 'EliminationTrace']:
+                                   min_size: int = 50,
+                                   verbose: bool = False) -> Dict[str, 'EliminationTrace']:
     """
     Distribute work across CPUs/devices using vmap or pmap.
 
@@ -523,6 +537,15 @@ def compute_missing_traces_parallel(work_units: Dict[str, str],
     if strategy == 'vmap':
         logger.info("VMAP: Using JAX vmap over %d work units", len(work_units))
 
+        # Show indeterminate progress for parallel execution
+        if verbose:
+            pbar = tqdm(
+                total=0,
+                desc=f"Computing {len(work_units)} traces (vmap)",
+                bar_format="{desc}: {elapsed}",
+                leave=False
+            )
+
         # Define JAX-compatible wrapper using pure_callback
         def _compute_trace_jax(idx):
             """JAX-compatible trace computation using pure_callback."""
@@ -549,6 +572,9 @@ def compute_missing_traces_parallel(work_units: Dict[str, str],
         vmapped_compute = jax.vmap(_compute_trace_jax)
         completed_indices = vmapped_compute(indices)
 
+        if verbose:
+            pbar.close()
+
         # Collect results from work unit store
         results = {}
         for idx in completed_indices:
@@ -567,6 +593,15 @@ def compute_missing_traces_parallel(work_units: Dict[str, str],
     elif strategy == 'pmap':
         n_devices = jax.device_count()
         logger.info("PMAP: Using JAX pmap over %d devices", n_devices)
+
+        # Show indeterminate progress for parallel execution
+        if verbose:
+            pbar = tqdm(
+                total=0,
+                desc=f"Computing {len(work_units)} traces (pmap, {n_devices} devices)",
+                bar_format="{desc}: {elapsed}",
+                leave=False
+            )
 
         # Define JAX-compatible wrapper using pure_callback
         def _compute_trace_jax(idx):
@@ -603,6 +638,9 @@ def compute_missing_traces_parallel(work_units: Dict[str, str],
         pmapped_compute = jax.pmap(jax.vmap(_compute_trace_jax))
         completed_indices = pmapped_compute(reshaped_indices)
 
+        if verbose:
+            pbar.close()
+
         # Collect results from work unit store (skip padding)
         results = {}
         for idx in completed_indices.flatten():
@@ -623,7 +661,19 @@ def compute_missing_traces_parallel(work_units: Dict[str, str],
         from phasic import Graph
 
         results = {}
-        for graph_hash, json_str in work_units.items():
+
+        # Add progress bar for sequential processing
+        if verbose:
+            work_iterator = tqdm(
+                work_units.items(),
+                desc="Computing traces (sequential)",
+                unit="trace",
+                leave=False
+            )
+        else:
+            work_iterator = work_units.items()
+
+        for graph_hash, json_str in work_iterator:
             # Check cache again (race condition safety)
             cached = _load_trace_from_cache(graph_hash)
             if cached is not None:
@@ -1420,7 +1470,8 @@ def record_enhanced_scc_traces(
 def stitch_scc_traces(
     scc_graph: 'SCCGraph',
     scc_trace_dict: Dict[str, 'EliminationTrace'],
-    scc_metadata_dict: Optional[Dict[str, Dict[str, any]]] = None
+    scc_metadata_dict: Optional[Dict[str, Dict[str, any]]] = None,
+    verbose: bool = False
 ) -> 'EliminationTrace':
     """
     Merge SCC traces using sister vertex merging.
@@ -1640,7 +1691,18 @@ def stitch_scc_traces(
                 len(merged.operations), len([r for r in merged.vertex_rates if r >= 0]))
 
     # Process remaining SCCs in topological order
-    for scc_idx in range(len(sccs)):
+    # Add progress bar for stitching
+    if verbose:
+        scc_iterator = tqdm(
+            range(len(sccs)),
+            desc="Stitching traces",
+            unit="SCC",
+            leave=False
+        )
+    else:
+        scc_iterator = range(len(sccs))
+
+    for scc_idx in scc_iterator:
         scc = sccs[scc_idx]
         scc_hash = scc.hash()
 
@@ -1794,7 +1856,8 @@ def get_trace_hierarchical(graph,
                           param_length: Optional[int] = None,
                           min_size: int = 50,
                           parallel_strategy: str = 'auto',
-                          use_scc_subdivision: bool = True) -> 'EliminationTrace':
+                          use_scc_subdivision: bool = True,
+                          verbose: bool = False) -> 'EliminationTrace':
     """
     Main entry point: Get trace with hierarchical SCC-based caching.
 
@@ -1823,6 +1886,8 @@ def get_trace_hierarchical(graph,
     use_scc_subdivision : bool, default=True
         If True, use hierarchical SCC-based subdivision and caching
         If False, compute full graph directly (Phase 3a behavior)
+    verbose : bool, default=False
+        If True, show progress bars for major computation stages
 
     Returns
     -------
@@ -1898,12 +1963,12 @@ def get_trace_hierarchical(graph,
 
         # Collect missing traces recursively
         logger.debug("Step 1: Collecting missing SCC traces...")
-        work_units, all_scc_hashes, scc_decomp = collect_missing_traces_batch(graph, param_length=param_length, min_size=min_size)
+        work_units, all_scc_hashes, scc_decomp = collect_missing_traces_batch(graph, param_length=param_length, min_size=min_size, verbose=verbose)
 
         if len(work_units) > 0:
             # Compute missing traces (potentially in parallel)
             logger.debug("Step 2: Computing %d missing traces...", len(work_units))
-            scc_traces = compute_missing_traces_parallel(work_units, strategy=parallel_strategy, min_size=min_size)
+            scc_traces = compute_missing_traces_parallel(work_units, strategy=parallel_strategy, min_size=min_size, verbose=verbose)
             logger.debug("✓ Computed %d missing traces", len(scc_traces))
 
             # NOTE: Do NOT explicitly delete work_units!
@@ -1918,7 +1983,19 @@ def get_trace_hierarchical(graph,
         logger.debug("Step 3: Loading all %d SCC traces from cache...", len(all_scc_hashes))
         scc_trace_dict = {}
 
-        for i, scc_hash in enumerate(all_scc_hashes):
+        # Add progress bar for cache loading
+        if verbose:
+            scc_hash_iterator = tqdm(
+                enumerate(all_scc_hashes),
+                total=len(all_scc_hashes),
+                desc="Loading cached traces",
+                unit="trace",
+                leave=False
+            )
+        else:
+            scc_hash_iterator = enumerate(all_scc_hashes)
+
+        for i, scc_hash in scc_hash_iterator:
             logger.debug("  Loading SCC %d/%d: hash=%s...", i+1, len(all_scc_hashes), scc_hash[:16])
             trace = _load_trace_from_cache(scc_hash)
             if trace is None:
@@ -1941,7 +2018,7 @@ def get_trace_hierarchical(graph,
             # Multiple SCC traces - need to stitch
             logger.debug("Step 4: Stitching %d SCC traces together...", len(scc_trace_dict))
             try:
-                trace = stitch_scc_traces(scc_decomp, scc_trace_dict)
+                trace = stitch_scc_traces(scc_decomp, scc_trace_dict, verbose=verbose)
                 logger.info("✓ Hierarchical trace computation complete")
             except Exception as e:
                 logger.error("  ✗ Trace stitching failed: %s", str(e))
