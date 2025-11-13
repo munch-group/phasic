@@ -1407,6 +1407,10 @@ def callback(ipv):
                     raise ValueError("IPV does not sum to one", ipv)
                 return [[s, a, []] for s, a in ipv]               
 
+            for key, value in kwargs.items():
+                if isinstance(value, int):
+                    print(f"Integer argument {key}={value} will be passed to callback as float")
+
             try:
                 transitions = func(state, **kwargs)
             except:
@@ -1544,6 +1548,19 @@ class Graph(_Graph):
     #     return NamedTuple("DiscreteGraph", (mutation_graph, rewards))
 
     def discretize(self, rate, **kwargs) -> Tuple[GraphType, np.ndarray]:
+        """
+        Discretizes graph inplace and returns reward matrix for added auxiliary states.
+
+        Parameters
+        ----------
+        rate : 
+            float or callable
+
+        Returns
+        -------
+        :
+            Reward matrix for added auxiliary states 
+        """
 
         # if not callable(rate):
         #     def rate_fn(state):

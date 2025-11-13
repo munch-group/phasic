@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 import matplotlib.colors
 from itertools import cycle
 import time
+import os
+import sys
 
 
 from typing import Any, TypeVar, List, Tuple, Dict, Union
@@ -124,17 +126,28 @@ def set_theme(theme:str):
     global _theme
     _theme = theme
 
+    _theme = os.environ.get('NOTEBOOK_THEME', None)
+    if _theme is not None:
+        print("Overriding theme from NOTEBOOK_THEME environment variable.", sys.stderr)
+        theme = _theme
+    else:
+        _theme = theme
+
     if theme == 'dark':
         plt.style.use('dark_background')
         plt.rcParams.update({
             'figure.facecolor': '#1F1F1F', 
-            'axes.facecolor': '#1F1F1F'
+            'axes.facecolor': '#1F1F1F',
+            'grid.linewidth': 0.4,
+            'grid.alpha': 0.3,
             })
     else:
-        plt.style.use('dark_background')
+        plt.style.use('default')
         plt.rcParams.update({
             'figure.facecolor': 'white', 
-            'axes.facecolor': 'white'
+            'axes.facecolor': 'white',
+            'grid.linewidth': 0.4,
+            'grid.alpha': 0.7,            
             })
     plt.rcParams.update({
         'axes.grid': True,
@@ -150,8 +163,6 @@ def set_theme(theme:str):
         'axes.spines.bottom': False,
         'axes.spines.top': False,
         'axes.spines.right':  False,
-        'grid.linewidth': 0.4,
-        'grid.alpha': 0.3,
         'xtick.bottom': False,
         'ytick.left': False,
     })
