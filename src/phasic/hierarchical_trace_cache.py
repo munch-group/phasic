@@ -17,6 +17,17 @@ Date: 2025-11-06
 
 import json
 import hashlib
+import os
+try:
+    import multiprocess
+    # Use spawn context to avoid fork() + JAX multithreading deadlock
+    _mp_ctx = multiprocess.get_context('spawn')
+    Pool = _mp_ctx.Pool
+except ImportError:
+    import multiprocessing
+    # Use spawn context for consistency across platforms
+    _mp_ctx = multiprocessing.get_context('spawn')
+    Pool = _mp_ctx.Pool
 from typing import Dict, List, Tuple, Optional
 from pathlib import Path
 import numpy as np
@@ -370,7 +381,7 @@ def _record_trace_callback(idx: int) -> Tuple[str, 'EliminationTrace']:
     Parameters
     ----------
     idx : int
-        Index into _work_unit_store (use -1 for padding in pmap)
+        Index into _work_unit_store, or -1 for padding
 
     Returns
     -------
@@ -381,6 +392,12 @@ def _record_trace_callback(idx: int) -> Tuple[str, 'EliminationTrace']:
     ------
     RuntimeError
         If deserialization or trace computation fails
+
+    Notes
+    -----
+    For vmap: Global dict works for both read and write (single process).
+    For pmap: Global dict works for read only (copied to each worker process).
+              Results are saved to disk cache, not written back to global dict.
     """
     from .trace_elimination import record_elimination_trace
     from phasic import Graph
@@ -390,7 +407,8 @@ def _record_trace_callback(idx: int) -> Tuple[str, 'EliminationTrace']:
     if idx_int < 0:
         return ("", None)  # Padding sentinel
 
-    # Lookup work unit from global store
+    # Load work unit from global store
+    # Note: pmap workers get a COPY of the global dict at initialization
     graph_hash, json_str = _work_unit_store[idx_int]
 
     # Check cache again (another worker may have computed it)
@@ -432,12 +450,113 @@ def _record_trace_callback(idx: int) -> Tuple[str, 'EliminationTrace']:
     return (graph_hash, trace)
 
 
+# ============================================================================
+# PMAP Disk-Based Work Unit Distribution
+# ============================================================================
+
+# Per-process cache for loaded work units (avoids repeated disk reads)
+_pmap_file_cache: Dict[str, Tuple[str, str]] = {}
+
+
+def _get_pmap_shared_dir() -> Path:
+    """
+    Get shared directory for pmap work units.
+
+    Returns
+    -------
+    Path
+        Directory path (defaults to ~/.phasic_cache/pmap_work or $PHASIC_PMAP_SHARED_DIR)
+    """
+    import os
+    env_dir = os.environ.get('PHASIC_PMAP_SHARED_DIR')
+    if env_dir:
+        shared_dir = Path(env_dir)
+    else:
+        shared_dir = Path.home() / ".phasic_cache" / "pmap_work"
+
+    shared_dir.mkdir(parents=True, exist_ok=True)
+    return shared_dir
+
+
+def _write_work_unit_to_file(work_dir: Path, idx: int, graph_hash: str, json_str: str) -> Path:
+    """
+    Write work unit to disk file.
+
+    Parameters
+    ----------
+    work_dir : Path
+        Session work directory
+    idx : int
+        Work unit index
+    graph_hash : str
+        Graph hash
+    json_str : str
+        Serialized graph JSON
+
+    Returns
+    -------
+    Path
+        Path to written file
+    """
+    file_path = work_dir / f"work_{idx:06d}.json"
+    with open(file_path, 'w') as f:
+        json.dump({'graph_hash': graph_hash, 'graph_json': json_str}, f)
+    return file_path
+
+
+def _load_work_unit_from_file(file_path: str) -> Tuple[str, str]:
+    """
+    Load work unit from disk file with per-process caching.
+
+    Parameters
+    ----------
+    file_path : str
+        Path to work unit file
+
+    Returns
+    -------
+    tuple[str, str]
+        (graph_hash, json_str)
+
+    Raises
+    ------
+    FileNotFoundError
+        If work unit file doesn't exist
+    """
+    from pathlib import Path
+
+    # Check per-process cache first
+    if file_path in _pmap_file_cache:
+        return _pmap_file_cache[file_path]
+
+    # Validate file exists
+    file_obj = Path(file_path)
+    if not file_obj.exists():
+        raise FileNotFoundError(
+            f"Work unit file not found: {file_path}\n"
+            f"  Directory exists: {file_obj.parent.exists()}\n"
+            f"  Parent contents: {list(file_obj.parent.iterdir()) if file_obj.parent.exists() else 'N/A'}"
+        )
+
+    # Load from disk
+    with open(file_path, 'r') as f:
+        data = json.load(f)
+
+    result = (data['graph_hash'], data['graph_json'])
+
+    # Cache in this process
+    _pmap_file_cache[file_path] = result
+
+    return result
+
+
 def compute_missing_traces_parallel(work_units: Dict[str, str],
                                    strategy: str = 'auto',
                                    min_size: int = 50,
-                                   verbose: bool = False) -> Dict[str, 'EliminationTrace']:
+                                   verbose: bool = False,
+                                   n_workers: Optional[int] = None) -> Dict[str, 'EliminationTrace']:
     """
-    Distribute work across CPUs/devices using vmap or pmap.
+    Distribute work across CPUs/devices using multiprocessing or sequential.
 
     Parameters
     ----------
@@ -445,12 +564,16 @@ def compute_missing_traces_parallel(work_units: Dict[str, str],
         Mapping: graph_hash -> json_string (serialized graph)
     strategy : str, default='auto'
         Parallelization strategy:
-        - 'auto': Use vmap for single machine, pmap for multi-device
-        - 'vmap': Vectorize over batch (single machine, multi-CPU)
-        - 'pmap': Parallelize over devices (multi-GPU or multi-machine)
+        - 'auto': Use 'vmap' (multiprocessing) if available, else 'sequential'
+        - 'vmap': Use multiprocessing.Pool for CPU parallelization
         - 'sequential': No parallelization (debugging)
+        - 'pmap': NOT SUPPORTED (requires JIT compilation)
     min_size : int, default=50
         Minimum vertices to subdivide (for recursive subdivision)
+    n_workers : int, optional
+        Number of worker processes for multiprocessing (vmap strategy).
+        Default: os.cpu_count() (use all available cores)
+        Set to 1 for sequential execution within vmap
 
     Returns
     -------
@@ -484,17 +607,10 @@ def compute_missing_traces_parallel(work_units: Dict[str, str],
 
     # Auto-detect with explicit logging
     if strategy == 'auto':
-        if not HAS_JAX:
-            strategy = 'sequential'
-            logger.info("Parallelization: Auto-selected 'sequential' (JAX not available)")
-        else:
-            n_devices = jax.device_count()
-            if n_devices > 1:
-                strategy = 'pmap'
-                logger.info("Parallelization: Auto-selected 'pmap' (%d devices)", n_devices)
-            else:
-                strategy = 'vmap'
-                logger.info("Parallelization: Auto-selected 'vmap' (single device)")
+        # Always use vmap (multiprocessing) for CPU parallelization
+        strategy = 'vmap'
+        n_cpus = os.cpu_count() or 1
+        logger.info("Parallelization: Auto-selected 'vmap' (multiprocessing with %d CPUs)", n_cpus)
 
     # Validate JAX available for vmap/pmap
     if strategy == 'vmap' and not HAS_JAX:
@@ -505,20 +621,15 @@ def compute_missing_traces_parallel(work_units: Dict[str, str],
         )
 
     if strategy == 'pmap':
-        if not HAS_JAX:
-            raise ImportError(
-                "Cannot use strategy='pmap': JAX not installed\n"
-                "  Install JAX: pip install jax jaxlib\n"
-                "  Or use: strategy='sequential' or strategy='auto'"
-            )
-        n_devices = jax.device_count()
-        if n_devices < 2:
-            raise RuntimeError(
-                f"Cannot use strategy='pmap': only {n_devices} device available\n"
-                f"  pmap requires 2+ devices (multi-GPU or distributed cluster)\n"
-                f"  Available devices: {n_devices}\n"
-                f"  Use: strategy='vmap' or strategy='auto'"
-            )
+        raise ValueError(
+            "strategy='pmap' is not supported.\n"
+            "  pmap requires JIT-compiled code for distribution.\n"
+            "  pure_callback cannot be JIT compiled, making pmap non-functional.\n"
+            "  \n"
+            "  Use 'vmap' for CPU parallelization via multiprocessing.\n"
+            "  Use 'sequential' for debugging.\n"
+            "  Use 'auto' for automatic selection."
+        )
 
     # Populate global work unit store and create index mapping
     _work_unit_store.clear()
@@ -532,45 +643,130 @@ def compute_missing_traces_parallel(work_units: Dict[str, str],
     indices = jnp.arange(len(work_units))
 
     # ========================================================================
-    # VMAP Strategy: Single machine, vectorized processing with JAX
+    # VMAP Strategy: Single machine, multiprocessing with expand_dims
     # ========================================================================
     if strategy == 'vmap':
-        logger.info("VMAP: Using JAX vmap over %d work units", len(work_units))
+        # Determine number of workers
+        if n_workers is None:
+            n_workers = os.cpu_count() or 1
+        n_workers = max(1, min(n_workers, len(work_units)))  # Limit to work count
 
-        # Show indeterminate progress for parallel execution
+        logger.info("VMAP: Using multiprocessing with %d workers over %d work units",
+                    n_workers, len(work_units))
+
+        # Show progress
         if verbose:
             pbar = tqdm(
                 total=0,
-                desc=f"Computing {len(work_units)} traces (vmap)",
+                desc=f"Computing {len(work_units)} traces ({n_workers} workers)",
                 bar_format="{desc}: {elapsed}",
                 leave=False
             )
 
-        # Define JAX-compatible wrapper using pure_callback
-        def _compute_trace_jax(idx):
-            """JAX-compatible trace computation using pure_callback."""
-            # Define result shape (hash string + trace object)
-            # We'll return just the index and collect results from store
-            result_shape = jax.ShapeDtypeStruct((), jnp.int32)
+        # Define batched computation with multiprocessing
+        def _compute_traces_batch_jax(indices):
+            """Compute traces in parallel using multiprocessing.Pool"""
+            result_shape = jax.ShapeDtypeStruct(indices.shape, jnp.int32)
 
-            def _callback_impl(idx_val):
-                idx_int = int(idx_val)
-                graph_hash, trace = _record_trace_callback(idx_int)
-                # Store result back in global dict for collection (skip padding)
-                if idx_int >= 0:
-                    _work_unit_store[idx_int] = (graph_hash, trace)
-                return np.array(idx_int, dtype=np.int32)
+            def _callback_batch_impl(indices_array):
+                """Process batch in parallel with multiprocessing"""
+                # Convert to list for processing
+                indices_list = indices_array.tolist()
+
+                if n_workers == 1:
+                    # Sequential execution (no multiprocessing overhead)
+                    trace_results = []
+                    for idx in indices_list:
+                        if idx >= 0:
+                            # Process directly in main process
+                            graph_hash, json_str = _work_unit_store[idx]
+                            # Deserialize graph from JSON
+                            graph_dict = json.loads(json_str)
+                            graph_dict['states'] = np.array(graph_dict['states'], dtype=np.int32)
+                            graph_dict['edges'] = np.array(graph_dict['edges'], dtype=np.float64)
+                            graph_dict['start_edges'] = np.array(graph_dict['start_edges'], dtype=np.float64)
+                            graph_dict['param_edges'] = np.array(graph_dict['param_edges'], dtype=np.float64)
+                            graph_dict['start_param_edges'] = np.array(graph_dict['start_param_edges'], dtype=np.float64)
+                            from phasic import Graph
+                            graph = Graph.from_serialized(graph_dict)
+                            # Compute trace
+                            from .trace_elimination import record_elimination_trace
+                            trace = record_elimination_trace(graph, param_length=None)
+                            # Save to disk cache
+                            _save_trace_to_cache(graph_hash, trace)
+                            trace_results.append((idx, (graph_hash, trace)))
+                        else:
+                            trace_results.append((idx, ("", None)))
+                else:
+                    # Parallel execution with Pool
+                    # Define worker function that receives data explicitly
+                    def _compute_trace_worker(work_item):
+                        """Worker function: receives (idx, graph_hash, json_str)"""
+                        import json
+                        import numpy as np
+                        from phasic import Graph
+                        from phasic.trace_elimination import record_elimination_trace
+
+                        idx, graph_hash, json_str = work_item
+                        # Deserialize graph from JSON
+                        graph_dict = json.loads(json_str)
+                        graph_dict['states'] = np.array(graph_dict['states'], dtype=np.int32)
+                        graph_dict['edges'] = np.array(graph_dict['edges'], dtype=np.float64)
+                        graph_dict['start_edges'] = np.array(graph_dict['start_edges'], dtype=np.float64)
+                        graph_dict['param_edges'] = np.array(graph_dict['param_edges'], dtype=np.float64)
+                        graph_dict['start_param_edges'] = np.array(graph_dict['start_param_edges'], dtype=np.float64)
+                        graph = Graph.from_serialized(graph_dict)
+                        # Compute trace
+                        trace = record_elimination_trace(graph, param_length=None)
+                        # Save to disk cache (so parent can load it)
+                        from phasic.hierarchical_trace_cache import _save_trace_to_cache
+                        _save_trace_to_cache(graph_hash, trace)
+                        return (idx, (graph_hash, trace))
+
+                    # Prepare work items: (idx, graph_hash, json_str)
+                    work_items = []
+                    for idx in indices_list:
+                        if idx >= 0:
+                            graph_hash, json_str = _work_unit_store[idx]
+                            work_items.append((idx, graph_hash, json_str))
+
+                    if len(work_items) > 0:
+                        # Process in parallel - data passed explicitly
+                        with Pool(processes=n_workers) as pool:
+                            parallel_results = pool.map(_compute_trace_worker, work_items)
+
+                        # Convert to dict for easy lookup
+                        results_dict = dict(parallel_results)
+
+                        # Reconstruct results with padding
+                        trace_results = []
+                        for idx in indices_list:
+                            if idx >= 0:
+                                trace_results.append((idx, results_dict[idx]))
+                            else:
+                                trace_results.append((idx, ("", None)))
+                    else:
+                        # All padding
+                        trace_results = [(idx, ("", None)) for idx in indices_list]
+
+                # Store results in main process
+                for idx, (graph_hash, trace) in trace_results:
+                    if idx >= 0 and graph_hash:  # Skip padding
+                        _work_unit_store[idx] = (graph_hash, trace)
+                        logger.debug("Stored trace for hash=%s, idx=%d", graph_hash[:16], idx)
+
+                # Return as int32 (JAX expects this dtype)
+                return np.array(indices_array, dtype=np.int32)
 
             return jax.pure_callback(
-                _callback_impl,
+                _callback_batch_impl,
                 result_shape,
-                idx,
-                vmap_method='sequential'
+                indices,
+                vmap_method='expand_dims'  # Process entire batch at once
             )
 
-        # Apply vmap over all indices
-        vmapped_compute = jax.vmap(_compute_trace_jax)
-        completed_indices = vmapped_compute(indices)
+        # Process entire batch (no vmap needed!)
+        completed_indices = _compute_traces_batch_jax(indices)
 
         if verbose:
             pbar.close()
@@ -579,84 +775,18 @@ def compute_missing_traces_parallel(work_units: Dict[str, str],
         results = {}
         for idx in completed_indices:
             idx_int = int(idx)
-            if idx_int >= 0:  # Skip padding (shouldn't happen in vmap, but be safe)
+            if idx_int >= 0:
                 graph_hash, trace = _work_unit_store[idx_int]
-                if graph_hash:  # Skip padding sentinel ("", None)
+                if graph_hash:  # Skip padding sentinel
                     results[graph_hash] = trace
-                    logger.debug("VMAP: Completed trace for %s", graph_hash[:16])
-
-        return results
-
-    # ========================================================================
-    # PMAP Strategy: Multi-device parallelization with JAX
-    # ========================================================================
-    elif strategy == 'pmap':
-        n_devices = jax.device_count()
-        logger.info("PMAP: Using JAX pmap over %d devices", n_devices)
-
-        # Show indeterminate progress for parallel execution
-        if verbose:
-            pbar = tqdm(
-                total=0,
-                desc=f"Computing {len(work_units)} traces (pmap, {n_devices} devices)",
-                bar_format="{desc}: {elapsed}",
-                leave=False
-            )
-
-        # Define JAX-compatible wrapper using pure_callback
-        def _compute_trace_jax(idx):
-            """JAX-compatible trace computation using pure_callback."""
-            result_shape = jax.ShapeDtypeStruct((), jnp.int32)
-
-            def _callback_impl(idx_val):
-                idx_int = int(idx_val)
-                graph_hash, trace = _record_trace_callback(idx_int)
-                # Store result back in global dict for collection (skip padding)
-                if idx_int >= 0:
-                    _work_unit_store[idx_int] = (graph_hash, trace)
-                return np.array(idx_int, dtype=np.int32)
-
-            return jax.pure_callback(
-                _callback_impl,
-                result_shape,
-                idx,
-                vmap_method='sequential'
-            )
-
-        # Reshape indices for pmap (distribute across devices)
-        n_work_units = len(work_units)
-        # Pad to be divisible by n_devices
-        padded_size = ((n_work_units + n_devices - 1) // n_devices) * n_devices
-        padded_indices = jnp.concatenate([
-            indices,
-            jnp.full(padded_size - n_work_units, -1, dtype=jnp.int32)
-        ])
-        # Reshape: (n_devices, work_per_device)
-        reshaped_indices = padded_indices.reshape(n_devices, -1)
-
-        # Apply pmap over devices
-        pmapped_compute = jax.pmap(jax.vmap(_compute_trace_jax))
-        completed_indices = pmapped_compute(reshaped_indices)
-
-        if verbose:
-            pbar.close()
-
-        # Collect results from work unit store (skip padding)
-        results = {}
-        for idx in completed_indices.flatten():
-            idx_int = int(idx)
-            if idx_int >= 0:  # Skip padding
-                graph_hash, trace = _work_unit_store[idx_int]
-                if graph_hash:  # Skip padding sentinel ("", None)
-                    results[graph_hash] = trace
-                    logger.debug("PMAP: Completed trace for %s", graph_hash[:16])
+                    logger.debug("Collected trace for %s", graph_hash[:16])
 
         return results
 
     # ========================================================================
     # SEQUENTIAL Strategy: No parallelization (debugging)
     # ========================================================================
-    else:  # sequential
+    elif strategy == 'sequential':
         from .trace_elimination import record_elimination_trace
         from phasic import Graph
 

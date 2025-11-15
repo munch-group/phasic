@@ -39,6 +39,7 @@ dependencies = [
   'psutil',
   'rich',
   'tqdm',
+  'multiprocess>=0.70.0',  # For parallel trace computation (uses dill)
 ]
 authors = [
   # {name = "Tobias Røikjer", email = ""},
