@@ -33,3 +33,12 @@ docs/_freeze/
 docs/objects.txt
 **/.DS_Store
 scripts/ptd_cache
+
+profiling-toolkit/
+test_*.py
+debug_*.py
+
+*.md
+!CLAUDE.md
+!DEVEL.md
+!README.md
