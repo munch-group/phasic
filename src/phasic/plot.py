@@ -3,7 +3,8 @@ import subprocess
 import graphviz
 import random
 from collections import defaultdict
-from IPython.display import Javascript, display
+from IPython.display import Javascript, display, HTML
+from matplotlib import widgets
 import seaborn as sns
 import matplotlib
 import matplotlib.pyplot as plt
@@ -12,10 +13,18 @@ from itertools import cycle
 import time
 import os
 import sys
-
+from pathlib import Path
+import tempfile
+from numbers import Real as FloatingPointError
 
 from typing import Any, TypeVar, List, Tuple, Dict, Union
 from collections.abc import Sequence, MutableSequence, Callable
+
+import ipywidgets
+# In phasic/plot/__init__.py or phasic/plot.py
+
+_theme = None#'light'  # Default
+    
 
 # def random_color():
 #     return '#'+''.join(random.sample('0123456789ABCDEF', 6))
@@ -31,10 +40,6 @@ def _format_rate(rate):
     else:
         return f"{rate:.2e}"
 
-
-
-_theme = None  # Will be set on first use or by set_theme()
-_detected_theme = None  # Set by JavaScript detection
 
 def get_theme():
     """
@@ -53,11 +58,6 @@ def get_theme():
 
     For manual control, use phasic.set_theme('dark') or phasic.set_theme('light').
     """
-    global _theme, _detected_theme
-
-    # If theme already set manually, return it
-    if _theme is not None:
-        return _theme
 
     # Try to detect theme in Jupyter environment
     try:
@@ -70,7 +70,7 @@ def get_theme():
             return "dark"
 
         # Clear previous detection
-        _detected_theme = None
+        _theme = None
 
         # Use JavaScript to detect background brightness
         js_code = """
@@ -83,14 +83,14 @@ def get_theme():
                     const isDark = brightness < 128;
                     // Store in Python namespace
                     IPython.notebook.kernel.execute(
-                        'import phasic.plot; phasic.plot._detected_theme = "' +
+                        'import phasic.plot; phasic.plot._theme = "' +
                         (isDark ? 'dark' : 'light') + '"'
                     );
                 }
             } catch(e) {
                 // If detection fails, set to default
                 IPython.notebook.kernel.execute(
-                    'import phasic.plot; phasic.plot._detected_theme = "dark"'
+                    'import phasic.plot; phasic.plot._theme = "dark"'
                 );
             }
         })();
@@ -102,9 +102,9 @@ def get_theme():
         time.sleep(0.2)
 
         # Check if detection succeeded
-        if _detected_theme is not None:
-            print(f"'{_detected_theme}'")
-            return _detected_theme
+        if _theme is not None:
+            print(f"'{_theme}'")
+            return _theme
         else:
             print("Could not detect theme. Set it manually using phasic.set_theme('dark') or phasic.set_theme('light').")
             return "dark"
@@ -113,10 +113,11 @@ def get_theme():
         # Not in Jupyter or detection failed, use default
         return "dark"
 
-def set_theme(theme:str):
+def set_theme(theme:str=None):
     """
     Set the default theme for the graph plotter.
-    The theme can be either 'dark' or 'light'. The default theme is 'dark'.
+    The theme can be either 'dark' or 'light'. The default theme is autodetected.
+    NOTEBOOK_THEME environment variable can be used to override the theme.
 
     Parameters
     ----------
@@ -124,16 +125,16 @@ def set_theme(theme:str):
         _description_
     """
     global _theme
-    _theme = theme
 
-    _theme = os.environ.get('NOTEBOOK_THEME', None)
-    if _theme is not None:
-        print("Overriding theme from NOTEBOOK_THEME environment variable.", sys.stderr)
-        theme = _theme
-    else:
+    if theme is not None:
         _theme = theme
 
-    if theme == 'dark':
+    env_theme = os.environ.get('NOTEBOOK_THEME', None)
+    if env_theme is not None:
+        print("Overriding theme from NOTEBOOK_THEME environment variable.", sys.stderr)
+        _theme = env_theme
+
+    if _theme == 'dark':
         plt.style.use('dark_background')
         plt.rcParams.update({
             'figure.facecolor': '#1F1F1F', 

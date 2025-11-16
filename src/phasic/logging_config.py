@@ -267,56 +267,69 @@ def get_logger(name: str) -> logging.Logger:
     return logging.getLogger(logger_name)
 
 
-def set_log_level(level: str, module: Optional[str] = None) -> None:
-    """
-    Change logging level at runtime.
 
-    Parameters
-    ----------
-    level : str
-        New logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL, NONE)
-        Use NONE to completely disable all logging.
-    module : str, optional
-        Specific module to configure (e.g., 'svgd', 'trace_elimination').
-        If None, sets level for entire package.
+class set_log_level:
+    def __init__(self, level:str="INFO", module: Optional[str] = None):
+        """
+        Change logging level at runtime.
 
-    Examples
-    --------
-    >>> from phasic.logging_config import set_log_level
-    >>> # Enable debug for entire package
-    >>> set_log_level('DEBUG')
-    >>>
-    >>> # Enable debug only for SVGD module
-    >>> set_log_level('DEBUG', module='svgd')
-    >>>
-    >>> # Disable all logging
-    >>> set_log_level('NONE')
-    """
-    if level.upper() == 'NONE':
-        numeric_level = NONE
-    else:
-        numeric_level = getattr(logging, level.upper(), logging.WARNING)
+        Parameters
+        ----------
+        level : str
+            New logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL, NONE)
+            Use NONE to completely disable all logging.
+        module : str, optional
+            Specific module to configure (e.g., 'svgd', 'trace_elimination').
+            If None, sets level for entire package.
 
-    if module is None:
-        # Set for entire package
-        logger = logging.getLogger(_PACKAGE_LOGGER_NAME)
-    else:
-        # Set for specific module
-        logger = logging.getLogger(f"{_PACKAGE_LOGGER_NAME}.{module}")
+        Examples
+        --------
+        >>> from phasic.logging_config import set_log_level
+        >>> # Enable debug for entire package
+        >>> set_log_level('DEBUG')
+        >>>
+        >>> # Enable debug only for SVGD module
+        >>> set_log_level('DEBUG', module='svgd')
+        >>>
+        >>> # Disable all logging
+        >>> set_log_level('NONE')
+        """
+        self.level = level
+        if level.upper() == 'NONE':
+            self.numeric_level = NONE
+        else:
+            self.numeric_level = getattr(logging, level.upper(), logging.WARNING)
 
-    logger.setLevel(numeric_level)
+        if module is None:
+            # Set for entire package
+            self.logger = logging.getLogger(_PACKAGE_LOGGER_NAME)
+        else:
+            # Set for specific module
+            self.logger = logging.getLogger(f"{_PACKAGE_LOGGER_NAME}.{module}")
 
-    # Also update handlers
-    for handler in logger.handlers:
-        handler.setLevel(numeric_level)
+        self.original_level = self.logger.level
+        self.logger.setLevel(self.numeric_level)
 
-    # Update C logging level if setting for entire package
-    if module is None:
-        try:
-            from . import phasic_pybind
-            phasic_pybind._c_log_set_level(numeric_level)
-        except (ImportError, AttributeError):
-            pass
+        # Also update handlers
+        for handler in self.logger.handlers:
+            handler.setLevel(self.numeric_level)
+
+        # Update C logging level if setting for entire package
+        if module is None:
+            try:
+                from . import phasic_pybind
+                phasic_pybind._c_log_set_level(self.numeric_level)
+            except (ImportError, AttributeError):
+                pass
+
+    def __enter__(self):
+        self.logger.setLevel(self.numeric_level)
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.logger.setLevel(self.original_level)
+
+
 
 
 def disable_logging() -> None:
@@ -350,14 +363,3 @@ def enable_logging(level: str = 'INFO') -> None:
     """
     set_log_level(level)
 
-
-class Logging:
-    def __init__(self, level="INFO"):
-        self.level = level
-
-    def __enter__(self):
-        enable_logging(self.level)
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        disable_logging()
