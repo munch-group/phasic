@@ -81,10 +81,8 @@ from .exceptions import (
     PTDJAXError
 )
 from .logging_config import (
-    set_log_level, 
-    get_logger,
     set_log_level,
-    Logging,
+    get_logger,
 )
 
 # Get configuration (creates default if none exists)
