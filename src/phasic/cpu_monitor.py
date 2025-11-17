@@ -831,9 +831,10 @@ class CPUMonitor:
         If True, display results as an HTML table with mean CPU usage per core
         instead of progress bars. Memory usage (mean/max) is shown next to the
         node name. The table will be shown after completion regardless of persist setting.
-    fold : int, default=15
-        Number of CPU bars per row before wrapping to a new line. Only applies
-        to HTML display (Jupyter/VSCode).
+    fold : int, default=16
+        Maximum number of CPU bars per row before wrapping to a new line.
+        Bars are automatically redistributed across rows to minimize empty
+        space in the last row. Only applies to HTML display (Jupyter/VSCode).
     group_by : str, default="node"
         How to group CPU bars: "node" groups by physical node, "task" groups
         by SLURM task. For non-SLURM environments, both modes behave the same.
@@ -865,7 +866,7 @@ class CPUMonitor:
         persist: bool = False,
         color: bool = False,
         summary_table: bool = False,
-        fold: int = 15,
+        fold: int = 16,
         group_by: str = "node"
     ):
         self.width = width
@@ -1194,6 +1195,37 @@ class CPUMonitor:
         html += '</div>'
         return html
 
+    def _calculate_row_distribution(self, total_cpus: int):
+        """
+        Calculate optimal distribution of CPUs across rows to minimize empty space.
+
+        Parameters
+        ----------
+        total_cpus : int
+            Total number of CPUs to distribute
+
+        Returns
+        -------
+        list of int
+            Number of CPUs per row
+        """
+        max_per_row = self.fold
+        num_rows = (total_cpus + max_per_row - 1) // max_per_row  # ceiling division
+
+        # Distribute CPUs evenly across rows
+        base_cpus_per_row = total_cpus // num_rows
+        extra_cpus = total_cpus % num_rows
+
+        # First 'extra_cpus' rows get one additional CPU
+        row_distribution = []
+        for i in range(num_rows):
+            if i < extra_cpus:
+                row_distribution.append(base_cpus_per_row + 1)
+            else:
+                row_distribution.append(base_cpus_per_row)
+
+        return row_distribution
+
     def _generate_html_display(self, summary_mode=False):
         """Generate HTML for VSCode display."""
         # If summary_table mode is enabled and we're in summary, show table
@@ -1234,26 +1266,30 @@ class CPUMonitor:
 
                 n_cpus = len(summary['mean_per_core'])
 
-                # Bars wrapped to multiple rows
-                cpus_per_row = self.fold
+                # Calculate optimal row distribution to minimize empty space
+                row_distribution = self._calculate_row_distribution(n_cpus)
+                max_cpus_per_row = max(row_distribution) if row_distribution else self.fold
                 # Calculate gap width based on maximum CPUs per row (for consistent bar width)
-                gap_width_px = (cpus_per_row - 1) * 3
-                for row_start in range(0, n_cpus, cpus_per_row):
-                    row_end = min(row_start + cpus_per_row, n_cpus)
+                gap_width_px = (max_cpus_per_row - 1) * 3
+
+                # Distribute CPUs across rows
+                cpu_idx = 0
+                for cpus_in_row in row_distribution:
                     html += '<div style="display: flex; gap: 3px; width: 100%; margin-bottom: 3px;">'
-                    for i in range(row_start, row_end):
+                    for i in range(cpu_idx, cpu_idx + cpus_in_row):
                         mean_val = summary['mean_per_core'][i]
 
                         # Color based on mode
                         summary_color = '#4CAF50' if self.color else '#666666'
 
                         # Show mean usage bar with fixed width using calc()
-                        # Use cpus_per_row for consistent width across all rows
+                        # Use max_cpus_per_row for consistent width across all rows
                         html += f'''
-                        <div style="width: calc((100% - {gap_width_px}px) / {cpus_per_row}); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU {i}: {mean_val:.1f}% avg">
+                        <div style="width: calc((100% - {gap_width_px}px) / {max_cpus_per_row}); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU {i}: {mean_val:.1f}% avg">
                             <div style="width: {mean_val}%; height: 100%; background: {summary_color};"></div>
                         </div>
                         '''
+                    cpu_idx += cpus_in_row
                     html += '</div>'
 
             else:
@@ -1295,14 +1331,17 @@ class CPUMonitor:
 
                 n_cpus = len(usage)
 
-                # Bars wrapped to multiple rows
-                cpus_per_row = self.fold
+                # Calculate optimal row distribution to minimize empty space
+                row_distribution = self._calculate_row_distribution(n_cpus)
+                max_cpus_per_row = max(row_distribution) if row_distribution else self.fold
                 # Calculate gap width based on maximum CPUs per row (for consistent bar width)
-                gap_width_px = (cpus_per_row - 1) * 3
-                for row_start in range(0, n_cpus, cpus_per_row):
-                    row_end = min(row_start + cpus_per_row, n_cpus)
+                gap_width_px = (max_cpus_per_row - 1) * 3
+
+                # Distribute CPUs across rows
+                cpu_idx = 0
+                for cpus_in_row in row_distribution:
                     html += '<div style="display: flex; gap: 3px; width: 100%; margin-bottom: 3px;">'
-                    for i in range(row_start, row_end):
+                    for i in range(cpu_idx, cpu_idx + cpus_in_row):
                         cpu_usage = usage[i]
 
                         # Color based on usage
@@ -1319,13 +1358,14 @@ class CPUMonitor:
                             color = '#666666'  # gray
 
                         # Progress bar with tooltip and fixed width using calc()
-                        # Use cpus_per_row for consistent width across all rows
+                        # Use max_cpus_per_row for consistent width across all rows
                         width_pct = min(100, max(0, cpu_usage))
                         html += f'''
-                        <div style="width: calc((100% - {gap_width_px}px) / {cpus_per_row}); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU {i}: {cpu_usage:.1f}%">
+                        <div style="width: calc((100% - {gap_width_px}px) / {max_cpus_per_row}); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU {i}: {cpu_usage:.1f}%">
                             <div style="width: {width_pct}%; height: 100%; background: {color}; transition: width 0.3s;"></div>
                         </div>
                         '''
+                    cpu_idx += cpus_in_row
                     html += '</div>'
 
             html += '</div>'  # Close unit container
@@ -1623,8 +1663,8 @@ try:
                  help='Use color coding (green/yellow/red). Default is gray only.')
         @argument('--summary', '-s', action='store_true',
                  help='Show summary table with mean CPU usage per core (mean/max memory shown next to node name)')
-        @argument('--fold', '-f', type=int, default=15,
-                 help='Number of CPU bars per row before wrapping (default: 15)')
+        @argument('--fold', '-f', type=int, default=16,
+                 help='Maximum number of CPU bars per row before wrapping (default: 16)')
         @argument('--group-by', '-g', type=str, default='node', choices=['node', 'task'],
                  help='Group CPU bars by "node" (default) or "task"')
         def monitor(self, line, cell):
