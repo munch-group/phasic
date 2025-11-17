@@ -1236,12 +1236,10 @@ class CPUMonitor:
 
                 # Bars wrapped to multiple rows
                 cpus_per_row = self.fold
+                # Calculate gap width based on maximum CPUs per row (for consistent bar width)
+                gap_width_px = (cpus_per_row - 1) * 3
                 for row_start in range(0, n_cpus, cpus_per_row):
                     row_end = min(row_start + cpus_per_row, n_cpus)
-                    # Calculate actual number of CPUs in this row
-                    num_cpus_in_row = row_end - row_start
-                    # Calculate gap width for this row: (num_cpus_in_row - 1) * 3px
-                    gap_width_px = (num_cpus_in_row - 1) * 3
                     html += '<div style="display: flex; gap: 3px; width: 100%; margin-bottom: 3px;">'
                     for i in range(row_start, row_end):
                         mean_val = summary['mean_per_core'][i]
@@ -1250,8 +1248,9 @@ class CPUMonitor:
                         summary_color = '#4CAF50' if self.color else '#666666'
 
                         # Show mean usage bar with fixed width using calc()
+                        # Use cpus_per_row for consistent width across all rows
                         html += f'''
-                        <div style="width: calc((100% - {gap_width_px}px) / {num_cpus_in_row}); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU {i}: {mean_val:.1f}% avg">
+                        <div style="width: calc((100% - {gap_width_px}px) / {cpus_per_row}); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU {i}: {mean_val:.1f}% avg">
                             <div style="width: {mean_val}%; height: 100%; background: {summary_color};"></div>
                         </div>
                         '''
@@ -1298,12 +1297,10 @@ class CPUMonitor:
 
                 # Bars wrapped to multiple rows
                 cpus_per_row = self.fold
+                # Calculate gap width based on maximum CPUs per row (for consistent bar width)
+                gap_width_px = (cpus_per_row - 1) * 3
                 for row_start in range(0, n_cpus, cpus_per_row):
                     row_end = min(row_start + cpus_per_row, n_cpus)
-                    # Calculate actual number of CPUs in this row
-                    num_cpus_in_row = row_end - row_start
-                    # Calculate gap width for this row: (num_cpus_in_row - 1) * 3px
-                    gap_width_px = (num_cpus_in_row - 1) * 3
                     html += '<div style="display: flex; gap: 3px; width: 100%; margin-bottom: 3px;">'
                     for i in range(row_start, row_end):
                         cpu_usage = usage[i]
@@ -1322,9 +1319,10 @@ class CPUMonitor:
                             color = '#666666'  # gray
 
                         # Progress bar with tooltip and fixed width using calc()
+                        # Use cpus_per_row for consistent width across all rows
                         width_pct = min(100, max(0, cpu_usage))
                         html += f'''
-                        <div style="width: calc((100% - {gap_width_px}px) / {num_cpus_in_row}); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU {i}: {cpu_usage:.1f}%">
+                        <div style="width: calc((100% - {gap_width_px}px) / {cpus_per_row}); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU {i}: {cpu_usage:.1f}%">
                             <div style="width: {width_pct}%; height: 100%; background: {color}; transition: width 0.3s;"></div>
                         </div>
                         '''
