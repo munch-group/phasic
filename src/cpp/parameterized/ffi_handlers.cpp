@@ -146,8 +146,9 @@ ffi::Error ComputeMomentsHandler(
         // Build graph
         Graph g = builder.build(theta_data, n_params);
 
-        // Compute moments using internal implementation
-        std::vector<double> result_vec = builder.compute_moments_impl(g, nr_moments);
+        // Compute moments using internal implementation (no rewards)
+        std::vector<double> rewards_vec;  // Empty for standard moments
+        std::vector<double> result_vec = builder.compute_moments_impl(g, nr_moments, rewards_vec);
 
         // Copy to output buffer
         for (int i = 0; i < nr_moments; i++) {

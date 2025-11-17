@@ -144,6 +144,7 @@ if(XLA_FFI_RESULT EQUAL 0)
     list(APPEND PYBIND_SOURCES
         src/cpp/parameterized/graph_builder_ffi.cpp
         src/cpp/parameterized/graph_builder_ffi.hpp
+        src/cpp/parameterized/ffi_handlers.cpp
     )
     message(STATUS "")
     message(STATUS "✓✓✓ FFI handlers WILL be compiled (fast C++ JAX integration)")
