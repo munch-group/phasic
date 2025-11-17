@@ -1,48 +1,54 @@
-"""Debug graph clone - check vertex counts"""
+#!/usr/bin/env python3
+"""Test clone with debug logging"""
 
-from phasic import Graph
+import phasic
+from phasic.state_indexing import Property, StateSpace
+from phasic.logging_config import set_log_level
+import numpy as np
 
-# Create a simple graph
-g = Graph(state_length=1)
-print(f"After Graph(state_length=1): vertices_length = {g.vertices_length()}")
+# Enable debug logging
+set_log_level('DEBUG')
 
-v0 = g.starting_vertex()
-print(f"After getting starting_vertex: vertices_length = {g.vertices_length()}")
+def two_locus_arg(state, s=None, N=None, R=None, state_space=None):
+    transitions = []
+    if state.sum() <= 1: return transitions
+    for i in range(state_space.size):
+        if state[i] == 0: continue
+        conf_i = state_space.index_to_props(i)
+        for j in range(i, state_space.size):
+            if state[j] == 0: continue
+            conf_j = state_space.index_to_props(j)
+            same = int(i == j)
+            if same and state[i] < 2:
+                continue
+            if not same and (state[i] < 1 or state[j] < 1):
+                continue
+            child = state.copy()
+            child[i] -= 1
+            child[j] -= 1
+            L1Des = conf_i['L1Des'] + conf_j['L1Des']
+            L2Des = conf_i['L2Des'] + conf_j['L2Des']
+            if L1Des <= s and L1Des <= s:
+                child[state_space.props_to_index(L1Des=L1Des, L2Des=L2Des)] += 1
+                transitions.append([child, [state[i]*(state[j]-same)/(1+same)]])
+    return transitions
 
-v1 = g.find_or_create_vertex([1])
-print(f"After find_or_create_vertex([1]): vertices_length = {g.vertices_length()}")
+nr_samples = 7
+state_space = StateSpace([Property('L1Des', max_value=nr_samples), Property('L2Des', max_value=nr_samples)])
+initial = np.empty(state_space.size+2, dtype=int)
+initial.fill(0)
+initial[state_space.props_to_index(L1Des=1, L2Des=1)] = nr_samples
+ipv = [[initial, 1.0]]
+graph = phasic.Graph(two_locus_arg, ipv=ipv, s=nr_samples, N=1, R=1, state_space=state_space)
 
-v0.add_edge(v1, 1.0)
-print(f"After add_edge: vertices_length = {g.vertices_length()}")
-
-print(f"\nOriginal graph: {g.vertices_length()} vertices")
-
-# List all vertices
-print("Vertices in original:")
-for i, v in enumerate(g.vertices()):
-    print(f"  {i}: state={v.state()}")
-
-# Now clone
+print(f"Original graph: {graph.vertices_length()} vertices")
 print("\nCloning...")
-g2 = g.clone()
-print(f"Clone: {g2.vertices_length()} vertices")
+clone = graph.clone()
+print(f"Cloned graph: {clone.vertices_length()} vertices")
 
-# List all vertices in clone
-print("Vertices in clone:")
-for i, v in enumerate(g2.vertices()):
-    print(f"  {i}: state={v.state()}")
-
-# Check starting vertex
-print(f"\nOriginal starting vertex state: {g.starting_vertex().state()}")
-print(f"Clone starting vertex state: {g2.starting_vertex().state()}")
-
-# Try adding a vertex to original only
-print("\nAdding vertex [2] to original...")
-v2 = g.find_or_create_vertex([2])
-print(f"Original: {g.vertices_length()} vertices")
-print(f"Clone: {g2.vertices_length()} vertices")
-
-if g2.vertices_length() == 1:
-    print("\n✅ Clone is independent!")
-else:
-    print(f"\n❌ Clone has {g2.vertices_length()} vertices, should have 1!")
+print("\nChecking vertex 0 state addresses:")
+orig_state = list(graph.vertices())[0].state()
+clone_state = list(clone.vertices())[0].state()
+print(f"  Original: {id(orig_state)} -> {orig_state[:5]}")
+print(f"  Clone: {id(clone_state)} -> {clone_state[:5]}")
+print(f"  Different? {id(orig_state) != id(clone_state)}")
