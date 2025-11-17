@@ -647,8 +647,13 @@ def compute_missing_traces_parallel(work_units: Dict[str, str],
     # ========================================================================
     if strategy == 'vmap':
         # Determine number of workers
+
         if n_workers is None:
             n_workers = os.cpu_count() or 1
+
+        # If running in SLURM, respect allocated CPUs
+        n_workers = os.environ.get('SLURM_JOB_CPUS_PER_NODE', n_workers)
+
         n_workers = max(1, min(n_workers, len(work_units)))  # Limit to work count
 
         logger.info("VMAP: Using multiprocessing with %d workers over %d work units",
