@@ -2410,7 +2410,7 @@ class Graph(_Graph):
                     """
                     return model_ffi_partial(theta=theta, times=times)
             else:
-                # FALLBACK MODE: pure_callback (single-core, no FFI)
+                # pure_callback (single-core, no FFI)
                 from . import phasic_pybind as cpp_module
 
                 # Create GraphBuilder ONCE - captured in model closure
@@ -3407,7 +3407,7 @@ extern "C" {{
                 times = jnp.atleast_1d(times)
                 return model_ffi_partial(theta=theta, times=times, rewards=rewards)
         else:
-            # FALLBACK MODE: Use pybind11 GraphBuilder (same as pmf_from_graph)
+            # Use pybind11 GraphBuilder (same as pmf_from_graph)
             import json
             from . import phasic_pybind as cpp_module
             from .ffi_wrappers import _make_json_serializable
