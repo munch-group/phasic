@@ -48,7 +48,11 @@
       "Bash(PHASIC_DISABLE_TRACES=1 python debug_pdf_param.py)",
       "Bash(PYTHONDONTWRITEBYTECODE=1 python test_instantiate_debug.py)",
       "Bash(/dev/null)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "WebSearch",
+      "WebFetch(domain:stackoverflow.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(XLA_FFI_INCLUDE_DIR=/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jaxlib/include pip install:*)"
     ],
     "deny": [],
     "ask": []
