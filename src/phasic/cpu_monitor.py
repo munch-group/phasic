@@ -1539,7 +1539,7 @@ class CPUMonitor:
             self._terminal_update_thread = threading.Thread(target=terminal_update_loop, daemon=True)
             self._terminal_update_thread.start()
 
-    def stop(self):
+    def stop(self, had_error: bool = False):
         """Stop monitoring."""
         if not self._monitoring:
             return
@@ -1582,7 +1582,8 @@ class CPUMonitor:
                 if hasattr(self, '_html_display'):
                     try:
                         from IPython.display import clear_output
-                        clear_output(wait=False)
+                        if not had_error:
+                            clear_output(wait=False)
                     except:
                         pass
 
@@ -1593,7 +1594,7 @@ class CPUMonitor:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Context manager exit."""
-        self.stop()
+        self.stop(exc_type is not None)
         return False
 
 
