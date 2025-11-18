@@ -141,6 +141,103 @@ ffi::Error ComputePmfFfiImpl(
     }
 }
 
+// ComputeMomentsFfiImpl: vmap-aware wrapper for moments computation
+ffi::Error ComputeMomentsFfiImpl(
+    std::string_view structure_json,
+    ffi::Buffer<ffi::F64> theta,
+    int32_t nr_moments,
+    ffi::ResultBuffer<ffi::F64> result
+) {
+    try {
+        // JSON is passed as string_view attribute (static, not batched by vmap)
+        std::string json_str(structure_json);
+
+        // Look up or create GraphBuilder in thread-local cache
+        std::shared_ptr<GraphBuilder> builder;
+        auto it = builder_cache.find(json_str);
+        if (it != builder_cache.end()) {
+            builder = it->second;
+        } else {
+            // Create new GraphBuilder and cache it
+            try {
+                builder = std::make_shared<GraphBuilder>(json_str);
+                builder_cache[json_str] = builder;
+            } catch (const std::exception& e) {
+                return ffi::Error::InvalidArgument(
+                    std::string("Failed to parse JSON structure: ") + e.what()
+                );
+            }
+        }
+
+        // Extract buffer dimensions
+        // NOTE: With vmap, theta may have batch dimension added
+        // theta: 1D (n_params,) OR 2D (batch, n_params)
+        auto theta_dims = theta.dimensions();
+
+        size_t theta_len;
+        size_t theta_batch_size = 1;
+
+        if (theta_dims.size() == 1) {
+            // No batch dimension
+            theta_len = theta_dims[0];
+        } else if (theta_dims.size() == 2) {
+            // Batched (from vmap): shape is (batch, n_params)
+            theta_batch_size = theta_dims[0];
+            theta_len = theta_dims[1];
+        } else {
+            return ffi::Error::InvalidArgument("theta must be 1D or 2D array");
+        }
+
+        // Get raw data pointers
+        const double* theta_data = theta.typed_data();
+        double* result_data = result->typed_data();
+
+        // Empty rewards vector (standard moments)
+        std::vector<double> rewards_vec;
+
+        // Check if batched (from vmap)
+        if (theta_batch_size > 1) {
+            // BATCHED: Process multiple theta values
+            // Process each batch element in parallel using OpenMP
+            #pragma omp parallel for if(theta_batch_size > 1)
+            for (size_t b = 0; b < theta_batch_size; b++) {
+                // Build graph for this batch element
+                const double* theta_b = theta_data + (b * theta_len);
+                Graph g = builder->build(theta_b, theta_len);
+
+                // Get result pointer for this batch
+                double* result_b = result_data + (b * nr_moments);
+
+                // Compute moments
+                std::vector<double> moments_vec = builder->compute_moments_impl(g, nr_moments, rewards_vec);
+
+                // Copy to output buffer
+                for (int i = 0; i < nr_moments; i++) {
+                    result_b[i] = moments_vec[i];
+                }
+            }
+        } else {
+            // NOT BATCHED: theta shape (n_params,)
+            Graph g = builder->build(theta_data, theta_len);
+
+            // Compute moments
+            std::vector<double> moments_vec = builder->compute_moments_impl(g, nr_moments, rewards_vec);
+
+            // Copy to output buffer
+            for (int i = 0; i < nr_moments; i++) {
+                result_data[i] = moments_vec[i];
+            }
+        }
+
+        return ffi::Error::Success();
+
+    } catch (const std::exception& e) {
+        // Capture C++ exceptions and return as FFI error
+        std::cerr << "❌ Exception in ComputeMomentsFfiImpl: " << e.what() << std::endl;
+        return ffi::Error::Internal(e.what());
+    }
+}
+
 ffi::Error ComputePmfAndMomentsFfiImpl(
     std::string_view structure_json,
     int32_t nr_moments,
@@ -341,6 +438,21 @@ XLA_FFI_Handler* CreateComputePmfHandler() {
             .Arg<xla::ffi::Buffer<xla::ffi::F64>>()    // times (batched by vmap)
             .Ret<xla::ffi::Buffer<xla::ffi::F64>>()    // result
             .To(ffi_handlers::ComputePmfFfiImpl)
+            .release();
+        return bound_handler->Call(call_frame);
+    };
+    return handler;
+}
+
+XLA_FFI_Handler* CreateComputeMomentsHandler() {
+    // Create a static function pointer using the pattern from XLA_FFI_DEFINE_HANDLER
+    static constexpr XLA_FFI_Handler* handler = +[](XLA_FFI_CallFrame* call_frame) {
+        static auto* bound_handler = xla::ffi::Ffi::Bind()
+            .Attr<std::string_view>("structure_json")  // JSON as STATIC attribute (not batched)
+            .Arg<xla::ffi::Buffer<xla::ffi::F64>>()    // theta (batched by vmap)
+            .Attr<int32_t>("nr_moments")
+            .Ret<xla::ffi::Buffer<xla::ffi::F64>>()    // moments
+            .To(ffi_handlers::ComputeMomentsFfiImpl)
             .release();
         return bound_handler->Call(call_frame);
     };

@@ -38,6 +38,25 @@ ffi::Error ComputePmfFfiImpl(
 );
 
 /**
+ * @brief JAX FFI handler for computing distribution moments
+ *
+ * This handler computes E[T^k] for k=1,2,...,nr_moments using the GraphBuilder.
+ *
+ * @param structure_json JSON structure as string_view (STATIC attribute, not batched)
+ * @param theta Parameter array buffer (F64, shape: [n_params]) - BATCHED by vmap
+ * @param nr_moments Number of moments to compute (int32_t attribute)
+ * @param result Output buffer (F64, shape: [nr_moments])
+ *
+ * @return ffi::Error Success or error status
+ */
+ffi::Error ComputeMomentsFfiImpl(
+    std::string_view structure_json,
+    ffi::Buffer<ffi::F64> theta,
+    int32_t nr_moments,
+    ffi::ResultBuffer<ffi::F64> result
+);
+
+/**
  * @brief JAX FFI handler for computing both PMF and moments
  *
  * More efficient than separate calls as graph is built only once.
@@ -70,6 +89,7 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
 // Functions to create FFI handlers for Python-side registration
 // These must be called AFTER JAX is fully initialized
 XLA_FFI_Handler* CreateComputePmfHandler();
+XLA_FFI_Handler* CreateComputeMomentsHandler();
 XLA_FFI_Handler* CreateComputePmfAndMomentsHandler();
 
 } // namespace parameterized

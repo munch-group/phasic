@@ -4672,6 +4672,19 @@ Use Graph.distribution_context(granularity) instead.
   >>> jax.ffi.register_ffi_target("ptd_compute_pmf", capsule, platform="cpu")
   )delim");
 
+  param_module.def("get_compute_moments_ffi_capsule", []() -> py::capsule {
+      // Create handler on-demand (safe because JAX is already initialized)
+      auto* handler = phasic::parameterized::CreateComputeMomentsHandler();
+      return py::capsule(reinterpret_cast<void*>(handler), "xla._CUSTOM_CALL_TARGET");
+  }, R"delim(
+  Get PyCapsule for JAX FFI compute_moments handler.
+
+  Returns
+  -------
+  capsule
+      PyCapsule containing pointer to XLA FFI handler
+  )delim");
+
   param_module.def("get_compute_pmf_and_moments_ffi_capsule", []() -> py::capsule {
       // Create handler on-demand (safe because JAX is already initialized)
       auto* handler = phasic::parameterized::CreateComputePmfAndMomentsHandler();

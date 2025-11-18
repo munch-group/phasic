@@ -195,6 +195,7 @@ def _register_ffi_targets():
         # Get capsules for FFI handlers (created on-demand, safe after JAX init)
         try:
             compute_pmf_capsule = cpp_module.parameterized.get_compute_pmf_ffi_capsule()
+            compute_moments_capsule = cpp_module.parameterized.get_compute_moments_ffi_capsule()
             compute_pmf_and_moments_capsule = cpp_module.parameterized.get_compute_pmf_and_moments_ffi_capsule()
         except AttributeError as e:
             raise PTDBackendError(
@@ -215,6 +216,12 @@ def _register_ffi_targets():
             jax.ffi.register_ffi_target(
                 "ptd_compute_pmf",
                 compute_pmf_capsule,
+                platform="cpu",
+                api_version=1  # XLA FFI API v1.0
+            )
+            jax.ffi.register_ffi_target(
+                "ptd_compute_moments",
+                compute_moments_capsule,
                 platform="cpu",
                 api_version=1  # XLA FFI API v1.0
             )
@@ -371,68 +378,68 @@ def _compute_pmf_and_moments_impl(structure_json: str, theta_np: np.ndarray,
     )
 
 
-def compute_pmf_and_moments_fallback(structure_json: Union[str, Dict], theta: jax.Array,
-                                    times: jax.Array, nr_moments: int,
-                                    discrete: bool = False,
-                                    granularity: int = 100) -> tuple[jax.Array, jax.Array]:
-    """
-    Compute both PMF and moments using pybind11 GraphBuilder (fallback).
+# def compute_pmf_and_moments_fallback(structure_json: Union[str, Dict], theta: jax.Array,
+#                                     times: jax.Array, nr_moments: int,
+#                                     discrete: bool = False,
+#                                     granularity: int = 100) -> tuple[jax.Array, jax.Array]:
+#     """
+#     Compute both PMF and moments using pybind11 GraphBuilder (fallback).
 
-    More efficient than separate calls because the graph is built only once.
-    Uses JAX's pure_callback for JIT compatibility.
+#     More efficient than separate calls because the graph is built only once.
+#     Uses JAX's pure_callback for JIT compatibility.
 
-    Parameters
-    ----------
-    structure_json : str or dict
-        JSON string or dict (from graph.serialize()) representing graph structure
-    theta : jax.Array
-        Parameter array, shape (n_params,)
-    times : jax.Array
-        Time points or jump counts, shape (n_times,)
-    nr_moments : int
-        Number of moments to compute
-    discrete : bool, default=False
-        If True, use DPH mode; if False, use PDF mode
-    granularity : int, default=100
-        Discretization granularity for PDF
+#     Parameters
+#     ----------
+#     structure_json : str or dict
+#         JSON string or dict (from graph.serialize()) representing graph structure
+#     theta : jax.Array
+#         Parameter array, shape (n_params,)
+#     times : jax.Array
+#         Time points or jump counts, shape (n_times,)
+#     nr_moments : int
+#         Number of moments to compute
+#     discrete : bool, default=False
+#         If True, use DPH mode; if False, use PDF mode
+#     granularity : int, default=100
+#         Discretization granularity for PDF
 
-    Returns
-    -------
-    tuple[jax.Array, jax.Array]
-        (pmf_values, moments)
-        - pmf_values: shape (n_times,)
-        - moments: shape (nr_moments,)
-    """
-    if not _HAS_CPP_MODULE:
-        raise RuntimeError("C++ module not available. Cannot compute PMF and moments.")
+#     Returns
+#     -------
+#     tuple[jax.Array, jax.Array]
+#         (pmf_values, moments)
+#         - pmf_values: shape (n_times,)
+#         - moments: shape (nr_moments,)
+#     """
+#     if not _HAS_CPP_MODULE:
+#         raise RuntimeError("C++ module not available. Cannot compute PMF and moments.")
 
-    # Ensure structure_json is a JSON string (convert dict if needed)
-    structure_json_str = _ensure_json_string(structure_json)
+#     # Ensure structure_json is a JSON string (convert dict if needed)
+#     structure_json_str = _ensure_json_string(structure_json)
 
-    # Use pure_callback to wrap the C++ call
-    pmf_shape = jax.ShapeDtypeStruct(times.shape, jnp.float64)
-    moments_shape = jax.ShapeDtypeStruct((nr_moments,), jnp.float64)
-    result_shapes = (pmf_shape, moments_shape)
+#     # Use pure_callback to wrap the C++ call
+#     pmf_shape = jax.ShapeDtypeStruct(times.shape, jnp.float64)
+#     moments_shape = jax.ShapeDtypeStruct((nr_moments,), jnp.float64)
+#     result_shapes = (pmf_shape, moments_shape)
 
-    def callback_fn(theta_jax, times_jax):
-        return _compute_pmf_and_moments_impl(
-            structure_json_str,
-            np.asarray(theta_jax),
-            np.asarray(times_jax),
-            nr_moments,
-            discrete,
-            granularity
-        )
+#     def callback_fn(theta_jax, times_jax):
+#         return _compute_pmf_and_moments_impl(
+#             structure_json_str,
+#             np.asarray(theta_jax),
+#             np.asarray(times_jax),
+#             nr_moments,
+#             discrete,
+#             granularity
+#         )
 
-    pmf, moments = jax.pure_callback(
-        callback_fn,
-        result_shapes,
-        theta,
-        times,
-        vmap_method='sequential'  # Enable vmap support (JAX v0.6.0+)
-    )
+#     pmf, moments = jax.pure_callback(
+#         callback_fn,
+#         result_shapes,
+#         theta,
+#         times,
+#         vmap_method='sequential'  # Enable vmap support (JAX v0.6.0+)
+#     )
 
-    return pmf, moments
+#     return pmf, moments
 
 
 # ============================================================================
@@ -542,16 +549,55 @@ def compute_moments_ffi(structure_json: Union[str, Dict], theta: jax.Array,
         Moments array, shape (nr_moments,)
         Contains [E[T], E[T^2], ..., E[T^nr_moments]]
 
+    Raises
+    ------
+    PTDConfigError
+        If FFI is disabled in configuration
+    PTDBackendError
+        If FFI is enabled but not available (build issue)
+
+    Notes
+    -----
+    - Requires FFI to be enabled and built with XLA headers
+    - Accepts both JSON string and dict from graph.serialize()
+    - GIL is released during C++ computation
+    - Supports batching via vmap
+    - More efficient to use compute_pmf_and_moments_ffi() if you need both
+
     Examples
     --------
+    >>> # Using dict from graph.serialize()
     >>> structure_dict = graph.serialize()
+    >>> theta = jnp.array([1.0, 0.5])
     >>> moments = compute_moments_ffi(structure_dict, theta, nr_moments=3)
     >>> mean = moments[0]
     >>> variance = moments[1] - moments[0]**2
+    >>>
+    >>> # JIT compilation
+    >>> jit_moments = jax.jit(compute_moments_ffi, static_argnums=(0, 2))
+    >>> fast_moments = jit_moments(structure_dict, theta, 3)
     """
-    # For now, use fallback implementation
-    # TODO: Replace with true FFI call once handlers are properly exposed
-    return compute_moments_fallback(structure_json, theta, nr_moments)
+    # Register FFI targets (raises error if FFI disabled or unavailable)
+    _register_ffi_targets()
+
+    # Use JAX FFI (XLA-optimized zero-copy)
+    # JSON is passed as STRING ATTRIBUTE (static, not batched by vmap)
+    structure_str = _ensure_json_string(structure_json)
+
+    # Call JAX FFI target
+    # NOTE: JSON passed as attribute (static), theta as buffer (batched)
+    # expand_dims: vmap adds batch dimension, FFI handler processes batches
+    ffi_fn = jax.ffi.ffi_call(
+        "ptd_compute_moments",
+        jax.ShapeDtypeStruct((nr_moments,), jnp.float64),
+        vmap_method="expand_dims"  # Batch dim added, handler processes all
+    )
+    result = ffi_fn(
+        theta,       # Arg 1: theta buffer (BATCHED by vmap)
+        structure_json=structure_str,        # Attr: JSON string (STATIC, not batched)
+        nr_moments=np.int32(nr_moments)      # Attr: nr_moments
+    )
+    return result
 
 
 def compute_pmf_and_moments_ffi(structure_json: Union[str, Dict], theta: jax.Array,
