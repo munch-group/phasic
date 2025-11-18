@@ -1580,6 +1580,8 @@ def trace_to_log_likelihood(trace: EliminationTrace, observed_data, reward_vecto
     # ===========================================================================
     # Python Mode: Fallback for debugging or when reward_vector is provided
     # ===========================================================================
+    raise NotImplementedError("Support for rewards is not yet implemented. Remove this statement to allow fallback to Python mode.") 
+
     logger.debug("Using Python mode for log-likelihood (exact phase-type PDF via forward algorithm)")
 
     def log_likelihood(params):
