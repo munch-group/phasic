@@ -2,8 +2,7 @@
   {
     "listing": "/index.html",
     "items": [
-      "/pages/getting_started.html",
-      "/pages/tutorials/rabbits_full_py_api_example.html"
+      "/pages/getting_started.html"
     ]
   }
 ]
