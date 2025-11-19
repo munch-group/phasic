@@ -123,7 +123,7 @@ class StepSizeSchedule:
 
         Examples
         --------
-        >>> schedule = ExponentialDecayStepSize(first_step=0.1, last_step=0.01, tau=500.0)
+        >>> schedule = ExpStepSize(first_step=0.1, last_step=0.01, tau=500.0)
         >>> fig, ax = schedule.plot(nr_iter=2000)
         >>> plt.show()
         """
@@ -184,7 +184,7 @@ class ConstantStepSize(StepSizeSchedule):
         return self.step_size
 
 
-class ExponentialDecayStepSize(StepSizeSchedule):
+class ExpStepSize(StepSizeSchedule):
     """
     Exponential decay schedule: step_size = first_step * exp(-iteration/tau) + last_step * (1 - exp(-iteration/tau)).
 
@@ -202,7 +202,7 @@ class ExponentialDecayStepSize(StepSizeSchedule):
 
     Examples
     --------
-    >>> schedule = ExponentialDecayStepSize(first_step=0.1, last_step=0.01, tau=500.0)
+    >>> schedule = ExpStepSize(first_step=0.1, last_step=0.01, tau=500.0)
     >>> schedule(0)      # iteration 0
     0.1
     >>> schedule(500)    # iteration 500 (≈63% decay)
@@ -321,7 +321,7 @@ class RegularizationSchedule:
 
         Examples
         --------
-        >>> schedule = ExponentialDecayRegularization(first_reg=5.0, last_reg=0.1, tau=500.0)
+        >>> schedule = ExpRegularization(first_reg=5.0, last_reg=0.1, tau=500.0)
         >>> fig, ax = schedule.plot(nr_iter=2000)
         >>> plt.show()
         """
@@ -382,7 +382,7 @@ class ConstantRegularization(RegularizationSchedule):
         return self.regularization
 
 
-class ExponentialDecayRegularization(RegularizationSchedule):
+class ExpRegularization(RegularizationSchedule):
     """
     Exponential decay schedule: reg = first_reg * exp(-iteration/tau) + last_reg * (1 - exp(-iteration/tau)).
 
@@ -401,7 +401,7 @@ class ExponentialDecayRegularization(RegularizationSchedule):
 
     Examples
     --------
-    >>> schedule = ExponentialDecayRegularization(first_reg=5.0, last_reg=0.1, tau=500.0)
+    >>> schedule = ExpRegularization(first_reg=5.0, last_reg=0.1, tau=500.0)
     >>> schedule(0)      # iteration 0
     5.0
     >>> schedule(500)    # iteration 500 (≈63% decay)
@@ -1420,7 +1420,7 @@ class SVGD:
         SVGD step size. Can be:
         - float: constant step size (backward compatible)
         - StepSizeSchedule object: dynamic step size schedule
-        Examples: ConstantStepSize(0.01), ExponentialDecayStepSize(0.1, 0.01, 500.0)
+        Examples: ConstantStepSize(0.01), ExpStepSize(0.1, 0.01, 500.0)
     bandwidth : str default='median'
         Kernel bandwidth selection. Can be:
         - str: 'median' for median heuristic (backward compatible)
@@ -1489,7 +1489,7 @@ class SVGD:
         Moment-based regularization strength. Can be:
         - float: constant regularization (0.0 = no regularization, >0.0 = regularized SVGD)
         - RegularizationSchedule object: dynamic regularization schedule
-        Examples: ConstantRegularization(1.0), ExponentialDecayRegularization(5.0, 0.1, 500.0)
+        Examples: ConstantRegularization(1.0), ExpRegularization(5.0, 0.1, 500.0)
 
         If > 0.0, adds penalty term to match model moments to sample moments.
         Sample moments are computed from observed_data at initialization.
@@ -1540,8 +1540,8 @@ class SVGD:
     >>> svgd.fit()
     >>>
     >>> # Using step size schedules to prevent divergence
-    >>> from phasic import ExponentialDecayStepSize
-    >>> schedule = ExponentialDecayStepSize(first_step=0.1, last_step=0.01, tau=500.0)
+    >>> from phasic import ExpStepSize
+    >>> schedule = ExpStepSize(first_step=0.1, last_step=0.01, tau=500.0)
     >>> svgd = SVGD(model, observed_data, theta_dim=1, learning_rate=schedule)
     >>> svgd.fit()
     >>>
@@ -1552,8 +1552,8 @@ class SVGD:
     >>> svgd.fit()
     >>>
     >>> # Using regularization schedules for moment matching
-    >>> from phasic import ExponentialDecayRegularization
-    >>> reg_schedule = ExponentialDecayRegularization(first_reg=5.0, last_reg=0.1, tau=500.0)
+    >>> from phasic import ExpRegularization
+    >>> reg_schedule = ExpRegularization(first_reg=5.0, last_reg=0.1, tau=500.0)
     >>> svgd = SVGD(model, observed_data, theta_dim=1,
     ...             regularization=reg_schedule, nr_moments=2)
     >>> svgd.fit()  # Starts with strong regularization, gradually reduces
@@ -2540,7 +2540,6 @@ class SVGD:
         self.theta_std = results['theta_std']
 
         if return_history:
-            print(results['history'])
             self.history = np.array(results['history'])
             self.history_iterations = results['history_iterations']
 
@@ -2969,7 +2968,7 @@ class SVGD:
             for p in range(max_plotted):  # Plot first 10 particles
                 y = history_array[:, p, i]
                 x = np.arange(y.size)
-                ax.plot(x[skip:], y[skip:], alpha=1, )
+                ax.plot(x[skip:], y[skip:], alpha=1, linewidth=0.5)
 
             # Plot mean trajectory
             mean_trajectory = jnp.mean(history_array[:, :, i], axis=1)
@@ -3139,7 +3138,7 @@ class SVGD:
             y = gengamma.pdf(x, a, c, loc=0, scale=scale)
             return x, y
 
-        ax.plot(**gengamma_curve_fit(x), color='orange', lw=2, label='Generalized gamma fit')
+        ax.plot(*gengamma_curve_fit(x), color='orange', lw=2, label='Generalized gamma fit')
 
         # Add true parameter if provided
         if true_params is not None:
@@ -3172,7 +3171,7 @@ class SVGD:
 
     def plot_svgd_posterior_2d(self, true_params=None, obs_stats=None,
                             map_est=None, idx=(0, 1),
-                            figsize=(10, 8),
+                            figsize=(8, 6),
                             labels=None,
                             title=None):
         """
@@ -3525,7 +3524,7 @@ class SVGD:
             _, threshold = self.estimate_hdr(alpha)
             levels.append((threshold.item(), alpha))
 
-        fig, ax = plt.subplots(figsize=(7, 5))
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 3))
 
         # plot grid log likelihoods
         x_flat, y_flat, z_flat = X.ravel(), Y.ravel(), Z.ravel()
@@ -3534,17 +3533,15 @@ class SVGD:
                                 edgecolor='none', alpha=0.5, s=5, legend=False)
         # Find and mark logL grid point
         max_idx = jnp.argmax(z_flat)
-        ax.scatter(x_flat[max_idx], y_flat[max_idx], color='red', s=70, 
-                marker='x', alpha=1,
-                label='Max grid LogL')
+        ax1.scatter(x_flat[max_idx], y_flat[max_idx], color='red', s=70, marker='x', alpha=1, label='Max grid LogL')
+        ax2.scatter(x_flat[max_idx], y_flat[max_idx], color='red', s=70, marker='x', alpha=1, label='Max grid LogL')
 
         # Find and mark MAP estimate
         map_particle, _ = self.map_estimate_from_particles()
         if len(map_particle) > max(idx):
-            ax.scatter(map_particle[idx[0]], map_particle[idx[1]], color='orange', s=70, 
-                    marker='x', alpha=1,
-                    label='MAP estimate')
-        
+            ax1.scatter(map_particle[idx[0]], map_particle[idx[1]], color='orange', s=70, marker='x', alpha=1, label='MAP estimate')
+            ax2.scatter(map_particle[idx[0]], map_particle[idx[1]], color='orange', s=70, marker='x', alpha=1, label='MAP estimate')
+
         # plot particles (only the selected dimensions)
         logLikelihoods = vmap(lambda p: log_prob_fn(p))(self.particles)    
         scatter = sns.scatterplot(x=self.particles[:, idx[0]], y=self.particles[:, idx[1]], 
@@ -3552,13 +3549,16 @@ class SVGD:
                                 edgecolor='none', alpha=0.5, s=10, legend=False)
         # plot contour lines for HDR
         levels, alphas = zip(*sorted(levels))
-        contour = ax.contour(X, Y, Z, levels=levels, cmap=iridis, linestyles='dashed', alpha=0.7)
+        contour = ax2.contour(X, Y, Z, levels=levels, cmap=iridis, linestyles='dashed', alpha=0.7)
         
-        ax.set_xlabel(f'Parameter {idx[0]}')
-        ax.set_ylabel(f'Parameter {idx[1]}')
-        ax.set_title(f'HDR Visualization: Param {idx[0]} vs Param {idx[1]}')
-        ax.legend()
-        
+        ax1.set_xlabel(f'Parameter {idx[0]}')
+        ax1.set_ylabel(f'Parameter {idx[1]}')
+        ax1.legend()
+
+        ax2.set_xlabel(f'Parameter {idx[0]}')
+        ax2.set_ylabel(f'Parameter {idx[1]}')
+        ax2.legend()
+
         return fig
 
 
@@ -3885,7 +3885,7 @@ class SVGD:
         # Decision logic
         if variance_collapsed:
             return {
-                'recommended': ExponentialDecayStepSize(
+                'recommended': ExpStepSize(
                     max_step=0.005, min_step=0.0005, tau=500.0
                 ),
                 'reason': 'Variance collapsed - reduce learning rate significantly'
@@ -3894,7 +3894,7 @@ class SVGD:
             # Not converged - might need more iterations or different schedule
             if isinstance(current_schedule, ConstantStepSize):
                 return {
-                    'recommended': ExponentialDecayStepSize(
+                    'recommended': ExpStepSize(
                         max_step=current_schedule.step_size * 1.5,
                         min_step=current_schedule.step_size * 0.1,
                         tau=n_iterations * 0.5
@@ -4157,9 +4157,9 @@ class SVGD:
         print(f"Learning Rate: {lr_sug['reason']}")
         if isinstance(lr_sug['recommended'], str):
             print(f"  Recommendation: {lr_sug['recommended']}")
-        elif isinstance(lr_sug['recommended'], ExponentialDecayStepSize):
+        elif isinstance(lr_sug['recommended'], ExpStepSize):
             sched = lr_sug['recommended']
-            print(f"  Recommendation: ExponentialDecayStepSize(")
+            print(f"  Recommendation: ExpStepSize(")
             print(f"      max_step={sched.max_step},")
             print(f"      min_step={sched.min_step},")
             print(f"      tau={sched.tau}")

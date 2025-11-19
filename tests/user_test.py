@@ -45,9 +45,9 @@ def uninformative_prior(phi):
     sigma = 10.0
     return -0.5 * jnp.sum(((phi - mu) / sigma)**2)
 
-from phasic import SVGD, ExponentialDecayStepSize
+from phasic import SVGD, ExpStepSize
 
-step_schedule = ExponentialDecayStepSize(first_step=0.001, last_step=0.00001, tau=500.0)
+step_schedule = ExpStepSize(first_step=0.001, last_step=0.00001, tau=500.0)
 
 params = dict(
             bandwidth='median',

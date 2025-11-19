@@ -148,10 +148,10 @@ print(f"   Observations: {n_obs2}")
 
 # Run SVGD with regularization
 print("\n3. Running SVGD with moment regularization...")
-from phasic import ExponentialDecayRegularization
+from phasic import ExpRegularization
 
 # Start with strong regularization, decay over time
-regularization = ExponentialDecayRegularization(
+regularization = ExpRegularization(
     first_reg=5.0,   # Strong initial regularization
     last_reg=0.1,    # Weak final regularization
     tau=200.0        # Decay over 200 iterations

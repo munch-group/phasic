@@ -42,7 +42,7 @@ Automatically suggests improvements for:
 ### Basic Usage
 
 ```python
-from phasic import SVGD, ExponentialDecayStepSize
+from phasic import SVGD, ExpStepSize
 
 # Run SVGD with history tracking
 svgd = SVGD(model, data, theta_dim=1, n_iterations=1000)
@@ -104,7 +104,7 @@ Suggested Parameter Updates
 ================================================================================
 
 Current Configuration:
-  learning_rate=<ExponentialDecayStepSize>
+  learning_rate=<ExpStepSize>
   n_particles=50
   n_iterations=1000
 
@@ -227,7 +227,7 @@ Higher variance → better ESS (particles are diverse).
 The `analyze_trace()` method integrates seamlessly with the schedule system introduced in the same update:
 
 ```python
-from phasic import SVGD, ExponentialDecayStepSize
+from phasic import SVGD, ExpStepSize
 
 # Initial run with constant learning rate
 svgd = SVGD(model, data, theta_dim=1, learning_rate=0.01)
@@ -239,7 +239,7 @@ diag = svgd.analyze_trace(return_dict=True, verbose=False)
 # Apply suggested decay schedule
 if not diag['converged']:
     lr_sug = diag['suggestions']['learning_rate']['recommended']
-    if isinstance(lr_sug, ExponentialDecayStepSize):
+    if isinstance(lr_sug, ExpStepSize):
         # Re-run with suggested schedule
         svgd2 = SVGD(model, data, theta_dim=1, learning_rate=lr_sug)
         svgd2.fit(return_history=True)

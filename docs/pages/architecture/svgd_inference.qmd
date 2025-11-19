@@ -843,8 +843,8 @@ svgd = SVGD(
 )
 
 # Exponential decay schedule
-from phasic import ExponentialDecayRegularization
-reg_schedule = ExponentialDecayRegularization(
+from phasic import ExpRegularization
+reg_schedule = ExpRegularization(
     first_reg=5.0,  # Strong initial regularization
     last_reg=0.1,   # Weak final regularization
     tau=500.0       # Decay time constant
@@ -884,8 +884,8 @@ Control learning rate dynamics via step size schedules.
 svgd = SVGD(model, data, theta_dim=2, learning_rate=0.01)
 
 # Exponential decay
-from phasic import ExponentialDecayStepSize
-step_schedule = ExponentialDecayStepSize(
+from phasic import ExpStepSize
+step_schedule = ExpStepSize(
     first_step=0.1,   # Initial step size
     last_step=0.01,   # Final step size
     tau=500.0         # Decay time constant

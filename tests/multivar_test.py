@@ -26,8 +26,8 @@ def coalescent(state, nr_samples=None):
 
 
 n_iterations = 1000
-step_schedule = phasic.ExponentialDecayStepSize(first_step=0.001, last_step=0.0001, tau=n_iterations/5)
-#reg_schedule = phasic.ExponentialDecayRegularization(first_reg=5.0, last_reg=100.0, tau=50.0)
+step_schedule = phasic.ExpStepSize(first_step=0.001, last_step=0.0001, tau=n_iterations/5)
+#reg_schedule = phasic.ExpRegularization(first_reg=5.0, last_reg=100.0, tau=50.0)
 
 # fig, axes = plt.subplots(1, 3, figsize=(10, 3))
 # step_schedule.plot(n_iterations, ax=axes[0])
