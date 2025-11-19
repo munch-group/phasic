@@ -119,6 +119,7 @@ notebook = ">=7.4.7,<8"
 nodejs = ">=24.4.1,<24.10"
 electron = ">=1.6.15,<2"
 nbstripout = ">=0.8.1,<0.9"
+pytest = ">=9.0.1,<10"
 
 # [tool.pixi.pypi-dependencies]
 
