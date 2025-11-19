@@ -44,7 +44,7 @@ ffi::Error ComputePmfHandler(
     std::string_view structure_json,
     ffi::Buffer<ffi::DataType::F64> theta,
     ffi::Buffer<ffi::DataType::F64> times,
-    int32_t discrete,
+    bool discrete,
     int32_t granularity,
     ffi::ResultBuffer<ffi::DataType::F64> pmf
 ) {
@@ -101,7 +101,7 @@ XLA_FFI_DEFINE_HANDLER_SYMBOL(
         .Attr<std::string_view>("structure_json")
         .Arg<ffi::Buffer<ffi::DataType::F64>>()    // theta
         .Arg<ffi::Buffer<ffi::DataType::F64>>()    // times
-        .Attr<int32_t>("discrete")
+        .Attr<bool>("discrete")
         .Attr<int32_t>("granularity")
         .Ret<ffi::Buffer<ffi::DataType::F64>>()    // pmf
 );
@@ -202,7 +202,7 @@ ffi::Error ComputePmfAndMomentsHandler(
     ffi::Buffer<ffi::DataType::F64> times,
     ffi::Buffer<ffi::DataType::F64> rewards,
     int32_t nr_moments,
-    int32_t discrete,
+    bool discrete,
     int32_t granularity,
     ffi::ResultBuffer<ffi::DataType::F64> pmf,
     ffi::ResultBuffer<ffi::DataType::F64> moments
@@ -281,7 +281,7 @@ XLA_FFI_DEFINE_HANDLER_SYMBOL(
         .Arg<ffi::Buffer<ffi::DataType::F64>>()    // times
         .Arg<ffi::Buffer<ffi::DataType::F64>>()    // rewards
         .Attr<int32_t>("nr_moments")
-        .Attr<int32_t>("discrete")
+        .Attr<bool>("discrete")
         .Attr<int32_t>("granularity")
         .Ret<ffi::Buffer<ffi::DataType::F64>>()    // pmf
         .Ret<ffi::Buffer<ffi::DataType::F64>>()    // moments

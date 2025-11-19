@@ -521,7 +521,7 @@ def compute_pmf_ffi(structure_json: Union[str, Dict], theta: jax.Array, times: j
         times,       # Arg 2: times buffer (BATCHED by vmap)
         structure_json=structure_str,           # Attr: JSON string (STATIC, not batched)
         granularity=np.int32(granularity),      # Attr: granularity
-        discrete=np.bool_(discrete)             # Attr: discrete
+        discrete=bool(discrete)                 # Attr: discrete (bool for JAX PRED type)
     )
     return result
 
@@ -698,7 +698,7 @@ def compute_pmf_and_moments_ffi(structure_json: Union[str, Dict], theta: jax.Arr
         rewards,     # Arg 3: rewards buffer (empty array if None → standard moments)
         structure_json=structure_str,           # Attr: JSON string (STATIC, not batched)
         granularity=np.int32(granularity),      # Attr: granularity
-        discrete=np.bool_(discrete),            # Attr: discrete
+        discrete=bool(discrete),                # Attr: discrete (bool for JAX PRED type)
         nr_moments=np.int32(nr_moments)         # Attr: nr_moments
     )
     return pmf_result, moments_result
