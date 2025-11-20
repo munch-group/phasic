@@ -1545,6 +1545,14 @@ class Graph(_Graph):
     #     rewards = np.transpose(rewards)
     #     return NamedTuple("DiscreteGraph", (mutation_graph, rewards))
 
+
+    def state_probability(self, time:float, **kwargs) -> np.ndarray:
+        return self.stop_probability(time, **kwargs)
+
+    def cumulated_occupancy(self, time:float, **kwargs) -> np.ndarray:
+        return self.accumulated_visiting_time(time, **kwargs)
+
+
     def discretize(self, rate, **kwargs) -> Tuple[GraphType, np.ndarray]:
         """
         Discretizes graph inplace and returns reward matrix for added auxiliary states.
