@@ -45,12 +45,23 @@ pytestmark = pytest.mark.skipif(
 @pytest.fixture(scope="module", autouse=True)
 def initialize_jax_distributed():
     """Initialize JAX distributed mode for multi-node SLURM."""
+    import sys
+    print("\n=== FIXTURE: initialize_jax_distributed starting ===", flush=True)
+    sys.stdout.flush()
+
     # This must be called before any JAX operations
     # It detects SLURM environment and initializes distributed mode
+    print("Calling phasic.init_parallel()...", flush=True)
+    sys.stdout.flush()
+
     config = phasic.init_parallel()
-    print(f"\nInitialized JAX with {config.device_count} devices")
-    print(f"Strategy: {config.strategy}")
-    print(f"Environment: {config.env_info.env_type}")
+
+    print(f"\nInitialized JAX with {config.device_count} devices", flush=True)
+    print(f"Strategy: {config.strategy}", flush=True)
+    print(f"Environment: {config.env_info.env_type}", flush=True)
+    print("=== FIXTURE: initialize_jax_distributed complete ===\n", flush=True)
+    sys.stdout.flush()
+
     return config
 
 

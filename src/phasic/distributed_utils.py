@@ -130,11 +130,25 @@ def detect_slurm_environment() -> Dict[str, Any]:
     env['nodelist'] = os.environ.get('SLURM_JOB_NODELIST', '')
     env['node_count'] = int(os.environ.get('SLURM_JOB_NUM_NODES', 1))
 
+    # Check if actually running under srun/sbatch (not just in allocation)
+    # SLURM_STEP_ID is only set when running as part of a job step
+    env['in_job_step'] = 'SLURM_STEP_ID' in os.environ
+
+    if env['num_processes'] > 1 and not env['in_job_step']:
+        logger.warning(
+            f"SLURM allocation has {env['num_processes']} tasks but not running under srun/sbatch.\n"
+            f"  Distributed mode will NOT be initialized - only single-process mode.\n"
+            f"  To enable distributed mode, run with: srun python <script>"
+        )
+        # Override num_processes to prevent distributed initialization
+        env['num_processes'] = 1
+
     logger.info(f"SLURM environment detected:")
     logger.info(f"  Job ID: {env['job_id']}")
     logger.info(f"  Process: {env['process_id']}/{env['num_processes']}")
     logger.info(f"  CPUs per task: {env['cpus_per_task']}")
     logger.info(f"  Nodes: {env['node_count']}")
+    logger.info(f"  In job step: {env['in_job_step']}")
 
     return env
 
@@ -258,10 +272,23 @@ def initialize_jax_distributed(
         Rank of this process (0 to num_processes-1)
     """
     import jax
+    import os
 
     logger.info("Initializing JAX distributed...")
     logger.info(f"  Coordinator: {coordinator_address}")
     logger.info(f"  Process: {process_id}/{num_processes}")
+
+    # Unset proxy variables that can cause jax.distributed.initialize() to hang
+    # This is a known issue on HPC clusters that use proxies for external network access
+    proxy_vars = ['http_proxy', 'https_proxy', 'HTTP_PROXY', 'HTTPS_PROXY',
+                  'no_proxy', 'NO_PROXY', 'all_proxy', 'ALL_PROXY']
+    saved_proxies = {}
+
+    for var in proxy_vars:
+        if var in os.environ:
+            saved_proxies[var] = os.environ[var]
+            del os.environ[var]
+            logger.debug(f"Temporarily unset {var} for distributed initialization")
 
     try:
         jax.distributed.initialize(
@@ -273,6 +300,11 @@ def initialize_jax_distributed(
     except Exception as e:
         logger.error(f"Failed to initialize JAX distributed: {e}")
         raise
+    finally:
+        # Restore proxy variables after initialization
+        for var, value in saved_proxies.items():
+            os.environ[var] = value
+            logger.debug(f"Restored {var}")
 
 
 # def initialize_distributed(
