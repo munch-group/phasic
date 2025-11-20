@@ -1180,7 +1180,9 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
         from jax.experimental import mesh_utils
         from jax.sharding import Mesh, NamedSharding, PartitionSpec as P
 
-        devices = mesh_utils.create_device_mesh((actual_n_devices,))
+        # In multi-host environments, use only local devices (not global)
+        local_devices = jax.local_devices()[:actual_n_devices]
+        devices = mesh_utils.create_device_mesh((actual_n_devices,), devices=local_devices)
         mesh = Mesh(devices, axis_names=("batch",))
 
         # Use explicit mesh context for pmap
@@ -1622,7 +1624,16 @@ class SVGD:
             )
 
         # Validate n_devices parameter and check for misconfigurations
-        available_devices = len(jax.devices())
+        # In multi-host environments, pmap requires local device count, not global
+        if jax.process_count() > 1:
+            # Multi-host: use local devices only
+            available_devices = jax.local_device_count()
+            if verbose and n_devices is None:
+                print(f"Multi-host environment detected: {jax.process_count()} processes")
+                print(f"Using {available_devices} local devices per process")
+        else:
+            # Single-host: use all devices
+            available_devices = len(jax.devices())
 
         if parallel == 'pmap':
             if available_devices == 1:

@@ -125,8 +125,12 @@ class CacheManager:
             print(f"Clearing cache at {self.cache_dir}")
             print(f"  Files: {info['num_files']}")
             print(f"  Size: {info['total_size_mb']:.1f} MB")
-            shutil.rmtree(self.cache_dir)
-            # print("Cache cleared")
+            try:
+                shutil.rmtree(str(self.cache_dir))
+                # print("Cache cleared")
+            except FileNotFoundError:
+                # Directory disappeared between exists() check and rmtree()
+                print("Warning: Cache directory disappeared during clearing (possible race condition)")
         else:
             print(f"Cache directory does not exist: {self.cache_dir}")
 

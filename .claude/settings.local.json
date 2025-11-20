@@ -52,7 +52,8 @@
       "WebSearch",
       "WebFetch(domain:stackoverflow.com)",
       "WebFetch(domain:github.com)",
-      "Bash(XLA_FFI_INCLUDE_DIR=/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jaxlib/include pip install:*)"
+      "Bash(XLA_FFI_INCLUDE_DIR=/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jaxlib/include pip install:*)",
+      "Bash(srun:*)"
     ],
     "deny": [],
     "ask": []
