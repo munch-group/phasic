@@ -343,7 +343,7 @@ static char *trace_to_json(const struct ptd_elimination_trace *trace) {
     // Start with large buffer (will grow as needed)
     size_t capacity = 8192;
     size_t length = 0;
-    char *json = malloc(capacity);
+    char *json = (char *)malloc(capacity);
     if (json == NULL) {
         sprintf((char*)ptd_err, "Failed to allocate JSON buffer");
         return NULL;
@@ -353,7 +353,7 @@ static char *trace_to_json(const struct ptd_elimination_trace *trace) {
     #define APPEND(fmt, ...) do { \
         while (length + 1024 > capacity) { \
             capacity *= 2; \
-            char *new_json = realloc(json, capacity); \
+            char *new_json = (char *)realloc(json, capacity); \
             if (new_json == NULL) { \
                 free(json); \
                 sprintf((char*)ptd_err, "Failed to grow JSON buffer"); \
@@ -568,7 +568,7 @@ static size_t *parse_size_t_array(const char *json, size_t *out_length) {
     }
 
     // Allocate and parse
-    size_t *arr = malloc(count * sizeof(size_t));
+    size_t *arr = (size_t *)malloc(count * sizeof(size_t));
     if (arr == NULL) {
         sprintf((char*)ptd_err, "Failed to allocate array");
         return NULL;
@@ -622,7 +622,7 @@ static double *parse_double_array(const char *json, size_t *out_length) {
     }
 
     // Allocate and parse
-    double *arr = malloc(count * sizeof(double));
+    double *arr = (double *)malloc(count * sizeof(double));
     if (arr == NULL) {
         sprintf((char*)ptd_err, "Failed to allocate double array");
         return NULL;
@@ -675,7 +675,7 @@ static int *parse_int_array(const char *json, size_t *out_length) {
     }
 
     // Allocate and parse
-    int *arr = malloc(count * sizeof(int));
+    int *arr = (int *)malloc(count * sizeof(int));
     if (arr == NULL) {
         sprintf((char*)ptd_err, "Failed to allocate int array");
         return NULL;
@@ -705,7 +705,7 @@ static struct ptd_elimination_trace *json_to_trace(const char *json) {
         return NULL;
     }
 
-    struct ptd_elimination_trace *trace = calloc(1, sizeof(*trace));
+    struct ptd_elimination_trace *trace = (struct ptd_elimination_trace *)calloc(1, sizeof(*trace));
     if (trace == NULL) {
         sprintf((char*)ptd_err, "Failed to allocate trace");
         return NULL;
@@ -713,6 +713,7 @@ static struct ptd_elimination_trace *json_to_trace(const char *json) {
 
     // Parse metadata fields
     const char *field;
+    const char *op_start;  // Move declaration here to avoid crossing initialization
 
     field = find_field(json, "n_vertices");
     if (field == NULL) goto error;
@@ -742,11 +743,11 @@ static struct ptd_elimination_trace *json_to_trace(const char *json) {
     field = find_field(json, "operations");
     if (field == NULL) goto error;
 
-    trace->operations = calloc(trace->operations_length, sizeof(struct ptd_trace_operation));
+    trace->operations = (struct ptd_trace_operation *)calloc(trace->operations_length, sizeof(struct ptd_trace_operation));
     if (trace->operations == NULL) goto error;
 
     // Parse each operation (simplified - assumes well-formed JSON)
-    const char *op_start = field;
+    op_start = field;  // Use already declared variable
     if (*op_start != '[') goto error;
     op_start++;
 
@@ -759,7 +760,7 @@ static struct ptd_elimination_trace *json_to_trace(const char *json) {
         const char *op_type_field = strstr(op_start, "\"op_type\":");
         if (op_type_field == NULL) goto error;
         op_type_field += strlen("\"op_type\":");
-        trace->operations[i].op_type = parse_int(op_type_field);
+        trace->operations[i].op_type = (enum ptd_trace_op_type)parse_int(op_type_field);
 
         // Parse const_value
         const char *const_val_field = strstr(op_start, "\"const_value\":");
@@ -814,9 +815,9 @@ static struct ptd_elimination_trace *json_to_trace(const char *json) {
     trace->vertex_targets_lengths = parse_size_t_array(field, &vtl_len);
 
     // Allocate 2D arrays
-    trace->edge_probs = calloc(trace->n_vertices, sizeof(size_t *));
-    trace->vertex_targets = calloc(trace->n_vertices, sizeof(size_t *));
-    trace->states = calloc(trace->n_vertices, sizeof(int *));
+    trace->edge_probs = (size_t **)calloc(trace->n_vertices, sizeof(size_t *));
+    trace->vertex_targets = (size_t **)calloc(trace->n_vertices, sizeof(size_t *));
+    trace->states = (int **)calloc(trace->n_vertices, sizeof(int *));
 
     // Parse edge_probs (2D array)
     field = find_field(json, "edge_probs");
@@ -922,7 +923,7 @@ struct ptd_elimination_trace *ptd_load_trace_from_cache(const char *hash_hex) {
         return NULL;
     }
 
-    char *json = malloc(file_size + 1);
+    char *json = (char *)malloc(file_size + 1);
     if (json == NULL) {
         fclose(f);
         return NULL;

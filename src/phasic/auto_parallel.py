@@ -258,48 +258,22 @@ def configure_jax_for_environment(env_info: EnvironmentInfo, enable_x64: bool = 
     >>> config = configure_jax_for_environment(env)
     >>> print(f"Configured {config.device_count} devices with {config.strategy}")
     """
+    # Configure JAX devices BEFORE importing/initializing
     if not env_info.jax_already_imported:
-        # Strategy 1: JAX not imported - configure before import
         logger.info(f"Configuring JAX for {env_info.available_cpus} devices...")
-
-        # Import here to avoid circular dependency
         from .distributed_utils import configure_jax_devices
         configure_jax_devices(env_info.available_cpus, platform="cpu")
 
-        # Now safe to import JAX
-        import jax
-        from jax import config
+    # Import JAX (but don't call jax.devices() yet!)
+    import jax
+    from jax import config
 
-        if enable_x64:
-            config.update('jax_enable_x64', True)
-            logger.debug("JAX x64 precision enabled")
+    if enable_x64:
+        config.update('jax_enable_x64', True)
+        logger.debug("JAX x64 precision enabled")
 
-        devices = jax.devices()
-        logger.info(f"JAX initialized with {len(devices)} devices")
-
-    else:
-        # Strategy 2: JAX already imported
-        import jax
-        devices = jax.devices()
-        device_count = len(devices)
-
-        if device_count < env_info.available_cpus:
-            logger.warning(
-                f"JAX already initialized with {device_count} device(s), "
-                f"but {env_info.available_cpus} CPU(s) available.\n"
-                f"  To use all CPUs, restart kernel and import phasic first:\n"
-                f"    import phasic as pta\n"
-                f"    pta.init_parallel(cpus={env_info.available_cpus})"
-            )
-        elif device_count == 1 and env_info.available_cpus > 1:
-            logger.info(
-                f"Single JAX device detected with {env_info.available_cpus} CPUs available.\n"
-                f"  For optimal performance, restart kernel and initialize first:\n"
-                f"    import phasic as pta\n"
-                f"    pta.init_parallel(cpus={env_info.available_cpus})"
-            )
-
-    # Initialize distributed if multi-node SLURM
+    # IMPORTANT: Initialize distributed BEFORE any jax.devices() calls
+    # jax.devices() initializes the XLA backend, which must happen after distributed init
     if env_info.env_type == 'slurm_multi' and env_info.slurm_info:
         from .distributed_utils import initialize_jax_distributed, get_coordinator_address
 
@@ -312,10 +286,21 @@ def configure_jax_for_environment(env_info: EnvironmentInfo, enable_x64: bool = 
             process_id=env_info.slurm_info['process_id']
         )
 
-    # Get device information
-    import jax
+    # Now safe to call jax.devices() - this initializes the XLA backend
     devices = jax.devices()
     local_devices = jax.local_devices()
+
+    # Check if we got the expected number of devices
+    if env_info.jax_already_imported and len(devices) < env_info.available_cpus:
+        logger.warning(
+            f"JAX already initialized with {len(devices)} device(s), "
+            f"but {env_info.available_cpus} CPU(s) available.\n"
+            f"  To use all CPUs, restart kernel and import phasic first:\n"
+            f"    import phasic as pta\n"
+            f"    pta.init_parallel(cpus={env_info.available_cpus})"
+        )
+
+    logger.info(f"JAX initialized with {len(devices)} devices")
 
     # Determine strategy
     strategy = _determine_strategy(env_info, devices)
