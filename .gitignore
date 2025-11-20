@@ -38,7 +38,6 @@ profiling-toolkit/
 test_*.py
 debug_*.py
 
-*.md
 !CLAUDE.md
 !DEVEL.md
 !README.md
