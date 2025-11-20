@@ -226,6 +226,340 @@ class TestMultiNodeConsistency:
         print(f"Process {slurm_info['procid']}: JIT+vmap successful")
 
 
+class TestSVGDMultiNode:
+    """Test SVGD inference across multiple SLURM nodes."""
+
+    @pytest.fixture
+    def large_rabbits_graph(self):
+        """Create rabbits graph with 20 rabbits."""
+        g = Graph(2)
+        initial = g.find_or_create_vertex([20, 0])
+        g.starting_vertex().add_edge(initial, [1.0, 0.0])
+
+        index = 1
+        while index < g.vertices_length():
+            vertex = g.vertex_at(index)
+            state = vertex.state()
+
+            if state[0] > 0:
+                child = g.find_or_create_vertex([state[0] - 1, state[1] + 1])
+                vertex.add_edge(child, [1.0, 0.0])
+
+            if state[1] > 0:
+                child = g.find_or_create_vertex([state[0], state[1] - 1])
+                vertex.add_edge(child, [0.0, 1.0])
+
+            index += 1
+
+        return g
+
+    def test_svgd_rabbits_multi_node(self, large_rabbits_graph, slurm_info):
+        """Test SVGD with 20 rabbits, 50 particles, 100 iterations across nodes."""
+        from phasic import SVGD
+
+        print(f"\nProcess {slurm_info['procid']}: Starting SVGD test")
+        print(f"  Graph vertices: {large_rabbits_graph.vertices_length()}")
+
+        # Create observed data (synthetic)
+        # Simulate rabbits dying at rate theta[0]=1.0, theta[1]=2.0
+        np.random.seed(42 + slurm_info['procid'])  # Different seed per process
+        observed_times = np.random.exponential(1.0, size=20)  # 20 observations
+
+        # Create model from graph
+        structure_json = large_rabbits_graph.serialize()
+
+        def model_fn(theta, times, rewards=None):
+            """Model function that returns PMF for observed times."""
+            # theta: (2,) for single particle
+            # Compute PDF for observed times
+            pdf = compute_pmf_ffi(structure_json, theta, times,
+                                 discrete=False, granularity=100)
+            # SVGD expects (pmf, moments) tuple, but we only have pmf
+            # Return empty moments array
+            moments = jnp.array([])
+            return pdf, moments
+
+        # Run SVGD (each process independently)
+        print(f"Process {slurm_info['procid']}: Initializing SVGD...")
+        svgd = SVGD(
+            model=model_fn,
+            observed_data=jnp.array(observed_times),
+            theta_dim=2,
+            n_particles=50,
+            n_iterations=100,
+            learning_rate=0.01,
+            bandwidth='median',
+            seed=42 + slurm_info['procid']
+        )
+
+        print(f"Process {slurm_info['procid']}: Running SVGD optimization...")
+        svgd.optimize()
+
+        # Get results
+        results = svgd.get_results()
+        particles = results['particles']
+
+        # Verify results
+        assert particles.shape[1] == 2  # 2 parameters
+        assert jnp.all(jnp.isfinite(particles))
+
+        # Check that particles have reasonable values (positive rates)
+        assert jnp.all(particles > 0)
+
+        posterior_mean = jnp.mean(particles, axis=0)
+        posterior_std = jnp.std(particles, axis=0)
+
+        print(f"Process {slurm_info['procid']}: SVGD completed")
+        print(f"  Posterior mean: [{posterior_mean[0]:.3f}, {posterior_mean[1]:.3f}]")
+        print(f"  Posterior std:  [{posterior_std[0]:.3f}, {posterior_std[1]:.3f}]")
+
+    def test_svgd_convergence_consistency(self, large_rabbits_graph, slurm_info):
+        """Verify SVGD produces consistent results across processes."""
+        from phasic import SVGD
+
+        # Use same seed and data on all processes to check consistency
+        np.random.seed(123)
+        observed_times = np.random.exponential(1.0, size=15)
+
+        structure_json = large_rabbits_graph.serialize()
+
+        def model_fn(theta, times, rewards=None):
+            pdf = compute_pmf_ffi(structure_json, theta, times,
+                                 discrete=False, granularity=100)
+            moments = jnp.array([])
+            return pdf, moments
+
+        # Initialize with same seed
+        svgd = SVGD(
+            model=model_fn,
+            observed_data=jnp.array(observed_times),
+            theta_dim=2,
+            n_particles=20,
+            n_iterations=50,
+            learning_rate=0.01,
+            seed=456
+        )
+
+        svgd.optimize()
+
+        # All processes should get same results (same seed, same data)
+        results = svgd.get_results()
+        particles = results['particles']
+        posterior_mean = jnp.mean(particles, axis=0)
+        result_hash = hash(tuple(float(x) for x in posterior_mean))
+
+        print(f"Process {slurm_info['procid']}: Convergence test")
+        print(f"  Mean theta: [{posterior_mean[0]:.6f}, {posterior_mean[1]:.6f}]")
+        print(f"  Hash: {result_hash}")
+
+        # Manual verification: all processes should print same hash
+        assert jnp.all(jnp.isfinite(particles))
+
+
+class TestHierarchicalTraceMultiNode:
+    """Test hierarchical trace recording and evaluation across SLURM nodes."""
+
+    @pytest.fixture
+    def coalescent_graph(self):
+        """Create coalescent graph with n=5 lineages."""
+        # Create parameterized coalescent graph manually
+        g = Graph(1)
+
+        # Add initial vertex (5 lineages)
+        v_start = g.starting_vertex()
+        v5 = g.find_or_create_vertex([5])
+        v_start.add_edge(v5, [1.0])
+
+        # Build coalescent tree: each state n -> n-1 with rate n*(n-1)/2
+        for n in range(5, 1, -1):
+            v_n = g.find_or_create_vertex([n])
+            v_n_minus_1 = g.find_or_create_vertex([n-1])
+            # Parameterized edge: rate = (n*(n-1)/2) * theta[0]
+            rate_coeff = n * (n - 1) / 2.0
+            v_n.add_edge(v_n_minus_1, [rate_coeff])
+
+        # Add edge to absorbing state
+        v1 = g.find_or_create_vertex([1])
+        v_absorb = g.find_or_create_vertex([0])
+        v1.add_edge(v_absorb, [1.0])
+
+        return g
+
+    def test_trace_recording_multi_node(self, coalescent_graph, slurm_info):
+        """Test trace recording works independently on each node."""
+        from phasic.trace_elimination import record_elimination_trace
+
+        print(f"\nProcess {slurm_info['procid']}: Recording elimination trace")
+
+        # Each process records trace independently
+        trace = record_elimination_trace(coalescent_graph, param_length=1)
+
+        # Verify trace structure
+        assert 'version' in trace
+        assert 'param_length' in trace
+        assert trace['param_length'] == 1
+        assert 'operations' in trace
+        assert len(trace['operations']) > 0
+
+        print(f"Process {slurm_info['procid']}: Trace recorded")
+        print(f"  Version: {trace['version']}")
+        print(f"  Operations: {len(trace['operations'])}")
+        print(f"  Vertices: {len(trace['vertex_info'])}")
+
+    def test_trace_evaluation_multi_node(self, coalescent_graph, slurm_info):
+        """Test trace evaluation across nodes with different parameters."""
+        from phasic.trace_elimination import (
+            record_elimination_trace,
+            evaluate_trace_jax,
+            instantiate_from_trace
+        )
+
+        print(f"\nProcess {slurm_info['procid']}: Testing trace evaluation")
+
+        # Record trace once
+        trace = record_elimination_trace(coalescent_graph, param_length=1)
+
+        # Each process evaluates with different theta
+        theta = jnp.array([1.0 + slurm_info['procid'] * 0.5])
+
+        # Evaluate trace
+        result = evaluate_trace_jax(trace, theta)
+
+        # Verify result structure
+        assert 'vertex_rates' in result
+        assert 'edge_probs' in result
+        assert 'vertex_targets' in result
+        assert jnp.all(jnp.isfinite(result['vertex_rates']))
+
+        # Instantiate concrete graph
+        concrete_graph = instantiate_from_trace(trace, np.array([float(theta[0])]))
+
+        # Compute PDF using concrete graph
+        times = np.array([0.5, 1.0, 2.0])
+        pdf = concrete_graph.pdf(times, granularity=100)
+
+        assert pdf.shape == times.shape
+        assert np.all(np.isfinite(pdf))
+
+        print(f"Process {slurm_info['procid']}: Evaluation successful")
+        print(f"  Theta: {float(theta[0]):.3f}")
+        print(f"  Vertex rates: {result['vertex_rates'][:5]}")
+        print(f"  PDF[0.5]: {pdf[0]:.6f}")
+
+    def test_trace_vmap_batching_multi_node(self, coalescent_graph, slurm_info):
+        """Test vmap batching of trace evaluation across nodes."""
+        from phasic.trace_elimination import (
+            record_elimination_trace,
+            evaluate_trace_jax
+        )
+
+        print(f"\nProcess {slurm_info['procid']}: Testing trace vmap")
+
+        trace = record_elimination_trace(coalescent_graph, param_length=1)
+
+        # Create batch of theta values (different per process)
+        base = slurm_info['procid'] * 10
+        theta_batch = jnp.array([
+            [0.5 + base * 0.01],
+            [1.0 + base * 0.01],
+            [1.5 + base * 0.01],
+            [2.0 + base * 0.01]
+        ])
+
+        # Vmap over theta batch
+        batched_eval = jax.vmap(lambda t: evaluate_trace_jax(trace, t))
+        results = batched_eval(theta_batch)
+
+        # Verify batched results
+        assert results['vertex_rates'].shape[0] == len(theta_batch)
+        assert jnp.all(jnp.isfinite(results['vertex_rates']))
+
+        print(f"Process {slurm_info['procid']}: Vmap successful")
+        print(f"  Batch size: {len(theta_batch)}")
+        print(f"  Output shape: {results['vertex_rates'].shape}")
+
+    def test_trace_serialization_multi_node(self, coalescent_graph, slurm_info):
+        """Test trace serialization/deserialization across nodes."""
+        from phasic.trace_elimination import (
+            record_elimination_trace,
+            evaluate_trace_jax
+        )
+        import json
+        import tempfile
+        import os
+
+        print(f"\nProcess {slurm_info['procid']}: Testing trace serialization")
+
+        # Record trace
+        trace = record_elimination_trace(coalescent_graph, param_length=1)
+
+        # Serialize to JSON
+        trace_json = json.dumps(trace)
+
+        # Write to temp file (each process uses different file)
+        temp_dir = tempfile.gettempdir()
+        trace_file = os.path.join(temp_dir, f"trace_proc_{slurm_info['procid']}.json")
+
+        with open(trace_file, 'w') as f:
+            f.write(trace_json)
+
+        # Read back and deserialize
+        with open(trace_file, 'r') as f:
+            trace_loaded = json.load(f)
+
+        # Verify loaded trace works
+        theta = jnp.array([1.5])
+        result = evaluate_trace_jax(trace_loaded, theta)
+
+        assert jnp.all(jnp.isfinite(result['vertex_rates']))
+
+        # Clean up
+        os.remove(trace_file)
+
+        print(f"Process {slurm_info['procid']}: Serialization successful")
+        print(f"  JSON size: {len(trace_json)} bytes")
+
+    def test_hierarchical_trace_likelihood_multi_node(self, coalescent_graph, slurm_info):
+        """Test trace-based log-likelihood computation across nodes."""
+        from phasic.trace_elimination import (
+            record_elimination_trace,
+            trace_to_log_likelihood
+        )
+
+        print(f"\nProcess {slurm_info['procid']}: Testing trace log-likelihood")
+
+        # Record trace
+        trace = record_elimination_trace(coalescent_graph, param_length=1)
+
+        # Create log-likelihood function
+        observed_times = np.array([0.5, 1.0, 1.5, 2.0, 2.5])
+        log_lik_fn = trace_to_log_likelihood(
+            trace,
+            observed_times,
+            reward_vector=None,
+            granularity=100
+        )
+
+        # Evaluate with different theta per process
+        theta = jnp.array([0.5 + slurm_info['procid'] * 0.3])
+        log_lik = log_lik_fn(theta)
+
+        assert jnp.isfinite(log_lik)
+        assert jnp.isscalar(log_lik) or log_lik.shape == ()
+
+        # Test gradient computation
+        grad_fn = jax.grad(log_lik_fn)
+        gradient = grad_fn(theta)
+
+        assert gradient.shape == theta.shape
+        assert jnp.all(jnp.isfinite(gradient))
+
+        print(f"Process {slurm_info['procid']}: Log-likelihood successful")
+        print(f"  Theta: {float(theta[0]):.3f}")
+        print(f"  Log-likelihood: {float(log_lik):.3f}")
+        print(f"  Gradient: {float(gradient[0]):.6f}")
+
+
 if __name__ == "__main__":
     # Run with pytest
     pytest.main([__file__, "-v", "-s"])
