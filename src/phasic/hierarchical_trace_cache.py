@@ -1162,7 +1162,7 @@ def _build_scc_subgraph(
 
                 if original_graph.parameterized():
                     coeffs = list(edge.edge_state(original_graph.param_length()))
-                    from_vertex.add_edge_parameterized(to_vertex, edge.weight(), coeffs)
+                    from_vertex.add_edge(to_vertex, coeffs)
                 else:
                     from_vertex.add_edge(to_vertex, edge.weight())
 
@@ -1180,7 +1180,7 @@ def _build_scc_subgraph(
 
                 if original_graph.parameterized():
                     coeffs = list(edge.edge_state(original_graph.param_length()))
-                    from_vertex.add_edge_parameterized(to_vertex, edge.weight(), coeffs)
+                    from_vertex.add_edge(to_vertex, coeffs)
                 else:
                     from_vertex.add_edge(to_vertex, edge.weight())
 
@@ -1310,7 +1310,7 @@ def _build_first_scc_subgraph(
 
             if original_graph.parameterized():
                 coeffs = list(edge.edge_state(original_graph.param_length()))
-                from_vertex.add_edge_parameterized(to_vertex, edge.weight(), coeffs)
+                from_vertex.add_edge(to_vertex, coeffs)
             else:
                 from_vertex.add_edge(to_vertex, edge.weight())
 
