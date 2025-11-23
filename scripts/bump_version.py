@@ -5,7 +5,39 @@ import sys
 import argparse
 
 # major, minor, patch arguments
-parser = argparse.ArgumentParser(description='Release tag script')
+parser = argparse.ArgumentParser(
+    description="Semantic versioning bump script for phasic project",
+    epilog="""
+Examples:
+
+  Development cycle (with release candidates):
+    python scripts/bump_version.py --minor --pre    # 0.22.0 -> 0.23.0.rc1
+    python scripts/bump_version.py --pre            # 0.23.0.rc1 -> 0.23.0.rc2
+    python scripts/bump_version.py --pre            # 0.23.0.rc2 -> 0.23.0.rc3
+    python scripts/bump_version.py --release        # 0.23.0.rc3 -> 0.23.0
+
+  Standard version bumps (without prerelease):
+    python scripts/bump_version.py --major          # 0.22.0 -> 1.0.0
+    python scripts/bump_version.py --minor          # 0.22.0 -> 0.23.0
+    python scripts/bump_version.py --patch          # 0.22.0 -> 0.22.1
+
+  Hotfix from prerelease:
+    python scripts/bump_version.py --patch          # 0.22.1.rc2 -> 0.22.2
+    python scripts/bump_version.py --minor          # 0.22.1.rc2 -> 0.23.0
+
+  Adding prerelease to existing version:
+    python scripts/bump_version.py --patch --pre    # 0.22.0 -> 0.22.1.rc1
+    python scripts/bump_version.py --minor --pre    # 0.22.0 -> 0.23.0.rc1
+    python scripts/bump_version.py --major --pre    # 0.22.0 -> 1.0.0.rc1
+
+Notes:
+  - Bumping major/minor resets lower version components to 0
+  - Using --pre without version bump increments rc number
+  - Using version bump without --pre removes rc suffix
+  - --release only removes rc suffix without changing version numbers
+""",
+    formatter_class=argparse.RawDescriptionHelpFormatter
+)
 parser.add_argument('--major', action='store_true', help='Bump major version number')
 parser.add_argument('--minor', action='store_true', help='Bump minor version number') 
 parser.add_argument('--patch', action='store_true', help='Bump patch version number')
