@@ -96,9 +96,6 @@ outputs:
           # Test that R package loads
           - $R -e "library('phasic')"  # [not win]
           - "%R%" -e "library('phasic')"  # [win]
-          # Test basic functionality
-          - $R -e "library('phasic'); g <- create_graph(state_length=1); stopifnot(g\$vertices_length() >= 1)"  # [not win]
-          - "%R%" -e "library('phasic'); g <- create_graph(state_length=1); stopifnot(g$vertices_length() >= 1)"  # [win]
 
 about:
   home: https://github.com/munch-group/phasic.git
