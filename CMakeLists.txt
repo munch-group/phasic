@@ -55,18 +55,32 @@ install(FILES api/cpp/phasiccpp.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 project(phasic_pybind LANGUAGES CXX)
 
 # Help CMake find conda/pixi packages by adding environment prefixes
-if(DEFINED ENV{CONDA_PREFIX})
-    list(APPEND CMAKE_PREFIX_PATH "$ENV{CONDA_PREFIX}")
-    message(STATUS "Added CONDA_PREFIX to CMAKE_PREFIX_PATH: $ENV{CONDA_PREFIX}")
-endif()
-if(DEFINED ENV{PREFIX})
-    list(APPEND CMAKE_PREFIX_PATH "$ENV{PREFIX}")
-    message(STATUS "Added PREFIX to CMAKE_PREFIX_PATH: $ENV{PREFIX}")
-endif()
+# During conda-build, BUILD_PREFIX and PREFIX are set
+# During pip install in pixi, CONDA_PREFIX is set
+set(CONDA_PREFIXES "")
+
 if(DEFINED ENV{BUILD_PREFIX})
-    list(APPEND CMAKE_PREFIX_PATH "$ENV{BUILD_PREFIX}")
-    message(STATUS "Added BUILD_PREFIX to CMAKE_PREFIX_PATH: $ENV{BUILD_PREFIX}")
+    list(APPEND CONDA_PREFIXES "$ENV{BUILD_PREFIX}")
+    message(STATUS "Found BUILD_PREFIX: $ENV{BUILD_PREFIX}")
 endif()
+
+if(DEFINED ENV{PREFIX})
+    list(APPEND CONDA_PREFIXES "$ENV{PREFIX}")
+    message(STATUS "Found PREFIX: $ENV{PREFIX}")
+endif()
+
+if(DEFINED ENV{CONDA_PREFIX})
+    list(APPEND CONDA_PREFIXES "$ENV{CONDA_PREFIX}")
+    message(STATUS "Found CONDA_PREFIX: $ENV{CONDA_PREFIX}")
+endif()
+
+# Add all found prefixes to CMAKE_PREFIX_PATH
+foreach(prefix ${CONDA_PREFIXES})
+    list(APPEND CMAKE_PREFIX_PATH "${prefix}")
+endforeach()
+
+# Debug: Print CMAKE_PREFIX_PATH to help diagnose issues
+message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
 
 find_package(Python COMPONENTS Interpreter Development REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
