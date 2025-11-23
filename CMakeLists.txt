@@ -54,6 +54,20 @@ install(FILES api/cpp/phasiccpp.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 # Python bindings ###################################################
 project(phasic_pybind LANGUAGES CXX)
 
+# Help CMake find conda/pixi packages by adding environment prefixes
+if(DEFINED ENV{CONDA_PREFIX})
+    list(APPEND CMAKE_PREFIX_PATH "$ENV{CONDA_PREFIX}")
+    message(STATUS "Added CONDA_PREFIX to CMAKE_PREFIX_PATH: $ENV{CONDA_PREFIX}")
+endif()
+if(DEFINED ENV{PREFIX})
+    list(APPEND CMAKE_PREFIX_PATH "$ENV{PREFIX}")
+    message(STATUS "Added PREFIX to CMAKE_PREFIX_PATH: $ENV{PREFIX}")
+endif()
+if(DEFINED ENV{BUILD_PREFIX})
+    list(APPEND CMAKE_PREFIX_PATH "$ENV{BUILD_PREFIX}")
+    message(STATUS "Added BUILD_PREFIX to CMAKE_PREFIX_PATH: $ENV{BUILD_PREFIX}")
+endif()
+
 find_package(Python COMPONENTS Interpreter Development REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
 find_package (Eigen3 REQUIRED NO_MODULE)
