@@ -68,41 +68,35 @@ outputs:
         #   - '"%PYTHON%" -c "import phasic as ptd ; print(ptd.Graph(4).vertices_length() == 1)"' # [win]
 
 
-    # - name: r-phasic
-    #   requirements:
-    #     build:
-    #       - {{ compiler('c') }} 
-    #       - {{ compiler('cxx') }}
-    #       - cmake>=3.30
-    #       - ninja
-    #       - r-base #{{ r_base }}
-    #       - r-rcpp
-    #     host:
-    #       - r-base #{{ r_base }}
-    #       - r-rcpp
-    #     run:
-    #       - r-base #{{ r_base }}
-    #       - r-rcpp
-    #       # - libgomp  # for OpenMP support
-    #   build:
-    #     number: 1
-    #     noarch: false
-    #     script: |
-    #       set CMAKE_GENERATOR=
-    #       ninja --version || where ninja || echo "Ninja not found!"
-    #       $R CMD INSTALL --build . # [not win]
-    #       "%R%" CMD INSTALL --build . # [win]
-    #   channels:  # channels for your library dependencies
-    #     - conda-forge
-    #     # - defaults
-
-    #   test:
-    #     commands:
-    #       - $R -e "library('phasic')"  # [not win]
-    #       - "%R% -e \"library('phasic')\""  # [win]
-    #     # commands:
-    #     #   - "$R -e 'library('phasic') ; print(vertices_length(create_graph(4)) == 1)'" # [not win]
-    #     #   - "%R% -e 'library('phasic') ; print(vertices_length(create_graph(4)) == 1)'" # [win]
+    - name: r-phasic
+      requirements:
+        build:
+          - r-base
+        host:
+          - r-base
+          - r-reticulate >=1.28
+          - r-r6
+        run:
+          - r-base
+          - r-reticulate >=1.28
+          - r-r6
+          - phasic  # Depends on Python package (same version)
+      build:
+        number: 1
+        noarch: generic  # Pure R package, no compilation
+        script: |
+          $R CMD INSTALL --build .  # [not win]
+          "%R%" CMD INSTALL --build .  # [win]
+      channels:
+        - conda-forge
+      test:
+        commands:
+          # Test that R package loads
+          - $R -e "library('phasic')"  # [not win]
+          - "%R%" -e "library('phasic')"  # [win]
+          # Test basic functionality
+          - $R -e "library('phasic'); g <- create_graph(state_length=1); stopifnot(g\$vertices_length() >= 1)"  # [not win]
+          - "%R%" -e "library('phasic'); g <- create_graph(state_length=1); stopifnot(g$vertices_length() >= 1)"  # [win]
 
 about:
   home: https://github.com/munch-group/phasic.git

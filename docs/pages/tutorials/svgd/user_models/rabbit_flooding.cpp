@@ -15,7 +15,7 @@
  * - Flooding eliminates all rabbits on an island at specified rate
  */
 
-#include "../../include/user_model.h"
+#include <phasic/include/cpp/user_model.h>
 #include <vector>
 #include <cstring>  // for memcpy
 

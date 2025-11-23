@@ -1,0 +1,186 @@
+---
+title: "Getting Started with phasic"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with phasic}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+## Introduction
+
+The **phasic** package provides high-performance algorithms for computing with phase-type distributions using graph-based methods. This vignette introduces the basic functionality.
+
+## Installation
+
+Install the Python package first:
+
+```bash
+pip install phasic
+```
+
+Then install the R package:
+
+```{r}
+# Install from GitHub (when available)
+# devtools::install_github("munch-group/phasic", subdir = ".")
+
+# Or install locally
+devtools::install_local("path/to/phasic")
+```
+
+Load the package:
+
+```{r}
+library(phasic)
+```
+
+## Creating a Simple Graph
+
+The most basic way to create a phase-type distribution is to manually build a graph:
+
+```{r}
+# Create a graph with 1-dimensional state vectors
+g <- create_graph(state_length = 1)
+
+# Get the starting vertex
+v0 <- g$starting_vertex()
+
+# Create additional vertices
+v1 <- g$find_or_create_vertex(c(1))
+v2 <- g$find_or_create_vertex(c(2))
+
+# Add edges (transitions) with rates
+# Note: You would need to access the vertex methods to add edges
+# This requires understanding the Python API structure
+```
+
+## Using Callbacks for Graph Construction
+
+A more powerful approach is to use callbacks that define the transition structure:
+
+```{r}
+# Define a simple Markov chain
+simple_callback <- function(state) {
+  n <- state[1]
+  if (n <= 0) {
+    return(list())  # Absorbing state
+  }
+  # Transition to n-1 with rate n
+  list(list(c(n - 1), n))  # 2-tuple: (next_state, rate)
+}
+
+# Create graph using callback
+g <- create_graph(
+  callback = simple_callback,
+  state_length = 1,
+  nr_samples = 5
+)
+```
+
+## Coalescent Model Example
+
+The coalescent is a common model in population genetics. Here's how to build it:
+
+```{r}
+# Coalescent callback: n lineages coalesce to n-1
+coalescent_callback <- function(state) {
+  n <- state[1]
+  if (n <= 1) {
+    return(list())  # Absorbing state (one lineage left)
+  }
+
+  # Coalescent rate: n choose 2
+  rate <- n * (n - 1) / 2
+
+  # Return: (next_state, base_weight, edge_parameters)
+  # For parameterized edges, edge_parameters is coefficient vector
+  list(list(c(n - 1), 0.0, c(rate)))
+}
+
+# Build parameterized coalescent graph
+coal_graph <- create_graph(
+  callback = coalescent_callback,
+  parameterized = TRUE,
+  state_length = 1,
+  nr_samples = 5  # Start with 5 lineages
+)
+
+cat("Created coalescent graph with", coal_graph$vertices_length(), "vertices\n")
+```
+
+## Computing PDF
+
+Once you have a graph, you can compute the probability density function:
+
+```{r}
+# For parameterized graphs, you need to instantiate with concrete parameters first
+# We'll use trace-based approach (more efficient)
+trace <- record_elimination_trace(coal_graph, param_length = 1)
+
+# Instantiate with theta = 2.0 (scaled coalescent rate)
+concrete_graph <- instantiate_from_trace(trace, theta = c(2.0))
+
+# Compute PDF at various times
+times <- seq(0.1, 5.0, length.out = 50)
+pdf_values <- concrete_graph$pdf(times)
+
+# Plot
+plot(times, pdf_values, type = "l",
+     xlab = "Time", ylab = "Density",
+     main = "Coalescent Distribution (n=5, theta=2.0)")
+```
+
+## Computing Moments
+
+Phase-type distributions have closed-form moment formulas:
+
+```{r}
+# Compute first 3 moments
+moments <- concrete_graph$moments(power = 3)
+
+cat("Mean:", moments[1], "\n")
+cat("Second moment:", moments[2], "\n")
+cat("Third moment:", moments[3], "\n")
+
+# Variance = E[X^2] - E[X]^2
+variance <- moments[2] - moments[1]^2
+cat("Variance:", variance, "\n")
+```
+
+## Reward Transformation
+
+Reward transformation allows you to model accumulated rewards instead of time:
+
+```{r}
+# Define rewards for each vertex (e.g., based on state)
+rewards <- seq(1, coal_graph$vertices_length())
+
+# Apply reward transformation
+reward_graph <- concrete_graph$reward_transform(rewards)
+
+# Compute PDF of rewarded distribution
+reward_pdf <- reward_graph$pdf(times)
+
+plot(times, reward_pdf, type = "l",
+     xlab = "Accumulated Reward", ylab = "Density",
+     main = "Rewarded Phase-Type Distribution")
+```
+
+## Next Steps
+
+- See `vignette("svgd-inference")` for Bayesian inference
+- See the Python API documentation for more advanced features
+- Check the package documentation with `?phasic` or `help(package = "phasic")`
+
+## References
+
+Røikjer, T., Hobolth, A., & Munch, K. (2022). Phase-type distributions in population genetics. *Statistics and Computing*, 32(5), 1-21. https://doi.org/10.1007/s11222-022-10155-6

@@ -116,5 +116,8 @@
             "filePath": "src",
             "group": "Default"
         }
-    ]
+    ],
+    "yaml.schemas": {
+        "file:///Users/kmt/.vscode/extensions/ms-python.python-2025.18.0-darwin-arm64/schemas/conda-meta.json": "file:///Users/kmt/phasic/conda-build/meta.yaml"
+    }
 }

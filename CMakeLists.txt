@@ -171,6 +171,24 @@ endif()
 
 install(TARGETS phasic_pybind DESTINATION phasic)
 
+# Install C headers alongside Python package for users who want C API
+install(FILES
+    api/c/phasic.h
+    api/c/phasic_hash.h
+    DESTINATION phasic/include/c)
+
+# Install C++ headers alongside Python package for users who want C++ API
+install(FILES
+    api/cpp/phasiccpp.h
+    api/cpp/scc_graph.h
+    api/cpp/user_model.h
+    DESTINATION phasic/include/cpp)
+
+# Install C++ implementation files needed by headers
+install(FILES
+    api/cpp/scc_graph.cpp
+    DESTINATION phasic/include/cpp)
+
 
 # # R bindings ###################################################
 # add_subdirectory(./R)

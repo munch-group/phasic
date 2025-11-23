@@ -15,7 +15,7 @@
  * the easiest way of importing the code.
  */
 #include "../src/c/phasic.c"
-#include "../api/cpp/phasiccpp.h"
+#include <phasic/include/cpp/phasiccpp.h>
 
 /* This is the binding layer such that R can invoke this function */
 #include <Rcpp.h>

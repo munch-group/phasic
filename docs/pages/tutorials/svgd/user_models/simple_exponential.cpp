@@ -5,7 +5,7 @@
  * Parameter: theta[0] = rate
  */
 
-#include "../../include/user_model.h"
+#include <phasic/include/cpp/user_model.h>
 #include <vector>
 
 phasic::Graph build_model(const double* theta, int n_params) {

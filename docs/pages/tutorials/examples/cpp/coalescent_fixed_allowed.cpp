@@ -7,7 +7,7 @@
 #include "math.h"
 
 #include "./../../../phasic/api/c/phasic.h"
-#include "./../../../phasic/api/cpp/phasiccpp.h"
+#include <phasic/include/cpp/phasiccpp.h>
 
 #include "./../../../phasic/src/c/phasic.c"
 

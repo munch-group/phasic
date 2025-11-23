@@ -9,7 +9,7 @@
  * - theta[1] = number of stages (optional, defaults to 3)
  */
 
-#include "../../include/user_model.h"
+#include <phasic/include/cpp/user_model.h>
 #include <vector>
 #include <cmath>
 

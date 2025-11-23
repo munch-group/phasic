@@ -1,0 +1,36 @@
+Package: phasic
+Type: Package
+Title: Phase-Type Distribution Algorithms
+Version: 0.22.0
+Authors@R: c(
+    person("Kasper", "Munch", email = "kaspermunch@birc.au.dk", role = c("aut", "cre")),
+    person("Tobias", "Røikjer", role = "aut"),
+    person("Asger", "Hobolth", role = "aut")
+  )
+Description: High-performance library for computing with phase-type distributions
+    using graph-based algorithms. Provides R interface to Python implementation
+    via 'reticulate'. Phase-type distributions model time until absorption in
+    continuous or discrete-time Markov chains. Includes methods for graph
+    construction via create_graph(), reward transformation, moment computation,
+    trace-based elimination with record_elimination_trace(), and Bayesian
+    inference via Stein Variational Gradient Descent (SVGD). Implements
+    algorithms from Røikjer, Hobolth & Munch (2022) <doi:10.1007/s11222-022-10155-6>.
+License: MIT + file LICENSE
+URL: https://github.com/munch-group/phasic
+BugReports: https://github.com/munch-group/phasic/issues
+SystemRequirements: Python (>= 3.8)
+Depends: R (>= 3.6.0)
+Imports: reticulate (>= 1.28), R6
+Suggests: testthat (>= 3.0.0), knitr, rmarkdown
+Config/reticulate: list( packages = list( list(package = "phasic", pip
+        = TRUE) ) )
+Encoding: UTF-8
+RoxygenNote: 7.3.2
+Roxygen: list(markdown = TRUE)
+VignetteBuilder: knitr
+NeedsCompilation: yes
+Packaged: 2025-11-23 07:42:24 UTC; kmt
+Author: Kasper Munch [aut, cre],
+  Tobias Røikjer [aut],
+  Asger Hobolth [aut]
+Maintainer: Kasper Munch <kaspermunch@birc.au.dk>

@@ -14,7 +14,7 @@
 * you would usually expect. Therefore this is by far
 * the easiest way of importing the code.
 */
-#include "./../../../phasic/api/cpp/phasiccpp.h"
+#include <phasic/include/cpp/phasiccpp.h>
 #include "./../../../phasic/src/c/phasic.c"
 
 /* This is the binding layer such that R can invoke this function */

@@ -53,7 +53,16 @@
       "WebFetch(domain:stackoverflow.com)",
       "WebFetch(domain:github.com)",
       "Bash(XLA_FFI_INCLUDE_DIR=/Users/kmt/phasic/.pixi/envs/default/lib/python3.13/site-packages/jaxlib/include pip install:*)",
-      "Bash(srun:*)"
+      "Bash(srun:*)",
+      "Bash(mkdir:*)",
+      "Bash(chmod:*)",
+      "Bash(Rscript:*)",
+      "Bash(/Users/kmt/.virtualenvs/r-reticulate/bin/pip install -e /Users/kmt/phasic)",
+      "Bash(/Users/kmt/.virtualenvs/r-reticulate/bin/python -c \"import phasic; print(''phasic version:'', phasic.__version__)\")",
+      "Bash(R CMD build:*)",
+      "Bash(tar:*)",
+      "Bash(R CMD check:*)",
+      "Bash(mv:*)"
     ],
     "deny": [],
     "ask": []
