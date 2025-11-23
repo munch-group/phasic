@@ -64,7 +64,8 @@
       "Bash(R CMD check:*)",
       "Bash(mv:*)",
       "Bash(gh run view:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(gh run list:*)"
     ],
     "deny": [],
     "ask": []
