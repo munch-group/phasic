@@ -88,7 +88,7 @@ show_usage() {
     echo ''
     echo '         "args": ["-c", "tmux-project"]'
     echo 'with'
-    echo '         "args": ["-c", "$PWD/.scripts/tmux-project"]'
+    echo '         "args": ["-c", "$PWD/scripts/tmux-project"]'
     echo 'if you want to add the script to your repository.
 
     echo "Options:"

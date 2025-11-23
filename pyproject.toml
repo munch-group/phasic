@@ -147,11 +147,11 @@ args = [
   { "arg" = "kind", "default" = "patch" },  # can be patch, minor, major
   { "arg" = "flag", "default" = "" },     # can be --pre, --release
 ]
-cmd = "./.scripts/bump_version.py --{{ kind }} {{ flag }} &&  git add -u &&  git commit -m '{{ kind }} {{ flag }} version bump' && git push" 
+cmd = "./scripts/bump_version.py --{{ kind }} {{ flag }} &&  git add -u &&  git commit -m '{{ kind }} {{ flag }} version bump' && git push" 
 description = "Bump version patch and build/release conda packages"
 
 [tool.pixi.tasks.bump-changelog]
-cmd = "./.scripts/bump_changelog.py --yes"
+cmd = "./scripts/bump_changelog.py --yes"
 description = "Bump version patch and build/release conda packages"
 
 [tool.pixi.tasks.acp]
@@ -162,6 +162,6 @@ cmd = "git add -u ; git commit -m '{{ message }}' ; git push"
 description = "git add commit push of tracked files with optional message"
 
 [tool.pixi.tasks.github-release]
-cmd = "./.scripts/release-tag.sh"
+cmd = "./scripts/release-tag.sh"
 description = "Release latest version on Github"
 
