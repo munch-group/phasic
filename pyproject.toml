@@ -15,7 +15,7 @@ wheel.packages = ["src/phasic"]
 name = "phasic"
 version = "0.22.5"
 classifiers = [
-  "Development Status :: 5 - Beta",
+  "Development Status :: 4 - Beta",
   "Intended Audience :: Education",
   "Topic :: Software Development :: Build Tools",
   "License :: OSI Approved :: MIT License",
