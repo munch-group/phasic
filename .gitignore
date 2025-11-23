@@ -38,6 +38,10 @@ profiling-toolkit/
 test_*.py
 debug_*.py
 
+# R package build artifacts
+*.Rcheck/
+*.tar.gz
+
 !CLAUDE.md
 !DEVEL.md
 !README.md
