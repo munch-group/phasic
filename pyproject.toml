@@ -34,6 +34,7 @@ dependencies = [
   "ipython",
   "ipykernel",
   'graphviz',
+  'nlohmann_json',
   'seaborn',
   'pyyaml',
   'psutil',
