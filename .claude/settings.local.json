@@ -62,7 +62,9 @@
       "Bash(R CMD build:*)",
       "Bash(tar:*)",
       "Bash(R CMD check:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(gh run view:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
