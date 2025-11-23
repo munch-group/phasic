@@ -12,6 +12,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 project(phasic VERSION 0.20.0 DESCRIPTION "Efficient graph based phase-type distribution algorithms")
 include(GNUInstallDirs)
+include(FetchContent)
 
 # NOTE: phasic_symbolic.c commented out due to missing function implementations
 # Symbolic elimination is obsolete - use trace-based elimination instead
@@ -84,8 +85,33 @@ message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
 
 find_package(Python COMPONENTS Interpreter Development REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
-find_package (Eigen3 REQUIRED NO_MODULE)
-find_package(nlohmann_json REQUIRED)
+
+# Try to find Eigen3, fetch if not found
+find_package(Eigen3 3.4 QUIET NO_MODULE)
+if(NOT Eigen3_FOUND)
+    message(STATUS "Eigen3 not found, fetching from GitHub...")
+    FetchContent_Declare(
+        Eigen3
+        GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
+        GIT_TAG 3.4.0
+        GIT_SHALLOW TRUE
+    )
+    FetchContent_MakeAvailable(Eigen3)
+endif()
+
+# Try to find nlohmann_json, fetch if not found
+find_package(nlohmann_json 3.11 QUIET)
+if(NOT nlohmann_json_FOUND)
+    message(STATUS "nlohmann_json not found, fetching from GitHub...")
+    FetchContent_Declare(
+        nlohmann_json
+        GIT_REPOSITORY https://github.com/nlohmann/json.git
+        GIT_TAG v3.11.3
+        GIT_SHALLOW TRUE
+    )
+    FetchContent_MakeAvailable(nlohmann_json)
+endif()
+
 find_package(OpenMP)
 
 # Get XLA FFI include directory from environment, jaxlib, or local install
