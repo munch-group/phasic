@@ -38,6 +38,9 @@ extern "C" {
 // Platform-specific dynamic library loading headers
 #ifdef _WIN32
     #include <windows.h>
+    // Windows uses _popen and _pclose instead of popen and pclose
+    #define popen _popen
+    #define pclose _pclose
 #else
     #include <dlfcn.h>
 #endif
