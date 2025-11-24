@@ -30,10 +30,19 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
 #include <limits.h>
+
+// Platform-specific includes
+#ifndef _WIN32
+    #include <sys/stat.h>
+    #include <sys/types.h>
+    #include <unistd.h>
+#else
+    #include <sys/stat.h>
+    #include <sys/types.h>
+    // Windows doesn't need unistd.h
+#endif
+
 #include "phasic.h"
 #include "../../api/c/phasic_hash.h"
 #include "phasic_log.h"
