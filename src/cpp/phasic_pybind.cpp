@@ -34,7 +34,13 @@ extern "C" {
 #include <vector>
 #include <fstream>
 #include <cstdlib>
-#include <dlfcn.h>
+
+// Platform-specific dynamic library loading headers
+#ifdef _WIN32
+    #include <windows.h>
+#else
+    #include <dlfcn.h>
+#endif
 
 namespace py = pybind11;
 using std::deque;
@@ -4363,7 +4369,25 @@ Use Graph.distribution_context(granularity) instead.
           }
       }
 
-      // Load the library
+      // Load the library (platform-specific)
+#ifdef _WIN32
+      HMODULE lib_handle = LoadLibraryA(lib_file.c_str());
+      if (!lib_handle) {
+          throw std::runtime_error("Failed to load library (Windows error: " + std::to_string(GetLastError()) + ")");
+      }
+
+      // Get the build function
+      typedef void* (*BuildFunc)(const double*, int);
+      BuildFunc build_ffi = (BuildFunc)GetProcAddress(lib_handle, "build_graph_ffi");
+
+      typedef void (*FreeFunc)(void*);
+      FreeFunc free_ffi = (FreeFunc)GetProcAddress(lib_handle, "free_graph_ffi");
+
+      if (!build_ffi || !free_ffi) {
+          FreeLibrary(lib_handle);
+          throw std::runtime_error("Failed to find functions in library");
+      }
+#else
       void* lib_handle = dlopen(lib_file.c_str(), RTLD_NOW | RTLD_LOCAL);
       if (!lib_handle) {
           throw std::runtime_error("Failed to load library: " + std::string(dlerror()));
@@ -4380,6 +4404,7 @@ Use Graph.distribution_context(granularity) instead.
           dlclose(lib_handle);
           throw std::runtime_error("Failed to find functions in library");
       }
+#endif
 
       // Return a Python function that builds and returns Graph objects
       return py::cpp_function([build_ffi, free_ffi](py::array_t<double> theta) -> phasic::Graph {
