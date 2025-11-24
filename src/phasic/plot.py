@@ -349,10 +349,11 @@ def plot_graph(graph:GraphType,
             dot.node(str(vertex.index()), ','.join(map(str, vertex.state())),
                      style='filled', edge_color=node_edgecolor, fillcolor=node_fillcolor)
 
-        if by_state:
-            subgraphs[f'cluster_{by_state(vertex.state())}'].append(i)
-        elif by_index:
-            subgraphs[f'cluster_{by_index(vertex.index())}'].append(i)
+        if i != 0:
+            if by_state:
+                subgraphs[f'cluster_{by_state(vertex.state())}'].append(i)
+            elif by_index:
+                subgraphs[f'cluster_{by_index(vertex.index())}'].append(i)
 
     if by_state or by_index:
         for sglabel in subgraphs:

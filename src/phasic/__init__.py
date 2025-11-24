@@ -1682,6 +1682,10 @@ class Graph(_Graph):
         # return new_graph, rewards
 
 
+    def reward_transform(self, rewards:np.ndarray) -> GraphType:
+
+        return Graph(super().reward_transform(rewards))
+
     def serialize(self, param_length: int = None) -> Dict[str, np.ndarray]:
         """
         Serialize graph to array representation for efficient computation.

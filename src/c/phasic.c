@@ -11321,6 +11321,20 @@ struct ptd_desc_reward_compute *ptd_build_reward_compute_from_trace(
  *
  * This is a ONE-TIME cost - trace can be cached and reused.
  */
+
+// Helper function to find edge index from parent to target
+// Returns (size_t)-1 if not found
+static inline size_t find_edge_idx(const struct ptd_elimination_trace *trace,
+                                   size_t parent_idx,
+                                   size_t target_idx) {
+    for (size_t k = 0; k < trace->vertex_targets_lengths[parent_idx]; k++) {
+        if (trace->vertex_targets[parent_idx][k] == target_idx) {
+            return k;
+        }
+    }
+    return (size_t)-1;
+}
+
 struct ptd_elimination_trace *ptd_record_elimination_trace(struct ptd_graph *graph) {
     PTD_LOG_DEBUG("Starting trace recording...");
 
@@ -11639,19 +11653,6 @@ struct ptd_elimination_trace *ptd_record_elimination_trace(struct ptd_graph *gra
         }
     }
 
-    // Helper: Find edge index from parent to target
-    // Returns (size_t)-1 if not found
-    #define FIND_EDGE_IDX(parent_idx, target_idx) ({ \
-        size_t __result = (size_t)-1; \
-        for (size_t __k = 0; __k < trace->vertex_targets_lengths[parent_idx]; __k++) { \
-            if (trace->vertex_targets[parent_idx][__k] == target_idx) { \
-                __result = __k; \
-                break; \
-            } \
-        } \
-        __result; \
-    })
-
     // Eliminate vertices in order
     for (size_t i = 0; i < n_vertices; i++) {
         size_t n_children = trace->vertex_targets_lengths[i];
@@ -11671,7 +11672,7 @@ struct ptd_elimination_trace *ptd_record_elimination_trace(struct ptd_graph *gra
             }
 
             // Find edge from parent to i
-            size_t parent_to_i_edge_idx = FIND_EDGE_IDX(parent_idx, i);
+            size_t parent_to_i_edge_idx = find_edge_idx(trace, parent_idx, i);
             if (parent_to_i_edge_idx == (size_t)-1) {
                 // Parent no longer has edge to i (removed in earlier iteration)
                 continue;
@@ -11714,7 +11715,7 @@ struct ptd_elimination_trace *ptd_record_elimination_trace(struct ptd_graph *gra
                 }
 
                 // Check if parent already has edge to child
-                size_t parent_to_child_edge_idx = FIND_EDGE_IDX(parent_idx, child_idx);
+                size_t parent_to_child_edge_idx = find_edge_idx(trace, parent_idx, child_idx);
 
                 if (parent_to_child_edge_idx != (size_t)-1) {
                     // CASE B: Update existing edge
@@ -11937,8 +11938,6 @@ struct ptd_elimination_trace *ptd_record_elimination_trace(struct ptd_graph *gra
     free(parents_lists);
     free(parents_counts);
     free(parents_capacities);
-
-    #undef FIND_EDGE_IDX
 
     PTD_LOG_INFO("Trace recording complete: %zu vertices, %zu operations, param_length=%zu",
                  trace->n_vertices, trace->operations_length, trace->param_length);

@@ -824,6 +824,15 @@ double _covariance_discrete(phasic::Graph &graph,
   // }
     
   
+
+bool is_number(const py::object& obj) {
+    static py::object np_number = py::module_::import("numpy").attr("number");
+    return py::isinstance<py::float_>(obj) || 
+           py::isinstance<py::int_>(obj) ||
+           py::isinstance(obj, np_number);
+}
+
+
 PYBIND11_MODULE(phasic_pybind, m) {
 
   ///////////////////////////////////////////////////////
@@ -3347,7 +3356,13 @@ Users should use Graph.find_or_create_vertex() instead.
       )delim")
       
     .def("add_edge", [](phasic::Vertex& self, phasic::Vertex& to, py::object weight_or_coeffs) {
-        if (py::isinstance<py::float_>(weight_or_coeffs) || py::isinstance<py::int_>(weight_or_coeffs)) {
+
+        py::module_ np = py::module_::import("numpy");
+        py::object np_number = np.attr("number");
+        // py::object np_int32 = np.attr("int32");
+        // py::object np_float64 = np.attr("float64");        
+
+        if (is_number(weight_or_coeffs)) {
             // Scalar: constant edge
             double weight = weight_or_coeffs.cast<double>();
             self.add_edge(to, weight);
@@ -3409,7 +3424,7 @@ Users should use Graph.find_or_create_vertex() instead.
 
     .def("ae", [](phasic::Vertex& self, phasic::Vertex& to, py::object weight_or_coeffs) {
         // Alias for add_edge
-        if (py::isinstance<py::float_>(weight_or_coeffs) || py::isinstance<py::int_>(weight_or_coeffs)) {
+        if (is_number(weight_or_coeffs)) {
             double weight = weight_or_coeffs.cast<double>();
             self.add_edge(to, weight);
         } else {
@@ -3421,7 +3436,7 @@ Users should use Graph.find_or_create_vertex() instead.
     .def("add_aux_vertex", [](phasic::Vertex& self, py::object rate) -> phasic::Vertex {
         bool is_parameterized = self.c_vertex()->graph->parameterized;
 
-        if (py::isinstance<py::float_>(rate) || py::isinstance<py::int_>(rate)) {
+        if (is_number(rate)) {
             // Scalar: constant rate
             if (is_parameterized) {
                 throw std::invalid_argument(
