@@ -83,7 +83,12 @@ endforeach()
 # Debug: Print CMAKE_PREFIX_PATH to help diagnose issues
 message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
 
-find_package(Python COMPONENTS Interpreter Development REQUIRED)
+# When building with scikit-build-core, Python is already found
+# For standalone builds, find Python if not already found
+if(NOT Python_FOUND AND NOT SKBUILD)
+    find_package(Python COMPONENTS Interpreter Development REQUIRED)
+endif()
+
 find_package(pybind11 CONFIG REQUIRED)
 
 # Try to find Eigen3, fetch if not found
