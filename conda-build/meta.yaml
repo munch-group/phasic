@@ -26,6 +26,8 @@ outputs:
           - pybind11>=2.10.0
           - eigen
           - nlohmann_json
+          - jax >=0.4.0
+          - jaxlib >=0.4.0
         run:
           - python #{{ python }}
           - pybind11>=2.10.0
@@ -38,19 +40,16 @@ outputs:
           - pyyaml
           - psutil
           - rich
-        
-        run_constrained:
-          # Optional JAX support for gradient-based inference
-          # These are not required but if installed must meet these version constraints
           - jax >=0.4.0
           - jaxlib >=0.4.0
-          # - equinox
       build:
         number: 1
         noarch: false
         script: |
           # set CMAKE_GENERATOR=
           ninja --version || where ninja || echo "Ninja not found!"
+          export XLA_FFI_INCLUDE_DIR=$($PYTHON -c "from jax import ffi; print(ffi.include_dir())")  # [not win]
+          set "XLA_FFI_INCLUDE_DIR=%PYTHON% -c \"from jax import ffi; print(ffi.include_dir())\""  # [win]
           "$PYTHON" -m pip install . -vv   # [not win]
           "%PYTHON%" -m pip install . -vv  # [win]
 

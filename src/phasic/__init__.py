@@ -1685,6 +1685,12 @@ class Graph(_Graph):
     def reward_transform(self, rewards:np.ndarray) -> GraphType:
 
         return Graph(super().reward_transform(rewards))
+    
+    
+    def reward_transform_discrete(self, rewards:np.ndarray) -> GraphType:
+
+        return Graph(super().reward_transform_discrete(rewards))
+    
 
     def serialize(self, param_length: int = None) -> Dict[str, np.ndarray]:
         """
