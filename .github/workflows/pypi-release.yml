@@ -65,8 +65,8 @@ jobs:
         CIBW_SKIP: "*-musllinux_* *-win32 *-manylinux_i686"
         # Build ARM64 wheels on Linux using QEMU
         CIBW_ARCHS_LINUX: x86_64 aarch64
-        # macOS: macos-13 builds x86_64, macos-14 builds arm64
-        CIBW_ARCHS_MACOS: x86_64 arm64
+        # macOS: macos-13 builds x86_64 ONLY, macos-14 builds arm64 ONLY
+        CIBW_ARCHS_MACOS: ${{ matrix.os == 'macos-14' && 'arm64' || 'x86_64' }}
         # Windows: only x86_64 (most common)
         CIBW_ARCHS_WINDOWS: AMD64
 
