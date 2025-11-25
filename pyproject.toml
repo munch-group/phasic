@@ -32,7 +32,6 @@ dependencies = [
   'jax',
   'numpy',
   'eigen',
-  'distro',
   "ipython",
   "ipykernel",
   'graphviz',

@@ -14,7 +14,7 @@ import ctypes
 import pathlib
 
 from functools import wraps
-from distro import name
+#from distro import name
 import numpy as np
 from collections import OrderedDict, UserDict
 
@@ -1686,7 +1686,7 @@ class Graph(_Graph):
 
         return Graph(super().reward_transform(rewards))
     
-    
+
     def reward_transform_discrete(self, rewards:np.ndarray) -> GraphType:
 
         return Graph(super().reward_transform_discrete(rewards))
