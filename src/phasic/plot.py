@@ -10,7 +10,7 @@ from numbers import Real as FloatingPointError
 from typing import TypeVar
 from collections.abc import Callable
 
-from .vscode_theme import get_vscode_theme
+from .vscode_theme import is_vscode_dark_theme
 
 GraphType = TypeVar('Graph') 
 
@@ -50,8 +50,8 @@ def plot_graph(graph:GraphType,
         Callback function defining subgraph clusters. Must take a state as input and produce a string that serve as subgraph label. None by default.
     max_nodes : 
         Maximum number of vertices for graphs to plot, by default 100
-    theme : 
-        Style for graphs, by default 'dark', only alternative is 'light'.
+    dark : 
+        Whether to use dark mode for the graph, by default True
     rainbow : 
         Color edges randomly, by default True
     size : 
@@ -87,10 +87,10 @@ def plot_graph(graph:GraphType,
     if by_state and by_index:
         assert "Do not use both by_index and by_state"
 
-    if theme is None:
-        theme = get_theme()
+    if dark is None:
+        dark = is_vscode_dark_theme()
 
-    if 'dark' in theme.lower():
+    if dark:
         edge_color = '#e6e6e6'
         node_edgecolor = '#888888'
         node_fillcolor = "#c6c6c6"

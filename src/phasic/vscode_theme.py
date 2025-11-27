@@ -47,7 +47,7 @@ def get_vscode_theme() -> str | None:
     return settings.get("workbench.colorTheme", "Default Dark Modern")
 
 
-def vscode_theme_is_dark() -> bool:
+def is_vscode_dark_theme() -> bool:
     """Determine if a given VS Code theme name is dark or light."""
     return 'dark' in get_vscode_theme().lower()
 
@@ -65,7 +65,7 @@ def set_phasic_theme(dark:bool=None):
     """
 
     if dark is None:
-        dark = vscode_theme_is_dark()
+        dark = is_vscode_dark_theme()
         logger.debug(f"No theme specified, autodetected VS Code theme as {'dark' if dark else 'light'}.")
 
     env_theme = os.environ.get('NOTEBOOK_THEME', None)
