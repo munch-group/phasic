@@ -48,7 +48,7 @@ iridis = truncate_colormap(plt.get_cmap('viridis'), 0.2, 1)
 from .config import get_config
 from .exceptions import PTDConfigError
 
-from .plot import black_white, phasic_theme
+from .vscode_theme import black_white, phasic_theme
 
 # from . import svgd_plots
 

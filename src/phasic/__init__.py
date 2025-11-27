@@ -222,7 +222,9 @@ from .logging_config import setup_logging, get_logger
 setup_logging()
 
 from . import plot
-from .plot import set_theme, get_theme, phasic_theme
+from .vscode_theme import set_phasic_theme
+from .vscode_theme import phasic_theme as theme
+from .vscode_theme import set_theme # backwards compatibility
 
 # Optional SVGD support (requires JAX)
 if HAS_JAX:
