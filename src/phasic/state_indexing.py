@@ -233,7 +233,7 @@ class StateSpace:
         index : int or ndarray of int
             Linear index or array of indices to convert.
         as_dict : bool, default=True
-            If True, return dict. If False, return array of encoded values.
+            If True, return dict. If False, return array of property values.
 
         Returns
         -------
@@ -241,7 +241,7 @@ class StateSpace:
             If index is 0: returns None (reserved for starting vertex).
             If scalar index and as_dict=True: dictionary mapping property names to values.
             If array index and as_dict=True: list of dictionaries (None for index 0).
-            If as_dict=False: array of encoded values (shape: (n_properties,) or (n_indices, n_properties)).
+            If as_dict=False: array of decoded property values (shape: (n_properties,) or (n_indices, n_properties)).
 
         Examples
         --------
@@ -253,7 +253,7 @@ class StateSpace:
         None
         >>> space.index_to_props(6)  # Index 6 -> state index 5 -> {'a': 2, 'b': 1}
         {'a': 2, 'b': 1}
-        >>> space.index_to_props(6, as_dict=False)
+        >>> space.index_to_props(6, as_dict=False)  # Returns decoded values
         array([2, 1])
         """
         # Handle array input
@@ -275,7 +275,11 @@ class StateSpace:
                     for j, idx in enumerate(index)
                 ]
             else:
-                return encoded
+                # Decode values for consistency with dict output
+                decoded = np.zeros_like(encoded)
+                for i, prop in enumerate(self.properties):
+                    decoded[:, i] = prop.decode_value(encoded[:, i])
+                return decoded
 
         # Scalar conversion
         if index == 0:
@@ -294,7 +298,11 @@ class StateSpace:
                 for i, prop in enumerate(self.properties)
             }
         else:
-            return encoded
+            # Decode values for consistency with dict output
+            return np.array([
+                prop.decode_value(encoded[i])
+                for i, prop in enumerate(self.properties)
+            ])
 
     def props_to_index(
         self,
@@ -311,7 +319,7 @@ class StateSpace:
         props : dict or ndarray of int or None, optional
             Property values to convert. Can be:
             - dict: mapping from property names to values
-            - ndarray: encoded values in same order as self.properties
+            - ndarray: property values in same order as self.properties
             - None: use kwargs instead
         **kwargs : int
             Alternative to dict: pass properties as keyword arguments.
@@ -336,7 +344,7 @@ class StateSpace:
         6  # State index 5 + 1 offset
         >>> space.props_to_index(a=2, b=1)  # kwargs alternative
         6
-        >>> space.props_to_index(np.array([2, 1]))  # array input
+        >>> space.props_to_index(np.array([2, 1]))  # array input (decoded values)
         6
         """
         # Handle kwargs
@@ -351,11 +359,17 @@ class StateSpace:
         # Handle array input
         if isinstance(props, np.ndarray):
             if props.ndim == 1:
-                # Single state
-                encoded = props
+                # Single state - encode the decoded values
+                encoded = np.array([
+                    prop.encode_value(int(props[i]))
+                    for i, prop in enumerate(self.properties)
+                ])
             else:
-                # Multiple states (2D array)
-                return np.dot(props, self._radix_powers) + 1  # +1 offset for starting vertex
+                # Multiple states (2D array) - encode each row
+                encoded = np.zeros_like(props)
+                for i, prop in enumerate(self.properties):
+                    encoded[:, i] = [prop.encode_value(int(val)) for val in props[:, i]]
+                return np.dot(encoded, self._radix_powers) + 1  # +1 offset for starting vertex
         else:
             # Dict input
             encoded = np.array([
