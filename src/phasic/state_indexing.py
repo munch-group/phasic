@@ -9,6 +9,9 @@ Uses a mixed-radix numbering system where each property occupies a "digit" with
 its own base, enabling efficient bijective mapping between flat integer indices
 and structured property combinations.
 
+Supports partial property specifications for querying/filtering states that match
+specific property values.
+
 Example
 -------
 >>> # Define a two-locus state space with derived mutation tracking
@@ -27,9 +30,13 @@ Example
 >>> props = state_space.index_to_props(142)
 >>> print(props)  # {'descendants_l1': 10, 'descendants_l2': 2, ...}
 >>>
->>> # Convert properties to index
+>>> # Convert properties to index (full specification)
 >>> idx = state_space.props_to_index(props)
 >>> print(idx)  # 142
+>>>
+>>> # Partial property specification - find all matching indices
+>>> indices = state_space.props_to_index({'population': 1})
+>>> # Returns array of all indices where population=1
 """
 
 from dataclasses import dataclass
@@ -295,20 +302,25 @@ class StateSpace:
         """
         Convert property values to linear index.
 
+        Supports partial property specifications: if only a subset of properties
+        is provided, returns array of all indices matching those properties.
+
         Parameters
         ----------
         props : dict or ndarray of int or None, optional
             Property values to convert. Can be:
-            - dict: mapping from property names to values
-            - ndarray: property values in same order as self.properties
+            - dict: mapping from property names to values (full or partial)
+            - ndarray: property values in same order as self.properties (must be complete)
             - None: use kwargs instead
         **kwargs : int
-            Alternative to dict: pass properties as keyword arguments.
+            Alternative to dict: pass properties as keyword arguments (full or partial).
 
         Returns
         -------
         int or ndarray of int
-            Linear index (scalar) or array of indices (if props is 2D array).
+            - If all properties specified: scalar index
+            - If partial properties specified: array of matching indices
+            - If props is 2D array: array of indices (one per row)
 
         Raises
         ------
@@ -321,12 +333,16 @@ class StateSpace:
         ...     Property('a', max_value=2),
         ...     Property('b', max_value=2)
         ... ])
+        >>> # Full specification -> scalar index
         >>> space.props_to_index({'a': 2, 'b': 1})
         5
         >>> space.props_to_index(a=2, b=1)  # kwargs alternative
         5
-        >>> space.props_to_index(np.array([2, 1]))  # array input (decoded values)
-        5
+        >>> # Partial specification -> array of matching indices
+        >>> space.props_to_index({'a': 2})  # All indices where a=2
+        array([2, 5, 8])  # Corresponds to a=2,b=0; a=2,b=1; a=2,b=2
+        >>> space.props_to_index(b=1)  # All indices where b=1
+        array([1, 4, 7])  # Corresponds to a=0,b=1; a=1,b=1; a=2,b=1
         """
         # Handle kwargs
         if kwargs:
@@ -337,7 +353,7 @@ class StateSpace:
         if props is None:
             raise ValueError("Must provide either props dict/array or kwargs")
 
-        # Handle array input
+        # Handle array input (must be complete specification)
         if isinstance(props, np.ndarray):
             if props.ndim == 1:
                 # Single state - encode the decoded values
@@ -351,14 +367,67 @@ class StateSpace:
                 for i, prop in enumerate(self.properties):
                     encoded[:, i] = [prop.encode_value(int(val)) for val in props[:, i]]
                 return np.dot(encoded, self._radix_powers)
-        else:
-            # Dict input
+            return int(np.dot(encoded, self._radix_powers))
+
+        # Dict input - check if partial or complete
+        prop_names = set(p.name for p in self.properties)
+        specified_props = set(props.keys())
+
+        # Validate that all specified properties are valid
+        invalid_props = specified_props - prop_names
+        if invalid_props:
+            raise ValueError(f"Unknown properties: {invalid_props}")
+
+        # If all properties specified, return single index
+        if specified_props == prop_names:
             encoded = np.array([
                 prop.encode_value(props[prop.name])
                 for prop in self.properties
             ])
+            return int(np.dot(encoded, self._radix_powers))
 
-        return int(np.dot(encoded, self._radix_powers))
+        # Partial specification - generate all matching indices
+        import itertools
+
+        # Identify unspecified properties and their value ranges
+        unspecified = []
+        for prop in self.properties:
+            if prop.name not in props:
+                # Generate all valid values for this property
+                values = list(range(prop.min_value, prop.max_value + 1))
+                unspecified.append((prop.name, values))
+
+        # Generate all combinations of unspecified properties
+        if not unspecified:
+            # All properties specified (shouldn't reach here, but handle it)
+            encoded = np.array([
+                prop.encode_value(props[prop.name])
+                for prop in self.properties
+            ])
+            return int(np.dot(encoded, self._radix_powers))
+
+        # Build list of all matching indices
+        matching_indices = []
+
+        # Get all combinations of unspecified property values
+        unspec_names = [name for name, _ in unspecified]
+        unspec_value_lists = [values for _, values in unspecified]
+
+        for value_combo in itertools.product(*unspec_value_lists):
+            # Merge specified and current unspecified values
+            full_props = props.copy()
+            for name, value in zip(unspec_names, value_combo):
+                full_props[name] = value
+
+            # Compute index for this complete property set
+            encoded = np.array([
+                prop.encode_value(full_props[prop.name])
+                for prop in self.properties
+            ])
+            idx = int(np.dot(encoded, self._radix_powers))
+            matching_indices.append(idx)
+
+        return np.array(sorted(matching_indices), dtype=int)
 
 
 class StateVector:
