@@ -5,9 +5,9 @@ This module provides a dynamic, extensible system for converting between linear
 indices and lineage property dictionaries. Unlike the hard-coded C++ structs,
 this allows arbitrary combinations of properties to be defined at runtime.
 
-IMPORTANT: Index 0 is reserved for the starting vertex in graph-based models and
-cannot represent a combination of properties. All property combinations are indexed
-starting at 1.
+Uses a mixed-radix numbering system where each property occupies a "digit" with
+its own base, enabling efficient bijective mapping between flat integer indices
+and structured property combinations.
 
 Example
 -------
@@ -19,15 +19,15 @@ Example
 ...     Property('population', max_value=2, min_value=1)
 ... ])
 >>>
->>> # Index 0 is reserved for starting vertex
->>> state_space.index_to_props(0)
-None
+>>> # Total number of unique states
+>>> state_space.size
+462  # 11 * 11 * 2 * 2
 >>>
->>> # Convert index to properties (index 1+ map to property combinations)
+>>> # Convert index to properties
 >>> props = state_space.index_to_props(142)
 >>> print(props)  # {'descendants_l1': 10, 'descendants_l2': 2, ...}
 >>>
->>> # Convert properties to index (returns value ≥ 1)
+>>> # Convert properties to index
 >>> idx = state_space.props_to_index(props)
 >>> print(idx)  # 142
 """
@@ -45,8 +45,7 @@ class Property:
 
     A property represents one dimension of the lineage state (e.g., number of
     descendants, population label, derived allele status). Each property has
-    a name, min/max values, which determines its base in the mixed-radix
-    numbering system.
+    a name and min/max values for validation and encoding.
 
     Parameters
     ----------
@@ -59,17 +58,12 @@ class Property:
     offset : int, optional
         Deprecated: Use min_value instead. Minimum value offset (default 0).
 
-    Attributes
-    ----------
-    base : int
-        Radix base for this property: max_value - min_value + 1
-
     Examples
     --------
     >>> # Number of descendants (0 to sample_size)
     >>> prop = Property('descendants', max_value=10)
-    >>> prop.base
-    11
+    >>> prop.validate_value(5)  # OK
+    >>> prop.validate_value(11)  # ValueError
 
     >>> # Population label (1 to n_populations)
     >>> prop = Property('population', max_value=2, min_value=1)
@@ -114,7 +108,7 @@ class Property:
 
     def encode_value(self, value: int) -> int:
         """
-        Encode a property value for indexing (subtract min_value).
+        Encode a property value to state vector element (subtract min_value).
 
         Parameters
         ----------
@@ -124,26 +118,29 @@ class Property:
         Returns
         -------
         int
-            Encoded value (0-based)
+            State vector element value (0-based offset from min_value)
         """
         self.validate_value(value)
         return value - self.min_value
 
     def decode_value(self, encoded: int) -> int:
         """
-        Decode a property value from indexing (add min_value).
+        Decode a state vector element to property value (add min_value).
 
         Parameters
         ----------
         encoded : int
-            Encoded (0-based) value
+            State vector element value (0-based offset)
 
         Returns
         -------
         int
-            Decoded value (with min_value)
+            Property value (with min_value applied)
         """
-        return int(encoded + self.min_value)
+        prop_value = encoded + self.min_value
+        if hasattr(prop_value, 'size') and prop_value.size == 1:
+            return int(prop_value)
+        return prop_value
 
 
 class StateSpace:
@@ -153,9 +150,6 @@ class StateSpace:
     StateSpace implements a mixed-radix numbering system where each property
     occupies a "digit" with its own base. This allows efficient conversion
     between flat integer indices and structured property dictionaries.
-
-    IMPORTANT: Index 0 is reserved for the starting vertex in graph-based models.
-    Therefore, property combinations are indexed starting at 1.
 
     Parameters
     ----------
@@ -170,7 +164,7 @@ class StateSpace:
     property_dict : Dict[str, Property]
         Property lookup by name
     size : int
-        Total number of states in this space (including reserved index 0)
+        Total number of states in this space
 
     Examples
     --------
@@ -180,9 +174,9 @@ class StateSpace:
     ...     Property('population', max_value=2, min_value=1)
     ... ])
     >>> space.size
-    34  # 11 * 2 + 1 (for starting vertex at index 0)
+    22  # 11 * 2
 
-    >>> props = space.index_to_props(15)  # Index 15 -> actual state index 14
+    >>> props = space.index_to_props(15)
     >>> idx = space.props_to_index(props)
     >>> assert idx == 15
     """
@@ -215,18 +209,16 @@ class StateSpace:
 
     @property
     def size(self) -> int:
-        """Total number of states in this space (including starting vertex at index 0)."""
-        return int(np.prod(self._bases)) + 1  # +1 for starting vertex at index 0
+        """Total number of states in this space."""
+        return int(np.prod(self._bases))
 
     def index_to_props(
         self,
         index: Union[int, npt.NDArray[np.integer]],
         as_dict: bool = True
-    ) -> Union[Dict[str, int], List[Dict[str, int]], npt.NDArray[np.integer], None]:
+    ) -> Union[Dict[str, int], List[Dict[str, int]], npt.NDArray[np.integer]]:
         """
         Convert linear index to property values.
-
-        Note: Index 0 is reserved for the starting vertex and returns None.
 
         Parameters
         ----------
@@ -237,10 +229,9 @@ class StateSpace:
 
         Returns
         -------
-        dict or list of dict or ndarray of int or None
-            If index is 0: returns None (reserved for starting vertex).
+        dict or list of dict or ndarray of int
             If scalar index and as_dict=True: dictionary mapping property names to values.
-            If array index and as_dict=True: list of dictionaries (None for index 0).
+            If array index and as_dict=True: list of dictionaries.
             If as_dict=False: array of decoded property values (shape: (n_properties,) or (n_indices, n_properties)).
 
         Examples
@@ -249,30 +240,27 @@ class StateSpace:
         ...     Property('a', max_value=2),
         ...     Property('b', max_value=2)
         ... ])
-        >>> space.index_to_props(0)  # Starting vertex
-        None
-        >>> space.index_to_props(6)  # Index 6 -> state index 5 -> {'a': 2, 'b': 1}
+        >>> space.index_to_props(5)
         {'a': 2, 'b': 1}
-        >>> space.index_to_props(6, as_dict=False)  # Returns decoded values
+        >>> space.index_to_props(5, as_dict=False)
         array([2, 1])
         """
         # Handle array input
         if isinstance(index, np.ndarray):
             # Vectorized conversion
-            indices = index - 1  # Offset by 1 (index 0 reserved for starting vertex)
-            encoded = np.zeros((len(indices), len(self.properties)), dtype=int)
+            encoded = np.zeros((len(index), len(self.properties)), dtype=int)
 
             for i, prop in enumerate(self.properties):
-                encoded[:, i] = (indices // self._radix_powers[i]) % prop.base
+                encoded[:, i] = (index // self._radix_powers[i]) % prop.base
 
             if as_dict:
-                # Return list of dicts (None for index 0)
+                # Return list of dicts
                 return [
-                    None if idx == 0 else {
+                    {
                         p.name: p.decode_value(encoded[j, i])
                         for i, p in enumerate(self.properties)
                     }
-                    for j, idx in enumerate(index)
+                    for j in range(len(index))
                 ]
             else:
                 # Decode values for consistency with dict output
@@ -282,15 +270,10 @@ class StateSpace:
                 return decoded
 
         # Scalar conversion
-        if index == 0:
-            # Index 0 is reserved for starting vertex
-            return None
-
-        remaining = index - 1  # Offset by 1 (index 0 reserved for starting vertex)
         encoded = np.zeros(len(self.properties), dtype=int)
 
         for i, prop in enumerate(self.properties):
-            encoded[i] = (remaining // self._radix_powers[i]) % prop.base
+            encoded[i] = (index // self._radix_powers[i]) % prop.base
 
         if as_dict:
             return {
@@ -312,8 +295,6 @@ class StateSpace:
         """
         Convert property values to linear index.
 
-        Note: Result is offset by 1 (index 0 reserved for starting vertex).
-
         Parameters
         ----------
         props : dict or ndarray of int or None, optional
@@ -327,7 +308,7 @@ class StateSpace:
         Returns
         -------
         int or ndarray of int
-            Linear index (scalar, ≥1) or array of indices (if props is 2D array).
+            Linear index (scalar) or array of indices (if props is 2D array).
 
         Raises
         ------
@@ -341,11 +322,11 @@ class StateSpace:
         ...     Property('b', max_value=2)
         ... ])
         >>> space.props_to_index({'a': 2, 'b': 1})
-        6  # State index 5 + 1 offset
+        5
         >>> space.props_to_index(a=2, b=1)  # kwargs alternative
-        6
+        5
         >>> space.props_to_index(np.array([2, 1]))  # array input (decoded values)
-        6
+        5
         """
         # Handle kwargs
         if kwargs:
@@ -369,7 +350,7 @@ class StateSpace:
                 encoded = np.zeros_like(props)
                 for i, prop in enumerate(self.properties):
                     encoded[:, i] = [prop.encode_value(int(val)) for val in props[:, i]]
-                return np.dot(encoded, self._radix_powers) + 1  # +1 offset for starting vertex
+                return np.dot(encoded, self._radix_powers)
         else:
             # Dict input
             encoded = np.array([
@@ -377,7 +358,7 @@ class StateSpace:
                 for prop in self.properties
             ])
 
-        return int(np.dot(encoded, self._radix_powers)) + 1  # +1 offset for starting vertex
+        return int(np.dot(encoded, self._radix_powers))
 
 
 class StateVector:
@@ -410,7 +391,7 @@ class StateVector:
     --------
     >>> space = StateSpace([
     ...     Property('descendants', max_value=10),
-    ...     Property('population', max_value=2, offset=1)
+    ...     Property('population', max_value=2, min_value=1)
     ... ])
 
     >>> # Initialize from index
@@ -518,7 +499,7 @@ class StateVector:
         """
         Set property value by name.
 
-        Note: Does not automatically update the linear index. Call update_index() after.
+        Note: Does not automatically update the state vector. Call update_state() after.
 
         Parameters
         ----------
