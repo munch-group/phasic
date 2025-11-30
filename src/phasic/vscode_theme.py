@@ -7,7 +7,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib_inline.backend_inline import set_matplotlib_formats
 import seaborn as sns
-import colorsys
+# import colorsys
 import os
 import sys
 from pathlib import Path
@@ -17,6 +17,50 @@ from collections.abc import Sequence, MutableSequence, Callable
 from .logging_config import get_logger
 logger = get_logger(__name__)
 
+
+def rgb_to_hsl(r, g, b):
+    r = float(r)
+    g = float(g)
+    b = float(b)
+    high = max(r, g, b)
+    low = min(r, g, b)
+    h, s, v = ((high + low) / 2,)*3
+
+    if high == low:
+        h = 0.0
+        s = 0.0
+    else:
+        d = high - low
+        s = d / (2 - high - low) if l > 0.5 else d / (high + low)
+        h = {
+            r: (g - b) / d + (6 if g < b else 0),
+            g: (b - r) / d + 2,
+            b: (r - g) / d + 4,
+        }[high]
+        h /= 6
+
+    return h, s, v
+
+
+def hsl_to_rgb(h, s, l):
+    def hue_to_rgb(p, q, t):
+        t += 1 if t < 0 else 0
+        t -= 1 if t > 1 else 0
+        if t < 1/6: return p + (q - p) * 6 * t
+        if t < 1/2: return q
+        if t < 2/3: p + (q - p) * (2/3 - t) * 6
+        return p
+
+    if s == 0:
+        r, g, b = l, l, l
+    else:
+        q = l * (1 + s) if l < 0.5 else l + s - l * s
+        p = 2 * l - q
+        r = hue_to_rgb(p, q, h + 1/3)
+        g = hue_to_rgb(p, q, h)
+        b = hue_to_rgb(p, q, h - 1/3)
+
+    return r, g, b
 
 
 def get_vscode_settings_path() -> Path:
@@ -130,14 +174,16 @@ def lighten_colors(colors, factor=0.0, n_colors=None, as_cmap=None, target_light
         rgba = matplotlib.colors.to_rgba(c)
         r, g, b, a = rgba
         
-        h, l, s = colorsys.rgb_to_hls(r, g, b)
+        # h, l, s = colorsys.rgb_to_hls(r, g, b)
+        h, s, l = rgb_to_hsl(r, g, b)
         
         if target_lightness is not None:
             l_new = target_lightness
         else:
             l_new = l + (1 - l) * factor
         
-        r_new, g_new, b_new = colorsys.hls_to_rgb(h, l_new, s)
+        # r_new, g_new, b_new = colorsys.hls_to_rgb(h, l_new, s)
+        r_new, g_new, b_new = hsl_to_rgb(h, s, l_new)
         lightened.append((r_new, g_new, b_new, a))
     
     # Determine output type
@@ -241,6 +287,7 @@ def set_phasic_theme(dark:bool=None, cmap=None):
             'xtick.bottom': False,
             'ytick.left': False,
             'legend.frameon': False,
+            'figure.figsize': (5, 3.7),            
         })
 
 

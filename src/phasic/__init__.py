@@ -18,37 +18,37 @@ from functools import wraps
 import numpy as np
 from collections import OrderedDict, UserDict
 
-class StateDict(UserDict):
+# class StateDict(UserDict):
 
-    def __init__(self, data):
-        self.data = OrderedDict(data)
-        self.list = list(self.data.values())
+#     def __init__(self, data):
+#         self.data = OrderedDict(data)
+#         self.list = list(self.data.values())
 
-    def __get__(self, key):
-        if type(key) is int:
-            return self.list[key]
-        return self.data[key]
+#     def __get__(self, key):
+#         if type(key) is int:
+#             return self.list[key]
+#         return self.data[key]
 
-    def __set__(self, key, value):
-        if type(key) is int:
-            self.list[key] = value
-        self.data[key] = value             
+#     def __set__(self, key, value):
+#         if type(key) is int:
+#             self.list[key] = value
+#         self.data[key] = value             
 
-def labelled(labels):  # The factory function that accepts a parameter
-    def decorator(func):
-        @wraps(func)  # Apply @wraps to the wrapper
-        def wrapper(arr, **kwargs):
-            print(kwargs)
-#            assert len(labels) == arr.size
-            l = list(zip(labels, arr))
-            d = StateDict(l)
-            result = func(d, **kwargs)  
-            print(result)
-            if not result:
-                return []
-            return [[np.array(state, dtype=int), *rest] for state, *rest in result]
-        return wrapper
-    return decorator
+# def labelled(labels):  # The factory function that accepts a parameter
+#     def decorator(func):
+#         @wraps(func)  # Apply @wraps to the wrapper
+#         def wrapper(arr, **kwargs):
+#             print(kwargs)
+# #            assert len(labels) == arr.size
+#             l = list(zip(labels, arr))
+#             d = StateDict(l)
+#             result = func(d, **kwargs)  
+#             print(result)
+#             if not result:
+#                 return []
+#             return [[np.array(state, dtype=int), *rest] for state, *rest in result]
+#         return wrapper
+#     return decorator
 
 
 # # state vector labels 
@@ -84,6 +84,14 @@ from .logging_config import (
     set_log_level,
     get_logger,
 )
+from .state_indexing import (
+    StateSpace,
+    Property
+)
+from .vscode_theme import set_phasic_theme
+from .vscode_theme import phasic_theme as theme
+from .vscode_theme import set_theme # backwards compatibility
+from . import plot
 
 # Get configuration (creates default if none exists)
 _config = get_config()
@@ -220,11 +228,6 @@ from .phasic_pybind import Vertex, Edge
 # Configure package-wide logging
 from .logging_config import setup_logging, get_logger
 setup_logging()
-
-from . import plot
-from .vscode_theme import set_phasic_theme
-from .vscode_theme import phasic_theme as theme
-from .vscode_theme import set_theme # backwards compatibility
 
 # Optional SVGD support (requires JAX)
 if HAS_JAX:
