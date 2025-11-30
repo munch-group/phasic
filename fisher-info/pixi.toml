@@ -1,0 +1,19 @@
+[workspace]
+authors = ["Kasper Munch <kaspermunch@birc.au.dk>"]
+channels = ["conda-forge", "munch-group"]
+name = "fisher-info"
+platforms = ["osx-arm64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
+jax = ">=0.7.2,<0.8"
+scipy = ">=1.16.3,<2"
+numpy = ">=2.3.5,<3"
+pandas = ">=2.3.3,<3"
+seaborn = ">=0.13.2,<0.14"
+jupyter = ">=1.1.1,<2"
+quarto = ">=1.8.26,<2"
+ripser = ">=0.6.12,<0.7"
+persim = ">=0.3.8,<0.4"
