@@ -267,7 +267,7 @@ def set_phasic_theme(dark:bool=None, cmap=None):
                 'grid.linewidth': 0.4,
                 'grid.alpha': 0.7,            
                 })
-            plt.set_cmap(cmap if cmap else light_cmap)
+            # plt.set_cmap(cmap if cmap else light_cmap)
 
         logger.debug(f"Updating rcParams for both themes.")
         plt.rcParams.update({
