@@ -29,7 +29,6 @@ Date: 2025-10-08
 """
 
 import os
-import sys
 import time
 import threading
 import shutil
@@ -37,9 +36,7 @@ import functools
 import subprocess
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any, Callable
-from collections import defaultdict
-
-from .logging_config import get_logger
+import re
 
 # Core dependencies
 import psutil
@@ -61,8 +58,6 @@ try:
 except ImportError:
     HAS_NOTEBOOK_TQDM = False
     notebook_tqdm = std_tqdm
-
-logger = get_logger(__name__)
 
 
 # ============================================================================
@@ -261,8 +256,64 @@ def _query_slurm_jobs_on_node() -> Optional[Dict[str, Any]]:
 
     except (subprocess.CalledProcessError, FileNotFoundError,
             subprocess.TimeoutExpired, Exception) as e:
-        logger.debug(f"Could not query SLURM jobs: {e}")
         return None
+
+
+def detect_slurm_environment() -> Dict[str, Any]:
+    """
+    Detect and parse SLURM environment variables.
+
+    Returns
+    -------
+    dict
+        Dictionary with SLURM configuration:
+        - 'is_slurm': bool - Whether running under SLURM
+        - 'job_id': str - Job ID
+        - 'process_id': int - Process rank (SLURM_PROCID)
+        - 'num_processes': int - Total processes (SLURM_NTASKS)
+        - 'cpus_per_task': int - CPUs per task
+        - 'nodelist': str - List of nodes
+        - 'node_count': int - Number of nodes
+    """
+    env = {}
+
+    # Check if running under SLURM
+    env['is_slurm'] = 'SLURM_JOB_ID' in os.environ
+
+    if not env['is_slurm']:
+        # logger.info("Not running under SLURM - using single-node setup")
+        return env
+
+    # Parse SLURM environment variables
+    env['job_id'] = os.environ.get('SLURM_JOB_ID')
+    env['process_id'] = int(os.environ.get('SLURM_PROCID', 0))
+    env['num_processes'] = int(os.environ.get('SLURM_NTASKS', 1))
+    env['cpus_per_task'] = int(os.environ.get('SLURM_CPUS_PER_TASK', 1))
+    env['nodelist'] = os.environ.get('SLURM_JOB_NODELIST', '')
+    env['node_count'] = int(os.environ.get('SLURM_JOB_NUM_NODES', 1))
+
+    # Check if actually running under srun/sbatch (not just in allocation)
+    # SLURM_STEP_ID is only set when running as part of a job step
+    env['in_job_step'] = 'SLURM_STEP_ID' in os.environ
+
+    if env['num_processes'] > 1 and not env['in_job_step']:
+        # logger.warning(
+        #     f"SLURM allocation has {env['num_processes']} tasks but not running under srun/sbatch.\n"
+        #     f"  Distributed mode will NOT be initialized - only single-process mode.\n"
+        #     f"  To enable distributed mode, run with: srun python <script>"
+        # )
+        # Override num_processes to prevent distributed initialization
+        env['num_processes'] = 1
+
+    # logger.info(f"SLURM environment detected:")
+    # logger.info(f"  Job ID: {env['job_id']}")
+    # logger.info(f"  Process: {env['process_id']}/{env['num_processes']}")
+    # logger.info(f"  CPUs per task: {env['cpus_per_task']}")
+    # logger.info(f"  Nodes: {env['node_count']}")
+    # logger.info(f"  In job step: {env['in_job_step']}")
+
+    return env
+
 
 
 def detect_compute_nodes() -> List[NodeInfo]:
@@ -278,7 +329,6 @@ def detect_compute_nodes() -> List[NodeInfo]:
     # Check for SLURM environment variables
     if 'SLURM_JOB_ID' in os.environ:
         # Running inside SLURM allocation
-        from .distributed_utils import detect_slurm_environment
         slurm_env = detect_slurm_environment()
 
         if slurm_env.get('is_slurm', False):
@@ -303,7 +353,7 @@ def detect_compute_nodes() -> List[NodeInfo]:
                     nodes = result.stdout.strip().split('\n')
                 except (subprocess.CalledProcessError, FileNotFoundError,
                        subprocess.TimeoutExpired) as e:
-                    logger.warning(f"Could not parse SLURM nodelist: {e}")
+                    # logger.warning(f"Could not parse SLURM nodelist: {e}")
                     nodes = [f"node-{i}" for i in range(node_count)]
             else:
                 nodes = [f"node-{i}" for i in range(node_count)]
@@ -374,7 +424,7 @@ def detect_compute_nodes() -> List[NodeInfo]:
 
     if slurm_job:
         # Found SLURM job on this node
-        logger.info(f"Detected SLURM job {slurm_job['job_id']} on this node")
+        # logger.info(f"Detected SLURM job {slurm_job['job_id']} on this node")
 
         # Parse nodelist
         nodelist = slurm_job['nodelist']
@@ -511,7 +561,6 @@ def detect_compute_tasks() -> List[TaskInfo]:
     # Check for SLURM environment variables
     if 'SLURM_JOB_ID' in os.environ:
         # Running inside SLURM allocation
-        from .distributed_utils import detect_slurm_environment
         slurm_env = detect_slurm_environment()
 
         if slurm_env.get('is_slurm', False):
@@ -542,7 +591,7 @@ def detect_compute_tasks() -> List[TaskInfo]:
                     nodes = result.stdout.strip().split('\n')
                 except (subprocess.CalledProcessError, FileNotFoundError,
                        subprocess.TimeoutExpired) as e:
-                    logger.warning(f"Could not parse SLURM nodelist: {e}")
+                    # logger.warning(f"Could not parse SLURM nodelist: {e}")
                     # Fallback: if single node, use current hostname; otherwise use generic names
                     if num_nodes == 1:
                         nodes = [current_hostname]
@@ -747,7 +796,7 @@ def _get_remote_cpu_usage(hostname: str, allocated_cpus: List[int], timeout: int
         )
 
         if result.returncode != 0:
-            logger.debug(f"SSH to {hostname} failed: {result.stderr}")
+            # logger.debug(f"SSH to {hostname} failed: {result.stderr}")
             return None, None
 
         # Parse JSON output
@@ -757,7 +806,7 @@ def _get_remote_cpu_usage(hostname: str, allocated_cpus: List[int], timeout: int
 
     except (subprocess.TimeoutExpired, subprocess.CalledProcessError,
             json.JSONDecodeError, Exception) as e:
-        logger.debug(f"Could not get remote CPU usage from {hostname}: {e}")
+        # logger.debug(f"Could not get remote CPU usage from {hostname}: {e}")
         return None, None
 
 
@@ -934,7 +983,7 @@ class CPUMonitor:
         remote_units = [u for u in self.units if not u.is_local]
 
         if not local_units:
-            logger.warning("Could not identify local unit")
+            # logger.warning("Could not identify local unit")
             return
 
         while self._monitoring:
@@ -991,7 +1040,7 @@ class CPUMonitor:
                             self._current_memory[unit.name] = 0.0
 
             except Exception as e:
-                logger.error(f"Error in monitoring loop: {e}")
+                # logger.error(f"Error in monitoring loop: {e}")
                 time.sleep(self.update_interval)
 
     def _create_terminal_display(self) -> Table:
@@ -1461,7 +1510,7 @@ class CPUMonitor:
     def start(self):
         """Start monitoring."""
         if self._monitoring:
-            logger.warning("Monitoring already started")
+            # logger.warning("Monitoring already started")
             return
 
         self._monitoring = True
@@ -1504,7 +1553,9 @@ class CPUMonitor:
                 initial_memory_mb = psutil.virtual_memory().used / (1024 ** 2)
                 self._current_memory[our_unit.name] = initial_memory_mb
         except Exception as e:
-            logger.debug(f"Could not get initial CPU sample: {e}")
+            # logger.debug(f"Could not get initial CPU sample: {e}")
+            print(f"Could not get initial CPU sample: {e}")
+            raise e
 
         # Start monitoring thread
         self._monitor_thread = threading.Thread(target=self._monitor_loop, daemon=True)
@@ -1644,92 +1695,85 @@ def monitor_cpu(func: Callable = None, **monitor_kwargs):
 # IPython Magic
 # ============================================================================
 
-try:
-    from IPython.core.magic import Magics, magics_class, cell_magic
-    from IPython.core.magic_arguments import argument, magic_arguments, parse_argstring
 
-    @magics_class
-    class CPUMonitorMagics(Magics):
-        """IPython magics for CPU monitoring."""
+from IPython.core.magic import Magics, magics_class, cell_magic
+from IPython.core.magic_arguments import argument, magic_arguments, parse_argstring
 
-        @cell_magic
-        @magic_arguments()
-        @argument('--width', '-w', type=int, default=None,
-                 help='Display width in characters')
-        @argument('--interval', '-i', type=float, default=0.5,
-                 help='Update interval in seconds')
-        @argument('--persist', '-p', action='store_true',
-                 help='Keep display visible after completion')
-        @argument('--color', '-c', action='store_true',
-                 help='Use color coding (green/yellow/red). Default is gray only.')
-        @argument('--summary', '-s', action='store_true',
-                 help='Show summary table with mean CPU usage per core (mean/max memory shown next to node name)')
-        @argument('--fold', '-f', type=int, default=16,
-                 help='Maximum number of CPU bars per row before wrapping (default: 16)')
-        @argument('--group-by', '-g', type=str, default='node', choices=['node', 'task'],
-                 help='Group CPU bars by "node" (default) or "task"')
-        def monitor(self, line, cell):
-            """
-            Monitor CPU usage during cell execution.
+@magics_class
+class CPUMonitorMagics(Magics):
+    """IPython magics for CPU monitoring."""
 
-            Usage:
-                %%monitor
-                # your code here
+    @cell_magic
+    @magic_arguments()
+    @argument('--width', '-w', type=int, default=None,
+                help='Display width in characters')
+    @argument('--interval', '-i', type=float, default=0.5,
+                help='Update interval in seconds')
+    @argument('--persist', '-p', action='store_true',
+                help='Keep display visible after completion')
+    @argument('--color', '-c', action='store_true',
+                help='Use color coding (green/yellow/red). Default is gray only.')
+    @argument('--summary', '-s', action='store_true',
+                help='Show summary table with mean CPU usage per core (mean/max memory shown next to node name)')
+    @argument('--fold', '-f', type=int, default=16,
+                help='Maximum number of CPU bars per row before wrapping (default: 16)')
+    @argument('--group-by', '-g', type=str, default='node', choices=['node', 'task'],
+                help='Group CPU bars by "node" (default) or "task"')
+    def monitor(self, line, cell):
+        """
+        Monitor CPU usage during cell execution.
 
-                %%monitor --width 100 --interval 1.0
-                # your code here
+        Usage:
+            %%monitor
+            # your code here
 
-                %%monitor --persist
-                # display remains after completion
+            %%monitor --width 100 --interval 1.0
+            # your code here
 
-                %%monitor --color
-                # use color coding (green/yellow/red)
+            %%monitor --persist
+            # display remains after completion
 
-                %%monitor --summary
-                # show table with CPU and memory statistics
+            %%monitor --color
+            # use color coding (green/yellow/red)
 
-                %%monitor --group-by task
-                # group by SLURM task instead of node
-            """
-            args = parse_argstring(self.monitor, line)
+            %%monitor --summary
+            # show table with CPU and memory statistics
 
-            monitor = CPUMonitor(width=args.width, update_interval=args.interval,
-                          persist=args.persist, color=args.color, summary_table=args.summary,
-                          fold=args.fold, group_by=args.group_by)
+            %%monitor --group-by task
+            # group by SLURM task instead of node
+        """
+        args = parse_argstring(self.monitor, line)
 
-            monitor.start()
-            try:
-                # Execute cell and capture result
-                result = self.shell.run_cell(cell)
-            finally:
-                # Check if cell execution had an error
-                had_error = hasattr(result, 'error_in_exec') and result.error_in_exec is not None
+        monitor = CPUMonitor(width=args.width, update_interval=args.interval,
+                        persist=args.persist, color=args.color, summary_table=args.summary,
+                        fold=args.fold, group_by=args.group_by)
 
-                # If there was an error, don't clear the display (preserve error output)
-                if had_error:
-                    # Stop monitoring but don't clear display
-                    monitor._monitoring = False
-                    if monitor._monitor_thread:
-                        monitor._monitor_thread.join(timeout=2.0)
-                    if monitor._jupyter_update_thread:
-                        monitor._jupyter_update_thread.join(timeout=2.0)
-                    if monitor._live:
-                        monitor._live.stop()
-                        monitor._live = None
-                    for bar in monitor._tqdm_bars:
-                        bar.close()
-                    monitor._tqdm_bars = []
-                    # Don't update or clear the HTML display - let error show
-                else:
-                    # Normal stop with display update/clear
-                    monitor.stop()
+        monitor.start()
+        try:
+            # Execute cell and capture result
+            result = self.shell.run_cell(cell)
+        finally:
+            # Check if cell execution had an error
+            had_error = hasattr(result, 'error_in_exec') and result.error_in_exec is not None
 
-    HAS_IPYTHON_MAGIC = True
-
-except ImportError:
-    HAS_IPYTHON_MAGIC = False
-    CPUMonitorMagics = None
-
+            # If there was an error, don't clear the display (preserve error output)
+            if had_error:
+                # Stop monitoring but don't clear display
+                monitor._monitoring = False
+                if monitor._monitor_thread:
+                    monitor._monitor_thread.join(timeout=2.0)
+                if monitor._jupyter_update_thread:
+                    monitor._jupyter_update_thread.join(timeout=2.0)
+                if monitor._live:
+                    monitor._live.stop()
+                    monitor._live = None
+                for bar in monitor._tqdm_bars:
+                    bar.close()
+                monitor._tqdm_bars = []
+                # Don't update or clear the HTML display - let error show
+            else:
+                # Normal stop with display update/clear
+                monitor.stop()
 
 # ============================================================================
 # Module Exports
