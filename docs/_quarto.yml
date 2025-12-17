@@ -93,77 +93,77 @@ website:
         - pages/getting_started.qmd
         - section: "Tutorials"
           contents:
-            - pages/background/quickstart.qmd
-            - pages/tutorials/rabbits_full_py_api_example.ipynb
-            - pages/tutorials/coalescent_full_py_api_example.ipynb
+            - pages/tutorials/quickstart.ipynb
+            - pages/tutorials/full_api/rabbits_full_py_api_example.ipynb
+            - pages/tutorials/full_api/coalescent_full_py_api_example.ipynb
             - pages/tutorials/state_space_construction.ipynb
-            - pages/tutorials/caching_guide.qmd
-            - pages/tutorials/config_system.qmd
-            - pages/tutorials/explicit_config_system.qmd
+            # - pages/tutorials/caching_guide.qmd
+            # - pages/tutorials/config_system.qmd
+            # - pages/tutorials/explicit_config_system.qmd
             - pages/tutorials/simple_example.ipynb
-            - pages/tutorials/somecode.ipynb
-            - pages/tutorials/test_hierarchical_caching.ipynb
+            - pages/tutorials/full_api/somecode.ipynb
+            # - pages/tutorials/test_hierarchical_caching.ipynb
         - section: "Bayesian inference"
           contents:
-            - pages/svgd/svgd.ipynb
-            - pages/svgd/caching.qmd
-            - pages/svgd/svgd_trace_eval.qmd
-            - pages/svgd/svgd_step_sizes.qmd
-            - pages/svgd/ffi_and_openmp.qmd
-            - pages/svgd/caching.qmd
-            - pages/svgd/ffi_and_openmp.qmd
-            - pages/svgd/svgd_step_sizes.qmd
-            - pages/svgd/svgd_trace_eval.qmd
-            - pages/svgd/svgd.ipynb
-            - pages/svgd/trace_ipfs.ipynb
+            - pages/tutorials/svgd/svgd.ipynb
+            - pages/tutorials/svgd/caching.qmd
+            - pages/tutorials/svgd/svgd_trace_eval.qmd
+            - pages/tutorials/svgd/svgd_step_sizes.qmd
+            - pages/tutorials/svgd/ffi_and_openmp.qmd
+            - pages/tutorials/svgd/caching.qmd
+            - pages/tutorials/svgd/ffi_and_openmp.qmd
+            - pages/tutorials/svgd/svgd_step_sizes.qmd
+            - pages/tutorials/svgd/svgd_trace_eval.qmd
+            - pages/tutorials/svgd/svgd.ipynb
+            - pages/tutorials/svgd/trace_ipfs.ipynb
         - section: "Distributed Computing"
           contents:
-            - pages/distributed/distributed_computing_complete_guide.ipynb
-            - pages/distributed/slurm_cluster_setup.ipynb
-            - pages/distributed/cpu_monitoring.ipynb
+            - pages/tutorials/distributed/distributed_computing_complete_guide.ipynb
+            - pages/tutorials/distributed/slurm_cluster_setup.ipynb
+            - pages/tutorials/utils/cpu_monitoring.ipynb
         - section: "State space patterns"
           contents:
-            - pages/modelling/state_lumping.ipynb
-            - pages/modelling/laplace.ipynb
-            - pages/modelling/epochs.ipynb
-            - pages/modelling/joint_prob.ipynb
-            - pages/modelling/cont_and_discrete.ipynb
-            - pages/modelling/epochs.ipynb
-            - pages/modelling/joint_prob.ipynb
-            - pages/modelling/laplace.ipynb
-            - pages/modelling/state_lumping.ipynb
+            - pages/tutorials/modelling/state_lumping.ipynb
+            - pages/tutorials/modelling/laplace.ipynb
+            - pages/tutorials/modelling/epochs.ipynb
+            - pages/tutorials/modelling/joint_prob.ipynb
+            - pages/tutorials/modelling/cont_and_discrete.ipynb
+            - pages/tutorials/modelling/epochs.ipynb
+            - pages/tutorials/modelling/joint_prob.ipynb
+            - pages/tutorials/modelling/laplace.ipynb
+            - pages/tutorials/modelling/state_lumping.ipynb
         - section: "Popgen examples"
           contents:
-            - pages/modelling/coalescent-jointprob.ipynb
-            - pages/popgen/isolation_migration.ipynb
-            - pages/popgen/two-island-two-locus-arg.ipynb
-            - pages/popgen/arg-two-island.ipynb
-            - pages/popgen/coalescent-epoques.ipynb
-            - pages/popgen/coalescent-im-model.ipynb
-            - pages/popgen/coalescent-jointprob-ffi.ipynb
-            - pages/popgen/coalescent-laplace.ipynb
-            - pages/popgen/coalescent-minvar-theta.ipynb
-            - pages/popgen/coalescent-partitions.ipynb
-            - pages/popgen/coalescent-selection.ipynb
-            - pages/popgen/coalescent.ipynb
-            - pages/popgen/im_model.ipynb
-            - pages/popgen/index_prop_mapping.ipynb
-            - pages/popgen/plot.ipynb
-            - pages/popgen/SFS.ipynb
-            - pages/popgen/showcase.ipynb
-            - pages/popgen/smc-prime-tree-levels.py
-            - pages/popgen/two_locus_two_island-discrete.ipynb
-            - pages/popgen/two_locus_two_island.ipynb
+            - pages/tutorials/popgen/python/coalescent-jointprob.ipynb
+            - pages/tutorials/popgen/python/isolation_migration.ipynb
+            # - pages/tutorials/popgen/python/two-island-two-locus-arg.ipynb
+            - pages/tutorials/popgen/python/arg-two-island.ipynb
+            - pages/tutorials/popgen/python/coalescent-epoques.ipynb
+            - pages/tutorials/popgen/python/coalescent-im-model.ipynb
+            - pages/tutorials/popgen/python/coalescent-jointprob-ffi.ipynb
+            - pages/tutorials/popgen/python/coalescent-laplace.ipynb
+            - pages/tutorials/popgen/python/coalescent-minvar-theta.ipynb
+            - pages/tutorials/popgen/python/coalescent-partitions.ipynb
+            - pages/tutorials/popgen/python/coalescent-selection.ipynb
+            - pages/tutorials/popgen/python/coalescent.ipynb
+            - pages/tutorials/popgen/python/im_model.ipynb
+            - pages/tutorials/popgen/python/index_prop_mapping.ipynb
+            - pages/tutorials/popgen/python/plot.ipynb
+            - pages/tutorials/popgen/python/SFS.ipynb
+            - pages/tutorials/popgen/python/showcase.ipynb
+            - pages/tutorials/popgen/python/smc-prime-tree-levels.py
+            - pages/tutorials/popgen/python/two_locus_two_island-discrete.ipynb
+            - pages/tutorials/popgen/python/two_locus_two_island.ipynb
             # - pages/
         - section: "Phase-type distributions"
           contents:
             - pages/background/math_and_alg.qmd
-            - pages/tutorials/caching_guide.qmd
-            - pages/tutorials/config_system.qmd
-            - pages/tutorials/explicit_config_system.qmd
         - section: "Devel"
           contents:
-            - pages/devel/architecture.qmd
+            - pages/architecture/architecture.qmd
+            - pages/architecture/explicit_config_system.qmd
+            - pages/architecture/config_system.qmd
+            - pages/architecture/caching_guide.qmd
             - href: https://github.com/munch-group/phasic/issues
               text: Issue Tracker
         # - galleries/examples/index.qmd

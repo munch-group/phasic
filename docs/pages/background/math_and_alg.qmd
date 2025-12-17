@@ -351,9 +351,9 @@ The paper provides:
 
 ## Related Documentation
 
-- **[State Space Construction](state_space.ipynb)** - Building phase-type models
-- **[Moments](moments.ipynb)** - Computing expectations and variances
-- **[Distributions](distributions.ipynb)** - PMF, PDF, and CDF computation
+- **[State Space Construction](tutorials/state_space_construction.ipynb)** - Building phase-type models
+- **[Moments](tutorials/moments.ipynb)** - Computing expectations and variances
+- **[Distributions](tutorials/distributions.ipynb)** - PMF, PDF, and CDF computation
 - **[Graph Construction](../api/Graph.html)** - API reference
 
 ## References

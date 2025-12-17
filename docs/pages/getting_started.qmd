@@ -260,28 +260,28 @@ pdf_values = pmf_fn(theta, times)
 
 ### Tutorials
 
-- [Rabbits Example](tutorials/rabbits_full_py_api_example.ipynb) - Complete Python API walkthrough
-- [State Space Construction](modelling/state_space_construction.ipynb) - Building complex models
-- [Phase-Type Distributions](phase-type-distributions.qmd) - Theory and examples
+- [Rabbits Example](tutorials/full_api/rabbits_full_py_api_example.ipynb) - Complete Python API walkthrough
+- [State Space Construction](tutorials/state_space_construction.ipynb) - Building complex models
+- [Phase-Type Distributions](tutorials/background/math_and_alg.qmd) - Theory and examples
 
 ### Advanced Topics
 
 - [Symbolic Gaussian Elimination](symbolic_gauss_elimination.qmd) - Fast parameterized evaluation
-- [SVGD Inference](svgd/svgd.ipynb) - Bayesian parameter estimation
-- [Distributed Computing](distributed/distributed_computing.qmd) - Multi-node parallelization
+- [SVGD Inference](tutorials/svgd/svgd.ipynb) - Bayesian parameter estimation
+- [Distributed Computing](tutorials/distributed/distributed_computing.qmd) - Multi-node parallelization
 
 ### State Space Modeling
 
-- [State Lumping](modelling/state_lumping.ipynb) - Reduce state space complexity
-- [Laplace Transforms](modelling/laplace.ipynb) - Transform analysis
-- [Epochs](modelling/epochs.ipynb) - Time-inhomogeneous models
-- [Joint Probabilities](modelling/joint_prob.ipynb) - Multivariate distributions
+- [State Lumping](tutorials/modelling/state_lumping.ipynb) - Reduce state space complexity
+- [Laplace Transforms](tutorials/modelling/laplace.ipynb) - Transform analysis
+- [Epochs](tutorials/modelling/epochs.ipynb) - Time-inhomogeneous models
+- [Joint Probabilities](tutorials/modelling/joint_prob.ipynb) - Multivariate distributions
 
 ### Population Genetics
 
-- [Coalescent Models](modelling/coalescent-jointprob.ipynb) - TMRCA distributions
-- [Isolation-Migration](popgen/isolation_migration.ipynb) - Population structure
-- [Two-Island ARG](popgen/two-island-two-locus-arg.ipynb) - Ancestral recombination
+- [Coalescent Models](tutorials/modelling/coalescent-jointprob.ipynb) - TMRCA distributions
+- [Isolation-Migration](tutorials/popgen/isolation_migration.ipynb) - Population structure
+- [Two-Island ARG](tutorials/popgen/two-island-two-locus-arg.ipynb) - Ancestral recombination
 
 ## API Documentation
 
@@ -293,18 +293,4 @@ pdf_values = pmf_fn(theta, times)
 
 - [Issue Tracker](https://github.com/munch-group/phasic/issues) - Report bugs or request features
 - [Email Support](mailto:kaspermunch@birc.au.dk) - Direct contact
-
-## Next Steps
-
-1. **Learn the basics**: Start with the [Rabbits Tutorial](tutorials/rabbits_full_py_api_example.ipynb)
-2. **Understand theory**: Read about [Phase-Type Distributions](phase-type-distributions.qmd)
-3. **Build models**: Follow [State Space Construction](modelling/state_space_construction.ipynb)
-4. **Scale up**: Explore [Distributed Computing](distributed/distributed_computing.qmd)
-5. **Do inference**: Try [SVGD Tutorial](svgd/svgd.ipynb)
-
-## Citation
-
-If you use this library in your research, please cite:
-
-> Røikjer, T., Hobolth, A., & Munch, K. (2022). Graph-based algorithms for phase-type distributions. *Statistics and Computing*, 32, 91.
 

@@ -6,7 +6,7 @@ page-layout: full
 # title-block-style: plain
 title-block-banner-color: black
 title-block-banner-bg: white
-title-block-banner: banner.png
+# title-block-banner: banner.png
 toc: false
 listing:
   - id: showcase
