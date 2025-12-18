@@ -135,41 +135,35 @@ geodatasets = ">=2024.8.0,<2025"
 [tool.pixi.environments]
 default = {solve-group = "default"}
 
-[tool.pixi.tasks.git-remove-untracked]
-cmd = "git clean -fd"
-description = "Removes untracked files and directories but respects your .gitignores"
+[tool.pixi.tasks.init]
+cmd = "python ./scripts/rename.py && gh repo set-default https://github.com/munch-group/{{new_name}}"
 
 [tool.pixi.tasks.install-dev]
 cmd = "XLA_FFI_INCLUDE_DIR=$(python -c 'from jax import ffi; print(ffi.include_dir())') pip install --no-build-isolation --force-reinstall --no-deps ."
 description = "Install phasic in development mode with FFI support"
 
-# [tool.pixi.tasks.test]
-# cmd = "python -m unittest"
-# description = "Run tests"
+[tool.pixi.tasks.docs]
+cmd = "./scripts/docs-run-notebooks.sh && ./scripts/docs-build-render.sh && git add -u docs"
+description = "Run documentation notebooks and build quartodoc api doc pages"
 
- # setup-kernel = "python -m ipykernel install --user --name franklin --display-name 'Franklin Python'"
-# quarto-render = { cmd = "quarto render", env = { QUARTO_PYTHON = ".pixi/envs/default/bin/python" } }
+[tool.pixi.tasks.clean]
+cmd = "git clean -id"
+description = "Removes untracked files and directories but respects your .gitignores"
 
-[tool.pixi.tasks.bump-version]
+[tool.pixi.tasks.test]
+cmd = "pytest test/"
+description = "Run tests"
+
+[tool.pixi.tasks.commit]
+depends-on = ["docs", "test"]
+cmd = "./scripts/git-commit.sh"
+
+[tool.pixi.tasks.version]
 args = [
   { "arg" = "kind", "default" = "patch" },  # can be patch, minor, major
   { "arg" = "flag", "default" = "" },     # can be --pre, --release
 ]
-cmd = "./scripts/bump_version.py --{{ kind }} {{ flag }} &&  git add -u &&  git commit -m '{{ kind }} {{ flag }} version bump' && git push" 
-description = "Bump version patch and build/release conda packages"
-
-[tool.pixi.tasks.bump-changelog]
-cmd = "./scripts/bump_changelog.py --yes"
-description = "Bump version patch and build/release conda packages"
-
-[tool.pixi.tasks.acp]
-args = [
-  { "arg" = "message", "default" = "update" },  # can be --patch, --minor, --major
-]
-cmd = "git add -u ; git commit -m '{{ message }}' ; git push"
-description = "git add commit push of tracked files with optional message"
-
-[tool.pixi.tasks.github-release]
-cmd = "./scripts/release-tag.sh"
-description = "Release latest version on Github"
+cmd = "./scripts/bump_version.py --{{ kind }} {{ flag }} && git commit -m '{{ kind }} {{ flag }} version bump' && git push && ./scripts/github-release.sh && echo 'Update released!'"
+depends-on = ["commit"]
+description = "Bump version patch and push tag to build/upload conda/pypi packages"
 
