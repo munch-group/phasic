@@ -191,6 +191,7 @@ format:
       # - custom.css
       # - numpy-navbar-sidebar.css
 
+    notebook-links: true
     callout-icon: false
     code-overflow: wrap
     fig-align: center    
