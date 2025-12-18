@@ -94,15 +94,27 @@ website:
         - section: "Tutorials"
           contents:
             - pages/tutorials/quickstart.ipynb
+            - pages/tutorials/state_space_construction.ipynb
+            - pages/tutorials/moments.ipynb
+            - pages/tutorials/distributions.ipynb
+            - pages/tutorials/simple_example.ipynb
             - pages/tutorials/full_api/rabbits_full_py_api_example.ipynb
             - pages/tutorials/full_api/coalescent_full_py_api_example.ipynb
-            - pages/tutorials/state_space_construction.ipynb
-            # - pages/tutorials/caching_guide.qmd
-            # - pages/tutorials/config_system.qmd
-            # - pages/tutorials/explicit_config_system.qmd
-            - pages/tutorials/simple_example.ipynb
             - pages/tutorials/full_api/somecode.ipynb
-            # - pages/tutorials/test_hierarchical_caching.ipynb
+        - section: "Phase-type distributions"
+          contents:
+            - pages/background/math_and_alg.qmd
+        - section: "State space patterns"
+          contents:
+            - pages/tutorials/modelling/state_lumping.ipynb
+            - pages/tutorials/modelling/laplace.ipynb
+            - pages/tutorials/modelling/epochs.ipynb
+            - pages/tutorials/modelling/joint_prob.ipynb
+            - pages/tutorials/modelling/cont_and_discrete.ipynb
+            - pages/tutorials/modelling/epochs.ipynb
+            - pages/tutorials/modelling/joint_prob.ipynb
+            - pages/tutorials/modelling/laplace.ipynb
+            - pages/tutorials/modelling/state_lumping.ipynb
         - section: "Bayesian inference"
           contents:
             - pages/tutorials/svgd/svgd.ipynb
@@ -121,17 +133,6 @@ website:
             - pages/tutorials/distributed/distributed_computing_complete_guide.ipynb
             - pages/tutorials/distributed/slurm_cluster_setup.ipynb
             - pages/tutorials/utils/cpu_monitoring.ipynb
-        - section: "State space patterns"
-          contents:
-            - pages/tutorials/modelling/state_lumping.ipynb
-            - pages/tutorials/modelling/laplace.ipynb
-            - pages/tutorials/modelling/epochs.ipynb
-            - pages/tutorials/modelling/joint_prob.ipynb
-            - pages/tutorials/modelling/cont_and_discrete.ipynb
-            - pages/tutorials/modelling/epochs.ipynb
-            - pages/tutorials/modelling/joint_prob.ipynb
-            - pages/tutorials/modelling/laplace.ipynb
-            - pages/tutorials/modelling/state_lumping.ipynb
         - section: "Popgen examples"
           contents:
             - pages/tutorials/popgen/python/coalescent-jointprob.ipynb
@@ -155,9 +156,6 @@ website:
             - pages/tutorials/popgen/python/two_locus_two_island-discrete.ipynb
             - pages/tutorials/popgen/python/two_locus_two_island.ipynb
             # - pages/
-        - section: "Phase-type distributions"
-          contents:
-            - pages/background/math_and_alg.qmd
         - section: "Devel"
           contents:
             - pages/architecture/architecture.qmd
