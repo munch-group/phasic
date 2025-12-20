@@ -298,15 +298,6 @@ from .auto_parallel import (
     disable_parallel,
 )
 
-# CPU monitoring
-from .cpu_monitor import (
-    CPUMonitor,
-    monitor_cpu,
-    CPUMonitorMagics,
-    detect_compute_nodes,
-    get_cached_nodes,
-)
-
 # Cache management (JAX compilation cache)
 from .cache_manager import CacheManager, print_jax_cache_info, configure_layered_cache
 from .model_export import clear_caches, clear_jax_cache, clear_model_cache, cache_info, print_cache_info
@@ -1423,6 +1414,7 @@ def callback(ipv):
     
             for t in transitions:
                 assert len(t[0]) == len(state), ("Returned state and input state must be same length", t[0], state)
+                assert np.any(t[0] - state), f"Transitions returned by callback function cannot include the input state ({t[0]}): {transitions}"
 
             # assert all(len(t[0]) == len(state) for t in transitions), ("ipv and state vectors must be same length", transitions, state)
 
@@ -4351,21 +4343,6 @@ if HAS_JAX:
         export_model_package,
         generate_warmup_script
     )
-
-
-# ============================================================================
-# Auto-register IPython magic for CPU monitoring
-# ============================================================================
-
-try:
-    from IPython import get_ipython
-    ipython = get_ipython()
-    if ipython is not None and CPUMonitorMagics is not None:
-        ipython.register_magics(CPUMonitorMagics)
-except (ImportError, NameError):
-    # Not in IPython environment or magic not available
-    pass
-
 
 # ============================================================================
 # Public Configuration API

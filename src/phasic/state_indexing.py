@@ -252,6 +252,10 @@ class StateSpace:
         >>> space.index_to_props(5, as_dict=False)
         array([2, 1])
         """
+
+        if not index < self.size:
+            raise IndexError(f"Provided index {index} out of range for state space of size {self.size}")
+
         # Handle array input
         if isinstance(index, np.ndarray):
             # Vectorized conversion
@@ -378,6 +382,11 @@ class StateSpace:
         if invalid_props:
             raise ValueError(f"Unknown properties: {invalid_props}")
 
+        # Validate property values
+        for prop_name, prop_val in props.items():
+            prop = self.property_dict[prop_name]
+            prop.validate_value(prop_val)
+
         # If all properties specified, return single index
         if specified_props == prop_names:
             encoded = np.array([
@@ -427,7 +436,12 @@ class StateSpace:
             idx = int(np.dot(encoded, self._radix_powers))
             matching_indices.append(idx)
 
-        return np.array(sorted(matching_indices), dtype=int)
+        matching_indices = np.array(sorted(matching_indices), dtype=int)
+
+        if np.any(matching_indices >= self.size):
+            raise IndexError(f"One or more computed indices out of range for state space of size {self.size}")
+
+        return matching_indices
 
 
 class StateVector:

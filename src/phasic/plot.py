@@ -30,7 +30,7 @@ def _format_rate(rate):
 
 
 
-def plot_graph(graph:GraphType, 
+def plot_graph(graph:GraphType, filename:str=None,
                subgraphfun:Callable=None, 
                by_state:Callable=None, 
                by_index:Callable=None, 
@@ -46,6 +46,12 @@ def plot_graph(graph:GraphType,
     ----------
     graph : 
         _description_
+    filename : 
+        If provided, save the graph to this file.
+    by_state : 
+        Callback function defining subgraph clusters. Must take a state as input and produce a string that serve as subgraph label. None by default.
+    by_index : 
+        Callback function defining subgraph clusters. Must take a vertex index as input and produce a string that serve as subgraph label. None by default.
     subgraphfun : 
         Callback function defining subgraph clusters. Must take a state as input and produce a string that serve as subgraph label. None by default.
     max_nodes : 
@@ -187,4 +193,8 @@ def plot_graph(graph:GraphType,
                     vertex = graph.vertex_at(i)
                     # c.node(str(vertex.index()), ','.join(map(str, vertex.state())))
                     c.node(str(vertex.index()))
+
+    if filename:
+        dot.render(filename, format=filename.split('.')[-1], cleanup=True)
+
     return dot
