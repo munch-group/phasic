@@ -253,9 +253,6 @@ class StateSpace:
         array([2, 1])
         """
 
-        if not index < self.size:
-            raise IndexError(f"Provided index {index} out of range for state space of size {self.size}")
-
         # Handle array input
         if isinstance(index, np.ndarray):
             # Vectorized conversion
@@ -279,6 +276,9 @@ class StateSpace:
                 for i, prop in enumerate(self.properties):
                     decoded[:, i] = prop.decode_value(encoded[:, i])
                 return decoded
+
+        if not index < self.size:
+            raise IndexError(f"Provided index {index} out of range for state space of size {self.size}")
 
         # Scalar conversion
         encoded = np.zeros(len(self.properties), dtype=int)
