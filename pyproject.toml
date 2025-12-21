@@ -143,6 +143,10 @@ cmd = "python ./scripts/rename.py && gh repo set-default https://github.com/munc
 cmd = "XLA_FFI_INCLUDE_DIR=$(python -c 'from jax import ffi; print(ffi.include_dir())') pip install --no-build-isolation --force-reinstall --no-deps ."
 description = "Install phasic in development mode with FFI support"
 
+[tool.pixi.tasks.notebook]
+args = [ { "arg" = "notebook" } ]
+cmd = "jupyter nbconvert --log-level=WARN --to notebook --execute --inplace --TagRemovePreprocessor.enabled=True --TagRemovePreprocessor.remove_cell_tags='{skip-execution}' {{ notebook }}"
+
 [tool.pixi.tasks.docs]
 cmd = "./scripts/docs-run-notebooks.sh && ./scripts/docs-build-render.sh && git add -u docs"
 description = "Run documentation notebooks and build quartodoc api doc pages"
