@@ -2441,7 +2441,7 @@ Computes the expected residence time of the phase-type distribution.
     >>> graph.cdf( 1.0, 10) # => CDF value at time 1.0 with granularity 10
       )delim")
       
-    .def("pmf_discrete", py::vectorize(&phasic::Graph::dph_pmf), py::arg("jumps"), 
+    .def("pdf_discrete", py::vectorize(&phasic::Graph::dph_pmf), py::arg("jumps"), 
       py::return_value_policy::copy, R"delim(
     Probability mass function of the discrete phase-type distribution.
 
@@ -4129,8 +4129,64 @@ Use Graph.distribution_context(granularity) instead.
           A list containing the PDF, PMF, CDF, and time for the current probability distribution context.
 
 
-      )delim");
+      )delim")
       
+    // .def("jumps", &phasic::ProbabilityDistributionContext::jumps,
+    //   py::return_value_policy::copy, R"delim(
+    //     Get current number of jumps (discrete distributions only).
+
+    //     Returns
+    //     -------
+    //     int
+    //         Current jump count.
+    //   )delim")
+
+    .def("stop_probability", &phasic::ProbabilityDistributionContext::stop_probability,
+      py::return_value_policy::copy, R"delim(
+        Get stopping probability at each vertex.
+
+        Returns
+        -------
+        list of float
+            Probability of being at each vertex at current time/jump.
+      )delim")
+
+    // .def("accumulated_visits", &phasic::ProbabilityDistributionContext::accumulated_visits,
+    //   py::return_value_policy::copy, R"delim(
+    //     Get accumulated visit counts for each vertex.
+
+    //     Returns
+    //     -------
+    //     list of float
+    //         Expected number of visits to each vertex.
+    //   )delim")
+      
+    // .def("accumulated_visiting_time", &phasic::AnyProbabilityDistributionContext::accumulated_visiting_time, 
+    //   py::return_value_policy::copy, R"delim(
+
+    //   )delim")
+
+    .def("accumulated_visiting_time",
+      [](phasic::ProbabilityDistributionContext &context) {
+        // to make it return np.array instead of list without copying data
+        auto a = new std::vector<long double>(context.accumulated_visiting_time());
+        auto capsule = py::capsule(a, [](void *a) { delete reinterpret_cast<std::vector<long double>*>(a); });
+        return py::array(a->size(), a->data(), capsule);
+      }, py::return_value_policy::copy,
+      R"delim(
+        Get accumulated visiting time for each vertex.
+
+        Returns
+        -------
+        ndarray
+            Expected time spent at each vertex (zero-copy).
+      )delim")
+  
+    ;
+
+
+
+
 
 //       distribution_context_stop_probability
 // //' Returns the stop probability for the current probability distribution context for the phase-type distribution.
@@ -4245,60 +4301,67 @@ Use Graph.distribution_context(granularity) instead.
            A list containing the PMF, CDF, and jumps for the current probability distribution context.
       )delim")
       
-    .def("jumps", &phasic::DPHProbabilityDistributionContext::jumps, 
-      py::return_value_policy::copy, R"delim(
-      Returns the jumps for the current probability distribution context for the discrete phase-type distribution.
+    // .def("jumps", &phasic::DPHProbabilityDistributionContext::jumps, 
+    //   py::return_value_policy::copy, R"delim(
+    //   Returns the jumps for the current probability distribution context for the discrete phase-type distribution.
 
-      This allows the user to step through the distribution, computing e.g. the time-inhomogeneous distribution function or the expectation of a discrete multivariate phase-type distribution.
-      *Mutates* the context.
+    //   This allows the user to step through the distribution, computing e.g. the time-inhomogeneous distribution function or the expectation of a discrete multivariate phase-type distribution.
+    //   *Mutates* the context.
 
-      Parameters
-      ----------
-      probability_distribution_context : SEXP
-          The context created by `dph_distribution_context()`.
+    //   Parameters
+    //   ----------
+    //   probability_distribution_context : SEXP
+    //       The context created by `dph_distribution_context()`.
 
-      See Also
-      --------
-      dph_distribution_context
+    //   See Also
+    //   --------
+    //   dph_distribution_context
 
-      Returns
-      -------
-      List
-           A list containing the PMF, CDF, and jumps for the current probability distribution context.
-      )delim")
+    //   Returns
+    //   -------
+    //   List
+    //        A list containing the PMF, CDF, and jumps for the current probability distribution context.
+    //   )delim")
       
-    .def("stop_probability", &phasic::DPHProbabilityDistributionContext::stop_probability, 
+
+    .def("stop_probability", &phasic::DPHProbabilityDistributionContext::stop_probability,
       py::return_value_policy::copy, R"delim(
-//' Returns the stop probability for the current probability distribution context for the discrete phase-type distribution.
-//' 
-//' @description
-//' This allows the user to step through the distribution, computing e.g. the
-//' time-inhomogeneous distribution function or the expectation of a multivariate discrete phase-type distribution.
-//' *mutates* the context
-//' 
-//' @seealso dph_distribution_context()
-//' 
-//' @param probability_distribution_context The context created by dph_distribution_context()
-//' 
-// [[Rcpp::export]]
+        Get stopping probability at each vertex.
+
+        Returns
+        -------
+        list of float
+            Probability of being at each vertex at current time/jump.
       )delim")
-      
-    .def("accumulated_visits", &phasic::DPHProbabilityDistributionContext::accumulated_visits, 
+
+    .def("accumulated_visits", &phasic::DPHProbabilityDistributionContext::accumulated_visits,
       py::return_value_policy::copy, R"delim(
-//' Returns the accumulated visits for the current probability distribution context for the discrete phase-type distribution.
-//' 
-//' @description
-//' This allows the user to step through the distribution, computing e.g. the
-//' time-inhomogeneous distribution function or the expectation of a multivariate discrete phase-type distribution.
-//' *mutates* the context
-//' 
-//' @seealso dph_distribution_context()
-//' 
-//' @param probability_distribution_context The context created by dph_distribution_context()
-//' 
-// [[Rcpp::export]]
+        Get accumulated visit counts for each vertex.
+
+        Returns
+        -------
+        list of float
+            Expected number of visits to each vertex.
       )delim")
+
+    // .def("accumulated_visiting_time",
+    //   [](phasic::DPHProbabilityDistributionContext &context) {
+    //     // to make it return np.array instead of list without copying data
+    //     auto a = new std::vector<long double>(context.accumulated_visiting_time());
+    //     auto capsule = py::capsule(a, [](void *a) { delete reinterpret_cast<std::vector<long double>*>(a); });
+    //     return py::array(a->size(), a->data(), capsule);
+    //   }, py::return_value_policy::copy,
+    //   R"delim(
+    //     Get accumulated visiting time for each vertex.
+
+    //     Returns
+    //     -------
+    //     ndarray
+    //         Expected time spent at each vertex (zero-copy).
+    //   )delim")
+  
     ;
+
 
   // ============================================================================
   // FFI Support for User-Defined C++ Models
