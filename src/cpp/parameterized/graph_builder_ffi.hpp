@@ -84,6 +84,36 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
     ffi::ResultBuffer<ffi::F64> moments_result
 );
 
+/**
+ * @brief JAX FFI handler for computing multivariate PMF/PDF
+ *
+ * Computes PDF/PMF for multivariate observations where each observation
+ * is a vector of features. Supports two modes:
+ * - Sparse mode (compute_joint=false): Independent PDF per feature
+ * - Joint mode (compute_joint=true): Joint PDF across features [NOT IMPLEMENTED]
+ *
+ * @param structure_json JSON structure as string_view (STATIC attribute, not batched)
+ * @param granularity PDF computation granularity (int32_t attribute)
+ * @param discrete Whether to use discrete phase-type (bool attribute)
+ * @param compute_joint Whether to compute joint PDF (bool attribute, must be false for now)
+ * @param theta Parameter array buffer (F64, shape: [n_params]) - BATCHED by vmap
+ * @param times Time/jump points buffer (F64, shape: [n_times, n_features]) - BATCHED by vmap
+ * @param rewards Reward matrix buffer (F64, shape: [n_vertices, n_features]) - BATCHED by vmap
+ * @param result Output buffer (F64, shape: [n_times, n_features])
+ *
+ * @return ffi::Error Success or error status
+ */
+ffi::Error ComputePmfMultivariateFfiImpl(
+    std::string_view structure_json,
+    int32_t granularity,
+    bool discrete,
+    bool compute_joint,
+    ffi::Buffer<ffi::F64> theta,
+    ffi::Buffer<ffi::F64> times,
+    ffi::Buffer<ffi::F64> rewards,
+    ffi::ResultBuffer<ffi::F64> result
+);
+
 } // namespace ffi_handlers
 
 // Functions to create FFI handlers for Python-side registration
@@ -91,6 +121,7 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
 XLA_FFI_Handler* CreateComputePmfHandler();
 XLA_FFI_Handler* CreateComputeMomentsHandler();
 XLA_FFI_Handler* CreateComputePmfAndMomentsHandler();
+XLA_FFI_Handler* CreateComputePmfMultivariateHandler();
 
 } // namespace parameterized
 } // namespace phasic

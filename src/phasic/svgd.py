@@ -64,8 +64,8 @@ from .vscode_theme import black_white, phasic_theme
 
 
 from tqdm import trange, tqdm
-trange = partial(trange, bar_format="{bar}", leave=False)
-tqdm = partial(tqdm, bar_format="{bar}", leave=False)
+trange = partial(trange, leave=False)
+tqdm = partial(tqdm, leave=False)
 
 #from jax import random, vmap, grad, jit
 
@@ -143,19 +143,19 @@ class StepSizeSchedule:
         values = np.array([self(i) for i in iterations])
 
         # Plot
-        with phasic_theme():
-            ax.plot(iterations, values, 'C1')
-            ax.set_xlabel('Iteration')
-            ax.set_ylabel('Step Size')
-            ax.set_title(title or f'{self.__class__.__name__}')
-            # ax.grid(True, alpha=0.3)
+        # with phasic_theme():
+        ax.plot(iterations, values, 'C1')
+        ax.set_xlabel('Iteration')
+        ax.set_ylabel('Step Size')
+        ax.set_title(title or f'{self.__class__.__name__}')
+        # ax.grid(True, alpha=0.3)
 
-            # Add horizontal lines for first and last values if they exist
-            if hasattr(self, 'first_step') and hasattr(self, 'last_step'):
-                ax.axhline(self.first_step, color=black_white(ax), linestyle='--', alpha=0.5,
-                        label=f'first_step={self.first_step:.4f}')
-                ax.axhline(self.last_step, color=black_white(ax), linestyle='--', alpha=0.5,
-                        label=f'last_step={self.last_step:.4f}')
+        # Add horizontal lines for first and last values if they exist
+        if hasattr(self, 'first_step') and hasattr(self, 'last_step'):
+            ax.axhline(self.first_step, color=black_white(ax), linestyle='--', alpha=0.5,
+                    label=f'first_step={self.first_step:.4f}')
+            ax.axhline(self.last_step, color=black_white(ax), linestyle='--', alpha=0.5,
+                    label=f'last_step={self.last_step:.4f}')
 
         return fig, ax
 
@@ -341,19 +341,19 @@ class RegularizationSchedule:
         values = np.array([self(i) for i in iterations])
 
         # Plot
-        with phasic_theme():
-            ax.plot(iterations, values, 'C2')
-            ax.set_xlabel('Iteration')
-            ax.set_ylabel('Regularization Strength')
-            ax.set_title(title or f'{self.__class__.__name__}')
-            # ax.grid(True, alpha=0.3)
+        # with phasic_theme():
+        ax.plot(iterations, values, 'C2')
+        ax.set_xlabel('Iteration')
+        ax.set_ylabel('Regularization Strength')
+        ax.set_title(title or f'{self.__class__.__name__}')
+        # ax.grid(True, alpha=0.3)
 
-            # Add horizontal lines for first and last values if they exist
-            if hasattr(self, 'first_reg') and hasattr(self, 'last_reg'):
-                ax.axhline(self.first_reg, color=black_white(ax), linestyle='--', alpha=0.5,
-                        label=f'first_reg={self.first_reg:.4f}')
-                ax.axhline(self.last_reg, color=black_white(ax), linestyle='--', alpha=0.5,
-                        label=f'last_reg={self.last_reg:.4f}')
+        # Add horizontal lines for first and last values if they exist
+        if hasattr(self, 'first_reg') and hasattr(self, 'last_reg'):
+            ax.axhline(self.first_reg, color=black_white(ax), linestyle='--', alpha=0.5,
+                    label=f'first_reg={self.first_reg:.4f}')
+            ax.axhline(self.last_reg, color=black_white(ax), linestyle='--', alpha=0.5,
+                    label=f'last_reg={self.last_reg:.4f}')
 
         return fig, ax
 
@@ -1241,7 +1241,7 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
 
 
 def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
-             kernel=None, return_history=True, verbose=True, compiled_grad=None,
+             kernel=None, return_history=True, verbose=True, progress=False, compiled_grad=None,
              parallel_mode='vmap', n_devices=None,
              log_prob_fn_factory=None, regularization_schedule=None, lr_scale=1.0):
     """
@@ -1266,6 +1266,8 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
         If True, return particle positions at each iteration
     verbose : bool
         Print progress information
+    progress : bool
+        Display progress bar during optimization
     compiled_grad : callable, optional
         Precompiled gradient function for faster execution
     parallel_mode : str, default='vmap'
@@ -1306,7 +1308,7 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
         print(f"Running SVGD: {n_steps} steps, {len(particles)} particles")
 
     # for step in range(n_steps) if verbose else range(n_steps):
-    for step in trange(n_steps) if verbose else range(n_steps):
+    for step in trange(n_steps) if progress else range(n_steps):
         # Compute current step size from schedule
         if use_schedule:
             current_step_size = step_schedule(step, particles) * lr_scale
@@ -1434,6 +1436,8 @@ class SVGD:
         Random seed for reproducibility
     verbose : bool, default=True
         Print progress information
+    progress : bool, default=False
+        Display progress bar during optimization
     jit : bool or None, default=None
         Enable JIT compilation. If None, uses value from phasic.get_config().jit.
         If True, requires JAX to be available (raises PTDConfigError otherwise).
@@ -1586,7 +1590,7 @@ class SVGD:
 
     def __init__(self, model, observed_data, prior=None, n_particles=None,
                  n_iterations=1000, learning_rate=0.001, bandwidth='median',
-                 theta_init=None, theta_dim=None, seed=42, verbose=True,
+                 theta_init=None, theta_dim=None, seed=42, verbose=True, progress=False,
                  jit=None,              # NEW: explicit JIT control
                  parallel=None,         # NEW: 'vmap', 'pmap', 'none'
                  n_devices=None,        # NEW: explicit device count for pmap
@@ -1762,6 +1766,7 @@ class SVGD:
         self.theta_dim = theta_dim
         self.seed = seed
         self.verbose = verbose
+        self.progress = progress
         self.precompile = precompile
         self.compilation_config = compilation_config
 
@@ -2485,6 +2490,7 @@ class SVGD:
                 kernel=kernel,
                 return_history=return_history,
                 verbose=self.verbose,
+                progress=self.progress,
                 compiled_grad=None,  # Cannot precompile with dynamic regularization
                 parallel_mode=self.parallel_mode,
                 n_devices=self.n_devices,
@@ -2537,6 +2543,7 @@ class SVGD:
                 kernel=kernel,
                 return_history=return_history,
                 verbose=self.verbose,
+                progress=self.progress,
                 compiled_grad=compiled_grad,
                 parallel_mode=self.parallel_mode,
                 n_devices=self.n_devices,

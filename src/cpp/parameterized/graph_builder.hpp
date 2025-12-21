@@ -126,6 +126,57 @@ public:
         py::object rewards = py::none()
     );
 
+    /**
+     * @brief Compute multivariate PMF/PDF for multiple feature dimensions
+     *
+     * NEW in v0.23.0: Native C++ support for multivariate observations.
+     *
+     * Supports two modes of operation:
+     * 1. Sparse mode (compute_joint=false): Each feature dimension computed
+     *    independently with its own reward vector. Zero entries in times array
+     *    are treated as "no observation" and produce zero PDF.
+     * 2. Joint mode (compute_joint=true): Computes joint PDF across features
+     *    [NOT YET IMPLEMENTED - raises error]
+     *
+     * @param theta Parameter array, shape (n_params,)
+     * @param times Time points array, shape (n_times, n_features). Zero = no observation.
+     * @param rewards Reward vectors, shape (n_vertices, n_features). Column j defines
+     *                reward vector for feature dimension j.
+     * @param discrete If true, compute DPH. If false, compute PDF.
+     * @param granularity Discretization granularity for PDF computation
+     * @param compute_joint If true, compute joint PDF (raises NotImplementedError).
+     *                      If false, compute independent PDFs per feature (sparse mode).
+     * @return Numpy array of shape (n_times, n_features) with PDF/PMF values.
+     *         Zero wherever times[i,j] == 0.0 in sparse mode.
+     *
+     * Example (sparse mode):
+     *   times = [[1.5, 0.0],   // Observe feature 0 only
+     *            [0.0, 2.1],   // Observe feature 1 only
+     *            [1.2, 1.8]]   // Observe both features
+     *   rewards = [[1.0, 0.5], // n_vertices rows, 2 features
+     *              [2.0, 1.0]]
+     *   Result[0,0] = PDF(t=1.5, rewards[:,0]), Result[0,1] = 0.0
+     *   Result[1,0] = 0.0,                      Result[1,1] = PDF(t=2.1, rewards[:,1])
+     *   Result[2,0] = PDF(t=1.2, rewards[:,0]), Result[2,1] = PDF(t=1.8, rewards[:,1])
+     *
+     * Validation with length-1 vectors:
+     *   times_1d = [[1.5]] (shape 1,1)
+     *   rewards_1d = [[1.0], [2.0]] (shape n_vertices,1)
+     *   Result should match compute_pmf() after reward transform.
+     *
+     * GIL Note: Call with py::call_guard<py::gil_scoped_release>()
+     *
+     * @throws std::invalid_argument if dimensions mismatch or compute_joint=true
+     */
+    py::array_t<double> compute_pmf_multivariate(
+        py::array_t<double> theta,
+        py::array_t<double> times,
+        py::array_t<double> rewards,
+        bool discrete = false,
+        int granularity = 100,
+        bool compute_joint = false
+    );
+
     // Getters for metadata
     int param_length() const { return param_length_; }
     int vertices_length() const { return n_vertices_; }

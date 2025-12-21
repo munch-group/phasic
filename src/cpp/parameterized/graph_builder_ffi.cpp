@@ -422,6 +422,222 @@ ffi::Error ComputePmfAndMomentsFfiImpl(
     return ffi::Error::Success();
 }
 
+ffi::Error ComputePmfMultivariateFfiImpl(
+    std::string_view structure_json,
+    int32_t granularity,
+    bool discrete,
+    bool compute_joint,
+    ffi::Buffer<ffi::F64> theta,
+    ffi::Buffer<ffi::F64> times,
+    ffi::Buffer<ffi::F64> rewards,
+    ffi::ResultBuffer<ffi::F64> result
+) {
+    try {
+        // Validate compute_joint mode
+        if (compute_joint) {
+            return ffi::Error::InvalidArgument(
+                "Joint PDF computation not yet implemented. "
+                "Use compute_joint=false for independent feature PDFs (sparse mode)."
+            );
+        }
+
+        // JSON is passed as string_view attribute (static, not batched by vmap)
+        std::string json_str(structure_json);
+
+        // Look up or create GraphBuilder in thread-local cache
+        std::shared_ptr<GraphBuilder> builder;
+        auto it = builder_cache.find(json_str);
+        if (it != builder_cache.end()) {
+            builder = it->second;
+        } else {
+            try {
+                builder = std::make_shared<GraphBuilder>(json_str);
+                builder_cache[json_str] = builder;
+            } catch (const std::exception& e) {
+                return ffi::Error::InvalidArgument(
+                    std::string("Failed to parse JSON structure: ") + e.what()
+                );
+            }
+        }
+
+        // Extract buffer dimensions
+        // With vmap, buffers may have batch dimension added
+        // theta: 1D (n_params,) OR 2D (batch, n_params)
+        // times: 2D (n_times, n_features) OR 3D (batch, n_times, n_features)
+        // rewards: 2D (n_vertices, n_features) OR 3D (batch, n_vertices, n_features)
+        auto theta_dims = theta.dimensions();
+        auto times_dims = times.dimensions();
+        auto rewards_dims = rewards.dimensions();
+
+        size_t theta_len;
+        size_t theta_batch_size = 1;
+        size_t n_times, n_features;
+        size_t times_batch_size = 1;
+        size_t n_vertices, n_features_rewards;
+        size_t rewards_batch_size = 1;
+
+        // Parse theta dimensions
+        if (theta_dims.size() == 1) {
+            theta_len = theta_dims[0];
+        } else if (theta_dims.size() == 2) {
+            theta_batch_size = theta_dims[0];
+            theta_len = theta_dims[1];
+        } else {
+            return ffi::Error::InvalidArgument("theta must be 1D or 2D array");
+        }
+
+        // Parse times dimensions
+        if (times_dims.size() == 2) {
+            n_times = times_dims[0];
+            n_features = times_dims[1];
+        } else if (times_dims.size() == 3) {
+            times_batch_size = times_dims[0];
+            n_times = times_dims[1];
+            n_features = times_dims[2];
+        } else {
+            return ffi::Error::InvalidArgument("times must be 2D or 3D array");
+        }
+
+        // Parse rewards dimensions
+        if (rewards_dims.size() == 2) {
+            n_vertices = rewards_dims[0];
+            n_features_rewards = rewards_dims[1];
+        } else if (rewards_dims.size() == 3) {
+            rewards_batch_size = rewards_dims[0];
+            n_vertices = rewards_dims[1];
+            n_features_rewards = rewards_dims[2];
+        } else {
+            return ffi::Error::InvalidArgument("rewards must be 2D or 3D array");
+        }
+
+        // Validate dimensions
+        if (n_features != n_features_rewards) {
+            return ffi::Error::InvalidArgument(
+                "times and rewards must have same number of features (dimension 1/2)"
+            );
+        }
+
+        if (n_vertices != static_cast<size_t>(builder->vertices_length())) {
+            return ffi::Error::InvalidArgument(
+                "rewards must have n_vertices rows"
+            );
+        }
+
+        // Get raw data pointers
+        const double* theta_data = theta.typed_data();
+        const double* times_data = times.typed_data();
+        const double* rewards_data = rewards.typed_data();
+        double* result_data = result->typed_data();
+
+        // Check if batched (from vmap)
+        if (theta_batch_size > 1 || times_batch_size > 1 || rewards_batch_size > 1) {
+            // BATCHED: Process multiple parameter combinations
+            size_t batch_size = std::max({theta_batch_size, times_batch_size, rewards_batch_size});
+
+            bool times_is_broadcast = (times_batch_size == 1 && batch_size > 1);
+            bool rewards_is_broadcast = (rewards_batch_size == 1 && batch_size > 1);
+
+            // Process each batch element in parallel using OpenMP
+            #pragma omp parallel for if(batch_size > 1)
+            for (size_t b = 0; b < batch_size; b++) {
+                try {
+                    // Build graph for this batch element
+                    const double* theta_b = theta_data + (b * theta_len);
+                    Graph g = builder->build(theta_b, theta_len);
+
+                    // Get times/rewards for this batch (either indexed or broadcast)
+                    const double* times_b = times_is_broadcast
+                        ? times_data
+                        : (times_data + (b * n_times * n_features));
+                    const double* rewards_b = rewards_is_broadcast
+                        ? rewards_data
+                        : (rewards_data + (b * n_vertices * n_features));
+
+                    // Get result pointer for this batch
+                    double* result_b = result_data + (b * n_times * n_features);
+
+                    // Process each feature dimension independently (sparse mode)
+                    for (size_t j = 0; j < n_features; j++) {
+                        // Extract reward vector for feature j
+                        std::vector<double> rewards_vec(n_vertices);
+                        for (size_t v = 0; v < n_vertices; v++) {
+                            rewards_vec[v] = rewards_b[v * n_features + j];
+                        }
+
+                        // Transform graph with these rewards
+                        Graph g_transformed = g.reward_transform(rewards_vec);
+
+                        // Compute PDF for all time points in this feature
+                        for (size_t i = 0; i < n_times; i++) {
+                            double time_ij = times_b[i * n_features + j];
+
+                            // Sparse mode: zero observation → zero PDF
+                            if (time_ij == 0.0) {
+                                result_b[i * n_features + j] = 0.0;
+                                continue;
+                            }
+
+                            // Compute PDF/PMF
+                            if (discrete) {
+                                int jump_count = static_cast<int>(time_ij);
+                                result_b[i * n_features + j] = g_transformed.dph_pmf(jump_count);
+                            } else {
+                                result_b[i * n_features + j] = g_transformed.pdf(time_ij, granularity);
+                            }
+                        }
+                    }
+                } catch (const std::exception& e) {
+                    // In parallel region, set error as NaN
+                    double* result_b = result_data + (b * n_times * n_features);
+                    for (size_t i = 0; i < n_times * n_features; i++) {
+                        result_b[i] = std::numeric_limits<double>::quiet_NaN();
+                    }
+                }
+            }
+        } else {
+            // NOT BATCHED: theta shape (n_params,), times shape (n_times, n_features)
+            Graph g = builder->build(theta_data, theta_len);
+
+            // Process each feature dimension independently (sparse mode)
+            for (size_t j = 0; j < n_features; j++) {
+                // Extract reward vector for feature j (column j of rewards)
+                std::vector<double> rewards_vec(n_vertices);
+                for (size_t v = 0; v < n_vertices; v++) {
+                    rewards_vec[v] = rewards_data[v * n_features + j];
+                }
+
+                // Transform graph with these rewards
+                Graph g_transformed = g.reward_transform(rewards_vec);
+
+                // Compute PDF for all time points in this feature
+                for (size_t i = 0; i < n_times; i++) {
+                    double time_ij = times_data[i * n_features + j];
+
+                    // Sparse mode: zero observation → zero PDF
+                    if (time_ij == 0.0) {
+                        result_data[i * n_features + j] = 0.0;
+                        continue;
+                    }
+
+                    // Compute PDF/PMF
+                    if (discrete) {
+                        int jump_count = static_cast<int>(time_ij);
+                        result_data[i * n_features + j] = g_transformed.dph_pmf(jump_count);
+                    } else {
+                        result_data[i * n_features + j] = g_transformed.pdf(time_ij, granularity);
+                    }
+                }
+            }
+        }
+
+        return ffi::Error::Success();
+
+    } catch (const std::exception& e) {
+        std::cerr << "❌ Exception in ComputePmfMultivariateFfiImpl: " << e.what() << std::endl;
+        return ffi::Error::Internal(e.what());
+    }
+}
+
 } // namespace ffi_handlers
 
 // Export binding creation functions for Python-side FFI registration
@@ -473,6 +689,25 @@ XLA_FFI_Handler* CreateComputePmfAndMomentsHandler() {
             .Ret<xla::ffi::Buffer<xla::ffi::F64>>()  // pmf_result
             .Ret<xla::ffi::Buffer<xla::ffi::F64>>()  // moments_result
             .To(ffi_handlers::ComputePmfAndMomentsFfiImpl)
+            .release();
+        return bound_handler->Call(call_frame);
+    };
+    return handler;
+}
+
+XLA_FFI_Handler* CreateComputePmfMultivariateHandler() {
+    // Create a static function pointer using the pattern from XLA_FFI_DEFINE_HANDLER
+    static constexpr XLA_FFI_Handler* handler = +[](XLA_FFI_CallFrame* call_frame) {
+        static auto* bound_handler = xla::ffi::Ffi::Bind()
+            .Attr<std::string_view>("structure_json")  // JSON as STATIC attribute (not batched)
+            .Attr<int32_t>("granularity")
+            .Attr<bool>("discrete")
+            .Attr<bool>("compute_joint")
+            .Arg<xla::ffi::Buffer<xla::ffi::F64>>()  // theta (batched by vmap)
+            .Arg<xla::ffi::Buffer<xla::ffi::F64>>()  // times (batched by vmap, 2D or 3D)
+            .Arg<xla::ffi::Buffer<xla::ffi::F64>>()  // rewards (batched by vmap, 2D or 3D)
+            .Ret<xla::ffi::Buffer<xla::ffi::F64>>()  // result (2D or 3D)
+            .To(ffi_handlers::ComputePmfMultivariateFfiImpl)
             .release();
         return bound_handler->Call(call_frame);
     };

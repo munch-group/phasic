@@ -4734,6 +4734,85 @@ Use Graph.distribution_context(granularity) instead.
           >>> # Use pmf for likelihood, moments for regularization
           )delim")
 
+      .def("compute_pmf_multivariate",
+          &phasic::parameterized::GraphBuilder::compute_pmf_multivariate,
+          py::arg("theta"),
+          py::arg("times"),
+          py::arg("rewards"),
+          py::arg("discrete") = false,
+          py::arg("granularity") = 100,
+          py::arg("compute_joint") = false,
+          R"delim(
+          Compute multivariate PMF/PDF for multiple feature dimensions.
+
+          NEW in v0.23.0: Native C++ support for multivariate observations.
+
+          Supports two modes of operation:
+          1. Sparse mode (compute_joint=false): Each feature dimension computed
+             independently with its own reward vector. Zero entries in times array
+             are treated as "no observation" and produce zero PDF.
+          2. Joint mode (compute_joint=true): Computes joint PDF across features
+             [NOT YET IMPLEMENTED - raises RuntimeError]
+
+          Parameters
+          ----------
+          theta : numpy.ndarray
+              Parameter array, shape (n_params,)
+          times : numpy.ndarray
+              Time points array, shape (n_times, n_features). Zero = no observation.
+          rewards : numpy.ndarray
+              Reward vectors, shape (n_vertices, n_features). Column j defines
+              reward vector for feature dimension j.
+          discrete : bool, default=False
+              If True, compute DPH. If False, compute PDF.
+          granularity : int, default=100
+              Discretization granularity for PDF computation
+          compute_joint : bool, default=False
+              If True, compute joint PDF (raises error - not implemented).
+              If False, compute independent PDFs per feature (sparse mode).
+
+          Returns
+          -------
+          numpy.ndarray
+              PDF/PMF values, shape (n_times, n_features).
+              Zero wherever times[i,j] == 0.0 in sparse mode.
+
+          Raises
+          ------
+          ValueError
+              If dimensions of times and rewards do not match
+          RuntimeError
+              If compute_joint=True (joint PDF not yet implemented)
+
+          Notes
+          -----
+          - GIL is released during C++ computation
+          - Each feature is reward-transformed independently
+          - Sparse observations: zero time → zero PDF
+          - For validation: use n_features=1 and compare with compute_pmf()
+
+          Examples
+          --------
+          >>> # Sparse observations (some features missing)
+          >>> times = np.array([[1.5, 0.0],   # Only feature 0 observed
+          ...                    [0.0, 2.1],   # Only feature 1 observed
+          ...                    [1.2, 1.8]])  # Both features observed
+          >>> rewards = np.array([[1.0, 0.5],  # (n_vertices, 2)
+          ...                      [2.0, 1.0],
+          ...                      [0.5, 2.0]])
+          >>> pmf = builder.compute_pmf_multivariate(theta, times, rewards, discrete=False)
+          >>> print(pmf.shape)  # (3, 2)
+          >>> # pmf[0,0] != 0, pmf[0,1] == 0 (no observation)
+          >>> # pmf[1,0] == 0, pmf[1,1] != 0
+          >>> # pmf[2,0] != 0, pmf[2,1] != 0
+          >>>
+          >>> # Length-1 vectors (validate against compute_pmf)
+          >>> times_1d = np.array([[1.5]])  # (1, 1)
+          >>> rewards_1d = np.array([[1.0], [2.0], [0.5]])  # (n_vertices, 1)
+          >>> pmf_multi = builder.compute_pmf_multivariate(theta, times_1d, rewards_1d)
+          >>> # Should match compute_pmf after reward transform
+          )delim")
+
       .def_property_readonly("param_length",
           &phasic::parameterized::GraphBuilder::param_length,
           "Number of parameters (theta dimensions)")
@@ -4802,6 +4881,34 @@ Use Graph.distribution_context(granularity) instead.
   -------
   capsule
       PyCapsule containing pointer to XLA FFI handler
+  )delim");
+
+  param_module.def("get_compute_pmf_multivariate_ffi_capsule", []() -> py::capsule {
+      // Create handler on-demand (safe because JAX is already initialized)
+      auto* handler = phasic::parameterized::CreateComputePmfMultivariateHandler();
+      return py::capsule(reinterpret_cast<void*>(handler), "xla._CUSTOM_CALL_TARGET");
+  }, R"delim(
+  Get PyCapsule for JAX FFI compute_pmf_multivariate handler.
+
+  This handler enables zero-copy computation of multivariate phase-type PDFs
+  where observations are vectors (n_times, n_features) and each feature
+  dimension has its own reward vector.
+
+  Supports two modes:
+  - Sparse mode (compute_joint=false): Independent PDF computation per feature
+  - Joint mode (compute_joint=true): Joint PDF across features [NOT IMPLEMENTED]
+
+  Returns
+  -------
+  capsule
+      PyCapsule containing pointer to XLA FFI handler
+
+  Examples
+  --------
+  >>> import jax
+  >>> from phasic.phasic_pybind import parameterized
+  >>> capsule = parameterized.get_compute_pmf_multivariate_ffi_capsule()
+  >>> jax.ffi.register_ffi_target("ptd_compute_pmf_multivariate", capsule, platform="cpu")
   )delim");
 #endif
 

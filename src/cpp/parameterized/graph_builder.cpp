@@ -523,5 +523,119 @@ GraphBuilder::compute_pmf_and_moments(
     return std::make_pair(pmf_result, moments_result);
 }
 
+py::array_t<double> GraphBuilder::compute_pmf_multivariate(
+    py::array_t<double> theta,
+    py::array_t<double> times,
+    py::array_t<double> rewards,
+    bool discrete,
+    int granularity,
+    bool compute_joint
+) {
+    // Validate compute_joint mode
+    if (compute_joint) {
+        throw std::runtime_error(
+            "Joint PDF computation not yet implemented.\n"
+            "  Use compute_joint=false for independent feature PDFs (sparse mode).\n"
+            "  Joint PDF support planned for Phase 2."
+        );
+    }
+
+    // Step 1: Extract and validate data from numpy arrays (requires GIL)
+    auto theta_buf = theta.unchecked<1>();
+    size_t theta_len = theta_buf.shape(0);
+
+    auto times_buf = times.unchecked<2>();
+    size_t n_times = times_buf.shape(0);
+    size_t n_features = times_buf.shape(1);
+
+    auto rewards_buf = rewards.unchecked<2>();
+    size_t n_vertices_r = rewards_buf.shape(0);
+    size_t n_features_r = rewards_buf.shape(1);
+
+    // Validate dimensions
+    if (n_features_r != n_features) {
+        throw std::invalid_argument(
+            "Dimension mismatch: times has " + std::to_string(n_features) +
+            " features but rewards has " + std::to_string(n_features_r) + " features"
+        );
+    }
+
+    if ((int)n_vertices_r != n_vertices_) {
+        throw std::invalid_argument(
+            "Dimension mismatch: rewards has " + std::to_string(n_vertices_r) +
+            " vertices but graph has " + std::to_string(n_vertices_) + " vertices"
+        );
+    }
+
+    // Copy theta to C++ vector
+    std::vector<double> theta_vec(theta_len);
+    for (size_t i = 0; i < theta_len; i++) {
+        theta_vec[i] = theta_buf(i);
+    }
+
+    // Copy times to C++ 2D vector (row-major: [time][feature])
+    std::vector<std::vector<double>> times_2d(n_times, std::vector<double>(n_features));
+    for (size_t i = 0; i < n_times; i++) {
+        for (size_t j = 0; j < n_features; j++) {
+            times_2d[i][j] = times_buf(i, j);
+        }
+    }
+
+    // Copy rewards to C++ 2D vector (column-major: [feature][vertex])
+    std::vector<std::vector<double>> rewards_2d(n_features, std::vector<double>(n_vertices_r));
+    for (size_t j = 0; j < n_features; j++) {
+        for (size_t v = 0; v < n_vertices_r; v++) {
+            rewards_2d[j][v] = rewards_buf(v, j);
+        }
+    }
+
+    // Step 2: Release GIL for C++ computation
+    std::vector<std::vector<double>> pmf_2d(n_times, std::vector<double>(n_features));
+    {
+        py::gil_scoped_release release;
+
+        // Build graph ONCE (pure C++)
+        Graph g = build(theta_vec.data(), theta_len);
+
+        // === SPARSE MODE: Compute PDF per feature independently ===
+        // Each feature gets its own reward transformation and independent PDF computation
+        for (size_t j = 0; j < n_features; j++) {
+            // Transform graph for feature j
+            Graph g_transformed = g.reward_transform(rewards_2d[j]);
+
+            // Compute PDF/PMF for all time points for feature j
+            for (size_t i = 0; i < n_times; i++) {
+                double time_ij = times_2d[i][j];
+
+                // Sparse mode: zero observation → zero PDF
+                if (time_ij == 0.0) {
+                    pmf_2d[i][j] = 0.0;
+                    continue;
+                }
+
+                // Compute PDF at this time point
+                if (discrete) {
+                    int jump_count = static_cast<int>(time_ij);
+                    pmf_2d[i][j] = g_transformed.dph_pmf(jump_count);
+                } else {
+                    pmf_2d[i][j] = g_transformed.pdf(time_ij, granularity);
+                }
+            }
+        }
+    }
+    // GIL automatically reacquired here
+
+    // Step 3: Convert to numpy array (requires GIL, which we now have)
+    py::array_t<double> result({n_times, n_features});
+    auto result_buf = result.mutable_unchecked<2>();
+    for (size_t i = 0; i < n_times; i++) {
+        for (size_t j = 0; j < n_features; j++) {
+            result_buf(i, j) = pmf_2d[i][j];
+        }
+    }
+
+    return result;
+}
+
 } // namespace parameterized
 } // namespace phasic
