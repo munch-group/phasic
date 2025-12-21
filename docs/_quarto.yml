@@ -99,34 +99,33 @@ website:
             - pages/tutorials/distributions.ipynb
             # - pages/tutorials/simple_example.ipynb
             # - pages/tutorials/full_api/rabbits_full_py_api_example.ipynb
-            # - pages/tutorials/full_api/coalescent_full_py_api_example.ipynb
+            - pages/tutorials/full_api/coalescent_full_py_api_example.ipynb
             # - pages/tutorials/full_api/somecode.ipynb
         - section: "Phase-type distributions"
           contents:
             - pages/background/math_and_alg.qmd
-        # - section: "State space patterns"
-        #   contents:
-        #     - pages/tutorials/modelling/state_lumping.ipynb
-        #     - pages/tutorials/modelling/laplace.ipynb
-        #     - pages/tutorials/modelling/epochs.ipynb
-        #     - pages/tutorials/modelling/joint_prob.ipynb
-        #     - pages/tutorials/modelling/cont_and_discrete.ipynb
-        #     - pages/tutorials/modelling/epochs.ipynb
-        #     - pages/tutorials/modelling/joint_prob.ipynb
-        #     - pages/tutorials/modelling/laplace.ipynb
-        #     - pages/tutorials/modelling/state_lumping.ipynb
-        # - section: "Bayesian inference"
-        #   contents:
+        - section: "State space patterns"
+          contents:
+            - pages/tutorials/modelling/state_lumping.ipynb
+            - pages/tutorials/modelling/laplace.ipynb
+            - pages/tutorials/modelling/epochs.ipynb
+            - pages/tutorials/modelling/joint_prob.ipynb
+            - pages/tutorials/modelling/cont_and_discrete.ipynb
+            - pages/tutorials/modelling/epochs.ipynb
+            - pages/tutorials/modelling/joint_prob.ipynb
+            - pages/tutorials/modelling/laplace.ipynb
+            - pages/tutorials/modelling/state_lumping.ipynb
+        - section: "Bayesian inference"
+          contents:
         #     - pages/tutorials/svgd/svgd.ipynb
-        #     - pages/tutorials/svgd/caching.qmd
-        #     - pages/tutorials/svgd/svgd_trace_eval.qmd
-        #     - pages/tutorials/svgd/svgd_step_sizes.qmd
-        #     - pages/tutorials/svgd/ffi_and_openmp.qmd
-        #     - pages/tutorials/svgd/caching.qmd
-        #     - pages/tutorials/svgd/ffi_and_openmp.qmd
-        #     - pages/tutorials/svgd/svgd_step_sizes.qmd
-        #     - pages/tutorials/svgd/svgd_trace_eval.qmd
-        #     - pages/tutorials/svgd/svgd.ipynb
+            - pages/tutorials/svgd/caching.qmd
+            - pages/tutorials/svgd/svgd_trace_eval.qmd
+            - pages/tutorials/svgd/svgd_step_sizes.qmd
+            - pages/tutorials/svgd/ffi_and_openmp.qmd
+            - pages/tutorials/svgd/caching.qmd
+            - pages/tutorials/svgd/ffi_and_openmp.qmd
+            - pages/tutorials/svgd/svgd_step_sizes.qmd
+            - pages/tutorials/svgd/svgd_trace_eval.qmd
         #     - pages/tutorials/svgd/trace_ipfs.ipynb
         # - section: "Distributed Computing"
         #   contents:
@@ -155,7 +154,6 @@ website:
         #     - pages/tutorials/popgen/python/smc-prime-tree-levels.py
         #     - pages/tutorials/popgen/python/two_locus_two_island-discrete.ipynb
         #     - pages/tutorials/popgen/python/two_locus_two_island.ipynb
-        #     # - pages/
         - section: "Devel"
           contents:
             - pages/architecture/architecture.qmd
