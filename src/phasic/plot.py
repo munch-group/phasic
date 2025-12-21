@@ -195,6 +195,7 @@ def plot_graph(graph:GraphType, filename:str=None,
                     c.node(str(vertex.index()))
 
     if filename:
-        dot.render(filename, format=filename.split('.')[-1], cleanup=True)
+        name, suffix = filename.rsplit('.', 1)
+        dot.render(name, format=suffix, cleanup=True)
 
     return dot
