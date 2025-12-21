@@ -50,21 +50,6 @@ from collections import OrderedDict, UserDict
 #         return wrapper
 #     return decorator
 
-
-# # state vector labels 
-# labels = ['foo', 'bar', 'baz']
-
-# @labeled(labels)
-# def callback(state):
-
-#     new_state = state.copy()
-#     new_state['foo'] += 1
-
-#     return [(new_state, 1)]
-
-# state = np.array([1, 2, 3])
-# callback(state)
-
 # Import configuration system FIRST (before any optional imports)
 from .config import (
     configure,
@@ -1378,7 +1363,7 @@ def _setup_ctypes_signatures_from_arrays(lib, discrete=False):
 #         return wrapper
 #     return decorator
 
-def callback(ipv):
+def _callback(ipv):
     """
     Turn callback functions with different signatures into a common one.
     Also makes return the ipv when called with empty state.
@@ -1433,6 +1418,9 @@ def callback(ipv):
         return wrapper
     return decorator
 
+# allow _callback decorator to be imported as with_ipv
+with_ipv = _callback
+
 class Graph(_Graph):
     # def __init__(self, state_length:int=None, callback:Callable=None, ipv:List[Union[List[int], List[Union[List[int], float]]]] = None, parameterized:bool=False, **kwargs):
     def __init__(self, arg=None, ipv=None, **kwargs):
@@ -1466,7 +1454,7 @@ class Graph(_Graph):
 
             if arg.__name__ != 'wrapper':
                 assert ipv is not None, "When providing a function not decorated with @callback, the ipv argument must be provided"
-                arg = callback(ipv)(arg)
+                arg = _callback(ipv)(arg)
             else:
                 assert ipv is None, "When providing a function decorated with @callback, the ipv argument is ignored and should not be provided"
 
