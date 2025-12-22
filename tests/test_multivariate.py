@@ -1,9 +1,9 @@
 """Test multivariate phase-type distributions with 2D observations and 2D rewards"""
 
 import numpy as np
-import jax.numpy as jnp
 import pytest
 from phasic import Graph
+import jax.numpy as jnp
 
 def create_simple_exponential_graph(parameterized=True):
     """Create a simple exponential distribution graph for testing"""
@@ -120,10 +120,9 @@ class TestMultivariateModel:
 
         # Create 2D rewards with different values per feature
         rewards_2d = jnp.array([
-            [1.0, 2.0, 0.5],
-            [2.0, 1.0, 1.5],
-            [0.5, 1.5, 2.0],
-            [1.5, 0.5, 1.0]
+            [1.0, 2.0, 0.5, 1.5],  # Feature 0 reward vector
+            [2.0, 1.0, 1.5, 0.5],  # Feature 1 reward vector
+            [0.5, 1.5, 2.0, 1.0]   # Feature 2 reward vector
         ])
 
         # Compute 2D result
@@ -131,7 +130,7 @@ class TestMultivariateModel:
 
         # Compute each feature separately and verify they match
         for j in range(n_features):
-            reward_j = rewards_2d[:, j]
+            reward_j = rewards_2d[j, :]
             pmf_j, moments_j = model_1d(theta, times, rewards=reward_j)
 
             np.testing.assert_allclose(pmf_2d[:, j], pmf_j, rtol=1e-10,
@@ -231,10 +230,8 @@ class TestSVGDMultivariate:
 
         n_vertices = 4
         rewards_2d = jnp.array([
-            [1.0, 0.5],
-            [2.0, 1.0],
-            [0.5, 2.0],
-            [1.5, 1.5]
+            [1.0, 2.0, 0.5, 1.5],  # Feature 0 reward vector
+            [0.5, 1.0, 2.0, 1.5]   # Feature 1 reward vector
         ])
 
         from phasic import SVGD
@@ -275,10 +272,8 @@ class TestSVGDMultivariate:
 
         n_vertices = 4
         rewards_2d = jnp.array([
-            [1.0, 0.5],
-            [2.0, 1.0],
-            [0.5, 2.0],
-            [1.5, 1.5]
+            [1.0, 2.0, 0.5, 1.5],  # Feature 0 reward vector
+            [0.5, 1.0, 2.0, 1.5]   # Feature 1 reward vector
         ])
 
         from phasic import SVGD
@@ -345,10 +340,8 @@ class TestGraphSVGDAPI:
         ])
 
         rewards_2d = jnp.array([
-            [1.0, 0.5],
-            [2.0, 1.0],
-            [0.5, 2.0],
-            [1.5, 1.5]
+            [1.0, 2.0, 0.5, 1.5],  # Feature 0 reward vector
+            [0.5, 1.0, 2.0, 1.5]   # Feature 1 reward vector
         ])
 
         svgd = graph.svgd(
@@ -363,7 +356,7 @@ class TestGraphSVGDAPI:
         )
 
         assert svgd.rewards is not None
-        assert svgd.rewards.shape == (4, 2)
+        assert svgd.rewards.shape == (2, 4)
 
 
 if __name__ == '__main__':

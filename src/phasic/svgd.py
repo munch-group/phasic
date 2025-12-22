@@ -48,7 +48,7 @@ iridis = truncate_colormap(plt.get_cmap('viridis'), 0.2, 1)
 from .config import get_config
 from .exceptions import PTDConfigError
 
-from .vscode_theme import black_white, phasic_theme
+#from .vscode_theme import black_white, phasic_theme
 
 # from . import svgd_plots
 
@@ -1368,32 +1368,64 @@ def compute_sample_moments(data, nr_moments):
     """
     Compute sample moments from observed data.
 
+    For multivariate data (2D), computes moments independently per feature,
+    ignoring NaN values within each feature.
+
     Parameters
     ----------
     data : array_like
-        Observed data points (e.g., waiting times, event times)
+        Observed data points. Can be:
+        - 1D array: (n_times,) for univariate observations
+        - 2D array: (n_times, n_features) for multivariate observations
     nr_moments : int
         Number of moments to compute
 
     Returns
     -------
     jnp.array
-        Sample moments [mean(data), mean(data^2), ..., mean(data^k)]
-        Shape: (nr_moments,)
+        Sample moments:
+        - 1D data: Shape (nr_moments,) with [mean, mean(X^2), ..., mean(X^k)]
+        - 2D data: Shape (n_features, nr_moments) with per-feature moments
 
     Examples
     --------
+    >>> # 1D case
     >>> data = jnp.array([1.0, 2.0, 3.0, 4.0, 5.0])
     >>> moments = compute_sample_moments(data, nr_moments=2)
     >>> print(moments)  # [3.0, 11.0] = [mean, mean of squares]
-    >>> # Variance from moments: Var = E[X^2] - E[X]^2 = 11.0 - 3.0^2 = 2.0
+    >>>
+    >>> # 2D case (multivariate)
+    >>> data = jnp.array([[1.0, 10.0], [2.0, np.nan], [3.0, 30.0]])
+    >>> moments = compute_sample_moments(data, nr_moments=2)
+    >>> print(moments.shape)  # (2, 2) = (n_features, nr_moments)
+    >>> # Feature 0: mean=2.0, Feature 1: mean=20.0 (ignoring NaN)
     """
     data = jnp.array(data)
-    moments = []
-    for k in range(1, nr_moments + 1):
-        # Use nanmean to ignore NaN values in sparse/multivariate observations
-        moments.append(jnp.nanmean(data**k))
-    return jnp.array(moments)
+
+    if data.ndim == 1:
+        # 1D data: backward compatible
+        moments = []
+        for k in range(1, nr_moments + 1):
+            moments.append(jnp.nanmean(data**k))
+        return jnp.array(moments)  # Shape: (nr_moments,)
+
+    elif data.ndim == 2:
+        # 2D data: compute moments per feature
+        n_features = data.shape[1]
+        moments = []
+        for j in range(n_features):
+            feature_moments = []
+            for k in range(1, nr_moments + 1):
+                # Compute k-th moment for feature j, ignoring NaN
+                feature_moments.append(jnp.nanmean(data[:, j]**k))
+            moments.append(feature_moments)
+        return jnp.array(moments)  # Shape: (n_features, nr_moments)
+
+    else:
+        raise ValueError(
+            f"Data must be 1D or 2D for moment computation. "
+            f"Got shape: {data.shape}"
+        )
 
 
 # ============================================================================
@@ -2112,9 +2144,29 @@ class SVGD:
 
         pmf_vals, model_moments = result
 
-        # Log-likelihood term (handle missing data via NaN)
-        mask = ~jnp.isnan(pmf_vals)
-        log_lik = jnp.sum(jnp.where(mask, jnp.log(pmf_vals + 1e-10), 0.0))
+        # Log-likelihood term (handle missing observations via NaN)
+        # Distinguish between NaN observations (expected) and NaN PMF values (error)
+        obs_mask = ~jnp.isnan(self.observed_data)  # Valid observations
+        pmf_mask = ~jnp.isnan(pmf_vals)             # Valid PMF computations
+
+        # Check for invalid PMF using debug callback (JAX-compatible error checking)
+        # This won't block JIT compilation but will warn if NaN PMF occurs
+        invalid_pmf = obs_mask & ~pmf_mask
+
+        def check_nan_pmf(invalid_mask):
+            """Callback to check for NaN PMF values (executed during runtime, not tracing)"""
+            if np.any(invalid_mask):
+                raise ValueError(
+                    f"Model returned NaN PMF values for valid observations. "
+                    f"Check model implementation and parameter values. "
+                    f"NaN count: {np.sum(invalid_mask)}"
+                )
+
+        # Register debug callback (only executes at runtime, not during tracing)
+        jax.debug.callback(check_nan_pmf, invalid_pmf)
+
+        # Compute log-likelihood only on valid observations (skip NaN observations)
+        log_lik = jnp.sum(jnp.where(obs_mask, jnp.log(pmf_vals + 1e-10), 0.0))
 
         # Log-prior term (evaluated in unconstrained space)
         if self.prior is not None:
@@ -2127,17 +2179,24 @@ class SVGD:
         # Always compute penalty if moments available (but it's zero if regularization=0)
         # This avoids Python control flow on potentially-traced values
         if sample_moments is not None and nr_moments > 0:
-            # Handle 2D moments (multivariate case)
-            if model_moments.ndim == 2:
-                # Aggregate moments across features by taking mean
-                # Shape: (n_features, nr_moments) -> (nr_moments,)
+            # Handle different moment dimensionalities
+            if model_moments.ndim == 2 and sample_moments.ndim == 2:
+                # Both 2D: compute penalty per feature, then sum
+                # Shape: (n_features, nr_moments)
+                moment_diff = model_moments[:, :nr_moments] - sample_moments[:, :nr_moments]
+                moment_penalty = regularization * jnp.sum(moment_diff**2)
+            elif model_moments.ndim == 2 and sample_moments.ndim == 1:
+                # Model is 2D but sample is 1D: aggregate model moments
+                # This can happen if user manually provides 1D sample_moments
                 model_moments_agg = jnp.mean(model_moments, axis=0)
                 moment_diff = model_moments_agg[:nr_moments] - sample_moments
+                moment_penalty = regularization * jnp.sum(moment_diff**2)
             else:
                 # 1D moments (standard case)
+                # Shape: (nr_moments,)
                 moment_diff = model_moments[:nr_moments] - sample_moments
+                moment_penalty = regularization * jnp.sum(moment_diff**2)
 
-            moment_penalty = regularization * jnp.sum(moment_diff**2)
             return log_lik + log_pri - moment_penalty
         else:
             # No regularization: moments computed but not used

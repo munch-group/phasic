@@ -32,12 +32,12 @@ def test_nan_observations():
     n_vertices = _graph.vertices_length()
     print(f"Graph has {n_vertices} vertices")
 
-    # Create 2D rewards (n_vertices, n_features)
+    # Create 2D rewards (n_features, n_vertices)
     n_features = 3
-    rewards = jnp.ones((n_vertices, n_features), dtype=jnp.float64)
+    rewards = jnp.ones((n_features, n_vertices), dtype=jnp.float64)
     # Scale each feature differently
     for i in range(n_features):
-        rewards = rewards.at[:, i].set((i + 1) * 1.0)
+        rewards = rewards.at[i, :].set((i + 1) * 1.0)
 
     print(f"Rewards shape: {rewards.shape}")
     print(f"Rewards:\n{rewards}")
@@ -45,12 +45,12 @@ def test_nan_observations():
     # Create sparse observation pattern like user's example
     # Each row has NaNs except for one feature
     n = 10  # nr_observations per feature
-    a = np.empty((rewards.shape[1], n * rewards.shape[1]))
+    a = np.empty((rewards.shape[0], n * rewards.shape[0]))
     a[:] = np.nan
 
     # Sample data for each feature (simulating with random exponential)
     np.random.seed(42)
-    for i in range(rewards.shape[1]):
+    for i in range(rewards.shape[0]):
         # Generate samples (using exponential as proxy for testing)
         samples = np.random.exponential(1.0, n)
         a[i, i*n:(i+1)*n] = samples

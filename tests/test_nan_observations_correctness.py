@@ -149,12 +149,12 @@ def test_nan_correctness_multivariate():
     _graph = Graph(callback=callback, parameterized=True)
     n_vertices = _graph.vertices_length()
 
-    # Create 2D rewards (n_vertices, n_features)
+    # Create 2D rewards (n_features, n_vertices)
     n_features = 3
-    rewards = jnp.ones((n_vertices, n_features), dtype=jnp.float64)
+    rewards = jnp.ones((n_features, n_vertices), dtype=jnp.float64)
     # Each feature gets a different scaling
     for i in range(n_features):
-        rewards = rewards.at[:, i].set((i + 1) * 1.0)
+        rewards = rewards.at[i, :].set((i + 1) * 1.0)
 
     print(f"Number of features: {n_features}")
     print(f"Reward scaling per feature: {[i+1 for i in range(n_features)]}")
@@ -171,7 +171,7 @@ def test_nan_correctness_multivariate():
     trace = record_elimination_trace(_graph, param_length=1, enable_rewards=True)
 
     for i in range(n_features):
-        reward_i = np.array(rewards[:, i])
+        reward_i = np.array(rewards[i, :])
         graph_i = instantiate_from_trace(trace, params=np.array([true_theta]), rewards=reward_i)
         samples = np.array(graph_i.sample(n))
         a[i, i*n:(i+1)*n] = samples

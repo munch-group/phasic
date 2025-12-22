@@ -10,7 +10,7 @@ from numbers import Real as FloatingPointError
 from typing import TypeVar
 from collections.abc import Callable
 
-from .vscode_theme import is_vscode_dark_theme
+# from .vscode_theme import is_vscode_dark_theme
 
 GraphType = TypeVar('Graph') 
 

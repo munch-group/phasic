@@ -73,9 +73,9 @@ from .state_indexing import (
     StateSpace,
     Property
 )
-from .vscode_theme import set_phasic_theme
-from .vscode_theme import phasic_theme as theme
-from .vscode_theme import set_theme # backwards compatibility
+# from .vscode_theme import set_phasic_theme
+# from .vscode_theme import phasic_theme as theme
+# from .vscode_theme import set_theme # backwards compatibility
 from . import plot
 
 # Get configuration (creates default if none exists)
@@ -3625,10 +3625,9 @@ extern "C" {{
         >>> print(moments.shape)   # (2,)
         >>>
         >>> # 2D case (multivariate)
-        >>> rewards_2d = jnp.array([[1.0, 0.5],   # Feature 1, Feature 2
-        ...                          [2.0, 1.0],
-        ...                          [0.5, 2.0],
-        ...                          [1.5, 0.8]])  # (n_vertices, n_features)
+        >>> rewards_2d = jnp.array([[1.0, 2.0, 0.5, 1.5],   # Feature 1 reward vector
+        ...                          [0.5, 1.0, 2.0, 0.8]])  # Feature 2 reward vector
+        ...                                                  # (n_features, n_vertices)
         >>> times_2d = jnp.array([[1.0, 1.5],
         ...                        [2.0, 2.5],
         ...                        [3.0, 3.5]])  # (n_times, n_features)
@@ -3644,7 +3643,7 @@ extern "C" {{
         Notes
         -----
         - For 2D rewards, each feature dimension is computed independently using the
-          corresponding column of the rewards matrix
+          corresponding row of the rewards matrix (rewards[j, :] for feature j)
         - Log-likelihood is computed as sum over all observation elements
         - Backward compatible: 1D rewards behave exactly as pmf_and_moments_from_graph()
         """
@@ -3681,7 +3680,7 @@ extern "C" {{
             elif rewards_arr.ndim == 2:
                 # 2D case: Loop over features
                 # Using Python loop here to avoid JAX FFI dtype issues with scan
-                n_features = rewards_arr.shape[1]
+                n_features = rewards_arr.shape[0]
                 times_arr = jnp.asarray(times)
 
                 pmf_list = []
@@ -3689,7 +3688,7 @@ extern "C" {{
 
                 for j in range(n_features):
                     # Extract reward vector for feature j (ensure float64 for C++ compatibility)
-                    reward_j = rewards_arr[:, j].astype(jnp.float64)
+                    reward_j = rewards_arr[j, :].astype(jnp.float64)
 
                     # Extract times for feature j (support both 1D and 2D times)
                     if times_arr.ndim == 2:
@@ -3710,7 +3709,7 @@ extern "C" {{
 
             else:
                 raise ValueError(
-                    f"Rewards must be 1D (n_vertices,) or 2D (n_vertices, n_features). "
+                    f"Rewards must be 1D (n_vertices,) or 2D (n_features, n_vertices). "
                     f"Got shape: {rewards_arr.shape}"
                 )
 

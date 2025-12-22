@@ -34,9 +34,9 @@ def test_likelihood_at_true_parameter():
 
     # Create rewards
     n_features = 3
-    rewards = jnp.ones((n_vertices, n_features), dtype=jnp.float64)
+    rewards = jnp.ones((n_features, n_vertices), dtype=jnp.float64)
     for i in range(n_features):
-        rewards = rewards.at[:, i].set((i + 1) * 1.0)
+        rewards = rewards.at[i, :].set((i + 1) * 1.0)
 
     print(f"\nRewards shape: {rewards.shape}")
     print(f"Rewards:\n{rewards}")
@@ -48,7 +48,7 @@ def test_likelihood_at_true_parameter():
     a[:] = np.nan
 
     for i in range(n_features):
-        reward_i = np.array(rewards[:, i])
+        reward_i = np.array(rewards[i, :])
         samples = np.array(_graph.sample(n, rewards=reward_i))
         a[i, i*n:(i+1)*n] = samples
         print(f"\nFeature {i} (reward scaling {i+1}):")
@@ -139,7 +139,7 @@ def test_1d_vs_multivar_likelihood():
 
     # Generate multivariate data with same samples, no NaNs
     data_multivar = jnp.column_stack([data_1d, data_1d, data_1d])
-    rewards_multivar = jnp.ones((_graph.vertices_length(), 3), dtype=jnp.float64)
+    rewards_multivar = jnp.ones((3, _graph.vertices_length()), dtype=jnp.float64)
 
     print(f"\nMultivariate data (3 copies of 1D):")
     print(f"  Shape: {data_multivar.shape}")

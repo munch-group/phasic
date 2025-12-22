@@ -1,328 +1,328 @@
-import numpy as np
-import json5 as json
-import os
-import platform
-from pathlib import Path
-import matplotlib
-import matplotlib.pyplot as plt
-from matplotlib_inline.backend_inline import set_matplotlib_formats
-import seaborn as sns
-# import colorsys
-import os
-import sys
-from pathlib import Path
-from typing import Any, TypeVar, List, Tuple, Dict, Union
-from collections.abc import Sequence, MutableSequence, Callable
+# import numpy as np
+# import json5 as json
+# import os
+# import platform
+# from pathlib import Path
+# import matplotlib
+# import matplotlib.pyplot as plt
+# from matplotlib_inline.backend_inline import set_matplotlib_formats
+# import seaborn as sns
+# # import colorsys
+# import os
+# import sys
+# from pathlib import Path
+# from typing import Any, TypeVar, List, Tuple, Dict, Union
+# from collections.abc import Sequence, MutableSequence, Callable
 
-from .logging_config import get_logger
-logger = get_logger(__name__)
-
-
-def rgb_to_hsl(r, g, b):
-    r = float(r)
-    g = float(g)
-    b = float(b)
-    high = max(r, g, b)
-    low = min(r, g, b)
-    h, s, v = ((high + low) / 2,)*3
-
-    if high == low:
-        h = 0.0
-        s = 0.0
-    else:
-        d = high - low
-        s = d / (2 - high - low) if l > 0.5 else d / (high + low)
-        h = {
-            r: (g - b) / d + (6 if g < b else 0),
-            g: (b - r) / d + 2,
-            b: (r - g) / d + 4,
-        }[high]
-        h /= 6
-
-    return h, s, v
+# from .logging_config import get_logger
+# logger = get_logger(__name__)
 
 
-def hsl_to_rgb(h, s, l):
-    def hue_to_rgb(p, q, t):
-        t += 1 if t < 0 else 0
-        t -= 1 if t > 1 else 0
-        if t < 1/6: return p + (q - p) * 6 * t
-        if t < 1/2: return q
-        if t < 2/3: p + (q - p) * (2/3 - t) * 6
-        return p
+# def rgb_to_hsl(r, g, b):
+#     r = float(r)
+#     g = float(g)
+#     b = float(b)
+#     high = max(r, g, b)
+#     low = min(r, g, b)
+#     h, s, v = ((high + low) / 2,)*3
 
-    if s == 0:
-        r, g, b = l, l, l
-    else:
-        q = l * (1 + s) if l < 0.5 else l + s - l * s
-        p = 2 * l - q
-        r = hue_to_rgb(p, q, h + 1/3)
-        g = hue_to_rgb(p, q, h)
-        b = hue_to_rgb(p, q, h - 1/3)
+#     if high == low:
+#         h = 0.0
+#         s = 0.0
+#     else:
+#         d = high - low
+#         s = d / (2 - high - low) if l > 0.5 else d / (high + low)
+#         h = {
+#             r: (g - b) / d + (6 if g < b else 0),
+#             g: (b - r) / d + 2,
+#             b: (r - g) / d + 4,
+#         }[high]
+#         h /= 6
 
-    return r, g, b
+#     return h, s, v
 
 
-def get_vscode_settings_path() -> Path:
-    """Get the path to VS Code's user settings.json based on the OS."""
-    system = platform.system()
+# def hsl_to_rgb(h, s, l):
+#     def hue_to_rgb(p, q, t):
+#         t += 1 if t < 0 else 0
+#         t -= 1 if t > 1 else 0
+#         if t < 1/6: return p + (q - p) * 6 * t
+#         if t < 1/2: return q
+#         if t < 2/3: p + (q - p) * (2/3 - t) * 6
+#         return p
+
+#     if s == 0:
+#         r, g, b = l, l, l
+#     else:
+#         q = l * (1 + s) if l < 0.5 else l + s - l * s
+#         p = 2 * l - q
+#         r = hue_to_rgb(p, q, h + 1/3)
+#         g = hue_to_rgb(p, q, h)
+#         b = hue_to_rgb(p, q, h - 1/3)
+
+#     return r, g, b
+
+
+# def get_vscode_settings_path() -> Path:
+#     """Get the path to VS Code's user settings.json based on the OS."""
+#     system = platform.system()
     
-    if system == "Darwin":  # macOS
-        return Path.home() / "Library" / "Application Support" / "Code" / "User" / "settings.json"
-    elif system == "Windows":
-        return Path(os.environ.get("APPDATA", "")) / "Code" / "User" / "settings.json"
-    else:  # Linux
-        return Path.home() / ".config" / "Code" / "User" / "settings.json"
+#     if system == "Darwin":  # macOS
+#         return Path.home() / "Library" / "Application Support" / "Code" / "User" / "settings.json"
+#     elif system == "Windows":
+#         return Path(os.environ.get("APPDATA", "")) / "Code" / "User" / "settings.json"
+#     else:  # Linux
+#         return Path.home() / ".config" / "Code" / "User" / "settings.json"
 
 
-def get_vscode_theme() -> str | None:
-    """Parse VS Code settings and return the workbench.colorTheme value."""
-    settings_path = get_vscode_settings_path()
+# def get_vscode_theme() -> str | None:
+#     """Parse VS Code settings and return the workbench.colorTheme value."""
+#     settings_path = get_vscode_settings_path()
     
-    if not settings_path.exists():
-        print(f"Settings file not found at: {settings_path}")
-        return None
+#     if not settings_path.exists():
+#         print(f"Settings file not found at: {settings_path}")
+#         return None
     
-    with open(settings_path, "r", encoding="utf-8") as f:
-        content = f.read()
+#     with open(settings_path, "r", encoding="utf-8") as f:
+#         content = f.read()
     
-    # Remove single-line comments (// ...) and multi-line comments (/* ... */)
-    # This handles JSONC (JSON with Comments)
-    import re
-    content = re.sub(r'//.*?$', '', content, flags=re.MULTILINE)
-    content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
+#     # Remove single-line comments (// ...) and multi-line comments (/* ... */)
+#     # This handles JSONC (JSON with Comments)
+#     import re
+#     content = re.sub(r'//.*?$', '', content, flags=re.MULTILINE)
+#     content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
     
-    settings = json.loads(content)
-    return settings.get("workbench.colorTheme", "Default Dark Modern")
+#     settings = json.loads(content)
+#     return settings.get("workbench.colorTheme", "Default Dark Modern")
 
 
-def is_vscode_dark_theme() -> bool:
-    """Determine if a given VS Code theme name is dark or light."""
-    return 'dark' in get_vscode_theme().lower()
+# def is_vscode_dark_theme() -> bool:
+#     """Determine if a given VS Code theme name is dark or light."""
+#     return 'dark' in get_vscode_theme().lower()
 
 
-def lighten_colors(colors, factor=0.0, n_colors=None, as_cmap=None, target_lightness=None):
-    """
-    Lighten a colormap or palette using HSL color space.
+# def lighten_colors(colors, factor=0.0, n_colors=None, as_cmap=None, target_lightness=None):
+#     """
+#     Lighten a colormap or palette using HSL color space.
     
-    Parameters
-    ----------
-    colors : str, Colormap, or list
-        Matplotlib colormap, seaborn palette name, or list of colors
-    factor : float
-        Blend factor toward white (0 = original, 1 = white).
-        Ignored if target_lightness is set.
-    n_colors : int, optional
-        Number of colors for discrete palettes
-    as_cmap : bool, optional
-        Force output type. If None, auto-detects based on input.
-    target_lightness : float, optional
-        If set (0-1), all colors will be adjusted to this lightness value,
-        preserving hue and saturation.
+#     Parameters
+#     ----------
+#     colors : str, Colormap, or list
+#         Matplotlib colormap, seaborn palette name, or list of colors
+#     factor : float
+#         Blend factor toward white (0 = original, 1 = white).
+#         Ignored if target_lightness is set.
+#     n_colors : int, optional
+#         Number of colors for discrete palettes
+#     as_cmap : bool, optional
+#         Force output type. If None, auto-detects based on input.
+#     target_lightness : float, optional
+#         If set (0-1), all colors will be adjusted to this lightness value,
+#         preserving hue and saturation.
         
-    Returns
-    -------
-    list or LinearSegmentedColormap
-    """
-    is_cmap_input = False
+#     Returns
+#     -------
+#     list or LinearSegmentedColormap
+#     """
+#     is_cmap_input = False
     
-    # Handle different input types
-    if isinstance(colors, matplotlib.colors.Colormap):
-        is_cmap_input = True
-        color_list = colors(np.linspace(0, 1, 256))
-        name = colors.name
-    elif isinstance(colors, str):
-        # Check if n_colors is specified or name suggests a discrete palette
-        discrete_names = {'tab10', 'tab20', 'tab20b', 'tab20c', 'Set1', 'Set2', 'Set3',
-                          'Pastel1', 'Pastel2', 'Paired', 'Accent', 'Dark2',
-                          'deep', 'muted', 'bright', 'pastel', 'dark', 'colorblind'}
+#     # Handle different input types
+#     if isinstance(colors, matplotlib.colors.Colormap):
+#         is_cmap_input = True
+#         color_list = colors(np.linspace(0, 1, 256))
+#         name = colors.name
+#     elif isinstance(colors, str):
+#         # Check if n_colors is specified or name suggests a discrete palette
+#         discrete_names = {'tab10', 'tab20', 'tab20b', 'tab20c', 'Set1', 'Set2', 'Set3',
+#                           'Pastel1', 'Pastel2', 'Paired', 'Accent', 'Dark2',
+#                           'deep', 'muted', 'bright', 'pastel', 'dark', 'colorblind'}
         
-        if n_colors is not None or colors in discrete_names:
-            # Treat as discrete palette - try seaborn first
-            try:
-                import seaborn as sns
-                color_list = sns.color_palette(colors, n_colors=n_colors)
-                name = colors
-                is_cmap_input = False
-            except:
-                # Fall back to matplotlib
-                cmap = plt.get_cmap(colors)
-                n = n_colors or 10
-                color_list = [cmap(i / (n - 1)) for i in range(n)]
-                name = colors
-                is_cmap_input = False
-        else:
-            # Try as continuous matplotlib colormap
-            try:
-                cmap = plt.get_cmap(colors)
-                is_cmap_input = True
-                color_list = cmap(np.linspace(0, 1, 256))
-                name = colors
-            except ValueError:
-                # Fall back to seaborn palette
-                import seaborn as sns
-                color_list = sns.color_palette(colors, n_colors=n_colors)
-                name = colors
-    else:
-        # Assume it's a list of colors
-        color_list = list(colors)
-        name = "custom"
+#         if n_colors is not None or colors in discrete_names:
+#             # Treat as discrete palette - try seaborn first
+#             try:
+#                 import seaborn as sns
+#                 color_list = sns.color_palette(colors, n_colors=n_colors)
+#                 name = colors
+#                 is_cmap_input = False
+#             except:
+#                 # Fall back to matplotlib
+#                 cmap = plt.get_cmap(colors)
+#                 n = n_colors or 10
+#                 color_list = [cmap(i / (n - 1)) for i in range(n)]
+#                 name = colors
+#                 is_cmap_input = False
+#         else:
+#             # Try as continuous matplotlib colormap
+#             try:
+#                 cmap = plt.get_cmap(colors)
+#                 is_cmap_input = True
+#                 color_list = cmap(np.linspace(0, 1, 256))
+#                 name = colors
+#             except ValueError:
+#                 # Fall back to seaborn palette
+#                 import seaborn as sns
+#                 color_list = sns.color_palette(colors, n_colors=n_colors)
+#                 name = colors
+#     else:
+#         # Assume it's a list of colors
+#         color_list = list(colors)
+#         name = "custom"
     
-    # Process each color in HSL space
-    lightened = []
-    for c in color_list:
-        rgba = matplotlib.colors.to_rgba(c)
-        r, g, b, a = rgba
+#     # Process each color in HSL space
+#     lightened = []
+#     for c in color_list:
+#         rgba = matplotlib.colors.to_rgba(c)
+#         r, g, b, a = rgba
         
-        # h, l, s = colorsys.rgb_to_hls(r, g, b)
-        h, s, l = rgb_to_hsl(r, g, b)
+#         # h, l, s = colorsys.rgb_to_hls(r, g, b)
+#         h, s, l = rgb_to_hsl(r, g, b)
         
-        if target_lightness is not None:
-            l_new = target_lightness
-        else:
-            l_new = l + (1 - l) * factor
+#         if target_lightness is not None:
+#             l_new = target_lightness
+#         else:
+#             l_new = l + (1 - l) * factor
         
-        # r_new, g_new, b_new = colorsys.hls_to_rgb(h, l_new, s)
-        r_new, g_new, b_new = hsl_to_rgb(h, s, l_new)
-        lightened.append((r_new, g_new, b_new, a))
+#         # r_new, g_new, b_new = colorsys.hls_to_rgb(h, l_new, s)
+#         r_new, g_new, b_new = hsl_to_rgb(h, s, l_new)
+#         lightened.append((r_new, g_new, b_new, a))
     
-    # Determine output type
-    if as_cmap is None:
-        as_cmap = is_cmap_input
+#     # Determine output type
+#     if as_cmap is None:
+#         as_cmap = is_cmap_input
     
-    if as_cmap:
-        return matplotlib.colors.LinearSegmentedColormap.from_list(f"{name}_light", lightened)
+#     if as_cmap:
+#         return matplotlib.colors.LinearSegmentedColormap.from_list(f"{name}_light", lightened)
     
-    return lightened
+#     return lightened
 
-class suppress_plotting_output:
-    def __init__(self):
-        pass
+# class suppress_plotting_output:
+#     def __init__(self):
+#         pass
 
-    def __enter__(self):
-        plt.ioff()
+#     def __enter__(self):
+#         plt.ioff()
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        plt.ion()
+#     def __exit__(self, exc_type, exc_value, traceback):
+#         plt.ion()
 
     
 
-def set_phasic_theme(dark:bool=None, cmap=None):
-    """
-    Set the default theme for the graph plotter.
-    The theme can be either 'dark' or 'light'. The default theme is autodetected.
-    NOTEBOOK_THEME environment variable can be used to override the theme.
+# def set_phasic_theme(dark:bool=None, cmap=None):
+#     """
+#     Set the default theme for the graph plotter.
+#     The theme can be either 'dark' or 'light'. The default theme is autodetected.
+#     NOTEBOOK_THEME environment variable can be used to override the theme.
 
-    Parameters
-    ----------
-    theme : 
-        _description_
-    """
+#     Parameters
+#     ----------
+#     theme : 
+#         _description_
+#     """
 
-    with suppress_plotting_output():
+#     with suppress_plotting_output():
 
-        set_matplotlib_formats('retina', 'png')
+#         set_matplotlib_formats('retina', 'png')
 
-        sns.set_context('paper', font_scale=0.9)
+#         sns.set_context('paper', font_scale=0.9)
 
-        # if cmap is None:
-        #     cmap = plt.get_cmap()
+#         # if cmap is None:
+#         #     cmap = plt.get_cmap()
 
-        # # dark_cmap = lighten_colors(cmap, target_lightness=0.4, as_cmap=True)
-        # # light_cmap = lighten_colors(cmap, target_lightness=0.6, as_cmap=True)
-        # dark_cmap = lighten_colors(cmap, factor=0, as_cmap=True)
-        # light_cmap = lighten_colors(cmap, factor=0, as_cmap=True)
+#         # # dark_cmap = lighten_colors(cmap, target_lightness=0.4, as_cmap=True)
+#         # # light_cmap = lighten_colors(cmap, target_lightness=0.6, as_cmap=True)
+#         # dark_cmap = lighten_colors(cmap, factor=0, as_cmap=True)
+#         # light_cmap = lighten_colors(cmap, factor=0, as_cmap=True)
 
-        if dark is None:
-            dark = is_vscode_dark_theme()
-            logger.debug(f"No theme specified, autodetected VS Code theme as {'dark' if dark else 'light'}.")
+#         if dark is None:
+#             dark = is_vscode_dark_theme()
+#             logger.debug(f"No theme specified, autodetected VS Code theme as {'dark' if dark else 'light'}.")
 
-        env_theme = os.environ.get('NOTEBOOK_THEME', None)
-        if env_theme is not None:
-            dark = env_theme.lower() == 'dark'
-            logger.debug(f"Overriding theme from NOTEBOOK_THEME environment variable: {'dark' if dark else 'light'}.")
-            print("Overriding theme from NOTEBOOK_THEME environment variable.", sys.stderr)
+#         env_theme = os.environ.get('NOTEBOOK_THEME', None)
+#         if env_theme is not None:
+#             dark = env_theme.lower() == 'dark'
+#             logger.debug(f"Overriding theme from NOTEBOOK_THEME environment variable: {'dark' if dark else 'light'}.")
+#             print("Overriding theme from NOTEBOOK_THEME environment variable.", sys.stderr)
 
-        if dark:
-            logger.debug(f"Setting matplotlib style to dark_background.")
-            # plt.style.use('dark_background')
-        else:
-            logger.debug(f"Setting matplotlib style to default.")
-            plt.style.use('default')
+#         if dark:
+#             logger.debug(f"Setting matplotlib style to dark_background.")
+#             # plt.style.use('dark_background')
+#         else:
+#             logger.debug(f"Setting matplotlib style to default.")
+#             plt.style.use('default')
 
-        if dark:
-            logger.debug(f"Updating rcParams for dark theme.")
-            plt.rcParams.update({
-                'figure.facecolor': '#1F1F1F', 
-                'axes.facecolor': '#1F1F1F',
-                'grid.linewidth': 0.4,
-                'grid.alpha': 0.3,
-                })
-            # plt.set_cmap(cmap if cmap else dark_cmap)        
-        else:
-            logger.debug(f"Updating rcParams for dark theme.")
-            plt.rcParams.update({
-                'figure.facecolor': 'white', 
-                'axes.facecolor': 'white',
-                'grid.linewidth': 0.4,
-                'grid.alpha': 0.7,            
-                })
-            # plt.set_cmap(cmap if cmap else light_cmap)
+#         if dark:
+#             logger.debug(f"Updating rcParams for dark theme.")
+#             plt.rcParams.update({
+#                 'figure.facecolor': '#1F1F1F', 
+#                 'axes.facecolor': '#1F1F1F',
+#                 'grid.linewidth': 0.4,
+#                 'grid.alpha': 0.3,
+#                 })
+#             # plt.set_cmap(cmap if cmap else dark_cmap)        
+#         else:
+#             logger.debug(f"Updating rcParams for dark theme.")
+#             plt.rcParams.update({
+#                 'figure.facecolor': 'white', 
+#                 'axes.facecolor': 'white',
+#                 'grid.linewidth': 0.4,
+#                 'grid.alpha': 0.7,            
+#                 })
+#             # plt.set_cmap(cmap if cmap else light_cmap)
 
-        logger.debug(f"Updating rcParams for both themes.")
-        plt.rcParams.update({
-            'axes.grid': True,
-            'axes.grid.axis':     'both',
-            'axes.grid.which': 'major',
-            'axes.titlelocation': 'right',
-            'axes.titlesize': 'large',
-            'axes.titleweight': 'normal',
-            'axes.labelsize': 'medium',
-            'axes.labelweight': 'normal',
-            'axes.formatter.use_mathtext': True,
-            'axes.spines.left': False,
-            'axes.spines.bottom': False,
-            'axes.spines.top': False,
-            'axes.spines.right':  False,
-            'xtick.bottom': False,
-            'ytick.left': False,
-            'legend.frameon': False,
-            'figure.figsize': (5, 3.7),            
-        })
-
-
-
-def set_theme(name: str = None):
-    """Backwards compatibility wrapper for set_phasic_theme."""
-    logger.debug(f"Using set_theme (backwards compatibility).")
-    if name is not None:
-        set_phasic_theme(dark='dark' in name.lower())
-    else:
-        set_phasic_theme()
+#         logger.debug(f"Updating rcParams for both themes.")
+#         plt.rcParams.update({
+#             'axes.grid': True,
+#             'axes.grid.axis':     'both',
+#             'axes.grid.which': 'major',
+#             'axes.titlelocation': 'right',
+#             'axes.titlesize': 'large',
+#             'axes.titleweight': 'normal',
+#             'axes.labelsize': 'medium',
+#             'axes.labelweight': 'normal',
+#             'axes.formatter.use_mathtext': True,
+#             'axes.spines.left': False,
+#             'axes.spines.bottom': False,
+#             'axes.spines.top': False,
+#             'axes.spines.right':  False,
+#             'xtick.bottom': False,
+#             'ytick.left': False,
+#             'legend.frameon': False,
+#             'figure.figsize': (5, 3.7),            
+#         })
 
 
-def black_white(ax):
-    """Returns black for light backgrounds, white for dark backgrounds."""
-    if ax is None:
-        ax = plt.gca()
-    bg_color = ax.get_facecolor()
-    # Convert to grayscale to determine brightness
-    luminance = matplotlib.colors.rgb_to_hsv(matplotlib.colors.to_rgb(bg_color))[2]
-    return 'black' if luminance > 0.5 else '#FDFDFD'
 
-class phasic_theme:
-    def __init__(self, dark:bool = None):
-        self.dark = dark if dark is not None else vscode_theme_is_dark()
-        logger.debug(f"Auto-detected theme in context manager as {'dark' if self.dark else 'light'}.")
-        self.orig_rcParams = matplotlib.rcParams.copy()
-        self.orig_cmap = matplotlib.pyplot.get_cmap()
+# def set_theme(name: str = None):
+#     """Backwards compatibility wrapper for set_phasic_theme."""
+#     logger.debug(f"Using set_theme (backwards compatibility).")
+#     if name is not None:
+#         set_phasic_theme(dark='dark' in name.lower())
+#     else:
+#         set_phasic_theme()
 
-    def __enter__(self):
-        logger.debug(f"Setting theme in context manager to {'dark' if self.dark else 'light'}.")
-        set_phasic_theme(self.dark)
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        logger.debug(f"Restoring original rcParams in context manager.")
-        matplotlib.rcParams.update(self.orig_rcParams)
-        matplotlib.pyplot.set_cmap(self.orig_cmap)
+# def black_white(ax):
+#     """Returns black for light backgrounds, white for dark backgrounds."""
+#     if ax is None:
+#         ax = plt.gca()
+#     bg_color = ax.get_facecolor()
+#     # Convert to grayscale to determine brightness
+#     luminance = matplotlib.colors.rgb_to_hsv(matplotlib.colors.to_rgb(bg_color))[2]
+#     return 'black' if luminance > 0.5 else '#FDFDFD'
+
+# class phasic_theme:
+#     def __init__(self, dark:bool = None):
+#         self.dark = dark if dark is not None else vscode_theme_is_dark()
+#         logger.debug(f"Auto-detected theme in context manager as {'dark' if self.dark else 'light'}.")
+#         self.orig_rcParams = matplotlib.rcParams.copy()
+#         self.orig_cmap = matplotlib.pyplot.get_cmap()
+
+#     def __enter__(self):
+#         logger.debug(f"Setting theme in context manager to {'dark' if self.dark else 'light'}.")
+#         set_phasic_theme(self.dark)
+
+#     def __exit__(self, exc_type, exc_value, traceback):
+#         logger.debug(f"Restoring original rcParams in context manager.")
+#         matplotlib.rcParams.update(self.orig_rcParams)
+#         matplotlib.pyplot.set_cmap(self.orig_cmap)
 
