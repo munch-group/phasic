@@ -2105,7 +2105,10 @@ class SVGD:
             - 0.0: No regularization
             - > 0.0: Moment-based regularization penalty
         rewards : array or None
-            Reward vector for reward-transformed likelihood (not yet implemented)
+            Reward vector/matrix for multivariate phase-type distributions.
+            - 1D array (n_vertices,): Single reward vector for univariate distribution
+            - 2D array (n_features, n_vertices): Reward matrix for multivariate distribution
+              where each row rewards[j, :] defines the reward vector for feature j
 
         Returns
         -------
@@ -2372,7 +2375,9 @@ class SVGD:
         regularization : float
             Regularization strength
         rewards : array or None, optional
-            Optional reward vector for reward-transformed moments
+            Optional reward vector/matrix for multivariate phase-type distributions.
+            - 1D array (n_vertices,): Single reward vector
+            - 2D array (n_features, n_vertices): Reward matrix where rewards[j, :] is feature j's vector
 
         Returns
         -------
@@ -2468,8 +2473,11 @@ class SVGD:
         Parameters
         ----------
         rewards : array_like, optional
-            Reward vector for reward-transformed likelihood (not yet implemented).
-            Length must match number of vertices (excluding start vertex).
+            Reward vector/matrix for multivariate phase-type distributions.
+            - 1D array (n_vertices,): Single reward vector for univariate distribution
+            - 2D array (n_features, n_vertices): Reward matrix for multivariate distribution
+              where each row rewards[j, :] defines the reward vector for feature j
+            Must be provided if model requires rewards (multivariate distributions).
             Each reward serves as multiplier of vertex value in trace.
         return_history : bool, default=True
             If True, store particle positions throughout optimization
