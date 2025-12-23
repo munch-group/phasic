@@ -1864,6 +1864,9 @@ Computes the expected residence time of the phase-type distribution.
 
     This function generates samples from the multivariate phase-type distribution, using a set of rewards.
 
+    Note: This is a low-level C++ binding. For the Python API, use Graph.sample() with 2D rewards.
+    The Python API uses shape (n_features, n_vertices) which is transposed before calling this method.
+
     Parameters
     ----------
     graph : Graph
@@ -1871,24 +1874,29 @@ Computes the expected residence time of the phase-type distribution.
     n : int, optional
         The number of samples to generate. Default is 1.
     rewards : ndarray
-        A matrix of rewards, which should be applied to the phase-type distribution. The number of rows must match the number of vertices.
+        A matrix of rewards with shape (n_vertices, n_features).
+        Each row corresponds to one vertex, each column to one marginal distribution.
+        Note: Python API transposes from (n_features, n_vertices) to this format.
 
     Returns
     -------
     ndarray
-        A matrix of samples.
+        A matrix of samples with shape (n_features, n_samples).
 
     Examples
     --------
-    >>> graph = create_graph(4)
+    >>> # Low-level C++ API (not recommended - use Python Graph.sample() instead)
+    >>> graph = Graph(4)
     >>> v1 = graph.create_vertex([1,2,3,4])
     >>> v2 = graph.create_vertex([4,0,3,3])
     >>> a = graph.create_vertex([0,0,0,0])
-    >>> add_edge(starting_vertex(graph), v1, 1)
+    >>> graph.starting_vertex().add_edge(v1, 1)
     >>> v1.add_edge(v2, 4)
     >>> v2.add_edge(a, 10)
-    >>> rewards = matrix([1,2,3,4,5,6,7,8], nrow=4, ncol=2)
-    >>> graph.sample_multivariate( 5, rewards)
+    >>> # C++ expects (n_vertices=4, n_features=2) shape
+    >>> rewards_cpp = np.array([[1,5], [2,6], [3,7], [4,8]])  # 4 vertices × 2 features
+    >>> samples = graph.sample_multivariate(5, rewards_cpp)
+    >>> # Returns (2, 5) matrix: 2 features × 5 samples
     )delim")
 
     
@@ -1950,6 +1958,9 @@ Computes the expected residence time of the phase-type distribution.
 
     This function generates samples from the multivariate discrete phase-type distribution, using a set of rewards.
 
+    Note: This is a low-level C++ binding. For the Python API, use Graph.sample_discrete() with 2D rewards.
+    The Python API uses shape (n_features, n_vertices) which is transposed before calling this method.
+
     Parameters
     ----------
     graph : Graph
@@ -1957,24 +1968,29 @@ Computes the expected residence time of the phase-type distribution.
     n : int, optional
         The number of samples to generate. Default is 1.
     rewards : ndarray
-        A matrix of rewards, which should be applied to the discrete phase-type distribution. The number of rows must match the number of vertices.
+        A matrix of rewards with shape (n_vertices, n_features).
+        Each row corresponds to one vertex, each column to one marginal distribution.
+        Note: Python API transposes from (n_features, n_vertices) to this format.
 
     Returns
     -------
     ndarray
-        A matrix of samples.
+        A matrix of samples with shape (n_features, n_samples).
 
     Examples
     --------
-    >>> graph = create_graph(4)
+    >>> # Low-level C++ API (not recommended - use Python Graph.sample_discrete() instead)
+    >>> graph = Graph(4)
     >>> v1 = graph.create_vertex([1,2,3,4])
     >>> v2 = graph.create_vertex([4,0,3,3])
     >>> a = graph.create_vertex([0,0,0,0])
-    >>> add_edge(starting_vertex(graph), v1, 1)
+    >>> graph.starting_vertex().add_edge(v1, 1)
     >>> v1.add_edge(v2, 4)
     >>> v2.add_edge(a, 10)
-    >>> rewards = matrix([1,2,3,4,5,6,7,8], nrow=4, ncol=2)
-    >>> graph.sample_multivariate_discrete( 5, rewards)
+    >>> # C++ expects (n_vertices=4, n_features=2) shape
+    >>> rewards_cpp = np.array([[1,5], [2,6], [3,7], [4,8]])  # 4 vertices × 2 features
+    >>> samples = graph.sample_multivariate_discrete(5, rewards_cpp)
+    >>> # Returns (2, 5) matrix: 2 features × 5 samples
     )delim")
 
 

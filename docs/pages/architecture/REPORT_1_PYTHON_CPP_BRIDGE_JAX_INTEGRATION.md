@@ -909,3 +909,144 @@ The Python-C++ bridge architecture achieves high performance SVGD through:
    - **Trace-based models**: pmap incompatible due to pure_callback limitation
 
 The architecture prioritizes **explicit configuration** over **silent degradation**, ensuring users are immediately aware of performance implications.
+
+## Multivariate Phase-Type Distributions and Reward Matrix Shape Convention
+
+### Shape Convention (Updated 2025-12-22)
+
+**Python API:** Reward matrices use shape `(n_features, n_vertices)` where each row is a complete reward vector for one feature.
+
+**C++ Low-Level API:** Internally uses shape `(n_vertices, n_features)` for compatibility with existing C implementations.
+
+**Rationale:**
+- Python API: `rewards[j, :]` directly extracts feature j's reward vector (intuitive row indexing)
+- Observations are `(n_times, n_features)` - reward shape aligns conceptually
+- More natural for users: "each feature has its reward vector"
+
+### Implementation Pattern
+
+```python
+# Python API (user-facing)
+rewards = jnp.array([
+    [1.0, 2.0, 0.5, 1.5],  # Feature 0 reward vector (n_vertices=4)
+    [0.5, 1.0, 2.0, 0.8]   # Feature 1 reward vector
+])  # Shape: (n_features=2, n_vertices=4)
+
+# Multivariate model creation
+model = Graph.pmf_and_moments_from_graph_multivariate(graph, nr_moments=2, discrete=False)
+
+# Per-feature computation (internal)
+for j in range(n_features):
+    reward_j = rewards_arr[j, :]  # Row slice - natural indexing
+    pmf_j, moments_j = model_1d(theta, times_j, rewards=reward_j)
+```
+
+### C++ Bridge Handling
+
+The Python API handles shape conversion transparently:
+
+```python
+# __init__.py (lines ~3683-3691)
+n_features = rewards_arr.shape[0]  # First dimension = features
+
+for j in range(n_features):
+    reward_j = rewards_arr[j, :].astype(jnp.float64)  # Row extraction
+    # Passed to C++ as 1D vector (n_vertices,)
+    pmf_j, moments_j = model_1d(theta, times_j, rewards=reward_j)
+```
+
+**Low-level C++ bindings** (sample_multivariate, sample_multivariate_discrete):
+- Still expect `(n_vertices, n_features)` for backward compatibility
+- Python API transposes before calling if needed
+- Users should use high-level Python API instead of C++ bindings directly
+
+### Backward Compatibility
+
+**1D rewards:** Fully backward compatible - no changes needed
+```python
+rewards_1d = jnp.array([1.0, 2.0, 0.5, 1.5])  # (n_vertices,)
+# Works identically in old and new code
+```
+
+**2D rewards:** **BREAKING CHANGE** (v0.22.22)
+```python
+# OLD (before v0.22.22)
+rewards_old = jnp.array([[1.0, 0.5], [2.0, 1.0], [0.5, 2.0], [1.5, 0.8]])  # (4, 2)
+
+# NEW (v0.22.22+)
+rewards_new = rewards_old.T  # Transpose: (2, 4)
+# Or construct directly:
+rewards_new = jnp.array([
+    [1.0, 2.0, 0.5, 1.5],  # Feature 0
+    [0.5, 1.0, 2.0, 0.8]   # Feature 1
+])
+```
+
+### Output Shapes
+
+**Multivariate model with 2D rewards:**
+```python
+# Input shapes
+rewards.shape          # (n_features, n_vertices)
+observed_data.shape    # (n_times, n_features)
+
+# Output shapes
+pmf_vals.shape         # (n_times, n_features)
+moments.shape          # (n_features, nr_moments)
+
+# Likelihood computation
+log_lik = jnp.sum(jnp.log(pmf_vals + 1e-10))  # Sum over all (time, feature) elements
+```
+
+**Per-feature moment computation:**
+```python
+# Sample moments computed per feature (ignoring NaN)
+sample_moments = compute_sample_moments(observed_data, nr_moments=2)
+# Shape: (n_features, nr_moments)
+
+# Each feature computed independently
+for j in range(n_features):
+    feature_data = observed_data[:, j]
+    valid_data = feature_data[~np.isnan(feature_data)]
+    sample_moments[j, :] = moments_of(valid_data)
+```
+
+### NaN Observation Handling
+
+Multivariate models support missing observations via NaN:
+
+```python
+observed_data = jnp.array([
+    [1.0, 2.0],      # Both features valid
+    [1.5, np.nan],   # Feature 1 missing
+    [np.nan, 2.5],   # Feature 0 missing
+    [2.0, 3.0]       # Both features valid
+])
+
+# Likelihood computation skips NaN observations
+obs_mask = ~jnp.isnan(observed_data)
+log_lik = jnp.sum(jnp.where(obs_mask, jnp.log(pmf_vals + 1e-10), 0.0))
+```
+
+**Error detection:** Model returning NaN PMF for **valid** observations raises explicit error via `jax.debug.callback`.
+
+### Migration Guide
+
+Users with existing 2D reward code need to transpose:
+
+```python
+# If you have existing code with old shape:
+rewards_old = jnp.ones((n_vertices, n_features))
+
+# Convert to new shape:
+rewards_new = rewards_old.T  # Now (n_features, n_vertices)
+
+# Or rebuild from scratch with new convention:
+rewards_new = jnp.array([
+    vertex_rewards_for_feature_0,  # Shape (n_vertices,)
+    vertex_rewards_for_feature_1,
+    # ... one row per feature
+])
+```
+
+See `REWARD_SHAPE_CHANGE.md` for complete migration guide.

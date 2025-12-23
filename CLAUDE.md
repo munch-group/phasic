@@ -185,6 +185,8 @@ print(f"Posterior std: {results['theta_std']}")
 
 **New in v0.21.4**: Support for multivariate phase-type distributions where each feature dimension has its own reward vector.
 
+**Updated in v0.22.22**: Reward matrix shape changed to `(n_features, n_vertices)` for more intuitive indexing.
+
 ```python
 from phasic import Graph
 import jax.numpy as jnp
@@ -210,13 +212,13 @@ observed_data = jnp.array([
     ...
 ])  # Shape: (100, 3)
 
-# 2D rewards: (n_vertices, n_features)
-# Each column defines the reward vector for one marginal
+# 2D rewards: (n_features, n_vertices) - UPDATED v0.22.22
+# Each row defines the complete reward vector for one marginal
 rewards_2d = jnp.array([
-    [r0_feat0, r0_feat1, r0_feat2],  # Vertex 0 rewards
-    [r1_feat0, r1_feat1, r1_feat2],  # Vertex 1 rewards
-    ...
-])  # Shape: (n_vertices, 3)
+    [r0_feat0, r1_feat0, r2_feat0, ...],  # Feature 0 reward vector
+    [r0_feat1, r1_feat1, r2_feat1, ...],  # Feature 1 reward vector
+    [r0_feat2, r1_feat2, r2_feat2, ...],  # Feature 2 reward vector
+])  # Shape: (3, n_vertices)
 
 # Run SVGD with multivariate model
 svgd_result = graph.svgd(
@@ -243,11 +245,23 @@ svgd.optimize()
 - **Independent computation**: Each feature dimension computed separately with its reward vector
 - **Log-likelihood**: Sum over all observation elements: `Σᵢⱼ log(PMF[i,j])`
 - **Moment regularization**: Moments aggregated across features (mean)
+- **NaN handling**: Missing observations (NaN) skipped in likelihood; NaN PMF for valid obs raises error
 - **Backward compatible**: 1D rewards work exactly as before
 
-**Output Shapes:**
-- PMF: `(n_times, n_features)` for 2D rewards, `(n_times,)` for 1D
-- Moments: `(n_features, nr_moments)` for 2D rewards, `(nr_moments,)` for 1D
+**Shape Convention (v0.22.22):**
+- Rewards: `(n_features, n_vertices)` - each row is one feature's reward vector
+- Observations: `(n_times, n_features)`
+- PMF output: `(n_times, n_features)` for 2D rewards, `(n_times,)` for 1D
+- Moments output: `(n_features, nr_moments)` for 2D rewards, `(nr_moments,)` for 1D
+
+**Migration from v0.21.4:**
+```python
+# Old shape (v0.21.4)
+rewards_old = jnp.ones((n_vertices, n_features))  # Column per feature
+
+# New shape (v0.22.22)
+rewards_new = rewards_old.T  # Transpose: row per feature
+```
 
 ### Reward Transformation
 
@@ -256,13 +270,14 @@ svgd.optimize()
 rewards = np.array([1.0, 2.0, 0.5, ...])  # One per vertex
 transformed_graph = graph.reward_transform(rewards)
 
-# For k-variate phase-type:
+# For k-variate phase-type (v0.22.22+ shape):
 reward_matrix = np.array([
-    [r1_1, r1_2, ..., r1_k],  # Vertex 1 rewards for k marginals
-    [r2_1, r2_2, ..., r2_k],  # Vertex 2 rewards
+    [r1_1, r2_1, r3_1, ...],  # Marginal 1: reward vector across all vertices
+    [r1_2, r2_2, r3_2, ...],  # Marginal 2: reward vector across all vertices
     ...
+    [r1_k, r2_k, r3_k, ...],  # Marginal k: reward vector across all vertices
 ])
-# Each column = one marginal distribution
+# Each row = one marginal's complete reward vector
 ```
 
 ---
