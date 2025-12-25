@@ -1709,7 +1709,8 @@ struct ptd_avl_node *ptd_avl_tree_find(const struct ptd_avl_tree *avl_tree, cons
 
 int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
     if (graph->was_dph) {
-        graph->was_dph = false;
+        // Note: was_dph remains true - it's a permanent flag indicating this is a discrete graph
+        // This ensures auto-normalization continues to work in update_weights()
 
         if (graph->reward_compute_graph != NULL) {
             free(graph->reward_compute_graph->commands);
@@ -3070,6 +3071,30 @@ void ptd_graph_update_weights(
             edge->weight = 0.0;
             for (size_t k = 0; k < edge->coefficients_length; k++) {
                 edge->weight += edge->coefficients[k] * theta[k];
+            }
+        }
+    }
+
+    // Auto-normalize weights for discrete graphs
+    // For discrete graphs (created via discretize()), edge weights represent probabilities
+    // and must sum to 1.0 for each vertex. This normalization is applied automatically
+    // after computing weights from coefficients, ensuring the discrete phase-type
+    // distribution remains valid without requiring a separate normalize() call.
+    if (graph->was_dph) {
+        for (size_t i = 0; i < graph->vertices_length; i++) {
+            struct ptd_vertex *vertex = graph->vertices[i];
+
+            // Compute total outgoing weight
+            double total_weight = 0.0;
+            for (size_t j = 0; j < vertex->edges_length; j++) {
+                total_weight += vertex->edges[j]->weight;
+            }
+
+            // Normalize if total weight is positive
+            if (total_weight > 0.0) {
+                for (size_t j = 0; j < vertex->edges_length; j++) {
+                    vertex->edges[j]->weight /= total_weight;
+                }
             }
         }
     }
