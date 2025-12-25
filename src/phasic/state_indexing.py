@@ -40,7 +40,7 @@ Example
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Self
 import numpy as np
 import numpy.typing as npt
 
@@ -83,7 +83,7 @@ class Property:
     min_value: int = 0
     offset: int = 0  # Deprecated, use min_value instead
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         # Handle backward compatibility: if offset is set, use it as min_value
         if self.offset != 0 and self.min_value == 0:
             object.__setattr__(self, 'min_value', self.offset)

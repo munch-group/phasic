@@ -4,7 +4,8 @@ from collections import defaultdict
 from unittest import result
 import numpy as np
 from numpy.typing import ArrayLike
-from typing import Any, TypeVar, List, Tuple, Dict, Union, NamedTuple, Optional
+from typing import Any, TypeVar, List, Tuple, Dict, Union, NamedTuple, Optional, Self
+from numpy.typing import NDArray
 from collections.abc import Sequence, MutableSequence, Callable
 import os
 import hashlib
@@ -1466,79 +1467,102 @@ class Graph(_Graph):
         else:
             raise ValueError("First argument must be either an integer state length or a callback function")
 
-        # assert (callback is None) + (state_length is None) == 1, "Use either the state_length or callback argument"
-
-        # # turn integer kwargs into float kwargs
-        # for key, value in kwargs.items():
-        #     if isinstance(value, int):
-        #         kwargs[key] = float(value)
-
-        # if callback:
-        #     # super().__init__(callback_tuples_parameterized=build_signature(ipv)(partial(callback, **kwargs)))
-        #     super().__init__(callback_tuples_parameterized=partial(callback, **kwargs))
-        # else:
-        #     super().__init__(state_length)
+        self.is_discrete = False
 
 
-    # def make_discrete(self, mutation_rate, skip_states=[], skip_slots=[]):
-    #     """
-    #     Takes a graph for a continuous distribution and turns
-    #     it into a descrete one (inplace). Returns a matrix of
-    #     rewards for computing marginal moments
-    #     """
+    # IS THERE NOT DISCRETE VERSION OF THIS?
+    def expected_waiting_time(self, *args, **kwargs):
+        return super().expected_waiting_time(*args, **kwargs)
 
-    #     mutation_graph = self.copy()
-
-    #     # save current nr of states in graph
-    #     vlength = mutation_graph.vertices_length()
-
-    #     # number of fields in state vector (assumes all are the same length)
-    #     state_vector_length = len(mutation_graph.vertex_at(1).state())
-
-    #     # list state vector fields to reward at each auxiliary node
-    #     # rewarded_state_vector_indexes = [[] for _ in range(state_vector_length)]
-    #     rewarded_state_vector_indexes = defaultdict(list)
-
-    #     # loop all but starting node
-    #     for i in range(1, vlength):
-    #         if i in skip_states:
-    #             continue
-    #         vertex = mutation_graph.vertex_at(i)
-    #         if vertex.rate() > 0: # not absorbing
-    #             for j in range(state_vector_length):
-    #                 if j in skip_slots:
-    #                     continue
-    #                 val = vertex.state()[j]
-    #                 if val > 0: # only ones we may reward
-    #                     # add auxilliary node
-    #                     mutation_vertex = mutation_graph.create_vertex(np.repeat(0, state_vector_length))
-    #                     mutation_vertex.add_edge(vertex, 1)
-    #                     vertex.add_edge(mutation_vertex, mutation_rate*val)
-    #                     # print(mutation_vertex.index(), rewarded_state_vector_indexes[j], j)
-    #                     # rewarded_state_vector_indexes[mutation_vertex.index()] = rewarded_state_vector_indexes[j] + [j]
-    #                     rewarded_state_vector_indexes[mutation_vertex.index()].append(j)
-
-    #     # normalize graph
-    #     weights_were_multiplied_with = mutation_graph.normalize()
-
-    #     # build reward matrix
-    #     rewards = np.zeros((mutation_graph.vertices_length(), state_vector_length))
-    #     for state in rewarded_state_vector_indexes:
-    #         for i in rewarded_state_vector_indexes[state]:
-    #             rewards[state, i] = 1
-
-    #     rewards = np.transpose(rewards)
-    #     return NamedTuple("DiscreteGraph", (mutation_graph, rewards))
+    
+    # both cont and disc
+    # expected_residence_time() | Until absorption (∞) | Graph elimination |
+    # Similar to expected_residence_time, but returns the expected accumulated reward for the starting vertex propagated through all paths. This is what expectation() uses internally. The difference is subtle - expected_residence_time decomposes this into per-vertex contributions.
+    def expected_residence_time(self, *args, **kwargs):
+        return super().expected_residence_time(*args, **kwargs)
 
 
-    def state_probability(self, time:float, **kwargs) -> np.ndarray:
-        return self.stop_probability(time, **kwargs)
-
-    def cumulated_occupancy(self, time:float, **kwargs) -> np.ndarray:
-        return self.accumulated_visiting_time(time, **kwargs)
 
 
-    def discretize(self, rate, **kwargs) -> Tuple[GraphType, np.ndarray]:
+    def moments(self, *args, discrete=False, **kwargs):
+        if discrete:
+            if not self.is_discrete: ValueError("jumps=True only valid for discrete distributions")
+            return super().moments_discrete(*args, **kwargs)            
+        else:
+            return super().moments(*args, **kwargs)
+
+    def expectation(self, *args, discrete=False, **kwargs):
+        if discrete:
+            return super().expectation(*args, **kwargs)
+        else:
+            if not self.is_discrete: ValueError("jumps=True only valid for discrete distributions")
+            return super().expectation_discrete(*args, **kwargs)  
+
+    def variance(self, *args, discrete=False, **kwargs):
+        if discrete:
+            if not self.is_discrete: ValueError("jumps=True only valid for discrete distributions")
+            return super().variance_discrete(*args, **kwargs)  
+        else:
+            return super().variance(*args, **kwargs)
+
+    def covariance(self, *args, discrete=False, **kwargs):
+        if discrete:
+            if not self.is_discrete: ValueError("jumps=True only valid for discrete distributions")
+            return super().covariance_discrete(*args, **kwargs)  
+        else:
+            return super().covariance(*args, **kwargs)
+
+    def pdf(self, *args, discrete=False, **kwargs):
+        if discrete:
+            if not self.is_discrete: ValueError("jumps=True only valid for discrete distributions")
+            return super().pdf_discrete(*args, **kwargs)  
+        else:
+            return super().pdf(*args, **kwargs)
+
+    def cdf(self, *args, discrete=False, **kwargs):
+        if discrete:
+            if not self.is_discrete: ValueError("jumps=True only valid for discrete distributions")
+            return super().cdf_discrete(*args, **kwargs)  
+        else:
+            return super().cdf(*args, **kwargs)
+
+    def distribution_context(self, *args, discrete=False, **kwargs):
+        if discrete:
+            if not self.is_discrete: ValueError("jumps=True only valid for discrete distributions")
+            return super().distribution_context_discrete(*args, **kwargs)  
+        else:
+            return super().distribution_context(*args, **kwargs)
+
+    def sample(self, *args, discrete=False, **kwargs):
+        if discrete:
+            if not self.is_discrete: ValueError("jumps=True only valid for discrete distributions")
+            return super().sample_discrete(*args, **kwargs)  
+        else:
+            return super().sample(*args, **kwargs)
+
+    def stop_probability(self, *args, discrete=False, **kwargs):
+        if discrete:
+            if not self.is_discrete: ValueError("jumps=True only valid for discrete distributions")
+            return super().stop_probability_discrete(*args, **kwargs)  
+        else:
+            return super().stop_probability(*args, **kwargs)
+    # alias
+    state_probability = stop_probability
+
+    def accumulated_occupancy(self, *args, discrete=False, **kwargs):
+        if discrete:
+            if not self.is_discrete: ValueError("jumps=True only valid for discrete distributions")
+            return super().accumulated_visits(*args, **kwargs)  
+        else:
+            return super().accumulated_visiting_time(*args, **kwargs)
+
+    def normalize(self, *args, **kwargs):
+        if self.is_discrete:
+            return super().normalize_discrete(*args, **kwargs)   # what does this do?
+        else:
+            return super().normalize(*args, **kwargs)
+
+    def discretize(self, rate, **kwargs) -> NDArray[np.int64]:
         """
         Discretizes graph inplace and returns reward matrix for added auxiliary states.
 
@@ -1590,89 +1614,19 @@ class Graph(_Graph):
 
         weight_scaling = self.normalize()
 
+        self.is_discrete = True
+        self.set_was_dph(True)  # Enable auto-normalization in C update_weights()
+
         return rewards
-
-    # def discretize(self, reward_rate:float, skip_states:Sequence[int]=[], 
-    #                skip_slots:Sequence[int]=[]) -> Tuple[GraphType, np.ndarray]:
-    #     """Creates a graph for a discrete distribution from a continuous one.
-
-    #     Creates a graph augmented with auxiliary vertices and edges to represent the discrete distribution. 
-
-    #     Parameters
-    #     ----------
-    #     reward_rate : 
-    #         Rate of discrete events.
-    #     skip_states : 
-    #         Vertex indices to not add auxiliary states to, by default []
-    #     skip_slots : 
-    #         State vector indices to not add rewards to, by default []
-
-    #     Returns
-    #     -------
-    #     :
-    #         A new graph and a matrix of rewards for computing marginal moments.
-
-    #     Examples
-    #     --------
-        
-    #     >>> from phasic import Graph
-    #     >>> def callback(state):
-    #     ...     return [(state[0] + 1, [(state[0], 1)])]
-    #     >>> g = Graph(callback=callback)
-    #     >>> g.discretize(0.1)
-    #     >>> a = [1, 2, 3]
-    #     >>> print([x + 3 for x in a])
-    #     [4, 5, 6]
-    #     >>> print("a\nb")
-    #     a
-    #     b            
-    #     """
-
-        # new_graph = self.clone()
-
-        # # save current nr of states in graph
-        # vlength = new_graph.vertices_length()
-
-        # state_vector_length = len(new_graph.vertex_at(1).state())
-
-        # # record state vector fields for unit rewards
-        # rewarded_state_vector_indexes = defaultdict(list)
-
-        # # loop all but starting node
-        # for i in range(1, vlength):
-        #     if i in skip_states:
-        #         continue
-        #     vertex = new_graph.vertex_at(i)
-        #     if vertex.rate() > 0: # not absorbing
-        #         for j in range(state_vector_length):
-        #             if j in skip_slots:
-        #                 continue
-        #             val = vertex.state()[j]
-        #             if val > 0: # only ones we may reward
-        #                 # add aux node
-        #                 mutation_vertex = new_graph.create_vertex(np.repeat(0, state_vector_length))
-        #                 mutation_vertex.add_edge(vertex, 1)
-        #                 vertex.add_edge(mutation_vertex, reward_rate*val)
-        #                 rewarded_state_vector_indexes[mutation_vertex.index()].append(j)
-
-        # # normalize graph
-        # weight_scaling = new_graph.normalize()
-
-        # # build reward matrix
-        # rewards = np.zeros((new_graph.vertices_length(), state_vector_length)).astype(int)
-        # for state in rewarded_state_vector_indexes:
-        #     for i in rewarded_state_vector_indexes[state]:
-        #         rewards[state, i] = 1
-        # rewards = np.transpose(rewards)
-        # return new_graph, rewards
-
-
-    def reward_transform(self, rewards:np.ndarray) -> GraphType:
-
-        return Graph(super().reward_transform(rewards))
     
 
-    def reward_transform_discrete(self, rewards:np.ndarray) -> GraphType:
+    def reward_transform(self, rewards:np.ndarray) -> Self:
+        if self.is_discrete:
+            return Graph(super().reward_transform_discrete(rewards))
+        else:
+            return Graph(super().reward_transform(rewards))
+    
+    def reward_transform_discrete(self, rewards:np.ndarray) -> Self:
 
         return Graph(super().reward_transform_discrete(rewards))
     
@@ -2229,7 +2183,7 @@ class Graph(_Graph):
         )
 
     @classmethod
-    def from_matrices(cls, ipv: np.ndarray, sim: np.ndarray, states: Optional[np.ndarray] = None) -> GraphType:
+    def from_matrices(cls, ipv: np.ndarray, sim: np.ndarray, states: Optional[np.ndarray] = None) -> Self:
         """
         Construct a Graph from matrix representation.
 
@@ -2847,7 +2801,7 @@ extern "C" {{
 
     def svgd(self,
              observed_data: ArrayLike,
-             discrete: bool = False,
+             discrete: Optional[bool] = None,
              prior: Optional[Callable] = None,
              n_particles: int = 50,
              n_iterations: int = 1000,
@@ -2868,6 +2822,7 @@ extern "C" {{
              nr_moments: int = 2,
              positive_params: bool = True,
              param_transform: Optional[Callable] = None,
+             joint_index: bool = False,
              rewards: Optional[ArrayLike] = None) -> Dict:    
     # @classmethod
     # def svgd(cls,
@@ -2900,8 +2855,9 @@ extern "C" {{
         observed_data : array_like
             Observed data points. For continuous models (PDF), these are time points where
             the density was observed. For discrete models (PMF), these are jump counts.
-        discrete : bool, default=False
-            If True, computes discrete PMF. If False, computes continuous PDF.
+        discrete : bool, default=None
+            If True, computes discrete PMF. If False, computes continuous PDF. If undefined it is 
+            inferred from the graph.is_discrete attribute.
         prior : callable, optional
             Log prior function: prior(theta) -> scalar.
             If None, uses standard normal prior: log p(theta) = -0.5 * sum(theta^2)
@@ -2957,6 +2913,16 @@ extern "C" {{
             If provided, SVGD optimizes in unconstrained space and applies this transformation
             before calling the model. Cannot be used together with positive_params.
             Example: lambda theta: jnp.concatenate([jnp.exp(theta[:1]), jax.nn.softplus(theta[1:])])
+        joint_index : bool, default=False
+            If True, use joint index mode where observed_data contains vertex indices (integers)
+            instead of time values. In this mode, likelihood is computed from converged
+            accumulated_visits() values rather than PDF/PMF values. This is used for joint
+            index distributions in population genetics models.
+
+            When joint_index=True:
+            - observed_data should contain vertex indices (integers)
+            - Forces discrete=True behavior
+            - Moment regularization is not supported (raises NotImplementedError if regularization > 0)
         rewards : array_like, optional
             Reward vectors for computing reward-transformed likelihoods. Can be:
             - None: Standard phase-type likelihood (default)
@@ -3035,8 +3001,30 @@ extern "C" {{
 
         from .svgd import SVGD
 
+        if discrete is None:
+            discrete = self.is_discrete
+
+        # Handle joint_index mode
+        if joint_index:
+            # Check for unsupported combinations
+            if regularization > 0:
+                print("Warning: Moment regularization is not implemented with joint_index=True")
+                raise NotImplementedError(
+                    "Moment regularization is not supported with joint_index=True. "
+                    "Set regularization=0 or use joint_index=False."
+                )
+            if rewards is not None:
+                print("Warning: Reward transformation is not supported with joint_index=True")
+                raise NotImplementedError(
+                    "Reward transformation is not supported with joint_index=True. "
+                    "Set rewards=None or use joint_index=False."
+                )
+            # Force discrete mode for joint_index
+            discrete = True
+            # Use joint_index specific model
+            model = Graph.pmf_from_graph_joint_index(self, param_length=theta_dim)
         # Auto-detect if we need multivariate model (2D rewards)
-        if rewards is not None:
+        elif rewards is not None:
             import jax.numpy as jnp
             rewards_arr = jnp.asarray(rewards, dtype=jnp.float64)  # Ensure float64 for C++ compatibility
             if rewards_arr.ndim == 2:
@@ -3568,6 +3556,185 @@ extern "C" {{
         return model
 
     @classmethod
+    def pmf_from_graph_joint_index(cls, graph: 'Graph', param_length: int = None,
+                                   tolerance: float = 1e-15, max_iterations: int = 10000) -> Callable:
+        """
+        Create a JAX-compatible model for joint index distributions.
+
+        In joint index mode, likelihood is computed from converged accumulated_visits()
+        values rather than PDF/PMF values. The observed_data should contain vertex indices
+        (integers) instead of time values.
+
+        This is used for joint index distributions in population genetics models where
+        the observed data represents which states (vertices) were visited.
+
+        Parameters
+        ----------
+        graph : Graph
+            Parameterized graph built using the Python API with parameterized edges.
+        param_length : int, optional
+            Number of parameters for parameterized edges. If not provided, will be
+            auto-detected from the graph.
+        tolerance : float, default=1e-15
+            Convergence tolerance for accumulated visits iteration.
+        max_iterations : int, default=10000
+            Maximum number of iterations before raising an error.
+
+        Returns
+        -------
+        callable
+            JAX-compatible function with signature:
+            model(theta, vertex_indices, rewards=None) -> (converged_visits, dummy_moments)
+
+            Where:
+            - theta: Parameter vector
+            - vertex_indices: Array of vertex indices (integers)
+            - rewards: Ignored (must be None for joint_index mode)
+            - converged_visits: Array of converged accumulated visit values
+            - dummy_moments: Zeros array (moments not supported in joint_index mode)
+
+        Notes
+        -----
+        - This method forces discrete=True behavior
+        - Moment regularization is not supported (regularization must be 0)
+        - Reward transformation is not supported (rewards must be None)
+        """
+        # Check if JAX is available
+        if not HAS_JAX:
+            raise ImportError(
+                "JAX is required for JAX-compatible models. "
+                "Install with: pip install 'phasic[jax]' or pip install jax jaxlib"
+            )
+
+        import jax
+        import jax.numpy as jnp
+        import json
+        from . import phasic_pybind as cpp_module
+        from .ffi_wrappers import _make_json_serializable
+
+        # Serialize the graph
+        serialized = graph.serialize(param_length=param_length)
+        param_length_actual = serialized.get('param_length', 0)
+
+        if param_length_actual == 0:
+            raise ValueError(
+                "Graph must have parameterized edges. "
+                "Create graph with parameterized=True and use add_edge_parameterized()."
+            )
+
+        structure_json_str = json.dumps(_make_json_serializable(serialized))
+
+        # Create GraphBuilder ONCE - captured in model closure
+        builder = cpp_module.parameterized.GraphBuilder(structure_json_str)
+
+        def _compute_converged_visits(theta_np, vertex_indices_np):
+            """Compute converged accumulated visits using cached builder."""
+            # Ensure vertex indices are int32
+            vertex_indices_np = np.asarray(vertex_indices_np, dtype=np.int32)
+
+            # Handle batched theta from vmap (theta becomes 2D with shape (batch, params))
+            if theta_np.ndim == 2:
+                # Also handle batched vertex_indices from vmap
+                if vertex_indices_np.ndim == 2:
+                    indices_unbatched = vertex_indices_np[0]  # All identical
+                else:
+                    indices_unbatched = vertex_indices_np
+
+                # Compute for each theta in batch
+                results = []
+                for theta_single in theta_np:
+                    result = builder.compute_accumulated_visits_converged(
+                        theta_single, indices_unbatched,
+                        tolerance=tolerance, max_iterations=max_iterations
+                    )
+                    results.append(np.asarray(result))
+                return np.array(results)
+            else:
+                return builder.compute_accumulated_visits_converged(
+                    theta_np, vertex_indices_np,
+                    tolerance=tolerance, max_iterations=max_iterations
+                )
+
+        def _compute_pure(theta, vertex_indices):
+            """Pure computation for JAX callback."""
+            theta = jnp.atleast_1d(theta)
+            vertex_indices = jnp.atleast_1d(vertex_indices).astype(jnp.int32)
+
+            result_shape = jax.ShapeDtypeStruct(vertex_indices.shape, jnp.float64)
+            # Dummy moments (not supported in joint_index mode)
+            moments_shape = jax.ShapeDtypeStruct((2,), jnp.float64)
+
+            def callback_fn(theta_jax, indices_jax):
+                """Runtime conversion (not traced)."""
+                theta_np = np.asarray(theta_jax)
+                indices_np = np.asarray(indices_jax, dtype=np.int32)
+                visits = _compute_converged_visits(theta_np, indices_np)
+                # Return tuple: (visits, dummy_moments)
+                # Handle batched case - moments must match batch dimension
+                if theta_np.ndim == 2:
+                    batch_size = theta_np.shape[0]
+                    return np.asarray(visits), np.zeros((batch_size, 2))
+                else:
+                    return np.asarray(visits), np.zeros(2)
+
+            result = jax.pure_callback(
+                callback_fn,
+                (result_shape, moments_shape),
+                theta, vertex_indices,
+                vmap_method='expand_dims'
+            )
+            return result
+
+        @jax.custom_vjp
+        def model(theta, vertex_indices, rewards=None):
+            """JAX-compatible model for joint index distributions.
+
+            Parameters
+            ----------
+            theta : jax.Array
+                Parameter vector
+            vertex_indices : jax.Array
+                Array of vertex indices (integers)
+            rewards : None
+                Ignored (not supported in joint_index mode)
+
+            Returns
+            -------
+            tuple of (jax.Array, jax.Array)
+                (converged_visits, dummy_moments)
+            """
+            return _compute_pure(theta, vertex_indices)
+
+        def model_fwd(theta, vertex_indices, rewards=None):
+            visits, moments = _compute_pure(theta, vertex_indices)
+            return (visits, moments), (theta, vertex_indices)
+
+        def model_bwd(res, g):
+            theta, vertex_indices = res
+            g_visits, g_moments = g  # Unpack gradient tuple
+
+            n_params = theta.shape[0]
+            eps = 1e-7
+
+            # Finite differences for gradient
+            theta_bar = []
+            for i in range(n_params):
+                theta_plus = theta.at[i].add(eps)
+                theta_minus = theta.at[i].add(-eps)
+
+                visits_plus, _ = _compute_pure(theta_plus, vertex_indices)
+                visits_minus, _ = _compute_pure(theta_minus, vertex_indices)
+
+                # Gradient only from visits (moments are dummy zeros)
+                grad_i = jnp.sum(g_visits * (visits_plus - visits_minus) / (2 * eps))
+                theta_bar.append(grad_i)
+
+            return jnp.array(theta_bar), None, None  # gradients for theta, vertex_indices, rewards
+
+        model.defvjp(model_fwd, model_bwd)
+        return model
+
+    @classmethod
     def pmf_and_moments_from_graph_multivariate(cls, graph: 'Graph', nr_moments: int = 2,
                                                 discrete: bool = False, use_ffi: bool = False,
                                                 param_length: int = None) -> Callable:
@@ -3726,7 +3893,7 @@ extern "C" {{
         """
         return plot.plot_graph(self, *args, **kwargs)
 
-    def copy(self) -> GraphType:
+    def copy(self) -> Self:
         """
         Returns a deep copy of the graph.
 

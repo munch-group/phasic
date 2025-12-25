@@ -177,6 +177,33 @@ public:
         bool compute_joint = false
     );
 
+    /**
+     * @brief Compute converged accumulated visits for specified vertices (joint index mode)
+     *
+     * For each vertex index, iterates accumulated_visits(jumps) until convergence,
+     * returning the limiting accumulated visits (equivalent to expected_residence_time).
+     *
+     * This is used for joint index distributions where observed_data contains vertex
+     * indices rather than time values, and likelihood is computed from converged
+     * accumulated visits.
+     *
+     * @param theta Parameter array (numpy array)
+     * @param vertex_indices Array of vertex indices to compute (numpy array of int)
+     * @param tolerance Convergence tolerance (default 1e-15)
+     * @param max_iterations Maximum iterations before giving up (default 10000)
+     * @return Numpy array of converged accumulated visits, shape matches vertex_indices
+     *
+     * @throws std::runtime_error if convergence not achieved within max_iterations
+     *
+     * GIL Note: Call with py::call_guard<py::gil_scoped_release>()
+     */
+    py::array_t<double> compute_accumulated_visits_converged(
+        py::array_t<double> theta,
+        py::array_t<int> vertex_indices,
+        double tolerance = 1e-15,
+        int max_iterations = 10000
+    );
+
     // Getters for metadata
     int param_length() const { return param_length_; }
     int vertices_length() const { return n_vertices_; }

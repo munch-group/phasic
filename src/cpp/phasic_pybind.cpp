@@ -1333,6 +1333,32 @@ str
           True if param_length > 1, False otherwise
       )delim")
 
+    .def("set_was_dph",
+      [](phasic::Graph &g, bool value) {
+          g.c_graph()->was_dph = value;
+      }, py::arg("value"), R"delim(
+      Set the was_dph flag to indicate this is a discrete phase-type distribution.
+
+      This is used internally to enable auto-normalization in update_weights().
+
+      Parameters
+      ----------
+      value : bool
+          True if this is a discrete phase-type distribution
+      )delim")
+
+    .def("get_was_dph",
+      [](phasic::Graph &g) {
+          return g.c_graph()->was_dph;
+      }, R"delim(
+      Get the was_dph flag indicating if this is a discrete phase-type distribution.
+
+      Returns
+      -------
+      bool
+          True if this is marked as a discrete phase-type distribution
+      )delim")
+
     .def("update_weights", &phasic::Graph::update_weights_parameterized,
       py::arg("params"),
       R"delim(
@@ -1400,37 +1426,6 @@ str
     v1.edges()[0].weight() # => 59
       )delim")
 
-    // DISABLED: Symbolic elimination - missing function implementations
-    // Use trace-based elimination (ptd_record_elimination_trace) instead
-    // .def("_eliminate_to_dag_internal",
-    //   [](phasic::Graph &graph) -> uintptr_t {
-    //     // Call C function to perform symbolic elimination
-    //     struct ptd_graph_symbolic *symbolic =
-    //         ptd_graph_symbolic_elimination(graph.c_graph());
-    //
-    //     if (symbolic == NULL) {
-    //       throw std::runtime_error("Symbolic elimination failed");
-    //     }
-    //
-    //     // Return pointer as integer for Python to store
-    //     return reinterpret_cast<uintptr_t>(symbolic);
-    //   },
-    //   R"delim(
-    // Internal method: Performs symbolic graph elimination.
-    //
-    // Returns an opaque pointer (as integer) to the symbolic DAG structure.
-    // This is used internally by the Python SymbolicDAG class.
-    //
-    // DO NOT call this directly from Python - use Graph.eliminate_to_dag() instead.
-    //   )delim")
-
-      
-      // .def("moments", 
-      //   [](phasic::Graph &graph, int power, std::vector<double> &rewards) {
-        
-          // return _moments(graph, power, rewards);
-      
-    // }, 
     .def("moments", &_moments,
       py::arg("power"), py::arg("rewards")=std::vector<double>(), 
       py::return_value_policy::move, 
@@ -2505,71 +2500,6 @@ Computes the expected residence time of the phase-type distribution.
     >>> pdph([1, 2, 3], graph) # => CDF values at jumps 1, 2, and 3
       )delim")
 
-    .def("stop_probability", &phasic::Graph::stop_probability, py::arg("time"), py::arg("granularity") = 0, 
-      py::return_value_policy::copy, R"delim(
-    Computes the stopping probability of the phase-type distribution at a given time.
-
-    This function computes the probability that the process has stopped (reached an absorbing state) by a specified time.
-
-    Parameters
-    ----------
-    time : float
-        The time at which to evaluate the stopping probability.
-    granularity : int, optional
-        The granularity of the computation. Default is 0.
-
-    Returns
-    -------
-    float
-        The stopping probability at the specified time.
-
-    Examples
-    --------
-    >>> graph = create_graph(4)
-    >>> graph.stop_probability( 1.0) # => Stopping probability at time 1.0
-    >>> graph.stop_probability( 1.0, 10) # => Stopping probability at time 1.0 with granularity 10
-      )delim")
-
-    .def("accumulated_visiting_time", &phasic::Graph::accumulated_visiting_time, py::arg("time"), py::arg("granularity") = 0, 
-      py::return_value_policy::copy, R"delim(
-    Computes the accumulated visiting time of the phase-type distribution at a given time.
-
-    This function computes the accumulated visiting time of the phase-type distribution at a specified time.
-
-    Parameters
-    ----------
-    time : float
-        The time at which to evaluate the accumulated visiting time.
-    granularity : int, optional
-        The granularity of the computation. Default is 0.
-
-    Returns
-    -------
-    float
-        The accumulated visiting time at the specified time.
-
-    Examples
-    --------
-    >>> graph = create_graph(4)
-    >>> graph.accumulated_visiting_time( 1.0) # => Accumulated visiting time at time 1.0
-    >>> graph.accumulated_visiting_time( 1.0, 10) # => Accumulated visiting time at time 1.0 with granularity 10
-      )delim")
-
-    // .def("stop_probability", 
-    //      py::vectorize(&phasic::Graph::stop_probability), py::arg("time"), py::arg("granularity") = 0,
-    //      py::return_value_policy::copy, R"delim(
-
-
-    //   )delim")
-
-    // .def("accumulated_visiting_time", 
-    //      py::vectorize(&phasic::Graph::accumulated_visiting_time), py::arg("time"), py::arg("granularity") = 0,
-    //      py::return_value_policy::copy, R"delim(
-
-
-    //   )delim")
-
-    
     .def("expectation_discrete", &_expectation_discrete,
       py::arg("rewards")=std::vector<double>(), 
       py::return_value_policy::move, 
@@ -2622,6 +2552,34 @@ Computes the expected residence time of the phase-type distribution.
     )delim")
 
 
+    .def("stop_probability", &phasic::Graph::stop_probability, py::arg("time"), py::arg("granularity") = 0, 
+      py::return_value_policy::copy, R"delim(
+    Computes the probability of the Markov Chain of the discrete phase-type distribution standing at each vertex after a given number of jumps.
+
+    This function computes the probability of the Markov Chain of the discrete phase-type distribution standing at each vertex after a specified number of jumps.
+
+    Parameters
+    ----------
+    time : float
+        The time (continuous time).
+
+    Returns
+    -------
+    list of float or ndarray
+        A numeric vector of the stop probabilities for each vertex.
+
+    Examples
+    --------
+    >>> graph = create_graph(4)
+    >>> v1 = graph.create_vertex([1,2,3,4])
+    >>> v2 = graph.create_vertex([4,0,3,3])
+    >>> a = graph.create_vertex([0,0,0,0])
+    >>> add_edge(starting_vertex(graph), v1, 0.5)
+    >>> v1.add_edge(v2, 0.8)
+    >>> v2.add_edge(a, 0.5)
+    >>> graph.dph_stop_probability( 3) # => Stop probabilities after 3 jumps
+      )delim")
+
     .def("stop_probability_discrete", &phasic::Graph::dph_stop_probability, py::arg("jumps"), 
       py::return_value_policy::copy, R"delim(
     Computes the probability of the Markov Chain of the discrete phase-type distribution standing at each vertex after a given number of jumps.
@@ -2650,7 +2608,7 @@ Computes the expected residence time of the phase-type distribution.
     >>> graph.dph_stop_probability( 3) # => Stop probabilities after 3 jumps
       )delim")
 
-    .def("accumulated_visits_discrete", &phasic::Graph::dph_accumulated_visits, py::arg("jumps"), 
+    .def("accumulated_visits", &phasic::Graph::dph_accumulated_visits, py::arg("jumps"), 
       py::return_value_policy::copy, R"delim(
     Computes the number of visits of the Markov Chain of the discrete phase-type distribution at each vertex after a given number of jumps.
 
@@ -2678,35 +2636,62 @@ Computes the expected residence time of the phase-type distribution.
     >>> graph.dph_accumulated_visits( 3) # => Accumulated visits after 3 jumps
       )delim")
 
-    .def("expected_visits_discrete", &phasic::Graph::dph_expected_visits, py::arg("jumps"), 
+    // IDENTICAL TO ACCUMULATED_VISITS
+    // .def("expected_visits", &phasic::Graph::dph_expected_visits, py::arg("jumps"), 
+    //   py::return_value_policy::copy, R"delim(
+    // Computes the expected jumps (or accumulated rewards) until absorption.
+    // This function can be used to compute the moments of a discrete phase-type distribution very fast and without much
+    // memory usage compared with the traditional matrix-based equations.
+    // The function takes in non-integers as rewards, but to be a *strictly* valid rewarded discrete phase-type distribution these should be integers.
+    // Parameters
+    // ----------
+    // graph : Graph
+    //     The phase-type graph object.
+    // rewards : Nullable<list of float or ndarray>, optional
+    //     Optional rewards, which should be applied to the discrete phase-type distribution. Must have length equal to `vertices_length()`.
+    // Returns
+    // -------
+    // list of float or ndarray
+    //     A numeric vector where entry `i` is the expected rewarded jumps starting at vertex `i`.
+    // See Also
+    // --------
+    // moments
+    // expectation
+    // variance
+    // covariance
+    // Examples
+    // --------
+    // >>> graph = create_graph(4)
+    // >>> rewards = [1.0, 2.0, 3.0, 4.0]
+    // >>> graph.dph_expected_visits( rewards) # => Expected visits value
+    //   )delim")
+      
+    .def("accumulated_visiting_time", &phasic::Graph::accumulated_visiting_time, py::arg("time"), py::arg("granularity") = 0, 
       py::return_value_policy::copy, R"delim(
-    Computes the expected jumps (or accumulated rewards) until absorption.
-    This function can be used to compute the moments of a discrete phase-type distribution very fast and without much
-    memory usage compared with the traditional matrix-based equations.
-    The function takes in non-integers as rewards, but to be a *strictly* valid rewarded discrete phase-type distribution these should be integers.
+    Computes the accumulated visiting time of the phase-type distribution at a given time.
+
+    This function computes the accumulated visiting time of the phase-type distribution at a specified time.
+
     Parameters
     ----------
-    graph : Graph
-        The phase-type graph object.
-    rewards : Nullable<list of float or ndarray>, optional
-        Optional rewards, which should be applied to the discrete phase-type distribution. Must have length equal to `vertices_length()`.
+    time : float
+        The time at which to evaluate the accumulated visiting time.
+    granularity : int, optional
+        The granularity of the computation. Default is 0.
+
     Returns
     -------
-    list of float or ndarray
-        A numeric vector where entry `i` is the expected rewarded jumps starting at vertex `i`.
-    See Also
-    --------
-    moments
-    expectation
-    variance
-    covariance
+    float
+        The accumulated visiting time at the specified time.
+
     Examples
     --------
     >>> graph = create_graph(4)
-    >>> rewards = [1.0, 2.0, 3.0, 4.0]
-    >>> graph.dph_expected_visits( rewards) # => Expected visits value
+    >>> graph.accumulated_visiting_time( 1.0) # => Accumulated visiting time at time 1.0
+    >>> graph.accumulated_visiting_time( 1.0, 10) # => Accumulated visiting time at time 1.0 with granularity 10
       )delim")
-      
+    
+
     .def("as_matrices",
       [](phasic::Graph &graph) -> py::dict {
               // Get the phase-type distribution representation directly
@@ -4201,54 +4186,6 @@ Use Graph.distribution_context(granularity) instead.
     ;
 
 
-
-
-
-//       distribution_context_stop_probability
-// //' Returns the stop probability for the current probability distribution context for the phase-type distribution.
-// //' 
-// //' @description
-// //' This allows the user to step through the distribution, computing e.g. the
-// //' time-inhomogeneous distribution function or the expectation of a multivariate phase-type distribution.
-// //' *mutates* the context
-// //' 
-// //' @seealso [phasic::distribution_context()]
-// //' 
-// //' @param probability_distribution_context The context created by [phasic::distribution_context()]
-// //' 
-// // [[Rcpp::export]]
-
-
-// NumericVector distribution_context_accumulated_visiting_time
-// //' Returns the accumulated visiting time (integral of stop probability) for the current probability distribution context for the phase-type distribution.
-// //' 
-// //' @description
-// //' This allows the user to step through the distribution, computing e.g. the
-// //' time-inhomogeneous distribution function or the expectation of a multivariate phase-type distribution.
-// //' *mutates* the context
-// //' 
-// //' @seealso [phasic::distribution_context()]
-// //' 
-// //' @param probability_distribution_context The context created by [phasic::distribution_context()]
-// //' 
-// // [[Rcpp::export]]
-      
-
-
-
-
-    // .def("stop_probability", &phasic::ProbabilityDistributionContext::stop_probability, 
-    //   py::return_value_policy::copy, R"delim(
-
-    //   )delim")
-      
-    // .def("accumulated_visiting_time", &phasic::ProbabilityDistributionContext::accumulated_visiting_time, 
-    //   py::return_value_policy::copy, R"delim(
-
-    //   )delim")
-    ;
-
-
   py::class_<phasic::DPHProbabilityDistributionContext>(m, "DPHProbabilityDistributionContext", R"delim(
 
       )delim")
@@ -4304,7 +4241,7 @@ Use Graph.distribution_context(granularity) instead.
 
       Parameters
       ----------
-      probability_distribution_context : SEXP
+      dph_probability_distribution_context : SEXP
           The context created by `dph_distribution_context()`.
 
       See Also
@@ -4317,28 +4254,29 @@ Use Graph.distribution_context(granularity) instead.
            A list containing the PMF, CDF, and jumps for the current probability distribution context.
       )delim")
       
-    // .def("jumps", &phasic::DPHProbabilityDistributionContext::jumps, 
-    //   py::return_value_policy::copy, R"delim(
-    //   Returns the jumps for the current probability distribution context for the discrete phase-type distribution.
+    .def("jumps", &phasic::DPHProbabilityDistributionContext::jumps, 
+      py::return_value_policy::copy, R"delim(
+      Returns the number of jumps for the current probability distribution context for the phase-type distribution.
 
-    //   This allows the user to step through the distribution, computing e.g. the time-inhomogeneous distribution function or the expectation of a discrete multivariate phase-type distribution.
-    //   *Mutates* the context.
+      This allows the user to step through the distribution, computing e.g. the time-inhomogeneous distribution function or the expectation of a multivariate phase-type distribution.
+      *Mutates* the context.
 
-    //   Parameters
-    //   ----------
-    //   probability_distribution_context : SEXP
-    //       The context created by `dph_distribution_context()`.
+      Parameters
+      ----------
+      dph_probability_distribution_context : SEXP
+          The context created by `dph_distribution_context()`.
 
-    //   See Also
-    //   --------
-    //   dph_distribution_context
+      See Also
+      --------
+      dph_distribution_context
 
-    //   Returns
-    //   -------
-    //   List
-    //        A list containing the PMF, CDF, and jumps for the current probability distribution context.
-    //   )delim")
-      
+      Returns
+      -------
+      List
+          A list containing the PDF, PMF, CDF, and time for the current probability distribution context.
+
+
+      )delim")
 
     .def("stop_probability", &phasic::DPHProbabilityDistributionContext::stop_probability,
       py::return_value_policy::copy, R"delim(
@@ -4359,22 +4297,6 @@ Use Graph.distribution_context(granularity) instead.
         list of float
             Expected number of visits to each vertex.
       )delim")
-
-    // .def("accumulated_visiting_time",
-    //   [](phasic::DPHProbabilityDistributionContext &context) {
-    //     // to make it return np.array instead of list without copying data
-    //     auto a = new std::vector<long double>(context.accumulated_visiting_time());
-    //     auto capsule = py::capsule(a, [](void *a) { delete reinterpret_cast<std::vector<long double>*>(a); });
-    //     return py::array(a->size(), a->data(), capsule);
-    //   }, py::return_value_policy::copy,
-    //   R"delim(
-    //     Get accumulated visiting time for each vertex.
-
-    //     Returns
-    //     -------
-    //     ndarray
-    //         Expected time spent at each vertex (zero-copy).
-    //   )delim")
   
     ;
 
@@ -4827,6 +4749,52 @@ Use Graph.distribution_context(granularity) instead.
           >>> rewards_1d = np.array([[1.0], [2.0], [0.5]])  # (n_vertices, 1)
           >>> pmf_multi = builder.compute_pmf_multivariate(theta, times_1d, rewards_1d)
           >>> # Should match compute_pmf after reward transform
+          )delim")
+
+      .def("compute_accumulated_visits_converged",
+          &phasic::parameterized::GraphBuilder::compute_accumulated_visits_converged,
+          py::arg("theta"),
+          py::arg("vertex_indices"),
+          py::arg("tolerance") = 1e-15,
+          py::arg("max_iterations") = 10000,
+          R"delim(
+          Compute converged accumulated visits for specified vertices (joint index mode).
+
+          For each vertex index, iterates accumulated_visits(jumps) until convergence,
+          returning the limiting accumulated visits. This is used for joint index
+          distributions where observed_data contains vertex indices rather than time values.
+
+          Parameters
+          ----------
+          theta : ndarray
+              Parameter vector of shape (param_length,)
+          vertex_indices : ndarray of int
+              Array of vertex indices to compute
+          tolerance : float, default=1e-15
+              Convergence tolerance for accumulated visits
+          max_iterations : int, default=10000
+              Maximum number of iterations before raising error
+
+          Returns
+          -------
+          ndarray
+              Array of converged accumulated visits, same shape as vertex_indices
+
+          Raises
+          ------
+          RuntimeError
+              If convergence not achieved within max_iterations for any vertex
+          ValueError
+              If any vertex index is out of range
+
+          Examples
+          --------
+          >>> import numpy as np
+          >>> from phasic.phasic_pybind import parameterized
+          >>> builder = parameterized.GraphBuilder(structure_json)
+          >>> theta = np.array([1.0, 0.5])
+          >>> vertex_indices = np.array([0, 2, 3], dtype=np.int32)
+          >>> converged_visits = builder.compute_accumulated_visits_converged(theta, vertex_indices)
           )delim")
 
       .def_property_readonly("param_length",

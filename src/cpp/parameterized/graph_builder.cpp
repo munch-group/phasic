@@ -637,5 +637,85 @@ py::array_t<double> GraphBuilder::compute_pmf_multivariate(
     return result;
 }
 
+py::array_t<double> GraphBuilder::compute_accumulated_visits_converged(
+    py::array_t<double> theta,
+    py::array_t<int> vertex_indices,
+    double tolerance,
+    int max_iterations
+) {
+    // Step 1: Extract data from numpy arrays (requires GIL)
+    auto theta_buf = theta.unchecked<1>();
+    size_t theta_len = theta_buf.shape(0);
+    auto indices_buf = vertex_indices.unchecked<1>();
+    size_t n_indices = indices_buf.shape(0);
+
+    // Copy to C++ vectors
+    std::vector<double> theta_vec(theta_len);
+    for (size_t i = 0; i < theta_len; i++) {
+        theta_vec[i] = theta_buf(i);
+    }
+    std::vector<int> indices_vec(n_indices);
+    for (size_t i = 0; i < n_indices; i++) {
+        indices_vec[i] = indices_buf(i);
+    }
+
+    // Step 2: Release GIL for C++ computation
+    std::vector<double> result_vec(n_indices);
+    {
+        py::gil_scoped_release release;
+
+        // Build graph (pure C++)
+        Graph g = build(theta_vec.data(), theta_len);
+
+        // For each vertex index, iterate until convergence
+        // Use accumulated_visiting_time (continuous) which handles uniformization internally
+        for (size_t i = 0; i < n_indices; i++) {
+            int vertex_idx = indices_vec[i];
+
+            // Validate vertex index
+            if (vertex_idx < 0 || vertex_idx >= n_vertices_) {
+                throw std::invalid_argument(
+                    "Vertex index " + std::to_string(vertex_idx) +
+                    " out of range [0, " + std::to_string(n_vertices_) + ")"
+                );
+            }
+
+            // Iterate accumulated_visiting_time until convergence
+            // Use time increments (granularity=0 means auto-select)
+            int time_step = 1;
+            std::vector<double> visits = g.accumulated_visiting_time(static_cast<double>(time_step), 0);
+            double prev = -1.0;
+            double curr = visits[vertex_idx];
+
+            while (std::abs(curr - prev) > tolerance && time_step < max_iterations) {
+                prev = curr;
+                time_step++;
+                visits = g.accumulated_visiting_time(static_cast<double>(time_step), 0);
+                curr = visits[vertex_idx];
+            }
+
+            if (time_step >= max_iterations) {
+                throw std::runtime_error(
+                    "Convergence not achieved for vertex " + std::to_string(vertex_idx) +
+                    " after " + std::to_string(max_iterations) + " iterations. " +
+                    "Current diff: " + std::to_string(std::abs(curr - prev))
+                );
+            }
+
+            result_vec[i] = curr;
+        }
+    }
+    // GIL automatically reacquired here
+
+    // Step 3: Convert to numpy array (requires GIL, which we now have)
+    py::array_t<double> result(n_indices);
+    auto result_buf = result.mutable_unchecked<1>();
+    for (size_t i = 0; i < n_indices; i++) {
+        result_buf(i) = result_vec[i];
+    }
+
+    return result;
+}
+
 } // namespace parameterized
 } // namespace phasic
