@@ -773,17 +773,17 @@ class TestExpectedVisits:
 class TestResidenceTime:
     """Test residence time methods."""
 
-    def test_expected_residence_time(self):
-        """Test expected residence time."""
+    def test_expected_sojourn_time(self):
+        """Test expected sojourn time."""
         g = Graph(state_length=1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
         g.normalize()
 
-        residence = g.expected_residence_time(1.0, 100)
-        assert residence is not None
-        assert len(residence) > 0
+        sojourn = g.expected_sojourn_time(1.0, 100)
+        assert sojourn is not None
+        assert len(sojourn) > 0
 
     def test_accumulated_visiting_time(self):
         """Test accumulated visiting time."""

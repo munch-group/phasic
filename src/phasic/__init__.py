@@ -1478,8 +1478,9 @@ class Graph(_Graph):
     # both cont and disc
     # expected_residence_time() | Until absorption (∞) | Graph elimination |
     # Similar to expected_residence_time, but returns the expected accumulated reward for the starting vertex propagated through all paths. This is what expectation() uses internally. The difference is subtle - expected_residence_time decomposes this into per-vertex contributions.
-    def expected_residence_time(self, *args, **kwargs):
-        return super().expected_residence_time(*args, **kwargs)
+
+    def expected_sojourn_time(self, *args, **kwargs):
+        return super().expected_sojourn_time(*args, **kwargs)
 
 
 
@@ -3556,17 +3557,19 @@ extern "C" {{
         return model
 
     @classmethod
-    def pmf_from_graph_joint_index(cls, graph: 'Graph', param_length: int = None,
-                                   tolerance: float = 1e-15, max_iterations: int = 10000) -> Callable:
+    def pmf_from_graph_joint_index(cls, graph: 'Graph', param_length: int = None) -> Callable:
         """
         Create a JAX-compatible model for joint index distributions.
 
-        In joint index mode, likelihood is computed from converged accumulated_visits()
-        values rather than PDF/PMF values. The observed_data should contain vertex indices
+        In joint index mode, likelihood is computed from exact expected sojourn times
+        rather than PDF/PMF values. The observed_data should contain vertex indices
         (integers) instead of time values.
 
         This is used for joint index distributions in population genetics models where
         the observed data represents which states (vertices) were visited.
+
+        Uses the fast expected_sojourn_time() method which computes exact sojourn
+        times for all states in a single pass through the elimination trace.
 
         Parameters
         ----------
@@ -3575,27 +3578,24 @@ extern "C" {{
         param_length : int, optional
             Number of parameters for parameterized edges. If not provided, will be
             auto-detected from the graph.
-        tolerance : float, default=1e-15
-            Convergence tolerance for accumulated visits iteration.
-        max_iterations : int, default=10000
-            Maximum number of iterations before raising an error.
 
         Returns
         -------
         callable
             JAX-compatible function with signature:
-            model(theta, vertex_indices, rewards=None) -> (converged_visits, dummy_moments)
+            model(theta, vertex_indices, rewards=None) -> (sojourn_times, dummy_moments)
 
             Where:
             - theta: Parameter vector
             - vertex_indices: Array of vertex indices (integers)
             - rewards: Ignored (must be None for joint_index mode)
-            - converged_visits: Array of converged accumulated visit values
+            - sojourn_times: Expected sojourn times for the specified vertices
             - dummy_moments: Zeros array (moments not supported in joint_index mode)
 
         Notes
         -----
-        - This method forces discrete=True behavior
+        - Uses expected_sojourn_time() for fast exact computation
+        - Much faster than iterating accumulated_visiting_time() until convergence
         - Moment regularization is not supported (regularization must be 0)
         - Reward transformation is not supported (rewards must be None)
         """
@@ -3627,8 +3627,8 @@ extern "C" {{
         # Create GraphBuilder ONCE - captured in model closure
         builder = cpp_module.parameterized.GraphBuilder(structure_json_str)
 
-        def _compute_converged_visits(theta_np, vertex_indices_np):
-            """Compute converged accumulated visits using cached builder."""
+        def _compute_sojourn_times(theta_np, vertex_indices_np):
+            """Compute exact sojourn times using expected_sojourn_time()."""
             # Ensure vertex indices are int32
             vertex_indices_np = np.asarray(vertex_indices_np, dtype=np.int32)
 
@@ -3643,17 +3643,21 @@ extern "C" {{
                 # Compute for each theta in batch
                 results = []
                 for theta_single in theta_np:
-                    result = builder.compute_accumulated_visits_converged(
-                        theta_single, indices_unbatched,
-                        tolerance=tolerance, max_iterations=max_iterations
-                    )
-                    results.append(np.asarray(result))
+                    # Build concrete graph with parameters
+                    concrete_graph = builder.build(theta_single)
+                    # Compute ALL sojourn times in one pass
+                    all_sojourn_times = np.asarray(concrete_graph.expected_sojourn_time())
+                    # Extract only requested indices
+                    result = all_sojourn_times[indices_unbatched]
+                    results.append(result)
                 return np.array(results)
             else:
-                return builder.compute_accumulated_visits_converged(
-                    theta_np, vertex_indices_np,
-                    tolerance=tolerance, max_iterations=max_iterations
-                )
+                # Build concrete graph with parameters
+                concrete_graph = builder.build(theta_np)
+                # Compute ALL sojourn times in one pass
+                all_sojourn_times = np.asarray(concrete_graph.expected_sojourn_time())
+                # Extract only requested indices
+                return all_sojourn_times[vertex_indices_np]
 
         def _compute_pure(theta, vertex_indices):
             """Pure computation for JAX callback."""
@@ -3668,14 +3672,14 @@ extern "C" {{
                 """Runtime conversion (not traced)."""
                 theta_np = np.asarray(theta_jax)
                 indices_np = np.asarray(indices_jax, dtype=np.int32)
-                visits = _compute_converged_visits(theta_np, indices_np)
-                # Return tuple: (visits, dummy_moments)
+                sojourn_times = _compute_sojourn_times(theta_np, indices_np)
+                # Return tuple: (sojourn_times, dummy_moments)
                 # Handle batched case - moments must match batch dimension
                 if theta_np.ndim == 2:
                     batch_size = theta_np.shape[0]
-                    return np.asarray(visits), np.zeros((batch_size, 2))
+                    return np.asarray(sojourn_times), np.zeros((batch_size, 2))
                 else:
-                    return np.asarray(visits), np.zeros(2)
+                    return np.asarray(sojourn_times), np.zeros(2)
 
             result = jax.pure_callback(
                 callback_fn,

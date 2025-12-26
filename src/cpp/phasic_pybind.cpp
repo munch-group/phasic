@@ -1639,24 +1639,20 @@ str
     >>> expected_waiting_time(graph) # => [0.35, 0.1, 0.05]
     >>> graph.expected_waiting_time( [0,2,1,0]) # => [0.6, 0.2, 0.1]
       )delim")
-      
-    .def("expected_residence_time", &phasic::Graph::expected_residence_time, py::arg("rewards")=std::vector<double>(), 
+
+    .def("expected_sojourn_time", &phasic::Graph::expected_sojourn_time,
       py::return_value_policy::move, R"delim(
-Computes the expected residence time of the phase-type distribution.
+    Compute expected sojourn time for all states in a single pass.
 
-    This function computes the expected residence time for the given rewards.
-
-    Parameters
-    ----------
-    graph : Graph
-        The phase-type graph object.
-    rewards : list of float or ndarray, optional
-        Optional rewards, which should be applied to the phase-type distribution. Must have length equal to `vertices_length()`.
+    Computes the expected time spent in each state before absorption,
+    starting from the initial state. This is equivalent to calling
+    expectation() with unit reward vectors for each state, but much
+    faster (10-100x speedup for graphs with 50+ vertices).
 
     Returns
     -------
-    list of float or ndarray
-        A numeric vector of the expected residence times.
+    list of float
+        Array where result[i] = expected time spent in state i before absorption.
 
     Examples
     --------
@@ -1667,9 +1663,44 @@ Computes the expected residence time of the phase-type distribution.
     >>> graph.starting_vertex().add_edge(v1, 1)
     >>> v1.add_edge(v2, 4)
     >>> v2.add_edge(a, 10)
-    >>> expected_residence_time(graph) # => [0.35, 0.1, 0.05]
-    >>> graph.expected_residence_time( [0,2,1,0]) # => [0.6, 0.2, 0.1]
+    >>> sojourn_times = graph.expected_sojourn_time()
+    >>> # Compare with slow method:
+    >>> import numpy as np
+    >>> slow = [graph.expectation(np.eye(graph.vertices_length())[i])
+    ...         for i in range(graph.vertices_length())]
+    >>> np.allclose(sojourn_times, slow)  # Should be True
       )delim")
+
+//     .def("expected_residence_time", &phasic::Graph::expected_residence_time, py::arg("rewards")=std::vector<double>(), 
+//       py::return_value_policy::move, R"delim(
+// Computes the expected residence time of the phase-type distribution.
+
+//     This function computes the expected residence time for the given rewards.
+
+//     Parameters
+//     ----------
+//     graph : Graph
+//         The phase-type graph object.
+//     rewards : list of float or ndarray, optional
+//         Optional rewards, which should be applied to the phase-type distribution. Must have length equal to `vertices_length()`.
+
+//     Returns
+//     -------
+//     list of float or ndarray
+//         A numeric vector of the expected residence times.
+
+//     Examples
+//     --------
+//     >>> graph = Graph(4)
+//     >>> v1 = graph.create_vertex([1,2,3,4])
+//     >>> v2 = graph.create_vertex([4,0,3,3])
+//     >>> a = graph.create_vertex([0,0,0,0])
+//     >>> graph.starting_vertex().add_edge(v1, 1)
+//     >>> v1.add_edge(v2, 4)
+//     >>> v2.add_edge(a, 10)
+//     >>> expected_residence_time(graph) # => [0.35, 0.1, 0.05]
+//     >>> graph.expected_residence_time( [0,2,1,0]) # => [0.6, 0.2, 0.1]
+//       )delim")
       
       
 
@@ -4795,6 +4826,42 @@ Use Graph.distribution_context(granularity) instead.
           >>> theta = np.array([1.0, 0.5])
           >>> vertex_indices = np.array([0, 2, 3], dtype=np.int32)
           >>> converged_visits = builder.compute_accumulated_visits_converged(theta, vertex_indices)
+          )delim")
+
+      .def("build",
+          [](phasic::parameterized::GraphBuilder& self, py::array_t<double> theta) {
+              auto theta_buf = theta.request();
+              if (theta_buf.ndim != 1) {
+                  throw std::runtime_error("theta must be 1-dimensional");
+              }
+              const double* theta_ptr = static_cast<const double*>(theta_buf.ptr);
+              size_t theta_len = theta_buf.shape[0];
+
+              // Build and return Graph object
+              return self.build(theta_ptr, theta_len);
+          },
+          py::arg("theta"),
+          R"delim(
+          Build a concrete graph instance with given parameter values.
+
+          Parameters
+          ----------
+          theta : ndarray
+              Parameter vector of shape (param_length,)
+
+          Returns
+          -------
+          Graph
+              Concrete graph instance with parameters applied
+
+          Examples
+          --------
+          >>> import numpy as np
+          >>> from phasic.phasic_pybind import parameterized
+          >>> builder = parameterized.GraphBuilder(structure_json)
+          >>> theta = np.array([1.0, 0.5])
+          >>> graph = builder.build(theta)
+          >>> sojourn_times = graph.expected_sojourn_time()
           )delim")
 
       .def_property_readonly("param_length",

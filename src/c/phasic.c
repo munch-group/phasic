@@ -5318,6 +5318,18 @@ double *ptd_expected_waiting_time(struct ptd_graph *graph, double *rewards) {
     for (size_t j = 0; j < graph->reward_compute_graph->length; ++j) {
         struct ptd_reward_increase command = graph->reward_compute_graph->commands[j];
 
+        // Handle 0 × ∞ = 0 (limit interpretation)
+        // Skip when multiplier is zero to avoid NaN from 0.0 × inf
+        if (command.multiplier == 0.0) {
+            continue;
+        }
+
+        // Handle inf × 0 = 0 (limit interpretation)
+        // If multiplier is infinite and result[to] is zero, treat as 0
+        if (isinf(command.multiplier) && result[command.to] == 0.0) {
+            continue;
+        }
+
         result[command.from] += result[command.to] * command.multiplier;
 
         // Debug: check for nan
@@ -5326,130 +5338,241 @@ double *ptd_expected_waiting_time(struct ptd_graph *graph, double *rewards) {
                 command.from, j, command.from, command.to, command.multiplier, result[command.to]);
         }
 
-        //TODO: if inf, give error stating that there is an infinite loop
+        // Log infinite results (expected for graphs with inescapable cycles)
+        if (isinf(result[command.from])) {
+            PTD_LOG_DEBUG("Result[%zu] is infinite - state has infinite expected sojourn time", command.from);
+        }
     }
 
     return result;
 }
 
-double *ptd_expected_residence_time(struct ptd_graph *graph, double *rewards) {
+double *ptd_expected_sojourn_time(struct ptd_graph *graph) {
+    // Precompute elimination trace if not already done
     if (ptd_precompute_reward_compute_graph(graph)) {
+        PTD_LOG_ERROR("Failed to precompute reward compute graph");
         return NULL;
     }
 
-    double *result = (double *) calloc(graph->vertices_length, sizeof(*result));
+    size_t n = graph->vertices_length;
+    struct ptd_desc_reward_compute *compute = graph->reward_compute_graph;
 
-    if (rewards != NULL) {
-        // TODO: fix this if reward is nan...
-        memcpy(result, rewards, sizeof(*result) * graph->vertices_length);
-    } else {
-        for (size_t j = 0; j < graph->vertices_length; ++j) {
-            result[j] = 1;
-        }
+    // Allocate results matrix: results[vertex_idx][reward_idx]
+    // Layout: results[v][r] = accumulated reward at vertex v for reward vector r
+    double **results = (double **) malloc(n * sizeof(double *));
+    if (results == NULL) {
+        PTD_LOG_ERROR("Failed to allocate results matrix");
+        return NULL;
     }
 
-    // we want only the acyclic graph so we we subtract graph->vertices_length to skip 
-    // the commands computing the expected waiting time
-    for (size_t j = 0; j < graph->reward_compute_graph->length - graph->vertices_length; ++j) {
-        struct ptd_reward_increase command = graph->reward_compute_graph->commands[j];
-        result[command.from] += result[command.to] * command.multiplier;
-        //TODO: if inf, give error stating that there is an infinite loop
-    }
-
-    // make a copy of the result at this point
-    double *dag_vertex_props = (double *) calloc(graph->vertices_length, sizeof(*dag_vertex_props));
-    memcpy(dag_vertex_props, result, sizeof(*result) * graph->vertices_length);
-
-    // continue computing the expected waiting time
-    for (size_t j = graph->reward_compute_graph->length - graph->vertices_length; j < graph->reward_compute_graph->length; ++j) {
-        struct ptd_reward_increase command = graph->reward_compute_graph->commands[j];
-        result[command.from] += result[command.to] * command.multiplier;
-        //TODO: if inf, give error stating that there is an infinite loop
-    }
-
-    // compute the expected residence time
-    double *res_times = (double *) calloc(graph->vertices_length, sizeof(*res_times));
-    for (size_t j = 0; j < graph->vertices_length; ++j) {
-        res_times[j] = 0;
-    }
-    res_times[0] = result[0]; // expected waiting time
-    double *scalars = (double *) calloc(graph->vertices_length, sizeof(*scalars));
-       for (size_t j = 0; j < graph->vertices_length; ++j) {
-        scalars[j] = 0 ;
-    } 
-    scalars[0] = 1;
-    struct ptd_vertex *start_vertex = graph->starting_vertex;
-    double pushed = 0;
-    int prev_idx = -1;
-    int prev_child_idx = -1;
-    // for (size_t j = graph->reward_compute_graph->length - graph->vertices_length; j <  graph->reward_compute_graph->length; ++j) {
-    //     struct ptd_reward_increase command = graph->reward_compute_graph->commands[j];
-    // for (size_t j = 1; j <  graph->vertices_length; ++j) {
-    //     struct ptd_reward_increase command = graph->reward_compute_graph->commands[graph->reward_compute_graph->length - j];
-    for (size_t j = 0; j <  graph->vertices_length; ++j) {
-        struct ptd_reward_increase command = graph->reward_compute_graph->commands[graph->reward_compute_graph->length - j - 1];
-
-        int idx = command.from;
-        int child_idx = command.to;
-        double child_prob = command.multiplier;
-        double wt = 1 / dag_vertex_props[idx] * scalars[idx];
-
-        // fprintf(stderr, "%d\n", graph->vertices[idx]->index);
-        // fprintf(stderr, "%d -> %d, %f, %f\n", idx, child_idx, child_prob, wt);
-
-        // char message[1024];
-        // sprintf(message, "%zu -> %d, %f, %f\n", idx, child_idx, child_prob, wt);
-        // DEBUG_PRINT(message);
-        // DEBUG_PRINT("HELLO\n");
-        
-        
-
-        if (wt < 0) {
-            snprintf(
-                (char *) ptd_err, 
-                sizeof(ptd_err),
-                "%d -> %d, %f, %f\n",
-                idx, child_idx, (float) child_prob, (float) wt
-            );
+    for (size_t i = 0; i < n; i++) {
+        results[i] = (double *) calloc(n, sizeof(double));
+        if (results[i] == NULL) {
+            PTD_LOG_ERROR("Failed to allocate results row %zu", i);
+            // Free previously allocated rows
+            for (size_t j = 0; j < i; j++) {
+                free(results[j]);
+            }
+            free(results);
             return NULL;
         }
-
-
-        // snprintf(
-        //         (char *) ptd_err,
-        //         sizeof(ptd_err),
-        //         "Multiple edges to the same vertex!. From vertex with index %i%s (state %s)."
-        //         " To vertex with index %i (state %s)\n",
-        //         (int) debug_index_from, starting_vertex, state,
-        //         (int) debug_index_to, state_to
-        // );
-
-        if (idx == start_vertex->index) {
-            wt = 0;
-        }
-        if (prev_child_idx != child_idx) {
-            // fprintf(stderr, "removing total push from vertex %zu: %f\n", child_idx, pushed);
-            res_times[prev_idx] -= pushed;
-            pushed = 0;
-        }
-        if (dag_vertex_props[child_idx] > 0) { // don't push to absorbing
-            double push = (res_times[idx] - wt) * child_prob;
-            // fprintf(stderr, "pushing %f to %zu\n", push, child_idx);
-            res_times[child_idx] += push;
-            scalars[child_idx] += scalars[idx] * child_prob;
-            pushed += push;
-        }
-        prev_idx = idx;
-        prev_child_idx = child_idx;
-        //TODO: if inf, give error stating that there is an infinite loop
     }
 
-    free(result);
-    free(scalars);
-    free(dag_vertex_props);
+    // Initialize with identity matrix: reward vector r has value 1 at vertex r
+    for (size_t v = 0; v < n; v++) {
+        results[v][v] = 1.0;
+    }
 
-    return res_times;
+    // Apply all elimination trace commands to all reward vectors
+    // Command: results[from][r] += results[to][r] * multiplier for all r
+    for (size_t cmd_idx = 0; cmd_idx < compute->length; cmd_idx++) {
+        struct ptd_reward_increase cmd = compute->commands[cmd_idx];
+
+        // Handle 0 × ∞ = 0 (limit interpretation)
+        // Skip when multiplier is zero to avoid NaN from 0.0 × inf
+        if (cmd.multiplier == 0.0) {
+            continue;
+        }
+
+        double *from_row = results[cmd.from];
+        double *to_row = results[cmd.to];
+        double multiplier = cmd.multiplier;
+
+        // Check if multiplier is infinite
+        bool mult_is_inf = isinf(multiplier);
+
+        // Inner loop: contiguous memory access for cache efficiency
+        for (size_t r = 0; r < n; r++) {
+            // Handle inf × 0 = 0 (limit interpretation)
+            if (mult_is_inf && to_row[r] == 0.0) {
+                continue;
+            }
+            from_row[r] += to_row[r] * multiplier;
+        }
+
+        // Debug: check for NaN
+        #ifdef DEBUG
+        for (size_t r = 0; r < n; r++) {
+            if (isnan(from_row[r])) {
+                DEBUG_PRINT("WARNING: results[%zu][%zu] became nan at command %zu\n",
+                    cmd.from, r, cmd_idx);
+            }
+        }
+        #endif
+    }
+
+    // Extract sojourn times: results[starting_vertex][r] for each reward vector r
+    // Starting vertex is at index 0
+    double *sojourn_times = (double *) malloc(n * sizeof(double));
+    if (sojourn_times == NULL) {
+        PTD_LOG_ERROR("Failed to allocate sojourn times array");
+        for (size_t i = 0; i < n; i++) {
+            free(results[i]);
+        }
+        free(results);
+        return NULL;
+    }
+
+    for (size_t r = 0; r < n; r++) {
+        sojourn_times[r] = results[0][r];  // Starting vertex index = 0
+    }
+
+    // Free intermediate results matrix
+    for (size_t i = 0; i < n; i++) {
+        free(results[i]);
+    }
+    free(results);
+
+    PTD_LOG_DEBUG("Computed sojourn times for %zu states", n);
+    return sojourn_times;
 }
+
+// // Stub implementation to fix build issue - TODO: implement properly
+// double *ptd_expected_residence_time(struct ptd_graph *graph, double *rewards) {
+//     // For now, just call expected_waiting_time as a fallback
+//     PTD_LOG_WARNING("expected_residence_time not fully implemented, using expected_waiting_time");
+//     return ptd_expected_waiting_time(graph, rewards);
+// }
+
+// Original commented implementation (incomplete - needs fixing):
+// double *ptd_expected_residence_time(struct ptd_graph *graph, double *rewards) {
+//     if (ptd_precompute_reward_compute_graph(graph)) {
+//         return NULL;
+//     }
+
+//     double *result = (double *) calloc(graph->vertices_length, sizeof(*result));
+
+//     if (rewards != NULL) {
+//         // TODO: fix this if reward is nan...
+//         memcpy(result, rewards, sizeof(*result) * graph->vertices_length);
+//     } else {
+//         for (size_t j = 0; j < graph->vertices_length; ++j) {
+//             result[j] = 1;
+//         }
+//     }
+
+//     // we want only the acyclic graph so we we subtract graph->vertices_length to skip 
+//     // the commands computing the expected waiting time
+//     for (size_t j = 0; j < graph->reward_compute_graph->length - graph->vertices_length; ++j) {
+//         struct ptd_reward_increase command = graph->reward_compute_graph->commands[j];
+//         result[command.from] += result[command.to] * command.multiplier;
+//         //TODO: if inf, give error stating that there is an infinite loop
+//     }
+
+//     // make a copy of the result at this point
+//     double *dag_vertex_props = (double *) calloc(graph->vertices_length, sizeof(*dag_vertex_props));
+//     memcpy(dag_vertex_props, result, sizeof(*result) * graph->vertices_length);
+
+//     // continue computing the expected waiting time
+//     for (size_t j = graph->reward_compute_graph->length - graph->vertices_length; j < graph->reward_compute_graph->length; ++j) {
+//         struct ptd_reward_increase command = graph->reward_compute_graph->commands[j];
+//         result[command.from] += result[command.to] * command.multiplier;
+//         //TODO: if inf, give error stating that there is an infinite loop
+//     }
+
+//     // compute the expected residence time
+//     double *res_times = (double *) calloc(graph->vertices_length, sizeof(*res_times));
+//     for (size_t j = 0; j < graph->vertices_length; ++j) {
+//         res_times[j] = 0;
+//     }
+//     res_times[0] = result[0]; // expected waiting time
+//     double *scalars = (double *) calloc(graph->vertices_length, sizeof(*scalars));
+//        for (size_t j = 0; j < graph->vertices_length; ++j) {
+//         scalars[j] = 0 ;
+//     } 
+//     scalars[0] = 1;
+//     struct ptd_vertex *start_vertex = graph->starting_vertex;
+//     double pushed = 0;
+//     int prev_idx = -1;
+//     int prev_child_idx = -1;
+//     // for (size_t j = graph->reward_compute_graph->length - graph->vertices_length; j <  graph->reward_compute_graph->length; ++j) {
+//     //     struct ptd_reward_increase command = graph->reward_compute_graph->commands[j];
+//     // for (size_t j = 1; j <  graph->vertices_length; ++j) {
+//     //     struct ptd_reward_increase command = graph->reward_compute_graph->commands[graph->reward_compute_graph->length - j];
+//     for (size_t j = 0; j <  graph->vertices_length; ++j) {
+//         struct ptd_reward_increase command = graph->reward_compute_graph->commands[graph->reward_compute_graph->length - j - 1];
+
+//         int idx = command.from;
+//         int child_idx = command.to;
+//         double child_prob = command.multiplier;
+//         double wt = 1 / dag_vertex_props[idx] * scalars[idx];
+
+//         // fprintf(stderr, "%d\n", graph->vertices[idx]->index);
+//         // fprintf(stderr, "%d -> %d, %f, %f\n", idx, child_idx, child_prob, wt);
+
+//         // char message[1024];
+//         // sprintf(message, "%zu -> %d, %f, %f\n", idx, child_idx, child_prob, wt);
+//         // DEBUG_PRINT(message);
+//         // DEBUG_PRINT("HELLO\n");
+        
+        
+
+//         if (wt < 0) {
+//             snprintf(
+//                 (char *) ptd_err, 
+//                 sizeof(ptd_err),
+//                 "%d -> %d, %f, %f\n",
+//                 idx, child_idx, (float) child_prob, (float) wt
+//             );
+//             return NULL;
+//         }
+
+
+//         // snprintf(
+//         //         (char *) ptd_err,
+//         //         sizeof(ptd_err),
+//         //         "Multiple edges to the same vertex!. From vertex with index %i%s (state %s)."
+//         //         " To vertex with index %i (state %s)\n",
+//         //         (int) debug_index_from, starting_vertex, state,
+//         //         (int) debug_index_to, state_to
+//         // );
+
+//         if (idx == start_vertex->index) {
+//             wt = 0;
+//         }
+//         if (prev_child_idx != child_idx) {
+//             // fprintf(stderr, "removing total push from vertex %zu: %f\n", child_idx, pushed);
+//             res_times[prev_idx] -= pushed;
+//             pushed = 0;
+//         }
+//         if (dag_vertex_props[child_idx] > 0) { // don't push to absorbing
+//             double push = (res_times[idx] - wt) * child_prob;
+//             // fprintf(stderr, "pushing %f to %zu\n", push, child_idx);
+//             res_times[child_idx] += push;
+//             scalars[child_idx] += scalars[idx] * child_prob;
+//             pushed += push;
+//         }
+//         prev_idx = idx;
+//         prev_child_idx = child_idx;
+//         //TODO: if inf, give error stating that there is an infinite loop
+//     }
+
+//     free(result);
+//     free(scalars);
+//     free(dag_vertex_props);
+
+//     return res_times;
+// }
 
 /////////////////////////////////////////
 

@@ -181,7 +181,7 @@ public:
      * @brief Compute converged accumulated visits for specified vertices (joint index mode)
      *
      * For each vertex index, iterates accumulated_visits(jumps) until convergence,
-     * returning the limiting accumulated visits (equivalent to expected_residence_time).
+     * returning the limiting accumulated visits (equivalent to expected_sojourn_time).
      *
      * This is used for joint index distributions where observed_data contains vertex
      * indices rather than time values, and likelihood is computed from converged

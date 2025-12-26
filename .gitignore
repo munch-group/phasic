@@ -35,7 +35,6 @@ docs/objects.txt
 scripts/ptd_cache
 
 profiling-toolkit/
-test_*.py
 debug_*.py
 
 # R package build artifacts
