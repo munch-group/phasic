@@ -147,7 +147,9 @@ Graph GraphBuilder::build(const double* theta, size_t theta_len) {
         if (is_start && i == 0) {
             vertices.push_back(start);
         } else {
-            vertices.push_back(g.find_or_create_vertex_p(states_[i]));
+            // Always create new vertex, even if state is duplicate
+            // Serialization preserves vertex identity via indices, not states
+            vertices.push_back(g.create_vertex_p(states_[i]));
         }
     }
 

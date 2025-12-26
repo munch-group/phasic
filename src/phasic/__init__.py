@@ -1663,17 +1663,18 @@ class Graph(_Graph):
         if n_vertices == 0:
             raise ValueError("Graph has no vertices (except starting vertex)")
 
-        # Extract states and create state-based mapping
+        # Extract states and create vertex index mapping
         state_length = self.state_length()
         states = np.zeros((n_vertices, state_length), dtype=np.int32)
-        state_to_idx = {}
+
+        # Map vertex.index() -> enumeration position in vertices_list
+        # This handles duplicate states correctly (multiple vertices with same state)
+        vertex_idx_to_enum = {}
 
         for i, v in enumerate(vertices_list):
             state = v.state()
             states[i, :] = state
-            # Use tuple of state for hashable key
-            state_tuple = tuple(state)
-            state_to_idx[state_tuple] = i
+            vertex_idx_to_enum[v.index()] = i
 
         # Get parameter length directly from graph (set by first add_edge() call)
         start = self.starting_vertex()
@@ -1700,9 +1701,8 @@ class Graph(_Graph):
                 from_idx = i
                 for edge in v.parameterized_edges():
                     to_vertex = edge.to()
-                    to_state = tuple(to_vertex.state())
-                    if to_state in state_to_idx:
-                        to_idx = state_to_idx[to_state]
+                    if to_vertex.index() in vertex_idx_to_enum:
+                        to_idx = vertex_idx_to_enum[to_vertex.index()]
                         # Get coefficient array (length is guaranteed to be param_length)
                         edge_state = list(edge.edge_state(param_length))
                         # Only include edges with non-empty edge states
@@ -1719,9 +1719,8 @@ class Graph(_Graph):
         if False:  # Starting edges are never parameterized (always constant)
             for edge in start.parameterized_edges():
                 to_vertex = edge.to()
-                to_state = tuple(to_vertex.state())
-                if to_state in state_to_idx:
-                    to_idx = state_to_idx[to_state]
+                if to_vertex.index() in vertex_idx_to_enum:
+                    to_idx = vertex_idx_to_enum[to_vertex.index()]
                     # Get coefficient array (length is guaranteed to be param_length)
                     edge_state = list(edge.edge_state(param_length))
                     # Only include edges with non-empty edge states
@@ -1753,9 +1752,8 @@ class Graph(_Graph):
             from_idx = i
             for edge in v.edges():
                 to_vertex = edge.to()
-                to_state = tuple(to_vertex.state())
-                if to_state in state_to_idx:
-                    to_idx = state_to_idx[to_state]
+                if to_vertex.index() in vertex_idx_to_enum:
+                    to_idx = vertex_idx_to_enum[to_vertex.index()]
                     # Skip if this edge also has a parameterized version
                     if (from_idx, to_idx) not in param_edge_pairs:
                         weight = edge.weight()
@@ -1767,9 +1765,8 @@ class Graph(_Graph):
         start_edges_list = []
         for edge in start.edges():
             to_vertex = edge.to()
-            to_state = tuple(to_vertex.state())
-            if to_state in state_to_idx:
-                to_idx = state_to_idx[to_state]
+            if to_vertex.index() in vertex_idx_to_enum:
+                to_idx = vertex_idx_to_enum[to_vertex.index()]
                 # Skip if this edge also has a parameterized version
                 if (-1, to_idx) not in param_edge_pairs:
                     weight = edge.weight()
