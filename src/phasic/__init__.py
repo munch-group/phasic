@@ -1666,6 +1666,7 @@ class Graph(_Graph):
         # Extract states and create vertex index mapping
         state_length = self.state_length()
         states = np.zeros((n_vertices, state_length), dtype=np.int32)
+        vertex_indices = np.zeros(n_vertices, dtype=np.int32)
 
         # Map vertex.index() -> enumeration position in vertices_list
         # This handles duplicate states correctly (multiple vertices with same state)
@@ -1674,6 +1675,7 @@ class Graph(_Graph):
         for i, v in enumerate(vertices_list):
             state = v.state()
             states[i, :] = state
+            vertex_indices[i] = v.index()
             vertex_idx_to_enum[v.index()] = i
 
         # Get parameter length directly from graph (set by first add_edge() call)
@@ -1776,6 +1778,7 @@ class Graph(_Graph):
 
         return {
             'states': states,
+            'vertex_indices': vertex_indices,
             'edges': edges,
             'start_edges': start_edges,
             'param_edges': param_edges,

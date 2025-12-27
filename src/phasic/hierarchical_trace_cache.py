@@ -1678,26 +1678,46 @@ def stitch_scc_traces(
 
             scc_trace = scc_trace_dict[scc_hash]
 
-            # Infer ordered_vertices by matching trace states to original graph
-            # NOTE: The trace may have duplicate states (e.g., starting vertex appearing multiple times)
-            # We map each trace index to an original graph index, even if there are duplicates
-            ordered_vertices = []
+            # Infer ordered_vertices: prefer vertex_indices, fallback to state matching
+            # vertex_indices is essential for graphs with duplicate states (e.g., trash loops)
+            if hasattr(scc_trace, 'vertex_indices') and len(scc_trace.vertex_indices) > 0:
+                # Modern approach: use vertex identity from trace
+                ordered_vertices = scc_trace.vertex_indices.tolist()
+                logger.debug("  Using vertex_indices from trace (%d vertices)", len(ordered_vertices))
+            else:
+                # Legacy fallback: match states (FAILS with duplicate states)
+                logger.warning("  Trace missing vertex_indices - using state matching fallback")
 
-            for trace_idx in range(scc_trace.n_vertices):
-                trace_state = tuple(scc_trace.states[trace_idx])
+                # Check for duplicate states in trace (would cause ambiguity)
+                trace_states = [tuple(scc_trace.states[i]) for i in range(scc_trace.n_vertices)]
+                if len(trace_states) != len(set(trace_states)):
+                    from collections import Counter
+                    state_counts = Counter(trace_states)
+                    duplicates = {s: c for s, c in state_counts.items() if c > 1}
+                    logger.error("  Trace has duplicate states but no vertex_indices: %s", duplicates)
+                    raise ValueError(
+                        "Cannot use state-based vertex matching with duplicate states. "
+                        "Trace must include vertex_indices field. "
+                        f"Found duplicate states: {duplicates}"
+                    )
 
-                # Find matching vertex in original graph
-                found = False
-                for orig_idx in range(original_graph.vertices_length()):
-                    orig_state = tuple(original_graph.vertex_at(orig_idx).state())
-                    if orig_state == trace_state:
-                        ordered_vertices.append(orig_idx)
-                        found = True
-                        break
+                # State-based matching (original code)
+                ordered_vertices = []
+                for trace_idx in range(scc_trace.n_vertices):
+                    trace_state = tuple(scc_trace.states[trace_idx])
 
-                if not found:
-                    logger.error("  Could not find vertex with state %s in original graph!", trace_state)
-                    raise ValueError(f"Trace state {trace_state} not found in original graph")
+                    # Find matching vertex in original graph
+                    found = False
+                    for orig_idx in range(original_graph.vertices_length()):
+                        orig_state = tuple(original_graph.vertex_at(orig_idx).state())
+                        if orig_state == trace_state:
+                            ordered_vertices.append(orig_idx)
+                            found = True
+                            break
+
+                    if not found:
+                        logger.error("  Could not find vertex with state %s in original graph!", trace_state)
+                        raise ValueError(f"Trace state {trace_state} not found in original graph")
 
             # Log if there are duplicates
             if len(ordered_vertices) != len(set(ordered_vertices)):

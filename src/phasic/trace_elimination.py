@@ -127,6 +127,10 @@ class EliminationTrace:
         vertex_targets[i][j] is the target vertex for the j-th edge of vertex i
     states : np.ndarray
         Vertex states (n_vertices, state_length)
+    vertex_indices : np.ndarray
+        Original vertex indices from source graph (n_vertices,)
+        Maps enumeration position → original graph vertex index
+        Essential for graphs with duplicate states (e.g., trash loops)
     starting_vertex_idx : int
         Index of starting vertex
     n_vertices : int
@@ -149,6 +153,7 @@ class EliminationTrace:
     edge_probs: List[List[int]] = field(default_factory=list)
     vertex_targets: List[List[int]] = field(default_factory=list)
     states: np.ndarray = field(default_factory=lambda: np.array([]))
+    vertex_indices: np.ndarray = field(default_factory=lambda: np.array([]))
     starting_vertex_idx: int = 0
     n_vertices: int = 0
     state_length: int = 0
@@ -432,11 +437,13 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
     builder = TraceBuilder()
     logger.debug("Created trace builder")
 
-    # Extract states
+    # Extract states and vertex indices
     state_length = graph.state_length()
     states = np.zeros((n_vertices, state_length), dtype=np.int32)
+    vertex_indices = np.zeros(n_vertices, dtype=np.int32)
     for i, v in enumerate(vertices_list):
         states[i, :] = v.state()
+        vertex_indices[i] = v.index()
 
     # Build vertex index mapping
     state_to_idx = {}
@@ -783,6 +790,7 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
         edge_probs=cleaned_edge_probs,
         vertex_targets=cleaned_vertex_targets,
         states=states,
+        vertex_indices=vertex_indices,
         starting_vertex_idx=starting_vertex_idx,
         n_vertices=n_vertices,
         state_length=state_length,

@@ -74,7 +74,6 @@ tqdm = partial(tqdm, leave=False)
 # Schedule Classes for Step Size and Bandwidth Control
 # ============================================================================
 
-FIGSIZE = (4.5, 3.2)
 class StepSizeSchedule:
     """
     Base class for step size schedules.
@@ -99,7 +98,7 @@ class StepSizeSchedule:
         """
         raise NotImplementedError
 
-    def plot(self, nr_iter, figsize=FIGSIZE, title=None, ax=None):
+    def plot(self, nr_iter, figsize=None, title=None, ax=None):
         """
         Plot the step size schedule over iterations.
 
@@ -134,7 +133,7 @@ class StepSizeSchedule:
 
         # Create figure if needed
         if ax is None:
-            fig, ax = plt.subplots(figsize=FIGSIZE)
+            fig, ax = plt.subplots(figsize=None)
         else:
             fig = ax.get_figure()
 
@@ -152,9 +151,13 @@ class StepSizeSchedule:
 
         # Add horizontal lines for first and last values if they exist
         if hasattr(self, 'first_step') and hasattr(self, 'last_step'):
-            ax.axhline(self.first_step, color=black_white(ax), linestyle='--', alpha=0.5,
+            ax.axhline(self.first_step, 
+                    #    color=black_white(ax), 
+                       linestyle='--', alpha=0.5,
                     label=f'first_step={self.first_step:.4f}')
-            ax.axhline(self.last_step, color=black_white(ax), linestyle='--', alpha=0.5,
+            ax.axhline(self.last_step, 
+                       # color=black_white(ax), 
+                       linestyle='--', alpha=0.5,
                     label=f'last_step={self.last_step:.4f}')
 
         return fig, ax
@@ -297,7 +300,7 @@ class RegularizationSchedule:
         """
         raise NotImplementedError
 
-    def plot(self, nr_iter, figsize=FIGSIZE, title=None, ax=None):
+    def plot(self, nr_iter, figsize=None, title=None, ax=None):
         """
         Plot the regularization schedule over iterations.
 
@@ -332,7 +335,7 @@ class RegularizationSchedule:
 
         # Create figure if needed
         if ax is None:
-            fig, ax = plt.subplots(figsize=FIGSIZE)
+            fig, ax = plt.subplots(figsize=None)
         else:
             fig = ax.get_figure()
 
@@ -350,9 +353,13 @@ class RegularizationSchedule:
 
         # Add horizontal lines for first and last values if they exist
         if hasattr(self, 'first_reg') and hasattr(self, 'last_reg'):
-            ax.axhline(self.first_reg, color=black_white(ax), linestyle='--', alpha=0.5,
+            ax.axhline(self.first_reg, 
+                       #color=black_white(ax), 
+                       linestyle='--', alpha=0.5,
                     label=f'first_reg={self.first_reg:.4f}')
-            ax.axhline(self.last_reg, color=black_white(ax), linestyle='--', alpha=0.5,
+            ax.axhline(self.last_reg, 
+                    #    color=black_white(ax), 
+                       linestyle='--', alpha=0.5,
                     label=f'last_reg={self.last_reg:.4f}')
 
         return fig, ax
@@ -2764,12 +2771,11 @@ class SVGD:
         """
         n_particles = self.particles.shape[0]
         
-        print("Rewards not yet implemented")
         log_prob_fn = partial(
             self._log_prob_unified,
-            nr_moments=self.nr_moments,
-            sample_moments=self.sample_moments,
-            regularization=self.regularization,
+            # nr_moments=self.nr_moments,
+            # sample_moments=self.sample_moments,
+            # regularization=self.regularization,
             rewards=self.rewards 
         )   
 
@@ -2779,7 +2785,7 @@ class SVGD:
         # Find the particle with the highest log probability
         map_idx = jnp.argmax(log_probs)
         
-        return self.particles[map_idx], log_probs[map_idx]
+        return self.particles[map_idx].item(), log_probs[map_idx].item()
 
 
     def map_estimate_with_optimization(self, n_steps=100, step_size=0.01):
@@ -2913,7 +2919,7 @@ class SVGD:
         # Determine subplot layout
         if n_params == 1:
             nrows, ncols = 1, 1
-            figsize = figsize or FIGSIZE
+            figsize = figsize or None
         elif n_params == 2:
             nrows, ncols = 1, 2
             figsize = figsize or (12, 4)
@@ -2933,7 +2939,9 @@ class SVGD:
                    edgecolor='black', label='Posterior')
 
             # Posterior mean
-            ax.axvline(theta_mean[i], color=black_white(ax), linestyle='--',
+            ax.axvline(theta_mean[i], 
+                       #color=black_white(ax), 
+                       linestyle='--',
                        label=f'Mean = {theta_mean[i]:.3f}')
 
             # True value (if provided)
@@ -2964,7 +2972,7 @@ class SVGD:
         return fig, axes
 
 
-    def plot_trace(self, param_names=None, figsize=FIGSIZE,
+    def plot_trace(self, param_names=None, figsize=None,
                    skip=0, max_particles=None, save_path=None, show_transformed=True,
                    ):
         """
@@ -3028,9 +3036,7 @@ class SVGD:
         rows = n_params // 2 + n_params % 2
 
         # Determine subplot layout
-        if n_params == 1:
-            figsize = figsize or FIGSIZE
-        else:
+        if n_params > 1:
             figsize = figsize or (min(14, 3.5 * cols), min(12, 2.7 * rows))
 
         fig, axes = plt.subplots(rows, cols, figsize=figsize, squeeze=False)
@@ -3060,7 +3066,8 @@ class SVGD:
             y = mean_trajectory
             x = np.arange(y.size)
 
-            ax.plot(x[skip:], y[skip:], color=black_white(ax), 
+            ax.plot(x[skip:], y[skip:], 
+                    #color=black_white(ax), 
                     linestyle='dashed', label=f'Mean = {theta_mean[i]:.3f}')
 
             # Labels
@@ -3151,7 +3158,7 @@ class SVGD:
 
         ax1.set_xlabel('SVGD Iteration')
         ax1.set_ylabel('Posterior Mean' + space_label)
-        ax1.set_title('Mean Convergence')
+        ax1.set_title('Mean')
         ax1.legend()
         ax1.grid(alpha=0.3)
 
@@ -3163,7 +3170,7 @@ class SVGD:
 
         ax2.set_xlabel('SVGD Iteration')
         ax2.set_ylabel('Posterior Std' + space_label)
-        ax2.set_title('Std Convergence')
+        ax2.set_title('Std')
         ax2.legend()
         ax2.grid(alpha=0.3)
 
@@ -4432,7 +4439,7 @@ class SVGD:
             return anim
 
     def animate(self, param_idx=0, true_theta=None, param_name=None,
-                figsize=FIGSIZE, skip=0, thin=20, interval=100, bins=30,
+                figsize=None, skip=0, thin=20, interval=100, bins=30,
                 show_particles=True, max_particles=20,
                 save_as_gif=None, save_as_mp4=None, show_transformed=True):
         """
@@ -4552,7 +4559,9 @@ class SVGD:
                 line, = ax_traj.plot([], [], alpha=0.3, )
                 particle_lines.append(line)
 
-        mean_line, = ax_traj.plot([], [], color=black_white(ax),  label='Mean', zorder=5)
+        mean_line, = ax_traj.plot([], [], 
+                                #   color=black_white(ax),  
+                                  label='Mean', zorder=5)
         current_marker = ax_traj.axvline(0, color='blue', linestyle=':',  alpha=0.7)
         ax_traj.legend()
 
