@@ -3608,9 +3608,7 @@ extern "C" {{
 
         import jax
         import jax.numpy as jnp
-        import json
-        from . import phasic_pybind as cpp_module
-        from .ffi_wrappers import _make_json_serializable
+        from .ffi_wrappers import compute_sojourn_times_ffi
 
         # Serialize the graph
         serialized = graph.serialize(param_length=param_length)
@@ -3622,72 +3620,22 @@ extern "C" {{
                 "Create graph with parameterized=True and use add_edge_parameterized()."
             )
 
-        structure_json_str = json.dumps(_make_json_serializable(serialized))
-
-        # Create GraphBuilder ONCE - captured in model closure
-        builder = cpp_module.parameterized.GraphBuilder(structure_json_str)
-
-        def _compute_sojourn_times(theta_np, vertex_indices_np):
-            """Compute exact sojourn times using expected_sojourn_time()."""
-            # Ensure vertex indices are int32
-            vertex_indices_np = np.asarray(vertex_indices_np, dtype=np.int32)
-
-            # Handle batched theta from vmap (theta becomes 2D with shape (batch, params))
-            if theta_np.ndim == 2:
-                # Also handle batched vertex_indices from vmap
-                if vertex_indices_np.ndim == 2:
-                    indices_unbatched = vertex_indices_np[0]  # All identical
-                else:
-                    indices_unbatched = vertex_indices_np
-
-                # Compute for each theta in batch
-                results = []
-                for theta_single in theta_np:
-                    # Build concrete graph with parameters
-                    concrete_graph = builder.build(theta_single)
-                    # Compute ALL sojourn times in one pass
-                    all_sojourn_times = np.asarray(concrete_graph.expected_sojourn_time())
-                    # Extract only requested indices
-                    result = all_sojourn_times[indices_unbatched]
-                    results.append(result)
-                return np.array(results)
-            else:
-                # Build concrete graph with parameters
-                concrete_graph = builder.build(theta_np)
-                # Compute ALL sojourn times in one pass
-                all_sojourn_times = np.asarray(concrete_graph.expected_sojourn_time())
-                # Extract only requested indices
-                return all_sojourn_times[vertex_indices_np]
+        # Keep serialized dict for FFI (it handles JSON conversion internally)
+        structure_dict = serialized
 
         def _compute_pure(theta, vertex_indices):
-            """Pure computation for JAX callback."""
+            """Pure computation using FFI for memory-efficient subset computation."""
             theta = jnp.atleast_1d(theta)
             vertex_indices = jnp.atleast_1d(vertex_indices).astype(jnp.int32)
 
-            result_shape = jax.ShapeDtypeStruct(vertex_indices.shape, jnp.float64)
+            # Use FFI for memory-efficient computation (O(n×k) vs O(n²))
+            # This computes ONLY the requested indices, not all vertices
+            sojourn_times = compute_sojourn_times_ffi(structure_dict, theta, vertex_indices)
+
             # Dummy moments (not supported in joint_index mode)
-            moments_shape = jax.ShapeDtypeStruct((2,), jnp.float64)
+            dummy_moments = jnp.zeros(2)
 
-            def callback_fn(theta_jax, indices_jax):
-                """Runtime conversion (not traced)."""
-                theta_np = np.asarray(theta_jax)
-                indices_np = np.asarray(indices_jax, dtype=np.int32)
-                sojourn_times = _compute_sojourn_times(theta_np, indices_np)
-                # Return tuple: (sojourn_times, dummy_moments)
-                # Handle batched case - moments must match batch dimension
-                if theta_np.ndim == 2:
-                    batch_size = theta_np.shape[0]
-                    return np.asarray(sojourn_times), np.zeros((batch_size, 2))
-                else:
-                    return np.asarray(sojourn_times), np.zeros(2)
-
-            result = jax.pure_callback(
-                callback_fn,
-                (result_shape, moments_shape),
-                theta, vertex_indices,
-                vmap_method='expand_dims'
-            )
-            return result
+            return sojourn_times, dummy_moments
 
         @jax.custom_vjp
         def model(theta, vertex_indices, rewards=None):
