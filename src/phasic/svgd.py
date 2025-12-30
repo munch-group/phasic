@@ -1144,7 +1144,7 @@ def _svgd_update_jitted(particles, K, grad_K, grad_log_p, step_size):
 
 
 def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
-              parallel_mode='vmap', n_devices=None):
+              parallel_mode='vmap', n_devices=None, fixed_mask=None):
     """
     Perform single SVGD update step
 
@@ -1164,6 +1164,11 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
         Parallelization strategy: 'vmap', 'pmap', or 'none'
     n_devices : int, optional
         Number of devices to use for pmap (only used if parallel_mode='pmap')
+    fixed_mask : array (theta_dim,), optional
+        Binary mask indicating which parameters to fix at 1.0.
+        - 0: Optimize this parameter
+        - 1: Fix at 1.0 (do not optimize)
+        If provided, SVGD operates in reduced parameter space for efficiency.
 
     Returns
     -------
@@ -1171,6 +1176,43 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
         Updated particles
     """
     n_particles = particles.shape[0]
+
+    # Handle fixed parameters via parameter projection
+    if fixed_mask is not None:
+        # Identify learnable dimensions
+        learnable_mask = (fixed_mask == 0)
+        learnable_indices = jnp.where(learnable_mask)[0]
+        fixed_indices = jnp.where(fixed_mask == 1)[0]
+
+        # Project to learnable subspace (computational efficiency!)
+        particles_learnable = particles[:, learnable_indices]
+
+        # Create wrapped log_prob that handles projection
+        def log_prob_fn_reduced(theta_learnable):
+            # Expand to full space: learnable → full
+            theta_full = jnp.ones(len(fixed_mask))  # Fixed dims = 1.0
+            theta_full = theta_full.at[learnable_indices].set(theta_learnable)
+            return log_prob_fn(theta_full)
+
+        # Wrap compiled_grad if provided
+        if compiled_grad is not None:
+            def compiled_grad_reduced(theta_learnable):
+                theta_full = jnp.ones(len(fixed_mask))
+                theta_full = theta_full.at[learnable_indices].set(theta_learnable)
+                grad_full = compiled_grad(theta_full)
+                return grad_full[learnable_indices]  # Extract learnable gradients
+            compiled_grad_to_use = compiled_grad_reduced
+        else:
+            compiled_grad_to_use = None
+
+        # Use reduced space for gradient computation
+        particles_for_grad = particles_learnable
+        log_prob_for_grad = log_prob_fn_reduced
+    else:
+        # No fixed parameters - standard SVGD
+        particles_for_grad = particles
+        log_prob_for_grad = log_prob_fn
+        compiled_grad_to_use = compiled_grad
 
     # Use provided parallelization strategy
     actual_parallel_mode = parallel_mode
@@ -1180,7 +1222,7 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
     if actual_parallel_mode == 'pmap' and actual_n_devices is not None:
         # Parallel gradient computation across devices (pmap)
         particles_per_device = n_particles // actual_n_devices
-        particles_sharded = particles.reshape(actual_n_devices, particles_per_device, -1)
+        particles_sharded = particles_for_grad.reshape(actual_n_devices, particles_per_device, -1)
 
         # NOTE: JAX 0.8+ requires explicit device mesh to avoid conflicts
         # Create mesh for current pmap operation
@@ -1195,30 +1237,30 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
         # Use explicit mesh context for pmap
         # pmap over devices, vmap over particles within each device
         with mesh:
-            if compiled_grad is not None:
-                grad_log_p_sharded = pmap(vmap(compiled_grad), axis_name="batch")(particles_sharded)
+            if compiled_grad_to_use is not None:
+                grad_log_p_sharded = pmap(vmap(compiled_grad_to_use), axis_name="batch")(particles_sharded)
             else:
-                grad_log_p_sharded = pmap(vmap(grad(log_prob_fn)), axis_name="batch")(particles_sharded)
+                grad_log_p_sharded = pmap(vmap(grad(log_prob_for_grad)), axis_name="batch")(particles_sharded)
 
         grad_log_p = grad_log_p_sharded.reshape(n_particles, -1)
     elif actual_parallel_mode == 'vmap':
         # Single device vectorization - use vmap only
-        if compiled_grad is not None:
-            grad_log_p = vmap(compiled_grad)(particles)
+        if compiled_grad_to_use is not None:
+            grad_log_p = vmap(compiled_grad_to_use)(particles_for_grad)
         else:
-            grad_log_p = vmap(grad(log_prob_fn))(particles)
+            grad_log_p = vmap(grad(log_prob_for_grad))(particles_for_grad)
     elif actual_parallel_mode == 'none':
         # No parallelization - sequential computation (useful for debugging)
-        if compiled_grad is not None:
-            grad_log_p = jnp.array([compiled_grad(p) for p in particles])
+        if compiled_grad_to_use is not None:
+            grad_log_p = jnp.array([compiled_grad_to_use(p) for p in particles_for_grad])
         else:
-            grad_fn = grad(log_prob_fn)
-            grad_log_p = jnp.array([grad_fn(p) for p in particles])
+            grad_fn = grad(log_prob_for_grad)
+            grad_log_p = jnp.array([grad_fn(p) for p in particles_for_grad])
     else:
         raise ValueError(f"Invalid parallel_mode: {actual_parallel_mode}")
 
-    # Compute kernel and kernel gradient
-    K, grad_K = kernel.compute_kernel_grad(particles)
+    # Compute kernel and kernel gradient (in reduced space if fixed_mask provided)
+    K, grad_K = kernel.compute_kernel_grad(particles_for_grad)
 
     # ##############    
 
@@ -1242,15 +1284,31 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
 
     # ##############
 
+    # SVGD update: phi = (K @ grad_log_p + sum(grad_K)) / n
+    # Compute in reduced space (learnable dims only) if fixed_mask provided
+    positive_term = jnp.einsum('ij,jk->ik', K, grad_log_p) / n_particles
+    negative_term = jnp.sum(grad_K, axis=1) / n_particles
+    phi = positive_term + negative_term
 
-    # Call JIT-compiled update
-    return _svgd_update_jitted(particles, K, grad_K, grad_log_p, step_size)
+    # Update particles
+    if fixed_mask is not None:
+        # Update in reduced space
+        particles_learnable_new = particles_for_grad + step_size * phi
+
+        # Expand back to full space
+        particles_new = jnp.ones_like(particles)  # Fixed dims = 1.0
+        particles_new = particles_new.at[:, learnable_indices].set(particles_learnable_new)
+
+        return particles_new
+    else:
+        # Standard SVGD update (no fixed parameters)
+        return particles + step_size * phi
 
 
 def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
              kernel=None, return_history=True, verbose=True, progress=False, compiled_grad=None,
              parallel_mode='vmap', n_devices=None,
-             log_prob_fn_factory=None, regularization_schedule=None, lr_scale=1.0):
+             log_prob_fn_factory=None, regularization_schedule=None, lr_scale=1.0, fixed_mask=None):
     """
     Run Stein Variational Gradient Descent
 
@@ -1336,7 +1394,8 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
         particles = svgd_step(particles, log_prob_fn, kernel, current_step_size,
                              compiled_grad=compiled_grad_to_use,
                              parallel_mode=parallel_mode,
-                             n_devices=n_devices)
+                             n_devices=n_devices,
+                             fixed_mask=fixed_mask)
 
         # Store history
         if return_history: # and (step % max(1, n_steps // 20) == 0):
@@ -1544,6 +1603,17 @@ class SVGD:
     nr_moments : int, default=2
         Number of moments to use for regularization. Only used if regularization > 0.
         Typical values: 2 (mean and variance) or 3 (mean, variance, skewness).
+    fixed : array_like, optional
+        Binary mask indicating which parameters to fix at 1.0 during optimization.
+        - 0: Optimize this parameter
+        - 1: Fix at 1.0 (do not optimize)
+        Must have length theta_dim.
+
+        Example: fixed=[0, 1] fixes theta[1]=1.0 while optimizing theta[0].
+
+        **Performance**: SVGD operates in reduced parameter space (learnable dims only)
+        for computational efficiency. Kernel bandwidth is computed only over varying
+        dimensions, improving convergence.
 
     Attributes
     ----------
@@ -1635,7 +1705,7 @@ class SVGD:
                  n_devices=None,        # NEW: explicit device count for pmap
                  precompile=True,       # Keep for backward compat
                  compilation_config=None, positive_params=True, param_transform=None,
-                 regularization=0.0, nr_moments=2, rewards=None):
+                 regularization=0.0, nr_moments=2, rewards=None, fixed=None):
 
         if n_particles is None:
             n_particles = 20 * theta_dim
@@ -1873,6 +1943,34 @@ class SVGD:
             self.theta_dim = self.theta_init.shape[1]
             if verbose:
                 print(f"Using provided initial particles: {self.theta_init.shape}")
+
+        # Validate and store fixed parameter mask
+        if fixed is not None:
+            fixed_array = jnp.array(fixed)
+            if len(fixed_array) != self.theta_dim:
+                raise ValueError(
+                    f"fixed must have length {self.theta_dim} (theta_dim), got {len(fixed_array)}"
+                )
+            if not jnp.all((fixed_array == 0) | (fixed_array == 1)):
+                raise ValueError(
+                    "fixed must contain only 0 (optimize) or 1 (fix at 1.0). "
+                    f"Got values: {jnp.unique(fixed_array)}"
+                )
+            self.fixed_mask = fixed_array
+            n_fixed = int(jnp.sum(fixed_array))
+            n_learnable = self.theta_dim - n_fixed
+            if verbose:
+                print(f"Fixed parameters: {n_fixed}/{self.theta_dim} parameters fixed at 1.0")
+                print(f"  Learnable: {n_learnable}, Fixed: {n_fixed}")
+                if n_learnable == 0:
+                    raise ValueError("All parameters are fixed! At least one parameter must be learnable.")
+
+            # Initialize fixed dimensions to 1.0
+            if theta_init is None:
+                fixed_indices = jnp.where(fixed_array == 1)[0]
+                self.theta_init = self.theta_init.at[:, fixed_indices].set(1.0)
+        else:
+            self.fixed_mask = None
 
         # Store regularization settings and handle regularization schedule (backward compatible)
         if isinstance(regularization, RegularizationSchedule):
@@ -2570,7 +2668,8 @@ class SVGD:
                 n_devices=self.n_devices,
                 log_prob_fn_factory=log_prob_factory,
                 regularization_schedule=self.regularization_schedule,
-                lr_scale=self.lr_scale
+                lr_scale=self.lr_scale,
+                fixed_mask=self.fixed_mask
             )
         else:
             # Static regularization - use current precompiled approach
@@ -2623,7 +2722,8 @@ class SVGD:
                 n_devices=self.n_devices,
                 log_prob_fn_factory=None,
                 regularization_schedule=None,
-                lr_scale=self.lr_scale
+                lr_scale=self.lr_scale,
+                fixed_mask=self.fixed_mask
             )
 
         # Store results as attributes

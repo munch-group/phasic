@@ -2824,7 +2824,8 @@ extern "C" {{
              positive_params: bool = True,
              param_transform: Optional[Callable] = None,
              joint_index: bool = False,
-             rewards: Optional[ArrayLike] = None) -> Dict:    
+             rewards: Optional[ArrayLike] = None,
+             fixed: Optional[ArrayLike] = None) -> Dict:    
     # @classmethod
     # def svgd(cls,
     #          model: Callable,
@@ -3070,7 +3071,8 @@ extern "C" {{
             nr_moments=nr_moments,
             positive_params=positive_params,
             param_transform=param_transform,
-            rewards=rewards
+            rewards=rewards,
+            fixed=fixed
         )
 
         # Run inference
