@@ -100,6 +100,21 @@ website:
             # - pages/tutorials/simple_example.ipynb
             # - pages/tutorials/full_api/rabbits_full_py_api_example.ipynb
             - pages/tutorials/full_api/coalescent_full_py_api_example.ipynb
+
+            - pages/tutorials/full_api/coalescent/01-introduction.ipynb
+            - pages/tutorials/full_api/coalescent/02-state-space.ipynb
+            - pages/tutorials/full_api/coalescent/04-properties.ipynb
+            - pages/tutorials/full_api/coalescent/05-state-space-utils.ipynb
+            - pages/tutorials/full_api/coalescent/06-parametrization.ipynb
+            - pages/tutorials/full_api/coalescent/08-time-inhomogeneous.ipynb
+            - pages/tutorials/full_api/coalescent/09-laplace.ipynb
+            - pages/tutorials/full_api/coalescent/10-joint-probability.ipynb
+            - pages/tutorials/full_api/coalescent/11-finite-markov-chains.ipynb
+            - pages/tutorials/full_api/coalescent/12-svgd-inference.ipynb
+            - pages/tutorials/full_api/coalescent/13-distributed.ipynb
+            - pages/tutorials/full_api/coalescent/14-caching-sharing.ipynb
+
+
             # - pages/tutorials/full_api/somecode.ipynb
         - section: "Phase-type distributions"
           contents:
