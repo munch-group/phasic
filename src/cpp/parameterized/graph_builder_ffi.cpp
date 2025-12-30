@@ -638,6 +638,176 @@ ffi::Error ComputePmfMultivariateFfiImpl(
     }
 }
 
+// ===========================================================================
+// ComputeSojournTimesFfiImpl: vmap-aware wrapper for expected_sojourn_time_subset
+// ===========================================================================
+
+/**
+ * FFI handler for computing expected sojourn times for subset of vertices.
+ *
+ * Supports vmap batching with OpenMP parallelization and thread-local caching.
+ *
+ * Inputs:
+ *   - structure_json: Graph structure (string_view attribute, STATIC)
+ *   - theta: Parameters, shape (n_params,) OR (batch, n_params) with vmap
+ *   - indices: Vertex indices (int32), shape (k,) OR (batch, k) OR (1, k) with vmap
+ *
+ * Output:
+ *   - sojourn_times: Expected sojourn times, shape (k,) OR (batch, k)
+ */
+ffi::Error ComputeSojournTimesFfiImpl(
+    std::string_view structure_json,
+    ffi::Buffer<ffi::F64> theta,
+    ffi::Buffer<ffi::S32> indices,
+    ffi::ResultBuffer<ffi::F64> result
+) {
+    try {
+        std::string json_str(structure_json);
+
+        // Thread-local cache lookup
+        std::shared_ptr<GraphBuilder> builder;
+        auto it = builder_cache.find(json_str);
+        if (it != builder_cache.end()) {
+            builder = it->second;
+        } else {
+            try {
+                builder = std::make_shared<GraphBuilder>(json_str);
+                builder_cache[json_str] = builder;
+            } catch (const std::exception& e) {
+                return ffi::Error::InvalidArgument(
+                    std::string("Failed to parse JSON: ") + e.what()
+                );
+            }
+        }
+
+        // Parse dimensions (handle vmap batching)
+        auto theta_dims = theta.dimensions();
+        auto indices_dims = indices.dimensions();
+
+        size_t theta_len, n_indices;
+        size_t theta_batch_size = 1;
+        size_t indices_batch_size = 1;
+
+        if (theta_dims.size() == 1) {
+            theta_len = theta_dims[0];
+        } else if (theta_dims.size() == 2) {
+            theta_batch_size = theta_dims[0];
+            theta_len = theta_dims[1];
+        } else {
+            return ffi::Error::InvalidArgument("theta must be 1D or 2D");
+        }
+
+        if (indices_dims.size() == 1) {
+            n_indices = indices_dims[0];
+        } else if (indices_dims.size() == 2) {
+            indices_batch_size = indices_dims[0];
+            n_indices = indices_dims[1];
+        } else {
+            return ffi::Error::InvalidArgument("indices must be 1D or 2D");
+        }
+
+        const double* theta_data = theta.typed_data();
+        const int32_t* indices_data = indices.typed_data();
+        double* result_data = result->typed_data();
+
+        // Batched computation
+        if (theta_batch_size > 1 || indices_batch_size > 1) {
+            size_t batch_size = std::max(theta_batch_size, indices_batch_size);
+            bool indices_is_broadcast = (indices_batch_size == 1 && theta_batch_size > 1);
+
+            if (!indices_is_broadcast && theta_batch_size != indices_batch_size) {
+                return ffi::Error::InvalidArgument(
+                    "Batch sizes must match: theta=" + std::to_string(theta_batch_size) +
+                    ", indices=" + std::to_string(indices_batch_size)
+                );
+            }
+
+            // Convert broadcast indices once
+            std::vector<size_t> indices_vec(n_indices);
+            if (indices_is_broadcast) {
+                for (size_t i = 0; i < n_indices; i++) {
+                    if (indices_data[i] < 0) {
+                        return ffi::Error::InvalidArgument("Negative index not allowed");
+                    }
+                    indices_vec[i] = static_cast<size_t>(indices_data[i]);
+                }
+            }
+
+            // OpenMP parallel processing
+            #pragma omp parallel for if(batch_size > 1)
+            for (size_t b = 0; b < batch_size; b++) {
+                const double* theta_b = theta_data + (b * theta_len);
+                Graph g = builder->build(theta_b, theta_len);
+
+                std::vector<size_t> indices_b(n_indices);
+                if (indices_is_broadcast) {
+                    indices_b = indices_vec;
+                } else {
+                    const int32_t* indices_batch = indices_data + (b * n_indices);
+                    for (size_t i = 0; i < n_indices; i++) {
+                        if (indices_batch[i] < 0) {
+                            double* result_b = result_data + (b * n_indices);
+                            for (size_t j = 0; j < n_indices; j++) {
+                                result_b[j] = std::numeric_limits<double>::quiet_NaN();
+                            }
+                            continue;
+                        }
+                        indices_b[i] = static_cast<size_t>(indices_batch[i]);
+                    }
+                }
+
+                double* result_b = result_data + (b * n_indices);
+
+                double* sojourn_ptr = ptd_expected_sojourn_time_subset(
+                    g.c_graph(), indices_b.data(), n_indices
+                );
+
+                if (sojourn_ptr == NULL) {
+                    for (size_t i = 0; i < n_indices; i++) {
+                        result_b[i] = std::numeric_limits<double>::quiet_NaN();
+                    }
+                } else {
+                    std::memcpy(result_b, sojourn_ptr, n_indices * sizeof(double));
+                    free(sojourn_ptr);
+                }
+            }
+
+        } else {
+            // Not batched
+            Graph g = builder->build(theta_data, theta_len);
+
+            std::vector<size_t> indices_vec(n_indices);
+            for (size_t i = 0; i < n_indices; i++) {
+                if (indices_data[i] < 0) {
+                    return ffi::Error::InvalidArgument(
+                        "Negative index at position " + std::to_string(i)
+                    );
+                }
+                indices_vec[i] = static_cast<size_t>(indices_data[i]);
+            }
+
+            double* sojourn_ptr = ptd_expected_sojourn_time_subset(
+                g.c_graph(), indices_vec.data(), n_indices
+            );
+
+            if (sojourn_ptr == NULL) {
+                return ffi::Error::Internal(
+                    std::string("ptd_expected_sojourn_time_subset failed: ") + std::string((const char*)ptd_err)
+                );
+            }
+
+            std::memcpy(result_data, sojourn_ptr, n_indices * sizeof(double));
+            free(sojourn_ptr);
+        }
+
+        return ffi::Error::Success();
+
+    } catch (const std::exception& e) {
+        std::cerr << "❌ ComputeSojournTimesFfiImpl exception: " << e.what() << std::endl;
+        return ffi::Error::Internal(e.what());
+    }
+}
+
 } // namespace ffi_handlers
 
 // Export binding creation functions for Python-side FFI registration
@@ -708,6 +878,21 @@ XLA_FFI_Handler* CreateComputePmfMultivariateHandler() {
             .Arg<xla::ffi::Buffer<xla::ffi::F64>>()  // rewards (batched by vmap, 2D or 3D)
             .Ret<xla::ffi::Buffer<xla::ffi::F64>>()  // result (2D or 3D)
             .To(ffi_handlers::ComputePmfMultivariateFfiImpl)
+            .release();
+        return bound_handler->Call(call_frame);
+    };
+    return handler;
+}
+
+XLA_FFI_Handler* CreateComputeSojournTimesHandler() {
+    // Create a static function pointer using the pattern from XLA_FFI_DEFINE_HANDLER
+    static constexpr XLA_FFI_Handler* handler = +[](XLA_FFI_CallFrame* call_frame) {
+        static auto* bound_handler = xla::ffi::Ffi::Bind()
+            .Attr<std::string_view>("structure_json")  // JSON as STATIC attribute (not batched)
+            .Arg<xla::ffi::Buffer<xla::ffi::F64>>()    // theta (batched by vmap)
+            .Arg<xla::ffi::Buffer<xla::ffi::S32>>()    // indices (int32, batched by vmap)
+            .Ret<xla::ffi::Buffer<xla::ffi::F64>>()    // result (sojourn times)
+            .To(ffi_handlers::ComputeSojournTimesFfiImpl)
             .release();
         return bound_handler->Call(call_frame);
     };

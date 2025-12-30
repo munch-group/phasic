@@ -114,6 +114,26 @@ ffi::Error ComputePmfMultivariateFfiImpl(
     ffi::ResultBuffer<ffi::F64> result
 );
 
+/**
+ * @brief JAX FFI handler for computing expected sojourn times for subset of vertices
+ *
+ * Memory-efficient subset computation using n×k matrix instead of n×n.
+ * Supports vmap batching with OpenMP parallelization.
+ *
+ * @param structure_json JSON structure as string_view (STATIC attribute, not batched)
+ * @param theta Parameter array buffer (F64, shape: [n_params]) - BATCHED by vmap
+ * @param indices Vertex indices buffer (S32, shape: [k]) - BATCHED by vmap, int32
+ * @param result Output buffer (F64, shape: [k])
+ *
+ * @return ffi::Error Success or error status
+ */
+ffi::Error ComputeSojournTimesFfiImpl(
+    std::string_view structure_json,
+    ffi::Buffer<ffi::F64> theta,
+    ffi::Buffer<ffi::S32> indices,
+    ffi::ResultBuffer<ffi::F64> result
+);
+
 } // namespace ffi_handlers
 
 // Functions to create FFI handlers for Python-side registration
@@ -122,6 +142,7 @@ XLA_FFI_Handler* CreateComputePmfHandler();
 XLA_FFI_Handler* CreateComputeMomentsHandler();
 XLA_FFI_Handler* CreateComputePmfAndMomentsHandler();
 XLA_FFI_Handler* CreateComputePmfMultivariateHandler();
+XLA_FFI_Handler* CreateComputeSojournTimesHandler();
 
 } // namespace parameterized
 } // namespace phasic

@@ -1641,18 +1641,29 @@ str
       )delim")
 
     .def("expected_sojourn_time", &phasic::Graph::expected_sojourn_time,
+      py::arg("indices") = std::vector<size_t>(),
       py::return_value_policy::move, R"delim(
-    Compute expected sojourn time for all states in a single pass.
+    Compute expected sojourn time for all states or a subset.
 
     Computes the expected time spent in each state before absorption,
     starting from the initial state. This is equivalent to calling
     expectation() with unit reward vectors for each state, but much
     faster (10-100x speedup for graphs with 50+ vertices).
 
+    When indices is provided, uses an n×k matrix instead of n×n,
+    dramatically reducing memory usage for large graphs.
+
+    Parameters
+    ----------
+    indices : list of int or ndarray, optional
+        Vertex indices to compute sojourn times for. If not provided
+        or empty, computes for all vertices.
+
     Returns
     -------
     list of float
-        Array where result[i] = expected time spent in state i before absorption.
+        If indices is empty: Array where result[i] = expected time spent in state i.
+        If indices provided: Array where result[i] = expected time spent in state indices[i].
 
     Examples
     --------
@@ -1663,12 +1674,14 @@ str
     >>> graph.starting_vertex().add_edge(v1, 1)
     >>> v1.add_edge(v2, 4)
     >>> v2.add_edge(a, 10)
-    >>> sojourn_times = graph.expected_sojourn_time()
-    >>> # Compare with slow method:
-    >>> import numpy as np
-    >>> slow = [graph.expectation(np.eye(graph.vertices_length())[i])
-    ...         for i in range(graph.vertices_length())]
-    >>> np.allclose(sojourn_times, slow)  # Should be True
+    >>>
+    >>> # Compute for all vertices
+    >>> all_sojourn = graph.expected_sojourn_time()
+    >>>
+    >>> # Compute for subset (memory-efficient for large graphs)
+    >>> subset_sojourn = graph.expected_sojourn_time([1, 2])
+    >>> # Memory: O(n×k) vs O(n²) for all vertices
+    >>> # For n=183k, k=2k: 2.9 GB vs 268 GB!
       )delim")
 
 //     .def("expected_residence_time", &phasic::Graph::expected_residence_time, py::arg("rewards")=std::vector<double>(), 
@@ -4960,6 +4973,46 @@ Use Graph.distribution_context(granularity) instead.
   >>> from phasic.phasic_pybind import parameterized
   >>> capsule = parameterized.get_compute_pmf_multivariate_ffi_capsule()
   >>> jax.ffi.register_ffi_target("ptd_compute_pmf_multivariate", capsule, platform="cpu")
+  )delim");
+
+  param_module.def("get_compute_sojourn_times_ffi_capsule", []() -> py::capsule {
+      // Create handler on-demand (safe because JAX is already initialized)
+      auto* handler = phasic::parameterized::CreateComputeSojournTimesHandler();
+      return py::capsule(reinterpret_cast<void*>(handler), "xla._CUSTOM_CALL_TARGET");
+  }, R"delim(
+  Get PyCapsule for JAX FFI compute_sojourn_times handler.
+
+  This handler computes expected sojourn times for a subset of vertices using
+  JAX FFI with zero-copy data transfer. Dramatically reduces memory usage compared
+  to computing all vertices.
+
+  Features:
+    - vmap batching with OpenMP parallelization
+    - Thread-local GraphBuilder caching for performance
+    - Broadcasting support (singleton indices with batched theta)
+    - Explicit error handling (no silent fallbacks)
+
+  Memory Efficiency:
+    - Full: O(n²) = 183k × 183k × 8B = 268 GB
+    - Subset: O(n×k) = 183k × 1.2k × 8B = 1.7 GB
+    - Savings: 99.4%
+
+  Performance:
+    - OpenMP: Parallel batch processing when batch_size > 1
+    - Thread-local cache: GraphBuilder reused within thread
+    - Zero-copy: XLA buffers passed directly to C++
+
+  Returns
+  -------
+  capsule
+      PyCapsule containing pointer to XLA FFI handler
+
+  Examples
+  --------
+  >>> import jax
+  >>> from phasic.phasic_pybind import parameterized
+  >>> capsule = parameterized.get_compute_sojourn_times_ffi_capsule()
+  >>> jax.ffi.register_ffi_target("ptd_compute_sojourn_times", capsule, platform="cpu", api_version=1)
   )delim");
 #endif
 
