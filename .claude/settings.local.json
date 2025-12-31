@@ -36,12 +36,10 @@
       "Bash(gh run list:*)",
       "Bash(pixi add:*)",
       "Bash(pip install:*)",
-      "Bash(PHASIC_FFI=0 pixi run python tests/test_multivariate_length1.py)",
-      "Bash(PHASIC_FFI=0 pixi run python -c \"import phasic; print(dir(phasic))\")",
-      "Bash(PHASIC_FFI=0 pixi run python -c \"import phasic; print(type(phasic.parameterized)); print(dir(phasic.parameterized))\")",
-      "Bash(PHASIC_FFI=0 pixi run python -c \"from phasic.parameterized import GraphBuilder; print(GraphBuilder)\")",
-      "Bash(PHASIC_FFI=0 pixi run python -c \"import phasic; from phasic import Graph; help(Graph.serialize)\")",
-      "Bash(pixi run:*)"
+      "Bash(pixi run:*)",
+      "Bash(awk:*)",
+      "Bash(python:*)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []

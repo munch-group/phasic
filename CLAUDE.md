@@ -28,6 +28,13 @@ Traditional matrix-based methods become computationally infeasible for systems w
 
 ---
 
+## Development
+
+- Always use pixi environment.
+- Use "pixi run install-dev" for development install.
+- Do not ever implement silent fallbacks. Code should work as specified or fail.
+
+
 ## Key Concepts
 
 ### Phase-Type Distributions

@@ -436,9 +436,9 @@ def get_config() -> PTDAlgorithmsConfig:
     if _global_config is None:
         # Check environment variables for overrides
         kwargs = {}
-        if os.getenv('PHASIC_FFI') == '0':
-            kwargs['ffi'] = False
-            kwargs['openmp'] = False
+        # if os.getenv('PHASIC_FFI') == '0':
+        #     kwargs['ffi'] = False
+        #     kwargs['openmp'] = False
         if os.getenv('PHASIC_JAX') == '0':
             kwargs['jax'] = False
             kwargs['jit'] = False

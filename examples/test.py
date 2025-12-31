@@ -146,7 +146,8 @@ def joint_prob_graph(graph, reward_rates_callback, mutation_rate:Optional[float]
     for i in t_vertex_indices:
         new_graph.vertex_at(i).add_edge(new_absorbing, [0.0, 1.0])
 
-    weights_were_multiplied_with = new_graph.normalize()
+    # DISABLED: normalize() breaks update_weights() by preventing weight updates
+    # weights_were_multiplied_with = new_graph.normalize()
 
     return new_graph
 
@@ -186,13 +187,14 @@ def coalescent_1param(state):
             transitions.append([new, [state[i]*(state[j]-same)/(1+same)]])
     return transitions
 
-true_theta = [7]
+true_theta = [1/5]
+mutation_rate = 0.1
 base_graph = Graph(coalescent_1param)
 base_graph.update_weights(true_theta)
 base_graph.plot()
 joint_graph = joint_prob_graph(base_graph, 
                                joint_prob_reward_callback, 
-                               mutation_rate=0.1, 
+                               mutation_rate=mutation_rate, 
                                reward_limit=3)
 
 
@@ -214,12 +216,24 @@ def coalescent_obs2idx_map(graph, base_graph_state_length):
 
 
 obs2idx = coalescent_obs2idx_map(joint_graph, base_graph.state_length())
+
+
+joint_graph.update_weights(true_theta + [mutation_rate])  # [coalescent_rate, mutation_rate]
+
 joint = joint_prob_table(joint_graph, obs2idx)
 
-probs = joint.loc[1:, 'prob'].to_numpy()
-modelled_obs = joint.iloc[1:, :-1].to_numpy()
+# probs = joint.loc[1:, 'prob'].to_numpy()
+# modelled_obs = joint.iloc[1:, :-1].to_numpy()
+probs = joint.loc[:, 'prob'].to_numpy()
+modelled_obs = joint.iloc[:, :-1].to_numpy()
+
 rng = np.random.default_rng()
+# Sojourn times from joint_graph are probabilities but don't sum to 1 (due to deficit)
+# For sampling, we condition on observing a covered state: p_conditional = p / sum(p)
+# This is correct because we never observe uncovered states in practice
+# observations = rng.choice(modelled_obs, 10000, axis=0, replace=True, p=probs/probs.sum()).tolist()
 observations = rng.choice(modelled_obs, 10000, axis=0, replace=True, p=probs/probs.sum()).tolist()
+
 
 obs_indices = [obs2idx[tuple(o)] for o in observations]
 
@@ -232,7 +246,7 @@ def uninformative_prior(phi):
 step_schedule = ExpStepSize(first_step=0.1, last_step=0.01, tau=50.0)
 
 params = dict(
-    bandwidth = 'median',             
+    bandwidth = 'median',
     theta_dim = len(true_theta),      # number of model parameters
     prior = uninformative_prior,      # prior on parameters
     n_particles = 50,                 # number of particles
@@ -241,13 +255,14 @@ params = dict(
     seed = 42,                        # random seed
     verbose = False,                  # print what it is doing
     progress = True,                  # show progress bar
-    discrete = False,                
+    discrete = False,
 )
 svgd = joint_graph.svgd(
     obs_indices,
     joint_index=True,
     theta_dim=2,           # Full parameter space: [coalescent_rate, mutation_rate]
     fixed=[0, 1],          # 0=optimize coalescent, 1=fix mutation at 1.0
+    prior=uninformative_prior,  # Wide prior N(0, 100) to allow theta ~ 7
     progress=True,
     n_particles=100,
     n_iterations=200

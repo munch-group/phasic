@@ -45,3 +45,20 @@ need to sample sample_multivariate, which gets me one t-state at a time, and the
 
 
 you are working on the joint prob sampling on the simpler coalescent ...
+
+
+add check that graph.update_weights have not been called before graph.svgd - IF that is indeed not allowed...
+
+
+
+add all the boiler plate joint prob code to the library
+
+
+is there a subset of tons that provide all the information about the tree? E.v. if you know single and trippletons with 4 samples? Maybe all the uneven ones?
+
+
+maybe interpolate particles or do a refined svgd to find MAP estimate
+
+have svgd() infer theta_dim from graph.vertex_at(1).edges()[0].edge_state().size()
+
+check which parallel method is fastest under which circumstances
