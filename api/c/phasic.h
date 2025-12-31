@@ -220,6 +220,19 @@ double *ptd_expected_waiting_time(struct ptd_graph *graph, double *rewards);
  */
 double *ptd_expected_sojourn_time(struct ptd_graph *graph);
 
+/**
+ * Compute expected sojourn times for a subset of vertices (memory-efficient).
+ *
+ * Instead of allocating an n×n matrix to compute sojourn times for all vertices,
+ * this function allocates an n×k matrix where k is the number of target vertices.
+ *
+ * @param graph The graph to compute sojourn times for
+ * @param indices Array of k vertex indices to compute sojourn times for
+ * @param k Number of vertices in the indices array
+ * @return Array of k sojourn times (must be freed by caller), or NULL on error
+ */
+double *ptd_expected_sojourn_time_subset(struct ptd_graph *graph, const size_t *indices, size_t k);
+
 // double *ptd_expected_residence_time(struct ptd_graph *graph, double *rewards);
 
 bool ptd_graph_is_acyclic(struct ptd_graph *graph);

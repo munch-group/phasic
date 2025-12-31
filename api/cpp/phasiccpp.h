@@ -230,27 +230,49 @@ namespace phasic {
         }
 
         /**
-         * Compute expected sojourn time for all states in a single pass
+         * Compute expected sojourn time for all states or a subset
          *
          * Returns array where result[i] = expected time spent in state i
          * before absorption. Much faster than calling expected_waiting_time()
          * with unit reward vectors for each state.
          *
-         * @return Vector of sojourn times for all states
+         * @param indices Optional vector of vertex indices to compute sojourn times for.
+         *                If empty (default), computes for all vertices.
+         * @return Vector of sojourn times for specified states
          * @throws std::runtime_error if computation fails
          */
-        std::vector<double> expected_sojourn_time() {
-            double *ptr = ptd_expected_sojourn_time(this->c_graph());
+        std::vector<double> expected_sojourn_time(
+            const std::vector<size_t>& indices = std::vector<size_t>()
+        ) {
+            if (indices.empty()) {
+                // Compute for all vertices
+                double *ptr = ptd_expected_sojourn_time(this->c_graph());
 
-            if (ptr == NULL) {
-                throw std::runtime_error((char *) ptd_err);
+                if (ptr == NULL) {
+                    throw std::runtime_error((char *) ptd_err);
+                }
+
+                std::vector<double> res;
+                res.assign(ptr, ptr + this->c_graph()->vertices_length);
+                free(ptr);
+
+                return res;
+            } else {
+                // Compute for subset
+                double *ptr = ptd_expected_sojourn_time_subset(
+                    this->c_graph(), indices.data(), indices.size()
+                );
+
+                if (ptr == NULL) {
+                    throw std::runtime_error((char *) ptd_err);
+                }
+
+                std::vector<double> res;
+                res.assign(ptr, ptr + indices.size());
+                free(ptr);
+
+                return res;
             }
-
-            std::vector<double> res;
-            res.assign(ptr, ptr + this->c_graph()->vertices_length);
-            free(ptr);
-
-            return res;
         }
 
         // std::vector<double> expected_residence_time(std::vector<double> rewards = std::vector<double>()) {

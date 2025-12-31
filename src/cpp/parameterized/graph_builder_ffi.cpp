@@ -739,6 +739,10 @@ ffi::Error ComputeSojournTimesFfiImpl(
                 const double* theta_b = theta_data + (b * theta_len);
                 Graph g = builder->build(theta_b, theta_len);
 
+                // Normalize graph: divide edge weights by exit rates
+                // This ensures joint probabilities (sojourn times + deficit) sum to 1
+                ptd_normalize_graph(g.c_graph());
+
                 std::vector<size_t> indices_b(n_indices);
                 if (indices_is_broadcast) {
                     indices_b = indices_vec;
@@ -775,6 +779,10 @@ ffi::Error ComputeSojournTimesFfiImpl(
         } else {
             // Not batched
             Graph g = builder->build(theta_data, theta_len);
+
+            // Normalize graph: divide edge weights by exit rates
+            // This ensures joint probabilities (sojourn times + deficit) sum to 1
+            ptd_normalize_graph(g.c_graph());
 
             std::vector<size_t> indices_vec(n_indices);
             for (size_t i = 0; i < n_indices; i++) {

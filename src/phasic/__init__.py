@@ -3634,10 +3634,19 @@ extern "C" {{
             # This computes ONLY the requested indices, not all vertices
             sojourn_times = compute_sojourn_times_ffi(structure_dict, theta, vertex_indices)
 
+            # CRITICAL FIX: Use UNNORMALIZED sojourn times as probabilities
+            # Normalization would create bias because deficit (uncovered mass) depends on theta:
+            #   - Lower θ → higher deficit → less covered mass
+            #   - Normalizing makes all θ look equally likely given covered observation
+            #   - This inverts the likelihood landscape!
+            # Instead, use unnormalized s_i(θ) where deficit = 1 - Σs_i properly penalizes
+            # parameter values that push probability mass into uncovered states
+            sojourn_probs = sojourn_times  # UNNORMALIZED
+
             # Dummy moments (not supported in joint_index mode)
             dummy_moments = jnp.zeros(2)
 
-            return sojourn_times, dummy_moments
+            return sojourn_probs, dummy_moments
 
         @jax.custom_vjp
         def model(theta, vertex_indices, rewards=None):

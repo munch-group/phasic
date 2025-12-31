@@ -5347,6 +5347,117 @@ double *ptd_expected_waiting_time(struct ptd_graph *graph, double *rewards) {
     return result;
 }
 
+double *ptd_expected_sojourn_time_subset(struct ptd_graph *graph, const size_t *indices, size_t k) {
+    // Precompute elimination trace if not already done
+    if (ptd_precompute_reward_compute_graph(graph)) {
+        PTD_LOG_ERROR("Failed to precompute reward compute graph");
+        return NULL;
+    }
+
+    size_t n = graph->vertices_length;
+    struct ptd_desc_reward_compute *compute = graph->reward_compute_graph;
+
+    // Allocate results matrix: results[vertex_idx][reward_idx]
+    // Layout: results[v][r] = accumulated reward at vertex v for reward vector r
+    // Only allocate k columns instead of n (memory efficient!)
+    double **results = (double **) malloc(n * sizeof(double *));
+    if (results == NULL) {
+        PTD_LOG_ERROR("Failed to allocate results matrix");
+        return NULL;
+    }
+
+    for (size_t i = 0; i < n; i++) {
+        results[i] = (double *) calloc(k, sizeof(double));
+        if (results[i] == NULL) {
+            PTD_LOG_ERROR("Failed to allocate results row %zu", i);
+            // Free previously allocated rows
+            for (size_t j = 0; j < i; j++) {
+                free(results[j]);
+            }
+            free(results);
+            return NULL;
+        }
+    }
+
+    // Initialize with one-hot vectors for each target index
+    // reward vector r has value 1 at vertex indices[r]
+    for (size_t r = 0; r < k; r++) {
+        size_t vertex_idx = indices[r];
+        if (vertex_idx >= n) {
+            PTD_LOG_ERROR("Invalid vertex index %zu (graph has %zu vertices)", vertex_idx, n);
+            for (size_t i = 0; i < n; i++) {
+                free(results[i]);
+            }
+            free(results);
+            return NULL;
+        }
+        results[vertex_idx][r] = 1.0;
+    }
+
+    // Apply all elimination trace commands to k reward vectors
+    // Command: results[from][r] += results[to][r] * multiplier for all r
+    for (size_t cmd_idx = 0; cmd_idx < compute->length; cmd_idx++) {
+        struct ptd_reward_increase cmd = compute->commands[cmd_idx];
+
+        // Handle 0 × ∞ = 0 (limit interpretation)
+        // Skip when multiplier is zero to avoid NaN from 0.0 × inf
+        if (cmd.multiplier == 0.0) {
+            continue;
+        }
+
+        double *from_row = results[cmd.from];
+        double *to_row = results[cmd.to];
+        double multiplier = cmd.multiplier;
+
+        // Check if multiplier is infinite
+        bool mult_is_inf = isinf(multiplier);
+
+        // Inner loop: only k columns instead of n
+        for (size_t r = 0; r < k; r++) {
+            // Handle inf × 0 = 0 (limit interpretation)
+            if (mult_is_inf && to_row[r] == 0.0) {
+                continue;
+            }
+            from_row[r] += to_row[r] * multiplier;
+        }
+
+        // Debug: check for NaN
+        #ifdef DEBUG
+        for (size_t r = 0; r < k; r++) {
+            if (isnan(from_row[r])) {
+                DEBUG_PRINT("WARNING: results[%zu][%zu] became nan at command %zu\n",
+                    cmd.from, r, cmd_idx);
+            }
+        }
+        #endif
+    }
+
+    // Extract sojourn times: results[starting_vertex][r] for each reward vector r
+    // Starting vertex is at index 0
+    double *sojourn_times = (double *) malloc(k * sizeof(double));
+    if (sojourn_times == NULL) {
+        PTD_LOG_ERROR("Failed to allocate sojourn times array");
+        for (size_t i = 0; i < n; i++) {
+            free(results[i]);
+        }
+        free(results);
+        return NULL;
+    }
+
+    for (size_t r = 0; r < k; r++) {
+        sojourn_times[r] = results[0][r];  // Starting vertex index = 0
+    }
+
+    // Free intermediate results matrix
+    for (size_t i = 0; i < n; i++) {
+        free(results[i]);
+    }
+    free(results);
+
+    PTD_LOG_DEBUG("Computed sojourn times for %zu target states (out of %zu total)", k, n);
+    return sojourn_times;
+}
+
 double *ptd_expected_sojourn_time(struct ptd_graph *graph) {
     // Precompute elimination trace if not already done
     if (ptd_precompute_reward_compute_graph(graph)) {

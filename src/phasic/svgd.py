@@ -1190,7 +1190,10 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
         # Create wrapped log_prob that handles projection
         def log_prob_fn_reduced(theta_learnable):
             # Expand to full space: learnable → full
-            theta_full = jnp.ones(len(fixed_mask))  # Fixed dims = 1.0
+            # NOTE: Fixed dims initialized to 1.0 in untransformed space
+            # If param_transform is active (e.g., softplus), this will be transformed
+            # For softplus: 1.0 → 1.3133, so model receives 1.3133, not 1.0
+            theta_full = jnp.ones(len(fixed_mask))  # Fixed dims = 1.0 (untransformed)
             theta_full = theta_full.at[learnable_indices].set(theta_learnable)
             return log_prob_fn(theta_full)
 
@@ -2829,7 +2832,26 @@ class SVGD:
 
         # Transform particles to constrained space if transformation is active
         if self.param_transform is not None:
-            particles_constrained = jnp.array([self.param_transform(p) for p in self.particles])
+            # Handle fixed parameters correctly - they should remain at their fixed value
+            if self.fixed_mask is not None:
+                learnable_mask = (self.fixed_mask == 0)
+                fixed_mask_bool = (self.fixed_mask == 1)
+
+                # Transform only learnable dimensions
+                # Fixed dimensions remain at their fixed value (1.0)
+                particles_constrained = self.particles.copy()
+                for i, particle in enumerate(self.particles):
+                    # Transform learnable dimensions
+                    if jnp.any(learnable_mask):
+                        transformed_learnable = self.param_transform(particle[learnable_mask])
+                        particles_constrained = particles_constrained.at[i, learnable_mask].set(transformed_learnable)
+                    # Fixed dimensions already at 1.0, no transformation needed
+
+                particles_constrained = jnp.array(particles_constrained)
+            else:
+                # No fixed parameters - transform everything as before
+                particles_constrained = jnp.array([self.param_transform(p) for p in self.particles])
+
             theta_mean = particles_constrained.mean(axis=0)
             theta_std = particles_constrained.std(axis=0)
 
@@ -2842,7 +2864,19 @@ class SVGD:
 
             if self.history is not None:
                 # Transform history as well
-                history_constrained = jnp.array([[self.param_transform(p) for p in step] for step in self.history])
+                if self.fixed_mask is not None:
+                    history_constrained = []
+                    for step in self.history:
+                        step_constrained = jnp.array(step.copy())
+                        for i, particle in enumerate(step):
+                            if jnp.any(learnable_mask):
+                                transformed_learnable = self.param_transform(particle[learnable_mask])
+                                step_constrained = step_constrained.at[i, learnable_mask].set(transformed_learnable)
+                        history_constrained.append(step_constrained)
+                    history_constrained = jnp.array(history_constrained)
+                else:
+                    history_constrained = jnp.array([[self.param_transform(p) for p in step] for step in self.history])
+
                 results['history'] = history_constrained
                 results['history_unconstrained'] = self.history
         else:
@@ -2885,7 +2919,7 @@ class SVGD:
         # Find the particle with the highest log probability
         map_idx = jnp.argmax(log_probs)
         
-        return self.particles[map_idx].item(), log_probs[map_idx].item()
+        return self.particles[map_idx], log_probs[map_idx]
 
 
     def map_estimate_with_optimization(self, n_steps=100, step_size=0.01):
