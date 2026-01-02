@@ -3023,8 +3023,20 @@ extern "C" {{
                 )
             # Force discrete mode for joint_index
             discrete = True
-            # Use joint_index specific model
-            model = Graph.pmf_from_graph_joint_index(self, param_length=theta_dim)
+            # Parse fixed to get mask for joint_index model
+            # This allows the custom VJP to skip finite differences for fixed dimensions
+            fixed_mask_for_model = None
+            if fixed is not None:
+                import jax.numpy as jnp
+                if isinstance(fixed, list) and len(fixed) > 0 and isinstance(fixed[0], tuple):
+                    fixed_mask_for_model = jnp.zeros(theta_dim)
+                    for idx, _ in fixed:
+                        fixed_mask_for_model = fixed_mask_for_model.at[idx].set(1)
+                else:
+                    fixed_mask_for_model = jnp.array(fixed)
+            # Use joint_index specific model with fixed_mask
+            model = Graph.pmf_from_graph_joint_index(self, param_length=theta_dim,
+                                                      fixed_mask=fixed_mask_for_model)
         # Auto-detect if we need multivariate model (2D rewards)
         elif rewards is not None:
             import jax.numpy as jnp
@@ -3559,7 +3571,8 @@ extern "C" {{
         return model
 
     @classmethod
-    def pmf_from_graph_joint_index(cls, graph: 'Graph', param_length: int = None) -> Callable:
+    def pmf_from_graph_joint_index(cls, graph: 'Graph', param_length: int = None,
+                                    fixed_mask: 'jnp.ndarray' = None) -> Callable:
         """
         Create a JAX-compatible model for joint index distributions.
 
@@ -3580,6 +3593,10 @@ extern "C" {{
         param_length : int, optional
             Number of parameters for parameterized edges. If not provided, will be
             auto-detected from the graph.
+        fixed_mask : jnp.ndarray, optional
+            Binary mask indicating which parameters are fixed (1=fixed, 0=learnable).
+            If provided, gradients for fixed dimensions will be zero in the custom VJP.
+            This is used to skip finite difference computation for fixed parameters.
 
         Returns
         -------
@@ -3625,23 +3642,33 @@ extern "C" {{
         # Keep serialized dict for FFI (it handles JSON conversion internally)
         structure_dict = serialized
 
+        # Find ALL terminal vertex indices at model construction time
+        # Terminal vertices are those with an edge to an absorbing state (no outgoing edges)
+        all_terminal_indices = []
+        for vertex in graph.vertices():
+            for edge in vertex.edges():
+                if len(edge.to().edges()) == 0:  # points to absorbing state
+                    all_terminal_indices.append(vertex.index())
+                    break
+        all_terminal_indices = jnp.array(sorted(set(all_terminal_indices)), dtype=jnp.int32)
+
         def _compute_pure(theta, vertex_indices):
             """Pure computation using FFI for memory-efficient subset computation."""
             theta = jnp.atleast_1d(theta)
             vertex_indices = jnp.atleast_1d(vertex_indices).astype(jnp.int32)
 
-            # Use FFI for memory-efficient computation (O(n×k) vs O(n²))
-            # This computes ONLY the requested indices, not all vertices
+            # Compute sojourn times for observed vertices
             sojourn_times = compute_sojourn_times_ffi(structure_dict, theta, vertex_indices)
 
-            # CRITICAL FIX: Use UNNORMALIZED sojourn times as probabilities
-            # Normalization would create bias because deficit (uncovered mass) depends on theta:
-            #   - Lower θ → higher deficit → less covered mass
-            #   - Normalizing makes all θ look equally likely given covered observation
-            #   - This inverts the likelihood landscape!
-            # Instead, use unnormalized s_i(θ) where deficit = 1 - Σs_i properly penalizes
-            # parameter values that push probability mass into uncovered states
-            sojourn_probs = sojourn_times  # UNNORMALIZED
+            # Compute normalization constant using ALL terminal vertices
+            # This is the total probability mass in the modeled state space
+            all_sojourn_times = compute_sojourn_times_ffi(structure_dict, theta, all_terminal_indices)
+            normalization_constant = jnp.sum(all_sojourn_times)
+
+            # Normalize to get conditional probabilities P(obs | obs ∈ modeled space)
+            # This correctly handles the deficit without biasing toward θ values
+            # that minimize deficit
+            sojourn_probs = sojourn_times / normalization_constant
 
             # Dummy moments (not supported in joint_index mode)
             dummy_moments = jnp.zeros(2)
@@ -3672,6 +3699,14 @@ extern "C" {{
             visits, moments = _compute_pure(theta, vertex_indices)
             return (visits, moments), (theta, vertex_indices)
 
+        # Convert fixed_mask to a Python set of fixed indices for use in model_bwd
+        # This avoids JAX tracing issues with boolean comparisons on arrays
+        fixed_indices_set = set()
+        if fixed_mask is not None:
+            import numpy as np
+            fixed_mask_np = np.asarray(fixed_mask)
+            fixed_indices_set = set(np.where(fixed_mask_np == 1)[0].tolist())
+
         def model_bwd(res, g):
             theta, vertex_indices = res
             g_visits, g_moments = g  # Unpack gradient tuple
@@ -3682,6 +3717,12 @@ extern "C" {{
             # Finite differences for gradient
             theta_bar = []
             for i in range(n_params):
+                # Skip finite differences for fixed parameters - gradient is zero
+                # This is critical for correct chain rule when using compiled_grad_reduced
+                if i in fixed_indices_set:
+                    theta_bar.append(0.0)
+                    continue
+
                 theta_plus = theta.at[i].add(eps)
                 theta_minus = theta.at[i].add(-eps)
 

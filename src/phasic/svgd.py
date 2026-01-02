@@ -1144,7 +1144,7 @@ def _svgd_update_jitted(particles, K, grad_K, grad_log_p, step_size):
 
 
 def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
-              parallel_mode='vmap', n_devices=None, fixed_mask=None):
+              parallel_mode='vmap', n_devices=None, fixed_mask=None, fixed_values=None):
     """
     Perform single SVGD update step
 
@@ -1165,10 +1165,13 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
     n_devices : int, optional
         Number of devices to use for pmap (only used if parallel_mode='pmap')
     fixed_mask : array (theta_dim,), optional
-        Binary mask indicating which parameters to fix at 1.0.
+        Binary mask indicating which parameters to fix.
         - 0: Optimize this parameter
-        - 1: Fix at 1.0 (do not optimize)
+        - 1: Fix at value specified in fixed_values
         If provided, SVGD operates in reduced parameter space for efficiency.
+    fixed_values : array (theta_dim,), optional
+        Values to fix parameters at (for dimensions where fixed_mask=1).
+        Defaults to all 1.0 if not provided.
 
     Returns
     -------
@@ -1190,17 +1193,24 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
         # Create wrapped log_prob that handles projection
         def log_prob_fn_reduced(theta_learnable):
             # Expand to full space: learnable → full
-            # NOTE: Fixed dims initialized to 1.0 in untransformed space
-            # If param_transform is active (e.g., softplus), this will be transformed
-            # For softplus: 1.0 → 1.3133, so model receives 1.3133, not 1.0
-            theta_full = jnp.ones(len(fixed_mask))  # Fixed dims = 1.0 (untransformed)
+            # NOTE: Fixed dims initialized to values from fixed_values (untransformed space)
+            # If param_transform is active (e.g., softplus), these will be transformed
+            # IMPORTANT: Must create fresh array copy for JAX gradient tracing
+            if fixed_values is not None:
+                theta_full = jnp.array(fixed_values)  # Create fresh copy
+            else:
+                theta_full = jnp.ones(len(fixed_mask))
             theta_full = theta_full.at[learnable_indices].set(theta_learnable)
             return log_prob_fn(theta_full)
 
         # Wrap compiled_grad if provided
         if compiled_grad is not None:
             def compiled_grad_reduced(theta_learnable):
-                theta_full = jnp.ones(len(fixed_mask))
+                # IMPORTANT: Must create fresh array copy for JAX gradient tracing
+                if fixed_values is not None:
+                    theta_full = jnp.array(fixed_values)  # Create fresh copy
+                else:
+                    theta_full = jnp.ones(len(fixed_mask))
                 theta_full = theta_full.at[learnable_indices].set(theta_learnable)
                 grad_full = compiled_grad(theta_full)
                 return grad_full[learnable_indices]  # Extract learnable gradients
@@ -1298,8 +1308,11 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
         # Update in reduced space
         particles_learnable_new = particles_for_grad + step_size * phi
 
-        # Expand back to full space
-        particles_new = jnp.ones_like(particles)  # Fixed dims = 1.0
+        # Expand back to full space with custom fixed values
+        if fixed_values is not None:
+            particles_new = jnp.tile(fixed_values, (particles.shape[0], 1))
+        else:
+            particles_new = jnp.ones_like(particles)  # Default: fixed dims = 1.0
         particles_new = particles_new.at[:, learnable_indices].set(particles_learnable_new)
 
         return particles_new
@@ -1311,7 +1324,7 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
 def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
              kernel=None, return_history=True, verbose=True, progress=False, compiled_grad=None,
              parallel_mode='vmap', n_devices=None,
-             log_prob_fn_factory=None, regularization_schedule=None, lr_scale=1.0, fixed_mask=None):
+             log_prob_fn_factory=None, regularization_schedule=None, lr_scale=1.0, fixed_mask=None, fixed_values=None):
     """
     Run Stein Variational Gradient Descent
 
@@ -1398,7 +1411,8 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
                              compiled_grad=compiled_grad_to_use,
                              parallel_mode=parallel_mode,
                              n_devices=n_devices,
-                             fixed_mask=fixed_mask)
+                             fixed_mask=fixed_mask,
+                             fixed_values=fixed_values)
 
         # Store history
         if return_history: # and (step % max(1, n_steps // 20) == 0):
@@ -1606,13 +1620,21 @@ class SVGD:
     nr_moments : int, default=2
         Number of moments to use for regularization. Only used if regularization > 0.
         Typical values: 2 (mean and variance) or 3 (mean, variance, skewness).
-    fixed : array_like, optional
-        Binary mask indicating which parameters to fix at 1.0 during optimization.
+    fixed : array_like or list of tuples, optional
+        Specifies which parameters to fix during optimization. Two formats supported:
+
+        **Format 1 (Binary mask)**: Array indicating which parameters to fix at 1.0
         - 0: Optimize this parameter
         - 1: Fix at 1.0 (do not optimize)
         Must have length theta_dim.
-
         Example: fixed=[0, 1] fixes theta[1]=1.0 while optimizing theta[0].
+
+        **Format 2 (Index-value tuples)**: List of (index, value) pairs
+        - Each tuple specifies (parameter_index, fixed_value)
+        - Only listed parameters are fixed; others are optimized
+        - Values can be any positive number (not just 1.0)
+        Example: fixed=[(1, 0.01)] fixes theta[1]=0.01 while optimizing theta[0].
+        Example: fixed=[(0, 2.5), (2, 0.1)] fixes theta[0]=2.5 and theta[2]=0.1.
 
         **Performance**: SVGD operates in reduced parameter space (learnable dims only)
         for computational efficiency. Kernel bandwidth is computed only over varying
@@ -1949,31 +1971,92 @@ class SVGD:
 
         # Validate and store fixed parameter mask
         if fixed is not None:
-            fixed_array = jnp.array(fixed)
-            if len(fixed_array) != self.theta_dim:
-                raise ValueError(
-                    f"fixed must have length {self.theta_dim} (theta_dim), got {len(fixed_array)}"
-                )
-            if not jnp.all((fixed_array == 0) | (fixed_array == 1)):
-                raise ValueError(
-                    "fixed must contain only 0 (optimize) or 1 (fix at 1.0). "
-                    f"Got values: {jnp.unique(fixed_array)}"
-                )
-            self.fixed_mask = fixed_array
-            n_fixed = int(jnp.sum(fixed_array))
-            n_learnable = self.theta_dim - n_fixed
-            if verbose:
-                print(f"Fixed parameters: {n_fixed}/{self.theta_dim} parameters fixed at 1.0")
-                print(f"  Learnable: {n_learnable}, Fixed: {n_fixed}")
-                if n_learnable == 0:
-                    raise ValueError("All parameters are fixed! At least one parameter must be learnable.")
+            # Detect format: list of tuples [(index, value), ...] vs binary mask [0, 1, ...]
+            if isinstance(fixed, list) and len(fixed) > 0 and isinstance(fixed[0], tuple):
+                # Format: [(index, value), ...] - fix specific parameters at specific values
+                self.fixed_mask = jnp.zeros(self.theta_dim)
+                self.fixed_values = jnp.ones(self.theta_dim)  # Default to 1.0 for non-fixed
 
-            # Initialize fixed dimensions to 1.0
-            if theta_init is None:
-                fixed_indices = jnp.where(fixed_array == 1)[0]
-                self.theta_init = self.theta_init.at[:, fixed_indices].set(1.0)
+                for idx, value in fixed:
+                    if not isinstance(idx, (int, jnp.integer)):
+                        raise TypeError(f"Parameter index must be integer, got {type(idx)}")
+                    if idx < 0 or idx >= self.theta_dim:
+                        raise ValueError(
+                            f"Invalid parameter index {idx}, must be in [0, {self.theta_dim})"
+                        )
+                    self.fixed_mask = self.fixed_mask.at[idx].set(1)
+                    # CRITICAL: Fixed values are specified in THETA space (constrained).
+                    # But SVGD operates in PHI space (unconstrained), and log_prob_fn applies
+                    # param_transform (e.g., softplus) to convert phi -> theta.
+                    # So we must store fixed values in PHI space, i.e., apply inverse transform.
+                    # inv_softplus(theta) = log(exp(theta) - 1) for theta > 0
+                    if positive_params and value > 0:
+                        # Apply inverse softplus to convert theta -> phi
+                        phi_value = float(jnp.log(jnp.exp(value) - 1))
+                        self.fixed_values = self.fixed_values.at[idx].set(phi_value)
+                    else:
+                        # No transform or value <= 0 (edge case)
+                        self.fixed_values = self.fixed_values.at[idx].set(value)
+
+                n_fixed = len(fixed)
+                n_learnable = self.theta_dim - n_fixed
+                if verbose:
+                    print(f"Fixed parameters: {n_fixed}/{self.theta_dim} parameters fixed at custom values")
+                    for idx, value in fixed:
+                        print(f"  θ_{idx} fixed at {value}")
+                    print(f"  Learnable: {n_learnable}, Fixed: {n_fixed}")
+                    if n_learnable == 0:
+                        raise ValueError("All parameters are fixed! At least one parameter must be learnable.")
+
+                # Initialize fixed dimensions to their specified values (in PHI space)
+                if theta_init is None:
+                    for idx, value in fixed:
+                        if positive_params and value > 0:
+                            # Convert theta -> phi
+                            phi_value = float(jnp.log(jnp.exp(value) - 1))
+                            self.theta_init = self.theta_init.at[:, idx].set(phi_value)
+                        else:
+                            self.theta_init = self.theta_init.at[:, idx].set(value)
+            else:
+                # Format: [0, 1, 0, ...] - binary mask (backward compatible)
+                fixed_array = jnp.array(fixed)
+                if len(fixed_array) != self.theta_dim:
+                    raise ValueError(
+                        f"fixed must have length {self.theta_dim} (theta_dim), got {len(fixed_array)}"
+                    )
+                if not jnp.all((fixed_array == 0) | (fixed_array == 1)):
+                    raise ValueError(
+                        "fixed must contain only 0 (optimize) or 1 (fix at 1.0). "
+                        f"Got values: {jnp.unique(fixed_array)}"
+                    )
+                self.fixed_mask = fixed_array
+                # Fixed values default to theta=1.0, but we need to store in phi space
+                if positive_params:
+                    # inv_softplus(1.0) = log(exp(1) - 1) ≈ 0.5413
+                    phi_one = float(jnp.log(jnp.exp(1.0) - 1))
+                    self.fixed_values = jnp.full(self.theta_dim, phi_one)
+                else:
+                    self.fixed_values = jnp.ones(self.theta_dim)  # All fixed values = 1.0
+                n_fixed = int(jnp.sum(fixed_array))
+                n_learnable = self.theta_dim - n_fixed
+                if verbose:
+                    print(f"Fixed parameters: {n_fixed}/{self.theta_dim} parameters fixed at 1.0")
+                    print(f"  Learnable: {n_learnable}, Fixed: {n_fixed}")
+                    if n_learnable == 0:
+                        raise ValueError("All parameters are fixed! At least one parameter must be learnable.")
+
+                # Initialize fixed dimensions to phi value corresponding to theta=1.0
+                if theta_init is None:
+                    fixed_indices = jnp.where(fixed_array == 1)[0]
+                    if positive_params:
+                        # inv_softplus(1.0) ≈ 0.5413
+                        phi_one = float(jnp.log(jnp.exp(1.0) - 1))
+                        self.theta_init = self.theta_init.at[:, fixed_indices].set(phi_one)
+                    else:
+                        self.theta_init = self.theta_init.at[:, fixed_indices].set(1.0)
         else:
             self.fixed_mask = None
+            self.fixed_values = None
 
         # Store regularization settings and handle regularization schedule (backward compatible)
         if isinstance(regularization, RegularizationSchedule):
@@ -2672,7 +2755,8 @@ class SVGD:
                 log_prob_fn_factory=log_prob_factory,
                 regularization_schedule=self.regularization_schedule,
                 lr_scale=self.lr_scale,
-                fixed_mask=self.fixed_mask
+                fixed_mask=self.fixed_mask,
+                fixed_values=self.fixed_values
             )
         else:
             # Static regularization - use current precompiled approach
@@ -2726,7 +2810,8 @@ class SVGD:
                 log_prob_fn_factory=None,
                 regularization_schedule=None,
                 lr_scale=self.lr_scale,
-                fixed_mask=self.fixed_mask
+                fixed_mask=self.fixed_mask,
+                fixed_values=self.fixed_values
             )
 
         # Store results as attributes
@@ -3941,7 +4026,7 @@ class SVGD:
             return scatters + texts
         
         anim = FuncAnimation(fig, update, frames=self.history.shape[0],
-                            init_func=init, blit=True, interval=100)
+                            init_func=init, blit=True, interval=200)
         
         plt.tight_layout()
         
@@ -4573,7 +4658,7 @@ class SVGD:
             return anim
 
     def animate(self, param_idx=0, true_theta=None, param_name=None,
-                figsize=None, skip=0, thin=20, interval=100, bins=30,
+                figsize=(8, 3), skip=0, thin=1, interval=100, duration=None, bins=30,
                 show_particles=True, max_particles=20,
                 save_as_gif=None, save_as_mp4=None, show_transformed=True):
         """
@@ -4591,14 +4676,16 @@ class SVGD:
             True parameter values. If provided, will overlay the true value for param_idx.
         param_name : str, optional
             Name for the parameter (e.g., 'jump rate'). If None, uses 'θ_{param_idx}'.
-        figsize : tuple, default=(8, 6)
+        figsize : tuple, default=(8, 3)
             Figure size (width, height)
         skip : int, default=0
             Number of initial iterations to skip in the animation
-        thin : int, thin=20
-            Interval of interations to plot/annimate.
+        thin : int, thin=1
+            Interval of interations to plot/annimate
         interval : int, default=100
             Delay between frames in milliseconds
+        duration : int, default=None
+            Duration of the animation in seconds, overrides interval and thin if set
         bins : int, default=30
             Number of histogram bins
         show_particles : bool, default=True
@@ -4645,6 +4732,16 @@ class SVGD:
         else:
             full_history = results.get('history_unconstrained', self.history)
             space_label = " (untransformed)"
+
+        if duration is not None:
+            interval = 40
+            iterations = len(full_history) - skip
+            thin = interval / (duration / iterations * 1000)
+            if thin < 1:
+                interval *= interval / thin
+            interval *= round(thin) / thin    
+            thin = round(thin)
+            thin, interval = int(thin), int(interval)
 
         # Get history subset
         history = jnp.stack(full_history[skip::thin])
@@ -4746,7 +4843,7 @@ class SVGD:
         return self._return_animation_html(anim)
 
     def animate_pairwise(self, true_theta=None, param_names=None,
-                        figsize=None, skip=0, thin=20, interval=100,
+                        figsize=None, skip=0, thin=1, interval=100, duration=None,
                         save_as_gif=None, save_as_mp4=None, show_transformed=True):
         """
         Create an animated pairwise scatter plot showing SVGD particle evolution.
@@ -4761,10 +4858,12 @@ class SVGD:
             Figure size (width, height). Auto-sized based on parameter dimension if None.
         skip : int, default=0
             Number of initial iterations to skip in the animation
-        thin : int, thin=20
-            Interval of interations to plot/annimate.
+        thin : int, thin=1
+            Interval of interations to plot/annimate
         interval : int, default=100
             Delay between frames in milliseconds
+        duration : int, default=None
+            Duration of the animation in seconds, overrides interval and thin if set
         save_as_gif : str, optional
             Path to save animation as GIF (requires pillow)
         save_as_mp4 : str, optional
@@ -4818,6 +4917,16 @@ class SVGD:
 
         n_params = self.theta_dim
         figsize = figsize or (min(14, 3 * n_params), min(12, 2.3 * n_params))
+
+        if duration is not None:
+            interval = 40
+            iterations = len(full_history) - skip
+            thin = interval / (duration / iterations * 1000)
+            if thin < 1:
+                interval *= interval / thin
+            interval *= round(thin) / thin    
+            thin = round(thin)
+            thin, interval = int(thin), int(interval)
 
         # Get history subset
         history = full_history[skip::thin]
