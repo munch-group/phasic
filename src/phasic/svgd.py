@@ -1873,6 +1873,7 @@ class SVGD:
         self.prior = prior
         self.n_particles = n_particles
         self.n_iterations = n_iterations
+        self.fixed = fixed
 
         # Handle step size schedule (backward compatible)
         # Auto-scale learning rate by number of observations to prevent gradient explosion
@@ -2917,25 +2918,10 @@ class SVGD:
 
         # Transform particles to constrained space if transformation is active
         if self.param_transform is not None:
-            # Handle fixed parameters correctly - they should remain at their fixed value
-            if self.fixed_mask is not None:
-                learnable_mask = (self.fixed_mask == 0)
-                fixed_mask_bool = (self.fixed_mask == 1)
-
-                # Transform only learnable dimensions
-                # Fixed dimensions remain at their fixed value (1.0)
-                particles_constrained = self.particles.copy()
-                for i, particle in enumerate(self.particles):
-                    # Transform learnable dimensions
-                    if jnp.any(learnable_mask):
-                        transformed_learnable = self.param_transform(particle[learnable_mask])
-                        particles_constrained = particles_constrained.at[i, learnable_mask].set(transformed_learnable)
-                    # Fixed dimensions already at 1.0, no transformation needed
-
-                particles_constrained = jnp.array(particles_constrained)
-            else:
-                # No fixed parameters - transform everything as before
-                particles_constrained = jnp.array([self.param_transform(p) for p in self.particles])
+            # Transform ALL dimensions (both learnable and fixed) from PHI space to THETA space
+            # Fixed dimensions are stored in PHI space (e.g., inv_softplus(1.0) = 0.541)
+            # and need to be transformed back to THETA space for reporting
+            particles_constrained = jnp.array([self.param_transform(p) for p in self.particles])
 
             theta_mean = particles_constrained.mean(axis=0)
             theta_std = particles_constrained.std(axis=0)
@@ -2948,20 +2934,8 @@ class SVGD:
             }
 
             if self.history is not None:
-                # Transform history as well
-                if self.fixed_mask is not None:
-                    history_constrained = []
-                    for step in self.history:
-                        step_constrained = jnp.array(step.copy())
-                        for i, particle in enumerate(step):
-                            if jnp.any(learnable_mask):
-                                transformed_learnable = self.param_transform(particle[learnable_mask])
-                                step_constrained = step_constrained.at[i, learnable_mask].set(transformed_learnable)
-                        history_constrained.append(step_constrained)
-                    history_constrained = jnp.array(history_constrained)
-                else:
-                    history_constrained = jnp.array([[self.param_transform(p) for p in step] for step in self.history])
-
+                # Transform history as well - ALL dimensions need transformation
+                history_constrained = jnp.array([[self.param_transform(p) for p in step] for step in self.history])
                 results['history'] = history_constrained
                 results['history_unconstrained'] = self.history
         else:
@@ -5037,6 +5011,7 @@ class SVGD:
         self._save_animation(anim, save_as_gif, save_as_mp4, interval)
         return self._return_animation_html(anim)
 
+
     def summary(self):
         """Print a summary of the inference results."""
         if not self.is_fitted:
@@ -5048,25 +5023,36 @@ class SVGD:
         theta_mean = results['theta_mean']
         theta_std = results['theta_std']
 
-        print("=" * 70)
-        print("SVGD Inference Summary")
-        print("=" * 70)
-        print(f"Number of particles: {self.n_particles}")
-        print(f"Number of iterations: {self.n_iterations}")
-        print(f"Parameter dimension: {self.theta_dim}")
+        fields = [f"Parameter", "Fixed", f"Mean", f"SD", f"CI 2.5%", f"CI 97.5%"]
+        fmt_str = "{:<10} {:<10} {:<10} {:<10} {:<20}"
+        print(fmt_str.format(*fields))
 
-        if self.param_transform is not None:
-            print(f"Parameter transformation: active (positive constraint)")
-
-        print(f"\nPosterior estimates:")
         for i in range(self.theta_dim):
-            # Compute quantiles directly from particles for accurate CI
-            ci_lower = jnp.percentile(particles[:, i], 2.5)
-            ci_upper = jnp.percentile(particles[:, i], 97.5)
+            if self.fixed_mask[i]:
+                fields = [i, 
+                    'Yes' if self.fixed_mask[i] else 'No',
+                    f'{fmt.format(theta_mean[i])}', 
+                    'NA', 
+                    'NA', 
+                    'NA', 
+                    ]
+            else:
+                # Compute quantiles directly from particles for accurate CI
+                ci_lower = jnp.percentile(particles[:, i], 2.5).item()
+                ci_upper = jnp.percentile(particles[:, i], 97.5).item()
+                fmt = f'{{:.3e}}' if np.log10(abs(theta_mean[i])) > 2 else f'{{:.4f}}'
+                fields = [i, 
+                        'Yes' if self.fixed_mask[i] else 'No',
+                        f'{fmt.format(theta_mean[i])}',
+                        f'{fmt.format(theta_std[i])}', 
+                        f'{fmt.format(ci_lower)}',
+                        f'{fmt.format(ci_upper)}',
+                        ]
+            print(fmt_str.format(*fields))
 
-            print(f"  θ_{i}: {theta_mean[i]:.4f} ± {theta_std[i]:.4f}")
-            print(f"       95% CI: [{ci_lower:.4f}, {ci_upper:.4f}]")
-        print("=" * 70)
+        print()
+        print(f"Particles: {self.n_particles}, Iterations: {self.n_iterations}")
+    
 
 
 
