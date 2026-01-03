@@ -2093,6 +2093,8 @@ class SVGD:
         self.model = model
         self.observed_data = jnp.array(observed_data)
         self.prior = prior
+        # Detect per-parameter priors (list/tuple of Prior objects)
+        self.prior_list = list(prior) if isinstance(prior, (list, tuple)) else None
         self.n_particles = n_particles
         self.n_iterations = n_iterations
         self.fixed = fixed
@@ -2155,6 +2157,13 @@ class SVGD:
                 "If you don't have initial particles, specify theta_dim (the number of parameters)."
             )
 
+        # Validate per-parameter prior list length
+        if self.prior_list is not None and theta_dim is not None:
+            if len(self.prior_list) != theta_dim:
+                raise ValueError(
+                    f"prior list length ({len(self.prior_list)}) must match theta_dim ({theta_dim})"
+                )
+
         # Adjust n_particles for pmap if needed
         if self.parallel_mode == 'pmap' and self.n_devices is not None:
             if n_particles % self.n_devices != 0:
@@ -2168,8 +2177,31 @@ class SVGD:
         # Initialize particles
         key = jax.random.PRNGKey(seed)
         if theta_init is None:
+            # Check for per-parameter priors (list of Prior objects)
+            if self.prior_list is not None:
+                # Sample each dimension from its respective prior
+                samples = []
+                for i, prior_i in enumerate(self.prior_list):
+                    if not hasattr(prior_i, 'sample'):
+                        raise ValueError(
+                            f"Prior at index {i} does not have a sample() method. "
+                            f"Per-parameter priors must be Prior objects with sample() method."
+                        )
+                    key, subkey = jax.random.split(key)
+                    s_i = prior_i.sample(subkey, (n_particles, 1))
+                    samples.append(s_i)
+                self.theta_init = jnp.concatenate(samples, axis=1)
+                if verbose:
+                    print(f"Initialized {n_particles} particles with theta_dim={theta_dim} from per-parameter priors:")
+                    for i, prior_i in enumerate(self.prior_list):
+                        if hasattr(prior_i, 'mu') and hasattr(prior_i, 'sigma'):
+                            print(f"    θ[{i}]: N({prior_i.mu:.2f}, {prior_i.sigma:.2f}²)")
+                        elif hasattr(prior_i, 'scale'):
+                            print(f"    θ[{i}]: HalfCauchy(scale={prior_i.scale:.2f})")
+                        else:
+                            print(f"    θ[{i}]: {type(prior_i).__name__}")
             # Check if prior is a Prior object with sample method
-            if self.prior is not None and hasattr(self.prior, 'sample'):
+            elif self.prior is not None and hasattr(self.prior, 'sample'):
                 # Sample from prior distribution
                 self.theta_init = self.prior.sample(key, (n_particles, theta_dim))
                 if verbose:
@@ -2441,7 +2473,10 @@ class SVGD:
         log_lik = jnp.sum(jnp.log(model_values + 1e-10))
 
         # Log-prior (evaluated in unconstrained space)
-        if self.prior is not None:
+        if self.prior_list is not None:
+            # Per-parameter priors: sum log-probabilities from each dimension
+            log_pri = sum(self.prior_list[i](theta[i:i+1]) for i in range(len(self.prior_list)))
+        elif self.prior is not None:
             log_pri = self.prior(theta)
         else:
             # Default: standard normal prior on unconstrained parameters
@@ -2494,7 +2529,10 @@ class SVGD:
         log_lik = jnp.sum(jnp.log(pmf_vals + 1e-10))
 
         # Log-prior term (evaluated in unconstrained space)
-        if self.prior is not None:
+        if self.prior_list is not None:
+            # Per-parameter priors: sum log-probabilities from each dimension
+            log_pri = sum(self.prior_list[i](theta[i:i+1]) for i in range(len(self.prior_list)))
+        elif self.prior is not None:
             log_pri = self.prior(theta)
         else:
             # Default: standard normal prior
@@ -2596,7 +2634,10 @@ class SVGD:
         log_lik = jnp.sum(jnp.where(obs_mask, jnp.log(pmf_vals + 1e-10), 0.0))
 
         # Log-prior term (evaluated in unconstrained space)
-        if self.prior is not None:
+        if self.prior_list is not None:
+            # Per-parameter priors: sum log-probabilities from each dimension
+            log_pri = sum(self.prior_list[i](theta[i:i+1]) for i in range(len(self.prior_list)))
+        elif self.prior is not None:
             log_pri = self.prior(theta)
         else:
             # Default: standard normal prior on unconstrained parameters
