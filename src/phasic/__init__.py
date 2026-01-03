@@ -219,6 +219,10 @@ setup_logging()
 if HAS_JAX:
     from .svgd import (
         SVGD,
+        # Prior classes
+        Prior,
+        GaussPrior,
+        HalfCauchyPrior,
         # Step size schedules
         StepSizeSchedule,
         ConstantStepSize,
@@ -237,6 +241,9 @@ if HAS_JAX:
     )
 else:
     SVGD = None
+    Prior = None
+    GaussPrior = None
+    HalfCauchyPrior = None
     StepSizeSchedule = None
     ConstantStepSize = None
     ExpStepSize = None

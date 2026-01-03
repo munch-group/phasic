@@ -23,6 +23,7 @@ from jax.experimental import checkify
 from jax.experimental import mesh_utils
 from jax.sharding import Mesh, NamedSharding, PartitionSpec as P
 from jax.experimental.pjit import pjit
+from jax.scipy.stats import norm
 
 from scipy.stats import gaussian_kde, gengamma
 
@@ -68,6 +69,226 @@ trange = partial(trange, leave=False)
 tqdm = partial(tqdm, leave=False)
 
 #from jax import random, vmap, grad, jit
+
+
+# ============================================================================
+# Prior Distribution Classes
+# ============================================================================
+
+class Prior:
+    """Base class for prior distributions.
+
+    Subclasses must implement __call__ (log-probability) and sample methods.
+    The sample method enables SVGD to initialize particles from the prior.
+    """
+
+    def __call__(self, phi):
+        """Compute log-probability of phi.
+
+        Parameters
+        ----------
+        phi : jnp.ndarray
+            Parameter vector (in unconstrained space)
+
+        Returns
+        -------
+        float
+            Log-probability of phi under the prior
+        """
+        raise NotImplementedError("Subclasses must implement __call__")
+
+    def sample(self, key, shape):
+        """Sample from the prior distribution.
+
+        Parameters
+        ----------
+        key : jax.random.PRNGKey
+            Random key for JAX
+        shape : tuple
+            Shape of samples, typically (n_particles, theta_dim)
+
+        Returns
+        -------
+        jnp.ndarray
+            Samples from prior with given shape
+        """
+        raise NotImplementedError("Subclasses must implement sample")
+
+    def plot(self, ax=None, **kwargs):
+        """Plot the prior distribution.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes, optional
+            Axes to plot on. If None, creates new figure.
+        **kwargs
+            Additional arguments passed to plot function.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+            The axes with the plot
+        """
+        raise NotImplementedError("Subclasses must implement plot")
+
+
+class GaussPrior(Prior):
+    """Gaussian prior distribution.
+
+    Can be specified via mean/std or credible interval.
+
+    Parameters
+    ----------
+    mean : float, optional
+        Prior mean. Required if std is provided.
+    std : float, optional
+        Prior standard deviation. Required if mean is provided.
+    ci : tuple of (float, float), optional
+        Credible interval (low, high). Alternative to mean/std.
+    prob : float, default=0.95
+        Probability mass in the credible interval (only used with ci).
+
+    Examples
+    --------
+    >>> # Specify via mean and std
+    >>> prior = GaussPrior(mean=5.0, std=2.0)
+    >>>
+    >>> # Specify via 95% credible interval
+    >>> prior = GaussPrior(ci=(2.0, 8.0))
+    >>>
+    >>> # Evaluate log-probability
+    >>> log_prob = prior(jnp.array([5.0]))
+    >>>
+    >>> # Sample from prior
+    >>> key = jax.random.PRNGKey(42)
+    >>> samples = prior.sample(key, (100, 1))
+    """
+
+    def __init__(self, mean=None, std=None, ci=None, prob=0.95):
+        if mean is not None and std is not None:
+            self.mu = mean
+            self.sigma = std
+        elif ci is not None:
+            low, high = ci
+            mu = (low + high) / 2
+            z = norm.ppf((1 + prob) / 2)
+            sigma = (high - low) / (2 * z)
+            self.mu = mu
+            self.sigma = sigma
+        else:
+            raise ValueError(
+                "Invalid prior specification. Provide either (mean, std) or ci."
+            )
+
+    def __call__(self, phi):
+        """Compute log-probability under Gaussian prior."""
+        return -0.5 * jnp.sum(((phi - self.mu) / self.sigma)**2)
+
+    def sample(self, key, shape):
+        """Sample from N(mu, sigma^2)."""
+        return jax.random.normal(key, shape) * self.sigma + self.mu
+
+    def plot(self, log=False, ax=None, **kwargs):
+        """Plot the Gaussian prior distribution.
+
+        Parameters
+        ----------
+        log : bool, default=False
+            If True, plot log-probability instead of probability density.
+        ax : matplotlib.axes.Axes, optional
+            Axes to plot on. If None, creates new figure.
+        **kwargs
+            Additional arguments passed to plot function.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+            The axes with the plot
+        """
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(4, 3))
+        x = np.linspace(self.mu - 4*self.sigma, self.mu + 4*self.sigma, 200)
+        if log:
+            ax.plot(x, list(map(self, x)), **kwargs)
+            ax.set_title('Log Gaussian Prior')
+            ax.set_ylabel('Log density')
+        else:
+            ax.plot(x, norm.pdf(x, loc=self.mu, scale=self.sigma), **kwargs)
+            ax.set_title('Gaussian Prior')
+            ax.set_ylabel('Density')
+        ax.set_xlabel('Parameter value')
+        return ax
+
+
+class HalfCauchyPrior(Prior):
+    """Half-Cauchy prior distribution (positive support only).
+
+    Useful for scale parameters due to heavy tails.
+    PDF: f(x) = 2 / (pi * scale * (1 + (x/scale)^2)) for x >= 0
+
+    Parameters
+    ----------
+    scale : float, default=1.0
+        Scale parameter of the half-Cauchy distribution.
+
+    Examples
+    --------
+    >>> prior = HalfCauchyPrior(scale=2.0)
+    >>>
+    >>> # Evaluate log-probability
+    >>> log_prob = prior(jnp.array([1.0]))
+    >>>
+    >>> # Sample from prior
+    >>> key = jax.random.PRNGKey(42)
+    >>> samples = prior.sample(key, (100, 1))
+    """
+
+    def __init__(self, scale=1.0):
+        self.scale = scale
+
+    def __call__(self, phi):
+        """Compute log-probability under half-Cauchy prior.
+
+        Returns -inf for phi <= 0.
+        """
+        # Log PDF of half-Cauchy: log(2) - log(pi) - log(scale) - log(1 + (x/scale)^2)
+        log_prob = jnp.where(
+            phi > 0,
+            jnp.log(2) - jnp.log(jnp.pi) - jnp.log(self.scale) - jnp.log(1 + (phi/self.scale)**2),
+            -jnp.inf
+        )
+        return jnp.sum(log_prob)
+
+    def sample(self, key, shape):
+        """Sample from half-Cauchy using inverse CDF method."""
+        u = jax.random.uniform(key, shape)
+        # Inverse CDF of half-Cauchy: x = scale * tan(pi * u / 2)
+        return self.scale * jnp.tan(jnp.pi * u / 2)
+
+    def plot(self, ax=None, **kwargs):
+        """Plot the half-Cauchy prior distribution.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes, optional
+            Axes to plot on. If None, creates new figure.
+        **kwargs
+            Additional arguments passed to plot function.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+            The axes with the plot
+        """
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(4, 3))
+        x = np.linspace(0.001, 5 * self.scale, 200)
+        pdf = 2 / (np.pi * self.scale * (1 + (x/self.scale)**2))
+        ax.plot(x, pdf, **kwargs)
+        ax.set_title('Half-Cauchy Prior')
+        ax.set_xlabel('Parameter value')
+        ax.set_ylabel('Density')
+        return ax
 
 
 # ============================================================================
@@ -134,8 +355,8 @@ class StepSizeSchedule:
         # Create figure if needed
         if ax is None:
             fig, ax = plt.subplots(figsize=None)
-        else:
-            fig = ax.get_figure()
+        # else:
+        #     fig = ax.get_figure()
 
         # Compute schedule values
         iterations = np.arange(nr_iter)
@@ -160,7 +381,8 @@ class StepSizeSchedule:
                        linestyle='--', alpha=0.5,
                     label=f'last_step={self.last_step:.4f}')
 
-        return fig, ax
+        # return fig, ax
+        return ax
 
 
 class ConstantStepSize(StepSizeSchedule):
@@ -1946,8 +2168,18 @@ class SVGD:
         # Initialize particles
         key = jax.random.PRNGKey(seed)
         if theta_init is None:
-            if self.param_transform is not None:
-                # For transformed parameters, initialize in a range that maps to reasonable positive values
+            # Check if prior is a Prior object with sample method
+            if self.prior is not None and hasattr(self.prior, 'sample'):
+                # Sample from prior distribution
+                self.theta_init = self.prior.sample(key, (n_particles, theta_dim))
+                if verbose:
+                    print(f"Initialized {n_particles} particles with theta_dim={theta_dim} from prior")
+                    if hasattr(self.prior, 'mu') and hasattr(self.prior, 'sigma'):
+                        print(f"  (Prior: N({self.prior.mu:.2f}, {self.prior.sigma:.2f}²))")
+                    elif hasattr(self.prior, 'scale'):
+                        print(f"  (Prior: HalfCauchy(scale={self.prior.scale:.2f}))")
+            elif self.param_transform is not None:
+                # Fallback: For transformed parameters, initialize in a range that maps to reasonable positive values
                 # softplus(x) ≈ x for x >> 0, and softplus(0) ≈ 0.69
                 # Initialize around N(1, 1) so softplus gives values around 1-2
                 self.theta_init = jax.random.normal(key, (n_particles, theta_dim)) + 1.0
