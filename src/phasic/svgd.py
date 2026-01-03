@@ -72,6 +72,34 @@ tqdm = partial(tqdm, leave=False)
 
 
 # ============================================================================
+# Helper Functions
+# ============================================================================
+
+def _inverse_softplus(theta):
+    """Inverse of softplus: phi = log(exp(theta) - 1).
+
+    Numerically stable implementation that handles large values.
+
+    Parameters
+    ----------
+    theta : array
+        Values in constrained space (positive)
+
+    Returns
+    -------
+    array
+        Values in unconstrained space
+    """
+    # For large theta, softplus(phi) ≈ phi, so inverse is identity
+    # For smaller values, use log(exp(theta) - 1) = log(expm1(theta))
+    return jnp.where(
+        theta > 20,
+        theta,
+        jnp.log(jnp.expm1(jnp.maximum(theta, 1e-10)))
+    )
+
+
+# ============================================================================
 # Prior Distribution Classes
 # ============================================================================
 
@@ -135,16 +163,20 @@ class Prior:
 class GaussPrior(Prior):
     """Gaussian prior distribution.
 
+    The prior is defined in THETA space (the natural parameter space).
+    When used with positive_params=True, SVGD automatically handles
+    the transformation to PHI space with proper Jacobian correction.
+
     Can be specified via mean/std or credible interval.
 
     Parameters
     ----------
     mean : float, optional
-        Prior mean. Required if std is provided.
+        Prior mean in THETA space. Required if std is provided.
     std : float, optional
-        Prior standard deviation. Required if mean is provided.
+        Prior standard deviation in THETA space. Required if mean is provided.
     ci : tuple of (float, float), optional
-        Credible interval (low, high). Alternative to mean/std.
+        Credible interval (low, high) in THETA space. Alternative to mean/std.
     prob : float, default=0.95
         Probability mass in the credible interval (only used with ci).
 
@@ -156,12 +188,11 @@ class GaussPrior(Prior):
     >>> # Specify via 95% credible interval
     >>> prior = GaussPrior(ci=(2.0, 8.0))
     >>>
-    >>> # Evaluate log-probability
-    >>> log_prob = prior(jnp.array([5.0]))
+    >>> # Plot to verify prior matches your beliefs
+    >>> prior.plot()  # Shows Gaussian centered at 5
     >>>
-    >>> # Sample from prior
-    >>> key = jax.random.PRNGKey(42)
-    >>> samples = prior.sample(key, (100, 1))
+    >>> # Use in SVGD - transformations handled automatically
+    >>> svgd = graph.svgd(data, theta_dim=1, prior=prior)
     """
 
     def __init__(self, mean=None, std=None, ci=None, prob=0.95):
@@ -179,17 +210,68 @@ class GaussPrior(Prior):
             raise ValueError(
                 "Invalid prior specification. Provide either (mean, std) or ci."
             )
+        # Transform function set by SVGD when positive_params=True
+        self._transform = None
 
     def __call__(self, phi):
-        """Compute log-probability under Gaussian prior."""
-        return -0.5 * jnp.sum(((phi - self.mu) / self.sigma)**2)
+        """Compute log-probability.
+
+        When _transform is set (by SVGD with positive_params=True), evaluates
+        the prior in THETA space with proper Jacobian correction. Otherwise,
+        evaluates directly on the input.
+
+        Parameters
+        ----------
+        phi : array
+            Parameter values (in PHI space if transform is set)
+
+        Returns
+        -------
+        float
+            Log-probability
+        """
+        if self._transform is not None:
+            # Prior is defined in THETA space, input is in PHI space
+            theta = self._transform(phi)
+            # Gaussian log-probability in THETA space
+            log_prior_theta = -0.5 * jnp.sum(((theta - self.mu) / self.sigma)**2)
+            # Jacobian correction: log|dθ/dφ| = log(sigmoid(φ)) = -softplus(-φ)
+            log_jacobian = -jnp.sum(jax.nn.softplus(-phi))
+            return log_prior_theta + log_jacobian
+        else:
+            # No transform: evaluate directly (backward compatible)
+            return -0.5 * jnp.sum(((phi - self.mu) / self.sigma)**2)
 
     def sample(self, key, shape):
-        """Sample from N(mu, sigma^2)."""
-        return jax.random.normal(key, shape) * self.sigma + self.mu
+        """Sample from the prior.
+
+        When _transform is set, samples in THETA space and converts to PHI space.
+
+        Parameters
+        ----------
+        key : jax.random.PRNGKey
+            Random key
+        shape : tuple
+            Shape of samples (n_particles, theta_dim)
+
+        Returns
+        -------
+        array
+            Samples (in PHI space if transform is set)
+        """
+        # Sample in THETA space (what user understands)
+        theta_samples = jax.random.normal(key, shape) * self.sigma + self.mu
+
+        if self._transform is not None:
+            # Convert THETA → PHI using inverse softplus
+            # Clip to ensure positive values before inverse transform
+            theta_samples = jnp.maximum(theta_samples, 1e-6)
+            return _inverse_softplus(theta_samples)
+        else:
+            return theta_samples
 
     def plot(self, log=False, ax=None, **kwargs):
-        """Plot the Gaussian prior distribution.
+        """Plot the Gaussian prior distribution in THETA space.
 
         Parameters
         ----------
@@ -206,67 +288,124 @@ class GaussPrior(Prior):
             The axes with the plot
         """
         if ax is None:
+            import matplotlib.pyplot as plt
             fig, ax = plt.subplots(figsize=(4, 3))
-        x = np.linspace(self.mu - 4*self.sigma, self.mu + 4*self.sigma, 200)
+        # Always plot in THETA space (what user understands)
+        x = np.linspace(max(0, self.mu - 4*self.sigma), self.mu + 4*self.sigma, 200)
         if log:
-            ax.plot(x, list(map(self, x)), **kwargs)
+            # Log-probability in THETA space
+            log_prob = -0.5 * ((x - self.mu) / self.sigma)**2
+            ax.plot(x, log_prob, **kwargs)
             ax.set_title('Log Gaussian Prior')
             ax.set_ylabel('Log density')
         else:
             ax.plot(x, norm.pdf(x, loc=self.mu, scale=self.sigma), **kwargs)
             ax.set_title('Gaussian Prior')
             ax.set_ylabel('Density')
-        ax.set_xlabel('Parameter value')
+        ax.set_xlabel('Parameter value (θ)')
         return ax
 
 
 class HalfCauchyPrior(Prior):
     """Half-Cauchy prior distribution (positive support only).
 
+    The prior is defined in THETA space (the natural parameter space).
+    When used with positive_params=True, SVGD automatically handles
+    the transformation to PHI space with proper Jacobian correction.
+
     Useful for scale parameters due to heavy tails.
-    PDF: f(x) = 2 / (pi * scale * (1 + (x/scale)^2)) for x >= 0
+    PDF: f(θ) = 2 / (π × scale × (1 + (θ/scale)²)) for θ > 0
 
     Parameters
     ----------
     scale : float, default=1.0
-        Scale parameter of the half-Cauchy distribution.
+        Scale parameter of the half-Cauchy distribution in THETA space.
 
     Examples
     --------
     >>> prior = HalfCauchyPrior(scale=2.0)
     >>>
-    >>> # Evaluate log-probability
-    >>> log_prob = prior(jnp.array([1.0]))
+    >>> # Plot to verify prior matches your beliefs
+    >>> prior.plot()  # Shows half-Cauchy with scale=2
     >>>
-    >>> # Sample from prior
-    >>> key = jax.random.PRNGKey(42)
-    >>> samples = prior.sample(key, (100, 1))
+    >>> # Use in SVGD - transformations handled automatically
+    >>> svgd = graph.svgd(data, theta_dim=1, prior=prior)
     """
 
     def __init__(self, scale=1.0):
         self.scale = scale
+        # Transform function set by SVGD when positive_params=True
+        self._transform = None
 
     def __call__(self, phi):
-        """Compute log-probability under half-Cauchy prior.
+        """Compute log-probability.
 
-        Returns -inf for phi <= 0.
+        When _transform is set (by SVGD with positive_params=True), evaluates
+        the prior in THETA space with proper Jacobian correction. Otherwise,
+        evaluates directly on the input.
+
+        Parameters
+        ----------
+        phi : array
+            Parameter values (in PHI space if transform is set)
+
+        Returns
+        -------
+        float
+            Log-probability
         """
-        # Log PDF of half-Cauchy: log(2) - log(pi) - log(scale) - log(1 + (x/scale)^2)
-        log_prob = jnp.where(
-            phi > 0,
-            jnp.log(2) - jnp.log(jnp.pi) - jnp.log(self.scale) - jnp.log(1 + (phi/self.scale)**2),
-            -jnp.inf
-        )
-        return jnp.sum(log_prob)
+        if self._transform is not None:
+            # Prior is defined in THETA space, input is in PHI space
+            theta = self._transform(phi)
+            # Half-Cauchy log-probability in THETA space (always positive after softplus)
+            log_prior_theta = jnp.sum(
+                jnp.log(2) - jnp.log(jnp.pi) - jnp.log(self.scale)
+                - jnp.log(1 + (theta/self.scale)**2)
+            )
+            # Jacobian correction: log|dθ/dφ| = log(sigmoid(φ)) = -softplus(-φ)
+            log_jacobian = -jnp.sum(jax.nn.softplus(-phi))
+            return log_prior_theta + log_jacobian
+        else:
+            # No transform: evaluate directly (backward compatible)
+            # Returns -inf for phi <= 0
+            log_prob = jnp.where(
+                phi > 0,
+                jnp.log(2) - jnp.log(jnp.pi) - jnp.log(self.scale) - jnp.log(1 + (phi/self.scale)**2),
+                -jnp.inf
+            )
+            return jnp.sum(log_prob)
 
     def sample(self, key, shape):
-        """Sample from half-Cauchy using inverse CDF method."""
+        """Sample from the prior.
+
+        When _transform is set, samples in THETA space and converts to PHI space.
+
+        Parameters
+        ----------
+        key : jax.random.PRNGKey
+            Random key
+        shape : tuple
+            Shape of samples (n_particles, theta_dim)
+
+        Returns
+        -------
+        array
+            Samples (in PHI space if transform is set)
+        """
         u = jax.random.uniform(key, shape)
-        # Inverse CDF of half-Cauchy: x = scale * tan(pi * u / 2)
-        return self.scale * jnp.tan(jnp.pi * u / 2)
+        # Sample in THETA space using inverse CDF
+        theta_samples = self.scale * jnp.tan(jnp.pi * u / 2)
+
+        if self._transform is not None:
+            # Convert THETA → PHI using inverse softplus
+            # Half-Cauchy samples are always positive, but clip for safety
+            theta_samples = jnp.maximum(theta_samples, 1e-6)
+            return _inverse_softplus(theta_samples)
+        else:
+            return theta_samples
 
     def plot(self, ax=None, **kwargs):
-        """Plot the half-Cauchy prior distribution.
+        """Plot the half-Cauchy prior distribution in THETA space.
 
         Parameters
         ----------
@@ -281,12 +420,14 @@ class HalfCauchyPrior(Prior):
             The axes with the plot
         """
         if ax is None:
+            import matplotlib.pyplot as plt
             fig, ax = plt.subplots(figsize=(4, 3))
+        # Plot in THETA space (what user understands)
         x = np.linspace(0.001, 5 * self.scale, 200)
         pdf = 2 / (np.pi * self.scale * (1 + (x/self.scale)**2))
         ax.plot(x, pdf, **kwargs)
         ax.set_title('Half-Cauchy Prior')
-        ax.set_xlabel('Parameter value')
+        ax.set_xlabel('Parameter value (θ)')
         ax.set_ylabel('Density')
         return ax
 
@@ -2149,6 +2290,16 @@ class SVGD:
                 print("Using custom parameter transformation")
         else:
             self.param_transform = None
+
+        # Wrap priors with transformation info for Jacobian correction
+        # This allows priors to be defined in THETA space while SVGD works in PHI space
+        if self.param_transform is not None:
+            if self.prior_list is not None:
+                for prior_i in self.prior_list:
+                    if hasattr(prior_i, '_transform'):
+                        prior_i._transform = self.param_transform
+            elif self.prior is not None and hasattr(self.prior, '_transform'):
+                self.prior._transform = self.param_transform
 
         # Validate and initialize particles
         if theta_init is None and theta_dim is None:
