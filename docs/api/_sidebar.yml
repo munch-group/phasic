@@ -1,0 +1,24 @@
+website:
+  sidebar:
+  - contents:
+    - api/index.qmd
+    - contents:
+      - api/set_vscode_theme.qmd
+      - api/vscode_theme.qmd
+      - api/lighten_colors.qmd
+      - api/truncate_colormap.qmd
+      - api/iridis.qmd
+      - api/pqdm.qmd
+      - api/prange.qmd
+      - api/CPUMonitor.qmd
+      - api/monitor.qmd
+      - api/CPUMonitorMagics.qmd
+      - api/detect_compute_nodes.qmd
+      - api/get_cached_nodes.qmd
+      - api/SlurmMagic.qmd
+      - api/Left.qmd
+      - api/ipython.qmd
+      - api/html_style.qmd
+      section: vscodenb
+    id: api
+  - id: dummy-sidebar

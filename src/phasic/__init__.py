@@ -228,6 +228,11 @@ if HAS_JAX:
         ConstantStepSize,
         ExpStepSize,
         AdaptiveStepSize,
+        # Optimizers
+        AdamOptimizer,
+        SGDMomentum,
+        RMSprop,
+        Adagrad,
         # Regularization schedules
         RegularizationSchedule,
         ConstantRegularization,
@@ -252,6 +257,10 @@ else:
     ConstantRegularization = None
     ExpRegularization = None
     ExponentialCDFRegularization = None
+    AdamOptimizer = None
+    SGDMomentum = None
+    RMSprop = None
+    Adagrad = None
     # BandwidthSchedule = None
     # MedianBandwidth = None
     # FixedBandwidth = None
@@ -2811,16 +2820,16 @@ extern "C" {{
              observed_data: ArrayLike,
              discrete: Optional[bool] = None,
              prior: Optional[Callable] = None,
-             n_particles: int = 50,
-             n_iterations: int = 1000,
-             learning_rate: float = 0.001,
+             n_particles: Optional[int] = None,
+             n_iterations: int = 100,
+             learning_rate: float = 0.01,
              bandwidth: str = 'median',
              theta_init: Optional[ArrayLike] = None,
              theta_dim: Optional[int] = None,
              return_history: bool = True,
              seed: int = 42,
-             verbose: bool = True,
-             progress: bool = False,
+             verbose: bool = False,
+             progress: bool = True,
              jit: Optional[bool] = None,
              parallel: Optional[str] = None,
              n_devices: Optional[int] = None,
@@ -2832,7 +2841,8 @@ extern "C" {{
              param_transform: Optional[Callable] = None,
              joint_index: bool = False,
              rewards: Optional[ArrayLike] = None,
-             fixed: Optional[ArrayLike] = None) -> Dict:    
+             fixed: Optional[ArrayLike] = None,
+             optimizer: Optional[object] = None) -> Dict:    
     # @classmethod
     # def svgd(cls,
     #          model: Callable,
@@ -2884,7 +2894,9 @@ extern "C" {{
             Initial particle positions (n_particles, theta_dim).
             If None, initializes randomly from standard normal.
         theta_dim : int, optional
-            Dimension of theta parameter vector. Required if theta_init is None.
+            Dimension of theta parameter vector. If None, inferred from the graph's
+            parameterized edge structure via param_length(). Only required if theta_init
+            is None and the graph has no parameterized edges.
         return_history : bool, default=True
             If True, return particle positions throughout optimization
         seed : int, default=42
@@ -3010,6 +3022,15 @@ extern "C" {{
 
         from .svgd import SVGD
 
+        # Auto-infer theta_dim from graph if not provided
+        if theta_dim is None and theta_init is None:
+            theta_dim = self.param_length()
+            if theta_dim == 0:
+                raise ValueError(
+                    "theta_dim could not be inferred. Either the graph has no parameterized edges, "
+                    "or you must specify theta_dim (or theta_init) explicitly."
+                )
+
         if discrete is None:
             discrete = self.is_discrete
 
@@ -3091,7 +3112,8 @@ extern "C" {{
             positive_params=positive_params,
             param_transform=param_transform,
             rewards=rewards,
-            fixed=fixed
+            fixed=fixed,
+            optimizer=optimizer
         )
 
         # Run inference

@@ -101,7 +101,7 @@ platforms = ["osx-arm64", "linux-64"]
 python = ">=3.9,<3.14"
 git = ">=2.51.0,<3"
 gh = ">=2.81.0,<3"
-quartodoc = "*"
+quartodoc = ">=0.11.1,<0.12"
 pip = "*"
 cmake = ">=4.1.2,<5"
 eigen = ">=3.4.0,<4"
@@ -130,6 +130,7 @@ geopandas = ">=1.1.1,<2"
 geodatasets = ">=2024.8.0,<2025"
 vscodenb = ">=0.1.26,<0.2"
 nbdime = ">=4.0.2,<5"
+griffe = ">=1.15.0,<2"
 
 # [tool.pixi.pypi-dependencies]
 

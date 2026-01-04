@@ -1,11 +1,15 @@
-
-from phasic import Graph, with_ipv, ExpStepSize # ALWAYS import phasic first to set jax backend correctly
+from phasic import Graph, with_ipv, ExpStepSize, ExpRegularization, clear_caches # ALWAYS import phasic first to set jax backend correctly
 import numpy as np
 import jax.numpy as jnp
-import sys
-from tqdm.auto import tqdm
 import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
+import seaborn as sns
+from vscodenb import set_vscode_theme
 from typing import Optional
+from tqdm.auto import tqdm
+
+
 
 def joint_prob_reward_callback(state, current_rewards=None, 
                                mutation_rate=1, reward_limit=10, 
@@ -67,7 +71,7 @@ def joint_prob_graph(graph, reward_rates_callback, mutation_rate:Optional[float]
           coeffs)
 
     prev_completion = 0
-    pbar = tqdm(position=0, total=1, miniters=0, desc='visited/created', bar_format='{l_bar}{bar}')
+    pbar = tqdm(position=0, total=1, miniters=0, desc='Visited / Created', bar_format='{l_bar}{bar}')
 
     index = index + 1
     
@@ -146,9 +150,6 @@ def joint_prob_graph(graph, reward_rates_callback, mutation_rate:Optional[float]
     for i in t_vertex_indices:
         new_graph.vertex_at(i).add_edge(new_absorbing, [0.0, 1.0])
 
-    # DISABLED: normalize() breaks update_weights() by preventing weight updates
-    # weights_were_multiplied_with = new_graph.normalize()
-
     return new_graph
 
 
@@ -166,7 +167,6 @@ def joint_prob_table(joint_graph, obs2idx):
         records.append([*obs, prob])
     joint_probs = pd.DataFrame(records, columns=list(range(1, nr_samples+1)) + ['prob'])
     return joint_probs
-
 
 nr_samples = 4
 
@@ -186,9 +186,8 @@ def coalescent_1param(state):
             new[i+j+1] += 1
             transitions.append([new, [state[i]*(state[j]-same)/(1+same)]])
     return transitions
-
-true_theta = [1/5]
-mutation_rate = 0.1
+true_theta = [1/10]
+mutation_rate = 1 # should ALWAYS be one.....
 base_graph = Graph(coalescent_1param)
 base_graph.update_weights(true_theta)
 base_graph.plot()
@@ -196,8 +195,6 @@ joint_graph = joint_prob_graph(base_graph,
                                joint_prob_reward_callback, 
                                mutation_rate=mutation_rate, 
                                reward_limit=3)
-
-
 def coalescent_obs2idx_map(graph, base_graph_state_length):
     t_vertex_indices = []
     for vertex in graph.vertices():
@@ -214,27 +211,26 @@ def coalescent_obs2idx_map(graph, base_graph_state_length):
         mapping[tuple(rewards.tolist())] = int(idx)
     return mapping
 
-
-obs2idx = coalescent_obs2idx_map(joint_graph, base_graph.state_length())
-
+clear_caches()
 
 joint_graph.update_weights(true_theta + [mutation_rate])  # [coalescent_rate, mutation_rate]
-
+joint_graph.normalize()
+obs2idx = coalescent_obs2idx_map(joint_graph, base_graph.state_length())
 joint = joint_prob_table(joint_graph, obs2idx)
+joint['prob'] /= joint['prob'].sum()
+joint
 
-# probs = joint.loc[1:, 'prob'].to_numpy()
-# modelled_obs = joint.iloc[1:, :-1].to_numpy()
 probs = joint.loc[:, 'prob'].to_numpy()
 modelled_obs = joint.iloc[:, :-1].to_numpy()
 
 rng = np.random.default_rng()
-# Sojourn times from joint_graph are probabilities but don't sum to 1 (due to deficit)
-# For sampling, we condition on observing a covered state: p_conditional = p / sum(p)
-# This is correct because we never observe uncovered states in practice
-# observations = rng.choice(modelled_obs, 10000, axis=0, replace=True, p=probs/probs.sum()).tolist()
 observations = rng.choice(modelled_obs, 10000, axis=0, replace=True, p=probs/probs.sum()).tolist()
 
+allowed_observations = set(tuple(x) for x in modelled_obs)
+observations = [o for o in observations if tuple(o) in allowed_observations]
+observations = np.array(observations)
 
+obs2idx = coalescent_obs2idx_map(joint_graph, base_graph.state_length())
 obs_indices = [obs2idx[tuple(o)] for o in observations]
 
 def uninformative_prior(phi):
@@ -243,30 +239,28 @@ def uninformative_prior(phi):
     sigma = 10.0
     return -0.5 * jnp.sum(((phi - mu) / sigma)**2)
 
-step_schedule = ExpStepSize(first_step=0.1, last_step=0.01, tau=50.0)
+fig, axes = plt.subplots(1, 2, figsize=(6, 3))
 
+x = np.linspace(-20, 20, 100)
+axes[0].plot(x, list(map(uninformative_prior, x)))
+axes[0].set_title('Prior')
+
+step_schedule = ExpStepSize(first_step=0.1, last_step=0.01, tau=50.0)
+step_schedule.plot(200, ax=axes[1])
+plt.tight_layout() ;
 params = dict(
     bandwidth = 'median',
-    theta_dim = len(true_theta),      # number of model parameters
-    prior = uninformative_prior,      # prior on parameters
-    n_particles = 50,                 # number of particles
-    n_iterations = 200,               # number of optimization steps
-    learning_rate = step_schedule,    # step size schedule
-    seed = 42,                        # random seed
-    verbose = False,                  # print what it is doing
-    progress = True,                  # show progress bar
-    discrete = False,
-)
-svgd = joint_graph.svgd(
-    obs_indices,
+    theta_dim = len(true_theta) + 1, # plus one for mutation rate
     joint_index=True,
-    theta_dim=2,           # Full parameter space: [coalescent_rate, mutation_rate]
-    fixed=[0, 1],          # 0=optimize coalescent, 1=fix mutation at 1.0
-    prior=uninformative_prior,  # Wide prior N(0, 100) to allow theta ~ 7
-    progress=True,
-    n_particles=100,
-    n_iterations=200
+    fixed=[(1, mutation_rate)],  # Fix theta[1] (mutation) at actual mutation_rate value
+    prior = uninformative_prior,
+    n_particles = 50,
+    n_iterations = 200,
+    learning_rate = step_schedule,
+    seed = 42,
+    verbose = False,
+    progress = True,
 )
-
+svgd = joint_graph.svgd(obs_indices, **params)
 svgd.summary()
-print("True theta:", true_theta)
+svgd.map_estimate_from_particles()

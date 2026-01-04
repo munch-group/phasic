@@ -241,42 +241,42 @@ quartodoc:
       contents:
         - Graph
 
-    - title: JAX-compatible utils
-      package: phasic
-      desc: |
-        JAX-compatible phase-type distribution computations with FFI integration.
-        Supports JIT compilation, automatic differentiation, and vmap/pmap parallelization.
-      contents:
-        - compute_pmf_ffi
-        - compute_moments_ffi
-        - compute_pmf_and_moments_ffi
+    # - title: JAX-compatible utils
+    #   package: phasic
+    #   desc: |
+    #     JAX-compatible phase-type distribution computations with FFI integration.
+    #     Supports JIT compilation, automatic differentiation, and vmap/pmap parallelization.
+    #   contents:
+    #     - compute_pmf_ffi
+    #     - compute_moments_ffi
+    #     - compute_pmf_and_moments_ffi
 
-    - title: Inference
-      package: phasic
-      desc: |
-        SVGD
-      contents:
-        - SVGD
+    # - title: Inference
+    #   package: phasic
+    #   desc: |
+    #     SVGD
+    #   contents:
+    #     - SVGD
 
-    - title: Distributed Computing
-      package: phasic
-      desc: |
-        Multi-node distributed computing utilities for SLURM clusters.
-        Simplifies scaling from single machine to 100+ nodes with automatic
-        JAX distributed initialization and configuration management.
-      contents:
-        # - subtitle: "Distributed Initialization"
-        #   desc: "Auto-detection and setup for multi-node computing"
-        - DistributedConfig
-        - initialize_distributed
-        - detect_slurm_environment
-        - get_coordinator_address
-        - configure_jax_devices
-        - initialize_jax_distributed
-        # - subtitle: "Cluster Configuration"
-        #   desc: "YAML-based cluster configuration management"
-        - ClusterConfig
-        - load_config
-        - get_default_config
-        - validate_config
-        - suggest_config
+    # - title: Distributed Computing
+    #   package: phasic
+    #   desc: |
+    #     Multi-node distributed computing utilities for SLURM clusters.
+    #     Simplifies scaling from single machine to 100+ nodes with automatic
+    #     JAX distributed initialization and configuration management.
+    #   contents:
+    #     # - subtitle: "Distributed Initialization"
+    #     #   desc: "Auto-detection and setup for multi-node computing"
+    #     - DistributedConfig
+    #     - initialize_distributed
+    #     - detect_slurm_environment
+    #     - get_coordinator_address
+    #     - configure_jax_devices
+    #     - initialize_jax_distributed
+    #     # - subtitle: "Cluster Configuration"
+    #     #   desc: "YAML-based cluster configuration management"
+    #     - ClusterConfig
+    #     - load_config
+    #     - get_default_config
+    #     - validate_config
+    #     - suggest_config

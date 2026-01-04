@@ -62,3 +62,9 @@ maybe interpolate particles or do a refined svgd to find MAP estimate
 have svgd() infer theta_dim from graph.vertex_at(1).edges()[0].edge_state().size()
 
 check which parallel method is fastest under which circumstances
+
+
+test regularization correctness
+
+
+individual priors

@@ -636,6 +636,345 @@ class AdaptiveStepSize(StepSizeSchedule):
 
 
 # ============================================================================
+# Optimizers
+# ============================================================================
+
+class AdamOptimizer:
+    """
+    Adam optimizer for SVGD with per-parameter adaptive learning rates.
+
+    Adam maintains running estimates of the first moment (mean) and second moment
+    (uncentered variance) of gradients, using these to adaptively scale updates
+    per-parameter. This is especially useful when:
+    - Gradients have vastly different scales across parameters
+    - Dataset size causes large gradient magnitudes
+    - Optimization landscape has varying curvature
+
+    Parameters
+    ----------
+    learning_rate : float, default=0.001
+        Base learning rate (α in Adam paper). This is scaled per-parameter
+        based on gradient history.
+    beta1 : float, default=0.9
+        Exponential decay rate for first moment estimates (momentum).
+        Higher = more smoothing, slower adaptation.
+    beta2 : float, default=0.999
+        Exponential decay rate for second moment estimates (gradient variance).
+        Higher = longer memory of gradient magnitudes.
+    epsilon : float, default=1e-8
+        Small constant for numerical stability in division.
+
+    Attributes
+    ----------
+    m : array or None
+        First moment estimate (shape: n_particles, theta_dim)
+    v : array or None
+        Second moment estimate (shape: n_particles, theta_dim)
+    t : int
+        Current timestep (for bias correction)
+
+    Examples
+    --------
+    >>> from phasic import SVGD, AdamOptimizer
+    >>>
+    >>> # Create optimizer with default settings
+    >>> optimizer = AdamOptimizer(learning_rate=0.01)
+    >>>
+    >>> # Use with SVGD
+    >>> svgd = SVGD(
+    ...     model=model,
+    ...     observed_data=observations,
+    ...     theta_dim=2,
+    ...     optimizer=optimizer,
+    ...     n_particles=50,
+    ...     n_iterations=200
+    ... )
+    >>> svgd.fit()
+
+    References
+    ----------
+    Kingma, D. P., & Ba, J. (2014). Adam: A Method for Stochastic Optimization.
+    arXiv:1412.6980. https://arxiv.org/abs/1412.6980
+
+    Notes
+    -----
+    When using Adam, the `learning_rate` parameter passed to SVGD is ignored
+    in favor of the optimizer's learning rate. Step size schedules (ExpStepSize,
+    AdaptiveStepSize) are not compatible with Adam - use Adam's learning_rate instead.
+    """
+
+    def __init__(self, learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8):
+        self.lr = learning_rate
+        self.beta1 = beta1
+        self.beta2 = beta2
+        self.epsilon = epsilon
+        self.m = None  # First moment estimate
+        self.v = None  # Second moment estimate
+        self.t = 0     # Timestep
+
+    def reset(self, shape):
+        """
+        Reset optimizer state for given particle shape.
+
+        Called at the start of optimization to initialize moment estimates.
+
+        Parameters
+        ----------
+        shape : tuple
+            Shape of particles array (n_particles, theta_dim) or
+            (n_particles, learnable_dim) if fixed parameters are used.
+        """
+        self.m = jnp.zeros(shape)
+        self.v = jnp.zeros(shape)
+        self.t = 0
+
+    def step(self, phi):
+        """
+        Compute Adam update given SVGD gradient direction.
+
+        Parameters
+        ----------
+        phi : array (n_particles, theta_dim)
+            SVGD gradient direction: (K @ grad_log_p + sum(grad_K)) / n_particles
+            This is the direction of steepest ascent in the RKHS.
+
+        Returns
+        -------
+        update : array (n_particles, theta_dim)
+            Scaled update to add to particles. Each element is adaptively
+            scaled based on the history of gradients for that parameter.
+        """
+        self.t += 1
+
+        # Update biased first moment estimate (momentum)
+        self.m = self.beta1 * self.m + (1 - self.beta1) * phi
+
+        # Update biased second raw moment estimate (RMSprop-style)
+        self.v = self.beta2 * self.v + (1 - self.beta2) * (phi ** 2)
+
+        # Compute bias-corrected estimates
+        # Early iterations have m,v biased toward zero; this corrects for that
+        m_hat = self.m / (1 - self.beta1 ** self.t)
+        v_hat = self.v / (1 - self.beta2 ** self.t)
+
+        # Compute update: lr * m_hat / (sqrt(v_hat) + eps)
+        # - Large gradients → large v_hat → smaller effective step
+        # - Small gradients → small v_hat → larger effective step
+        return self.lr * m_hat / (jnp.sqrt(v_hat) + self.epsilon)
+
+
+class SGDMomentum:
+    """
+    SGD with momentum optimizer for SVGD.
+
+    Momentum helps accelerate gradients in the right direction and dampens
+    oscillations. It accumulates a velocity vector in directions of persistent
+    gradient descent.
+
+    Parameters
+    ----------
+    learning_rate : float, default=0.01
+        Step size for parameter updates.
+    momentum : float, default=0.9
+        Momentum coefficient. Higher values give more weight to past gradients.
+        Typical values: 0.9 (standard), 0.99 (high momentum).
+
+    Attributes
+    ----------
+    v : array or None
+        Velocity (accumulated gradient), shape (n_particles, theta_dim)
+
+    Examples
+    --------
+    >>> from phasic import SVGD, SGDMomentum
+    >>>
+    >>> optimizer = SGDMomentum(learning_rate=0.01, momentum=0.9)
+    >>> svgd = SVGD(
+    ...     model=model,
+    ...     observed_data=observations,
+    ...     theta_dim=2,
+    ...     optimizer=optimizer
+    ... )
+
+    Notes
+    -----
+    Update rule: v = momentum * v + gradient; params += lr * v
+    """
+
+    def __init__(self, learning_rate=0.01, momentum=0.9):
+        self.lr = learning_rate
+        self.momentum = momentum
+        self.v = None
+
+    def reset(self, shape):
+        """Reset optimizer state for given particle shape."""
+        self.v = jnp.zeros(shape)
+
+    def step(self, phi):
+        """
+        Compute SGD with momentum update.
+
+        Parameters
+        ----------
+        phi : array (n_particles, theta_dim)
+            SVGD gradient direction.
+
+        Returns
+        -------
+        update : array (n_particles, theta_dim)
+            Scaled update to add to particles.
+        """
+        self.v = self.momentum * self.v + phi
+        return self.lr * self.v
+
+
+class RMSprop:
+    """
+    RMSprop optimizer for SVGD.
+
+    RMSprop adapts the learning rate for each parameter by dividing by an
+    exponentially decaying average of squared gradients. This helps with
+    non-stationary objectives and noisy gradients.
+
+    Parameters
+    ----------
+    learning_rate : float, default=0.001
+        Base learning rate.
+    decay : float, default=0.99
+        Decay rate for the moving average of squared gradients.
+        Higher values give longer memory.
+    epsilon : float, default=1e-8
+        Small constant for numerical stability.
+
+    Attributes
+    ----------
+    v : array or None
+        Moving average of squared gradients, shape (n_particles, theta_dim)
+
+    Examples
+    --------
+    >>> from phasic import SVGD, RMSprop
+    >>>
+    >>> optimizer = RMSprop(learning_rate=0.001, decay=0.99)
+    >>> svgd = SVGD(
+    ...     model=model,
+    ...     observed_data=observations,
+    ...     theta_dim=2,
+    ...     optimizer=optimizer
+    ... )
+
+    References
+    ----------
+    Hinton, G. (2012). Lecture 6.5 - RMSprop. Coursera: Neural Networks for
+    Machine Learning.
+
+    Notes
+    -----
+    Update rule: v = decay * v + (1 - decay) * gradient²; params += lr * gradient / (√v + ε)
+    """
+
+    def __init__(self, learning_rate=0.001, decay=0.99, epsilon=1e-8):
+        self.lr = learning_rate
+        self.decay = decay
+        self.epsilon = epsilon
+        self.v = None
+
+    def reset(self, shape):
+        """Reset optimizer state for given particle shape."""
+        self.v = jnp.zeros(shape)
+
+    def step(self, phi):
+        """
+        Compute RMSprop update.
+
+        Parameters
+        ----------
+        phi : array (n_particles, theta_dim)
+            SVGD gradient direction.
+
+        Returns
+        -------
+        update : array (n_particles, theta_dim)
+            Scaled update to add to particles.
+        """
+        self.v = self.decay * self.v + (1 - self.decay) * (phi ** 2)
+        return self.lr * phi / (jnp.sqrt(self.v) + self.epsilon)
+
+
+class Adagrad:
+    """
+    Adagrad optimizer for SVGD.
+
+    Adagrad adapts the learning rate for each parameter based on the
+    accumulated sum of squared gradients. Parameters with large gradients
+    get smaller learning rates, and parameters with small gradients get
+    larger learning rates.
+
+    Parameters
+    ----------
+    learning_rate : float, default=0.01
+        Base learning rate.
+    epsilon : float, default=1e-8
+        Small constant for numerical stability.
+
+    Attributes
+    ----------
+    G : array or None
+        Accumulated sum of squared gradients, shape (n_particles, theta_dim)
+
+    Examples
+    --------
+    >>> from phasic import SVGD, Adagrad
+    >>>
+    >>> optimizer = Adagrad(learning_rate=0.01)
+    >>> svgd = SVGD(
+    ...     model=model,
+    ...     observed_data=observations,
+    ...     theta_dim=2,
+    ...     optimizer=optimizer
+    ... )
+
+    References
+    ----------
+    Duchi, J., Hazan, E., & Singer, Y. (2011). Adaptive Subgradient Methods
+    for Online Learning and Stochastic Optimization. JMLR 12:2121-2159.
+
+    Notes
+    -----
+    Update rule: G += gradient²; params += lr * gradient / (√G + ε)
+
+    Warning: The learning rate decays over time as G accumulates. For long
+    runs, consider using RMSprop or Adam which have bounded effective learning rates.
+    """
+
+    def __init__(self, learning_rate=0.01, epsilon=1e-8):
+        self.lr = learning_rate
+        self.epsilon = epsilon
+        self.G = None
+
+    def reset(self, shape):
+        """Reset optimizer state for given particle shape."""
+        self.G = jnp.zeros(shape)
+
+    def step(self, phi):
+        """
+        Compute Adagrad update.
+
+        Parameters
+        ----------
+        phi : array (n_particles, theta_dim)
+            SVGD gradient direction.
+
+        Returns
+        -------
+        update : array (n_particles, theta_dim)
+            Scaled update to add to particles.
+        """
+        self.G = self.G + phi ** 2
+        return self.lr * phi / (jnp.sqrt(self.G) + self.epsilon)
+
+
+# ============================================================================
 # Regularization Schedule Classes
 # ============================================================================
 
@@ -1507,7 +1846,8 @@ def _svgd_update_jitted(particles, K, grad_K, grad_log_p, step_size):
 
 
 def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
-              parallel_mode='vmap', n_devices=None, fixed_mask=None, fixed_values=None):
+              parallel_mode='vmap', n_devices=None, fixed_mask=None, fixed_values=None,
+              optimizer=None):
     """
     Perform single SVGD update step
 
@@ -1535,6 +1875,9 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
     fixed_values : array (theta_dim,), optional
         Values to fix parameters at (for dimensions where fixed_mask=1).
         Defaults to all 1.0 if not provided.
+    optimizer : AdamOptimizer, optional
+        If provided, uses Adam optimizer for adaptive per-parameter learning rates.
+        When used, the `step_size` parameter is ignored.
 
     Returns
     -------
@@ -1666,10 +2009,16 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
     negative_term = jnp.sum(grad_K, axis=1) / n_particles
     phi = positive_term + negative_term
 
-    # Update particles
+    # Compute update: either Adam (adaptive) or fixed step size
+    if optimizer is not None:
+        update = optimizer.step(phi)
+    else:
+        update = step_size * phi
+
+    # Apply update to particles
     if fixed_mask is not None:
-        # Update in reduced space
-        particles_learnable_new = particles_for_grad + step_size * phi
+        # Update in reduced space (learnable dimensions only)
+        particles_learnable_new = particles_for_grad + update
 
         # Expand back to full space with custom fixed values
         if fixed_values is not None:
@@ -1681,13 +2030,14 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
         return particles_new
     else:
         # Standard SVGD update (no fixed parameters)
-        return particles + step_size * phi
+        return particles + update
 
 
 def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
              kernel=None, return_history=True, verbose=True, progress=False, compiled_grad=None,
              parallel_mode='vmap', n_devices=None,
-             log_prob_fn_factory=None, regularization_schedule=None, lr_scale=1.0, fixed_mask=None, fixed_values=None):
+             log_prob_fn_factory=None, regularization_schedule=None, lr_scale=1.0, fixed_mask=None, fixed_values=None,
+             optimizer=None):
     """
     Run Stein Variational Gradient Descent
 
@@ -1718,6 +2068,9 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
         Parallelization strategy: 'vmap', 'pmap', or 'none'
     n_devices : int, optional
         Number of devices for pmap (only used if parallel_mode='pmap')
+    optimizer : AdamOptimizer, optional
+        If provided, uses Adam optimizer for adaptive per-parameter learning rates.
+        When used, the `learning_rate` parameter is ignored.
 
     Returns
     -------
@@ -1747,6 +2100,18 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
             f"learning_rate must be float or StepSizeSchedule, got: {type(learning_rate)}"
         )
 
+    # Initialize optimizer if provided
+    if optimizer is not None:
+        # Get shape for optimizer state (reduced space if fixed parameters)
+        if fixed_mask is not None:
+            learnable_dim = int(jnp.sum(fixed_mask == 0))
+            optimizer_shape = (len(theta_init), learnable_dim)
+        else:
+            optimizer_shape = theta_init.shape
+        optimizer.reset(optimizer_shape)
+        if verbose:
+            print(f"Using Adam optimizer (lr={optimizer.lr}, β1={optimizer.beta1}, β2={optimizer.beta2})")
+
     # SVGD iterations
     if verbose:
         print(f"Running SVGD: {n_steps} steps, {len(particles)} particles")
@@ -1775,7 +2140,8 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
                              parallel_mode=parallel_mode,
                              n_devices=n_devices,
                              fixed_mask=fixed_mask,
-                             fixed_values=fixed_values)
+                             fixed_values=fixed_values,
+                             optimizer=optimizer)
 
         # Store history
         if return_history: # and (step % max(1, n_steps // 20) == 0):
@@ -2002,6 +2368,19 @@ class SVGD:
         **Performance**: SVGD operates in reduced parameter space (learnable dims only)
         for computational efficiency. Kernel bandwidth is computed only over varying
         dimensions, improving convergence.
+    optimizer : AdamOptimizer, optional
+        If provided, uses Adam optimizer for adaptive per-parameter learning rates
+        instead of fixed step size. This is especially useful for:
+        - Large datasets where gradient magnitudes can be very large
+        - Models where different parameters have different gradient scales
+        - Cases where fixed step sizes cause oscillation ("shark teeth" pattern)
+
+        When using an optimizer, the `learning_rate` parameter is ignored.
+
+        Example:
+            >>> from phasic import SVGD, AdamOptimizer
+            >>> optimizer = AdamOptimizer(learning_rate=0.01)
+            >>> svgd = SVGD(model, data, theta_dim=2, optimizer=optimizer)
 
     Attributes
     ----------
@@ -2093,7 +2472,8 @@ class SVGD:
                  n_devices=None,        # NEW: explicit device count for pmap
                  precompile=True,       # Keep for backward compat
                  compilation_config=None, positive_params=True, param_transform=None,
-                 regularization=0.0, nr_moments=2, rewards=None, fixed=None):
+                 regularization=0.0, nr_moments=2, rewards=None, fixed=None,
+                 optimizer=None):
 
         if n_particles is None:
             n_particles = 20 * theta_dim
@@ -2493,6 +2873,7 @@ class SVGD:
 
         self.nr_moments = nr_moments
         self.rewards = rewards  # Can be None, 1D (n_vertices,), or 2D (n_vertices, n_features)
+        self.optimizer = optimizer
 
         if self.regularization > 0.0 or self.use_regularization_schedule:
             if self.nr_moments == 0:
@@ -3181,7 +3562,8 @@ class SVGD:
                 regularization_schedule=self.regularization_schedule,
                 lr_scale=self.lr_scale,
                 fixed_mask=self.fixed_mask,
-                fixed_values=self.fixed_values
+                fixed_values=self.fixed_values,
+                optimizer=self.optimizer
             )
         else:
             # Static regularization - use current precompiled approach
@@ -3236,7 +3618,8 @@ class SVGD:
                 regularization_schedule=None,
                 lr_scale=self.lr_scale,
                 fixed_mask=self.fixed_mask,
-                fixed_values=self.fixed_values
+                fixed_values=self.fixed_values,
+                optimizer=self.optimizer
             )
 
         # Store results as attributes
@@ -3800,6 +4183,115 @@ class SVGD:
 
         return fig, axes
 
+    def plot_ci(self, figsize=(7, 3), save_path=None, skip=0, show_transformed=True,
+                true_theta=None, ci=0.95, alpha=0.2, target=None):
+        """
+        Plot mean parameter trajectory with confidence interval ribbon.
+
+        Shows the posterior mean over iterations with a shaded region representing
+        the specified confidence interval (default 95% CI).
+
+        Parameters
+        ----------
+        figsize : tuple, default=(7, 3)
+            Figure size (width, height)
+        save_path : str, optional
+            Path to save the plot
+        skip : int, default=0
+            Number of initial iterations to skip
+        show_transformed : bool, default=True
+            If True, show transformed (constrained) parameter values.
+        true_theta : array_like, optional
+            True parameter values to overlay as horizontal lines
+        ci : float, default=0.95
+            Confidence interval level (e.g., 0.95 for 95% CI)
+        alpha : float, default=0.2
+            Transparency of the CI ribbon
+        target : array_like, optional
+            Target parameter value to overlay as horizontal line
+
+        Returns
+        -------
+        fig, ax
+            Matplotlib figure and axes objects
+        """
+        if not self.is_fitted:
+            raise RuntimeError("Must call fit() before plotting")
+
+        if self.history is None:
+            raise RuntimeError("History not available. Call fit(return_history=True) first")
+
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            raise ImportError("matplotlib is required for plotting. Install with: pip install matplotlib")
+
+        # Get appropriate history representation
+        results = self.get_results()
+        if show_transformed or self.param_transform is None:
+            history = results.get('history', self.history)
+            space_label = " (transformed)" if self.param_transform is not None else ""
+        else:
+            history = results.get('history_unconstrained', self.history)
+            space_label = " (untransformed)"
+
+        # Convert history to array: (n_iterations, n_particles, theta_dim)
+        history_array = jnp.stack(history)
+
+        # Compute percentiles for CI
+        lower_pct = (1 - ci) / 2 * 100
+        upper_pct = (1 + ci) / 2 * 100
+
+        mean_over_time = jnp.mean(history_array, axis=1)  # (n_iterations, theta_dim)
+        lower_ci = jnp.percentile(history_array, lower_pct, axis=1)  # (n_iterations, theta_dim)
+        upper_ci = jnp.percentile(history_array, upper_pct, axis=1)  # (n_iterations, theta_dim)
+
+        # Get iteration numbers for x-axis
+        iterations = self.history_iterations if self.history_iterations is not None else range(len(history))
+        iterations = list(iterations)  # Convert to list for slicing
+
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+
+        colors = plt.cm.tab10.colors
+
+        if target is not None:
+            ax.axhline(target, color='C1', linestyle='--', alpha=0.7)              
+
+        for i in range(self.theta_dim):
+            param_name = rf"$\theta_{i}$"
+            color = colors[i % len(colors)]
+            x = iterations[skip:]
+            y_mean = mean_over_time[skip:, i]
+            y_lower = lower_ci[skip:, i]
+            y_upper = upper_ci[skip:, i]
+
+            # Plot mean line
+            ax.plot(x, y_mean, label=param_name, color=color)
+
+            # Plot CI ribbon
+            ax.fill_between(x, y_lower, y_upper, alpha=alpha, color=color)
+
+        # Add true theta lines if provided
+        if true_theta is not None:
+            true_theta = jnp.atleast_1d(jnp.asarray(true_theta))
+            for i, val in enumerate(true_theta):
+                color = colors[i % len(colors)]
+                ax.axhline(val, color=color, linestyle='--', alpha=0.7)
+
+        ax.set_xlabel('SVGD Iteration')
+        ax.set_ylabel(f'Posterior Mean ± {int(ci*100)}% CI' + space_label)
+        ax.set_title(f'Parameter Convergence with {int(ci*100)}% CI')
+        ax.legend()
+        ax.grid(alpha=0.3)
+
+        plt.tight_layout()
+
+        if save_path:
+            plt.savefig(save_path, dpi=150, bbox_inches='tight')
+            if self.verbose:
+                print(f"Plot saved to: {save_path}")
+
+        return fig, ax
 
     # def plot_svgd_posterior_1d(self, true_params=None, obs_stats=None, map_est=None, ax=None, title="SVGD Posterior Approximation"):
     #     """
@@ -4595,7 +5087,7 @@ class SVGD:
         if variance_collapsed:
             return {
                 'recommended': ExpStepSize(
-                    max_step=0.005, min_step=0.0005, tau=500.0
+                    first_step=0.005, last_step=0.0005, tau=500.0
                 ),
                 'reason': 'Variance collapsed - reduce learning rate significantly'
             }
@@ -4604,8 +5096,8 @@ class SVGD:
             if isinstance(current_schedule, ConstantStepSize):
                 return {
                     'recommended': ExpStepSize(
-                        max_step=current_schedule.step_size * 1.5,
-                        min_step=current_schedule.step_size * 0.1,
+                        first_step=current_schedule.step_size * 1.5,
+                        last_step=current_schedule.step_size * 0.1,
                         tau=n_iterations * 0.5
                     ),
                     'reason': 'Not converged - use decay schedule for better convergence'
@@ -4807,38 +5299,34 @@ class SVGD:
 
     def _print_analysis_report(self, diag, space_label=""):
         """Print formatted analysis report."""
-        print("=" * 80)
-        print("SVGD Convergence Analysis")
-        print("=" * 80)
-        print()
 
         # Convergence status
         if diag['converged']:
-            print(f"✓ CONVERGED (iteration {diag['convergence_point']}/{diag['n_iterations']})")
+            print(f"CONVERGED (iteration {diag['convergence_point']}/{diag['n_iterations']})")
             print(f"  Mean stabilized at iteration {diag['convergence_point']}")
             if diag['std_convergence_point']:
                 print(f"  Std stabilized at iteration {diag['std_convergence_point']}")
         else:
-            print(f"✗ NOT CONVERGED after {diag['n_iterations']} iterations")
+            print(f"NOT CONVERGED after {diag['n_iterations']} iterations")
 
-        print()
-        print("Particle Diversity:")
-        div = diag['diversity']
-        print(f"  Mean inter-particle distance: {div['mean_distance']:.3f}")
-        print(f"  Effective sample size (ESS): {div['ess']:.1f} / {diag['n_particles']} particles ({div['ess_ratio']:.1%})")
+        # print()
+        # print("Particle Diversity:")
+        # div = diag['diversity']
+        # print(f"  Mean inter-particle distance: {div['mean_distance']:.3f}")
+        # print(f"  Effective sample size (ESS): {div['ess']:.1f} / {diag['n_particles']} particles ({div['ess_ratio']:.1%})")
 
-        if div['ess_ratio'] > 0.7:
-            print("  ✓ Good particle diversity")
-        elif div['ess_ratio'] > 0.5:
-            print("  ⚠ Moderate particle diversity")
-        else:
-            print("  ✗ Low particle diversity")
+        # if div['ess_ratio'] > 0.7:
+        #     print("  Good particle diversity")
+        # elif div['ess_ratio'] > 0.5:
+        #     print("  Moderate particle diversity")
+        # else:
+        #     print("  Low particle diversity")
 
         if diag['variance_collapse']['collapsed']:
             print()
             print("Variance Collapse:")
             vc = diag['variance_collapse']
-            print(f"  ✗ Particles collapsed at iteration {vc['collapse_iteration']}")
+            print(f"  Particles collapsed at iteration {vc['collapse_iteration']}")
             print(f"  Final diversity: {vc['final_diversity']:.4f} (max was {vc['max_diversity']:.4f})")
 
         # Issues
@@ -4848,59 +5336,108 @@ class SVGD:
             for issue in diag['issues']:
                 print(f"  {issue}")
 
-        # Suggestions
-        print()
-        print("=" * 80)
-        print("Suggested Parameter Updates")
-        print("=" * 80)
-        print()
+        # # Suggestions
+        # print()
+        # print("=" * 80)
+        # print("Suggested Parameter Updates")
+        # print("=" * 80)
+        # print()
 
-        print("Current Configuration:")
-        print(f"  learning_rate={self.step_schedule}")
-        print(f"  n_particles={self.n_particles}")
-        print(f"  n_iterations={self.n_iterations}")
-        print()
+        # print("Current Configuration:")
+        # print(f"  learning_rate={self.step_schedule}")
+        # print(f"  n_particles={self.n_particles}")
+        # print(f"  n_iterations={self.n_iterations}")
+        # if self.optimizer is not None:
+        #     opt = self.optimizer
+        #     opt_name = type(opt).__name__
+        #     if hasattr(opt, 'beta1'):  # Adam
+        #         print(f"  optimizer={opt_name}(lr={opt.lr}, β1={opt.beta1}, β2={opt.beta2})")
+        #     elif hasattr(opt, 'momentum'):  # SGDMomentum
+        #         print(f"  optimizer={opt_name}(lr={opt.lr}, momentum={opt.momentum})")
+        #     elif hasattr(opt, 'decay'):  # RMSprop
+        #         print(f"  optimizer={opt_name}(lr={opt.lr}, decay={opt.decay})")
+        #     else:  # Adagrad or custom
+        #         print(f"  optimizer={opt_name}(lr={opt.lr})")
+        # else:
+        #     print(f"  optimizer=None (fixed step size)")
+        # print()
 
         # Learning rate suggestion
         lr_sug = diag['suggestions']['learning_rate']
         print(f"Learning Rate: {lr_sug['reason']}")
         if isinstance(lr_sug['recommended'], str):
-            print(f"  Recommendation: {lr_sug['recommended']}")
+            print(f"  {lr_sug['recommended']}")
         elif isinstance(lr_sug['recommended'], ExpStepSize):
             sched = lr_sug['recommended']
-            print(f"  Recommendation: ExpStepSize(")
-            print(f"      max_step={sched.max_step},")
-            print(f"      min_step={sched.min_step},")
+            print(f"  ExpStepSize(")
+            print(f"      first_step={sched.first_step},")
+            print(f"      last_step={sched.last_step},")
             print(f"      tau={sched.tau}")
             print(f"  )")
         else:
-            print(f"  Recommendation: {lr_sug['recommended']}")
+            print(f"  {lr_sug['recommended']}")
 
-        print()
+        # print()
 
         # Particle suggestion
         part_sug = diag['suggestions']['n_particles']
         print(f"Particles: {part_sug['reason']}")
         if part_sug['recommended'] != self.n_particles:
-            print(f"  Recommendation: n_particles={part_sug['recommended']}")
+            print(f"  n_particles={part_sug['recommended']}")
         else:
-            print(f"  Recommendation: Keep n_particles={self.n_particles}")
+            print(f"  Keep n_particles={self.n_particles}")
 
-        print()
+        # print()
 
         # Iteration suggestion
         if diag['converged'] and diag['convergence_point'] < diag['n_iterations'] * 0.8:
             suggested_iters = int(diag['convergence_point'] * 1.2)  # Add 20% buffer
             print(f"Iterations: Converged early")
-            print(f"  Recommendation: Could reduce to n_iterations={suggested_iters}")
-            print()
+            print(f"  Could reduce to n_iterations={suggested_iters}")
+            # print()
         elif not diag['converged']:
             suggested_iters = int(diag['n_iterations'] * 1.5)
             print(f"Iterations: Did not converge")
-            print(f"  Recommendation: Increase to n_iterations={suggested_iters}")
-            print()
+            print(f"  Increase to n_iterations={suggested_iters}")
+            # print()
 
-        print("=" * 80)
+        # Optimizer suggestion based on diagnostics
+        self._print_optimizer_suggestion(diag)
+
+        # print("=" * 80)
+
+    def _print_optimizer_suggestion(self, diag):
+        """Print optimizer recommendation based on diagnostics."""
+        # Detect oscillation by checking sign changes in gradient direction
+        has_oscillation = False
+        has_variance_collapse = diag['variance_collapse']['collapsed']
+        low_ess = diag['diversity']['ess_ratio'] < 0.5
+        not_converged = not diag['converged']
+
+        # Simple heuristic: if not converged or variance collapsed, suggest optimizer change
+        if self.optimizer is None:
+            # Currently using fixed step size
+            if has_variance_collapse or not_converged:
+                print("Optimizer: Consider using an adaptive optimizer")
+                print("  Options (from phasic import AdamOptimizer, SGDMomentum, RMSprop, Adagrad):")
+                print("    AdamOptimizer(lr=0.01)     - Adaptive LR + momentum (recommended)")
+                print("    SGDMomentum(lr=0.01)      - Momentum only")
+                print("    RMSprop(lr=0.001)         - Adaptive LR, no momentum")
+                print("    Adagrad(lr=0.01)          - Cumulative gradient scaling")
+                # print()
+        else:
+            opt_name = type(self.optimizer).__name__
+            if has_variance_collapse:
+                print(f"Optimizer: {opt_name} - variance collapsed, try lower learning rate")
+                print(f"  Reduce optimizer lr (current: {self.optimizer.lr})")
+                # print()
+            elif not_converged and low_ess:
+                print(f"Optimizer: {opt_name} - not converged with low ESS")
+                print(f"  Try higher lr or more iterations")
+                # print()
+            elif diag['converged']:
+                print(f"Optimizer: {opt_name} working well")
+                # print()
 
     def plot_pairwise(self, true_theta=None, param_names=None,
                      figsize=None, save_path=None, show_transformed=True):
