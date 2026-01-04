@@ -149,9 +149,18 @@ description = "Install phasic in development mode with FFI support"
 args = [ { "arg" = "notebook" } ]
 cmd = "jupyter nbconvert --log-level=WARN --to notebook --execute --inplace --TagRemovePreprocessor.enabled=True --TagRemovePreprocessor.remove_cell_tags='{skip-execution}' {{ notebook }}"
 
+[tool.pixi.tasks.api-docs]
+cmd = "./scripts/docs-build-render.sh"
+description = "Build quartodoc api doc pages"
+
+[tool.pixi.tasks.notebook-docs]
+cmd = "./scripts/docs-run-notebooks.sh"
+description = "Execute documentation notebooks in-place"
+
 [tool.pixi.tasks.docs]
-cmd = "./scripts/docs-run-notebooks.sh && ./scripts/docs-build-render.sh && git add -u docs"
-description = "Run documentation notebooks and build quartodoc api doc pages"
+depends-on = ["notebook-docs", "api-docs"]
+cmd = "git add -u docs"
+description = "Run documentation notebooks build api docs and stage ./docs"
 
 [tool.pixi.tasks.clean]
 cmd = "git clean -id"
