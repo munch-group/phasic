@@ -68,3 +68,9 @@ test regularization correctness
 
 
 individual priors
+
+
+Is it possible to pass a callback function to update_weights along with the theta vector? The
+  callback should take a theta vector and a coefficient vector and produce a scalar edge weight.
+  The callback would need to passed all the way to the C code, similiarly to how the graph
+  construction callback function is.
