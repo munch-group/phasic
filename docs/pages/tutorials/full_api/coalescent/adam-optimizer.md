@@ -3,7 +3,7 @@
 Phasic provides several optimizers for SVGD that offer adaptive per-parameter learning rates. These can be particularly useful when gradients have vastly different scales across parameters or when fixed step sizes cause oscillation.
 
 **Available optimizers:**
-- **AdamOptimizer** - Adaptive moment estimation (recommended default)
+- **Adam** - Adaptive moment estimation (recommended default)
 - **SGDMomentum** - SGD with momentum
 - **RMSprop** - Root mean square propagation
 - **Adagrad** - Adaptive gradient algorithm
@@ -56,9 +56,9 @@ This automatic scaling helps when different parameters naturally have different 
 ## Parameters
 
 ```python
-from phasic import AdamOptimizer
+from phasic import Adam
 
-optimizer = AdamOptimizer(
+optimizer = Adam(
     learning_rate=0.001,  # Base learning rate (α)
     beta1=0.9,            # Momentum decay (typical: 0.9)
     beta2=0.999,          # Gradient variance decay (typical: 0.999)
@@ -85,10 +85,10 @@ optimizer = AdamOptimizer(
 ### Basic Usage
 
 ```python
-from phasic import SVGD, AdamOptimizer
+from phasic import SVGD, Adam
 
 # Create optimizer
-optimizer = AdamOptimizer(learning_rate=0.01)
+optimizer = Adam(learning_rate=0.01)
 
 # Use with SVGD
 svgd = SVGD(
@@ -105,9 +105,9 @@ svgd.fit()
 ### Via Graph.svgd()
 
 ```python
-from phasic import AdamOptimizer
+from phasic import Adam
 
-optimizer = AdamOptimizer(learning_rate=0.01)
+optimizer = Adam(learning_rate=0.01)
 svgd = joint_graph.svgd(
     obs_indices,
     theta_dim=2,
@@ -120,9 +120,9 @@ svgd = joint_graph.svgd(
 ### With Fixed Parameters
 
 ```python
-from phasic import AdamOptimizer
+from phasic import Adam
 
-optimizer = AdamOptimizer(learning_rate=0.01)
+optimizer = Adam(learning_rate=0.01)
 svgd = joint_graph.svgd(
     obs_indices,
     theta_dim=2,
