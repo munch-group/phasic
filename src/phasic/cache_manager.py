@@ -102,7 +102,7 @@ class CacheManager:
             'files': files
         }
 
-    def clear(self, confirm: bool = False):
+    def clear(self, confirm: bool = False, verbose: bool = False):
         """
         Clear JAX compilation cache.
 
@@ -110,7 +110,8 @@ class CacheManager:
         ----------
         confirm : bool, optional
             Must be True to actually clear. Default: False (safety)
-
+        verbose : bool, optional
+            Print details during clearing. Default: False
         Examples
         --------
         >>> manager = CacheManager()
@@ -122,9 +123,10 @@ class CacheManager:
 
         if self.cache_dir.exists():
             info = self.info()
-            print(f"Clearing cache at {self.cache_dir}")
-            print(f"  Files: {info['num_files']}")
-            print(f"  Size: {info['total_size_mb']:.1f} MB")
+            if verbose:
+                print(f"Clearing cache at {self.cache_dir}")
+                print(f"  Files: {info['num_files']}")
+                print(f"  Size: {info['total_size_mb']:.1f} MB")
 
             # Remove files but keep directory structure
             files_removed = 0

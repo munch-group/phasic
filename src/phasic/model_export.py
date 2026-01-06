@@ -69,7 +69,7 @@ def clear_model_cache(verbose: bool = True) -> None:
     _clear_cache(os.path.expanduser('~/.phasic_cache') if os.environ.get('PHASIC_COMPILATION_CACHE_DIR') is None else os.environ.get('PHASIC_COMPILATION_CACHE_DIR'), verbose=verbose)
     _clear_cache(os.path.expanduser('~/.phasic_traces'), verbose=verbose)
 
-def clear_caches(verbose: bool = True):
+def clear_caches(verbose: bool = False):
     """
     Clear all caching.
 

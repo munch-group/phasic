@@ -92,10 +92,11 @@ def _inverse_softplus(theta):
     """
     # For large theta, softplus(phi) ≈ phi, so inverse is identity
     # For smaller values, use log(exp(theta) - 1) = log(expm1(theta))
+    # Use 1e-6 as minimum to match param_transform minimum
     return jnp.where(
         theta > 20,
         theta,
-        jnp.log(jnp.expm1(jnp.maximum(theta, 1e-10)))
+        jnp.log(jnp.expm1(jnp.maximum(theta, 1e-6)))
     )
 
 
@@ -296,11 +297,11 @@ class GaussPrior(Prior):
             # Log-probability in THETA space
             log_prob = -0.5 * ((x - self.mu) / self.sigma)**2
             ax.plot(x, log_prob, **kwargs)
-            ax.set_title('Log Gaussian Prior')
+            ax.set_title(f'Log Gaussian({self.mu:.2g}, {self.sigma:.2g})')
             ax.set_ylabel('Log density')
         else:
             ax.plot(x, norm.pdf(x, loc=self.mu, scale=self.sigma), **kwargs)
-            ax.set_title('Gaussian Prior')
+            ax.set_title(f'Gaussian({self.mu:.2g}, {self.sigma:.2g})')
             ax.set_ylabel('Density')
         ax.set_xlabel('Parameter value (θ)')
         return ax
@@ -318,22 +319,55 @@ class HalfCauchyPrior(Prior):
 
     Parameters
     ----------
-    scale : float, default=1.0
-        Scale parameter of the half-Cauchy distribution in THETA space.
+    scale : float, optional
+        Scale parameter of the half-Cauchy distribution. Mutually exclusive with `ci`.
+    ci : float, optional
+        Upper bound of the credible interval. The scale is computed such that
+        P(θ < ci) = prob. Mutually exclusive with `scale`.
+    prob : float, default=0.95
+        Coverage probability for the credible interval (only used with `ci`).
+        E.g., prob=0.95 means 95% of the prior mass is below `ci`.
 
     Examples
     --------
+    >>> # Specify scale directly
     >>> prior = HalfCauchyPrior(scale=2.0)
     >>>
-    >>> # Plot to verify prior matches your beliefs
-    >>> prior.plot()  # Shows half-Cauchy with scale=2
+    >>> # Specify via 95% CI upper bound
+    >>> prior = HalfCauchyPrior(ci=10.0)  # 95% of mass below 10
     >>>
-    >>> # Use in SVGD - transformations handled automatically
+    >>> # Specify via 90% CI upper bound
+    >>> prior = HalfCauchyPrior(ci=10.0, prob=0.90)
+    >>>
+    >>> # Plot to verify prior matches your beliefs
+    >>> prior.plot()
+    >>>
+    >>> # Use in SVGD
     >>> svgd = graph.svgd(data, theta_dim=1, prior=prior)
     """
 
-    def __init__(self, scale=1.0):
-        self.scale = scale
+    def __init__(self, scale=None, ci=None, prob=0.95):
+        # Validate parameters
+        if scale is not None and ci is not None:
+            raise ValueError("Cannot specify both 'scale' and 'ci'. Use one or the other.")
+        if scale is None and ci is None:
+            scale = 1.0  # Default
+
+        if ci is not None:
+            # Compute scale from CI upper bound and prob
+            # For Half-Cauchy: CDF(x) = (2/π) * arctan(x/scale)
+            # So: prob = (2/π) * arctan(ci/scale)
+            # Solving: scale = ci / tan(π * prob / 2)
+            if not 0 < prob < 1:
+                raise ValueError(f"prob must be in (0, 1), got {prob}")
+            self.scale = ci / np.tan(np.pi * prob / 2)
+            self.ci = ci
+            self.prob = prob
+        else:
+            self.scale = scale
+            self.ci = None
+            self.prob = None
+
         # Transform function set by SVGD when positive_params=True
         self._transform = None
 
@@ -404,13 +438,15 @@ class HalfCauchyPrior(Prior):
         else:
             return theta_samples
 
-    def plot(self, ax=None, **kwargs):
+    def plot(self, ax=None, show_ci=True, **kwargs):
         """Plot the half-Cauchy prior distribution in THETA space.
 
         Parameters
         ----------
         ax : matplotlib.axes.Axes, optional
             Axes to plot on. If None, creates new figure.
+        show_ci : bool, default=True
+            If True and ci was specified, show vertical line at CI bound.
         **kwargs
             Additional arguments passed to plot function.
 
@@ -422,11 +458,24 @@ class HalfCauchyPrior(Prior):
         if ax is None:
             import matplotlib.pyplot as plt
             fig, ax = plt.subplots(figsize=(4, 3))
+
         # Plot in THETA space (what user understands)
-        x = np.linspace(0.001, 5 * self.scale, 200)
+        x_max = 5 * self.scale if self.ci is None else max(5 * self.scale, 1.5 * self.ci)
+        x = np.linspace(0.001, x_max, 200)
         pdf = 2 / (np.pi * self.scale * (1 + (x/self.scale)**2))
         ax.plot(x, pdf, **kwargs)
-        ax.set_title('Half-Cauchy Prior')
+
+        # # Show CI bound if specified
+        # if show_ci and self.ci is not None:
+        #     ax.axvline(self.ci, color='red', linestyle='--', alpha=0.7,
+        #               label=f'{int(self.prob*100)}% CI bound')
+        #     ax.fill_between(x[x <= self.ci], pdf[x <= self.ci], alpha=0.2, color='blue')
+        #     ax.legend()
+
+        # title = f'Half-Cauchy({self.scale:.2g})'
+        # if self.ci is not None:
+        #     title += f'\n{int(self.prob*100)}% CI: (0, {self.ci:.3g}]'
+        ax.set_title(f'HalfCauchy({self.scale:.2g})')
         ax.set_xlabel('Parameter value (θ)')
         ax.set_ylabel('Density')
         return ax
@@ -639,7 +688,7 @@ class AdaptiveStepSize(StepSizeSchedule):
 # Optimizers
 # ============================================================================
 
-class AdamOptimizer:
+class Adam:
     """
     Adam optimizer for SVGD with per-parameter adaptive learning rates.
 
@@ -675,10 +724,10 @@ class AdamOptimizer:
 
     Examples
     --------
-    >>> from phasic import SVGD, AdamOptimizer
+    >>> from phasic import SVGD, Adam
     >>>
     >>> # Create optimizer with default settings
-    >>> optimizer = AdamOptimizer(learning_rate=0.01)
+    >>> optimizer = Adam(learning_rate=0.01)
     >>>
     >>> # Use with SVGD
     >>> svgd = SVGD(
@@ -778,6 +827,10 @@ class SGDMomentum:
     momentum : float, default=0.9
         Momentum coefficient. Higher values give more weight to past gradients.
         Typical values: 0.9 (standard), 0.99 (high momentum).
+    max_velocity : float or None, default=1.0
+        Maximum absolute velocity to prevent unbounded accumulation.
+        Set to None to disable velocity clipping (not recommended with
+        positive_params=True as it can cause numerical issues).
 
     Attributes
     ----------
@@ -798,12 +851,16 @@ class SGDMomentum:
 
     Notes
     -----
-    Update rule: v = momentum * v + gradient; params += lr * v
+    Update rule: v = momentum * v + lr * gradient; params += v
+
+    Velocity is clipped to [-max_velocity, max_velocity] to prevent unbounded
+    growth, which can cause numerical issues when using positive_params=True.
     """
 
-    def __init__(self, learning_rate=0.01, momentum=0.9):
+    def __init__(self, learning_rate=0.01, momentum=0.9, max_velocity=1.0):
         self.lr = learning_rate
         self.momentum = momentum
+        self.max_velocity = max_velocity
         self.v = None
 
     def reset(self, shape):
@@ -824,8 +881,11 @@ class SGDMomentum:
         update : array (n_particles, theta_dim)
             Scaled update to add to particles.
         """
-        self.v = self.momentum * self.v + phi
-        return self.lr * self.v
+        self.v = self.momentum * self.v + self.lr * phi
+        # Clip velocity to prevent unbounded accumulation
+        if self.max_velocity is not None:
+            self.v = jnp.clip(self.v, -self.max_velocity, self.max_velocity)
+        return self.v
 
 
 class RMSprop:
@@ -1064,7 +1124,7 @@ class RegularizationSchedule:
                        linestyle='--', alpha=0.5,
                     label=f'last_reg={self.last_reg:.4f}')
 
-        return fig, ax
+        return ax
 
 
 class ConstantRegularization(RegularizationSchedule):
@@ -1875,7 +1935,7 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
     fixed_values : array (theta_dim,), optional
         Values to fix parameters at (for dimensions where fixed_mask=1).
         Defaults to all 1.0 if not provided.
-    optimizer : AdamOptimizer, optional
+    optimizer : Adam, optional
         If provided, uses Adam optimizer for adaptive per-parameter learning rates.
         When used, the `step_size` parameter is ignored.
 
@@ -2068,7 +2128,7 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
         Parallelization strategy: 'vmap', 'pmap', or 'none'
     n_devices : int, optional
         Number of devices for pmap (only used if parallel_mode='pmap')
-    optimizer : AdamOptimizer, optional
+    optimizer : Adam, optional
         If provided, uses Adam optimizer for adaptive per-parameter learning rates.
         When used, the `learning_rate` parameter is ignored.
 
@@ -2110,7 +2170,16 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
             optimizer_shape = theta_init.shape
         optimizer.reset(optimizer_shape)
         if verbose:
-            print(f"Using Adam optimizer (lr={optimizer.lr}, β1={optimizer.beta1}, β2={optimizer.beta2})")
+            # Print optimizer-specific information
+            opt_name = type(optimizer).__name__
+            if hasattr(optimizer, 'beta1') and hasattr(optimizer, 'beta2'):
+                print(f"Using {opt_name} (lr={optimizer.lr}, β1={optimizer.beta1}, β2={optimizer.beta2})")
+            elif hasattr(optimizer, 'momentum'):
+                print(f"Using {opt_name} (lr={optimizer.lr}, momentum={optimizer.momentum})")
+            elif hasattr(optimizer, 'decay'):
+                print(f"Using {opt_name} (lr={optimizer.lr}, decay={optimizer.decay})")
+            else:
+                print(f"Using {opt_name} (lr={optimizer.lr})")
 
     # SVGD iterations
     if verbose:
@@ -2368,7 +2437,7 @@ class SVGD:
         **Performance**: SVGD operates in reduced parameter space (learnable dims only)
         for computational efficiency. Kernel bandwidth is computed only over varying
         dimensions, improving convergence.
-    optimizer : AdamOptimizer, optional
+    optimizer : Adam, optional
         If provided, uses Adam optimizer for adaptive per-parameter learning rates
         instead of fixed step size. This is especially useful for:
         - Large datasets where gradient magnitudes can be very large
@@ -2378,8 +2447,8 @@ class SVGD:
         When using an optimizer, the `learning_rate` parameter is ignored.
 
         Example:
-            >>> from phasic import SVGD, AdamOptimizer
-            >>> optimizer = AdamOptimizer(learning_rate=0.01)
+            >>> from phasic import SVGD, Adam
+            >>> optimizer = Adam(learning_rate=0.01)
             >>> svgd = SVGD(model, data, theta_dim=2, optimizer=optimizer)
 
     Attributes
@@ -2659,7 +2728,10 @@ class SVGD:
             )
 
         if positive_params:
-            self.param_transform = lambda theta: jax.nn.softplus(theta)
+            # Clamp minimum to avoid edge weights becoming non-positive
+            # Use 1e-9 as minimum to avoid numerical precision issues in C code
+            # (causing floating-point errors that produce -0.0 weights)
+            self.param_transform = lambda phi: jnp.maximum(jax.nn.softplus(phi), 1e-9)
             if verbose:
                 print("Using softplus transformation to constrain parameters to positive domain")
         elif param_transform is not None:
@@ -3922,11 +3994,11 @@ class SVGD:
             figsize = figsize or None
         elif n_params == 2:
             nrows, ncols = 1, 2
-            figsize = figsize or (12, 4)
+            figsize = figsize or (8, 3)
         else:
             ncols = min(3, n_params)
             nrows = (n_params + ncols - 1) // ncols
-            figsize = figsize or (4 * ncols, 4 * nrows)
+            figsize = figsize or (4 * ncols, 3 * nrows)
 
         fig, axes = plt.subplots(nrows, ncols, figsize=figsize, squeeze=False)
         axes = axes.flatten()
@@ -3973,7 +4045,7 @@ class SVGD:
 
 
     def plot_trace(self, param_names=None, figsize=None,
-                   skip=0, max_particles=None, save_path=None, show_transformed=True,
+                   skip=0, max_particles=None, save_path=None, show_transformed=True
                    ):
         """
         Plot trace plots showing particle evolution over iterations.
@@ -3996,7 +4068,8 @@ class SVGD:
             If True, show transformed (constrained) parameter values.
             If False, show untransformed (unconstrained) values.
             Only relevant when using parameter transformations.
-
+        figsize : tuple, optional
+            Figure size (width, height)
         Returns
         -------
         fig, axes
@@ -4148,7 +4221,7 @@ class SVGD:
         iterations = self.history_iterations if self.history_iterations is not None else range(len(history))
 
         fig, axes = plt.subplots(1, 2, figsize=figsize)
-        ax1, ax2 = axes
+        ax1, axes[1] = axes
 
         # Plot 1: Mean convergence
         for i in range(self.theta_dim):
@@ -4166,13 +4239,13 @@ class SVGD:
         for i in range(self.theta_dim):
             param_name = rf"$\theta_{i}$"
             x, y = iterations, std_over_time[:, i]
-            ax2.plot(x[skip:], y[skip:], label=param_name, )
+            axes[1].plot(x[skip:], y[skip:], label=param_name, )
 
-        ax2.set_xlabel('SVGD Iteration')
-        ax2.set_ylabel('Posterior Std' + space_label)
-        ax2.set_title('Std')
-        ax2.legend()
-        ax2.grid(alpha=0.3)
+        axes[1].set_xlabel('SVGD Iteration')
+        axes[1].set_ylabel('Posterior Std' + space_label)
+        axes[1].set_title('Std')
+        axes[1].legend()
+        axes[1].grid(alpha=0.3)
 
         plt.tight_layout()
 
@@ -4291,7 +4364,7 @@ class SVGD:
             if self.verbose:
                 print(f"Plot saved to: {save_path}")
 
-        return fig, ax
+        return ax
 
     # def plot_svgd_posterior_1d(self, true_params=None, obs_stats=None, map_est=None, ax=None, title="SVGD Posterior Approximation"):
     #     """
@@ -4643,7 +4716,7 @@ class SVGD:
 
 
 
-    # def visualize_hdr_2d(self, idx=[0, 1], alphas=[0.95], grid_size=50, margin=0.1, xlim=None, ylim=None):
+    # def plot_hdr_2d(self, idx=[0, 1], alphas=[0.95], grid_size=50, margin=0.1, xlim=None, ylim=None):
     #     """
     #     Plot ...
 
@@ -4659,11 +4732,11 @@ class SVGD:
     #         regularization=self.regularization,
     #         rewards=self.rewards 
     #     )
-    #     svgd_plots.visualize_hdr_2d(self.particles, log_prob_fn=log_prob_fn,**params)
+    #     svgd_plots.plot_hdr_2d(self.particles, log_prob_fn=log_prob_fn,**params)
 
 
 
-    def visualize_hdr_2d(self, idx=[0, 1], alphas=[0.95], 
+    def plot_hdr_2d(self, idx=[0, 1], alphas=[0.95], 
                         grid_size=50, margin=0.1, xlim=None, ylim=None):
         """
         Visualize the Highest Density Region (HDR) for any 2D projection of n-dimensional distribution.
@@ -4725,7 +4798,7 @@ class SVGD:
             _, threshold = self.estimate_hdr(alpha)
             levels.append((threshold.item(), alpha))
 
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 3))
+        fig, axes = plt.subplots(1, 2, figsize=(8, 3))
 
         # plot grid log likelihoods
         x_flat, y_flat, z_flat = X.ravel(), Y.ravel(), Z.ravel()
@@ -4734,14 +4807,14 @@ class SVGD:
                                 edgecolor='none', alpha=0.5, s=5, legend=False)
         # Find and mark logL grid point
         max_idx = jnp.argmax(z_flat)
-        ax1.scatter(x_flat[max_idx], y_flat[max_idx], color='red', s=70, marker='x', alpha=1, label='Max grid LogL')
-        ax2.scatter(x_flat[max_idx], y_flat[max_idx], color='red', s=70, marker='x', alpha=1, label='Max grid LogL')
+        axes[0].scatter(x_flat[max_idx], y_flat[max_idx], color='red', s=70, marker='x', alpha=1, label='Max grid LogL')
+        axes[1].scatter(x_flat[max_idx], y_flat[max_idx], color='red', s=70, marker='x', alpha=1, label='Max grid LogL')
 
         # Find and mark MAP estimate
         map_particle, _ = self.map_estimate_from_particles()
         if len(map_particle) > max(idx):
-            ax1.scatter(map_particle[idx[0]], map_particle[idx[1]], color='orange', s=70, marker='x', alpha=1, label='MAP estimate')
-            ax2.scatter(map_particle[idx[0]], map_particle[idx[1]], color='orange', s=70, marker='x', alpha=1, label='MAP estimate')
+            axes[0].scatter(map_particle[idx[0]], map_particle[idx[1]], color='orange', s=70, marker='x', alpha=1, label='MAP estimate')
+            axes[1].scatter(map_particle[idx[0]], map_particle[idx[1]], color='orange', s=70, marker='x', alpha=1, label='MAP estimate')
 
         # plot particles (only the selected dimensions)
         logLikelihoods = vmap(lambda p: log_prob_fn(p))(self.particles)    
@@ -4750,15 +4823,15 @@ class SVGD:
                                 edgecolor='none', alpha=0.5, s=10, legend=False)
         # plot contour lines for HDR
         levels, alphas = zip(*sorted(levels))
-        contour = ax2.contour(X, Y, Z, levels=levels, cmap=iridis, linestyles='dashed', alpha=0.7)
+        contour = axes[1].contour(X, Y, Z, levels=levels, cmap=iridis, linestyles='dashed', alpha=0.7)
         
-        ax1.set_xlabel(f'Parameter {idx[0]}')
-        ax1.set_ylabel(f'Parameter {idx[1]}')
-        ax1.legend()
+        axes[0].set_xlabel(f'Parameter {idx[0]}')
+        axes[0].set_ylabel(f'Parameter {idx[1]}')
+        axes[0].legend()
 
-        ax2.set_xlabel(f'Parameter {idx[0]}')
-        ax2.set_ylabel(f'Parameter {idx[1]}')
-        ax2.legend()
+        axes[1].set_xlabel(f'Parameter {idx[0]}')
+        axes[1].set_ylabel(f'Parameter {idx[1]}')
+        axes[1].legend()
 
         return fig
 
@@ -5419,8 +5492,8 @@ class SVGD:
             # Currently using fixed step size
             if has_variance_collapse or not_converged:
                 print("Optimizer: Consider using an adaptive optimizer")
-                print("  Options (from phasic import AdamOptimizer, SGDMomentum, RMSprop, Adagrad):")
-                print("    AdamOptimizer(lr=0.01)     - Adaptive LR + momentum (recommended)")
+                print("  Options (from phasic import Adam, SGDMomentum, RMSprop, Adagrad):")
+                print("    Adam(lr=0.01)     - Adaptive LR + momentum (recommended)")
                 print("    SGDMomentum(lr=0.01)      - Momentum only")
                 print("    RMSprop(lr=0.001)         - Adaptive LR, no momentum")
                 print("    Adagrad(lr=0.01)          - Cumulative gradient scaling")
@@ -5985,13 +6058,13 @@ class SVGD:
         theta_std = results['theta_std']
 
         fields = [f"Parameter", "Fixed", f"Mean", f"SD", f"CI 2.5%", f"CI 97.5%"]
-        fmt_str = "{:<10} {:<10} {:<10} {:<10} {:<20}"
+        fmt_str = "{:<10} {:<10} {:<10} {:<10} {:<10} {:<10}"
         print(fmt_str.format(*fields))
 
         for i in range(self.theta_dim):
-            if self.fixed_mask[i]:
+            if self.fixed_mask is not None and self.fixed_mask[i]:
                 fields = [i, 
-                    'Yes' if self.fixed_mask[i] else 'No',
+                    'Yes' if self.fixed_mask is not None and self.fixed_mask[i] else 'No',
                     f'{fmt.format(theta_mean[i])}', 
                     'NA', 
                     'NA', 
@@ -6003,7 +6076,7 @@ class SVGD:
                 ci_upper = jnp.percentile(particles[:, i], 97.5).item()
                 fmt = f'{{:.3e}}' if np.log10(abs(theta_mean[i])) > 2 else f'{{:.4f}}'
                 fields = [i, 
-                        'Yes' if self.fixed_mask[i] else 'No',
+                        'Yes' if self.fixed_mask is not None and self.fixed_mask[i] else 'No',
                         f'{fmt.format(theta_mean[i])}',
                         f'{fmt.format(theta_std[i])}', 
                         f'{fmt.format(ci_lower)}',

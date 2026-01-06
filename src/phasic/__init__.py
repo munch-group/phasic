@@ -229,7 +229,7 @@ if HAS_JAX:
         ExpStepSize,
         AdaptiveStepSize,
         # Optimizers
-        AdamOptimizer,
+        Adam,
         SGDMomentum,
         RMSprop,
         Adagrad,
@@ -257,7 +257,7 @@ else:
     ConstantRegularization = None
     ExpRegularization = None
     ExponentialCDFRegularization = None
-    AdamOptimizer = None
+    Adam = None
     SGDMomentum = None
     RMSprop = None
     Adagrad = None
