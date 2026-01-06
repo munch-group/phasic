@@ -193,7 +193,8 @@ void ptd_notify_change(
 void ptd_graph_update_weights(
         struct ptd_graph *graph,
         double *params,
-        size_t params_length
+        size_t params_length,
+        bool use_log
 );
 
 double *ptd_normalize_graph(struct ptd_graph *graph);

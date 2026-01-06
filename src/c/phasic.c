@@ -2955,7 +2955,8 @@ edge->to = vertex;
 void ptd_graph_update_weights(
         struct ptd_graph *graph,
         double *params,
-        size_t params_length
+        size_t params_length,
+        bool use_log
 ) {
     // VALIDATION: Ensure graph has edges
     if (graph->edge_mode == PTD_EDGE_MODE_UNLOCKED) {
@@ -3067,10 +3068,35 @@ void ptd_graph_update_weights(
                 continue;
             }
 
-            // Compute weight = dot(coefficients, theta)
-            edge->weight = 0.0;
-            for (size_t k = 0; k < edge->coefficients_length; k++) {
-                edge->weight += edge->coefficients[k] * theta[k];
+            // Compute weight based on mode
+            if (use_log) {
+                // Product in log-space: exp(sum(log(c_k * θ_k)))
+                double log_sum = 0.0;
+                for (size_t k = 0; k < edge->coefficients_length; k++) {
+                    double product = edge->coefficients[k] * theta[k];
+
+                    // Validate positive (log requires positive arguments)
+                    if (product <= 0.0) {
+                        snprintf((char*)ptd_err, sizeof(ptd_err),
+                            "log=True requires all (coefficient * parameter) products to be positive. "
+                            "Got %f at coefficient index %zu (coefficient=%f, parameter=%f). "
+                            "Check that all coefficients and parameters are positive.",
+                            product, k, edge->coefficients[k], theta[k]);
+                        if (need_free) {
+                            free(theta);
+                        }
+                        return;
+                    }
+
+                    log_sum += log(product);
+                }
+                edge->weight = exp(log_sum);
+            } else {
+                // Standard dot product (current behavior)
+                edge->weight = 0.0;
+                for (size_t k = 0; k < edge->coefficients_length; k++) {
+                    edge->weight += edge->coefficients[k] * theta[k];
+                }
             }
         }
     }

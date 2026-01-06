@@ -826,7 +826,8 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
 # ============================================================================
 
 def evaluate_trace(trace: EliminationTrace, params: Optional[np.ndarray] = None,
-                  rewards: Optional[np.ndarray] = None) -> Dict[str, Any]:
+                  rewards: Optional[np.ndarray] = None,
+                  use_log: bool = False) -> Dict[str, Any]:
     """
     Evaluate elimination trace with concrete parameter values
 
@@ -840,6 +841,9 @@ def evaluate_trace(trace: EliminationTrace, params: Optional[np.ndarray] = None,
         Reward vector for reward transformation.
         If None and trace.reward_length > 0, defaults to ones (neutral rewards).
         Shape: (trace.reward_length,) or (trace.n_vertices,)
+    use_log : bool, optional
+        If True, interpret DOT operations as log-space products.
+        Default: False
 
     Returns
     -------
@@ -890,9 +894,25 @@ def evaluate_trace(trace: EliminationTrace, params: Optional[np.ndarray] = None,
             values[i] = extended_params[op.param_idx]
 
         elif op.op_type == OpType.DOT:
-            # Dot product only (no base_weight): c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ
             # DOT only uses theta parameters (not rewards)
-            values[i] = np.dot(op.coefficients, params if params is not None else np.array([]))
+            if params is None or len(params) == 0:
+                values[i] = 0.0
+            elif use_log:
+                # Log-space product: exp(sum(log(c_i * θ_i)))
+                products = op.coefficients * params
+
+                # Validate all products are positive
+                if np.any(products <= 0):
+                    neg_indices = np.where(products <= 0)[0]
+                    raise ValueError(
+                        f"log=True requires all (coefficient * parameter) products to be positive. "
+                        f"Found non-positive products at indices {neg_indices}: {products[neg_indices]}"
+                    )
+
+                values[i] = np.exp(np.sum(np.log(products)))
+            else:
+                # Standard dot product: c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ
+                values[i] = np.dot(op.coefficients, params)
 
         elif op.op_type == OpType.ADD:
             values[i] = values[op.operands[0]] + values[op.operands[1]]
@@ -1161,7 +1181,8 @@ def trace_from_graph(graph) -> EliminationTrace:
 
 
 def instantiate_from_trace(trace: EliminationTrace, params: Optional[np.ndarray] = None,
-                          rewards: Optional[np.ndarray] = None):
+                          rewards: Optional[np.ndarray] = None,
+                          use_log: bool = False):
     """
     Instantiate graph from trace
 
@@ -1175,6 +1196,9 @@ def instantiate_from_trace(trace: EliminationTrace, params: Optional[np.ndarray]
         Reward vector for reward transformation.
         If None and trace.reward_length > 0, defaults to ones (neutral rewards).
         Shape: (trace.reward_length,) or (trace.n_vertices,)
+    use_log : bool, optional
+        If True, interpret DOT operations as log-space products.
+        Default: False
 
     Returns
     -------
@@ -1198,7 +1222,7 @@ def instantiate_from_trace(trace: EliminationTrace, params: Optional[np.ndarray]
                  trace.n_vertices, trace.param_length, trace.reward_length)
 
     # Evaluate trace (with rewards if provided)
-    result = evaluate_trace(trace, params, rewards)
+    result = evaluate_trace(trace, params, rewards, use_log=use_log)
 
     # Create new graph
     logger.debug("Creating graph with state_length=%d", trace.state_length)
@@ -1255,7 +1279,7 @@ def instantiate_from_trace(trace: EliminationTrace, params: Optional[np.ndarray]
 # JAX Integration (Phase 2)
 # ============================================================================
 
-def evaluate_trace_jax(trace: EliminationTrace, params, rewards=None):
+def evaluate_trace_jax(trace: EliminationTrace, params, rewards=None, use_log=False):
     """
     Evaluate elimination trace with JAX arrays (jit/grad/vmap compatible)
 
@@ -1274,6 +1298,9 @@ def evaluate_trace_jax(trace: EliminationTrace, params, rewards=None):
         Reward vector for reward transformation.
         If None and trace.reward_length > 0, defaults to ones (neutral rewards).
         Shape: (trace.reward_length,) or (trace.n_vertices,)
+    use_log : bool, optional
+        If True, interpret DOT operations as log-space products.
+        Default: False
 
     Returns
     -------
@@ -1343,11 +1370,16 @@ def evaluate_trace_jax(trace: EliminationTrace, params, rewards=None):
             values = values.at[i].set(extended_params[op.param_idx])
 
         elif op.op_type == OpType.DOT:
-            # Dot product only (no base_weight): c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ
             # DOT only uses theta parameters (not rewards)
-            values = values.at[i].set(
-                jnp.dot(op.coefficients, params if params is not None else jnp.array([]))
-            )
+            if params is None or len(params) == 0:
+                values = values.at[i].set(0.0)
+            elif use_log:
+                # Log-space product: exp(sum(log(c_i * θ_i)))
+                products = op.coefficients * params
+                values = values.at[i].set(jnp.exp(jnp.sum(jnp.log(products))))
+            else:
+                # Standard dot product: c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ
+                values = values.at[i].set(jnp.dot(op.coefficients, params))
 
         elif op.op_type == OpType.ADD:
             values = values.at[i].set(values[op.operands[0]] + values[op.operands[1]])
@@ -1432,7 +1464,7 @@ def trace_to_jax_fn(trace: EliminationTrace):
 # SVGD Integration (Phase 3)
 # ============================================================================
 
-def trace_to_log_likelihood(trace: EliminationTrace, observed_data, reward_vector=None, granularity=0, use_cpp=True):
+def trace_to_log_likelihood(trace: EliminationTrace, observed_data, reward_vector=None, granularity=0, use_cpp=True, use_log=False):
     """
     Convert elimination trace to log-likelihood function for SVGD
 
@@ -1459,6 +1491,9 @@ def trace_to_log_likelihood(trace: EliminationTrace, observed_data, reward_vecto
         If True, generates standalone C++ code for fast evaluation without Python overhead.
         If False, uses Python-based evaluation via instantiate_from_trace().
         C++ mode is **10× faster** for SVGD with 1000+ evaluations.
+    use_log : bool, default=False
+        If True, interpret DOT operations as log-space products when evaluating trace.
+        Default: False (standard linear combinations).
 
     Returns
     -------
@@ -1602,7 +1637,7 @@ def trace_to_log_likelihood(trace: EliminationTrace, observed_data, reward_vecto
 
         # Instantiate concrete graph from trace (with rewards if provided)
         logger.debug("Evaluating log-likelihood with params=%s", params_np[:3] if len(params_np) > 3 else params_np)
-        graph = instantiate_from_trace(trace, params_np, rewards_np)
+        graph = instantiate_from_trace(trace, params_np, rewards_np, use_log=use_log)
 
         # Compute exact PDF at observed time points
         # Handle both scalar and array observed_data

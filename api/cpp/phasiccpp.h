@@ -210,7 +210,7 @@ namespace phasic {
 
 
 
-        void update_weights_parameterized(std::vector<double> scalars);
+        void update_weights_parameterized(std::vector<double> scalars, bool use_log = false);
 
         std::vector<double> expected_waiting_time(std::vector<double> rewards = std::vector<double>()) {
             double *ptr = ptd_expected_waiting_time(

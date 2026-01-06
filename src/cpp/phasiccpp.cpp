@@ -489,11 +489,12 @@ phasic::Graph *phasic::Graph::reward_transform_p(std::vector<double> rewards) {
   return new Graph(res);
 }
 
-void phasic::Graph::update_weights_parameterized(std::vector<double> scalars) {
+void phasic::Graph::update_weights_parameterized(std::vector<double> scalars, bool use_log) {
     ptd_graph_update_weights(
             this->c_graph(),
             &scalars[0],
-            scalars.size()
+            scalars.size(),
+            use_log
     );
 
     // Check if error occurred and throw exception

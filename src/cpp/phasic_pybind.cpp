@@ -1361,29 +1361,47 @@ str
 
     .def("update_weights", &phasic::Graph::update_weights_parameterized,
       py::arg("params"),
+      py::arg("log") = false,
       R"delim(
     Updates all edge weights using the provided parameter vector.
 
-    For parameterized graphs (param_length > 1), computes new edge weights via:
-        edge.weight = dot(edge.coefficients, params)
+    For parameterized graphs, computes new edge weights via:
+        - If log=False (default): edge.weight = dot(edge.coefficients, params)
+                                  = c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ
+        - If log=True:            edge.weight = exp(sum(log(cᵢ*θᵢ)))
+                                  = (c₁*θ₁) * (c₂*θ₂) * ... * (cₙ*θₙ)
 
-    For constant graphs (param_length = 1), params should be [1.0] or omitted.
+    The log=True mode computes products in log-space for numerical stability.
+    All (cᵢ*θᵢ) products must be positive when log=True.
 
     Parameters
     ----------
-    params : list of int or ndarray
-        Parameter vector matching graph.param_length()
+    params : list of float or ndarray
+        Parameter vector θ
+    log : bool, optional
+        If True, compute weights as products in log-space.
+        If False (default), compute as linear combinations.
+        Default: False
 
     Examples
     --------
-    # Parameterized graph
+    # Standard linear combination (default)
     graph = Graph(state_length=2)
     v1 = graph.find_or_create_vertex([1, 0])
     v2 = graph.find_or_create_vertex([0, 1])
-    v1.add_edge(v2, [2.0, 3.0])  # weight = 2.0*theta[0] + 3.0*theta[1]
+    v1.add_edge(v2, [2.0, 3.0])  # coefficients
 
-    graph.update_weights([1.0, 2.0])  # weight becomes 2.0*1.0 + 3.0*2.0 = 8.0
-    print(v1.edges()[0].weight())  # => 8.0
+    graph.update_weights([1.0, 2.0])
+    print(v1.edges()[0].weight())  # => 2.0*1.0 + 3.0*2.0 = 8.0
+
+    # Product in log-space
+    graph.update_weights([1.0, 2.0], log=True)
+    print(v1.edges()[0].weight())  # => (2.0*1.0) * (3.0*2.0) = 12.0
+
+    Raises
+    ------
+    RuntimeError
+        If log=True and any (coefficient * parameter) product is non-positive
       )delim")
 
     .def("update_parameterized_weights",
