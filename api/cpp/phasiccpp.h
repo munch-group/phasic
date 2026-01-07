@@ -30,7 +30,8 @@
 #include <vector>
 #include <stdexcept>
 #include <cmath>
-#include <iterator> 
+#include <iterator>
+#include <functional>
 
 #include "../c/phasic.h"
 #include "scc_graph.h"
@@ -211,6 +212,12 @@ namespace phasic {
 
 
         void update_weights_parameterized(std::vector<double> scalars, bool use_log = false);
+
+        // Callback-based weight update
+        void update_weights_parameterized(
+            std::vector<double> scalars,
+            std::function<double(const std::vector<double>&, const std::vector<double>&)> callback
+        );
 
         std::vector<double> expected_waiting_time(std::vector<double> rewards = std::vector<double>()) {
             double *ptr = ptd_expected_waiting_time(
@@ -982,6 +989,24 @@ namespace phasic {
         void update_to(const Vertex &v) {
             ptd_edge_update_to(_edge, v.vertex);
             _vertex = v.vertex;
+        }
+
+        // Accessor for C edge structure (for callback-based weight updates)
+        struct ptd_edge *c_edge() const {
+            return _edge;
+        }
+
+        // Get number of coefficients in this edge
+        size_t coefficients_length() const {
+            return _edge->coefficients_length;
+        }
+
+        // Get coefficient at index
+        double coefficient_at(size_t index) const {
+            if (index >= _edge->coefficients_length) {
+                throw std::out_of_range("Coefficient index out of range");
+            }
+            return _edge->coefficients[index];
         }
 
         Edge &operator=(const Edge &o) {
