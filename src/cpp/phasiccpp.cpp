@@ -507,4 +507,78 @@ void phasic::Graph::update_weights_parameterized(std::vector<double> scalars, bo
     notify_change();
 }
 
+// Callback-based weight update
+void phasic::Graph::update_weights_parameterized(
+    std::vector<double> scalars,
+    std::function<double(const std::vector<double>&, const std::vector<double>&)> callback
+) {
+    // Validate graph has edges
+    struct ptd_graph *graph = this->c_graph();
+    if (graph->edge_mode == PTD_EDGE_MODE_UNLOCKED) {
+        throw std::runtime_error(
+            "Cannot call update_weights() on empty graph (no edges added yet). "
+            "Add edges using add_edge() before calling update_weights()."
+        );
+    }
+
+    // Validate graph is parameterized
+    if (graph->edge_mode == PTD_EDGE_MODE_CONSTANT) {
+        throw std::runtime_error(
+            "Cannot call update_weights() on constant graph. "
+            "Graph has constant edges (created with scalar syntax: add_edge(v, 3.0)). "
+            "Use parameterized edges (array syntax: add_edge(v, [3.0])) if you need to update weights."
+        );
+    }
+
+    // Validate parameter length
+    if (scalars.size() != graph->param_length) {
+        throw std::runtime_error(
+            "Parameter length mismatch: graph expects " +
+            std::to_string(graph->param_length) + " parameters, got " +
+            std::to_string(scalars.size())
+        );
+    }
+
+    // Iterate through all vertices and edges
+    for (size_t i = 0; i < graph->vertices_length; i++) {
+        struct ptd_vertex *vertex = graph->vertices[i];
+
+        // Skip starting vertex edges
+        if (vertex == graph->starting_vertex) {
+            continue;
+        }
+
+        for (size_t j = 0; j < vertex->edges_length; j++) {
+            struct ptd_edge *edge = vertex->edges[j];
+
+            // Skip edges with no coefficients (pure constant edges)
+            if (edge->coefficients_length == 0) {
+                continue;
+            }
+
+            // Get coefficient vector
+            std::vector<double> coeffs(edge->coefficients_length);
+            for (size_t k = 0; k < edge->coefficients_length; k++) {
+                coeffs[k] = edge->coefficients[k];
+            }
+
+            // Call callback to compute weight
+            double new_weight = callback(scalars, coeffs);
+
+            // Validate weight is positive
+            if (new_weight <= 0.0) {
+                throw std::runtime_error(
+                    "Callback returned non-positive weight: " + std::to_string(new_weight) +
+                    ". All edge weights must be strictly positive."
+                );
+            }
+
+            // Update edge weight directly
+            edge->weight = new_weight;
+        }
+    }
+
+    notify_change();
+}
+
 #endif

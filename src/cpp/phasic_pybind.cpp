@@ -1359,7 +1359,10 @@ str
           True if this is marked as a discrete phase-type distribution
       )delim")
 
-    .def("update_weights", &phasic::Graph::update_weights_parameterized,
+    .def("update_weights",
+      [](phasic::Graph& self, std::vector<double> params, bool log) {
+          self.update_weights_parameterized(params, log);
+      },
       py::arg("params"),
       py::arg("log") = false,
       R"delim(
@@ -1402,6 +1405,102 @@ str
     ------
     RuntimeError
         If log=True and any (coefficient * parameter) product is non-positive
+      )delim")
+
+    .def("update_weights",
+        [](phasic::Graph& self, std::vector<double> params, py::function callback) {
+            // Wrap Python callback in std::function
+            auto cpp_callback = [callback](
+                const std::vector<double>& theta,
+                const std::vector<double>& coeffs
+            ) -> double {
+                // Convert to numpy arrays for Python
+                py::array_t<double> theta_arr(theta.size(), theta.data());
+                py::array_t<double> coeffs_arr(coeffs.size(), coeffs.data());
+
+                // Call Python function
+                py::object result = callback(theta_arr, coeffs_arr);
+                return result.cast<double>();
+            };
+
+            self.update_weights_parameterized(params, cpp_callback);
+        },
+        py::arg("params"),
+        py::arg("callback"),
+        R"delim(
+    Update edge weights using a custom callback function.
+
+    This method provides maximum flexibility for weight computation by allowing
+    you to define custom logic for computing edge weights from parameter and
+    coefficient vectors.
+
+    Parameters
+    ----------
+    params : array-like
+        Parameter vector θ (theta)
+    callback : callable
+        Function with signature callback(theta, coefficients) -> float
+        that computes the edge weight from parameter and coefficient vectors.
+
+        The callback receives:
+        - theta: numpy array of parameter values (same as params)
+        - coefficients: numpy array of edge coefficients
+
+        The callback must return a positive float value for the edge weight.
+
+    Examples
+    --------
+    # PSMC-style multiplicative weights with NaN skipping
+    import numpy as np
+
+    def psmc_weight(theta, coeffs):
+        '''Multiply non-NaN (coeff * theta) values'''
+        weight = 1.0
+        for c, t in zip(coeffs, theta):
+            if not np.isnan(c):
+                weight *= c * t
+        return weight
+
+    g = Graph(state_length=1)
+    v1 = g.create_vertex([1])
+    v2 = g.create_vertex([2])
+    v1.add_edge(v2, [1.0, np.nan, 0.5])  # [epoch_rec_prob, unused, coal_rate]
+
+    # Compute: weight = (1.0*0.1) * (0.5*2.0) = 0.1
+    g.update_weights([0.1, 999, 2.0], callback=psmc_weight)
+    print(v1.edges()[0].weight())  # => 0.1
+
+    # Custom exponential weight function
+    def exp_weight(theta, coeffs):
+        return np.exp(np.dot(coeffs, theta))
+
+    g.update_weights([1.0, 2.0], callback=exp_weight)
+
+    # Weight with saturation
+    def saturating_weight(theta, coeffs):
+        linear = np.dot(coeffs, theta)
+        return linear / (1.0 + linear)  # Saturates at 1.0
+
+    g.update_weights([1.0, 2.0], callback=saturating_weight)
+
+    Raises
+    ------
+    RuntimeError
+        If callback returns a non-positive weight value
+    RuntimeError
+        If graph is not parameterized (has constant edges)
+    RuntimeError
+        If parameter length doesn't match graph expectations
+
+    Notes
+    -----
+    The callback is called once for each parameterized edge in the graph.
+    For performance-critical applications with simple weight computations,
+    consider using the built-in log=True/False modes instead.
+
+    See Also
+    --------
+    update_weights : Built-in linear (log=False) and multiplicative (log=True) modes
       )delim")
 
     .def("update_parameterized_weights",
