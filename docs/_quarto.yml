@@ -174,12 +174,16 @@ website:
         #     - pages/tutorials/popgen/python/smc-prime-tree-levels.py
         #     - pages/tutorials/popgen/python/two_locus_two_island-discrete.ipynb
         #     - pages/tutorials/popgen/python/two_locus_two_island.ipynb
-        - section: "Devel"
+        - section: "Internals"
           contents:
             - pages/architecture/architecture.qmd
-            - pages/architecture/explicit_config_system.qmd
             - pages/architecture/config_system.qmd
+            - pages/architecture/explicit_config_system.qmd
+            - pages/architecture/call_tree.qmd
             - pages/architecture/caching_guide.qmd
+            - pages/architecture/report_1_python_cpp_bridge_jax_integration
+            - pages/architecture/report_2_trace_elimination_retracing.md
+            - pages/architecture/report_3_caching_architecture.md
             - href: https://github.com/munch-group/phasic/issues
               text: Issue Tracker
         # - galleries/examples/index.qmd
