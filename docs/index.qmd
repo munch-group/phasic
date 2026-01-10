@@ -1,0 +1,89 @@
+---
+title: Phasic
+subtitle: "Modelling and inference using phase-type distributions"
+sidebar: false
+page-layout: full
+# title-block-style: plain
+title-block-banner-color: black
+title-block-banner-bg: white
+# title-block-banner: banner.png
+toc: false
+listing:
+  - id: showcase
+    type: grid
+    fields: [image, title]
+    grid-columns: 2
+    contents:
+    - pages/getting_started.qmd
+    - pages/tutorials/rabbits_full_py_api_example.ipynb
+    # sort: "date desc"
+    # categories: true
+    # sort-ui: true
+    # filter-ui: true
+    # fields: [image, title, description]
+---
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+
+::: {.grid}
+
+::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-bounding-box"></i> **Graph representation**: <br>Intuitive graph representation makes constructing complex models straightforward.
+
+:::
+
+::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-code-slash"></i> **Graph algorithms**: <br>C backend using graph-based algorithms for computing probability distributions and any number of exact moments.
+
+:::
+
+::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-bug"></i>**Continuous/Discrete**: <br>Automated conversion from continuous to discrete phase-type distributions with full support.
+
+:::
+
+<!-- ::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-infinity"></i> **Moments**: <br>Efficiently compute statistical moments including mean, variance, and higher-order moments through matrix operations on the graph representation. Essential for distribution characterization and parameter estimation.
+
+::: -->
+
+<!-- ::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-graph-down"></i> **Distributions**: <br>Compute probability mass functions (PMF), probability density functions (PDF), and cumulative distribution functions (CDF) with high precision. Support for a wide variety of phase-type distribution families and custom constructions.
+
+::: -->
+
+<!-- ::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-code-slash"></i> **C/C++ backend**: <br>High-performance C/C++ core with bindings for Python, R, and direct C/C++ usage. Leverages Eigen for optimized linear algebra operations, providing both speed and numerical stability for production applications.
+
+::: -->
+
+::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-arrow-bar-up"></i> **Parameterized DAGs**: <br>Computation model templates of allows cashing and model distribution.
+
+:::
+
+::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-rocket-takeoff"></i> **Bayesian Inference**: <br> JAX integration and automatic differentiation allow inference using Stein Variational Gradient Descent.
+
+:::
+
+::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-cpu"></i> **Multiprocessing**: <br>Automatically parallelizes inference computation across CPUs on a single device or multiple devices on a SLURM cluster.
+
+:::
+
+
+:::
+
+<br>
+<br>
