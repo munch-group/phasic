@@ -530,14 +530,9 @@ void phasic::Graph::update_weights_parameterized(
         );
     }
 
-    // Validate parameter length
-    if (scalars.size() != graph->param_length) {
-        throw std::runtime_error(
-            "Parameter length mismatch: graph expects " +
-            std::to_string(graph->param_length) + " parameters, got " +
-            std::to_string(scalars.size())
-        );
-    }
+    // NOTE: No parameter length validation for callback mode.
+    // The callback receives both arrays independently and handles indexing itself.
+    // This allows flexible parameter/coefficient combinations (e.g., params longer than coeffs).
 
     // Iterate through all vertices and edges
     for (size_t i = 0; i < graph->vertices_length; i++) {

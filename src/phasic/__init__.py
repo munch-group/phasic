@@ -1399,7 +1399,7 @@ def _callback(ipv):
             if state is None or len(state) == 0:
                 assert ipv is not None, "ipv must be provided if callback does not return it"
                 _, prob = zip(*ipv)
-                if sum(prob) != 1.0:
+                if abs(sum(prob) - 1.0) > 1e-12:
                     raise ValueError("IPV does not sum to one", ipv)
                 return [[s, a, []] for s, a in ipv]               
 

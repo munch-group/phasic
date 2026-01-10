@@ -237,19 +237,74 @@ def test_callback_on_constant_graph_error():
         g.update_weights([1.0], callback=simple_callback)
 
 
-def test_callback_parameter_length_mismatch():
-    """Test that parameter length mismatch raises error"""
+def test_callback_flexible_lengths_more_params():
+    """Test callback with more parameters than coefficients"""
     g = Graph(1)
     v1 = g.create_vertex([1])
     v2 = g.create_vertex([2])
     v1.add_edge(v2, [2.0, 3.0])  # 2 coefficients
 
-    def simple_callback(theta, coeffs):
-        return np.dot(coeffs, theta)
+    def selective_callback(theta, coeffs):
+        # Use only first len(coeffs) parameters
+        return np.dot(coeffs, theta[:len(coeffs)])
 
-    # Graph expects 2 parameters, but we provide 3
-    with pytest.raises(RuntimeError, match="Parameter length mismatch"):
-        g.update_weights([1.0, 2.0, 3.0], callback=simple_callback)
+    # 5 parameters, but edge only has 2 coefficients - callback handles it
+    g.update_weights([1.0, 2.0, 3.0, 4.0, 5.0], callback=selective_callback)
+    # Expected: 2.0*1.0 + 3.0*2.0 = 8.0
+    assert np.isclose(v1.edges()[0].weight(), 8.0), \
+        f"Expected 8.0, got {v1.edges()[0].weight()}"
+
+
+def test_callback_flexible_lengths_epoch_params():
+    """Test PSMC-style epoch parameters where params > coeffs"""
+    g = Graph(1)
+    v1 = g.create_vertex([1])
+    v2 = g.create_vertex([2])
+    v3 = g.create_vertex([3])
+
+    # Epoch 1 edge: uses params[0] and params[1]
+    v1.add_edge(v2, [1.0, 0.5])  # 2 coefficients
+
+    # Epoch 2 edge: uses params[2] and params[3]
+    v2.add_edge(v3, [1.0, 0.5])  # 2 coefficients
+
+    # But we want to pass ALL epoch parameters at once
+    all_params = [0.1, 2.0, 0.2, 3.0]  # 4 total params
+
+    epoch_counter = [0]  # Mutable to track which edge we're on
+
+    def epoch_callback(theta, coeffs):
+        # Each edge uses a different slice of theta
+        epoch = epoch_counter[0]
+        epoch_counter[0] += 1
+        start_idx = epoch * 2
+        epoch_params = theta[start_idx:start_idx + 2]
+        return np.dot(coeffs, epoch_params)
+
+    g.update_weights(all_params, callback=epoch_callback)
+
+    # Epoch 1: 1.0*0.1 + 0.5*2.0 = 1.1
+    # Epoch 2: 1.0*0.2 + 0.5*3.0 = 1.7
+    assert np.isclose(v1.edges()[0].weight(), 1.1), \
+        f"Expected 1.1, got {v1.edges()[0].weight()}"
+    assert np.isclose(v2.edges()[0].weight(), 1.7), \
+        f"Expected 1.7, got {v2.edges()[0].weight()}"
+
+
+def test_callback_empty_params():
+    """Test callback with empty parameter vector"""
+    g = Graph(1)
+    v1 = g.create_vertex([1])
+    v2 = g.create_vertex([2])
+    v1.add_edge(v2, [2.0, 3.0])
+
+    def constant_callback(theta, coeffs):
+        # Ignore theta entirely, return constant
+        return 42.0
+
+    # Empty params - callback ignores them anyway
+    g.update_weights([], callback=constant_callback)
+    assert np.isclose(v1.edges()[0].weight(), 42.0)
 
 
 def test_callback_receives_correct_arrays():
