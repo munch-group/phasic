@@ -93,27 +93,15 @@
             "group": "Default"
         },
         {
-            "filePath": "docs/pages",
-            "group": "Default"
-        },
-        {
             "filePath": "pyproject.toml",
             "group": "Default"
         },
         {
-            "filePath": "conda-build",
-            "group": "Default"
-        },
-        {
-            "filePath": "docs/pages/tutorials/simple_example.ipynb",
-            "group": "Default"
-        },
-        {
-            "filePath": "scripts/call_tree.py",
-            "group": "Default"
-        },
-        {
             "filePath": "src",
+            "group": "Default"
+        },
+        {
+            "filePath": "docs/pages/tutorials/full_api",
             "group": "Default"
         }
     ],
