@@ -2941,6 +2941,13 @@
     "text": "Summary\nThis notebook demonstrated:\n\n✅ Trace recording from parameterized graphs\n✅ Serial trace evaluation with different parameters\n✅ Parallel evaluation using JAX vmap (10-100x speedup)\n✅ Trace instantiation to create concrete graphs\n✅ Performance scaling with graph complexity\n\n\nKey Results\n\nTrace recording is a one-time cost (~5-10x single evaluation)\nTrace evaluation is very fast (&lt; 1ms for small graphs)\nJAX vmap parallelization provides 10-100x speedup for batch evaluation\nBreak-even point is around 5-10 evaluations\nIdeal for SVGD with 100-1000 parameter evaluations\n\n\n\nPerformance vs Symbolic DAG\nCompared to the old symbolic expression approach: - Setup time: ~0.5x (faster trace recording) - Evaluation time: 5-10x faster per parameter set - Memory usage: Much lower (linear trace vs expression tree) - Parallelization: Fully compatible with JAX transformations\n\n\nImplementation Status\n\n✅ Phase 1-3: Trace recording and evaluation\n✅ Phase 4: Exact phase-type likelihood (forward algorithm)\n✅ Phase 5 Week 3: Forward algorithm PDF gradients\n🔄 Phase 5 (continuation): JAX FFI gradients for full autodiff"
   },
   {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Phasic",
+    "section": "",
+    "text": "Graph representation: Intuitive graph representation makes constructing complex models straightforward.\n\n\n Graph algorithms: C backend using graph-based algorithms for computing probability distributions and any number of exact moments.\n\n\nContinuous/Discrete: Automated conversion from continuous to discrete phase-type distributions with full support.\n\n\n\n\n\n Parameterized DAGs: Computation model templates of allows cashing and model distribution.\n\n\n Bayesian Inference:  JAX integration and automatic differentiation allow inference using Stein Variational Gradient Descent.\n\n\n Multiprocessing: Automatically parallelizes inference computation across CPUs on a single device or multiple devices on a SLURM cluster.\n\n\n \n\n\n\n\n\n\n\n\n\n\n\n\nGetting Started\n\n\n\n\n\nNo matching items"
+  },
+  {
     "objectID": "pages/benchmarks/R/running_time.html",
     "href": "pages/benchmarks/R/running_time.html",
     "title": "Experments",
