@@ -132,7 +132,7 @@ def _c_trace_to_python(trace_ptr: int) -> Optional[EliminationTrace]:
             if op_type == OpType.CONST:
                 op = Operation(
                     op_type=OpType.CONST,
-                    value=op_dict['const_value']
+                    const_value=op_dict['const_value']
                 )
             elif op_type == OpType.PARAM:
                 op = Operation(

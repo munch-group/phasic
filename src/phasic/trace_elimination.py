@@ -1203,12 +1203,19 @@ def instantiate_from_trace(trace: EliminationTrace, params: Optional[np.ndarray]
     Returns
     -------
     Graph
-        Instantiated graph
+        Instantiated graph with correct rates and edge weights.
+
+    Important
+    ---------
+    The returned graph is already in a normalized state with correct rates
+    computed from the trace evaluation. Do NOT call normalize() on it - this
+    will reset all rates to 1.0 and produce incorrect results.
 
     Notes
     -----
     This creates a new graph with the structure and edge weights from the
-    evaluated trace. The graph is NOT yet normalized - call normalize() if needed.
+    evaluated trace. The edge weights and vertex rates are already correct
+    for the given parameters.
 
     When rewards are provided, the edge weights already include the reward
     transformation from the trace evaluation, so the returned graph reflects
