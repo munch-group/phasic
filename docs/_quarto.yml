@@ -106,7 +106,8 @@ website:
 
             - pages/tutorials/full_api/coalescent/01-introduction.ipynb
             - pages/tutorials/full_api/coalescent/02-state-space.ipynb
-            - pages/tutorials/full_api/coalescent/04-properties.ipynb
+            - pages/tutorials/full_api/coalescent/03-properties.ipynb
+            - pages/tutorials/full_api/coalescent/04-trace_computing.ipynb
             - pages/tutorials/full_api/coalescent/05-state-space-utils.ipynb
             - pages/tutorials/full_api/coalescent/06-parametrization.ipynb
             - pages/tutorials/full_api/coalescent/07-time-inhomogeneous.ipynb
