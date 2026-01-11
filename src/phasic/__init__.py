@@ -71,8 +71,12 @@ from .logging_config import (
     get_logger,
 )
 from .state_indexing import (
-    StateSpace,
-    Property
+    StateSpace,  # Backward compatibility (deprecated)
+    Property,
+    PropertySet,
+    StateIndexer,
+    PropertyDict,
+    StateVector
 )
 # from .vscode_theme import set_phasic_theme
 # from .vscode_theme import phasic_theme as theme

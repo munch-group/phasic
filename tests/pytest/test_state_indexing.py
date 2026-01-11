@@ -10,7 +10,7 @@ Verifies compatibility with original C++ implementation for all 4 scenarios:
 
 import pytest
 import numpy as np
-from phasic.state_indexing import Property, StateSpace, StateVector
+from phasic.state_indexing import Property, StateIndexer, StateVector
 
 
 # ============================================================================
@@ -75,7 +75,7 @@ def test_property_validation_with_offset():
 
 
 # ============================================================================
-# Test StateSpace - Single Locus (Original C++ Scenario 1)
+# Test StateIndexer - Single Locus (Original C++ Scenario 1)
 # ============================================================================
 
 def test_single_locus_state_space():
@@ -83,7 +83,7 @@ def test_single_locus_state_space():
     s = 10  # sample size
 
     # C++ formula: props_to_index = a * (s+1)^0 + (p-1) * (s+1)^1
-    space = StateSpace([
+    space = StateIndexer([
         Property('descendants', max_value=s),
         Property('population', max_value=2, offset=1)  # populations 1, 2, 3
     ])
@@ -111,7 +111,7 @@ def test_single_locus_state_space():
 def test_single_locus_roundtrip():
     """Test single locus index ↔ props round-trips."""
     s = 10
-    space = StateSpace([
+    space = StateIndexer([
         Property('descendants', max_value=s),
         Property('population', max_value=2, offset=1)
     ])
@@ -124,7 +124,7 @@ def test_single_locus_roundtrip():
 
 
 # ============================================================================
-# Test StateSpace - Two Locus (Original C++ Scenario 2)
+# Test StateIndexer - Two Locus (Original C++ Scenario 2)
 # ============================================================================
 
 def test_two_locus_state_space():
@@ -132,7 +132,7 @@ def test_two_locus_state_space():
     s = 5  # sample size
 
     # C++ formula: props_to_index = a * (s+1)^0 + b * (s+1)^1 + (p-1) * (s+1)^2
-    space = StateSpace([
+    space = StateIndexer([
         Property('descendants_l1', max_value=s),
         Property('descendants_l2', max_value=s),
         Property('population', max_value=2, offset=1)
@@ -160,7 +160,7 @@ def test_two_locus_state_space():
 def test_two_locus_roundtrip():
     """Test two locus index ↔ props round-trips."""
     s = 5
-    space = StateSpace([
+    space = StateIndexer([
         Property('descendants_l1', max_value=s),
         Property('descendants_l2', max_value=s),
         Property('population', max_value=2, offset=1)
@@ -173,7 +173,7 @@ def test_two_locus_roundtrip():
 
 
 # ============================================================================
-# Test StateSpace - Single Locus Derived (Original C++ Scenario 3)
+# Test StateIndexer - Single Locus Derived (Original C++ Scenario 3)
 # ============================================================================
 
 def test_single_locus_derived_state_space():
@@ -181,7 +181,7 @@ def test_single_locus_derived_state_space():
     s = 5
 
     # C++ formula: a * (s+1)^0 + d * (s+1)^1 + (p-1) * (s+1)^2
-    space = StateSpace([
+    space = StateIndexer([
         Property('descendants', max_value=s),
         Property('is_derived', max_value=1),  # 0 or 1
         Property('population', max_value=2, offset=1)
@@ -209,7 +209,7 @@ def test_single_locus_derived_state_space():
 def test_single_locus_derived_roundtrip():
     """Test single locus derived index ↔ props round-trips."""
     s = 5
-    space = StateSpace([
+    space = StateIndexer([
         Property('descendants', max_value=s),
         Property('is_derived', max_value=1),
         Property('population', max_value=2, offset=1)
@@ -222,7 +222,7 @@ def test_single_locus_derived_roundtrip():
 
 
 # ============================================================================
-# Test StateSpace - Two Locus Derived (Original C++ Scenario 4)
+# Test StateIndexer - Two Locus Derived (Original C++ Scenario 4)
 # ============================================================================
 
 def test_two_locus_derived_state_space():
@@ -230,7 +230,7 @@ def test_two_locus_derived_state_space():
     s = 3
 
     # C++ formula: a * (s+1)^0 + b * (s+1)^1 + d * (s+1)^2 + (p-1) * (s+1)^3
-    space = StateSpace([
+    space = StateIndexer([
         Property('descendants_l1', max_value=s),
         Property('descendants_l2', max_value=s),
         Property('is_derived', max_value=1),
@@ -252,7 +252,7 @@ def test_two_locus_derived_state_space():
 def test_two_locus_derived_roundtrip():
     """Test two locus derived index ↔ props round-trips."""
     s = 3
-    space = StateSpace([
+    space = StateIndexer([
         Property('descendants_l1', max_value=s),
         Property('descendants_l2', max_value=s),
         Property('is_derived', max_value=1),
@@ -266,13 +266,13 @@ def test_two_locus_derived_roundtrip():
 
 
 # ============================================================================
-# Test StateSpace - Vectorized Operations
+# Test StateIndexer - Vectorized Operations
 # ============================================================================
 
 def test_vectorized_index_to_props():
     """Test vectorized index → props conversion."""
     s = 5
-    space = StateSpace([
+    space = StateIndexer([
         Property('descendants', max_value=s),
         Property('population', max_value=2, offset=1)
     ])
@@ -290,7 +290,7 @@ def test_vectorized_index_to_props():
 def test_vectorized_props_to_index():
     """Test vectorized props → index conversion."""
     s = 5
-    space = StateSpace([
+    space = StateIndexer([
         Property('descendants', max_value=s),
         Property('population', max_value=2, offset=1)
     ])
@@ -316,7 +316,7 @@ def test_vectorized_props_to_index():
 
 def test_state_vector_from_index():
     """Test StateVector initialization from index."""
-    space = StateSpace([
+    space = StateIndexer([
         Property('descendants', max_value=5),
         Property('population', max_value=2, offset=1)
     ])
@@ -329,7 +329,7 @@ def test_state_vector_from_index():
 
 def test_state_vector_from_props():
     """Test StateVector initialization from properties."""
-    space = StateSpace([
+    space = StateIndexer([
         Property('descendants', max_value=5),
         Property('population', max_value=2, offset=1)
     ])
@@ -341,7 +341,7 @@ def test_state_vector_from_props():
 
 def test_state_vector_modification():
     """Test StateVector property modification."""
-    space = StateSpace([
+    space = StateIndexer([
         Property('descendants', max_value=5),
         Property('population', max_value=2, offset=1)
     ])
@@ -363,7 +363,7 @@ def test_state_vector_modification():
 
 def test_state_vector_copy():
     """Test StateVector copying."""
-    space = StateSpace([
+    space = StateIndexer([
         Property('descendants', max_value=5),
         Property('population', max_value=2, offset=1)
     ])
@@ -385,7 +385,7 @@ def test_state_vector_copy():
 
 def test_state_space_size():
     """Test state space size calculation."""
-    space = StateSpace([
+    space = StateIndexer([
         Property('a', max_value=2),  # base 3
         Property('b', max_value=3),  # base 4
     ])
@@ -394,7 +394,7 @@ def test_state_space_size():
 
 def test_props_to_index_kwargs():
     """Test props_to_index with kwargs."""
-    space = StateSpace([
+    space = StateIndexer([
         Property('a', max_value=2),
         Property('b', max_value=2)
     ])
@@ -410,7 +410,7 @@ def test_props_to_index_kwargs():
 
 def test_invalid_property_access():
     """Test invalid property access in StateVector."""
-    space = StateSpace([Property('a', max_value=2)])
+    space = StateIndexer([Property('a', max_value=2)])
     state = StateVector(space, index=0)
 
     with pytest.raises(KeyError):
@@ -423,7 +423,7 @@ def test_invalid_property_access():
 def test_duplicate_property_names():
     """Test that duplicate property names raise error."""
     with pytest.raises(ValueError):
-        StateSpace([
+        StateIndexer([
             Property('a', max_value=2),
             Property('a', max_value=3)
         ])
@@ -435,7 +435,7 @@ def test_duplicate_property_names():
 
 def test_custom_property_combination():
     """Test custom property combination not in original C++."""
-    space = StateSpace([
+    space = StateIndexer([
         Property('descendants', max_value=10),
         Property('chromosome', max_value=21),  # 22 chromosomes
         Property('is_male', max_value=1),
@@ -481,7 +481,7 @@ def test_all_scenarios_comprehensive():
     ]
 
     for properties, test_indices in scenarios:
-        space = StateSpace(properties)
+        space = StateIndexer(properties)
         for idx in test_indices:
             if idx < space.size:
                 props = space.index_to_props(idx)
