@@ -6,7 +6,7 @@ page-layout: full
 # title-block-style: plain
 title-block-banner-color: black
 title-block-banner-bg: white
-# title-block-banner: banner.png
+title-block-banner: banner.png
 toc: false
 listing:
   - id: showcase
@@ -14,8 +14,9 @@ listing:
     fields: [image, title]
     grid-columns: 2
     contents:
-    - pages/getting_started.qmd
-    - pages/tutorials/rabbits_full_py_api_example.ipynb
+    - pages/quick_start.qmd
+    - pages/tutorial/01-introduction.ipynb
+    - pages/tutorial/11-svgd-basics.ipynb
     # sort: "date desc"
     # categories: true
     # sort-ui: true

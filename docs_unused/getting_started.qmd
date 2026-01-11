@@ -256,41 +256,4 @@ times = jnp.linspace(0, 5, 50)
 pdf_values = pmf_fn(theta, times)
 ```
 
-## Examples and Tutorials
-
-### Tutorials
-
-- [Rabbits Example](tutorials/full_api/rabbits_full_py_api_example.ipynb) - Complete Python API walkthrough
-- [State Space Construction](tutorials/state_space_construction.ipynb) - Building complex models
-- [Phase-Type Distributions](tutorials/background/math_and_alg.qmd) - Theory and examples
-
-### Advanced Topics
-
-- [Symbolic Gaussian Elimination](symbolic_gauss_elimination.qmd) - Fast parameterized evaluation
-- [SVGD Inference](tutorials/svgd/svgd.ipynb) - Bayesian parameter estimation
-- [Distributed Computing](tutorials/distributed/distributed_computing.qmd) - Multi-node parallelization
-
-### State Space Modeling
-
-- [State Lumping](tutorials/modelling/state_lumping.ipynb) - Reduce state space complexity
-- [Laplace Transforms](tutorials/modelling/laplace.ipynb) - Transform analysis
-- [Epochs](tutorials/modelling/epochs.ipynb) - Time-inhomogeneous models
-- [Joint Probabilities](tutorials/modelling/joint_prob.ipynb) - Multivariate distributions
-
-### Population Genetics
-
-- [Coalescent Models](tutorials/modelling/coalescent-jointprob.ipynb) - TMRCA distributions
-- [Isolation-Migration](tutorials/popgen/isolation_migration.ipynb) - Population structure
-- [Two-Island ARG](tutorials/popgen/two-island-two-locus-arg.ipynb) - Ancestral recombination
-
-## API Documentation
-
-- [Python API Reference](../api/index.html) - Complete Python documentation
-- [R API Reference](../r_api/index.html) - Complete R documentation
-- [C API Reference](../c_api/index.html) - C interface
-
-## Getting Help
-
-- [Issue Tracker](https://github.com/munch-group/phasic/issues) - Report bugs or request features
-- [Email Support](mailto:kaspermunch@birc.au.dk) - Direct contact
 

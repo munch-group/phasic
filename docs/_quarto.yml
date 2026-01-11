@@ -71,16 +71,14 @@ website:
     logo-href: "/index.html"  # Where clicking the logo goes
 
     left:
-      - href: pages/getting_started.html
+      - href: pages/quick_start.html
         text: Documentation
       - href: api/
         text: Python API reference
-      - href: r_api/
-        text: R API reference
-      - href: c_api/
-        text: C API reference
-      # - file: examples/
-      #   text: Examples
+      # - href: r_api/
+      #   text: R API reference
+      # - href: c_api/
+      #   text: C API reference
     right:
       - icon: github
         href: https://github.com/munch-group/phasic/
@@ -90,101 +88,50 @@ website:
       style: floating
       align: left
       contents:
-        - pages/getting_started.qmd
-        - section: "Tutorials"
+        - pages/quickstart.ipynb
+        - pages/tutorials/quickstart.ipynb
+        - section: "Tutorial"
           contents:
-            - pages/tutorials/quickstart.ipynb
-            # - pages/tutorials/state_space_construction.ipynb
-            # - pages/tutorials/moments.ipynb
-            # - pages/tutorials/distributions.ipynb
-            # - pages/tutorials/simple_example.ipynb
-            # - pages/tutorials/full_api/rabbits_full_py_api_example.ipynb
-
-
-            # - pages/tutorials/full_api/coalescent_full_py_api_example.ipynb
-
-
-            - pages/tutorials/full_api/coalescent/01-introduction.ipynb
-            - pages/tutorials/full_api/coalescent/02-state-space.ipynb
-            - pages/tutorials/full_api/coalescent/03-properties.ipynb
-            - pages/tutorials/full_api/coalescent/04-trace_computing.ipynb
-            - pages/tutorials/full_api/coalescent/05-state-space-utils.ipynb
-            - pages/tutorials/full_api/coalescent/06-parametrization.ipynb
-            - pages/tutorials/full_api/coalescent/07-time-inhomogeneous.ipynb
-            - pages/tutorials/full_api/coalescent/08-laplace.ipynb
-            - pages/tutorials/full_api/coalescent/09-joint-probability.ipynb
-            - pages/tutorials/full_api/coalescent/10-finite-markov-chains.ipynb
-            - pages/tutorials/full_api/coalescent/11-svgd-basics.ipynb
-            - pages/tutorials/full_api/coalescent/12-svgd-multi-feature.ipynb
-            - pages/tutorials/full_api/coalescent/13-svgd-multi-param.ipynb
-            - pages/tutorials/full_api/coalescent/14-svgd-joint-prob.ipynb
-            - pages/tutorials/full_api/coalescent/15-distributed.ipynb
-            - pages/tutorials/full_api/coalescent/16-caching-sharing.ipynb
-
-            # - pages/tutorials/full_api/somecode.ipynb
-        - section: "Phase-type distributions"
+            - pages/tutorial/01-introduction.ipynb
+            - pages/tutorial/02-state-space.ipynb
+            - pages/tutorial/03-properties.ipynb
+            - pages/tutorial/04-state-space-utils.ipynb
+            - pages/tutorial/05-parametrization.ipynb
+            - pages/tutorial/06-trace_computing.ipynb
+            - pages/tutorial/07-time-inhomogeneous.ipynb
+            - pages/tutorial/08-laplace.ipynb
+            - pages/tutorial/09-joint-probability.ipynb
+            - pages/tutorial/10-finite-markov-chains.ipynb
+            - pages/tutorial/11-svgd-basics.ipynb
+            - pages/tutorial/12-svgd-multi-feature.ipynb
+            - pages/tutorial/13-svgd-multi-param.ipynb
+            - pages/tutorial/14-svgd-joint-prob.ipynb
+            - pages/tutorial/15-distributed.ipynb
+            - pages/tutorial/16-caching.ipynb
+            - pages/tutorial/17-sharing.ipynb
+        - section: "Topics"
+          contents:
+            - pages/topics/visualize.ipynb
+            - pages/topics/vscodenb.ipynb
+            # - pages/tutorials/somecode.ipynb
+        - section: "Math and algorithms"
           contents:
             - pages/background/math_and_alg.qmd
-        # - section: "State space patterns"
-        #   contents:
-        #     - pages/tutorials/modelling/state_lumping.ipynb
-        #     - pages/tutorials/modelling/laplace.ipynb
-        #     - pages/tutorials/modelling/epochs.ipynb
-        #     - pages/tutorials/modelling/joint_prob.ipynb
-        #     - pages/tutorials/modelling/cont_and_discrete.ipynb
-        #     - pages/tutorials/modelling/epochs.ipynb
-        #     - pages/tutorials/modelling/joint_prob.ipynb
-        #     - pages/tutorials/modelling/laplace.ipynb
-        #     - pages/tutorials/modelling/state_lumping.ipynb
-        - section: "Bayesian inference"
+
+        - section: "Popgen models"
           contents:
-        #     - pages/tutorials/svgd/svgd.ipynb
-            - pages/tutorials/svgd/caching.qmd
-            - pages/tutorials/svgd/svgd_trace_eval.qmd
-            - pages/tutorials/svgd/svgd_step_sizes.qmd
-            - pages/tutorials/svgd/ffi_and_openmp.qmd
-            - pages/tutorials/svgd/caching.qmd
-            - pages/tutorials/svgd/ffi_and_openmp.qmd
-            - pages/tutorials/svgd/svgd_step_sizes.qmd
-            - pages/tutorials/svgd/svgd_trace_eval.qmd
-        #     - pages/tutorials/svgd/trace_ipfs.ipynb
-        # - section: "Distributed Computing"
-        #   contents:
-        #     - pages/tutorials/distributed/distributed_computing_complete_guide.ipynb
-        #     - pages/tutorials/distributed/slurm_cluster_setup.ipynb
-        #     - pages/tutorials/utils/cpu_monitoring.ipynb
-        # - section: "Popgen examples"
-        #   contents:
-        #     - pages/tutorials/popgen/python/coalescent-jointprob.ipynb
-        #     - pages/tutorials/popgen/python/isolation_migration.ipynb
-        #     # - pages/tutorials/popgen/python/two-island-two-locus-arg.ipynb
-        #     - pages/tutorials/popgen/python/arg-two-island.ipynb
-        #     - pages/tutorials/popgen/python/coalescent-epoques.ipynb
-        #     - pages/tutorials/popgen/python/coalescent-im-model.ipynb
-        #     - pages/tutorials/popgen/python/coalescent-jointprob-ffi.ipynb
-        #     - pages/tutorials/popgen/python/coalescent-laplace.ipynb
-        #     - pages/tutorials/popgen/python/coalescent-minvar-theta.ipynb
-        #     - pages/tutorials/popgen/python/coalescent-partitions.ipynb
-        #     - pages/tutorials/popgen/python/coalescent-selection.ipynb
-        #     - pages/tutorials/popgen/python/coalescent.ipynb
-        #     - pages/tutorials/popgen/python/im_model.ipynb
-        #     - pages/tutorials/popgen/python/index_prop_mapping.ipynb
-        #     - pages/tutorials/popgen/python/plot.ipynb
-        #     - pages/tutorials/popgen/python/SFS.ipynb
-        #     - pages/tutorials/popgen/python/showcase.ipynb
-        #     - pages/tutorials/popgen/python/smc-prime-tree-levels.py
-        #     - pages/tutorials/popgen/python/two_locus_two_island-discrete.ipynb
-        #     - pages/tutorials/popgen/python/two_locus_two_island.ipynb
+            - pages/background/math_and_alg.qmd
+
         - section: "Internals"
           contents:
-            - pages/architecture/architecture.qmd
-            - pages/architecture/config_system.qmd
-            - pages/architecture/explicit_config_system.qmd
-            - pages/architecture/call_tree.qmd
-            - pages/architecture/caching_guide.qmd
-            - pages/architecture/report_1_python_cpp_bridge_jax_integration
-            - pages/architecture/report_2_trace_elimination_retracing.md
-            - pages/architecture/report_3_caching_architecture.md
+            - pages/internals/architecture.qmd
+            - pages/internals/call_tree.qmd
+            - pages/internals/caching_guide.qmd
+            - pages/internals/explicit_config_system.qmd
+            - pages/internals/python_cpp_bridge_jax_integration
+            - pages/internals/trace_elimination_retracing.md
+            - pages/internals/caching_architecture.md
+
             - href: https://github.com/munch-group/phasic/issues
               text: Issue Tracker
         # - galleries/examples/index.qmd
@@ -221,7 +168,6 @@ format:
     mermaid:
       theme: neutral     
     linkcolor: "#0D7D92"
-
 
 quartodoc:
   package: phasic
