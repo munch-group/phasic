@@ -2,7 +2,8 @@
   {
     "listing": "/index.html",
     "items": [
-      "/pages/getting_started.html"
+      "/pages/tutorial/11-svgd-basics.html",
+      "/pages/tutorial/01-introduction.html"
     ]
   }
 ]
