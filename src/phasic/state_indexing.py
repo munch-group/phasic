@@ -44,7 +44,7 @@ Example
 >>> indexer.index_to_props(5)  # {'descendants': 5}
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, make_dataclass
 from typing import Dict, List, Optional, Union, Self
 import numpy as np
 import numpy.typing as npt
@@ -242,8 +242,9 @@ class PropertySet:
     def index_to_props(
         self,
         index: Union[int, npt.NDArray[np.integer]],
-        as_dict: bool = True
-    ) -> Union[Dict[str, int], List[Dict[str, int]], npt.NDArray[np.integer]]:
+        as_dict: bool = False,
+        as_values: bool = False
+    ) -> Union[Dict[str, int], List[Dict[str, int]], npt.NDArray[np.integer], object, List[object]]:
         """
         Convert linear index to property values.
 
@@ -251,25 +252,42 @@ class PropertySet:
         ----------
         index : int or ndarray of int
             Linear index or array of indices to convert.
-        as_dict : bool, default=True
-            If True, return dict. If False, return array of property values.
+        as_dict : bool, default=False
+            If True, return dict mapping property names to values.
+        as_values : bool, default=False
+            If True, return array of property values instead of dataclass.
+            Takes precedence over as_dict.
 
         Returns
         -------
-        dict or list of dict or ndarray of int
-            If scalar index and as_dict=True: dictionary mapping property names to values.
-            If array index and as_dict=True: list of dictionaries.
-            If as_dict=False: array of decoded property values (shape: (n_properties,) or (n_indices, n_properties)).
+        dataclass or dict or list or ndarray of int
+            Default (as_dict=False, as_values=False):
+                - Scalar index: dataclass with properties accessible as attributes
+                - Array index: list of dataclasses
+            If as_dict=True:
+                - Scalar index: dictionary mapping property names to values
+                - Array index: list of dictionaries
+            If as_values=True:
+                - Scalar index: array of decoded property values
+                - Array index: 2D array (n_indices, n_properties)
 
         Examples
         --------
-        >>> space = StateSpace([
-        ...     Property('a', max_value=2),
-        ...     Property('b', max_value=2)
+        >>> pset = PropertySet('lineage', [
+        ...     Property('descendants_l1', max_value=2),
+        ...     Property('descendants_l2', max_value=2)
         ... ])
-        >>> space.index_to_props(5)
-        {'a': 2, 'b': 1}
-        >>> space.index_to_props(5, as_dict=False)
+        >>> # Default: dataclass with attribute access
+        >>> props = pset.index_to_props(5)
+        >>> props.descendants_l1
+        2
+        >>> props.descendants_l2
+        1
+        >>> # As dict
+        >>> pset.index_to_props(5, as_dict=True)
+        {'descendants_l1': 2, 'descendants_l2': 1}
+        >>> # As values array
+        >>> pset.index_to_props(5, as_values=True)
         array([2, 1])
         """
 
@@ -281,21 +299,36 @@ class PropertySet:
             for i, prop in enumerate(self.properties):
                 encoded[:, i] = (index // self._radix_powers[i]) % prop.base
 
-            if as_dict:
+            # Decode values
+            decoded = np.zeros_like(encoded)
+            for i, prop in enumerate(self.properties):
+                decoded[:, i] = prop.decode_value(encoded[:, i])
+
+            if as_values:
+                return decoded
+            elif as_dict:
                 # Return list of dicts
                 return [
                     {
-                        p.name: p.decode_value(encoded[j, i])
+                        p.name: int(decoded[j, i])
                         for i, p in enumerate(self.properties)
                     }
                     for j in range(len(index))
                 ]
             else:
-                # Decode values for consistency with dict output
-                decoded = np.zeros_like(encoded)
-                for i, prop in enumerate(self.properties):
-                    decoded[:, i] = prop.decode_value(encoded[:, i])
-                return decoded
+                # Return list of dataclasses (default)
+                PropsClass = make_dataclass(
+                    f'{self.name.capitalize()}Props',
+                    [(p.name, int) for p in self.properties],
+                    frozen=True
+                )
+                return [
+                    PropsClass(**{
+                        p.name: int(decoded[j, i])
+                        for i, p in enumerate(self.properties)
+                    })
+                    for j in range(len(index))
+                ]
 
         if not index < self.n_states:
             raise IndexError(f"Provided index {index} out of range for property set of size {self.n_states}")
@@ -306,17 +339,29 @@ class PropertySet:
         for i, prop in enumerate(self.properties):
             encoded[i] = (index // self._radix_powers[i]) % prop.base
 
-        if as_dict:
-            return {
-                prop.name: prop.decode_value(encoded[i])
-                for i, prop in enumerate(self.properties)
-            }
-        else:
-            # Decode values for consistency with dict output
+        # Decode values
+        decoded_values = {
+            prop.name: prop.decode_value(encoded[i])
+            for i, prop in enumerate(self.properties)
+        }
+
+        if as_values:
+            # Return array of property values
             return np.array([
-                prop.decode_value(encoded[i])
-                for i, prop in enumerate(self.properties)
+                decoded_values[prop.name]
+                for prop in self.properties
             ])
+        elif as_dict:
+            # Return dict
+            return decoded_values
+        else:
+            # Return dataclass (default)
+            PropsClass = make_dataclass(
+                f'{self.name.capitalize()}Props',
+                [(p.name, int) for p in self.properties],
+                frozen=True
+            )
+            return PropsClass(**decoded_values)
 
     def props_to_index(
         self,
@@ -667,16 +712,25 @@ class StateIndexer:
         else:
             raise ValueError("Use indexer.name.n_states for multi-set indexers")
 
-    def index_to_props(self, index, as_dict=True):
+    def index_to_props(self, index, as_dict=False, as_values=False):
         """
         Delegate to first PropertySet (backward compatibility).
 
         For multi-PropertySet indexers, use indexer.name.index_to_props() instead.
+
+        Parameters
+        ----------
+        index : int or ndarray
+            Index to convert
+        as_dict : bool, default=False
+            If True, return dict instead of dataclass
+        as_values : bool, default=False
+            If True, return array of values
         """
         if len(self._property_sets) == 1:
-            return next(iter(self._property_sets.values())).index_to_props(index, as_dict)
+            return next(iter(self._property_sets.values())).index_to_props(index, as_dict, as_values)
         elif 'default' in self._property_sets:
-            return self._property_sets['default'].index_to_props(index, as_dict)
+            return self._property_sets['default'].index_to_props(index, as_dict, as_values)
         else:
             raise ValueError("Use indexer.name.index_to_props() for multi-set indexers")
 
