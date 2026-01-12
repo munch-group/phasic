@@ -1,0 +1,10 @@
+# Function reference {.doc .doc-index}
+
+## Graph Construction
+
+Graph components (Vertex and Edge are documented as part of Graph)
+
+
+| | |
+| --- | --- |
+| [Graph](Graph.qmd#phasic.Graph) |  |

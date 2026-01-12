@@ -80,7 +80,7 @@ void print_state(int *state, int l) {
 }
 
 // [[Rcpp::export]]
-void add_epoque(SEXP graph, std::vector<double> scalars, double t) {
+void add_epoch(SEXP graph, std::vector<double> scalars, double t) {
 
     Rcpp::XPtr<Graph> graphcpp(graph);
     struct ptd_graph *ptd_graph = graphcpp->c_graph();
@@ -118,7 +118,7 @@ void add_epoque(SEXP graph, std::vector<double> scalars, double t) {
         for (int k=0; k < ptd_graph->state_length; ++k) {
             state[k] = vertex->state[k];
         }
-        // use current nr of states as epoque label in last state slot of sister state
+        // use current nr of states as epoch label in last state slot of sister state
         state[(ptd_graph->state_length) - 1] = nr_states; 
 
         // create sister vertex
@@ -144,7 +144,7 @@ void add_epoque(SEXP graph, std::vector<double> scalars, double t) {
             // // get sister state
             // struct ptd_edge_parameterized *edge = ((struct ptd_edge_parameterized *) vertex->edges[j]);
 
-            // edges connecting epoques are already made
+            // edges connecting epochs are already made
             if (vertex->edges[j]->to == sister_vertex) {
                 continue;
             }
@@ -154,7 +154,7 @@ void add_epoque(SEXP graph, std::vector<double> scalars, double t) {
             for (int k=0; k < ptd_graph->state_length; ++k) {
                 state[k] = vertex->edges[j]->to->state[k];
             }
-            // make transitions in all epoques go to absorb of first epoque (saves states)
+            // make transitions in all epochs go to absorb of first epoch (saves states)
             if (vertex->edges[j]->to->edges_length > 0) {
                 state[ptd_graph->state_length-1] = nr_states;  // NOT SURE ABOUT THIS...
             }

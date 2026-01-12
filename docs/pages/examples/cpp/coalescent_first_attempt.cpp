@@ -94,9 +94,9 @@ int props_to_index(int s, int n_desc, int is_der)  {
 //     return (1-np.exp(-g/(2*N))) * exp_coal(g, N) + np.exp(-g/(2*N)) * (g + epoch(demog, h, i+1))
 
 
-// epoques are tuples of n_generations_in_epoque and epoque_n (last tuple is open-ended and has None for n_generations): 
-//epoques = [(189999, 10000), (5000, 10000), (4000, 10000), (None, 10000)]
-// pi = epoch(epoques, 1, 0)
+// epochs are tuples of n_generations_in_epoch and epoch_n (last tuple is open-ended and has None for n_generations): 
+//epochs = [(189999, 10000), (5000, 10000), (4000, 10000), (None, 10000)]
+// pi = epoch(epochs, 1, 0)
 // print(pi / 2) //  should be 10000  .... I could also replace 2N with N in function....
 
 
@@ -246,29 +246,29 @@ double _exp_coal(double g, double N) {
     return(N - (g * exp(-g/(N))) / (1 - exp(-g/(N))));
 }
 
-double _epoch(double** demog, int nr_epoques, float h, int i) {
+double _epoch(double** demog, int nr_epochs, float h, int i) {
     double g = demog[i][0];
     double N = demog[i][1];
     N *= h;
-    if (i == nr_epoques-1) {
+    if (i == nr_epochs-1) {
         return(N);
     }
-    return((1-exp(-g/(N))) * _exp_coal(g, N) + exp(-g/(N)) * (g + _epoch(demog, nr_epoques, h, i+1)));
+    return((1-exp(-g/(N))) * _exp_coal(g, N) + exp(-g/(N)) * (g + _epoch(demog, nr_epochs, h, i+1)));
 }
 
 double exp_coal(double cur_freq, double end_freq, double t) {
-    int n_epoques = 100000;
-    double **epoques = (double **) malloc(sizeof(double*) * n_epoques);
-    for (int i=0; i< n_epoques; i++) {
-        epoques[i] = (double *) malloc(sizeof(double) * 2);
-        epoques[i][0] = t / n_epoques; 
-        epoques[i][1] = cur_freq + (end_freq - cur_freq) * i/(double)n_epoques;
+    int n_epochs = 100000;
+    double **epochs = (double **) malloc(sizeof(double*) * n_epochs);
+    for (int i=0; i< n_epochs; i++) {
+        epochs[i] = (double *) malloc(sizeof(double) * 2);
+        epochs[i][0] = t / n_epochs; 
+        epochs[i][1] = cur_freq + (end_freq - cur_freq) * i/(double)n_epochs;
     }
-    double exp_time = _epoch(epoques, n_epoques, 1, 0);
-    for (int i=0; i< n_epoques; i++) {
-        free(epoques[i]);
+    double exp_time = _epoch(epochs, n_epochs, 1, 0);
+    for (int i=0; i< n_epochs; i++) {
+        free(epochs[i]);
     }
-    free(epoques);
+    free(epochs);
     return(exp_time);
 }
    

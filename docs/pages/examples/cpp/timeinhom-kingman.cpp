@@ -119,7 +119,7 @@ SEXP kingman_graph(int n, std::vector<double> scalars) {
 }
 
 // // [[Rcpp::export]]
-// void add_epoque(SEXP graph, std::vector<double> scalars, double t) {
+// void add_epoch(SEXP graph, std::vector<double> scalars, double t) {
 
 //     Rcpp::XPtr<Graph> graphcpp(graph);
 //     struct ptd_graph *ptd_graph = graphcpp->c_graph();
@@ -173,14 +173,14 @@ SEXP kingman_graph(int n, std::vector<double> scalars) {
 //             // get sister state
 //             struct ptd_edge_parameterized *edge = ((struct ptd_edge_parameterized *) vertex->edges[j]);
 
-//             // edges connecting epoques are already made
+//             // edges connecting epochs are already made
 //             if (edge->to == sister_vertex) {
 //                 continue;
 //             }
 
 //             // add/find state corresponding edge from sister-state should point to
 //             memcpy(state, edge->to->state, ptd_graph->state_length * sizeof(int));
-//             // make transitions in all epoques go to absorb of first epoque (saves states)
+//             // make transitions in all epochs go to absorb of first epoch (saves states)
 //             if (edge->to->edges_length > 0) {
 //                 state[ptd_graph->state_length-1] = nr_states;
 //             }
@@ -242,7 +242,7 @@ SEXP kingman_graph(int n, std::vector<double> scalars) {
 
 
 // // [[Rcpp::export]]
-// void add_epoque(SEXP graph, std::vector<double> scalars, double t) {
+// void add_epoch(SEXP graph, std::vector<double> scalars, double t) {
 
 //     Rcpp::XPtr<Graph> graphcpp(graph);
 //     struct ptd_graph *ptd_graph = graphcpp->c_graph();
@@ -262,7 +262,7 @@ SEXP kingman_graph(int n, std::vector<double> scalars) {
 //     // state and edge state buffers
 //     int *state = (int *) calloc(ptd_graph->state_length, sizeof(int));
 
-//     fprintf(stderr, "epoque: %d\n", nr_states);
+//     fprintf(stderr, "epoch: %d\n", nr_states);
 
     
 //     // add a copy of each vertex to the graph
@@ -283,7 +283,7 @@ SEXP kingman_graph(int n, std::vector<double> scalars) {
 
 //         struct ptd_vertex *sister_vertex;
         
-//         // only copy first epoque states
+//         // only copy first epoch states
 //         if (vertex->state[ptd_graph->state_length-1] == 0) {
 
 //             fprintf(stderr, "orig vertex:");
@@ -292,7 +292,7 @@ SEXP kingman_graph(int n, std::vector<double> scalars) {
 //             // make the state of the sister vertex
 //             memcpy(state, vertex->state, ptd_graph->state_length * sizeof(int));
     
-//             // label state with epoque
+//             // label state with epoch
 //             state[ptd_graph->state_length-1] = nr_states;
     
 //             // add sister vertex to graph
@@ -311,7 +311,7 @@ SEXP kingman_graph(int n, std::vector<double> scalars) {
 //                 // get child vertex for edge
 //                 struct ptd_vertex *to_vertex = ptd_find_or_create_vertex(ptd_graph, avl_tree, edge->to->state);
     
-//                 // // only add edges connecting same-epoque states or edges to absorbing
+//                 // // only add edges connecting same-epoch states or edges to absorbing
 //                 // if (vertex->state[ptd_graph->state_length-1] != to_vertex->state[ptd_graph->state_length-1] & to_vertex->edges_length > 0) {
 //                 //     continue;
 //                 // }
@@ -322,7 +322,7 @@ SEXP kingman_graph(int n, std::vector<double> scalars) {
 //                 // print_state(to_vertex->state, ptd_graph->state_length);
     
     
-//                 // add child vertex with state labelled with epoque
+//                 // add child vertex with state labelled with epoch
 //                 memcpy(state, to_vertex->state, ptd_graph->state_length * sizeof(int));
 //                 state[ptd_graph->state_length-1] = nr_states;
 //                 // state[ptd_graph->state_length-1] += nr_states;

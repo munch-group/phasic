@@ -166,7 +166,7 @@ void print_state(int *state, int l) {
 
 
 
-// Graph* redo_graph(struct ptd_graph *graph, int edge_state_size, int epoque_label) {
+// Graph* redo_graph(struct ptd_graph *graph, int edge_state_size, int epoch_label) {
 
 //   // new graph and avl tree
 //   struct ptd_graph *new_graph = ptd_graph_create(graph->state_length);
@@ -193,7 +193,7 @@ void print_state(int *state, int l) {
 
 //     // skip all absorbing vertices, keep pointer to the last absorbing
 //     if (vertex->edges_length == 0) {
-//         if (vertex->state[(graph->state_length)-1] == epoque_label) {
+//         if (vertex->state[(graph->state_length)-1] == epoch_label) {
 //             // keep last absorbing vertex
 //             absorbing_vertex = vertex;
 //         } else {
@@ -204,7 +204,7 @@ void print_state(int *state, int l) {
 //     ptd_find_or_create_vertex(new_graph, avl_tree, vertex->state);
 //   }      
     
-//   // add vertex for the absorbing state for the last epoque
+//   // add vertex for the absorbing state for the last epoch
 //   ptd_find_or_create_vertex(new_graph, avl_tree, absorbing_vertex->state);
 
 //   // ADD ALL THE EDGES /////////////////////////////
@@ -775,16 +775,16 @@ Graph* consolidate_graph(struct ptd_graph *graph) {
 }
 
 
-// void add_epoque(Graph* graph, std::vector<double> scalars, double t) {
+// void add_epoch(Graph* graph, std::vector<double> scalars, double t) {
 //     Graph *graphcpp = graph;
 
 
 // [[Rcpp::export]]
-void add_epoque(SEXP graph, std::vector<double> scalars, double t) {
+void add_epoch(SEXP graph, std::vector<double> scalars, double t) {
     Rcpp::XPtr<Graph> graphcpp(graph);
     struct ptd_graph *ptd_graph = graphcpp->c_graph();
     struct ptd_avl_tree *avl_tree = graphcpp->c_avl_tree();
-// SEXP add_epoque(SEXP graph, std::vector<double> scalars, double t) {
+// SEXP add_epoch(SEXP graph, std::vector<double> scalars, double t) {
 //     Rcpp::XPtr<Graph> graphcpp(graph);
 //     struct ptd_clone_res tmp_graph = ptd_clone_graph(graphcpp->c_graph(), graphcpp->c_avl_tree());
 //     struct ptd_graph *ptd_graph = tmp_graph.graph;
@@ -826,7 +826,7 @@ void add_epoque(SEXP graph, std::vector<double> scalars, double t) {
         for (int k=0; k < ptd_graph->state_length; ++k) {
             state[k] = vertex->state[k];
         }
-        // use current nr of states as epoque label in last state slot of sister state
+        // use current nr of states as epoch label in last state slot of sister state
         state[(ptd_graph->state_length) - 1] = nr_states; 
 
         // create sister vertex
@@ -847,7 +847,7 @@ void add_epoque(SEXP graph, std::vector<double> scalars, double t) {
         }
         for (size_t j = 0; j < vertex->edges_length; ++j) {
 
-            // edges connecting epoques are already made
+            // edges connecting epochs are already made
             if (vertex->edges[j]->to == sister_vertex) {
                 continue;
             }
@@ -857,7 +857,7 @@ void add_epoque(SEXP graph, std::vector<double> scalars, double t) {
             for (int k=0; k < ptd_graph->state_length; ++k) {
                 state[k] = vertex->edges[j]->to->state[k];
             }
-            // make transitions in all epoques go to absorb of first epoque (saves states)
+            // make transitions in all epochs go to absorb of first epoch (saves states)
             // if (vertex->edges[j]->to->edges_length > 0) {
             //     state[ptd_graph->state_length-1] = nr_states;  // NOT SURE ABOUT THIS...
             // }
@@ -936,9 +936,9 @@ void add_epoque(SEXP graph, std::vector<double> scalars, double t) {
 //     Graph *graph = coalescent_graph(n, m);
 //     vector<double> scalars(2, 0);
 //     scalars[0] =  0.2;
-//     add_epoque(graph, scalars, 1);
+//     add_epoch(graph, scalars, 1);
 //     scalars[0] =  0.1;
-//     add_epoque(graph, scalars, 2);
+//     add_epoch(graph, scalars, 2);
 //     ptd_graph *ptd_graph = graph->c_graph();
 //     double *rewards = NULL;
 //     double *waiting_times = ptd_expected_waiting_time(ptd_graph, rewards);

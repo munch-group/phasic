@@ -14,7 +14,7 @@ listing:
     fields: [image, title]
     grid-columns: 2
     contents:
-    - pages/quick_start.qmd
+    - pages/quick_start.ipynb
     - pages/tutorial/01-introduction.ipynb
     - pages/tutorial/11-svgd-basics.ipynb
     # sort: "date desc"

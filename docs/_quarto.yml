@@ -71,7 +71,7 @@ website:
     logo-href: "/index.html"  # Where clicking the logo goes
 
     left:
-      - href: pages/quick_start.html
+      - href: pages/quickstart.html
         text: Documentation
       - href: api/
         text: Python API reference
@@ -89,7 +89,6 @@ website:
       align: left
       contents:
         - pages/quickstart.ipynb
-        - pages/tutorials/quickstart.ipynb
         - section: "Tutorial"
           contents:
             - pages/tutorial/01-introduction.ipynb
@@ -97,8 +96,8 @@ website:
             - pages/tutorial/03-properties.ipynb
             - pages/tutorial/04-state-space-utils.ipynb
             - pages/tutorial/05-parametrization.ipynb
-            - pages/tutorial/06-trace_computing.ipynb
-            - pages/tutorial/07-time-inhomogeneous.ipynb
+            - pages/tutorial/06-time-inhomogeneous.ipynb
+            - pages/tutorial/07-trace_computing.ipynb
             - pages/tutorial/08-laplace.ipynb
             - pages/tutorial/09-joint-probability.ipynb
             - pages/tutorial/10-finite-markov-chains.ipynb
@@ -114,16 +113,12 @@ website:
             - pages/topics/visualize.ipynb
             - pages/topics/vscodenb.ipynb
             # - pages/tutorials/somecode.ipynb
-        - section: "Math and algorithms"
-          contents:
-            - pages/background/math_and_alg.qmd
-
         - section: "Popgen models"
           contents:
-            - pages/background/math_and_alg.qmd
-
+            - pages/popgen/python/demography/coalescent-epochs.ipynb
         - section: "Internals"
           contents:
+            - pages/background/math_and_alg.qmd
             - pages/internals/architecture.qmd
             - pages/internals/call_tree.qmd
             - pages/internals/caching_guide.qmd
@@ -146,7 +141,6 @@ format:
       margin-width: 270px
       gutter-width: 1.5rem
       # margin-left, margin-right, margin-top, margin-bottom
-
     theme: [cosmo, numpy.theme, custom.scss] # numpy.theme for code highlighting
     # theme: 
     #   light: [cosmo, numpy.theme]
@@ -155,10 +149,8 @@ format:
       - api/_styles-quartodoc.css
       - numpy.css  # for code box styles highlighting styles
       # - styles.css
-
       # - custom.css
       # - numpy-navbar-sidebar.css
-
     notebook-links: true
     callout-icon: false
     code-overflow: wrap
@@ -180,8 +172,8 @@ quartodoc:
   render_interlinks: true
   options:
     signature_name: full
-    include_inherited: true
-    include_empty: false  # Skip items that can't be loaded
+    # include_inherited: false  # Avoid cyclic alias issues with C++ parent class
+    # include_empty: false  # Skip items that can't be loaded
   renderer:
     style: markdown
     table_style: description-list
@@ -195,7 +187,6 @@ quartodoc:
         Graph components (Vertex and Edge are documented as part of Graph)
       contents:
         - Graph
-
     # - title: JAX-compatible utils
     #   package: phasic
     #   desc: |

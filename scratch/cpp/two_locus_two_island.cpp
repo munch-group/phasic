@@ -93,7 +93,7 @@ SEXP construct_twolocus_island_graph(int sample_size,
                                      double N1, double N2, 
                                      double M1, double M2, 
                                      double R,
-                                     bool epoques=0) {
+                                     bool epochs=0) {
 // SEXP construct_twolocus_island_graph(int sample_size, double N, double M, double R, bool keep_null_edges=false) {
     
      // number of populations
@@ -102,8 +102,8 @@ SEXP construct_twolocus_island_graph(int sample_size,
     const int state_length = nr_populations * pow((sample_size+1), 2);
     const size_t state_size = sizeof(int) * state_length;
 
-    struct ptd_graph *graph = ptd_graph_create((size_t) state_length + ((int) epoques));  // plus one to make room for the epoque label
-    struct ptd_avl_tree *avl_tree = ptd_avl_tree_create((size_t) state_length + ((int) epoques));  // plus one to make room for the epoque label
+    struct ptd_graph *graph = ptd_graph_create((size_t) state_length + ((int) epochs));  // plus one to make room for the epoch label
+    struct ptd_avl_tree *avl_tree = ptd_avl_tree_create((size_t) state_length + ((int) epochs));  // plus one to make room for the epoch label
 
     int *initial_state = (int *) calloc((size_t) state_length, sizeof(int));
     
