@@ -844,18 +844,35 @@ double _covariance_discrete(phasic::Graph &graph,
 
         for (auto child : children) {
 
-          std::tuple<py::array_t<int>, long double, std::vector<double>> tup =
-              child.cast<std::tuple<py::array_t<int>, long double, std::vector<double>> >();
+          // Handle both list [state, [coeffs]] and tuple (state, weight, coeffs) formats
+          py::array_t<int> state_array;
+          long double weight = 0.0;
+          std::vector<double> edge_state;
 
-          py::array_t<int> a = std::get<0>(tup);
-          py::buffer_info buf = a.request();
+          if (py::isinstance<py::list>(child)) {
+              // List format: [state, [coeffs]]
+              py::list child_list = child.cast<py::list>();
+              if (child_list.size() != 2) {
+                  throw std::runtime_error("List format must be [state, [coeffs]]");
+              }
+              state_array = child_list[0].cast<py::array_t<int>>();
+              edge_state = child_list[1].cast<std::vector<double>>();
+          } else if (py::isinstance<py::tuple>(child)) {
+              // Tuple format: (state, weight, coeffs)
+              std::tuple<py::array_t<int>, long double, std::vector<double>> tup =
+                  child.cast<std::tuple<py::array_t<int>, long double, std::vector<double>> >();
+              state_array = std::get<0>(tup);
+              weight = std::get<1>(tup);
+              edge_state = std::get<2>(tup);
+          } else {
+              throw std::runtime_error("Child must be list [state, [coeffs]] or tuple (state, weight, coeffs)");
+          }
+
+          py::buffer_info buf = state_array.request();
           if (buf.ndim != 1)
             throw std::runtime_error("Number of dimensions must be one");
           int *ptr = static_cast<int *>(buf.ptr);
           std::vector<int> child_state(ptr, ptr + buf.shape[0]);
-
-          long double weight = std::get<1>(tup);
-          std::vector<double> edge_state = std::get<2>(tup);
 
           phasic::Vertex child_vertex = graph->find_or_create_vertex(child_state);
 
