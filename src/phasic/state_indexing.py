@@ -739,50 +739,40 @@ class StateIndexer:
         """
         return self._total_n_states
 
-    def index_to_props(self, index, as_dict=False, as_values=False):
+    @property
+    def index_ranges(self) -> Dict[str, tuple[int, int]]:
         """
-        Delegate to first PropertySet (backward compatibility).
+        Get index range for each PropertySet in concatenated space.
 
-        For multi-PropertySet indexers, use indexer.name.index_to_props() instead.
+        Returns
+        -------
+        dict
+            Dict mapping PropertySet names to (start_index, end_index) tuples.
+            end_index is inclusive.
+
+        Examples
+        --------
+        >>> indexer = StateIndexer(
+        ...     lineage=[Property('descendants', max_value=10)],  # 11 states
+        ...     metadata=[Property('time_bin', max_value=100)]     # 101 states
+        ... )
+        >>> indexer.index_ranges
+        {'lineage': (0, 10), 'metadata': (11, 111)}
+        """
+        return {
+            name: (self._offsets[name], self._offsets[name] + pset.n_states - 1)
+            for name, pset in self._property_sets.items()
+        }
+
+    # Index decomposition/composition (concatenated index space)
+    def _decompose_index(self, index: int) -> tuple[str, int]:
+        """
+        Decompose concatenated index into PropertySet name and local index.
 
         Parameters
         ----------
-        index : int or ndarray
-            Index to convert
-        as_dict : bool, default=False
-            If True, return dict instead of dataclass
-        as_values : bool, default=False
-            If True, return array of values
-        """
-        if len(self._property_sets) == 1:
-            return next(iter(self._property_sets.values())).index_to_props(index, as_dict, as_values)
-        elif 'default' in self._property_sets:
-            return self._property_sets['default'].index_to_props(index, as_dict, as_values)
-        else:
-            raise ValueError("Use indexer.name.index_to_props() for multi-set indexers")
-
-    def props_to_index(self, props=None, **kwargs):
-        """
-        Delegate to first PropertySet (backward compatibility).
-
-        For multi-PropertySet indexers, use indexer.name.props_to_index() instead.
-        """
-        if len(self._property_sets) == 1:
-            return next(iter(self._property_sets.values())).props_to_index(props, **kwargs)
-        elif 'default' in self._property_sets:
-            return self._property_sets['default'].props_to_index(props, **kwargs)
-        else:
-            raise ValueError("Use indexer.name.props_to_index() for multi-set indexers")
-
-    # Global index operations (concatenated index space)
-    def _global_to_local(self, global_index: int) -> tuple[str, int]:
-        """
-        Convert global (concatenated) index to PropertySet name and local index.
-
-        Parameters
-        ----------
-        global_index : int
-            Global index in concatenated space (0 to n_states-1)
+        index : int
+            Index in concatenated space (0 to n_states-1)
 
         Returns
         -------
@@ -792,7 +782,7 @@ class StateIndexer:
         Raises
         ------
         IndexError
-            If global_index is out of range
+            If index is out of range
 
         Examples
         --------
@@ -800,31 +790,31 @@ class StateIndexer:
         ...     lineage=[Property('descendants', max_value=10)],  # indices 0-10
         ...     metadata=[Property('time_bin', max_value=100)]     # indices 11-111
         ... )
-        >>> indexer._global_to_local(5)
+        >>> indexer._decompose_index(5)
         ('lineage', 5)
-        >>> indexer._global_to_local(15)
+        >>> indexer._decompose_index(15)
         ('metadata', 4)
         """
-        if not (0 <= global_index < self._total_n_states):
+        if not (0 <= index < self._total_n_states):
             raise IndexError(
-                f"Global index {global_index} out of range [0, {self._total_n_states})"
+                f"Index {index} out of range [0, {self._total_n_states})"
             )
 
-        # Find which PropertySet this global index belongs to
+        # Find which PropertySet this index belongs to
         for name in self._pset_order:
             offset = self._offsets[name]
             n_states = self._property_sets[name].n_states
 
-            if offset <= global_index < offset + n_states:
-                local_index = global_index - offset
+            if offset <= index < offset + n_states:
+                local_index = index - offset
                 return (name, local_index)
 
         # Should never reach here if bounds check passed
-        raise RuntimeError(f"Failed to map global index {global_index}")
+        raise RuntimeError(f"Failed to decompose index {index}")
 
-    def _local_to_global(self, pset_name: str, local_index: int) -> int:
+    def _compose_index(self, pset_name: str, local_index: int) -> int:
         """
-        Convert PropertySet name and local index to global (concatenated) index.
+        Compose concatenated index from PropertySet name and local index.
 
         Parameters
         ----------
@@ -836,7 +826,7 @@ class StateIndexer:
         Returns
         -------
         int
-            Global index in concatenated space
+            Index in concatenated space
 
         Raises
         ------
@@ -851,9 +841,9 @@ class StateIndexer:
         ...     lineage=[Property('descendants', max_value=10)],
         ...     metadata=[Property('time_bin', max_value=100)]
         ... )
-        >>> indexer._local_to_global('lineage', 5)
+        >>> indexer._compose_index('lineage', 5)
         5
-        >>> indexer._local_to_global('metadata', 4)
+        >>> indexer._compose_index('metadata', 4)
         15
         """
         if pset_name not in self._property_sets:
@@ -868,36 +858,31 @@ class StateIndexer:
 
         return self._offsets[pset_name] + local_index
 
-    def global_index_to_props(
+    def index_to_props(
         self,
-        global_index: Union[int, npt.NDArray[np.integer]],
+        index: Union[int, npt.NDArray[np.integer]],
         as_dict: bool = False,
-        as_values: bool = False,
-        include_pset_name: bool = True
-    ) -> Union[tuple, List[tuple], object, List[object]]:
+        as_values: bool = False
+    ) -> Union[tuple, List[tuple]]:
         """
-        Convert global (concatenated) index to property values.
+        Convert index to property values.
+
+        Always returns PropertySet name along with properties for clarity.
 
         Parameters
         ----------
-        global_index : int or ndarray of int
-            Global index or array of indices in concatenated space
+        index : int or ndarray of int
+            Index or array of indices in concatenated space
         as_dict : bool, default=False
             If True, return dict instead of dataclass for property values
         as_values : bool, default=False
             If True, return array of property values
-        include_pset_name : bool, default=True
-            If True, return (pset_name, props). If False, return only props.
 
         Returns
         -------
-        tuple or list of tuples or dataclass or list of dataclasses
-            If include_pset_name=True and scalar index:
-                (pset_name, props) where props is dataclass/dict/array
-            If include_pset_name=True and array index:
-                list of (pset_name, props) tuples
-            If include_pset_name=False:
-                just props (dataclass/dict/array or list thereof)
+        tuple or list of tuples
+            Scalar index: (pset_name, props) where props is dataclass/dict/array
+            Array index: list of (pset_name, props) tuples
 
         Examples
         --------
@@ -905,55 +890,55 @@ class StateIndexer:
         ...     lineage=[Property('descendants', max_value=10)],
         ...     metadata=[Property('time_bin', max_value=100)]
         ... )
-        >>> indexer.global_index_to_props(5)
+        >>> indexer.index_to_props(5)
         ('lineage', LineageProps(descendants=5))
-        >>> indexer.global_index_to_props(15)
+        >>> indexer.index_to_props(15)
         ('metadata', MetadataProps(time_bin=4))
-        >>> indexer.global_index_to_props(15, as_dict=True)
+        >>> indexer.index_to_props(15, as_dict=True)
         ('metadata', {'time_bin': 4})
-        >>> indexer.global_index_to_props(15, include_pset_name=False)
-        MetadataProps(time_bin=4)
+        >>> # Unpack if you don't need pset_name
+        >>> _, props = indexer.index_to_props(5)
         """
         # Handle array input
-        if isinstance(global_index, np.ndarray):
+        if isinstance(index, np.ndarray):
             results = []
-            for idx in global_index:
-                pset_name, local_idx = self._global_to_local(int(idx))
+            for idx in index:
+                pset_name, local_idx = self._decompose_index(int(idx))
                 props = self._property_sets[pset_name].index_to_props(
                     local_idx, as_dict=as_dict, as_values=as_values
                 )
-                if include_pset_name:
-                    results.append((pset_name, props))
-                else:
-                    results.append(props)
+                results.append((pset_name, props))
             return results
 
         # Scalar input
-        pset_name, local_index = self._global_to_local(global_index)
+        pset_name, local_index = self._decompose_index(index)
         props = self._property_sets[pset_name].index_to_props(
             local_index, as_dict=as_dict, as_values=as_values
         )
+        return (pset_name, props)
 
-        if include_pset_name:
-            return (pset_name, props)
-        else:
-            return props
-
-    def props_to_global_index(
+    def props_to_index(
         self,
-        pset_name: str,
+        pset_name: Union[str, Dict[str, int], npt.NDArray[np.integer], None] = None,
         props: Union[Dict[str, int], npt.NDArray[np.integer], None] = None,
         **kwargs: int
     ) -> int:
         """
-        Convert property values to global (concatenated) index.
+        Convert property values to index in concatenated space.
+
+        Supports two calling patterns:
+        1. Explicit PropertySet: props_to_index('pset_name', props_dict)
+        2. Auto-detect (single PropertySet only): props_to_index(props_dict)
 
         Parameters
         ----------
-        pset_name : str
-            Name of the PropertySet
+        pset_name : str or dict or ndarray or None
+            - If str: Name of the PropertySet (explicit mode)
+            - If dict/ndarray: Property values (auto-detect mode, pset_name=None)
+            - If None: use props parameter
         props : dict or ndarray of int or None
-            Property values to convert. Can be:
+            Property values to convert (used when pset_name is str).
+            Can be:
             - dict: mapping from property names to values
             - ndarray: property values in same order as PropertySet.properties
             - None: use kwargs instead
@@ -963,93 +948,61 @@ class StateIndexer:
         Returns
         -------
         int
-            Global index in concatenated space
+            Index in concatenated space
 
         Raises
         ------
         KeyError
             If pset_name doesn't exist
+        ValueError
+            If auto-detect mode used with multiple PropertySets
 
         Examples
         --------
+        >>> # Explicit PropertySet name
         >>> indexer = StateIndexer(
         ...     lineage=[Property('descendants', max_value=10)],
         ...     metadata=[Property('time_bin', max_value=100)]
         ... )
-        >>> indexer.props_to_global_index('lineage', {'descendants': 5})
+        >>> indexer.props_to_index('lineage', {'descendants': 5})
         5
-        >>> indexer.props_to_global_index('metadata', {'time_bin': 4})
+        >>> indexer.props_to_index('metadata', time_bin=4)  # kwargs
         15
-        >>> indexer.props_to_global_index('metadata', time_bin=4)  # kwargs
-        15
+
+        >>> # Auto-detect (single PropertySet only)
+        >>> single = StateIndexer(lineage=[Property('descendants', max_value=10)])
+        >>> single.props_to_index({'descendants': 5})
+        5
         """
-        if pset_name not in self._property_sets:
-            raise KeyError(f"PropertySet '{pset_name}' not found")
+        # Auto-detect mode: pset_name is actually the props
+        if isinstance(pset_name, (dict, np.ndarray)):
+            if len(self._property_sets) > 1:
+                raise ValueError(
+                    "Auto-detect mode requires explicit PropertySet name when multiple PropertySets exist. "
+                    f"Use indexer.props_to_index('pset_name', props) instead."
+                )
+            # Get the single PropertySet
+            actual_pset_name = next(iter(self._pset_order))
+            actual_props = pset_name
+        elif pset_name is None:
+            # pset_name=None, props specified or kwargs
+            if len(self._property_sets) > 1:
+                raise ValueError(
+                    "Auto-detect mode requires explicit PropertySet name when multiple PropertySets exist. "
+                    f"Use indexer.props_to_index('pset_name', props) instead."
+                )
+            actual_pset_name = next(iter(self._pset_order))
+            actual_props = props
+        else:
+            # Explicit pset_name (str)
+            actual_pset_name = pset_name
+            actual_props = props
 
-        local_index = self._property_sets[pset_name].props_to_index(props, **kwargs)
-        return self._local_to_global(pset_name, local_index)
+        if actual_pset_name not in self._property_sets:
+            raise KeyError(f"PropertySet '{actual_pset_name}' not found")
 
-    # Multi-set operations (local indices)
-    def state_to_indices(self, state: Dict[str, Dict[str, int]]) -> Dict[str, int]:
-        """
-        Convert full state to multi-index.
-
-        Parameters
-        ----------
-        state : dict
-            Nested dict {pset_name: {prop_name: value}}
-
-        Returns
-        -------
-        dict
-            Dict mapping PropertySet names to indices
-
-        Examples
-        --------
-        >>> indexer = StateIndexer(
-        ...     lineage=[Property('descendants', max_value=10)],
-        ...     metadata=[Property('time_bin', max_value=1000)]
-        ... )
-        >>> state = {
-        ...     'lineage': {'descendants': 5},
-        ...     'metadata': {'time_bin': 100}
-        ... }
-        >>> indexer.state_to_indices(state)
-        {'lineage': 5, 'metadata': 100}
-        """
-        return {
-            name: self._property_sets[name].props_to_index(props)
-            for name, props in state.items()
-        }
-
-    def indices_to_state(self, indices: Dict[str, int]) -> Dict[str, Dict[str, int]]:
-        """
-        Convert multi-index to full state.
-
-        Parameters
-        ----------
-        indices : dict
-            Dict mapping PropertySet names to indices
-
-        Returns
-        -------
-        dict
-            Nested dict {pset_name: {prop_name: value}}
-
-        Examples
-        --------
-        >>> indexer = StateIndexer(
-        ...     lineage=[Property('descendants', max_value=10)],
-        ...     metadata=[Property('time_bin', max_value=1000)]
-        ... )
-        >>> indices = {'lineage': 5, 'metadata': 100}
-        >>> indexer.indices_to_state(indices)
-        {'lineage': {'descendants': 5}, 'metadata': {'time_bin': 100}}
-        """
-        return {
-            name: self._property_sets[name].index_to_props(idx)
-            for name, idx in indices.items()
-        }
+        local_index = self._property_sets[actual_pset_name].props_to_index(actual_props, **kwargs)
+        return self._compose_index(actual_pset_name, local_index)
 
     def __repr__(self):
         """String representation of StateIndexer."""
