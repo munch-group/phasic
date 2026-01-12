@@ -725,7 +725,7 @@ def _generate_cpp_from_trace(trace, observed_data, granularity=0):
     ----------
     trace : EliminationTrace
         Elimination trace from record_elimination_trace()
-    observed_data : array_like
+    observed_data : ArrayLike
         Observed data points for likelihood computation
     granularity : int, default=100
         Discretization granularity for forward algorithm PDF computation
@@ -1493,6 +1493,10 @@ class Graph(_Graph):
         # Extract hierarchical flag before passing kwargs to callback
         hierarchical = kwargs.pop('hierarchical', False)
 
+        # Store callback and kwargs for later use with extend()
+        self._callback = None
+        self._callback_kwargs = {}
+
         if callable(arg):
             # turn integer kwargs into float kwargs
             for key, value in kwargs.items():
@@ -1504,6 +1508,10 @@ class Graph(_Graph):
                 arg = _callback(ipv)(arg)
             else:
                 assert ipv is None, "When providing a function decorated with @callback, the ipv argument is ignored and should not be provided"
+
+            # Store the callback and kwargs for extend()
+            self._callback = arg
+            self._callback_kwargs = kwargs.copy()
 
             super().__init__(callback_tuples_parameterized=partial(arg, **kwargs))
         elif isinstance(arg, int):
@@ -1528,6 +1536,73 @@ class Graph(_Graph):
         This method wraps the C++ implementation to track trace invalidation.
         """
         return super().find_or_create_vertex(state)
+
+    @_invalidates_trace
+    def extend(self, callback=None, **kwargs):
+        """Extend the graph by continuing to visit unvisited vertices using a callback.
+
+        After manually adding vertices to the graph (e.g., via find_or_create_vertex),
+        this method continues the callback-based graph building process, visiting all
+        newly added unvisited vertices.
+
+        Parameters
+        ----------
+        callback : callable, optional
+            Callback function to use for extending the graph. If None, uses the
+            callback from the original Graph construction. The callback should
+            accept a state array and return:
+            - For non-parameterized: list of (state, weight) tuples
+            - For parameterized: list of (state, base_weight, edge_state) tuples
+        **kwargs
+            Additional keyword arguments to pass to the callback function. If None,
+            uses the kwargs from the original Graph construction.
+
+        Raises
+        ------
+        RuntimeError
+            If no callback is provided and the graph was not constructed with a callback.
+
+        Examples
+        --------
+        >>> # Build initial graph
+        >>> graph = Graph(callback=my_callback, nr_samples=5, parameterized=True)
+        >>>
+        >>> # Manually add new vertex
+        >>> special_vertex = graph.find_or_create_vertex([100, 200])
+        >>> graph.starting_vertex().add_edge_parameterized(special_vertex, 0.0, [1.5])
+        >>>
+        >>> # Continue with callback to explore new vertices
+        >>> graph.extend()  # Uses original callback
+        >>>
+        >>> # Or use different callback
+        >>> graph.extend(callback=my_other_callback, param=value)
+        """
+        # Determine which callback to use
+        if callback is None:
+            if self._callback is None:
+                raise RuntimeError(
+                    "No callback provided and graph was not constructed with a callback. "
+                    "Please provide a callback to extend()."
+                )
+            callback = self._callback
+            # Merge kwargs: stored kwargs as defaults, explicit kwargs override
+            merged_kwargs = self._callback_kwargs.copy()
+            merged_kwargs.update(kwargs)
+            kwargs = merged_kwargs
+        else:
+            # If callback provided, kwargs must be explicit (don't use stored kwargs)
+            pass
+
+        # Convert integer kwargs to float
+        for key, value in kwargs.items():
+            if isinstance(value, int):
+                kwargs[key] = float(value)
+
+        # Create partial function with kwargs
+        callback_with_kwargs = partial(callback, **kwargs)
+
+        # Call C++ extension method
+        super().extend_graph_callback_tuples_parameterized(callback_with_kwargs)
 
     def _ensure_trace(self):
         """Ensure trace is computed and valid.
@@ -1590,7 +1665,7 @@ class Graph(_Graph):
 
         Parameters
         ----------
-        theta : array_like
+        theta : ArrayLike
             Parameter vector to set edge weights.
         log : bool, default=False
             If True, use log-space computation.
@@ -1620,7 +1695,7 @@ class Graph(_Graph):
         ----------
         power : int, default=1
             Moment power (1 for expectation, 2 for variance, etc.)
-        rewards : array_like, optional
+        rewards : ArrayLike, optional
             Reward vector for reward-transformed moments.
 
         Returns
@@ -1681,121 +1756,539 @@ class Graph(_Graph):
         else:
             return concrete_graph.variance()
 
-    # IS THERE NOT DISCRETE VERSION OF THIS?
     def expected_waiting_time(self, *args, **kwargs):
+        """
+        Compute expected waiting time until absorption.
+
+        Parameters
+        ----------
+        *args : tuple
+            Positional arguments passed to C++ implementation.
+        **kwargs : dict
+            Keyword arguments passed to C++ implementation.
+
+        Returns
+        -------
+        float
+            Expected waiting time until absorption.
+
+        Notes
+        -----
+        This method wraps the C++ implementation of expected_waiting_time.
+        Only available for continuous-time phase-type distributions.
+        """
         return super().expected_waiting_time(*args, **kwargs)
 
     
-    # both cont and disc
-    # expected_residence_time() | Until absorption (∞) | Graph elimination |
-    # Similar to expected_residence_time, but returns the expected accumulated reward for the starting vertex propagated through all paths. This is what expectation() uses internally. The difference is subtle - expected_residence_time decomposes this into per-vertex contributions.
-
     def expected_sojourn_time(self, *args, **kwargs):
+        """
+        Compute expected sojourn time (residence time) in each state.
+
+        Parameters
+        ----------
+        *args : tuple
+            Positional arguments passed to C++ implementation.
+        **kwargs : dict
+            Keyword arguments passed to C++ implementation.
+
+        Returns
+        -------
+        ArrayLike
+            Expected sojourn time for each vertex.
+
+        Notes
+        -----
+        This method wraps the C++ implementation of expected_sojourn_time.
+        Returns the expected accumulated reward for the starting vertex propagated
+        through all paths. This is what expectation() uses internally. The difference
+        from expected_residence_time is subtle - expected_residence_time decomposes
+        this into per-vertex contributions.
+
+        Available for both continuous and discrete phase-type distributions.
+        """
         return super().expected_sojourn_time(*args, **kwargs)
 
 
 
 
-    def moments(self, *args, discrete=False, **kwargs):
+    def moments(self, power, rewards=[], discrete=False, **kwargs):
+        """
+        Compute k-th moment of the phase-type distribution.
+
+        Parameters
+        ----------
+        power : int
+            Moment order (1 for first moment, 2 for second moment, etc.).
+        rewards : ArrayLike, optional
+            Reward vector for reward-transformed moments. If not provided,
+            uses unit rewards (standard moments).
+        discrete : bool, default=False
+            If True, compute discrete-time moments (DPH distribution).
+            Requires that the graph was discretized via discretize().
+        **kwargs : dict
+            Additional keyword arguments passed to C++ implementation.
+
+        Returns
+        -------
+        float
+            The k-th moment E[T^k] where T is the time until absorption.
+
+        Notes
+        -----
+        If the graph was created with `hierarchical=True` and is parameterized,
+        this method uses trace-based computation for 5-10x speedup on repeated
+        evaluations. Otherwise falls back to direct C++ graph elimination.
+
+        For higher moments (k > 2), numerical stability may become an issue for
+        complex distributions.
+        """
         # Use trace-based computation if in hierarchical mode with parameterized graph
         if self._hierarchical and self.parameterized():
             trace = self._ensure_trace()
             if trace is not None:
-                return self._moments_from_trace(*args, **kwargs)
+                return self._moments_from_trace(power, rewards=rewards, discrete=discrete, **kwargs)
 
         # Fall back to direct C++ computation
         if discrete:
             if not self.is_discrete:
                 raise ValueError("discrete=True only valid for discrete distributions")
-            return super().moments_discrete(*args, **kwargs)
+            return super().moments_discrete(power, rewards=rewards, **kwargs)
         else:
-            return super().moments(*args, **kwargs)
+            return super().moments(power, rewards=rewards, **kwargs)
 
-    def expectation(self, *args, discrete=False, **kwargs):
+    def expectation(self, rewards=[], discrete=False, **kwargs):
+        """
+        Compute expected value (first moment) of the phase-type distribution.
+
+        Parameters
+        ----------
+        rewards : ArrayLike, optional
+            Reward vector for reward-transformed expectation. If not provided,
+            computes E[T] where T is time until absorption.
+        discrete : bool, default=False
+            If True, compute discrete-time expectation (DPH distribution).
+            Requires that the graph was discretized via discretize().
+        **kwargs : dict
+            Additional keyword arguments passed to C++ implementation.
+
+        Returns
+        -------
+        float
+            Expected value E[T] or reward-transformed expectation.
+
+        Notes
+        -----
+        If the graph was created with `hierarchical=True` and is parameterized,
+        this method uses trace-based computation for 5-10x speedup on repeated
+        evaluations. Otherwise falls back to direct C++ graph elimination.
+
+        This is equivalent to moments(1, rewards).
+        """
         # Use trace-based computation if in hierarchical mode with parameterized graph
         if self._hierarchical and self.parameterized():
             trace = self._ensure_trace()
             if trace is not None:
-                return self._expectation_from_trace(*args, **kwargs)
+                return self._expectation_from_trace(rewards=rewards, discrete=discrete, **kwargs)
 
         # Fall back to direct C++ computation
         if discrete:
             if not self.is_discrete:
                 raise ValueError("discrete=True only valid for discrete distributions")
-            return super().expectation_discrete(*args, **kwargs)
+            return super().expectation_discrete(rewards=rewards, **kwargs)
         else:
-            return super().expectation(*args, **kwargs)
+            return super().expectation(rewards=rewards, **kwargs)
 
-    def variance(self, *args, discrete=False, **kwargs):
+    def variance(self, rewards=[], discrete=False, **kwargs):
+        """
+        Compute variance of the phase-type distribution.
+
+        Parameters
+        ----------
+        rewards : ArrayLike, optional
+            Reward vector for reward-transformed variance. If not provided,
+            computes Var(T) where T is time until absorption.
+        discrete : bool, default=False
+            If True, compute discrete-time variance (DPH distribution).
+            Requires that the graph was discretized via discretize().
+        **kwargs : dict
+            Additional keyword arguments passed to C++ implementation.
+
+        Returns
+        -------
+        float
+            Variance Var(T) or reward-transformed variance.
+
+        Notes
+        -----
+        If the graph was created with `hierarchical=True` and is parameterized,
+        this method uses trace-based computation for 5-10x speedup on repeated
+        evaluations. Otherwise falls back to direct C++ graph elimination.
+
+        Computed as Var(T) = E[T^2] - E[T]^2 using moments.
+        """
         # Use trace-based computation if in hierarchical mode with parameterized graph
         if self._hierarchical and self.parameterized():
             trace = self._ensure_trace()
             if trace is not None:
-                return self._variance_from_trace(*args, **kwargs)
+                return self._variance_from_trace(rewards=rewards, discrete=discrete, **kwargs)
 
         # Fall back to direct C++ computation
         if discrete:
             if not self.is_discrete:
                 raise ValueError("discrete=True only valid for discrete distributions")
-            return super().variance_discrete(*args, **kwargs)
+            return super().variance_discrete(rewards=rewards, **kwargs)
         else:
-            return super().variance(*args, **kwargs)
+            return super().variance(rewards=rewards, **kwargs)
 
     def covariance(self, *args, discrete=False, **kwargs):
+        """
+        Compute covariance matrix for multivariate phase-type distributions.
+
+        Parameters
+        ----------
+        discrete : bool, default=False
+            If True, compute discrete-time covariance (DPH distribution).
+            Requires that the graph was discretized via discretize().
+        *args : tuple
+            Additional positional arguments passed to C++ implementation.
+        **kwargs : dict
+            Additional keyword arguments passed to C++ implementation.
+
+        Returns
+        -------
+        np.ndarray
+            Covariance matrix for the multivariate distribution.
+
+        Raises
+        ------
+        ValueError
+            If discrete=True but graph is not discrete.
+
+        Notes
+        -----
+        This method is for multivariate phase-type distributions with
+        multiple marginals. For univariate distributions, use variance().
+        """
         if discrete:
-            if not self.is_discrete: ValueError("jumps=True only valid for discrete distributions")
-            return super().covariance_discrete(*args, **kwargs)  
+            if not self.is_discrete:
+                raise ValueError("discrete=True only valid for discrete distributions")
+            return super().covariance_discrete(*args, **kwargs)
         else:
             return super().covariance(*args, **kwargs)
 
-    def pdf(self, *args, discrete=False, **kwargs):
-        if discrete:
-            if not self.is_discrete: ValueError("jumps=True only valid for discrete distributions")
-            return super().pdf_discrete(*args, **kwargs)  
-        else:
-            return super().pdf(*args, **kwargs)
+    def pdf(self, time, discrete=False, **kwargs):
+        """
+        Compute probability density/mass function using forward algorithm.
 
-    def cdf(self, *args, discrete=False, **kwargs):
+        Parameters
+        ----------
+        time : float or ArrayLike
+            Time point(s) at which to evaluate the PDF/PMF.
+        granularity : int, optional
+            Granularity for uniformization (default: auto-detected as 2*max_rate).
+            Higher values improve accuracy but increase computation time.
+        discrete : bool, default=False
+            If True, compute PMF for discrete-time distribution (DPH).
+            Requires that the graph was discretized via discretize().
+        **kwargs : dict
+            Additional keyword arguments passed to C++ implementation.
+
+        Returns
+        -------
+        float or np.ndarray
+            PDF/PMF value(s) at the specified time point(s).
+
+        Raises
+        ------
+        ValueError
+            If discrete=True but graph is not discrete.
+
+        Notes
+        -----
+        This method uses the forward algorithm (Algorithm 4) via uniformization
+        to compute the exact phase-type PDF/PMF, not an approximation.
+
+        For continuous distributions: f(t) = α · exp(S·t) · s*
+        For discrete distributions: p(n) = probability of absorption at jump n
+        """
         if discrete:
-            if not self.is_discrete: ValueError("jumps=True only valid for discrete distributions")
-            return super().cdf_discrete(*args, **kwargs)  
+            if not self.is_discrete:
+                raise ValueError("discrete=True only valid for discrete distributions")
+            return super().pdf_discrete(time, **kwargs)
         else:
-            return super().cdf(*args, **kwargs)
+            return super().pdf(time, **kwargs)
+
+    def cdf(self, time, discrete=False, **kwargs):
+        """
+        Compute cumulative distribution function.
+
+        Parameters
+        ----------
+        time : float or ArrayLike
+            Time point(s) at which to evaluate the CDF.
+        discrete : bool, default=False
+            If True, compute CDF for discrete-time distribution (DPH).
+            Requires that the graph was discretized via discretize().
+        **kwargs : dict
+            Additional keyword arguments passed to C++ implementation.
+
+        Returns
+        -------
+        float or np.ndarray
+            CDF value(s) P(T ≤ t) at the specified time point(s).
+
+        Raises
+        ------
+        ValueError
+            If discrete=True but graph is not discrete.
+
+        Notes
+        -----
+        For continuous distributions: F(t) = P(T ≤ t) = 1 - α · exp(S·t) · 1
+        For discrete distributions: F(n) = P(N ≤ n) = sum of PMF up to n
+        """
+        if discrete:
+            if not self.is_discrete:
+                raise ValueError("discrete=True only valid for discrete distributions")
+            return super().cdf_discrete(time, **kwargs)
+        else:
+            return super().cdf(time, **kwargs)
 
     def distribution_context(self, *args, discrete=False, **kwargs):
+        """
+        Create a distribution context for efficient repeated sampling.
+
+        Parameters
+        ----------
+        discrete : bool, default=False
+            If True, create context for discrete-time distribution (DPH).
+            Requires that the graph was discretized via discretize().
+        *args : tuple
+            Additional positional arguments passed to C++ implementation.
+        **kwargs : dict
+            Additional keyword arguments passed to C++ implementation.
+
+        Returns
+        -------
+        DistributionContext
+            Context object that can be used for efficient sampling.
+
+        Raises
+        ------
+        ValueError
+            If discrete=True but graph is not discrete.
+
+        Notes
+        -----
+        The distribution context precomputes data structures needed for
+        sampling, making repeated sample() calls much faster than sampling
+        directly from the graph.
+        """
         if discrete:
-            if not self.is_discrete: ValueError("jumps=True only valid for discrete distributions")
-            return super().distribution_context_discrete(*args, **kwargs)  
+            if not self.is_discrete:
+                raise ValueError("discrete=True only valid for discrete distributions")
+            return super().distribution_context_discrete(*args, **kwargs)
         else:
             return super().distribution_context(*args, **kwargs)
 
-    def sample(self, *args, discrete=False, **kwargs):
-        if discrete:
-            if not self.is_discrete: ValueError("jumps=True only valid for discrete distributions")
-            return super().sample_discrete(*args, **kwargs)  
-        else:
-            return super().sample(*args, **kwargs)
+    def sample(self, n, discrete=False, **kwargs):
+        """
+        Generate random samples from the phase-type distribution.
 
-    def stop_probability(self, *args, discrete=False, **kwargs):
+        Parameters
+        ----------
+        n : int
+            Number of samples to generate.
+        discrete : bool, default=False
+            If True, sample from discrete-time distribution (DPH).
+            Requires that the graph was discretized via discretize().
+        **kwargs : dict
+            Additional keyword arguments passed to C++ implementation.
+
+        Returns
+        -------
+        np.ndarray
+            Array of n samples from the distribution.
+
+        Raises
+        ------
+        ValueError
+            If discrete=True but graph is not discrete.
+
+        Notes
+        -----
+        Sampling is done by simulating the underlying Markov chain until
+        absorption. For more efficient repeated sampling, first create a
+        distribution context using distribution_context().
+        """
         if discrete:
-            if not self.is_discrete: ValueError("jumps=True only valid for discrete distributions")
-            return super().stop_probability_discrete(*args, **kwargs)  
+            if not self.is_discrete:
+                raise ValueError("discrete=True only valid for discrete distributions")
+            return super().sample_discrete(n, **kwargs)
         else:
-            return super().stop_probability(*args, **kwargs)
-    # alias
+            return super().sample(n, **kwargs)
+
+    def stop_probability(self, time, discrete=False, **kwargs):
+        """
+        Compute probability of being in each state at a given time.
+
+        Parameters
+        ----------
+        time : float or int
+            Time point (continuous) or jump number (discrete) at which to
+            evaluate state probabilities.
+        discrete : bool, default=False
+            If True, compute for discrete-time distribution (DPH).
+            Requires that the graph was discretized via discretize().
+        **kwargs : dict
+            Additional keyword arguments passed to C++ implementation.
+
+        Returns
+        -------
+        np.ndarray
+            Probability of being in each state at the specified time.
+
+        Raises
+        ------
+        ValueError
+            If discrete=True but graph is not discrete.
+
+        Notes
+        -----
+        For continuous distributions: probability vector at time t
+        For discrete distributions: probability vector after n jumps
+        Computed via matrix exponentiation or uniformization.
+        """
+        if discrete:
+            if not self.is_discrete:
+                raise ValueError("discrete=True only valid for discrete distributions")
+            return super().stop_probability_discrete(time, **kwargs)
+        else:
+            return super().stop_probability(time, **kwargs)
+
+    # Alias for stop_probability
     state_probability = stop_probability
 
+
+    def accumulated_visits(self, *args, **kwargs):
+        """
+        Compute expected number of visits to each state (discrete only).
+
+        Parameters
+        ----------
+        *args : tuple
+            Additional positional arguments passed to C++ implementation.
+        **kwargs : dict
+            Additional keyword arguments passed to C++ implementation.
+
+        Returns
+        -------
+        np.ndarray
+            Expected number of visits to each state until absorption.
+
+        Raises
+        ------
+        ValueError
+            If graph is not discrete.
+
+        Notes
+        -----
+        Only available for discrete-time phase-type (DPH) distributions.
+        The graph must be discretized via discretize() before calling this method.
+        """
+        if not self.is_discrete:
+            raise ValueError("accumulated_visits only valid for discrete distributions")
+        return super().accumulated_visits(*args, **kwargs)
+
+    def accumulated_visiting_time(self, *args, **kwargs):
+        """
+        Compute expected time spent in each state (continuous only).
+
+        Parameters
+        ----------
+        *args : tuple
+            Additional positional arguments passed to C++ implementation.
+        **kwargs : dict
+            Additional keyword arguments passed to C++ implementation.
+
+        Returns
+        -------
+        np.ndarray
+            Expected time spent in each state until absorption.
+
+        Notes
+        -----
+        Only available for continuous-time phase-type distributions.
+        For discrete distributions, use accumulated_visits() instead.
+        """
+        return super().accumulated_visiting_time(*args, **kwargs)
+
     def accumulated_occupancy(self, *args, discrete=False, **kwargs):
+        """
+        Compute expected occupancy (visits or time) for each state.
+
+        Parameters
+        ----------
+        discrete : bool, default=False
+            If True, compute accumulated visits (discrete distribution).
+            If False, compute accumulated visiting time (continuous distribution).
+        *args : tuple
+            Additional positional arguments passed to C++ implementation.
+        **kwargs : dict
+            Additional keyword arguments passed to C++ implementation.
+
+        Returns
+        -------
+        np.ndarray
+            Expected visits (discrete) or time (continuous) in each state.
+
+        Raises
+        ------
+        ValueError
+            If discrete=True but graph is not discrete.
+
+        Notes
+        -----
+        This is a convenience method that dispatches to either:
+        - accumulated_visits() for discrete=True
+        - accumulated_visiting_time() for discrete=False
+        """
         if discrete:
-            if not self.is_discrete: ValueError("jumps=True only valid for discrete distributions")
-            return super().accumulated_visits(*args, **kwargs)  
+            if not self.is_discrete:
+                raise ValueError("discrete=True only valid for discrete distributions")
+            return self.accumulated_visits(*args, **kwargs)
         else:
-            return super().accumulated_visiting_time(*args, **kwargs)
+            return self.accumulated_visiting_time(*args, **kwargs)
 
     @_invalidates_trace
     def normalize(self, *args, **kwargs):
+        """
+        Normalize edge weights to make the graph a proper probability distribution.
+
+        Parameters
+        ----------
+        *args : tuple
+            Additional positional arguments passed to C++ implementation.
+        **kwargs : dict
+            Additional keyword arguments passed to C++ implementation.
+
+        Returns
+        -------
+        float
+            Scaling factor applied to normalize the weights.
+
+        Notes
+        -----
+        This method modifies the graph in-place and invalidates any cached trace.
+
+        For continuous distributions: Normalizes transition rates.
+        For discrete distributions: Normalizes transition probabilities to sum to 1.
+
+        The normalization ensures that the initial probability vector and
+        transition matrix satisfy the requirements for a valid phase-type distribution.
+        """
         if self.is_discrete:
-            return super().normalize_discrete(*args, **kwargs)   # what does this do?
+            return super().normalize_discrete(*args, **kwargs)
         else:
             return super().normalize(*args, **kwargs)
 
@@ -1859,13 +2352,64 @@ class Graph(_Graph):
     
 
     def reward_transform(self, rewards:np.ndarray) -> Self:
+        """
+        Apply reward transformation to create a new graph with modified rewards.
+
+        Parameters
+        ----------
+        rewards : np.ndarray
+            Reward vector of length n_vertices. Each element specifies the
+            reward associated with visiting the corresponding vertex.
+
+        Returns
+        -------
+        Graph
+            New graph with reward-transformed distribution.
+
+        Notes
+        -----
+        Reward transformation is used to compute moments and expectations
+        for different reward structures. The transformation modifies the
+        graph to compute E[∑ rewards[i] * time_in_state_i] instead of E[T].
+
+        For continuous distributions: Uses continuous reward transformation.
+        For discrete distributions: Uses discrete reward transformation.
+
+        The returned graph is a new Graph object (not modified in-place).
+
+        See Also
+        --------
+        moments : Compute moments with optional reward vector
+        expectation : Compute expectation with optional reward vector
+        """
         if self.is_discrete:
             return Graph(super().reward_transform_discrete(rewards))
         else:
             return Graph(super().reward_transform(rewards))
-    
-    def reward_transform_discrete(self, rewards:np.ndarray) -> Self:
 
+    def reward_transform_discrete(self, rewards:np.ndarray) -> Self:
+        """
+        Apply reward transformation for discrete-time distributions.
+
+        Parameters
+        ----------
+        rewards : np.ndarray
+            Reward vector of length n_vertices.
+
+        Returns
+        -------
+        Graph
+            New graph with discrete reward transformation applied.
+
+        Notes
+        -----
+        This method is specific to discrete-time phase-type (DPH) distributions.
+        For automatic dispatch, use reward_transform() instead.
+
+        See Also
+        --------
+        reward_transform : General reward transformation (dispatches to this for discrete=True)
+        """
         return Graph(super().reward_transform_discrete(rewards))
     
 
@@ -3064,22 +3608,6 @@ extern "C" {{
              rewards: Optional[ArrayLike] = None,
              fixed: Optional[ArrayLike] = None,
              optimizer: Optional[object] = None) -> Dict:    
-    # @classmethod
-    # def svgd(cls,
-    #          model: Callable,
-    #          observed_data: ArrayLike,
-    #          prior: Optional[Callable] = None,
-    #          n_particles: int = 50,
-    #          n_iterations: int = 1000,
-    #          learning_rate: float = 0.001,
-    #          kernel: str = 'median',
-    #          theta_init: Optional[ArrayLike] = None,
-    #          theta_dim: Optional[int] = None,
-    #          return_history: bool = True,
-    #          seed: int = 42,
-    #          verbose: bool = True,
-    #          positive_params: bool = True,
-    #          param_transform: Optional[Callable] = None) -> Dict:
         """
         Run Stein Variational Gradient Descent (SVGD) inference for Bayesian parameter estimation.
 
@@ -3089,10 +3617,7 @@ extern "C" {{
 
         Parameters
         ----------
-        model : callable
-            JAX-compatible parameterized model from pmf_from_graph() or pmf_from_cpp().
-            Must have signature: model(theta, times) -> values
-        observed_data : array_like
+        observed_data : ArrayLike
             Observed data points. For continuous models (PDF), these are time points where
             the density was observed. For discrete models (PMF), these are jump counts.
         discrete : bool, default=None
@@ -3107,11 +3632,11 @@ extern "C" {{
             Number of SVGD optimization steps
         learning_rate : float, default=0.001
             SVGD step size. Larger values = faster convergence but may be unstable.
-        kernel : str, default='median'
+        bandwidth : str, default='median'
             Kernel bandwidth selection method:
             - 'median': RBF kernel with median heuristic bandwidth (default)
             - 'rbf_adaptive': RBF kernel with adaptive bandwidth
-        theta_init : array_like, optional
+        theta_init : ArrayLike, optional
             Initial particle positions (n_particles, theta_dim).
             If None, initializes randomly from standard normal.
         theta_dim : int, optional
@@ -3165,7 +3690,7 @@ extern "C" {{
             - observed_data should contain vertex indices (integers)
             - Forces discrete=True behavior
             - Moment regularization is not supported (raises NotImplementedError if regularization > 0)
-        rewards : array_like, optional
+        rewards : ArrayLike, optional
             Reward vectors for computing reward-transformed likelihoods. Can be:
             - None: Standard phase-type likelihood (default)
             - 1D array (n_vertices,): Single reward vector for univariate models
@@ -3214,7 +3739,6 @@ extern "C" {{
         >>>
         >>> # Run SVGD inference
         >>> results = Graph.svgd(
-        ...     model=model,
         ...     observed_data=observed_pdf,
         ...     theta_dim=1,
         ...     n_particles=30,
@@ -4319,7 +4843,7 @@ extern "C" {{
 
     #     Parameters
     #     ----------
-    #     times : array_like
+    #     times : ArrayLike
     #         Array of time points to evaluate PDF at
     #     granularity : int, default=100
     #         Discretization granularity for PDF computation
@@ -4380,7 +4904,7 @@ extern "C" {{
 
     #     Parameters
     #     ----------
-    #     jumps : array_like
+    #     jumps : ArrayLike
     #         Array of jump counts (integers) to evaluate PMF at
 
     #     Returns
@@ -4432,7 +4956,7 @@ extern "C" {{
 
     #     Parameters
     #     ----------
-    #     powers : array_like
+    #     powers : ArrayLike
     #         Array of moment orders to compute (e.g., [1, 2, 3] for E[T], E[T^2], E[T^3])
 
     #     Returns

@@ -782,6 +782,94 @@ double _covariance_discrete(phasic::Graph &graph,
       return *graph;
   }
 
+  // Extend version: continues visiting vertices starting from current vertices_length()
+  void extend_state_space_callback_tuples(
+      phasic::Graph *graph,
+      const std::function<std::vector<py::object> (const py::array_t<int> &state)> &callback) {
+
+      if (!graph) {
+        throw std::runtime_error("Graph pointer is null");
+      }
+
+      // Start from current position (don't re-visit already processed vertices)
+      int index = 1;
+      while (index < graph->vertices_length()) {
+
+        phasic::Vertex this_vertex = graph->vertex_at(index);
+
+        auto a = new std::vector<int>(graph->vertex_at(index).state());
+        auto capsule = py::capsule(a, [](void *a) { delete reinterpret_cast<std::vector<int>*>(a); });
+        py::array_t<int> this_state = py::array(a->size(), a->data(), capsule);
+
+        std::vector<py::object> children = callback(this_state);
+
+        for (auto child : children) {
+
+          std::tuple<py::array_t<int>, long double> tup = child.cast<std::tuple<py::array_t<int>, long double> >();
+          py::array_t<int> a = std::get<0>(tup);
+          py::buffer_info buf = a.request();
+          if (buf.ndim != 1)
+            throw std::runtime_error("Number of dimensions must be one");
+          int *ptr = static_cast<int *>(buf.ptr);
+          std::vector<int> child_state(ptr, ptr + buf.shape[0]);
+          long double weight = std::get<1>(tup);
+
+          phasic::Vertex child_vertex = graph->find_or_create_vertex(child_state);
+          this_vertex.add_edge(child_vertex, weight);
+        }
+        ++index;
+      }
+  }
+
+  // Parameterized extend version
+  void extend_state_space_callback_tuples_parameterized(
+      phasic::Graph *graph,
+      const std::function<std::vector<py::object> (const py::array_t<int> &state)> &callback) {
+
+      if (!graph) {
+        throw std::runtime_error("Graph pointer is null");
+      }
+
+      // Start from current position (don't re-visit already processed vertices)
+      int index = 1;
+      while (index < graph->vertices_length()) {
+
+        phasic::Vertex this_vertex = graph->vertex_at(index);
+
+        auto a = new std::vector<int>(graph->vertex_at(index).state());
+        auto capsule = py::capsule(a, [](void *a) { delete reinterpret_cast<std::vector<int>*>(a); });
+        py::array_t<int> this_state = py::array(a->size(), a->data(), capsule);
+
+        std::vector<py::object> children = callback(this_state);
+
+        for (auto child : children) {
+
+          std::tuple<py::array_t<int>, long double, std::vector<double>> tup =
+              child.cast<std::tuple<py::array_t<int>, long double, std::vector<double>> >();
+
+          py::array_t<int> a = std::get<0>(tup);
+          py::buffer_info buf = a.request();
+          if (buf.ndim != 1)
+            throw std::runtime_error("Number of dimensions must be one");
+          int *ptr = static_cast<int *>(buf.ptr);
+          std::vector<int> child_state(ptr, ptr + buf.shape[0]);
+
+          long double weight = std::get<1>(tup);
+          std::vector<double> edge_state = std::get<2>(tup);
+
+          phasic::Vertex child_vertex = graph->find_or_create_vertex(child_state);
+
+          // Use add_edge() if coefficients empty, add_edge_parameterized() otherwise
+          if (edge_state.empty()) {
+              this_vertex.add_edge(child_vertex, weight);
+          } else {
+              this_vertex.add_edge_parameterized(child_vertex, weight, edge_state);
+          }
+        }
+        ++index;
+      }
+  }
+
   // phasic::Graph build_state_space_callback_tuples(
   //   // const std::function<std::vector<const py::tuple> (std::vector<int> &state)> &callback, std::vector<int> &initial_state) {
   //   const std::function<std::vector<const py::tuple> (py::array_t<int> &state)> &callback, std::vector<int> &initial_state) {
@@ -2392,7 +2480,71 @@ str
     >>> transformed_graph = graph.reward_transform_discrete(rewards)
       )delim")
       
-    .def("normalize", &phasic::Graph::normalize, 
+    .def("extend_graph_callback_tuples",
+      [](phasic::Graph &self, const std::function<std::vector<py::object> (const py::array_t<int> &state)> &callback) {
+        extend_state_space_callback_tuples(&self, callback);
+      },
+      py::arg("callback"),
+      R"delim(
+    Extends the graph by continuing to visit unvisited vertices using a callback (non-parameterized).
+
+    This method continues the callback-based graph building process from where it left off,
+    visiting all unvisited vertices (including ones manually added since initial construction).
+
+    Parameters
+    ----------
+    callback : callable
+        Callback function that accepts a state array and returns a list of (state, weight) tuples.
+
+    Returns
+    -------
+    None
+        Modifies the graph in place.
+
+    Examples
+    --------
+    >>> # Build initial graph
+    >>> graph = Graph(callback=my_callback)
+    >>> # Manually add vertex
+    >>> v = graph.find_or_create_vertex([10, 20])
+    >>> graph.starting_vertex().add_edge(v, 1.0)
+    >>> # Continue with callback
+    >>> graph.extend_graph_callback_tuples(my_callback)
+      )delim")
+
+    .def("extend_graph_callback_tuples_parameterized",
+      [](phasic::Graph &self, const std::function<std::vector<py::object> (const py::array_t<int> &state)> &callback) {
+        extend_state_space_callback_tuples_parameterized(&self, callback);
+      },
+      py::arg("callback"),
+      R"delim(
+    Extends the graph by continuing to visit unvisited vertices using a callback (parameterized).
+
+    This method continues the callback-based graph building process from where it left off,
+    visiting all unvisited vertices (including ones manually added since initial construction).
+
+    Parameters
+    ----------
+    callback : callable
+        Callback function that accepts a state array and returns a list of (state, base_weight, edge_state) tuples.
+
+    Returns
+    -------
+    None
+        Modifies the graph in place.
+
+    Examples
+    --------
+    >>> # Build initial graph
+    >>> graph = Graph(callback=my_callback, parameterized=True)
+    >>> # Manually add vertex
+    >>> v = graph.find_or_create_vertex([10, 20])
+    >>> graph.starting_vertex().add_edge_parameterized(v, 0.0, [1.5])
+    >>> # Continue with callback
+    >>> graph.extend_graph_callback_tuples_parameterized(my_callback)
+      )delim")
+
+    .def("normalize", &phasic::Graph::normalize,
       py::return_value_policy::reference_internal, R"delim(
     Normalizes the graph.
 
@@ -2414,7 +2566,7 @@ str
     >>> graph.starting_vertex().add_edge(graph.create_vertex( [4,0,3,3]), 0.5)
     >>> normalized_graph = normalize(graph)
       )delim")
-      
+
     .def("normalize_discrete", &phasic::Graph::dph_normalize, 
       py::return_value_policy::reference_internal, R"delim(
     Normalizes the discrete phase-type distribution graph.
