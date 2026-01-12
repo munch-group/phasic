@@ -3,6 +3,9 @@ import phasic
 import numpy as np
 import jax.numpy as jnp
 
+nr_samples = 4
+
+@phasic.with_ipv([nr_samples, 0, 0, 0])
 def coalescent(state, nr_samples=None):
     if not state.size:
         ipv = [[[nr_samples]+[0]*nr_samples, 1, []]]
@@ -37,13 +40,13 @@ step_schedule = phasic.ExpStepSize(first_step=0.001, last_step=0.0001, tau=n_ite
 
 
 true_theta = np.array([10])  
-nr_samples = 4
-graph = phasic.Graph(callback=coalescent, parameterized=True, nr_samples=nr_samples)
+
+graph = phasic.Graph(coalescent, nr_samples=nr_samples)
 
 
 
 nr_observations = 10000
-_graph = phasic.Graph(callback=coalescent, parameterized=True, nr_samples=nr_samples) # should check using the graph hash if a trace of the graph is cached or available online
+_graph = phasic.Graph(coalescent, nr_samples=nr_samples) # should check using the graph hash if a trace of the graph is cached or available online
 _graph.update_parameterized_weights(true_theta)
 
 

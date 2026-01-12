@@ -39,7 +39,9 @@
       "Bash(pixi run:*)",
       "Bash(awk:*)",
       "Bash(python:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(quartodoc build:*)",
+      "Bash(sed:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,7 +1,6 @@
 """
 Comprehensive correctness tests for multivariate phase-type distributions.
-
-Tests the pybind11 implementation (always available) with various scenarios:
+the pybind11 implementation (always available) with various scenarios:
 - Length-1 vectors (must match existing compute_pmf)
 - Sparse observations (zeros produce zero PDF)
 - Multiple features (independent computation)
@@ -12,7 +11,7 @@ Tests the pybind11 implementation (always available) with various scenarios:
 import numpy as np
 import json
 import phasic
-phasic.configure(ffi=False)  # Use pybind11, not FFI
+phasic.configure(ffi=True) 
 
 from phasic import Graph
 
