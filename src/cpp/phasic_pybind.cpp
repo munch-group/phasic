@@ -1378,6 +1378,16 @@ Vertex
           The number of vertices.
       )delim")
 
+    .def("edges_length", &phasic::Graph::edges_length,
+      py::return_value_policy::reference_internal, R"delim(
+      Returns the total number of edges in the graph across all vertices.
+
+      Returns
+      -------
+      int
+          The total number of edges.
+      )delim")
+
     .def("parameterized", &phasic::Graph::parameterized,
       py::return_value_policy::reference_internal, R"delim(
       Returns whether the graph is parameterized (has parameterized edges).
@@ -4012,7 +4022,17 @@ Returns
 float
     Total rate of leaving this vertex.
       )delim")
-      
+
+    .def("edges_length", &phasic::Vertex::edges_length,
+      py::return_value_policy::reference_internal, R"delim(
+Get the number of outgoing edges from this vertex.
+
+Returns
+-------
+int
+    Number of edges leaving this vertex.
+      )delim")
+
     ;
 
   py::class_<phasic::Edge>(m, "Edge", R"delim(

@@ -341,6 +341,8 @@ namespace phasic {
 
         size_t vertices_length();
 
+        size_t edges_length();
+
         bool parameterized();
 
         long double random_sample(std::vector<double> rewards = std::vector<double>()) {
@@ -930,6 +932,10 @@ namespace phasic {
 
         double rate() {
             return ptd_vertex_rate(vertex);
+        }
+
+        size_t edges_length() {
+            return vertex->edges_length;
         }
 
         // NB: moved this from private to public to allow pybin11 to find it

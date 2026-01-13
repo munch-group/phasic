@@ -2293,7 +2293,7 @@ class Graph(_Graph):
             return super().normalize(*args, **kwargs)
 
     @_invalidates_trace
-    def discretize(self, rate, **kwargs) -> NDArray[np.int64]:
+    def discretize(self, rate, skip_existing=False, **kwargs) -> NDArray[np.int64]:
         """
         Discretizes graph inplace and returns reward matrix for added auxiliary states.
 
@@ -2301,6 +2301,8 @@ class Graph(_Graph):
         ----------
         rate : 
             float or callable
+        skip_existing : bool, optional
+            If True, skip vertices that already have auxiliary vertices, by default False
 
         Returns
         -------
@@ -2324,18 +2326,21 @@ class Graph(_Graph):
                 # skip starting and absorbing nodes
                 continue
 
+            if skip_existing:
+                has_aux, is_aux = False, False
+                for edge in vertex.edges():
+                    if edge.to().state().sum() == 0 and edge.to().edges_length() and edge.to().edges()[0].to().index() == vertex.index():
+                        has_aux = True
+                        aux_indices.append(edge.to().index())
+                        vlength -= 1 # to not count vertex in both aux_indices and vlength
+                        break
+                if vertex.state().sum() == 0:
+                    is_aux = True
+                if has_aux or is_aux:
+                    continue
+
             _rate = rate(vertex.state(), **kwargs) if callable(rate) else rate
             aux_vertex = vertex.add_aux_vertex(_rate)
-
-            # aux_vertex = new_graph.create_vertex(np.repeat(0, new_graph.state_length()))
-            # if isinstance(_rate, (list, np.ndarray, jnp.ndarray)):
-            #     if not self.parameterized():
-            #         raise ValueError("Graph not parameterized!")
-            #     aux_vertex.add_edge(vertex, np.repeat(1.0, len(_rate)))                    
-            #     vertex.add_edge(aux_vertex, _rate)
-            # else:
-            #     aux_vertex.add_edge(vertex, 1)
-            #     vertex.add_edge(aux_vertex, _rate)
                 
             aux_indices.append(aux_vertex.index())
 

@@ -215,6 +215,15 @@ size_t phasic::Graph::vertices_length() {
     return c_graph()->vertices_length;
 }
 
+size_t phasic::Graph::edges_length() {
+    size_t total = 0;
+    struct ptd_graph *graph = c_graph();
+    for (size_t i = 0; i < graph->vertices_length; ++i) {
+        total += graph->vertices[i]->edges_length;
+    }
+    return total;
+}
+
 bool phasic::Graph::parameterized() {
     return c_graph()->parameterized;
 }

@@ -26,7 +26,7 @@ import pytest
 import numpy as np
 
 # IMPORTANT: Import phasic BEFORE jax
-from phasic import Graph, callback
+from phasic import Graph
 from phasic.ffi_wrappers import compute_pmf_ffi, compute_moments_ffi, compute_pmf_and_moments_ffi
 import phasic
 

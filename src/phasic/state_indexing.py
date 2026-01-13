@@ -164,6 +164,28 @@ class Property:
             return int(prop_value)
         return prop_value
 
+    def __iter__(self):
+        """
+        Iterate over all valid values for this property.
+
+        Yields
+        ------
+        int
+            Property values from min_value to max_value (inclusive)
+
+        Examples
+        --------
+        >>> prop = Property('descendants', max_value=10, min_value=0)
+        >>> list(prop)
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+        >>> # Population labels starting at 1
+        >>> prop = Property('population', max_value=3, min_value=1)
+        >>> list(prop)
+        [1, 2, 3]
+        """
+        return iter(range(self.min_value, self.max_value + 1))
+
 
 @dataclass(frozen=True)
 class Slot:
@@ -553,7 +575,33 @@ class PropertySet:
         Alias for props_to_index.
         """
         return self.props_to_index(*args, **kwargs)
-    
+
+    def __iter__(self):
+        """
+        Iterate over all indices in this PropertySet.
+
+        Yields
+        ------
+        int
+            Indices from 0 to n_states - 1
+
+        Examples
+        --------
+        >>> pset = PropertySet('lineage', [
+        ...     Property('descendants_l1', max_value=2),
+        ...     Property('descendants_l2', max_value=2)
+        ... ])
+        >>> # Iterate over all indices
+        >>> for idx in pset:
+        ...     props = pset.index_to_props(idx)
+        ...     print(f"{idx}: {props}")
+        0: LineageProps(descendants_l1=0, descendants_l2=0)
+        1: LineageProps(descendants_l1=1, descendants_l2=0)
+        2: LineageProps(descendants_l1=2, descendants_l2=0)
+        ...
+        """
+        return iter(range(self.n_states))
+
 class PropertyDict(dict):
     """
     Dict subclass that provides attribute access to keys.
