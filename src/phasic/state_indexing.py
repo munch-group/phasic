@@ -33,8 +33,8 @@ Example
 ... )
 >>>
 >>> # Access PropertySets via attributes
->>> indexer.lineage.n_states  # 242
->>> indexer.metadata.n_states  # 1001000
+>>> indexer.lineage.state_length  # 242
+>>> indexer.metadata.state_length  # 1001000
 >>>
 >>> # Access slot indices via attributes
 >>> indexer.epoch  # 1002242 (index for epoch slot)
@@ -46,7 +46,7 @@ Example
 >>>
 >>> # Backward compatible single PropertySet
 >>> indexer = StateIndexer([Property('descendants', max_value=10)])
->>> indexer.n_states  # 11
+>>> indexer.state_length  # 11
 >>> indexer.index_to_props(5)  # {'descendants': 5}
 """
 
@@ -239,7 +239,7 @@ class PropertySet:
         Property definitions
     property_dict : Dict[str, Property]
         Property lookup by name
-    n_states : int
+    state_length : int
         Total number of states in this property set
 
     Examples
@@ -249,7 +249,7 @@ class PropertySet:
     ...     Property('descendants', max_value=10),
     ...     Property('population', max_value=2, min_value=1)
     ... ])
-    >>> pset.n_states
+    >>> pset.state_length
     22  # 11 * 2
 
     >>> props = pset.index_to_props(15)
@@ -287,13 +287,13 @@ class PropertySet:
         self._radix_powers = np.cumprod([1] + list(self._bases[:-1]))
 
     @property
-    def n_states(self) -> int:
+    def state_length(self) -> int:
         """Total number of states in this property set."""
         return int(np.prod(self._bases))
 
     def __repr__(self) -> str:
         """String representation of PropertySet."""
-        return f"PropertySet('{self.name}', n_states={self.n_states}, properties={len(self.properties)})"
+        return f"PropertySet('{self.name}', state_length={self.state_length}, properties={len(self.properties)})"
 
     def index_to_props(
         self,
@@ -386,8 +386,8 @@ class PropertySet:
                     for j in range(len(index))
                 ]
 
-        if not index < self.n_states:
-            raise IndexError(f"Provided index {index} out of range for property set of size {self.n_states}")
+        if not index < self.state_length:
+            raise IndexError(f"Provided index {index} out of range for property set of size {self.state_length}")
 
         # Scalar conversion
         encoded = np.zeros(len(self.properties), dtype=int)
@@ -484,6 +484,12 @@ class PropertySet:
         if props is None:
             raise ValueError("Must provide either props dict/array or kwargs")
 
+        # Handle dataclass input (from index_to_props)
+        if hasattr(props, '__dataclass_fields__'):
+            # Convert dataclass to dict
+            from dataclasses import asdict
+            props = asdict(props)
+
         # Handle array input (must be complete specification)
         if isinstance(props, np.ndarray):
             if props.ndim == 1:
@@ -565,8 +571,8 @@ class PropertySet:
 
         matching_indices = np.array(sorted(matching_indices), dtype=int)
 
-        if np.any(matching_indices >= self.n_states):
-            raise IndexError(f"One or more computed indices out of range for property set of size {self.n_states}")
+        if np.any(matching_indices >= self.state_length):
+            raise IndexError(f"One or more computed indices out of range for property set of size {self.state_length}")
 
         return matching_indices
 
@@ -583,7 +589,7 @@ class PropertySet:
         Yields
         ------
         int
-            Indices from 0 to n_states - 1
+            Indices from 0 to state_length - 1
 
         Examples
         --------
@@ -600,7 +606,34 @@ class PropertySet:
         2: LineageProps(descendants_l1=2, descendants_l2=0)
         ...
         """
-        return iter(range(self.n_states))
+        return iter(range(self.state_length))
+    
+    def indices(self):
+        """
+        Iterate over all indices in this PropertySet.
+
+        Yields
+        ------
+        np.array
+            Indices from 0 to state_length - 1
+
+        Examples
+        --------
+        >>> pset = PropertySet('lineage', [
+        ...     Property('descendants_l1', max_value=2),
+        ...     Property('descendants_l2', max_value=2)
+        ... ])
+        >>> # Iterate over all indices
+        >>> for idx in pset:
+        ...     props = pset.index_to_props(idx)
+        ...     print(f"{idx}: {props}")
+        0: LineageProps(descendants_l1=0, descendants_l2=0)
+        1: LineageProps(descendants_l1=1, descendants_l2=0)
+        2: LineageProps(descendants_l1=2, descendants_l2=0)
+        ...
+        """
+        return np.array(list(iter(range(self.state_length))))
+
 
 class PropertyDict(dict):
     """
@@ -650,36 +683,45 @@ class StateIndexer:
 
     Parameters
     ----------
+    *slot_names : str
+        Positional slot names (each occupies exactly 1 index).
+        Accessible as attributes returning int indices.
     property_sets : List[PropertySet] or List[Property], optional
         Either a list of PropertySet objects or a list of Property objects
         (which creates a single 'default' PropertySet for backward compatibility)
     slots : List[str] or List[Slot], optional
-        List of slot names or Slot objects (each occupies exactly 1 index)
+        List of slot names or Slot objects (backward compatibility)
     **named_property_lists : dict
         Keyword arguments mapping PropertySet names to lists of Property objects
 
     Attributes
     ----------
-    n_states : int
+    state_length : int
         Total states across all PropertySets and slots (backward compatibility)
 
     Examples
     --------
-    >>> # Create with PropertySets and slots
-    >>> # Note: Slots always come after all PropertySets in index space
+    >>> # Positional slot arguments (NEW)
     >>> indexer = StateIndexer(
+    ...     'epoch', 'branch_id',
     ...     lineage=[Property('descendants', max_value=10)],  # indices 0-10
-    ...     metadata=[Property('time_bin', max_value=100)],   # indices 11-111
-    ...     slots=['epoch', 'branch_id']                       # indices 112, 113
+    ...     metadata=[Property('time_bin', max_value=100)]    # indices 11-111
     ... )
-    >>> indexer.lineage.n_states
+    >>> indexer.lineage.state_length
     11
-    >>> indexer.metadata.n_states
+    >>> indexer.metadata.state_length
     101
     >>> indexer.epoch  # Slot index
     112
     >>> indexer.branch_id  # Slot index
     113
+
+    >>> # Backward compatible with slots= parameter
+    >>> indexer = StateIndexer(
+    ...     lineage=[Property('descendants', max_value=10)],
+    ...     metadata=[Property('time_bin', max_value=100)],
+    ...     slots=['epoch', 'branch_id']
+    ... )
 
     >>> # Access via attributes
     >>> props = indexer.lineage.index_to_props(5)
@@ -688,7 +730,7 @@ class StateIndexer:
 
     >>> # Backward compatible with single PropertySet
     >>> indexer = StateIndexer([Property('descendants', max_value=10)])
-    >>> indexer.n_states  # Delegates to default PropertySet
+    >>> indexer.state_length  # Delegates to default PropertySet
     11
     >>> indexer.index_to_props(5)  # Delegates to default PropertySet
     {'descendants': 5}
@@ -696,6 +738,7 @@ class StateIndexer:
 
     def __init__(
         self,
+        *slot_names: str,
         property_sets: Optional[Union[List[PropertySet], List[Property]]] = None,
         slots: Optional[Union[List[str], List[Slot]]] = None,
         **named_property_lists
@@ -705,10 +748,13 @@ class StateIndexer:
 
         Parameters
         ----------
+        *slot_names : str
+            Positional slot names (each occupies exactly 1 index).
+            Accessible as attributes returning int indices.
         property_sets : List[PropertySet] or List[Property], optional
             Either a list of PropertySet objects or a list of Property objects
         slots : List[str] or List[Slot], optional
-            List of slot names or Slot objects (each occupies exactly 1 index)
+            List of slot names or Slot objects (backward compatibility)
         **named_property_lists : dict
             Keyword arguments mapping names to Property lists
 
@@ -716,14 +762,25 @@ class StateIndexer:
         ------
         ValueError
             If no PropertySets/Slots provided or duplicate names detected
+        TypeError
+            If positional arguments are not strings
 
         Examples
         --------
+        >>> # Positional slot arguments (NEW)
+        >>> indexer = StateIndexer(
+        ...     'epoch', 'branch_id',
+        ...     lineage=[Property('descendants', max_value=10)],
+        ...     metadata=[Property('time_bin', max_value=1000)]
+        ... )
+        >>> indexer.epoch  # Returns int index (e.g., 112)
+        >>> indexer.branch_id  # Returns int index (e.g., 113)
+
         >>> # From PropertySet objects
         >>> pset1 = PropertySet('lineage', [Property('descendants', max_value=10)])
         >>> indexer = StateIndexer([pset1])
 
-        >>> # From keyword args with slots
+        >>> # Backward compatible with slots= parameter
         >>> indexer = StateIndexer(
         ...     lineage=[Property('descendants', max_value=10)],
         ...     slots=['epoch', 'branch_id'],
@@ -740,16 +797,31 @@ class StateIndexer:
         object.__setattr__(self, '_pset_order', [])  # Preserve insertion order
         object.__setattr__(self, '_slot_order', [])  # Preserve insertion order
 
+        # Handle positional slot names
+        for slot_name in slot_names:
+            if not isinstance(slot_name, str):
+                raise TypeError(
+                    f"Positional arguments must be slot names (str), got {type(slot_name).__name__}"
+                )
+            slot = Slot(slot_name)
+            if slot.name in self._slots or slot.name in self._property_sets:
+                raise ValueError(f"Duplicate slot/PropertySet name: {slot.name}")
+            self._slots[slot.name] = slot
+            self._slot_order.append(slot.name)
+
         # Handle positional argument for PropertySets
         if property_sets is not None:
-            if property_sets and isinstance(property_sets[0], PropertySet):
+            if not property_sets:
+                # Empty list - skip
+                pass
+            elif isinstance(property_sets[0], PropertySet):
                 # List of PropertySet objects
                 for pset in property_sets:
                     if pset.name in self._property_sets:
                         raise ValueError(f"Duplicate PropertySet name: {pset.name}")
                     self._property_sets[pset.name] = pset
                     self._pset_order.append(pset.name)
-            elif property_sets and isinstance(property_sets[0], Property):
+            elif isinstance(property_sets[0], Property):
                 # Backward compatibility: List of Property -> 'default' PropertySet
                 self._property_sets['default'] = PropertySet('default', property_sets)
                 self._pset_order.append('default')
@@ -792,14 +864,14 @@ class StateIndexer:
         current_offset = 0
         for name in self._pset_order:
             self._offsets[name] = current_offset
-            current_offset += self._property_sets[name].n_states
+            current_offset += self._property_sets[name].state_length
 
         for name in self._slot_order:
             self._offsets[name] = current_offset
             current_offset += 1  # Each slot occupies exactly 1 index
 
         # Store total number of states across all PropertySets and slots
-        object.__setattr__(self, '_total_n_states', current_offset)
+        object.__setattr__(self, '_total_state_length', current_offset)
 
         # Create and cache result class for index_to_props
         object.__setattr__(self, '_result_class', self._create_result_class())
@@ -884,14 +956,14 @@ class StateIndexer:
         return len(self._property_sets)
 
     @property
-    def n_states(self) -> int:
+    def state_length(self) -> int:
         """
         Total number of states across all PropertySets (concatenated index space).
 
-        For single PropertySet: returns that PropertySet's n_states (backward compatible).
-        For multiple PropertySets: returns sum of all PropertySet n_states.
+        For single PropertySet: returns that PropertySet's state_length (backward compatible).
+        For multiple PropertySets: returns sum of all PropertySet state_length.
 
-        To get individual PropertySet sizes, use indexer.name.n_states.
+        To get individual PropertySet sizes, use indexer.name.state_length.
 
         Returns
         -------
@@ -904,12 +976,100 @@ class StateIndexer:
         ...     lineage=[Property('descendants', max_value=10)],  # 11 states
         ...     metadata=[Property('time_bin', max_value=100)]     # 101 states
         ... )
-        >>> indexer.n_states  # Total: 11 + 101
+        >>> indexer.state_length  # Total: 11 + 101
         112
-        >>> indexer.lineage.n_states  # Individual PropertySet
+        >>> indexer.lineage.state_length  # Individual PropertySet
         11
         """
-        return self._total_n_states
+        return self._total_state_length
+
+    def _detect_property_set(
+        self,
+        props: Union[Dict[str, int], npt.NDArray[np.integer]],
+        raise_on_ambiguous: bool = False
+    ) -> Optional[str]:
+        """
+        Auto-detect PropertySet from property names.
+
+        Returns PropertySet name if all property names uniquely belong to one PropertySet,
+        otherwise returns None (or raises if raise_on_ambiguous=True).
+
+        Parameters
+        ----------
+        props : dict or ndarray
+            Property values (dict with property names as keys, or dataclass)
+        raise_on_ambiguous : bool, default=False
+            If True, raise ValueError with helpful message when detection fails
+
+        Returns
+        -------
+        str or None
+            PropertySet name if unique match found, None otherwise
+
+        Raises
+        ------
+        ValueError
+            If raise_on_ambiguous=True and detection fails
+        """
+        # Handle dataclass input
+        if hasattr(props, '__dataclass_fields__'):
+            from dataclasses import asdict
+            props = asdict(props)
+
+        # For array input, we can't detect by name
+        if isinstance(props, np.ndarray):
+            if raise_on_ambiguous:
+                raise ValueError(
+                    "Cannot auto-detect PropertySet from array input. "
+                    "Use indexer.pset_name.p2i(array) instead."
+                )
+            return None
+
+        # Get property names from dict
+        if not isinstance(props, dict):
+            if raise_on_ambiguous:
+                raise ValueError("Cannot auto-detect PropertySet from non-dict input.")
+            return None
+
+        prop_names = set(props.keys())
+
+        # Find which PropertySet(s) contain these properties
+        matching_psets = []
+        for pset_name, pset in self._property_sets.items():
+            pset_prop_names = set(p.name for p in pset.properties)
+            # Check if all provided properties are in this PropertySet
+            if prop_names.issubset(pset_prop_names):
+                matching_psets.append(pset_name)
+
+        # Return PropertySet name only if exactly one match
+        if len(matching_psets) == 1:
+            return matching_psets[0]
+        elif raise_on_ambiguous:
+            if len(matching_psets) == 0:
+                # No matches - property names not found
+                all_prop_names = {}
+                for pset_name, pset in self._property_sets.items():
+                    all_prop_names[pset_name] = [p.name for p in pset.properties]
+                raise ValueError(
+                    f"Cannot auto-detect PropertySet: property names {list(prop_names)} not found in any PropertySet.\n"
+                    f"Available properties by PropertySet:\n" +
+                    "\n".join(f"  {name}: {props}" for name, props in all_prop_names.items()) +
+                    f"\nUse indexer.pset_name.p2i(props) instead."
+                )
+            else:
+                # Multiple matches - ambiguous
+                matching_props = {}
+                for pset_name in matching_psets:
+                    pset = self._property_sets[pset_name]
+                    matching_props[pset_name] = [p.name for p in pset.properties]
+                raise ValueError(
+                    f"Cannot auto-detect PropertySet: property names {list(prop_names)} match multiple PropertySets: {matching_psets}.\n"
+                    f"Matching PropertySets:\n" +
+                    "\n".join(f"  {name}: {props}" for name, props in matching_props.items()) +
+                    f"\nUse indexer.pset_name.p2i(props) to specify explicitly."
+                )
+        else:
+            return None
 
     @property
     def index_ranges(self) -> Dict[str, tuple[int, int]]:
@@ -935,7 +1095,7 @@ class StateIndexer:
         ranges = {}
         # PropertySets
         for name, pset in self._property_sets.items():
-            ranges[name] = (self._offsets[name], self._offsets[name] + pset.n_states - 1)
+            ranges[name] = (self._offsets[name], self._offsets[name] + pset.state_length - 1)
         # Slots (single index each)
         for name in self._slots.keys():
             idx = self._offsets[name]
@@ -950,7 +1110,7 @@ class StateIndexer:
         Parameters
         ----------
         index : int
-            Index in concatenated space (0 to n_states-1)
+            Index in concatenated space (0 to state_length-1)
 
         Returns
         -------
@@ -976,17 +1136,17 @@ class StateIndexer:
         >>> indexer._decompose_index(15)
         ('metadata', 4)
         """
-        if not (0 <= index < self._total_n_states):
+        if not (0 <= index < self._total_state_length):
             raise IndexError(
-                f"Index {index} out of range [0, {self._total_n_states})"
+                f"Index {index} out of range [0, {self._total_state_length})"
             )
 
         # Check PropertySets first
         for name in self._pset_order:
             offset = self._offsets[name]
-            n_states = self._property_sets[name].n_states
+            state_length = self._property_sets[name].state_length
 
-            if offset <= index < offset + n_states:
+            if offset <= index < offset + state_length:
                 local_index = index - offset
                 return (name, local_index)
 
@@ -1042,10 +1202,10 @@ class StateIndexer:
             if local_index is None:
                 raise ValueError(f"PropertySet '{name}' requires local_index parameter")
             pset = self._property_sets[name]
-            if not (0 <= local_index < pset.n_states):
+            if not (0 <= local_index < pset.state_length):
                 raise IndexError(
                     f"Local index {local_index} out of range for PropertySet '{name}' "
-                    f"(valid range: [0, {pset.n_states}))"
+                    f"(valid range: [0, {pset.state_length}))"
                 )
             return self._offsets[name] + local_index
         elif name in self._slots:
@@ -1059,7 +1219,8 @@ class StateIndexer:
         self,
         index: Union[int, npt.NDArray[np.integer]],
         as_dict: bool = False,
-        as_values: bool = False
+        as_values: bool = False,
+        flatten: bool = False
     ) -> Union[object, List[object]]:
         """
         Convert index to property values or slot indicator.
@@ -1075,13 +1236,15 @@ class StateIndexer:
             If True, return dict instead of dataclass for property values
         as_values : bool, default=False
             If True, return array of property values
+        flatten : bool, default=False
+            If True, return properties directly without IndexResult wrapper.
+            Only works when index maps to a single PropertySet (not a slot).
 
         Returns
         -------
-        IndexResult or list of IndexResult
-            Dataclass with one attribute per PropertySet/Slot name.
-            The matching attribute contains props (for PropertySets) or True (for slots).
-            All other attributes are None.
+        IndexResult or list of IndexResult or properties
+            Default: Dataclass with one attribute per PropertySet/Slot name.
+            If flatten=True: Properties directly (dataclass, dict, or array)
 
         Examples
         --------
@@ -1115,29 +1278,62 @@ class StateIndexer:
         """
         # Handle array input
         if isinstance(index, np.ndarray):
-            results = []
-            for idx in index:
-                name, local_idx = self._decompose_index(int(idx))
-
-                # Create dict with all fields set to None
-                field_values = {pset_name: None for pset_name in self._pset_order}
-                field_values.update({slot_name: None for slot_name in self._slot_order})
-
-                if local_idx is None:
-                    # It's a slot - set slot to True
-                    field_values[name] = True
-                else:
-                    # It's a PropertySet - set PropertySet to props
+            if flatten:
+                # For flatten, all indices must map to same PropertySet
+                results = []
+                pset_name = None
+                for idx in index:
+                    name, local_idx = self._decompose_index(int(idx))
+                    if local_idx is None:
+                        raise ValueError(
+                            f"Cannot flatten: index {idx} maps to slot '{name}', not a PropertySet."
+                        )
+                    if pset_name is None:
+                        pset_name = name
+                    elif pset_name != name:
+                        raise ValueError(
+                            f"Cannot flatten: indices map to different PropertySets ('{pset_name}' and '{name}'). "
+                            f"Use flatten=False or ensure all indices belong to the same PropertySet."
+                        )
                     props = self._property_sets[name].index_to_props(
                         local_idx, as_dict=as_dict, as_values=as_values
                     )
-                    field_values[name] = props
+                    results.append(props)
+                return results
+            else:
+                results = []
+                for idx in index:
+                    name, local_idx = self._decompose_index(int(idx))
 
-                results.append(self._result_class(**field_values))
-            return results
+                    # Create dict with all fields set to None
+                    field_values = {pset_name: None for pset_name in self._pset_order}
+                    field_values.update({slot_name: None for slot_name in self._slot_order})
+
+                    if local_idx is None:
+                        # It's a slot - set slot to True
+                        field_values[name] = True
+                    else:
+                        # It's a PropertySet - set PropertySet to props
+                        props = self._property_sets[name].index_to_props(
+                            local_idx, as_dict=as_dict, as_values=as_values
+                        )
+                        field_values[name] = props
+
+                    results.append(self._result_class(**field_values))
+                return results
 
         # Scalar input
         name, local_index = self._decompose_index(index)
+
+        if flatten:
+            # Return properties directly without wrapper
+            if local_index is None:
+                raise ValueError(
+                    f"Cannot flatten slot index. Index {index} maps to slot '{name}', not a PropertySet."
+                )
+            return self._property_sets[name].index_to_props(
+                local_index, as_dict=as_dict, as_values=as_values
+            )
 
         # Create dict with all fields set to None
         field_values = {pset_name: None for pset_name in self._pset_order}
@@ -1224,32 +1420,62 @@ class StateIndexer:
         >>> single.props_to_index({'descendants': 5})
         5
         """
+        # Check for IndexResult first (before dict check, since IndexResult can be dict-like)
+        if hasattr(pset_name, '__class__') and pset_name.__class__.__name__ == 'IndexResult':
+            raise TypeError(
+                f"Cannot pass IndexResult object directly to p2i(). "
+                f"Did you mean to use flatten=True?\n"
+                f"  Instead of: indexer.p2i(indexer.i2p(i))\n"
+                f"  Use: indexer.p2i(indexer.i2p(i, flatten=True))"
+            )
+
         # Auto-detect mode: pset_name is actually the props
         if isinstance(pset_name, (dict, np.ndarray)):
             if len(self._property_sets) > 1:
-                raise ValueError(
-                    "Auto-detect mode requires explicit PropertySet name when multiple PropertySets exist. "
-                    f"Use indexer.props_to_index('pset_name', props) instead."
-                )
-            # Get the single PropertySet
-            actual_pset_name = next(iter(self._pset_order))
+                # Try to auto-detect PropertySet from property names
+                actual_pset_name = self._detect_property_set(pset_name, raise_on_ambiguous=True)
+            else:
+                # Single PropertySet
+                actual_pset_name = next(iter(self._pset_order))
             actual_props = pset_name
         elif pset_name is None:
             # pset_name=None, props specified or kwargs
             if len(self._property_sets) > 1:
-                raise ValueError(
-                    "Auto-detect mode requires explicit PropertySet name when multiple PropertySets exist. "
-                    f"Use indexer.props_to_index('pset_name', props) instead."
+                # Try to auto-detect PropertySet from property names
+                actual_pset_name = self._detect_property_set(
+                    props if props is not None else kwargs,
+                    raise_on_ambiguous=True
                 )
-            actual_pset_name = next(iter(self._pset_order))
+            else:
+                # Single PropertySet
+                actual_pset_name = next(iter(self._pset_order))
             actual_props = props
+        elif not isinstance(pset_name, str):
+            # Check if it's a dataclass (from i2p with flatten=True)
+            if hasattr(pset_name, '__dataclass_fields__'):
+                # Try auto-detection with dataclass
+                if len(self._property_sets) > 1:
+                    actual_pset_name = self._detect_property_set(pset_name, raise_on_ambiguous=True)
+                else:
+                    actual_pset_name = next(iter(self._pset_order))
+                actual_props = pset_name
+            else:
+                # Some other unexpected type
+                raise TypeError(
+                    f"Expected pset_name to be str, dict, or ndarray, got {type(pset_name).__name__}. "
+                    f"Available PropertySets: {list(self._property_sets.keys())}"
+                )
         else:
             # Explicit pset_name (str)
             actual_pset_name = pset_name
             actual_props = props
 
         if actual_pset_name not in self._property_sets:
-            raise KeyError(f"PropertySet '{actual_pset_name}' not found")
+            available = list(self._property_sets.keys())
+            raise KeyError(
+                f"PropertySet '{actual_pset_name}' not found. "
+                f"Available PropertySets: {available}"
+            )
 
         local_index = self._property_sets[actual_pset_name].props_to_index(actual_props, **kwargs)
         return self._compose_index(actual_pset_name, local_index)
@@ -1265,11 +1491,27 @@ class StateIndexer:
         components = []
         # PropertySets
         for name, ps in self._property_sets.items():
-            components.append(f"{name}({ps.n_states})")
+            components.append(f"{name}({ps.state_length})")
         # Slots
         for name in self._slots.keys():
             components.append(f"{name}(slot)")
         return f"StateIndexer({', '.join(components)})"
+
+    
+    def __iter__(self):        
+        return iter(range(self.state_length))
+
+    def indices(self):
+        """
+        Get all possible indices in concatenated space.
+
+        Returns
+        -------
+        list of int
+            List of all valid indices from 0 to state_length - 1
+        """
+        return np.array(list(range(self.state_length)))
+
 
 
 class StateVector:
@@ -1537,7 +1779,7 @@ class StateSpace(PropertySet):
 
     >>> # New API (preferred)
     >>> pset = PropertySet('lineage', [Property('descendants', max_value=10)])
-    >>> pset.n_states
+    >>> pset.state_length
     11
     """
 
@@ -1571,12 +1813,12 @@ class StateSpace(PropertySet):
         Total number of states (backward compatibility).
 
         .. deprecated:: 0.23.0
-            Use n_states instead.
+            Use state_length instead.
         """
         import warnings
         warnings.warn(
-            "StateSpace.size is deprecated. Use PropertySet.n_states instead.",
+            "StateSpace.size is deprecated. Use PropertySet.state_length instead.",
             DeprecationWarning,
             stacklevel=2
         )
-        return self.n_states
+        return self.state_length
