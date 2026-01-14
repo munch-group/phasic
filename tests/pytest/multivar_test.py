@@ -7,24 +7,20 @@ nr_samples = 4
 
 @phasic.with_ipv([nr_samples, 0, 0, 0])
 def coalescent(state, nr_samples=None):
-    if not state.size:
-        ipv = [[[nr_samples]+[0]*nr_samples, 1, []]]
-        return ipv
-    else:
-        transitions = []
-        for i in range(nr_samples):
-            for j in range(i, nr_samples):            
-                same = int(i == j)
-                if same and state[i] < 2:
-                    continue
-                if not same and (state[i] < 1 or state[j] < 1):
-                    continue 
-                new = state.copy()
-                new[i] -= 1
-                new[j] -= 1
-                new[i+j+1] += 1
-                transitions.append([new, 0.0, [state[i]*(state[j]-same)/(1+same)]])
-        return transitions
+    transitions = []
+    for i in range(int(nr_samples)):
+        for j in range(i, int(nr_samples)):            
+            same = int(i == j)
+            if same and state[i] < 2:
+                continue
+            if not same and (state[i] < 1 or state[j] < 1):
+                continue 
+            new = state.copy()
+            new[i] -= 1
+            new[j] -= 1
+            new[i+j+1] += 1
+            transitions.append([new, [state[i]*(state[j]-same)/(1+same)]])
+    return transitions
 
 
 

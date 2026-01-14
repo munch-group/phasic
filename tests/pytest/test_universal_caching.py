@@ -19,7 +19,7 @@ print("=" * 70)
 
 # Test 1: Constant-weight graph gets trace recorded
 print("\n1. Testing constant-weight graph trace recording...")
-g1 = Graph(state_length=1)
+g1 = Graph(1)
 v0 = g1.starting_vertex()
 v1 = g1.find_or_create_vertex([1])
 v2 = g1.find_or_create_vertex([0])
@@ -40,7 +40,7 @@ else:
 
 # Test 2: Parameterized graph gets trace recorded
 print("\n2. Testing parameterized graph trace recording...")
-g2 = Graph(state_length=1)
+g2 = Graph(1)
 v0 = g2.starting_vertex()
 v1 = g2.find_or_create_vertex([1])
 v2 = g2.find_or_create_vertex([0])
@@ -61,12 +61,12 @@ else:
 # Test 3: Verify traces are equivalent for same structure, different param_length
 print("\n3. Testing structural equivalence...")
 # Build two graphs with same structure but different param_length
-g3a = Graph(state_length=1)
+g3a = Graph(1)
 v0 = g3a.starting_vertex()
 v1 = g3a.find_or_create_vertex([1])
 v0.add_edge(v1, 1.0)  # param_length=1
 
-g3b = Graph(state_length=1)
+g3b = Graph(1)
 v0 = g3b.starting_vertex()
 v1 = g3b.find_or_create_vertex([1])
 v0.add_edge(v1, [1.0, 0.0])  # param_length=2
@@ -85,7 +85,7 @@ else:
 
 # Test 4: Test auto-recording via update_weights()
 print("\n4. Testing automatic trace recording via update_weights()...")
-g4 = Graph(state_length=1)
+g4 = Graph(1)
 v0 = g4.starting_vertex()
 v1 = g4.find_or_create_vertex([1])
 v2 = g4.find_or_create_vertex([0])

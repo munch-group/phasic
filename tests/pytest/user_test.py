@@ -2,11 +2,9 @@
 from pprint import pprint
 import numpy as np
 
-from phasic import Graph, set_theme
+from phasic import Graph
 
 import jax.numpy as jnp
-
-set_theme('dark')
 
 def coalescent(state, nr_samples=None):
     if not state.size:

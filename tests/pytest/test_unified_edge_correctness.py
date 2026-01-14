@@ -26,7 +26,7 @@ print("=" * 70)
 
 # Test 1: Constant Edge Correctness
 print("\n1. Testing constant edge PDF correctness...")
-g_const = Graph(state_length=1)
+g_const = Graph(1)
 v0 = g_const.starting_vertex()
 v1 = g_const.find_or_create_vertex([1])
 v2 = g_const.find_or_create_vertex([0])
@@ -55,7 +55,7 @@ assert g_const.is_parameterized() == False, "Constant graph should not be parame
 
 # Test 2: Parameterized Edge Correctness
 print("\n2. Testing parameterized edge PDF correctness...")
-g_param = Graph(state_length=1)
+g_param = Graph(1)
 v0 = g_param.starting_vertex()
 v1 = g_param.find_or_create_vertex([1])
 v2 = g_param.find_or_create_vertex([0])
@@ -85,7 +85,7 @@ assert g_param.is_parameterized() == False, "Single-parameter graph is not truly
 
 # Test 3: Multi-parameter Correctness
 print("\n3. Testing multi-parameter edge correctness...")
-g_multi = Graph(state_length=1)
+g_multi = Graph(1)
 v0 = g_multi.starting_vertex()
 v1 = g_multi.find_or_create_vertex([1])
 v2 = g_multi.find_or_create_vertex([0])
@@ -116,7 +116,7 @@ assert g_multi.is_parameterized() == True, "Multi-parameter graph should be para
 
 # Test 4: Edge Validation
 print("\n4. Testing edge type validation...")
-g_mixed = Graph(state_length=1)
+g_mixed = Graph(1)
 v0 = g_mixed.starting_vertex()
 v1 = g_mixed.find_or_create_vertex([1])
 v2 = g_mixed.find_or_create_vertex([0])
@@ -160,7 +160,7 @@ try:
     import jax.numpy as jnp
 
     # Create parameterized model
-    g_jax = Graph(state_length=1)
+    g_jax = Graph(1)
     v0 = g_jax.starting_vertex()
     v1 = g_jax.find_or_create_vertex([1])
     v2 = g_jax.find_or_create_vertex([0])
@@ -210,7 +210,7 @@ except ImportError:
 # Test 7: Backward Compatibility
 print("\n7. Testing backward compatibility (deprecated API)...")
 
-g_compat = Graph(state_length=1)
+g_compat = Graph(1)
 v0 = g_compat.starting_vertex()
 v1 = g_compat.find_or_create_vertex([1])
 v2 = g_compat.find_or_create_vertex([0])
@@ -245,7 +245,7 @@ print(f"   ✅ Backward compatibility maintained (pdf={pdf_compat:.6f})")
 # Test 8: Edge Weight Updates
 print("\n8. Testing edge weight updates...")
 
-g_update = Graph(state_length=1)
+g_update = Graph(1)
 v0 = g_update.starting_vertex()
 v1 = g_update.find_or_create_vertex([1])
 v2 = g_update.find_or_create_vertex([0])
@@ -276,7 +276,7 @@ print(f"   ✅ Edge weight updates work correctly (starting edge unchanged, othe
 # Test 9: Numerical Accuracy
 print("\n9. Testing numerical accuracy across parameter ranges...")
 
-g_accuracy = Graph(state_length=1)
+g_accuracy = Graph(1)
 v0 = g_accuracy.starting_vertex()
 v1 = g_accuracy.find_or_create_vertex([1])
 v2 = g_accuracy.find_or_create_vertex([0])  # Absorbing state
