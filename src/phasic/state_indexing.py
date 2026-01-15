@@ -51,7 +51,7 @@ Example
 """
 
 from dataclasses import dataclass, make_dataclass
-from typing import Dict, List, Optional, Union, Self
+from typing import Any, Dict, List, Optional, Union, Self
 import numpy as np
 import numpy.typing as npt
 
@@ -1511,6 +1511,95 @@ class StateIndexer:
             List of all valid indices from 0 to state_length - 1
         """
         return np.array(list(range(self.state_length)))
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Serialize StateIndexer to JSON-compatible dict.
+
+        Returns
+        -------
+        dict
+            Dictionary containing all information needed to reconstruct
+            the StateIndexer, including PropertySets, Properties, slots,
+            and their ordering.
+
+        Examples
+        --------
+        >>> indexer = StateIndexer(
+        ...     'epoch',
+        ...     lineage=[Property('descendants', max_value=10)],
+        ...     metadata=[Property('time_bin', max_value=100)]
+        ... )
+        >>> data = indexer.to_dict()
+        >>> reconstructed = StateIndexer.from_dict(data)
+        >>> reconstructed.state_length == indexer.state_length
+        True
+        """
+        return {
+            'property_sets': {
+                name: {
+                    'name': pset.name,
+                    'properties': [
+                        {
+                            'name': p.name,
+                            'max_value': p.max_value,
+                            'min_value': p.min_value
+                        }
+                        for p in pset.properties
+                    ]
+                }
+                for name, pset in self._property_sets.items()
+            },
+            'slots': list(self._slots.keys()),
+            'pset_order': self._pset_order,
+            'slot_order': self._slot_order
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> Self:
+        """
+        Reconstruct StateIndexer from serialized dict.
+
+        Parameters
+        ----------
+        data : dict
+            Dictionary created by to_dict()
+
+        Returns
+        -------
+        StateIndexer
+            Reconstructed StateIndexer with identical structure
+
+        Examples
+        --------
+        >>> indexer = StateIndexer(
+        ...     'epoch',
+        ...     lineage=[Property('descendants', max_value=10)]
+        ... )
+        >>> data = indexer.to_dict()
+        >>> reconstructed = StateIndexer.from_dict(data)
+        >>> reconstructed.state_length == indexer.state_length
+        True
+        """
+        # Rebuild PropertySets in correct order
+        property_lists = {}
+        for name in data['pset_order']:
+            pset_data = data['property_sets'][name]
+            properties = [
+                Property(
+                    name=p['name'],
+                    max_value=p['max_value'],
+                    min_value=p['min_value']
+                )
+                for p in pset_data['properties']
+            ]
+            property_lists[name] = properties
+
+        # Reconstruct with slots in correct order
+        return cls(
+            *data['slot_order'],  # Positional slot arguments
+            **property_lists      # Named PropertySet arguments
+        )
 
 
 
