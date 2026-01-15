@@ -536,7 +536,7 @@ def compute_pmf_ffi(structure_json: Union[str, Dict], theta: jax.Array, times: j
     # expand_dims: vmap adds batch dimension, FFI handler loops over batch with OpenMP
     ffi_fn = jax.ffi.ffi_call(
         "ptd_compute_pmf",
-        jax.ShapeDtypeStruct(times.shape, times.dtype),
+        jax.ShapeDtypeStruct(times.shape, jnp.float64),  # Force float64 output
         vmap_method="expand_dims"  # Batch dim added, handler processes all at once with OpenMP
     )
     result = ffi_fn(
@@ -704,7 +704,7 @@ def compute_pmf_and_moments_ffi(structure_json: Union[str, Dict], theta: jax.Arr
         moments_shape = jax.ShapeDtypeStruct((n_features, nr_moments), jnp.float64)
     else:
         # No rewards or 1D rewards: univariate case
-        pmf_shape = jax.ShapeDtypeStruct(times.shape, times.dtype)
+        pmf_shape = jax.ShapeDtypeStruct(times.shape, jnp.float64)  # Force float64 output
         moments_shape = jax.ShapeDtypeStruct((nr_moments,), jnp.float64)
 
     # Call JAX FFI target

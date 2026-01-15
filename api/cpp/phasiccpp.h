@@ -592,7 +592,7 @@ namespace phasic {
             return new Graph(r.graph, r.avl_tree);
         }
 
-        double pdf(float time, int granularity = 0) {
+        double pdf(double time, int granularity = 0) {
             if (this->rf_graph->ph_context == NULL || this->rf_graph->granularity != granularity) {
                 if (this->rf_graph->ph_context != NULL) {
                     ptd_probability_distribution_context_destroy(this->rf_graph->ph_context);
@@ -621,7 +621,7 @@ namespace phasic {
             return _pdf[this->rf_graph->ph_context->granularity * time];
         }
 
-        double cdf(float time, int granularity = 0) {
+        double cdf(double time, int granularity = 0) {
             pdf(time, granularity);
 
             return _cdf[this->rf_graph->ph_context->granularity * time];
