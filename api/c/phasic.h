@@ -137,6 +137,7 @@ struct ptd_edge {
     double *coefficients;       // ALWAYS non-NULL, length = graph->param_length
     size_t coefficients_length; // Always = graph->param_length
     bool should_free_coefficients;
+    bool is_constant;           // true if created with scalar syntax (constant edge), false if created with array syntax (parameterized)
 };
 
 
@@ -173,7 +174,8 @@ struct ptd_edge *ptd_graph_add_edge(
         struct ptd_vertex *from,
         struct ptd_vertex *to,
         double *coefficients,
-        size_t coefficients_length
+        size_t coefficients_length,
+        bool is_constant
 );
 
 void ptd_edge_update_weight(

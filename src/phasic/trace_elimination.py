@@ -568,7 +568,7 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
                 coeffs = np.array(edge_state, dtype=np.float64)
 
                 # weight = dot(coeffs, params)
-                # Note: Starting edges are never parameterized, so won't reach this code
+                # Note: Starting vertex edges CAN be parameterized (dynamic IPV support)
                 weight_idx = builder.add_dot(coeffs)
 
                 weight_indices.append(weight_idx)

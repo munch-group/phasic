@@ -795,8 +795,8 @@ struct ptd_graph *ptd_graph_symbolic_instantiate(
             // Get target vertex from new graph using index
             struct ptd_vertex *to_vertex = graph->vertices[se->to_index];
 
-            // Add edge
-            ptd_graph_add_edge(v, to_vertex, weight);
+            // Add edge (symbolic DAG edges are parameterized, not constant)
+            ptd_graph_add_edge(v, to_vertex, &weight, 1, false /* is_constant */);
         }
     }
 

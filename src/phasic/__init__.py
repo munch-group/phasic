@@ -2609,10 +2609,10 @@ class Graph(_Graph):
         param_edges = np.array(param_edges_list, dtype=np.float64) if param_edges_list else np.empty((0, param_length + 2 if param_length > 0 else 0), dtype=np.float64)
 
         # Extract starting vertex parameterized edges FIRST (needed to build exclusion set)
-        # NOTE: Starting vertex edges are NEVER rescaled by update_weights() (see starting vertex fix)
-        # So we should NOT export them as parameterized edges - they are effectively constant
+        # NOTE: Starting vertex edges CAN be parameterized (if created with coefficient arrays)
+        # update_weights() will update parameterized IPV edges while skipping constant ones
         start_param_edges_list = []
-        if False:  # Starting edges are never parameterized (always constant)
+        if True:  # Starting edges CAN be parameterized (enabled for dynamic IPV)
             for edge in start.parameterized_edges():
                 to_vertex = edge.to()
                 if to_vertex.index() in vertex_idx_to_enum:

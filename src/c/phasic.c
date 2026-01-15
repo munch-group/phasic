@@ -1196,11 +1196,12 @@ struct ptd_clone_res ptd_clone_graph(struct ptd_graph *graph, struct ptd_avl_tre
 
             struct ptd_vertex *new_target = vertex_map[target_idx];
 
-            // Add edge with cloned coefficients array
+            // Add edge with cloned coefficients array and preserve is_constant flag
             struct ptd_edge *new_edge = ptd_graph_add_edge(
                 new_v, new_target,
                 old_edge->coefficients,
-                old_edge->coefficients_length
+                old_edge->coefficients_length,
+                old_edge->is_constant
             );
 
             if (new_edge == NULL) {
@@ -2767,7 +2768,8 @@ struct ptd_edge *ptd_graph_add_edge(
         struct ptd_vertex *from,
         struct ptd_vertex *to,
         double *coefficients,
-        size_t coefficients_length
+        size_t coefficients_length,
+        bool is_constant
 ) {
     if (coefficients == NULL || coefficients_length == 0) {
         snprintf((char*)ptd_err, sizeof(ptd_err),
@@ -2846,6 +2848,7 @@ struct ptd_edge *ptd_graph_add_edge(
 
     memcpy(edge->coefficients, coefficients, coefficients_length * sizeof(double));
     edge->should_free_coefficients = true;
+    edge->is_constant = is_constant;
 
     // Compute initial weight with default params (theta=[1,1,...])
     edge->weight = 0.0;
@@ -3052,21 +3055,28 @@ void ptd_graph_update_weights(
     for (size_t i = 0; i < graph->vertices_length; i++) {
         struct ptd_vertex *vertex = graph->vertices[i];
 
-        // Skip starting vertex edges - they should never be rescaled
-        // Starting vertex edges represent the initial probability vector (IPV)
-        // and must remain constant regardless of parameter values
-        if (vertex == graph->starting_vertex) {
-            continue;
-        }
+        // Track if this is the starting vertex (for special handling below)
+        bool is_starting_vertex = (vertex == graph->starting_vertex);
 
         for (size_t j = 0; j < vertex->edges_length; j++) {
             struct ptd_edge *edge = vertex->edges[j];
 
-            // Skip edges with no coefficients (pure constant, like aux→parent edges)
-            // These edges have hardcoded weights and should never be rescaled
-            if (edge->coefficients_length == 0) {
+            // Skip constant edges (created with scalar syntax):
+            // - Regular constant edges: coefficients_length = 1, edge_mode = CONSTANT
+            // - Constant IPV edges in parameterized graph: coefficients_length < param_length
+            //
+            // In parameterized graphs, constant IPV edges are stored with coefficients_length=1
+            // while parameterized edges have coefficients_length=param_length.
+            // This check ensures constant IPV edges remain fixed (backward compatibility).
+            if (edge->coefficients_length < graph->param_length) {
                 continue;
             }
+
+            // At this point, edge->coefficients_length == graph->param_length
+            // This includes:
+            // - All parameterized graph edges
+            // - Parameterized IPV edges (created with array syntax matching param_length)
+            // These edges are updated by computing the dot product with theta
 
             // Compute weight based on mode
             if (use_log) {

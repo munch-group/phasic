@@ -272,7 +272,7 @@ void phasic::Vertex::add_edge(Vertex &to, double weight) {
 
     // Constant edge: single-element coefficient array
     double coeff = weight;
-    struct ptd_edge *result = ptd_graph_add_edge(this->vertex, to.vertex, &coeff, 1);
+    struct ptd_edge *result = ptd_graph_add_edge(this->vertex, to.vertex, &coeff, 1, true /* is_constant */);
 
     if (result == NULL) {
         throw std::runtime_error((char *) ptd_err);
@@ -314,7 +314,7 @@ void phasic::Vertex::add_edge_parameterized(Vertex &to, double weight, std::vect
     graph.notify_change();
 
     // Unified API: use coefficient array directly
-    struct ptd_edge *result = ptd_graph_add_edge(this->vertex, to.vertex, state, state_length);
+    struct ptd_edge *result = ptd_graph_add_edge(this->vertex, to.vertex, state, state_length, false /* is_constant */);
 
     free(state);
 
