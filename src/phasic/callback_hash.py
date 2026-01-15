@@ -87,13 +87,25 @@ def hash_callback(callback: Callable, **params) -> str:
     py_version = f"{sys.version_info.major}.{sys.version_info.minor}"
     components.append(f"python:{py_version}")
 
-    # Component 3: Unwrap decorators to get original function
-    func = callback
-    while hasattr(func, '__wrapped__'):
-        func = func.__wrapped__
+    # Component 3: Detect _callback() wrapper pattern
+    ipv_from_wrapper = None
+    if (callback.__name__ == 'wrapper' and
+        hasattr(callback, '__wrapped__') and
+        hasattr(callback, '__ipv__')):
+        # This is a _callback wrapper - extract original function and IPV
+        func = callback.__wrapped__
+        ipv_from_wrapper = callback.__ipv__
+        # Include IPV in hash components
+        components.append(f"ipv:{repr(ipv_from_wrapper)}")
+    else:
+        # Regular function - unwrap decorators
+        func = callback
+        while hasattr(func, '__wrapped__'):
+            func = func.__wrapped__
 
-    # Component 4: Check for closures (reject if found)
-    _detect_closures(func)
+    # Component 4: Check for closures (reject if found, except for _callback wrappers)
+    if ipv_from_wrapper is None:
+        _detect_closures(func)
 
     # Component 5: Get source code
     try:

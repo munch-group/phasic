@@ -120,8 +120,8 @@ class GraphCache:
             'callback_hash': cache_key,
             'created_at': datetime.now().isoformat(),
             'python_version': f"{os.sys.version_info.major}.{os.sys.version_info.minor}",
-            'construction_params': params,
-            'graph_data': _serialize_numpy(graph_data)
+            'construction_params': _serialize_value(params),
+            'graph_data': _serialize_value(graph_data)
         }
 
         # Write to disk
@@ -179,7 +179,7 @@ class GraphCache:
                 )
 
             # Deserialize graph data
-            graph_data = _deserialize_numpy(cache_entry['graph_data'])
+            graph_data = _deserialize_value(cache_entry['graph_data'])
 
             # Reconstruct graph
             from phasic import Graph
@@ -264,34 +264,214 @@ class GraphCache:
         }
 
 
-def _serialize_numpy(data: Dict[str, Any]) -> Dict[str, Any]:
-    """Convert numpy arrays to lists for JSON serialization."""
-    result = {}
-    for key, value in data.items():
-        if isinstance(value, np.ndarray):
-            result[key] = value.tolist()
-        elif isinstance(value, (np.integer, np.floating)):
-            result[key] = value.item()
-        else:
-            result[key] = value
-    return result
+def _serialize_value(value: Any) -> Any:
+    """
+    Recursively serialize a value for JSON storage.
+
+    Handles:
+    - Primitives (int, float, str, bool, None)
+    - Collections (list, dict, tuple)
+    - NumPy arrays and scalars
+    - Custom objects with to_dict() method
+
+    Parameters
+    ----------
+    value : Any
+        Value to serialize
+
+    Returns
+    -------
+    Any
+        JSON-serializable representation
+
+    Raises
+    ------
+    TypeError
+        If value is not serializable and lacks to_dict() method
+
+    Examples
+    --------
+    >>> # Primitive
+    >>> _serialize_value(42)
+    42
+
+    >>> # NumPy array
+    >>> _serialize_value(np.array([1, 2, 3]))
+    {'__type__': 'ndarray', '__data__': [1, 2, 3]}
+
+    >>> # Custom object with to_dict()
+    >>> class MyClass:
+    ...     def to_dict(self): return {'x': 1}
+    >>> _serialize_value(MyClass())
+    {'__type__': '__main__.MyClass', '__data__': {'x': 1}}
+    """
+    # Primitives
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+
+    # NumPy arrays
+    if isinstance(value, np.ndarray):
+        return {'__type__': 'ndarray', '__data__': value.tolist()}
+
+    # NumPy scalars
+    if isinstance(value, (np.integer, np.floating)):
+        return value.item()
+
+    # Collections - dict
+    if isinstance(value, dict):
+        return {k: _serialize_value(v) for k, v in value.items()}
+
+    # Collections - list/tuple
+    if isinstance(value, (list, tuple)):
+        return [_serialize_value(item) for item in value]
+
+    # Custom objects with to_dict()
+    if hasattr(value, 'to_dict') and callable(value.to_dict):
+        serialized = value.to_dict()
+        # Tag with type info for deserialization
+        return {
+            '__type__': f'{value.__class__.__module__}.{value.__class__.__name__}',
+            '__data__': _serialize_value(serialized)
+        }
+
+    # Unsupported type
+    raise TypeError(
+        f"Cannot serialize parameter of type {type(value).__name__}. "
+        f"To make this type cacheable, add to_dict() and from_dict() methods to the class."
+    )
 
 
-def _deserialize_numpy(data: Dict[str, Any]) -> Dict[str, Any]:
-    """Convert lists back to numpy arrays after JSON deserialization."""
-    result = {}
-    for key, value in data.items():
-        if key in ('states', 'edges', 'start_edges', 'param_edges', 'start_param_edges'):
-            result[key] = np.array(value, dtype=np.float64 if 'edges' in key else np.int32)
+def _deserialize_value(value: Any) -> Any:
+    """
+    Recursively deserialize a value from JSON storage.
+
+    Parameters
+    ----------
+    value : Any
+        Value to deserialize
+
+    Returns
+    -------
+    Any
+        Reconstructed Python object
+
+    Raises
+    ------
+    TypeError
+        If custom class cannot be imported or lacks from_dict() method
+
+    Examples
+    --------
+    >>> # Primitive
+    >>> _deserialize_value(42)
+    42
+
+    >>> # NumPy array
+    >>> _deserialize_value({'__type__': 'ndarray', '__data__': [1, 2, 3]})
+    array([1, 2, 3])
+
+    >>> # Custom class (must be importable)
+    >>> _deserialize_value({'__type__': 'mymodule.MyClass', '__data__': {'x': 1}})
+    <mymodule.MyClass object>
+    """
+    # Primitives
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+
+    # Collections - list
+    if isinstance(value, list):
+        return [_deserialize_value(item) for item in value]
+
+    # Collections - dict
+    if isinstance(value, dict):
+        # Check for type tags
+        if '__type__' in value and '__data__' in value:
+            type_name = value['__type__']
+            data = _deserialize_value(value['__data__'])
+
+            # NumPy array
+            if type_name == 'ndarray':
+                return np.array(data)
+
+            # Custom class - import and reconstruct
+            module_name, class_name = type_name.rsplit('.', 1)
+            try:
+                import importlib
+                module = importlib.import_module(module_name)
+                cls = getattr(module, class_name)
+
+                if hasattr(cls, 'from_dict') and callable(cls.from_dict):
+                    return cls.from_dict(data)
+                else:
+                    raise TypeError(
+                        f"Class {type_name} has to_dict() but not from_dict(). "
+                        f"Both methods are required for deserialization."
+                    )
+            except (ImportError, AttributeError) as e:
+                raise TypeError(
+                    f"Cannot deserialize {type_name}: {e}. "
+                    f"Ensure the class is importable and has from_dict() class method."
+                ) from e
         else:
-            result[key] = value
-    return result
+            # Regular dict
+            return {k: _deserialize_value(v) for k, v in value.items()}
+
+    return value
 
 
 # Module-level convenience functions
 def get_cache_dir() -> Path:
     """Get default cache directory."""
     return DEFAULT_CACHE_DIR
+
+
+def get_graph_cache_stats() -> Dict[str, Any]:
+    """
+    Get graph cache statistics.
+
+    Convenience wrapper for GraphCache().get_cache_stats().
+
+    Returns
+    -------
+    dict
+        Dictionary with cache statistics:
+        - num_graphs: Number of cached graphs
+        - total_size_mb: Total cache size in MB
+        - cache_dir: Cache directory path
+
+    Examples
+    --------
+    >>> from phasic import get_graph_cache_stats
+    >>> stats = get_graph_cache_stats()
+    >>> print(f"Cached graphs: {stats['num_graphs']}")
+    """
+    cache = GraphCache()
+    return cache.get_cache_stats()
+
+
+def print_graph_cache_info() -> None:
+    """
+    Print formatted graph cache information.
+
+    Displays statistics about cached Graph objects in a human-readable format.
+
+    Examples
+    --------
+    >>> from phasic import print_graph_cache_info
+    >>> print_graph_cache_info()
+    Cache directory: /Users/you/.phasic_cache/graphs
+    Cached graphs: 5
+    Total size: 2.34 MB
+    """
+    stats = get_graph_cache_stats()
+
+    print(f"Cache directory: {stats['cache_dir']}")
+
+    if stats['num_graphs'] == 0:
+        print("Status: No cached graphs")
+    else:
+        print(f"Cached graphs: {stats['num_graphs']}")
+        print(f"Total size: {stats['total_size_mb']:.2f} MB")
 
 
 def clear_all_graph_caches() -> int:

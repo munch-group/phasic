@@ -487,12 +487,15 @@ def print_jax_cache_info(cache_dir: Optional[Union[Path, str]] = None):
     >>> from phasic.cache_manager import print_jax_cache_info
     >>> print_jax_cache_info()
     """
+    if not cache_dir:
+        if os.environ.get('JAX_COMPILATION_CACHE_DIR') is not None:
+            cache_dir = os.environ.get('JAX_COMPILATION_CACHE_DIR')
+        else:
+            cache_dir = os.path.expanduser('~/.phasic_cache')    
+
     manager = CacheManager(cache_dir=cache_dir)
     info = manager.info()
 
-    print("=" * 70)
-    print("JAX COMPILATION CACHE INFO")
-    print("=" * 70)
     print(f"Cache directory: {info['cache_dir']}")
 
     if not info['exists']:
@@ -507,8 +510,6 @@ def print_jax_cache_info(cache_dir: Optional[Union[Path, str]] = None):
         for file_info in info['files'][:10]:
             print(f"  {file_info['modified']} | {file_info['size_kb']:>8.1f} KB | "
                   f"{file_info['path']}")
-
-    print("=" * 70)
 
 
 def configure_layered_cache(

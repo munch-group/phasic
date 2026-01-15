@@ -79,6 +79,31 @@ def get_trace_cache_stats() -> Dict[str, any]:
     }
 
 
+def print_trace_cache_info() -> None:
+    """
+    Print formatted trace cache information.
+
+    Displays statistics about cached elimination traces in a human-readable format.
+
+    Examples
+    --------
+    >>> from phasic import print_trace_cache_info
+    >>> print_trace_cache_info()
+    Cache directory: /Users/you/.phasic_cache/traces
+    Cached traces: 12
+    Total size: 5.67 MB
+    """
+    stats = get_trace_cache_stats()
+
+    print(f"Cache directory: {stats['cache_dir']}")
+
+    if stats['total_files'] == 0:
+        print("Status: No cached traces")
+    else:
+        print(f"Cached traces: {stats['total_files']}")
+        print(f"Total size: {stats['total_mb']:.2f} MB")
+
+
 def list_cached_traces() -> List[Dict[str, any]]:
     """
     List all cached elimination traces

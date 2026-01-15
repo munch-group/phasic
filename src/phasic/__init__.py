@@ -78,6 +78,8 @@ from .state_indexing import (
     PropertyDict,
     StateVector
 )
+from phasic.graph_cache import GraphCache, get_graph_cache_stats, print_graph_cache_info
+
 # from .vscode_theme import set_phasic_theme
 # from .vscode_theme import phasic_theme as theme
 # from .vscode_theme import set_theme # backwards compatibility
@@ -306,7 +308,8 @@ from .auto_parallel import (
 
 # Cache management (JAX compilation cache)
 from .cache_manager import CacheManager, print_jax_cache_info, configure_layered_cache
-from .model_export import clear_caches, clear_jax_cache, clear_model_cache, cache_info, print_cache_info
+from .model_export import clear_caches, clear_jax_cache, clear_model_cache, cache_info, print_model_cache_info, get_all_cache_stats, print_all_cache_info
+from .trace_cache import get_trace_cache_stats, print_trace_cache_info
 from .jax_config import CompilationConfig, get_default_config, set_default_config
 # from .cloud_cache import (
 #     S3Backend,
@@ -1436,6 +1439,9 @@ def _callback(ipv):
             else:
                 return [[list(map(int, s)), float(a), []] for s, a in transitions]
 
+        # Store original function and IPV for graph caching
+        wrapper.__wrapped__ = func
+        wrapper.__ipv__ = ipv
         return wrapper
     return decorator
 
@@ -1460,7 +1466,7 @@ def _invalidates_trace(method):
 
 class Graph(_Graph):
     # def __init__(self, state_length:int=None, callback:Callable=None, ipv:List[Union[List[int], List[Union[List[int], float]]]] = None, parameterized:bool=False, **kwargs):
-    def __init__(self, arg=None, ipv=None, **kwargs):
+    def __init__(self, arg:Union[int, Callable], ipv:Optional[Union[List[int], List[Union[List[int], float]]]]=None, cache:bool=False, **kwargs):
         """
         Create a graph representing a phase-type distribution. This is the primary entry-point of the library. A starting vertex will always be added to the graph upon initialization.
 
@@ -1475,8 +1481,11 @@ class Graph(_Graph):
         callback :
             Callback function accepting a state and returns a list of reachable states and the corresponding transition rates, by default None.
             The callback function should take a list of integers as its only argument and return a list of tuples, where each tuple contains a state and a list of tuples, where each tuple contains a state and a rate.
-        parameterized :
-            If True, the callback returns 3-tuples (state, weight, edge_state) for parameterized edges, by default False
+        cache : bool, optional
+            If True, attempts to load graph from disk cache. If not cached, builds graph and saves to cache.
+            Cache is keyed by callback function source code + parameters, enabling instant loading of
+            previously built graphs. Useful for expensive graph constructions.
+            Default: False (no caching)
         hierarchical : bool, optional
             If True, enables trace-based computation for moments, expectation, variance, etc.
             This provides 5-10x speedup for repeated evaluations on parameterized graphs by:
@@ -1489,19 +1498,70 @@ class Graph(_Graph):
         -------
         :
             A graph object representing a phase-type distribution.
+
+        Examples
+        --------
+        >>> # Normal construction
+        >>> graph = Graph(callback, theta=2.0)
+
+        >>> # With caching (fast on second call)
+        >>> graph = Graph(callback, theta=2.0, cache=True)  # Builds and caches
+        >>> graph = Graph(callback, theta=2.0, cache=True)  # Instant load from cache
         """
-        # Extract hierarchical flag before passing kwargs to callback
-        hierarchical = kwargs.pop('hierarchical', False)
+        # Extract hierarchical flag (but keep in kwargs for cache key)
+        hierarchical = kwargs.get('hierarchical', False)
+
+        # Try loading from cache if requested
+        if callable(arg) and cache:
+            from .graph_cache import GraphCache
+            from .logging_config import get_logger
+            logger = get_logger(__name__)
+
+            _cache = GraphCache()
+            try:
+                cached_graph = _cache.load_graph(arg, **kwargs)
+                if cached_graph is not None:
+                    # Cache hit - initialize from cached graph
+                    super().__init__(cached_graph)
+                    # Copy Python attributes
+                    self._callback = cached_graph._callback if hasattr(cached_graph, '_callback') else None
+                    self._callback_kwargs = cached_graph._callback_kwargs if hasattr(cached_graph, '_callback_kwargs') else {}
+                    self.is_discrete = cached_graph.is_discrete if hasattr(cached_graph, 'is_discrete') else False
+                    self._hierarchical = hierarchical  # Use requested hierarchical setting
+                    self._trace = None
+                    self._trace_dirty = True
+                    self._last_theta = None
+                    logger.info(f"Loaded graph from cache: {cached_graph.vertices_length()} vertices")
+
+                    # Validate hierarchical mode requirements (after cache load)
+                    if hierarchical and not self.parameterized():
+                        raise ValueError(
+                            "hierarchical=True requires a parameterized graph.\n"
+                            "\n"
+                            "Hierarchical mode is designed for repeated evaluations with different parameter values.\n"
+                            "For non-parameterized graphs, use hierarchical=False (default).\n"
+                            "\n"
+                            f"Cached graph reports: parameterized={self.parameterized()}"
+                        )
+
+                    return
+            except Exception as e:
+                logger.warning(f"Failed to load from cache: {e}")
+                # Fall through to normal construction
 
         # Store callback and kwargs for later use with extend()
         self._callback = None
         self._callback_kwargs = {}
 
         if callable(arg):
+            # Remove hierarchical from kwargs before passing to C++ callback
+            kwargs_for_callback = kwargs.copy()
+            kwargs_for_callback.pop('hierarchical', None)
+
             # turn integer kwargs into float kwargs
-            for key, value in kwargs.items():
+            for key, value in kwargs_for_callback.items():
                 if isinstance(value, int):
-                    kwargs[key] = float(value)
+                    kwargs_for_callback[key] = float(value)
 
             if arg.__name__ != 'wrapper':
                 assert ipv is not None, "When providing a function not decorated with @callback, the ipv argument must be provided"
@@ -1509,11 +1569,11 @@ class Graph(_Graph):
             else:
                 assert ipv is None, "When providing a function decorated with @callback, the ipv argument is ignored and should not be provided"
 
-            # Store the callback and kwargs for extend()
+            # Store the callback and kwargs for extend() (with hierarchical)
             self._callback = arg
             self._callback_kwargs = kwargs.copy()
 
-            super().__init__(callback_tuples_parameterized=partial(arg, **kwargs))
+            super().__init__(callback_tuples_parameterized=partial(arg, **kwargs_for_callback))
         elif isinstance(arg, int):
             super().__init__(state_length=arg)
         elif isinstance(arg, _Graph):
@@ -1528,6 +1588,36 @@ class Graph(_Graph):
         self._trace = None  # Cached EliminationTrace
         self._trace_dirty = True  # True = trace needs (re)computation
         self._last_theta = None  # Cached theta from update_weights()
+
+        # Validate hierarchical mode requirements
+        if hierarchical:
+            # Check if graph is actually parameterized
+            if not self.parameterized():
+                raise ValueError(
+                    "hierarchical=True requires a parameterized graph.\n"
+                    "\n"
+                    "Hierarchical mode is designed for repeated evaluations with different parameter values.\n"
+                    "For non-parameterized graphs, use hierarchical=False (default).\n"
+                    "\n"
+                    "To create a parameterized graph, your callback should return 3-tuples:\n"
+                    "  [[next_state, base_weight, [coeff1, coeff2, ...]], ...]\n"
+                    "where edge_weight = base_weight + coeff1*theta[0] + coeff2*theta[1] + ...\n"
+                    "\n"
+                    f"Your graph reports: parameterized={self.parameterized()}"
+                )
+
+        # Save to cache if requested and construction succeeded
+        if callable(arg) and cache:
+            from .graph_cache import GraphCache
+            from .logging_config import get_logger
+            logger = get_logger(__name__)
+
+            _cache = GraphCache()
+            try:
+                _cache.save_graph(self, arg, **kwargs)
+                logger.info(f"Saved graph to cache: {self.vertices_length()} vertices")
+            except Exception as e:
+                logger.warning(f"Failed to save graph to cache: {e}")
 
     @_invalidates_trace
     def find_or_create_vertex(self, state):
@@ -1722,7 +1812,7 @@ class Graph(_Graph):
         else:
             return concrete_graph.moments(power)
 
-    def _expectation_from_trace(self, rewards=None):
+    def _expectation_from_trace(self, rewards=None, discrete=False, **kwargs):
         """Compute expectation using cached elimination trace."""
         from .trace_elimination import instantiate_from_trace
 
@@ -1734,12 +1824,21 @@ class Graph(_Graph):
         # Note: Do NOT call normalize() - the graph already has correct rates
         concrete_graph = instantiate_from_trace(trace, theta)
 
-        if rewards is not None:
-            return concrete_graph.expectation(list(rewards))
+        # Choose appropriate method based on discrete flag
+        if discrete:
+            if not self.is_discrete:
+                raise ValueError("discrete=True only valid for discrete distributions")
+            if rewards is not None:
+                return concrete_graph.expectation_discrete(rewards=list(rewards), **kwargs)
+            else:
+                return concrete_graph.expectation_discrete(**kwargs)
         else:
-            return concrete_graph.expectation()
+            if rewards is not None:
+                return concrete_graph.expectation(rewards=list(rewards), **kwargs)
+            else:
+                return concrete_graph.expectation(**kwargs)
 
-    def _variance_from_trace(self, rewards=None):
+    def _variance_from_trace(self, rewards=None, discrete=False, **kwargs):
         """Compute variance using cached elimination trace."""
         from .trace_elimination import instantiate_from_trace
 
@@ -1751,10 +1850,19 @@ class Graph(_Graph):
         # Note: Do NOT call normalize() - the graph already has correct rates
         concrete_graph = instantiate_from_trace(trace, theta)
 
-        if rewards is not None:
-            return concrete_graph.variance(list(rewards))
+        # Choose appropriate method based on discrete flag
+        if discrete:
+            if not self.is_discrete:
+                raise ValueError("discrete=True only valid for discrete distributions")
+            if rewards is not None:
+                return concrete_graph.variance_discrete(rewards=list(rewards), **kwargs)
+            else:
+                return concrete_graph.variance_discrete(**kwargs)
         else:
-            return concrete_graph.variance()
+            if rewards is not None:
+                return concrete_graph.variance(rewards=list(rewards), **kwargs)
+            else:
+                return concrete_graph.variance(**kwargs)
 
     def expected_waiting_time(self, *args, **kwargs):
         """
@@ -5331,7 +5439,7 @@ if HAS_JAX:
     from .model_export import (
         clear_jax_cache,
         cache_info,
-        print_cache_info,
+        print_model_cache_info,
         export_model_package,
         generate_warmup_script
     )

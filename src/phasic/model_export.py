@@ -48,7 +48,7 @@ def clear_jax_cache(verbose: bool = True) -> None:
 
 def clear_model_cache(verbose: bool = True) -> None:
     """
-    Clear model cache.
+    Clear model cache, including graph cache and trace cache.
 
     This is a simplified wrapper around CacheManager.clear().
 
@@ -66,8 +66,24 @@ def clear_model_cache(verbose: bool = True) -> None:
     --------
     CacheManager.clear : Advanced cache clearing with confirmation
     """
+    # Clear JAX model cache (~/.phasic_cache)
     _clear_cache(os.path.expanduser('~/.phasic_cache') if os.environ.get('PHASIC_COMPILATION_CACHE_DIR') is None else os.environ.get('PHASIC_COMPILATION_CACHE_DIR'), verbose=verbose)
-    _clear_cache(os.path.expanduser('~/.phasic_traces'), verbose=verbose)
+
+    # Clear legacy trace cache (if exists)
+    traces_dir = os.path.expanduser('~/.phasic_traces')
+    if os.path.exists(traces_dir):
+        _clear_cache(traces_dir, verbose=verbose)
+
+    # Clear graph cache using GraphCache API
+    try:
+        from .graph_cache import GraphCache
+        cache = GraphCache()
+        count = cache.clear_graph_cache()
+        if verbose and count > 0:
+            print(f"Cleared {count} cached graphs from {cache.cache_dir}")
+    except Exception as e:
+        if verbose:
+            print(f"Warning: Could not clear graph cache: {e}")
 
 def clear_caches(verbose: bool = False):
     """
@@ -156,6 +172,9 @@ def cache_info(cache_dir: Optional[Union[Path, str]] = None) -> Dict[str, Any]:
     --------
     CacheManager.info : Returns info in slightly different format
     """
+    if cache_dir is None:
+        cache_dir = os.environ.get('JAX_COMPILATION_CACHE_DIR', os.path.expanduser('~/.jax_cache'))
+
     manager = CacheManager(cache_dir=cache_dir)
     info = manager.info()
 
@@ -178,7 +197,68 @@ def cache_info(cache_dir: Optional[Union[Path, str]] = None) -> Dict[str, Any]:
     }
 
 
-def print_cache_info(cache_dir: Optional[Union[Path, str]] = None, max_files: int = 10) -> None:
+def get_all_cache_stats() -> Dict[str, Dict[str, Any]]:
+    """
+    Get statistics for all phasic caches.
+
+    Returns unified statistics for JAX, Graph, and Trace caches.
+
+    Returns
+    -------
+    dict
+        Dictionary with cache statistics for each cache type:
+        {
+            'jax': {'num_files': int, 'total_size_mb': float, ...},
+            'graph': {'num_graphs': int, 'total_size_mb': float, ...},
+            'trace': {'total_files': int, 'total_mb': float, ...}
+        }
+
+    Examples
+    --------
+    >>> from phasic import get_all_cache_stats
+    >>> stats = get_all_cache_stats()
+    >>> print(f"JAX compilations: {stats['jax']['num_files']}")
+    >>> print(f"Cached graphs: {stats['graph']['num_graphs']}")
+    >>> print(f"Cached traces: {stats['trace']['total_files']}")
+    """
+    from .graph_cache import get_graph_cache_stats
+    from .trace_cache import get_trace_cache_stats
+
+    return {
+        'jax': cache_info(),
+        'graph': get_graph_cache_stats(),
+        'trace': get_trace_cache_stats()
+    }
+
+
+def print_all_cache_info() -> None:
+    """
+    Print formatted information for all phasic caches.
+
+    Displays statistics for JAX, Graph, and Trace caches in a unified view.
+
+    Examples
+    --------
+    >>> from phasic import print_all_cache_info
+    >>> print_all_cache_info()
+    ...
+
+    ...
+
+    ...
+    """
+    from .cache_manager import print_jax_cache_info
+    from .graph_cache import print_graph_cache_info
+    from .trace_cache import print_trace_cache_info
+
+    print_jax_cache_info()
+    print()
+    print_graph_cache_info()
+    print()
+    print_trace_cache_info()
+
+
+def print_model_cache_info(cache_dir: Optional[Union[Path, str]] = None, max_files: int = 10) -> None:
     """
     Print formatted cache information.
 
@@ -190,21 +270,15 @@ def print_cache_info(cache_dir: Optional[Union[Path, str]] = None, max_files: in
         Cache directory to inspect. If None, uses default.
     max_files : int, optional
         Maximum number of files to display. Default: 10
-
-    Examples
-    --------
-    >>> from phasic import print_cache_info
-    >>> print_cache_info()  # Show cache statistics
-
-    See Also
-    --------
-    print_jax_cache_info : Alternative from cache_manager module
     """
+    if not cache_dir:
+        if os.environ.get('PHASIC_COMPILATION_CACHE_DIR') is not None:
+            cache_dir = os.environ.get('PHASIC_COMPILATION_CACHE_DIR')
+        else:
+            cache_dir = os.path.expanduser('~/.phasic_cache')
+
     info = cache_info(cache_dir)
 
-    print("=" * 70)
-    print("JAX COMPILATION CACHE INFO")
-    print("=" * 70)
     print(f"Path: {info['path']}")
 
     if not info['exists']:
@@ -218,8 +292,6 @@ def print_cache_info(cache_dir: Optional[Union[Path, str]] = None, max_files: in
         print(f"\nMost recent files (showing {min(max_files, len(info['files']))}/{info['num_files']}):")
         for filename, size_kb, modified in info['files'][:max_files]:
             print(f"  {modified} | {size_kb:>8.1f} KB | {filename}")
-
-    print("=" * 70)
 
 
 def generate_warmup_script(
