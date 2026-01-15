@@ -107,6 +107,53 @@ static void *stack_pop(struct ptd_stack *stack);
 static int stack_empty(struct ptd_stack *stack);
 
 // ============================================================================
+// Kahan Summation for Numerical Stability
+// ============================================================================
+// Compensated summation algorithm that reduces rounding errors from O(nε) to O(ε)
+// where n = number of operations, ε = machine precision
+//
+// Critical for large graphs where thousands of operations accumulate
+
+/**
+ * Kahan summation state
+ */
+struct kahan_sum {
+    double sum;            // Running sum
+    double compensation;   // Running compensation for lost low-order bits
+};
+
+/**
+ * Initialize Kahan summation
+ */
+static inline void kahan_init(struct kahan_sum *k) {
+    k->sum = 0.0;
+    k->compensation = 0.0;
+}
+
+/**
+ * Add value to Kahan sum with compensation
+ *
+ * Algorithm:
+ * y = value - compensation   # Compensate for previous lost bits
+ * t = sum + y               # Add to sum (may lose low-order bits)
+ * compensation = (t - sum) - y  # Recover lost bits for next iteration
+ * sum = t
+ */
+static inline void kahan_add(struct kahan_sum *k, double value) {
+    double y = value - k->compensation;
+    double t = k->sum + y;
+    k->compensation = (t - k->sum) - y;
+    k->sum = t;
+}
+
+/**
+ * Get final Kahan sum result
+ */
+static inline double kahan_result(const struct kahan_sum *k) {
+    return k->sum;
+}
+
+// ============================================================================
 // Utility Data Structure Implementations
 // ============================================================================
 // Full implementations of vector, queue, and stack utilities needed for
@@ -5341,6 +5388,11 @@ double *ptd_expected_waiting_time(struct ptd_graph *graph, double *rewards) {
         }
     }
 
+    // Track condition number statistics
+    double max_multiplier = 0.0;
+    double min_multiplier = INFINITY;
+    size_t ill_conditioned_count = 0;
+
     for (size_t j = 0; j < graph->reward_compute_graph->length; ++j) {
         struct ptd_reward_increase command = graph->reward_compute_graph->commands[j];
 
@@ -5356,6 +5408,22 @@ double *ptd_expected_waiting_time(struct ptd_graph *graph, double *rewards) {
             continue;
         }
 
+        // Track conditioning (skip infinite/zero multipliers)
+        if (!isinf(command.multiplier) && command.multiplier != 0.0) {
+            double abs_mult = fabs(command.multiplier);
+            if (abs_mult > max_multiplier) max_multiplier = abs_mult;
+            if (abs_mult < min_multiplier) min_multiplier = abs_mult;
+
+            // Warn about ill-conditioned multipliers
+            if (abs_mult > 1e10 || abs_mult < 1e-10) {
+                ill_conditioned_count++;
+                if (ill_conditioned_count == 1) {  // Log first occurrence only
+                    PTD_LOG_WARNING("Ill-conditioned multiplier detected: %.2e at command %zu (may affect numerical stability)",
+                                   command.multiplier, j);
+                }
+            }
+        }
+
         result[command.from] += result[command.to] * command.multiplier;
 
         // Debug: check for nan
@@ -5367,6 +5435,18 @@ double *ptd_expected_waiting_time(struct ptd_graph *graph, double *rewards) {
         // Log infinite results (expected for graphs with inescapable cycles)
         if (isinf(result[command.from])) {
             PTD_LOG_DEBUG("Result[%zu] is infinite - state has infinite expected sojourn time", command.from);
+        }
+    }
+
+    // Log conditioning summary
+    if (min_multiplier != INFINITY && max_multiplier > 0.0) {
+        double condition_number = max_multiplier / min_multiplier;
+        if (condition_number > 1e8) {
+            PTD_LOG_WARNING("Poor conditioning detected: condition number = %.2e (%zu ill-conditioned operations)",
+                           condition_number, ill_conditioned_count);
+        } else {
+            PTD_LOG_DEBUG("Conditioning: max_mult=%.2e, min_mult=%.2e, condition=%.2e",
+                         max_multiplier, min_multiplier, condition_number);
         }
     }
 
@@ -5520,8 +5600,42 @@ double *ptd_expected_sojourn_time(struct ptd_graph *graph) {
         results[v][v] = 1.0;
     }
 
+    // Allocate Kahan compensation arrays for numerical stability
+    // Each row needs its own compensation array
+    struct kahan_sum **kahan_states = (struct kahan_sum **) malloc(n * sizeof(struct kahan_sum *));
+    if (kahan_states == NULL) {
+        PTD_LOG_ERROR("Failed to allocate Kahan compensation arrays");
+        for (size_t i = 0; i < n; i++) {
+            free(results[i]);
+        }
+        free(results);
+        return NULL;
+    }
+
+    for (size_t i = 0; i < n; i++) {
+        kahan_states[i] = (struct kahan_sum *) calloc(n, sizeof(struct kahan_sum));
+        if (kahan_states[i] == NULL) {
+            PTD_LOG_ERROR("Failed to allocate Kahan compensation row %zu", i);
+            for (size_t j = 0; j < i; j++) {
+                free(kahan_states[j]);
+            }
+            free(kahan_states);
+            for (size_t j = 0; j < n; j++) {
+                free(results[j]);
+            }
+            free(results);
+            return NULL;
+        }
+        // Initialize Kahan states with current results as initial sums
+        for (size_t r = 0; r < n; r++) {
+            kahan_states[i][r].sum = results[i][r];
+            kahan_states[i][r].compensation = 0.0;
+        }
+    }
+
     // Apply all elimination trace commands to all reward vectors
     // Command: results[from][r] += results[to][r] * multiplier for all r
+    // Using Kahan summation for numerical stability
     for (size_t cmd_idx = 0; cmd_idx < compute->length; cmd_idx++) {
         struct ptd_reward_increase cmd = compute->commands[cmd_idx];
 
@@ -5533,18 +5647,23 @@ double *ptd_expected_sojourn_time(struct ptd_graph *graph) {
 
         double *from_row = results[cmd.from];
         double *to_row = results[cmd.to];
+        struct kahan_sum *from_kahan = kahan_states[cmd.from];
         double multiplier = cmd.multiplier;
 
         // Check if multiplier is infinite
         bool mult_is_inf = isinf(multiplier);
 
-        // Inner loop: contiguous memory access for cache efficiency
+        // Inner loop: contiguous memory access + Kahan summation
         for (size_t r = 0; r < n; r++) {
             // Handle inf × 0 = 0 (limit interpretation)
             if (mult_is_inf && to_row[r] == 0.0) {
                 continue;
             }
-            from_row[r] += to_row[r] * multiplier;
+
+            // Kahan compensated addition
+            double increment = to_row[r] * multiplier;
+            kahan_add(&from_kahan[r], increment);
+            from_row[r] = kahan_result(&from_kahan[r]);
         }
 
         // Debug: check for NaN
@@ -5557,6 +5676,12 @@ double *ptd_expected_sojourn_time(struct ptd_graph *graph) {
         }
         #endif
     }
+
+    // Free Kahan compensation arrays
+    for (size_t i = 0; i < n; i++) {
+        free(kahan_states[i]);
+    }
+    free(kahan_states);
 
     // Extract sojourn times: results[starting_vertex][r] for each reward vector r
     // Starting vertex is at index 0
@@ -6339,8 +6464,15 @@ struct ptd_probability_distribution_context *ptd_probability_distribution_contex
         }
     }
 
+    // Auto-select granularity with higher minimum for numerical stability
     if (granularity == 0) {
         granularity = max_rate * 2;
+        if (granularity < 1000) {
+            PTD_LOG_DEBUG("Auto-selected granularity (%zu) increased to minimum (1000) for numerical stability", granularity);
+            granularity = 1000;
+        } else {
+            PTD_LOG_DEBUG("Auto-selected granularity: %zu (max_rate=%.2f)", granularity, max_rate);
+        }
     }
 
     for (size_t i = 0; i < graph->vertices_length; ++i) {
@@ -6498,7 +6630,14 @@ static int compute_pmf_with_gradient(
         return -1;
     }
 
-    size_t max_jumps = (size_t)(granularity * time * lambda) + 100;
+    // Estimate max_jumps to capture Poisson tail (improved from fixed +100 buffer)
+    // Use 6-sigma rule: cover 99.9999% of Poisson mass
+    double lambda_t = lambda * time;
+    double sigma = sqrt(lambda_t);
+    size_t max_jumps = (size_t)(lambda_t + 6.0 * sigma + 100);
+
+    PTD_LOG_DEBUG("PMF gradient computation: lambda=%.2f, time=%.2f, lambda*t=%.2f, max_jumps=%zu",
+                 lambda, time, lambda_t, max_jumps);
 
     // Initialize probability and gradient arrays
     double *prob = (double *)calloc(graph->vertices_length, sizeof(double));
@@ -6515,9 +6654,19 @@ static int compute_pmf_with_gradient(
     size_t starting_idx = graph->starting_vertex->index;
     prob[starting_idx] = 1.0;
 
-    // Initialize output accumulators
+    // Initialize output accumulators with Kahan summation for numerical stability
+    struct kahan_sum pmf_kahan;
+    kahan_init(&pmf_kahan);
     *pmf_value = 0.0;
+
+    struct kahan_sum *grad_kahan = (struct kahan_sum *)malloc(n_params * sizeof(struct kahan_sum));
+    if (grad_kahan == NULL) {
+        free(prob);
+        free_2d(prob_grad, graph->vertices_length);
+        return -1;
+    }
     for (size_t i = 0; i < n_params; i++) {
+        kahan_init(&grad_kahan[i]);
         pmf_gradient[i] = 0.0;
     }
 
@@ -6529,7 +6678,7 @@ static int compute_pmf_with_gradient(
         return -1;
     }
 
-    double lambda_t = lambda * time;
+    // lambda_t already defined at function scope (line 6635)
     for (size_t k = 0; k < max_jumps; k++) {
         poisson_cache[k] = exp(-lambda_t + k * log(lambda_t) - lgamma(k + 1));
     }
@@ -6653,25 +6802,30 @@ static int compute_pmf_with_gradient(
         prob = next_prob;
         prob_grad = next_prob_grad;
 
-        // Accumulate PMF contributions from absorbing states
+        // Accumulate PMF contributions from absorbing states with Kahan summation
         for (size_t i = 0; i < graph->vertices_length; i++) {
             struct ptd_vertex *v = graph->vertices[i];
             if (v->edges_length == 0 && i > 0) {
                 double poisson_k = poisson_cache[k];
-                *pmf_value += poisson_k * prob[i];
+
+                // Kahan summation for PMF value
+                kahan_add(&pmf_kahan, poisson_k * prob[i]);
+                *pmf_value = kahan_result(&pmf_kahan);
 
                 // Gradient has TWO terms (chain rule through Poisson):
                 // Term 1: ∂Poisson/∂P · ∂P/∂θ = Poisson(k) · ∂P_k/∂θ
                 // Term 2: ∂Poisson/∂λ · ∂λ/∂θ · P = Poisson(k) · (k-λt)/λ · ∂λ/∂θ · P_k
-                double lambda_t = lambda * time;
+                // (lambda_t already defined at function scope)
                 double poisson_grad_factor = poisson_k * ((double)k - lambda_t) / lambda;
 
                 for (size_t p = 0; p < n_params; p++) {
-                    // Term 1: Poisson weight times probability gradient (current term)
-                    pmf_gradient[p] += poisson_k * prob_grad[i][p];
+                    // Term 1: Poisson weight times probability gradient
+                    kahan_add(&grad_kahan[p], poisson_k * prob_grad[i][p]);
 
-                    // Term 2: Poisson gradient times probability (correct sign)
-                    pmf_gradient[p] += poisson_grad_factor * lambda_grad[p] * prob[i];
+                    // Term 2: Poisson gradient times probability
+                    kahan_add(&grad_kahan[p], poisson_grad_factor * lambda_grad[p] * prob[i]);
+
+                    pmf_gradient[p] = kahan_result(&grad_kahan[p]);
                 }
 
                 // CRITICAL: Zero out absorbed probability (prevent cumulation)
@@ -6683,14 +6837,22 @@ static int compute_pmf_with_gradient(
         }
 
         // Early termination when Poisson probability becomes negligible
-        if (k > 10 && poisson_cache[k] < 1e-12) {
+        if (k > 10 && poisson_cache[k] < 1e-15) {
+            PTD_LOG_DEBUG("Early termination at k=%zu (Poisson weight < 1e-15)", k);
             break;
+        }
+
+        // Convergence check: warn if last iteration has significant mass
+        if (k == max_jumps - 1 && poisson_cache[k] > 1e-10) {
+            PTD_LOG_WARNING("Poisson tail may be truncated: P(k=%zu) = %.2e (consider increasing granularity)",
+                           k, poisson_cache[k]);
         }
     }
 
     free(prob);
     free_2d(prob_grad, graph->vertices_length);
     free(poisson_cache);
+    free(grad_kahan);
 
     return 0;
 }
@@ -6788,9 +6950,16 @@ int ptd_graph_pdf_with_gradient(
     }
 
     // 2. Determine granularity (auto-select if not specified)
+    // Higher minimum granularity (1000) improves numerical stability
+    // Discretization error scales as O(1/granularity²)
     if (granularity == 0) {
         granularity = (size_t)(lambda * 2.0);
-        if (granularity < 100) granularity = 100;
+        if (granularity < 1000) {
+            PTD_LOG_DEBUG("Auto-selected granularity (%zu) increased to minimum (1000) for gradient computation", granularity);
+            granularity = 1000;
+        } else {
+            PTD_LOG_DEBUG("Auto-selected granularity for gradient: %zu (lambda=%.2f)", granularity, lambda);
+        }
     }
 
     // 3. Compute PMF and its gradient
