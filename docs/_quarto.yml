@@ -91,9 +91,10 @@ website:
         - pages/quickstart.ipynb
         - section: "Tutorial"
           contents:
-            - pages/tutorial/01-introduction.ipynb
-            - pages/tutorial/02-state-space.ipynb
-            - pages/tutorial/03-properties.ipynb
+            - pages/tutorial/00-introduction.ipynb
+            - pages/tutorial/01-state-space.ipynb
+            - pages/tutorial/02-properties.ipynb
+            - pages/tutorial/03-discrete.ipynb
             - pages/tutorial/04-state-space-utils.ipynb
             - pages/tutorial/05-parametrization.ipynb
             - pages/tutorial/06-time-inhomogeneous.ipynb
@@ -112,6 +113,8 @@ website:
           contents:
             - pages/topics/visualize.ipynb
             - pages/topics/vscodenb.ipynb
+            - pages/topics/caching_guide.qmd
+            - pages/topics/state-indexer.ipynb
             # - pages/tutorials/somecode.ipynb
         - section: "Popgen models"
           contents:
