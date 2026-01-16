@@ -47,6 +47,11 @@
 #include "../../api/c/phasic_hash.h"
 #include "phasic_log.h"
 
+#ifdef HAVE_MPFR
+#include <mpfr.h>
+#include <gmp.h>
+#endif
+
 #ifndef PATH_MAX
 #define PATH_MAX 4096
 #endif
@@ -2668,6 +2673,18 @@ void ptd_graph_destroy(struct ptd_graph *graph) {
         );
     }
 
+#ifdef HAVE_MPFR
+    if (graph->reward_compute_graph_mpfr != NULL) {
+        for (size_t i = 0; i < graph->reward_compute_graph_mpfr->length; i++) {
+            if (graph->reward_compute_graph_mpfr->commands[i].multiplier_str != NULL) {
+                free(graph->reward_compute_graph_mpfr->commands[i].multiplier_str);
+            }
+        }
+        free(graph->reward_compute_graph_mpfr->commands);
+        free(graph->reward_compute_graph_mpfr);
+    }
+#endif
+
     if (graph->elimination_trace != NULL) {
         ptd_elimination_trace_destroy(graph->elimination_trace);
     }
@@ -2678,6 +2695,9 @@ void ptd_graph_destroy(struct ptd_graph *graph) {
 
     graph->reward_compute_graph = NULL;
     graph->parameterized_reward_compute_graph = NULL;
+#ifdef HAVE_MPFR
+    graph->reward_compute_graph_mpfr = NULL;
+#endif
     graph->elimination_trace = NULL;
     graph->current_params = NULL;
     memset(graph, 0, sizeof(*graph));
@@ -2950,6 +2970,17 @@ struct ptd_edge *ptd_graph_add_edge(
     from->graph->reward_compute_graph = NULL;
     from->graph->parameterized_reward_compute_graph = NULL;
 
+#ifdef HAVE_MPFR
+    if (from->graph->reward_compute_graph_mpfr != NULL) {
+        for (size_t i = 0; i < from->graph->reward_compute_graph_mpfr->length; i++) {
+            free(from->graph->reward_compute_graph_mpfr->commands[i].multiplier_str);
+        }
+        free(from->graph->reward_compute_graph_mpfr->commands);
+        free(from->graph->reward_compute_graph_mpfr);
+        from->graph->reward_compute_graph_mpfr = NULL;
+    }
+#endif
+
     return edge;
 }
 
@@ -3185,6 +3216,17 @@ void ptd_graph_update_weights(
         );
         graph->parameterized_reward_compute_graph = NULL;
     }
+
+#ifdef HAVE_MPFR
+    if (graph->reward_compute_graph_mpfr != NULL) {
+        for (size_t i = 0; i < graph->reward_compute_graph_mpfr->length; i++) {
+            free(graph->reward_compute_graph_mpfr->commands[i].multiplier_str);
+        }
+        free(graph->reward_compute_graph_mpfr->commands);
+        free(graph->reward_compute_graph_mpfr);
+        graph->reward_compute_graph_mpfr = NULL;
+    }
+#endif
 
     if (need_free) {
         free(theta);
@@ -4337,6 +4379,79 @@ static struct ptd_comp_graph_parameterized *add_command_param(
     return cmd;
 }
 
+#ifdef HAVE_MPFR
+/**
+ * Helper function to add an MPFR command with string-stored multiplier
+ *
+ * Converts MPFR value to scientific notation string for maximum precision preservation.
+ */
+static void add_mpfr_command(
+    struct ptd_reward_increase_mpfr **commands,
+    size_t *command_index,
+    size_t from,
+    size_t to,
+    mpfr_t multiplier
+) {
+    // Reallocate if needed (power of 2 growth)
+    bool is_power_of_2 = ((*command_index) & ((*command_index) - 1)) == 0;
+    if (is_power_of_2) {
+        size_t new_length = (*command_index) == 0 ? 1 : (*command_index) * 2;
+        *commands = (struct ptd_reward_increase_mpfr *) realloc(
+                *commands, new_length * sizeof(**commands)
+        );
+    }
+
+    (*commands)[*command_index].from = from;
+    (*commands)[*command_index].to = to;
+
+    // Apply the same transformation as add_command():
+    // When from == to, store (multiplier - 1) instead of multiplier
+    // This transforms: result[i] += result[i] * (mult - 1)
+    // into: result[i] *= mult
+    mpfr_t adjusted_mult;
+    mpfr_init2(adjusted_mult, mpfr_get_prec(multiplier));
+    if (from == to) {
+        mpfr_sub_ui(adjusted_mult, multiplier, 1, MPFR_RNDN);  // adjusted = mult - 1
+    } else {
+        mpfr_set(adjusted_mult, multiplier, MPFR_RNDN);  // adjusted = mult
+    }
+
+    // Convert MPFR to string (base 10, auto precision)
+    mp_exp_t exp;
+    char *str = mpfr_get_str(NULL, &exp, 10, 0, adjusted_mult, MPFR_RNDN);
+    mpfr_clear(adjusted_mult);
+
+    // Format as scientific notation: "X.YYYeZZ"
+    if (str != NULL && str[0] != '\0') {
+        size_t len = strlen(str);
+        size_t final_len = len + 20;
+        char *formatted = (char *)malloc(final_len);
+
+        int offset = 0;
+        if (str[0] == '-') {
+            formatted[0] = '-';
+            offset = 1;
+        }
+
+        if (len > offset) {
+            formatted[offset] = str[offset];
+            formatted[offset + 1] = '.';
+            strcpy(formatted + offset + 2, str + offset + 1);
+            snprintf(formatted + strlen(formatted), 20, "e%ld", (long)(exp - 1));
+        } else {
+            strcpy(formatted, "0");
+        }
+
+        mpfr_free_str(str);
+        (*commands)[*command_index].multiplier_str = formatted;
+    } else {
+        (*commands)[*command_index].multiplier_str = strdup("0");
+    }
+
+    (*command_index)++;
+}
+#endif
+
 struct ptd_desc_reward_compute *ptd_graph_ex_absorbation_time_comp_graph(struct ptd_graph *graph) {
     if (ptd_validate_graph(graph)) {
         return NULL;
@@ -4701,6 +4816,370 @@ struct ptd_desc_reward_compute *ptd_graph_ex_absorbation_time_comp_graph(struct 
 
     return res;
 }
+
+#ifdef HAVE_MPFR
+static struct ptd_desc_reward_compute_mpfr *ptd_graph_ex_absorbation_time_comp_graph_mpfr(
+    struct ptd_graph *graph,
+    size_t precision
+) {
+    if (ptd_validate_graph(graph)) {
+        return NULL;
+    }
+
+    // Initialize MPFR variables
+    mpfr_t rate, prob, temp, one;
+    mpfr_init2(rate, precision);
+    mpfr_init2(prob, precision);
+    mpfr_init2(temp, precision);
+    mpfr_init2(one, precision);
+    mpfr_set_d(one, 1.0, MPFR_RNDN);
+
+    struct ptd_vertex *dummy__ptd_min = (struct ptd_vertex *) 1, *dummy__ptd_max = 0;
+
+    struct ptd_vertex **vertices = (struct ptd_vertex **) calloc(graph->vertices_length, sizeof(*vertices));
+    size_t *original_indices = (size_t *) calloc(graph->vertices_length, sizeof(*original_indices));
+
+    struct ptd_reward_increase_mpfr *commands = NULL;
+    size_t command_index = 0;
+    size_t vertices_length = graph->vertices_length;
+
+    struct ptd_scc_graph *scc = ptd_find_strongly_connected_components(graph);
+    struct ptd_scc_vertex **v = ptd_scc_graph_topological_sort(scc);
+
+    size_t idx = 0;
+
+    for (size_t sii = 0; sii < scc->vertices_length; ++sii) {
+        for (size_t j = 0; j < v[sii]->internal_vertices_length; ++j) {
+            if (v[sii]->internal_vertices[j]->edges_length == 0) {
+                continue;
+            }
+
+            original_indices[idx] = v[sii]->internal_vertices[j]->index;
+            v[sii]->internal_vertices[j]->index = idx;
+            vertices[idx] = v[sii]->internal_vertices[j];
+            idx++;
+        }
+    }
+
+    for (size_t sii = 0; sii < scc->vertices_length; ++sii) {
+        for (size_t j = 0; j < v[sii]->internal_vertices_length; ++j) {
+            if (v[sii]->internal_vertices[j]->edges_length != 0) {
+                continue;
+            }
+
+            original_indices[idx] = v[sii]->internal_vertices[j]->index;
+            v[sii]->internal_vertices[j]->index = idx;
+            vertices[idx] = v[sii]->internal_vertices[j];
+            idx++;
+        }
+    }
+
+    struct arr_p **vertex_parents;
+    size_t *vertex_parents_length;
+    struct arr_c **vertex_edges;
+    size_t *vertex_edges_length;
+
+    for (size_t i = 0; i < vertices_length; ++i) {
+        struct ptd_vertex *vertex = vertices[i];
+
+        if (vertex >= dummy__ptd_max) {
+            dummy__ptd_max = vertex + 1;
+        }
+
+        if (vertex <= dummy__ptd_min) {
+            dummy__ptd_min = vertex - 1;
+        }
+
+        mpfr_set_d(rate, 0.0, MPFR_RNDN);
+        for (size_t j = 0; j < vertex->edges_length; ++j) {
+            mpfr_add_d(rate, rate, vertex->edges[j]->weight, MPFR_RNDN);
+        }
+
+        // Add the "real" rate as our first reward
+
+        if (graph->starting_vertex == vertex || vertex->edges_length == 0) {
+            mpfr_set_d(temp, 0.0, MPFR_RNDN);
+            add_mpfr_command(&commands, &command_index, original_indices[i], original_indices[i], temp);
+        } else {
+            mpfr_ui_div(temp, 1, rate, MPFR_RNDN);
+            add_mpfr_command(&commands, &command_index, original_indices[i], original_indices[i], temp);
+        }
+    }
+
+    vertex_parents = (struct arr_p **) calloc(vertices_length, sizeof(*vertex_parents));
+    vertex_parents_length = (size_t *) calloc(vertices_length, sizeof(*vertex_parents_length));
+    size_t *vertex_parents_alloc_length = (size_t *) calloc(vertices_length, sizeof(*vertex_parents_alloc_length));
+    vertex_edges = (struct arr_c **) calloc(vertices_length, sizeof(*vertex_edges));
+    vertex_edges_length = (size_t *) calloc(vertices_length, sizeof(*vertex_edges_length));
+    size_t *vertex_edges_alloc_length = (size_t *) calloc(vertices_length, sizeof(*vertex_edges_alloc_length));
+
+    for (size_t i = 0; i < vertices_length; ++i) {
+        vertex_edges_alloc_length[i] = 64;
+        struct ptd_vertex *vertex = vertices[i];
+
+        while (vertex->edges_length + 2 >= vertex_edges_alloc_length[i]) {
+            vertex_edges_alloc_length[i] *= 2;
+        }
+
+        for (size_t j = 0; j < vertex->edges_length; ++j) {
+            vertex_parents_length[vertex->edges[j]->to->index]++;
+        }
+
+        vertex_edges[i] = (struct arr_c *) calloc(vertex_edges_alloc_length[i], sizeof(*(vertex_edges[i])));
+        vertex_edges_length[i] = vertex->edges_length + 2;
+    }
+
+    for (size_t i = 0; i < vertices_length; ++i) {
+        vertex_parents_alloc_length[i] = 64;
+
+        while (vertex_parents_length[i] >= vertex_parents_alloc_length[i]) {
+            vertex_parents_alloc_length[i] *= 2;
+        }
+
+        vertex_parents[i] = (struct arr_p *) calloc(vertex_parents_alloc_length[i], sizeof(*(vertex_parents[i])));
+        vertex_parents_length[i] = 0;
+    }
+
+    for (size_t i = 0; i < vertices_length; ++i) {
+        struct ptd_vertex *vertex = vertices[i];
+
+        vertex_edges[i][0].to = dummy__ptd_min;
+        vertex_edges[i][0].prob = 0;
+        vertex_edges[i][0].arr_p_index = (unsigned int) ((int) -1);
+
+        mpfr_set_d(rate, 0.0, MPFR_RNDN);
+        for (size_t j = 0; j < vertex->edges_length; ++j) {
+            mpfr_add_d(rate, rate, vertex->edges[j]->weight, MPFR_RNDN);
+        }
+
+        for (size_t j = 0; j < vertex->edges_length; ++j) {
+            vertex_edges[i][j + 1].to = vertex->edges[j]->to;
+            mpfr_d_div(prob, vertex->edges[j]->weight, rate, MPFR_RNDN);
+            vertex_edges[i][j + 1].prob = mpfr_get_d(prob, MPFR_RNDN);
+        }
+
+        vertex_edges[i][vertex->edges_length + 1].prob = 0;
+        vertex_edges[i][vertex->edges_length + 1].to = dummy__ptd_max;
+        vertex_edges[i][vertex->edges_length + 1].arr_p_index = (unsigned int) ((int) -1);
+
+        qsort(vertex_edges[i], vertex_edges_length[i], sizeof(*(vertex_edges[i])), arr_c_cmp);
+    }
+
+
+    for (size_t i = 0; i < vertices_length; ++i) {
+        struct ptd_vertex *vertex = vertices[i];
+
+        for (size_t j = 1; j < vertex_edges_length[i] - 1; ++j) {
+            struct arr_c *child = &(vertex_edges[i][j]);
+            size_t k = child->to->index;
+            child->arr_p_index = vertex_parents_length[k];
+            vertex_parents[k][vertex_parents_length[k]].p = vertex;
+            vertex_parents[k][vertex_parents_length[k]].arr_c_index = j;
+            vertex_parents_length[k]++;
+        }
+    }
+
+    struct arr_c *old_edges_buffer =
+            (struct arr_c *) calloc(vertices_length + 2, sizeof(*old_edges_buffer));
+
+    for (size_t i = 0; i < vertices_length; ++i) {
+        struct ptd_vertex *me = vertices[i];
+        struct arr_c *my_children = vertex_edges[i];
+        size_t my_parents_length = vertex_parents_length[i];
+        size_t my_edges_length = vertex_edges_length[i];
+
+
+        for (size_t p = 0; p < my_parents_length; ++p) {
+            struct arr_p me_to_parent = vertex_parents[i][p];
+            struct ptd_vertex *parent_vertex = me_to_parent.p;
+
+            size_t parent_vertex_index = parent_vertex->index;
+            struct arr_c parent_to_me = vertex_edges[parent_vertex_index][me_to_parent.arr_c_index];
+
+            size_t parent_edges_length = vertex_edges_length[parent_vertex_index];
+
+            if (parent_vertex_index < i) {
+                continue;
+            }
+
+            bool should_resize = false;
+            size_t new_parent_edges_alloc_length = my_edges_length + parent_edges_length;
+
+            while (new_parent_edges_alloc_length >= vertex_edges_alloc_length[parent_vertex_index]) {
+                vertex_edges_alloc_length[parent_vertex_index] *= 2;
+                should_resize = true;
+            }
+
+            if (should_resize) {
+                vertex_edges[parent_vertex_index] = (struct arr_c *) realloc(
+                        vertex_edges[parent_vertex_index],
+                        vertex_edges_alloc_length[parent_vertex_index] * sizeof(*(vertex_edges[parent_vertex_index]))
+                );
+            }
+
+            vertex_edges_length[parent_vertex_index] = 0;
+
+            double parent_weight_to_me = parent_to_me.prob;
+            double new_parent_total_prob = 0;
+
+            if (memcpy(
+                    old_edges_buffer, vertex_edges[parent_vertex_index],
+                    sizeof(struct arr_c) * parent_edges_length
+            ) != old_edges_buffer) {
+                mpfr_clear(rate);
+                mpfr_clear(prob);
+                mpfr_clear(temp);
+                mpfr_clear(one);
+                return NULL;
+            }
+
+            struct arr_c *new_parent_children = vertex_edges[parent_vertex_index];
+
+            mpfr_set_d(temp, parent_weight_to_me, MPFR_RNDN);
+            add_mpfr_command(&commands, &command_index, original_indices[parent_vertex_index],
+                            original_indices[i], temp);
+
+            size_t child_index = 0;
+            size_t parent_child_index = 0;
+
+            while (child_index < my_edges_length || parent_child_index < parent_edges_length) {
+                struct arr_c me_to_child = my_children[child_index];
+                struct ptd_vertex *me_to_child_v = me_to_child.to;
+                struct arr_c parent_to_child = old_edges_buffer[parent_child_index];
+                struct ptd_vertex *parent_to_child_v = parent_to_child.to;
+                double me_to_child_p = me_to_child.prob;
+
+                if (me_to_child_v == parent_vertex) {
+                    mpfr_set_d(prob, parent_weight_to_me, MPFR_RNDN);
+                    mpfr_set_d(temp, me_to_child_p, MPFR_RNDN);
+                    mpfr_mul(prob, prob, temp, MPFR_RNDN);
+                    mpfr_sub(temp, one, prob, MPFR_RNDN);
+                    mpfr_ui_div(prob, 1, temp, MPFR_RNDN);
+                    add_mpfr_command(&commands, &command_index,
+                                    original_indices[parent_vertex->index],
+                                    original_indices[parent_vertex->index], prob);
+
+                    child_index++;
+                    continue;
+                }
+
+                if (parent_to_child_v == me) {
+                    parent_child_index++;
+                    continue;
+                }
+
+                if (me_to_child_v == parent_to_child_v) {
+                    new_parent_children[vertex_edges_length[parent_vertex_index]].to = parent_to_child_v;
+                    new_parent_children[vertex_edges_length[parent_vertex_index]].prob =
+                            parent_to_child.prob + me_to_child_p * parent_weight_to_me;
+                    new_parent_children[vertex_edges_length[parent_vertex_index]].arr_p_index = parent_to_child.arr_p_index;
+                    if (parent_to_child_v != dummy__ptd_min && parent_to_child_v != dummy__ptd_max) {
+                        size_t current_parent_index = parent_to_child.arr_p_index;
+                        vertex_parents[parent_to_child_v->index][current_parent_index].arr_c_index = vertex_edges_length[parent_vertex_index];
+
+                    }
+                    new_parent_total_prob += new_parent_children[vertex_edges_length[parent_vertex_index]].prob;
+                    vertex_edges_length[parent_vertex_index]++;
+
+                    child_index++;
+                    parent_child_index++;
+                } else if (me_to_child_v < parent_to_child_v) {
+                    size_t child_parents_length = vertex_parents_length[me_to_child_v->index];
+
+                    if (child_parents_length >= vertex_parents_alloc_length[me_to_child_v->index]) {
+                        vertex_parents_alloc_length[me_to_child_v->index] *= 2;
+                        vertex_parents[me_to_child_v->index] = (struct arr_p *) realloc(
+                                vertex_parents[me_to_child_v->index],
+                                vertex_parents_alloc_length[me_to_child_v->index] *
+                                sizeof(*(vertex_parents[me_to_child_v->index]))
+                        );
+                    }
+
+                    vertex_parents[me_to_child_v->index][child_parents_length].arr_c_index = vertex_edges_length[parent_vertex_index];
+                    vertex_parents[me_to_child_v->index][child_parents_length].p = parent_vertex;
+
+                    new_parent_children[vertex_edges_length[parent_vertex_index]].to = me_to_child_v;
+                    new_parent_children[vertex_edges_length[parent_vertex_index]].prob =
+                            me_to_child_p * parent_weight_to_me;
+                    new_parent_children[vertex_edges_length[parent_vertex_index]].arr_p_index = child_parents_length;
+                    new_parent_total_prob += me_to_child_p * parent_weight_to_me;
+
+                    vertex_edges_length[parent_vertex_index]++;
+                    vertex_parents_length[me_to_child_v->index]++;
+
+                    child_index++;
+                } else {
+                    new_parent_children[vertex_edges_length[parent_vertex_index]] = parent_to_child;
+                    vertex_parents[parent_to_child_v->index][parent_to_child.arr_p_index].arr_c_index = vertex_edges_length[parent_vertex_index];
+                    new_parent_total_prob += parent_to_child.prob;
+                    vertex_edges_length[parent_vertex_index]++;
+
+                    parent_child_index++;
+                }
+            }
+
+
+            // Make sure parent has rate of 1
+            for (size_t j = 0; j < vertex_edges_length[parent_vertex_index]; ++j) {
+                new_parent_children[j].prob /= new_parent_total_prob;
+            }
+
+            //free(vertex_edges[parent->p->index]);
+            //vertex_edges[parent->p->index] = new_parent_children;
+            vertex_edges_length[parent_vertex_index] = vertex_edges_length[parent_vertex_index];
+        }
+    }
+
+    for (size_t ii = 0; ii < vertices_length; ++ii) {
+        size_t i = vertices_length - ii - 1;
+        struct ptd_vertex *vertex = vertices[i];
+
+
+        for (size_t j = 1; j < vertex_edges_length[i] - 1; ++j) {
+            struct arr_c child = vertex_edges[i][j];
+            mpfr_set_d(temp, child.prob, MPFR_RNDN);
+            add_mpfr_command(&commands, &command_index, original_indices[vertex->index],
+                            original_indices[child.to->index], temp);
+        }
+    }
+
+    for (size_t i = 0; i < vertices_length; ++i) {
+        graph->vertices[i]->index = i;
+    }
+
+    for (size_t i = 0; i < vertices_length; ++i) {
+        free(vertex_edges[i]);
+        free(vertex_parents[i]);
+    }
+
+    free(vertex_parents_length);
+    free(vertex_parents_alloc_length);
+    free(vertex_parents);
+    free(vertex_edges);
+    free(vertex_edges_length);
+    free(vertex_edges_alloc_length);
+    free(original_indices);
+    free(vertices);
+    free(old_edges_buffer);
+    free(v);
+    ptd_scc_graph_destroy(scc);
+
+    mpfr_set_nan(temp);
+    add_mpfr_command(&commands, &command_index, 0, 0, temp);
+
+    // Clean up MPFR variables
+    mpfr_clear(rate);
+    mpfr_clear(prob);
+    mpfr_clear(temp);
+    mpfr_clear(one);
+
+    struct ptd_desc_reward_compute_mpfr *res = (struct ptd_desc_reward_compute_mpfr *) malloc(sizeof(*res));
+    res->length = command_index;
+    res->commands = commands;
+
+    return res;
+}
+#endif  // HAVE_MPFR
 
 
 struct ll_c2_a {
@@ -5371,6 +5850,137 @@ struct ptd_desc_reward_compute *ptd_graph_build_ex_absorbation_time_comp_graph_p
     return res;
 }
 
+#ifdef HAVE_MPFR
+/**
+ * Execute reward computation using MPFR for high-precision arithmetic
+ *
+ * @param graph Graph with precomputed MPFR command list
+ * @param rewards Initial reward vector (or NULL for all 1.0)
+ * @param precision MPFR precision in bits
+ * @return Result vector (double precision) or NULL on error
+ */
+static double *ptd_expected_waiting_time_mpfr(
+    struct ptd_graph *graph,
+    double *rewards,
+    size_t precision
+) {
+    if (graph->reward_compute_graph_mpfr == NULL) {
+        PTD_LOG_ERROR("MPFR graph not computed");
+        return NULL;
+    }
+
+    size_t n = graph->vertices_length;
+    struct ptd_desc_reward_compute_mpfr *compute = graph->reward_compute_graph_mpfr;
+
+    // Allocate MPFR result array
+    mpfr_t *result = (mpfr_t *)malloc(n * sizeof(mpfr_t));
+    if (result == NULL) {
+        PTD_LOG_ERROR("Failed to allocate MPFR result array");
+        return NULL;
+    }
+
+    // Initialize result array
+    for (size_t i = 0; i < n; i++) {
+        mpfr_init2(result[i], precision);
+        if (rewards != NULL) {
+            mpfr_set_d(result[i], rewards[i], MPFR_RNDN);
+        } else {
+            mpfr_set_d(result[i], 1.0, MPFR_RNDN);
+        }
+    }
+
+    // Temporary variables for computation
+    mpfr_t multiplier, product;
+    mpfr_init2(multiplier, precision);
+    mpfr_init2(product, precision);
+
+    // Execute commands
+    for (size_t j = 0; j < compute->length; j++) {
+        struct ptd_reward_increase_mpfr cmd = compute->commands[j];
+
+        // Parse multiplier string to MPFR
+        if (cmd.multiplier_str == NULL) {
+            PTD_LOG_ERROR("NULL multiplier string at command %zu", j);
+            goto cleanup_error;
+        }
+
+        int parse_result = mpfr_set_str(multiplier, cmd.multiplier_str, 10, MPFR_RNDN);
+        if (parse_result != 0) {
+            // Check for NaN terminator (various formats from MPFR)
+            if (strcmp(cmd.multiplier_str, "nan") == 0 ||
+                strcmp(cmd.multiplier_str, "NaN") == 0 ||
+                strcmp(cmd.multiplier_str, "@NaN@") == 0 ||
+                strstr(cmd.multiplier_str, "NaN") != NULL ||
+                strstr(cmd.multiplier_str, ".NaN") != NULL) {
+                // This is the terminator - we're done
+                break;
+            }
+            PTD_LOG_ERROR("Failed to parse multiplier '%s' at command %zu",
+                         cmd.multiplier_str, j);
+            goto cleanup_error;
+        }
+
+        // Skip if multiplier is zero (0 × ∞ = 0 limit)
+        if (mpfr_zero_p(multiplier)) {
+            continue;
+        }
+
+        // Check for inf × 0 = 0 limit
+        if (mpfr_inf_p(multiplier) && mpfr_zero_p(result[cmd.to])) {
+            continue;
+        }
+
+        // Compute: result[from] += result[to] * multiplier
+        mpfr_mul(product, result[cmd.to], multiplier, MPFR_RNDN);
+        mpfr_add(result[cmd.from], result[cmd.from], product, MPFR_RNDN);
+    }
+
+    // Convert MPFR results back to double
+    double *final_result = (double *)calloc(n, sizeof(double));
+    if (final_result == NULL) {
+        PTD_LOG_ERROR("Failed to allocate final result array");
+        goto cleanup_error;
+    }
+
+    for (size_t i = 0; i < n; i++) {
+        final_result[i] = mpfr_get_d(result[i], MPFR_RNDN);
+
+        // Check for catastrophic errors
+        if (isnan(final_result[i])) {
+            PTD_LOG_ERROR("MPFR computation produced NaN at vertex %zu - numerical catastrophe", i);
+            sprintf((char*)ptd_err, "MPFR computation produced NaN at vertex %zu - numerical catastrophe", i);
+            goto cleanup_error;
+        }
+
+        // Infinity is OK (expected for graphs with inescapable cycles)
+        if (mpfr_inf_p(result[i])) {
+            final_result[i] = INFINITY;
+            PTD_LOG_DEBUG("Result[%zu] is infinite (expected for inescapable cycles)", i);
+        }
+    }
+
+    // Cleanup
+    mpfr_clear(multiplier);
+    mpfr_clear(product);
+    for (size_t i = 0; i < n; i++) {
+        mpfr_clear(result[i]);
+    }
+    free(result);
+
+    PTD_LOG_DEBUG("MPFR computation completed successfully with %zu-bit precision", precision);
+    return final_result;
+
+cleanup_error:
+    mpfr_clear(multiplier);
+    mpfr_clear(product);
+    for (size_t i = 0; i < n; i++) {
+        mpfr_clear(result[i]);
+    }
+    free(result);
+    return NULL;
+}
+#endif  // HAVE_MPFR
+
 
 double *ptd_expected_waiting_time(struct ptd_graph *graph, double *rewards) {
     if (ptd_precompute_reward_compute_graph(graph)) {
@@ -5393,6 +6003,69 @@ double *ptd_expected_waiting_time(struct ptd_graph *graph, double *rewards) {
     double min_multiplier = INFINITY;
     size_t ill_conditioned_count = 0;
 
+#ifdef HAVE_MPFR
+    // Pre-scan to check if MPFR should be used
+    double prescanned_max = 0.0;
+    double prescanned_min = INFINITY;
+    for (size_t j = 0; j < graph->reward_compute_graph->length; ++j) {
+        struct ptd_reward_increase command = graph->reward_compute_graph->commands[j];
+        if (!isinf(command.multiplier) && command.multiplier != 0.0) {
+            double abs_mult = fabs(command.multiplier);
+            if (abs_mult > prescanned_max) prescanned_max = abs_mult;
+            if (abs_mult < prescanned_min) prescanned_min = abs_mult;
+        }
+    }
+
+    // Get MPFR configuration from environment variables (set by phasic.configure())
+    bool force_mpfr = (getenv("PHASIC_FORCE_MPFR") != NULL);
+
+    // Get condition threshold from config (default 1e12 for better default behavior)
+    double condition_threshold = 1e12;  // Lower default to catch more ill-conditioned cases
+    const char *threshold_env = getenv("PHASIC_CONDITION_THRESHOLD");
+    if (threshold_env != NULL) {
+        condition_threshold = atof(threshold_env);
+    }
+
+    double condition_number = (prescanned_min != INFINITY && prescanned_max > 0.0)
+                             ? (prescanned_max / prescanned_min) : 0.0;
+
+    if (force_mpfr || condition_number > condition_threshold) {
+        PTD_LOG_INFO("Using MPFR for moment computation (condition %.2e > threshold %.2e)",
+                     condition_number, condition_threshold);
+
+        // Calculate precision: check env var first, then auto-calculate
+        size_t mpfr_precision = 0;
+        const char *precision_env = getenv("PHASIC_MPFR_BITS");
+        if (precision_env != NULL) {
+            mpfr_precision = (size_t)atoi(precision_env);
+        } else {
+            // Auto-calculate: log2(condition) + 64
+            mpfr_precision = (size_t)(log2(condition_number)) + 64;
+        }
+
+        // Clamp to reasonable range
+        if (mpfr_precision < 128) mpfr_precision = 128;
+        if (mpfr_precision > 1024) mpfr_precision = 1024;
+
+        // Compute MPFR graph if not cached
+        if (graph->reward_compute_graph_mpfr == NULL) {
+            PTD_LOG_INFO("Computing MPFR graph with %zu-bit precision", mpfr_precision);
+            graph->reward_compute_graph_mpfr = ptd_graph_ex_absorbation_time_comp_graph_mpfr(
+                graph, mpfr_precision
+            );
+        }
+
+        // Call MPFR execution function
+        double *mpfr_result = ptd_expected_waiting_time_mpfr(graph, rewards, mpfr_precision);
+        if (mpfr_result != NULL) {
+            PTD_LOG_INFO("MPFR computation successful - returning high-precision results");
+            return mpfr_result;
+        } else {
+            PTD_LOG_WARNING("MPFR execution failed - falling back to double precision");
+        }
+    }
+#endif
+
     for (size_t j = 0; j < graph->reward_compute_graph->length; ++j) {
         struct ptd_reward_increase command = graph->reward_compute_graph->commands[j];
 
@@ -5414,8 +6087,9 @@ double *ptd_expected_waiting_time(struct ptd_graph *graph, double *rewards) {
             if (abs_mult > max_multiplier) max_multiplier = abs_mult;
             if (abs_mult < min_multiplier) min_multiplier = abs_mult;
 
-            // Warn about ill-conditioned multipliers
-            if (abs_mult > 1e10 || abs_mult < 1e-10) {
+            // Warn about ill-conditioned multipliers (unless disabled via config)
+            bool warnings_disabled = (getenv("PHASIC_DISABLE_CONDITION_WARNINGS") != NULL);
+            if (!warnings_disabled && (abs_mult > 1e10 || abs_mult < 1e-10)) {
                 ill_conditioned_count++;
                 if (ill_conditioned_count == 1) {  // Log first occurrence only
                     PTD_LOG_WARNING("Ill-conditioned multiplier detected: %.2e at command %zu (may affect numerical stability)",
@@ -5426,20 +6100,25 @@ double *ptd_expected_waiting_time(struct ptd_graph *graph, double *rewards) {
 
         result[command.from] += result[command.to] * command.multiplier;
 
-        // Debug: check for nan
+        // Check for catastrophic errors
         if (isnan(result[command.from])) {
-            DEBUG_PRINT("WARNING: result[%zu] became nan at command %zu: from=%zu to=%zu multiplier=%f result[to]=%f\n",
+            PTD_LOG_ERROR("Computation produced NaN at vertex %zu (command %zu: from=%zu to=%zu multiplier=%.15e result[to]=%.15e) - numerical catastrophe",
                 command.from, j, command.from, command.to, command.multiplier, result[command.to]);
+            sprintf((char*)ptd_err, "Computation produced NaN at vertex %zu (command %zu) - numerical catastrophe",
+                command.from, j);
+            free(result);
+            return NULL;
         }
 
-        // Log infinite results (expected for graphs with inescapable cycles)
+        // Infinity is OK (expected for graphs with inescapable cycles)
         if (isinf(result[command.from])) {
-            PTD_LOG_DEBUG("Result[%zu] is infinite - state has infinite expected sojourn time", command.from);
+            PTD_LOG_DEBUG("Result[%zu] is infinite (expected for inescapable cycles)", command.from);
         }
     }
 
-    // Log conditioning summary
-    if (min_multiplier != INFINITY && max_multiplier > 0.0) {
+    // Log conditioning summary (unless warnings disabled)
+    bool warnings_disabled = (getenv("PHASIC_DISABLE_CONDITION_WARNINGS") != NULL);
+    if (!warnings_disabled && min_multiplier != INFINITY && max_multiplier > 0.0) {
         double condition_number = max_multiplier / min_multiplier;
         if (condition_number > 1e8) {
             PTD_LOG_WARNING("Poor conditioning detected: condition number = %.2e (%zu ill-conditioned operations)",
@@ -11594,9 +12273,15 @@ struct ptd_trace_result *ptd_evaluate_trace(
         size_t op_idx = trace->vertex_rates[i];
         result->vertex_rates[i] = values[op_idx];
 
-        // Debug: check for nan in vertex rates
+        // Check for catastrophic errors
         if (isnan(result->vertex_rates[i])) {
-            DEBUG_PRINT("WARNING: vertex_rates[%zu] is nan (from values[%zu])\n", i, op_idx);
+            PTD_LOG_ERROR("Trace evaluation produced NaN for vertex_rates[%zu] (from values[%zu]) - numerical catastrophe", i, op_idx);
+            sprintf((char*)ptd_err, "Trace evaluation produced NaN for vertex_rates[%zu] - numerical catastrophe", i);
+            free(values);
+            free(result->vertex_rates);
+            free(result->edge_probs);
+            free(result);
+            return NULL;
         }
     }
 
@@ -11626,6 +12311,15 @@ struct ptd_trace_result *ptd_evaluate_trace(
             for (size_t j = 0; j < n_edges; j++) {
                 size_t op_idx = trace->edge_probs[i][j];
                 result->edge_probs[i][j] = values[op_idx];
+
+                // Check for catastrophic errors
+                if (isnan(result->edge_probs[i][j])) {
+                    PTD_LOG_ERROR("Trace evaluation produced NaN for edge_probs[%zu][%zu] (from values[%zu]) - numerical catastrophe", i, j, op_idx);
+                    sprintf((char*)ptd_err, "Trace evaluation produced NaN for edge_probs[%zu][%zu] - numerical catastrophe", i, j);
+                    free(values);
+                    ptd_trace_result_destroy(result);
+                    return NULL;
+                }
             }
         } else {
             result->edge_probs[i] = NULL;

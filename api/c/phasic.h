@@ -124,6 +124,7 @@ struct ptd_graph {
     enum ptd_edge_mode edge_mode;  // Locked after first non-IPV edge added
     struct ptd_desc_reward_compute *reward_compute_graph;
     struct ptd_desc_reward_compute_parameterized *parameterized_reward_compute_graph;
+    struct ptd_desc_reward_compute_mpfr *reward_compute_graph_mpfr;  // MPFR version (cached)
     bool was_dph;
 
     /* Trace-based elimination (NULL until first parameter update) */
@@ -274,11 +275,23 @@ struct ptd_desc_reward_compute {
     struct ptd_reward_increase *commands;
 };
 
+// MPFR version: for high-precision graph elimination
+struct ptd_desc_reward_compute_mpfr {
+    size_t length;
+    struct ptd_reward_increase_mpfr *commands;
+};
 
 struct ptd_reward_increase {
     size_t from;
     size_t to;
     double multiplier;
+};
+
+// MPFR version: stores multiplier as string for arbitrary precision
+struct ptd_reward_increase_mpfr {
+    size_t from;
+    size_t to;
+    char *multiplier_str;  // String representation from mpfr_get_str()
 };
 
 struct ptd_comp_graph_parameterized {

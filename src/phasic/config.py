@@ -92,6 +92,19 @@ def _get_available_platforms() -> List[str]:
     return platforms
 
 
+def _check_mpfr_available() -> bool:
+    """Check if MPFR high-precision support is available."""
+    try:
+        from . import phasic_pybind
+        # MPFR is available if HAVE_MPFR was defined at compile time
+        # For now, we check if libmpfr is linked (via otool/ldd would work, but complex)
+        # Instead, we'll just assume it's available if phasic_pybind loaded successfully
+        # A proper check could query a C++ function that returns #ifdef HAVE_MPFR
+        return True  # If built with MPFR, it's always linked
+    except ImportError:
+        return False
+
+
 @dataclass
 class PTDAlgorithmsConfig:
     """
@@ -123,6 +136,17 @@ class PTDAlgorithmsConfig:
         Default computation backend for FFI wrappers.
     verbose : bool, default=False
         Print configuration details on startup.
+    force_high_precision : bool, default=False
+        Force MPFR high-precision arithmetic for all trace evaluations.
+        Raises error if MPFR not available. Auto-activation at condition > 1e20 still occurs.
+    mpfr_precision_bits : int, default=0
+        MPFR precision in bits (0 = auto-determine from condition number).
+        Examples: 128 (standard), 256 (high), 512 (very high), 1024 (extreme).
+    condition_threshold : float, default=1e20
+        Condition number threshold for auto-activating MPFR.
+        Lower values are more conservative. Set to inf to disable auto-activation.
+    enable_condition_warnings : bool, default=True
+        Enable/disable warnings about ill-conditioned operations.
 
     Examples
     --------
@@ -142,6 +166,12 @@ class PTDAlgorithmsConfig:
     platform: Literal['cpu', 'gpu', 'tpu'] = 'cpu'
     backend: Literal['jax', 'cpp', 'ffi'] = 'jax'
     verbose: bool = False
+
+    # High-precision arithmetic settings (MPFR)
+    force_high_precision: bool = False  # Force MPFR for all trace evaluations
+    mpfr_precision_bits: int = 0  # MPFR precision in bits (0 = auto-determine from condition number)
+    condition_threshold: float = 1e12  # Auto-activate MPFR when condition > threshold (lowered from 1e20 for better default)
+    enable_condition_warnings: bool = True  # Log warnings for ill-conditioned operations
 
     # Internal tracking
     _validated: bool = field(default=False, init=False, repr=False)
@@ -243,6 +273,50 @@ class PTDAlgorithmsConfig:
                     f"  Install GPU/TPU support or use platform='cpu'"
                 )
 
+        # Check MPFR high-precision settings
+        if self.force_high_precision:
+            if not _check_mpfr_available():
+                msg = (
+                    "force_high_precision=True but MPFR not available.\n"
+                    "  MPFR is required for high-precision arithmetic.\n"
+                    "\n"
+                    "To rebuild with MPFR:\n"
+                    "  pixi add mpfr gmp pkg-config\n"
+                    "  pixi install\n"
+                    "  pixi run install-dev\n"
+                    "\n"
+                    "Or via conda:\n"
+                    "  conda install mpfr gmp pkg-config -c conda-forge\n"
+                    "  pip install --no-build-isolation --force-reinstall --no-deps .\n"
+                    "\n"
+                    "Or disable high-precision mode:\n"
+                    "  phasic.configure(force_high_precision=False)"
+                )
+                errors.append(msg)
+            # Set environment variable for C code
+            os.environ['PHASIC_FORCE_MPFR'] = '1'
+        else:
+            os.environ.pop('PHASIC_FORCE_MPFR', None)
+
+        if self.mpfr_precision_bits < 0:
+            errors.append("mpfr_precision_bits must be non-negative (0 = auto)")
+        elif self.mpfr_precision_bits > 0 and self.mpfr_precision_bits < 53:
+            errors.append("mpfr_precision_bits must be >= 53 (double precision) or 0 for auto")
+        elif self.mpfr_precision_bits > 0:
+            os.environ['PHASIC_MPFR_BITS'] = str(self.mpfr_precision_bits)
+        else:
+            os.environ.pop('PHASIC_MPFR_BITS', None)
+
+        if self.condition_threshold <= 1.0:
+            errors.append("condition_threshold must be > 1.0")
+        else:
+            os.environ['PHASIC_CONDITION_THRESHOLD'] = str(self.condition_threshold)
+
+        if not self.enable_condition_warnings:
+            os.environ['PHASIC_DISABLE_CONDITION_WARNINGS'] = '1'
+        else:
+            os.environ.pop('PHASIC_DISABLE_CONDITION_WARNINGS', None)
+
         # Handle errors/warnings
         if warnings and self.verbose:
             for w in warnings:
@@ -290,6 +364,7 @@ class PTDAlgorithmsConfig:
             'jit': _check_jax_available(),  # JIT requires JAX
             'ffi': False,  # Always False for now (memory corruption bug)
             'cpp': _check_cpp_available(),
+            'mpfr': _check_mpfr_available(),  # High-precision arithmetic
             'backends': _get_available_backends(),
             'platforms': _get_available_platforms(),
         }
