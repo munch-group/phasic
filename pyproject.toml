@@ -131,6 +131,9 @@ geodatasets = ">=2024.8.0,<2025"
 vscodenb = ">=0.1.27,<0.2"
 nbdime = ">=4.0.2,<5"
 griffe = ">=1.15.0,<2"
+mpfr = ">=4.2.1,<5"
+gmp = "*"
+pkg-config = "*"
 
 # [tool.pixi.pypi-dependencies]
 
