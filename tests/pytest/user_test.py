@@ -3,39 +3,38 @@ from pprint import pprint
 import numpy as np
 
 from phasic import Graph
+import phasic
 
 import jax.numpy as jnp
 
-def coalescent(state, nr_samples=None):
-    if not state.size:
-        ipv = [[[nr_samples]+[0]*nr_samples, 1, []]]
-        return ipv
-    else:
-        transitions = []
-        for i in range(nr_samples):
-            for j in range(i, nr_samples):            
-                same = int(i == j)
-                if same and state[i] < 2:
-                    continue
-                if not same and (state[i] < 1 or state[j] < 1):
-                    continue 
-                new = state.copy()
-                new[i] -= 1
-                new[j] -= 1
-                new[i+j+1] += 1
-                transitions.append([new, 0.0, [state[i]*(state[j]-same)/(1+same)]])
-        return transitions
-
-
-true_theta = np.array([7])  
 nr_samples = 4
 
+@phasic.with_ipv([nr_samples] + [0]*nr_samples)
+def coalescent(state, nr_samples=None):
+    transitions = []
+    for i in range(int(nr_samples)):
+        for j in range(i, int(nr_samples)):
+            same = int(i == j)
+            if same and state[i] < 2:
+                continue
+            if not same and (state[i] < 1 or state[j] < 1):
+                continue
+            new = state.copy()
+            new[i] -= 1
+            new[j] -= 1
+            new[i+j+1] += 1
+            transitions.append([new, [state[i]*(state[j]-same)/(1+same)]])
+    return transitions
+
+
+true_theta = np.array([7])
+
 nr_observations = 10000
-_graph = Graph(callback=coalescent, parameterized=True, nr_samples=nr_samples)
+_graph = Graph(coalescent, nr_samples=nr_samples)
 _graph.update_parameterized_weights(true_theta)
 observed_data = _graph.sample(nr_observations)
 
-graph = Graph(callback=coalescent, parameterized=True, nr_samples=nr_samples)
+graph = Graph(coalescent, nr_samples=nr_samples)
 
 def uninformative_prior(phi):
     """Uninformative prior: φ ~ N(0, 10^2) - very wide"""
@@ -62,15 +61,15 @@ params = dict(
 
 model_pdf = Graph.pmf_and_moments_from_graph(graph)
 svgd = SVGD(model_pdf, **params)
-svgd.fit()
+svgd.optimize()
 results = svgd.get_results()
 print(results['theta_mean'], results['theta_std'])
 
 # # without recreating the graph, pmf_and_moments_from_graph do not produce any trace
-# graph = Graph(callback=coalescent, parameterized=True, nr_samples=nr_samples)
+# graph = Graph(callback=coalescent, nr_samples=nr_samples)
 
 model_pdf = Graph.pmf_and_moments_from_graph(graph)
 svgd = SVGD(model_pdf, **params, regularization=1.0, nr_moments=2)
-svgd.fit()
+svgd.optimize()
 results = svgd.get_results()
 print(results['theta_mean'], results['theta_std'])

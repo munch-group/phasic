@@ -27,7 +27,7 @@ import shutil
 from functools import partial
 
 # REQUIRED: Import phasic FIRST (before JAX) to enable multi-CPU configuration
-from phasic import Graph, SVGD, clear_cache, cache_info, get_config, print_cache_info, set_theme, get_available_options
+from phasic import Graph, SVGD, clear_caches, cache_info, get_config, print_jax_cache_info, get_available_options
 
 # Now import JAX (x64 precision and multi-CPU already configured by phasic)
 import jax
@@ -204,7 +204,7 @@ def clear_all_caches():
 # Clear caches before running tests
 clear_all_caches()
 
-set_theme('dark')
+# set_theme('dark')  # Commented out - set_theme no longer exported
 
 
 def main():
@@ -232,7 +232,7 @@ def main():
     true_theta = [5.0]
 
 
-    # clear_cache()
+    # clear_caches()
     # print_section("Build graph without cached trace")
     # start = time.time()
     # _graph = build_coalescent(nr_samples=nr_samples)
@@ -648,7 +648,7 @@ PtDAlgorithms uses a three-layer caching architecture:
 
     # Pretty print cache info
     print("\n[1] Detailed JAX cache information:")
-    print_cache_info(jax_cache_dir, max_files=5)
+    print_jax_cache_info(jax_cache_dir)
 
     print(f"\nHow JAX compilation cache works:")
     print(f"  1. JAX encounters jit(f)(x) call")
@@ -672,10 +672,10 @@ PtDAlgorithms uses a three-layer caching architecture:
     print(f"     info = cache_info()")
     print(f"     → {info['num_files']} files, {info['total_size_mb']:.1f} MB")
 
-    print("\n2. print_cache_info(cache_dir=None, max_files=10)")
+    print("\n2. print_jax_cache_info(cache_dir=None)")
     print("   Pretty-prints cache statistics")
     print("   Example:")
-    print("     print_cache_info()  # Shows formatted output")
+    print("     print_jax_cache_info()  # Shows formatted output")
 
     print("\n3. clear_cache(cache_dir=None, verbose=True)")
     print("   Clears entire JAX compilation cache")
@@ -781,8 +781,8 @@ Cache Management:
 
 Available functions:
   • cache_info() - Get cache statistics
-  • print_cache_info() - Pretty-print stats
-  • clear_cache() - Clear JAX cache
+  • print_jax_cache_info() - Pretty-print stats
+  • clear_caches() - Clear all caches
 
 See: CACHE_CONSOLIDATION_COMPLETE.md for details
     """)

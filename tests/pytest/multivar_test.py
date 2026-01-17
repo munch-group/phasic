@@ -87,4 +87,4 @@ params = dict(
 )
 
 
-svgd = graph.svgd(**params)
+# svgd = graph.svgd(**params)  # Commented out - should not run at import time

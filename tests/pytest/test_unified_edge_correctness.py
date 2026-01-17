@@ -81,7 +81,7 @@ else:
 # Verify metadata
 print(f"   Metadata: param_length={g_param.param_length()}, is_parameterized={g_param.is_parameterized()}")
 assert g_param.param_length() == 1, "Single-parameter graph should have param_length=1"
-assert g_param.is_parameterized() == False, "Single-parameter graph is not truly parameterized"
+assert g_param.is_parameterized() == True, "Graph with array edges [1.0] is parameterized"
 
 # Test 3: Multi-parameter Correctness
 print("\n3. Testing multi-parameter edge correctness...")
@@ -114,27 +114,76 @@ else:
 assert g_multi.param_length() == 2, "Multi-parameter graph should have param_length=2"
 assert g_multi.is_parameterized() == True, "Multi-parameter graph should be parameterized"
 
-# Test 4: Edge Validation
-print("\n4. Testing edge type validation...")
+# Test 4: Edge Validation and Extra Coefficients
+print("\n4. Testing edge coefficient validation...")
 g_mixed = Graph(1)
 v0 = g_mixed.starting_vertex()
 v1 = g_mixed.find_or_create_vertex([1])
 v2 = g_mixed.find_or_create_vertex([0])
 
-# Add constant edge first
+# Explicitly set param_length=1
+g_mixed.set_param_length(1)
+
+# Add constant edge from starting vertex
 v0.add_edge(v1, 3.0)
 
-# Try to add parameterized edge - should fail
+# Edge creation allows more coefficients than param_length
+# (validation happens at update_weights time)
+v1.add_edge(v2, [1.0, 2.0])  # 2 coeffs, but param_length=1
+
+# Non-callback update_weights should fail due to coefficient length mismatch
 try:
-    v1.add_edge(v2, [1.0, 2.0])
-    print("   ❌ FAILED: Should have rejected mixed edge types!")
+    g_mixed.update_weights([1.0])  # theta matches param_length, but edge has 2 coeffs
+    print("   ❌ FAILED: Should have rejected coefficient length mismatch in update_weights!")
     exit(1)
 except RuntimeError as e:
     if "coefficient length mismatch" in str(e).lower():
-        print(f"   ✅ Validation correctly rejects mixed types")
+        print(f"   ✅ Non-callback mode rejects coefficient mismatch")
     else:
         print(f"   ❌ FAILED: Wrong error message: {e}")
         exit(1)
+
+# Test extra coefficients with callback mode
+print("\n4b. Testing extra coefficients with callback mode...")
+g_callback = Graph(1)
+v0_cb = g_callback.starting_vertex()
+v1_cb = g_callback.find_or_create_vertex([1])
+v2_cb = g_callback.find_or_create_vertex([0])
+
+# Set param_length=2 explicitly
+g_callback.set_param_length(2)
+
+# Add edges with 3 coefficients (more than param_length=2)
+v0_cb.add_edge(v1_cb, [1.0, 0.5, 10.0])  # Third coeff is auxiliary data
+v1_cb.add_edge(v2_cb, [2.0, 1.0, 20.0])
+
+# Non-callback mode should fail
+try:
+    g_callback.update_weights([1.5, 2.5])
+    print("   ❌ FAILED: Should have rejected extra coefficients in non-callback mode!")
+    exit(1)
+except RuntimeError as e:
+    if "coefficient length mismatch" in str(e).lower():
+        print("   ✅ Non-callback mode rejects extra coefficients")
+    else:
+        print(f"   ⚠️  Unexpected error: {e}")
+
+# Callback mode should work - callback can access all coefficients
+def custom_callback(theta, coeffs):
+    # Use first two coefficients with theta, third as constant offset
+    return coeffs[0] * theta[0] + coeffs[1] * theta[1] + coeffs[2]
+
+g_callback.update_weights([1.5, 2.5], callback=custom_callback)
+
+# Verify weights were computed correctly
+# v1_cb edge: 2.0*1.5 + 1.0*2.5 + 20.0 = 3.0 + 2.5 + 20.0 = 25.5
+edge_weight = v1_cb.edges()[0].weight()
+expected_weight = 25.5
+if abs(edge_weight - expected_weight) < 1e-10:
+    print(f"   ✅ Callback mode allows extra coefficients (weight={edge_weight:.1f})")
+else:
+    print(f"   ❌ FAILED: Expected weight {expected_weight}, got {edge_weight}")
+    exit(1)
 
 # Test 5: Serialization Correctness
 print("\n5. Testing serialization/deserialization...")
@@ -324,7 +373,9 @@ Verified capabilities:
   ✅ Constant edges produce correct PDFs
   ✅ Parameterized edges produce correct PDFs
   ✅ Multi-parameter edge weights computed correctly
-  ✅ Edge type validation prevents mixing
+  ✅ Edge coefficient validation works (non-callback mode)
+  ✅ Extra coefficients allowed in callback mode
+  ✅ Non-callback mode enforces strict coefficient==param length
   ✅ Serialization preserves structure
   ✅ JAX integration (jit/grad/vmap) works
   ✅ Backward compatibility maintained
