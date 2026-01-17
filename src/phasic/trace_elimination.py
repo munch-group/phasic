@@ -456,7 +456,7 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
     # ========================================================================
 
     # Check if graph has any parameterized edges and determine param_length
-    # Strategy: Either use explicit param_length or auto-detect via garbage detection
+    # Strategy: Use explicit param_length, or graph's param_length, or auto-detect via garbage detection
     has_parameterized = False
     detected_param_length = 0
 
@@ -475,7 +475,32 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
     # Define constant for max parameter testing
     MAX_PARAM_TEST = 200
 
-    # If param_length not provided, auto-detect it
+    # If param_length not provided, try to get it from graph
+    if param_length is None:
+        graph_param_length = graph.param_length()
+        if graph_param_length > 0:
+            param_length = graph_param_length
+            logger.debug("Using param_length=%d from graph", param_length)
+    else:
+        # Explicit param_length provided - ensure graph's param_length matches for consistent hashing
+        graph_param_length = graph.param_length()
+        if graph_param_length > 0 and param_length != graph_param_length:
+            logger.warning(
+                "Explicit param_length=%d differs from graph.param_length=%d. "
+                "Setting graph.param_length to match explicit value for consistent cache keys.",
+                param_length, graph_param_length
+            )
+            # Update graph's param_length to match explicit param_length for cache consistency
+            # This ensures cache keys are consistent across calls with the same param_length
+            try:
+                graph.set_param_length(param_length)
+            except Exception as e:
+                logger.warning(
+                    "Could not set graph.param_length (graph may already have edges). "
+                    "Cache may not work correctly if param_length differs from graph's setting. Error: %s", e
+                )
+
+    # If still not set and has parameterized edges, auto-detect it
     if param_length is None and has_parameterized:
         logger.debug("Auto-detecting param_length via garbage detection...")
         # Sample multiple edges and find the minimum garbage threshold
@@ -515,8 +540,27 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
         # No parameterized edges, set to 0
         param_length = 0
         logger.debug("No parameterized edges, param_length=0")
-    else:
-        logger.debug("Using explicit param_length=%d", param_length)
+
+    # Ensure graph's param_length is set correctly for cache consistency
+    # This must happen BEFORE any C operations that compute hashes or record traces
+    if param_length > 0:
+        graph_param_length = graph.param_length()
+        if graph_param_length == 0:
+            # Graph param_length not set yet, set it now
+            logger.debug("Setting graph.param_length=%d for cache consistency", param_length)
+            try:
+                graph.set_param_length(param_length)
+            except Exception as e:
+                logger.warning("Could not set graph.param_length: %s", e)
+        elif graph_param_length != param_length:
+            # Graph param_length differs from desired param_length
+            # This is problematic for caching, so warn user
+            logger.warning(
+                "Graph has param_length=%d but trace recording requested param_length=%d. "
+                "Cache keys depend on graph.param_length, so this may cause cache misses or incorrect cache hits. "
+                "Consider setting param_length explicitly when constructing the Graph, or omit param_length argument here.",
+                graph_param_length, param_length
+            )
 
     # Determine reward_length
     if reward_length is None:

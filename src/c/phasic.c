@@ -2870,16 +2870,18 @@ struct ptd_edge *ptd_graph_add_edge(
 
     // VALIDATION: Check consistency with existing edges
     if (from->graph->param_length_locked) {
-        if (coefficients_length != from->graph->param_length) {
+        // Allow edges with MORE coefficients than param_length
+        // Only the first param_length coefficients will be used
+        if (from->index != from->graph->starting_vertex->index && coefficients_length < from->graph->param_length) {
             snprintf((char*)ptd_err, sizeof(ptd_err),
-                "Edge coefficient length mismatch: graph expects %zu parameters, got %zu. "
-                "All edges in a graph must have the same coefficient length.",
+                "Edge has too few coefficients: graph expects at least %zu, got %zu. "
+                "Edges must have coefficients_length >= param_length.",
                 (unsigned long)from->graph->param_length,
                 (unsigned long)coefficients_length);
             return NULL;
         }
     } else if (from->index != from->graph->starting_vertex->index) {
-        // First edge: set graph mode
+        // First edge: set graph mode (if not explicitly set via set_param_length)
         from->graph->param_length = coefficients_length;
         from->graph->param_length_locked = true;
     }
@@ -2915,8 +2917,19 @@ struct ptd_edge *ptd_graph_add_edge(
     edge->should_free_coefficients = true;
 
     // Compute initial weight with default params (theta=[1,1,...])
+    // Only use first min(coefficients_length, param_length) coefficients
+    // BUT: if param_length not yet set (IPV edges), use all coefficients
     edge->weight = 0.0;
-    for (size_t i = 0; i < coefficients_length; i++) {
+    size_t n_coeffs_for_init;
+    if (from->graph->param_length_locked) {
+        // param_length is set, use min(coefficients_length, param_length)
+        n_coeffs_for_init = coefficients_length < from->graph->param_length ?
+                            coefficients_length : from->graph->param_length;
+    } else {
+        // param_length not set yet (IPV edges), use all coefficients
+        n_coeffs_for_init = coefficients_length;
+    }
+    for (size_t i = 0; i < n_coeffs_for_init; i++) {
         edge->weight += coefficients[i] * 1.0;
     }
 
@@ -3027,6 +3040,37 @@ if (edge->to->graph->reward_compute_graph != NULL) {
 
 edge->to = vertex;
 
+}
+
+/**
+ * Set the parameter length for a graph before adding edges
+ */
+void ptd_graph_set_param_length(
+        struct ptd_graph *graph,
+        size_t param_length
+) {
+    if (graph == NULL) {
+        snprintf((char*)ptd_err, sizeof(ptd_err), "Graph is NULL");
+        return;
+    }
+
+    if (graph->param_length_locked) {
+        snprintf((char*)ptd_err, sizeof(ptd_err),
+            "Cannot set param_length: graph already has edges added (param_length=%zu). "
+            "Call ptd_graph_set_param_length() before adding any non-IPV edges.",
+            (unsigned long)graph->param_length);
+        return;
+    }
+
+    if (param_length == 0) {
+        snprintf((char*)ptd_err, sizeof(ptd_err),
+            "param_length must be > 0");
+        return;
+    }
+
+    graph->param_length = param_length;
+    graph->param_length_locked = true;
+    graph->parameterized = (param_length > 1);
 }
 
 
@@ -3147,6 +3191,20 @@ void ptd_graph_update_weights(
             }
 
             // Compute weight based on mode
+            // STRICT VALIDATION: In non-callback mode, coefficient length must match theta length exactly
+            // To use extra coefficients, call update_weights(theta, callback) with a custom callback
+            if (edge->coefficients_length != theta_len) {
+                snprintf((char*)ptd_err, sizeof(ptd_err),
+                    "Coefficient length mismatch: edge has %zu coefficients but theta has %zu parameters. "
+                    "In non-callback mode, they must match exactly. "
+                    "To use extra coefficients, call update_weights(theta, callback) with a custom callback function.",
+                    (unsigned long)edge->coefficients_length, (unsigned long)theta_len);
+                if (need_free) {
+                    free(theta);
+                }
+                return;
+            }
+
             if (use_log) {
                 // Product in log-space: exp(sum(log(c_k * θ_k)))
                 double log_sum = 0.0;
@@ -3170,7 +3228,7 @@ void ptd_graph_update_weights(
                 }
                 edge->weight = exp(log_sum);
             } else {
-                // Standard dot product (current behavior)
+                // Standard dot product
                 edge->weight = 0.0;
                 for (size_t k = 0; k < edge->coefficients_length; k++) {
                     edge->weight += edge->coefficients[k] * theta[k];

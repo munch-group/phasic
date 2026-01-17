@@ -139,8 +139,23 @@ def hash_callback(callback: Callable, **params) -> str:
     if params:
         # Sort by key for determinism
         param_items = sorted(params.items())
-        # Use repr() for consistent representation
-        param_str = ",".join(f"{k}={repr(v)}" for k, v in param_items)
+        # Use repr() for consistent representation, but warn about non-deterministic reprs
+        param_strs = []
+        for k, v in param_items:
+            v_repr = repr(v)
+            # Detect memory addresses in repr (e.g., "0x12345" or "object at 0x")
+            if ' at 0x' in v_repr or '<' in v_repr and '0x' in v_repr:
+                import warnings
+                warnings.warn(
+                    f"Parameter '{k}' has non-deterministic repr: {v_repr[:100]}\n"
+                    f"This will cause cache misses on every run because the memory address changes.\n"
+                    f"To fix: implement __repr__ on {type(v).__name__} that returns a stable string,\n"
+                    f"or exclude this parameter from the Graph() call if it's not needed for caching.",
+                    UserWarning,
+                    stacklevel=5
+                )
+            param_strs.append(f"{k}={v_repr}")
+        param_str = ",".join(param_strs)
         components.append(f"params:{param_str}")
 
     # Component 8: Compute SHA256 hash

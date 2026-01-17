@@ -1490,6 +1490,27 @@ class Graph(_Graph):
             Cache is keyed by callback function source code + parameters, enabling instant loading of
             previously built graphs. Useful for expensive graph constructions.
             Default: False (no caching)
+        param_length : int, optional
+            Number of model parameters (θ). This sets the expected length of parameter vectors
+            passed to update_weights(theta).
+
+            When param_length < edge coefficients_length:
+            - **Non-callback mode** (update_weights(theta)): ERROR - coefficient and theta lengths must match exactly
+            - **Callback mode** (update_weights(theta, callback)): OK - callback receives full coefficient vector
+
+            This allows storing auxiliary data in coefficient vectors for use in custom callback functions
+            while maintaining a compact theta parameter space. The extra coefficients are accessible only
+            through the callback, not in standard dot-product weight computation.
+
+            If not provided, param_length is inferred from the first edge's coefficient length.
+
+            Example:
+                >>> g.set_param_length(2)
+                >>> g.starting_vertex().add_edge(v1, [c1, c2, c3])  # 3 coefficients stored
+                >>> g.update_weights([θ1, θ2])  # ERROR: mismatch (2 params vs 3 coeffs)
+                >>> g.update_weights([θ1, θ2], lambda theta, coeffs: custom_weight(theta, coeffs))  # OK
+
+            Default: None (auto-detect from edges)
         hierarchical : bool, optional
             If True, enables trace-based computation for moments, expectation, variance, etc.
             This provides 5-10x speedup for repeated evaluations on parameterized graphs by:
@@ -1511,9 +1532,26 @@ class Graph(_Graph):
         >>> # With caching (fast on second call)
         >>> graph = Graph(callback, theta=2.0, cache=True)  # Builds and caches
         >>> graph = Graph(callback, theta=2.0, cache=True)  # Instant load from cache
+
+        >>> # Using extra coefficients with callback mode
+        >>> def callback_with_extra_coeffs(state):
+        >>>     c1, c2, c3 = compute_coeffs(state)  # 3 coefficients (c3 is auxiliary data)
+        >>>     return [(next_state, 0.0, [c1, c2, c3])]
+        >>> graph = Graph(callback_with_extra_coeffs, param_length=2)
+        >>> # Non-callback mode fails:
+        >>> # graph.update_weights([1.5, 2.0])  # ERROR: 2 params vs 3 coeffs
+        >>> # Callback mode works:
+        >>> graph.update_weights([1.5, 2.0], lambda theta, coeffs: coeffs[0]*theta[0] + coeffs[1]*theta[1] + coeffs[2])  # OK
         """
         # Extract hierarchical flag (but keep in kwargs for cache key)
         hierarchical = kwargs.get('hierarchical', False)
+
+        # Wrap callback with IPV BEFORE cache operations to ensure consistent hashing
+        callback_for_cache = arg
+        if callable(arg) and ipv is not None:
+            if arg.__name__ != 'wrapper':
+                # Wrap with IPV now so cache hash includes it
+                callback_for_cache = _callback(ipv)(arg)
 
         # Try loading from cache if requested
         if callable(arg) and cache:
@@ -1523,7 +1561,7 @@ class Graph(_Graph):
 
             _cache = GraphCache()
             try:
-                cached_graph = _cache.load_graph(arg, **kwargs)
+                cached_graph = _cache.load_graph(callback_for_cache, **kwargs)
                 if cached_graph is not None:
                     # Cache hit - initialize from cached graph
                     super().__init__(cached_graph)
@@ -1558,16 +1596,25 @@ class Graph(_Graph):
         self._callback_kwargs = {}
 
         if callable(arg):
+            # Extract param_length (but keep in kwargs for cache key consistency)
+            param_length = kwargs.get('param_length', None)
+
             # Remove hierarchical from kwargs before passing to C++ callback
             kwargs_for_callback = kwargs.copy()
             kwargs_for_callback.pop('hierarchical', None)
+            # Also remove param_length from callback kwargs since we pass it separately
+            kwargs_for_callback.pop('param_length', None)
 
             # turn integer kwargs into float kwargs
             for key, value in kwargs_for_callback.items():
                 if isinstance(value, int):
                     kwargs_for_callback[key] = float(value)
 
-            if arg.__name__ != 'wrapper':
+            # Use the wrapped callback (already done before cache operations)
+            if callback_for_cache is not arg:
+                # Already wrapped for cache
+                arg = callback_for_cache
+            elif arg.__name__ != 'wrapper':
                 assert ipv is not None, "When providing a function not decorated with @callback, the ipv argument must be provided"
                 arg = _callback(ipv)(arg)
             else:
@@ -1577,7 +1624,11 @@ class Graph(_Graph):
             self._callback = arg
             self._callback_kwargs = kwargs.copy()
 
-            super().__init__(callback_tuples_parameterized=partial(arg, **kwargs_for_callback))
+            # Pass param_length to C++ builder
+            if param_length is not None:
+                super().__init__(callback_tuples_parameterized=partial(arg, **kwargs_for_callback), param_length=param_length)
+            else:
+                super().__init__(callback_tuples_parameterized=partial(arg, **kwargs_for_callback))
         elif isinstance(arg, int):
             super().__init__(state_length=arg)
         elif isinstance(arg, _Graph):
@@ -1618,7 +1669,8 @@ class Graph(_Graph):
 
             _cache = GraphCache()
             try:
-                _cache.save_graph(self, arg, **kwargs)
+                # Use same wrapped callback as load for consistent hash
+                _cache.save_graph(self, callback_for_cache, **kwargs)
                 logger.info(f"Saved graph to cache: {self.vertices_length()} vertices")
             except Exception as e:
                 logger.warning(f"Failed to save graph to cache: {e}")
@@ -2591,11 +2643,12 @@ class Graph(_Graph):
         # Extract parameterized edges between vertices (excluding starting vertex)
         # With unified interface: parameterized_edges() returns edges with coefficient arrays
         param_edges_list = []
+        start_vertex_idx = start.index()
         if param_length > 0:  # Export all edges with coefficient arrays
             for i, v in enumerate(vertices_list):
                 # Skip starting vertex edges (they're handled separately)
-                v_state = tuple(v.state())
-                if v_state == start_state:
+                # Use vertex index comparison, not state comparison (states may be duplicated)
+                if v.index() == start_vertex_idx:
                     continue
 
                 from_idx = i
@@ -2603,14 +2656,35 @@ class Graph(_Graph):
                     to_vertex = edge.to()
                     if to_vertex.index() in vertex_idx_to_enum:
                         to_idx = vertex_idx_to_enum[to_vertex.index()]
-                        # Get coefficient array (length is guaranteed to be param_length)
-                        edge_state = list(edge.edge_state(param_length))
-                        # Only include edges with non-empty edge states
-                        if edge_state and any(x != 0 for x in edge_state):
+                        # Get FULL coefficient array (all coefficients, not just param_length)
+                        # This is critical when coefficients_length > param_length
+                        coeff_len = edge.coefficients_length()
+                        edge_state = list(edge.edge_state(coeff_len))
+                        # Include all parameterized edges (even with all-zero coefficients)
+                        if edge_state:
                             # Store: [from_idx, to_idx, x1, x2, x3, ...]
                             param_edges_list.append([from_idx, to_idx] + edge_state)
 
-        param_edges = np.array(param_edges_list, dtype=np.float64) if param_edges_list else np.empty((0, param_length + 2 if param_length > 0 else 0), dtype=np.float64)
+        # Convert to numpy array - all edges should have same coefficient length
+        # If not, will raise ValueError with helpful message
+        if param_edges_list:
+            try:
+                param_edges = np.array(param_edges_list, dtype=np.float64)
+            except ValueError as e:
+                # Check if edges have different coefficient lengths
+                lengths = set(len(row) for row in param_edges_list)
+                if len(lengths) > 1:
+                    raise ValueError(
+                        f"Graph serialization failed: parameterized edges have inconsistent coefficient lengths.\n"
+                        f"  Found coefficient lengths: {sorted(lengths)}\n"
+                        f"  All edges must have the same coefficient length.\n"
+                        f"  Hint: Check callback function - it may be returning edges with different coefficient arrays."
+                    ) from e
+                else:
+                    raise
+        else:
+            # Empty case - use param_length for consistency
+            param_edges = np.empty((0, param_length + 2 if param_length > 0 else 0), dtype=np.float64)
 
         # Extract starting vertex parameterized edges FIRST (needed to build exclusion set)
         # NOTE: Starting vertex edges are NEVER rescaled by update_weights() (see starting vertex fix)
@@ -2643,10 +2717,11 @@ class Graph(_Graph):
         # Extract regular edges between vertices (excluding starting vertex)
         # Skip edges that have parameterized versions
         edges_list = []
+        start_vertex_idx = start.index()
         for i, v in enumerate(vertices_list):
             # Skip starting vertex edges (they're handled separately)
-            v_state = tuple(v.state())
-            if v_state == start_state:
+            # Use vertex index comparison, not state comparison (states may be duplicated)
+            if v.index() == start_vertex_idx:
                 continue
 
             from_idx = i
@@ -2797,6 +2872,23 @@ class Graph(_Graph):
             )
 
         try:
+            vertex_indices = np.asarray(data['vertex_indices'], dtype=np.int32)
+        except (ValueError, TypeError) as e:
+            raise ValueError(
+                f"Graph deserialization failed: cannot convert 'vertex_indices' to int32 array\n"
+                f"  Type: {type(data['vertex_indices'])}\n"
+                f"  Error: {e}"
+            ) from e
+
+        if vertex_indices.shape != (n_vertices,):
+            raise ValueError(
+                f"Graph deserialization failed: vertex_indices array shape mismatch\n"
+                f"  Expected: ({n_vertices},) from metadata\n"
+                f"  Actual: {vertex_indices.shape} from 'vertex_indices' field\n"
+                f"  Resolution: This indicates corrupted data. Clear cache and rebuild."
+            )
+
+        try:
             edges = np.asarray(data['edges'], dtype=np.float64)
             start_edges = np.asarray(data['start_edges'], dtype=np.float64)
             param_edges = np.asarray(data['param_edges'], dtype=np.float64)
@@ -2840,34 +2932,35 @@ class Graph(_Graph):
             )
 
         # Note: As of v0.22.0, base_weight was removed from parameterized edges
-        # Format is now [from, to, c1, c2, ...] with 2+param_length columns
-        # Special case: when param_length=0, serialize() creates (0,0) arrays
-        expected_param_edge_cols = 2 + param_length if param_length > 0 else 0
+        # Format is now [from, to, c1, c2, ...] with 2+coefficients_length columns
+        # The coefficient length may be >= param_length (edges can have extra coefficients)
+        # Infer actual coefficient length from array shape
         if param_edges.ndim == 1:
             if param_edges.shape[0] != 0:
                 raise ValueError(
                     f"Graph deserialization failed: param_edges array has wrong shape\n"
-                    f"  Expected: (n_param_edges, {expected_param_edge_cols}) or empty (0,)\n"
+                    f"  Expected: (n_param_edges, 2+coeff_len) or empty (0,)\n"
                     f"  Actual: {param_edges.shape}"
                 )
-            param_edges = param_edges.reshape((0, expected_param_edge_cols)) if expected_param_edge_cols > 0 else param_edges.reshape((0, 0))
+            param_edges = param_edges.reshape((0, 0))
         elif param_edges.ndim == 2:
-            # Accept (0, 0) for param_length=0, or (n, 2+param_length) for param_length>0
-            if param_length == 0:
-                if param_edges.shape != (0, 0):
-                    raise ValueError(
-                        f"Graph deserialization failed: param_edges array has wrong shape\n"
-                        f"  Expected: (0, 0) when param_length=0\n"
-                        f"  Actual: {param_edges.shape}"
-                    )
-            elif param_edges.shape[1] != expected_param_edge_cols:
+            # Validate minimum columns (at least from_idx, to_idx)
+            if param_edges.shape[0] > 0 and param_edges.shape[1] < 2:
                 raise ValueError(
-                    f"Graph deserialization failed: param_edges array has wrong shape\n"
-                    f"  Expected: (n_param_edges, {expected_param_edge_cols})\n"
-                    f"  Actual: {param_edges.shape}\n"
-                    f"  Note: param_length={param_length}, so columns should be 2+{param_length}={expected_param_edge_cols}\n"
-                    f"  Format: [from_idx, to_idx, coeff1, coeff2, ...] (no base_weight as of v0.22.0)"
+                    f"Graph deserialization failed: param_edges array has too few columns\n"
+                    f"  Expected: at least 2 columns (from_idx, to_idx)\n"
+                    f"  Actual: {param_edges.shape[1]} columns"
                 )
+            # Infer coefficient length from array shape
+            if param_edges.shape[0] > 0:
+                actual_coeff_len = param_edges.shape[1] - 2
+                if actual_coeff_len < param_length:
+                    raise ValueError(
+                        f"Graph deserialization failed: coefficient length < param_length\n"
+                        f"  Coefficient length: {actual_coeff_len} (from array shape)\n"
+                        f"  param_length: {param_length}\n"
+                        f"  Edges must have at least param_length coefficients"
+                    )
 
         expected_start_param_edge_cols = 1 + param_length if param_length > 0 else 0
         if start_param_edges.ndim == 1:
@@ -2898,8 +2991,13 @@ class Graph(_Graph):
 
         # Create empty graph
         graph = cls(state_length)
+
+        # DO NOT set param_length here - let the first parameterized edge set it
+        # Setting it early causes constant edges to require param_length coefficients
+        # The graph will auto-detect mode from the first non-IPV edge added
+
         start = graph.starting_vertex()
-        start_state = tuple(start.state())
+        start_vertex_c_idx = start.index()  # Get C index of starting vertex
 
         # Create all vertices first
         # Note: The starting vertex may be included in the states array,
@@ -2907,10 +3005,10 @@ class Graph(_Graph):
         idx_to_vertex = {}
         for idx in range(n_vertices):
             state = states[idx].tolist()
-            state_tuple = tuple(state)
 
-            # Check if this is the starting vertex
-            if state_tuple == start_state:
+            # Check if this is the starting vertex using C vertex index
+            # Use vertex_indices array, not state comparison (states may be duplicated)
+            if vertex_indices[idx] == start_vertex_c_idx:
                 idx_to_vertex[idx] = start
             else:
                 try:
@@ -2922,59 +3020,6 @@ class Graph(_Graph):
                         f"  State: {state}\n"
                         f"  Error: {e}"
                     ) from e
-
-        # Add regular edges (non-parameterized)
-        for edge_data in edges:
-            from_idx = int(edge_data[0])
-            to_idx = int(edge_data[1])
-            weight = float(edge_data[2])
-
-            if from_idx < 0 or from_idx >= n_vertices:
-                raise RuntimeError(
-                    f"Graph deserialization failed: edge has invalid from_idx\n"
-                    f"  from_idx={from_idx}, valid range=[0, {n_vertices})"
-                )
-            if to_idx < 0 or to_idx >= n_vertices:
-                raise RuntimeError(
-                    f"Graph deserialization failed: edge has invalid to_idx\n"
-                    f"  to_idx={to_idx}, valid range=[0, {n_vertices})"
-                )
-
-            try:
-                from_vertex = idx_to_vertex[from_idx]
-                to_vertex = idx_to_vertex[to_idx]
-                from_vertex.add_edge(to_vertex, weight)
-            except Exception as e:
-                raise RuntimeError(
-                    f"Graph deserialization failed: cannot add edge\n"
-                    f"  From vertex {from_idx} (state={states[from_idx].tolist()})\n"
-                    f"  To vertex {to_idx} (state={states[to_idx].tolist()})\n"
-                    f"  Weight: {weight}\n"
-                    f"  Error: {e}"
-                ) from e
-
-        # Add starting vertex regular edges
-        start = graph.starting_vertex()
-        for edge_data in start_edges:
-            to_idx = int(edge_data[0])
-            weight = float(edge_data[1])
-
-            if to_idx < 0 or to_idx >= n_vertices:
-                raise RuntimeError(
-                    f"Graph deserialization failed: start edge has invalid to_idx\n"
-                    f"  to_idx={to_idx}, valid range=[0, {n_vertices})"
-                )
-
-            try:
-                to_vertex = idx_to_vertex[to_idx]
-                start.add_edge(to_vertex, weight)
-            except Exception as e:
-                raise RuntimeError(
-                    f"Graph deserialization failed: cannot add start edge\n"
-                    f"  To vertex {to_idx} (state={states[to_idx].tolist()})\n"
-                    f"  Weight: {weight}\n"
-                    f"  Error: {e}"
-                ) from e
 
         # Add parameterized edges
         # Format (v0.22.0+): [from_idx, to_idx, coeff1, coeff2, ...]
@@ -3029,6 +3074,59 @@ class Graph(_Graph):
                     f"Graph deserialization failed: cannot add start parameterized edge\n"
                     f"  To vertex {to_idx} (state={states[to_idx].tolist()})\n"
                     f"  Edge state (coefficients): {edge_state}\n"
+                    f"  Error: {e}"
+                ) from e
+
+        # Add regular edges (non-parameterized)
+        for edge_data in edges:
+            from_idx = int(edge_data[0])
+            to_idx = int(edge_data[1])
+            weight = float(edge_data[2])
+
+            if from_idx < 0 or from_idx >= n_vertices:
+                raise RuntimeError(
+                    f"Graph deserialization failed: edge has invalid from_idx\n"
+                    f"  from_idx={from_idx}, valid range=[0, {n_vertices})"
+                )
+            if to_idx < 0 or to_idx >= n_vertices:
+                raise RuntimeError(
+                    f"Graph deserialization failed: edge has invalid to_idx\n"
+                    f"  to_idx={to_idx}, valid range=[0, {n_vertices})"
+                )
+
+            try:
+                from_vertex = idx_to_vertex[from_idx]
+                to_vertex = idx_to_vertex[to_idx]
+                from_vertex.add_edge(to_vertex, weight)
+            except Exception as e:
+                raise RuntimeError(
+                    f"Graph deserialization failed: cannot add edge\n"
+                    f"  From vertex {from_idx} (state={states[from_idx].tolist()})\n"
+                    f"  To vertex {to_idx} (state={states[to_idx].tolist()})\n"
+                    f"  Weight: {weight}\n"
+                    f"  Error: {e}"
+                ) from e
+
+        # Add starting vertex regular edges
+        start = graph.starting_vertex()
+        for edge_data in start_edges:
+            to_idx = int(edge_data[0])
+            weight = float(edge_data[1])
+
+            if to_idx < 0 or to_idx >= n_vertices:
+                raise RuntimeError(
+                    f"Graph deserialization failed: start edge has invalid to_idx\n"
+                    f"  to_idx={to_idx}, valid range=[0, {n_vertices})"
+                )
+
+            try:
+                to_vertex = idx_to_vertex[to_idx]
+                start.add_edge(to_vertex, weight)
+            except Exception as e:
+                raise RuntimeError(
+                    f"Graph deserialization failed: cannot add start edge\n"
+                    f"  To vertex {to_idx} (state={states[to_idx].tolist()})\n"
+                    f"  Weight: {weight}\n"
                     f"  Error: {e}"
                 ) from e
 
@@ -5466,3 +5564,6 @@ __all_config__ = [
     'PTDFeatureError',
     'PTDJAXError',
 ]
+
+# Export callback decorator for building parameterized graphs
+callback = _callback

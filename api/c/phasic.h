@@ -198,6 +198,24 @@ void ptd_graph_update_weights(
         bool use_log
 );
 
+/**
+ * Set the parameter length for a graph before adding edges
+ *
+ * This function allows explicitly setting the number of model parameters (θ)
+ * before adding edges. Useful when edges may have more coefficients than
+ * the number of model parameters.
+ *
+ * @param graph Graph to configure
+ * @param param_length Number of model parameters
+ *
+ * @note Must be called before adding any non-IPV edges
+ * @note Once set, all edges must have coefficients_length >= param_length
+ */
+void ptd_graph_set_param_length(
+        struct ptd_graph *graph,
+        size_t param_length
+);
+
 double *ptd_normalize_graph(struct ptd_graph *graph);
 
 double *ptd_dph_normalize_graph(struct ptd_graph *graph);

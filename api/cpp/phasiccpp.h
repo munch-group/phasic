@@ -211,6 +211,13 @@ namespace phasic {
 
 
 
+        void set_param_length(size_t param_length) {
+            ptd_graph_set_param_length(this->c_graph(), param_length);
+            if (ptd_err[0] != '\0') {
+                throw std::runtime_error((char *) ptd_err);
+            }
+        }
+
         void update_weights_parameterized(std::vector<double> scalars, bool use_log = false);
 
         // Callback-based weight update
@@ -1064,6 +1071,11 @@ namespace phasic {
         }
 
         // base_weight() method removed - starting edges are never parameterized
+
+        // Expose coefficients_length from base class
+        size_t coefficients_length() const {
+            return Edge::coefficients_length();
+        }
 
         std::vector<double> edge_state(size_t requested_length) {
             std::vector<double> state;

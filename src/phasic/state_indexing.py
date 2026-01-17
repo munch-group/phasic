@@ -1487,18 +1487,96 @@ class StateIndexer:
         return self.props_to_index(*args, **kwargs)
 
     def __repr__(self):
-        """String representation of StateIndexer."""
+        """
+        Stable string representation of StateIndexer for caching.
+
+        Returns a deterministic string based on structure, not memory address.
+        """
         components = []
-        # PropertySets
-        for name, ps in self._property_sets.items():
-            components.append(f"{name}({ps.state_length})")
-        # Slots
-        for name in self._slots.keys():
-            components.append(f"{name}(slot)")
+
+        # Add PropertySets in order
+        for name in self._pset_order:
+            pset = self._property_sets[name]
+            # Include property details for stable repr
+            props_str = ', '.join(
+                f"{p.name}:{p.min_value}-{p.max_value}"
+                for p in pset.properties
+            )
+            components.append(f"{name}=[{props_str}]")
+
+        # Add Slots in order
+        for name in self._slot_order:
+            components.append(f"{name}=slot")
+
         return f"StateIndexer({', '.join(components)})"
 
-    
-    def __iter__(self):        
+    def __hash__(self):
+        """
+        Stable hash for StateIndexer based on structure.
+
+        Enables use as dict key and cache key parameter.
+        Hashes the structure (PropertySets, Properties, Slots) not memory address.
+        """
+        # Create tuple of all structural components in deterministic order
+        hash_components = []
+
+        # Hash PropertySets
+        for name in self._pset_order:
+            pset = self._property_sets[name]
+            # Hash each property's definition
+            for prop in pset.properties:
+                hash_components.append((
+                    'pset',
+                    name,
+                    prop.name,
+                    prop.min_value,
+                    prop.max_value
+                ))
+
+        # Hash Slots
+        for name in self._slot_order:
+            hash_components.append(('slot', name))
+
+        return hash(tuple(hash_components))
+
+    def __eq__(self, other):
+        """
+        Equality check based on structure, not identity.
+
+        Two StateIndexers are equal if they have the same PropertySets,
+        Properties, and Slots in the same order.
+        """
+        if not isinstance(other, StateIndexer):
+            return False
+
+        # Quick check: same hash?
+        if hash(self) != hash(other):
+            return False
+
+        # Detailed check: same structure?
+        if self._pset_order != other._pset_order:
+            return False
+        if self._slot_order != other._slot_order:
+            return False
+
+        # Check each PropertySet
+        for name in self._pset_order:
+            self_pset = self._property_sets[name]
+            other_pset = other._property_sets[name]
+
+            if len(self_pset.properties) != len(other_pset.properties):
+                return False
+
+            for self_prop, other_prop in zip(self_pset.properties, other_pset.properties):
+                if (self_prop.name != other_prop.name or
+                    self_prop.min_value != other_prop.min_value or
+                    self_prop.max_value != other_prop.max_value):
+                    return False
+
+        return True
+
+
+    def __iter__(self):
         return iter(range(self.state_length))
 
     def indices(self):

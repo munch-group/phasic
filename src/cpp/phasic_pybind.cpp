@@ -707,9 +707,18 @@ double _covariance_discrete(phasic::Graph &graph,
 
   // Parameterized version: callback returns tuples of (state, weight, edge_state)
   phasic::Graph build_state_space_callback_tuples_parameterized(
-      const std::function<std::vector<py::object> (const py::array_t<int> &state)> &callback) {
+      const std::function<std::vector<py::object> (const py::array_t<int> &state)> &callback,
+      py::object param_length_obj = py::none()) {
 
       phasic::Graph *graph = nullptr;
+      size_t explicit_param_length = 0;
+      bool has_explicit_param_length = false;
+
+      // Extract param_length if provided
+      if (!param_length_obj.is_none()) {
+          explicit_param_length = param_length_obj.cast<size_t>();
+          has_explicit_param_length = true;
+      }
 
       // IPV from callback with no state argument
       std::vector<py::object> children = callback(py::array_t<int>());
@@ -731,6 +740,11 @@ double _covariance_discrete(phasic::Graph &graph,
 
         if (!graph) {
           graph = new phasic::Graph(child_state.size());
+
+          // Set explicit param_length if provided (before adding any edges)
+          if (has_explicit_param_length) {
+              graph->set_param_length(explicit_param_length);
+          }
         }
         phasic::Vertex child_vertex = graph->find_or_create_vertex(child_state);
 
@@ -1172,7 +1186,8 @@ int
     //   )delim")
 
     .def(py::init(&build_state_space_callback_tuples_parameterized),
-      py::arg("callback_tuples_parameterized"))
+      py::arg("callback_tuples_parameterized"),
+      py::arg("param_length") = py::none())
 
     // .def_static("from_callback_parameterized", [](py::function callback, py::kwargs kwargs) {
     //     // Create a wrapper that applies kwargs to the callback
@@ -1472,6 +1487,37 @@ str
       -------
       bool
           True if this is marked as a discrete phase-type distribution
+      )delim")
+
+    .def("set_param_length",
+      [](phasic::Graph& self, size_t param_length) {
+          self.set_param_length(param_length);
+      },
+      py::arg("param_length"),
+      R"delim(
+    Set the number of model parameters before adding edges.
+
+    This allows edges to have more coefficients than the number of model
+    parameters (θ). Only the first param_length coefficients will be used
+    for computing edge weights.
+
+    Parameters
+    ----------
+    param_length : int
+        Number of model parameters (must be > 0)
+
+    Raises
+    ------
+    RuntimeError
+        If called after edges have been added, or if param_length is 0
+
+    Examples
+    --------
+    >>> g = Graph(2)
+    >>> g.set_param_length(2)  # Model has 2 parameters
+    >>> v1 = g.find_or_create_vertex([1, 0])
+    >>> g.starting_vertex().add_edge(v1, [c1, c2, c3])  # 3 coefficients OK
+    >>> g.update_weights([1.5, 2.0])  # Uses c1*1.5 + c2*2.0, ignores c3
       )delim")
 
     .def("update_weights",
@@ -4175,6 +4221,16 @@ Returns
 -------
 list of float
     Coefficient vector used to compute weight as dot(coefficients, theta).
+      )delim")
+
+    .def("coefficients_length", &phasic::ParameterizedEdge::coefficients_length,
+      R"delim(
+Get the length of the coefficient vector for this edge.
+
+Returns
+-------
+int
+    Number of coefficients stored in this edge.
       )delim")
 
     .def("__assign__", [](phasic::ParameterizedEdge &e, const phasic::ParameterizedEdge &o) {
