@@ -103,6 +103,18 @@
         {
             "filePath": "docs/pages/tutorials/full_api",
             "group": "Default"
+        },
+        {
+            "filePath": "src/phasic",
+            "group": "Default"
+        },
+        {
+            "filePath": "tests/pytest",
+            "group": "Default"
+        },
+        {
+            "filePath": "docs/pages",
+            "group": "Default"
         }
     ],
     "yaml.schemas": {
