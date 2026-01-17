@@ -2,390 +2,390 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://munch-group.github.io/phasic/pages/distributed/slurm_cluster_setup.html</loc>
-    <lastmod>2026-01-17T10:21:22.015Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.900Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/07-trace_computing.html</loc>
-    <lastmod>2026-01-17T10:21:22.261Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.124Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/06-time-inhomogeneous.html</loc>
-    <lastmod>2026-01-17T10:21:22.261Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.124Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/10-finite-markov-chains.html</loc>
-    <lastmod>2026-01-17T10:21:22.263Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.126Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/05-parametrization.html</loc>
-    <lastmod>2026-01-17T10:21:22.260Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.123Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/15-distributed.html</loc>
-    <lastmod>2026-01-17T10:21:22.307Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.179Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/04-state-space-utils.html</loc>
-    <lastmod>2026-01-17T10:21:22.260Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.123Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/08-laplace.html</loc>
-    <lastmod>2026-01-17T10:21:22.262Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.125Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/02-properties.html</loc>
-    <lastmod>2026-01-17T10:21:22.258Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.122Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/03-discrete.html</loc>
-    <lastmod>2026-01-17T10:21:22.259Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.123Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/somecode.html</loc>
-    <lastmod>2026-01-17T10:21:22.308Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.179Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/quickstart.html</loc>
-    <lastmod>2026-01-17T10:21:22.250Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.114Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/internals/trace_elimination_retracing.html</loc>
-    <lastmod>2026-01-17T10:21:22.032Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.918Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/internals/caching_architecture.html</loc>
-    <lastmod>2026-01-17T10:21:22.032Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.917Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/two-locus-arg.html</loc>
-    <lastmod>2026-01-17T10:21:22.250Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.114Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/R/im_model.html</loc>
-    <lastmod>2026-01-17T10:21:22.139Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.025Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/R/coalescent-selection.html</loc>
-    <lastmod>2026-01-17T10:21:22.135Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.021Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/R/two-locus-arg.html</loc>
-    <lastmod>2026-01-17T10:21:22.152Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.038Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/R/coalescent-minvar-theta.html</loc>
-    <lastmod>2026-01-17T10:21:22.061Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.947Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/R/coalescent-im-model.html</loc>
-    <lastmod>2026-01-17T10:21:22.046Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.932Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/R/SFS.html</loc>
-    <lastmod>2026-01-17T10:21:22.032Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.918Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/R/plot.html</loc>
-    <lastmod>2026-01-17T10:21:22.148Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.034Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/R/coalescent-partitions.html</loc>
-    <lastmod>2026-01-17T10:21:22.066Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.952Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/R/index_prop_mapping.html</loc>
-    <lastmod>2026-01-17T10:21:22.139Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.025Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/python/block-coalescent/coalescent-partitions.html</loc>
-    <lastmod>2026-01-17T10:21:22.158Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.044Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/python/coalescent.html</loc>
-    <lastmod>2026-01-17T10:21:22.164Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.045Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/python/isolation_migration.html</loc>
-    <lastmod>2026-01-17T10:21:22.180Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.060Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/python/coalescent-jointprob.html</loc>
-    <lastmod>2026-01-17T10:21:22.164Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.045Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/python/arg-two-island.html</loc>
-    <lastmod>2026-01-17T10:21:22.158Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.044Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/python/coalescent-minvar-theta.html</loc>
-    <lastmod>2026-01-17T10:21:22.164Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.045Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/python/coalescent_selection.html</loc>
-    <lastmod>2026-01-17T10:21:22.178Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.058Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/python/SFS.html</loc>
-    <lastmod>2026-01-17T10:21:22.157Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.043Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/python/coalescent-laplace.html</loc>
-    <lastmod>2026-01-17T10:21:22.164Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.045Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/python/comprehensive_beta_binomial.html</loc>
-    <lastmod>2026-01-17T10:21:22.179Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.059Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/python/coalescent-jointprob-ffi.html</loc>
-    <lastmod>2026-01-17T10:21:22.159Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.045Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/python/index_prop_mapping.html</loc>
-    <lastmod>2026-01-17T10:21:22.179Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.060Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/svgd/ffi_and_openmp.html</loc>
-    <lastmod>2026-01-17T10:21:22.250Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.114Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/svgd/caching.html</loc>
-    <lastmod>2026-01-17T10:21:22.250Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.114Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/svgd/svgd_trace_eval.html</loc>
-    <lastmod>2026-01-17T10:21:22.252Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.116Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/benchmarks/R/benchmarks.html</loc>
-    <lastmod>2026-01-17T10:21:22.005Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.891Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/benchmarks/R/benchmarks/benchmarks_benchmarks_kingman_params.html</loc>
-    <lastmod>2026-01-17T10:21:22.007Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.892Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/benchmarks/R/running_time.html</loc>
-    <lastmod>2026-01-17T10:21:22.014Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.899Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/examples/R/coalescent-jointprob-R.html</loc>
-    <lastmod>2026-01-17T10:21:22.022Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.907Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/examples/showcase_rpy2/showcase.html</loc>
-    <lastmod>2026-01-17T10:21:22.029Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.914Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/topics/R/first-row-solve.html</loc>
-    <lastmod>2026-01-17T10:21:22.253Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.117Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/topics/state-indexer.html</loc>
-    <lastmod>2026-01-17T10:21:22.255Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.119Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/topics/vscodenb.html</loc>
-    <lastmod>2026-01-17T10:21:22.255Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.119Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/index.html</loc>
-    <lastmod>2026-01-17T10:21:21.974Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.860Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/api/index.html</loc>
-    <lastmod>2026-01-17T10:21:21.973Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.859Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/api/Graph.html</loc>
-    <lastmod>2026-01-17T10:21:21.973Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.859Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/topics/visualize.html</loc>
-    <lastmod>2026-01-17T10:21:22.255Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.119Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/topics/caching_guide_old.html</loc>
-    <lastmod>2026-01-17T10:21:22.255Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.119Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/topics/caching_guide.html</loc>
-    <lastmod>2026-01-17T10:21:22.255Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.119Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/topics/R/partitions.html</loc>
-    <lastmod>2026-01-17T10:21:22.254Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.118Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/examples/R/full_r_api_example.html</loc>
-    <lastmod>2026-01-17T10:21:22.022Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.908Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/benchmarks/python/test_hierarchical_caching.html</loc>
-    <lastmod>2026-01-17T10:21:22.014Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.900Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/benchmarks/R/rabbit_running_time.html</loc>
-    <lastmod>2026-01-17T10:21:22.008Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.894Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/benchmarks/R/benchmarks/benchmarks_benchmarks_rabbits_params.html</loc>
-    <lastmod>2026-01-17T10:21:22.007Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.893Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/svgd/svgd_step_sizes.html</loc>
-    <lastmod>2026-01-17T10:21:22.252Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.116Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/svgd/svgd.html</loc>
-    <lastmod>2026-01-17T10:21:22.252Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.116Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/svgd/trace_ipfs.html</loc>
-    <lastmod>2026-01-17T10:21:22.252Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.116Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/python/wf_ctmc_notebook.html</loc>
-    <lastmod>2026-01-17T10:21:22.229Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.101Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/python/showcase.html</loc>
-    <lastmod>2026-01-17T10:21:22.219Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.090Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/python/plot.html</loc>
-    <lastmod>2026-01-17T10:21:22.181Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.062Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/python/isolation-migration/coalescent-im-model.html</loc>
-    <lastmod>2026-01-17T10:21:22.179Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.060Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/python/psmc.html</loc>
-    <lastmod>2026-01-17T10:21:22.197Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.068Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/python/two_locus_two_island-discrete.html</loc>
-    <lastmod>2026-01-17T10:21:22.224Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.095Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/python/two_locus_two_island.html</loc>
-    <lastmod>2026-01-17T10:21:22.229Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.100Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/python/selection.html</loc>
-    <lastmod>2026-01-17T10:21:22.217Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.088Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/python/two-locus-arg.html</loc>
-    <lastmod>2026-01-17T10:21:22.224Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.095Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/python/selection/coalescent-selection.html</loc>
-    <lastmod>2026-01-17T10:21:22.219Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.090Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/python/im_model.html</loc>
-    <lastmod>2026-01-17T10:21:22.179Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.060Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/python/demography/coalescent-epochs.html</loc>
-    <lastmod>2026-01-17T10:21:22.179Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.060Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/R/old_coalescent-partitions.html</loc>
-    <lastmod>2026-01-17T10:21:22.146Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.031Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/R/showcase.html</loc>
-    <lastmod>2026-01-17T10:21:22.150Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.036Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/R/coalescent-jointprob-ffi.html</loc>
-    <lastmod>2026-01-17T10:21:22.054Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.939Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/R/coalescent-laplace.html</loc>
-    <lastmod>2026-01-17T10:21:22.061Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.947Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/R/two_locus_two_island-discrete.html</loc>
-    <lastmod>2026-01-17T10:21:22.157Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.043Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/R/coalescent-epoques.html</loc>
-    <lastmod>2026-01-17T10:21:22.045Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.931Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/R/arg-two-island.html</loc>
-    <lastmod>2026-01-17T10:21:22.041Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.927Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/R/coalescent-jointprob.html</loc>
-    <lastmod>2026-01-17T10:21:22.060Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.946Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/R/isolation_migration.html</loc>
-    <lastmod>2026-01-17T10:21:22.139Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.025Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/popgen/R/coalescent.html</loc>
-    <lastmod>2026-01-17T10:21:22.138Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.023Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/internals/MPFR_FINAL_STATUS.html</loc>
-    <lastmod>2026-01-17T10:21:22.031Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.917Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/internals/call_tree.html</loc>
-    <lastmod>2026-01-17T10:21:22.032Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.917Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/internals/architecture.html</loc>
-    <lastmod>2026-01-17T10:21:22.031Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.917Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/background/math_and_alg.html</loc>
-    <lastmod>2026-01-17T10:21:21.975Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.861Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/00-introduction.html</loc>
-    <lastmod>2026-01-17T10:21:22.256Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.120Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/11-svgd-basics.html</loc>
-    <lastmod>2026-01-17T10:21:22.300Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.163Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/13-svgd-multi-param.html</loc>
-    <lastmod>2026-01-17T10:21:22.304Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.167Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/14-svgd-joint-prob.html</loc>
-    <lastmod>2026-01-17T10:21:22.307Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.179Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/17-sharing.html</loc>
-    <lastmod>2026-01-17T10:21:22.308Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.179Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/01-state-space.html</loc>
-    <lastmod>2026-01-17T10:21:22.258Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.122Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/16-caching.html</loc>
-    <lastmod>2026-01-17T10:21:22.308Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.179Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/09-joint-probability.html</loc>
-    <lastmod>2026-01-17T10:21:22.262Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.125Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/12-svgd-multi-feature.html</loc>
-    <lastmod>2026-01-17T10:21:22.303Z</lastmod>
+    <lastmod>2026-01-17T12:37:07.166Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/distributed/distributed_svgd_inference.html</loc>
-    <lastmod>2026-01-17T10:21:22.014Z</lastmod>
+    <lastmod>2026-01-17T12:37:06.900Z</lastmod>
   </url>
 </urlset>
