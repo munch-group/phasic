@@ -93,6 +93,12 @@ def plot_graph(graph:GraphType, filename:str=None,
     if by_state and by_index:
         assert "Do not use both by_index and by_state"
 
+    try:
+        from vscode import is_vscode_dark_theme
+    except ImportError:
+        def is_vscode_dark_theme():
+            return False
+
     if dark is None:
         dark = is_vscode_dark_theme()
 
