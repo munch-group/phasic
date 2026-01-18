@@ -170,11 +170,11 @@ cmd = "git clean -id"
 description = "Removes untracked files and directories but respects your .gitignores"
 
 [tool.pixi.tasks.test]
-cmd = "pytest tests/pytest/"
+cmd = "jupyter nbconvert docs/pages/tutorial/*.ipynb --to script --output-dir tests/pytest && pytest tests/pytest/"
 description = "Run tests"
 
 [tool.pixi.tasks.commit]
-depends-on = ["docs", "test"]
+depends-on = ["test", "docs"]
 cmd = "./scripts/git-commit.sh"
 
 [tool.pixi.tasks.version]
