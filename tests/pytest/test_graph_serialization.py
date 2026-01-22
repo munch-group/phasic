@@ -25,7 +25,7 @@ class TestSerializationRoundTrip:
         v1.add_edge(v2, 2.0)
 
         # Serialize and deserialize
-        serialized = g.serialize(param_length=0)
+        serialized = g.serialize(theta_dim=0)
         g_reconstructed = Graph.from_serialized(serialized)
 
         # Verify structure
@@ -45,7 +45,7 @@ class TestSerializationRoundTrip:
         v1.add_edge_parameterized(v2, 1.0, [3.0, 1.5])
 
         # Serialize and deserialize
-        serialized = g.serialize(param_length=2)
+        serialized = g.serialize(theta_dim=2)
         g_reconstructed = Graph.from_serialized(serialized)
 
         # Verify structure
@@ -68,7 +68,7 @@ class TestSerializationRoundTrip:
         v2.add_edge_parameterized(v3, 0.0, [4.0])
 
         # Round-trip
-        serialized = g.serialize(param_length=1)
+        serialized = g.serialize(theta_dim=1)
         g_reconstructed = Graph.from_serialized(serialized)
 
         # Verify
@@ -84,7 +84,7 @@ class TestSerializationRoundTrip:
         start.add_edge_parameterized(v1, 0.0, [2.0])
 
         # Serialize to dict
-        serialized = g.serialize(param_length=1)
+        serialized = g.serialize(theta_dim=1)
 
         # Convert to JSON string (simulating network transmission)
         json_dict = {
@@ -114,7 +114,7 @@ class TestSerializationRoundTrip:
         v1 = g.find_or_create_vertex([1])
 
         # Serialize and deserialize
-        serialized = g.serialize(param_length=0)
+        serialized = g.serialize(theta_dim=0)
         g_reconstructed = Graph.from_serialized(serialized)
 
         # Verify
@@ -130,7 +130,7 @@ class TestSerializationRoundTrip:
         v1.add_edge(v2, 2.0)
 
         # Round-trip
-        serialized = g.serialize(param_length=0)
+        serialized = g.serialize(theta_dim=0)
         g_reconstructed = Graph.from_serialized(serialized)
 
         # Verify
@@ -263,7 +263,7 @@ class TestCoalescentModel:
         g = Graph(coalescent_callback, nr_samples=5)
 
         # Serialize and deserialize
-        serialized = g.serialize(param_length=1)
+        serialized = g.serialize(theta_dim=1)
         g_reconstructed = Graph.from_serialized(serialized)
 
         # Verify structure preserved
@@ -287,11 +287,11 @@ class TestCoalescentModel:
 
         # Build, serialize, deserialize
         g = Graph(coalescent_callback, nr_samples=3)
-        serialized = g.serialize(param_length=1)
+        serialized = g.serialize(theta_dim=1)
         g_reconstructed = Graph.from_serialized(serialized)
 
         # Record trace on reconstructed graph
-        trace = record_elimination_trace(g_reconstructed, param_length=1)
+        trace = record_elimination_trace(g_reconstructed, theta_dim=1)
 
         # Verify trace was recorded successfully
         assert trace is not None

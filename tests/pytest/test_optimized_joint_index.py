@@ -31,7 +31,7 @@ def test_joint_index_optimized():
 
     # Create joint_index model
     print("\n2. Creating joint_index model...")
-    model = Graph.pmf_from_graph_joint_index(graph, param_length=1)
+    model = Graph.pmf_from_graph_joint_index(graph, theta_dim=1)
     print("   ✓ Model created successfully")
 
     # Test with single parameter value
@@ -79,7 +79,7 @@ def test_joint_index_optimized():
     from phasic.ffi_wrappers import _make_json_serializable
     import json
 
-    serialized = graph.serialize(param_length=1)
+    serialized = graph.serialize(theta_dim=1)
     structure_json = json.dumps(_make_json_serializable(serialized))
     builder = parameterized.GraphBuilder(structure_json)
 

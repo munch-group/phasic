@@ -437,7 +437,7 @@ def _record_trace_callback(idx: int) -> Tuple[str, 'EliminationTrace']:
 
     # Compute trace (param_length auto-detected from graph)
     try:
-        trace = record_elimination_trace(graph, param_length=None)
+        trace = record_elimination_trace(graph, theta_dim=None)
         logger.debug("Recorded trace for %s: %d operations", graph_hash[:16], len(trace.operations))
     except Exception as e:
         raise RuntimeError(
@@ -696,7 +696,7 @@ def compute_missing_traces_parallel(work_units: Dict[str, str],
                             graph = Graph.from_serialized(graph_dict)
                             # Compute trace
                             from .trace_elimination import record_elimination_trace
-                            trace = record_elimination_trace(graph, param_length=None)
+                            trace = record_elimination_trace(graph, theta_dim=None)
                             # Save to disk cache
                             _save_trace_to_cache(graph_hash, trace)
                             trace_results.append((idx, (graph_hash, trace)))
@@ -722,7 +722,7 @@ def compute_missing_traces_parallel(work_units: Dict[str, str],
                         graph_dict['start_param_edges'] = np.array(graph_dict['start_param_edges'], dtype=np.float64)
                         graph = Graph.from_serialized(graph_dict)
                         # Compute trace
-                        trace = record_elimination_trace(graph, param_length=None)
+                        trace = record_elimination_trace(graph, theta_dim=None)
                         # Save to disk cache (so parent can load it)
                         from phasic.hierarchical_trace_cache import _save_trace_to_cache
                         _save_trace_to_cache(graph_hash, trace)
@@ -839,7 +839,7 @@ def compute_missing_traces_parallel(work_units: Dict[str, str],
             logger.debug(f"  Recording trace for {graph.vertices_length()} vertex subgraph")
             try:
                 # Use graph's param_length explicitly instead of auto-detection (which is broken)
-                trace = record_elimination_trace(graph, param_length=graph.param_length())
+                trace = record_elimination_trace(graph, theta_dim=graph.param_length())
                 logger.debug(f"  Recorded trace: {len(trace.operations)} operations, param_length={trace.param_length}")
             except Exception as e:
                 raise RuntimeError(
@@ -2110,7 +2110,7 @@ def get_trace_hierarchical(graph,
         # Use graph's param_length if not explicitly provided (auto-detection is broken)
         if param_length is None:
             param_length = graph.param_length()
-        trace = record_elimination_trace(graph, param_length=param_length)
+        trace = record_elimination_trace(graph, theta_dim=param_length)
     else:
         # Use hierarchical SCC-based subdivision
         logger.info("Using hierarchical SCC subdivision (graph=%d vertices, min_size=%d)",
@@ -2118,7 +2118,7 @@ def get_trace_hierarchical(graph,
 
         # Collect missing traces recursively
         logger.debug("Step 1: Collecting missing SCC traces...")
-        work_units, all_scc_hashes, scc_decomp = collect_missing_traces_batch(graph, param_length=param_length, min_size=min_size, verbose=verbose)
+        work_units, all_scc_hashes, scc_decomp = collect_missing_traces_batch(graph, theta_dim=param_length, min_size=min_size, verbose=verbose)
 
         if len(work_units) > 0:
             # Compute missing traces (potentially in parallel)

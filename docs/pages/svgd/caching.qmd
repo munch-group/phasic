@@ -192,7 +192,7 @@ from phasic import SVGD
 import jax.numpy as jnp
 
 # Build model
-model = Graph.pmf_from_graph(g, discrete=False, param_length=1)
+model = Graph.pmf_from_graph(g, discrete=False, theta_dim=1)
 observed_data = g.sample(100)
 
 # First SVGD: Compiles gradients (slow)
@@ -455,7 +455,7 @@ print(f"    → TRACE CACHE: {t_graph*1000:.1f}ms")
 # Create model
 print("[2] Creating model")
 start = time.time()
-model = Graph.pmf_from_graph(g, discrete=False, param_length=1)
+model = Graph.pmf_from_graph(g, discrete=False, theta_dim=1)
 t_model = time.time() - start
 print(f"    → Serialization: {t_model*1000:.1f}ms")
 
@@ -580,7 +580,7 @@ info_before = cache_info()
 print(f"    Before: {info_before['num_files']} files")
 
 # Run something that compiles
-model = Graph.pmf_from_graph(g1, discrete=False, param_length=1)
+model = Graph.pmf_from_graph(g1, discrete=False, theta_dim=1)
 # ... use model ...
 
 info_after = cache_info()

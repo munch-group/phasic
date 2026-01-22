@@ -35,7 +35,7 @@ def test_instantiation():
     print("="*60)
 
     # Create original graph
-    graph = Graph(state_length=1)
+    graph = Graph(1)
     v0 = graph.starting_vertex()
     v1 = graph.find_or_create_vertex([1])
     v0.add_edge_parameterized(v1, 0.0, [1.0])
@@ -43,7 +43,7 @@ def test_instantiation():
     inspect_graph(graph, "Original graph (before trace)")
 
     # Record trace
-    trace = record_elimination_trace(graph, param_length=1, enable_rewards=False)
+    trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=False)
     print(f"\n\nTrace recorded: {len(trace.operations)} operations")
 
     # Evaluate trace

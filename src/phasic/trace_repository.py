@@ -32,7 +32,7 @@ Browse available traces:
 Publish a new trace:
 
     >>> from phasic.trace_elimination import record_elimination_trace
-    >>> trace = record_elimination_trace(graph, param_length=1)
+    >>> trace = record_elimination_trace(graph, theta_dim=1)
     >>> registry.publish_trace(
     ...     trace=trace,
     ...     trace_id="my_model",
@@ -737,7 +737,7 @@ class TraceRegistry:
         Examples
         --------
         >>> from phasic.trace_elimination import record_elimination_trace
-        >>> trace = record_elimination_trace(graph, param_length=1)
+        >>> trace = record_elimination_trace(graph, theta_dim=1)
         >>>
         >>> metadata = {
         ...     "model_type": "coalescent",

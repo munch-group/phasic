@@ -3,8 +3,11 @@
 #include <unordered_map>
 #include <string>
 #include <memory>
-#include <iostream>
 #include <limits>
+
+extern "C" {
+#include "../../c/phasic_log.h"
+}
 
 namespace phasic {
 namespace parameterized {
@@ -136,7 +139,7 @@ ffi::Error ComputePmfFfiImpl(
 
     } catch (const std::exception& e) {
         // Capture C++ exceptions and return as FFI error
-        std::cerr << "❌ Exception caught: " << e.what() << std::endl;
+        PTD_LOG_ERROR("ComputePmfFfiImpl exception: %s", e.what());
         return ffi::Error::Internal(e.what());
     }
 }
@@ -233,7 +236,7 @@ ffi::Error ComputeMomentsFfiImpl(
 
     } catch (const std::exception& e) {
         // Capture C++ exceptions and return as FFI error
-        std::cerr << "❌ Exception in ComputeMomentsFfiImpl: " << e.what() << std::endl;
+        PTD_LOG_ERROR("ComputeMomentsFfiImpl exception: %s", e.what());
         return ffi::Error::Internal(e.what());
     }
 }
@@ -633,7 +636,7 @@ ffi::Error ComputePmfMultivariateFfiImpl(
         return ffi::Error::Success();
 
     } catch (const std::exception& e) {
-        std::cerr << "❌ Exception in ComputePmfMultivariateFfiImpl: " << e.what() << std::endl;
+        PTD_LOG_ERROR("ComputePmfMultivariateFfiImpl exception: %s", e.what());
         return ffi::Error::Internal(e.what());
     }
 }
@@ -811,7 +814,7 @@ ffi::Error ComputeSojournTimesFfiImpl(
         return ffi::Error::Success();
 
     } catch (const std::exception& e) {
-        std::cerr << "❌ ComputeSojournTimesFfiImpl exception: " << e.what() << std::endl;
+        PTD_LOG_ERROR("ComputeSojournTimesFfiImpl exception: %s", e.what());
         return ffi::Error::Internal(e.what());
     }
 }

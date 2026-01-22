@@ -66,7 +66,7 @@ results = svgd.get_results()
 print(results['theta_mean'], results['theta_std'])
 
 # # without recreating the graph, pmf_and_moments_from_graph do not produce any trace
-# graph = Graph(callback=coalescent, nr_samples=nr_samples)
+# graph = Graph(coalescent, nr_samples=nr_samples)
 
 model_pdf = Graph.pmf_and_moments_from_graph(graph)
 svgd = SVGD(model_pdf, **params, regularization=1.0, nr_moments=2)

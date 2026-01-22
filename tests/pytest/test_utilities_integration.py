@@ -30,7 +30,7 @@ class TestPlotting:
     @pytest.mark.skipif(not HAS_MATPLOTLIB, reason="matplotlib not available")
     def test_plot_basic(self):
         """Test basic graph plotting."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v1 = g.find_or_create_vertex([1])
         v2 = g.find_or_create_vertex([2])
@@ -52,7 +52,7 @@ class TestPlotting:
     @pytest.mark.skipif(not HAS_MATPLOTLIB, reason="matplotlib not available")
     def test_plot_with_options(self):
         """Test plotting with various options."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -84,7 +84,7 @@ class TestSVGD:
         """Test basic SVGD functionality."""
         # Define a simple parameterized model
         def build_graph(theta):
-            g = Graph(state_length=1)
+            g = Graph(1)
             v = g.find_or_create_vertex([1])
             g.starting_vertex().add_edge_parameterized(v, 0.0, [1.0])
             return g
@@ -266,7 +266,7 @@ class TestEdgeCasesAndErrors:
 
     def test_invalid_vertex_state(self):
         """Test creating vertex with invalid state."""
-        g = Graph(state_length=2)
+        g = Graph(2)
 
         # Wrong dimension should raise or handle gracefully
         try:
@@ -278,7 +278,7 @@ class TestEdgeCasesAndErrors:
 
     def test_edge_to_self(self):
         """Test adding edge from vertex to itself."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         v = g.find_or_create_vertex([1])
 
         # Self-loop (creates cycle)
@@ -289,7 +289,7 @@ class TestEdgeCasesAndErrors:
 
     def test_negative_edge_weight(self):
         """Test negative edge weights."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         v1 = g.find_or_create_vertex([1])
         v2 = g.find_or_create_vertex([2])
 
@@ -302,7 +302,7 @@ class TestEdgeCasesAndErrors:
 
     def test_empty_graph_operations(self):
         """Test operations on minimal graph."""
-        g = Graph(state_length=1)
+        g = Graph(1)
 
         # Should not raise (though results may be inf/nan)
         try:
@@ -313,7 +313,7 @@ class TestEdgeCasesAndErrors:
 
     def test_large_state_vector(self):
         """Test with large state vector."""
-        g = Graph(state_length=100)
+        g = Graph(100)
         state = list(range(100))
         v = g.find_or_create_vertex(state)
 
@@ -330,7 +330,7 @@ class TestCallbackErrors:
 
         # Should raise when trying to build graph
         with pytest.raises((TypeError, ValueError, RuntimeError)):
-            g = Graph(callback=bad_callback)
+            g = Graph(bad_callback)
             _ = g.vertices_length()  # Force evaluation
 
     def test_callback_infinite_loop_detection(self):
@@ -341,7 +341,7 @@ class TestCallbackErrors:
 
         # Graph construction may limit iterations or detect cycle
         try:
-            g = Graph(callback=infinite_callback)
+            g = Graph(infinite_callback)
             # If it completes, should have bounded vertices
             assert g.vertices_length() < 10000
         except (RuntimeError, ValueError):
@@ -354,7 +354,7 @@ class TestNumericalStability:
 
     def test_very_small_rates(self):
         """Test with very small transition rates."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1e-10)
@@ -365,7 +365,7 @@ class TestNumericalStability:
 
     def test_very_large_rates(self):
         """Test with very large transition rates."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1e10)
@@ -377,7 +377,7 @@ class TestNumericalStability:
 
     def test_mixed_scale_rates(self):
         """Test with rates of very different scales."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v1 = g.find_or_create_vertex([1])
         v2 = g.find_or_create_vertex([2])
@@ -402,7 +402,7 @@ class TestMemoryManagement:
                 return [([state[0] + 1], 1.0)]
             return []
 
-        g = Graph(callback=callback)
+        g = Graph(callback)
         assert g.vertices_length() > 50
 
         # Delete and ensure cleanup
@@ -410,13 +410,13 @@ class TestMemoryManagement:
         del g
 
         # Create another graph to ensure no interference
-        g2 = Graph(state_length=1)
+        g2 = Graph(1)
         assert g2.vertices_length() == 1
 
     def test_multiple_graphs_independent(self):
         """Test that multiple graphs are independent."""
-        g1 = Graph(state_length=1)
-        g2 = Graph(state_length=1)
+        g1 = Graph(1)
+        g2 = Graph(1)
 
         v1 = g1.find_or_create_vertex([1])
         v2 = g2.find_or_create_vertex([1])
@@ -443,7 +443,7 @@ class TestSpecialDistributions:
 
     def test_exponential_distribution(self):
         """Test exponential distribution (single state)."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         rate = 2.0
@@ -460,7 +460,7 @@ class TestSpecialDistributions:
 
     def test_hyperexponential_distribution(self):
         """Test hyperexponential distribution (mixture of exponentials)."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v1 = g.find_or_create_vertex([1])
         v2 = g.find_or_create_vertex([2])
@@ -486,7 +486,7 @@ class TestSpecialDistributions:
 
     def test_erlang_distribution(self):
         """Test Erlang distribution (chain of exponentials)."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         n_phases = 3
         rate = 2.0
 

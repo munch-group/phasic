@@ -27,10 +27,10 @@ def coalescent(state, nr_samples=None):
 
 true_theta = np.array([10.0])  # Make sure it's float!
 nr_samples = 4
-graph = phasic.Graph(callback=coalescent, parameterized=True, nr_samples=nr_samples)
+graph = phasic.Graph(coalescent, parameterized=True, nr_samples=nr_samples)
 
 nr_observations = 10000
-_graph = phasic.Graph(callback=coalescent, parameterized=True, nr_samples=nr_samples)
+_graph = phasic.Graph(coalescent, parameterized=True, nr_samples=nr_samples)
 _graph.update_parameterized_weights(true_theta)
 
 # Get rewards - this is (n_features, n_vertices) but we need (n_vertices, n_features)

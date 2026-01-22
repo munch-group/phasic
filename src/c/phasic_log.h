@@ -28,11 +28,12 @@ extern "C" {
  * Logging levels matching Python logging module
  */
 typedef enum {
-    PTD_LOG_DEBUG = 10,
-    PTD_LOG_INFO = 20,
-    PTD_LOG_WARNING = 30,
-    PTD_LOG_ERROR = 40,
-    PTD_LOG_CRITICAL = 50
+    PTD_LOG_LEVEL_DEBUG = 10,
+    PTD_LOG_LEVEL_INFO = 20,
+    PTD_LOG_LEVEL_WARNING = 30,
+    PTD_LOG_LEVEL_ERROR = 40,
+    PTD_LOG_LEVEL_CRITICAL = 50,
+    PTD_LOG_LEVEL_NONE = 60      // Disables all logging
 } ptd_log_level_t;
 
 /**
@@ -58,7 +59,7 @@ void ptd_set_log_callback(ptd_log_callback_t callback);
  *
  * Messages below this level will be discarded without calling the callback.
  *
- * @param level Minimum level to log (default: PTD_LOG_WARNING)
+ * @param level Minimum level to log (default: PTD_LOG_LEVEL_WARNING)
  */
 void ptd_set_log_level(ptd_log_level_t level);
 
@@ -86,11 +87,11 @@ void ptd_log(ptd_log_level_t level, const char *format, ...);
  *
  * These provide cleaner syntax and compiler can optimize away disabled levels.
  */
-#define PTD_LOG_DEBUG(...) ptd_log(PTD_LOG_DEBUG, __VA_ARGS__)
-#define PTD_LOG_INFO(...) ptd_log(PTD_LOG_INFO, __VA_ARGS__)
-#define PTD_LOG_WARNING(...) ptd_log(PTD_LOG_WARNING, __VA_ARGS__)
-#define PTD_LOG_ERROR(...) ptd_log(PTD_LOG_ERROR, __VA_ARGS__)
-#define PTD_LOG_CRITICAL(...) ptd_log(PTD_LOG_CRITICAL, __VA_ARGS__)
+#define PTD_LOG_DEBUG(...) ptd_log(PTD_LOG_LEVEL_DEBUG, __VA_ARGS__)
+#define PTD_LOG_INFO(...) ptd_log(PTD_LOG_LEVEL_INFO, __VA_ARGS__)
+#define PTD_LOG_WARNING(...) ptd_log(PTD_LOG_LEVEL_WARNING, __VA_ARGS__)
+#define PTD_LOG_ERROR(...) ptd_log(PTD_LOG_LEVEL_ERROR, __VA_ARGS__)
+#define PTD_LOG_CRITICAL(...) ptd_log(PTD_LOG_LEVEL_CRITICAL, __VA_ARGS__)
 
 /**
  * Conditional logging macros (for debugging)
@@ -98,7 +99,7 @@ void ptd_log(ptd_log_level_t level, const char *format, ...);
  * These are completely compiled out in release builds (when NDEBUG is defined)
  */
 #ifndef NDEBUG
-#define PTD_LOG_DEBUG_IF(cond, ...) do { if (cond) ptd_log(PTD_LOG_DEBUG, __VA_ARGS__); } while(0)
+#define PTD_LOG_DEBUG_IF(cond, ...) do { if (cond) ptd_log(PTD_LOG_LEVEL_DEBUG, __VA_ARGS__); } while(0)
 #else
 #define PTD_LOG_DEBUG_IF(cond, ...) ((void)0)
 #endif

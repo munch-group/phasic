@@ -33,7 +33,7 @@
 
 /* Global logging state */
 static ptd_log_callback_t g_log_callback = NULL;
-static ptd_log_level_t g_log_level = PTD_LOG_WARNING;
+static ptd_log_level_t g_log_level = PTD_LOG_LEVEL_WARNING;
 
 void ptd_set_log_callback(ptd_log_callback_t callback) {
     LOCK_MUTEX();

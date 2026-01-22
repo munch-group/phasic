@@ -278,7 +278,7 @@ def save_trace_to_cache(hash_hex: str, trace: EliminationTrace) -> bool:
     >>> from phasic import hash as phasic_hash
     >>> from phasic.trace_elimination import record_elimination_trace
     >>>
-    >>> trace = record_elimination_trace(graph, param_length=2)
+    >>> trace = record_elimination_trace(graph, theta_dim=2)
     >>> hash_result = phasic_hash.compute_graph_hash(graph)
     >>> success = save_trace_to_cache(hash_result.hash_hex, trace)
     """

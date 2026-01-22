@@ -10,14 +10,14 @@ def test_simple_vs_full_equivalence():
     from phasic.trace_elimination import record_elimination_trace_simple, record_elimination_trace
 
     # Create simple parameterized graph
-    graph = Graph(state_length=1)
+    graph = Graph(1)
     v0 = graph.starting_vertex()
     v1 = graph.find_or_create_vertex([1])
     v0.add_edge_parameterized(v1, 0.0, [1.0])
 
     # Record with both versions
-    trace_simple = record_elimination_trace_simple(graph, param_length=1)
-    trace_full = record_elimination_trace(graph, param_length=1, enable_rewards=False)
+    trace_simple = record_elimination_trace_simple(graph, theta_dim=1)
+    trace_full = record_elimination_trace(graph, theta_dim=1, enable_rewards=False)
 
     # Compare traces
     print(f"Simple version:")
@@ -46,13 +46,13 @@ def test_full_with_rewards_has_more_operations():
     from phasic import Graph
     from phasic.trace_elimination import record_elimination_trace
 
-    graph = Graph(state_length=1)
+    graph = Graph(1)
     v0 = graph.starting_vertex()
     v1 = graph.find_or_create_vertex([1])
     v0.add_edge_parameterized(v1, 0.0, [1.0])
 
-    trace_no_rewards = record_elimination_trace(graph, param_length=1, enable_rewards=False)
-    trace_with_rewards = record_elimination_trace(graph, param_length=1, enable_rewards=True)
+    trace_no_rewards = record_elimination_trace(graph, theta_dim=1, enable_rewards=False)
+    trace_with_rewards = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)
 
     print(f"Without rewards: {len(trace_no_rewards.operations)} operations")
     print(f"With rewards: {len(trace_with_rewards.operations)} operations")
@@ -68,13 +68,13 @@ def test_backward_compatibility():
     from phasic import Graph
     from phasic.trace_elimination import record_elimination_trace
 
-    graph = Graph(state_length=1)
+    graph = Graph(1)
     v0 = graph.starting_vertex()
     v1 = graph.find_or_create_vertex([1])
     v0.add_edge_parameterized(v1, 0.0, [1.0])
 
     # Default should have no rewards
-    trace = record_elimination_trace(graph, param_length=1)
+    trace = record_elimination_trace(graph, theta_dim=1)
 
     assert trace.reward_length == 0
     print(f"✓ Default behavior: reward_length = 0 (backward compatible)")

@@ -26,12 +26,12 @@ def test_1d_convergence():
             return []
         return []
 
-    _graph = Graph(callback=callback, parameterized=True)
+    _graph = Graph(callback, parameterized=True)
 
     # Generate observations from true parameter
     from phasic.trace_elimination import record_elimination_trace, instantiate_from_trace
 
-    trace = record_elimination_trace(_graph, param_length=1, enable_rewards=False)
+    trace = record_elimination_trace(_graph, theta_dim=1, enable_rewards=False)
     graph_inst = instantiate_from_trace(trace, params=np.array([true_theta]))
 
     np.random.seed(42)
@@ -87,7 +87,7 @@ def test_multivariate_with_nans_and_rewards():
             return []
         return []
 
-    _graph = Graph(callback=callback, parameterized=True)
+    _graph = Graph(callback, parameterized=True)
     n_vertices = _graph.vertices_length()
 
     # Create rewards (n_vertices, n_features)
@@ -103,7 +103,7 @@ def test_multivariate_with_nans_and_rewards():
     # Generate sparse observations (user's pattern)
     from phasic.trace_elimination import record_elimination_trace, instantiate_from_trace
 
-    trace = record_elimination_trace(_graph, param_length=1, enable_rewards=True)
+    trace = record_elimination_trace(_graph, theta_dim=1, enable_rewards=True)
 
     np.random.seed(42)
     n = 30  # observations per feature
@@ -195,7 +195,7 @@ def test_multivariate_without_nans():
             return []
         return []
 
-    _graph = Graph(callback=callback, parameterized=True)
+    _graph = Graph(callback, parameterized=True)
     n_vertices = _graph.vertices_length()
 
     # Create rewards
@@ -207,7 +207,7 @@ def test_multivariate_without_nans():
     # Generate FULL observations (no NaNs)
     from phasic.trace_elimination import record_elimination_trace, instantiate_from_trace
 
-    trace = record_elimination_trace(_graph, param_length=1, enable_rewards=True)
+    trace = record_elimination_trace(_graph, theta_dim=1, enable_rewards=True)
 
     np.random.seed(42)
     n = 30

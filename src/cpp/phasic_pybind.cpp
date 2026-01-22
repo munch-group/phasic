@@ -5546,11 +5546,11 @@ Use Graph.distribution_context(granularity) instead.
                       // Map C level to Python level
                       int py_level;
                       switch (level) {
-                          case PTD_LOG_DEBUG: py_level = 10; break;
-                          case PTD_LOG_INFO: py_level = 20; break;
-                          case PTD_LOG_WARNING: py_level = 30; break;
-                          case PTD_LOG_ERROR: py_level = 40; break;
-                          case PTD_LOG_CRITICAL: py_level = 50; break;
+                          case PTD_LOG_LEVEL_DEBUG: py_level = 10; break;
+                          case PTD_LOG_LEVEL_INFO: py_level = 20; break;
+                          case PTD_LOG_LEVEL_WARNING: py_level = 30; break;
+                          case PTD_LOG_LEVEL_ERROR: py_level = 40; break;
+                          case PTD_LOG_LEVEL_CRITICAL: py_level = 50; break;
                           default: py_level = 30; break;  // Default to WARNING
                       }
 
@@ -5578,11 +5578,12 @@ Use Graph.distribution_context(granularity) instead.
       [](int level) {
           // Map Python level to C level
           ptd_log_level_t c_level;
-          if (level <= 10) c_level = PTD_LOG_DEBUG;
-          else if (level <= 20) c_level = PTD_LOG_INFO;
-          else if (level <= 30) c_level = PTD_LOG_WARNING;
-          else if (level <= 40) c_level = PTD_LOG_ERROR;
-          else c_level = PTD_LOG_CRITICAL;
+          if (level <= 10) c_level = PTD_LOG_LEVEL_DEBUG;
+          else if (level <= 20) c_level = PTD_LOG_LEVEL_INFO;
+          else if (level <= 30) c_level = PTD_LOG_LEVEL_WARNING;
+          else if (level <= 40) c_level = PTD_LOG_LEVEL_ERROR;
+          else if (level <= 50) c_level = PTD_LOG_LEVEL_CRITICAL;
+          else c_level = PTD_LOG_LEVEL_NONE;  // level > 50 disables all logging
 
           ptd_set_log_level(c_level);
       },

@@ -15,7 +15,7 @@ def test_manual_graph_works():
     print("="*60)
 
     # Create graph with concrete weight
-    graph = Graph(state_length=1)
+    graph = Graph(1)
     v0 = graph.starting_vertex()
     v1 = graph.find_or_create_vertex([1])
     v0.add_edge(v1, 10.0)  # Concrete weight, not parameterized
@@ -48,7 +48,7 @@ def test_trace_graph():
     print("="*60)
 
     # Create parameterized graph
-    graph = Graph(state_length=1)
+    graph = Graph(1)
     v0 = graph.starting_vertex()
     v1 = graph.find_or_create_vertex([1])
     v0.add_edge_parameterized(v1, 0.0, [1.0])
@@ -56,7 +56,7 @@ def test_trace_graph():
     print(f"Original graph: {graph.vertices_length()} vertices")
 
     # Record trace
-    trace = record_elimination_trace(graph, param_length=1, enable_rewards=False)
+    trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=False)
     print(f"Trace recorded: {len(trace.operations)} operations")
 
     # Instantiate with theta=10.0
@@ -98,7 +98,7 @@ def test_simple_concrete_trace():
     print("="*60)
 
     # Create graph with concrete edge
-    graph = Graph(state_length=1)
+    graph = Graph(1)
     v0 = graph.starting_vertex()
     v1 = graph.find_or_create_vertex([1])
     v0.add_edge(v1, 10.0)  # Concrete weight
@@ -106,7 +106,7 @@ def test_simple_concrete_trace():
     print(f"Original graph: {graph.vertices_length()} vertices")
 
     # Record trace (no parameters needed)
-    trace = record_elimination_trace(graph, param_length=0, enable_rewards=False)
+    trace = record_elimination_trace(graph, theta_dim=0, enable_rewards=False)
     print(f"Trace recorded: {len(trace.operations)} operations")
     print(f"Param length: {trace.param_length}")
 

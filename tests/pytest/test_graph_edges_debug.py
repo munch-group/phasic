@@ -13,7 +13,7 @@ def test_manual_graph_edges():
     print("Manual graph construction")
     print("="*60)
 
-    graph = Graph(state_length=1)
+    graph = Graph(1)
     v0 = graph.starting_vertex()
     v1 = graph.find_or_create_vertex([1])
 
@@ -59,7 +59,7 @@ def test_callback_graph_edges():
             return []
         return []
 
-    graph = Graph(callback=callback, parameterized=True)
+    graph = Graph(callback, parameterized=True)
 
     print(f"\nGraph constructed:")
     print(f"  Vertices: {graph.vertices_length()}")

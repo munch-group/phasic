@@ -24,10 +24,10 @@ def test_default_rewards_numpy():
             return []
         return []
 
-    graph = Graph(callback=callback, parameterized=True)
+    graph = Graph(callback, parameterized=True)
 
     # Record trace with rewards enabled
-    trace = record_elimination_trace(graph, param_length=1, enable_rewards=True)
+    trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)
 
     print(f"Trace recorded:")
     print(f"  - n_vertices: {trace.n_vertices}")
@@ -65,10 +65,10 @@ def test_default_rewards_jax():
             return []
         return []
 
-    graph = Graph(callback=callback, parameterized=True)
+    graph = Graph(callback, parameterized=True)
 
     # Record trace with rewards enabled
-    trace = record_elimination_trace(graph, param_length=1, enable_rewards=True)
+    trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)
 
     # Evaluate with explicit ones
     theta = jnp.array([2.0])
@@ -101,10 +101,10 @@ def test_default_rewards_graph_instantiation():
             return []
         return []
 
-    graph = Graph(callback=callback, parameterized=True)
+    graph = Graph(callback, parameterized=True)
 
     # Record trace with rewards enabled
-    trace = record_elimination_trace(graph, param_length=1, enable_rewards=True)
+    trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)
 
     theta = np.array([2.0])
 
@@ -136,10 +136,10 @@ def test_scaled_rewards_differ():
             return []
         return []
 
-    graph = Graph(callback=callback, parameterized=True)
+    graph = Graph(callback, parameterized=True)
 
     # Record trace with rewards enabled
-    trace = record_elimination_trace(graph, param_length=1, enable_rewards=True)
+    trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)
 
     theta = np.array([2.0])
 
@@ -174,10 +174,10 @@ def test_backwards_compatibility_no_rewards():
             return []
         return []
 
-    graph = Graph(callback=callback, parameterized=True)
+    graph = Graph(callback, parameterized=True)
 
     # Record trace WITHOUT rewards (old behavior)
-    trace = record_elimination_trace(graph, param_length=1, enable_rewards=False)
+    trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=False)
 
     print(f"\nTrace without rewards:")
     print(f"  - reward_length: {trace.reward_length}")

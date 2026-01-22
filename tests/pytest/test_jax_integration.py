@@ -27,7 +27,7 @@ class TestPMFFromGraph:
 
     def test_pmf_from_graph_continuous(self):
         """Test pmf_from_graph for continuous distributions."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 2.0)
@@ -45,7 +45,7 @@ class TestPMFFromGraph:
 
     def test_pmf_from_graph_discrete(self):
         """Test pmf_from_graph for discrete distributions."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -63,7 +63,7 @@ class TestPMFFromGraph:
 
     def test_pmf_from_graph_batch(self):
         """Test pmf_from_graph with batch of times."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v1 = g.find_or_create_vertex([1])
         v2 = g.find_or_create_vertex([2])
@@ -87,7 +87,7 @@ class TestPMFFromGraphParameterized:
     def test_parameterized_basic(self):
         """Test basic parameterized graph."""
         def build_graph(theta):
-            g = Graph(state_length=1)
+            g = Graph(1)
             v1 = g.find_or_create_vertex([1])
             v2 = g.find_or_create_vertex([2])
             g.starting_vertex().add_edge_parameterized(v1, 0.0, [1.0, 0.0])
@@ -107,7 +107,7 @@ class TestPMFFromGraphParameterized:
     def test_parameterized_discrete(self):
         """Test parameterized graph in discrete mode."""
         def build_graph(theta):
-            g = Graph(state_length=1)
+            g = Graph(1)
             v = g.find_or_create_vertex([1])
             g.starting_vertex().add_edge_parameterized(v, 0.0, [1.0])
             return g
@@ -132,7 +132,7 @@ class TestPMFFromGraphParameterized:
             return []
 
         def build_graph(theta):
-            return Graph(callback=lambda s: callback(s, theta), parameterized=True)
+            return Graph(lambda s: callback(s, theta), parameterized=True)
 
         model = Graph.pmf_from_graph_parameterized(build_graph, discrete=False)
 
@@ -149,7 +149,7 @@ class TestJAXGradients:
     def test_gradient_parameterized(self):
         """Test gradient computation for parameterized graph."""
         def build_graph(theta):
-            g = Graph(state_length=1)
+            g = Graph(1)
             v = g.find_or_create_vertex([1])
             g.starting_vertex().add_edge_parameterized(v, 0.0, [1.0])
             return g
@@ -171,7 +171,7 @@ class TestJAXGradients:
     def test_gradient_multi_parameter(self):
         """Test gradients with multiple parameters."""
         def build_graph(theta):
-            g = Graph(state_length=1)
+            g = Graph(1)
             v1 = g.find_or_create_vertex([1])
             v2 = g.find_or_create_vertex([2])
             g.starting_vertex().add_edge_parameterized(v1, 0.0, [1.0, 0.0])
@@ -195,7 +195,7 @@ class TestJAXGradients:
     def test_value_and_grad(self):
         """Test value_and_grad for simultaneous computation."""
         def build_graph(theta):
-            g = Graph(state_length=1)
+            g = Graph(1)
             v = g.find_or_create_vertex([1])
             g.starting_vertex().add_edge_parameterized(v, 0.0, [1.0])
             return g
@@ -219,7 +219,7 @@ class TestJAXJIT:
 
     def test_jit_pmf_from_graph(self):
         """Test JIT compilation of pmf_from_graph."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -241,7 +241,7 @@ class TestJAXJIT:
     def test_jit_parameterized(self):
         """Test JIT compilation of parameterized model."""
         def build_graph(theta):
-            g = Graph(state_length=1)
+            g = Graph(1)
             v = g.find_or_create_vertex([1])
             g.starting_vertex().add_edge_parameterized(v, 0.0, [1.0])
             return g
@@ -260,7 +260,7 @@ class TestJAXJIT:
     def test_jit_with_grad(self):
         """Test JIT compilation of gradient function."""
         def build_graph(theta):
-            g = Graph(state_length=1)
+            g = Graph(1)
             v = g.find_or_create_vertex([1])
             g.starting_vertex().add_edge_parameterized(v, 0.0, [1.0])
             return g
@@ -288,7 +288,7 @@ class TestJAXVmap:
     def test_vmap_over_parameters(self):
         """Test vmap over parameter batch."""
         def build_graph(theta):
-            g = Graph(state_length=1)
+            g = Graph(1)
             v = g.find_or_create_vertex([1])
             g.starting_vertex().add_edge_parameterized(v, 0.0, [1.0])
             return g
@@ -307,7 +307,7 @@ class TestJAXVmap:
 
     def test_vmap_over_times(self):
         """Test vmap over time batch."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -327,7 +327,7 @@ class TestJAXVmap:
     def test_vmap_nested(self):
         """Test nested vmap."""
         def build_graph(theta):
-            g = Graph(state_length=1)
+            g = Graph(1)
             v = g.find_or_create_vertex([1])
             g.starting_vertex().add_edge_parameterized(v, 0.0, [1.0])
             return g
@@ -349,7 +349,7 @@ class TestMomentsFromGraph:
 
     def test_moments_from_graph_basic(self):
         """Test moments computation from graph."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -367,7 +367,7 @@ class TestMomentsFromGraph:
 
     def test_moments_from_graph_higher_order(self):
         """Test higher-order moments."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 2.0)
@@ -385,7 +385,7 @@ class TestPMFAndMomentsFromGraph:
 
     def test_pmf_and_moments_basic(self):
         """Test combined PMF and moments computation."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -403,7 +403,7 @@ class TestPMFAndMomentsFromGraph:
 
     def test_pmf_and_moments_discrete(self):
         """Test combined computation in discrete mode."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -423,7 +423,7 @@ class TestBatchOperations:
 
     def test_pdf_batch(self):
         """Test pdf_batch method."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -437,7 +437,7 @@ class TestBatchOperations:
 
     def test_dph_pmf_batch(self):
         """Test dph_pmf_batch method."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -451,7 +451,7 @@ class TestBatchOperations:
 
     def test_moments_batch(self):
         """Test moments_batch method."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -469,7 +469,7 @@ class TestMultivariateSampling:
 
     def test_sample_multivariate(self):
         """Test multivariate sampling."""
-        g = Graph(state_length=2)
+        g = Graph(2)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1, 1])
         start.add_edge(v, 1.0)
@@ -484,7 +484,7 @@ class TestMultivariateSampling:
 
     def test_sample_multivariate_discrete(self):
         """Test discrete multivariate sampling."""
-        g = Graph(state_length=2)
+        g = Graph(2)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1, 1])
         start.add_edge(v, 1.0)

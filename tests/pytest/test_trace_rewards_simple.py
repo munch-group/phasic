@@ -21,10 +21,10 @@ def test_simple_reward_transformation():
             return []
         return []
 
-    graph = Graph(callback=callback, parameterized=True)
+    graph = Graph(callback, parameterized=True)
 
     # Record trace WITH rewards
-    trace = record_elimination_trace(graph, param_length=1, enable_rewards=True)
+    trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)
 
     print(f"✓ Recorded trace: {trace.n_vertices} vertices, {len(trace.operations)} operations")
     print(f"  - param_length: {trace.param_length}")
@@ -89,8 +89,8 @@ def test_reward_transformation_theory():
             return []  # Absorbing
         return []
 
-    graph = Graph(callback=callback, parameterized=True)
-    trace = record_elimination_trace(graph, param_length=1, enable_rewards=True)
+    graph = Graph(callback, parameterized=True)
+    trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)
 
     # Test parameters
     theta = np.array([2.0])  # λ = 2.0

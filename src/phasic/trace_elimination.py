@@ -319,7 +319,7 @@ class TraceBuilder:
 # Graph Elimination with Trace Recording
 # ============================================================================
 
-def record_elimination_trace_simple(graph, param_length: Optional[int] = None) -> EliminationTrace:
+def record_elimination_trace_simple(graph, theta_dim: Optional[int] = None) -> EliminationTrace:
     """
     Record trace of graph elimination operations (Original version without reward support)
 
@@ -331,7 +331,7 @@ def record_elimination_trace_simple(graph, param_length: Optional[int] = None) -
     ----------
     graph : Graph
         Input graph with regular and/or parameterized edges
-    param_length : int, optional
+    theta_dim : int, optional
         Explicit number of parameters. If not provided, will be auto-detected
         using heuristics (may over-estimate in some edge cases).
 
@@ -352,13 +352,13 @@ def record_elimination_trace_simple(graph, param_length: Optional[int] = None) -
     # Simply call the full version with rewards disabled
     return record_elimination_trace(
         graph,
-        param_length=param_length,
+        theta_dim=theta_dim,
         reward_length=0,
         enable_rewards=False
     )
 
 
-def record_elimination_trace(graph, param_length: Optional[int] = None,
+def record_elimination_trace(graph, theta_dim: Optional[int] = None,
                             reward_length: Optional[int] = None,
                             enable_rewards: bool = False) -> EliminationTrace:
     """
@@ -375,14 +375,14 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
     ----------
     graph : Graph
         Input graph with regular and/or parameterized edges
-    param_length : int, optional
+    theta_dim : int, optional
         Explicit number of parameters. If not provided, will be auto-detected
         using heuristics (may over-estimate in some edge cases).
     reward_length : int, optional
         Number of reward parameters for reward transformation. If provided,
         edge weights will be multiplied by reward parameters during trace
         recording. Rewards are stored as extended parameters at indices
-        [param_length, param_length + reward_length). If not provided,
+        [theta_dim, theta_dim + reward_length). If not provided,
         defaults to n_vertices when enable_rewards=True.
     enable_rewards : bool, default=False
         If True, add MUL operations for reward transformation even if
@@ -401,7 +401,7 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
     - Parameterized edges have weights: w = c₁*θ₁ + c₂*θ₂ + ... + cₙ*θₙ
     - Non-parameterized edges (including starting edges) have constant weights
     - Reward transformation: w_transformed = w * reward[vertex_idx]
-    - For parameterized graphs, explicitly providing param_length is recommended
+    - For parameterized graphs, explicitly providing theta_dim is recommended
       for accuracy, as auto-detection may over-estimate
     - Extended parameter vector: [θ₀, θ₁, ..., θₙ, r₀, r₁, ..., rₘ] when rewards enabled
 
@@ -426,8 +426,8 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
     vertices_list = list(graph.vertices())
     n_vertices = len(vertices_list)
 
-    logger.debug("Starting trace recording: %d vertices, param_length=%s, reward_length=%s, enable_rewards=%s",
-                 n_vertices, param_length, reward_length, enable_rewards)
+    logger.debug("Starting trace recording: %d vertices, theta_dim=%s, reward_length=%s, enable_rewards=%s",
+                 n_vertices, theta_dim, reward_length, enable_rewards)
 
     if n_vertices == 0:
         logger.error("Cannot record trace: graph has no vertices")
@@ -455,10 +455,10 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
     # PHASE 1: Compute Rates (supports parameterized edges)
     # ========================================================================
 
-    # Check if graph has any parameterized edges and determine param_length
-    # Strategy: Use explicit param_length, or graph's param_length, or auto-detect via garbage detection
+    # Check if graph has any parameterized edges and determine theta_dim
+    # Strategy: Use explicit theta_dim, or graph's param_length(), or auto-detect via garbage detection
     has_parameterized = False
-    detected_param_length = 0
+    detected_theta_dim = 0
 
     # First, check if graph has any parameterized edges
     for v in vertices_list:
@@ -475,40 +475,40 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
     # Define constant for max parameter testing
     MAX_PARAM_TEST = 200
 
-    # If param_length not provided, try to get it from graph
-    if param_length is None:
+    # If theta_dim not provided, try to get it from graph
+    if theta_dim is None:
         graph_param_length = graph.param_length()
         if graph_param_length > 0:
-            param_length = graph_param_length
-            logger.debug("Using param_length=%d from graph", param_length)
+            theta_dim = graph_param_length
+            logger.debug("Using theta_dim=%d from graph.param_length()", theta_dim)
     else:
-        # Explicit param_length provided - ensure graph's param_length matches for consistent hashing
+        # Explicit theta_dim provided - ensure graph's param_length matches for consistent hashing
         graph_param_length = graph.param_length()
-        if graph_param_length > 0 and param_length != graph_param_length:
+        if graph_param_length > 0 and theta_dim != graph_param_length:
             logger.warning(
-                "Explicit param_length=%d differs from graph.param_length=%d. "
+                "Explicit theta_dim=%d differs from graph.param_length=%d. "
                 "Setting graph.param_length to match explicit value for consistent cache keys.",
-                param_length, graph_param_length
+                theta_dim, graph_param_length
             )
-            # Update graph's param_length to match explicit param_length for cache consistency
-            # This ensures cache keys are consistent across calls with the same param_length
+            # Update graph's param_length to match explicit theta_dim for cache consistency
+            # This ensures cache keys are consistent across calls with the same theta_dim
             try:
-                graph.set_param_length(param_length)
+                graph.set_param_length(theta_dim)
             except Exception as e:
                 logger.warning(
                     "Could not set graph.param_length (graph may already have edges). "
-                    "Cache may not work correctly if param_length differs from graph's setting. Error: %s", e
+                    "Cache may not work correctly if theta_dim differs from graph's setting. Error: %s", e
                 )
 
     # If still not set and has parameterized edges, auto-detect it
-    if param_length is None and has_parameterized:
-        logger.debug("Auto-detecting param_length via garbage detection...")
+    if theta_dim is None and has_parameterized:
+        logger.debug("Auto-detecting theta_dim via garbage detection...")
         # Sample multiple edges and find the minimum garbage threshold
 
         for v in vertices_list:
             param_edges = v.parameterized_edges()
             if param_edges and len(param_edges) > 0:
-                # Check multiple edges to find consistent param_length
+                # Check multiple edges to find consistent theta_dim
                 lengths_found = []
                 for param_edge in param_edges[:min(10, len(param_edges))]:  # Sample up to 10 edges
                     # Test with increasing lengths until we hit garbage
@@ -530,36 +530,36 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
 
                 # Use the minimum length found (most conservative)
                 if lengths_found:
-                    detected_param_length = min(lengths_found)
+                    detected_theta_dim = min(lengths_found)
 
                 break  # Only need to check one vertex
 
-        param_length = detected_param_length
-        logger.info("Auto-detected param_length=%d", param_length)
-    elif param_length is None:
+        theta_dim = detected_theta_dim
+        logger.info("Auto-detected theta_dim=%d", theta_dim)
+    elif theta_dim is None:
         # No parameterized edges, set to 0
-        param_length = 0
-        logger.debug("No parameterized edges, param_length=0")
+        theta_dim = 0
+        logger.debug("No parameterized edges, theta_dim=0")
 
     # Ensure graph's param_length is set correctly for cache consistency
     # This must happen BEFORE any C operations that compute hashes or record traces
-    if param_length > 0:
+    if theta_dim > 0:
         graph_param_length = graph.param_length()
         if graph_param_length == 0:
             # Graph param_length not set yet, set it now
-            logger.debug("Setting graph.param_length=%d for cache consistency", param_length)
+            logger.debug("Setting graph.param_length=%d for cache consistency", theta_dim)
             try:
-                graph.set_param_length(param_length)
+                graph.set_param_length(theta_dim)
             except Exception as e:
                 logger.warning("Could not set graph.param_length: %s", e)
-        elif graph_param_length != param_length:
-            # Graph param_length differs from desired param_length
+        elif graph_param_length != theta_dim:
+            # Graph param_length differs from desired theta_dim
             # This is problematic for caching, so warn user
             logger.warning(
-                "Graph has param_length=%d but trace recording requested param_length=%d. "
+                "Graph has param_length=%d but trace recording requested theta_dim=%d. "
                 "Cache keys depend on graph.param_length, so this may cause cache misses or incorrect cache hits. "
-                "Consider setting param_length explicitly when constructing the Graph, or omit param_length argument here.",
-                graph_param_length, param_length
+                "Consider setting theta_dim explicitly when constructing the Graph, or omit theta_dim argument here.",
+                graph_param_length, theta_dim
             )
 
     # Determine reward_length
@@ -605,10 +605,10 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
             # Add parameterized edges
             for param_edge in param_edges:
                 # Get edge state (coefficient vector)
-                # Use param_length to get the full coefficient vector
-                edge_state = param_edge.edge_state(param_length if param_length > 0 else MAX_PARAM_TEST)
-                # Trim to actual param_length
-                edge_state = edge_state[:param_length]
+                # Use theta_dim to get the full coefficient vector
+                edge_state = param_edge.edge_state(theta_dim if theta_dim > 0 else MAX_PARAM_TEST)
+                # Trim to actual theta_dim
+                edge_state = edge_state[:theta_dim]
                 coeffs = np.array(edge_state, dtype=np.float64)
 
                 # weight = dot(coeffs, params)
@@ -675,8 +675,8 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
 
             # Apply reward transformation if enabled
             if reward_length > 0:
-                # Reward parameter is at index param_length + i
-                reward_param_idx = param_length + i
+                # Reward parameter is at index theta_dim + i
+                reward_param_idx = theta_dim + i
                 reward_idx = builder.add_param(reward_param_idx)
                 prob_idx = builder.add_mul(prob_idx, reward_idx)
 
@@ -692,8 +692,8 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
             to_idx = state_to_idx[to_state]
 
             # Get edge state (coefficient vector)
-            edge_state = param_edge.edge_state(param_length if param_length > 0 else MAX_PARAM_TEST)
-            edge_state = edge_state[:param_length]
+            edge_state = param_edge.edge_state(theta_dim if theta_dim > 0 else MAX_PARAM_TEST)
+            edge_state = edge_state[:theta_dim]
             coeffs = np.array(edge_state, dtype=np.float64)
 
             # Compute weight expression (no base_weight)
@@ -704,8 +704,8 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
 
             # Apply reward transformation if enabled
             if reward_length > 0:
-                # Reward parameter is at index param_length + i
-                reward_param_idx = param_length + i
+                # Reward parameter is at index theta_dim + i
+                reward_param_idx = theta_dim + i
                 reward_idx = builder.add_param(reward_param_idx)
                 prob_idx = builder.add_mul(prob_idx, reward_idx)
 
@@ -838,7 +838,7 @@ def record_elimination_trace(graph, param_length: Optional[int] = None,
         starting_vertex_idx=starting_vertex_idx,
         n_vertices=n_vertices,
         state_length=state_length,
-        param_length=param_length,
+        param_length=theta_dim,
         reward_length=reward_length,
         is_discrete=False,  # TODO: detect from graph
         metadata={
@@ -1134,7 +1134,7 @@ def trace_to_c_arrays(trace: EliminationTrace):
 
     Examples
     --------
-    >>> trace = record_elimination_trace(graph, param_length=2)
+    >>> trace = record_elimination_trace(graph, theta_dim=2)
     >>> arrays = trace_to_c_arrays(trace)
     >>> # Use arrays['operations_types'], arrays['operations_consts'], etc.
     >>> # in C++ code generation
@@ -1587,7 +1587,7 @@ def trace_to_log_likelihood(trace: EliminationTrace, observed_data, reward_vecto
     --------
     >>> # Record trace from parameterized coalescent model
     >>> graph = Graph(callback=coalescent_callback, parameterized=True, nr_samples=5)
-    >>> trace = record_elimination_trace(graph, param_length=2)
+    >>> trace = record_elimination_trace(graph, theta_dim=2)
     >>>
     >>> # Create exact log-likelihood function (fast C++ mode)
     >>> observed_times = np.array([1.5, 2.3, 0.8, 1.2])
@@ -1745,7 +1745,7 @@ def trace_to_pmf_function(trace: EliminationTrace, times, discrete=False):
     Examples
     --------
     >>> # Create PMF function
-    >>> trace = record_elimination_trace(graph, param_length=2)
+    >>> trace = record_elimination_trace(graph, theta_dim=2)
     >>> times = jnp.linspace(0, 10, 100)
     >>> pmf_fn = trace_to_pmf_function(trace, times)
     >>>
@@ -1817,7 +1817,7 @@ def trace_to_pmf_function(trace: EliminationTrace, times, discrete=False):
 #     Examples
 #     --------
 #     >>> # Create log-likelihood model (recommended)
-#     >>> trace = record_elimination_trace(graph, param_length=2)
+#     >>> trace = record_elimination_trace(graph, theta_dim=2)
 #     >>> model = create_svgd_model_from_trace(
 #     ...     trace,
 #     ...     model_type='log_likelihood',

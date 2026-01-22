@@ -115,6 +115,10 @@
         {
             "filePath": "docs/pages",
             "group": "Default"
+        },
+        {
+            "filePath": "scripts",
+            "group": "Default"
         }
     ],
     "yaml.schemas": {

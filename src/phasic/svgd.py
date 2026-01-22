@@ -2326,9 +2326,21 @@ class SVGD:
         JAX-compatible parameterized model with signature: model(theta, data) -> values
     observed_data : array_like
         Observed data points
-    prior : callable, optional
-        Log prior function: prior(theta) -> scalar.
+    prior : callable or list of Prior objects, optional
+        Log prior function for parameters. Can be:
+        - Single callable: prior(theta) -> scalar, applied to entire theta vector
+        - List of Prior objects: One prior per parameter dimension.
+          Use None for fixed parameters: prior=[GaussPrior(...), None, GaussPrior(...)]
+
         If None, uses standard normal prior: log p(theta) = -0.5 * sum(theta^2)
+
+        **With fixed parameters**:
+        When using a list of priors with the `fixed` parameter, you must provide None
+        at indices corresponding to fixed parameters. This is validated at initialization.
+
+        Example:
+            prior=[GaussPrior(ci=[0,1]), None, GaussPrior(ci=[0,1])],
+            fixed=[(1, 0.5)]  # theta[1] fixed, prior[1] must be None
     n_particles : int, default is 20 times length of theta
         Number of SVGD particles
     n_iterations : int, default=1000
@@ -2767,6 +2779,30 @@ class SVGD:
                     f"prior list length ({len(self.prior_list)}) must match theta_dim ({theta_dim})"
                 )
 
+            # Check that None entries in prior_list align with fixed parameters
+            if fixed is not None:
+                # Determine fixed indices from fixed parameter
+                if isinstance(fixed, list) and len(fixed) > 0 and isinstance(fixed[0], tuple):
+                    fixed_indices = set(idx for idx, _ in fixed)
+                else:
+                    fixed_indices = set(i for i, val in enumerate(fixed) if val == 1)
+
+                # Check None alignment
+                for i, prior_i in enumerate(self.prior_list):
+                    if prior_i is None and i not in fixed_indices:
+                        raise ValueError(
+                            f"prior[{i}] is None but theta[{i}] is not fixed.\n"
+                            f"Use None in prior list only for fixed parameters.\n"
+                            f"Fixed indices: {sorted(fixed_indices)}\n"
+                            f"Example: prior=[GaussPrior(...), None, ...] with fixed=[(1, value)]"
+                        )
+                    elif prior_i is not None and i in fixed_indices:
+                        raise ValueError(
+                            f"prior[{i}] is provided but theta[{i}] is fixed.\n"
+                            f"Use None in prior list for fixed parameters.\n"
+                            f"Example: prior=[GaussPrior(...), None, GaussPrior(...)] with fixed=[(1, value)]"
+                        )
+
         # Adjust n_particles for pmap if needed
         if self.parallel_mode == 'pmap' and self.n_devices is not None:
             if n_particles % self.n_devices != 0:
@@ -2782,22 +2818,31 @@ class SVGD:
         if theta_init is None:
             # Check for per-parameter priors (list of Prior objects)
             if self.prior_list is not None:
-                # Sample each dimension from its respective prior
+                # Sample each dimension from its respective prior (skip None for fixed params)
                 samples = []
                 for i, prior_i in enumerate(self.prior_list):
-                    if not hasattr(prior_i, 'sample'):
-                        raise ValueError(
-                            f"Prior at index {i} does not have a sample() method. "
-                            f"Per-parameter priors must be Prior objects with sample() method."
-                        )
-                    key, subkey = jax.random.split(key)
-                    s_i = prior_i.sample(subkey, (n_particles, 1))
-                    samples.append(s_i)
+                    if prior_i is None:
+                        # Fixed parameter - will be set later based on fixed_values
+                        # Use placeholder for now (normal distribution)
+                        key, subkey = jax.random.split(key)
+                        s_i = jax.random.normal(subkey, (n_particles, 1))
+                        samples.append(s_i)
+                    else:
+                        if not hasattr(prior_i, 'sample'):
+                            raise ValueError(
+                                f"Prior at index {i} does not have a sample() method. "
+                                f"Per-parameter priors must be Prior objects with sample() method."
+                            )
+                        key, subkey = jax.random.split(key)
+                        s_i = prior_i.sample(subkey, (n_particles, 1))
+                        samples.append(s_i)
                 self.theta_init = jnp.concatenate(samples, axis=1)
                 if verbose:
                     print(f"Initialized {n_particles} particles with theta_dim={theta_dim} from per-parameter priors:")
                     for i, prior_i in enumerate(self.prior_list):
-                        if hasattr(prior_i, 'mu') and hasattr(prior_i, 'sigma'):
+                        if prior_i is None:
+                            print(f"    θ[{i}]: (fixed parameter)")
+                        elif hasattr(prior_i, 'mu') and hasattr(prior_i, 'sigma'):
                             print(f"    θ[{i}]: N({prior_i.mu:.2f}, {prior_i.sigma:.2f}²)")
                         elif hasattr(prior_i, 'scale'):
                             print(f"    θ[{i}]: HalfCauchy(scale={prior_i.scale:.2f})")
@@ -3078,8 +3123,12 @@ class SVGD:
 
         # Log-prior (evaluated in unconstrained space)
         if self.prior_list is not None:
-            # Per-parameter priors: sum log-probabilities from each dimension
-            log_pri = sum(self.prior_list[i](theta[i:i+1]) for i in range(len(self.prior_list)))
+            # Per-parameter priors: sum log-probabilities, skip None (fixed params)
+            log_pri = sum(
+                self.prior_list[i](theta[i:i+1])
+                for i in range(len(self.prior_list))
+                if self.prior_list[i] is not None
+            )
         elif self.prior is not None:
             log_pri = self.prior(theta)
         else:
@@ -3134,8 +3183,12 @@ class SVGD:
 
         # Log-prior term (evaluated in unconstrained space)
         if self.prior_list is not None:
-            # Per-parameter priors: sum log-probabilities from each dimension
-            log_pri = sum(self.prior_list[i](theta[i:i+1]) for i in range(len(self.prior_list)))
+            # Per-parameter priors: sum log-probabilities, skip None (fixed params)
+            log_pri = sum(
+                self.prior_list[i](theta[i:i+1])
+                for i in range(len(self.prior_list))
+                if self.prior_list[i] is not None
+            )
         elif self.prior is not None:
             log_pri = self.prior(theta)
         else:
@@ -3239,8 +3292,12 @@ class SVGD:
 
         # Log-prior term (evaluated in unconstrained space)
         if self.prior_list is not None:
-            # Per-parameter priors: sum log-probabilities from each dimension
-            log_pri = sum(self.prior_list[i](theta[i:i+1]) for i in range(len(self.prior_list)))
+            # Per-parameter priors: sum log-probabilities, skip None (fixed params)
+            log_pri = sum(
+                self.prior_list[i](theta[i:i+1])
+                for i in range(len(self.prior_list))
+                if self.prior_list[i] is not None
+            )
         elif self.prior is not None:
             log_pri = self.prior(theta)
         else:

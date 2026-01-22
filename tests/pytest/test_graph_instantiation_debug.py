@@ -15,7 +15,7 @@ def test_manual_graph():
     print("="*60)
 
     # Create graph manually
-    graph = Graph(state_length=1)
+    graph = Graph(1)
     v0 = graph.starting_vertex()
     v1 = graph.find_or_create_vertex([1])
     v0.add_edge_parameterized(v1, 0.0, [1.0])  # weight = 0.0 + 1.0 * theta[0]
@@ -23,7 +23,7 @@ def test_manual_graph():
     print(f"Manual graph: {graph.vertices_length()} vertices")
 
     # Record trace
-    trace = record_elimination_trace(graph, param_length=1, enable_rewards=False)
+    trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=False)
     print(f"Trace: {len(trace.operations)} operations")
 
     # Evaluate trace
@@ -73,11 +73,11 @@ def test_callback_graph():
             return []
         return []
 
-    graph = Graph(callback=callback, parameterized=True)
+    graph = Graph(callback, parameterized=True)
     print(f"Callback graph: {graph.vertices_length()} vertices")
 
     # Record trace
-    trace = record_elimination_trace(graph, param_length=1, enable_rewards=False)
+    trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=False)
     print(f"Trace: {len(trace.operations)} operations")
 
     # Evaluate trace

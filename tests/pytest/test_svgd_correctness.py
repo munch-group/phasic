@@ -83,7 +83,7 @@ def build_exponential_graph():
 
     Returns exponential distribution with rate θ.
     """
-    g = Graph(state_length=1)
+    g = Graph(1)
     start = g.starting_vertex()
     v2 = g.find_or_create_vertex([2])
     v1 = g.find_or_create_vertex([1])
@@ -168,7 +168,7 @@ def test_basic_convergence():
     # Build model
     print(f"\nBuilding model...")
     graph = build_exponential_graph()
-    model = Graph.pmf_from_graph(graph, discrete=False, param_length=1)
+    model = Graph.pmf_from_graph(graph, discrete=False, theta_dim=1)
 
     # Define uninformative prior in transformed (log) space
     def uninformative_prior(phi):
@@ -254,7 +254,7 @@ def test_log_transformation():
     # Build model
     print(f"Building model...")
     graph = build_exponential_graph()
-    model = Graph.pmf_from_graph(graph, discrete=False, param_length=1)
+    model = Graph.pmf_from_graph(graph, discrete=False, theta_dim=1)
 
     # Define log transformation
     def log_transform(phi):
@@ -351,7 +351,7 @@ def test_positive_constraint():
     # Build model
     print(f"Building model...")
     graph = build_exponential_graph()
-    model = Graph.pmf_from_graph(graph, discrete=False, param_length=1)
+    model = Graph.pmf_from_graph(graph, discrete=False, theta_dim=1)
 
     # Use ExponentialDecayStepSize for stable convergence
     from phasic import ExponentialDecayStepSize
@@ -421,7 +421,7 @@ def test_cache_isolation():
 
     # Build model
     graph = build_exponential_graph()
-    model = Graph.pmf_from_graph(graph, discrete=False, param_length=1)
+    model = Graph.pmf_from_graph(graph, discrete=False, theta_dim=1)
 
     # First run
     print(f"[1] First SVGD run...")
@@ -447,7 +447,7 @@ def test_cache_isolation():
 
     # Need to rebuild model after clearing trace cache
     graph2 = build_exponential_graph()
-    model2 = Graph.pmf_from_graph(graph2, discrete=False, param_length=1)
+    model2 = Graph.pmf_from_graph(graph2, discrete=False, theta_dim=1)
 
     # Second run
     print(f"[3] Second SVGD run (after cache clear)...")

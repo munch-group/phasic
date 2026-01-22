@@ -66,7 +66,7 @@ def build_simple_exponential():
     - [1]: Absorbing state
     - Transition rate: θ (single parameter)
     """
-    g = Graph(state_length=1)
+    g = Graph(1)
     start = g.starting_vertex()
     v2 = g.find_or_create_vertex([2])
     v1 = g.find_or_create_vertex([1])
@@ -101,7 +101,7 @@ def build_coalescent(nr_samples=None):
             return transitions
 
     # Build the graph
-    graph = Graph(callback=coalescent, parameterized=True, nr_samples=nr_samples)
+    graph = Graph(coalescent, parameterized=True, nr_samples=nr_samples)
 
     return graph
 
@@ -259,7 +259,7 @@ def main():
     graph = build_graph()
     # graph = build_simple_exponential()
     print("Nr of vertices in graph:", graph.vertices_length())
-    model = Graph.pmf_from_graph(graph, discrete=False, param_length=1)
+    model = Graph.pmf_from_graph(graph, discrete=False, theta_dim=1)
 
     # # Common parameters for all tests
     # common_params = {

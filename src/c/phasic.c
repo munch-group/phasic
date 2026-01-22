@@ -960,7 +960,7 @@ struct ptd_elimination_trace *ptd_load_trace_from_cache(const char *hash_hex) {
     // Get cache directory
     char cache_dir[PATH_MAX];
     if (get_cache_dir(cache_dir, sizeof(cache_dir)) != 0) {
-        DEBUG_PRINT("WARNING: Cache directory unavailable\n");
+        PTD_LOG_WARNING("Cache directory unavailable");
         return NULL;  // Cache directory unavailable
     }
 
@@ -1026,7 +1026,7 @@ bool ptd_save_trace_to_cache(const char *hash_hex, const struct ptd_elimination_
     // Get cache directory
     char cache_dir[PATH_MAX];
     if (get_cache_dir(cache_dir, sizeof(cache_dir)) != 0) {
-        DEBUG_PRINT("WARNING: Cache directory unavailable, cannot save trace\n");
+        PTD_LOG_WARNING("Cache directory unavailable, cannot save trace");
         return false;  // Cache unavailable
     }
 
@@ -3145,23 +3145,23 @@ void ptd_graph_update_weights(
         if (hash != NULL) {
             graph->elimination_trace = ptd_load_trace_from_cache(hash->hash_hex);
             if (graph->elimination_trace != NULL) {
-                DEBUG_PRINT("INFO: loaded elimination trace from cache (%s)\n", hash->hash_hex);
+                PTD_LOG_INFO("loaded elimination trace from cache (%s)", hash->hash_hex);
             }
         }
 
         if (graph->elimination_trace == NULL) {
-            DEBUG_PRINT("INFO: recording elimination trace...\n");
+            PTD_LOG_INFO("recording elimination trace...");
             graph->elimination_trace = ptd_record_elimination_trace(graph);
 
             if (graph->elimination_trace != NULL && hash != NULL) {
                 bool saved = ptd_save_trace_to_cache(hash->hash_hex, graph->elimination_trace);
                 if (saved) {
-                    DEBUG_PRINT("INFO: saved elimination trace to cache (%s)\n", hash->hash_hex);
+                    PTD_LOG_INFO("saved elimination trace to cache (%s)", hash->hash_hex);
                 } else {
-                    DEBUG_PRINT("WARNING: failed to save elimination trace to cache\n");
+                    PTD_LOG_WARNING("failed to save elimination trace to cache");
                 }
             } else if (graph->elimination_trace != NULL && hash == NULL) {
-                DEBUG_PRINT("WARNING: trace recorded but hash is NULL, cannot cache\n");
+                PTD_LOG_WARNING("trace recorded but hash is NULL, cannot cache");
             }
         }
 
@@ -6268,7 +6268,7 @@ double *ptd_expected_sojourn_time_subset(struct ptd_graph *graph, const size_t *
         #ifdef DEBUG
         for (size_t r = 0; r < k; r++) {
             if (isnan(from_row[r])) {
-                DEBUG_PRINT("WARNING: results[%zu][%zu] became nan at command %zu\n",
+                PTD_LOG_WARNING("results[%zu][%zu] became nan at command %zu",
                     cmd.from, r, cmd_idx);
             }
         }
@@ -6407,7 +6407,7 @@ double *ptd_expected_sojourn_time(struct ptd_graph *graph) {
         #ifdef DEBUG
         for (size_t r = 0; r < n; r++) {
             if (isnan(from_row[r])) {
-                DEBUG_PRINT("WARNING: results[%zu][%zu] became nan at command %zu\n",
+                PTD_LOG_WARNING("results[%zu][%zu] became nan at command %zu",
                     cmd.from, r, cmd_idx);
             }
         }
@@ -11888,7 +11888,7 @@ static size_t add_const_to_trace(
 
     // Debug: check for nan constants
     if (isnan(value)) {
-        DEBUG_PRINT("WARNING: add_const_to_trace called with NAN value at op_idx=%zu\n", idx);
+        PTD_LOG_WARNING("add_const_to_trace called with NAN value at op_idx=%zu", idx);
     }
     op->coefficients_length = 0;
     op->operands = NULL;
@@ -12290,22 +12290,22 @@ struct ptd_trace_result *ptd_evaluate_trace(
 
         // Debug: Check for nan after operation
         if (isnan(values[i])) {
-            DEBUG_PRINT("WARNING: Operation %zu produced nan (type=%d)\n", i, op->op_type);
+            PTD_LOG_WARNING("Operation %zu produced nan (type=%d)", i, op->op_type);
             if (op->op_type == PTD_OP_DIV) {
-                DEBUG_PRINT("  DIV: values[%zu]=%f / values[%zu]=%f\n",
+                PTD_LOG_DEBUG("  DIV: values[%zu]=%f / values[%zu]=%f",
                     op->operands[0], values[op->operands[0]],
                     op->operands[1], values[op->operands[1]]);
             } else if (op->op_type == PTD_OP_INV) {
-                DEBUG_PRINT("  INV: 1.0 / values[%zu]=%f\n",
+                PTD_LOG_DEBUG("  INV: 1.0 / values[%zu]=%f",
                     op->operands[0], values[op->operands[0]]);
             } else if (op->op_type == PTD_OP_CONST) {
-                DEBUG_PRINT("  CONST: const_value=%f\n", op->const_value);
+                PTD_LOG_DEBUG("  CONST: const_value=%f", op->const_value);
             }
         }
 
         // Debug: print first few operations
         if (i < 5) {
-            DEBUG_PRINT("DEBUG: Op %zu type=%d result=%f\n", i, op->op_type, values[i]);
+            PTD_LOG_DEBUG("Op %zu type=%d result=%f", i, op->op_type, values[i]);
         }
     }
 
@@ -12459,7 +12459,7 @@ struct ptd_desc_reward_compute *ptd_build_reward_compute_from_trace(
         return NULL;
     }
 
-    DEBUG_PRINT("DEBUG: Building reward_compute: n_vertices=%zu total_edges=%zu n_commands=%zu\n",
+    PTD_LOG_DEBUG("Building reward_compute: n_vertices=%zu total_edges=%zu n_commands=%zu",
         n_vertices, total_edges, n_commands);
 
     size_t cmd_idx = 0;
@@ -12472,7 +12472,7 @@ struct ptd_desc_reward_compute *ptd_build_reward_compute_from_trace(
 
         // Debug vertex 0
         if (i == 0) {
-            DEBUG_PRINT("DEBUG: Building reward_compute cmd %zu: from=0 to=0 multiplier=%f\n",
+            PTD_LOG_DEBUG("Building reward_compute cmd %zu: from=0 to=0 multiplier=%f",
                 cmd_idx, result->vertex_rates[i]);
         }
 
@@ -12689,7 +12689,7 @@ struct ptd_elimination_trace *ptd_record_elimination_trace(struct ptd_graph *gra
                 }
 
                 if (i == 0 && j == 0) {
-                    DEBUG_PRINT("DEBUG: vertex 0 edge 0: coefficients_length=%zu, op_idx=%zu\n",
+                    PTD_LOG_DEBUG("vertex 0 edge 0: coefficients_length=%zu, op_idx=%zu",
                         edge->coefficients_length, op_idx);
                 }
                 weight_indices[weight_idx++] = op_idx;
@@ -12706,11 +12706,11 @@ struct ptd_elimination_trace *ptd_record_elimination_trace(struct ptd_graph *gra
 
             // Debug: check vertex 0
             if (i == 0) {
-                DEBUG_PRINT("DEBUG: vertex 0 has %zu edges, sum_idx=%zu\n", total_edges, sum_idx);
-                DEBUG_PRINT("DEBUG: vertex 0 edge 0: coefficients_length=%zu, weight=%f\n",
+                PTD_LOG_DEBUG("vertex 0 has %zu edges, sum_idx=%zu", total_edges, sum_idx);
+                PTD_LOG_DEBUG("vertex 0 edge 0: coefficients_length=%zu, weight=%f",
                     vertex->edges[0]->coefficients_length, vertex->edges[0]->weight);
                 if (weight_idx > 0) {
-                    DEBUG_PRINT("DEBUG: vertex 0 weight_indices[0]=%zu\n", weight_indices[0]);
+                    PTD_LOG_DEBUG("vertex 0 weight_indices[0]=%zu", weight_indices[0]);
                 }
             }
 
@@ -12724,7 +12724,7 @@ struct ptd_elimination_trace *ptd_record_elimination_trace(struct ptd_graph *gra
 
             // Debug: check vertex 0
             if (i == 0) {
-                DEBUG_PRINT("DEBUG: vertex 0 rate op_idx=%zu\n", trace->vertex_rates[i]);
+                // DEBUG_PRINT("DEBUG: vertex 0 rate op_idx=%zu\n", trace->vertex_rates[i]);
             }
 
             free(weight_indices);

@@ -608,13 +608,13 @@ class PropertySet:
         """
         return iter(range(self.state_length))
     
-    def indices(self):
+    def indices(self) -> np.ndarray:
         """
-        Iterate over all indices in this PropertySet.
+        Get all indices in this PropertySet as a numpy array.
 
-        Yields
-        ------
-        np.array
+        Returns
+        -------
+        ndarray of int
             Indices from 0 to state_length - 1
 
         Examples
@@ -623,16 +623,10 @@ class PropertySet:
         ...     Property('descendants_l1', max_value=2),
         ...     Property('descendants_l2', max_value=2)
         ... ])
-        >>> # Iterate over all indices
-        >>> for idx in pset:
-        ...     props = pset.index_to_props(idx)
-        ...     print(f"{idx}: {props}")
-        0: LineageProps(descendants_l1=0, descendants_l2=0)
-        1: LineageProps(descendants_l1=1, descendants_l2=0)
-        2: LineageProps(descendants_l1=2, descendants_l2=0)
-        ...
+        >>> pset.indices()
+        array([0, 1, 2, 3, 4, 5, 6, 7, 8])
         """
-        return np.array(list(iter(range(self.state_length))))
+        return np.arange(self.state_length)
 
 
 class PropertyDict(dict):
@@ -876,6 +870,13 @@ class StateIndexer:
         # Create and cache result class for index_to_props
         object.__setattr__(self, '_result_class', self._create_result_class())
 
+    def property_sets(self) -> List[PropertySet]:
+        return [self._property_sets[name] for name in self._pset_order]
+    
+    def slots(self) -> List[Slot]:
+        return [self._slots[name] for name in self._slot_order]
+
+
     def _create_result_class(self):
         """
         Create dynamic dataclass for index_to_props results.
@@ -1080,7 +1081,7 @@ class StateIndexer:
         -------
         dict
             Dict mapping PropertySet/Slot names to (start_index, end_index) tuples.
-            end_index is inclusive. For slots, start_index == end_index.
+            end_index is exclusive. For slots, start_index == end_index.
 
         Examples
         --------
@@ -1090,12 +1091,12 @@ class StateIndexer:
         ...     slots=['epoch', 'branch_id']                       # 1 index each
         ... )
         >>> indexer.index_ranges
-        {'lineage': (0, 10), 'metadata': (11, 111), 'epoch': (112, 112), 'branch_id': (113, 113)}
+        {'lineage': (0, 11), 'metadata': (11, 112), 'epoch': (112, 113), 'branch_id': (113, 114)}
         """
         ranges = {}
         # PropertySets
         for name, pset in self._property_sets.items():
-            ranges[name] = (self._offsets[name], self._offsets[name] + pset.state_length - 1)
+            ranges[name] = (self._offsets[name], self._offsets[name] + pset.state_length)
         # Slots (single index each)
         for name in self._slots.keys():
             idx = self._offsets[name]
@@ -1579,16 +1580,164 @@ class StateIndexer:
     def __iter__(self):
         return iter(range(self.state_length))
 
-    def indices(self):
+    def indices(self) -> np.ndarray:
         """
-        Get all possible indices in concatenated space.
+        Get all indices in concatenated space as a numpy array.
 
         Returns
         -------
-        list of int
-            List of all valid indices from 0 to state_length - 1
+        ndarray of int
+            Indices from 0 to state_length - 1
+
+        Examples
+        --------
+        >>> indexer = StateIndexer(
+        ...     lineage=[Property('descendants', max_value=2)]
+        ... )
+        >>> indexer.indices()
+        array([0, 1, 2])
         """
-        return np.array(list(range(self.state_length)))
+        return np.arange(self.state_length)
+
+    def append(self, other: 'StateIndexer', prefix_other: Optional[str] = None) -> 'StateIndexer':
+        """
+        Create new StateIndexer by appending another's PropertySets and Slots.
+
+        The resulting indexer has:
+        - All PropertySets from self (indices 0 to self.state_length - 1)
+        - All PropertySets from other (indices offset by self.state_length)
+        - Slots from both indexers
+
+        Parameters
+        ----------
+        other : StateIndexer
+            StateIndexer to append
+        prefix_other : str, optional
+            If provided, prefix all PropertySet and Slot names from `other` with this string.
+            If None (default), name collisions raise ValueError.
+
+        Returns
+        -------
+        StateIndexer
+            New StateIndexer with combined PropertySets and Slots
+
+        Raises
+        ------
+        ValueError
+            If PropertySet or Slot names collide and prefix_other is None
+
+        Examples
+        --------
+        >>> indexer1 = StateIndexer(
+        ...     lineage=[Property('descendants', max_value=10)]
+        ... )
+        >>> indexer2 = StateIndexer(
+        ...     metadata=[Property('time_bin', max_value=100)]
+        ... )
+        >>> combined = indexer1.append(indexer2)
+        >>> combined.state_length
+        112  # 11 + 101
+        >>> combined.lineage.state_length
+        11
+        >>> combined.metadata.state_length
+        101
+
+        >>> # With prefix to avoid name collisions
+        >>> indexer3 = StateIndexer(
+        ...     lineage=[Property('descendants', max_value=5)]
+        ... )
+        >>> combined = indexer1.append(indexer3, prefix_other='other_')
+        >>> combined.lineage.state_length  # Original
+        11
+        >>> combined.other_lineage.state_length  # Prefixed
+        6
+        """
+        # Serialize both indexers
+        self_dict = self.to_dict()
+        other_dict = other.to_dict()
+
+        # Apply prefix to other's names if specified
+        if prefix_other is not None:
+            # Prefix PropertySet names
+            prefixed_psets = {}
+            for name, pset_data in other_dict['property_sets'].items():
+                new_name = f"{prefix_other}{name}"
+                pset_data_copy = pset_data.copy()
+                pset_data_copy['name'] = new_name
+                prefixed_psets[new_name] = pset_data_copy
+            other_dict['property_sets'] = prefixed_psets
+            other_dict['pset_order'] = [f"{prefix_other}{name}" for name in other_dict['pset_order']]
+
+            # Prefix Slot names
+            other_dict['slots'] = [f"{prefix_other}{name}" for name in other_dict['slots']]
+            other_dict['slot_order'] = [f"{prefix_other}{name}" for name in other_dict['slot_order']]
+
+        # Check for name collisions
+        self_pset_names = set(self_dict['property_sets'].keys())
+        other_pset_names = set(other_dict['property_sets'].keys())
+        pset_collisions = self_pset_names & other_pset_names
+
+        self_slot_names = set(self_dict['slots'])
+        other_slot_names = set(other_dict['slots'])
+        slot_collisions = self_slot_names & other_slot_names
+
+        # Check cross-type collisions (PropertySet name = Slot name)
+        pset_slot_collisions = (self_pset_names & other_slot_names) | (other_pset_names & self_slot_names)
+
+        all_collisions = pset_collisions | slot_collisions | pset_slot_collisions
+
+        if all_collisions:
+            raise ValueError(
+                f"Name collision(s) detected: {sorted(all_collisions)}. "
+                f"Use prefix_other parameter to avoid collisions."
+            )
+
+        # Merge the dicts
+        merged = {
+            'property_sets': {**self_dict['property_sets'], **other_dict['property_sets']},
+            'pset_order': self_dict['pset_order'] + other_dict['pset_order'],
+            'slots': self_dict['slots'] + other_dict['slots'],
+            'slot_order': self_dict['slot_order'] + other_dict['slot_order']
+        }
+
+        # Reconstruct using from_dict
+        return StateIndexer.from_dict(merged)
+
+    def __add__(self, other: 'StateIndexer') -> 'StateIndexer':
+        """
+        Combine two StateIndexers using the + operator.
+
+        Equivalent to self.append(other) without prefix. Raises ValueError
+        on name collisions.
+
+        Parameters
+        ----------
+        other : StateIndexer
+            StateIndexer to append
+
+        Returns
+        -------
+        StateIndexer
+            New StateIndexer with combined PropertySets and Slots
+
+        Raises
+        ------
+        ValueError
+            If PropertySet or Slot names collide
+
+        Examples
+        --------
+        >>> indexer1 = StateIndexer(
+        ...     lineage=[Property('descendants', max_value=10)]
+        ... )
+        >>> indexer2 = StateIndexer(
+        ...     metadata=[Property('time_bin', max_value=100)]
+        ... )
+        >>> combined = indexer1 + indexer2
+        >>> combined.state_length
+        112
+        """
+        return self.append(other)
 
     def to_dict(self) -> Dict[str, Any]:
         """

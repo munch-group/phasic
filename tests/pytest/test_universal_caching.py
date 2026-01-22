@@ -30,7 +30,7 @@ v1.add_edge(v2, 5.0)
 print(f"   Graph: param_length={g1.param_length()}, is_parameterized={g1.is_parameterized()}")
 
 # Record trace
-trace = record_elimination_trace(g1, param_length=g1.param_length())
+trace = record_elimination_trace(g1, theta_dim=g1.param_length())
 
 if trace is not None:
     print(f"   ✅ Trace recorded: {trace.n_vertices} vertices, param_length={trace.param_length}")
@@ -50,7 +50,7 @@ v1.add_edge(v2, [2.0, 4.0])
 
 print(f"   Graph: param_length={g2.param_length()}, is_parameterized={g2.is_parameterized()}")
 
-trace = record_elimination_trace(g2, param_length=g2.param_length())
+trace = record_elimination_trace(g2, theta_dim=g2.param_length())
 
 if trace is not None:
     print(f"   ✅ Trace recorded: {trace.n_vertices} vertices, param_length={trace.param_length}")
@@ -71,8 +71,8 @@ v0 = g3b.starting_vertex()
 v1 = g3b.find_or_create_vertex([1])
 v0.add_edge(v1, [1.0, 0.0])  # param_length=2
 
-trace3a = record_elimination_trace(g3a, param_length=g3a.param_length())
-trace3b = record_elimination_trace(g3b, param_length=g3b.param_length())
+trace3a = record_elimination_trace(g3a, theta_dim=g3a.param_length())
+trace3b = record_elimination_trace(g3b, theta_dim=g3b.param_length())
 
 print(f"   Graph 1: param_length={trace3a.param_length}, n_operations={len(trace3a.operations)}")
 print(f"   Graph 2: param_length={trace3b.param_length}, n_operations={len(trace3b.operations)}")

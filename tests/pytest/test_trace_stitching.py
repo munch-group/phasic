@@ -28,7 +28,7 @@ def test_stitch_single_scc():
     )
 
     # Record direct trace
-    trace_direct = record_elimination_trace(graph, param_length=1)
+    trace_direct = record_elimination_trace(graph, theta_dim=1)
 
     # SCC decomposition
     scc_graph = graph.scc_decomposition()
@@ -41,7 +41,7 @@ def test_stitch_single_scc():
     scc_trace_dict = {}
     for scc in sccs:
         scc_subgraph = scc.as_graph()
-        scc_trace = record_elimination_trace(scc_subgraph, param_length=1)
+        scc_trace = record_elimination_trace(scc_subgraph, theta_dim=1)
         scc_trace_dict[scc.hash()] = scc_trace
 
     # Stitch
@@ -74,14 +74,14 @@ def test_stitch_vs_direct_simple():
     )
 
     # Direct trace
-    trace_direct = record_elimination_trace(graph, param_length=1)
+    trace_direct = record_elimination_trace(graph, theta_dim=1)
 
     # SCC decomposition and stitching
     scc_graph = graph.scc_decomposition()
     scc_trace_dict = {}
     for scc in scc_graph.sccs_in_topo_order():
         scc_subgraph = scc.as_graph()
-        scc_trace = record_elimination_trace(scc_subgraph, param_length=1)
+        scc_trace = record_elimination_trace(scc_subgraph, theta_dim=1)
         scc_trace_dict[scc.hash()] = scc_trace
 
     trace_stitched = stitch_scc_traces(scc_graph, scc_trace_dict)
@@ -117,7 +117,7 @@ def test_stitch_vs_direct_simple():
 def test_stitch_validation():
     """Test that validation catches errors"""
     # Empty trace dict should raise
-    graph = Graph(state_length=1)
+    graph = Graph(1)
     v0 = graph.starting_vertex()
     v1 = graph.find_or_create_vertex([1])
     v0.add_edge_parameterized(v1, base_weight=0.0, edge_state=[1.0])

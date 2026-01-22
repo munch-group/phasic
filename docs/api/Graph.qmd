@@ -255,7 +255,7 @@ with a fresh (invalid) trace cache.
 
 ```python
 phasic.Graph.compute_trace(
-    param_length=None,
+    theta_dim=None,
     hierarchical=True,
     min_size=50,
     parallel='auto',
@@ -704,7 +704,7 @@ and reconstructed on worker processes.
 >>> v0 = g.starting_vertex()
 >>> v1 = g.find_or_create_vertex([1])
 >>> v0.add_edge_parameterized(v1, 0.0, [2.0])
->>> serialized = g.serialize(param_length=1)
+>>> serialized = g.serialize(theta_dim=1)
 >>>
 >>> # Convert to JSON (for network transmission)
 >>> json_dict = {k: v.tolist() if isinstance(v, np.ndarray) else v
@@ -930,7 +930,7 @@ phasic.Graph.pmf_and_moments_from_graph(
     nr_moments=2,
     discrete=False,
     use_ffi=False,
-    param_length=None,
+    theta_dim=None,
 )
 ```
 
@@ -1006,7 +1006,7 @@ phasic.Graph.pmf_and_moments_from_graph_multivariate(
     nr_moments=2,
     discrete=False,
     use_ffi=False,
-    param_length=None,
+    theta_dim=None,
 )
 ```
 
@@ -1162,7 +1162,7 @@ phasic.Graph.pmf_from_graph(
     graph,
     discrete=False,
     use_cache=True,
-    param_length=None,
+    theta_dim=None,
 )
 ```
 
@@ -1256,7 +1256,7 @@ graph.pdf(time), graph.dph_pmf(jump), graph.moments(power), etc.
 ```python
 phasic.Graph.pmf_from_graph_joint_index(
     graph,
-    param_length=None,
+    theta_dim=None,
     fixed_mask=None,
 )
 ```
@@ -1453,7 +1453,7 @@ distribution context using distribution_context().
 ### serialize { #phasic.Graph.serialize }
 
 ```python
-phasic.Graph.serialize(param_length=None)
+phasic.Graph.serialize(theta_dim=None)
 ```
 
 Serialize graph to array representation for efficient computation.

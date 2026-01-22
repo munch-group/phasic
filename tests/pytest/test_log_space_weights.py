@@ -159,7 +159,7 @@ def test_log_space_trace_evaluation():
     v1.add_edge(v2, [2.0, 3.0])
 
     # Record trace
-    trace = record_elimination_trace(g, param_length=2)
+    trace = record_elimination_trace(g, theta_dim=2)
 
     # Evaluate with standard mode
     result_standard = evaluate_trace(trace, np.array([1.0, 2.0]), use_log=False)
@@ -183,7 +183,7 @@ def test_log_space_instantiate_from_trace():
     v1.add_edge(v2, [2.0, 3.0])
 
     # Record trace
-    trace = record_elimination_trace(g, param_length=2)
+    trace = record_elimination_trace(g, theta_dim=2)
 
     # Instantiate with log mode
     params = np.array([1.0, 2.0])
@@ -212,7 +212,7 @@ def test_log_space_jax_compatibility():
     v2 = g.create_vertex([2])
     v1.add_edge(v2, [2.0, 3.0])
 
-    trace = record_elimination_trace(g, param_length=2)
+    trace = record_elimination_trace(g, theta_dim=2)
 
     # Test jit
     @jax.jit
@@ -246,7 +246,7 @@ def test_log_space_trace_error_handling():
     v2 = g.create_vertex([2])
     v1.add_edge(v2, [2.0, 3.0])
 
-    trace = record_elimination_trace(g, param_length=2)
+    trace = record_elimination_trace(g, theta_dim=2)
 
     # Should raise error for negative product (3.0 * (-2.0) = -6.0)
     with pytest.raises(ValueError, match="positive"):
@@ -398,7 +398,7 @@ def test_nan_coefficients_trace_evaluation():
     v2 = g.create_vertex([2])
     v1.add_edge(v2, [2.0, np.nan, 3.0])
 
-    trace = record_elimination_trace(g, param_length=3)
+    trace = record_elimination_trace(g, theta_dim=3)
 
     # Standard mode
     result_standard = evaluate_trace(trace, np.array([1.0, 2.0, 3.0]), use_log=False)
@@ -424,7 +424,7 @@ def test_nan_coefficients_jax_compatibility():
     v2 = g.create_vertex([2])
     v1.add_edge(v2, [2.0, np.nan, 3.0])
 
-    trace = record_elimination_trace(g, param_length=3)
+    trace = record_elimination_trace(g, theta_dim=3)
 
     # Test with log mode
     result = evaluate_trace_jax(trace, jnp.array([1.0, 2.0, 3.0]), use_log=True)

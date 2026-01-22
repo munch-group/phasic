@@ -26,7 +26,7 @@ def test_likelihood_at_true_parameter():
             return []
         return []
 
-    _graph = Graph(callback=callback, parameterized=True)
+    _graph = Graph(callback, parameterized=True)
     n_vertices = _graph.vertices_length()
 
     # Generate data using the CORRECT approach (from notebook)
@@ -125,7 +125,7 @@ def test_1d_vs_multivar_likelihood():
             return []
         return []
 
-    _graph = Graph(callback=callback, parameterized=True)
+    _graph = Graph(callback, parameterized=True)
     _graph.update_parameterized_weights(np.array([true_theta]))
 
     # Generate 1D data (no rewards)

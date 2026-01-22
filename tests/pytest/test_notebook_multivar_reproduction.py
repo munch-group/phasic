@@ -44,12 +44,12 @@ def test_multivariate_convergence():
     print(f"Number of samples: {nr_samples}")
 
     # Create graph
-    graph = phasic.Graph(callback=coalescent, parameterized=True, nr_samples=nr_samples)
+    graph = phasic.Graph(coalescent, parameterized=True, nr_samples=nr_samples)
     print(f"Graph vertices: {graph.vertices_length()}")
 
     # Generate multivariate observations (exact notebook pattern)
     nr_observations = 1000  # Need sufficient data for convergence
-    _graph = phasic.Graph(callback=coalescent, parameterized=True, nr_samples=nr_samples)
+    _graph = phasic.Graph(coalescent, parameterized=True, nr_samples=nr_samples)
     _graph.update_parameterized_weights(true_theta)
 
     rewards = _graph.states()[:, :-2]

@@ -44,3 +44,6 @@ debug_*.py
 !CLAUDE.md
 !DEVEL.md
 !README.md
+
+# tmp script files generated from notebooks for testing
+tests/pytest/[0-9]*

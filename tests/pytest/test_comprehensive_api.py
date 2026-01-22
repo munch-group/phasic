@@ -19,14 +19,14 @@ class TestGraphConstruction:
 
     def test_construct_with_state_length(self):
         """Test basic graph construction with state_length."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         assert g is not None
         assert g.vertices_length() == 1  # Only starting vertex
         assert g.state_length() == 1
 
     def test_construct_with_multidimensional_state(self):
         """Test graph with multidimensional state vectors."""
-        g = Graph(state_length=3)
+        g = Graph(3)
         assert g.state_length() == 3
         v = g.find_or_create_vertex([1, 2, 3])
         assert list(v.state()) == [1, 2, 3]
@@ -38,7 +38,7 @@ class TestGraphConstruction:
                 return [([state[0] + 1], 1.0)]
             return []
 
-        g = Graph(callback=callback)
+        g = Graph(callback)
         assert g.vertices_length() > 1  # Should generate vertices
 
     def test_construct_parameterized(self):
@@ -48,24 +48,19 @@ class TestGraphConstruction:
                 return [([state[0] + 1], 0.0, [1.0, 0.0])]
             return []
 
-        g = Graph(callback=callback, parameterized=True)
+        g = Graph(callback, parameterized=True)
         assert g.vertices_length() > 1
 
         # Check serialization detects parameterized edges
         serialized = g.serialize()
         assert serialized.get('param_length', 0) > 0
 
-    def test_cannot_use_both_state_length_and_callback(self):
-        """Test that using both state_length and callback raises error."""
-        def callback(state):
-            return []
-
-        with pytest.raises(AssertionError):
-            Graph(state_length=1, callback=callback)
+    # Removed: test_cannot_use_both_state_length_and_callback
+    # With new API, Graph(arg) accepts either int or callback, not both as kwargs
 
     def test_starting_vertex(self):
         """Test that starting vertex is always present."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         assert start is not None
 
@@ -75,7 +70,7 @@ class TestVertexOperations:
 
     def test_find_or_create_vertex(self):
         """Test vertex creation."""
-        g = Graph(state_length=2)
+        g = Graph(2)
         v1 = g.find_or_create_vertex([1, 2])
         assert v1 is not None
         assert list(v1.state()) == [1, 2]
@@ -86,14 +81,14 @@ class TestVertexOperations:
 
     def test_create_vertex(self):
         """Test create_vertex (always creates new)."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         v1 = g.create_vertex([5])
         v2 = g.create_vertex([5])
         assert v1.index() != v2.index()  # Different indices
 
     def test_find_vertex(self):
         """Test finding existing vertices."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         v = g.find_or_create_vertex([10])
 
         found = g.find_vertex([10])
@@ -105,13 +100,13 @@ class TestVertexOperations:
 
     def test_vertex_at(self):
         """Test accessing vertices by index."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         v = g.vertex_at(0)  # Starting vertex
         assert v is not None
 
     def test_vertex_exists(self):
         """Test checking vertex existence."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         g.find_or_create_vertex([5])
 
         assert g.vertex_exists([5])
@@ -119,14 +114,14 @@ class TestVertexOperations:
 
     def test_vertex_state(self):
         """Test accessing vertex state."""
-        g = Graph(state_length=3)
+        g = Graph(3)
         v = g.find_or_create_vertex([1, 2, 3])
         state = v.state()
         assert list(state) == [1, 2, 3]
 
     def test_vertex_index(self):
         """Test vertex indexing."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         v1 = g.find_or_create_vertex([1])
         v2 = g.find_or_create_vertex([2])
 
@@ -135,7 +130,7 @@ class TestVertexOperations:
 
     def test_vertex_rate(self):
         """Test vertex rate computation."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         v1 = g.find_or_create_vertex([1])
         v2 = g.find_or_create_vertex([2])
 
@@ -149,7 +144,7 @@ class TestEdgeOperations:
 
     def test_add_edge(self):
         """Test basic edge addition."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         v1 = g.find_or_create_vertex([1])
         v2 = g.find_or_create_vertex([2])
 
@@ -162,7 +157,7 @@ class TestEdgeOperations:
 
     def test_add_edge_alias(self):
         """Test ae() alias for add_edge."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         v1 = g.find_or_create_vertex([1])
         v2 = g.find_or_create_vertex([2])
 
@@ -174,7 +169,7 @@ class TestEdgeOperations:
 
     def test_add_edge_parameterized(self):
         """Test parameterized edge addition."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         v1 = g.find_or_create_vertex([1])
         v2 = g.find_or_create_vertex([2])
 
@@ -186,7 +181,7 @@ class TestEdgeOperations:
 
     def test_edge_weight(self):
         """Test edge weight access."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         v1 = g.find_or_create_vertex([1])
         v2 = g.find_or_create_vertex([2])
 
@@ -196,7 +191,7 @@ class TestEdgeOperations:
 
     def test_edge_update_weight(self):
         """Test updating edge weight."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         v1 = g.find_or_create_vertex([1])
         v2 = g.find_or_create_vertex([2])
 
@@ -208,7 +203,7 @@ class TestEdgeOperations:
 
     def test_edge_to_vertex(self):
         """Test edge target vertex access."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         v1 = g.find_or_create_vertex([1])
         v2 = g.find_or_create_vertex([2])
 
@@ -223,7 +218,7 @@ class TestMatrixOperations:
 
     def test_as_matrices_basic(self):
         """Test converting graph to matrices."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v1 = g.find_or_create_vertex([1])
         v2 = g.find_or_create_vertex([2])
@@ -266,7 +261,7 @@ class TestMatrixOperations:
     def test_round_trip_matrices(self):
         """Test as_matrices -> from_matrices round trip."""
         # Create original graph
-        g_orig = Graph(state_length=1)
+        g_orig = Graph(1)
         start = g_orig.starting_vertex()
         v1 = g_orig.find_or_create_vertex([10])
         v2 = g_orig.find_or_create_vertex([20])
@@ -293,7 +288,7 @@ class TestDistributionComputations:
 
     def test_pdf_continuous(self):
         """Test PDF computation."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -305,7 +300,7 @@ class TestDistributionComputations:
 
     def test_cdf_continuous(self):
         """Test CDF computation."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -316,7 +311,7 @@ class TestDistributionComputations:
 
     def test_pmf_discrete(self):
         """Test discrete PMF computation."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -328,7 +323,7 @@ class TestDistributionComputations:
 
     def test_cdf_discrete(self):
         """Test discrete CDF computation."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -339,7 +334,7 @@ class TestDistributionComputations:
 
     def test_stop_probability(self):
         """Test stop probability computation."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -350,7 +345,7 @@ class TestDistributionComputations:
 
     def test_stop_probability_discrete(self):
         """Test discrete stop probability."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -365,7 +360,7 @@ class TestMoments:
 
     def test_expectation(self):
         """Test expectation computation."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 2.0)
@@ -378,7 +373,7 @@ class TestMoments:
 
     def test_variance(self):
         """Test variance computation."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 2.0)
@@ -389,7 +384,7 @@ class TestMoments:
 
     def test_moments(self):
         """Test general moment computation."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -405,7 +400,7 @@ class TestMoments:
 
     def test_covariance(self):
         """Test covariance computation."""
-        g = Graph(state_length=2)
+        g = Graph(2)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1, 1])
         start.add_edge(v, 1.0)
@@ -418,7 +413,7 @@ class TestMoments:
 
     def test_expected_waiting_time(self):
         """Test expected waiting time."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 2.0)
@@ -429,7 +424,7 @@ class TestMoments:
 
     def test_expectation_discrete(self):
         """Test discrete expectation."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -440,7 +435,7 @@ class TestMoments:
 
     def test_variance_discrete(self):
         """Test discrete variance."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -455,7 +450,7 @@ class TestSampling:
 
     def test_sample_continuous(self):
         """Test continuous sampling."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -466,7 +461,7 @@ class TestSampling:
 
     def test_sample_discrete(self):
         """Test discrete sampling."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -478,7 +473,7 @@ class TestSampling:
 
     def test_sample_multiple(self):
         """Test multiple samples."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -490,7 +485,7 @@ class TestSampling:
 
     def test_random_sample_stop_vertex(self):
         """Test random sampling of stop vertex."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v1 = g.find_or_create_vertex([1])
         v2 = g.find_or_create_vertex([2])
@@ -504,7 +499,7 @@ class TestSampling:
 
     def test_random_sample_discrete_stop_vertex(self):
         """Test discrete random sampling of stop vertex."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -521,7 +516,7 @@ class TestDiscretization:
 
     def test_discretize_basic(self):
         """Test basic discretization."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -535,7 +530,7 @@ class TestDiscretization:
 
     def test_discretize_with_skip_states(self):
         """Test discretization with skip_states."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v1 = g.find_or_create_vertex([1])
         v2 = g.find_or_create_vertex([2])
@@ -548,7 +543,7 @@ class TestDiscretization:
 
     def test_discretize_with_skip_slots(self):
         """Test discretization with skip_slots."""
-        g = Graph(state_length=2)
+        g = Graph(2)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1, 2])
         start.add_edge(v, 1.0)
@@ -563,7 +558,7 @@ class TestGraphOperations:
 
     def test_normalize(self):
         """Test graph normalization."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 2.0)
@@ -573,7 +568,7 @@ class TestGraphOperations:
 
     def test_normalize_discrete(self):
         """Test discrete graph normalization."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -583,7 +578,7 @@ class TestGraphOperations:
 
     def test_copy(self):
         """Test graph copying."""
-        g1 = Graph(state_length=1)
+        g1 = Graph(1)
         start = g1.starting_vertex()
         v = g1.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -600,7 +595,7 @@ class TestGraphOperations:
 
     def test_clone(self):
         """Test graph cloning."""
-        g1 = Graph(state_length=1)
+        g1 = Graph(1)
         start = g1.starting_vertex()
         v = g1.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -612,7 +607,7 @@ class TestGraphOperations:
 
     def test_validate(self):
         """Test graph validation."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -622,7 +617,7 @@ class TestGraphOperations:
 
     def test_is_acyclic(self):
         """Test acyclic check."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v1 = g.find_or_create_vertex([1])
         v2 = g.find_or_create_vertex([2])
@@ -638,7 +633,7 @@ class TestGraphQueries:
 
     def test_vertices_length(self):
         """Test vertices_length query."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         initial_length = g.vertices_length()
 
         g.find_or_create_vertex([1])
@@ -646,12 +641,12 @@ class TestGraphQueries:
 
     def test_state_length(self):
         """Test state_length query."""
-        g = Graph(state_length=3)
+        g = Graph(3)
         assert g.state_length() == 3
 
     def test_vertices(self):
         """Test vertices() method."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         g.find_or_create_vertex([1])
         g.find_or_create_vertex([2])
 
@@ -660,7 +655,7 @@ class TestGraphQueries:
 
     def test_states(self):
         """Test states() method."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         g.find_or_create_vertex([1])
         g.find_or_create_vertex([2])
 
@@ -673,7 +668,7 @@ class TestSerialization:
 
     def test_serialize_basic(self):
         """Test basic serialization."""
-        g = Graph(state_length=2)
+        g = Graph(2)
         start = g.starting_vertex()
         v1 = g.find_or_create_vertex([1, 0])
         v2 = g.find_or_create_vertex([0, 1])
@@ -697,7 +692,7 @@ class TestSerialization:
 
     def test_serialize_parameterized(self):
         """Test serialization with parameterized edges."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         v1 = g.find_or_create_vertex([1])
         v2 = g.find_or_create_vertex([2])
 
@@ -715,7 +710,7 @@ class TestRewardTransforms:
 
     def test_reward_transform_continuous(self):
         """Test continuous reward transformation."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -729,7 +724,7 @@ class TestRewardTransforms:
 
     def test_reward_transform_discrete(self):
         """Test discrete reward transformation."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -747,7 +742,7 @@ class TestExpectedVisits:
 
     def test_expected_visits_discrete(self):
         """Test expected discrete visits."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -759,7 +754,7 @@ class TestExpectedVisits:
 
     def test_accumulated_visits_discrete(self):
         """Test accumulated discrete visits."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -775,7 +770,7 @@ class TestResidenceTime:
 
     def test_expected_sojourn_time(self):
         """Test expected sojourn time."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -787,7 +782,7 @@ class TestResidenceTime:
 
     def test_accumulated_visiting_time(self):
         """Test accumulated visiting time."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -803,7 +798,7 @@ class TestDistributionContext:
 
     def test_distribution_context_continuous(self):
         """Test continuous distribution context."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -814,7 +809,7 @@ class TestDistributionContext:
 
     def test_distribution_context_discrete(self):
         """Test discrete distribution context."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 1.0)
@@ -829,7 +824,7 @@ class TestDefect:
 
     def test_defect(self):
         """Test defect computation."""
-        g = Graph(state_length=1)
+        g = Graph(1)
         start = g.starting_vertex()
         v = g.find_or_create_vertex([1])
         start.add_edge(v, 0.9)  # Not normalized

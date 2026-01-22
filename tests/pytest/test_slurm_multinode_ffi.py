@@ -463,7 +463,7 @@ class TestSVGDMultiNode:
 #         # Each process records trace independently
 #         phasic.clear_caches()
 #         coalescent_graph.compute_trace()
-#         trace = record_elimination_trace(coalescent_graph, param_length=1)
+#         trace = record_elimination_trace(coalescent_graph, theta_dim=1)
 
 #         # Verify trace structure (trace is now an EliminationTrace object)
 #         assert hasattr(trace, 'param_length')
@@ -490,7 +490,7 @@ class TestSVGDMultiNode:
 #         phasic.clear_caches()
 #         coalescent_graph.compute_trace()
 #         # Record trace once
-#         trace = record_elimination_trace(coalescent_graph, param_length=1)
+#         trace = record_elimination_trace(coalescent_graph, theta_dim=1)
 
 #         # Each process evaluates with different theta
 #         theta = jnp.array([1.0 + slurm_info['procid'] * 0.5])
@@ -528,7 +528,7 @@ class TestSVGDMultiNode:
 
 #         print(f"\nProcess {slurm_info['procid']}: Testing trace vmap")
 
-#         trace = record_elimination_trace(coalescent_graph, param_length=1)
+#         trace = record_elimination_trace(coalescent_graph, theta_dim=1)
 
 #         # Create batch of theta values (different per process)
 #         base = slurm_info['procid'] * 10
@@ -564,7 +564,7 @@ class TestSVGDMultiNode:
 #         print(f"\nProcess {slurm_info['procid']}: Testing trace serialization")
 
 #         # Record trace
-#         trace = record_elimination_trace(coalescent_graph, param_length=1)
+#         trace = record_elimination_trace(coalescent_graph, theta_dim=1)
 
 #         # Serialize using pickle (traces are dataclass objects, not JSON-serializable directly)
 #         temp_dir = tempfile.gettempdir()
@@ -600,7 +600,7 @@ class TestSVGDMultiNode:
 #         print(f"\nProcess {slurm_info['procid']}: Testing trace log-likelihood")
 
 #         # Record trace
-#         trace = record_elimination_trace(coalescent_graph, param_length=1)
+#         trace = record_elimination_trace(coalescent_graph, theta_dim=1)
 
 #         # Create log-likelihood function
 #         observed_times = np.array([0.5, 1.0, 1.5, 2.0, 2.5])

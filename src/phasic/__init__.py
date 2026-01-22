@@ -355,7 +355,7 @@ def get_trace_by_hash(graph_hash: str, force_download: bool = False):
     >>> if trace is None:
     ...     # Record new trace
     ...     from phasic.trace_elimination import record_elimination_trace
-    ...     trace = record_elimination_trace(graph, param_length=1)
+    ...     trace = record_elimination_trace(graph, theta_dim=1)
     """
     registry = TraceRegistry()
     return registry.get_trace_by_hash(graph_hash, force_download=force_download)
@@ -756,7 +756,7 @@ def _generate_cpp_from_trace(trace, observed_data, granularity=0):
     Examples
     --------
     >>> from phasic.trace_elimination import record_elimination_trace
-    >>> trace = record_elimination_trace(graph, param_length=2)
+    >>> trace = record_elimination_trace(graph, theta_dim=2)
     >>> observed_times = np.array([1.5, 2.3, 0.8])
     >>> cpp_code = _generate_cpp_from_trace(trace, observed_times, granularity=100)
     >>> # Compile cpp_code and use with JAX
@@ -1181,7 +1181,7 @@ def _wrap_trace_log_likelihood_for_jax(lib_path, param_length):
     Examples
     --------
     >>> lib_path = "/tmp/trace_log_lik_abc123.so"
-    >>> log_lik = _wrap_trace_log_likelihood_for_jax(lib_path, param_length=2)
+    >>> log_lik = _wrap_trace_log_likelihood_for_jax(lib_path, theta_dim=2)
     >>> import jax.numpy as jnp
     >>> theta = jnp.array([1.0, 2.0])
     >>> ll_value = log_lik(theta)
@@ -1490,11 +1490,18 @@ class Graph(_Graph):
             Cache is keyed by callback function source code + parameters, enabling instant loading of
             previously built graphs. Useful for expensive graph constructions.
             Default: False (no caching)
-        param_length : int, optional
+        theta_dim : int, optional
             Number of model parameters (θ). This sets the expected length of parameter vectors
             passed to update_weights(theta).
 
-            When param_length < edge coefficients_length:
+            **Can be set at two stages:**
+            1. At graph construction: `Graph(callback, theta_dim=2)`
+            2. At inference time: `graph.svgd(..., theta_dim=3)` - can override if graph was modified
+
+            The value set here establishes the initial parameter dimension. It can be overridden
+            later in methods like svgd() if the graph structure has been augmented or changed.
+
+            When theta_dim < edge coefficients_length:
             - **Non-callback mode** (update_weights(theta)): ERROR - coefficient and theta lengths must match exactly
             - **Callback mode** (update_weights(theta, callback)): OK - callback receives full coefficient vector
 
@@ -1502,10 +1509,10 @@ class Graph(_Graph):
             while maintaining a compact theta parameter space. The extra coefficients are accessible only
             through the callback, not in standard dot-product weight computation.
 
-            If not provided, param_length is inferred from the first edge's coefficient length.
+            If not provided, theta_dim is inferred from the first edge's coefficient length.
 
             Example:
-                >>> g.set_param_length(2)
+                >>> g.set_param_length(2)  # Set theta_dim=2 (param_length is C++ method name)
                 >>> g.starting_vertex().add_edge(v1, [c1, c2, c3])  # 3 coefficients stored
                 >>> g.update_weights([θ1, θ2])  # ERROR: mismatch (2 params vs 3 coeffs)
                 >>> g.update_weights([θ1, θ2], lambda theta, coeffs: custom_weight(theta, coeffs))  # OK
@@ -1537,7 +1544,7 @@ class Graph(_Graph):
         >>> def callback_with_extra_coeffs(state):
         >>>     c1, c2, c3 = compute_coeffs(state)  # 3 coefficients (c3 is auxiliary data)
         >>>     return [(next_state, 0.0, [c1, c2, c3])]
-        >>> graph = Graph(callback_with_extra_coeffs, param_length=2)
+        >>> graph = Graph(callback_with_extra_coeffs, theta_dim=2)
         >>> # Non-callback mode fails:
         >>> # graph.update_weights([1.5, 2.0])  # ERROR: 2 params vs 3 coeffs
         >>> # Callback mode works:
@@ -1596,14 +1603,13 @@ class Graph(_Graph):
         self._callback_kwargs = {}
 
         if callable(arg):
-            # Extract param_length (but keep in kwargs for cache key consistency)
-            param_length = kwargs.get('param_length', None)
+            # Extract theta_dim from kwargs
+            theta_dim = kwargs.get('theta_dim', None)
 
-            # Remove hierarchical from kwargs before passing to C++ callback
+            # Remove hierarchical and theta_dim from kwargs before passing to C++ callback
             kwargs_for_callback = kwargs.copy()
             kwargs_for_callback.pop('hierarchical', None)
-            # Also remove param_length from callback kwargs since we pass it separately
-            kwargs_for_callback.pop('param_length', None)
+            kwargs_for_callback.pop('theta_dim', None)
 
             # turn integer kwargs into float kwargs
             for key, value in kwargs_for_callback.items():
@@ -1624,9 +1630,9 @@ class Graph(_Graph):
             self._callback = arg
             self._callback_kwargs = kwargs.copy()
 
-            # Pass param_length to C++ builder
-            if param_length is not None:
-                super().__init__(callback_tuples_parameterized=partial(arg, **kwargs_for_callback), param_length=param_length)
+            # Pass theta_dim to C++ builder (C++ still uses param_length internally)
+            if theta_dim is not None:
+                super().__init__(callback_tuples_parameterized=partial(arg, **kwargs_for_callback), theta_dim=theta_dim)
             else:
                 super().__init__(callback_tuples_parameterized=partial(arg, **kwargs_for_callback))
         elif isinstance(arg, int):
@@ -2582,13 +2588,13 @@ class Graph(_Graph):
         return Graph(super().reward_transform_discrete(rewards))
     
 
-    def serialize(self, param_length: int = None) -> Dict[str, np.ndarray]:
+    def serialize(self, theta_dim: int = None) -> Dict[str, np.ndarray]:
         """
         Serialize graph to array representation for efficient computation.
 
         Parameters
         ----------
-        param_length : int, optional
+        theta_dim : int, optional
             Number of parameters for parameterized edges. If not provided, will be
             auto-detected by probing edge states. Providing this explicitly avoids
             potential issues with auto-detection reading garbage memory.
@@ -2600,8 +2606,8 @@ class Graph(_Graph):
             - 'states': Array of vertex states (n_vertices, state_dim)
             - 'edges': Array of regular edges [from_idx, to_idx, weight] (n_edges, 3)
             - 'start_edges': Array of starting vertex regular edges [to_idx, weight] (n_start_edges, 2)
-            - 'param_edges': Array of parameterized edges [from_idx, to_idx, x1, x2, ...] (n_param_edges, param_length+2)
-            - 'start_param_edges': Array of starting vertex parameterized edges [to_idx, x1, x2, ...] (n_start_param_edges, param_length+1)
+            - 'param_edges': Array of parameterized edges [from_idx, to_idx, x1, x2, ...] (n_param_edges, theta_dim+2)
+            - 'start_param_edges': Array of starting vertex parameterized edges [to_idx, x1, x2, ...] (n_start_param_edges, theta_dim+1)
               NOTE: start_param_edges should be empty (starting edges are not parameterized)
             - 'param_length': Length of parameter vector (0 if no parameterized edges)
             - 'state_length': Integer state dimension
@@ -2631,11 +2637,11 @@ class Graph(_Graph):
         # Get parameter length directly from graph (set by first add_edge() call)
         start = self.starting_vertex()
 
-        # Use provided param_length if given, otherwise get from graph
-        if param_length is None:
-            param_length = self.param_length()
+        # Use provided theta_dim if given, otherwise get from graph
+        if theta_dim is None:
+            theta_dim = self.param_length()
 
-        # param_length is now always correct (no probing needed)
+        # theta_dim is now always correct (no probing needed)
 
         # Extract parameterized edges FIRST (needed to build exclusion set before extracting regular edges)
         start_state = tuple(start.state())
@@ -2644,7 +2650,7 @@ class Graph(_Graph):
         # With unified interface: parameterized_edges() returns edges with coefficient arrays
         param_edges_list = []
         start_vertex_idx = start.index()
-        if param_length > 0:  # Export all edges with coefficient arrays
+        if theta_dim > 0:  # Export all edges with coefficient arrays
             for i, v in enumerate(vertices_list):
                 # Skip starting vertex edges (they're handled separately)
                 # Use vertex index comparison, not state comparison (states may be duplicated)
@@ -2656,8 +2662,8 @@ class Graph(_Graph):
                     to_vertex = edge.to()
                     if to_vertex.index() in vertex_idx_to_enum:
                         to_idx = vertex_idx_to_enum[to_vertex.index()]
-                        # Get FULL coefficient array (all coefficients, not just param_length)
-                        # This is critical when coefficients_length > param_length
+                        # Get FULL coefficient array (all coefficients, not just theta_dim)
+                        # This is critical when coefficients_length > theta_dim
                         coeff_len = edge.coefficients_length()
                         edge_state = list(edge.edge_state(coeff_len))
                         # Include all parameterized edges (even with all-zero coefficients)
@@ -2683,8 +2689,8 @@ class Graph(_Graph):
                 else:
                     raise
         else:
-            # Empty case - use param_length for consistency
-            param_edges = np.empty((0, param_length + 2 if param_length > 0 else 0), dtype=np.float64)
+            # Empty case - use theta_dim for consistency
+            param_edges = np.empty((0, theta_dim + 2 if theta_dim > 0 else 0), dtype=np.float64)
 
         # Extract starting vertex parameterized edges FIRST (needed to build exclusion set)
         # NOTE: Starting vertex edges are NEVER rescaled by update_weights() (see starting vertex fix)
@@ -2695,14 +2701,14 @@ class Graph(_Graph):
                 to_vertex = edge.to()
                 if to_vertex.index() in vertex_idx_to_enum:
                     to_idx = vertex_idx_to_enum[to_vertex.index()]
-                    # Get coefficient array (length is guaranteed to be param_length)
-                    edge_state = list(edge.edge_state(param_length))
+                    # Get coefficient array (length is guaranteed to be theta_dim)
+                    edge_state = list(edge.edge_state(theta_dim))
                     # Only include edges with non-empty edge states
                     if edge_state and any(x != 0 for x in edge_state):
                         # Store: [to_idx, x1, x2, x3, ...]
                         start_param_edges_list.append([to_idx] + edge_state)
 
-        start_param_edges = np.array(start_param_edges_list, dtype=np.float64) if start_param_edges_list else np.empty((0, param_length + 1 if param_length > 0 else 0), dtype=np.float64)
+        start_param_edges = np.array(start_param_edges_list, dtype=np.float64) if start_param_edges_list else np.empty((0, theta_dim + 1 if theta_dim > 0 else 0), dtype=np.float64)
 
         # Build set of (from_idx, to_idx) pairs for parameterized edges to skip in regular edges
         param_edge_pairs = set()
@@ -2756,7 +2762,7 @@ class Graph(_Graph):
             'start_edges': start_edges,
             'param_edges': param_edges,
             'start_param_edges': start_param_edges,
-            'param_length': param_length,
+            'param_length': theta_dim,
             'state_length': state_length,
             'n_vertices': n_vertices
         }
@@ -2808,7 +2814,7 @@ class Graph(_Graph):
         >>> v0 = g.starting_vertex()
         >>> v1 = g.find_or_create_vertex([1])
         >>> v0.add_edge_parameterized(v1, 0.0, [2.0])
-        >>> serialized = g.serialize(param_length=1)
+        >>> serialized = g.serialize(theta_dim=1)
         >>>
         >>> # Convert to JSON (for network transmission)
         >>> json_dict = {k: v.tolist() if isinstance(v, np.ndarray) else v
@@ -2985,7 +2991,7 @@ class Graph(_Graph):
                     f"Graph deserialization failed: start_param_edges array has wrong shape\n"
                     f"  Expected: (n_start_param_edges, {expected_start_param_edge_cols})\n"
                     f"  Actual: {start_param_edges.shape}\n"
-                    f"  Note: param_length={param_length}, so columns should be 1+{param_length}={expected_start_param_edge_cols}\n"
+                    f"  Note: theta_dim={theta_dim}, so columns should be 1+{theta_dim}={expected_start_param_edge_cols}\n"
                     f"  Format: [to_idx, coeff1, coeff2, ...] (no base_weight as of v0.22.0)"
                 )
 
@@ -3223,7 +3229,7 @@ class Graph(_Graph):
         return Graph(base_graph)
 
     @classmethod
-    def pmf_from_graph(cls, graph: 'Graph', discrete: bool = False, use_cache: bool = True, param_length: int = None) -> Callable:
+    def pmf_from_graph(cls, graph: 'Graph', discrete: bool = False, use_cache: bool = True, theta_dim: int = None) -> Callable:
         """
         Convert a Python-built Graph to a JAX-compatible function with full gradient support.
 
@@ -3312,7 +3318,7 @@ class Graph(_Graph):
         # See: CACHING_SYSTEM_OVERVIEW.md for details.
 
         # Serialize the graph (now includes parameterized edges)
-        serialized = graph.serialize(param_length=param_length)
+        serialized = graph.serialize(theta_dim=theta_dim)
         detected_param_length = serialized.get('param_length', 0)
         has_param_edges = detected_param_length > 0
 
@@ -3838,9 +3844,21 @@ extern "C" {{
         discrete : bool, default=None
             If True, computes discrete PMF. If False, computes continuous PDF. If undefined it is 
             inferred from the graph.is_discrete attribute.
-        prior : callable, optional
-            Log prior function: prior(theta) -> scalar.
+        prior : callable or list of Prior objects, optional
+            Log prior function for parameters. Can be:
+            - Single callable: prior(theta) -> scalar, applied to entire theta vector
+            - List of Prior objects: One prior per parameter dimension.
+              Use None for fixed parameters: prior=[GaussPrior(ci=[0,1]), None, GaussPrior(ci=[0,1])]
+
             If None, uses standard normal prior: log p(theta) = -0.5 * sum(theta^2)
+
+            **With fixed parameters**:
+            When using a list of priors with the `fixed` parameter, you must provide None
+            at indices corresponding to fixed parameters. This is validated at initialization.
+
+            Example:
+                prior=[GaussPrior(ci=[0,1]), None, GaussPrior(ci=[0,1])],
+                fixed=[(1, 0.5)]  # theta[1] fixed, prior[1] must be None
         n_particles : int, default=50
             Number of SVGD particles. More particles = better posterior approximation but slower.
         n_iterations : int, default=1000
@@ -3855,9 +3873,15 @@ extern "C" {{
             Initial particle positions (n_particles, theta_dim).
             If None, initializes randomly from standard normal.
         theta_dim : int, optional
-            Dimension of theta parameter vector. If None, inferred from the graph's
-            parameterized edge structure via param_length(). Only required if theta_init
-            is None and the graph has no parameterized edges.
+            Dimension of theta parameter vector. Can be:
+            - Set at graph construction: Graph(callback, theta_dim=2)
+            - Overridden here for SVGD inference (if graph was modified/augmented)
+
+            If None, inferred from the graph's parameterized edge structure via param_length().
+            Only required if theta_init is None and the graph has no parameterized edges.
+
+            The value specified here overrides any theta_dim set during graph construction,
+            which is useful if you've modified the graph structure (e.g., via extend()).
         return_history : bool, default=True
             If True, return particle positions throughout optimization
         seed : int, default=42
@@ -4023,7 +4047,7 @@ extern "C" {{
                 else:
                     fixed_mask_for_model = jnp.array(fixed)
             # Use joint_index specific model with fixed_mask
-            model = Graph.pmf_from_graph_joint_index(self, param_length=theta_dim,
+            model = Graph.pmf_from_graph_joint_index(self, theta_dim=theta_dim,
                                                       fixed_mask=fixed_mask_for_model)
         # Auto-detect if we need multivariate model (2D rewards)
         elif rewards is not None:
@@ -4033,19 +4057,19 @@ extern "C" {{
                 # Use multivariate model for 2D rewards
                 model = Graph.pmf_and_moments_from_graph_multivariate(
                     self, nr_moments=nr_moments, discrete=discrete,
-                    use_ffi=False, param_length=theta_dim
+                    use_ffi=False, theta_dim=theta_dim
                 )
             else:
                 # Use standard model for 1D rewards
                 model = Graph.pmf_and_moments_from_graph(
                     self, nr_moments=nr_moments, discrete=discrete,
-                    param_length=theta_dim
+                    theta_dim=theta_dim
                 )
         else:
             # No rewards - use standard model
             model = Graph.pmf_and_moments_from_graph(
                 self, nr_moments=nr_moments, discrete=discrete,
-                param_length=theta_dim
+                theta_dim=theta_dim
             )
 
         # Create SVGD object
@@ -4285,7 +4309,7 @@ extern "C" {{
     @classmethod
     def pmf_and_moments_from_graph(cls, graph: 'Graph', nr_moments: int = 2,
                                    discrete: bool = False, use_ffi: bool = False,
-                                   param_length: int = None) -> Callable:
+                                   theta_dim: int = None) -> Callable:
         """
         Convert a parameterized Graph to a function that computes both PMF/PDF and moments.
 
@@ -4302,7 +4326,7 @@ extern "C" {{
             If True, computes discrete PMF. If False, computes continuous PDF.
         use_ffi : bool, default=False
             If True, uses Foreign Function Interface approach.
-        param_length : int, optional
+        theta_dim : int, optional
             Number of parameters for parameterized edges. If not provided, will be
             auto-detected by probing edge states. Providing this explicitly avoids
             potential issues with auto-detection reading garbage memory.
@@ -4360,7 +4384,7 @@ extern "C" {{
         import jax.numpy as jnp
 
         # Serialize the graph
-        serialized = graph.serialize(param_length=param_length)
+        serialized = graph.serialize(theta_dim=theta_dim)
         param_length = serialized.get('param_length', 0)
 
         if param_length == 0:
@@ -4560,7 +4584,7 @@ extern "C" {{
         return model
 
     @classmethod
-    def pmf_from_graph_joint_index(cls, graph: 'Graph', param_length: int = None,
+    def pmf_from_graph_joint_index(cls, graph: 'Graph', theta_dim: int = None,
                                     fixed_mask: 'jnp.ndarray' = None) -> Callable:
         """
         Create a JAX-compatible model for joint index distributions.
@@ -4619,7 +4643,7 @@ extern "C" {{
         from .ffi_wrappers import compute_sojourn_times_ffi
 
         # Serialize the graph
-        serialized = graph.serialize(param_length=param_length)
+        serialized = graph.serialize(theta_dim=theta_dim)
         param_length_actual = serialized.get('param_length', 0)
 
         if param_length_actual == 0:
@@ -4730,7 +4754,7 @@ extern "C" {{
     @classmethod
     def pmf_and_moments_from_graph_multivariate(cls, graph: 'Graph', nr_moments: int = 2,
                                                 discrete: bool = False, use_ffi: bool = False,
-                                                param_length: int = None) -> Callable:
+                                                theta_dim: int = None) -> Callable:
         """
         Create a multivariate phase-type model that handles 2D observations and rewards.
 
@@ -4747,7 +4771,7 @@ extern "C" {{
             If True, computes discrete PMF. If False, computes continuous PDF.
         use_ffi : bool, default=False
             If True, uses Foreign Function Interface approach.
-        param_length : int, optional
+        theta_dim : int, optional
             Number of parameters for parameterized edges.
 
         Returns
@@ -4820,7 +4844,7 @@ extern "C" {{
         # Get the 1D model
         model_1d = cls.pmf_and_moments_from_graph(
             graph, nr_moments=nr_moments, discrete=discrete,
-            use_ffi=use_ffi, param_length=param_length
+            use_ffi=use_ffi, theta_dim=theta_dim
         )
 
         def model_multivariate(theta, times, rewards=None):
@@ -5010,7 +5034,7 @@ extern "C" {{
             from .hierarchical_trace_cache import get_trace_hierarchical
             trace = get_trace_hierarchical(
                 graph_copy,
-                param_length=param_length,
+                theta_dim=theta_dim,
                 min_size=min_size,
                 parallel_strategy=parallel,
                 verbose=verbose
@@ -5035,7 +5059,7 @@ extern "C" {{
             from .hierarchical_trace_cache import get_trace_hierarchical
             trace = get_trace_hierarchical(
                 self,
-                param_length=param_length,
+                theta_dim=theta_dim,
                 min_size=min_size,
                 parallel_strategy=parallel,
                 verbose=verbose
@@ -5043,7 +5067,7 @@ extern "C" {{
             return trace
         else:
             from .trace_elimination import record_elimination_trace
-            return record_elimination_trace(self, param_length=param_length)
+            return record_elimination_trace(self, theta_dim=theta_dim)
 
     # ========================================================================
     # Batch-Aware Methods (Phase 2: Auto-Parallelization)

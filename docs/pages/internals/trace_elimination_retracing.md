@@ -283,7 +283,7 @@ SVGD Initialization
 Build parameterized graph
        |
        v
-trace = record_elimination_trace(graph, param_length=n)
+trace = record_elimination_trace(graph, theta_dim=n)
        |
        v
 model = trace_to_log_likelihood(trace, observed_data)

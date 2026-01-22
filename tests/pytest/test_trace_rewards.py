@@ -30,14 +30,14 @@ def test_trace_recording_with_rewards():
         rate = n * (n - 1) / 2.0
         return [(np.array([n - 1]), 0.0, [rate])]
 
-    graph = Graph(callback=callback, parameterized=True)
+    graph = Graph(callback, parameterized=True)
 
     # Record trace WITHOUT rewards
-    trace_no_rewards = record_elimination_trace(graph, param_length=1, enable_rewards=False)
+    trace_no_rewards = record_elimination_trace(graph, theta_dim=1, enable_rewards=False)
     assert trace_no_rewards.reward_length == 0
 
     # Record trace WITH rewards
-    trace_with_rewards = record_elimination_trace(graph, param_length=1, enable_rewards=True)
+    trace_with_rewards = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)
     assert trace_with_rewards.reward_length == trace_with_rewards.n_vertices
 
     # Trace with rewards should have more operations (MUL for each edge)
@@ -70,10 +70,10 @@ def test_evaluate_trace_with_rewards():
         rate = n * (n - 1) / 2.0
         return [(np.array([n - 1]), 0.0, [rate])]
 
-    graph = Graph(callback=callback, parameterized=True)
+    graph = Graph(callback, parameterized=True)
 
     # Record trace with rewards
-    trace = record_elimination_trace(graph, param_length=1, enable_rewards=True)
+    trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)
 
     # Evaluate with theta and rewards
     theta = np.array([1.0])
@@ -117,10 +117,10 @@ def test_evaluate_trace_jax_with_rewards():
         rate = n * (n - 1) / 2.0
         return [(np.array([n - 1]), 0.0, [rate])]
 
-    graph = Graph(callback=callback, parameterized=True)
+    graph = Graph(callback, parameterized=True)
 
     # Record trace with rewards
-    trace = record_elimination_trace(graph, param_length=1, enable_rewards=True)
+    trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)
 
     # Evaluate with JAX arrays
     theta = jnp.array([1.0])
@@ -150,10 +150,10 @@ def test_instantiate_from_trace_with_rewards():
         rate = n * (n - 1) / 2.0
         return [(np.array([n - 1]), 0.0, [rate])]
 
-    graph_original = Graph(callback=callback, parameterized=True)
+    graph_original = Graph(callback, parameterized=True)
 
     # Record trace with rewards
-    trace = record_elimination_trace(graph_original, param_length=1, enable_rewards=True)
+    trace = record_elimination_trace(graph_original, theta_dim=1, enable_rewards=True)
 
     # Instantiate graph with rewards
     theta = np.array([2.0])
@@ -193,10 +193,10 @@ def test_trace_to_log_likelihood_with_rewards():
         rate = n * (n - 1) / 2.0
         return [(np.array([n - 1]), 0.0, [rate])]
 
-    graph = Graph(callback=callback, parameterized=True)
+    graph = Graph(callback, parameterized=True)
 
     # Record trace with rewards
-    trace = record_elimination_trace(graph, param_length=1, enable_rewards=True)
+    trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)
 
     # Create log-likelihood function with rewards
     observed_times = np.array([1.0, 2.0, 0.5])
@@ -260,10 +260,10 @@ def test_reward_transformation_equivalence():
         rate = n * (n - 1) / 2.0
         return [(np.array([n - 1]), 0.0, [rate])]
 
-    graph = Graph(callback=callback, parameterized=True)
+    graph = Graph(callback, parameterized=True)
 
     # Record trace with rewards
-    trace = record_elimination_trace(graph, param_length=1, enable_rewards=True)
+    trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)
 
     # Test parameters
     theta = np.array([2.0])

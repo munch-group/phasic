@@ -44,7 +44,7 @@ def old_method_sojourn_times_tracked(graph, theta, vertex_indices, tolerance=1e-
 
     Returns: (sojourn_times, iterations_per_vertex)
     """
-    serialized = graph.serialize(param_length=1)
+    serialized = graph.serialize(theta_dim=1)
     structure_json = json.dumps(_make_json_serializable(serialized))
     builder = parameterized.GraphBuilder(structure_json)
 
@@ -80,7 +80,7 @@ def old_method_sojourn_times_tracked(graph, theta, vertex_indices, tolerance=1e-
 
 def old_method_sojourn_times(graph, theta, vertex_indices, tolerance=1e-10, max_iterations=1000):
     """Old method without tracking (for pure performance comparison)"""
-    serialized = graph.serialize(param_length=1)
+    serialized = graph.serialize(theta_dim=1)
     structure_json = json.dumps(_make_json_serializable(serialized))
     builder = parameterized.GraphBuilder(structure_json)
 
@@ -94,7 +94,7 @@ def old_method_sojourn_times(graph, theta, vertex_indices, tolerance=1e-10, max_
 
 def new_method_sojourn_times(graph, theta, vertex_indices):
     """New method: single-pass expected_sojourn_time()"""
-    serialized = graph.serialize(param_length=1)
+    serialized = graph.serialize(theta_dim=1)
     structure_json = json.dumps(_make_json_serializable(serialized))
     builder = parameterized.GraphBuilder(structure_json)
 

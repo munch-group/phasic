@@ -11,14 +11,14 @@ def test_simple_version_no_rewards():
 
     # Create simple 2-state exponential model manually
     # State [0] (starting) -> State [1] (absorbing) with rate theta[0]
-    graph = Graph(state_length=1)
+    graph = Graph(1)
     v_start = graph.starting_vertex()  # State [0]
     v_abs = graph.find_or_create_vertex([1])  # State [1] - absorbing
     # Add parameterized edge: weight = 0.0 + 1.0 * theta[0]
     v_start.add_edge_parameterized(v_abs, 0.0, [1.0])  # weight, edge_state
 
     # Record with simple version
-    trace = record_elimination_trace_simple(graph, param_length=1)
+    trace = record_elimination_trace_simple(graph, theta_dim=1)
 
     assert trace.param_length == 1
     assert trace.reward_length == 0
@@ -52,13 +52,13 @@ def test_full_version_no_rewards():
     from phasic.trace_elimination import record_elimination_trace, instantiate_from_trace
 
     # Create simple 2-state exponential model manually
-    graph = Graph(state_length=1)
+    graph = Graph(1)
     v_start = graph.starting_vertex()
     v_abs = graph.find_or_create_vertex([1])
     v_start.add_edge_parameterized(v_abs, 0.0, [1.0])  # weight, edge_state
 
     # Record with full version but rewards disabled
-    trace = record_elimination_trace(graph, param_length=1, enable_rewards=False)
+    trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=False)
 
     assert trace.param_length == 1
     assert trace.reward_length == 0
@@ -88,13 +88,13 @@ def test_full_version_with_rewards():
     from phasic.trace_elimination import record_elimination_trace, instantiate_from_trace
 
     # Create simple 2-state exponential model manually
-    graph = Graph(state_length=1)
+    graph = Graph(1)
     v_start = graph.starting_vertex()
     v_abs = graph.find_or_create_vertex([1])
     v_start.add_edge_parameterized(v_abs, 0.0, [1.0])  # weight, edge_state
 
     # Record with rewards enabled
-    trace = record_elimination_trace(graph, param_length=1, enable_rewards=True)
+    trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)
 
     assert trace.param_length == 1
     assert trace.reward_length == 2  # n_vertices
@@ -151,12 +151,12 @@ def test_operation_count_comparison():
             return []
         return []
 
-    graph = Graph(callback=callback, parameterized=True)
+    graph = Graph(callback, parameterized=True)
 
     # Record both versions
-    trace_simple = record_elimination_trace_simple(graph, param_length=1)
-    trace_no_rewards = record_elimination_trace(graph, param_length=1, enable_rewards=False)
-    trace_with_rewards = record_elimination_trace(graph, param_length=1, enable_rewards=True)
+    trace_simple = record_elimination_trace_simple(graph, theta_dim=1)
+    trace_no_rewards = record_elimination_trace(graph, theta_dim=1, enable_rewards=False)
+    trace_with_rewards = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)
 
     print(f"✓ Operation count comparison:")
     print(f"  - Simple version:      {len(trace_simple.operations)} operations")
@@ -184,10 +184,10 @@ def test_backward_compatibility():
             return []
         return []
 
-    graph = Graph(callback=callback, parameterized=True)
+    graph = Graph(callback, parameterized=True)
 
     # Default call (should have no rewards)
-    trace = record_elimination_trace(graph, param_length=1)
+    trace = record_elimination_trace(graph, theta_dim=1)
 
     assert trace.reward_length == 0, "Default should have no rewards"
 

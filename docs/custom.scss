@@ -145,6 +145,27 @@ html { font-family: 'Inter', sans-serif; }
 
 /* css styles */
 
+
+
+// /* Target Quarto's dark mode */
+// [data-bs-theme="dark"] .cell-output-display svg text,
+// [data-bs-theme="dark"] .cell-output-display svg .axes {
+//   fill: #e0e0e0;
+// }
+
+// [data-bs-theme="dark"] .cell-output-display svg path {
+//   stroke: #e0e0e0;
+// }
+
+// // /* Or the filter approach */
+// // [data-bs-theme="dark"] .cell-output-display svg {
+// //   filter: invert(0.85) hue-rotate(180deg);
+// // }
+
+
+
+
+
 /* .cell-output pre code {
   white-space: pre-wrap;
 } */
@@ -295,3 +316,5 @@ td:first-child a {
 //   margin-right: 60px;
 
 // }
+
+
