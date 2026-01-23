@@ -2453,10 +2453,10 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
     elif isinstance(learning_rate, (int, float)):
         step_schedule = ConstantStepSize(float(learning_rate))
         use_schedule = False  # Can still use constant value
-    else:
-        raise TypeError(
-            f"learning_rate must be float or StepSizeSchedule, got: {type(learning_rate)}"
-        )
+    # else:
+    #     raise TypeError(
+    #         f"learning_rate must be float or StepSizeSchedule, got: {type(learning_rate)}"
+    #     )
 
     # Initialize optimizer if provided
     if optimizer is not None:

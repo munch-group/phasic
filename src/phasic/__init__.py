@@ -276,6 +276,31 @@ else:
     # FixedBandwidth = None
     # LocalAdaptiveBandwidth = None
 
+# Optax integration (optional dependency)
+try:
+    from .optax_wrapper import (
+        OptaxOptimizer,
+        optax_adam,
+        optax_adamw,
+        optax_sgd,
+        optax_rmsprop,
+        optax_adagrad,
+        optax_chain,
+        optax_lion,
+    )
+    HAS_OPTAX = True
+except ImportError:
+    # Optax not installed - exports will raise ImportError when accessed
+    OptaxOptimizer = None
+    optax_adam = None
+    optax_adamw = None
+    optax_sgd = None
+    optax_rmsprop = None
+    optax_adagrad = None
+    optax_chain = None
+    optax_lion = None
+    HAS_OPTAX = False
+
 # Progress bar utilities
 #from .utils import pqdm, prange # now in vscodenb
 
