@@ -234,8 +234,10 @@ if HAS_JAX:
         ConstantStepSize,
         ExpStepSize,
         AdaptiveStepSize,
+        WarmupExpStepSize,
         # Optimizers
         Adam,
+        Adamelia,
         SGDMomentum,
         RMSprop,
         Adagrad,
@@ -259,11 +261,13 @@ else:
     ConstantStepSize = None
     ExpStepSize = None
     AdaptiveStepSize = None
+    WarmupExpStepSize = None
     RegularizationSchedule = None
     ConstantRegularization = None
     ExpRegularization = None
     ExponentialCDFRegularization = None
     Adam = None
+    Adamelia = None
     SGDMomentum = None
     RMSprop = None
     Adagrad = None
@@ -3808,7 +3812,8 @@ extern "C" {{
              prior: Optional[Callable] = None,
              n_particles: Optional[int] = None,
              n_iterations: int = 100,
-             learning_rate: float = 0.01,
+             optimizer: Optional[object] = None,
+             learning_rate: Optional[float] = None,
              bandwidth: str = 'median',
              theta_init: Optional[ArrayLike] = None,
              theta_dim: Optional[int] = None,
@@ -3828,7 +3833,7 @@ extern "C" {{
              joint_index: bool = False,
              rewards: Optional[ArrayLike] = None,
              fixed: Optional[ArrayLike] = None,
-             optimizer: Optional[object] = None) -> Dict:    
+             ) -> Dict:    
         """
         Run Stein Variational Gradient Descent (SVGD) inference for Bayesian parameter estimation.
 
@@ -3863,8 +3868,15 @@ extern "C" {{
             Number of SVGD particles. More particles = better posterior approximation but slower.
         n_iterations : int, default=1000
             Number of SVGD optimization steps
-        learning_rate : float, default=0.001
-            SVGD step size. Larger values = faster convergence but may be unstable.
+        optimizer : Optimizer, optional
+            Learning rate optimizer instance from phasic.optimizers. Default is Adamelia
+            when learning_rate=None and regularization=0. Options include Adamelia, Adam,
+            SGDMomentum, RMSprop, Adagrad. When an optimizer is used, the learning_rate
+            parameter is ignored (the optimizer has its own learning rate).
+        learning_rate : float or None, default=None
+            SVGD step size. If None (default), uses Adamelia optimizer with adaptive
+            learning rates. If a float is provided, uses fixed learning rate approach.
+            Larger values = faster convergence but may be unstable.
         bandwidth : str, default='median'
             Kernel bandwidth selection method:
             - 'median': RBF kernel with median heuristic bandwidth (default)

@@ -29,6 +29,10 @@ from scipy.stats import gaussian_kde, gengamma
 
 from functools import partial
 
+from .logging_config import get_logger
+
+logger = get_logger(__name__)
+
 from matplotlib import pyplot as plt
 import seaborn as sns
 import numpy as np
@@ -684,6 +688,58 @@ class AdaptiveStepSize(StepSizeSchedule):
         return self.current_step
 
 
+class WarmupExpStepSize(StepSizeSchedule):
+    """
+    Linear warmup followed by exponential decay.
+
+    Useful for Adam optimizer where initial learning rate should ramp up
+    before decaying. Prevents large updates early when moment estimates
+    are poorly calibrated.
+
+    Parameters
+    ----------
+    peak_lr : float, default=0.001
+        Maximum learning rate reached at end of warmup
+    warmup_steps : int, default=100
+        Number of iterations for linear warmup
+    last_lr : float, default=1e-6
+        Final learning rate as iteration → ∞
+    tau : float, default=1000.0
+        Decay time constant after warmup (larger = slower decay)
+
+    Examples
+    --------
+    >>> schedule = WarmupExpStepSize(peak_lr=0.01, warmup_steps=100, last_lr=0.001, tau=500)
+    >>> schedule(0)      # iteration 0: start of warmup
+    0.0001
+    >>> schedule(50)     # iteration 50: halfway through warmup
+    0.0051
+    >>> schedule(100)    # iteration 100: end of warmup, peak lr
+    0.01
+    >>> schedule(600)    # iteration 600: decaying after warmup
+    0.0046
+    """
+    def __init__(self, peak_lr=0.001, warmup_steps=100, last_lr=1e-6, tau=1000.0):
+        self.peak_lr = peak_lr
+        self.warmup_steps = warmup_steps
+        self.last_lr = last_lr
+        self.tau = tau
+        # For plot() compatibility
+        self.first_step = 0.0
+        self.last_step = last_lr
+
+    def __call__(self, iteration, particles=None):
+        warmup_steps = self.warmup_steps
+        if iteration < warmup_steps:
+            # Linear warmup from 0 to peak_lr
+            return self.peak_lr * (iteration + 1) / warmup_steps
+        else:
+            # Exponential decay after warmup
+            t = iteration - warmup_steps
+            decay = jnp.exp(-t / self.tau)
+            return self.peak_lr * decay + self.last_lr * (1 - decay)
+
+
 # ============================================================================
 # Optimizers
 # ============================================================================
@@ -701,15 +757,16 @@ class Adam:
 
     Parameters
     ----------
-    learning_rate : float, default=0.001
-        Base learning rate (α in Adam paper). This is scaled per-parameter
-        based on gradient history.
-    beta1 : float, default=0.9
+    learning_rate : float or StepSizeSchedule, default=0.001
+        Base learning rate (α in Adam paper). Can be a schedule (e.g., ExpStepSize,
+        WarmupExpStepSize) for learning rate decay during optimization.
+    beta1 : float or StepSizeSchedule, default=0.9
         Exponential decay rate for first moment estimates (momentum).
-        Higher = more smoothing, slower adaptation.
-    beta2 : float, default=0.999
+        Higher = more smoothing, slower adaptation. Can be a schedule for
+        advanced warmup strategies.
+    beta2 : float or StepSizeSchedule, default=0.999
         Exponential decay rate for second moment estimates (gradient variance).
-        Higher = longer memory of gradient magnitudes.
+        Higher = longer memory of gradient magnitudes. Can be a schedule.
     epsilon : float, default=1e-8
         Small constant for numerical stability in division.
 
@@ -739,6 +796,12 @@ class Adam:
     ...     n_iterations=200
     ... )
     >>> svgd.fit()
+    >>>
+    >>> # Exponential decay learning rate
+    >>> optimizer = Adam(learning_rate=ExpStepSize(first_step=0.01, last_step=0.001, tau=500))
+    >>>
+    >>> # Warmup + decay (recommended for large models)
+    >>> optimizer = Adam(learning_rate=WarmupExpStepSize(peak_lr=0.01, warmup_steps=100))
 
     References
     ----------
@@ -748,18 +811,40 @@ class Adam:
     Notes
     -----
     When using Adam, the `learning_rate` parameter passed to SVGD is ignored
-    in favor of the optimizer's learning rate. Step size schedules (ExpStepSize,
-    AdaptiveStepSize) are not compatible with Adam - use Adam's learning_rate instead.
+    in favor of the optimizer's learning rate.
     """
 
     def __init__(self, learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8):
-        self.lr = learning_rate
-        self.beta1 = beta1
-        self.beta2 = beta2
+        # Accept either scalar or schedule for each hyperparameter
+        self.lr_schedule = self._to_schedule(learning_rate)
+        self.beta1_schedule = self._to_schedule(beta1)
+        self.beta2_schedule = self._to_schedule(beta2)
         self.epsilon = epsilon
         self.m = None  # First moment estimate
         self.v = None  # Second moment estimate
         self.t = 0     # Timestep
+
+    @staticmethod
+    def _to_schedule(value):
+        """Convert scalar to ConstantStepSize, or return schedule unchanged."""
+        if isinstance(value, (int, float)):
+            return ConstantStepSize(float(value))
+        return value
+
+    @property
+    def lr(self):
+        """Current learning rate (for display/logging)."""
+        return self.lr_schedule(self.t) if self.t > 0 else self.lr_schedule(0)
+
+    @property
+    def beta1(self):
+        """Current beta1 value."""
+        return self.beta1_schedule(self.t) if self.t > 0 else self.beta1_schedule(0)
+
+    @property
+    def beta2(self):
+        """Current beta2 value."""
+        return self.beta2_schedule(self.t) if self.t > 0 else self.beta2_schedule(0)
 
     def reset(self, shape):
         """
@@ -795,21 +880,162 @@ class Adam:
         """
         self.t += 1
 
+        # Get current hyperparameter values from schedules
+        lr = self.lr_schedule(self.t)
+        beta1 = self.beta1_schedule(self.t)
+        beta2 = self.beta2_schedule(self.t)
+
         # Update biased first moment estimate (momentum)
-        self.m = self.beta1 * self.m + (1 - self.beta1) * phi
+        self.m = beta1 * self.m + (1 - beta1) * phi
 
         # Update biased second raw moment estimate (RMSprop-style)
-        self.v = self.beta2 * self.v + (1 - self.beta2) * (phi ** 2)
+        self.v = beta2 * self.v + (1 - beta2) * (phi ** 2)
 
         # Compute bias-corrected estimates
         # Early iterations have m,v biased toward zero; this corrects for that
-        m_hat = self.m / (1 - self.beta1 ** self.t)
-        v_hat = self.v / (1 - self.beta2 ** self.t)
+        m_hat = self.m / (1 - beta1 ** self.t)
+        v_hat = self.v / (1 - beta2 ** self.t)
 
         # Compute update: lr * m_hat / (sqrt(v_hat) + eps)
         # - Large gradients → large v_hat → smaller effective step
         # - Small gradients → small v_hat → larger effective step
-        return self.lr * m_hat / (jnp.sqrt(v_hat) + self.epsilon)
+        return lr * m_hat / (jnp.sqrt(v_hat) + self.epsilon)
+
+
+class Adamelia(Adam):
+    """
+    Adam with Dynamic Adaptation via Monitoring Excessive Learning-rate Induced Anomalies.
+
+    Monitors gradient direction sign flips to detect when learning rate is too high.
+    When oscillation is detected, automatically reduces learning rate to stabilize
+    optimization.
+
+    Parameters
+    ----------
+    learning_rate : float or StepSizeSchedule, default=0.001
+        Initial learning rate.
+    beta1 : float, default=0.9
+        Exponential decay rate for first moment.
+    beta2 : float, default=0.999
+        Exponential decay rate for second moment.
+    epsilon : float, default=1e-8
+        Small constant for numerical stability.
+    oscillation_threshold : float, default=0.3
+        Fraction of components with sign flips to trigger oscillation detection.
+        0.3 = oscillation detected when 30%+ components flip.
+    patience : int, default=3
+        Number of consecutive oscillation detections before reducing LR.
+    lr_reduction_factor : float, default=0.5
+        Factor to multiply learning rate by when reducing.
+    min_lr : float, default=1e-7
+        Minimum learning rate floor.
+    verbose : bool, default=False
+        Print messages when oscillation detected and LR reduced.
+
+    Examples
+    --------
+    >>> optimizer = Adamelia(learning_rate=0.01, verbose=True)
+    >>> # If oscillation detected 3 times in a row, LR drops to 0.005
+    """
+
+    def __init__(self, learning_rate=0.3, beta1=0.9, beta2=0.999, epsilon=1e-8,
+                 oscillation_threshold=0.3, patience=3, lr_reduction_factor=0.5,
+                 min_lr=1e-6, verbose=False):
+        super().__init__(learning_rate, beta1, beta2, epsilon)
+
+        self.oscillation_threshold = oscillation_threshold
+        self.patience = patience
+        self.lr_reduction_factor = lr_reduction_factor
+        self.min_lr = min_lr
+        self.verbose = verbose
+
+        # Oscillation detection state
+        self.phi_prev = None
+        self.oscillation_count = 0
+        self.lr_reductions = 0
+        self.lr_multiplier = 1.0  # Applied on top of schedule
+
+    def reset(self, shape):
+        """Reset optimizer state including oscillation detection."""
+        super().reset(shape)
+        self.phi_prev = None
+        self.oscillation_count = 0
+        self.lr_reductions = 0
+        self.lr_multiplier = 1.0
+
+    def _detect_oscillation(self, phi):
+        """
+        Detect oscillation by checking gradient sign flips.
+
+        Returns True if more than oscillation_threshold fraction of
+        gradient components flipped sign compared to previous step.
+        """
+        if self.phi_prev is None:
+            return False
+
+        # Count sign flips: where sign(phi) != sign(phi_prev)
+        sign_flips = jnp.sum(jnp.sign(phi) * jnp.sign(self.phi_prev) < 0)
+        total_components = phi.size
+        flip_ratio = sign_flips / total_components
+
+        return float(flip_ratio) > self.oscillation_threshold
+
+    def _reduce_learning_rate(self):
+        """Reduce effective learning rate by multiplier."""
+        new_multiplier = self.lr_multiplier * self.lr_reduction_factor
+
+        # Check if we'd go below min_lr
+        base_lr = float(self.lr_schedule(self.t))
+        if base_lr * new_multiplier < self.min_lr:
+            new_multiplier = self.min_lr / base_lr
+
+        self.lr_multiplier = new_multiplier
+        self.lr_reductions += 1
+
+        if self.verbose:
+            effective_lr = base_lr * self.lr_multiplier
+            logger.info(f"Adamelia Oscillation detected. "
+                        f"LR reduced to {effective_lr:.2e} "
+                        f"(reduction #{self.lr_reductions})")
+
+    def step(self, phi):
+        """Compute Adam update with oscillation detection."""
+        self.t += 1
+
+        # Check for oscillation
+        is_oscillating = self._detect_oscillation(phi)
+
+        if is_oscillating:
+            self.oscillation_count += 1
+            if self.oscillation_count >= self.patience:
+                self._reduce_learning_rate()
+                self.oscillation_count = 0  # Reset counter after reduction
+        else:
+            # Decay oscillation count (don't reset immediately)
+            self.oscillation_count = max(0, self.oscillation_count - 1)
+
+        # Store current phi for next iteration
+        self.phi_prev = phi
+
+        # Get current hyperparameter values from schedules
+        lr = self.lr_schedule(self.t) * self.lr_multiplier
+        beta1 = self.beta1_schedule(self.t)
+        beta2 = self.beta2_schedule(self.t)
+
+        # Standard Adam update
+        self.m = beta1 * self.m + (1 - beta1) * phi
+        self.v = beta2 * self.v + (1 - beta2) * (phi ** 2)
+
+        m_hat = self.m / (1 - beta1 ** self.t)
+        v_hat = self.v / (1 - beta2 ** self.t)
+
+        return lr * m_hat / (jnp.sqrt(v_hat) + self.epsilon)
+
+    @property
+    def lr(self):
+        """Current effective learning rate (including reductions)."""
+        base_lr = self.lr_schedule(self.t) if self.t > 0 else self.lr_schedule(0)
+        return float(base_lr) * self.lr_multiplier
 
 
 class SGDMomentum:
@@ -822,11 +1048,11 @@ class SGDMomentum:
 
     Parameters
     ----------
-    learning_rate : float, default=0.01
-        Step size for parameter updates.
-    momentum : float, default=0.9
+    learning_rate : float or StepSizeSchedule, default=0.01
+        Step size for parameter updates. Can be a schedule for learning rate decay.
+    momentum : float or StepSizeSchedule, default=0.9
         Momentum coefficient. Higher values give more weight to past gradients.
-        Typical values: 0.9 (standard), 0.99 (high momentum).
+        Typical values: 0.9 (standard), 0.99 (high momentum). Can be a schedule.
     max_velocity : float or None, default=1.0
         Maximum absolute velocity to prevent unbounded accumulation.
         Set to None to disable velocity clipping (not recommended with
@@ -858,14 +1084,34 @@ class SGDMomentum:
     """
 
     def __init__(self, learning_rate=0.01, momentum=0.9, max_velocity=1.0):
-        self.lr = learning_rate
-        self.momentum = momentum
+        # Accept either scalar or schedule for each hyperparameter
+        self.lr_schedule = self._to_schedule(learning_rate)
+        self.momentum_schedule = self._to_schedule(momentum)
         self.max_velocity = max_velocity
         self.v = None
+        self.t = 0  # Timestep for schedules
+
+    @staticmethod
+    def _to_schedule(value):
+        """Convert scalar to ConstantStepSize, or return schedule unchanged."""
+        if isinstance(value, (int, float)):
+            return ConstantStepSize(float(value))
+        return value
+
+    @property
+    def lr(self):
+        """Current learning rate (for display/logging)."""
+        return self.lr_schedule(self.t) if self.t > 0 else self.lr_schedule(0)
+
+    @property
+    def momentum(self):
+        """Current momentum value."""
+        return self.momentum_schedule(self.t) if self.t > 0 else self.momentum_schedule(0)
 
     def reset(self, shape):
         """Reset optimizer state for given particle shape."""
         self.v = jnp.zeros(shape)
+        self.t = 0
 
     def step(self, phi):
         """
@@ -881,7 +1127,13 @@ class SGDMomentum:
         update : array (n_particles, theta_dim)
             Scaled update to add to particles.
         """
-        self.v = self.momentum * self.v + self.lr * phi
+        self.t += 1
+
+        # Get current hyperparameter values from schedules
+        lr = self.lr_schedule(self.t)
+        momentum = self.momentum_schedule(self.t)
+
+        self.v = momentum * self.v + lr * phi
         # Clip velocity to prevent unbounded accumulation
         if self.max_velocity is not None:
             self.v = jnp.clip(self.v, -self.max_velocity, self.max_velocity)
@@ -898,11 +1150,11 @@ class RMSprop:
 
     Parameters
     ----------
-    learning_rate : float, default=0.001
-        Base learning rate.
-    decay : float, default=0.99
+    learning_rate : float or StepSizeSchedule, default=0.001
+        Base learning rate. Can be a schedule for learning rate decay.
+    decay : float or StepSizeSchedule, default=0.99
         Decay rate for the moving average of squared gradients.
-        Higher values give longer memory.
+        Higher values give longer memory. Can be a schedule.
     epsilon : float, default=1e-8
         Small constant for numerical stability.
 
@@ -934,14 +1186,34 @@ class RMSprop:
     """
 
     def __init__(self, learning_rate=0.001, decay=0.99, epsilon=1e-8):
-        self.lr = learning_rate
-        self.decay = decay
+        # Accept either scalar or schedule for each hyperparameter
+        self.lr_schedule = self._to_schedule(learning_rate)
+        self.decay_schedule = self._to_schedule(decay)
         self.epsilon = epsilon
         self.v = None
+        self.t = 0  # Timestep for schedules
+
+    @staticmethod
+    def _to_schedule(value):
+        """Convert scalar to ConstantStepSize, or return schedule unchanged."""
+        if isinstance(value, (int, float)):
+            return ConstantStepSize(float(value))
+        return value
+
+    @property
+    def lr(self):
+        """Current learning rate (for display/logging)."""
+        return self.lr_schedule(self.t) if self.t > 0 else self.lr_schedule(0)
+
+    @property
+    def decay(self):
+        """Current decay value."""
+        return self.decay_schedule(self.t) if self.t > 0 else self.decay_schedule(0)
 
     def reset(self, shape):
         """Reset optimizer state for given particle shape."""
         self.v = jnp.zeros(shape)
+        self.t = 0
 
     def step(self, phi):
         """
@@ -957,8 +1229,14 @@ class RMSprop:
         update : array (n_particles, theta_dim)
             Scaled update to add to particles.
         """
-        self.v = self.decay * self.v + (1 - self.decay) * (phi ** 2)
-        return self.lr * phi / (jnp.sqrt(self.v) + self.epsilon)
+        self.t += 1
+
+        # Get current hyperparameter values from schedules
+        lr = self.lr_schedule(self.t)
+        decay = self.decay_schedule(self.t)
+
+        self.v = decay * self.v + (1 - decay) * (phi ** 2)
+        return lr * phi / (jnp.sqrt(self.v) + self.epsilon)
 
 
 class Adagrad:
@@ -972,8 +1250,8 @@ class Adagrad:
 
     Parameters
     ----------
-    learning_rate : float, default=0.01
-        Base learning rate.
+    learning_rate : float or StepSizeSchedule, default=0.01
+        Base learning rate. Can be a schedule for learning rate decay.
     epsilon : float, default=1e-8
         Small constant for numerical stability.
 
@@ -1008,13 +1286,28 @@ class Adagrad:
     """
 
     def __init__(self, learning_rate=0.01, epsilon=1e-8):
-        self.lr = learning_rate
+        # Accept either scalar or schedule for learning rate
+        self.lr_schedule = self._to_schedule(learning_rate)
         self.epsilon = epsilon
         self.G = None
+        self.t = 0  # Timestep for schedules
+
+    @staticmethod
+    def _to_schedule(value):
+        """Convert scalar to ConstantStepSize, or return schedule unchanged."""
+        if isinstance(value, (int, float)):
+            return ConstantStepSize(float(value))
+        return value
+
+    @property
+    def lr(self):
+        """Current learning rate (for display/logging)."""
+        return self.lr_schedule(self.t) if self.t > 0 else self.lr_schedule(0)
 
     def reset(self, shape):
         """Reset optimizer state for given particle shape."""
         self.G = jnp.zeros(shape)
+        self.t = 0
 
     def step(self, phi):
         """
@@ -1030,8 +1323,13 @@ class Adagrad:
         update : array (n_particles, theta_dim)
             Scaled update to add to particles.
         """
+        self.t += 1
+
+        # Get current learning rate from schedule
+        lr = self.lr_schedule(self.t)
+
         self.G = self.G + phi ** 2
-        return self.lr * phi / (jnp.sqrt(self.G) + self.epsilon)
+        return lr * phi / (jnp.sqrt(self.G) + self.epsilon)
 
 
 # ============================================================================
@@ -2345,10 +2643,14 @@ class SVGD:
         Number of SVGD particles
     n_iterations : int, default=1000
         Number of SVGD optimization steps
-    learning_rate : float or StepSizeSchedule, default=0.001
+    learning_rate : float, StepSizeSchedule, or None, default=None
         SVGD step size. Can be:
-        - float: constant step size (backward compatible)
+        - None: Uses Adamelia optimizer with adaptive learning rates (default)
+        - float: constant step size (uses fixed learning rate approach)
         - StepSizeSchedule object: dynamic step size schedule
+
+        When None and no optimizer is provided, Adamelia is used as the default
+        optimizer (unless regularization > 0, which falls back to fixed lr=0.001).
         Examples: ConstantStepSize(0.01), ExpStepSize(0.1, 0.01, 500.0)
     bandwidth : str default='median'
         Kernel bandwidth selection. Can be:
@@ -2449,19 +2751,26 @@ class SVGD:
         **Performance**: SVGD operates in reduced parameter space (learnable dims only)
         for computational efficiency. Kernel bandwidth is computed only over varying
         dimensions, improving convergence.
-    optimizer : Adam, optional
-        If provided, uses Adam optimizer for adaptive per-parameter learning rates
-        instead of fixed step size. This is especially useful for:
-        - Large datasets where gradient magnitudes can be very large
-        - Models where different parameters have different gradient scales
-        - Cases where fixed step sizes cause oscillation ("shark teeth" pattern)
+    optimizer : Optimizer, optional
+        Optimizer for adaptive per-parameter learning rates. Default is Adamelia
+        when learning_rate=None and regularization=0.
 
-        When using an optimizer, the `learning_rate` parameter is ignored.
+        Options include:
+        - Adamelia (default): Adam with oscillation detection and automatic LR reduction
+        - Adam: Standard Adam optimizer
+        - SGDMomentum: SGD with momentum
+        - RMSprop: RMSprop optimizer
+        - Adagrad: Adagrad optimizer
+
+        When an optimizer is provided, the `learning_rate` parameter is ignored
+        (the optimizer has its own learning rate).
 
         Example:
-            >>> from phasic import SVGD, Adam
-            >>> optimizer = Adam(learning_rate=0.01)
-            >>> svgd = SVGD(model, data, theta_dim=2, optimizer=optimizer)
+            >>> from phasic import SVGD, Adam, Adamelia
+            >>> # Default: uses Adamelia
+            >>> svgd = SVGD(model, data, theta_dim=2)
+            >>> # Explicit optimizer
+            >>> svgd = SVGD(model, data, theta_dim=2, optimizer=Adam(learning_rate=0.01))
 
     Attributes
     ----------
@@ -2546,7 +2855,7 @@ class SVGD:
     _compiled_cache = {}
 
     def __init__(self, model, observed_data, prior=None, n_particles=None,
-                 n_iterations=1000, learning_rate=0.001, bandwidth='median',
+                 n_iterations=1000, learning_rate=None, bandwidth='median',
                  theta_init=None, theta_dim=None, seed=42, verbose=True, progress=False,
                  jit=None,              # NEW: explicit JIT control
                  parallel=None,         # NEW: 'vmap', 'pmap', 'none'
@@ -2701,13 +3010,29 @@ class SVGD:
         self.n_iterations = n_iterations
         self.fixed = fixed
 
-        # Handle step size schedule (backward compatible)
+        # Handle step size schedule and optimizer selection
         # Auto-scale learning rate by number of observations to prevent gradient explosion
         # Gradients scale with n_observations (not total elements), so we normalize by that
         n_observations = float(self.observed_data.shape[0])
         lr_scale = 1.0 / max(1.0, n_observations / 1000.0)  # Scale down for > 1000 observations
 
-        if isinstance(learning_rate, StepSizeSchedule):
+        # Default to Adamelia unless user explicitly provided learning_rate, schedule, or regularization
+        # This provides adaptive learning rates out-of-the-box for typical SVGD workloads
+        use_adamelia_default = (
+            optimizer is None and
+            learning_rate is None and  # Not explicitly provided
+            regularization == 0.0  # No moment regularization (often needs more careful step size control)
+        )
+
+        if use_adamelia_default:
+            # Use Adamelia with default parameters as the optimizer
+            optimizer = Adamelia()
+            self.step_schedule = None  # Not used when optimizer is set
+            self.learning_rate = None
+            self.lr_scale = lr_scale
+            if verbose:
+                print("Using Adamelia optimizer (default)")
+        elif isinstance(learning_rate, StepSizeSchedule):
             self.step_schedule = learning_rate
             self.learning_rate = None  # Will be computed dynamically
             self.lr_scale = lr_scale
@@ -2718,9 +3043,19 @@ class SVGD:
             self.lr_scale = lr_scale
             if verbose and lr_scale < 1.0:
                 print(f"Auto-scaled learning rate: {learning_rate} → {scaled_lr:.6f} ({int(n_observations)} observations)")
+        elif learning_rate is None:
+            # User provided optimizer explicitly, or regularization > 0 with no learning_rate
+            # Use a sensible default learning rate
+            default_lr = 0.001
+            scaled_lr = default_lr * lr_scale
+            self.step_schedule = ConstantStepSize(scaled_lr)
+            self.learning_rate = scaled_lr
+            self.lr_scale = lr_scale
+            if verbose and regularization > 0.0:
+                print(f"Using default learning rate {default_lr} (regularization={regularization})")
         else:
             raise TypeError(
-                f"learning_rate must be float or StepSizeSchedule, got: {type(learning_rate)}"
+                f"learning_rate must be float, StepSizeSchedule, or None, got: {type(learning_rate)}"
             )
 
         self.bandwidth = bandwidth
@@ -4314,7 +4649,7 @@ class SVGD:
         return fig, axes
 
     def plot_ci(self, figsize=(7, 3), save_path=None, skip=0, show_transformed=True,
-                true_theta=None, ci=0.95, alpha=0.2, target=None):
+                true_theta=None, ci=0.95, alpha=0.2, target=None, median=False):
         """
         Plot mean parameter trajectory with confidence interval ribbon.
 
@@ -4339,6 +4674,8 @@ class SVGD:
             Transparency of the CI ribbon
         target : array_like, optional
             Target parameter value to overlay as horizontal line
+        median : bool, default=False
+            If True, plot the median trajectory as a dashed line
 
         Returns
         -------
@@ -4375,6 +4712,8 @@ class SVGD:
         mean_over_time = jnp.mean(history_array, axis=1)  # (n_iterations, theta_dim)
         lower_ci = jnp.percentile(history_array, lower_pct, axis=1)  # (n_iterations, theta_dim)
         upper_ci = jnp.percentile(history_array, upper_pct, axis=1)  # (n_iterations, theta_dim)
+        if median:
+            median_over_time = jnp.median(history_array, axis=1)  # (n_iterations, theta_dim)
 
         # Get iteration numbers for x-axis
         iterations = self.history_iterations if self.history_iterations is not None else range(len(history))
@@ -4400,6 +4739,11 @@ class SVGD:
 
             # Plot CI ribbon
             ax.fill_between(x, y_lower, y_upper, alpha=alpha, color=color)
+
+            # Plot median line if requested
+            if median:
+                y_median = median_over_time[skip:, i]
+                ax.plot(x, y_median, linestyle='--', color=color, alpha=0.7)
 
         # Add true theta lines if provided
         if true_theta is not None:
