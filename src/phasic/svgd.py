@@ -1,6 +1,7 @@
 import os
 import platform
 from time import time, sleep
+import matplotlib
 import numpy as np
 import pickle
 import hashlib
@@ -39,6 +40,7 @@ import numpy as np
 from matplotlib.animation import FuncAnimation
 import matplotlib.colors as colors
 from matplotlib.gridspec import GridSpec
+from matplotlib.collections import PolyCollection
 
 # "iridis" color map (viridis without the deep purple)
 def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
@@ -74,6 +76,7 @@ tqdm = partial(tqdm, leave=False)
 
 #from jax import random, vmap, grad, jit
 
+black_or_white = matplotlib.rcParams['text.color']
 
 # ============================================================================
 # Helper Functions
@@ -103,6 +106,37 @@ def _inverse_softplus(theta):
         jnp.log(jnp.expm1(jnp.maximum(theta, 1e-6)))
     )
 
+def _hex_grid(x_min, x_max, y_min, y_max, size, flat_topped=False):
+    """Generate hex grid midpoints.
+    
+    Args:
+        x_min, x_max, y_min, y_max: Bounding box
+        size: Distance from hex center to vertex
+        flat_topped: If False (default), pointy-topped hexagons.
+                     If True, flat-topped hexagons.
+    """
+    if flat_topped:
+        dx = 1.5 * size
+        dy = np.sqrt(3) * size
+    else:
+        dx = np.sqrt(3) * size
+        dy = 1.5 * size
+    
+    x = jnp.arange(x_min, x_max + dx, dx)
+    y = jnp.arange(y_min, y_max + dy, dy)
+    
+    xx, yy = np.meshgrid(x, y)
+    
+    if flat_topped:
+        yy[:, 1::2] += dy / 2  # offset odd columns
+        mask = yy.ravel() <= y_max
+    else:
+        xx[1::2] += dx / 2  # offset odd rows
+        mask = xx.ravel() <= x_max
+    
+    points = jnp.column_stack((xx.ravel(), yy.ravel()))
+
+    return points[mask]
 
 # ============================================================================
 # Prior Distribution Classes
@@ -275,7 +309,7 @@ class GaussPrior(Prior):
         else:
             return theta_samples
 
-    def plot(self, log=False, ax=None, **kwargs):
+    def plot(self, log=False, ax=None, return_fig=True, **kwargs):
         """Plot the Gaussian prior distribution in THETA space.
 
         Parameters
@@ -284,16 +318,18 @@ class GaussPrior(Prior):
             If True, plot log-probability instead of probability density.
         ax : matplotlib.axes.Axes, optional
             Axes to plot on. If None, creates new figure.
+        return_fig : bool, default=True
+            If True, return ax. If False, call plt.show() instead.
         **kwargs
             Additional arguments passed to plot function.
 
         Returns
         -------
         matplotlib.axes.Axes
-            The axes with the plot
+            The axes with the plot (only if return_fig=True)
         """
+        import matplotlib.pyplot as plt
         if ax is None:
-            import matplotlib.pyplot as plt
             fig, ax = plt.subplots(figsize=(4, 3))
         # Always plot in THETA space (what user understands)
         x = np.linspace(max(0, self.mu - 4*self.sigma), self.mu + 4*self.sigma, 200)
@@ -308,7 +344,10 @@ class GaussPrior(Prior):
             ax.set_title(f'Gaussian({self.mu:.2g}, {self.sigma:.2g})')
             ax.set_ylabel('Density')
         ax.set_xlabel('Parameter value (θ)')
-        return ax
+        if return_fig:
+            return ax
+        else:
+            plt.show()
 
 
 class HalfCauchyPrior(Prior):
@@ -442,7 +481,7 @@ class HalfCauchyPrior(Prior):
         else:
             return theta_samples
 
-    def plot(self, ax=None, show_ci=True, **kwargs):
+    def plot(self, ax=None, show_ci=True, return_fig=True, **kwargs):
         """Plot the half-Cauchy prior distribution in THETA space.
 
         Parameters
@@ -451,16 +490,18 @@ class HalfCauchyPrior(Prior):
             Axes to plot on. If None, creates new figure.
         show_ci : bool, default=True
             If True and ci was specified, show vertical line at CI bound.
+        return_fig : bool, default=True
+            If True, return ax. If False, call plt.show() instead.
         **kwargs
             Additional arguments passed to plot function.
 
         Returns
         -------
         matplotlib.axes.Axes
-            The axes with the plot
+            The axes with the plot (only if return_fig=True)
         """
+        import matplotlib.pyplot as plt
         if ax is None:
-            import matplotlib.pyplot as plt
             fig, ax = plt.subplots(figsize=(4, 3))
 
         # Plot in THETA space (what user understands)
@@ -471,7 +512,7 @@ class HalfCauchyPrior(Prior):
 
         # # Show CI bound if specified
         # if show_ci and self.ci is not None:
-        #     ax.axvline(self.ci, color='red', linestyle='--', alpha=0.7,
+        #     ax.axvline(self.ci, color='magenta', linestyle='--', alpha=0.7,
         #               label=f'{int(self.prob*100)}% CI bound')
         #     ax.fill_between(x[x <= self.ci], pdf[x <= self.ci], alpha=0.2, color='blue')
         #     ax.legend()
@@ -482,7 +523,10 @@ class HalfCauchyPrior(Prior):
         ax.set_title(f'HalfCauchy({self.scale:.2g})')
         ax.set_xlabel('Parameter value (θ)')
         ax.set_ylabel('Density')
-        return ax
+        if return_fig:
+            return ax
+        else:
+            plt.show()
 
 
 # ============================================================================
@@ -513,7 +557,7 @@ class StepSizeSchedule:
         """
         raise NotImplementedError
 
-    def plot(self, nr_iter, figsize=None, title=None, ax=None):
+    def plot(self, nr_iter, figsize=None, title=None, ax=None, return_ax=True):
         """
         Plot the step size schedule over iterations.
 
@@ -527,18 +571,18 @@ class StepSizeSchedule:
             Plot title. If None, uses class name
         ax : matplotlib.axes.Axes, optional
             Axes to plot on. If None, creates new figure
+        return_ax : bool, default=True
+            If True, return the axes object. If False, call plt.show() instead.
 
         Returns
         -------
-        fig : matplotlib.figure.Figure
-            Figure object
-        ax : matplotlib.axes.Axes
-            Axes object
+        ax : matplotlib.axes.Axes or None
+            Axes object if return_ax=True, otherwise None
 
         Examples
         --------
         >>> schedule = ExpStepSize(first_step=0.1, last_step=0.01, tau=500.0)
-        >>> fig, ax = schedule.plot(nr_iter=2000)
+        >>> ax = schedule.plot(nr_iter=2000)
         >>> plt.show()
         """
         try:
@@ -566,17 +610,19 @@ class StepSizeSchedule:
 
         # Add horizontal lines for first and last values if they exist
         if hasattr(self, 'first_step') and hasattr(self, 'last_step'):
-            ax.axhline(self.first_step, 
-                    #    color=black_white(ax), 
+            ax.axhline(self.first_step,
+                       color=black_or_white,
                        linestyle='--', alpha=0.5,
                     label=f'first_step={self.first_step:.4f}')
-            ax.axhline(self.last_step, 
-                       # color=black_white(ax), 
+            ax.axhline(self.last_step,
+                       color=black_or_white,
                        linestyle='--', alpha=0.5,
                     label=f'last_step={self.last_step:.4f}')
 
-        # return fig, ax
-        return ax
+        if return_ax:
+            return ax
+        else:
+            plt.show()
 
 
 class ConstantStepSize(StepSizeSchedule):
@@ -709,7 +755,7 @@ class WarmupExpStepSize(StepSizeSchedule):
 
     Examples
     --------
-    >>> schedule = WarmupExpStepSize(peak_lr=0.01, warmup_steps=100, last_lr=0.001, tau=500)
+    >>> schedule = WarmupExpStepSize(peak_lr=0.01, warmup_steps=70, last_lr=0.001, tau=500)
     >>> schedule(0)      # iteration 0: start of warmup
     0.0001
     >>> schedule(50)     # iteration 50: halfway through warmup
@@ -719,7 +765,7 @@ class WarmupExpStepSize(StepSizeSchedule):
     >>> schedule(600)    # iteration 600: decaying after warmup
     0.0046
     """
-    def __init__(self, peak_lr=0.001, warmup_steps=100, last_lr=1e-6, tau=1000.0):
+    def __init__(self, peak_lr=0.001, warmup_steps=70, last_lr=1e-6, tau=1000.0):
         self.peak_lr = peak_lr
         self.warmup_steps = warmup_steps
         self.last_lr = last_lr
@@ -801,7 +847,7 @@ class Adam:
     >>> optimizer = Adam(learning_rate=ExpStepSize(first_step=0.01, last_step=0.001, tau=500))
     >>>
     >>> # Warmup + decay (recommended for large models)
-    >>> optimizer = Adam(learning_rate=WarmupExpStepSize(peak_lr=0.01, warmup_steps=100))
+    >>> optimizer = Adam(learning_rate=WarmupExpStepSize(peak_lr=0.01, warmup_steps=70))
 
     References
     ----------
@@ -1360,7 +1406,7 @@ class RegularizationSchedule:
         """
         raise NotImplementedError
 
-    def plot(self, nr_iter, figsize=None, title=None, ax=None):
+    def plot(self, nr_iter, figsize=None, title=None, ax=None, return_ax=True):
         """
         Plot the regularization schedule over iterations.
 
@@ -1374,18 +1420,18 @@ class RegularizationSchedule:
             Plot title. If None, uses class name
         ax : matplotlib.axes.Axes, optional
             Axes to plot on. If None, creates new figure
+        return_ax : bool, default=True
+            If True, return the axes object. If False, call plt.show() instead.
 
         Returns
         -------
-        fig : matplotlib.figure.Figure
-            Figure object
-        ax : matplotlib.axes.Axes
-            Axes object
+        ax : matplotlib.axes.Axes or None
+            Axes object if return_ax=True, otherwise None
 
         Examples
         --------
         >>> schedule = ExpRegularization(first_reg=5.0, last_reg=0.1, tau=500.0)
-        >>> fig, ax = schedule.plot(nr_iter=2000)
+        >>> ax = schedule.plot(nr_iter=2000)
         >>> plt.show()
         """
         try:
@@ -1413,16 +1459,19 @@ class RegularizationSchedule:
 
         # Add horizontal lines for first and last values if they exist
         if hasattr(self, 'first_reg') and hasattr(self, 'last_reg'):
-            ax.axhline(self.first_reg, 
-                       #color=black_white(ax), 
+            ax.axhline(self.first_reg,
+                       color=black_or_white,
                        linestyle='--', alpha=0.5,
                     label=f'first_reg={self.first_reg:.4f}')
-            ax.axhline(self.last_reg, 
-                    #    color=black_white(ax), 
+            ax.axhline(self.last_reg,
+                       color=black_or_white,
                        linestyle='--', alpha=0.5,
                     label=f'last_reg={self.last_reg:.4f}')
 
-        return ax
+        if return_ax:
+            return ax
+        else:
+            plt.show()
 
 
 class ConstantRegularization(RegularizationSchedule):
@@ -2024,7 +2073,7 @@ def kl_adaptive_step(particles, kl_target=0.1):
 #     return update_median_bw_kl_step(particles_z, k, m, kl_target, max_step)
 
 # # Main SVGD function
-# def run_variable_dim_svgd(key, data, k, m, n_particles=40, n_steps=100, lr=0.001):
+# def run_variable_dim_svgd(key, data, k, m, n_particles=40, n_steps=70, lr=0.001):
 #     """Run SVGD for variable-dimension discrete phase-type distributions"""
     
 #     # Calculate parameter dimension
@@ -2453,10 +2502,15 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
     elif isinstance(learning_rate, (int, float)):
         step_schedule = ConstantStepSize(float(learning_rate))
         use_schedule = False  # Can still use constant value
-    # else:
-    #     raise TypeError(
-    #         f"learning_rate must be float or StepSizeSchedule, got: {type(learning_rate)}"
-    #     )
+    elif learning_rate is None:
+        # When using an optimizer (e.g., Adam, Adamelia), learning_rate may be None
+        # The optimizer handles step sizing internally
+        step_schedule = None
+        use_schedule = False
+    else:
+        raise TypeError(
+            f"learning_rate must be float, StepSizeSchedule, or None, got: {type(learning_rate)}"
+        )
 
     # Initialize optimizer if provided
     if optimizer is not None:
@@ -2486,10 +2540,14 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
     # for step in range(n_steps) if verbose else range(n_steps):
     for step in trange(n_steps) if progress else range(n_steps):
         # Compute current step size from schedule
+        # Note: When optimizer is used, step_size is ignored by svgd_step
         if use_schedule:
             current_step_size = step_schedule(step, particles) * lr_scale
-        else:
+        elif learning_rate is not None:
             current_step_size = learning_rate * lr_scale
+        else:
+            # learning_rate=None means optimizer handles step sizing
+            current_step_size = 0.0  # Ignored by svgd_step when optimizer is used
 
         # Compute current regularization and create log_prob_fn if using schedule
         if regularization_schedule is not None:
@@ -2855,8 +2913,8 @@ class SVGD:
     _compiled_cache = {}
 
     def __init__(self, model, observed_data, prior=None, n_particles=None,
-                 n_iterations=1000, learning_rate=None, bandwidth='median',
-                 theta_init=None, theta_dim=None, seed=42, verbose=True, progress=False,
+                 n_iterations=700, learning_rate=None, bandwidth='median',
+                 theta_init=None, theta_dim=None, seed=None, verbose=True, progress=False,
                  jit=None,              # NEW: explicit JIT control
                  parallel=None,         # NEW: 'vmap', 'pmap', 'none'
                  n_devices=None,        # NEW: explicit device count for pmap
@@ -2867,6 +2925,9 @@ class SVGD:
 
         if n_particles is None:
             n_particles = 20 * theta_dim
+
+        if seed is None:
+            seed = np.random.randint(1, 10000)
 
         # Get configuration
         config = get_config()
@@ -4221,73 +4282,87 @@ class SVGD:
 
         return results
 
-    def map_estimate_from_particles(self):
+    def map_estimate_from_particles(self, unconstrained=False):
         """
         Find the MAP estimate from a set of particles by finding the particle
         with the highest log probability.
-        
+
         Args:
-            particles: Array of shape (n_particles, dim)
-            log_prob_fn: Function that computes log probability
-        
+            unconstrained : bool, default=False
+                If False, return constrained (model-space) parameter values.
+                If True, return unconstrained (optimization-space) values.
+                Only relevant when using parameter transformations.
+
         Returns:
             The particle with highest log probability
         """
         n_particles = self.particles.shape[0]
-        
+
         log_prob_fn = partial(
             self._log_prob_unified,
             # nr_moments=self.nr_moments,
             # sample_moments=self.sample_moments,
             # regularization=self.regularization,
-            rewards=self.rewards 
-        )   
+            rewards=self.rewards
+        )
 
         # Compute log probability for each particle
         log_probs = jnp.array([log_prob_fn(self.particles[i]) for i in range(n_particles)])
-        
+
         # Find the particle with the highest log probability
         map_idx = jnp.argmax(log_probs)
-        
-        return self.particles[map_idx], log_probs[map_idx]
+
+        map_particle = self.particles[map_idx]
+
+        # Transform to constrained space unless unconstrained is requested
+        if not unconstrained and self.param_transform is not None:
+            map_particle = self.param_transform(map_particle)
+
+        return map_particle, log_probs[map_idx]
 
 
-    def map_estimate_with_optimization(self, n_steps=100, step_size=0.01):
+    def map_estimate_with_optimization(self, n_steps=70, step_size=0.01, unconstrained=False):
         """
         Refine MAP estimate by starting from the best particle and performing
         gradient ascent on the log probability.
-        
+
         Args:
-            particles: Array of shape (n_particles, dim)
-            log_prob_fn: Function that computes log probability
             n_steps: Number of optimization steps
             step_size: Step size for gradient ascent
-        
+            unconstrained : bool, default=False
+                If False, return constrained (model-space) parameter values.
+                If True, return unconstrained (optimization-space) values.
+                Only relevant when using parameter transformations.
+
         Returns:
             The refined MAP estimate after optimization
         """
-        
+
         print("Rewards not yet implemented")
         log_prob_fn = partial(
             self._log_prob_unified,
             nr_moments=self.nr_moments,
             sample_moments=self.sample_moments,
             regularization=self.regularization,
-            rewards=self.rewards 
-        )   
+            rewards=self.rewards
+        )
 
-        # Start with the best particle
-        map_particle, _ = self.map_estimate_from_particles()
-        
+        # Start with the best particle (in unconstrained space for optimization)
+        map_particle, _ = self.map_estimate_from_particles(unconstrained=True)
+
         # Define gradient of log probability
         grad_log_prob = jax.grad(log_prob_fn)
-        
+
         # Perform gradient ascent to refine the MAP estimate
         x = map_particle
         for _ in range(n_steps):
             grad = grad_log_prob(x)
             x = x + step_size * grad
-        
+
+        # Transform to constrained space unless unconstrained is requested
+        if not unconstrained and self.param_transform is not None:
+            x = self.param_transform(x)
+
         return x, log_prob_fn(x)
 
 
@@ -4309,7 +4384,7 @@ class SVGD:
     #     return svgd_plots.map_estimate_from_particles(self.particles, log_prob_fn=log_prob_fn, **params)
 
 
-    # def map_estimate_with_optimization(self, n_steps=100, step_size=0.01):
+    # def map_estimate_with_optimization(self, n_steps=70, step_size=0.01):
     #     """
     #     Plot ...
 
@@ -4327,7 +4402,7 @@ class SVGD:
 
 
     def plot_posterior(self, true_theta=None, param_names=None, bins=20,
-                      figsize=None, save_path=None, show_transformed=True):
+                      figsize=None, save_path=None, unconstrained=False, return_fig=True):
         """
         Plot posterior distributions for each parameter.
 
@@ -4343,15 +4418,17 @@ class SVGD:
             Figure size (width, height)
         save_path : str, optional
             Path to save the plot
-        show_transformed : bool, default=True
-            If True, show transformed (constrained) parameter values.
-            If False, show untransformed (unconstrained) values.
+        unconstrained : bool, default=False
+            If False, show constrained (model-space) parameter values.
+            If True, show unconstrained (optimization-space) values.
             Only relevant when using parameter transformations.
+        return_fig : bool, default=True
+            If True, return (fig, axes). If False, call plt.show() instead.
 
         Returns
         -------
         fig, axes
-            Matplotlib figure and axes objects
+            Matplotlib figure and axes objects (only if return_fig=True)
         """
         if not self.is_fitted:
             raise RuntimeError("Must call fit() before plotting")
@@ -4363,20 +4440,20 @@ class SVGD:
 
         # Get appropriate particle representation
         results = self.get_results()
-        if show_transformed or self.param_transform is None:
-            if not show_transformed and self.param_transform is None:
+        if not unconstrained or self.param_transform is None:
+            if unconstrained and self.param_transform is None:
                 raise ValueError(
-                    "show_transformed=False has no effect when no parameter transformation is used. "
-                    "Either set show_transformed=True, or use positive_params=True / param_transform "
+                    "unconstrained=True has no effect when no parameter transformation is used. "
+                    "Either set unconstrained=False, or use positive_params=True / param_transform "
                     "to enable parameter transformation."
                 )
             particles = results['particles']
             theta_mean = results['theta_mean']
-            space_label = " (transformed)" if self.param_transform is not None else ""
+            space_label = ""
         else:
             particles = results.get('particles_unconstrained', results['particles'])
             theta_mean = jnp.mean(particles, axis=0)
-            space_label = " (untransformed)"
+            space_label = " (unconstrained)"
 
         n_params = self.theta_dim
 
@@ -4404,14 +4481,14 @@ class SVGD:
 
             # Posterior mean
             ax.axvline(theta_mean[i], 
-                       #color=black_white(ax), 
+                       color=black_or_white, 
                        linestyle='--',
                        label=f'Mean = {theta_mean[i]:.3f}')
 
             # True value (if provided)
             if true_theta is not None:
                 true_val = jnp.array(true_theta)[i]
-                ax.axvline(true_val, color='red', linestyle='--',
+                ax.axvline(true_val, color='magenta', linestyle='--',
                            label=f'True = {true_val:.3f}')
 
             # Labels
@@ -4433,12 +4510,15 @@ class SVGD:
             if self.verbose:
                 print(f"Plot saved to: {save_path}")
 
-        return fig, axes
+        if return_fig:
+            return fig, axes
+        else:
+            plt.show()
 
 
     def plot_trace(self, param_names=None, figsize=None,
-                   skip=0, max_particles=None, save_path=None, show_transformed=True
-                   ):
+                   skip=0, max_particles=None, save_path=None, unconstrained=False,
+                   return_fig=True):
         """
         Plot trace plots showing particle evolution over iterations.
 
@@ -4456,16 +4536,17 @@ class SVGD:
             Max number of particles to plot. Defaults to all particles.
         save_path : str, optional
             Path to save the plot
-        show_transformed : bool, default=True
-            If True, show transformed (constrained) parameter values.
-            If False, show untransformed (unconstrained) values.
+        unconstrained : bool, default=False
+            If False, show constrained (model-space) parameter values.
+            If True, show unconstrained (optimization-space) values.
             Only relevant when using parameter transformations.
-        figsize : tuple, optional
-            Figure size (width, height)
+        return_fig : bool, default=True
+            If True, return (fig, axes). If False, call plt.show() instead.
+
         Returns
         -------
         fig, axes
-            Matplotlib figure and axes objects
+            Matplotlib figure and axes objects (only if return_fig=True)
         """
         if not self.is_fitted:
             raise RuntimeError("Must call fit() before plotting")
@@ -4480,20 +4561,20 @@ class SVGD:
 
         # Get appropriate history representation
         results = self.get_results()
-        if show_transformed or self.param_transform is None:
-            if not show_transformed and self.param_transform is None:
+        if not unconstrained or self.param_transform is None:
+            if unconstrained and self.param_transform is None:
                 raise ValueError(
-                    "show_transformed=False has no effect when no parameter transformation is used. "
-                    "Either set show_transformed=True, or use positive_params=True / param_transform "
+                    "unconstrained=True has no effect when no parameter transformation is used. "
+                    "Either set unconstrained=False, or use positive_params=True / param_transform "
                     "to enable parameter transformation."
                 )
             history = results.get('history', self.history)
             theta_mean = results['theta_mean']
-            space_label = " (transformed)" if self.param_transform is not None else ""
+            space_label = ""
         else:
             history = results.get('history_unconstrained', self.history)
             theta_mean = jnp.mean(history[-1], axis=0)
-            space_label = " (untransformed)"
+            space_label = " (unconstrained)"
 
         n_params = self.theta_dim
 
@@ -4532,7 +4613,7 @@ class SVGD:
             x = np.arange(y.size)
 
             ax.plot(x[skip:], y[skip:], 
-                    #color=black_white(ax), 
+                    color=black_or_white, 
                     linestyle='dashed', label=f'Mean = {theta_mean[i]:.3f}')
 
             # Labels
@@ -4550,9 +4631,13 @@ class SVGD:
             if self.verbose:
                 print(f"Plot saved to: {save_path}")
 
-        return fig, axes
+        if return_fig:
+            return fig, axes
+        else:
+            plt.show()
 
-    def plot_convergence(self, figsize=(7, 3), save_path=None, skip=0, show_transformed=True):
+    def plot_convergence(self, figsize=(7, 3), save_path=None, skip=0, unconstrained=False,
+                         return_fig=True):
         """
         Plot convergence diagnostics showing mean and std over iterations.
 
@@ -4566,15 +4651,17 @@ class SVGD:
             Path to save the plot
         skip : int, optional
             Number of initial iterations to skip. Defaults to 0.
-        show_transformed : bool, default=True
-            If True, show transformed (constrained) parameter values.
-            If False, show untransformed (unconstrained) values.
+        unconstrained : bool, default=False
+            If False, show constrained (model-space) parameter values.
+            If True, show unconstrained (optimization-space) values.
             Only relevant when using parameter transformations.
+        return_fig : bool, default=True
+            If True, return (fig, axes). If False, call plt.show() instead.
 
         Returns
         -------
         fig, axes
-            Matplotlib figure and axes objects
+            Matplotlib figure and axes objects (only if return_fig=True)
         """
         if not self.is_fitted:
             raise RuntimeError("Must call fit() before plotting")
@@ -4589,18 +4676,18 @@ class SVGD:
 
         # Get appropriate history representation
         results = self.get_results()
-        if show_transformed or self.param_transform is None:
-            if not show_transformed and self.param_transform is None:
+        if not unconstrained or self.param_transform is None:
+            if unconstrained and self.param_transform is None:
                 raise ValueError(
-                    "show_transformed=False has no effect when no parameter transformation is used. "
-                    "Either set show_transformed=True, or use positive_params=True / param_transform "
+                    "unconstrained=True has no effect when no parameter transformation is used. "
+                    "Either set unconstrained=False, or use positive_params=True / param_transform "
                     "to enable parameter transformation."
                 )
             history = results.get('history', self.history)
-            space_label = " (transformed)" if self.param_transform is not None else ""
+            space_label = ""
         else:
             history = results.get('history_unconstrained', self.history)
-            space_label = " (untransformed)"
+            space_label = " (unconstrained)"
 
         # Convert history to array
         history_array = jnp.stack(history)
@@ -4646,10 +4733,14 @@ class SVGD:
             if self.verbose:
                 print(f"Plot saved to: {save_path}")
 
-        return fig, axes
+        if return_fig:
+            return fig, axes
+        else:
+            plt.show()
 
-    def plot_ci(self, figsize=(7, 3), save_path=None, skip=0, show_transformed=True,
-                true_theta=None, ci=0.95, alpha=0.2, target=None, median=False):
+    def plot_ci(self, figsize=(7, 3), save_path=None, skip=0, unconstrained=False,
+                true_theta=None, ci=0.95, alpha=0.2, target=None, median=False,
+                return_fig=True):
         """
         Plot mean parameter trajectory with confidence interval ribbon.
 
@@ -4664,8 +4755,9 @@ class SVGD:
             Path to save the plot
         skip : int, default=0
             Number of initial iterations to skip
-        show_transformed : bool, default=True
-            If True, show transformed (constrained) parameter values.
+        unconstrained : bool, default=False
+            If False, show constrained (model-space) parameter values.
+            If True, show unconstrained (optimization-space) values.
         true_theta : array_like, optional
             True parameter values to overlay as horizontal lines
         ci : float, default=0.95
@@ -4676,11 +4768,13 @@ class SVGD:
             Target parameter value to overlay as horizontal line
         median : bool, default=False
             If True, plot the median trajectory as a dashed line
+        return_fig : bool, default=True
+            If True, return (fig, ax). If False, call plt.show() instead.
 
         Returns
         -------
         fig, ax
-            Matplotlib figure and axes objects
+            Matplotlib figure and axes objects (only if return_fig=True)
         """
         if not self.is_fitted:
             raise RuntimeError("Must call fit() before plotting")
@@ -4695,12 +4789,18 @@ class SVGD:
 
         # Get appropriate history representation
         results = self.get_results()
-        if show_transformed or self.param_transform is None:
+        if not unconstrained or self.param_transform is None:
+            if unconstrained and self.param_transform is None:
+                raise ValueError(
+                    "unconstrained=True has no effect when no parameter transformation is used. "
+                    "Either set unconstrained=False, or use positive_params=True / param_transform "
+                    "to enable parameter transformation."
+                )
             history = results.get('history', self.history)
-            space_label = " (transformed)" if self.param_transform is not None else ""
+            space_label = ""
         else:
             history = results.get('history_unconstrained', self.history)
-            space_label = " (untransformed)"
+            space_label = " (unconstrained)"
 
         # Convert history to array: (n_iterations, n_particles, theta_dim)
         history_array = jnp.stack(history)
@@ -4765,7 +4865,10 @@ class SVGD:
             if self.verbose:
                 print(f"Plot saved to: {save_path}")
 
-        return ax
+        if return_fig:
+            return ax
+        else:
+            plt.show()
 
     # def plot_svgd_posterior_1d(self, true_params=None, obs_stats=None, map_est=None, ax=None, title="SVGD Posterior Approximation"):
     #     """
@@ -4777,23 +4880,39 @@ class SVGD:
     #     svgd_plots.plot_svgd_posterior_1d(self.particles, **params)
 
 
-    def plot_svgd_posterior_1d(self, particles=None, true_params=None, obs_stats=None, 
+    def plot_svgd_posterior_1d(self, particles=None, true_params=None, obs_stats=None,
                             map_est=None,
-                            ax=None, title="SVGD Posterior Approximation"):
+                            ax=None, title="SVGD Posterior Approximation",
+                            unconstrained=False):
         """
         Plot 1D posterior approximation (SVGD particle distribution)
-        
+
         Args:
             particles: shape (n_particles, 1) array of SVGD particles
             true_params: optional true parameter value for comparison
             title: plot title
+            unconstrained : bool, default=False
+                If False, show constrained (model-space) parameter values.
+                If True, show unconstrained (optimization-space) values.
+                Only relevant when using parameter transformations.
         """
-        if ax is None:        
+        if ax is None:
             plt.figure(figsize=(8, 6))
             ax = plt.gca()
-        
+
         if particles is None:
-            particles = self.particles
+            # Get appropriate particle representation
+            results = self.get_results()
+            if not unconstrained or self.param_transform is None:
+                if unconstrained and self.param_transform is None:
+                    raise ValueError(
+                        "unconstrained=True has no effect when no parameter transformation is used. "
+                        "Either set unconstrained=False, or use positive_params=True / param_transform "
+                        "to enable parameter transformation."
+                    )
+                particles = results['particles']
+            else:
+                particles = results.get('particles_unconstrained', results['particles'])
 
         # Extract 1D values
         x = particles.flatten()
@@ -4844,99 +4963,99 @@ class SVGD:
     #     del params['self']
     #     svgd_plots.plot_svgd_posterior_2d(self.particles, **params)
 
-    def plot_svgd_posterior_2d(self, true_params=None, obs_stats=None,
-                            map_est=None, idx=(0, 1),
-                            figsize=(8, 6),
-                            labels=None,
-                            title=None):
-        """
-        Plot 2D posterior approximation from SVGD particles
+    # def plot_svgd_posterior_2d(self, true_params=None, obs_stats=None,
+    #                         map_est=None, idx=(0, 1),
+    #                         figsize=(8, 6),
+    #                         labels=None,
+    #                         title=None):
+    #     """
+    #     Plot 2D posterior approximation from SVGD particles
         
-        Args:
-            particles: shape (n_particles, n_dims) array of SVGD particles
-            true_params: optional array of true parameter values
-            idx: tuple of parameter indices to plot (default: (0, 1))
-            labels: parameter names for axes (auto-generated if None)
-            title: plot title
-        """
-        n_dims = self.particles.shape[1]
+    #     Args:
+    #         particles: shape (n_particles, n_dims) array of SVGD particles
+    #         true_params: optional array of true parameter values
+    #         idx: tuple of parameter indices to plot (default: (0, 1))
+    #         labels: parameter names for axes (auto-generated if None)
+    #         title: plot title
+    #     """
+    #     n_dims = self.particles.shape[1]
         
-        # Validate indices
-        if max(idx) >= n_dims:
-            raise ValueError(f"Index {max(idx)} exceeds parameter dimension {n_dims}")
+    #     # Validate indices
+    #     if max(idx) >= n_dims:
+    #         raise ValueError(f"Index {max(idx)} exceeds parameter dimension {n_dims}")
         
-        # Auto-generate labels if not provided
-        if labels is None:
-            labels = [f"Parameter {idx[0]}", f"Parameter {idx[1]}"]
+    #     # Auto-generate labels if not provided
+    #     if labels is None:
+    #         labels = [f"Parameter {idx[0]}", f"Parameter {idx[1]}"]
         
-        print(f"Plotting parameters {idx[0]} vs {idx[1]} from {n_dims}-dimensional space")
-        if true_params is not None:
-            print(f"True parameter values: {true_params}")
+    #     print(f"Plotting parameters {idx[0]} vs {idx[1]} from {n_dims}-dimensional space")
+    #     if true_params is not None:
+    #         print(f"True parameter values: {true_params}")
         
-        plt.rcParams['animation.embed_limit'] = 100 # Mb
+    #     plt.rcParams['animation.embed_limit'] = 100 # Mb
 
-        plt.figure(figsize=figsize)
+    #     plt.figure(figsize=figsize)
         
-        # Extract parameters
-        x = self.particles[:, idx[0]]
-        y = self.particles[:, idx[1]]
+    #     # Extract parameters
+    #     x = self.particles[:, idx[0]]
+    #     y = self.particles[:, idx[1]]
         
-        # Create 2D histogram
-        plt.subplot(2, 2, 1)
-        plt.hist2d(x, y, bins=30, cmap='viridis')
-        plt.colorbar(label='Particle count')
-        if true_params is not None and len(true_params) > max(idx):
-            plt.plot(true_params[idx[0]], true_params[idx[1]], ls='', color='hotpink', marker='*', markersize=10, 
-                    label='True value')        
-        if obs_stats is not None and len(obs_stats) > max(idx):
-            plt.plot(obs_stats[idx[0]], obs_stats[idx[1]], ls='', color='magenta', marker='*', markersize=10, 
-                label='Obs value')        
-        if map_est is not None and len(map_est) > max(idx):
-            plt.plot(map_est[idx[0]], map_est[idx[1]], ls='', color='orange', marker='*', markersize=10, 
-                    label=f'MAP value')
+    #     # Create 2D histogram
+    #     plt.subplot(2, 2, 1)
+    #     plt.hist2d(x, y, bins=30, cmap='viridis')
+    #     plt.colorbar(label='Particle count')
+    #     if true_params is not None and len(true_params) > max(idx):
+    #         plt.plot(true_params[idx[0]], true_params[idx[1]], ls='', color='hotpink', marker='*', markersize=10, 
+    #                 label='True value')        
+    #     if obs_stats is not None and len(obs_stats) > max(idx):
+    #         plt.plot(obs_stats[idx[0]], obs_stats[idx[1]], ls='', color='magenta', marker='*', markersize=10, 
+    #             label='Obs value')        
+    #     if map_est is not None and len(map_est) > max(idx):
+    #         plt.plot(map_est[idx[0]], map_est[idx[1]], ls='', color='orange', marker='*', markersize=10, 
+    #                 label=f'MAP value')
 
-        plt.xlabel(labels[0])
-        plt.ylabel(labels[1])
-        plt.title('2D Histogram')
+    #     plt.xlabel(labels[0])
+    #     plt.ylabel(labels[1])
+    #     plt.title('2D Histogram')
         
-        # Create scatter plot
-        plt.subplot(2, 2, 2)
-        if true_params is not None and len(true_params) > max(idx):
-            plt.gca().axvline(true_params[idx[0]], color='hotpink', linewidth=0.5, linestyle='--', zorder=-1)   
-            plt.gca().axhline(true_params[idx[1]], color='hotpink', linewidth=0.5, linestyle='--', zorder=-1, label='True value')   
-            plt.legend()
-        plt.scatter(x, y, alpha=0.5, s=5, edgecolor='none')
-        if obs_stats is not None and len(obs_stats) > max(idx):
-            plt.plot(obs_stats[idx[0]], obs_stats[idx[1]], ls='', color='magenta', marker='*', markersize=10, 
-                label='Obs value')        
-        if map_est is not None and len(map_est) > max(idx):
-            plt.plot(map_est[idx[0]], map_est[idx[1]], ls='', color='orange', marker='*', markersize=10, 
-                    label='MAP value')
+    #     # Create scatter plot
+    #     plt.subplot(2, 2, 2)
+    #     if true_params is not None and len(true_params) > max(idx):
+    #         plt.gca().axvline(true_params[idx[0]], color='hotpink', linewidth=0.5, linestyle='--', zorder=-1)   
+    #         plt.gca().axhline(true_params[idx[1]], color='hotpink', linewidth=0.5, linestyle='--', zorder=-1, label='True value')   
+    #         plt.legend()
+    #     plt.scatter(x, y, alpha=0.5, s=5, edgecolor='none')
+    #     if obs_stats is not None and len(obs_stats) > max(idx):
+    #         plt.plot(obs_stats[idx[0]], obs_stats[idx[1]], ls='', color='magenta', marker='*', markersize=10, 
+    #             label='Obs value')        
+    #     if map_est is not None and len(map_est) > max(idx):
+    #         plt.plot(map_est[idx[0]], map_est[idx[1]], ls='', color='orange', marker='*', markersize=10, 
+    #                 label='MAP value')
 
-        plt.xlabel(labels[0])
-        plt.ylabel(labels[1])
-        plt.title('Particle Distribution')
+    #     plt.xlabel(labels[0])
+    #     plt.ylabel(labels[1])
+    #     plt.title('Particle Distribution')
         
-        plt.subplot(2, 2, 3)
-        self.plot_svgd_posterior_1d(
-            x,
-            true_params=true_params[idx[0]] if true_params is not None and len(true_params) > idx[0] else None,
-            map_est=map_est[idx[0]] if map_est is not None and len(map_est) > idx[0] else None,
-            ax=plt.gca(),
-            title=f"Posterior Distribution of {labels[0]}"
-        )
+    #     plt.subplot(2, 2, 3)
+    #     self.plot_svgd_posterior_1d(
+    #         x,
+    #         true_params=true_params[idx[0]] if true_params is not None and len(true_params) > idx[0] else None,
+    #         map_est=map_est[idx[0]] if map_est is not None and len(map_est) > idx[0] else None,
+    #         ax=plt.gca(),
+    #         title=f"Posterior Distribution of {labels[0]}"
+    #     )
 
-        plt.subplot(2, 2, 4)
-        self.plot_svgd_posterior_1d(
-            y,
-            true_params=true_params[idx[1]] if true_params is not None and len(true_params) > idx[1] else None,
-            map_est=map_est[idx[1]] if map_est is not None and len(map_est) > idx[1] else None,
-            ax=plt.gca(),
-            title=f"Posterior Distribution of {labels[1]}"
-        )
+    #     plt.subplot(2, 2, 4)
+    #     self.plot_svgd_posterior_1d(
+    #         y,
+    #         true_params=true_params[idx[1]] if true_params is not None and len(true_params) > idx[1] else None,
+    #         map_est=map_est[idx[1]] if map_est is not None and len(map_est) > idx[1] else None,
+    #         ax=plt.gca(),
+    #         title=f"Posterior Distribution of {labels[1]}"
+    #     )
         
-        plt.suptitle(title, fontsize=16)
-        plt.tight_layout(rect=[0, 0, 1, 0.95])
+    #     plt.suptitle(title, fontsize=16)
+    #     plt.tight_layout(rect=[0, 0, 1, 0.95])
 
 
 
@@ -5043,7 +5162,7 @@ class SVGD:
                             verticalalignment='top',
                             fontname='monospace', 
                             #  traansform=ax.transAxes,
-                            # bbox=dict(facecolor='red', alpha=0.5)
+                            # bbox=dict(facecolor='magenta', alpha=0.5)
                             )
         
         # axes[0].annotate('axes fraction',
@@ -5137,104 +5256,401 @@ class SVGD:
 
 
 
-    def plot_hdr_2d(self, idx=[0, 1], alphas=[0.95], 
-                        grid_size=50, margin=0.1, xlim=None, ylim=None):
-        """
-        Visualize the Highest Density Region (HDR) for any 2D projection of n-dimensional distribution.
+    # def plot_hdr_2d(self, idx=[0, 1], alphas=[0.95], 
+    #                     grid_size=50, margin=0, xlim=None, ylim=None):
+    #     """
+    #     Visualize the Highest Density Region (HDR) for any 2D projection of n-dimensional distribution.
         
-        Args:
-            particles: Array of shape (n_particles, n_dims)
-            log_prob_fn: Function that computes log probability
-            idx: indices of parameters to visualize [param1_idx, param2_idx]
-            alphas: list of coverage probabilities (e.g., [0.95] for 95% HDR)
-            grid_size: Size of the grid for visualization
-            xlim, ylim: Limits for the grid
+    #     Args:
+    #         particles: Array of shape (n_particles, n_dims)
+    #         log_prob_fn: Function that computes log probability
+    #         idx: indices of parameters to visualize [param1_idx, param2_idx]
+    #         alphas: list of coverage probabilities (e.g., [0.95] for 95% HDR)
+    #         grid_size: Size of the grid for visualization
+    #         xlim, ylim: Limits for the grid
         
-        Returns:
-            Figure with HDR visualization
-        """
-        n_dims = self.particles.shape[1]
+    #     Returns:
+    #         Figure with HDR visualization
+    #     """
+    #     n_dims = self.particles.shape[1]
         
+    #     log_prob_fn = partial(
+    #         self._log_prob_unified,
+    #         nr_moments=self.nr_moments,
+    #         sample_moments=self.sample_moments,
+    #         regularization=self.regularization,
+    #         rewards=self.rewards 
+    #     )
+
+    #     # Validate indices
+    #     if max(idx) >= n_dims:
+    #         raise ValueError(f"Index {max(idx)} exceeds parameter dimension {n_dims}")
+        
+    #     # Determine limits if not provided
+    #     if xlim is None:
+    #         x_min, x_max = self.particles[:, idx[0]].min(), self.particles[:, idx[0]].max()
+    #         _margin = (x_max - x_min) * margin
+    #         xlim = (max(0, x_min - _margin), x_max + _margin)
+        
+    #     if ylim is None:
+    #         y_min, y_max = self.particles[:, idx[1]].min(), self.particles[:, idx[1]].max()
+    #         _margin = (y_max - y_min) * margin
+    #         ylim = (max(0, y_min - _margin), y_max + _margin)
+        
+    #     # Create grid
+    #     # x = jnp.linspace(xlim[0], xlim[1], grid_size)
+    #     # y = jnp.linspace(ylim[0], ylim[1], grid_size)
+    #     # X, Y = jnp.meshgrid(x, y)
+    #     size = max(xlim[1] - xlim[0], ylim[1] - ylim[0]) / grid_size
+    #     x, y = _hex_grid(xlim[0], xlim[1], ylim[0], ylim[1], size=size, flat_topped=True).T
+    #     X, Y = jnp.meshgrid(x, y)
+
+    #     # Evaluate log probability on grid using mean values for other parameters
+    #     theta_mean = jnp.mean(self.particles, axis=0)
+
+    #     # Prepare all grid parameter vectors for vectorized evaluation
+    #     # Flatten grid to (grid_size * grid_size, n_dims) array
+    #     X_flat = X.ravel()
+    #     Y_flat = Y.ravel()
+
+    #     # Broadcast theta_mean to all grid points and replace the selected dimensions
+    #     grid_params = jnp.tile(theta_mean, (grid_size * grid_size, 1))
+    #     grid_params = grid_params.at[:, idx[0]].set(X_flat)
+    #     grid_params = grid_params.at[:, idx[1]].set(Y_flat)
+
+    #     # Use vmap for parallel evaluation across all grid points
+    #     Z_flat = vmap(log_prob_fn)(grid_params)
+    #     Z = Z_flat.reshape(grid_size, grid_size)
+
+    #     # Get HDR threshold
+    #     levels = []
+    #     for alpha in alphas:
+    #         _, threshold = self.estimate_hdr(alpha)
+    #         levels.append((threshold.item(), alpha))
+
+    #     fig, axes = plt.subplots(1, 2, figsize=(8, 3))
+
+    #     # plot grid log likelihoods
+    #     x_flat, y_flat, z_flat = X.ravel(), Y.ravel(), Z.ravel()
+    #     scatter = sns.scatterplot(x=x_flat, y=y_flat, 
+    #                             hue=z_flat, palette=iridis,
+    #                             edgecolor='none', alpha=0.5, s=5, legend=False)
+    #     # Find and mark logL grid point
+    #     max_idx = jnp.argmax(z_flat)
+    #     axes[0].scatter(x_flat[max_idx], y_flat[max_idx], color='magenta', s=70, marker='x', alpha=1, label='Max grid LogL')
+    #     axes[1].scatter(x_flat[max_idx], y_flat[max_idx], color='magenta', s=70, marker='x', alpha=1, label='Max grid LogL')
+
+    #     # Find and mark MAP estimate
+    #     map_particle, _ = self.map_estimate_from_particles()
+    #     if len(map_particle) > max(idx):
+    #         axes[0].scatter(map_particle[idx[0]], map_particle[idx[1]], color='orange', s=70, marker='x', alpha=1, label='MAP estimate')
+    #         axes[1].scatter(map_particle[idx[0]], map_particle[idx[1]], color='orange', s=70, marker='x', alpha=1, label='MAP estimate')
+
+    #     # plot particles (only the selected dimensions)
+    #     logLikelihoods = vmap(lambda p: log_prob_fn(p))(self.particles)    
+    #     scatter = sns.scatterplot(x=self.particles[:, idx[0]], y=self.particles[:, idx[1]], 
+    #                             hue=logLikelihoods, palette=iridis,
+    #                             edgecolor='none', alpha=0.5, s=10, legend=False)
+    #     # plot contour lines for HDR
+    #     levels, alphas = zip(*sorted(levels))
+    #     contour = axes[1].contour(X, Y, Z, levels=levels, cmap=iridis, linestyles='dashed', alpha=0.7)
+        
+    #     axes[0].set_xlabel(f'Parameter {idx[0]}')
+    #     axes[0].set_ylabel(f'Parameter {idx[1]}')
+    #     axes[0].legend()
+
+    #     axes[1].set_xlabel(f'Parameter {idx[0]}')
+    #     axes[1].set_ylabel(f'Parameter {idx[1]}')
+    #     axes[1].legend()
+
+    #     return fig
+
+
+    def plot_hdr(self, alphas=[0.95], idx=[0, 1], figsize=(5, 4), hexgrid=True, trim=True,
+                    n=15, margin=0.1, xlim=None, ylim=None, palette='viridis', pad=2,
+                    unconstrained=False, return_fig=True):
+
+        def hex_grid(x_min, x_max, y_min, y_max, n, aspect=1.0, flat_topped=False, pad=1):
+            """Generate hex grid midpoints that fill the bounding box with equal-edged hexagons.
+            
+            Args:
+                x_min, x_max, y_min, y_max: Bounding box
+                n: Approximate number of hexagons along the shorter axis
+                aspect: Aspect ratio (data_x / data_y) / (canvas_x / canvas_y)
+                flat_topped: Hexagon orientation
+                pad: Extra rows/columns to add beyond bounding box
+            
+            Returns:
+                points: Nx2 array of midpoints
+                size: Computed hex size (center to vertex)
+                padded_bounds: (x_min_padded, x_max_padded, y_min_padded, y_max_padded)
+            """
+            x_range = x_max - x_min
+            y_range = y_max - y_min
+            
+            # Determine which axis is "shorter" in display units
+            effective_x = x_range / aspect
+            effective_y = y_range
+            
+            if flat_topped:
+                if effective_x <= effective_y:
+                    size = x_range / (1.5 * (n - 1) + 2) / aspect
+                else:
+                    size = y_range / (np.sqrt(3) * (n - 0.5))
+                dx = 1.5 * size * aspect
+                dy = np.sqrt(3) * size
+            else:
+                if effective_x <= effective_y:
+                    size = x_range / (np.sqrt(3) * (n - 0.5)) / aspect
+                else:
+                    size = y_range / (1.5 * (n - 1) + 2)
+                dx = np.sqrt(3) * size * aspect
+                dy = 1.5 * size
+            
+            # Extend grid beyond bounds by pad rows/columns
+            x_pad = dx * pad
+            y_pad = dy * pad
+            
+            x_min_padded = x_min - x_pad
+            x_max_padded = x_max + x_pad
+            y_min_padded = y_min - y_pad
+            y_max_padded = y_max + y_pad
+            
+            x = np.arange(x_min_padded, x_max_padded + dx, dx)
+            y = np.arange(y_min_padded, y_max_padded + dy, dy)
+            
+            xx, yy = np.meshgrid(x, y)
+            
+            if flat_topped:
+                yy[:, 1::2] += dy / 2
+            else:
+                xx[1::2] += dx / 2
+            
+            points = np.column_stack((xx.ravel(), yy.ravel()))
+            padded_bounds = (x_min_padded, x_max_padded, y_min_padded, y_max_padded)
+            return points, size, padded_bounds
+
+        def hex_vertices(cx, cy, size, aspect=1.0, flat_topped=False):
+            """Get vertices for a single hexagon with equal edges."""
+            angles = np.linspace(0, 2 * np.pi, 7)
+            if not flat_topped:
+                angles += np.pi / 6
+            x = cx + size * np.cos(angles) * aspect
+            y = cy + size * np.sin(angles)
+            return np.column_stack((x, y))
+
+        def heatmap_hexagons(ax, points, z, size, aspect=1.0, flat_topped=False, **kwargs):
+            """Draw hexagonal heatmap with touching hexagons."""
+            hexagons = [hex_vertices(p[0], p[1], size, aspect, flat_topped) for p in points]
+            collection = PolyCollection(hexagons, array=np.array(z), **kwargs)
+            return collection
+
+        results = self.get_results()
+        if not unconstrained or self.param_transform is None:
+            if unconstrained and self.param_transform is None:
+                raise ValueError(
+                    "unconstrained=True has no effect when no parameter transformation is used. "
+                    "Either set unconstrained=False, or use positive_params=True / param_transform "
+                    "to enable parameter transformation."
+                )
+            full_history = results.get('history', self.history)
+            space_label = ""
+        else:
+            full_history = results.get('history_unconstrained', self.history)
+            space_label = " (unconstrained)"
+
+        particles = full_history[-1]
+
+        n_dims = particles.shape[1]
+
         log_prob_fn = partial(
             self._log_prob_unified,
             nr_moments=self.nr_moments,
             sample_moments=self.sample_moments,
             regularization=self.regularization,
-            rewards=self.rewards 
+            rewards=self.rewards
         )
 
-        # Validate indices
         if max(idx) >= n_dims:
             raise ValueError(f"Index {max(idx)} exceeds parameter dimension {n_dims}")
-        
-        # Determine limits if not provided
+
+        # Get particles in display space for grid construction
+        # When unconstrained=False and we have a transform, use constrained particles
+        if not unconstrained and self.param_transform is not None:
+            particles_display = results['particles']  # Already transformed
+            theta_mean_display = jnp.mean(particles_display, axis=0)
+            # Need inverse transform for log_prob evaluation
+            inv_transform = _inverse_softplus
+        else:
+            particles_display = self.particles
+            theta_mean_display = jnp.mean(self.particles, axis=0)
+            inv_transform = lambda x: x  # Identity
+
+        # Determine data limits from display-space particles
         if xlim is None:
-            x_min, x_max = self.particles[:, idx[0]].min(), self.particles[:, idx[0]].max()
+            x_min, x_max = particles_display[:, idx[0]].min(), particles_display[:, idx[0]].max()
             _margin = (x_max - x_min) * margin
             xlim = (x_min - _margin, x_max + _margin)
-        
+        else:
+            x_min, x_max = xlim
+
         if ylim is None:
-            y_min, y_max = self.particles[:, idx[1]].min(), self.particles[:, idx[1]].max()
+            y_min, y_max = particles_display[:, idx[1]].min(), particles_display[:, idx[1]].max()
             _margin = (y_max - y_min) * margin
             ylim = (y_min - _margin, y_max + _margin)
-        
-        # Create grid
-        x = jnp.linspace(xlim[0], xlim[1], grid_size)
-        y = jnp.linspace(ylim[0], ylim[1], grid_size)
-        X, Y = jnp.meshgrid(x, y)
+        else:
+            y_min, y_max = ylim
 
-        # Evaluate log probability on grid using mean values for other parameters
-        theta_mean = jnp.mean(self.particles, axis=0)
-        Z = jnp.zeros_like(X)
-        for i in range(grid_size):
-            for j in range(grid_size):
-                p = theta_mean.copy()
-                p = p.at[idx[0]].set(X[i, j])
-                p = p.at[idx[1]].set(Y[i, j])
-                Z = Z.at[i, j].set(log_prob_fn(p))
+        # Compute aspect ratio to make hexagons appear with equal edges
+        x_range = x_max - x_min
+        y_range = y_max - y_min
+        data_aspect = x_range / y_range
+        canvas_aspect = figsize[0] / figsize[1]
+        aspect = data_aspect / canvas_aspect
 
-        # Get HDR threshold
-        levels = []
-        for alpha in alphas:
-            _, threshold = self.estimate_hdr(alpha)
-            levels.append((threshold.item(), alpha))
+        # generate sparse hex grid with padding and evaluate log probability
+        # at hex midpoints to find approximate log likelihood mode
+        points, size, padded_bounds = hex_grid(x_min, x_max, y_min, y_max, n=5, aspect=aspect, pad=pad)
+        # Build grid params in display space
+        grid_params = jnp.tile(theta_mean_display, (len(points), 1))
+        grid_params = grid_params.at[:, idx[0]].set(points[:, 0])
+        grid_params = grid_params.at[:, idx[1]].set(points[:, 1])
+        # Inverse transform for log_prob evaluation (log_prob_fn expects unconstrained)
+        grid_params_unconstrained = inv_transform(grid_params)
+        z_flat = vmap(log_prob_fn)(grid_params_unconstrained)
 
-        fig, axes = plt.subplots(1, 2, figsize=(8, 3))
-
-        # plot grid log likelihoods
-        x_flat, y_flat, z_flat = X.ravel(), Y.ravel(), Z.ravel()
-        scatter = sns.scatterplot(x=x_flat, y=y_flat, 
-                                hue=z_flat, palette=iridis,
-                                edgecolor='none', alpha=0.5, s=5, legend=False)
-        # Find and mark logL grid point
+        # adjust limits to center likelihood mode
         max_idx = jnp.argmax(z_flat)
-        axes[0].scatter(x_flat[max_idx], y_flat[max_idx], color='red', s=70, marker='x', alpha=1, label='Max grid LogL')
-        axes[1].scatter(x_flat[max_idx], y_flat[max_idx], color='red', s=70, marker='x', alpha=1, label='Max grid LogL')
+        mode_x, mode_y = points[max_idx]
+        xlim = (min(xlim[0], mode_x - (xlim[1] - mode_x)/2),
+                 max(xlim[1], mode_x + (mode_x - xlim[0])/2))
+        ylim = (min(ylim[0], mode_y - (ylim[1] - mode_y)/2),
+                 max(ylim[1], mode_y + (mode_y - ylim[0])/2))
+        x_min, x_max = xlim
+        y_min, y_max = ylim
 
-        # Find and mark MAP estimate
-        map_particle, _ = self.map_estimate_from_particles()
+        # repeat with full grid
+        points, size, padded_bounds = hex_grid(x_min, x_max, y_min, y_max, n=n, aspect=aspect, pad=pad)
+        # Build grid params in display space
+        grid_params = jnp.tile(theta_mean_display, (len(points), 1))
+        grid_params = grid_params.at[:, idx[0]].set(points[:, 0])
+        grid_params = grid_params.at[:, idx[1]].set(points[:, 1])
+        # Inverse transform for log_prob evaluation
+        grid_params_unconstrained = inv_transform(grid_params)
+        z_flat = vmap(log_prob_fn)(grid_params_unconstrained)
+
+
+        # Create figure and plot
+        fig, ax = plt.subplots(figsize=figsize)
+
+        collection = heatmap_hexagons(
+            ax, points, z_flat, size, aspect=aspect,
+            cmap=palette,
+            edgecolors='none',
+            linewidths=0
+        )
+
+        if hexgrid:
+            ax.add_collection(collection)
+
+        # Plot particles
+        ax.scatter(particles[:, idx[0]], particles[:, idx[1]], 
+                color='magenta' if hexgrid else None,
+                edgecolor='none', alpha=0.5, s=20)
+
+        # Mark max grid point
+        max_idx = jnp.argmax(z_flat)
+        ax.scatter(points[max_idx, 0], points[max_idx, 1], 
+                color='black' if hexgrid else black_or_white, 
+                s=70, marker='x', alpha=1, label='Max grid logL')
+
+        # Mark MAP estimate
+        map_particle, _ = self.map_estimate_from_particles(unconstrained=unconstrained)
         if len(map_particle) > max(idx):
-            axes[0].scatter(map_particle[idx[0]], map_particle[idx[1]], color='orange', s=70, marker='x', alpha=1, label='MAP estimate')
-            axes[1].scatter(map_particle[idx[0]], map_particle[idx[1]], color='orange', s=70, marker='x', alpha=1, label='MAP estimate')
+            ax.scatter(map_particle[idx[0]], map_particle[idx[1]], 
+                    color='black' if hexgrid else black_or_white, 
+                    s=70, marker='+', alpha=1, label='MAP estimate')
 
-        # plot particles (only the selected dimensions)
-        logLikelihoods = vmap(lambda p: log_prob_fn(p))(self.particles)    
-        scatter = sns.scatterplot(x=self.particles[:, idx[0]], y=self.particles[:, idx[1]], 
-                                hue=logLikelihoods, palette=iridis,
-                                edgecolor='none', alpha=0.5, s=10, legend=False)
-        # plot contour lines for HDR
-        levels, alphas = zip(*sorted(levels))
-        contour = axes[1].contour(X, Y, Z, levels=levels, cmap=iridis, linestyles='dashed', alpha=0.7)
-        
-        axes[0].set_xlabel(f'Parameter {idx[0]}')
-        axes[0].set_ylabel(f'Parameter {idx[1]}')
-        axes[0].legend()
+        # logL contours        
+        from scipy.interpolate import griddata
+        x_min_p, x_max_p, y_min_p, y_max_p = padded_bounds
+        xi = np.linspace(x_min_p, x_max_p, 150)
+        yi = np.linspace(y_min_p, y_max_p, 150)
+        Xi, Yi = np.meshgrid(xi, yi)
+        # Zi = griddata(points, np.array(z_flat), (Xi, Yi), method='cubic')
+        # levels = []
+        # label_map = {}
+        # for alpha in sorted(alphas, reverse=True):
+        #     _, threshold = self.estimate_hdr(alpha)
+        #     level = threshold.item()
+        #     levels.append(level)
+        #     label_map[level] = f'{alpha:.0%}'
+        # cont = ax.contour(Xi, Yi, Zi, levels=levels,
+        #                     colors='black' if hexgrid else black_or_white,
+        #                     alpha=0.7)
+        # ax.clabel(cont, inline=True , fmt=label_map, fontsize=9)
 
-        axes[1].set_xlabel(f'Parameter {idx[0]}')
-        axes[1].set_ylabel(f'Parameter {idx[1]}')
-        axes[1].legend()
 
-        return fig
+        # HDR contours based on particle density (KDE)
+        particles_2d = np.column_stack([particles[:, idx[0]], particles[:, idx[1]]])
+        kde = gaussian_kde(particles_2d.T)
+
+        # Evaluate KDE on grid
+        positions = np.vstack([Xi.ravel(), Yi.ravel()])
+        Zi_kde = kde(positions).reshape(Xi.shape)
+
+        # Compute HDR thresholds from particle densities
+        kde_at_particles = kde(particles_2d.T)
+        kde_levels = []
+        kde_label_map = {}
+        for alpha in sorted(alphas, reverse=True):
+            # Find density threshold that contains alpha fraction of particles
+            sorted_densities = np.sort(kde_at_particles)[::-1]
+            n_hdr = int(len(kde_at_particles) * alpha)
+            threshold = sorted_densities[min(n_hdr - 1, len(sorted_densities) - 1)]
+            kde_levels.append(threshold)
+            kde_label_map[threshold] = f'{alpha:.0%}'
+
+        kde_cont = ax.contour(Xi, Yi, Zi_kde, levels=kde_levels,
+                              colors='black' if hexgrid else black_or_white,
+                            #   linestyles='dashed',
+                              alpha=0.7)
+        ax.clabel(kde_cont, inline=True, fmt=kde_label_map, fontsize=9)
+
+        # Clip to xlim/ylim to remove ragged edges
+        if trim:
+            x, y = zip(*points)
+            ax.set_xlim((min(x), max(x)))
+            ax.set_ylim((min(y), max(y)))
+
+        ax.set_xlabel(rf"$\theta_{idx[0]}$" + space_label)
+        ax.set_ylabel(rf"$\theta_{idx[1]}$" + space_label)
+
+
+        # Shrink current axis's height by 10% on the bottom
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0 + box.height * 0.1,
+                        box.width, box.height * 0.9])
+        ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.1),
+                fancybox=True, ncol=2, labelcolor=black_or_white)
+        leg = ax.get_legend()
+        for i in range(len(leg.legend_handles)):
+            leg.legend_handles[i].set_facecolor(black_or_white)
+            leg.legend_handles[i].set_edgecolor(black_or_white)
+
+        if hexgrid:
+            from mpl_toolkits.axes_grid1 import make_axes_locatable
+            divider = make_axes_locatable(ax)
+            cax = divider.append_axes("right", size="3%", pad=0.1)
+            cb = plt.colorbar(collection, cax=cax, label='Log likelihood')
+            cb.outline.set_visible(False)
+
+            ax.grid(False)
+
+        if return_fig:
+            return ax
+        else:
+            plt.show()
 
 
     # def plot_parameter_matrix(self, true_params=None, max_params=6, figsize=(12, 10)):
@@ -5247,57 +5663,57 @@ class SVGD:
     #     svgd_plots.plot_parameter_matrix(self.particles, **params)
 
 
-    def plot_parameter_matrix(self, true_params=None, max_params=6, figsize=(12, 10)):
-        """
-        Create a matrix plot showing pairwise relationships between parameters
+    # def plot_parameter_matrix(self, true_params=None, max_params=6, figsize=(12, 10)):
+    #     """
+    #     Create a matrix plot showing pairwise relationships between parameters
         
-        Args:
-            particles: Array of shape (n_particles, n_dims)
-            true_params: optional true parameter values
-            max_params: maximum number of parameters to show
-            figsize: figure size
-        """
-        n_dims = self.particles.shape[1]
-        n_show = min(max_params, n_dims)
+    #     Args:
+    #         particles: Array of shape (n_particles, n_dims)
+    #         true_params: optional true parameter values
+    #         max_params: maximum number of parameters to show
+    #         figsize: figure size
+    #     """
+    #     n_dims = self.particles.shape[1]
+    #     n_show = min(max_params, n_dims)
         
-        fig, axes = plt.subplots(n_show, n_show, figsize=figsize)
-        if n_show == 1:
-            axes = np.array([[axes]])
-        elif axes.ndim == 1:
-            axes = axes.reshape(1, -1)
+    #     fig, axes = plt.subplots(n_show, n_show, figsize=figsize)
+    #     if n_show == 1:
+    #         axes = np.array([[axes]])
+    #     elif axes.ndim == 1:
+    #         axes = axes.reshape(1, -1)
         
-        for i in range(n_show):
-            for j in range(n_show):
-                ax = axes[i, j]
+    #     for i in range(n_show):
+    #         for j in range(n_show):
+    #             ax = axes[i, j]
                 
-                if i == j:
-                    # Diagonal: show 1D marginal distribution
-                    self.plot_svgd_posterior_1d(
-                        self.particles[:, i],
-                        true_params=true_params[i] if true_params is not None and len(true_params) > i else None,
-                        ax=ax,
-                        title=f"Parameter {i}"
-                    )
-                else:
-                    # Off-diagonal: show 2D scatter plot
-                    ax.scatter(self.particles[:, j], self.particles[:, i], alpha=0.5, s=5, edgecolor='none')
+    #             if i == j:
+    #                 # Diagonal: show 1D marginal distribution
+    #                 self.plot_svgd_posterior_1d(
+    #                     self.particles[:, i],
+    #                     true_params=true_params[i] if true_params is not None and len(true_params) > i else None,
+    #                     ax=ax,
+    #                     title=f"Parameter {i}"
+    #                 )
+    #             else:
+    #                 # Off-diagonal: show 2D scatter plot
+    #                 ax.scatter(self.particles[:, j], self.particles[:, i], alpha=0.5, s=5, edgecolor='none')
                     
-                    if true_params is not None and len(true_params) > max(i, j):
-                        ax.scatter(true_params[j], true_params[i], color='red', s=50, marker='*', 
-                                label='True value')
+    #                 if true_params is not None and len(true_params) > max(i, j):
+    #                     ax.scatter(true_params[j], true_params[i], color='magenta', s=50, marker='*', 
+    #                             label='True value')
                     
-                    ax.set_xlabel(f'Parameter {j}')
-                    ax.set_ylabel(f'Parameter {i}')
+    #                 ax.set_xlabel(f'Parameter {j}')
+    #                 ax.set_ylabel(f'Parameter {i}')
                     
-                # Remove ticks for cleaner look
-                if i < n_show - 1:
-                    ax.set_xlabel('')
-                if j > 0:
-                    ax.set_ylabel('')
+    #             # Remove ticks for cleaner look
+    #             if i < n_show - 1:
+    #                 ax.set_xlabel('')
+    #             if j > 0:
+    #                 ax.set_ylabel('')
         
-        plt.suptitle(f'Parameter Matrix Plot (showing {n_show}/{n_dims} parameters)', fontsize=14)
-        plt.tight_layout()
-        return fig
+    #     plt.suptitle(f'Parameter Matrix Plot (showing {n_show}/{n_dims} parameters)', fontsize=14)
+    #     plt.tight_layout()
+    #     return fig
 
 
     # def animate_parameter_pairs(self, param_pairs=None, true_params=None, figsize=(15, 5), save_as_gif=None):    
@@ -5363,7 +5779,7 @@ class SVGD:
             
             # Plot true values if available
             if true_params is not None and len(true_params) > max(i, j):
-                ax.scatter(true_params[j], true_params[i], color='red', s=50, marker='*', 
+                ax.scatter(true_params[j], true_params[i], color='magenta', s=70, marker='+', 
                         label='True value', zorder=10)
                 ax.legend()
             
@@ -5674,7 +6090,7 @@ class SVGD:
 
         Examples
         --------
-        >>> svgd = SVGD(model, data, theta_dim=1, n_iterations=1000)
+        >>> svgd = SVGD(model, data, theta_dim=1, n_iterations=700)
         >>> svgd.fit(return_history=True)
         >>> svgd.analyze_trace()  # Prints diagnostic report
 
@@ -5695,10 +6111,10 @@ class SVGD:
         results = self.get_results()
         if self.param_transform is not None:
             history = results.get('history', self.history)
-            space_label = " (transformed)"
+            space_label = ""
         else:
             history = self.history
-            space_label = ""
+            space_label = " (unconstrained)"
 
         # Convert to array
         history_array = jnp.stack(history)  # (n_iterations, n_particles, theta_dim)
@@ -5914,7 +6330,7 @@ class SVGD:
                 # print()
 
     def plot_pairwise(self, true_theta=None, param_names=None,
-                     figsize=None, save_path=None, show_transformed=True):
+                     figsize=None, save_path=None, unconstrained=False, return_fig=True):
         """
         Plot pairwise scatter plots for all parameter pairs.
 
@@ -5928,15 +6344,17 @@ class SVGD:
             Figure size (width, height)
         save_path : str, optional
             Path to save the plot
-        show_transformed : bool, default=True
-            If True, show transformed (constrained) parameter values.
-            If False, show untransformed (unconstrained) values.
+        unconstrained : bool, default=False
+            If False, show constrained (model-space) parameter values.
+            If True, show unconstrained (optimization-space) values.
             Only relevant when using parameter transformations.
+        return_fig : bool, default=True
+            If True, return (fig, axes). If False, call plt.show() instead.
 
         Returns
         -------
         fig, axes
-            Matplotlib figure and axes objects
+            Matplotlib figure and axes objects (only if return_fig=True)
         """
         if not self.is_fitted:
             raise RuntimeError("Must call fit() before plotting")
@@ -5951,26 +6369,33 @@ class SVGD:
 
         # Get appropriate particle representation
         results = self.get_results()
-        if show_transformed or self.param_transform is None:
-            if not show_transformed and self.param_transform is None:
+        if not unconstrained or self.param_transform is None:
+            if unconstrained and self.param_transform is None:
                 raise ValueError(
-                    "show_transformed=False has no effect when no parameter transformation is used. "
-                    "Either set show_transformed=True, or use positive_params=True / param_transform "
+                    "unconstrained=True has no effect when no parameter transformation is used. "
+                    "Either set unconstrained=False, or use positive_params=True / param_transform "
                     "to enable parameter transformation."
                 )
             particles = results['particles']
-            space_label = " (transformed)" if self.param_transform is not None else ""
+            space_label = ""
         else:
             particles = results.get('particles_unconstrained', results['particles'])
-            space_label = " (untransformed)"
+            space_label = " (unconstrained)"
 
         n_params = self.theta_dim
-        figsize = figsize or (min(14, 3 * n_params), min(12, 2.3 * n_params))
+        n_fixed = len(self.fixed_mask)
+        ax_dim = n_params #- n_fixed
+        if ax_dim < 2:
+            raise ValueError("Not enough free parameters to plot pairwise relationships.")
+        figsize = figsize or (min(8, 3 * ax_dim), min(7, 2.3 * ax_dim))
 
         fig, axes = plt.subplots(n_params, n_params, figsize=figsize)
 
-        for i in range(n_params):
-            for j in range(n_params):
+        param_indices = [i for i in range(n_params) if not self.fixed_mask[i]]   
+
+        for i in param_indices:
+            for j in param_indices:
+
                 ax = axes[i, j]
 
                 if i == j:
@@ -5982,7 +6407,7 @@ class SVGD:
 
                     if true_theta is not None:
                         true_val = jnp.array(true_theta)[i]
-                        ax.axvline(true_val, color='red', linestyle='--', )
+                        ax.axvline(true_val, color='magenta', linestyle='--', alpha=0.5)
                 else:
                     # Off-diagonal: scatter plot
                     ax.scatter(particles[:, j], particles[:, i],
@@ -5991,8 +6416,8 @@ class SVGD:
                     if true_theta is not None:
                         true_val_i = jnp.array(true_theta)[i]
                         true_val_j = jnp.array(true_theta)[j]
-                        ax.scatter([true_val_j], [true_val_i], color='red',
-                                 s=100, marker='x', linewidths=3)
+                        ax.scatter([true_val_j], [true_val_i], color='magenta',
+                                 alpha=0.5, s=20)
 
                 # Labels
                 if i == n_params - 1:
@@ -6011,7 +6436,10 @@ class SVGD:
             if self.verbose:
                 print(f"Plot saved to: {save_path}")
 
-        return fig, axes
+        if return_fig:
+            return fig, axes
+        else:
+            plt.show()
 
     def _validate_animation_params(self, skip):
         """Validate common animation parameters and import dependencies."""
@@ -6069,7 +6497,7 @@ class SVGD:
     def animate(self, param_idx=0, true_theta=None, param_name=None,
                 figsize=(8, 3), skip=0, thin=1, interval=100, duration=None, bins=30,
                 show_particles=True, max_particles=20,
-                save_as_gif=None, save_as_mp4=None, show_transformed=True):
+                save_as_gif=None, save_as_mp4=None, unconstrained=False):
         """
         Create an animation showing the evolution of a single parameter's distribution.
 
@@ -6105,9 +6533,9 @@ class SVGD:
             Path to save animation as GIF (requires pillow)
         save_as_mp4 : str, optional
             Path to save animation as MP4 (requires ffmpeg)
-        show_transformed : bool, default=True
-            If True, show transformed (constrained) parameter values.
-            If False, show untransformed (unconstrained) values.
+        unconstrained : bool, default=False
+            If False, show constrained (model-space) parameter values.
+            If True, show unconstrained (optimization-space) values.
             Only relevant when using parameter transformations.
 
         Returns
@@ -6117,7 +6545,7 @@ class SVGD:
 
         Examples
         --------
-        >>> svgd = SVGD(model, data, theta_dim=3, n_iterations=100)
+        >>> svgd = SVGD(model, data, theta_dim=3, n_iterations=70)
         >>> svgd.fit(return_history=True)
         >>> anim = svgd.animate(param_idx=0, true_theta=[2.0, 3.0, 2.0],
         ...                     param_name='jump rate')
@@ -6129,18 +6557,18 @@ class SVGD:
 
         # Get appropriate history representation
         results = self.get_results()
-        if show_transformed or self.param_transform is None:
-            if not show_transformed and self.param_transform is None:
+        if not unconstrained or self.param_transform is None:
+            if unconstrained and self.param_transform is None:
                 raise ValueError(
-                    "show_transformed=False has no effect when no parameter transformation is used. "
-                    "Either set show_transformed=True, or use positive_params=True / param_transform "
+                    "unconstrained=True has no effect when no parameter transformation is used. "
+                    "Either set unconstrained=False, or use positive_params=True / param_transform "
                     "to enable parameter transformation."
                 )
             full_history = results.get('history', self.history)
-            space_label = " (transformed)" if self.param_transform is not None else ""
+            space_label = ""
         else:
             full_history = results.get('history_unconstrained', self.history)
-            space_label = " (untransformed)"
+            space_label = " (unconstrained)"
 
         if duration is not None:
             interval = 40
@@ -6176,7 +6604,7 @@ class SVGD:
         ax_hist.set_title('Current Distribution')
         ax_hist.grid(alpha=0.3)
         if true_val is not None:
-            ax_hist.axvline(true_val, color='red', linestyle='--',
+            ax_hist.axvline(true_val, color='magenta', linestyle='--',
                            label='True value', zorder=10)
             ax_hist.legend()
 
@@ -6188,7 +6616,7 @@ class SVGD:
         ax_traj.set_title('Particle Trajectories')
         ax_traj.grid(alpha=0.3)
         if true_val is not None:
-            ax_traj.axhline(true_val, color='red', linestyle='--',
+            ax_traj.axhline(true_val, color='magenta', linestyle='--',
                            label='True value', zorder=10)
 
         # Initialize trajectory lines
@@ -6200,7 +6628,7 @@ class SVGD:
                 particle_lines.append(line)
 
         mean_line, = ax_traj.plot([], [], 
-                                #   color=black_white(ax),  
+                                  color=black_or_white,  
                                   label='Mean', zorder=5)
         current_marker = ax_traj.axvline(0, color='blue', linestyle=':',  alpha=0.7)
         ax_traj.legend()
@@ -6228,7 +6656,7 @@ class SVGD:
             ax_hist.set_title('Current Distribution')
             ax_hist.grid(alpha=0.3)
             if true_val is not None:
-                ax_hist.axvline(true_val, color='red', linestyle='--',  zorder=10)
+                ax_hist.axvline(true_val, color='magenta', linestyle='--',  zorder=10)
 
             # Update trajectories
             iterations = jnp.arange(frame + 1)
@@ -6253,7 +6681,7 @@ class SVGD:
 
     def animate_pairwise(self, true_theta=None, param_names=None,
                         figsize=None, skip=0, thin=1, interval=100, duration=None,
-                        save_as_gif=None, save_as_mp4=None, show_transformed=True):
+                        save_as_gif=None, save_as_mp4=None, unconstrained=False):
         """
         Create an animated pairwise scatter plot showing SVGD particle evolution.
 
@@ -6277,9 +6705,9 @@ class SVGD:
             Path to save animation as GIF (requires pillow)
         save_as_mp4 : str, optional
             Path to save animation as MP4 (requires ffmpeg)
-        show_transformed : bool, default=True
-            If True, show transformed (constrained) parameter values.
-            If False, show untransformed (unconstrained) values.
+        unconstrained : bool, default=False
+            If False, show constrained (model-space) parameter values.
+            If True, show unconstrained (optimization-space) values.
             Only relevant when using parameter transformations.
 
         Returns
@@ -6296,7 +6724,7 @@ class SVGD:
 
         Examples
         --------
-        >>> svgd = SVGD(model, data, theta_dim=3, n_iterations=100)
+        >>> svgd = SVGD(model, data, theta_dim=3, n_iterations=70)
         >>> svgd.fit(return_history=True)
         >>> anim = svgd.animate_pairwise(
         ...     true_theta=[2.0, 3.0, 2.0],
@@ -6311,18 +6739,18 @@ class SVGD:
 
         # Get appropriate history representation
         results = self.get_results()
-        if show_transformed or self.param_transform is None:
-            if not show_transformed and self.param_transform is None:
+        if not unconstrained or self.param_transform is None:
+            if unconstrained and self.param_transform is None:
                 raise ValueError(
-                    "show_transformed=False has no effect when no parameter transformation is used. "
-                    "Either set show_transformed=True, or use positive_params=True / param_transform "
+                    "unconstrained=True has no effect when no parameter transformation is used. "
+                    "Either set unconstrained=False, or use positive_params=True / param_transform "
                     "to enable parameter transformation."
                 )
             full_history = results.get('history', self.history)
-            space_label = " (transformed)" if self.param_transform is not None else ""
+            space_label = ""
         else:
             full_history = results.get('history_unconstrained', self.history)
-            space_label = " (untransformed)"
+            space_label = " (unconstrained)"
 
         n_params = self.theta_dim
         figsize = figsize or (min(14, 3 * n_params), min(12, 2.3 * n_params))
@@ -6369,7 +6797,7 @@ class SVGD:
 
                     if true_theta is not None:
                         true_val = jnp.array(true_theta)[i]
-                        ax.axvline(true_val, color='red', linestyle='--',  zorder=10)
+                        ax.axvline(true_val, color='magenta', linestyle='--',  zorder=10)
 
                     hist_data[(i, j)] = None  # Placeholder for histogram artists
                 else:
@@ -6381,8 +6809,8 @@ class SVGD:
                     if true_theta is not None:
                         true_val_i = jnp.array(true_theta)[i]
                         true_val_j = jnp.array(true_theta)[j]
-                        ax.scatter([true_val_j], [true_val_i], color='red',
-                                 s=100, marker='x', linewidths=3, zorder=10)
+                        ax.scatter([true_val_j], [true_val_i], color='magenta',
+                                 s=70, marker='+', linewidths=3, zorder=10)
 
                 # Labels
                 if i == n_params - 1:
@@ -6428,7 +6856,7 @@ class SVGD:
 
                 if true_theta is not None:
                     true_val = jnp.array(true_theta)[i]
-                    ax.axvline(true_val, color='red', linestyle='--',  zorder=10)
+                    ax.axvline(true_val, color='magenta', linestyle='--',  zorder=10)
 
                 # ax.grid(alpha=0.3)
 
@@ -6458,8 +6886,11 @@ class SVGD:
         theta_mean = results['theta_mean']
         theta_std = results['theta_std']
 
-        fields = [f"Parameter", "Fixed", f"Mean", f"SD", f"CI 2.5%", f"CI 97.5%"]
-        fmt_str = "{:<10} {:<10} {:<10} {:<10} {:<10} {:<10}"
+        theta_map = self.map_estimate_from_particles(unconstrained=False)
+
+
+        fields = [f"Parameter", "Fixed", f"MAP", f"Mean", f"SD", f"CI 2.5%", f"CI 97.5%"]
+        fmt_str = "{:<10} {:<10} {:<10} {:<10} {:<10} {:<10} {:<10}"
         print(fmt_str.format(*fields))
 
         for i in range(self.theta_dim):
@@ -6467,6 +6898,7 @@ class SVGD:
                 fields = [i, 
                     'Yes' if self.fixed_mask is not None and self.fixed_mask[i] else 'No',
                     f'{fmt.format(theta_mean[i])}', 
+                    'NA', 
                     'NA', 
                     'NA', 
                     'NA', 
@@ -6478,6 +6910,7 @@ class SVGD:
                 fmt = f'{{:.3e}}' if np.log10(abs(theta_mean[i])) > 2 else f'{{:.4f}}'
                 fields = [i, 
                         'Yes' if self.fixed_mask is not None and self.fixed_mask[i] else 'No',
+                        f'{fmt.format(theta_map[i])}',
                         f'{fmt.format(theta_mean[i])}',
                         f'{fmt.format(theta_std[i])}', 
                         f'{fmt.format(ci_lower)}',

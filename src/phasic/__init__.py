@@ -1838,7 +1838,7 @@ class Graph(_Graph):
         """Whether the cached trace is valid (not dirty)."""
         return self._trace is not None and not self._trace_dirty
 
-    def update_weights(self, theta, log=False, callback=None):
+    def update_weights(self, theta, callback=None, log=False):
         """Update parameterized edge weights with given parameters.
 
         This method wraps the C++ implementation to cache theta for use
@@ -1848,10 +1848,10 @@ class Graph(_Graph):
         ----------
         theta : ArrayLike
             Parameter vector to set edge weights.
-        log : bool, default=False
-            If True, use log-space computation.
         callback : callable, optional
             Custom callback for weight computation.
+        log : bool, default=False
+            If True, use log-space computation.
 
         Notes
         -----
@@ -3843,7 +3843,7 @@ extern "C" {{
              theta_init: Optional[ArrayLike] = None,
              theta_dim: Optional[int] = None,
              return_history: bool = True,
-             seed: int = 42,
+             seed: Optional[int] = None,
              verbose: bool = False,
              progress: bool = True,
              jit: Optional[bool] = None,
@@ -3921,7 +3921,7 @@ extern "C" {{
             which is useful if you've modified the graph structure (e.g., via extend()).
         return_history : bool, default=True
             If True, return particle positions throughout optimization
-        seed : int, default=42
+        seed : int, default=None
             Random seed for reproducibility
         verbose : bool, default=True
             Print progress information
