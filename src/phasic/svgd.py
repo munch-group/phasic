@@ -3180,6 +3180,7 @@ class SVGD:
                     print(f"Warning: Could not parse compilation_config, using defaults")
 
         self.model = model
+
         self.observed_data = jnp.array(observed_data)
         self.prior = prior
         # Detect per-parameter priors (list/tuple of Prior objects)

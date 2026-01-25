@@ -1,8 +1,9 @@
 from ast import arg
 from functools import partial
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from unittest import result
 import numpy as np
+import pandas as pd
 from numpy.typing import ArrayLike
 from typing import Any, TypeVar, List, Tuple, Dict, Union, NamedTuple, Optional, Self
 from numpy.typing import NDArray
@@ -1581,6 +1582,8 @@ class Graph(_Graph):
         """
         # Extract hierarchical flag (but keep in kwargs for cache key)
         hierarchical = kwargs.get('hierarchical', False)
+
+        self._joint_prob_base_graph_indexer = None  # flag to signify joint probability representation; defaults to until set internally
 
         # Wrap callback with IPV BEFORE cache operations to ensure consistent hashing
         callback_for_cache = arg
@@ -4056,7 +4059,36 @@ extern "C" {{
             discrete = self.is_discrete
 
         # Handle joint_index mode
-        if joint_index:
+        if self._joint_prob_base_graph_indexer is not None:
+            logger = get_logger(__name__)
+
+            if not joint_index:
+                logger.info("Graph was constructed with joint index support. "
+                  "joint_index=True is implied.")
+            joint_index = True # FIXME: joint_index is always True if graph supports it, so not really needed as argument
+
+            if not self._joint_prob_base_graph_indexer:
+                raise ValueError(
+                    "Graph was not constructed with joint index support. "
+                    "Cannot use joint_index=True."
+                )
+            # map observed data to indices in joint probability table
+            joint_prob_table = self.joint_prob_table()
+            obs_indices = []
+            obs2idx = joint_prob_table.groupby(joint_prob_table.columns[:-1].to_list()).groups
+            for obs in observed_data:
+                idx = obs2idx[tuple(obs)]
+                if idx.size > 1:
+                    # if observation maps to multiple indices, sample according to their probabilities
+                    p = joint_prob_table.loc[idx, 'prob'].to_numpy()
+                    p = p / p.sum()
+                    chosen_idx = np.random.choice(idx, p=p)
+                    obs_indices.append(chosen_idx.item())
+                else:
+                    # else just return the unique index
+                    obs_indices.append(idx.item())
+            observed_data = obs_indices
+
             # Check for unsupported combinations
             if regularization > 0:
                 print("Warning: Moment regularization is not implemented with joint_index=True")
@@ -5328,6 +5360,319 @@ extern "C" {{
         """
         ptr = self._eliminate_to_dag_internal()
         return SymbolicDAG(ptr)
+
+
+
+
+
+
+    def _joint_prob_reward(self, 
+                           state, 
+                        indexer,
+                        reward_indexer,
+                        current_rewards=None, 
+                        mutation_rate=1.0, 
+                        reward_limit=10, 
+                        tot_reward_limit=np.inf):
+
+            prop_set_names = [p.name for p in indexer.property_sets()]
+            prop_set_name, *_ = prop_set_names
+
+            # determine reward dimensions (extension to state vector)
+            # reward_length = indexer.state_length - indexer[prop_set_name].state_length
+            reward_length = reward_indexer.state_length
+
+            if not isinstance(reward_limit, dict):
+                reward_limits = np.repeat(reward_limit, reward_length)
+
+            if current_rewards is None:
+                current_rewards = np.zeros(reward_length)
+
+            reward_rates = np.zeros(reward_length)
+            trash_rate = 0
+
+            for i in range(indexer.state_length):
+                props = indexer.index_to_props(i, as_dict=True)
+                for prop, value in getattr(props, prop_set_name).items():
+                    rate = state[i] * mutation_rate 
+                    reward_idx = reward_indexer.props_to_index(**{f'{prop_set_name}_{prop}': value})
+
+                    if isinstance(reward_limit, dict):
+                        if current_rewards[i] + 1 > reward_limit[prop] and np.sum(current_rewards + r) <= tot_reward_limit:
+                            reward_rates[reward_idx] += rate
+                        else:
+                            trash_rate = trash_rate + rate
+                    else:
+                        r = np.zeros_like(reward_rates)
+                        r[reward_idx] = 1
+                        if (reward_limit is None or np.all(current_rewards + r <= reward_limits)) and np.sum(current_rewards + r) <= tot_reward_limit:
+                            reward_rates[reward_idx] += rate
+                        else:
+                            trash_rate = trash_rate + rate
+
+            return reward_rates, trash_rate
+
+
+    def joint_prob_graph(self, 
+                        base_graph_indexer:StateIndexer,
+                        reward_rates_callback:Optional[Callable]=None,
+                        mutation_rate:Optional[float]=1.0,
+                        reward_limit:Optional[int]=None, 
+                        tot_reward_limit:Optional[float]=np.inf) -> Graph:
+
+        if reward_rates_callback is None:
+            # default to joint prob reward callback
+            reward_rates_callback = self._joint_prob_reward
+
+        if reward_limit is None and tot_reward_limit == np.inf:        
+            raise ValueError("Either reward_limit or tot_reward_limit must be specified.")
+
+        base_starting_vertex = self.starting_vertex()
+
+        if len(base_graph_indexer.property_sets()) != 1:
+            raise ValueError("Indexer must have exactly one property set representing the base graph state.")
+
+        # indexer for rewards (each property gets its own property set)
+        reward_prop_sets = []
+        property_set = base_graph_indexer.property_sets()[0]
+        for p in property_set.properties:
+            reward_prop_sets.append(
+                PropertySet(
+                    name=f'{property_set.name}_{p.name}',
+                    properties=[
+                        Property(f'{property_set.name}_{p.name}', 
+                                min_value=p.min_value, 
+                                max_value=p.max_value)
+                                ]
+                    )
+                )
+        kwargs = OrderedDict()        
+        for x in reward_prop_sets:
+            kwargs[x.name] = x.properties
+        reward_indexer = StateIndexer(**kwargs)        
+
+        # append reward indexer to original indexer
+        joint_graph_indexer = base_graph_indexer + reward_indexer
+
+        # joint graph state vector length
+        state_vector_length = joint_graph_indexer.state_length
+
+        reward_length = reward_indexer.state_length
+
+        # indices for original and new parts of the state vector
+        state_indices = base_graph_indexer.indices()
+        reward_state_indices = np.arange(base_graph_indexer.state_length, joint_graph_indexer.state_length)
+
+        # create the new graph
+        joint_graph = Graph(state_vector_length)
+        starting_vertex = joint_graph.starting_vertex()
+
+        # array of zeros for extended state vector
+        null_rewards = np.zeros(reward_length)
+
+        # graph index of last vertex visited
+        index = 0
+
+        # Get param_length for extracting parameterized edge coefficients
+        param_length = self.param_length()
+
+        # copy initial (extended) states to new graph
+        for edge in base_starting_vertex.parameterized_edges():
+            starting_vertex.add_edge(
+            joint_graph.find_or_create_vertex(
+                np.append(edge.to().state(), null_rewards).astype(int)),
+            edge.weight())
+
+        # pgbar
+        # pgbar_prev = 0    
+        # pgbar = tqdm(position=0, total=1, miniters=0, 
+        #             desc='Visited / Created', bar_format='{l_bar}{bar}'
+        #             )
+        index = index + 1
+
+        # weights of edges to trash    
+        trash_rates = {}
+
+        # indices of t-states (with absorbing as only child)
+        t_vertex_indices = np.array([], dtype=int)
+
+        # graph construction loop
+        while index < joint_graph.vertices_length():
+
+            # graph state
+            vertex = joint_graph.vertex_at(index) 
+            state = vertex.state()
+
+            # get vertex with same state in base graph
+            base_state = vertex.state()[state_indices]
+            base_vertex = self.find_vertex(base_state)
+
+            # add edges and children of base vertex
+            for edge in base_vertex.parameterized_edges():
+                # child states are copies of the base_vertex child_states
+                # extended with a with a copy of the extended part of the 
+                # current states state vector
+                child_state = np.append(
+                    edge.to().state(),
+                    state[reward_state_indices]
+                    )
+
+                if np.all(state == child_state): # FIXME: should this ever happen?
+                    continue
+
+                # create the vertex
+                child_vertex = joint_graph.find_or_create_vertex(
+                    child_state
+                    )
+                
+                # get the edge state (ensuring it is param_length)
+                coeffs = list(edge.edge_state(param_length))
+                
+                # Pad with 0 for mutation rate slot
+                coeffs.append(0) 
+
+                # add edge to the child vertex
+                vertex.add_edge(child_vertex, coeffs)
+
+                # if the base graph version of the child state was
+                # absorbing, we add it to the array of t-states
+                if not self.find_vertex(child_state[state_indices]).edges():
+                    t_vertex_indices = np.append(t_vertex_indices, child_vertex.index()) 
+
+            # base part of current state
+            current_state = state[state_indices]
+            # extended part of current state
+            current_rewards = state[reward_state_indices]
+
+            # get rates to states representing an additional mutation
+            rates, trash_rate = reward_rates_callback(
+                current_state, 
+                base_graph_indexer, reward_indexer,
+                current_rewards, 
+                mutation_rate=mutation_rate, 
+                reward_limit=reward_limit, 
+                tot_reward_limit=tot_reward_limit
+                ) 
+
+            trash_rates[index] = trash_rate
+            for i in range(reward_length):
+                rate = rates[i]
+                if rate > 0:
+                    new_rewards = current_rewards.copy()
+                    new_rewards[i] = new_rewards[i] + 1
+                    child_state = np.append(current_state, new_rewards)
+                    if not self.find_vertex(child_state[state_indices]).edges():
+                        continue
+                    child_vertex = joint_graph.find_or_create_vertex(child_state)
+                    vertex.add_edge(child_vertex, np.append(np.zeros(self.param_length()), rate))
+                                    
+            index = index + 1 
+
+        #     pgbar_this = index/joint_graph.vertices_length()
+        #     pgbar.update(pgbar_this - pgbar_prev)
+        #     pgbar_prev = pgbar_this
+
+        # pgbar.close()
+
+        # create trash vertices
+        trash_vertex = joint_graph.find_or_create_vertex(np.repeat(0, state_vector_length))
+        trash_loop_vertex = joint_graph.create_vertex(np.repeat(0, state_vector_length))
+        trash_vertex.add_edge(trash_loop_vertex, np.append(np.zeros(self.param_length()), 1.0))
+        trash_loop_vertex.add_edge(trash_vertex, np.append(np.zeros(self.param_length()), 1.0))
+
+        # connect edges to first trash state
+        for i, rate in trash_rates.items():
+            if rate > 0:
+                joint_graph.vertex_at(i).add_edge(trash_vertex, np.append(np.zeros(self.param_length()), rate))
+
+        # the t-states represent variants of the original absorbing state
+        # add a new absorbing with edges from all t-states
+        new_absorbing = joint_graph.create_vertex(np.repeat(0, state_vector_length))
+        t_vertex_indices = np.unique(t_vertex_indices)
+        for i in t_vertex_indices:
+            joint_graph.vertex_at(i).add_edge(new_absorbing, np.append(np.zeros(self.param_length()), 1.0))
+
+        # set discrete flag for update_weights to also normalize and for
+        # expected_sojourn_time to call its discrete version
+        joint_graph.is_discrete = True
+        joint_graph.set_was_dph(True)  # Enable auto-normalization in C update_weights()
+
+        joint_graph._joint_prob_base_graph_indexer = base_graph_indexer
+
+        return joint_graph
+
+
+    def _get_joint_probs(self):
+
+        if not self._joint_prob_base_graph_indexer:
+            raise ValueError("Graph is not a joint probability representation.")
+            
+        t_vertex_indices = []
+        for vertex in self.vertices():
+            for edge in vertex.edges():
+                if len(edge.to().edges()) == 0:
+                    t_vertex_indices.append(vertex.index())
+                    break
+        t_vertex_indices = np.unique(t_vertex_indices)
+        states = self.states()
+
+        joint_reward_state_indices = np.arange(self._joint_prob_base_graph_indexer.state_length, self.state_length())
+        state_reward_matrix = states[t_vertex_indices, :][:, joint_reward_state_indices]
+
+        idx2obs = {}
+        for rewards, idx in zip(state_reward_matrix, t_vertex_indices):
+            # print(rewards, idx)
+
+            # if base_graph_indexer is not None:
+            #     properties = [p.name for p in base_graph_indexer.properties]
+            #     prop_a, prop_b = properties
+            #     obs = np.zeros((base_graph_indexer.property_dict[prop_a].max_value+1,
+            #                     base_graph_indexer.property_dict[prop_b].max_value+1), dtype=int)
+            #     for i in range(rewards.size):
+            #         if rewards[i] > 0:
+            #             props = base_graph_indexer.index_to_props(i, as_dict=True)
+            #             obs[props[prop_a], props[prop_b]] += rewards[i]
+            #     obs = tuple([tuple(row.tolist()) for row in obs])
+            #     idx2obs[obs] = int(idx)
+
+            # else:
+            #     idx2obs[int(idx)] = tuple(rewards.tolist())
+
+            idx2obs[int(idx)] = tuple(rewards.tolist())
+
+        t_indices = list(idx2obs.keys())
+        sojourn_times = self.expected_sojourn_time(t_indices)
+        assert len(sojourn_times) == len(t_indices)
+        outcomes = []
+        probs = []
+        t_index = []
+        for idx, prob in zip(t_indices, sojourn_times):
+            t_index.append(idx)
+            obs = idx2obs[idx]
+            outcomes.append(np.array(obs))
+            probs.append(prob)
+
+        return np.array(outcomes), np.array(probs), np.array(t_index)
+
+
+    def joint_prob_table(self):
+
+        if not self._joint_prob_base_graph_indexer:
+            raise ValueError("Graph is not a joint probability representation.")
+
+        outcomes, probs, t_vertex_indices = self._get_joint_probs()
+
+        records = [[*obs, prob, idx] for obs, prob, idx in zip(outcomes, probs, t_vertex_indices)]
+        column_names = []
+        prop_sets = self._joint_prob_base_graph_indexer.property_sets()
+        if len(prop_sets) != 1:
+            raise ValueError("Indexer must have exactly one property set representing the base graph state.")
+        for p in prop_sets[0].properties:
+            for i in range(p.min_value, p.max_value+1):
+                column_names.append(f"{p.name}_{i}")
+        column_names.extend(['prob', 't_vertex_index'])
+        joint = pd.DataFrame(records, columns=column_names).set_index('t_vertex_index')
+        return joint
 
 
 class SymbolicDAG:
