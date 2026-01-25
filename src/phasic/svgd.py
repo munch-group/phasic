@@ -1,6 +1,7 @@
 import os
 import platform
 from time import time, sleep
+import warnings
 import matplotlib
 import numpy as np
 import pickle
@@ -309,7 +310,7 @@ class GaussPrior(Prior):
         else:
             return theta_samples
 
-    def plot(self, log=False, ax=None, return_fig=True, **kwargs):
+    def plot(self, log=False, ax=None, return_fig=False, **kwargs):
         """Plot the Gaussian prior distribution in THETA space.
 
         Parameters
@@ -326,7 +327,7 @@ class GaussPrior(Prior):
         Returns
         -------
         matplotlib.axes.Axes
-            The axes with the plot (only if return_fig=True)
+            The axes with the plot (only if return_fig=False)
         """
         import matplotlib.pyplot as plt
         if ax is None:
@@ -481,7 +482,7 @@ class HalfCauchyPrior(Prior):
         else:
             return theta_samples
 
-    def plot(self, ax=None, show_ci=True, return_fig=True, **kwargs):
+    def plot(self, ax=None, show_ci=True, return_fig=False, **kwargs):
         """Plot the half-Cauchy prior distribution in THETA space.
 
         Parameters
@@ -498,7 +499,7 @@ class HalfCauchyPrior(Prior):
         Returns
         -------
         matplotlib.axes.Axes
-            The axes with the plot (only if return_fig=True)
+            The axes with the plot (only if return_fig=False)
         """
         import matplotlib.pyplot as plt
         if ax is None:
@@ -557,7 +558,7 @@ class StepSizeSchedule:
         """
         raise NotImplementedError
 
-    def plot(self, nr_iter, figsize=None, title=None, ax=None, return_ax=True):
+    def plot(self, nr_iter, figsize=None, title=None, ax=None, return_ax=False):
         """
         Plot the step size schedule over iterations.
 
@@ -577,7 +578,7 @@ class StepSizeSchedule:
         Returns
         -------
         ax : matplotlib.axes.Axes or None
-            Axes object if return_ax=True, otherwise None
+            Axes object if return_ax=False, otherwise None
 
         Examples
         --------
@@ -908,7 +909,7 @@ class Adam:
         self.v = jnp.zeros(shape)
         self.t = 0
 
-    def step(self, phi):
+    def step(self, phi, particles=None):
         """
         Compute Adam update given SVGD gradient direction.
 
@@ -917,6 +918,9 @@ class Adam:
         phi : array (n_particles, theta_dim)
             SVGD gradient direction: (K @ grad_log_p + sum(grad_K)) / n_particles
             This is the direction of steepest ascent in the RKHS.
+        particles : array (n_particles, theta_dim), optional
+            Current particle positions. Not used by base Adam, but available
+            for subclasses (e.g., Adamelia jitter).
 
         Returns
         -------
@@ -954,7 +958,8 @@ class Adamelia(Adam):
 
     Monitors gradient direction sign flips to detect when learning rate is too high.
     When oscillation is detected, automatically reduces learning rate to stabilize
-    optimization.
+    optimization. Optionally injects jitter noise to restore variance lost during
+    overshooting.
 
     Parameters
     ----------
@@ -977,16 +982,29 @@ class Adamelia(Adam):
         Minimum learning rate floor.
     verbose : bool, default=False
         Print messages when oscillation detected and LR reduced.
+    jitter_scale : float, default=0.1
+        Base multiplier for jitter magnitude when restoring variance.
+        Final jitter = jitter_scale * overshoot_amplitude * particle_std * lr_multiplier.
+    jitter_on_oscillation : bool, default=True
+        Whether to inject jitter when LR is reduced due to oscillation.
+        Helps restore variance lost during overshooting.
+    seed : int, optional
+        Random seed for jitter generation. Defaults to 42 for reproducibility.
 
     Examples
     --------
     >>> optimizer = Adamelia(learning_rate=0.01, verbose=True)
     >>> # If oscillation detected 3 times in a row, LR drops to 0.005
+    >>> # and jitter is added to restore variance
+    >>>
+    >>> # Disable jitter if you prefer deterministic behavior
+    >>> optimizer = Adamelia(learning_rate=0.01, jitter_on_oscillation=False)
     """
 
     def __init__(self, learning_rate=0.3, beta1=0.9, beta2=0.999, epsilon=1e-8,
                  oscillation_threshold=0.3, patience=3, lr_reduction_factor=0.5,
-                 min_lr=1e-6, verbose=False):
+                 min_lr=1e-6, verbose=False, jitter_scale=0.1,
+                 jitter_on_oscillation=True, seed=None):
         super().__init__(learning_rate, beta1, beta2, epsilon)
 
         self.oscillation_threshold = oscillation_threshold
@@ -995,6 +1013,12 @@ class Adamelia(Adam):
         self.min_lr = min_lr
         self.verbose = verbose
 
+        # Jitter parameters
+        self.jitter_scale = jitter_scale
+        self.jitter_on_oscillation = jitter_on_oscillation
+        self._seed = seed if seed is not None else 42
+        self.rng_key = jax.random.PRNGKey(self._seed)
+
         # Oscillation detection state
         self.phi_prev = None
         self.oscillation_count = 0
@@ -1002,12 +1026,13 @@ class Adamelia(Adam):
         self.lr_multiplier = 1.0  # Applied on top of schedule
 
     def reset(self, shape):
-        """Reset optimizer state including oscillation detection."""
+        """Reset optimizer state including oscillation detection and jitter RNG."""
         super().reset(shape)
         self.phi_prev = None
         self.oscillation_count = 0
         self.lr_reductions = 0
         self.lr_multiplier = 1.0
+        self.rng_key = jax.random.PRNGKey(self._seed)
 
     def _detect_oscillation(self, phi):
         """
@@ -1044,18 +1069,97 @@ class Adamelia(Adam):
                         f"LR reduced to {effective_lr:.2e} "
                         f"(reduction #{self.lr_reductions})")
 
-    def step(self, phi):
-        """Compute Adam update with oscillation detection."""
+    def _estimate_overshoot_amplitude(self, phi):
+        """
+        Estimate how large the oscillation swing was.
+
+        Measures the magnitude of gradient reversal on components that flipped sign.
+
+        Returns
+        -------
+        float
+            Mean magnitude of gradient reversal across flipped components.
+            Returns 0.0 if no previous gradient is available.
+        """
+        if self.phi_prev is None:
+            return 0.0
+
+        # Identify components where sign flipped
+        sign_flipped = jnp.sign(phi) * jnp.sign(self.phi_prev) < 0
+
+        # Measure magnitude of reversal on flipped components
+        reversal = jnp.abs(phi - self.phi_prev) * sign_flipped
+
+        return float(jnp.mean(reversal))
+
+    def _compute_jitter(self, particles, overshoot_amplitude):
+        """
+        Compute jitter scaled to particle spread, overshoot magnitude, and LR decay.
+
+        Parameters
+        ----------
+        particles : array (n_particles, theta_dim)
+            Current particle positions.
+        overshoot_amplitude : float
+            Estimated magnitude of the oscillation swing.
+
+        Returns
+        -------
+        array (n_particles, theta_dim)
+            Jitter to add to particles to restore variance.
+        """
+        self.rng_key, subkey = jax.random.split(self.rng_key)
+
+        # Per-dimension scaling based on current particle spread
+        particle_std = jnp.std(particles, axis=0)
+
+        # Combined scaling: decays with lr_multiplier so successive jitters are smaller
+        jitter_magnitude = (
+            self.jitter_scale
+            * overshoot_amplitude
+            * particle_std
+            * self.lr_multiplier  # Decay factor
+        )
+
+        return jax.random.normal(subkey, particles.shape) * jitter_magnitude
+
+    def step(self, phi, particles=None):
+        """
+        Compute Adam update with oscillation detection and optional jitter.
+
+        Parameters
+        ----------
+        phi : array (n_particles, theta_dim)
+            SVGD gradient direction.
+        particles : array (n_particles, theta_dim), optional
+            Current particle positions. Required for jitter computation.
+
+        Returns
+        -------
+        update : array (n_particles, theta_dim)
+            Scaled update to add to particles, possibly including jitter.
+        """
         self.t += 1
 
         # Check for oscillation
         is_oscillating = self._detect_oscillation(phi)
 
+        jitter = None
         if is_oscillating:
             self.oscillation_count += 1
             if self.oscillation_count >= self.patience:
+                # Compute overshoot amplitude before reducing LR
+                overshoot_amplitude = self._estimate_overshoot_amplitude(phi)
+
                 self._reduce_learning_rate()
                 self.oscillation_count = 0  # Reset counter after reduction
+
+                # Add jitter to restore variance (scaled by lr_multiplier so it decays)
+                if self.jitter_on_oscillation and particles is not None:
+                    jitter = self._compute_jitter(particles, overshoot_amplitude)
+                    if self.verbose:
+                        jitter_mag = float(jnp.mean(jnp.abs(jitter)))
+                        logger.info(f"Adamelia Jitter applied: mean magnitude {jitter_mag:.2e}")
         else:
             # Decay oscillation count (don't reset immediately)
             self.oscillation_count = max(0, self.oscillation_count - 1)
@@ -1075,7 +1179,11 @@ class Adamelia(Adam):
         m_hat = self.m / (1 - beta1 ** self.t)
         v_hat = self.v / (1 - beta2 ** self.t)
 
-        return lr * m_hat / (jnp.sqrt(v_hat) + self.epsilon)
+        update = lr * m_hat / (jnp.sqrt(v_hat) + self.epsilon)
+
+        if jitter is not None:
+            return update + jitter
+        return update
 
     @property
     def lr(self):
@@ -1159,7 +1267,7 @@ class SGDMomentum:
         self.v = jnp.zeros(shape)
         self.t = 0
 
-    def step(self, phi):
+    def step(self, phi, particles=None):
         """
         Compute SGD with momentum update.
 
@@ -1167,12 +1275,15 @@ class SGDMomentum:
         ----------
         phi : array (n_particles, theta_dim)
             SVGD gradient direction.
+        particles : array (n_particles, theta_dim), optional
+            Current particle positions. Not used by SGDMomentum.
 
         Returns
         -------
         update : array (n_particles, theta_dim)
             Scaled update to add to particles.
         """
+        del particles  # Unused
         self.t += 1
 
         # Get current hyperparameter values from schedules
@@ -1261,7 +1372,7 @@ class RMSprop:
         self.v = jnp.zeros(shape)
         self.t = 0
 
-    def step(self, phi):
+    def step(self, phi, particles=None):
         """
         Compute RMSprop update.
 
@@ -1269,12 +1380,15 @@ class RMSprop:
         ----------
         phi : array (n_particles, theta_dim)
             SVGD gradient direction.
+        particles : array (n_particles, theta_dim), optional
+            Current particle positions. Not used by RMSprop.
 
         Returns
         -------
         update : array (n_particles, theta_dim)
             Scaled update to add to particles.
         """
+        del particles  # Unused
         self.t += 1
 
         # Get current hyperparameter values from schedules
@@ -1355,7 +1469,7 @@ class Adagrad:
         self.G = jnp.zeros(shape)
         self.t = 0
 
-    def step(self, phi):
+    def step(self, phi, particles=None):
         """
         Compute Adagrad update.
 
@@ -1363,12 +1477,15 @@ class Adagrad:
         ----------
         phi : array (n_particles, theta_dim)
             SVGD gradient direction.
+        particles : array (n_particles, theta_dim), optional
+            Current particle positions. Not used by Adagrad.
 
         Returns
         -------
         update : array (n_particles, theta_dim)
             Scaled update to add to particles.
         """
+        del particles  # Unused
         self.t += 1
 
         # Get current learning rate from schedule
@@ -1406,7 +1523,7 @@ class RegularizationSchedule:
         """
         raise NotImplementedError
 
-    def plot(self, nr_iter, figsize=None, title=None, ax=None, return_ax=True):
+    def plot(self, nr_iter, figsize=None, title=None, ax=None, return_ax=False):
         """
         Plot the regularization schedule over iterations.
 
@@ -1426,7 +1543,7 @@ class RegularizationSchedule:
         Returns
         -------
         ax : matplotlib.axes.Axes or None
-            Axes object if return_ax=True, otherwise None
+            Axes object if return_ax=False, otherwise None
 
         Examples
         --------
@@ -2418,7 +2535,7 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
 
     # Compute update: either Adam (adaptive) or fixed step size
     if optimizer is not None:
-        update = optimizer.step(phi)
+        update = optimizer.step(phi, particles=particles_for_grad)
     else:
         update = step_size * phi
 
@@ -4167,69 +4284,6 @@ class SVGD:
 
         return self
 
-    # def fit(self, return_history=True):
-    #     """
-    #     Run SVGD inference.
-
-    #     Convenience wrapper for optimize(). Regularization settings are
-    #     configured at SVGD initialization via regularization and nr_moments parameters.
-
-    #     Parameters
-    #     ----------
-    #     return_history : bool, default=True
-    #         If True, store particle positions throughout optimization
-
-    #     Returns
-    #     -------
-    #     self
-    #         Returns self for method chaining
-    #     """
-    #     return self.optimize(return_history=return_history)
-
-    # def fit_regularized(self, observed_times=None, nr_moments=None,
-    #                    regularization=None, return_history=True):
-    #     """
-    #     Run SVGD with moment-based regularization.
-
-    #     .. deprecated::
-    #         This method is deprecated. Configure regularization settings via
-    #         SVGD(..., regularization=..., nr_moments=...) at initialization,
-    #         then call fit() or optimize().
-
-    #     Parameters
-    #     ----------
-    #     observed_times : array_like, optional
-    #         (Ignored) Observed times are now set at SVGD initialization.
-    #     nr_moments : int, optional
-    #         (Ignored) Number of moments is now set at SVGD initialization.
-    #     regularization : float, optional
-    #         (Ignored) Regularization strength is now set at SVGD initialization.
-    #     return_history : bool, default=True
-    #         Whether to store particle history
-
-    #     Returns
-    #     -------
-    #     self
-    #         Returns self for method chaining
-    #     """
-    #     import warnings
-    #     warnings.warn(
-    #         "fit_regularized() is deprecated. Configure regularization settings at "
-    #         "SVGD initialization: SVGD(..., regularization=1.0, nr_moments=2), "
-    #         "then call fit() or optimize().",
-    #         DeprecationWarning,
-    #         stacklevel=2
-    #     )
-
-    #     # Warn if user tried to pass parameters
-    #     if observed_times is not None:
-    #         warnings.warn("observed_times parameter is ignored - data is set at SVGD initialization", UserWarning)
-    #     if nr_moments is not None:
-    #         warnings.warn("nr_moments parameter is ignored - set at SVGD initialization", UserWarning)
-    #     if regularization is not None:
-    #         warnings.warn("regularization parameter is ignored - set at SVGD initialization", UserWarning)
-
-    #     return self.optimize(return_history=return_history)
 
     def get_results(self):
         """
@@ -4366,41 +4420,8 @@ class SVGD:
         return x.tolist(), log_prob_fn(x).item()
 
 
-    # def map_estimate_from_particles(self):
-    #     """
-    #     Plot ...
-
-    #     """
-    #     params = locals().copy()
-    #     del params['self']
-
-    #     print("Rewards not yet implemented")
-    #     log_prob_fn = partial(
-    #         self._log_prob_unified,
-    #         # rewards=rewards
-    #     )        
-    #     return svgd_plots.map_estimate_from_particles(self.particles, log_prob_fn=log_prob_fn, **params)
-
-
-    # def map_estimate_with_optimization(self, n_steps=70, step_size=0.01):
-    #     """
-    #     Plot ...
-
-    #     """
-    #     params = locals().copy()
-    #     del params['self']
-
-    #     print("Rewards not yet implemented")
-    #     log_prob_fn = partial(
-    #         self._log_prob_unified,
-    #         # rewards=rewards
-    #     )         
-    #     svgd_plots.map_estimate_with_optimization(self.particles, log_prob_fn=log_prob_fn, **params)
-
-
-
     def plot_posterior(self, true_theta=None, param_names=None, bins=20,
-                      figsize=None, save_path=None, unconstrained=False, return_fig=True):
+                      figsize=None, save_path=None, unconstrained=False, return_fig=False):
         """
         Plot posterior distributions for each parameter.
 
@@ -4426,7 +4447,7 @@ class SVGD:
         Returns
         -------
         fig, axes
-            Matplotlib figure and axes objects (only if return_fig=True)
+            Matplotlib figure and axes objects (only if return_fig=False)
         """
         if not self.is_fitted:
             raise RuntimeError("Must call fit() before plotting")
@@ -4516,7 +4537,7 @@ class SVGD:
 
     def plot_trace(self, param_names=None, figsize=None,
                    skip=0, max_particles=None, save_path=None, unconstrained=False,
-                   return_fig=True):
+                   return_fig=False):
         """
         Plot trace plots showing particle evolution over iterations.
 
@@ -4544,7 +4565,7 @@ class SVGD:
         Returns
         -------
         fig, axes
-            Matplotlib figure and axes objects (only if return_fig=True)
+            Matplotlib figure and axes objects (only if return_fig=False)
         """
         if not self.is_fitted:
             raise RuntimeError("Must call fit() before plotting")
@@ -4635,7 +4656,7 @@ class SVGD:
             plt.show()
 
     def plot_convergence(self, figsize=(7, 3), save_path=None, skip=0, unconstrained=False,
-                         return_fig=True):
+                         return_fig=False):
         """
         Plot convergence diagnostics showing mean and std over iterations.
 
@@ -4659,7 +4680,7 @@ class SVGD:
         Returns
         -------
         fig, axes
-            Matplotlib figure and axes objects (only if return_fig=True)
+            Matplotlib figure and axes objects (only if return_fig=False)
         """
         if not self.is_fitted:
             raise RuntimeError("Must call fit() before plotting")
@@ -4738,7 +4759,7 @@ class SVGD:
 
     def plot_ci(self, figsize=(7, 3), save_path=None, skip=0, unconstrained=False,
                 true_theta=None, ci=0.95, alpha=0.2, target=None, median=False,
-                return_fig=True):
+                return_fig=False):
         """
         Plot mean parameter trajectory with confidence interval ribbon.
 
@@ -4772,7 +4793,7 @@ class SVGD:
         Returns
         -------
         fig, ax
-            Matplotlib figure and axes objects (only if return_fig=True)
+            Matplotlib figure and axes objects (only if return_fig=False)
         """
         if not self.is_fitted:
             raise RuntimeError("Must call fit() before plotting")
@@ -4868,213 +4889,80 @@ class SVGD:
         else:
             plt.show()
 
-    # def plot_svgd_posterior_1d(self, true_params=None, obs_stats=None, map_est=None, ax=None, title="SVGD Posterior Approximation"):
+
+    # def plot_svgd_posterior_1d(self, particles=None, true_params=None, obs_stats=None,
+    #                         map_est=None,
+    #                         ax=None, title="SVGD Posterior Approximation",
+    #                         unconstrained=False):
     #     """
-    #     Plot ...
+    #     Plot 1D posterior approximation (SVGD particle distribution)
 
-    #     """
-    #     params = locals().copy()
-    #     del params['self']
-    #     svgd_plots.plot_svgd_posterior_1d(self.particles, **params)
-
-
-    def plot_svgd_posterior_1d(self, particles=None, true_params=None, obs_stats=None,
-                            map_est=None,
-                            ax=None, title="SVGD Posterior Approximation",
-                            unconstrained=False):
-        """
-        Plot 1D posterior approximation (SVGD particle distribution)
-
-        Args:
-            particles: shape (n_particles, 1) array of SVGD particles
-            true_params: optional true parameter value for comparison
-            title: plot title
-            unconstrained : bool, default=False
-                If False, show constrained (model-space) parameter values.
-                If True, show unconstrained (optimization-space) values.
-                Only relevant when using parameter transformations.
-        """
-        if ax is None:
-            plt.figure(figsize=(8, 6))
-            ax = plt.gca()
-
-        if particles is None:
-            # Get appropriate particle representation
-            results = self.get_results()
-            if not unconstrained or self.param_transform is None:
-                if unconstrained and self.param_transform is None:
-                    raise ValueError(
-                        "unconstrained=True has no effect when no parameter transformation is used. "
-                        "Either set unconstrained=False, or use positive_params=True / param_transform "
-                        "to enable parameter transformation."
-                    )
-                particles = results['particles']
-            else:
-                particles = results.get('particles_unconstrained', results['particles'])
-
-        # Extract 1D values
-        x = particles.flatten()
-        
-        # Plot histogram of particles
-        ax.hist(x, bins=30, density=True, alpha=0.4, label='Particle histogram')
-        
-        # # Plot KDE of posterior
-        # kde = gaussian_kde(x)
-        # xx = np.linspace(min(x), max(x), 1000)
-        # ax.plot(xx, kde(xx), color='orange', lw=2, label='KDE posterior')
-
-        # Fit curve
-        def gengamma_curve_fit(data):
-            a, c, loc, scale = gengamma.fit(data, floc=0)
-            x = np.linspace(data.max(), data.max(), 1000)
-            y = gengamma.pdf(x, a, c, loc=0, scale=scale)
-            return x, y
-
-        ax.plot(*gengamma_curve_fit(x), color='orange', lw=2, label='Generalized gamma fit')
-
-        # Add true parameter if provided
-        if true_params is not None:
-            ax.axvline(true_params, color='hotpink', linestyle='--', 
-                    label=f'True value: {true_params:.2f}')
-            
-        # Add data statistics
-        if obs_stats is not None:
-            ax.axvline(obs_stats, color='magenta',
-                    label=f'Observed value: {obs_stats:.2f}')    
-        if map_est is not None:
-            ax.axvline(map_est, color='orange', linestyle='dashed',
-                    label=f'MAP value: {map_est:.2f}')       
-        
-        ax.set_title(title)
-        ax.set_xlabel('Parameter value')
-        ax.set_ylabel('Density')
-        ax.legend()
-        sns.despine(ax=ax)
-
-
-    # def plot_svgd_posterior_2d(self, true_params=None, obs_stats=None, map_est=None, title="SVGD Posterior Approximation"):
-    #     """
-    #     Plot ...
-
-    #     """
-    #     params = locals().copy()
-    #     del params['self']
-    #     svgd_plots.plot_svgd_posterior_2d(self.particles, **params)
-
-    # def plot_svgd_posterior_2d(self, true_params=None, obs_stats=None,
-    #                         map_est=None, idx=(0, 1),
-    #                         figsize=(8, 6),
-    #                         labels=None,
-    #                         title=None):
-    #     """
-    #     Plot 2D posterior approximation from SVGD particles
-        
     #     Args:
-    #         particles: shape (n_particles, n_dims) array of SVGD particles
-    #         true_params: optional array of true parameter values
-    #         idx: tuple of parameter indices to plot (default: (0, 1))
-    #         labels: parameter names for axes (auto-generated if None)
+    #         particles: shape (n_particles, 1) array of SVGD particles
+    #         true_params: optional true parameter value for comparison
     #         title: plot title
+    #         unconstrained : bool, default=False
+    #             If False, show constrained (model-space) parameter values.
+    #             If True, show unconstrained (optimization-space) values.
+    #             Only relevant when using parameter transformations.
     #     """
-    #     n_dims = self.particles.shape[1]
+    #     if ax is None:
+    #         plt.figure(figsize=(8, 6))
+    #         ax = plt.gca()
+
+    #     if particles is None:
+    #         # Get appropriate particle representation
+    #         results = self.get_results()
+    #         if not unconstrained or self.param_transform is None:
+    #             if unconstrained and self.param_transform is None:
+    #                 raise ValueError(
+    #                     "unconstrained=True has no effect when no parameter transformation is used. "
+    #                     "Either set unconstrained=False, or use positive_params=True / param_transform "
+    #                     "to enable parameter transformation."
+    #                 )
+    #             particles = results['particles']
+    #         else:
+    #             particles = results.get('particles_unconstrained', results['particles'])
+
+    #     # Extract 1D values
+    #     x = particles.flatten()
         
-    #     # Validate indices
-    #     if max(idx) >= n_dims:
-    #         raise ValueError(f"Index {max(idx)} exceeds parameter dimension {n_dims}")
+    #     # Plot histogram of particles
+    #     ax.hist(x, bins=30, density=True, alpha=0.4, label='Particle histogram')
         
-    #     # Auto-generate labels if not provided
-    #     if labels is None:
-    #         labels = [f"Parameter {idx[0]}", f"Parameter {idx[1]}"]
-        
-    #     print(f"Plotting parameters {idx[0]} vs {idx[1]} from {n_dims}-dimensional space")
+    #     # # Plot KDE of posterior
+    #     # kde = gaussian_kde(x)
+    #     # xx = np.linspace(min(x), max(x), 1000)
+    #     # ax.plot(xx, kde(xx), color='orange', lw=2, label='KDE posterior')
+
+    #     # Fit curve
+    #     def gengamma_curve_fit(data):
+    #         a, c, loc, scale = gengamma.fit(data, floc=0)
+    #         x = np.linspace(data.max(), data.max(), 1000)
+    #         y = gengamma.pdf(x, a, c, loc=0, scale=scale)
+    #         return x, y
+
+    #     ax.plot(*gengamma_curve_fit(x), color='orange', lw=2, label='Generalized gamma fit')
+
+    #     # Add true parameter if provided
     #     if true_params is not None:
-    #         print(f"True parameter values: {true_params}")
+    #         ax.axvline(true_params, color='hotpink', linestyle='--', 
+    #                 label=f'True value: {true_params:.2f}')
+            
+    #     # Add data statistics
+    #     if obs_stats is not None:
+    #         ax.axvline(obs_stats, color='magenta',
+    #                 label=f'Observed value: {obs_stats:.2f}')    
+    #     if map_est is not None:
+    #         ax.axvline(map_est, color='orange', linestyle='dashed',
+    #                 label=f'MAP value: {map_est:.2f}')       
         
-    #     plt.rcParams['animation.embed_limit'] = 100 # Mb
+    #     ax.set_title(title)
+    #     ax.set_xlabel('Parameter value')
+    #     ax.set_ylabel('Density')
+    #     ax.legend()
+    #     sns.despine(ax=ax)
 
-    #     plt.figure(figsize=figsize)
-        
-    #     # Extract parameters
-    #     x = self.particles[:, idx[0]]
-    #     y = self.particles[:, idx[1]]
-        
-    #     # Create 2D histogram
-    #     plt.subplot(2, 2, 1)
-    #     plt.hist2d(x, y, bins=30, cmap='viridis')
-    #     plt.colorbar(label='Particle count')
-    #     if true_params is not None and len(true_params) > max(idx):
-    #         plt.plot(true_params[idx[0]], true_params[idx[1]], ls='', color='hotpink', marker='*', markersize=10, 
-    #                 label='True value')        
-    #     if obs_stats is not None and len(obs_stats) > max(idx):
-    #         plt.plot(obs_stats[idx[0]], obs_stats[idx[1]], ls='', color='magenta', marker='*', markersize=10, 
-    #             label='Obs value')        
-    #     if map_est is not None and len(map_est) > max(idx):
-    #         plt.plot(map_est[idx[0]], map_est[idx[1]], ls='', color='orange', marker='*', markersize=10, 
-    #                 label=f'MAP value')
-
-    #     plt.xlabel(labels[0])
-    #     plt.ylabel(labels[1])
-    #     plt.title('2D Histogram')
-        
-    #     # Create scatter plot
-    #     plt.subplot(2, 2, 2)
-    #     if true_params is not None and len(true_params) > max(idx):
-    #         plt.gca().axvline(true_params[idx[0]], color='hotpink', linewidth=0.5, linestyle='--', zorder=-1)   
-    #         plt.gca().axhline(true_params[idx[1]], color='hotpink', linewidth=0.5, linestyle='--', zorder=-1, label='True value')   
-    #         plt.legend()
-    #     plt.scatter(x, y, alpha=0.5, s=5, edgecolor='none')
-    #     if obs_stats is not None and len(obs_stats) > max(idx):
-    #         plt.plot(obs_stats[idx[0]], obs_stats[idx[1]], ls='', color='magenta', marker='*', markersize=10, 
-    #             label='Obs value')        
-    #     if map_est is not None and len(map_est) > max(idx):
-    #         plt.plot(map_est[idx[0]], map_est[idx[1]], ls='', color='orange', marker='*', markersize=10, 
-    #                 label='MAP value')
-
-    #     plt.xlabel(labels[0])
-    #     plt.ylabel(labels[1])
-    #     plt.title('Particle Distribution')
-        
-    #     plt.subplot(2, 2, 3)
-    #     self.plot_svgd_posterior_1d(
-    #         x,
-    #         true_params=true_params[idx[0]] if true_params is not None and len(true_params) > idx[0] else None,
-    #         map_est=map_est[idx[0]] if map_est is not None and len(map_est) > idx[0] else None,
-    #         ax=plt.gca(),
-    #         title=f"Posterior Distribution of {labels[0]}"
-    #     )
-
-    #     plt.subplot(2, 2, 4)
-    #     self.plot_svgd_posterior_1d(
-    #         y,
-    #         true_params=true_params[idx[1]] if true_params is not None and len(true_params) > idx[1] else None,
-    #         map_est=map_est[idx[1]] if map_est is not None and len(map_est) > idx[1] else None,
-    #         ax=plt.gca(),
-    #         title=f"Posterior Distribution of {labels[1]}"
-    #     )
-        
-    #     plt.suptitle(title, fontsize=16)
-    #     plt.tight_layout(rect=[0, 0, 1, 0.95])
-
-
-
-    # def check_convergence(self, data, every=1, text=None, param_indices=None):
-    #     """
-    #     Plot ...
-
-    #     """
-    #     params = locals().copy()
-    #     del params['self']
-
-    #     print("Rewards not yet implemented")
-    #     log_prob_fn = partial(
-    #         self._log_prob_unified,
-    #         nr_moments=self.nr_moments,
-    #         sample_moments=self.sample_moments,
-    #         regularization=self.regularization,
-    #         rewards=self.rewards 
-    #     )          
-    #     svgd_plots.check_convergence(self.history, log_p_fn=log_prob_fn, **params)
-        
 
     def check_convergence(self, every=1, text=None, param_indices=None):
         """Monitor convergence of SVGD by tracking statistics for n-dimensional parameters"""
@@ -5162,33 +5050,8 @@ class SVGD:
                             #  traansform=ax.transAxes,
                             # bbox=dict(facecolor='magenta', alpha=0.5)
                             )
-        
-        # axes[0].annotate('axes fraction',
-        #         xy=(2, 1), xycoords='data',
-        #         xytext=(0.36, 0.68), textcoords='axes fraction',
-        #         arrowprops=dict(facecolor='black', shrink=0.05),
-        #         horizontalalignment='right', verticalalignment='top')
-
         plt.tight_layout()
 
-
-    # def estimate_hdr(self, alpha=0.95):
-    #     """
-    #     Plot ...
-
-    #     """
-    #     params = locals().copy()
-    #     del params['self']
-
-    #     print("Rewards not yet implemented")
-    #     log_prob_fn = partial(
-    #         self._log_prob_unified,
-    #         nr_moments=self.nr_moments,
-    #         sample_moments=self.sample_moments,
-    #         regularization=self.regularization,
-    #         rewards=self.rewards 
-    #     )       
-    #     svgd_plots.estimate_hdr(self.particles, log_prob_fn=log_prob_fn, **params)
 
     def estimate_hdr(self, alpha=0.95):
         """
@@ -5233,140 +5096,9 @@ class SVGD:
         return hdr_particles, threshold
 
 
-
-    # def plot_hdr_2d(self, idx=[0, 1], alphas=[0.95], grid_size=50, margin=0.1, xlim=None, ylim=None):
-    #     """
-    #     Plot ...
-
-    #     """
-    #     params = locals().copy()
-    #     del params['self']
-
-    #     print("Rewards not yet implemented")
-    #     log_prob_fn = partial(
-    #         self._log_prob_unified,
-    #         nr_moments=self.nr_moments,
-    #         sample_moments=self.sample_moments,
-    #         regularization=self.regularization,
-    #         rewards=self.rewards 
-    #     )
-    #     svgd_plots.plot_hdr_2d(self.particles, log_prob_fn=log_prob_fn,**params)
-
-
-
-    # def plot_hdr_2d(self, idx=[0, 1], alphas=[0.95], 
-    #                     grid_size=50, margin=0, xlim=None, ylim=None):
-    #     """
-    #     Visualize the Highest Density Region (HDR) for any 2D projection of n-dimensional distribution.
-        
-    #     Args:
-    #         particles: Array of shape (n_particles, n_dims)
-    #         log_prob_fn: Function that computes log probability
-    #         idx: indices of parameters to visualize [param1_idx, param2_idx]
-    #         alphas: list of coverage probabilities (e.g., [0.95] for 95% HDR)
-    #         grid_size: Size of the grid for visualization
-    #         xlim, ylim: Limits for the grid
-        
-    #     Returns:
-    #         Figure with HDR visualization
-    #     """
-    #     n_dims = self.particles.shape[1]
-        
-    #     log_prob_fn = partial(
-    #         self._log_prob_unified,
-    #         nr_moments=self.nr_moments,
-    #         sample_moments=self.sample_moments,
-    #         regularization=self.regularization,
-    #         rewards=self.rewards 
-    #     )
-
-    #     # Validate indices
-    #     if max(idx) >= n_dims:
-    #         raise ValueError(f"Index {max(idx)} exceeds parameter dimension {n_dims}")
-        
-    #     # Determine limits if not provided
-    #     if xlim is None:
-    #         x_min, x_max = self.particles[:, idx[0]].min(), self.particles[:, idx[0]].max()
-    #         _margin = (x_max - x_min) * margin
-    #         xlim = (max(0, x_min - _margin), x_max + _margin)
-        
-    #     if ylim is None:
-    #         y_min, y_max = self.particles[:, idx[1]].min(), self.particles[:, idx[1]].max()
-    #         _margin = (y_max - y_min) * margin
-    #         ylim = (max(0, y_min - _margin), y_max + _margin)
-        
-    #     # Create grid
-    #     # x = jnp.linspace(xlim[0], xlim[1], grid_size)
-    #     # y = jnp.linspace(ylim[0], ylim[1], grid_size)
-    #     # X, Y = jnp.meshgrid(x, y)
-    #     size = max(xlim[1] - xlim[0], ylim[1] - ylim[0]) / grid_size
-    #     x, y = _hex_grid(xlim[0], xlim[1], ylim[0], ylim[1], size=size, flat_topped=True).T
-    #     X, Y = jnp.meshgrid(x, y)
-
-    #     # Evaluate log probability on grid using mean values for other parameters
-    #     theta_mean = jnp.mean(self.particles, axis=0)
-
-    #     # Prepare all grid parameter vectors for vectorized evaluation
-    #     # Flatten grid to (grid_size * grid_size, n_dims) array
-    #     X_flat = X.ravel()
-    #     Y_flat = Y.ravel()
-
-    #     # Broadcast theta_mean to all grid points and replace the selected dimensions
-    #     grid_params = jnp.tile(theta_mean, (grid_size * grid_size, 1))
-    #     grid_params = grid_params.at[:, idx[0]].set(X_flat)
-    #     grid_params = grid_params.at[:, idx[1]].set(Y_flat)
-
-    #     # Use vmap for parallel evaluation across all grid points
-    #     Z_flat = vmap(log_prob_fn)(grid_params)
-    #     Z = Z_flat.reshape(grid_size, grid_size)
-
-    #     # Get HDR threshold
-    #     levels = []
-    #     for alpha in alphas:
-    #         _, threshold = self.estimate_hdr(alpha)
-    #         levels.append((threshold.item(), alpha))
-
-    #     fig, axes = plt.subplots(1, 2, figsize=(8, 3))
-
-    #     # plot grid log likelihoods
-    #     x_flat, y_flat, z_flat = X.ravel(), Y.ravel(), Z.ravel()
-    #     scatter = sns.scatterplot(x=x_flat, y=y_flat, 
-    #                             hue=z_flat, palette=iridis,
-    #                             edgecolor='none', alpha=0.5, s=5, legend=False)
-    #     # Find and mark logL grid point
-    #     max_idx = jnp.argmax(z_flat)
-    #     axes[0].scatter(x_flat[max_idx], y_flat[max_idx], color='magenta', s=70, marker='x', alpha=1, label='Max grid LogL')
-    #     axes[1].scatter(x_flat[max_idx], y_flat[max_idx], color='magenta', s=70, marker='x', alpha=1, label='Max grid LogL')
-
-    #     # Find and mark MAP estimate
-    #     map_particle, _ = self.map_estimate_from_particles()
-    #     if len(map_particle) > max(idx):
-    #         axes[0].scatter(map_particle[idx[0]], map_particle[idx[1]], color='orange', s=70, marker='x', alpha=1, label='MAP estimate')
-    #         axes[1].scatter(map_particle[idx[0]], map_particle[idx[1]], color='orange', s=70, marker='x', alpha=1, label='MAP estimate')
-
-    #     # plot particles (only the selected dimensions)
-    #     logLikelihoods = vmap(lambda p: log_prob_fn(p))(self.particles)    
-    #     scatter = sns.scatterplot(x=self.particles[:, idx[0]], y=self.particles[:, idx[1]], 
-    #                             hue=logLikelihoods, palette=iridis,
-    #                             edgecolor='none', alpha=0.5, s=10, legend=False)
-    #     # plot contour lines for HDR
-    #     levels, alphas = zip(*sorted(levels))
-    #     contour = axes[1].contour(X, Y, Z, levels=levels, cmap=iridis, linestyles='dashed', alpha=0.7)
-        
-    #     axes[0].set_xlabel(f'Parameter {idx[0]}')
-    #     axes[0].set_ylabel(f'Parameter {idx[1]}')
-    #     axes[0].legend()
-
-    #     axes[1].set_xlabel(f'Parameter {idx[0]}')
-    #     axes[1].set_ylabel(f'Parameter {idx[1]}')
-    #     axes[1].legend()
-
-    #     return fig
-
-
-    def plot_hdr(self, alphas=[0.95], idx=[0, 1], figsize=(5, 4), hexgrid=True, trim=True,
+    def plot_hdr(self, alphas=[0.95, 0.5], idx=[0, 1], figsize=(5, 4), hexgrid=True, trim=True,
                     n=15, margin=0.1, xlim=None, ylim=None, palette='viridis', pad=2,
-                    unconstrained=False, return_fig=True):
+                    unconstrained=False, return_fig=False):
 
         def hex_grid(x_min, x_max, y_min, y_max, n, aspect=1.0, flat_topped=False, pad=1):
             """Generate hex grid midpoints that fill the bounding box with equal-edged hexagons.
@@ -5609,9 +5341,10 @@ class SVGD:
             kde_levels.append(threshold)
             kde_label_map[threshold] = f'{alpha:.0%}'
 
+        linestyles = ['solid', 'dashed'] + ['dotted']*10
         kde_cont = ax.contour(Xi, Yi, Zi_kde, levels=kde_levels,
                               colors='black' if hexgrid else black_or_white,
-                            #   linestyles='dashed',
+                              linestyles=linestyles[len(kde_levels):],
                               alpha=0.7)
         ax.clabel(kde_cont, inline=True, fmt=kde_label_map, fontsize=9)
 
@@ -6328,7 +6061,7 @@ class SVGD:
                 # print()
 
     def plot_pairwise(self, true_theta=None, param_names=None,
-                     figsize=None, save_path=None, unconstrained=False, return_fig=True):
+                     figsize=None, save_path=None, unconstrained=False, return_fig=False):
         """
         Plot pairwise scatter plots for all parameter pairs.
 
@@ -6352,7 +6085,7 @@ class SVGD:
         Returns
         -------
         fig, axes
-            Matplotlib figure and axes objects (only if return_fig=True)
+            Matplotlib figure and axes objects (only if return_fig=False)
         """
         if not self.is_fitted:
             raise RuntimeError("Must call fit() before plotting")
@@ -6381,7 +6114,7 @@ class SVGD:
             space_label = " (unconstrained)"
 
         n_params = self.theta_dim
-        n_fixed = len(self.fixed_mask)
+        # n_fixed = len(self.fixed_mask)
         ax_dim = n_params #- n_fixed
         if ax_dim < 2:
             raise ValueError("Not enough free parameters to plot pairwise relationships.")
@@ -6389,7 +6122,10 @@ class SVGD:
 
         fig, axes = plt.subplots(n_params, n_params, figsize=figsize)
 
-        param_indices = [i for i in range(n_params) if not self.fixed_mask[i]]   
+        if self.fixed_mask is not None:
+            param_indices = [i for i in range(n_params) if not self.fixed_mask[i]]   
+        else:
+            param_indices = list(range(n_params))
 
         for i in param_indices:
             for j in param_indices:
@@ -6782,41 +6518,43 @@ class SVGD:
         scatter_plots = {}
         hist_data = {}
 
-        for i in range(n_params):
-            for j in range(n_params):
-                ax = axes[i, j]
-                ax.set_xlim(param_lims[j])
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=UserWarning)
+            for i in range(n_params):
+                for j in range(n_params):
+                    ax = axes[i, j]
+                    ax.set_xlim(param_lims[j])
 
-                if i == j:
-                    # Diagonal: histogram (will be updated each frame)
-                    ax.set_ylim(0, self.n_particles * 0.3)  # Will adjust dynamically
-                    param_name = param_names[i] if param_names else f'θ_{i}'
-                    ax.set_ylabel('Count')
+                    if i == j:
+                        # Diagonal: histogram (will be updated each frame)
+                        ax.set_ylim(0, self.n_particles * 0.3)  # Will adjust dynamically
+                        param_name = param_names[i] if param_names else f'θ_{i}'
+                        ax.set_ylabel('Count')
 
-                    if true_theta is not None:
-                        true_val = jnp.array(true_theta)[i]
-                        ax.axvline(true_val, color='magenta', linestyle='--',  zorder=10)
+                        if true_theta is not None:
+                            true_val = jnp.array(true_theta)[i]
+                            ax.axvline(true_val, color='magenta', linestyle='--',  zorder=10)
 
-                    hist_data[(i, j)] = None  # Placeholder for histogram artists
-                else:
-                    # Off-diagonal: scatter plot
-                    ax.set_ylim(param_lims[i])
-                    scatter = ax.scatter([], [], alpha=0.5, s=20)
-                    scatter_plots[(i, j)] = scatter
+                        hist_data[(i, j)] = None  # Placeholder for histogram artists
+                    else:
+                        # Off-diagonal: scatter plot
+                        ax.set_ylim(param_lims[i])
+                        scatter = ax.scatter([], [], alpha=0.5, s=20)
+                        scatter_plots[(i, j)] = scatter
 
-                    if true_theta is not None:
-                        true_val_i = jnp.array(true_theta)[i]
-                        true_val_j = jnp.array(true_theta)[j]
-                        ax.scatter([true_val_j], [true_val_i], color='magenta',
-                                 s=70, marker='+', linewidths=3, zorder=10)
+                        if true_theta is not None:
+                            true_val_i = jnp.array(true_theta)[i]
+                            true_val_j = jnp.array(true_theta)[j]
+                            ax.scatter([true_val_j], [true_val_i], color='magenta',
+                                    s=70, marker='+', linewidths=3, zorder=10)
 
-                # Labels
-                if i == n_params - 1:
-                    param_name_j = param_names[j] if param_names else rf"$\theta_{j}$"
-                    ax.set_xlabel(param_name_j + space_label)
-                if j == 0:
-                    param_name_i = param_names[i] if param_names else rf"$\theta_{i}$"
-                    ax.set_ylabel(param_name_i + space_label)
+                    # Labels
+                    if i == n_params - 1:
+                        param_name_j = param_names[j] if param_names else rf"$\theta_{j}$"
+                        ax.set_xlabel(param_name_j + space_label)
+                    if j == 0:
+                        param_name_i = param_names[i] if param_names else rf"$\theta_{i}$"
+                        ax.set_ylabel(param_name_i + space_label)
 
 #                ax.grid(alpha=0.3)
 
@@ -6841,22 +6579,24 @@ class SVGD:
                 scatter.set_offsets(jnp.column_stack([particles[:, j], particles[:, i]]))
 
             # Update histograms
-            for i in range(n_params):
-                ax = axes[i, i]
-                ax.clear()
-                ax.hist(particles[:, i], bins=20, alpha=0.7, edgecolor='black', range=param_lims[i])
-                ax.set_xlim(param_lims[i])
-                ax.set_ylabel('Count')
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=UserWarning)            
+                for i in range(n_params):
+                    ax = axes[i, i]
+                    ax.clear()
+                    ax.hist(particles[:, i], bins=20, alpha=0.7, edgecolor='black', range=param_lims[i])
+                    ax.set_xlim(param_lims[i])
+                    ax.set_ylabel('Count')
 
-                param_name = param_names[i] if param_names else rf"$\theta_{i}$"
-                if i == n_params - 1:
-                    ax.set_xlabel(param_name)
+                    param_name = param_names[i] if param_names else rf"$\theta_{i}$"
+                    if i == n_params - 1:
+                        ax.set_xlabel(param_name)
 
-                if true_theta is not None:
-                    true_val = jnp.array(true_theta)[i]
-                    ax.axvline(true_val, color='magenta', linestyle='--',  zorder=10)
+                    if true_theta is not None:
+                        true_val = jnp.array(true_theta)[i]
+                        ax.axvline(true_val, color='magenta', linestyle='--',  zorder=10)
 
-                # ax.grid(alpha=0.3)
+                    # ax.grid(alpha=0.3)
 
             # Update iteration counter
             iteration_text.set_text(f'Iteration: {skip + frame}/{skip + len(history) - 1}')
