@@ -4318,7 +4318,7 @@ class SVGD:
         if not unconstrained and self.param_transform is not None:
             map_particle = self.param_transform(map_particle)
 
-        return map_particle, log_probs[map_idx]
+        return map_particle.tolist(), log_probs[map_idx].item()
 
 
     def map_estimate_with_optimization(self, n_steps=70, step_size=0.01, unconstrained=False):
@@ -4363,9 +4363,7 @@ class SVGD:
         if not unconstrained and self.param_transform is not None:
             x = self.param_transform(x)
 
-        return x, log_prob_fn(x)
-
-
+        return x.tolist(), log_prob_fn(x).item()
 
 
     # def map_estimate_from_particles(self):
@@ -6886,7 +6884,7 @@ class SVGD:
         theta_mean = results['theta_mean']
         theta_std = results['theta_std']
 
-        theta_map = self.map_estimate_from_particles(unconstrained=False)
+        theta_map, _ = self.map_estimate_from_particles(unconstrained=False)
 
 
         fields = [f"Parameter", "Fixed", f"MAP", f"Mean", f"SD", f"CI 2.5%", f"CI 97.5%"]
