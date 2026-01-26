@@ -744,7 +744,8 @@ ffi::Error ComputeSojournTimesFfiImpl(
 
                 // Normalize graph: divide edge weights by exit rates
                 // This ensures joint probabilities (sojourn times + deficit) sum to 1
-                ptd_normalize_graph(g.c_graph());
+                double* norm_result = ptd_normalize_graph(g.c_graph());
+                free(norm_result);  // Must free the returned array to avoid memory leak
 
                 std::vector<size_t> indices_b(n_indices);
                 if (indices_is_broadcast) {
@@ -785,7 +786,8 @@ ffi::Error ComputeSojournTimesFfiImpl(
 
             // Normalize graph: divide edge weights by exit rates
             // This ensures joint probabilities (sojourn times + deficit) sum to 1
-            ptd_normalize_graph(g.c_graph());
+            double* norm_result = ptd_normalize_graph(g.c_graph());
+            free(norm_result);  // Must free the returned array to avoid memory leak
 
             std::vector<size_t> indices_vec(n_indices);
             for (size_t i = 0; i < n_indices; i++) {
