@@ -589,7 +589,7 @@ PtDAlgorithms uses a three-layer caching architecture:
     if time1 > 0 and time2 > 0:
         speedup = time1 / time2
         if speedup > 1.5:
-            print(f"    ✓ Cache hit! Speedup: {speedup:.1f}x faster")
+            print(f"    Cache hit! Speedup: {speedup:.1f}x faster")
         elif time2 < 5:  # Very fast, likely cached
             print(f"    ✓ Very fast ({time2*1000:.1f}ms), likely cached")
         else:
