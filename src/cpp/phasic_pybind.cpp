@@ -4214,8 +4214,15 @@ float
 
     // )delim")  
     .def("edge_state", &phasic::ParameterizedEdge::edge_state,
-      py::return_value_policy::reference_internal, R"delim(
+      py::arg("requested_length"),
+      R"delim(
 Get the coefficient vector for this parameterized edge.
+
+Parameters
+----------
+requested_length : int
+    Number of coefficients to return. If greater than the actual number
+    of coefficients stored, returns an empty list.
 
 Returns
 -------
