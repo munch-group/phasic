@@ -3138,37 +3138,10 @@ void ptd_graph_update_weights(
         memcpy(graph->current_params, theta, theta_len * sizeof(double));
     }
 
-    // Record/load trace if needed (ALWAYS - for all graphs!)
-    if (graph->elimination_trace == NULL) {
-        struct ptd_hash_result *hash = ptd_graph_content_hash(graph);
-
-        if (hash != NULL) {
-            graph->elimination_trace = ptd_load_trace_from_cache(hash->hash_hex);
-            if (graph->elimination_trace != NULL) {
-                PTD_LOG_INFO("loaded elimination trace from cache (%s)", hash->hash_hex);
-            }
-        }
-
-        if (graph->elimination_trace == NULL) {
-            PTD_LOG_INFO("recording elimination trace...");
-            graph->elimination_trace = ptd_record_elimination_trace(graph);
-
-            if (graph->elimination_trace != NULL && hash != NULL) {
-                bool saved = ptd_save_trace_to_cache(hash->hash_hex, graph->elimination_trace);
-                if (saved) {
-                    PTD_LOG_INFO("saved elimination trace to cache (%s)", hash->hash_hex);
-                } else {
-                    PTD_LOG_WARNING("failed to save elimination trace to cache");
-                }
-            } else if (graph->elimination_trace != NULL && hash == NULL) {
-                PTD_LOG_WARNING("trace recorded but hash is NULL, cannot cache");
-            }
-        }
-
-        if (hash != NULL) {
-            ptd_hash_destroy(hash);
-        }
-    }
+    // NOTE: Trace recording removed - it was causing memory explosion on large graphs.
+    // The C-side trace (graph->elimination_trace) was never used after being recorded.
+    // Python handles trace computation via hierarchical_trace_cache when needed for
+    // moments/expectation computation.
 
     // Update all edge weights using direct computation
     for (size_t i = 0; i < graph->vertices_length; i++) {
