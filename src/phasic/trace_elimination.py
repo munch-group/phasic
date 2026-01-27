@@ -582,6 +582,9 @@ def record_elimination_trace(graph, theta_dim: Optional[int] = None,
     logger.debug("PHASE 1: Computing vertex rates...")
     vertex_rates = np.zeros(n_vertices, dtype=np.int32)
 
+    # Identify starting vertex (index 0 by convention)
+    starting_vertex_idx = 0
+
     for i, v in enumerate(vertices_list):
         # Get both regular and parameterized edges
         edges = v.edges()
@@ -592,6 +595,14 @@ def record_elimination_trace(graph, theta_dim: Optional[int] = None,
         if total_edges == 0:
             # Absorbing state: rate = 0
             vertex_rates[i] = builder.add_const(0.0)
+        elif i == starting_vertex_idx:
+            # Starting vertex: use constant rate from edge weights (IPV edges)
+            # Starting vertex edges represent initial probabilities, not parameterized rates
+            weight_sum = sum(edge.weight() for edge in edges)
+            if weight_sum > 0:
+                vertex_rates[i] = builder.add_const(1.0 / weight_sum)
+            else:
+                vertex_rates[i] = builder.add_const(0.0)
         else:
             # rate = 1 / sum(edge_weights)
             weight_indices = []
@@ -602,7 +613,7 @@ def record_elimination_trace(graph, theta_dim: Optional[int] = None,
                 weight_idx = builder.add_const(weight)
                 weight_indices.append(weight_idx)
 
-            # Add parameterized edges
+            # Add parameterized edges (skip for starting vertex as handled above)
             for param_edge in param_edges:
                 # Get edge state (coefficient vector)
                 # Use theta_dim to get the full coefficient vector
@@ -612,7 +623,6 @@ def record_elimination_trace(graph, theta_dim: Optional[int] = None,
                 coeffs = np.array(edge_state, dtype=np.float64)
 
                 # weight = dot(coeffs, params)
-                # Note: Starting edges are never parameterized, so won't reach this code
                 weight_idx = builder.add_dot(coeffs)
 
                 weight_indices.append(weight_idx)
@@ -632,6 +642,29 @@ def record_elimination_trace(graph, theta_dim: Optional[int] = None,
     for i, v in enumerate(vertices_list):
         edges = v.edges()
         param_edges = v.parameterized_edges()
+
+        # Starting vertex: treat edges as constant probabilities (IPV), not parameterized
+        if i == starting_vertex_idx:
+            for j, edge in enumerate(edges):
+                to_vertex = edge.to()
+                to_state = tuple(to_vertex.state())
+                to_idx = state_to_idx[to_state]
+
+                # IPV edge: prob = weight * rate (constant)
+                weight = edge.weight()
+                weight_idx = builder.add_const(weight)
+                prob_idx = builder.add_mul(weight_idx, vertex_rates[i])
+
+                # Apply reward transformation if enabled
+                if reward_length > 0:
+                    reward_param_idx = theta_dim + i
+                    reward_idx = builder.add_param(reward_param_idx)
+                    prob_idx = builder.add_mul(prob_idx, reward_idx)
+
+                edge_probs[i].append(prob_idx)
+                vertex_targets[i].append(to_idx)
+                edge_map[(i, to_idx)] = len(edge_probs[i]) - 1
+            continue  # Skip parameterized edge processing for starting vertex
 
         # BUG FIX: edges() returns ALL edges, parameterized_edges() returns edges with coefficients_length >= 1
         # This causes parameterized edges to be processed TWICE, creating duplicates.
@@ -690,6 +723,7 @@ def record_elimination_trace(graph, theta_dim: Optional[int] = None,
             to_vertex = param_edge.to()
             to_state = tuple(to_vertex.state())
             to_idx = state_to_idx[to_state]
+            logger.debug("Processing parameterized edge %d → %d", i, to_idx)
 
             # Get edge state (coefficient vector)
             edge_state = param_edge.edge_state(theta_dim if theta_dim > 0 else MAX_PARAM_TEST)
@@ -931,6 +965,7 @@ def evaluate_trace(trace: EliminationTrace, params: Optional[np.ndarray] = None,
 
     # Execute operations in order
     for i, op in enumerate(trace.operations):
+        logger.debug("Evaluating operation %d: %s", i, op)
         if op.op_type == OpType.CONST:
             values[i] = op.const_value
 
@@ -941,6 +976,12 @@ def evaluate_trace(trace: EliminationTrace, params: Optional[np.ndarray] = None,
             # DOT only uses theta parameters (not rewards)
             if params is None or len(params) == 0:
                 values[i] = 0.0
+            elif len(op.coefficients) != len(params):
+                raise ValueError(
+                    f"DOT operation at index {i} has {len(op.coefficients)} coefficients "
+                    f"but params has {len(params)} elements. This usually indicates a stale "
+                    f"trace cache. Try clearing the cache: rm -rf ~/.phasic_cache/traces/"
+                )
             elif use_log:
                 # Log-space product: exp(sum(log(c_i * θ_i)))
                 products = op.coefficients * params

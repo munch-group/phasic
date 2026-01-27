@@ -1083,13 +1083,11 @@ namespace phasic {
             if (_state != NULL && _edge->coefficients_length > 0) {
                 size_t actual_length = _edge->coefficients_length;
 
-                // If requesting more than allocated, return empty (signals out of bounds)
-                if (requested_length > actual_length) {
-                    return state;  // Empty vector
-                }
+                // Return min(requested_length, actual_length) coefficients
+                // This allows callers to request more than available and get what exists
+                size_t n_to_return = (requested_length < actual_length) ? requested_length : actual_length;
 
-                // Otherwise, return exactly the requested length
-                for (size_t i = 0; i < requested_length; ++i) {
+                for (size_t i = 0; i < n_to_return; ++i) {
                     state.push_back(_state[i]);
                 }
             }

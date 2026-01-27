@@ -63,7 +63,7 @@ def _load_trace_from_cache(graph_hash: str):
     trace = load_trace_from_cache(graph_hash)
 
     if trace is not None:
-        logger.debug("  ✓ Cache HIT: hash=%s..., %d vertices, %d operations",
+        logger.debug("  Cache HIT: hash=%s..., %d vertices, %d operations",
                      graph_hash[:16], trace.n_vertices, len(trace.operations))
     else:
         logger.debug("  ✗ Cache MISS: hash=%s...", graph_hash[:16])
@@ -81,7 +81,7 @@ def _save_trace_to_cache(graph_hash: str, trace) -> bool:
     success = save_trace_to_cache(graph_hash, trace)
 
     if success:
-        logger.debug("  ✓ Cache save successful: hash=%s...", graph_hash[:16])
+        logger.debug("  Cache save successful: hash=%s...", graph_hash[:16])
     else:
         logger.debug("  ✗ Cache save failed: hash=%s...", graph_hash[:16])
 
@@ -239,7 +239,7 @@ def collect_missing_traces_batch(graph, param_length: Optional[int] = None,
 
             # Serialize graph to JSON for distributed processing
             try:
-                serialized_dict = graph.serialize(param_length=graph.param_length())
+                serialized_dict = graph.serialize(theta_dim=graph.param_length())
                 # Convert numpy arrays to lists for JSON serialization
                 json_dict = {k: v.tolist() if isinstance(v, np.ndarray) else v
                             for k, v in serialized_dict.items()}
@@ -286,10 +286,10 @@ def collect_missing_traces_batch(graph, param_length: Optional[int] = None,
         cached = _load_trace_from_cache(scc_hash)
 
         if cached is not None:
-            logger.debug("✓ Cache HIT: hash=%s..., %d vertices, %d operations",
+            logger.debug("Cache HIT: hash=%s..., %d vertices, %d operations",
                         scc_hash[:16], cached.n_vertices, len(cached.operations))
             cache_hits.append((scc_hash[:16], scc_size))
-            logger.debug("✓ Cache hit for %d vertices", scc_size)
+            logger.debug("Cache hit for %d vertices", scc_size)
             continue  # Cache hit - no work needed
 
         cache_misses.append((scc_hash[:16], scc_size))
@@ -319,7 +319,7 @@ def collect_missing_traces_batch(graph, param_length: Optional[int] = None,
 
         # Serialize graph to JSON for distributed processing
         try:
-            serialized_dict = enhanced_subgraph.serialize(param_length=graph.param_length())
+            serialized_dict = enhanced_subgraph.serialize(theta_dim=graph.param_length())
             # Convert numpy arrays to lists for JSON serialization
             json_dict = {k: v.tolist() if isinstance(v, np.ndarray) else v
                         for k, v in serialized_dict.items()}
@@ -435,9 +435,10 @@ def _record_trace_callback(idx: int) -> Tuple[str, 'EliminationTrace']:
             f"Worker failed to deserialize graph {graph_hash[:16]}: {type(e).__name__}: {e}"
         ) from e
 
-    # Compute trace (param_length auto-detected from graph)
+    # Compute trace with explicit param_length from serialized data
     try:
-        trace = record_elimination_trace(graph, theta_dim=None)
+        param_length = graph_dict.get('param_length', 0)
+        trace = record_elimination_trace(graph, theta_dim=param_length if param_length > 0 else None)
         logger.debug("Recorded trace for %s: %d operations", graph_hash[:16], len(trace.operations))
     except Exception as e:
         raise RuntimeError(
@@ -694,9 +695,10 @@ def compute_missing_traces_parallel(work_units: Dict[str, str],
                             graph_dict['start_param_edges'] = np.array(graph_dict['start_param_edges'], dtype=np.float64)
                             from phasic import Graph
                             graph = Graph.from_serialized(graph_dict)
-                            # Compute trace
+                            # Compute trace with explicit param_length from serialized data
                             from .trace_elimination import record_elimination_trace
-                            trace = record_elimination_trace(graph, theta_dim=None)
+                            param_length = graph_dict.get('param_length', 0)
+                            trace = record_elimination_trace(graph, theta_dim=param_length if param_length > 0 else None)
                             # Save to disk cache
                             _save_trace_to_cache(graph_hash, trace)
                             trace_results.append((idx, (graph_hash, trace)))
@@ -721,8 +723,9 @@ def compute_missing_traces_parallel(work_units: Dict[str, str],
                         graph_dict['param_edges'] = np.array(graph_dict['param_edges'], dtype=np.float64)
                         graph_dict['start_param_edges'] = np.array(graph_dict['start_param_edges'], dtype=np.float64)
                         graph = Graph.from_serialized(graph_dict)
-                        # Compute trace
-                        trace = record_elimination_trace(graph, theta_dim=None)
+                        # Compute trace with explicit param_length from serialized data
+                        param_length = graph_dict.get('param_length', 0)
+                        trace = record_elimination_trace(graph, theta_dim=param_length if param_length > 0 else None)
                         # Save to disk cache (so parent can load it)
                         from phasic.hierarchical_trace_cache import _save_trace_to_cache
                         _save_trace_to_cache(graph_hash, trace)
@@ -2118,7 +2121,7 @@ def get_trace_hierarchical(graph,
 
         # Collect missing traces recursively
         logger.debug("Step 1: Collecting missing SCC traces...")
-        work_units, all_scc_hashes, scc_decomp = collect_missing_traces_batch(graph, theta_dim=param_length, min_size=min_size, verbose=verbose)
+        work_units, all_scc_hashes, scc_decomp = collect_missing_traces_batch(graph, param_length=param_length, min_size=min_size, verbose=verbose)
 
         if len(work_units) > 0:
             # Compute missing traces (potentially in parallel)
@@ -2160,7 +2163,7 @@ def get_trace_hierarchical(graph,
                        i+1, len(all_scc_hashes), trace.n_vertices, len(trace.operations), trace.param_length)
             scc_trace_dict[scc_hash] = trace
 
-        logger.debug("✓ Loaded %d SCC traces from cache", len(scc_trace_dict))
+        logger.debug("Loaded %d SCC traces from cache", len(scc_trace_dict))
 
         # Stitch traces together using the saved SCC decomposition
         # If scc_decomp is None, it means we recorded the full graph directly (no subdivision)

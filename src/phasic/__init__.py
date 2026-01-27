@@ -1466,11 +1466,16 @@ def _callback(ipv):
                 return transitions
             
             # make sure returned types are correct
+            # Handle 3-tuples: (state, base_weight, edge_state) for parameterized edges
+            if len(transitions[0]) == 3:
+                return [[list(map(int, s)), float(w), list(e)] for s, w, e in transitions]
+            # Handle 2-tuples with list as second element: (state, [coeffs]) - legacy format
             if isinstance(transitions[0][1], list) or isinstance(transitions[0][1], np.ndarray):
-                return [[list(map(int, s)), 0.0, a] for s, a in transitions]  
+                return [[list(map(int, s)), 0.0, list(a)] for s, a in transitions]
             if isinstance(transitions[0][1], tuple):
                 assert "Use lists of lists not lists of tuples for transitions"
             else:
+                # Handle 2-tuples: (state, weight) for non-parameterized edges
                 return [[list(map(int, s)), float(a), []] for s, a in transitions]
 
         # Store original function and IPV for graph caching
@@ -1500,7 +1505,7 @@ def _invalidates_trace(method):
 
 class Graph(_Graph):
     # def __init__(self, state_length:int=None, callback:Callable=None, ipv:List[Union[List[int], List[Union[List[int], float]]]] = None, parameterized:bool=False, **kwargs):
-    def __init__(self, arg:Union[int, Callable], ipv:Optional[Union[List[int], List[Union[List[int], float]]]]=None, cache:bool=False, **kwargs):
+    def __init__(self, arg:Union[int, Callable], ipv:Optional[Union[List[int], List[Union[List[int], float]]]]=None, cache_graph:bool=False, **kwargs):
         """
         Create a graph representing a phase-type distribution. This is the primary entry-point of the library. A starting vertex will always be added to the graph upon initialization.
 
@@ -1515,7 +1520,7 @@ class Graph(_Graph):
         callback :
             Callback function accepting a state and returns a list of reachable states and the corresponding transition rates, by default None.
             The callback function should take a list of integers as its only argument and return a list of tuples, where each tuple contains a state and a list of tuples, where each tuple contains a state and a rate.
-        cache : bool, optional
+        graph_cache : bool, optional
             If True, attempts to load graph from disk cache. If not cached, builds graph and saves to cache.
             Cache is keyed by callback function source code + parameters, enabling instant loading of
             previously built graphs. Useful for expensive graph constructions.
@@ -1548,13 +1553,14 @@ class Graph(_Graph):
                 >>> g.update_weights([θ1, θ2], lambda theta, coeffs: custom_weight(theta, coeffs))  # OK
 
             Default: None (auto-detect from edges)
-        hierarchical : bool, optional
-            If True, enables trace-based computation for moments, expectation, variance, etc.
-            This provides 5-10x speedup for repeated evaluations on parameterized graphs by:
-            (1) Recording the elimination trace once (O(n³))
-            (2) Evaluating with new parameters in O(n)
-            The trace is computed lazily on first use, or explicitly via compute_trace().
+        cache_trace : bool, optional
+            If True, caches the elimination trace on the instance for repeated use.
+            When False (default), trace is computed fresh each time but not stored.
+            For parameterized graphs, trace-based computation is always used (O(n) memory)
+            regardless of this setting - this flag only controls caching.
             Default: False
+        hierarchical : bool, optional
+            Deprecated alias for cache_trace. Use cache_trace instead.
 
         Returns
         -------
@@ -1580,8 +1586,19 @@ class Graph(_Graph):
         >>> # Callback mode works:
         >>> graph.update_weights([1.5, 2.0], lambda theta, coeffs: coeffs[0]*theta[0] + coeffs[1]*theta[1] + coeffs[2])  # OK
         """
-        # Extract hierarchical flag (but keep in kwargs for cache key)
-        hierarchical = kwargs.get('hierarchical', False)
+        # Extract cache_trace flag (with hierarchical as deprecated alias)
+        cache_trace = kwargs.get('cache_trace', None)
+        hierarchical = kwargs.get('hierarchical', None)
+        if cache_trace is None and hierarchical is not None:
+            import warnings
+            warnings.warn(
+                "The 'hierarchical' parameter is deprecated. Use 'cache_trace' instead.",
+                DeprecationWarning,
+                stacklevel=2
+            )
+            cache_trace = hierarchical
+        elif cache_trace is None:
+            cache_trace = False
 
         self._joint_prob_base_graph_indexer = None  # flag to signify joint probability representation; defaults to until set internally
 
@@ -1593,7 +1610,7 @@ class Graph(_Graph):
                 callback_for_cache = _callback(ipv)(arg)
 
         # Try loading from cache if requested
-        if callable(arg) and cache:
+        if callable(arg) and cache_graph:
             from .graph_cache import GraphCache
             from .logging_config import get_logger
             logger = get_logger(__name__)
@@ -1608,22 +1625,11 @@ class Graph(_Graph):
                     self._callback = cached_graph._callback if hasattr(cached_graph, '_callback') else None
                     self._callback_kwargs = cached_graph._callback_kwargs if hasattr(cached_graph, '_callback_kwargs') else {}
                     self.is_discrete = cached_graph.is_discrete if hasattr(cached_graph, 'is_discrete') else False
-                    self._hierarchical = hierarchical  # Use requested hierarchical setting
+                    self._cache_trace = cache_trace
                     self._trace = None
                     self._trace_dirty = True
                     self._last_theta = None
                     logger.info(f"Loaded graph from cache: {cached_graph.vertices_length()} vertices")
-
-                    # Validate hierarchical mode requirements (after cache load)
-                    if hierarchical and not self.parameterized():
-                        raise ValueError(
-                            "hierarchical=True requires a parameterized graph.\n"
-                            "\n"
-                            "Hierarchical mode is designed for repeated evaluations with different parameter values.\n"
-                            "For non-parameterized graphs, use hierarchical=False (default).\n"
-                            "\n"
-                            f"Cached graph reports: parameterized={self.parameterized()}"
-                        )
 
                     return
             except Exception as e:
@@ -1638,8 +1644,9 @@ class Graph(_Graph):
             # Extract theta_dim from kwargs
             theta_dim = kwargs.get('theta_dim', None)
 
-            # Remove hierarchical and theta_dim from kwargs before passing to C++ callback
+            # Remove cache_trace/hierarchical and theta_dim from kwargs before passing to C++ callback
             kwargs_for_callback = kwargs.copy()
+            kwargs_for_callback.pop('cache_trace', None)
             kwargs_for_callback.pop('hierarchical', None)
             kwargs_for_callback.pop('theta_dim', None)
 
@@ -1662,9 +1669,9 @@ class Graph(_Graph):
             self._callback = arg
             self._callback_kwargs = kwargs.copy()
 
-            # Pass theta_dim to C++ builder (C++ still uses param_length internally)
+            # Pass theta_dim to C++ builder (C++ expects param_length keyword)
             if theta_dim is not None:
-                super().__init__(callback_tuples_parameterized=partial(arg, **kwargs_for_callback), theta_dim=theta_dim)
+                super().__init__(callback_tuples_parameterized=partial(arg, **kwargs_for_callback), param_length=theta_dim)
             else:
                 super().__init__(callback_tuples_parameterized=partial(arg, **kwargs_for_callback))
         elif isinstance(arg, int):
@@ -1676,31 +1683,14 @@ class Graph(_Graph):
 
         self.is_discrete = False
 
-        # Hierarchical trace mode for faster repeated evaluations
-        self._hierarchical = hierarchical
+        # Trace caching mode for faster repeated evaluations
+        self._cache_trace = cache_trace
         self._trace = None  # Cached EliminationTrace
         self._trace_dirty = True  # True = trace needs (re)computation
         self._last_theta = None  # Cached theta from update_weights()
 
-        # Validate hierarchical mode requirements
-        if hierarchical:
-            # Check if graph is actually parameterized
-            if not self.parameterized():
-                raise ValueError(
-                    "hierarchical=True requires a parameterized graph.\n"
-                    "\n"
-                    "Hierarchical mode is designed for repeated evaluations with different parameter values.\n"
-                    "For non-parameterized graphs, use hierarchical=False (default).\n"
-                    "\n"
-                    "To create a parameterized graph, your callback should return 3-tuples:\n"
-                    "  [[next_state, base_weight, [coeff1, coeff2, ...]], ...]\n"
-                    "where edge_weight = base_weight + coeff1*theta[0] + coeff2*theta[1] + ...\n"
-                    "\n"
-                    f"Your graph reports: parameterized={self.parameterized()}"
-                )
-
         # Save to cache if requested and construction succeeded
-        if callable(arg) and cache:
+        if callable(arg) and cache_graph:
             from .graph_cache import GraphCache
             from .logging_config import get_logger
             logger = get_logger(__name__)
@@ -1789,23 +1779,30 @@ class Graph(_Graph):
         super().extend_graph_callback_tuples_parameterized(callback_with_kwargs)
 
     def _ensure_trace(self):
-        """Ensure trace is computed and valid.
+        """Ensure trace is available for computation.
 
-        Returns the cached trace, computing it if necessary.
-        Only works when Graph was created with hierarchical=True.
+        Returns the cached trace if caching is enabled, or computes a fresh
+        trace on a cloned graph if not. This allows trace-based computation
+        to work regardless of the cache_trace setting.
 
         Returns
         -------
         EliminationTrace or None
-            The cached trace, or None if not in hierarchical mode.
+            The trace for computation, or None if graph is not parameterized.
         """
-        if not self._hierarchical:
+        if not self.parameterized():
             return None
 
-        if self._trace is None or self._trace_dirty:
-            self.compute_trace()
+        # If caching enabled and trace is valid, return cached trace
+        if self._cache_trace:
+            if self._trace is None or self._trace_dirty:
+                self.compute_trace()
+            return self._trace
 
-        return self._trace
+        # Caching disabled - compute trace on cloned graph (non-destructive)
+        from .hierarchical_trace_cache import get_trace_hierarchical
+        graph_copy = self.clone()
+        return get_trace_hierarchical(graph_copy, param_length=self.param_length())
 
     def _get_current_theta(self) -> np.ndarray:
         """Get cached theta values set via update_weights().
@@ -1826,15 +1823,26 @@ class Graph(_Graph):
         if self._last_theta is None:
             raise RuntimeError(
                 "No parameters set. Call update_weights(theta) before "
-                "calling moments()/expectation() in hierarchical mode."
+                "calling moments()/expectation()."
             )
 
         return self._last_theta
 
     @property
+    def cache_trace(self) -> bool:
+        """Whether this graph caches the elimination trace."""
+        return self._cache_trace
+
+    @property
     def hierarchical(self) -> bool:
-        """Whether this graph uses hierarchical trace-based computation."""
-        return self._hierarchical
+        """Deprecated: use cache_trace instead."""
+        import warnings
+        warnings.warn(
+            "The 'hierarchical' property is deprecated. Use 'cache_trace' instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        return self._cache_trace
 
     @property
     def trace_valid(self) -> bool:
@@ -1845,7 +1853,7 @@ class Graph(_Graph):
         """Update parameterized edge weights with given parameters.
 
         This method wraps the C++ implementation to cache theta for use
-        with trace-based computation in hierarchical mode.
+        with trace-based computation.
 
         Parameters
         ----------
@@ -2037,20 +2045,21 @@ class Graph(_Graph):
 
         Notes
         -----
-        If the graph was created with `hierarchical=True` and is parameterized,
-        this method uses trace-based computation for 5-10x speedup on repeated
-        evaluations. Otherwise falls back to direct C++ graph elimination.
+        If the graph is parameterized, this method uses trace-based computation
+        for 5-10x speedup on repeated evaluations and O(n) memory usage.
+        Otherwise falls back to direct C++ graph elimination.
 
         For higher moments (k > 2), numerical stability may become an issue for
         complex distributions.
         """
-        # Use trace-based computation if in hierarchical mode with parameterized graph
-        if self._hierarchical and self.parameterized():
+        # For parameterized graphs, always use trace-based computation (O(n) memory)
+        # to avoid O(n²) matrix allocation in the C++ fallback path
+        if self.parameterized():
             trace = self._ensure_trace()
             if trace is not None:
                 return self._moments_from_trace(power, rewards=rewards, discrete=discrete, **kwargs)
 
-        # Fall back to direct C++ computation
+        # Fall back to direct C++ computation for non-parameterized graphs
         if discrete:
             if not self.is_discrete:
                 raise ValueError("discrete=True only valid for discrete distributions")
@@ -2080,19 +2089,21 @@ class Graph(_Graph):
 
         Notes
         -----
-        If the graph was created with `hierarchical=True` and is parameterized,
-        this method uses trace-based computation for 5-10x speedup on repeated
-        evaluations. Otherwise falls back to direct C++ graph elimination.
+        For parameterized graphs, this method uses trace-based computation
+        which requires O(n) memory instead of O(n²) for the matrix-based approach.
+        Set cache_trace=True when creating the graph to cache the trace for
+        faster repeated evaluations.
 
         This is equivalent to moments(1, rewards).
         """
-        # Use trace-based computation if in hierarchical mode with parameterized graph
-        if self._hierarchical and self.parameterized():
+        # For parameterized graphs, always use trace-based computation (O(n) memory)
+        # to avoid O(n²) matrix allocation in the C++ fallback path
+        if self.parameterized():
             trace = self._ensure_trace()
             if trace is not None:
                 return self._expectation_from_trace(rewards=rewards, discrete=discrete, **kwargs)
 
-        # Fall back to direct C++ computation
+        # Fall back to direct C++ computation for non-parameterized graphs
         if discrete:
             if not self.is_discrete:
                 raise ValueError("discrete=True only valid for discrete distributions")
@@ -2122,19 +2133,21 @@ class Graph(_Graph):
 
         Notes
         -----
-        If the graph was created with `hierarchical=True` and is parameterized,
-        this method uses trace-based computation for 5-10x speedup on repeated
-        evaluations. Otherwise falls back to direct C++ graph elimination.
+        For parameterized graphs, this method uses trace-based computation
+        which requires O(n) memory instead of O(n²) for the matrix-based approach.
+        Set cache_trace=True when creating the graph to cache the trace for
+        faster repeated evaluations.
 
         Computed as Var(T) = E[T^2] - E[T]^2 using moments.
         """
-        # Use trace-based computation if in hierarchical mode with parameterized graph
-        if self._hierarchical and self.parameterized():
+        # For parameterized graphs, always use trace-based computation (O(n) memory)
+        # to avoid O(n²) matrix allocation in the C++ fallback path
+        if self.parameterized():
             trace = self._ensure_trace()
             if trace is not None:
                 return self._variance_from_trace(rewards=rewards, discrete=discrete, **kwargs)
 
-        # Fall back to direct C++ computation
+        # Fall back to direct C++ computation for non-parameterized graphs
         if discrete:
             if not self.is_discrete:
                 raise ValueError("discrete=True only valid for discrete distributions")
@@ -3167,6 +3180,14 @@ class Graph(_Graph):
                     f"  Weight: {weight}\n"
                     f"  Error: {e}"
                 ) from e
+
+        # Set param_length explicitly after all edges are added
+        # This ensures graph.param_length() returns the correct value for trace recording
+        if param_length > 0:
+            try:
+                graph.set_param_length(param_length)
+            except Exception:
+                pass  # May fail if no parameterized edges exist, which is fine
 
         return graph
 
@@ -5002,7 +5023,7 @@ extern "C" {{
     def clone(self):
         """Create a deep copy of this graph.
 
-        The cloned graph preserves the hierarchical setting but starts
+        The cloned graph preserves the cache_trace setting but starts
         with a fresh (invalid) trace cache.
 
         Returns
@@ -5013,7 +5034,7 @@ extern "C" {{
         # super().clone() returns C++ _Graph, wrap it in Python Graph
         cloned = Graph(super().clone())
         cloned.is_discrete = self.is_discrete
-        cloned._hierarchical = self._hierarchical
+        cloned._cache_trace = self._cache_trace
         # Don't copy trace - clone starts fresh
         cloned._trace = None
         cloned._trace_dirty = True
@@ -5029,11 +5050,11 @@ extern "C" {{
         """
         Compute elimination trace with optional hierarchical caching.
 
-        When Graph was created with hierarchical=True, the trace is cached on the
+        When Graph was created with cache_trace=True, the trace is cached on the
         instance for use by moments(), expectation(), etc. In this mode, the operation
         is NON-DESTRUCTIVE (graph is preserved via cloning).
 
-        When Graph was created with hierarchical=False (default), the operation is
+        When Graph was created with cache_trace=False (default), the operation is
         DESTRUCTIVE and will empty the graph during trace recording.
 
         Parameters
@@ -5052,7 +5073,7 @@ extern "C" {{
             If True, show progress bars for major computation stages
         force : bool, default=False
             If True, recompute trace even if a cached trace exists and is valid.
-            Only applicable when Graph was created with hierarchical=True.
+            Only applicable when Graph was created with cache_trace=True.
 
         Returns
         -------
@@ -5061,19 +5082,19 @@ extern "C" {{
 
         Notes
         -----
-        **Hierarchical Mode** (Graph created with hierarchical=True):
+        **Caching Mode** (Graph created with cache_trace=True):
         - Trace is cached on the instance and reused by moments(), expectation(), etc.
         - Graph is cloned before trace recording, preserving the original
         - Subsequent calls return cached trace unless force=True or graph was modified
 
-        **Non-Hierarchical Mode** (default):
+        **Non-Caching Mode** (default):
         - The graph elimination algorithm is DESTRUCTIVE - vertices are eliminated
         - Use disk caching (hierarchical=True parameter) to avoid re-recording
 
         Examples
         --------
-        >>> # Hierarchical mode - non-destructive, cached on instance
-        >>> g = Graph(callback=model, nr_samples=5, hierarchical=True)
+        >>> # Cache mode - non-destructive, cached on instance
+        >>> g = Graph(callback=model, nr_samples=5, cache_trace=True)
         >>> g.normalize()
         >>> trace = g.compute_trace()  # Graph preserved, trace cached
         >>> g.update_weights([1.0, 2.0])
@@ -5083,8 +5104,8 @@ extern "C" {{
         >>> g = Graph(callback=model, nr_samples=5)
         >>> trace = g.compute_trace()  # Graph emptied, trace returned
         """
-        # If using instance-level hierarchical mode, check cache first
-        if self._hierarchical:
+        # If using instance-level cache mode, check cache first
+        if self._cache_trace:
             # Return cached trace if valid and not forcing recompute
             if not force and self._trace is not None and not self._trace_dirty:
                 return self._trace
@@ -5096,14 +5117,14 @@ extern "C" {{
                     "The graph may have been emptied by a previous non-hierarchical operation."
                 )
 
-            # Clone graph to preserve original (non-destructive in hierarchical mode)
+            # Clone graph to preserve original (non-destructive in cache mode)
             graph_copy = self.clone()
 
             # Compute trace on clone using hierarchical SCC caching
             from .hierarchical_trace_cache import get_trace_hierarchical
             trace = get_trace_hierarchical(
                 graph_copy,
-                theta_dim=theta_dim,
+                param_length=param_length,
                 min_size=min_size,
                 parallel_strategy=parallel,
                 verbose=verbose
@@ -5115,20 +5136,20 @@ extern "C" {{
 
             return trace
 
-        # Standard (non-hierarchical instance) behavior - destructive
+        # Standard (non-caching instance) behavior - destructive
         if self.vertices_length() == 0:
             raise ValueError(
                 "Cannot compute trace: graph has no vertices. "
                 "This usually means compute_trace() was called multiple times on the same graph. "
                 "Note: compute_trace() is DESTRUCTIVE and eliminates vertices during trace recording. "
-                "You must rebuild the graph for each call, or use hierarchical=True (default) for caching."
+                "You must rebuild the graph for each call, or use cache_trace=True for caching."
             )
 
         if hierarchical:
             from .hierarchical_trace_cache import get_trace_hierarchical
             trace = get_trace_hierarchical(
                 self,
-                theta_dim=theta_dim,
+                param_length=param_length,
                 min_size=min_size,
                 parallel_strategy=parallel,
                 verbose=verbose
@@ -5136,7 +5157,7 @@ extern "C" {{
             return trace
         else:
             from .trace_elimination import record_elimination_trace
-            return record_elimination_trace(self, theta_dim=theta_dim)
+            return record_elimination_trace(self, theta_dim=param_length)
 
     # ========================================================================
     # Batch-Aware Methods (Phase 2: Auto-Parallelization)
@@ -5419,6 +5440,9 @@ extern "C" {{
                         mutation_rate:Optional[float]=1.0,
                         reward_limit:Optional[int]=None, 
                         tot_reward_limit:Optional[float]=np.inf) -> Graph:
+
+        if self.param_length() == 0:
+            raise ValueError("Graph must have parameterized edges for joint_prob_graph.")
 
         if reward_rates_callback is None:
             # default to joint prob reward callback
