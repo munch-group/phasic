@@ -2011,6 +2011,39 @@ def batch_median_heuristic(particles):
     return median_dist / jnp.log(n_particles + 1)
 
 @jit
+def batch_median_heuristic_per_dim(particles):
+    """Per-dimension median heuristic for anisotropic RBF kernel.
+
+    Computes a separate bandwidth for each parameter dimension using
+    h_d^2 = median((xi_d - xj_d)^2) / log(n+1), which gives a bandwidth
+    scaled consistently with the isotropic median heuristic.
+
+    Parameters
+    ----------
+    particles : array (n_particles, theta_dim)
+        Current particle positions
+
+    Returns
+    -------
+    bandwidth : array (theta_dim,)
+        Per-dimension bandwidth values
+    """
+    n_particles = particles.shape[0]
+    # Pairwise differences per dimension: (n_particles, n_particles, theta_dim)
+    diff = particles[:, None, :] - particles[None, :, :]
+    sq_diff = diff**2
+    # Upper triangular indices (excluding diagonal)
+    triu_indices = jnp.triu_indices(n_particles, k=1)
+    # Extract upper triangle: (n_pairs, theta_dim)
+    pairwise_sq = sq_diff[triu_indices]
+    # Median of squared differences: (theta_dim,)
+    median_sq_per_dim = jnp.median(pairwise_sq, axis=0)
+    # h_d^2 = median_sq_d / log(n+1), so h_d = sqrt(median_sq_d / log(n+1))
+    h_sq = median_sq_per_dim / jnp.log(n_particles + 1)
+    # Clamp to avoid degenerate dimensions
+    return jnp.maximum(jnp.sqrt(h_sq), 1e-8)
+
+@jit
 def rbf_kernel_median(particles):
     """RBF kernel with median heuristic bandwidth"""
     bandwidth = batch_median_heuristic(particles)
@@ -2257,12 +2290,19 @@ def _compute_kernel_grad_impl(particles, bandwidth):
     """
     JIT-compiled RBF kernel computation (core implementation)
 
+    Supports both isotropic (scalar bandwidth) and anisotropic
+    (per-dimension bandwidth vector) kernels.
+
+    For anisotropic kernel:
+        K(x,y) = exp(-sum_d ((x_d - y_d)^2 / (2 * h_d^2)))
+        dK/dx_d = -K * (x_d - y_d) / h_d^2
+
     Parameters
     ----------
     particles : array (n_particles, theta_dim)
         Current particle positions
-    bandwidth : float
-        Kernel bandwidth
+    bandwidth : float or array (theta_dim,)
+        Kernel bandwidth. Scalar for isotropic, vector for anisotropic.
 
     Returns
     -------
@@ -2275,13 +2315,14 @@ def _compute_kernel_grad_impl(particles, bandwidth):
     # Shape: (n_particles, n_particles, theta_dim)
     diff = particles[:, None, :] - particles[None, :, :]
 
-    # Squared distances: (n_particles, n_particles)
-    sq_dist = jnp.sum(diff**2, axis=2)
+    # Scaled squared distances: (n_particles, n_particles)
+    # bandwidth can be scalar or (theta_dim,) — broadcasting handles both
+    sq_dist = jnp.sum(diff**2 / (2 * bandwidth**2), axis=2)
 
-    # Kernel matrix: K[i,j] = exp(-||x_i - x_j||^2 / (2*h^2))
-    K = jnp.exp(-sq_dist / (2 * bandwidth**2))
+    # Kernel matrix: K[i,j] = exp(-sum_d (x_i_d - x_j_d)^2 / (2*h_d^2))
+    K = jnp.exp(-sq_dist)
 
-    # Kernel gradient: ∇K[i,j] = -K[i,j] * (x_i - x_j) / h^2
+    # Kernel gradient: ∇_d K[i,j] = -K[i,j] * (x_i_d - x_j_d) / h_d^2
     # Shape: (n_particles, n_particles, theta_dim)
     grad_K = -K[:, :, None] * diff / bandwidth**2
 
@@ -2291,14 +2332,18 @@ def _compute_kernel_grad_impl(particles, bandwidth):
 class SVGDKernel:
     """RBF kernel for SVGD with automatic bandwidth selection"""
 
-    def __init__(self, bandwidth='median'):
+    def __init__(self, bandwidth='median_per_dim'):
         """
         Parameters
         ----------
-        bandwidth : str or float default='median'
+        bandwidth : str, float, or array_like, default='median_per_dim'
             Bandwidth selection method. Options:
-            - 'median': Median heuristic (default)
-            - float: Fixed bandwidth value
+            - 'median_per_dim': Per-dimension median heuristic (default).
+              Computes a separate bandwidth for each parameter dimension,
+              giving an anisotropic kernel that adapts to different parameter scales.
+            - 'median': Scalar median heuristic (isotropic kernel)
+            - float: Fixed scalar bandwidth value
+            - array_like: Fixed per-dimension bandwidth vector
         """
         self.bandwidth_method = bandwidth
 
@@ -2319,10 +2364,16 @@ class SVGDKernel:
             Gradient of kernel matrix
         """
         # Compute bandwidth (not JIT-compiled due to conditional logic)
-        if isinstance(self.bandwidth_method, str) and self.bandwidth_method == 'median':
-            bandwidth = batch_median_heuristic(particles)
+        if isinstance(self.bandwidth_method, str):
+            if self.bandwidth_method == 'median_per_dim':
+                bandwidth = batch_median_heuristic_per_dim(particles)
+            elif self.bandwidth_method == 'median':
+                bandwidth = batch_median_heuristic(particles)
+            else:
+                raise ValueError(f"Unknown bandwidth method: {self.bandwidth_method!r}. "
+                                 f"Options: 'median_per_dim', 'median'")
         else:
-            bandwidth = self.bandwidth_method
+            bandwidth = jnp.asarray(self.bandwidth_method)
 
         # Call JIT-compiled implementation
         return _compute_kernel_grad_impl(particles, bandwidth)
@@ -2827,9 +2878,14 @@ class SVGD:
         When None and no optimizer is provided, Adamelia is used as the default
         optimizer (unless regularization > 0, which falls back to fixed lr=0.001).
         Examples: ConstantStepSize(0.01), ExpStepSize(0.1, 0.01, 500.0)
-    bandwidth : str default='median'
+    bandwidth : str, float, or array_like, default='median_per_dim'
         Kernel bandwidth selection. Can be:
-        - str: 'median' for median heuristic (backward compatible)
+        - 'median_per_dim': Per-dimension median heuristic (default). Uses a
+          separate bandwidth for each parameter dimension, giving an anisotropic
+          kernel that adapts to different parameter scales.
+        - 'median': Scalar median heuristic (isotropic kernel)
+        - float: Fixed scalar bandwidth value
+        - array_like: Fixed per-dimension bandwidth vector
     theta_init : array_like, optional
         Initial particle positions (n_particles, theta_dim)
     theta_dim : int, optional
@@ -3030,7 +3086,7 @@ class SVGD:
     _compiled_cache = {}
 
     def __init__(self, model, observed_data, prior=None, n_particles=None,
-                 n_iterations=700, learning_rate=None, bandwidth='median',
+                 n_iterations=700, learning_rate=None, bandwidth='median_per_dim',
                  theta_init=None, theta_dim=None, seed=None, verbose=True, progress=False,
                  jit=None,              # NEW: explicit JIT control
                  parallel=None,         # NEW: 'vmap', 'pmap', 'none'
@@ -5147,6 +5203,9 @@ class SVGD:
             y_min_padded = y_min - y_pad
             y_max_padded = y_max + y_pad
             
+            x_min_padded = max(x_min_padded, 0)
+            y_min_padded = max(y_min_padded, 0)
+
             x = np.arange(x_min_padded, x_max_padded + dx, dx)
             y = np.arange(y_min_padded, y_max_padded + dy, dy)
             

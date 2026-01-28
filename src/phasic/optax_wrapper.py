@@ -129,7 +129,7 @@ class OptaxOptimizer:
         self.state = self.optimizer.init(params)
         self._t = 0
 
-    def step(self, phi, params=None):
+    def step(self, phi, params=None, particles=None):
         """Compute update using Optax optimizer.
 
         Parameters
@@ -139,6 +139,8 @@ class OptaxOptimizer:
         params : array, optional
             Current parameter values. Required for optimizers with weight decay
             (e.g., adamw). If not provided, uses internally tracked params.
+        particles : array, optional
+            Alias for params, for compatibility with phasic optimizer interface.
 
         Returns
         -------
@@ -147,8 +149,14 @@ class OptaxOptimizer:
         """
         self._t += 1
         if params is None:
+            params = particles
+        if params is None:
             params = self._params
+        # Optax convention: updates = -lr * adapted_grad (gradient descent).
+        # SVGD convention: phi is the ascent direction, update = +lr * adapted_phi.
+        # Negate the returned updates to convert descent -> ascent.
         updates, self.state = self.optimizer.update(phi, self.state, params)
+        updates = -updates
         # Update internal params tracking
         if params is not None:
             self._params = params + updates

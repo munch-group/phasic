@@ -137,6 +137,7 @@ griffe = ">=1.15.0,<2"
 mpfr = ">=4.2.1,<5"
 gmp = "*"
 pkg-config = "*"
+optax = ">=0.2.6,<0.3"
 
 # [tool.pixi.pypi-dependencies]
 

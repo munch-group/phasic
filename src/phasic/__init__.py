@@ -3863,7 +3863,7 @@ extern "C" {{
              n_iterations: int = 100,
              optimizer: Optional[object] = None,
              learning_rate: Optional[float] = None,
-             bandwidth: str = 'median',
+             bandwidth = 'median_per_dim',
              theta_init: Optional[ArrayLike] = None,
              theta_dim: Optional[int] = None,
              return_history: bool = True,
@@ -3926,10 +3926,13 @@ extern "C" {{
             SVGD step size. If None (default), uses Adamelia optimizer with adaptive
             learning rates. If a float is provided, uses fixed learning rate approach.
             Larger values = faster convergence but may be unstable.
-        bandwidth : str, default='median'
+        bandwidth : str, float, or array_like, default='median_per_dim'
             Kernel bandwidth selection method:
-            - 'median': RBF kernel with median heuristic bandwidth (default)
-            - 'rbf_adaptive': RBF kernel with adaptive bandwidth
+            - 'median_per_dim': Per-dimension median heuristic (default). Uses a
+              separate bandwidth per parameter dimension for an anisotropic kernel.
+            - 'median': Scalar median heuristic (isotropic kernel)
+            - float: Fixed scalar bandwidth value
+            - array_like: Fixed per-dimension bandwidth vector
         theta_init : ArrayLike, optional
             Initial particle positions (n_particles, theta_dim).
             If None, initializes randomly from standard normal.
