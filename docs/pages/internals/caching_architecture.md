@@ -1,4 +1,6 @@
-# Multi-Level Caching Architecture
+---
+title: Multi-Level Caching Architecture
+---
 
 **Date:** 2026-01-14
 **Last Updated:** January 2026

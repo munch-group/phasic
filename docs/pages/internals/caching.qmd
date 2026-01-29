@@ -1,18 +1,6 @@
 ---
-title: "Caching System Guide"
-format:
-  html:
-    toc: true
-    toc-depth: 3
-    code-fold: false
-    number-sections: true
+title: "Caching System"
 ---
-
-# phasic Caching System
-
-**Version:** 0.21.3+
-**Last Updated:** October 2025
-**Status:** Production-ready
 
 This guide covers the comprehensive three-layer caching system in phasic, which provides **10-1000x speedups** for repeated model evaluations.
 

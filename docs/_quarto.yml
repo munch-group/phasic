@@ -126,7 +126,7 @@ website:
             - pages/internals/architecture.qmd
             - pages/internals/call_tree.qmd
             
-            - pages/internals/explicit_config_system.qmd
+            # - pages/internals/explicit_config_system.qmd
 
             - pages/internals/MPFR_FINAL_STATUS.md
             
