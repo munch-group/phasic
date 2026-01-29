@@ -122,13 +122,28 @@ website:
         - section: "Internals"
           contents:
             - pages/background/math_and_alg.qmd
+
             - pages/internals/architecture.qmd
             - pages/internals/call_tree.qmd
-            - pages/internals/caching_guide.qmd
+            
             - pages/internals/explicit_config_system.qmd
-            - pages/internals/python_cpp_bridge_jax_integration
-            - pages/internals/trace_elimination_retracing.md
+
+            - pages/internals/MPFR_FINAL_STATUS.md
+            
+            - pages/internals/caching_guide.qmd
             - pages/internals/caching_architecture.md
+            - pages/internals/caching.qmd
+
+            - pages/internals/python_cpp_bridge_jax_integration
+            - pages/internals/ffi_and_openmp.qmd
+
+            - pages/internals/trace_ipfs.ipynb
+            - pages/internals/trace_elimination_retracing.md
+
+            - pages/internals/svgd.ipynb
+            - pages/internals/svgd_trace_eval.qmd
+            - pages/internals/preconditioning.md
+            - pages/internals/svgd_step_sizes.qmd
 
             - href: https://github.com/munch-group/phasic/issues
               text: Issue Tracker
