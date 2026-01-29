@@ -1,3 +1,4 @@
+import logging
 import os
 import platform
 from time import time, sleep
@@ -2329,10 +2330,187 @@ def _compute_kernel_grad_impl(particles, bandwidth):
     return K, grad_K
 
 
+class FisherPreconditioner:
+    """Diagonal Fisher information preconditioner for multi-scale SVGD.
+
+    Computes the diagonal of the empirical Fisher information matrix at a
+    reference parameter point, then uses it to normalize the kernel's
+    particle space so that all dimensions have comparable information content.
+
+    Parameters
+    ----------
+    model : callable
+        Model function: model(theta, data, rewards=None) -> (pmf, moments)
+    observed_data : array
+        Observation data points
+    theta_dim : int
+        Number of parameters (learnable dimensions only if fixed params exist)
+    param_transform : callable or None
+        Transformation from unconstrained to constrained space (e.g., softplus)
+    rewards : array or None
+        Optional rewards for multivariate models
+    epsilon : float, default=1e-8
+        Floor for Fisher values to avoid division by zero
+    """
+
+    def __init__(self, model, observed_data, theta_dim,
+                 param_transform=None, rewards=None, epsilon=1e-8):
+        self.model = model
+        self.observed_data = observed_data
+        self.theta_dim = theta_dim
+        self.param_transform = param_transform
+        self.rewards = rewards
+        self.epsilon = epsilon
+        self.scaling = None  # D_j = sqrt(F_j), normalized to mean 1
+
+    def _find_moment_matching_reference(self, theta_init):
+        """Find a reference point where model moments roughly match data moments.
+
+        Does a quick coordinate-wise search: for each dimension j, find the value
+        that makes the model's first moment (mean) closest to the data mean, holding
+        other dimensions at their initial values.
+
+        Parameters
+        ----------
+        theta_init : array (theta_dim,)
+            Starting point in unconstrained space.
+
+        Returns
+        -------
+        theta_ref : array (theta_dim,)
+            Improved reference point in unconstrained space.
+        """
+        times = jnp.atleast_1d(jnp.array(self.observed_data))
+        data_mean = float(jnp.mean(times))
+
+        theta_ref = jnp.array(theta_init)
+
+        # Try a range of scales for each dimension
+        # Search in unconstrained space over a grid
+        candidates = np.array([-2.0, -1.0, 0.0, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 7.0, 10.0])
+
+        for j in range(self.theta_dim):
+            best_val = float(theta_ref[j])
+            best_err = np.inf
+
+            for c in candidates:
+                theta_try = theta_ref.at[j].set(c)
+                if self.param_transform is not None:
+                    theta_try_c = self.param_transform(theta_try)
+                else:
+                    theta_try_c = theta_try
+
+                try:
+                    _, moments = self.model(theta_try_c, times, rewards=self.rewards)
+                    # First moment is the mean
+                    if moments.ndim == 2:
+                        model_mean = float(jnp.mean(moments[:, 0]))
+                    else:
+                        model_mean = float(moments[0])
+                    err = abs(model_mean - data_mean)
+                    if err < best_err:
+                        best_err = err
+                        best_val = c
+                except Exception:
+                    continue
+
+            theta_ref = theta_ref.at[j].set(best_val)
+
+        logger.debug("FisherPreconditioner: moment-matching reference (unconstrained) = %s",
+                      theta_ref)
+        if self.param_transform is not None:
+            logger.debug("FisherPreconditioner: moment-matching reference (constrained) = %s",
+                          self.param_transform(theta_ref))
+        logger.debug("FisherPreconditioner: data mean = %.4f", data_mean)
+
+        return theta_ref
+
+    def compute_scaling(self, theta_ref):
+        """Compute Fisher diagonal at reference point and derive scaling.
+
+        Uses moment-matching to find a better reference point before computing
+        the Fisher information. The provided theta_ref is used as a starting
+        point for the moment-matching search.
+
+        Parameters
+        ----------
+        theta_ref : array (theta_dim,)
+            Initial reference point in unconstrained space (same space as particles).
+            Used as starting point for moment-matching refinement.
+        """
+        logger.debug("FisherPreconditioner: computing scaling for %d dimensions", self.theta_dim)
+        logger.debug("FisherPreconditioner: initial theta_ref (unconstrained) = %s", theta_ref)
+
+        # Find a better reference point via moment matching
+        theta_ref = self._find_moment_matching_reference(theta_ref)
+        logger.debug("FisherPreconditioner: refined theta_ref (unconstrained) = %s", theta_ref)
+
+        # Transform to constrained space for model evaluation
+        if self.param_transform is not None:
+            theta_c = self.param_transform(theta_ref)
+            logger.debug("FisherPreconditioner: theta_ref (constrained) = %s", theta_c)
+        else:
+            theta_c = theta_ref
+            logger.debug("FisherPreconditioner: no param_transform, using raw theta_ref")
+
+        times = jnp.atleast_1d(jnp.array(self.observed_data))
+        logger.debug("FisherPreconditioner: %d observation points", len(times))
+
+        # Reference PMF values: p(x_n | theta_ref) for all observations
+        pmf_ref, _ = self.model(theta_c, times, rewards=self.rewards)
+        # Handle 2D (multivariate) pmf by flattening
+        pmf_flat = pmf_ref.flatten()
+        logger.debug("FisherPreconditioner: reference PMF range [%.4e, %.4e], "
+                      "mean=%.4e, %d zero/negative values",
+                      float(jnp.min(pmf_flat)), float(jnp.max(pmf_flat)),
+                      float(jnp.mean(pmf_flat)),
+                      int(jnp.sum(pmf_flat <= 0)))
+
+        # Finite-difference score: d log p(x_n|theta) / d theta_j = (d pmf_n / d theta_j) / pmf_n
+        eps = 1e-5
+        n_obs = len(pmf_flat)
+        scores = np.zeros((n_obs, self.theta_dim))
+
+        for j in range(self.theta_dim):
+            theta_plus = theta_ref.at[j].add(eps)
+            theta_minus = theta_ref.at[j].add(-eps)
+            if self.param_transform is not None:
+                theta_plus_c = self.param_transform(theta_plus)
+                theta_minus_c = self.param_transform(theta_minus)
+            else:
+                theta_plus_c = theta_plus
+                theta_minus_c = theta_minus
+
+            pmf_plus, _ = self.model(theta_plus_c, times, rewards=self.rewards)
+            pmf_minus, _ = self.model(theta_minus_c, times, rewards=self.rewards)
+
+            # Central difference for d pmf / d theta_j
+            dpmf_dtheta_j = (pmf_plus.flatten() - pmf_minus.flatten()) / (2 * eps)
+            # Score = d log pmf / d theta_j = (d pmf / d theta_j) / pmf
+            scores[:, j] = np.asarray(dpmf_dtheta_j) / (np.asarray(pmf_flat) + 1e-30)
+            logger.debug("FisherPreconditioner: dim %d: score range [%.4e, %.4e], "
+                          "mean_abs=%.4e",
+                          j, float(np.min(scores[:, j])),
+                          float(np.max(scores[:, j])),
+                          float(np.mean(np.abs(scores[:, j]))))
+
+        # Empirical Fisher diagonal: F_j = (1/N) sum_n score[n,j]^2
+        fisher_diag = np.mean(scores**2, axis=0)  # Shape: (theta_dim,)
+        logger.debug("FisherPreconditioner: Fisher diagonal (raw) = %s", fisher_diag)
+
+        D = np.sqrt(np.maximum(fisher_diag, self.epsilon))
+        logger.debug("FisherPreconditioner: sqrt(Fisher) before normalization = %s", D)
+
+        # Normalize to mean 1 (only relative scaling matters)
+        D = D / np.mean(D)
+        self.scaling = jnp.array(D)
+        logger.debug("FisherPreconditioner: final scaling (normalized) = %s", self.scaling)
+
+
 class SVGDKernel:
     """RBF kernel for SVGD with automatic bandwidth selection"""
 
-    def __init__(self, bandwidth='median_per_dim'):
+    def __init__(self, bandwidth='median_per_dim', preconditioner=None):
         """
         Parameters
         ----------
@@ -2344,8 +2522,13 @@ class SVGDKernel:
             - 'median': Scalar median heuristic (isotropic kernel)
             - float: Fixed scalar bandwidth value
             - array_like: Fixed per-dimension bandwidth vector
+        preconditioner : FisherPreconditioner or None, default=None
+            If provided, particles are normalized by the preconditioner's scaling
+            before kernel computation, and kernel gradients are transformed back.
+            This makes the kernel isotropic in information-geometric space.
         """
         self.bandwidth_method = bandwidth
+        self.preconditioner = preconditioner
 
     def compute_kernel_grad(self, particles):
         """
@@ -2361,22 +2544,53 @@ class SVGDKernel:
         K : array (n_particles, n_particles)
             Kernel matrix
         grad_K : array (n_particles, n_particles, theta_dim)
-            Gradient of kernel matrix
+            Gradient of kernel matrix w.r.t. original (unnormalized) particles
         """
-        # Compute bandwidth (not JIT-compiled due to conditional logic)
+        # Normalize particles if preconditioner is set
+        if self.preconditioner is not None and self.preconditioner.scaling is not None:
+            D = self.preconditioner.scaling  # (theta_dim,)
+            particles_norm = particles * D[None, :]  # compress high-info dims
+            logger.debug("SVGDKernel: preconditioner active, scaling=%s", D)
+            logger.debug("SVGDKernel: particle range before normalization: "
+                          "min=%s, max=%s",
+                          jnp.min(particles, axis=0),
+                          jnp.max(particles, axis=0))
+            logger.debug("SVGDKernel: particle range after normalization: "
+                          "min=%s, max=%s",
+                          jnp.min(particles_norm, axis=0),
+                          jnp.max(particles_norm, axis=0))
+        else:
+            particles_norm = particles
+
+        # Compute bandwidth in normalized space
         if isinstance(self.bandwidth_method, str):
             if self.bandwidth_method == 'median_per_dim':
-                bandwidth = batch_median_heuristic_per_dim(particles)
+                bandwidth = batch_median_heuristic_per_dim(particles_norm)
             elif self.bandwidth_method == 'median':
-                bandwidth = batch_median_heuristic(particles)
+                bandwidth = batch_median_heuristic(particles_norm)
             else:
                 raise ValueError(f"Unknown bandwidth method: {self.bandwidth_method!r}. "
                                  f"Options: 'median_per_dim', 'median'")
         else:
             bandwidth = jnp.asarray(self.bandwidth_method)
 
-        # Call JIT-compiled implementation
-        return _compute_kernel_grad_impl(particles, bandwidth)
+        # Compute kernel in normalized space
+        K, grad_K_norm = _compute_kernel_grad_impl(particles_norm, bandwidth)
+
+        # Transform gradient back: dK/dtheta_j = dK/dz_j * D_j
+        if self.preconditioner is not None and self.preconditioner.scaling is not None:
+            grad_K = grad_K_norm * D[None, None, :]
+            logger.debug("SVGDKernel: gradient transformed back, "
+                          "grad_K_norm range=[%.4e, %.4e], "
+                          "grad_K range=[%.4e, %.4e]",
+                          float(jnp.min(grad_K_norm)),
+                          float(jnp.max(grad_K_norm)),
+                          float(jnp.min(grad_K)),
+                          float(jnp.max(grad_K)))
+        else:
+            grad_K = grad_K_norm
+
+        return K, grad_K
 
 
 @jit
@@ -2871,11 +3085,11 @@ class SVGD:
         Number of SVGD optimization steps
     learning_rate : float, StepSizeSchedule, or None, default=None
         SVGD step size. Can be:
-        - None: Uses Adamelia optimizer with adaptive learning rates (default)
+        - None: Uses Adam optimizer with adaptive learning rates (default)
         - float: constant step size (uses fixed learning rate approach)
         - StepSizeSchedule object: dynamic step size schedule
 
-        When None and no optimizer is provided, Adamelia is used as the default
+        When None and no optimizer is provided, Adam is used as the default
         optimizer (unless regularization > 0, which falls back to fixed lr=0.001).
         Examples: ConstantStepSize(0.01), ExpStepSize(0.1, 0.01, 500.0)
     bandwidth : str, float, or array_like, default='median_per_dim'
@@ -2983,12 +3197,12 @@ class SVGD:
         for computational efficiency. Kernel bandwidth is computed only over varying
         dimensions, improving convergence.
     optimizer : Optimizer, optional
-        Optimizer for adaptive per-parameter learning rates. Default is Adamelia
+        Optimizer for adaptive per-parameter learning rates. Default is Adam
         when learning_rate=None and regularization=0.
 
         Options include:
-        - Adamelia (default): Adam with oscillation detection and automatic LR reduction
-        - Adam: Standard Adam optimizer
+        - Adam: (default)Standard Adam optimizer
+        - Adamelia : Adam with oscillation detection and automatic LR reduction
         - SGDMomentum: SGD with momentum
         - RMSprop: RMSprop optimizer
         - Adagrad: Adagrad optimizer
@@ -2998,7 +3212,7 @@ class SVGD:
 
         Example:
             >>> from phasic import SVGD, Adam, Adamelia
-            >>> # Default: uses Adamelia
+            >>> # Default: uses Adam
             >>> svgd = SVGD(model, data, theta_dim=2)
             >>> # Explicit optimizer
             >>> svgd = SVGD(model, data, theta_dim=2, optimizer=Adam(learning_rate=0.01))
@@ -3094,7 +3308,7 @@ class SVGD:
                  precompile=True,       # Keep for backward compat
                  compilation_config=None, positive_params=True, param_transform=None,
                  regularization=0.0, nr_moments=2, rewards=None, fixed=None,
-                 optimizer=None):
+                 optimizer=None, preconditioner='auto'):
 
         if n_particles is None:
             n_particles = 20 * theta_dim
@@ -3253,20 +3467,18 @@ class SVGD:
 
         # Default to Adamelia unless user explicitly provided learning_rate, schedule, or regularization
         # This provides adaptive learning rates out-of-the-box for typical SVGD workloads
-        use_adamelia_default = (
+        use_optimizer_default = (
             optimizer is None and
             learning_rate is None and  # Not explicitly provided
             regularization == 0.0  # No moment regularization (often needs more careful step size control)
         )
 
-        if use_adamelia_default:
+        if use_optimizer_default:
             # Use Adamelia with default parameters as the optimizer
-            optimizer = Adamelia()
+            optimizer = Adam()
             self.step_schedule = None  # Not used when optimizer is set
             self.learning_rate = None
             self.lr_scale = lr_scale
-            if verbose:
-                print("Using Adamelia optimizer (default)")
         elif isinstance(learning_rate, StepSizeSchedule):
             self.step_schedule = learning_rate
             self.learning_rate = None  # Will be computed dynamically
@@ -3276,8 +3488,11 @@ class SVGD:
             self.step_schedule = ConstantStepSize(scaled_lr)
             self.learning_rate = scaled_lr
             self.lr_scale = lr_scale
-            if verbose and lr_scale < 1.0:
-                print(f"Auto-scaled learning rate: {learning_rate} → {scaled_lr:.6f} ({int(n_observations)} observations)")
+            if lr_scale < 1.0:
+                logger.debug(
+                    f"Auto-scaled learning rate: {learning_rate} → {scaled_lr:.6f} "
+                    f"({int(n_observations)} observations)"
+                )
         elif learning_rate is None:
             # User provided optimizer explicitly, or regularization > 0 with no learning_rate
             # Use a sensible default learning rate
@@ -3286,12 +3501,15 @@ class SVGD:
             self.step_schedule = ConstantStepSize(scaled_lr)
             self.learning_rate = scaled_lr
             self.lr_scale = lr_scale
-            if verbose and regularization > 0.0:
-                print(f"Using default learning rate {default_lr} (regularization={regularization})")
+            if regularization > 0.0:
+                logger.debug(f"Using default learning rate {default_lr} (regularization={regularization})")
         else:
             raise TypeError(
                 f"learning_rate must be float, StepSizeSchedule, or None, got: {type(learning_rate)}"
             )
+
+        if optimizer is not None:
+            logging.info(f"Using {optimizer.__class__.__name__} as optimizer for SVGD")
 
         self.bandwidth = bandwidth
         self.theta_dim = theta_dim
@@ -3561,6 +3779,27 @@ class SVGD:
         self.nr_moments = nr_moments
         self.rewards = rewards  # Can be None, 1D (n_vertices,), or 2D (n_vertices, n_features)
         self.optimizer = optimizer
+
+        # Validate and store preconditioner setting
+        if isinstance(preconditioner, str):
+            if preconditioner in ('auto', 'fisher'):
+                self.preconditioner_method = 'fisher'
+            elif preconditioner == 'none':
+                self.preconditioner_method = None
+            else:
+                raise ValueError(
+                    f"preconditioner must be 'auto', 'fisher', 'none', None, "
+                    f"or a FisherPreconditioner instance, got: {preconditioner!r}"
+                )
+        elif preconditioner is None:
+            self.preconditioner_method = None
+        elif isinstance(preconditioner, FisherPreconditioner):
+            self.preconditioner_method = preconditioner
+        else:
+            raise TypeError(
+                f"preconditioner must be str, None, or FisherPreconditioner, "
+                f"got: {type(preconditioner)}"
+            )
 
         if self.regularization > 0.0 or self.use_regularization_schedule:
             if self.nr_moments == 0:
@@ -4216,8 +4455,70 @@ class SVGD:
         if rewards is None:
             rewards = self.rewards
 
+        # Compute preconditioner (before kernel creation)
+        preconditioner_obj = None
+        if self.preconditioner_method is not None:
+            if isinstance(self.preconditioner_method, FisherPreconditioner):
+                # User provided a pre-built preconditioner
+                preconditioner_obj = self.preconditioner_method
+                logger.debug("SVGD.optimize: using user-provided FisherPreconditioner "
+                              "(scaling=%s)", preconditioner_obj.scaling)
+            elif self.preconditioner_method == 'fisher':
+                # Determine dimensionality (learnable dims only if fixed params)
+                if self.fixed_mask is not None:
+                    n_learnable = int(jnp.sum(self.fixed_mask == 0))
+                    learnable_indices = jnp.where(self.fixed_mask == 0)[0]
+                    logger.debug("SVGD.optimize: fixed params detected, "
+                                  "%d learnable dims (indices=%s)",
+                                  n_learnable, learnable_indices)
+                else:
+                    n_learnable = self.theta_dim
+                    learnable_indices = None
+                    logger.debug("SVGD.optimize: no fixed params, "
+                                  "all %d dims learnable", n_learnable)
+
+                preconditioner_obj = FisherPreconditioner(
+                    model=self.model,
+                    observed_data=self.observed_data,
+                    theta_dim=n_learnable,
+                    param_transform=self.param_transform,
+                    rewards=rewards
+                )
+                # Compute reference point from particle mean
+                theta_ref_full = jnp.mean(self.theta_init, axis=0)
+                if learnable_indices is not None:
+                    theta_ref = theta_ref_full[learnable_indices]
+                else:
+                    theta_ref = theta_ref_full
+                logger.debug("SVGD.optimize: Fisher reference point (unconstrained) = %s",
+                              theta_ref)
+
+                # For fixed params, wrap model to expand learnable -> full space
+                if self.fixed_mask is not None:
+                    original_model = preconditioner_obj.model
+                    def _model_with_fixed(theta_c, times, rewards=None):
+                        if self.param_transform is not None:
+                            # theta_c is already in constrained space from preconditioner
+                            # We need to reconstruct the full constrained vector
+                            full_constrained = self.param_transform(
+                                jnp.array(self.fixed_values)
+                            )
+                        else:
+                            full_constrained = jnp.array(self.fixed_values)
+                        full_constrained = full_constrained.at[learnable_indices].set(theta_c)
+                        return original_model(full_constrained, times, rewards=rewards)
+                    preconditioner_obj.model = _model_with_fixed
+                    logger.debug("SVGD.optimize: wrapped model for fixed params "
+                                  "(fixed_values=%s)", self.fixed_values)
+
+                preconditioner_obj.compute_scaling(theta_ref)
+                if self.verbose:
+                    print(f"  Fisher preconditioner scaling: {preconditioner_obj.scaling}")
+        else:
+            logger.debug("SVGD.optimize: no preconditioner configured")
+
         # Create kernel
-        kernel = SVGDKernel(bandwidth=self.bandwidth)
+        kernel = SVGDKernel(bandwidth=self.bandwidth, preconditioner=preconditioner_obj)
 
         # Use regularization settings from __init__
         use_regularization = (self.regularization > 0.0 or self.use_regularization_schedule)

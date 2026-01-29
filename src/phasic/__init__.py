@@ -252,6 +252,8 @@ if HAS_JAX:
         # MedianBandwidth,
         # FixedBandwidth,
         # LocalAdaptiveBandwidth
+        # Preconditioning
+        FisherPreconditioner,
     )
 else:
     SVGD = None
@@ -276,6 +278,7 @@ else:
     # MedianBandwidth = None
     # FixedBandwidth = None
     # LocalAdaptiveBandwidth = None
+    FisherPreconditioner = None
 
 # Optax integration (optional dependency)
 try:
@@ -3882,7 +3885,8 @@ extern "C" {{
              joint_index: bool = False,
              rewards: Optional[ArrayLike] = None,
              fixed: Optional[ArrayLike] = None,
-             ) -> Dict:    
+             preconditioner = 'auto',
+             ) -> Dict:
         """
         Run Stein Variational Gradient Descent (SVGD) inference for Bayesian parameter estimation.
 
@@ -3918,12 +3922,12 @@ extern "C" {{
         n_iterations : int, default=1000
             Number of SVGD optimization steps
         optimizer : Optimizer, optional
-            Learning rate optimizer instance from phasic.optimizers. Default is Adamelia
+            Learning rate optimizer instance from phasic.optimizers. Default is Adam
             when learning_rate=None and regularization=0. Options include Adamelia, Adam,
             SGDMomentum, RMSprop, Adagrad. When an optimizer is used, the learning_rate
             parameter is ignored (the optimizer has its own learning rate).
         learning_rate : float or None, default=None
-            SVGD step size. If None (default), uses Adamelia optimizer with adaptive
+            SVGD step size. If None (default), uses Adame optimizer with adaptive
             learning rates. If a float is provided, uses fixed learning rate approach.
             Larger values = faster convergence but may be unstable.
         bandwidth : str, float, or array_like, default='median_per_dim'
@@ -4000,6 +4004,12 @@ extern "C" {{
             - 2D array (n_vertices, n_features): Multivariate rewards - one reward vector per feature
               dimension. Requires use of pmf_and_moments_from_graph_multivariate() model.
             For multivariate models, observed_data should also be 2D (n_times, n_features).
+        preconditioner : str, FisherPreconditioner, or None, default='auto'
+            Preconditioning method for multi-scale parameters:
+            - 'auto': Fisher diagonal preconditioning (recommended for multi-parameter models)
+            - 'fisher': Same as 'auto'
+            - None or 'none': No preconditioning (original behavior)
+            - FisherPreconditioner instance: Custom preconditioner
 
         Returns
         -------
@@ -4190,7 +4200,8 @@ extern "C" {{
             param_transform=param_transform,
             rewards=rewards,
             fixed=fixed,
-            optimizer=optimizer
+            optimizer=optimizer,
+            preconditioner=preconditioner
         )
 
         # Run inference

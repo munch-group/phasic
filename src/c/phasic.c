@@ -6270,7 +6270,7 @@ double *ptd_expected_sojourn_time_subset(struct ptd_graph *graph, const size_t *
     }
     free(results);
 
-    PTD_LOG_DEBUG("Computed sojourn times for %zu target states (out of %zu total)", k, n);
+    // PTD_LOG_DEBUG("Computed sojourn times for %zu target states (out of %zu total)", k, n);
     return sojourn_times;
 }
 
@@ -6415,7 +6415,7 @@ double *ptd_expected_sojourn_time(struct ptd_graph *graph) {
     }
     free(results);
 
-    PTD_LOG_DEBUG("Computed sojourn times for %zu states", n);
+    // PTD_LOG_DEBUG("Computed sojourn times for %zu states", n);
     return sojourn_times;
 }
 
