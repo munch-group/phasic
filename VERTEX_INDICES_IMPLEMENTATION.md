@@ -1,7 +1,7 @@
 # Vertex Indices Implementation - Supporting Duplicate States
 
 **Date**: 2025-12-27
-**Status**: ✅ Complete
+**Status**: Complete
 
 ## Summary
 
@@ -258,10 +258,10 @@ exp = base_graph.expectation()  # ✓ No warnings!
 
 ### Fixed Issues
 
-1. ✅ **Serialization with duplicate states** - No more duplicate edge errors
-2. ✅ **SCC stitching robustness** - Proper cross-graph mapping with fail-fast validation
-3. ✅ **State semantics preservation** - `graph.states().T` works directly as rewards
-4. ✅ **NaN handling** - Combined with earlier `0 × ∞ = 0` fix, trash states work correctly
+1. **Serialization with duplicate states** - No more duplicate edge errors
+2. **SCC stitching robustness** - Proper cross-graph mapping with fail-fast validation
+3. **State semantics preservation** - `graph.states().T` works directly as rewards
+4. **NaN handling** - Combined with earlier `0 × ∞ = 0` fix, trash states work correctly
 
 ### API Compatibility
 

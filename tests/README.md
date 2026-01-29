@@ -176,75 +176,75 @@ pytest tests/test_utilities_integration.py -v
 The test suite covers:
 
 ### Core Graph API
-- ✅ Graph construction (state_length, callback, parameterized)
-- ✅ Vertex operations (create, find, query)
-- ✅ Edge operations (add, parameterized, update)
-- ✅ Graph operations (normalize, copy, validate)
+- Graph construction (state_length, callback, parameterized)
+- Vertex operations (create, find, query)
+- Edge operations (add, parameterized, update)
+- Graph operations (normalize, copy, validate)
 
 ### Matrix Representations
-- ✅ as_matrices() - Export to matrices
-- ✅ from_matrices() - Import from matrices
-- ✅ Round-trip conversions
-- ✅ MatrixRepresentation named tuple
+- as_matrices() - Export to matrices
+- from_matrices() - Import from matrices
+- Round-trip conversions
+- MatrixRepresentation named tuple
 
 ### Distributions
-- ✅ PDF (continuous)
-- ✅ CDF (continuous)
-- ✅ PMF (discrete)
-- ✅ Stop probabilities
+- PDF (continuous)
+- CDF (continuous)
+- PMF (discrete)
+- Stop probabilities
 
 ### Statistical Properties
-- ✅ Expectation
-- ✅ Variance
-- ✅ Covariance
-- ✅ Higher-order moments
-- ✅ Expected waiting time
+- Expectation
+- Variance
+- Covariance
+- Higher-order moments
+- Expected waiting time
 
 ### Sampling
-- ✅ Continuous sampling
-- ✅ Discrete sampling
-- ✅ Multivariate sampling
-- ✅ Stop vertex sampling
+- Continuous sampling
+- Discrete sampling
+- Multivariate sampling
+- Stop vertex sampling
 
 ### Discretization
-- ✅ Continuous → discrete conversion
-- ✅ Reward matrices
-- ✅ Skip states/slots
+- Continuous → discrete conversion
+- Reward matrices
+- Skip states/slots
 
 ### Serialization
-- ✅ Graph serialization
-- ✅ Parameterized edge detection
-- ✅ State/edge arrays
+- Graph serialization
+- Parameterized edge detection
+- State/edge arrays
 
 ### JAX Integration
-- ✅ pmf_from_graph() - Graph to JAX function
-- ✅ pmf_from_graph_parameterized() - Parameterized models
-- ✅ Automatic differentiation (gradients)
-- ✅ JIT compilation
-- ✅ vmap vectorization
-- ✅ Batch operations
+- pmf_from_graph() - Graph to JAX function
+- pmf_from_graph_parameterized() - Parameterized models
+- Automatic differentiation (gradients)
+- JIT compilation
+- vmap vectorization
+- Batch operations
 
 ### Symbolic DAG
-- ✅ eliminate_to_dag() - Symbolic elimination
-- ✅ SymbolicDAG.instantiate() - Fast parameter evaluation
-- ✅ Parameterized edges
-- ✅ Performance optimization
+- eliminate_to_dag() - Symbolic elimination
+- SymbolicDAG.instantiate() - Fast parameter evaluation
+- Parameterized edges
+- Performance optimization
 
 ### Advanced Features
-- ✅ Reward transformations
-- ✅ Expected visits
-- ✅ Residence time
-- ✅ Distribution contexts
-- ✅ SVGD inference
-- ✅ Distributed computing utilities
-- ✅ Parallel configuration
+- Reward transformations
+- Expected visits
+- Residence time
+- Distribution contexts
+- SVGD inference
+- Distributed computing utilities
+- Parallel configuration
 
 ### Utilities
-- ✅ Plotting (with graphviz)
-- ✅ Theme management
-- ✅ Cluster configuration
-- ✅ Environment detection
-- ✅ JAX configuration
+- Plotting (with graphviz)
+- Theme management
+- Cluster configuration
+- Environment detection
+- JAX configuration
 
 ## Test Statistics
 

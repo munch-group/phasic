@@ -1,7 +1,7 @@
 # Joint Index Mode Optimization - Using `expected_sojourn_time()`
 
 **Date**: 2025-12-26
-**Status**: ✅ Complete
+**Status**: Complete
 **Performance Gain**: 3-35x faster (model-dependent)
 
 ## Summary
@@ -137,14 +137,14 @@ while (abs(curr - prev) > tolerance) {
 
 ## Correctness Verification
 
-✅ **All tests pass**:
+**All tests pass**:
 
-1. ✅ Single parameter test
-2. ✅ Batched parameters (vmap) test
-3. ✅ JIT compilation test
-4. ✅ Manual comparison with `expected_sojourn_time()` - exact match
-5. ✅ NaN handling for trash states (returns `inf` correctly)
-6. ✅ Complex graph test (`examples/test.py`) - no NaN warnings
+1. Single parameter test
+2. Batched parameters (vmap) test
+3. JIT compilation test
+4. Manual comparison with `expected_sojourn_time()` - exact match
+5. NaN handling for trash states (returns `inf` correctly)
+6. Complex graph test (`examples/test.py`) - no NaN warnings
 
 ## API Impact
 

@@ -1,7 +1,7 @@
 # FFI+OpenMP Default Implementation
 
 **Date:** October 2025
-**Status:** ✅ Complete
+**Status:** Complete
 **Branch:** master
 
 ---
@@ -281,7 +281,7 @@ svgd = SVGD(..., parallel='vmap')  # Uses FFI+OpenMP
 $ python -c "from phasic import get_config; c=get_config(); print(f'ffi={c.ffi}, openmp={c.openmp}')"
 ffi=True, openmp=True
 ```
-✅ Pass
+Pass
 
 **2. SVGD Test Suite:**
 ```bash
@@ -294,7 +294,7 @@ $ python tests/test_svgd_jax.py
 # No JIT works
 # Backward compatibility (precompile) works
 ```
-✅ Pass
+Pass
 
 **3. FFI Usage:**
 The test output shows no fallback warnings, confirming FFI is being used by default.
@@ -438,11 +438,11 @@ PTDBackendError (base class from exceptions.py)
 
 ## Summary
 
-✅ **FFI+OpenMP is now the default**
-✅ **No silent fallbacks - fail loudly with clear errors**
-✅ **Users can explicitly opt-out if needed**
-✅ **Backward compatible for users with FFI built**
-✅ **Clear migration path for users without FFI**
-✅ **Tests pass**
+**FFI+OpenMP is now the default**
+**No silent fallbacks - fail loudly with clear errors**
+**Users can explicitly opt-out if needed**
+**Backward compatible for users with FFI built**
+**Clear migration path for users without FFI**
+**Tests pass**
 
 **Result:** Users get optimal performance by default, with clear guidance when FFI is unavailable.

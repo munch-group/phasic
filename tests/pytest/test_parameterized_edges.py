@@ -43,7 +43,7 @@
 
 #     index += 1
 
-# print(f"✅ Graph built: {g.vertices_length()} vertices")
+# print(f"Graph built: {g.vertices_length()} vertices")
 
 # # Verify serialization detects parameterized edges
 # print("\n2. Testing serialization...")
@@ -52,7 +52,7 @@
 # n_param_edges = len(serialized['param_edges']) if serialized.get('param_edges') is not None else 0
 
 # if param_length > 0 and n_param_edges > 0:
-#     print(f"✅ Serialization detected: {n_param_edges} parameterized edges, param_length={param_length}")
+#     print(f"Serialization detected: {n_param_edges} parameterized edges, param_length={param_length}")
 # else:
 #     print(f"❌ FAILED: Parameterized edges not detected!")
 #     print(f"   param_length={param_length}, n_param_edges={n_param_edges}")
@@ -61,7 +61,7 @@
 # # Convert to JAX model
 # print("\n3. Creating JAX model...")
 # model = Graph.pmf_from_graph(g, discrete=False)
-# print("✅ Model created")
+# print("Model created")
 
 # # Test basic computation
 # print("\n4. Testing PMF computation...")
@@ -70,7 +70,7 @@
 
 # try:
 #     pdf = model(theta, times)
-#     print(f"✅ PMF computed: shape={pdf.shape}, sum={pdf.sum():.6f}")
+#     print(f"PMF computed: shape={pdf.shape}, sum={pdf.sum():.6f}")
 # except Exception as e:
 #     print(f"❌ FAILED: PMF computation error: {e}")
 #     exit(1)
@@ -80,7 +80,7 @@
 # try:
 #     jit_model = jax.jit(model)
 #     pdf_jit = jit_model(theta, times)
-#     print(f"✅ JIT compilation works")
+#     print(f"JIT compilation works")
 # except Exception as e:
 #     print(f"❌ FAILED: JIT error: {e}")
 #     exit(1)
@@ -93,12 +93,12 @@
 
 #     grad_fn = jax.grad(loss_fn)
 #     gradient = grad_fn(theta)
-#     print(f"✅ Gradients work: ∇θ = {gradient}")
+#     print(f"Gradients work: ∇θ = {gradient}")
 
 #     if jnp.allclose(gradient, 0.0):
 #         print("   ⚠️  Note: Gradients are zero (may need different times/granularity)")
 #     else:
-#         print("   ✅ Non-zero gradients computed!")
+#         print("   Non-zero gradients computed!")
 
 # except Exception as e:
 #     print(f"❌ FAILED: Gradient error: {e}")
@@ -110,7 +110,7 @@
 #     theta_batch = jnp.array([[1.0, 2.0], [2.0, 1.0], [1.5, 1.5]])
 #     vmap_model = jax.vmap(lambda t: model(t, times))
 #     pdf_batch = vmap_model(theta_batch)
-#     print(f"✅ vmap works: batch shape={pdf_batch.shape}")
+#     print(f"vmap works: batch shape={pdf_batch.shape}")
 # except Exception as e:
 #     print(f"❌ FAILED: vmap error: {e}")
 #     exit(1)
@@ -121,26 +121,26 @@
 #     model_discrete = Graph.pmf_from_graph(g, discrete=True)
 #     jumps = jnp.array([1, 2, 3, 5])
 #     pmf = model_discrete(theta, jumps)
-#     print(f"✅ Discrete mode works: shape={pmf.shape}")
+#     print(f"Discrete mode works: shape={pmf.shape}")
 # except Exception as e:
 #     print(f"❌ FAILED: Discrete mode error: {e}")
 #     exit(1)
 
 # # Final summary
 # print("\n" + "=" * 70)
-# print("✅ ALL TESTS PASSED!")
+# print("ALL TESTS PASSED!")
 # print("=" * 70)
 # print("""
 # Parameterized edges feature is working correctly!
 
 # Capabilities verified:
-#   ✅ Graph construction with parameterized edges
-#   ✅ Automatic detection via serialization
-#   ✅ PMF/PDF computation
-#   ✅ JIT compilation
-#   ✅ Gradient computation (autodiff)
-#   ✅ vmap (vectorization)
-#   ✅ Both continuous and discrete modes
+#   Graph construction with parameterized edges
+#   Automatic detection via serialization
+#   PMF/PDF computation
+#   JIT compilation
+#   Gradient computation (autodiff)
+#   vmap (vectorization)
+#   Both continuous and discrete modes
 
 # You can now use this for:
 #   • SVGD (Stein Variational Gradient Descent)

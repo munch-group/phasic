@@ -119,7 +119,7 @@ tryCatch({
 
 cat("\n")
 cat("========================================\n")
-cat("✅ Installation complete!\n")
+cat("Installation complete!\n")
 cat("========================================\n\n")
 
 cat("You can now use phasic in R:\n\n")

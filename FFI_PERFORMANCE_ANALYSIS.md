@@ -179,11 +179,11 @@ def _compute_pure(theta, vertex_indices):
 
 **FFI is the correct choice** for `pmf_from_graph_joint_index()` because:
 
-1. ✅ Enables large graphs (the whole point)
-2. ✅ Acceptable speed on small graphs (1.5ms is fine)
-3. ✅ Matches API of other FFI functions
-4. ✅ Supports JAX transformations
-5. ✅ No memory explosions
+1. Enables large graphs (the whole point)
+2. Acceptable speed on small graphs (1.5ms is fine)
+3. Matches API of other FFI functions
+4. Supports JAX transformations
+5. No memory explosions
 
 **Tradeoff**: 6x slower on small graphs, but enables impossible computations on large graphs.
 

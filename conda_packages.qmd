@@ -2,7 +2,7 @@
 
 ## Overview
 
-✅ **conda CAN install the R package!**
+**conda CAN install the R package!**
 
 The conda-build configuration now supports building and installing the R package via:
 ```bash
@@ -74,11 +74,11 @@ When you install `r-phasic`, conda automatically:
 ```
 
 **Benefits**:
-- ✅ No C++ compilation for R package
-- ✅ Automatic Python backend installation
-- ✅ Single conda environment for both
-- ✅ Pure R package (noarch: generic)
-- ✅ Standard R installation (`R CMD INSTALL`)
+- No C++ compilation for R package
+- Automatic Python backend installation
+- Single conda environment for both
+- Pure R package (noarch: generic)
+- Standard R installation (`R CMD INSTALL`)
 
 ## Installation Commands
 
@@ -143,9 +143,9 @@ test:
 
 | Method | Command | Installs | Status |
 |--------|---------|----------|--------|
-| **conda** | `conda install r-phasic` | Python + R | ✅ Ready |
-| pip | `pip install phasic` | Python only | ✅ Works |
-| R devtools | `devtools::install()` | R only | ✅ Works |
+| **conda** | `conda install r-phasic` | Python + R | Ready |
+| pip | `pip install phasic` | Python only | Works |
+| R devtools | `devtools::install()` | R only | Works |
 | CRAN | `install.packages("phasic")` | R only | 🔄 Future |
 
 ## Advantages of Conda Installation
@@ -252,10 +252,10 @@ C++ Extensions (for Python)
 ```
 
 **Benefits**:
-- ✅ Single C++ codebase (Python binding)
-- ✅ All Python features available (JAX, SVGD, traces)
-- ✅ Easier maintenance
-- ✅ Conda handles both Python + R
+- Single C++ codebase (Python binding)
+- All Python features available (JAX, SVGD, traces)
+- Easier maintenance
+- Conda handles both Python + R
 
 ## FAQs
 
@@ -281,7 +281,7 @@ A: Targeting conda-forge (community channel) for widest distribution.
 
 ## Current Status
 
-✅ **Configuration Complete**
+**Configuration Complete**
 - meta.yaml updated with r-phasic output
 - Dependencies specified (r-reticulate, r-r6)
 - Tests included
@@ -303,10 +303,10 @@ conda install r-phasic
 ```
 
 This single command installs:
-- ✅ Python phasic package
-- ✅ R phasic wrapper
-- ✅ All dependencies
-- ✅ In one conda environment
+- Python phasic package
+- R phasic wrapper
+- All dependencies
+- In one conda environment
 
 This is the **easiest** installation method for users who already use conda.
 

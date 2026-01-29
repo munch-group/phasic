@@ -41,7 +41,9 @@
       "Bash(python:*)",
       "Bash(python3:*)",
       "Bash(quartodoc build:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "WebFetch(domain:arxiv.org)",
+      "WebFetch(domain:openreview.net)"
     ],
     "deny": [],
     "ask": []

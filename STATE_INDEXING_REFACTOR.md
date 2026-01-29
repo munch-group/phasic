@@ -1,7 +1,7 @@
 # State Indexing Refactoring
 
 **Date:** 2025-11-29
-**Status:** ✅ Complete
+**Status:** Complete
 
 ## Summary
 
@@ -132,13 +132,13 @@ space.props_to_index({'a': 2})  # 2
 
 All functionality verified with comprehensive test suite:
 
-✅ Index 0 maps to valid property combination (not None)
-✅ No +1/-1 offsets in conversion
-✅ Size = product of bases (no +1)
-✅ Properties with min_value handling
-✅ Round-trip conversion for all indices
-✅ Vectorized conversion
-✅ StateVector wrapper class
+Index 0 maps to valid property combination (not None)
+No +1/-1 offsets in conversion
+Size = product of bases (no +1)
+Properties with min_value handling
+Round-trip conversion for all indices
+Vectorized conversion
+StateVector wrapper class
 
 ## Benefits
 

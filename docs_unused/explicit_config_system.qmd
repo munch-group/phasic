@@ -1,12 +1,12 @@
 # Explicit Configuration System - Implementation Guide
 
 **Date**: October 19, 2025
-**Status**: ✅ COMPLETE
+**Status**: COMPLETE
 **Goal**: Remove all fallback behavior, make everything explicit with clear errors
 
 ---
 
-## ✅ Completed
+## Completed
 
 ### 1. Exception Classes (`src/phasic/exceptions.py`)
 Created comprehensive error hierarchy:
@@ -67,7 +67,7 @@ config.validate()
 
 ---
 
-## ✅ Completed (Part 2)
+## Completed (Part 2)
 
 ### 3. Update `__init__.py` ✅
 
@@ -144,7 +144,7 @@ if get_config().jax:
 
 ---
 
-## ✅ Completed (Part 3)
+## Completed (Part 3)
 
 ### 4. Update `ffi_wrappers.py` ✅
 
@@ -412,12 +412,12 @@ pmf = compute_pmf_ffi(..., backend='jax')  # Explicit!
 ## Implementation Status
 
 ### Completed ✅
-1. ✅ exceptions.py - Error class hierarchy with actionable messages
-2. ✅ config.py - phasicConfig with validation and global API
-3. ✅ __init__.py - Config-based JAX import with clear errors
-4. ✅ ffi_wrappers.py - Removed silent fallbacks, documented FFI disabled
-5. ✅ trace_elimination.py - Checked, no silent fallbacks found
-6. ✅ Basic testing - Import works, config validation works, errors are clear
+1. exceptions.py - Error class hierarchy with actionable messages
+2. config.py - phasicConfig with validation and global API
+3. __init__.py - Config-based JAX import with clear errors
+4. ffi_wrappers.py - Removed silent fallbacks, documented FFI disabled
+5. trace_elimination.py - Checked, no silent fallbacks found
+6. Basic testing - Import works, config validation works, errors are clear
 
 ### Deferred ⏸
 - svgd.py - Adding explicit jit/parallel parameters

@@ -132,12 +132,12 @@ def test_as_matrices_multidimensional():
 
 if __name__ == "__main__":
     test_as_matrices_simple()
-    print("✅ test_as_matrices_simple passed")
+    print("test_as_matrices_simple passed")
 
     test_as_matrices_complex()
-    print("✅ test_as_matrices_complex passed")
+    print("test_as_matrices_complex passed")
 
     test_as_matrices_multidimensional()
-    print("✅ test_as_matrices_multidimensional passed")
+    print("test_as_matrices_multidimensional passed")
 
     print("\nAll tests passed!")

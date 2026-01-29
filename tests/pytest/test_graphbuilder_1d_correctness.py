@@ -84,7 +84,7 @@ def test_first_moment_vs_empirical(graph, theta, nr_samples=3, n_samples=100000)
 
     # Success criterion: < 0.1% relative error
     success = rel_error < 0.001
-    print(f"\n{'✅ PASS' if success else '❌ FAIL'}: Relative error {'<' if success else '>='} 0.1%")
+    print(f"\n{'PASS' if success else '❌ FAIL'}: Relative error {'<' if success else '>='} 0.1%")
 
     return success, rel_error
 
@@ -118,7 +118,7 @@ def test_pmf_normalization(graph, theta, nr_samples=3):
     success = error < 0.001
 
     print(f"Error from 1.0: {error:.6e}")
-    print(f"\n{'✅ PASS' if success else '❌ FAIL'}: |∫ PMF dt - 1.0| {'<' if success else '>='} 0.001")
+    print(f"\n{'PASS' if success else '❌ FAIL'}: |∫ PMF dt - 1.0| {'<' if success else '>='} 0.001")
 
     return success, error
 
@@ -175,7 +175,7 @@ def test_pmf_vs_empirical(graph, theta, nr_samples=3, n_samples=100000, n_bins=5
 
     # Success criterion: p-value > 0.05
     success = p_value > 0.05
-    print(f"\n{'✅ PASS' if success else '❌ FAIL'}: p-value {'>' if success else '<='} 0.05")
+    print(f"\n{'PASS' if success else '❌ FAIL'}: p-value {'>' if success else '<='} 0.05")
 
     return success, p_value
 
@@ -271,14 +271,14 @@ def print_summary(all_results):
     print(f"{'':─<8} {'':─<12} {'':─<12} {'':─<12} {'':─<10}")
 
     for theta, results in all_results.items():
-        moment_pass = '✅ PASS' if results['moment']['success'] else '❌ FAIL'
-        norm_pass = '✅ PASS' if results['normalization']['success'] else '❌ FAIL'
-        dist_pass = '✅ PASS' if results['distribution']['success'] else '❌ FAIL'
+        moment_pass = 'PASS' if results['moment']['success'] else '❌ FAIL'
+        norm_pass = 'PASS' if results['normalization']['success'] else '❌ FAIL'
+        dist_pass = 'PASS' if results['distribution']['success'] else '❌ FAIL'
 
         all_pass = (results['moment']['success'] and
                    results['normalization']['success'] and
                    results['distribution']['success'])
-        overall = '✅ PASS' if all_pass else '❌ FAIL'
+        overall = 'PASS' if all_pass else '❌ FAIL'
 
         print(f"{theta:<8.1f} {moment_pass:<12} {norm_pass:<12} {dist_pass:<12} {overall:<10}")
 
@@ -302,7 +302,7 @@ def print_summary(all_results):
 
     print(f"\n{'=' * 80}")
     if all_tests_passed:
-        print("✅ ALL PHASE 1 TESTS PASSED")
+        print("ALL PHASE 1 TESTS PASSED")
         print("=" * 80)
         print("\nConclusion: GraphBuilder 1D model produces correct PMF and moments")
         print("The θ=10 SVGD issue is NOT due to incorrect GraphBuilder outputs")

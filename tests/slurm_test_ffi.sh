@@ -68,7 +68,7 @@ EXIT_CODE=$?
 echo ""
 echo "=========================================="
 if [ $EXIT_CODE -eq 0 ]; then
-    echo "✅ All tests PASSED"
+    echo "All tests PASSED"
 else
     echo "❌ Tests FAILED (exit code: $EXIT_CODE)"
 fi

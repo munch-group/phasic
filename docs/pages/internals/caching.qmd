@@ -584,7 +584,7 @@ print_cache_info(max_files=5)
 
 ## Best Practices {#best-practices}
 
-### ✅ DO: Always Enable Caching
+### DO: Always Enable Caching
 
 ```python
 # Good: Use default caching (trace cache automatic)
@@ -595,7 +595,7 @@ model = Graph.pmf_from_graph(g)  # Cache enabled
 # (Note: Graph doesn't have use_cache parameter, caching is automatic)
 ```
 
-### ✅ DO: Configure JAX Early
+### DO: Configure JAX Early
 
 ```python
 # BEFORE importing JAX
@@ -607,7 +607,7 @@ import jax
 from phasic import Graph
 ```
 
-### ✅ DO: Pre-warm for Production
+### DO: Pre-warm for Production
 
 ```python
 from phasic.cache_manager import CacheManager
@@ -617,7 +617,7 @@ manager.prewarm_model(model, expected_shapes, expected_grids)
 # Now production queries are instant
 ```
 
-### ✅ DO: Monitor Cache Size
+### DO: Monitor Cache Size
 
 ```python
 from phasic import cache_info

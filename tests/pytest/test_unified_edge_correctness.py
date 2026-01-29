@@ -43,7 +43,7 @@ error_const = abs(pdf_computed - pdf_analytical)
 
 print(f"   t={t}: computed={pdf_computed:.6f}, analytical={pdf_analytical:.6f}, error={error_const:.6e}")
 if error_const < 0.01:  # 1% tolerance
-    print("   ✅ Constant edge PDF is correct")
+    print("   Constant edge PDF is correct")
 else:
     print(f"   ❌ FAILED: Error {error_const:.6e} exceeds tolerance!")
     exit(1)
@@ -73,7 +73,7 @@ error_param = abs(pdf_param - pdf_analytical)
 
 print(f"   t={t}, theta=[3.0]: computed={pdf_param:.6f}, analytical={pdf_analytical:.6f}, error={error_param:.6e}")
 if error_param < 0.01:
-    print("   ✅ Parameterized edge PDF is correct")
+    print("   Parameterized edge PDF is correct")
 else:
     print(f"   ❌ FAILED: Error {error_param:.6e} exceeds tolerance!")
     exit(1)
@@ -105,7 +105,7 @@ weight_v1 = edges_v1[0].weight()
 
 print(f"   theta=[1.0, 1.0]: edge0_weight={weight_v0:.1f} (expected 3.0), edge1_weight={weight_v1:.1f} (expected 4.0)")
 if abs(weight_v0 - 3.0) < 1e-10 and abs(weight_v1 - 4.0) < 1e-10:
-    print("   ✅ Multi-parameter edge weights correct")
+    print("   Multi-parameter edge weights correct")
 else:
     print(f"   ❌ FAILED: Weights incorrect!")
     exit(1)
@@ -138,7 +138,7 @@ try:
     exit(1)
 except RuntimeError as e:
     if "coefficient length mismatch" in str(e).lower():
-        print(f"   ✅ Non-callback mode rejects coefficient mismatch")
+        print(f"   Non-callback mode rejects coefficient mismatch")
     else:
         print(f"   ❌ FAILED: Wrong error message: {e}")
         exit(1)
@@ -164,7 +164,7 @@ try:
     exit(1)
 except RuntimeError as e:
     if "coefficient length mismatch" in str(e).lower():
-        print("   ✅ Non-callback mode rejects extra coefficients")
+        print("   Non-callback mode rejects extra coefficients")
     else:
         print(f"   ⚠️  Unexpected error: {e}")
 
@@ -180,7 +180,7 @@ g_callback.update_weights([1.5, 2.5], callback=custom_callback)
 edge_weight = v1_cb.edges()[0].weight()
 expected_weight = 25.5
 if abs(edge_weight - expected_weight) < 1e-10:
-    print(f"   ✅ Callback mode allows extra coefficients (weight={edge_weight:.1f})")
+    print(f"   Callback mode allows extra coefficients (weight={edge_weight:.1f})")
 else:
     print(f"   ❌ FAILED: Expected weight {expected_weight}, got {edge_weight}")
     exit(1)
@@ -199,7 +199,7 @@ print(f"   Multi-param graph: param_length={serial_multi['param_length']}, n_par
 assert serial_multi['param_length'] == 2, "Serialized multi-param graph should have param_length=2"
 assert len(serial_multi.get('param_edges', [])) > 0, "Should have parameterized edges"
 
-print("   ✅ Serialization preserves graph structure")
+print("   Serialization preserves graph structure")
 
 # Test 6: JAX Integration
 print("\n6. Testing JAX integration (jit/grad/vmap)...")
@@ -232,7 +232,7 @@ try:
     jit_model = jax.jit(model)
     pdf_jit = jit_model(theta, times)
     assert np.allclose(pdf, pdf_jit), "JIT should produce same results"
-    print(f"   ✅ JIT works")
+    print(f"   JIT works")
 
     # Test gradients
     def loss_fn(theta_val):
@@ -242,16 +242,16 @@ try:
     gradient = grad_fn(theta)
     print(f"   Gradient: ∇θ = [{gradient[0]:.6f}, {gradient[1]:.6f}]")
     assert gradient.shape == (2,), "Gradient should have shape (2,)"
-    print(f"   ✅ Gradients work")
+    print(f"   Gradients work")
 
     # Test vmap
     theta_batch = jnp.array([[1.0, 2.0], [2.0, 1.0], [1.5, 1.5]])
     vmap_model = jax.vmap(lambda t: model(t, times))
     pdf_batch = vmap_model(theta_batch)
     assert pdf_batch.shape == (3, 3), "Batched PDF should have shape (3, 3)"
-    print(f"   ✅ vmap works")
+    print(f"   vmap works")
 
-    print("   ✅ JAX integration is correct")
+    print("   JAX integration is correct")
 
 except ImportError:
     print("   ⚠️  JAX not available, skipping JAX tests")
@@ -270,7 +270,7 @@ with warnings.catch_warnings(record=True) as w:
     v0.add_edge_parameterized(v1, 0.0, [2.0, 3.0])
 
     if len(w) > 0 and issubclass(w[0].category, DeprecationWarning):
-        print(f"   ✅ Deprecation warning shown for add_edge_parameterized()")
+        print(f"   Deprecation warning shown for add_edge_parameterized()")
     else:
         print(f"   ⚠️  No deprecation warning (may be suppressed)")
 
@@ -282,14 +282,14 @@ with warnings.catch_warnings(record=True) as w:
     g_compat.update_parameterized_weights([1.5, 2.5])
 
     if len(w) > 0 and issubclass(w[0].category, DeprecationWarning):
-        print(f"   ✅ Deprecation warning shown for update_parameterized_weights()")
+        print(f"   Deprecation warning shown for update_parameterized_weights()")
     else:
         print(f"   ⚠️  No deprecation warning (may be suppressed)")
 
 # Verify it still works
 pdf_compat = g_compat.pdf(1.0, granularity=100)
 assert pdf_compat > 0, "Deprecated API should still produce valid results"
-print(f"   ✅ Backward compatibility maintained (pdf={pdf_compat:.6f})")
+print(f"   Backward compatibility maintained (pdf={pdf_compat:.6f})")
 
 # Test 8: Edge Weight Updates
 print("\n8. Testing edge weight updates...")
@@ -320,7 +320,7 @@ print(f"   theta=[2.0]: start={weight_start_2:.1f}, other={weight_other_2:.1f} (
 assert abs(weight_start_2 - 5.0) < 1e-10, "Starting edge should remain 5.0"
 assert abs(weight_other_2 - 6.0) < 1e-10, "Weight should be 3*2 = 6"
 
-print(f"   ✅ Edge weight updates work correctly (starting edge unchanged, other edge updated)")
+print(f"   Edge weight updates work correctly (starting edge unchanged, other edge updated)")
 
 # Test 9: Numerical Accuracy
 print("\n9. Testing numerical accuracy across parameter ranges...")
@@ -360,27 +360,27 @@ for rate in test_params:
     print(f"   λ₂={rate:5.1f}: computed={pdf_computed:.6f}, analytical={pdf_analytical:.6f}, rel_error={error:.2%}")
 
 if max_error < 0.02:  # 2% relative error
-    print(f"   ✅ Numerical accuracy good (max error: {max_error:.2%})")
+    print(f"   Numerical accuracy good (max error: {max_error:.2%})")
 else:
     print(f"   ⚠️  Accuracy acceptable but not excellent (max error: {max_error:.2%})")
 
 # Final Summary
 print("\n" + "=" * 70)
-print("✅ ALL CORRECTNESS TESTS PASSED!")
+print("ALL CORRECTNESS TESTS PASSED!")
 print("=" * 70)
 print("""
 Verified capabilities:
-  ✅ Constant edges produce correct PDFs
-  ✅ Parameterized edges produce correct PDFs
-  ✅ Multi-parameter edge weights computed correctly
-  ✅ Edge coefficient validation works (non-callback mode)
-  ✅ Extra coefficients allowed in callback mode
-  ✅ Non-callback mode enforces strict coefficient==param length
-  ✅ Serialization preserves structure
-  ✅ JAX integration (jit/grad/vmap) works
-  ✅ Backward compatibility maintained
-  ✅ Edge weight updates work correctly
-  ✅ Numerical accuracy within tolerance
+  Constant edges produce correct PDFs
+  Parameterized edges produce correct PDFs
+  Multi-parameter edge weights computed correctly
+  Edge coefficient validation works (non-callback mode)
+  Extra coefficients allowed in callback mode
+  Non-callback mode enforces strict coefficient==param length
+  Serialization preserves structure
+  JAX integration (jit/grad/vmap) works
+  Backward compatibility maintained
+  Edge weight updates work correctly
+  Numerical accuracy within tolerance
 
 The unified edge interface is CORRECT and PRODUCTION-READY.
 """)

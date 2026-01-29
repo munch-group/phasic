@@ -6,13 +6,13 @@
 ## Executive Summary
 
 Implement JAX FFI integration for `expected_sojourn_time` with **complete feature parity** to `compute_pmf_ffi`:
-- ✅ **vmap batching** with `expand_dims` method
-- ✅ **OpenMP multi-threading** for parallel batch processing
-- ✅ **Thread-local GraphBuilder caching** for performance
-- ✅ **Broadcast support** for singleton indices with batched theta
-- ✅ **Custom VJP gradients** via finite differences (same as all FFI functions)
-- ✅ **Explicit error handling** with detailed messages
-- ✅ **No silent fallbacks** - explicit errors if requirements not met
+- **vmap batching** with `expand_dims` method
+- **OpenMP multi-threading** for parallel batch processing
+- **Thread-local GraphBuilder caching** for performance
+- **Broadcast support** for singleton indices with batched theta
+- **Custom VJP gradients** via finite differences (same as all FFI functions)
+- **Explicit error handling** with detailed messages
+- **No silent fallbacks** - explicit errors if requirements not met
 
 **Memory Impact**: 268 GB → 1.7 GB (99.4% reduction)
 **Performance**: OpenMP parallelization across vmap batches
@@ -58,11 +58,11 @@ model.defvjp(model_fwd, model_bwd)
 ```
 
 **Why this works**:
-- ✅ Same pattern as `compute_pmf_ffi` (lines 2415-2444 in `__init__.py`)
-- ✅ Same pattern as `compute_moments_ffi` (lines 3250-3279)
-- ✅ Same pattern as existing `joint_index` (lines 3692-3738)
-- ✅ SVGD only needs `jax.grad()` - custom VJP provides this
-- ✅ Cost: 2 × n_params extra FFI calls per gradient (practical since FFI is fast)
+- Same pattern as `compute_pmf_ffi` (lines 2415-2444 in `__init__.py`)
+- Same pattern as `compute_moments_ffi` (lines 3250-3279)
+- Same pattern as existing `joint_index` (lines 3692-3738)
+- SVGD only needs `jax.grad()` - custom VJP provides this
+- Cost: 2 × n_params extra FFI calls per gradient (practical since FFI is fast)
 
 ---
 
@@ -399,13 +399,13 @@ pixi run python examples/test.py
 
 ## Success Criteria
 
-- ✅ FFI handler compiles with HAVE_XLA_FFI
-- ✅ JAX FFI registration succeeds
-- ✅ `compute_sojourn_times_ffi()` matches direct computation
-- ✅ vmap batching works with OpenMP
-- ✅ JIT compilation works
-- ✅ Custom VJP gradients work (finite differences)
-- ✅ `pmf_from_graph_joint_index()` uses FFI (REQUIRED)
-- ✅ SVGD with `joint_index=True` completes without memory errors
-- ✅ Explicit errors when FFI disabled or indices wrong dtype
-- ✅ All existing tests still pass
+- FFI handler compiles with HAVE_XLA_FFI
+- JAX FFI registration succeeds
+- `compute_sojourn_times_ffi()` matches direct computation
+- vmap batching works with OpenMP
+- JIT compilation works
+- Custom VJP gradients work (finite differences)
+- `pmf_from_graph_joint_index()` uses FFI (REQUIRED)
+- SVGD with `joint_index=True` completes without memory errors
+- Explicit errors when FFI disabled or indices wrong dtype
+- All existing tests still pass

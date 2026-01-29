@@ -26,7 +26,7 @@ def test_from_matrices_basic():
     # Test PDF computation
     pdf = g.pdf(1.0, 100)
     assert 0 <= pdf <= 1
-    print(f"✅ Basic from_matrices test passed (PDF at t=1.0: {pdf:.6f})")
+    print(f"Basic from_matrices test passed (PDF at t=1.0: {pdf:.6f})")
 
 
 def test_from_matrices_with_states():
@@ -44,7 +44,7 @@ def test_from_matrices_with_states():
     assert g is not None
     assert g.vertices_length() > 0
 
-    print("✅ from_matrices with custom states test passed")
+    print("from_matrices with custom states test passed")
 
 
 def test_from_matrices_multidimensional():
@@ -67,7 +67,7 @@ def test_from_matrices_multidimensional():
     assert g is not None
     assert g.state_length() == 2  # Should have 2D states
 
-    print("✅ from_matrices with multidimensional states test passed")
+    print("from_matrices with multidimensional states test passed")
 
 
 def test_round_trip_simple():
@@ -110,7 +110,7 @@ def test_round_trip_simple():
         pdf_recon = g_recon.pdf(t, 100)
         assert abs(pdf_orig - pdf_recon) < 1e-6, f"PDFs differ at t={t}"
 
-    print("✅ Round-trip test passed")
+    print("Round-trip test passed")
 
 
 def test_from_matrices_validation():
@@ -133,7 +133,7 @@ def test_from_matrices_validation():
     except RuntimeError as e:
         assert "square" in str(e)
 
-    print("✅ Input validation test passed")
+    print("Input validation test passed")
 
 
 def test_from_matrices_edge_cases():
@@ -159,7 +159,7 @@ def test_from_matrices_edge_cases():
     g = Graph.from_matrices(ipv_sparse, sim_sparse)
     assert g is not None
 
-    print("✅ Edge cases test passed")
+    print("Edge cases test passed")
 
 
 def test_from_matrices_performance():
@@ -184,7 +184,7 @@ def test_from_matrices_performance():
     pdf = g.pdf(1.0, 100)
     assert 0 <= pdf <= 1
 
-    print(f"✅ Performance test passed (n={n} states)")
+    print(f"Performance test passed (n={n} states)")
 
 
 if __name__ == "__main__":
@@ -200,4 +200,4 @@ if __name__ == "__main__":
     test_from_matrices_performance()
 
     print("\n" + "=" * 60)
-    print("✅ All from_matrices tests passed!")
+    print("All from_matrices tests passed!")

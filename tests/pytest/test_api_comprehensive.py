@@ -16,7 +16,7 @@ def run_test(test_func, test_name):
     """Run a single test function and report results."""
     try:
         test_func()
-        print(f"✅ {test_name}")
+        print(f"{test_name}")
         return True
     except AssertionError as e:
         print(f"❌ {test_name}: {e}")

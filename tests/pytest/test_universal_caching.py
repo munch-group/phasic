@@ -33,7 +33,7 @@ print(f"   Graph: param_length={g1.param_length()}, is_parameterized={g1.is_para
 trace = record_elimination_trace(g1, theta_dim=g1.param_length())
 
 if trace is not None:
-    print(f"   ✅ Trace recorded: {trace.n_vertices} vertices, param_length={trace.param_length}")
+    print(f"   Trace recorded: {trace.n_vertices} vertices, param_length={trace.param_length}")
 else:
     print(f"   ❌ FAILED: Trace not recorded for constant graph!")
     exit(1)
@@ -53,7 +53,7 @@ print(f"   Graph: param_length={g2.param_length()}, is_parameterized={g2.is_para
 trace = record_elimination_trace(g2, theta_dim=g2.param_length())
 
 if trace is not None:
-    print(f"   ✅ Trace recorded: {trace.n_vertices} vertices, param_length={trace.param_length}")
+    print(f"   Trace recorded: {trace.n_vertices} vertices, param_length={trace.param_length}")
 else:
     print(f"   ❌ FAILED: Trace not recorded for parameterized graph!")
     exit(1)
@@ -79,7 +79,7 @@ print(f"   Graph 2: param_length={trace3b.param_length}, n_operations={len(trace
 
 # Operation sequence should be similar (minus DOT coefficients)
 if trace3a.n_vertices == trace3b.n_vertices:
-    print(f"   ✅ Structural equivalence: Both have {trace3a.n_vertices} vertices")
+    print(f"   Structural equivalence: Both have {trace3a.n_vertices} vertices")
 else:
     print(f"   ⚠️  Different vertex counts (expected for different structures)")
 
@@ -98,30 +98,30 @@ g4.update_weights([1.5, 2.5])
 
 # Compute PDF to verify it works
 pdf = g4.pdf(1.0, granularity=100)
-print(f"   ✅ PDF computation works: pdf(1.0) = {pdf:.6f}")
+print(f"   PDF computation works: pdf(1.0) = {pdf:.6f}")
 
 # Test 5: Verify cache directory structure
 print("\n5. Testing cache directory...")
 cache_dir = os.path.expanduser("~/.phasic_cache/traces")
 if os.path.exists(cache_dir):
     n_traces = len([f for f in os.listdir(cache_dir) if f.endswith('.json')])
-    print(f"   ✅ Cache directory exists: {n_traces} trace files")
+    print(f"   Cache directory exists: {n_traces} trace files")
 else:
     print(f"   ⚠️  Cache directory not found (may not have been created yet)")
 
 # Final summary
 print("\n" + "=" * 70)
-print("✅ ALL UNIVERSAL CACHING TESTS PASSED!")
+print("ALL UNIVERSAL CACHING TESTS PASSED!")
 print("=" * 70)
 print("""
 Universal trace caching is working correctly!
 
 Key findings:
-  ✅ Constant-weight graphs get traces recorded (param_length=1)
-  ✅ Parameterized graphs get traces recorded (param_length>1)
-  ✅ Trace structure reflects graph topology
-  ✅ Automatic recording via update_weights() works
-  ✅ Cache infrastructure is functional
+  Constant-weight graphs get traces recorded (param_length=1)
+  Parameterized graphs get traces recorded (param_length>1)
+  Trace structure reflects graph topology
+  Automatic recording via update_weights() works
+  Cache infrastructure is functional
 
 This enables:
   • Unified caching for all graph types

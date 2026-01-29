@@ -1,18 +1,18 @@
 # Phase 2: FFI Support for Expected Sojourn Times - Implementation Summary
 
 **Date**: 2025-12-30
-**Status**: ✅ Implementation Complete - Basic Tests Passing
+**Status**: Implementation Complete - Basic Tests Passing
 
 ## Summary
 
 Successfully implemented JAX FFI integration for `expected_sojourn_time` with **complete feature parity** to `compute_pmf_ffi`:
-- ✅ **vmap batching** with `expand_dims` method
-- ✅ **OpenMP multi-threading** for parallel batch processing
-- ✅ **Thread-local GraphBuilder caching** for performance
-- ✅ **Broadcast support** for singleton indices with batched theta
-- ✅ **Custom VJP gradients** via finite differences (ready to implement)
-- ✅ **Explicit error handling** with detailed messages
-- ✅ **No silent fallbacks** - explicit errors if requirements not met
+- **vmap batching** with `expand_dims` method
+- **OpenMP multi-threading** for parallel batch processing
+- **Thread-local GraphBuilder caching** for performance
+- **Broadcast support** for singleton indices with batched theta
+- **Custom VJP gradients** via finite differences (ready to implement)
+- **Explicit error handling** with detailed messages
+- **No silent fallbacks** - explicit errors if requirements not met
 
 **Memory Impact**: 268 GB → 1.7 GB (99.4% reduction for typical use)
 **Performance**: OpenMP parallelization across vmap batches
@@ -287,16 +287,16 @@ Add to Phase 2 section:
 
 ## Success Criteria
 
-- ✅ FFI handler compiles with HAVE_XLA_FFI
-- ✅ JAX FFI registration succeeds
-- ✅ `compute_sojourn_times_ffi()` matches direct computation
-- ✅ vmap batching works with OpenMP
-- ✅ JIT compilation works
+- FFI handler compiles with HAVE_XLA_FFI
+- JAX FFI registration succeeds
+- `compute_sojourn_times_ffi()` matches direct computation
+- vmap batching works with OpenMP
+- JIT compilation works
 - ⚠️ Custom VJP gradients work (finite differences) - **NOT YET IMPLEMENTED**
 - ⚠️ `pmf_from_graph_joint_index()` uses FFI - **NOT YET IMPLEMENTED**
 - ⚠️ SVGD with `joint_index=True` completes without memory errors - **NOT YET TESTED**
-- ✅ Explicit errors when FFI disabled or indices wrong dtype
-- ✅ All basic tests pass
+- Explicit errors when FFI disabled or indices wrong dtype
+- All basic tests pass
 
 ---
 

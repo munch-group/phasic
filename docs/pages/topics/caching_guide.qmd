@@ -302,21 +302,21 @@ tar -xzf ~/my_caches.tar.gz
 ### When To Use Each Cache
 
 **Graph Cache (`cache=True`)**:
-- ✅ Expensive graph construction (>1 second)
-- ✅ Same callback + parameters used repeatedly
-- ✅ Sharing pre-built graphs across sessions
+- Expensive graph construction (>1 second)
+- Same callback + parameters used repeatedly
+- Sharing pre-built graphs across sessions
 - ❌ Rapidly changing callbacks (cache invalidation overhead)
 
 **Trace Cache (`hierarchical=True`)**:
-- ✅ Computing moments/expectations repeatedly
-- ✅ SVGD or MCMC with many iterations
-- ✅ Same graph structure, different parameters
+- Computing moments/expectations repeatedly
+- SVGD or MCMC with many iterations
+- Same graph structure, different parameters
 - ❌ Single-use graphs
 
 **JAX Cache**:
-- ✅ Always enable (default)
-- ✅ JAX-based models (`pmf_from_graph`)
-- ✅ Production deployments
+- Always enable (default)
+- JAX-based models (`pmf_from_graph`)
+- Production deployments
 
 ### Cache Hygiene
 

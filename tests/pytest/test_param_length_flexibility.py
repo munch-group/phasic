@@ -206,7 +206,7 @@ if __name__ == "__main__":
     print(f"\n{'='*60}")
     print(f"Results: {passed} passed, {failed} failed")
     if failed == 0:
-        print("✅ All tests passed!")
+        print("All tests passed!")
     else:
         print(f"❌ {failed} test(s) failed")
         exit(1)

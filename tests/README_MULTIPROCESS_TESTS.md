@@ -143,7 +143,7 @@ JAX Device Info:
   Local devices: 8
   Devices: [CpuDevice(id=0), CpuDevice(id=1), ...]
 
-✅ 11/11 tests PASSED
+11/11 tests PASSED
 ```
 
 ### SLURM Tests (test_slurm_multinode_ffi.py)
@@ -162,8 +162,8 @@ Process 1/4:
   Node: node002
   ...
 
-✅ All processes see consistent results
-✅ 8/8 tests PASSED (per process)
+All processes see consistent results
+8/8 tests PASSED (per process)
 ```
 
 ---
