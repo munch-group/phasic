@@ -15,12 +15,9 @@ project:
     - "**/*.ipynb"  # render all qmd files
     # - "!draft-*.qmd"  # except those starting with draft-
     - "!internal/"  # exclude entire directories
-    - "!pages/tutorials/rabbits_full_py_api_example.ipynb"
     - "!pages/benchmarks/**"
-    - "!pages/svgd/"
     - "!pages/popgen/"
     - "!pages/topics/R/"
-    - "!pages/benchmarks/"
 
 
 execute:
@@ -68,12 +65,6 @@ website:
   #   type: info
   #   position: above-navbar
 
-
-  # render:
-  #   # - "**/*.qmd"  # render all qmd files
-  #   # - "!draft-*.qmd"  # except those starting with draft-
-  #   # - "!internal/"  # exclude entire directories
-  #   - "!pages/tutorials/rabbits_full_py_api_example.ipynb"
 
   navbar:
     logo: PHASIC.png
@@ -144,7 +135,7 @@ website:
             - pages/internals/caching_architecture.md
             - pages/internals/caching.qmd
 
-            - pages/internals/python_cpp_bridge_jax_integration
+            - pages/internals/python_cpp_bridge_jax_integration.md
             - pages/internals/ffi_and_openmp.qmd
 
             - pages/internals/trace_ipfs.ipynb
@@ -230,12 +221,12 @@ quartodoc:
     #     - compute_moments_ffi
     #     - compute_pmf_and_moments_ffi
 
-    # - title: Inference
-    #   package: phasic
-    #   desc: |
-    #     SVGD
-    #   contents:
-    #     - SVGD
+    - title: Inference
+      package: phasic
+      desc: |
+        Stein Variational Gradient Descent for Bayesian parameter inference.
+      contents:
+        - SVGD
 
     # - title: Distributed Computing
     #   package: phasic
