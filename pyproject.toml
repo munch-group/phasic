@@ -85,6 +85,12 @@ Documentation = "https://munch-group.org/phasic"
 Repository = "https://github.com/munch-group/phasic.git"
 Issues = "https://github.com/munch-group/phasic/issues"
 
+[tool.pytest.ini_options]
+testpaths = ["tests/pytest"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+
 [tool.setuptools.packages.find]
 where = ["src"]  # list of folders that contain the packages (["."] by default)
 include = ["phasic*"]  # package names should match these glob patterns (["*"] by default)
