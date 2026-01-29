@@ -1,5 +1,19 @@
 [
   {
+    "objectID": "pages/vignettes/risk-assessment.html",
+    "href": "pages/vignettes/risk-assessment.html",
+    "title": "Risk Assessment",
+    "section": "",
+    "text": "import numpy as np\nimport matplotlib.pyplot as plt\nfrom vscodenb import set_vscode_theme\nset_vscode_theme()\n\n%config InlineBackend.figure_format = 'svg'\n\nplt.scatter(np.random.rand(10), np.random.rand(10))\nplt.show()"
+  },
+  {
+    "objectID": "pages/vignettes/risk-assessment.html#time-to-default-through-credit-states-of-corporate-borrowers",
+    "href": "pages/vignettes/risk-assessment.html#time-to-default-through-credit-states-of-corporate-borrowers",
+    "title": "Risk Assessment",
+    "section": "",
+    "text": "import numpy as np\nimport matplotlib.pyplot as plt\nfrom vscodenb import set_vscode_theme\nset_vscode_theme()\n\n%config InlineBackend.figure_format = 'svg'\n\nplt.scatter(np.random.rand(10), np.random.rand(10))\nplt.show()"
+  },
+  {
     "objectID": "pages/tutorial/somecode.html",
     "href": "pages/tutorial/somecode.html",
     "title": "",
@@ -1464,7 +1478,7 @@
     "href": "index.html",
     "title": "Phasic",
     "section": "",
-    "text": "Graph representation: Intuitive graph representation makes constructing complex models straightforward.\n\n\n Graph algorithms: C backend using graph-based algorithms for computing probability distributions and any number of exact moments.\n\n\nContinuous/Discrete: Automated conversion from continuous to discrete phase-type distributions with full support.\n\n\n\n\n\n Parameterized DAGs: Computation model templates of allows cashing and model distribution.\n\n\n Bayesian Inference:  JAX integration and automatic differentiation allow inference using Stein Variational Gradient Descent.\n\n\n Multiprocessing: Automatically parallelizes inference computation across CPUs on a single device or multiple devices on a SLURM cluster.\n\n\n \n\n\n\n\n\n\n\n\n\n\n\n\nGenetic diversity\n\n\n\n\n\n\n\n\n\n\nMulti-step reaction kinetics\n\n\n\n\n\n\n\n\n\n\nProtein Interaction Networks\n\n\n\n\n\n\n\n\n\n\nXXX\n\n\n\n\n\nNo matching items"
+    "text": "Graph representation: Intuitive graph representation makes constructing complex models straightforward.\n\n\n Graph algorithms: C backend using graph-based algorithms for computing probability distributions and any number of exact moments.\n\n\nContinuous/Discrete: Automated conversion from continuous to discrete phase-type distributions with full support.\n\n\n\n\n\n Parameterized DAGs: Computation model templates of allows cashing and model distribution.\n\n\n Bayesian Inference:  JAX integration and automatic differentiation allow inference using Stein Variational Gradient Descent.\n\n\n Multiprocessing: Automatically parallelizes inference computation across CPUs on a single device or multiple devices on a SLURM cluster.\n\n\n \n\n\n\n\n\n\n\n\n\n\n\n\nGenetic diversity\n\n\n\n\n\n\n\n\n\n\nMulti-step reaction kinetics\n\n\n\n\n\n\n\n\n\n\nRisk Assessment\n\n\n\n\n\n\n\n\n\n\nWaste water flow\n\n\n\n\n\nNo matching items"
   },
   {
     "objectID": "api/Graph.html",
@@ -2866,5 +2880,26 @@
       "Tutorial",
       "Distributed computing"
     ]
+  },
+  {
+    "objectID": "pages/vignettes/drainage-capacity.html",
+    "href": "pages/vignettes/drainage-capacity.html",
+    "title": "Waste water flow",
+    "section": "",
+    "text": "import numpy as np\nimport matplotlib.pyplot as plt\nfrom vscodenb import set_vscode_theme"
+  },
+  {
+    "objectID": "pages/vignettes/rna-transcript-length.html",
+    "href": "pages/vignettes/rna-transcript-length.html",
+    "title": "RNA transcript length",
+    "section": "",
+    "text": "import numpy as np\nimport matplotlib.pyplot as plt\nfrom vscodenb import set_vscode_theme\nset_vscode_theme()\n\n%config InlineBackend.figure_format = 'svg'\n\nplt.scatter(np.random.rand(10), np.random.rand(10))\nplt.show()"
+  },
+  {
+    "objectID": "pages/vignettes/rna-transcript-length.html#number-of-nucleotides-spanning-exons-included-by-the-rna-splicing-machinery",
+    "href": "pages/vignettes/rna-transcript-length.html#number-of-nucleotides-spanning-exons-included-by-the-rna-splicing-machinery",
+    "title": "RNA transcript length",
+    "section": "",
+    "text": "import numpy as np\nimport matplotlib.pyplot as plt\nfrom vscodenb import set_vscode_theme\nset_vscode_theme()\n\n%config InlineBackend.figure_format = 'svg'\n\nplt.scatter(np.random.rand(10), np.random.rand(10))\nplt.show()"
   }
 ]
