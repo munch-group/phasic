@@ -6,17 +6,19 @@ page-layout: full
 # title-block-style: plain
 title-block-banner-color: black
 title-block-banner-bg: white
-title-block-banner: banner.png
+# title-block-banner: banner.png
 toc: false
 listing:
   - id: showcase
     type: grid
     fields: [image, title]
-    grid-columns: 2
+    grid-columns: 4
     contents:
-    - pages/quick_start.ipynb
-    - pages/tutorial/01-introduction.ipynb
-    - pages/tutorial/11-svgd-basics.ipynb
+      - pages/vignettes/drainage-capacity.ipynb
+      - pages/vignettes/genetic-diversity.ipynb
+      - pages/vignettes/protein-interactions.ipynb
+      - pages/vignettes/reaction-kinetics.ipynb
+      - pages/vignettes/risk-assessment.ipynb
     # sort: "date desc"
     # categories: true
     # sort-ui: true
@@ -25,7 +27,6 @@ listing:
 ---
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-
 
 ::: {.grid}
 

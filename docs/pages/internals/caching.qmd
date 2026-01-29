@@ -774,25 +774,3 @@ rm -rf ~/.phasic_cache/traces/*
 
 **Speedup: 3,660x**
 
----
-
-## See Also
-
-- **[JAX Persistent Compilation Cache](https://jax.readthedocs.io/en/latest/persistent_compilation_cache.html)** - Official JAX documentation
-- **[SVGD Configuration Guide](svgd_tester.ipynb)** - SVGD setup and usage
-- **[Test Suite](../../tests/test_svgd_jax.py)** - Cache testing examples
-- **[CACHING_SYSTEM_OVERVIEW.md](../../CACHING_SYSTEM_OVERVIEW.md)** - Technical architecture
-- **[CACHE_CONSOLIDATION_COMPLETE.md](../../CACHE_CONSOLIDATION_COMPLETE.md)** - Implementation details
-
----
-
-::: {.callout-note}
-## Questions or Issues?
-For questions or issues with caching, please open an issue at:
-https://github.com/munch-group/phasic/issues
-:::
-
----
-
-*Last updated: October 19, 2025*
-*Documentation reflects the consolidated cache management system (October 2025)*

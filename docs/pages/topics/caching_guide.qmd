@@ -1,23 +1,6 @@
 # Caching Strategies for phasic
 
-**Version:** 0.22.22+
-**Last Updated:** January 2026
-
-This guide covers the comprehensive caching system in phasic, which provides **10-1000x speedups** for repeated model evaluations through multiple complementary caching mechanisms.
-
-## Table of Contents
-
-1. [Overview](#overview)
-2. [Graph Cache](#graph-cache)
-3. [Trace Cache](#trace-cache)
-4. [JAX Compilation Cache](#jax-compilation-cache)
-5. [Quick Start](#quick-start)
-6. [Unified Cache API](#unified-cache-api)
-7. [Advanced Usage](#advanced-usage)
-8. [Best Practices](#best-practices)
-9. [Troubleshooting](#troubleshooting)
-
----
+This covers the comprehensive caching system in phasic, which provides **10-1000x speedups** for repeated model evaluations through multiple complementary caching mechanisms.
 
 ## Overview
 
@@ -424,15 +407,3 @@ clear_caches(verbose=True)  # Clear all caches
 - **Both caches:** instant build + instant eval = <1 second
 
 **Total speedup:** ~2,000x
-
----
-
-## See Also
-
-- [JAX Compilation Cache Documentation](https://jax.readthedocs.io/en/latest/persistent_compilation_cache.html)
-- [phasic API Reference](../api/index.md)
-- [Performance Optimization Tips](../performance/tips.md)
-
----
-
-*For questions or issues with caching, please open an issue at: https://github.com/munch-group/phasic/issues*

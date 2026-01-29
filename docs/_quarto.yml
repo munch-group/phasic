@@ -10,7 +10,17 @@ project:
   # # post-render:
   # #   - find galleries/ -name "gallery-styles.css" -delete
 
-
+  render:
+    - "**/*.qmd"  # render all qmd files
+    - "**/*.ipynb"  # render all qmd files
+    # - "!draft-*.qmd"  # except those starting with draft-
+    - "!internal/"  # exclude entire directories
+    - "!pages/tutorials/rabbits_full_py_api_example.ipynb"
+    - "!pages/benchmarks/**"
+    - "!pages/svgd/"
+    - "!pages/popgen/"
+    - "!pages/topics/R/"
+    - "!pages/benchmarks/"
 
 
 execute:
