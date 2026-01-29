@@ -2,7 +2,10 @@
   {
     "listing": "/index.html",
     "items": [
-      "/pages/tutorial/11-svgd-basics.html"
+      "/pages/vignettes/genetic-diversity.html",
+      "/pages/vignettes/reaction-kinetics.html",
+      "/pages/vignettes/protein-interactions.html",
+      "/pages/vignettes/drainage-capacity.html"
     ]
   }
 ]
