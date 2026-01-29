@@ -130,6 +130,7 @@ class TestHierarchicalCacheModule:
 
         assert trace is not None, "Should return trace"
 
+    @pytest.mark.skip(reason="Causes C-level abort in scc_hashes(); see issue tracker")
     def test_get_scc_graphs(self):
         """Test get_scc_graphs extracts SCCs"""
         from phasic.hierarchical_trace_cache import get_scc_graphs

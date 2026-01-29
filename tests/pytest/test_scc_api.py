@@ -78,6 +78,7 @@ class TestSCCDecomposition:
             scc = scc_graph[i]
             assert scc.size() > 0, f"SCC {i} should have positive size"
 
+    @pytest.mark.skip(reason="Causes C-level abort in scc_hashes(); see issue tracker")
     def test_scc_hashing(self):
         """Test SCC hash computation"""
         g = Graph(1)

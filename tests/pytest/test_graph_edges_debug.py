@@ -59,7 +59,7 @@ def test_callback_graph_edges():
             return []
         return []
 
-    graph = Graph(callback)
+    graph = Graph(callback, ipv=[1])
 
     print(f"\nGraph constructed:")
     print(f"  Vertices: {graph.vertices_length()}")

@@ -5,17 +5,17 @@ This tests the registry browsing and filtering capabilities.
 Note: Trace downloads will fail with mock CIDs until real IPFS CIDs are added.
 """
 
+import pytest
 from phasic import TraceRegistry
 
-def test_registry_access():
+@pytest.fixture
+def registry():
+    """Create a TraceRegistry instance for tests."""
+    return TraceRegistry()
+
+def test_registry_access(registry):
     """Test that we can access the deployed registry."""
-    print("Testing TraceRegistry with deployed repository...")
-    print("="*70)
-
-    registry = TraceRegistry()
-
-    print("\n✓ Registry loaded successfully")
-    return registry
+    assert registry is not None
 
 
 def test_list_traces(registry):

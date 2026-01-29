@@ -48,7 +48,7 @@ def coalescent_callback(state, nr_samples=None):
 # Test Functions
 # ============================================================================
 
-def test_first_moment_vs_empirical(graph, theta, nr_samples=3, n_samples=100000):
+def check_first_moment_vs_empirical(graph, theta, nr_samples=3, n_samples=100000):
     """
     Test 1.1: First moment vs empirical mean
     """
@@ -89,7 +89,7 @@ def test_first_moment_vs_empirical(graph, theta, nr_samples=3, n_samples=100000)
     return success, rel_error
 
 
-def test_pmf_normalization(graph, theta, nr_samples=3):
+def check_pmf_normalization(graph, theta, nr_samples=3):
     """
     Test 1.2: PMF normalization (∫ PMF dt = 1.0)
     """
@@ -123,7 +123,7 @@ def test_pmf_normalization(graph, theta, nr_samples=3):
     return success, error
 
 
-def test_pmf_vs_empirical(graph, theta, nr_samples=3, n_samples=100000, n_bins=50):
+def check_pmf_vs_empirical(graph, theta, nr_samples=3, n_samples=100000, n_bins=50):
     """
     Test 1.3: PMF vs empirical distribution (chi-square test)
     """
@@ -240,15 +240,15 @@ def run_all_tests():
         results = {}
 
         # Test 1.1: First moment
-        success_1_1, error_1_1 = test_first_moment_vs_empirical(graph, theta, nr_samples)
+        success_1_1, error_1_1 = check_first_moment_vs_empirical(graph, theta, nr_samples)
         results['moment'] = {'success': success_1_1, 'rel_error': error_1_1}
 
         # Test 1.2: PMF normalization
-        success_1_2, error_1_2 = test_pmf_normalization(graph, theta, nr_samples)
+        success_1_2, error_1_2 = check_pmf_normalization(graph, theta, nr_samples)
         results['normalization'] = {'success': success_1_2, 'error': error_1_2}
 
         # Test 1.3: PMF vs empirical
-        success_1_3, p_value_1_3 = test_pmf_vs_empirical(graph, theta, nr_samples)
+        success_1_3, p_value_1_3 = check_pmf_vs_empirical(graph, theta, nr_samples)
         results['distribution'] = {'success': success_1_3, 'p_value': p_value_1_3}
 
         # Diagnostics

@@ -2,19 +2,50 @@
 
 This directory contains comprehensive tests for the phasic library covering graph construction, trace-based computation, JAX integration, multivariate distributions, and SVGD inference.
 
+## Pytest Configuration
+
+Tests are configured in `pyproject.toml`:
+
+```toml
+[tool.pytest.ini_options]
+testpaths = ["tests/pytest"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+```
+
+This ensures only `test_*.py` files are collected, excluding tutorial scripts (00-introduction.py, etc.) and standalone scripts.
+
+## Running Tests
+
+```bash
+# Run all tests
+pixi run test
+
+# Run specific test file
+pixi run pytest tests/pytest/test_api_comprehensive.py -v
+
+# Run tests matching pattern
+pixi run pytest -k "multivariate" tests/pytest/
+
+# Run excluding JAX-dependent tests
+pixi run pytest -k "not jax" tests/pytest/
+
+# Run excluding tests that cause C-level crashes
+pixi run pytest tests/pytest/ --ignore=tests/pytest/test_scc_api.py --ignore=tests/pytest/test_hierarchical_cache.py
+```
+
 ## Test Files
 
 ### Core API & Construction
 - [test_api_comprehensive.py](test_api_comprehensive.py) - Comprehensive API tests for Graph, Vertex, Edge classes (standalone)
 - [test_comprehensive_api.py](test_comprehensive_api.py) - Core API functionality tests (pytest version)
-- [test_graph_construction.py](test_graph_construction.py) - Graph construction methods
 - [test_graph_serialization.py](test_graph_serialization.py) - Graph serialization/deserialization (from_serialized)
 - [test_from_matrices.py](test_from_matrices.py) - Graph.from_matrices() method
 - [test_as_matrices_fix.py](test_as_matrices_fix.py) - graph.as_matrices() segfault regression test
 - [test_state_indexing.py](test_state_indexing.py) - Flexible state indexing system
 
 ### Edges & Weights
-- [test_parameterized_edges.py](test_parameterized_edges.py) - Parameterized edges feature
 - [test_unified_edge_correctness.py](test_unified_edge_correctness.py) - Unified edge interface correctness
 - [test_callback_weights.py](test_callback_weights.py) - Callback-based update_weights() functionality
 - [test_log_space_weights.py](test_log_space_weights.py) - Log-space weight computation
@@ -72,39 +103,34 @@ This directory contains comprehensive tests for the phasic library covering grap
 ### SCC (Strongly Connected Components)
 - [test_scc_api.py](test_scc_api.py) - SCC API unit tests (Phase 1)
 
+### Optimizer & Preconditioning
+- [test_optimizer_schedules.py](test_optimizer_schedules.py) - Optimizer schedule classes
+- [test_optax_integration.py](test_optax_integration.py) - Optax optimizer integration
+- [test_preconditioning.py](test_preconditioning.py) - Kernel preconditioning for SVGD
+
 ### Debug & Development
 - [test_graph_edges_debug.py](test_graph_edges_debug.py) - Debug edges before trace recording
 - [test_graph_instantiation_debug.py](test_graph_instantiation_debug.py) - Debug graph instantiation from trace
 - [test_graph_structure_debug.py](test_graph_structure_debug.py) - Debug graph structure after trace instantiation
 - [test_multivar_likelihood_debug.py](test_multivar_likelihood_debug.py) - Debug multivariate likelihood with NaN observations
-- [test_graphbuilder_1d_correctness.py](test_graphbuilder_1d_correctness.py) - Phase 1: GraphBuilder 1D correctness
+- [test_graphbuilder_1d_correctness.py](test_graphbuilder_1d_correctness.py) - Phase 1: GraphBuilder 1D correctness (standalone script)
 
 ### Examples & Models
 - [test_exp_geom.py](test_exp_geom.py) - Exponential/geometric distribution tests
-- [test_dummy.py](test_dummy.py) - Basic assertion tests
-- [multivar_test.py](multivar_test.py) - Multivariate test (dev file, commented out execution)
-- [multivar_test_fixed.py](multivar_test_fixed.py) - Fixed multivariate test with correct array shapes
-- [user_test.py](user_test.py) - User test file (dev/example)
 
 ### Utilities
 - [test_utilities_integration.py](test_utilities_integration.py) - Utilities and integration features
-- [run_all_tests.py](run_all_tests.py) - Master test runner
 
-## Running Tests
+## Known Issues
 
-```bash
-# Run all tests
-pixi run test
+### C-level crashes (segfaults/aborts)
+The following tests trigger C-level crashes and are skip-marked:
+- `test_scc_api.py::test_scc_hashing` - abort in `scc_hashes()`
+- `test_hierarchical_cache.py::test_get_scc_graphs` - abort in `scc_hashes()`
+- `test_multivariate.py::TestGraphSVGDAPI` - segfault in `_compute_pmf_and_moments_cached`
 
-# Run specific test
-pytest tests/pytest/test_api_comprehensive.py
-
-# Run with verbose output
-pytest -v tests/pytest/
-
-# Run tests matching pattern
-pytest -k "multivariate" tests/pytest/
-```
+### API drift
+Many test files (particularly `test_comprehensive_api.py`, `test_jax_integration.py`, `test_utilities_integration.py`) contain tests written against older API signatures that have since changed. These tests fail but document the API evolution.
 
 ## Coverage Areas
 
