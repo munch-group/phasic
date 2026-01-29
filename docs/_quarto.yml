@@ -76,7 +76,7 @@ website:
   #   - "!pages/tutorials/rabbits_full_py_api_example.ipynb"
 
   navbar:
-    logo: logo.png
+    logo: PHASIC.png
     logo-alt: "Phasic"  # For accessibility
     logo-href: "/index.html"  # Where clicking the logo goes
 
