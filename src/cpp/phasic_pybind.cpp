@@ -65,38 +65,6 @@ using std::endl;
 #include <iostream>
 #include <iomanip>
 
-// extern "C" {
-
-//   // JAX custom call signature with scalar operands
-//   __attribute__((visibility("default")))
-//   void _pmf_jax_ffi_prim(void* out_ptr, void* in_ptrs);
-
-//   // JAX custom call signature for jax_graph_method_pmf
-//   void _pmf_jax_ffi_prim(void* out_ptr, void* in_ptrs) {
-
-//       void** buffers = reinterpret_cast<void**>(in_ptrs);
-//       phasic::Graph* graph = reinterpret_cast<phasic::Graph*>(buffers[0]);
-//       int64_t* times = reinterpret_cast<int64_t*>(buffers[1]);
-//       int64_t* n_ptr = reinterpret_cast<int64_t*>(buffers[2]);
-
-//       double* output = reinterpret_cast<double*>(out_ptr);      
-      
-//       // Extract dimensions from scalar operands
-//       int64_t n = *n_ptr;
-
-//       for (int64_t idx = 0; idx < n; ++idx) {
-//         int64_t k = times[idx];
-//         output[idx] = graph->dph_pmf(k);
-//       }
-//   }
-
-//   // XLA custom call registration
-//   void register_jax_graph_method_pmf() {
-//       // This would normally register with XLA, but for simplicity we'll rely on 
-//       // the Python side custom call mechanism
-//   }
-
-// }
 
 ///////////////////////////////////////////////////////
 
@@ -145,109 +113,6 @@ struct matrix_representation {
     std::vector<int> indices;
 };
 
-// matrix_representation* _graph_as_matrix(phasic::Graph graph) {
-
-
-
-//     int nr_states = 0;
-//     for (size_t i = 1; i < graph.vertices_length(); ++i) {
-//       if (graph->vertices[i]->edge_length == 0) {
-//         continue;
-//       }
-//       ++nr_states;
-//     }
-
-//     std::vector<int> indices(nr_states);
-//     dMatrix SIM = dMatrix(nr_states, nr_states);
-//     std::vector<double> IPV(nr_states);
-//     iMatrix states = iMatrix(nr_states, graph.state_length());
-    
-//     for (int = 0; i < nr_states; ++i) {
-//       IPV[idx] = 0;
-//     }
-//     phasic::Vertex starting_vertex = graph.vertices[0];
-//     for (size_t i = 0; i < starting_vertex.edges_length(); ++i) {
-//       phasic::Edge edge = starting_vertex->edges[i]->to()->index;
-
-//       indices[i]
-
-//       IPV[idx] = dist->initial_probability_vector[i];
-//     }
-
-    
-//     int idx = 0;
-//     for (size_t i = 1; i < graph.vertices_length(); ++i) {
-//       if (graph->vertices[i]->edge_length == 0) {
-//         continue;
-//       }
-//       indices[idx] = graph->vertices[i]->index + 1;
-//     }
-
-
-
-//     for (int = 0; i < nr_states; ++i) {
-//       int vertex_idx = indices[i] - 1;
-
-//     }
-
-
-//     int idx = 0;
-//     for (size_t i = 1; i < graph.vertices_length(); ++i) {
-//       if (graph->vertices[i]->edge_length == 0) {
-//         continue;
-//       }
-//       indices[idx] = graph->vertices[i]->index + 1;
-
-//       for (size_t j = 0; j < dist->length; ++j) {
-//           SIM(i, j) = dist->sub_intensity_matrix[i][j];
-//       }
-//         for (size_t j = 0; j < state_length; j++) {
-//             states(i, j) = dist->vertices[i]->state[j];
-//         }
-
-//       ++idx;
-//     }
-
-
-
-
-//     }
-
-
-//     for (size_t i = 0; i < dist->length; ++i) {
-//         IPV[i] = dist->initial_probability_vector[i];
-
-//         for (size_t j = 0; j < dist->length; ++j) {
-//             SIM(i, j) = dist->sub_intensity_matrix[i][j];
-//         }
-//     }
-
-//     size_t state_length = graph.state_length();
-
-//     rows = dist->length;
-//     cols = state_length;
-//     iMatrix states = iMatrix(rows, cols);
-
-//     for (size_t i = 0; i < dist->length; i++) {
-//         for (size_t j = 0; j < state_length; j++) {
-//             states(i, j) = dist->vertices[i]->state[j];
-//         }
-//     }
-
-//     std::vector<int> indices(dist->length);
-//     for (size_t i = 0; i < dist->length; i++) {
-//         indices[i] = dist->vertices[i]->index + 1;
-//     }
-
-//     struct matrix_representation *matrix_rep = new matrix_representation();
-//     matrix_rep->states = states;
-//     matrix_rep->SIM = SIM;
-//     matrix_rep->IPV = IPV;
-//     matrix_rep->indices = indices;
-
-//     ::ptd_phase_type_distribution_destroy(dist);
-//     return matrix_rep;
-// }
 
 matrix_representation* _graph_as_matrix(phasic::Graph graph) {
 
@@ -341,38 +206,6 @@ iMatrix _states(phasic::Graph &graph) {
   }
 
   
-  // std::vector<double> _sample(phasic::Graph graph, int n, std::vector<double> rewards) {
-
-  //     if (!rewards.empty() && (int) rewards.size() != (int) graph.c_graph()->vertices_length) {
-  //         char message[1024];
-
-  //         snprintf(
-  //                 message,
-  //                 1024,
-  //                 "Failed: Rewards must match the number of vertices. Expected %i, got %i",
-  //                 (int) graph.c_graph()->vertices_length,
-  //                 (int) rewards.size()
-  //         );
-
-  //         throw std::runtime_error(
-  //                 message
-  //         );
-  //     }
-  //     std::vector<double> res(n);
-
-  //     set_c_seed();
-
-  //     for (int i = 0; i < n; i++) {
-  //         if (rewards.empty()) {
-  //             res[i] = (double) (graph.random_sample());
-  //         } else {
-  //             res[i] = (double) (graph.random_sample(rewards));
-  //         }
-  //     }
-
-  //     return res;
-
-  //   }
 
 
 // Utility function for use in both moments dph_expectation and dph_variance lambda functions
@@ -437,40 +270,6 @@ std::vector<double> _moments(phasic::Graph &graph, int power, const std::vector<
 
   }
   
-// // Vectorize this
-    
-// py::array_t<double> _expectation(phasic::Graph &graph, py::iterable_t<py::array_t<double> >() rewards) {
-
-
-//     for (auto v : x)
-//     std::cout << " " << v.to_string();
-//   }
-
-
-//   py::array_t<double> _expectation(phasic::Graph &graph, py::array_t<double> rewards) {
-
-//     py::buffer_info reward_buf = rewards.request();
-//     if (reward_buf.ndim != 1)
-//       throw std::runtime_error("Number of dimensions must be one");
-
-//     /* No pointer is passed, so NumPy will allocate the buffer */
-//     auto result = py::array_t<double>(reward_buf.size);
-
-//     py::buffer_info result_buf = result.request();
-
-//     double *reward_ptr = static_cast<double *>(reward_buf.ptr);
-//     double *result_ptr = static_cast<double *>(result_buf.ptr);
-
-//     for (size_t idx = 0; idx < reward_buf.shape[0]; idx++) {
-
-//       // std::vector<double> _vector(reward_ptr, reward_ptr + reward_buf[idx].shape[0]);
-//       std::vector<double> _vector(reward_ptr, reward_ptr + reward_buf.shape[0]);
-
-//       result_ptr[idx] = _moments(graph, 1, _vector)[0];
-//     }
-
-//     return result;
-// }
 
 
 double _expectation(
@@ -609,37 +408,6 @@ double _covariance_discrete(phasic::Graph &graph,
 }
 
 
-// phasic::Graph build_state_space_callback_dicts(
-//   const std::function<std::vector<py::dict> (std::vector<int> &state)> &callback, std::vector<int> &initial_state) {
-
-//       phasic::Graph *graph = new phasic::Graph(initial_state.size());
-
-//       phasic::Vertex init = graph->find_or_create_vertex(initial_state);
-
-//         graph->starting_vertex().add_edge(init, 1);
-
-//         int index = 1;
-//         while (index < graph->vertices_length()) {
-
-//           phasic::Vertex this_vertex = graph->vertex_at(index);
-//           std::vector<int> this_state = graph->vertex_at(index).state();
-
-//           std::vector<py::dict> children = callback(this_state);
-//               for (auto child : children) {
-//                 std::vector<int> child_state = child["state"].cast<std::vector<int> >();
-//                 long double weight = child["weight"].cast<long double>();
-//                 phasic::Vertex child_vertex = graph->find_or_create_vertex(child_state);
-//                 if (child.size() == 3) {
-//                   std::vector<double> edge_params = child["edge_params"].cast<std::vector<double> >();
-//                   this_vertex.add_edge_parameterized(child_vertex, weight, edge_params);
-//                 } else {
-//                   this_vertex.add_edge(child_vertex, weight);
-//                 }
-//               }
-//               ++index;
-//             }
-//       return *graph;
-//   }
 
   phasic::Graph build_state_space_callback_tuples(    
       // const std::function< std::vector<const std::tuple<const py::array_t<int>, long double> > (const py::array_t<int> &state)> &callback) { 
@@ -901,46 +669,6 @@ double _covariance_discrete(phasic::Graph &graph,
       }
   }
 
-  // phasic::Graph build_state_space_callback_tuples(
-  //   // const std::function<std::vector<const py::tuple> (std::vector<int> &state)> &callback, std::vector<int> &initial_state) {
-  //   const std::function<std::vector<const py::tuple> (py::array_t<int> &state)> &callback, std::vector<int> &initial_state) {
-
-  //     phasic::Graph *graph = new phasic::Graph(initial_state.size());
-
-  //     phasic::Vertex init = graph->find_or_create_vertex(initial_state);
-
-  //       graph->starting_vertex().add_edge(init, 1);
-
-  //       int index = 1;
-  //       while (index < graph->vertices_length()) {
-
-  //         phasic::Vertex this_vertex = graph->vertex_at(index);
-
-          
-  //         // std::vector<int> this_state = graph->vertex_at(index).state();
-
-  //         auto a = new std::vector<int>(graph->vertex_at(index).state());
-  //         auto capsule = py::capsule(a, [](void *a) { delete reinterpret_cast<std::vector<int>*>(a); });
-  //         py::array_t<int> this_state = py::array(a->size(), a->data(), capsule);
-
-
-  //         std::vector<const py::tuple> children = callback(this_state);
-
-  //             for (auto child : children) {
-  //               std::vector<int> child_state = child[0].cast<std::vector<int> >();
-  //               long double weight = child[1].cast<long double>();
-  //               phasic::Vertex child_vertex = graph->find_or_create_vertex(child_state);
-  //               if (child.size() == 3) {
-  //                 std::vector<double> edge_params = child[2].cast<std::vector<double> >();
-  //                 this_vertex.add_edge_parameterized(child_vertex, weight, edge_params);
-  //               } else {
-  //                 this_vertex.add_edge(child_vertex, weight);
-  //               }
-  //             }
-  //             ++index;
-  //           }
-  //     return *graph;
-  // }
     
   
 
@@ -1098,12 +826,6 @@ list of int
     .def(py::init<int>(), py::arg("state_length"))
 
 
-      // .def("__iter__",
-      //   [](phasic::Graph &g) {
-      //       return make_iterator(g.begin(), g.end());
-      //   }, py::return_value_policy::reference_internal, R"delim(
-  
-      //   )delim")
   
 
     .def(py::init<struct ::ptd_graph* >(), py::arg("ptd_graph"))
@@ -1114,14 +836,6 @@ list of int
 
     .def(py::init<struct ::ptd_graph*, struct ::ptd_avl_tree* >(), py::arg("ptd_graph"), py::arg("ptd_avl_tree"))
     
-    // .def(py::init(&build_state_space_callback_dicts), 
-    //   py::arg("callback_dicts"), py::arg("initial_state"))
-
-    // .def(py::init(&build_state_space_callback_tuples),
-    //       py::arg("callback_tuples"), py::arg("initial_state"))
-
-
-
     ///////////////////////////////////////////////////////
     // for jax interface
     .def("pointer", [](phasic::Graph* self) -> uintptr_t {
@@ -1142,97 +856,9 @@ int
     .def(py::init(&build_state_space_callback_tuples),
       py::arg("callback_tuples"))
 
-    // .def_static("from_callback", [](py::function callback, py::kwargs kwargs) {
-    //     // Create a wrapper that applies kwargs to the callback
-    //     auto wrapper = [callback, kwargs](const py::array_t<int> &state) -> std::vector<py::object> {
-    //       return callback(state, **kwargs).cast<std::vector<py::object>>();
-    //     };
-    //     return build_state_space_callback_tuples(wrapper);
-    //   }, py::arg("callback"), R"delim(
-    //   Builds a graph from a callback function. The callback function must take a single argument, which is the current state as an integer array.
-    //   The callback function must return a list of tuples, where each tuple contains:
-    //   - An integer array representing the child state.
-    //   - A float representing the weight of the edge to that child state.
-
-    //   The first call to the callback function will be made with an empty array, and should return the initial states and their weights.
-
-    //   Additional keyword arguments are passed to the callback function.
-
-    //   Parameters
-    //   ----------
-    //   callback : function
-    //       A function that takes an integer array and returns a list of tuples as described above.
-    //   **kwargs :
-    //       Additional keyword arguments to pass to the callback function.
-
-    //   Returns
-    //   -------
-    //   Graph
-    //       A graph object representing the state space defined by the callback function.
-
-    //   Examples
-    //   --------
-    //   ```
-    //   def callback(state, nr_samples=2):
-    //       if len(state) == 0:
-    //           return [(np.array([nr_samples, 0]), 1.0)]
-    //       elif state[0] > 1:
-    //           return [(np.array([state[0] - 1, state[1] + 1]), state[0])]
-    //       else:
-    //           return []
-
-    //   graph = Graph.from_callback(callback, nr_samples=4)
-    //   ```
-    //   )delim")
-
     .def(py::init(&build_state_space_callback_tuples_parameterized),
       py::arg("callback_tuples_parameterized"),
       py::arg("param_length") = py::none())
-
-    // .def_static("from_callback_parameterized", [](py::function callback, py::kwargs kwargs) {
-    //     // Create a wrapper that applies kwargs to the callback
-    //     auto wrapper = [callback, kwargs](const py::array_t<int> &state) -> std::vector<py::object> {
-    //       return callback(state, **kwargs).cast<std::vector<py::object>>();
-    //     };
-    //     return build_state_space_callback_tuples_parameterized(wrapper);
-    //   }, py::arg("callback"), R"delim(
-    //   Builds a graph with parameterized edges from a callback function. The callback function must take a single argument,
-    //   which is the current state as an integer array. The callback function must return a list of tuples, where each tuple contains:
-    //   - An integer array representing the child state.
-    //   - A float representing the weight of the edge to that child state.
-    //   - A list of floats representing the edge state for parameterized edges (same length as the child state).
-
-    //   The first call to the callback function will be made with an empty array, and should return the initial states and their weights.
-
-    //   Additional keyword arguments are passed to the callback function.
-
-    //   Parameters
-    //   ----------
-    //   callback : function
-    //       A function that takes an integer array and returns a list of 3-tuples as described above.
-    //   **kwargs :
-    //       Additional keyword arguments to pass to the callback function.
-
-    //   Returns
-    //   -------
-    //   Graph
-    //       A graph object with parameterized edges representing the state space defined by the callback function.
-
-    //   Examples
-    //   --------
-    //   ```
-    //   def callback(state):
-    //       if len(state) == 0:
-    //           return [(np.array([0]), 1.0, [1.0])]
-    //       elif state[0] < 2:
-    //           # edge_state for parameterized edge (same length as child state)
-    //           return [(np.array([state[0] + 1]), 0.0, [1.5])]
-    //       else:
-    //           return []
-
-    //   graph = Graph.from_callback_parameterized(callback)
-    //   ```
-    //   )delim")
 
 
     .def("create_vertex", static_cast<phasic::Vertex (phasic::Graph::*)(std::vector<int>)>(&phasic::Graph::create_vertex), py::arg("state"), 
@@ -1306,14 +932,6 @@ bool
       ````
       )delim")
       
-    // .def("find_or_create_vertex",
-    //   [](phasic::Graph &graph, std::vector<double> state) {
-    //     std::vector<int> int_vec(state.begin(), state.end());
-    //     return graph.find_or_create_vertex(int_vec);
-    //   }, R"delim(
-
-    //   )delim")
-
     .def("focv", static_cast<phasic::Vertex (phasic::Graph::*)(std::vector<int>)>(&phasic::Graph::find_or_create_vertex), py::arg("state"), 
       py::return_value_policy::copy, R"delim(
       Alias for find_or_create_vertex
@@ -1341,9 +959,9 @@ bool
 
       Examples
       --------
-      graph.create_graph(4)
-      vertex_a = find_or_create_vertex([1,2,1,0])
-      vertex_b = find_or_create_vertex([2,0,1,0])
+      graph = Graph(4)
+      vertex_a = graph.find_or_create_vertex([1,2,1,0])
+      vertex_b = graph.find_or_create_vertex([2,0,1,0])
       graph.vertices()[0] == graph.starting_vertex()
       graph.vertices()[1] == graph.vertex_at(1)
       graph.vertices_length() == 3
@@ -1355,8 +973,6 @@ bool
 
       Parameters
       ----------
-      graph : Graph
-          A reference to the graph created by create_graph().
       index : int
           The index of the vertex to find.
 
@@ -1696,11 +1312,11 @@ str
     v1 = graph.find_or_create_vertex([1, 2, 1, 0])
     v2 = graph.find_or_create_vertex([2, 0, 1, 0])
     graph.starting_vertex().add_edge(v1, 5)
-    v1.add_edge(v2, 0, [5,2])
-    graph.starting_vertex().edges()[0].weight()5
+    v1.add_edge(v2, [5, 2])
+    graph.starting_vertex().edges()[0].weight()  # => 5
     v1.edges()[0].weight() # => 0
-    graph.update_weights_parameterized([9,7])
-    graph.starting_vertex().edges()[0]].weight() # => 5
+    graph.update_weights([9, 7])
+    graph.starting_vertex().edges()[0].weight() # => 5
     v1.edges()[0].weight() # => 59
       )delim")
 
@@ -1750,8 +1366,6 @@ str
 
     Parameters
     ----------
-    graph : Graph
-        The phase-type graph object.
     rewards : list of float or ndarray, optional
         Optional rewards, which should be applied to the phase-type distribution. Must have length equal to `vertices_length()`.
 
@@ -1785,8 +1399,6 @@ str
 
     Parameters
     ----------
-    graph : Graph
-        The phase-type graph object.
     rewards : list of float or ndarray, optional
         Optional rewards, which should be applied to the phase-type distribution. Must have length equal to `vertices_length()`.
 
@@ -1821,8 +1433,6 @@ str
 
     Parameters
     ----------
-    graph : Graph
-        The phase-type graph object.
     rewards1 : list of float or ndarray
         The first set of rewards, which should be applied to the phase-type distribution. Must have length equal to `vertices_length()`.
     rewards2 : list of float or ndarray
@@ -1859,8 +1469,6 @@ str
 
     Parameters
     ----------
-    graph : Graph
-        The phase-type graph object.
     rewards1 : list of float or ndarray
         The first set of rewards, which should be applied to the discrete phase-type distribution. Must have length equal to `vertices_length()`.
     rewards2 : list of float or ndarray
@@ -1895,8 +1503,6 @@ str
 
     Parameters
     ----------
-    graph : Graph
-        The phase-type graph object.
     rewards : list of float or ndarray, optional
         Optional rewards, which should be applied to the phase-type distribution. Must have length equal to `vertices_length()`.
 
@@ -1914,8 +1520,8 @@ str
     >>> graph.starting_vertex().add_edge(v1, 1)
     >>> v1.add_edge(v2, 4)
     >>> v2.add_edge(a, 10)
-    >>> expected_waiting_time(graph) # => [0.35, 0.1, 0.05]
-    >>> graph.expected_waiting_time( [0,2,1,0]) # => [0.6, 0.2, 0.1]
+    >>> graph.expected_waiting_time() # => [0.35, 0.1, 0.05]
+    >>> graph.expected_waiting_time([0,2,1,0]) # => [0.6, 0.2, 0.1]
       )delim")
 
     .def("expected_sojourn_time", &phasic::Graph::expected_sojourn_time,
@@ -1962,39 +1568,6 @@ str
     >>> # For n=183k, k=2k: 2.9 GB vs 268 GB!
       )delim")
 
-//     .def("expected_residence_time", &phasic::Graph::expected_residence_time, py::arg("rewards")=std::vector<double>(), 
-//       py::return_value_policy::move, R"delim(
-// Computes the expected residence time of the phase-type distribution.
-
-//     This function computes the expected residence time for the given rewards.
-
-//     Parameters
-//     ----------
-//     graph : Graph
-//         The phase-type graph object.
-//     rewards : list of float or ndarray, optional
-//         Optional rewards, which should be applied to the phase-type distribution. Must have length equal to `vertices_length()`.
-
-//     Returns
-//     -------
-//     list of float or ndarray
-//         A numeric vector of the expected residence times.
-
-//     Examples
-//     --------
-//     >>> graph = Graph(4)
-//     >>> v1 = graph.create_vertex([1,2,3,4])
-//     >>> v2 = graph.create_vertex([4,0,3,3])
-//     >>> a = graph.create_vertex([0,0,0,0])
-//     >>> graph.starting_vertex().add_edge(v1, 1)
-//     >>> v1.add_edge(v2, 4)
-//     >>> v2.add_edge(a, 10)
-//     >>> expected_residence_time(graph) # => [0.35, 0.1, 0.05]
-//     >>> graph.expected_residence_time( [0,2,1,0]) # => [0.6, 0.2, 0.1]
-//       )delim")
-      
-      
-
     .def("sample",
       [](phasic::Graph &graph, int n, std::vector<double>rewards) {
 
@@ -2035,8 +1608,6 @@ str
 
     Parameters
     ----------
-    graph : Graph
-        The phase-type graph object.
     n : int, optional
         The number of samples to generate. Default is 1.
     rewards : list of float or ndarray, optional
@@ -2101,8 +1672,6 @@ str
 
     Parameters
     ----------
-    graph : Graph
-        The phase-type graph object.
     n : int, optional
         The number of samples to generate. Default is 1.
     rewards : list of float or ndarray, optional
@@ -2186,8 +1755,6 @@ str
 
     Parameters
     ----------
-    graph : Graph
-        The phase-type graph object.
     n : int, optional
         The number of samples to generate. Default is 1.
     rewards : ndarray
@@ -2280,8 +1847,6 @@ str
 
     Parameters
     ----------
-    graph : Graph
-        The phase-type graph object.
     n : int, optional
         The number of samples to generate. Default is 1.
     rewards : ndarray
@@ -2316,26 +1881,6 @@ str
 
 
 
-    // .def("sample_multivariate", static_cast<std::vector<long double> (phasic::Graph::*)(std::vector<double>, size_t)>(&phasic::Graph::mph_random_sample), py::arg("rewards"), py::arg("vertex_rewards_length"), 
-    //   py::return_value_policy::copy, R"delim(
-
-    //   )delim")
-
-
-    // .def("sample_multivariate_discrete", static_cast<std::vector<long double> (phasic::Graph::*)(std::vector<double>, size_t)>(&phasic::Graph::mdph_random_sample), py::arg("rewards"), py::arg("vertex_rewards_length"), 
-    //   py::return_value_policy::copy, R"delim(
-
-    //   )delim")
-
-    
-  //  .def("sample_multivariate",
-  //     [](phasic::Graph &graph, int n, std::vector<double> rewards) {
-
-  //       py::print(py::str("not implemented"));
-
-  //     }, py::return_value_policy::move, py::arg("n")=1, py::arg("rewards")=dMatrix(), R"delim(
-
-  //   )delim")
 
       
 
@@ -2348,8 +1893,6 @@ str
 
     Parameters
     ----------
-    graph : Graph
-        The phase-type graph object.
     time : float
         The stopping time.
 
@@ -2360,14 +1903,14 @@ str
 
     Examples
     --------
-    >>> graph = create_graph(4)
+    >>> graph = Graph(4)
     >>> v1 = graph.create_vertex([1,2,3,4])
     >>> v2 = graph.create_vertex([4,0,3,3])
     >>> a = graph.create_vertex([0,0,0,0])
-    >>> add_edge(starting_vertex(graph), v1, 1)
+    >>> graph.starting_vertex().add_edge(v1, 1)
     >>> v1.add_edge(v2, 4)
     >>> v2.add_edge(a, 10)
-    >>> graph.random_sample_stop_vertex( 0.5) # => Vertex at stopping time 0.5
+    >>> graph.random_sample_stop_vertex(0.5) # => Vertex at stopping time 0.5
       )delim")
       
     .def("random_sample_discrete_stop_vertex", &phasic::Graph::dph_random_sample_stop_vertex, py::arg("jumps"), 
@@ -2378,8 +1921,6 @@ str
 
     Parameters
     ----------
-    graph : Graph
-        The phase-type graph object.
     jumps : int
         The number of jumps.
 
@@ -2390,14 +1931,14 @@ str
 
     Examples
     --------
-    >>> graph = create_graph(4)
+    >>> graph = Graph(4)
     >>> v1 = graph.create_vertex([1,2,3,4])
     >>> v2 = graph.create_vertex([4,0,3,3])
     >>> a = graph.create_vertex([0,0,0,0])
-    >>> add_edge(starting_vertex(graph), v1, 1)
+    >>> graph.starting_vertex().add_edge(v1, 1)
     >>> v1.add_edge(v2, 4)
     >>> v2.add_edge(a, 10)
-    >>> graph.random_sample_discrete_stop_vertex( 3) # => Vertex at 3 jumps
+    >>> graph.random_sample_discrete_stop_vertex(3) # => Vertex at 3 jumps
       )delim")
       
     .def("state_length", &phasic::Graph::state_length, 
@@ -2406,11 +1947,6 @@ str
 
     This function returns the length of the integer vector used to represent and reference a state in the graph.
 
-    Parameters
-    ----------
-    graph : Graph
-        The phase-type graph object.
-
     Returns
     -------
     int
@@ -2418,8 +1954,8 @@ str
 
     Examples
     --------
-    >>> graph = create_graph(4)
-    >>> state_length(graph) # => 4
+    >>> graph = Graph(4)
+    >>> graph.state_length() # => 4
       )delim")
       
     .def("is_acyclic", &phasic::Graph::is_acyclic,
@@ -2427,11 +1963,6 @@ str
     Checks if the graph is acyclic.
 
     This function checks if the graph is acyclic, meaning it does not contain any cycles.
-
-    Parameters
-    ----------
-    graph : Graph
-        The phase-type graph object.
 
     Returns
     -------
@@ -2441,7 +1972,7 @@ str
     Examples
     --------
     >>> graph = Graph(4)
-    >>> is_acyclic(graph) # => True or False
+    >>> graph.is_acyclic() # => True or False
       )delim")
       
     .def("validate", &phasic::Graph::validate, R"delim(
@@ -2449,18 +1980,14 @@ str
 
     This function checks the integrity and consistency of the graph structure.
 
-    Parameters
-    ----------
-    None
-
     Returns
     -------
     None
 
     Examples
     --------
-    >>> graph = create_graph(4)
-    >>> validate(graph)
+    >>> graph = Graph(4)
+    >>> graph.validate()
       )delim")
 
     .def("scc_decomposition", &phasic::Graph::scc_decomposition, R"delim(
@@ -2484,29 +2011,6 @@ str
     >>>     print(f"SCC {scc.index()}: {scc.size()} vertices")
       )delim")
 
-    // .def("expectation_dag", static_cast<phasic::Graph (phasic::Graph::*)(std::vector<double>)>(&phasic::Graph::expectation_dag), py::arg("rewards"), 
-    //   py::return_value_policy::reference_internal, R"delim(
-    // Computes the expectation of the directed acyclic graph (DAG) representation of the phase-type distribution.
-
-    // This function computes the expectation of the phase-type distribution when represented as a directed acyclic graph (DAG).
-
-    // Parameters
-    // ----------
-    // rewards : list of float or ndarray
-    //     A numeric vector of rewards to be applied to the phase-type distribution. Must have length equal to `vertices_length()`.
-
-    // Returns
-    // -------
-    // Graph
-    //     A graph object representing the expectation of the DAG.
-
-    // Examples
-    // --------
-    // >>> graph = create_graph(4)
-    // >>> rewards = [1.0, 2.0, 3.0, 4.0]
-    // >>> dag_expectation = graph.expectation_dag(rewards)
-    //   )delim")
-      
     .def("reward_transform", static_cast<phasic::Graph (phasic::Graph::*)(std::vector<double>)>(&phasic::Graph::reward_transform), py::arg("rewards"), 
       py::return_value_policy::reference_internal, R"delim(
     Transforms the graph using the given rewards.
@@ -2525,11 +2029,11 @@ str
 
     Examples
     --------
-    >>> graph = create_graph(4)
+    >>> graph = Graph(4)
     >>> rewards = [1.0, 2.0, 3.0, 4.0]
     >>> transformed_graph = graph.reward_transform(rewards)
       )delim")
-      
+
     .def("reward_transform_discrete", static_cast<phasic::Graph (phasic::Graph::*)(std::vector<int>)>(&phasic::Graph::dph_reward_transform), py::arg("rewards"), 
       py::return_value_policy::reference_internal, R"delim(
     Transforms the discrete phase-type distribution graph using the given rewards.
@@ -2548,7 +2052,7 @@ str
 
     Examples
     --------
-    >>> graph = create_graph(4)
+    >>> graph = Graph(4)
     >>> rewards = [1, 2, 3, 4]
     >>> transformed_graph = graph.reward_transform_discrete(rewards)
       )delim")
@@ -2637,7 +2141,7 @@ str
     >>> graph = Graph(4)
     >>> graph.starting_vertex().add_edge(graph.create_vertex( [1,2,3,4]), 0.5)
     >>> graph.starting_vertex().add_edge(graph.create_vertex( [4,0,3,3]), 0.5)
-    >>> normalized_graph = normalize(graph)
+    >>> normalized_graph = graph.normalize()
       )delim")
 
     .def("normalize_discrete", &phasic::Graph::dph_normalize, 
@@ -2660,7 +2164,7 @@ str
     >>> graph = Graph(4)
     >>> graph.starting_vertex().add_edge(graph.create_vertex( [1,2,3,4]), 0.5)
     >>> graph.starting_vertex().add_edge(graph.create_vertex( [4,0,3,3]), 0.5)
-    >>> normalized_graph = normalize_discrete(graph)
+    >>> normalized_graph = graph.normalize_discrete()
       )delim")
       
     .def("notify_change", &phasic::Graph::notify_change, R"delim(
@@ -2680,7 +2184,7 @@ str
     --------
     >>> graph = Graph(4)
     >>> graph.starting_vertex().add_edge(graph.create_vertex( [1,2,3,4]), 0.5)
-    >>> notify_change(graph)
+    >>> graph.notify_change()
       )delim")
       
     .def("defect", &phasic::Graph::defect, 
@@ -2703,7 +2207,7 @@ str
     >>> graph = Graph(4)
     >>> graph.starting_vertex().add_edge(graph.create_vertex( [1,2,3,4]), 0.5)
     >>> graph.starting_vertex().add_edge(graph.create_vertex( [4,0,3,3]), 0.5)
-    >>> defect_value = defect(graph)
+    >>> defect_value = graph.defect()
       )delim")
       
     .def("clone", &phasic::Graph::clone,
@@ -2723,8 +2227,8 @@ str
 
     Examples
     --------
-    >>> graph = create_graph(4)
-    >>> graph_copy = clone(graph)
+    >>> graph = Graph(4)
+    >>> graph_copy = graph.clone()
       )delim")
       
     .def("distribution_context",
@@ -2751,7 +2255,7 @@ str
 
     Examples
     --------
-    >>> graph = create_graph(4)
+    >>> graph = Graph(4)
     >>> context = graph.distribution_context(10)
      )delim")      
       
@@ -2780,8 +2284,8 @@ str
 
     Examples
     --------
-    >>> graph = create_graph(4)
-    >>> context = distribution_context_discrete(graph)
+    >>> graph = Graph(4)
+    >>> context = graph.distribution_context_discrete()
      )delim")      
       
 
@@ -2807,9 +2311,9 @@ str
 
     Examples
     --------
-    >>> graph = create_graph(4)
-    >>> graph.pdf( 1.0) # => PDF value at time 1.0
-    >>> graph.pdf( 1.0, 10) # => PDF value at time 1.0 with granularity 10
+    >>> graph = Graph(4)
+    >>> graph.pdf(1.0) # => PDF value at time 1.0
+    >>> graph.pdf(1.0, 10) # => PDF value at time 1.0 with granularity 10
       )delim")
       
     .def("cdf",
@@ -2833,9 +2337,9 @@ str
 
     Examples
     --------
-    >>> graph = create_graph(4)
-    >>> graph.cdf( 1.0) # => CDF value at time 1.0
-    >>> graph.cdf( 1.0, 10) # => CDF value at time 1.0 with granularity 10
+    >>> graph = Graph(4)
+    >>> graph.cdf(1.0) # => CDF value at time 1.0
+    >>> graph.cdf(1.0, 10) # => CDF value at time 1.0 with granularity 10
       )delim")
       
     .def("pdf_discrete", py::vectorize(&phasic::Graph::dph_pmf), py::arg("jumps"), 
@@ -2846,20 +2350,18 @@ str
 
     Parameters
     ----------
-    x : IntegerVector
-        Vector of the number of jumps (discrete time).
-    graph : Graph
-        The phase-type graph object.
+    jumps : int
+        The number of jumps (discrete time).
 
     Returns
     -------
-    list of float or ndarray
-        A numeric vector of the density.
+    float
+        The density at the specified number of jumps.
 
     Examples
     --------
     >>> graph = Graph(4)
-    >>> ddph([1, 2, 3], graph) # => density values at jumps 1, 2, and 3
+    >>> graph.pdf_discrete(3) # => density value at 3 jumps
       )delim")
       
     .def("cdf_discrete", py::vectorize(&phasic::Graph::dph_cdf), py::arg("jumps"), 
@@ -2870,20 +2372,18 @@ str
 
     Parameters
     ----------
-    q : IntegerVector
-        Vector of the quantiles (jumps, discrete time).
-    graph : Graph
-        The phase-type graph object.
+    jumps : int
+        The number of jumps (discrete time).
 
     Returns
     -------
-    list of float or ndarray
-        A numeric vector of the distribution function.
+    float
+        The CDF value at the specified number of jumps.
 
     Examples
     --------
     >>> graph = Graph(4)
-    >>> pdph([1, 2, 3], graph) # => CDF values at jumps 1, 2, and 3
+    >>> graph.cdf_discrete(3) # => CDF value at 3 jumps
       )delim")
 
     .def("expectation_discrete", &_expectation_discrete,
@@ -2906,9 +2406,9 @@ str
 
     Examples
     --------
-    >>> graph = create_graph(4)
+    >>> graph = Graph(4)
     >>> rewards = [1.0, 2.0, 3.0, 4.0]
-    >>> graph.expectation_discrete( rewards) # => Expectation value
+    >>> graph.expectation_discrete(rewards) # => Expectation value
     )delim")
 
 
@@ -2932,22 +2432,24 @@ str
 
     Examples
     --------
-    >>> graph = create_graph(4)
+    >>> graph = Graph(4)
     >>> rewards = [1.0, 2.0, 3.0, 4.0]
-    >>> graph.variance_discrete( rewards) # => Variance value
+    >>> graph.variance_discrete(rewards) # => Variance value
     )delim")
 
 
-    .def("stop_probability", &phasic::Graph::stop_probability, py::arg("time"), py::arg("granularity") = 0, 
+    .def("stop_probability", &phasic::Graph::stop_probability, py::arg("time"), py::arg("granularity") = 0,
       py::return_value_policy::copy, R"delim(
-    Computes the probability of the Markov Chain of the discrete phase-type distribution standing at each vertex after a given number of jumps.
+    Computes the probability of the Markov chain of the continuous phase-type distribution standing at each vertex after a given time.
 
-    This function computes the probability of the Markov Chain of the discrete phase-type distribution standing at each vertex after a specified number of jumps.
+    This function computes the probability of the Markov chain standing at each vertex after a specified time.
 
     Parameters
     ----------
     time : float
         The time (continuous time).
+    granularity : int, optional
+        The granularity of the computation. Default is 0.
 
     Returns
     -------
@@ -2956,14 +2458,14 @@ str
 
     Examples
     --------
-    >>> graph = create_graph(4)
+    >>> graph = Graph(4)
     >>> v1 = graph.create_vertex([1,2,3,4])
     >>> v2 = graph.create_vertex([4,0,3,3])
     >>> a = graph.create_vertex([0,0,0,0])
-    >>> add_edge(starting_vertex(graph), v1, 0.5)
+    >>> graph.starting_vertex().add_edge(v1, 0.5)
     >>> v1.add_edge(v2, 0.8)
     >>> v2.add_edge(a, 0.5)
-    >>> graph.dph_stop_probability( 3) # => Stop probabilities after 3 jumps
+    >>> graph.stop_probability(1.0) # => Stop probabilities at time 1.0
       )delim")
 
     .def("stop_probability_discrete", &phasic::Graph::dph_stop_probability, py::arg("jumps"), 
@@ -2984,14 +2486,14 @@ str
 
     Examples
     --------
-    >>> graph = create_graph(4)
+    >>> graph = Graph(4)
     >>> v1 = graph.create_vertex([1,2,3,4])
     >>> v2 = graph.create_vertex([4,0,3,3])
     >>> a = graph.create_vertex([0,0,0,0])
-    >>> add_edge(starting_vertex(graph), v1, 0.5)
+    >>> graph.starting_vertex().add_edge(v1, 0.5)
     >>> v1.add_edge(v2, 0.8)
     >>> v2.add_edge(a, 0.5)
-    >>> graph.dph_stop_probability( 3) # => Stop probabilities after 3 jumps
+    >>> graph.stop_probability_discrete(3) # => Stop probabilities after 3 jumps
       )delim")
 
     .def("accumulated_visits", &phasic::Graph::dph_accumulated_visits, py::arg("jumps"), 
@@ -3012,46 +2514,16 @@ str
 
     Examples
     --------
-    >>> graph = create_graph(4)
+    >>> graph = Graph(4)
     >>> v1 = graph.create_vertex([1,2,3,4])
     >>> v2 = graph.create_vertex([4,0,3,3])
     >>> a = graph.create_vertex([0,0,0,0])
-    >>> add_edge(starting_vertex(graph), v1, 0.5)
+    >>> graph.starting_vertex().add_edge(v1, 0.5)
     >>> v1.add_edge(v2, 0.8)
     >>> v2.add_edge(a, 0.5)
-    >>> graph.dph_accumulated_visits( 3) # => Accumulated visits after 3 jumps
+    >>> graph.accumulated_visits(3) # => Accumulated visits after 3 jumps
       )delim")
 
-    // IDENTICAL TO ACCUMULATED_VISITS
-    // .def("expected_visits", &phasic::Graph::dph_expected_visits, py::arg("jumps"), 
-    //   py::return_value_policy::copy, R"delim(
-    // Computes the expected jumps (or accumulated rewards) until absorption.
-    // This function can be used to compute the moments of a discrete phase-type distribution very fast and without much
-    // memory usage compared with the traditional matrix-based equations.
-    // The function takes in non-integers as rewards, but to be a *strictly* valid rewarded discrete phase-type distribution these should be integers.
-    // Parameters
-    // ----------
-    // graph : Graph
-    //     The phase-type graph object.
-    // rewards : Nullable<list of float or ndarray>, optional
-    //     Optional rewards, which should be applied to the discrete phase-type distribution. Must have length equal to `vertices_length()`.
-    // Returns
-    // -------
-    // list of float or ndarray
-    //     A numeric vector where entry `i` is the expected rewarded jumps starting at vertex `i`.
-    // See Also
-    // --------
-    // moments
-    // expectation
-    // variance
-    // covariance
-    // Examples
-    // --------
-    // >>> graph = create_graph(4)
-    // >>> rewards = [1.0, 2.0, 3.0, 4.0]
-    // >>> graph.dph_expected_visits( rewards) # => Expected visits value
-    //   )delim")
-      
     .def("accumulated_visiting_time", &phasic::Graph::accumulated_visiting_time, py::arg("time"), py::arg("granularity") = 0, 
       py::return_value_policy::copy, R"delim(
     Computes the accumulated visiting time of the phase-type distribution at a given time.
@@ -3072,9 +2544,9 @@ str
 
     Examples
     --------
-    >>> graph = create_graph(4)
-    >>> graph.accumulated_visiting_time( 1.0) # => Accumulated visiting time at time 1.0
-    >>> graph.accumulated_visiting_time( 1.0, 10) # => Accumulated visiting time at time 1.0 with granularity 10
+    >>> graph = Graph(4)
+    >>> graph.accumulated_visiting_time(1.0) # => Accumulated visiting time at time 1.0
+    >>> graph.accumulated_visiting_time(1.0, 10) # => Accumulated visiting time at time 1.0 with granularity 10
       )delim")
     
 
@@ -3134,15 +2606,10 @@ str
 
     Used to convert to the traditional matrix-based formulation. Has three entries: `.SIM` the sub-intensity matrix, `.IPV` the initial probability vector, `.states` the state of each vertex. Does *not* have the same order as vertices(). The indices returned are 1-based, like the input to vertex_at().
 
-    Parameters
-    ----------
-    graph : Graph
-        A reference to the graph created by Graph().
-
     Returns
     -------
-    List
-        A list of the sub-intensity matrix, states, and initial probability vector, and graph indices matching the matrix (1-indexed).
+    dict
+        A dictionary with keys 'sim' (sub-intensity matrix), 'ipv' (initial probability vector), 'states' (state matrix), and 'indices' (1-indexed vertex numbers).
 
     Examples
     --------
@@ -3273,26 +2740,27 @@ str
 
     Parameters
     ----------
-    IPV : list of float or ndarray
+    ipv : list of float or ndarray
         The initial probability vector (alpha).
-    SIM : NumericMatrix
+    sim : ndarray
         The sub-intensity matrix (S).
-    rewards : NumericMatrix, optional
-        The state/rewards of each of the vertices.
+    states : ndarray, optional
+        The state matrix for each vertex.
 
     Returns
     -------
-    SEXP
+    Graph
         A graph object.
 
     Examples
     --------
-    >>> g = matrix_as_graph(
-    >>>     [0.5,0.3, 0],
-    >>>     matrix([-3, 0, 0, 2, -4, 1, 0, 1,-3], ncol=3),
-    >>>     matrix([1,4,5,9,2,7], ncol=2)
+    >>> import numpy as np
+    >>> g = Graph.from_matrices(
+    >>>     ipv=[0.5, 0.3, 0.2],
+    >>>     sim=np.array([[-3, 2, 0], [0, -4, 1], [0, 1, -3]]),
+    >>>     states=np.array([[1, 4], [5, 9], [2, 7]])
     >>> )
-    >>> graph_as_matrix(g)
+    >>> g.as_matrices()
       )delim")
 
     ;
@@ -3953,28 +3421,25 @@ int
         R"delim(
       DEPRECATED: Use add_edge(to, [coefficients]) instead.
 
-      Adds an edge between two vertices in the graph.
+      Adds a parameterized edge between two vertices in the graph.
       The graph represents transitions between states as a weighted directed edge between two vertices.
+
       Parameters
       ----------
-      phase_type_vertex_from : SEXP
-          The vertex that transitions from.
-      phase_type_vertex_to : SEXP
-          The vertex that transitions to.
+      to : Vertex
+          The target vertex.
       weight : float
-          The weight of the edge, i.e., the transition rate.
-      parameterized_edge_state : list of float or ndarray, optional
+          The base weight of the edge, i.e., the transition rate.
+      edge_state : list of float or ndarray
           Associate a numeric vector to an edge, for faster computations of moments when weights are changed.
+
       See Also
       --------
-      expected_waiting_time
-      moments
-      variance
-      covariance
-      graph_update_weights_parameterized
+      add_edge
+
       Examples
       --------
-      >>> graph = create_graph(4)
+      >>> graph = Graph(4)
       >>> vertex_a = graph.find_or_create_vertex([1,2,1,0])
       >>> vertex_b = graph.find_or_create_vertex([2,0,1,0])
       >>> vertex_a.add_edge(vertex_b, 1.5)
@@ -4003,35 +3468,25 @@ ndarray
       
     .def("edges", &phasic::Vertex::edges,
       py::return_value_policy::reference_internal, R"delim(
-    Returns the out-going edges of a vertex.
+    Returns the out-going edges of this vertex.
 
     Returns a list of edges added by add_edge().
 
-    Parameters
-    ----------
-    phase_type_vertex : SEXP
-        The vertex to find the edges for.
-
     Returns
     -------
-    List
+    list of Edge
         A list of out-going edges.
       )delim")
 
     .def("parameterized_edges", &phasic::Vertex::parameterized_edges,
       py::return_value_policy::reference_internal, R"delim(
-    Returns the out-going parameterized edges of a vertex.
+    Returns the out-going parameterized edges of this vertex.
 
-    Returns a list of parameterized edges added by add_edge_parameterized().
-
-    Parameters
-    ----------
-    phase_type_vertex : SEXP
-        The vertex to find the parameterized edges for.
+    Returns a list of parameterized edges added by add_edge() with coefficient vectors.
 
     Returns
     -------
-    List
+    list of ParameterizedEdge
         A list of out-going parameterized edges.
       )delim")
 
@@ -4203,16 +3658,6 @@ float
     The current edge weight.
       )delim")
 
-    // base_weight() method removed - starting edges are never parameterized
-
-    // .def("edge_state", 
-    //   [](phasic::ParameterizedEdge &edge) {
-    //     auto a = edge.state;
-    //     auto capsule = py::capsule(a, [](void *a) { delete reinterpret_cast<std::vector<double>*>(a); });
-    //     return py::array(a->size(), a->data(), capsule);
-    //   }, R"delim(
-
-    // )delim")  
     .def("edge_state", &phasic::ParameterizedEdge::edge_state,
       py::arg("requested_length"),
       R"delim(
@@ -4394,11 +3839,6 @@ list of float
     Expected number of visits to each vertex.
       )delim")
       
-    // .def("accumulated_visiting_time", &phasic::AnyProbabilityDistributionContext::accumulated_visiting_time, 
-    //   py::return_value_policy::copy, R"delim(
-
-    //   )delim")
-
     .def("accumulated_visiting_time",
       [](phasic::AnyProbabilityDistributionContext &context) {
         // to make it return np.array instead of list without copying data
@@ -4434,41 +3874,16 @@ Use Graph.distribution_context(granularity) instead.
 
 
       
-    // .def("__enter__",
-    //   [](phasic::ProbabilityDistributionContext &ctx) {
-
-    //     // reset context
-
-    //     return ctx;
-
-    //   }, py::return_value_policy::move, R"delim(
-
-    //   )delim")
-
-
-    // .def("__exit__",
-    //   [](phasic::ProbabilityDistributionContext &ctx) {
-
-
-    //     // reset context
-
-    //   }, R"delim(
-
-    //   )delim")
       
 
 
 
     .def("step", &phasic::ProbabilityDistributionContext::step, 
       py::return_value_policy::copy, R"delim(
-      Performs one jump in the probability distribution context for the discrete phase-type distribution.
+      Performs one step in the probability distribution context for the phase-type distribution.
       This allows the user to step through the distribution, computing e.g. the time-inhomogeneous distribution function or the expectation of a multivariate phase-type distribution.
       *Mutates* the context.
 
-      Parameters
-      ----------
-      probability_distribution_context : SEXP
-          The context created by `distribution_context()`.
       See Also
       --------
       distribution_context
@@ -4479,12 +3894,6 @@ Use Graph.distribution_context(granularity) instead.
       Returns the PDF for the current probability distribution context for the phase-type distribution.
 
       This allows the user to step through the distribution, computing e.g. the time-inhomogeneous distribution function or the expectation of a multivariate phase-type distribution.
-      *Mutates* the context.
-
-      Parameters
-      ----------
-      probability_distribution_context : SEXP
-          The context created by `distribution_context()`.
 
       See Also
       --------
@@ -4492,22 +3901,16 @@ Use Graph.distribution_context(granularity) instead.
 
       Returns
       -------
-      List
-          A list containing the PDF, PMF, CDF, and time for the current probability distribution context.
+      float
+          The PDF value at the current time.
 
       )delim")
-      
-    .def("cdf", &phasic::ProbabilityDistributionContext::cdf, 
+
+    .def("cdf", &phasic::ProbabilityDistributionContext::cdf,
       py::return_value_policy::copy, R"delim(
       Returns the CDF for the current probability distribution context for the phase-type distribution.
 
       This allows the user to step through the distribution, computing e.g. the time-inhomogeneous distribution function or the expectation of a multivariate phase-type distribution.
-      *Mutates* the context.
-
-      Parameters
-      ----------
-      probability_distribution_context : SEXP
-          The context created by `distribution_context()`.
 
       See Also
       --------
@@ -4515,46 +3918,28 @@ Use Graph.distribution_context(granularity) instead.
 
       Returns
       -------
-      List
-          A list containing the PDF, PMF, CDF, and time for the current probability distribution context.
+      float
+          The CDF value at the current time.
 
 
       )delim")
-      
-    .def("time", &phasic::ProbabilityDistributionContext::time, 
+
+    .def("time", &phasic::ProbabilityDistributionContext::time,
       py::return_value_policy::copy, R"delim(
       Returns the time for the current probability distribution context for the phase-type distribution.
 
-      This allows the user to step through the distribution, computing e.g. the time-inhomogeneous distribution function or the expectation of a multivariate phase-type distribution.
-      *Mutates* the context.
-
-      Parameters
-      ----------
-      probability_distribution_context : SEXP
-          The context created by `distribution_context()`.
-
       See Also
       --------
       distribution_context
 
       Returns
       -------
-      List
-          A list containing the PDF, PMF, CDF, and time for the current probability distribution context.
+      float
+          The current time in the distribution context.
 
 
       )delim")
       
-    // .def("jumps", &phasic::ProbabilityDistributionContext::jumps,
-    //   py::return_value_policy::copy, R"delim(
-    //     Get current number of jumps (discrete distributions only).
-
-    //     Returns
-    //     -------
-    //     int
-    //         Current jump count.
-    //   )delim")
-
     .def("stop_probability", &phasic::ProbabilityDistributionContext::stop_probability,
       py::return_value_policy::copy, R"delim(
         Get stopping probability at each vertex.
@@ -4564,21 +3949,6 @@ Use Graph.distribution_context(granularity) instead.
         list of float
             Probability of being at each vertex at current time/jump.
       )delim")
-
-    // .def("accumulated_visits", &phasic::ProbabilityDistributionContext::accumulated_visits,
-    //   py::return_value_policy::copy, R"delim(
-    //     Get accumulated visit counts for each vertex.
-
-    //     Returns
-    //     -------
-    //     list of float
-    //         Expected number of visits to each vertex.
-    //   )delim")
-      
-    // .def("accumulated_visiting_time", &phasic::AnyProbabilityDistributionContext::accumulated_visiting_time, 
-    //   py::return_value_policy::copy, R"delim(
-
-    //   )delim")
 
     .def("accumulated_visiting_time",
       [](phasic::ProbabilityDistributionContext &context) {
@@ -4609,18 +3979,15 @@ Use Graph.distribution_context(granularity) instead.
       
     .def("step", &phasic::DPHProbabilityDistributionContext::step, 
       py::return_value_policy::copy, R"delim(
-//' Performs one jump in a probability distribution context for the discrete phase-type distribution.
-//' 
-//' @description
-//' This allows the user to step through the distribution, computing e.g. the
-//' time-inhomogeneous distribution function or the expectation of a multivariate discrete phase-type distribution.
-//' *mutates* the context
-//' 
-//' @seealso dph_distribution_context()
-//' 
-//' @param probability_distribution_context The context created by dph_distribution_context()
-//' 
-// [[Rcpp::export]]
+      Performs one jump in the probability distribution context for the discrete phase-type distribution.
+
+      This allows the user to step through the distribution, computing e.g. the
+      time-inhomogeneous distribution function or the expectation of a multivariate discrete phase-type distribution.
+      *Mutates* the context.
+
+      See Also
+      --------
+      distribution_context_discrete
       )delim")
       
     .def("pmf", &phasic::DPHProbabilityDistributionContext::pmf, 
@@ -4628,21 +3995,15 @@ Use Graph.distribution_context(granularity) instead.
       Returns the PMF for the current probability distribution context for the discrete phase-type distribution.
 
       This allows the user to step through the distribution, computing e.g. the time-inhomogeneous distribution function or the expectation of a discrete multivariate phase-type distribution.
-      *Mutates* the context.
-
-      Parameters
-      ----------
-      probability_distribution_context : SEXP
-          The context created by `dph_distribution_context()`.
 
       See Also
       --------
-      dph_distribution_context
+      distribution_context_discrete
 
       Returns
       -------
-      List
-           A list containing the PMF, CDF, and jumps for the current probability distribution context.
+      float
+          The PMF value at the current number of jumps.
       )delim")
       
     .def("cdf", &phasic::DPHProbabilityDistributionContext::cdf, 
@@ -4650,43 +4011,29 @@ Use Graph.distribution_context(granularity) instead.
       Returns the CDF for the current probability distribution context for the discrete phase-type distribution.
 
       This allows the user to step through the distribution, computing e.g. the time-inhomogeneous distribution function or the expectation of a discrete multivariate phase-type distribution.
-      *Mutates* the context.
-
-      Parameters
-      ----------
-      dph_probability_distribution_context : SEXP
-          The context created by `dph_distribution_context()`.
 
       See Also
       --------
-      dph_distribution_context
+      distribution_context_discrete
 
       Returns
       -------
-      List
-           A list containing the PMF, CDF, and jumps for the current probability distribution context.
+      float
+          The CDF value at the current number of jumps.
       )delim")
       
     .def("jumps", &phasic::DPHProbabilityDistributionContext::jumps, 
       py::return_value_policy::copy, R"delim(
-      Returns the number of jumps for the current probability distribution context for the phase-type distribution.
-
-      This allows the user to step through the distribution, computing e.g. the time-inhomogeneous distribution function or the expectation of a multivariate phase-type distribution.
-      *Mutates* the context.
-
-      Parameters
-      ----------
-      dph_probability_distribution_context : SEXP
-          The context created by `dph_distribution_context()`.
+      Returns the number of jumps for the current probability distribution context for the discrete phase-type distribution.
 
       See Also
       --------
-      dph_distribution_context
+      distribution_context_discrete
 
       Returns
       -------
-      List
-          A list containing the PDF, PMF, CDF, and time for the current probability distribution context.
+      int
+          The current number of jumps in the distribution context.
 
 
       )delim")

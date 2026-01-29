@@ -16,41 +16,8 @@ import ctypes
 import pathlib
 
 from functools import wraps
-#from distro import name
 import numpy as np
-from collections import OrderedDict, UserDict
-
-# class StateDict(UserDict):
-
-#     def __init__(self, data):
-#         self.data = OrderedDict(data)
-#         self.list = list(self.data.values())
-
-#     def __get__(self, key):
-#         if type(key) is int:
-#             return self.list[key]
-#         return self.data[key]
-
-#     def __set__(self, key, value):
-#         if type(key) is int:
-#             self.list[key] = value
-#         self.data[key] = value             
-
-# def labelled(labels):  # The factory function that accepts a parameter
-#     def decorator(func):
-#         @wraps(func)  # Apply @wraps to the wrapper
-#         def wrapper(arr, **kwargs):
-#             print(kwargs)
-# #            assert len(labels) == arr.size
-#             l = list(zip(labels, arr))
-#             d = StateDict(l)
-#             result = func(d, **kwargs)  
-#             print(result)
-#             if not result:
-#                 return []
-#             return [[np.array(state, dtype=int), *rest] for state, *rest in result]
-#         return wrapper
-#     return decorator
+from collections import OrderedDict
 
 # Import configuration system FIRST (before any optional imports)
 from .config import (
@@ -417,26 +384,6 @@ __version__ = '0.20.0'
 
 GraphType = TypeVar('Graph')
 
-
-# class MatrixRepresentation(NamedTuple):
-#     """
-#     Matrix representation of a phase-type distribution.
-
-#     Attributes
-#     ----------
-#     states : np.ndarray
-#         State vectors for each vertex, shape (n_states, state_dim), dtype=int32
-#     sim : np.ndarray
-#         Sub-intensity matrix, shape (n_states, n_states), dtype=float64
-#     ipv : np.ndarray
-#         Initial probability vector, shape (n_states,), dtype=float64
-#     indices : np.ndarray
-#         1-based indices for vertices (for use with vertex_at()), shape (n_states,), dtype=int32
-#     """
-#     states: np.ndarray
-#     sim: np.ndarray
-#     ipv: np.ndarray
-#     indices: np.ndarray 
 
 from collections import namedtuple
 MatrixRepresentation = namedtuple("MatrixRepresentation", ['ipv', 'sim', 'states', 'indices'])
@@ -1371,56 +1318,6 @@ def _setup_ctypes_signatures_from_arrays(lib, discrete=False):
         ]
         lib.compute_pmf_from_arrays.restype = None
 
-
-# class Graph(_Graph):
-#     def __init__(self, state_length=None, callback=None, initial=None, trans_as_dict=False):
-#         """
-#         Create a graph representing a phase-type distribution. This is the primary entry-point of the library. A starting vertex will always be added to the graph upon initialization.
-
-#         The graph can be initialized in two ways:
-#         - By providing a callback function that generates the graph. The callback function should take a list of integers as its only argument and return a list of tuples, where each tuple contains a state and a list of tuples, where each tuple contains a state and a rate.
-#         - By providing an initial state and a list of transitions. The initial state is a list of integers representing the initial model state. The list of transitions is a list of tuples, where each tuple contains a state and a list of tuples, where each tuple contains a state and a rate.
-
-#         Parameters
-#         ----------
-#         state_length : 
-#             The length of the integer vector used to represent and reference a state, by default None
-#         callback : 
-#             Callback function accepting a state and returns a list of reachable states and the corresponding transition rates, by default None.
-#             The callback function should take a list of integers as its only argument and return a list of tuples, where each tuple contains a state and a list of tuples, where each tuple contains a state and a rate.
-#         initial : 
-#             A list of integers representing the initial model state, by default None
-#         trans_as_dict : 
-#             Whether the callback should return dictionaries with 'state' and 'weight' keys instead of tuples, by default False
-
-#         Returns
-#         -------
-#         :
-#             A graph object representing a phase-type distribution.
-#         """
-
-#         assert bool(callback) == bool(initial), "callback and initial_state must be both None or both not None"
-
-#         if callback and initial:
-#             if trans_as_dict:        
-#                 super().__init__(callback_dicts=callback, initial_state=initial)
-#             else:
-#                 super().__init__(callback_tuples=callback, initial_state=initial)
-#         else:
-#             super().__init__(state_length)
-
-# def starting_state(ipv: Union[List[int], List[Union[List[int], float]]]) -> List[Union[List[int], float]]:
-#     def decorator(func):
-#         @wraps(func)
-#         def wrapper(state=None, **kwargs):
-#             if state is None or len(state) == 0:
-#                 if sum([x[1] for x in ipv]) != 1.0:
-#                     raise ValueError("Starting state probabilities do not sum to one")
-#                 return ipv
-#             else:
-#                 return func(state, **kwargs)
-#         return wrapper
-#     return decorator
 
 def _callback(ipv):
     """
