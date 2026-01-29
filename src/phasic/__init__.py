@@ -254,6 +254,7 @@ if HAS_JAX:
         # LocalAdaptiveBandwidth
         # Preconditioning
         FisherPreconditioner,
+        MomentJacobianPreconditioner,
     )
 else:
     SVGD = None
@@ -279,6 +280,7 @@ else:
     # FixedBandwidth = None
     # LocalAdaptiveBandwidth = None
     FisherPreconditioner = None
+    MomentJacobianPreconditioner = None
 
 # Optax integration (optional dependency)
 try:
@@ -4004,12 +4006,15 @@ extern "C" {{
             - 2D array (n_vertices, n_features): Multivariate rewards - one reward vector per feature
               dimension. Requires use of pmf_and_moments_from_graph_multivariate() model.
             For multivariate models, observed_data should also be 2D (n_times, n_features).
-        preconditioner : str, FisherPreconditioner, or None, default='auto'
+        preconditioner : str, preconditioner instance, or None, default='auto'
             Preconditioning method for multi-scale parameters:
-            - 'auto': Fisher diagonal preconditioning (recommended for multi-parameter models)
-            - 'fisher': Same as 'auto'
+            - 'auto' or 'jacobian': Moment Jacobian preconditioning (default, recommended).
+              Uses column norms of the moment Jacobian matrix for scaling. Simpler and
+              more robust than Fisher preconditioning.
+            - 'fisher': Fisher diagonal preconditioning. Uses empirical Fisher information
+              matrix diagonal. Can be unstable when PMF values are small.
             - None or 'none': No preconditioning (original behavior)
-            - FisherPreconditioner instance: Custom preconditioner
+            - MomentJacobianPreconditioner or FisherPreconditioner instance: Custom preconditioner
 
         Returns
         -------

@@ -2330,7 +2330,194 @@ def _compute_kernel_grad_impl(particles, bandwidth):
     return K, grad_K
 
 
-class FisherPreconditioner:
+class _PreconditionerBase:
+    """Shared base for preconditioners (reference search + interface).
+
+    Parameters
+    ----------
+    model : callable
+        Model function: model(theta, data, rewards=None) -> (pmf, moments)
+    observed_data : array
+        Observation data points
+    theta_dim : int
+        Number of parameters (learnable dimensions only if fixed params exist)
+    param_transform : callable or None
+        Transformation from unconstrained to constrained space (e.g., softplus)
+    rewards : array or None
+        Optional rewards for multivariate models
+    epsilon : float, default=1e-8
+        Floor for scaling values to avoid division by zero
+    """
+
+    def __init__(self, model, observed_data, theta_dim,
+                 param_transform=None, rewards=None, epsilon=1e-8):
+        self.model = model
+        self.observed_data = observed_data
+        self.theta_dim = theta_dim
+        self.param_transform = param_transform
+        self.rewards = rewards
+        self.epsilon = epsilon
+        self.scaling = None
+
+    def _find_moment_matching_reference(self, theta_init):
+        """Find reference point where model moments match data moments.
+
+        Uses a data-driven search range: in unconstrained (phi) space,
+        searches over a log-spaced grid from -2 to phi(10 * data_mean),
+        adapting to the scale of the observed data.
+
+        Parameters
+        ----------
+        theta_init : array (theta_dim,)
+            Starting point in unconstrained space.
+
+        Returns
+        -------
+        theta_ref : array (theta_dim,)
+            Improved reference point in unconstrained space.
+        """
+        times = jnp.atleast_1d(jnp.array(self.observed_data))
+        data_mean = float(jnp.mean(times))
+
+        # Data-driven search range in unconstrained space
+        # inverse softplus: log(exp(x) - 1) ≈ x for large x
+        x = max(10.0 * data_mean, 5.0)
+        upper = float(np.log(np.expm1(x) + 1e-10)) if x < 30 else float(x)
+        upper = max(upper, 5.0)
+        candidates = np.concatenate([
+            np.array([-2.0, -1.0, 0.0]),
+            np.linspace(0.5, upper, 12)
+        ])
+
+        theta_ref = jnp.array(theta_init)
+
+        for j in range(self.theta_dim):
+            best_val = float(theta_ref[j])
+            best_err = np.inf
+
+            for c in candidates:
+                theta_try = theta_ref.at[j].set(c)
+                if self.param_transform is not None:
+                    theta_try_c = self.param_transform(theta_try)
+                else:
+                    theta_try_c = theta_try
+
+                try:
+                    _, moments = self.model(theta_try_c, times, rewards=self.rewards)
+                    if moments.ndim == 2:
+                        model_mean = float(jnp.mean(moments[:, 0]))
+                    else:
+                        model_mean = float(moments[0])
+                    err = abs(model_mean - data_mean)
+                    if err < best_err:
+                        best_err = err
+                        best_val = c
+                except Exception:
+                    continue
+
+            theta_ref = theta_ref.at[j].set(best_val)
+
+        logger.debug("%s: moment-matching reference (unconstrained) = %s",
+                      type(self).__name__, theta_ref)
+        if self.param_transform is not None:
+            logger.debug("%s: moment-matching reference (constrained) = %s",
+                          type(self).__name__, self.param_transform(theta_ref))
+        logger.debug("%s: data mean = %.4f", type(self).__name__, data_mean)
+
+        return theta_ref
+
+    def compute_scaling(self, theta_ref):
+        """Compute scaling factors. Must be overridden by subclasses."""
+        raise NotImplementedError
+
+
+class MomentJacobianPreconditioner(_PreconditionerBase):
+    """Moment Jacobian preconditioner for multi-scale SVGD.
+
+    Computes J[k,j] = d(moment_k)/d(theta_j) via finite differences at a
+    reference point, then uses column norms as scaling factors.
+    Scaling D_j = ||J[:,j]|| (column norm), normalized to mean 1.
+
+    This is simpler and more robust than Fisher preconditioning because it
+    avoids dividing by PMF values (which can blow up when PMF is small).
+
+    Parameters
+    ----------
+    model : callable
+        Model function: model(theta, data, rewards=None) -> (pmf, moments)
+    observed_data : array
+        Observation data points
+    theta_dim : int
+        Number of parameters (learnable dimensions only if fixed params exist)
+    param_transform : callable or None
+        Transformation from unconstrained to constrained space (e.g., softplus)
+    rewards : array or None
+        Optional rewards for multivariate models
+    epsilon : float, default=1e-8
+        Floor for scaling values to avoid division by zero
+    """
+
+    def compute_scaling(self, theta_ref):
+        """Compute Jacobian column norms at reference point and derive scaling.
+
+        Uses moment-matching to find a better reference point before computing
+        the Jacobian. The provided theta_ref is used as a starting point for
+        the moment-matching search.
+
+        Parameters
+        ----------
+        theta_ref : array (theta_dim,)
+            Initial reference point in unconstrained space (same space as particles).
+            Used as starting point for moment-matching refinement.
+        """
+        logger.debug("MomentJacobianPreconditioner: computing scaling for %d dimensions",
+                      self.theta_dim)
+        logger.debug("MomentJacobianPreconditioner: initial theta_ref (unconstrained) = %s",
+                      theta_ref)
+
+        theta_ref = self._find_moment_matching_reference(theta_ref)
+        logger.debug("MomentJacobianPreconditioner: refined theta_ref (unconstrained) = %s",
+                      theta_ref)
+
+        if self.param_transform is not None:
+            theta_c = self.param_transform(theta_ref)
+        else:
+            theta_c = theta_ref
+
+        times = jnp.atleast_1d(jnp.array(self.observed_data))
+        _, moments_ref = self.model(theta_c, times, rewards=self.rewards)
+        moments_ref = moments_ref.flatten()
+        n_moments = len(moments_ref)
+
+        eps = 1e-5
+        J = np.zeros((n_moments, self.theta_dim))
+
+        for j in range(self.theta_dim):
+            theta_plus = theta_ref.at[j].add(eps)
+            theta_minus = theta_ref.at[j].add(-eps)
+            if self.param_transform is not None:
+                tp_c = self.param_transform(theta_plus)
+                tm_c = self.param_transform(theta_minus)
+            else:
+                tp_c, tm_c = theta_plus, theta_minus
+
+            _, moments_plus = self.model(tp_c, times, rewards=self.rewards)
+            _, moments_minus = self.model(tm_c, times, rewards=self.rewards)
+            J[:, j] = np.asarray(
+                (moments_plus.flatten() - moments_minus.flatten()) / (2 * eps)
+            )
+
+        col_norms = np.linalg.norm(J, axis=0)
+        D = np.maximum(col_norms, self.epsilon)
+        D = D / np.mean(D)
+        self.scaling = jnp.array(D)
+
+        logger.debug("MomentJacobianPreconditioner: Jacobian matrix:\n%s", J)
+        logger.debug("MomentJacobianPreconditioner: column norms = %s", col_norms)
+        logger.debug("MomentJacobianPreconditioner: final scaling = %s", self.scaling)
+
+
+class FisherPreconditioner(_PreconditionerBase):
     """Diagonal Fisher information preconditioner for multi-scale SVGD.
 
     Computes the diagonal of the empirical Fisher information matrix at a
@@ -2352,78 +2539,6 @@ class FisherPreconditioner:
     epsilon : float, default=1e-8
         Floor for Fisher values to avoid division by zero
     """
-
-    def __init__(self, model, observed_data, theta_dim,
-                 param_transform=None, rewards=None, epsilon=1e-8):
-        self.model = model
-        self.observed_data = observed_data
-        self.theta_dim = theta_dim
-        self.param_transform = param_transform
-        self.rewards = rewards
-        self.epsilon = epsilon
-        self.scaling = None  # D_j = sqrt(F_j), normalized to mean 1
-
-    def _find_moment_matching_reference(self, theta_init):
-        """Find a reference point where model moments roughly match data moments.
-
-        Does a quick coordinate-wise search: for each dimension j, find the value
-        that makes the model's first moment (mean) closest to the data mean, holding
-        other dimensions at their initial values.
-
-        Parameters
-        ----------
-        theta_init : array (theta_dim,)
-            Starting point in unconstrained space.
-
-        Returns
-        -------
-        theta_ref : array (theta_dim,)
-            Improved reference point in unconstrained space.
-        """
-        times = jnp.atleast_1d(jnp.array(self.observed_data))
-        data_mean = float(jnp.mean(times))
-
-        theta_ref = jnp.array(theta_init)
-
-        # Try a range of scales for each dimension
-        # Search in unconstrained space over a grid
-        candidates = np.array([-2.0, -1.0, 0.0, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 7.0, 10.0])
-
-        for j in range(self.theta_dim):
-            best_val = float(theta_ref[j])
-            best_err = np.inf
-
-            for c in candidates:
-                theta_try = theta_ref.at[j].set(c)
-                if self.param_transform is not None:
-                    theta_try_c = self.param_transform(theta_try)
-                else:
-                    theta_try_c = theta_try
-
-                try:
-                    _, moments = self.model(theta_try_c, times, rewards=self.rewards)
-                    # First moment is the mean
-                    if moments.ndim == 2:
-                        model_mean = float(jnp.mean(moments[:, 0]))
-                    else:
-                        model_mean = float(moments[0])
-                    err = abs(model_mean - data_mean)
-                    if err < best_err:
-                        best_err = err
-                        best_val = c
-                except Exception:
-                    continue
-
-            theta_ref = theta_ref.at[j].set(best_val)
-
-        logger.debug("FisherPreconditioner: moment-matching reference (unconstrained) = %s",
-                      theta_ref)
-        if self.param_transform is not None:
-            logger.debug("FisherPreconditioner: moment-matching reference (constrained) = %s",
-                          self.param_transform(theta_ref))
-        logger.debug("FisherPreconditioner: data mean = %.4f", data_mean)
-
-        return theta_ref
 
     def compute_scaling(self, theta_ref):
         """Compute Fisher diagonal at reference point and derive scaling.
@@ -2522,10 +2637,10 @@ class SVGDKernel:
             - 'median': Scalar median heuristic (isotropic kernel)
             - float: Fixed scalar bandwidth value
             - array_like: Fixed per-dimension bandwidth vector
-        preconditioner : FisherPreconditioner or None, default=None
+        preconditioner : MomentJacobianPreconditioner, FisherPreconditioner, or None, default=None
             If provided, particles are normalized by the preconditioner's scaling
             before kernel computation, and kernel gradients are transformed back.
-            This makes the kernel isotropic in information-geometric space.
+            This makes the kernel isotropic in the preconditioned space.
         """
         self.bandwidth_method = bandwidth
         self.preconditioner = preconditioner
@@ -3782,23 +3897,25 @@ class SVGD:
 
         # Validate and store preconditioner setting
         if isinstance(preconditioner, str):
-            if preconditioner in ('auto', 'fisher'):
+            if preconditioner in ('auto', 'jacobian'):
+                self.preconditioner_method = 'jacobian'
+            elif preconditioner == 'fisher':
                 self.preconditioner_method = 'fisher'
             elif preconditioner == 'none':
                 self.preconditioner_method = None
             else:
                 raise ValueError(
-                    f"preconditioner must be 'auto', 'fisher', 'none', None, "
-                    f"or a FisherPreconditioner instance, got: {preconditioner!r}"
+                    f"preconditioner must be 'auto', 'jacobian', 'fisher', 'none', None, "
+                    f"or a preconditioner instance, got: {preconditioner!r}"
                 )
         elif preconditioner is None:
             self.preconditioner_method = None
-        elif isinstance(preconditioner, FisherPreconditioner):
+        elif isinstance(preconditioner, (FisherPreconditioner, MomentJacobianPreconditioner)):
             self.preconditioner_method = preconditioner
         else:
             raise TypeError(
-                f"preconditioner must be str, None, or FisherPreconditioner, "
-                f"got: {type(preconditioner)}"
+                f"preconditioner must be str, None, FisherPreconditioner, "
+                f"or MomentJacobianPreconditioner, got: {type(preconditioner)}"
             )
 
         if self.regularization > 0.0 or self.use_regularization_schedule:
@@ -4458,12 +4575,13 @@ class SVGD:
         # Compute preconditioner (before kernel creation)
         preconditioner_obj = None
         if self.preconditioner_method is not None:
-            if isinstance(self.preconditioner_method, FisherPreconditioner):
+            if isinstance(self.preconditioner_method, (FisherPreconditioner, MomentJacobianPreconditioner)):
                 # User provided a pre-built preconditioner
                 preconditioner_obj = self.preconditioner_method
-                logger.debug("SVGD.optimize: using user-provided FisherPreconditioner "
-                              "(scaling=%s)", preconditioner_obj.scaling)
-            elif self.preconditioner_method == 'fisher':
+                logger.debug("SVGD.optimize: using user-provided %s "
+                              "(scaling=%s)", type(preconditioner_obj).__name__,
+                              preconditioner_obj.scaling)
+            elif self.preconditioner_method in ('jacobian', 'fisher'):
                 # Determine dimensionality (learnable dims only if fixed params)
                 if self.fixed_mask is not None:
                     n_learnable = int(jnp.sum(self.fixed_mask == 0))
@@ -4477,21 +4595,26 @@ class SVGD:
                     logger.debug("SVGD.optimize: no fixed params, "
                                   "all %d dims learnable", n_learnable)
 
-                preconditioner_obj = FisherPreconditioner(
+                preconditioner_kwargs = dict(
                     model=self.model,
                     observed_data=self.observed_data,
                     theta_dim=n_learnable,
                     param_transform=self.param_transform,
                     rewards=rewards
                 )
+                if self.preconditioner_method == 'jacobian':
+                    preconditioner_obj = MomentJacobianPreconditioner(**preconditioner_kwargs)
+                else:
+                    preconditioner_obj = FisherPreconditioner(**preconditioner_kwargs)
+
                 # Compute reference point from particle mean
                 theta_ref_full = jnp.mean(self.theta_init, axis=0)
                 if learnable_indices is not None:
                     theta_ref = theta_ref_full[learnable_indices]
                 else:
                     theta_ref = theta_ref_full
-                logger.debug("SVGD.optimize: Fisher reference point (unconstrained) = %s",
-                              theta_ref)
+                logger.debug("SVGD.optimize: %s reference point (unconstrained) = %s",
+                              self.preconditioner_method, theta_ref)
 
                 # For fixed params, wrap model to expand learnable -> full space
                 if self.fixed_mask is not None:
@@ -4513,7 +4636,8 @@ class SVGD:
 
                 preconditioner_obj.compute_scaling(theta_ref)
                 if self.verbose:
-                    print(f"  Fisher preconditioner scaling: {preconditioner_obj.scaling}")
+                    print(f"  Preconditioner scaling ({self.preconditioner_method}): "
+                          f"{preconditioner_obj.scaling}")
         else:
             logger.debug("SVGD.optimize: no preconditioner configured")
 
