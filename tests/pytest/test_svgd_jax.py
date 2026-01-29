@@ -101,7 +101,7 @@ def build_coalescent(nr_samples=None):
             return transitions
 
     # Build the graph
-    graph = Graph(coalescent, parameterized=True, nr_samples=nr_samples)
+    graph = Graph(coalescent, nr_samples=nr_samples)
 
     return graph
 

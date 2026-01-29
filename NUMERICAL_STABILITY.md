@@ -261,7 +261,7 @@ import numpy as np
 from phasic import Graph
 
 # Create large graph
-graph = Graph(callback=large_coalescent, n=1000)
+graph = Graph(large_coalescent, n=1000)
 
 # Compute expectation with debug logging
 from phasic.logging_config import set_log_level

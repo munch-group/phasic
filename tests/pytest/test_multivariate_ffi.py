@@ -50,7 +50,7 @@ def create_test_graph():
         rate = n
         return [(np.array([n - 1]), [rate])]
 
-    graph = Graph(callback, ipv=[3], parameterized=True)
+    graph = Graph(callback, ipv=[3])
     return graph
 
 
@@ -346,7 +346,7 @@ def test_correctness_analytical():
             return [(np.array([0]), [1.0])]  # Coefficient = 1.0
         return []
 
-    graph = Graph(exp_callback, ipv=[1], parameterized=True)
+    graph = Graph(exp_callback, ipv=[1])
     structure_dict = graph.serialize()
 
     # Test with different rates (avoid very high rates due to discretization error)

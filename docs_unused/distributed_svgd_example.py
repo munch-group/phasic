@@ -65,7 +65,7 @@ def build_coalescent_model(nr_samples: int = 4):
         return []
 
     # Build parameterized graph
-    graph = Graph(callback=coalescent_callback, parameterized=True, nr_samples=nr_samples)
+    graph = Graph(coalescent_callback, nr_samples=nr_samples)
 
     return graph
 

@@ -54,7 +54,7 @@ def test_construct_with_callback():
             return [([state[0] + 1], 1.0)]
         return []
 
-    g = Graph(callback)
+    g = Graph(callback, ipv=[1])
     assert g.vertices_length() > 1  # Should generate vertices
 
 
@@ -65,7 +65,7 @@ def test_construct_parameterized():
             return [([state[0] + 1], 0.0, [1.0, 0.0])]
         return []
 
-    g = Graph(callback, parameterized=True)
+    g = Graph(callback, ipv=[1])
     assert g.vertices_length() > 1
 
     # Check serialization detects parameterized edges

@@ -1550,7 +1550,7 @@ str
     Examples
     --------
     # Standard linear combination (default)
-    graph = Graph(state_length=2)
+    graph = Graph(2)
     v1 = graph.find_or_create_vertex([1, 0])
     v2 = graph.find_or_create_vertex([0, 1])
     v1.add_edge(v2, [2.0, 3.0])  # coefficients
@@ -1622,7 +1622,7 @@ str
                 weight *= c * t
         return weight
 
-    g = Graph(state_length=1)
+    g = Graph(1)
     v1 = g.create_vertex([1])
     v2 = g.create_vertex([2])
     v1.add_edge(v2, [1.0, np.nan, 0.5])  # [epoch_rec_prob, unused, coal_rate]
@@ -2577,7 +2577,7 @@ str
     Examples
     --------
     >>> # Build initial graph
-    >>> graph = Graph(callback=my_callback)
+    >>> graph = Graph(my_callback)
     >>> # Manually add vertex
     >>> v = graph.find_or_create_vertex([10, 20])
     >>> graph.starting_vertex().add_edge(v, 1.0)
@@ -2609,7 +2609,7 @@ str
     Examples
     --------
     >>> # Build initial graph
-    >>> graph = Graph(callback=my_callback, parameterized=True)
+    >>> graph = Graph(my_callback)
     >>> # Manually add vertex
     >>> v = graph.find_or_create_vertex([10, 20])
     >>> graph.starting_vertex().add_edge_parameterized(v, 0.0, [1.5])

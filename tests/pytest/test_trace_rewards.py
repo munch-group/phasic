@@ -30,7 +30,7 @@ def test_trace_recording_with_rewards():
         rate = n * (n - 1) / 2.0
         return [(np.array([n - 1]), 0.0, [rate])]
 
-    graph = Graph(callback, parameterized=True)
+    graph = Graph(callback)
 
     # Record trace WITHOUT rewards
     trace_no_rewards = record_elimination_trace(graph, theta_dim=1, enable_rewards=False)
@@ -70,7 +70,7 @@ def test_evaluate_trace_with_rewards():
         rate = n * (n - 1) / 2.0
         return [(np.array([n - 1]), 0.0, [rate])]
 
-    graph = Graph(callback, parameterized=True)
+    graph = Graph(callback)
 
     # Record trace with rewards
     trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)
@@ -117,7 +117,7 @@ def test_evaluate_trace_jax_with_rewards():
         rate = n * (n - 1) / 2.0
         return [(np.array([n - 1]), 0.0, [rate])]
 
-    graph = Graph(callback, parameterized=True)
+    graph = Graph(callback)
 
     # Record trace with rewards
     trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)
@@ -150,7 +150,7 @@ def test_instantiate_from_trace_with_rewards():
         rate = n * (n - 1) / 2.0
         return [(np.array([n - 1]), 0.0, [rate])]
 
-    graph_original = Graph(callback, parameterized=True)
+    graph_original = Graph(callback)
 
     # Record trace with rewards
     trace = record_elimination_trace(graph_original, theta_dim=1, enable_rewards=True)
@@ -193,7 +193,7 @@ def test_trace_to_log_likelihood_with_rewards():
         rate = n * (n - 1) / 2.0
         return [(np.array([n - 1]), 0.0, [rate])]
 
-    graph = Graph(callback, parameterized=True)
+    graph = Graph(callback)
 
     # Record trace with rewards
     trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)
@@ -260,7 +260,7 @@ def test_reward_transformation_equivalence():
         rate = n * (n - 1) / 2.0
         return [(np.array([n - 1]), 0.0, [rate])]
 
-    graph = Graph(callback, parameterized=True)
+    graph = Graph(callback)
 
     # Record trace with rewards
     trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)

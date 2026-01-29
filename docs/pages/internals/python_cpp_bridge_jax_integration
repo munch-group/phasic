@@ -564,7 +564,7 @@ env_info = detect_environment()
 parallel_config = configure_jax_for_environment(env_info)
 
 # Build model
-graph = phasic.Graph(callback=coalescent_callback, parameterized=True, nr_samples=5)
+graph = phasic.Graph(coalescent_callback, nr_samples=5)
 trace = phasic.record_elimination_trace(graph, theta_dim=2)
 model = phasic.trace_to_log_likelihood(trace, observed_data)
 

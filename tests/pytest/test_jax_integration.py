@@ -132,7 +132,7 @@ class TestPMFFromGraphParameterized:
             return []
 
         def build_graph(theta):
-            return Graph(lambda s: callback(s, theta), parameterized=True)
+            return Graph(lambda s: callback(s, theta))
 
         model = Graph.pmf_from_graph_parameterized(build_graph, discrete=False)
 

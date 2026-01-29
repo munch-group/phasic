@@ -7,7 +7,7 @@ import jax.numpy as jnp
 
 def create_simple_exponential_graph(parameterized=True):
     """Create a simple exponential distribution graph for testing"""
-    graph = Graph(state_length=1, parameterized=parameterized)
+    graph = Graph(1, parameterized=parameterized)
     v_start = graph.starting_vertex()
     v_transient = graph.find_or_create_vertex([1])
     v_absorb = graph.find_or_create_vertex([0])

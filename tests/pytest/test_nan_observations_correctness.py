@@ -29,7 +29,7 @@ def test_nan_correctness_univariate():
             return []
         return []
 
-    graph = Graph(callback, parameterized=True)
+    graph = Graph(callback)
 
     # Instantiate graph with true parameter value
     from phasic.trace_elimination import record_elimination_trace, instantiate_from_trace
@@ -146,7 +146,7 @@ def test_nan_correctness_multivariate():
             return []
         return []
 
-    _graph = Graph(callback, parameterized=True)
+    _graph = Graph(callback)
     n_vertices = _graph.vertices_length()
 
     # Create 2D rewards (n_features, n_vertices)
@@ -248,7 +248,7 @@ def test_nan_vs_filtered_equivalence():
             return []
         return []
 
-    graph = Graph(callback, parameterized=True)
+    graph = Graph(callback)
     model = Graph.pmf_and_moments_from_graph(graph, nr_moments=2, discrete=False)
 
     # Instantiate with true parameter and generate observations

@@ -1627,7 +1627,7 @@ def trace_to_log_likelihood(trace: EliminationTrace, observed_data, reward_vecto
     Examples
     --------
     >>> # Record trace from parameterized coalescent model
-    >>> graph = Graph(callback=coalescent_callback, parameterized=True, nr_samples=5)
+    >>> graph = Graph(coalescent_callback, nr_samples=5)
     >>> trace = record_elimination_trace(graph, theta_dim=2)
     >>>
     >>> # Create exact log-likelihood function (fast C++ mode)

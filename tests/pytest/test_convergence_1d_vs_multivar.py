@@ -26,7 +26,7 @@ def test_1d_convergence():
             return []
         return []
 
-    _graph = Graph(callback, parameterized=True)
+    _graph = Graph(callback, ipv=[1])
 
     # Generate observations from true parameter
     from phasic.trace_elimination import record_elimination_trace, instantiate_from_trace
@@ -87,7 +87,7 @@ def test_multivariate_with_nans_and_rewards():
             return []
         return []
 
-    _graph = Graph(callback, parameterized=True)
+    _graph = Graph(callback, ipv=[1])
     n_vertices = _graph.vertices_length()
 
     # Create rewards (n_vertices, n_features)
@@ -195,7 +195,7 @@ def test_multivariate_without_nans():
             return []
         return []
 
-    _graph = Graph(callback, parameterized=True)
+    _graph = Graph(callback, ipv=[1])
     n_vertices = _graph.vertices_length()
 
     # Create rewards

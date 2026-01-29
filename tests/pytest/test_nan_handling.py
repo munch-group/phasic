@@ -87,7 +87,7 @@ def simple_callback(state, **kwargs):
 
 # Build parameterized graph
 print("\nBuilding test graph...")
-graph = Graph(simple_callback, ipv=[[[2], 1.0]], parameterized=True)
+graph = Graph(simple_callback, ipv=[[[2], 1.0]])
 n_vertices = graph.vertices_length()
 print(f"  Graph vertices: {n_vertices}")
 

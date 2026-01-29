@@ -19,7 +19,7 @@ def test_nan_observations():
             return []
         return []
 
-    _graph = Graph(callback, parameterized=True)
+    _graph = Graph(callback)
 
     # Create multivariate model
     model = Graph.pmf_and_moments_from_graph_multivariate(

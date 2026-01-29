@@ -13,7 +13,7 @@ import jax.numpy as jnp
 def test_rewards_none_backward_compat():
     """Test that rewards=None preserves backward compatibility."""
     # Build simple exponential graph: single state, rate=theta
-    graph = Graph(state_length=1, parameterized=True)
+    graph = Graph(1)
     v0 = graph.starting_vertex()
     v1 = graph.find_or_create_vertex([1])
 
@@ -44,7 +44,7 @@ def test_rewards_none_backward_compat():
 def test_rewards_transformation():
     """Test that rewards parameter transforms moments correctly."""
     # Build two-state graph
-    graph = Graph(state_length=1, parameterized=True)
+    graph = Graph(1)
     v0 = graph.starting_vertex()
     v1 = graph.find_or_create_vertex([1])
     v2 = graph.find_or_create_vertex([2])
@@ -91,7 +91,7 @@ def test_rewards_transformation():
 def test_vmap_with_rewards():
     """Test that rewards work with JAX vmap (batched theta)."""
     # Simple exponential graph
-    graph = Graph(state_length=1, parameterized=True)
+    graph = Graph(1)
     v0 = graph.starting_vertex()
     v1 = graph.find_or_create_vertex([1])
     v0.add_edge_parameterized(v1, 0.0, [1.0])

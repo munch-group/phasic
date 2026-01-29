@@ -25,7 +25,7 @@ def test_joint_index_optimized():
 
     # Create parameterized graph
     print("\n1. Creating parameterized graph...")
-    graph = Graph(coalescent_callback, parameterized=True, ipv=[5])
+    graph = Graph(coalescent_callback, ipv=[5])
     print(f"   Graph has {graph.vertices_length()} vertices")
     print(f"   State length: {graph.state_length()}")
 

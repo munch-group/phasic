@@ -91,7 +91,7 @@ import phasic as ptd
 import numpy as np
 
 # Create a simple Erlang distribution (5 phases with rate 2)
-graph = ptd.Graph(state_length=1)
+graph = ptd.Graph(1)
 
 # Build a chain of 5 states
 start = graph.starting_vertex()
@@ -175,7 +175,7 @@ Build phase-type distributions as directed graphs:
 
 **Continuous** (time-based):
 ```python
-graph = ptd.Graph(state_length=2)
+graph = ptd.Graph(2)
 # ... build graph ...
 pdf = graph.pdf(times)        # Probability density
 cdf = graph.cdf(times)        # Cumulative distribution
@@ -183,7 +183,7 @@ cdf = graph.cdf(times)        # Cumulative distribution
 
 **Discrete** (step-based):
 ```python
-graph = ptd.Graph(state_length=2)
+graph = ptd.Graph(2)
 # ... build graph ...
 graph.normalize()             # Convert to discrete-time
 pmf = graph.dph_pmf(steps)    # Probability mass
@@ -224,7 +224,7 @@ def my_model_callback(state, n_samples=10):
     return transitions
 
 # Build parameterized graph
-graph = ptd.Graph(callback=my_model_callback,
+graph = ptd.Graph(my_model_callback,
                   parameterized=True,
                   n_samples=10)
 

@@ -68,7 +68,7 @@ def coalescent_callback(state, nr_samples=3):
         return [(np.array([n - 1]), 0.0, [n * (n - 1) / 2])]
     return []
 
-g = Graph(callback=coalescent_callback, parameterized=True)
+g = Graph(coalescent_callback)
 
 # Cache is used automatically in pmf_from_graph
 model = Graph.pmf_from_graph(g, use_cache=True)  # Default
@@ -233,7 +233,7 @@ config = CompilationConfig.balanced()
 config.apply()
 
 # 2. Build model (symbolic cache used automatically)
-g = Graph(callback=my_callback, parameterized=True)
+g = Graph(my_callback)
 model = Graph.pmf_from_graph(g)  # use_cache=True by default
 
 # 3. Use model (JAX cache kicks in after first compile)

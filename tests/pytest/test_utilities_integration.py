@@ -262,7 +262,7 @@ class TestEdgeCasesAndErrors:
     def test_invalid_state_length(self):
         """Test invalid state_length."""
         with pytest.raises((ValueError, AssertionError, TypeError)):
-            g = Graph(state_length=-1)
+            g = Graph(-1)
 
     def test_invalid_vertex_state(self):
         """Test creating vertex with invalid state."""

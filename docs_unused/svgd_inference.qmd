@@ -24,7 +24,7 @@ The simplest way to run SVGD inference is through the high-level `Graph.svgd()` 
 
 ```python
 # Build parameterized graph
-graph = Graph(callback=model_callback, parameterized=True, nr_samples=5)
+graph = Graph(model_callback, nr_samples=5)
 
 # Run SVGD directly
 svgd = graph.svgd(
@@ -664,7 +664,7 @@ def instantiate_from_trace(trace: EliminationTrace, params: np.ndarray):
     result = evaluate_trace(trace, params)
 
     # 2. Create new graph
-    graph = Graph(state_length=trace.state_length)
+    graph = Graph(trace.state_length)
 
     # 3. Create all vertices
     state_to_vertex = {}
@@ -709,11 +709,11 @@ A trace can be reused when:
 
 ```python
 # First call: records trace
-graph1 = Graph(callback=model, parameterized=True, nr_samples=5)
+graph1 = Graph(model, nr_samples=5)
 trace1 = record_elimination_trace(graph1, param_length=2)
 
 # Second call with same structure: uses cached trace
-graph2 = Graph(callback=model, parameterized=True, nr_samples=5)
+graph2 = Graph(model, nr_samples=5)
 trace2 = record_elimination_trace(graph2, param_length=2)
 
 # trace2 loaded from cache, not recomputed

@@ -25,7 +25,7 @@ def test_basic_sojourn_ffi():
         rate = n * (n - 1) / 2
         return [([n - 1], [rate])]  # Parameterized: (state, coeffs_list)
 
-    graph = Graph(coalescent_callback, ipv=[4], parameterized=True)  # Small graph: 4 vertices
+    graph = Graph(coalescent_callback, ipv=[4])  # Small graph: 4 vertices
 
     print(f"✓ Created graph with {graph.vertices_length()} vertices")
 
@@ -80,7 +80,7 @@ def test_vmap_batching():
         rate = n * (n - 1) / 2
         return [([n - 1], [rate])]
 
-    graph = Graph(coalescent_callback, ipv=[4], parameterized=True)
+    graph = Graph(coalescent_callback, ipv=[4])
 
     structure_json = graph.serialize()
 
@@ -132,7 +132,7 @@ def test_jit_compilation():
         rate = n * (n - 1) / 2
         return [([n - 1], [rate])]
 
-    graph = Graph(coalescent_callback, ipv=[4], parameterized=True)
+    graph = Graph(coalescent_callback, ipv=[4])
 
     # Serialize to dict, then convert to JSON string for JIT (must be hashable)
     import json

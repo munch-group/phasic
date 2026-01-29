@@ -73,7 +73,7 @@ def test_callback_graph():
             return []
         return []
 
-    graph = Graph(callback, parameterized=True)
+    graph = Graph(callback)
     print(f"Callback graph: {graph.vertices_length()} vertices")
 
     # Record trace

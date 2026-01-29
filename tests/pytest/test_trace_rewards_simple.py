@@ -21,7 +21,7 @@ def test_simple_reward_transformation():
             return []
         return []
 
-    graph = Graph(callback, parameterized=True)
+    graph = Graph(callback)
 
     # Record trace WITH rewards
     trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)
@@ -89,7 +89,7 @@ def test_reward_transformation_theory():
             return []  # Absorbing
         return []
 
-    graph = Graph(callback, parameterized=True)
+    graph = Graph(callback)
     trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)
 
     # Test parameters

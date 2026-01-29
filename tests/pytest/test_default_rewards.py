@@ -24,7 +24,7 @@ def test_default_rewards_numpy():
             return []
         return []
 
-    graph = Graph(callback, parameterized=True)
+    graph = Graph(callback, ipv=[1])
 
     # Record trace with rewards enabled
     trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)
@@ -65,7 +65,7 @@ def test_default_rewards_jax():
             return []
         return []
 
-    graph = Graph(callback, parameterized=True)
+    graph = Graph(callback, ipv=[1])
 
     # Record trace with rewards enabled
     trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)
@@ -101,7 +101,7 @@ def test_default_rewards_graph_instantiation():
             return []
         return []
 
-    graph = Graph(callback, parameterized=True)
+    graph = Graph(callback, ipv=[1])
 
     # Record trace with rewards enabled
     trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)
@@ -136,7 +136,7 @@ def test_scaled_rewards_differ():
             return []
         return []
 
-    graph = Graph(callback, parameterized=True)
+    graph = Graph(callback, ipv=[1])
 
     # Record trace with rewards enabled
     trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)
@@ -174,7 +174,7 @@ def test_backwards_compatibility_no_rewards():
             return []
         return []
 
-    graph = Graph(callback, parameterized=True)
+    graph = Graph(callback, ipv=[1])
 
     # Record trace WITHOUT rewards (old behavior)
     trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=False)

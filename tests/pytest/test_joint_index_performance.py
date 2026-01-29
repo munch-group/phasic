@@ -125,7 +125,7 @@ def benchmark_model(model_name, callback, ipv_values, compute_rate=None):
         print(f"{'-' * 80}")
 
         # Create graph
-        graph = Graph(callback, parameterized=True, ipv=ipv)
+        graph = Graph(callback, ipv=ipv)
         n_vertices = graph.vertices_length()
         print(f"Graph vertices: {n_vertices}")
 

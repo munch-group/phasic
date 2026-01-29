@@ -38,7 +38,7 @@ def test_length1_validation():
         rate = n
         return [(np.array([n - 1]), [rate])]
 
-    graph = Graph(callback, ipv=[3], parameterized=True)
+    graph = Graph(callback, ipv=[3])
 
     # Serialize and create GraphBuilder
     structure_dict = graph.serialize()
@@ -98,7 +98,7 @@ def test_zero_observation():
         rate = n
         return [(np.array([n - 1]), [rate])]
 
-    graph = Graph(callback, ipv=[3], parameterized=True)
+    graph = Graph(callback, ipv=[3])
 
     structure_dict = graph.serialize()
     structure_json = json.dumps(structure_dict, cls=NumpyEncoder)

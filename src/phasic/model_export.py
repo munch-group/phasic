@@ -336,7 +336,7 @@ def generate_warmup_script(
     ...         return [(np.array([n - 1]), 0.0, [n * (n - 1) / 2])]
     ...     return []
     ...
-    ... graph = pta.Graph(callback=coalescent_callback, parameterized=True)
+    ... graph = pta.Graph(coalescent_callback)
     ... model = pta.Graph.pmf_from_graph(graph, discrete=False)
     ... '''
     >>>

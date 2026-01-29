@@ -122,7 +122,7 @@ def coalescent_callback(state, nr_samples=3):
     return []
 
 # Build graph (first time: slow, subsequent: fast)
-g = Graph(callback=coalescent_callback, parameterized=True)
+g = Graph(coalescent_callback)
 # First build: 10-1000ms (eliminates and caches)
 # Second build: 0.1-1ms (loads from cache)
 ```
@@ -376,7 +376,7 @@ def my_callback(state):
     # Your model definition
     ...
 
-g = Graph(callback=my_callback, parameterized=True)
+g = Graph(my_callback)
 model = Graph.pmf_from_graph(g)  # Trace cache: auto
 
 # 3. Run SVGD (all caches work together)
@@ -448,7 +448,7 @@ import time
 # Build graph
 print("[1] Building graph")
 start = time.time()
-g = Graph(callback=my_callback, parameterized=True)
+g = Graph(my_callback)
 t_graph = time.time() - start
 print(f"    → TRACE CACHE: {t_graph*1000:.1f}ms")
 
@@ -568,9 +568,9 @@ import time
 
 # Test trace cache
 print("[1] Trace Cache Test")
-g1 = Graph(callback=my_callback, parameterized=True)
+g1 = Graph(my_callback)
 start = time.time()
-g2 = Graph(callback=my_callback, parameterized=True)
+g2 = Graph(my_callback)
 speedup = (time.time() - start) * 1000
 print(f"    Second build: {speedup:.1f}ms (cache hit)")
 
@@ -600,7 +600,7 @@ print_cache_info(max_files=5)
 
 ```python
 # Good: Use default caching (trace cache automatic)
-g = Graph(callback=my_callback, parameterized=True)
+g = Graph(my_callback)
 model = Graph.pmf_from_graph(g)  # Cache enabled
 
 # Bad: Unnecessary re-computation

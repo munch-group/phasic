@@ -102,7 +102,7 @@ g = Graph(
 )
 
 # Or manual construction
-g = Graph(state_length=1)
+g = Graph(1)
 v0 = g.starting_vertex()
 v1 = g.find_or_create_vertex([1])
 v0.add_edge_parameterized(v1, base_weight=0.0, edge_state=[2.0, 0.5])
@@ -199,7 +199,7 @@ from phasic import Graph
 import jax.numpy as jnp
 
 # Create parameterized graph
-graph = Graph(callback=model_callback, parameterized=True)
+graph = Graph(model_callback)
 
 # Create multivariate model
 model = Graph.pmf_and_moments_from_graph_multivariate(
@@ -466,7 +466,7 @@ from phasic.trace_elimination import (
 )
 
 # 1. Build parameterized graph
-graph = Graph(state_length=1)
+graph = Graph(1)
 # ... add parameterized edges ...
 
 # 2. Record trace

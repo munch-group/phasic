@@ -151,7 +151,7 @@ def test_operation_count_comparison():
             return []
         return []
 
-    graph = Graph(callback, parameterized=True)
+    graph = Graph(callback)
 
     # Record both versions
     trace_simple = record_elimination_trace_simple(graph, theta_dim=1)
@@ -184,7 +184,7 @@ def test_backward_compatibility():
             return []
         return []
 
-    graph = Graph(callback, parameterized=True)
+    graph = Graph(callback)
 
     # Default call (should have no rewards)
     trace = record_elimination_trace(graph, theta_dim=1)

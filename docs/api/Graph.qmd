@@ -320,14 +320,14 @@ DESTRUCTIVE and will empty the graph during trace recording.
 
 ```python
 >>> # Hierarchical mode - non-destructive, cached on instance
->>> g = Graph(callback=model, nr_samples=5, hierarchical=True)
+>>> g = Graph(model, nr_samples=5, hierarchical=True)
 >>> g.normalize()
 >>> trace = g.compute_trace()  # Graph preserved, trace cached
 >>> g.update_weights([1.0, 2.0])
 >>> mean = g.expectation()  # Uses cached trace
 >>>
 >>> # Standard mode with disk caching
->>> g = Graph(callback=model, nr_samples=5)
+>>> g = Graph(model, nr_samples=5)
 >>> trace = g.compute_trace()  # Graph emptied, trace returned
 ```
 
@@ -480,7 +480,7 @@ parameter vectors.
 
 ```python
 >>> # Create parameterized graph
->>> g = Graph(state_length=1, parameterized=True)
+>>> g = Graph(1)
 >>> v_a = g.create_vertex([0])
 >>> v_b = g.create_vertex([1])
 >>> v_c = g.create_vertex([2])
@@ -809,7 +809,7 @@ Moments are computed using the existing C++ `graph.moments(power)` method for ef
 ...         return [(np.array([n-1]), 0.0, [rate])]
 ...     return []
 >>>
->>> graph = Graph(callback=coalescent, parameterized=True, nr_samples=3)
+>>> graph = Graph(coalescent, nr_samples=3)
 >>> moments_fn = Graph.moments_from_graph(graph, nr_moments=2)
 >>>
 >>> # Compute moments for given theta
@@ -971,7 +971,7 @@ separately because it builds the graph once and computes both quantities.
 
 ```python
 >>> # Create parameterized model
->>> graph = Graph(callback=coalescent, parameterized=True, nr_samples=3)
+>>> graph = Graph(coalescent, nr_samples=3)
 >>> model = Graph.pmf_and_moments_from_graph(graph, nr_moments=2)
 >>>
 >>> # Compute both PMF and moments
@@ -1047,7 +1047,7 @@ where each feature dimension has its own reward vector defining the marginal dis
 
 ```python
 >>> # Create parameterized model
->>> graph = Graph(callback=coalescent, parameterized=True, nr_samples=3)
+>>> graph = Graph(coalescent, nr_samples=3)
 >>> model = Graph.pmf_and_moments_from_graph_multivariate(graph, nr_moments=2)
 >>>
 >>> # 1D case (backward compatible)

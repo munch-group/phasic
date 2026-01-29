@@ -21,7 +21,7 @@ def test_simple_sample_no_rewards():
         return []
 
     # Create and update
-    _graph = Graph(callback, parameterized=True)
+    _graph = Graph(callback)
     _graph.update_parameterized_weights(np.array([10.0]))
 
     # Sample
@@ -46,7 +46,7 @@ def test_sample_with_rewards():
         return []
 
     # Create and update
-    _graph = Graph(callback, parameterized=True)
+    _graph = Graph(callback)
     print(f"Vertices: {_graph.vertices_length()}")
 
     _graph.update_parameterized_weights(np.array([10.0]))
@@ -98,7 +98,7 @@ def test_notebook_pattern():
     true_theta = np.array([10.0])
     nr_samples = 3
 
-    _graph = Graph(coalescent, parameterized=True, nr_samples=nr_samples)
+    _graph = Graph(coalescent, nr_samples=nr_samples)
     print(f"Graph vertices: {_graph.vertices_length()}")
 
     _graph.update_parameterized_weights(true_theta)

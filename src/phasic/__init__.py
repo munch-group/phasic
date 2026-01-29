@@ -384,7 +384,7 @@ def get_trace_by_hash(graph_hash: str, force_download: bool = False):
     --------
     >>> import phasic
     >>> import phasic.hash
-    >>> graph = phasic.Graph(callback=my_callback, parameterized=True, nr_samples=5)
+    >>> graph = phasic.Graph(my_callback, nr_samples=5)
     >>> hash_result = phasic.hash.compute_graph_hash(graph)
     >>> trace = phasic.get_trace_by_hash(hash_result.hash_hex)
     >>> if trace is None:
@@ -1744,7 +1744,7 @@ class Graph(_Graph):
         Examples
         --------
         >>> # Build initial graph
-        >>> graph = Graph(callback=my_callback, nr_samples=5, parameterized=True)
+        >>> graph = Graph(my_callback, nr_samples=5)
         >>>
         >>> # Manually add new vertex
         >>> special_vertex = graph.find_or_create_vertex([100, 200])
@@ -4258,7 +4258,7 @@ extern "C" {{
         ...         return [(np.array([n-1]), 0.0, [rate])]
         ...     return []
         >>>
-        >>> graph = Graph(callback=coalescent, parameterized=True, nr_samples=3)
+        >>> graph = Graph(coalescent, nr_samples=3)
         >>> moments_fn = Graph.moments_from_graph(graph, nr_moments=2)
         >>>
         >>> # Compute moments for given theta
@@ -4456,7 +4456,7 @@ extern "C" {{
         Examples
         --------
         >>> # Create parameterized model
-        >>> graph = Graph(callback=coalescent, parameterized=True, nr_samples=3)
+        >>> graph = Graph(coalescent, nr_samples=3)
         >>> model = Graph.pmf_and_moments_from_graph(graph, nr_moments=2)
         >>>
         >>> # Compute both PMF and moments
@@ -4906,7 +4906,7 @@ extern "C" {{
         Examples
         --------
         >>> # Create parameterized model
-        >>> graph = Graph(callback=coalescent, parameterized=True, nr_samples=3)
+        >>> graph = Graph(coalescent, nr_samples=3)
         >>> model = Graph.pmf_and_moments_from_graph_multivariate(graph, nr_moments=2)
         >>>
         >>> # 1D case (backward compatible)
@@ -5113,14 +5113,14 @@ extern "C" {{
         Examples
         --------
         >>> # Cache mode - non-destructive, cached on instance
-        >>> g = Graph(callback=model, nr_samples=5, cache_trace=True)
+        >>> g = Graph(model, nr_samples=5, cache_trace=True)
         >>> g.normalize()
         >>> trace = g.compute_trace()  # Graph preserved, trace cached
         >>> g.update_weights([1.0, 2.0])
         >>> mean = g.expectation()  # Uses cached trace
         >>>
         >>> # Standard mode with disk caching
-        >>> g = Graph(callback=model, nr_samples=5)
+        >>> g = Graph(model, nr_samples=5)
         >>> trace = g.compute_trace()  # Graph emptied, trace returned
         """
         # If using instance-level cache mode, check cache first
@@ -5371,7 +5371,7 @@ extern "C" {{
         Examples
         --------
         >>> # Create parameterized graph
-        >>> g = Graph(state_length=1, parameterized=True)
+        >>> g = Graph(1)
         >>> v_a = g.create_vertex([0])
         >>> v_b = g.create_vertex([1])
         >>> v_c = g.create_vertex([2])
@@ -5737,7 +5737,7 @@ class SymbolicDAG:
     Examples
     --------
     >>> # Create parameterized graph
-    >>> g = Graph(state_length=1, parameterized=True)
+    >>> g = Graph(1)
     >>> v_a = g.create_vertex([0])
     >>> v_b = g.create_vertex([1])
     >>> v_c = g.create_vertex([2])

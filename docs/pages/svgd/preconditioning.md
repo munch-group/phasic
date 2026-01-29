@@ -157,7 +157,7 @@ The Fisher method requires the same $2p$ finite-difference evaluations as the Ja
 ```python
 from phasic import Graph, SVGD
 
-graph = Graph(callback=my_callback, parameterized=True, ...)
+graph = Graph(my_callback, ...)
 model = graph.pmf_and_moments_from_graph(nr_moments=2)
 
 # Default: Moment Jacobian (recommended)

@@ -103,7 +103,7 @@ automatic result storage and diagnostic plotting capabilities.
 
 ```python
 >>> # Build parameterized model
->>> graph = Graph(callback=coalescent, parameterized=True, nr_samples=3)
+>>> graph = Graph(coalescent, nr_samples=3)
 >>> model = Graph.pmf_from_graph(graph)
 >>>
 >>> # Create SVGD object and fit (with precompilation)
@@ -209,7 +209,7 @@ The regularized objective is:
 
 ```python
 >>> # Create parameterized model with moments
->>> graph = Graph(callback=coalescent, parameterized=True, nr_samples=4)
+>>> graph = Graph(coalescent, nr_samples=4)
 >>> model = Graph.pmf_and_moments_from_graph(graph, nr_moments=2)
 >>>
 >>> # Generate observed data

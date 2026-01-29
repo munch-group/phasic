@@ -606,7 +606,7 @@ class TraceRegistry:
         --------
         >>> from phasic import Graph
         >>> import phasic.hash
-        >>> graph = Graph(callback=my_callback, parameterized=True, nr_samples=5)
+        >>> graph = Graph(my_callback, nr_samples=5)
         >>> hash_result = phasic.hash.compute_graph_hash(graph)
         >>> trace = registry.get_trace_by_hash(hash_result.hash_hex)
         >>> if trace:
