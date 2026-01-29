@@ -2,190 +2,190 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://munch-group.github.io/phasic/pages/vignettes/rna-transcript-length.html</loc>
-    <lastmod>2026-01-29T12:21:21.659Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.131Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/vignettes/reaction-kinetics.html</loc>
-    <lastmod>2026-01-29T12:21:21.659Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.131Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/vignettes/genetic-diversity.html</loc>
-    <lastmod>2026-01-29T12:21:21.658Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.130Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/somecode.html</loc>
-    <lastmod>2026-01-29T12:21:21.658Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.130Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/16-caching.html</loc>
-    <lastmod>2026-01-29T12:21:21.658Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.130Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/14-svgd-joint-prob.html</loc>
-    <lastmod>2026-01-29T12:21:21.658Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.130Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/12-svgd-multi-feature.html</loc>
-    <lastmod>2026-01-29T12:21:21.612Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.088Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/10-finite-markov-chains.html</loc>
-    <lastmod>2026-01-29T12:21:21.569Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.048Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/08-laplace.html</loc>
-    <lastmod>2026-01-29T12:21:21.569Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.048Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/06-time-inhomogeneous.html</loc>
-    <lastmod>2026-01-29T12:21:21.567Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.047Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/04-state-space-utils.html</loc>
-    <lastmod>2026-01-29T12:21:21.566Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.045Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/02-properties.html</loc>
-    <lastmod>2026-01-29T12:21:21.563Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.043Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/00-introduction.html</loc>
-    <lastmod>2026-01-29T12:21:21.562Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.041Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/topics/visualize.html</loc>
-    <lastmod>2026-01-29T12:21:21.561Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.040Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/quickstart.html</loc>
-    <lastmod>2026-01-29T12:21:21.558Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.037Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/internals/svgd.html</loc>
-    <lastmod>2026-01-29T12:21:21.364Z</lastmod>
+    <lastmod>2026-01-29T12:40:38.847Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/examples/R/full_r_api_example.html</loc>
-    <lastmod>2026-01-29T12:21:21.352Z</lastmod>
+    <lastmod>2026-01-29T12:40:38.836Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/distributed/slurm_cluster_setup.html</loc>
-    <lastmod>2026-01-29T12:21:21.344Z</lastmod>
+    <lastmod>2026-01-29T12:40:38.828Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/topics/caching_guide.html</loc>
-    <lastmod>2026-01-29T12:21:21.560Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.040Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/internals/svgd_step_sizes.html</loc>
-    <lastmod>2026-01-29T12:21:21.364Z</lastmod>
+    <lastmod>2026-01-29T12:40:38.847Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/internals/call_tree.html</loc>
-    <lastmod>2026-01-29T12:21:21.362Z</lastmod>
+    <lastmod>2026-01-29T12:40:38.845Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/internals/architecture.html</loc>
-    <lastmod>2026-01-29T12:21:21.361Z</lastmod>
+    <lastmod>2026-01-29T12:40:38.845Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/index.html</loc>
-    <lastmod>2026-01-29T12:21:21.303Z</lastmod>
+    <lastmod>2026-01-29T12:40:38.787Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/api/Graph.html</loc>
-    <lastmod>2026-01-29T12:21:21.302Z</lastmod>
+    <lastmod>2026-01-29T12:40:38.786Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/api/index.html</loc>
-    <lastmod>2026-01-29T12:21:21.302Z</lastmod>
+    <lastmod>2026-01-29T12:40:38.786Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/background/math_and_alg.html</loc>
-    <lastmod>2026-01-29T12:21:21.304Z</lastmod>
+    <lastmod>2026-01-29T12:40:38.788Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/internals/caching.html</loc>
-    <lastmod>2026-01-29T12:21:21.361Z</lastmod>
+    <lastmod>2026-01-29T12:40:38.845Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/internals/ffi_and_openmp.html</loc>
-    <lastmod>2026-01-29T12:21:21.362Z</lastmod>
+    <lastmod>2026-01-29T12:40:38.845Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/internals/svgd_trace_eval.html</loc>
-    <lastmod>2026-01-29T12:21:21.364Z</lastmod>
+    <lastmod>2026-01-29T12:40:38.847Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/distributed/distributed_svgd_inference.html</loc>
-    <lastmod>2026-01-29T12:21:21.344Z</lastmod>
+    <lastmod>2026-01-29T12:40:38.828Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/examples/R/coalescent-jointprob-R.html</loc>
-    <lastmod>2026-01-29T12:21:21.351Z</lastmod>
+    <lastmod>2026-01-29T12:40:38.835Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/examples/showcase_rpy2/showcase.html</loc>
-    <lastmod>2026-01-29T12:21:21.358Z</lastmod>
+    <lastmod>2026-01-29T12:40:38.842Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/internals/trace_ipfs.html</loc>
-    <lastmod>2026-01-29T12:21:21.364Z</lastmod>
+    <lastmod>2026-01-29T12:40:38.848Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/topics/state-indexer.html</loc>
-    <lastmod>2026-01-29T12:21:21.560Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.040Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/topics/vscodenb.html</loc>
-    <lastmod>2026-01-29T12:21:21.561Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.040Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/01-state-space.html</loc>
-    <lastmod>2026-01-29T12:21:21.563Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.042Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/03-discrete.html</loc>
-    <lastmod>2026-01-29T12:21:21.564Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.044Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/05-parametrization.html</loc>
-    <lastmod>2026-01-29T12:21:21.566Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.045Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/07-trace_computing.html</loc>
-    <lastmod>2026-01-29T12:21:21.568Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.047Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/09-joint-probability.html</loc>
-    <lastmod>2026-01-29T12:21:21.569Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.048Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/11-svgd-basics.html</loc>
-    <lastmod>2026-01-29T12:21:21.609Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.085Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/13-svgd-multi-param.html</loc>
-    <lastmod>2026-01-29T12:21:21.617Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.092Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/15-distributed.html</loc>
-    <lastmod>2026-01-29T12:21:21.658Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.130Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/tutorial/17-sharing.html</loc>
-    <lastmod>2026-01-29T12:21:21.658Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.130Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/vignettes/drainage-capacity.html</loc>
-    <lastmod>2026-01-29T12:21:21.658Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.130Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/vignettes/protein-interactions.html</loc>
-    <lastmod>2026-01-29T12:21:21.659Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.130Z</lastmod>
   </url>
   <url>
     <loc>https://munch-group.github.io/phasic/pages/vignettes/risk-assesment.html</loc>
-    <lastmod>2026-01-29T12:21:21.659Z</lastmod>
+    <lastmod>2026-01-29T12:40:39.131Z</lastmod>
   </url>
 </urlset>
