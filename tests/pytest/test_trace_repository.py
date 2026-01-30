@@ -9,11 +9,15 @@ These tests verify:
 5. Security: CID validation, checksum verification, output path validation
 6. Transport abstraction: TransportBackend ABC, custom backends
 7. Edge cases: lazy init, deprecation warnings, format version, retry
+8. Swarm key support for private IPFS networks
 """
 
 import json
 import gzip
 import hashlib
+import os
+import stat
+import subprocess
 import tempfile
 from pathlib import Path
 from unittest import mock
@@ -31,6 +35,14 @@ from phasic.trace_repository import (
     _request_with_retry,
     TRACE_FORMAT_VERSION,
     _REQUIRED_TRACE_KEYS,
+    get_ipfs_dir,
+    generate_swarm_key,
+    install_swarm_key,
+    detect_swarm_key,
+    remove_swarm_key,
+    configure_bootstrap_peers,
+    _validate_swarm_key_content,
+    _SWARM_KEY_RE,
 )
 from phasic.exceptions import PTDBackendError
 
@@ -1055,6 +1067,408 @@ class TestTraceRegistrySourceCacheRetraction:
             registry = TraceRegistry(cache_dir=cache_dir, auto_update=False)
             with pytest.raises(PTDBackendError, match="retracted.*Corrupt"):
                 registry.get_trace("test_trace_1")
+
+
+# ============================================================================
+# Swarm Key Generation Tests
+# ============================================================================
+
+class TestSwarmKeyGeneration:
+    """Tests for generate_swarm_key() output format and uniqueness."""
+
+    def test_format(self):
+        """Generated key matches the 3-line format."""
+        key = generate_swarm_key()
+        lines = key.strip().split('\n')
+        assert len(lines) == 3
+        assert lines[0] == "/key/swarm/psk/1.0.0/"
+        assert lines[1] == "/base16/"
+        assert len(lines[2]) == 64
+        # All hex chars
+        int(lines[2], 16)
+
+    def test_uniqueness(self):
+        """Two generated keys are different."""
+        k1 = generate_swarm_key()
+        k2 = generate_swarm_key()
+        assert k1 != k2
+
+    def test_passes_validation(self):
+        """Generated key passes _validate_swarm_key_content."""
+        key = generate_swarm_key()
+        _validate_swarm_key_content(key)  # should not raise
+
+    def test_regex_matches(self):
+        """Generated key matches _SWARM_KEY_RE."""
+        key = generate_swarm_key()
+        assert _SWARM_KEY_RE.match(key)
+
+
+# ============================================================================
+# Swarm Key Validation Tests
+# ============================================================================
+
+class TestSwarmKeyValidation:
+    """Tests for _validate_swarm_key_content edge cases."""
+
+    def test_valid_key(self):
+        """Valid 3-line key passes."""
+        content = "/key/swarm/psk/1.0.0/\n/base16/\n" + "ab" * 32 + "\n"
+        _validate_swarm_key_content(content)  # should not raise
+
+    def test_valid_key_no_trailing_newline(self):
+        """Valid key without trailing newline passes."""
+        content = "/key/swarm/psk/1.0.0/\n/base16/\n" + "ab" * 32
+        _validate_swarm_key_content(content)  # should not raise
+
+    def test_wrong_version(self):
+        """Wrong protocol version is rejected."""
+        content = "/key/swarm/psk/2.0.0/\n/base16/\n" + "ab" * 32 + "\n"
+        with pytest.raises(ValueError, match="Invalid swarm key format"):
+            _validate_swarm_key_content(content)
+
+    def test_wrong_encoding(self):
+        """Non-base16 encoding line is rejected."""
+        content = "/key/swarm/psk/1.0.0/\n/base64/\n" + "ab" * 32 + "\n"
+        with pytest.raises(ValueError, match="Invalid swarm key format"):
+            _validate_swarm_key_content(content)
+
+    def test_short_key(self):
+        """Key shorter than 64 hex chars is rejected."""
+        content = "/key/swarm/psk/1.0.0/\n/base16/\n" + "ab" * 16 + "\n"
+        with pytest.raises(ValueError, match="Invalid swarm key format"):
+            _validate_swarm_key_content(content)
+
+    def test_long_key(self):
+        """Key longer than 64 hex chars is rejected."""
+        content = "/key/swarm/psk/1.0.0/\n/base16/\n" + "ab" * 33 + "\n"
+        with pytest.raises(ValueError, match="Invalid swarm key format"):
+            _validate_swarm_key_content(content)
+
+    def test_non_hex_key(self):
+        """Non-hex characters in key are rejected."""
+        content = "/key/swarm/psk/1.0.0/\n/base16/\n" + "zz" * 32 + "\n"
+        with pytest.raises(ValueError, match="Invalid swarm key format"):
+            _validate_swarm_key_content(content)
+
+    def test_empty_string(self):
+        """Empty string is rejected."""
+        with pytest.raises(ValueError, match="Invalid swarm key format"):
+            _validate_swarm_key_content("")
+
+    def test_random_text(self):
+        """Random text is rejected."""
+        with pytest.raises(ValueError, match="Invalid swarm key format"):
+            _validate_swarm_key_content("not a swarm key")
+
+
+# ============================================================================
+# Swarm Key Installation Tests
+# ============================================================================
+
+class TestSwarmKeyInstallation:
+    """Tests for install, detect, and remove swarm key operations."""
+
+    def test_install_and_detect(self, tmp_path):
+        """install_swarm_key writes file, detect_swarm_key finds it."""
+        ipfs_dir = tmp_path / ".ipfs"
+        ipfs_dir.mkdir()
+
+        key_content = generate_swarm_key()
+        result = install_swarm_key(key_content, ipfs_dir=ipfs_dir)
+
+        assert result == ipfs_dir / "swarm.key"
+        assert result.exists()
+        assert result.read_text() == key_content
+
+        detected = detect_swarm_key(ipfs_dir=ipfs_dir)
+        assert detected == result
+
+    def test_install_creates_dir(self, tmp_path):
+        """install_swarm_key creates the IPFS directory if it doesn't exist."""
+        ipfs_dir = tmp_path / "new_ipfs_dir"
+        assert not ipfs_dir.exists()
+
+        key_content = generate_swarm_key()
+        install_swarm_key(key_content, ipfs_dir=ipfs_dir)
+
+        assert ipfs_dir.exists()
+        assert (ipfs_dir / "swarm.key").exists()
+
+    def test_install_permissions(self, tmp_path):
+        """Installed swarm key has 0o600 permissions."""
+        ipfs_dir = tmp_path / ".ipfs"
+        ipfs_dir.mkdir()
+
+        key_content = generate_swarm_key()
+        path = install_swarm_key(key_content, ipfs_dir=ipfs_dir)
+
+        mode = path.stat().st_mode & 0o777
+        assert mode == 0o600
+
+    def test_install_refuses_overwrite(self, tmp_path):
+        """install_swarm_key raises FileExistsError if key already exists."""
+        ipfs_dir = tmp_path / ".ipfs"
+        ipfs_dir.mkdir()
+
+        key_content = generate_swarm_key()
+        install_swarm_key(key_content, ipfs_dir=ipfs_dir)
+
+        with pytest.raises(FileExistsError, match="already exists"):
+            install_swarm_key(key_content, ipfs_dir=ipfs_dir)
+
+    def test_install_validates_content(self, tmp_path):
+        """install_swarm_key validates key format before writing."""
+        ipfs_dir = tmp_path / ".ipfs"
+        ipfs_dir.mkdir()
+
+        with pytest.raises(ValueError, match="Invalid swarm key format"):
+            install_swarm_key("bad content", ipfs_dir=ipfs_dir)
+
+        # File should not have been created
+        assert not (ipfs_dir / "swarm.key").exists()
+
+    def test_detect_no_key(self, tmp_path):
+        """detect_swarm_key returns None when no key exists."""
+        ipfs_dir = tmp_path / ".ipfs"
+        ipfs_dir.mkdir()
+
+        assert detect_swarm_key(ipfs_dir=ipfs_dir) is None
+
+    def test_detect_no_dir(self, tmp_path):
+        """detect_swarm_key returns None when IPFS dir doesn't exist."""
+        ipfs_dir = tmp_path / "nonexistent"
+        assert detect_swarm_key(ipfs_dir=ipfs_dir) is None
+
+    def test_remove_existing_key(self, tmp_path):
+        """remove_swarm_key deletes the key file."""
+        ipfs_dir = tmp_path / ".ipfs"
+        ipfs_dir.mkdir()
+
+        key_content = generate_swarm_key()
+        install_swarm_key(key_content, ipfs_dir=ipfs_dir)
+
+        result = remove_swarm_key(ipfs_dir=ipfs_dir)
+        assert result is True
+        assert not (ipfs_dir / "swarm.key").exists()
+
+    def test_remove_no_key(self, tmp_path):
+        """remove_swarm_key returns False when no key exists."""
+        ipfs_dir = tmp_path / ".ipfs"
+        ipfs_dir.mkdir()
+
+        result = remove_swarm_key(ipfs_dir=ipfs_dir)
+        assert result is False
+
+    def test_get_ipfs_dir_default(self):
+        """get_ipfs_dir returns ~/.ipfs by default."""
+        with mock.patch.dict(os.environ, {}, clear=True):
+            # Remove IPFS_PATH if set
+            env = os.environ.copy()
+            env.pop('IPFS_PATH', None)
+            with mock.patch.dict(os.environ, env, clear=True):
+                result = get_ipfs_dir()
+                assert result == Path.home() / ".ipfs"
+
+    def test_get_ipfs_dir_env_var(self, tmp_path):
+        """get_ipfs_dir respects IPFS_PATH environment variable."""
+        custom_path = str(tmp_path / "custom_ipfs")
+        with mock.patch.dict(os.environ, {'IPFS_PATH': custom_path}):
+            result = get_ipfs_dir()
+            assert result == Path(custom_path)
+
+
+# ============================================================================
+# Swarm Key Backend Integration Tests
+# ============================================================================
+
+class TestSwarmKeyBackendIntegration:
+    """Tests for IPFSBackend private network mode."""
+
+    def test_private_network_flag_set(self, tmp_path):
+        """IPFSBackend sets private_network=True when swarm key exists."""
+        ipfs_dir = tmp_path / ".ipfs"
+        ipfs_dir.mkdir()
+        key_content = generate_swarm_key()
+        install_swarm_key(key_content, ipfs_dir=ipfs_dir)
+
+        with mock.patch('phasic.trace_repository.HAS_IPFS_CLIENT', False):
+            with mock.patch('phasic.trace_repository.get_ipfs_dir', return_value=ipfs_dir):
+                backend = IPFSBackend()
+                assert backend.private_network is True
+
+    def test_private_network_flag_not_set(self, tmp_path):
+        """IPFSBackend sets private_network=False when no swarm key."""
+        ipfs_dir = tmp_path / ".ipfs"
+        ipfs_dir.mkdir()
+
+        with mock.patch('phasic.trace_repository.HAS_IPFS_CLIENT', False):
+            with mock.patch('phasic.trace_repository.get_ipfs_dir', return_value=ipfs_dir):
+                backend = IPFSBackend()
+                assert backend.private_network is False
+
+    def test_gateways_disabled_in_private_mode(self, tmp_path):
+        """IPFSBackend clears gateways when in private network mode."""
+        ipfs_dir = tmp_path / ".ipfs"
+        ipfs_dir.mkdir()
+        install_swarm_key(generate_swarm_key(), ipfs_dir=ipfs_dir)
+
+        with mock.patch('phasic.trace_repository.HAS_IPFS_CLIENT', False):
+            with mock.patch('phasic.trace_repository.get_ipfs_dir', return_value=ipfs_dir):
+                backend = IPFSBackend()
+                assert backend.gateways == []
+
+    def test_explicit_gateways_warning_in_private_mode(self, tmp_path):
+        """IPFSBackend warns when explicit gateways given in private mode."""
+        ipfs_dir = tmp_path / ".ipfs"
+        ipfs_dir.mkdir()
+        install_swarm_key(generate_swarm_key(), ipfs_dir=ipfs_dir)
+
+        with mock.patch('phasic.trace_repository.HAS_IPFS_CLIENT', False):
+            with mock.patch('phasic.trace_repository.get_ipfs_dir', return_value=ipfs_dir):
+                # Should still disable gateways, but log a warning
+                backend = IPFSBackend(gateways=["https://custom.gateway.com"])
+                assert backend.gateways == []
+                assert backend.private_network is True
+
+    def test_get_raises_in_private_mode_without_daemon(self, tmp_path):
+        """get() raises PTDBackendError in private mode with no daemon."""
+        ipfs_dir = tmp_path / ".ipfs"
+        ipfs_dir.mkdir()
+        install_swarm_key(generate_swarm_key(), ipfs_dir=ipfs_dir)
+
+        with mock.patch('phasic.trace_repository.HAS_IPFS_CLIENT', False):
+            with mock.patch('phasic.trace_repository.get_ipfs_dir', return_value=ipfs_dir):
+                backend = IPFSBackend()
+
+                with pytest.raises(PTDBackendError, match="Private IPFS network requires"):
+                    backend.get("QmYwAPJzv5CZsnN625s3Xf2nemtYgPpHdWEz79ojWnPbdG")
+
+    def test_status_includes_private_network_fields(self, tmp_path):
+        """status() includes private_network and swarm_key_path."""
+        ipfs_dir = tmp_path / ".ipfs"
+        ipfs_dir.mkdir()
+        install_swarm_key(generate_swarm_key(), ipfs_dir=ipfs_dir)
+
+        with mock.patch('phasic.trace_repository.HAS_IPFS_CLIENT', False):
+            with mock.patch('phasic.trace_repository.get_ipfs_dir', return_value=ipfs_dir):
+                backend = IPFSBackend()
+                st = backend.status()
+
+                assert st["private_network"] is True
+                assert st["swarm_key_path"] == str(ipfs_dir / "swarm.key")
+
+    def test_status_no_private_network(self, tmp_path):
+        """status() reports private_network=False when no swarm key."""
+        ipfs_dir = tmp_path / ".ipfs"
+        ipfs_dir.mkdir()
+
+        with mock.patch('phasic.trace_repository.HAS_IPFS_CLIENT', False):
+            with mock.patch('phasic.trace_repository.get_ipfs_dir', return_value=ipfs_dir):
+                backend = IPFSBackend()
+                st = backend.status()
+
+                assert st["private_network"] is False
+                assert st["swarm_key_path"] is None
+
+
+# ============================================================================
+# Bootstrap Peer Configuration Tests
+# ============================================================================
+
+class TestBootstrapPeerConfiguration:
+    """Tests for configure_bootstrap_peers()."""
+
+    def test_configure_peers(self, tmp_path):
+        """configure_bootstrap_peers calls ipfs bootstrap rm --all + add."""
+        peers = [
+            "/ip4/192.168.1.1/tcp/4001/p2p/QmPeer1",
+            "/ip4/192.168.1.2/tcp/4001/p2p/QmPeer2",
+        ]
+        ipfs_dir = tmp_path / ".ipfs"
+
+        with mock.patch('shutil.which', return_value='/usr/local/bin/ipfs'):
+            with mock.patch('subprocess.run') as mock_run:
+                mock_run.return_value = mock.Mock(returncode=0)
+                configure_bootstrap_peers(peers, ipfs_dir=ipfs_dir)
+
+                # First call: rm --all
+                calls = mock_run.call_args_list
+                assert len(calls) == 3  # 1 rm + 2 adds
+                assert calls[0][0][0] == ['/usr/local/bin/ipfs', 'bootstrap', 'rm', '--all']
+                assert calls[1][0][0] == ['/usr/local/bin/ipfs', 'bootstrap', 'add', peers[0]]
+                assert calls[2][0][0] == ['/usr/local/bin/ipfs', 'bootstrap', 'add', peers[1]]
+
+                # IPFS_PATH should be set in env
+                for call in calls:
+                    assert call[1]['env']['IPFS_PATH'] == str(ipfs_dir)
+
+    def test_empty_peers_error(self):
+        """configure_bootstrap_peers raises ValueError for empty list."""
+        with pytest.raises(ValueError, match="must not be empty"):
+            configure_bootstrap_peers([])
+
+    def test_missing_ipfs_binary(self):
+        """configure_bootstrap_peers raises FileNotFoundError without ipfs."""
+        with mock.patch('shutil.which', return_value=None):
+            with pytest.raises(FileNotFoundError, match="IPFS binary not found"):
+                configure_bootstrap_peers(["/ip4/10.0.0.1/tcp/4001/p2p/QmPeer1"])
+
+
+# ============================================================================
+# Trace Registry Private Network Tests
+# ============================================================================
+
+class TestTraceRegistryPrivateNetwork:
+    """Tests for TraceRegistry behavior in private network mode."""
+
+    def test_trace_source_private_mode_no_daemon(self, tmp_path, mock_registry):
+        """trace_source reports 'unavailable' in private mode with no daemon."""
+        cache_dir = _make_registry_with_cache(tmp_path, mock_registry)
+
+        mock_backend = mock.Mock(spec=IPFSBackend)
+        mock_backend.name = "ipfs"
+        mock_backend.client = None  # no daemon
+        mock_backend.private_network = True
+
+        with mock.patch('phasic.trace_repository.IPFSBackend', return_value=mock_backend):
+            registry = TraceRegistry(cache_dir=cache_dir, auto_update=False)
+            info = registry.trace_source("test_trace_1")
+
+            assert info["source"] == "unavailable"
+            assert info["private_network"] is True
+
+    def test_trace_source_private_mode_with_daemon(self, tmp_path, mock_registry):
+        """trace_source reports 'ipfs_daemon' in private mode with daemon."""
+        cache_dir = _make_registry_with_cache(tmp_path, mock_registry)
+
+        mock_backend = mock.Mock(spec=IPFSBackend)
+        mock_backend.name = "ipfs"
+        mock_backend.client = mock.Mock()  # daemon available
+        mock_backend.private_network = True
+
+        with mock.patch('phasic.trace_repository.IPFSBackend', return_value=mock_backend):
+            registry = TraceRegistry(cache_dir=cache_dir, auto_update=False)
+            info = registry.trace_source("test_trace_1")
+
+            assert info["source"] == "ipfs_daemon"
+            assert info["private_network"] is True
+
+    def test_trace_source_public_mode(self, tmp_path, mock_registry):
+        """trace_source reports private_network=False in public mode."""
+        cache_dir = _make_registry_with_cache(tmp_path, mock_registry)
+
+        mock_backend = mock.Mock(spec=IPFSBackend)
+        mock_backend.name = "ipfs"
+        mock_backend.client = None
+        mock_backend.private_network = False
+
+        with mock.patch('phasic.trace_repository.IPFSBackend', return_value=mock_backend):
+            registry = TraceRegistry(cache_dir=cache_dir, auto_update=False)
+            info = registry.trace_source("test_trace_1")
+
+            assert info["source"] == "http_gateway"
+            assert info["private_network"] is False
 
 
 if __name__ == "__main__":

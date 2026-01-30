@@ -236,6 +236,223 @@ def _validate_output_path(output_path: Path, allowed_root: Path) -> None:
 
 
 # ============================================================================
+# Swarm Key Helpers (Private IPFS Networks)
+# ============================================================================
+
+# Expected swarm key format:
+#   /key/swarm/psk/1.0.0/
+#   /base16/
+#   <64 hex chars>
+_SWARM_KEY_RE = re.compile(
+    r'^/key/swarm/psk/1\.0\.0/\n/base16/\n[0-9a-f]{64}\n?$'
+)
+
+
+def get_ipfs_dir() -> Path:
+    """
+    Return the IPFS configuration directory.
+
+    Respects the ``IPFS_PATH`` environment variable.  Falls back to
+    ``~/.ipfs`` when the variable is not set.
+
+    Returns
+    -------
+    Path
+        Absolute path to the IPFS config directory.
+    """
+    env = os.environ.get('IPFS_PATH')
+    if env:
+        return Path(env)
+    return Path.home() / ".ipfs"
+
+
+def _validate_swarm_key_content(content: str) -> None:
+    """
+    Validate a swarm key string against the expected 3-line format.
+
+    Raises
+    ------
+    ValueError
+        If the content does not match the expected format.
+    """
+    if not _SWARM_KEY_RE.match(content):
+        raise ValueError(
+            "Invalid swarm key format. Expected:\n"
+            "  /key/swarm/psk/1.0.0/\n"
+            "  /base16/\n"
+            "  <64 hex characters>"
+        )
+
+
+def generate_swarm_key() -> str:
+    """
+    Generate a new 32-byte swarm key for a private IPFS network.
+
+    The returned string is in the standard 3-line format expected by
+    the ``go-ipfs`` daemon (written to ``swarm.key``).
+
+    Returns
+    -------
+    str
+        Swarm key in the format::
+
+            /key/swarm/psk/1.0.0/
+            /base16/
+            <64 hex characters>
+    """
+    key_bytes = os.urandom(32)
+    hex_key = key_bytes.hex()
+    return f"/key/swarm/psk/1.0.0/\n/base16/\n{hex_key}\n"
+
+
+def install_swarm_key(key_content: str, ipfs_dir: Optional[Path] = None) -> Path:
+    """
+    Install a swarm key into the IPFS configuration directory.
+
+    The key file is written with mode ``0o600`` (owner read/write only).
+    Refuses to overwrite an existing ``swarm.key`` file.
+
+    Parameters
+    ----------
+    key_content : str
+        Swarm key content (3-line format from :func:`generate_swarm_key`).
+    ipfs_dir : Path, optional
+        IPFS configuration directory.  Defaults to :func:`get_ipfs_dir`.
+
+    Returns
+    -------
+    Path
+        Path to the installed ``swarm.key`` file.
+
+    Raises
+    ------
+    ValueError
+        If *key_content* is not valid swarm key format.
+    FileExistsError
+        If ``swarm.key`` already exists in the target directory.
+    """
+    _validate_swarm_key_content(key_content)
+
+    target_dir = ipfs_dir or get_ipfs_dir()
+    key_path = target_dir / "swarm.key"
+
+    if key_path.exists():
+        raise FileExistsError(
+            f"Swarm key already exists at {key_path}. "
+            "Remove it first with remove_swarm_key() to replace."
+        )
+
+    target_dir.mkdir(parents=True, exist_ok=True)
+    key_path.write_text(key_content)
+    key_path.chmod(0o600)
+
+    logger.info("Installed swarm key at %s", key_path)
+    return key_path
+
+
+def detect_swarm_key(ipfs_dir: Optional[Path] = None) -> Optional[Path]:
+    """
+    Check whether a swarm key is installed.
+
+    Parameters
+    ----------
+    ipfs_dir : Path, optional
+        IPFS configuration directory.  Defaults to :func:`get_ipfs_dir`.
+
+    Returns
+    -------
+    Path or None
+        Path to ``swarm.key`` if it exists, ``None`` otherwise.
+    """
+    target_dir = ipfs_dir or get_ipfs_dir()
+    key_path = target_dir / "swarm.key"
+    if key_path.exists():
+        return key_path
+    return None
+
+
+def remove_swarm_key(ipfs_dir: Optional[Path] = None) -> bool:
+    """
+    Remove the swarm key to return the IPFS node to the public network.
+
+    Parameters
+    ----------
+    ipfs_dir : Path, optional
+        IPFS configuration directory.  Defaults to :func:`get_ipfs_dir`.
+
+    Returns
+    -------
+    bool
+        ``True`` if a key was removed, ``False`` if no key was found.
+    """
+    target_dir = ipfs_dir or get_ipfs_dir()
+    key_path = target_dir / "swarm.key"
+    if key_path.exists():
+        key_path.unlink()
+        logger.info("Removed swarm key from %s", target_dir)
+        return True
+    return False
+
+
+def configure_bootstrap_peers(
+    peers: List[str],
+    ipfs_dir: Optional[Path] = None,
+) -> None:
+    """
+    Replace the IPFS bootstrap peer list.
+
+    This removes all existing bootstrap peers and adds the given ones.
+    Useful for private networks where only specific peers should be
+    discoverable.
+
+    Parameters
+    ----------
+    peers : List[str]
+        Multiaddr strings of bootstrap peers to add.
+    ipfs_dir : Path, optional
+        IPFS configuration directory (passed via ``IPFS_PATH`` env).
+
+    Raises
+    ------
+    ValueError
+        If *peers* is empty.
+    FileNotFoundError
+        If the ``ipfs`` binary is not installed.
+    subprocess.SubprocessError
+        If a bootstrap command fails.
+    """
+    if not peers:
+        raise ValueError("peers list must not be empty")
+
+    ipfs_path = shutil.which('ipfs')
+    if not ipfs_path:
+        raise FileNotFoundError(
+            "IPFS binary not found. Install IPFS first.\n"
+            "  macOS:  brew install ipfs\n"
+            "  Linux:  See https://docs.ipfs.tech/install/"
+        )
+
+    env = dict(os.environ)
+    if ipfs_dir is not None:
+        env['IPFS_PATH'] = str(ipfs_dir)
+
+    # Remove all existing bootstrap peers
+    subprocess.run(
+        [ipfs_path, 'bootstrap', 'rm', '--all'],
+        capture_output=True, check=True, timeout=30, env=env,
+    )
+
+    # Add each peer
+    for peer in peers:
+        subprocess.run(
+            [ipfs_path, 'bootstrap', 'add', peer],
+            capture_output=True, check=True, timeout=30, env=env,
+        )
+
+    logger.info("Configured %d bootstrap peers", len(peers))
+
+
+# ============================================================================
 # IPFS Backend with Auto-Start and Gateway Fallback
 # ============================================================================
 
@@ -303,8 +520,13 @@ class IPFSBackend(TransportBackend):
         self.auto_start = auto_start
         self.client = None
         self.daemon_process = None
+        self._ipfs_dir = get_ipfs_dir()
+
+        # Detect private network mode
+        self.private_network = detect_swarm_key(self._ipfs_dir) is not None
 
         # Configure HTTP gateway fallbacks
+        user_passed_gateways = gateways is not None
         if gateways is None:
             self.gateways = [
                 "https://ipfs.io",
@@ -314,6 +536,20 @@ class IPFSBackend(TransportBackend):
             ]
         else:
             self.gateways = gateways
+
+        # In private network mode, public gateways cannot access content
+        if self.private_network:
+            if user_passed_gateways and self.gateways:
+                logger.warning(
+                    "Swarm key detected: public HTTP gateways cannot access "
+                    "private network content. Gateways will be disabled."
+                )
+            self.gateways = []
+            logger.info(
+                "Private IPFS network detected (swarm key at %s). "
+                "HTTP gateways disabled.",
+                self._ipfs_dir / "swarm.key",
+            )
 
         # Try connecting to IPFS daemon
         if HAS_IPFS_CLIENT:
@@ -360,7 +596,7 @@ class IPFSBackend(TransportBackend):
                 return True
 
             # Check if IPFS is initialized
-            ipfs_dir = Path.home() / ".ipfs"
+            ipfs_dir = self._ipfs_dir
             if not ipfs_dir.exists():
                 # Initialize IPFS
                 subprocess.run(
@@ -441,6 +677,14 @@ class IPFSBackend(TransportBackend):
                 return content
             except Exception as e:
                 logger.debug("IPFS daemon failed, trying gateways: %s", e)
+
+        # In private network mode with no gateways, the daemon is required
+        if self.private_network and not self.gateways:
+            raise PTDBackendError(
+                "Private IPFS network requires a running daemon to retrieve content.\n"
+                "Public HTTP gateways cannot access private network content.\n"
+                "  Start daemon with: ipfs daemon"
+            )
 
         # Fallback to HTTP gateways
         return self._get_via_gateway(cid, output_path)
@@ -551,11 +795,14 @@ class IPFSBackend(TransportBackend):
             Keys: ``daemon`` (bool), ``daemon_version`` (str or None),
             ``gateways`` (list of gateway URLs), ``ipfs_installed`` (bool).
         """
+        swarm_key_path = detect_swarm_key(self._ipfs_dir)
         info: Dict[str, Any] = {
             "daemon": self.client is not None,
             "daemon_version": None,
             "gateways": list(self.gateways),
             "ipfs_installed": shutil.which('ipfs') is not None,
+            "private_network": self.private_network,
+            "swarm_key_path": str(swarm_key_path) if swarm_key_path else None,
         }
         if self.client is not None:
             try:
@@ -1150,16 +1397,21 @@ class TraceRegistry:
         trace_info = self.registry['traces'][trace_id]
         cache_path = self.cache_dir / "traces" / trace_id / "trace.json.gz"
 
+        is_private = getattr(self.backend, 'private_network', False)
+
         info: Dict[str, Any] = {
             "trace_id": trace_id,
             "cid": trace_info.get("cid"),
             "cache_path": str(cache_path),
             "cached": cache_path.exists(),
             "backend": self.backend.name,
+            "private_network": is_private,
         }
 
         if cache_path.exists():
             info["source"] = "local_cache"
+        elif is_private and getattr(self.backend, 'client', None) is None:
+            info["source"] = "unavailable"
         elif self.backend.name == "ipfs" and getattr(self.backend, 'client', None) is not None:
             info["source"] = "ipfs_daemon"
         elif self.backend.name == "ipfs":

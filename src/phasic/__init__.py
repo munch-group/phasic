@@ -326,7 +326,13 @@ from .trace_repository import (
     IPFSBackend,
     TraceRegistry,
     get_trace,
-    install_trace_library
+    install_trace_library,
+    get_ipfs_dir,
+    generate_swarm_key,
+    install_swarm_key,
+    detect_swarm_key,
+    remove_swarm_key,
+    configure_bootstrap_peers,
 )
 
 # Hash-based trace lookup (convenience wrapper)
