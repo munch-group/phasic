@@ -12,6 +12,7 @@ Key Features:
 - Content integrity via cryptographic hashing
 - Offline-first with local caching
 - Zero hosting costs for maintainers
+- Pluggable transport backends (IPFS, S3, GCS, Azure via TransportBackend ABC)
 
 Usage Examples
 --------------
@@ -58,15 +59,24 @@ References
 import json
 import gzip
 import hashlib
+import os
+import re
 import warnings
 import time
 import shutil
 import subprocess
+import sys
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict, List, Optional, Union, Any
 from urllib.parse import urljoin
 
 import requests
+
+from .logging_config import get_logger
+from .exceptions import PTDBackendError
+
+logger = get_logger(__name__)
 
 # Try importing ipfshttpclient (optional dependency)
 try:
@@ -75,14 +85,161 @@ try:
 except ImportError:
     HAS_IPFS_CLIENT = False
 
-from .exceptions import PTDBackendError
+# Trace format version for forward compatibility
+TRACE_FORMAT_VERSION = "1.0"
+
+# Required keys in serialized trace dicts
+_REQUIRED_TRACE_KEYS = frozenset({
+    'operations', 'vertex_rates', 'edge_probs', 'vertex_targets',
+    'states', 'starting_vertex_idx', 'n_vertices', 'param_length',
+    'state_length',
+})
+
+# Required keys for registry.json top-level
+_REQUIRED_REGISTRY_KEYS = frozenset({'version', 'traces'})
+
+
+# ============================================================================
+# Transport Backend ABC
+# ============================================================================
+
+class TransportBackend(ABC):
+    """
+    Abstract base class for trace transport backends.
+
+    Implementations provide content-addressed storage for trace packages.
+    The default implementation is :class:`IPFSBackend`; future backends
+    may target S3, GCS, or Azure Blob Storage.
+
+    Subclasses must implement :meth:`get`, :meth:`add`, and the
+    :attr:`name` property.  Optionally override
+    :attr:`supports_directories` and :meth:`get_directory`.
+    """
+
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Human-readable backend name (e.g. ``'ipfs'``)."""
+
+    @abstractmethod
+    def get(self, cid: str, output_path: Optional[Path] = None) -> bytes:
+        """
+        Retrieve content by content identifier.
+
+        Parameters
+        ----------
+        cid : str
+            Content identifier (CID for IPFS, key for cloud stores).
+        output_path : Path, optional
+            Write content to this file instead of returning bytes.
+
+        Returns
+        -------
+        bytes or None
+            Content data, or ``None`` when *output_path* is given.
+        """
+
+    @abstractmethod
+    def add(self, path: Path) -> str:
+        """
+        Publish a file or directory and return its content identifier.
+
+        Parameters
+        ----------
+        path : Path
+            Local file or directory.
+
+        Returns
+        -------
+        str
+            Content identifier for the published content.
+        """
+
+    @property
+    def supports_directories(self) -> bool:
+        """Whether this backend can retrieve whole directories."""
+        return False
+
+    def get_directory(self, cid: str, output_dir: Path):
+        """
+        Retrieve an entire directory by CID.
+
+        The default implementation raises :class:`NotImplementedError`.
+        Override in backends that support directory operations.
+        """
+        raise NotImplementedError(
+            f"{self.name} backend does not support directory retrieval"
+        )
+
+
+# ============================================================================
+# CID / Path Validation Helpers
+# ============================================================================
+
+# CIDv0: starts with Qm, 46 chars, base58
+_CIDV0_RE = re.compile(r'^Qm[1-9A-HJ-NP-Za-km-z]{44}$')
+# CIDv1: starts with bafy (base32) or b (other base), variable length
+_CIDV1_RE = re.compile(r'^b[a-z2-7]{58,}$')
+
+
+def _validate_cid(cid: str) -> None:
+    """
+    Validate an IPFS CID, optionally with a ``CID/subpath`` suffix.
+
+    Raises
+    ------
+    ValueError
+        If the CID is empty, contains path-traversal components, or
+        does not look like a valid CIDv0 or CIDv1.
+    """
+    if not cid or not isinstance(cid, str):
+        raise ValueError("CID must be a non-empty string")
+
+    # Split CID from optional subpath
+    parts = cid.split('/', 1)
+    bare_cid = parts[0]
+
+    # Validate bare CID format
+    if not (_CIDV0_RE.match(bare_cid) or _CIDV1_RE.match(bare_cid)):
+        raise ValueError(
+            f"Invalid CID format: {bare_cid!r}. "
+            "Expected CIDv0 (Qm..., 46 chars) or CIDv1 (bafy..., base32)."
+        )
+
+    # Validate subpath if present
+    if len(parts) == 2:
+        subpath = parts[1]
+        for component in subpath.split('/'):
+            if component in ('', '.', '..'):
+                raise ValueError(
+                    f"Invalid subpath in CID: {cid!r}. "
+                    "Path components must not be empty, '.', or '..'."
+                )
+
+
+def _validate_output_path(output_path: Path, allowed_root: Path) -> None:
+    """
+    Ensure *output_path* resolves inside *allowed_root*.
+
+    Raises
+    ------
+    ValueError
+        If the resolved path escapes *allowed_root*.
+    """
+    resolved = output_path.resolve()
+    root_resolved = allowed_root.resolve()
+    if not str(resolved).startswith(str(root_resolved)):
+        raise ValueError(
+            f"Output path {output_path} resolves outside allowed "
+            f"directory {allowed_root}"
+        )
 
 
 # ============================================================================
 # IPFS Backend with Auto-Start and Gateway Fallback
 # ============================================================================
 
-class IPFSBackend:
+class IPFSBackend(TransportBackend):
     """
     IPFS backend with automatic daemon management and HTTP gateway fallback.
 
@@ -115,7 +272,7 @@ class IPFSBackend:
     --------
     >>> # Auto-start daemon if available, fallback to gateways
     >>> backend = IPFSBackend()
-    ✓ Started IPFS daemon automatically
+    Started IPFS daemon automatically
 
     >>> # Download content
     >>> content = backend.get("bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi")
@@ -125,6 +282,14 @@ class IPFSBackend:
     IPFS daemon not running. Using HTTP gateways.
     >>> content = backend.get("bafybeig...")
     """
+
+    @property
+    def name(self) -> str:
+        return "ipfs"
+
+    @property
+    def supports_directories(self) -> bool:
+        return self.client is not None
 
     def __init__(
         self,
@@ -156,24 +321,24 @@ class IPFSBackend:
                 # Try existing daemon first
                 self.client = ipfshttpclient.connect(daemon_addr, timeout=5)
                 version = self.client.version()
-                print(f"✓ Connected to IPFS daemon (version {version['Version']})")
+                logger.info("Connected to IPFS daemon (version %s)", version['Version'])
             except Exception as e:
                 # Try auto-starting daemon
                 if auto_start and self._start_daemon():
                     time.sleep(2)  # Give daemon time to initialize
                     try:
                         self.client = ipfshttpclient.connect(daemon_addr, timeout=5)
-                        print(f"✓ Started IPFS daemon automatically")
-                    except:
+                        logger.info("Started IPFS daemon automatically")
+                    except Exception:
                         warnings.warn("IPFS daemon started but connection failed. Using HTTP gateways.")
                 else:
                     if not auto_start:
-                        print("IPFS daemon not running. Using HTTP gateways.")
+                        logger.info("IPFS daemon not running. Using HTTP gateways.")
                     else:
                         warnings.warn(f"IPFS not available. Using HTTP gateways.")
         else:
-            print("ipfshttpclient not installed. Using HTTP gateways only.")
-            print("  Install for faster downloads: pip install ipfshttpclient")
+            logger.info("ipfshttpclient not installed. Using HTTP gateways only.")
+            logger.info("  Install for faster downloads: pip install ipfshttpclient")
 
     def _start_daemon(self) -> bool:
         """
@@ -190,37 +355,53 @@ class IPFSBackend:
             return False
 
         try:
-            # Check if daemon already running
-            result = subprocess.run(
-                ['pgrep', '-x', 'ipfs'],
-                capture_output=True,
-                text=True
-            )
-            if result.returncode == 0:
-                return True  # Already running
+            # Check if daemon already running (cross-platform)
+            if self._is_daemon_running():
+                return True
 
             # Check if IPFS is initialized
             ipfs_dir = Path.home() / ".ipfs"
             if not ipfs_dir.exists():
                 # Initialize IPFS
                 subprocess.run(
-                    ['ipfs', 'init'],
+                    [ipfs_path, 'init'],
                     capture_output=True,
-                    check=True
+                    check=True,
+                    timeout=30
                 )
-                print("✓ Initialized IPFS repository")
+                logger.info("Initialized IPFS repository")
 
             # Start daemon in background (detached from parent)
             self.daemon_process = subprocess.Popen(
-                ['ipfs', 'daemon'],
+                [ipfs_path, 'daemon'],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 start_new_session=True  # Detach from parent process
             )
 
             return True
-        except Exception as e:
+        except (subprocess.SubprocessError, OSError) as e:
             warnings.warn(f"Failed to start IPFS daemon: {e}")
+            return False
+
+    @staticmethod
+    def _is_daemon_running() -> bool:
+        """Check if an IPFS daemon process is running (cross-platform)."""
+        try:
+            if sys.platform == 'win32':
+                result = subprocess.run(
+                    ['tasklist', '/FI', 'IMAGENAME eq ipfs.exe'],
+                    capture_output=True, text=True, timeout=10
+                )
+                return 'ipfs.exe' in result.stdout
+            else:
+                # Unix: use ps instead of pgrep for portability
+                result = subprocess.run(
+                    ['ps', '-eo', 'comm'],
+                    capture_output=True, text=True, timeout=10
+                )
+                return 'ipfs' in result.stdout.split()
+        except (subprocess.SubprocessError, OSError):
             return False
 
     def get(self, cid: str, output_path: Optional[Path] = None) -> bytes:
@@ -245,7 +426,11 @@ class IPFSBackend:
         ------
         PTDBackendError
             If content cannot be retrieved from any source
+        ValueError
+            If *cid* is not a valid CID
         """
+        _validate_cid(cid)
+
         # Try local daemon first
         if self.client is not None:
             try:
@@ -255,21 +440,26 @@ class IPFSBackend:
                     return None
                 return content
             except Exception as e:
-                warnings.warn(f"IPFS daemon failed, trying gateways: {e}")
+                logger.debug("IPFS daemon failed, trying gateways: %s", e)
 
         # Fallback to HTTP gateways
+        return self._get_via_gateway(cid, output_path)
+
+    def _get_via_gateway(self, cid: str, output_path: Optional[Path] = None) -> bytes:
+        """Retrieve content through HTTP gateways with retry logic."""
+        last_error = None
         for gateway in self.gateways:
             url = f"{gateway}/ipfs/{cid}"
             try:
-                response = requests.get(url, timeout=self.timeout)
-                response.raise_for_status()
+                response = _request_with_retry(url, timeout=self.timeout)
                 content = response.content
                 if output_path is not None:
                     output_path.write_bytes(content)
                     return None
                 return content
             except Exception as e:
-                warnings.warn(f"Gateway {gateway} failed: {e}")
+                logger.debug("Gateway %s failed: %s", gateway, e)
+                last_error = e
                 continue
 
         raise PTDBackendError(
@@ -291,7 +481,10 @@ class IPFSBackend:
         ------
         PTDBackendError
             If directory cannot be retrieved
+        ValueError
+            If *cid* is not a valid CID
         """
+        _validate_cid(cid)
         output_dir.mkdir(parents=True, exist_ok=True)
 
         # Try local daemon first
@@ -300,10 +493,9 @@ class IPFSBackend:
                 self.client.get(cid, target=str(output_dir))
                 return
             except Exception as e:
-                warnings.warn(f"IPFS daemon failed for directory, trying gateways: {e}")
+                logger.debug("IPFS daemon failed for directory, trying gateways: %s", e)
 
         # For gateways, we need to know the file structure
-        # This is a simplified version - in practice, we'd need the directory manifest
         raise PTDBackendError(
             "Directory download via HTTP gateways requires knowing file structure. "
             "Install IPFS daemon for full functionality."
@@ -345,6 +537,111 @@ class IPFSBackend:
         except Exception as e:
             raise PTDBackendError(f"Failed to add to IPFS: {e}")
 
+    # ----------------------------------------------------------------
+    # Daemon status
+    # ----------------------------------------------------------------
+
+    def status(self) -> Dict[str, Any]:
+        """
+        Return a summary of the backend's connection state.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Keys: ``daemon`` (bool), ``daemon_version`` (str or None),
+            ``gateways`` (list of gateway URLs), ``ipfs_installed`` (bool).
+        """
+        info: Dict[str, Any] = {
+            "daemon": self.client is not None,
+            "daemon_version": None,
+            "gateways": list(self.gateways),
+            "ipfs_installed": shutil.which('ipfs') is not None,
+        }
+        if self.client is not None:
+            try:
+                ver = self.client.version()
+                info["daemon_version"] = ver.get("Version")
+            except Exception:
+                pass
+        return info
+
+    # ----------------------------------------------------------------
+    # Pinning
+    # ----------------------------------------------------------------
+
+    def pin(self, cid: str) -> None:
+        """
+        Pin *cid* on the local IPFS node so it is not garbage-collected.
+
+        Parameters
+        ----------
+        cid : str
+            Content identifier to pin.
+
+        Raises
+        ------
+        PTDBackendError
+            If no daemon is available.
+        """
+        _validate_cid(cid)
+        if self.client is None:
+            raise PTDBackendError(
+                "Pinning requires a running IPFS daemon.\n"
+                "  Start one with: ipfs daemon"
+            )
+        try:
+            self.client.pin.add(cid)
+            logger.info("Pinned %s", cid)
+        except Exception as e:
+            raise PTDBackendError(f"Failed to pin {cid}: {e}")
+
+    def unpin(self, cid: str) -> None:
+        """
+        Unpin *cid* from the local IPFS node.
+
+        After unpinning the content may be garbage-collected by the IPFS
+        daemon, freeing local disk space.
+
+        Parameters
+        ----------
+        cid : str
+            Content identifier to unpin.
+
+        Raises
+        ------
+        PTDBackendError
+            If no daemon is available.
+        """
+        _validate_cid(cid)
+        if self.client is None:
+            raise PTDBackendError(
+                "Unpinning requires a running IPFS daemon.\n"
+                "  Start one with: ipfs daemon"
+            )
+        try:
+            self.client.pin.rm(cid)
+            logger.info("Unpinned %s", cid)
+        except Exception as e:
+            raise PTDBackendError(f"Failed to unpin {cid}: {e}")
+
+    def is_pinned(self, cid: str) -> bool:
+        """
+        Check whether *cid* is pinned on the local IPFS node.
+
+        Returns
+        -------
+        bool
+            ``True`` if pinned, ``False`` otherwise (including when no
+            daemon is available).
+        """
+        if self.client is None:
+            return False
+        try:
+            pins = self.client.pin.ls(type='all')
+            return cid in pins.get('Keys', {})
+        except Exception:
+            return False
+
     def __del__(self):
         """
         Cleanup on object destruction.
@@ -353,6 +650,93 @@ class IPFSBackend:
         persist for other processes and future use.
         """
         pass
+
+
+# ============================================================================
+# HTTP Retry Helper
+# ============================================================================
+
+def _request_with_retry(
+    url: str,
+    *,
+    timeout: int = 30,
+    max_retries: int = 3,
+    backoff_base: float = 1.0
+) -> requests.Response:
+    """
+    GET *url* with exponential-backoff retry on transient failures.
+
+    Retries on connection errors and 5xx status codes.
+
+    Parameters
+    ----------
+    url : str
+        URL to fetch.
+    timeout : int
+        Per-request timeout in seconds.
+    max_retries : int
+        Maximum number of attempts.
+    backoff_base : float
+        Base delay in seconds (doubles each retry).
+
+    Returns
+    -------
+    requests.Response
+        Successful response.
+
+    Raises
+    ------
+    requests.RequestException
+        After all retries are exhausted.
+    """
+    last_exc: Optional[Exception] = None
+    for attempt in range(max_retries):
+        try:
+            response = requests.get(url, timeout=timeout)
+            if response.status_code >= 500 and attempt < max_retries - 1:
+                # Server error — retry
+                delay = backoff_base * (2 ** attempt)
+                logger.debug(
+                    "Server error %d from %s, retrying in %.1fs",
+                    response.status_code, url, delay
+                )
+                time.sleep(delay)
+                continue
+            response.raise_for_status()
+            return response
+        except requests.ConnectionError as e:
+            last_exc = e
+            if attempt < max_retries - 1:
+                delay = backoff_base * (2 ** attempt)
+                logger.debug("Connection error for %s, retrying in %.1fs", url, delay)
+                time.sleep(delay)
+            continue
+        except requests.RequestException:
+            raise
+    # All retries exhausted
+    raise last_exc  # type: ignore[misc]
+
+
+# ============================================================================
+# Registry Validation
+# ============================================================================
+
+def _validate_registry(data: Any) -> None:
+    """
+    Validate top-level registry JSON structure.
+
+    Raises
+    ------
+    PTDBackendError
+        If required keys are missing or ``traces`` is not a dict.
+    """
+    if not isinstance(data, dict):
+        raise PTDBackendError("Registry JSON must be a dict")
+    missing = _REQUIRED_REGISTRY_KEYS - data.keys()
+    if missing:
+        raise PTDBackendError(f"Registry JSON missing required keys: {missing}")
+    if not isinstance(data.get('traces'), dict):
+        raise PTDBackendError("Registry 'traces' field must be a dict")
 
 
 # ============================================================================
@@ -372,8 +756,11 @@ class TraceRegistry:
         GitHub repository containing registry.json
     cache_dir : Path, optional
         Local cache directory. Defaults to ~/.phasic_traces
+    backend : TransportBackend, optional
+        Transport backend for content retrieval.  If None, an
+        :class:`IPFSBackend` is created lazily on first use.
     ipfs_backend : IPFSBackend, optional
-        Custom IPFS backend. If None, creates default backend.
+        **Deprecated** — use *backend* instead.
     auto_update : bool, default=True
         Automatically update registry from GitHub on initialization
 
@@ -383,8 +770,8 @@ class TraceRegistry:
         Loaded registry data from GitHub
     cache_dir : Path
         Local cache directory for downloaded traces
-    ipfs : IPFSBackend
-        IPFS backend for content retrieval
+    backend : TransportBackend
+        Transport backend for content retrieval
 
     Examples
     --------
@@ -411,6 +798,7 @@ class TraceRegistry:
         self,
         registry_repo: str = "munch-group/phasic-traces",
         cache_dir: Optional[Path] = None,
+        backend: Optional[TransportBackend] = None,
         ipfs_backend: Optional[IPFSBackend] = None,
         auto_update: bool = True
     ):
@@ -418,8 +806,23 @@ class TraceRegistry:
         self.cache_dir = cache_dir or (Path.home() / ".phasic_traces")
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
-        # Initialize IPFS backend
-        self.ipfs = ipfs_backend or IPFSBackend()
+        # Handle deprecated ipfs_backend parameter
+        if ipfs_backend is not None:
+            if backend is not None:
+                raise ValueError(
+                    "Cannot specify both 'backend' and 'ipfs_backend'. "
+                    "Use 'backend' (ipfs_backend is deprecated)."
+                )
+            warnings.warn(
+                "The 'ipfs_backend' parameter is deprecated. "
+                "Use 'backend' instead.",
+                DeprecationWarning,
+                stacklevel=2
+            )
+            backend = ipfs_backend
+
+        # Store backend (or None for lazy init)
+        self._backend = backend
 
         # Registry data
         self.registry = None
@@ -431,14 +834,29 @@ class TraceRegistry:
         if auto_update:
             self.update_registry()
 
+    @property
+    def backend(self) -> TransportBackend:
+        """Transport backend, lazily initialised on first access."""
+        if self._backend is None:
+            self._backend = IPFSBackend()
+        return self._backend
+
+    # Backward-compatible alias
+    @property
+    def ipfs(self) -> TransportBackend:
+        """Deprecated alias for :attr:`backend`."""
+        return self.backend
+
     def _load_cached_registry(self):
         """Load registry from local cache if available."""
         registry_path = self.cache_dir / "registry.json"
         if registry_path.exists():
             try:
-                self.registry = json.loads(registry_path.read_text())
-            except:
-                pass
+                data = json.loads(registry_path.read_text())
+                _validate_registry(data)
+                self.registry = data
+            except (json.JSONDecodeError, OSError, KeyError) as e:
+                logger.warning("Failed to load cached registry: %s", e)
 
     def update_registry(self):
         """
@@ -448,15 +866,16 @@ class TraceRegistry:
         """
         url = self.REGISTRY_URL.format(self.registry_repo)
         try:
-            print(f"Updating registry from {self.registry_repo}...")
-            response = requests.get(url, timeout=10)
-            response.raise_for_status()
-            self.registry = response.json()
+            logger.info("Updating registry from %s...", self.registry_repo)
+            response = _request_with_retry(url, timeout=10)
+            data = response.json()
+            _validate_registry(data)
+            self.registry = data
 
             # Save to cache
             registry_path = self.cache_dir / "registry.json"
             registry_path.write_text(json.dumps(self.registry, indent=2))
-            print("✓ Registry updated")
+            logger.info("Registry updated")
         except Exception as e:
             if self.registry is None:
                 raise PTDBackendError(
@@ -494,6 +913,10 @@ class TraceRegistry:
 
         traces = []
         for trace_id, info in self.registry['traces'].items():
+            # Skip retracted traces
+            if info.get('retracted'):
+                continue
+
             metadata = info.get('metadata', {})
 
             # Apply filters
@@ -516,7 +939,7 @@ class TraceRegistry:
 
         return traces
 
-    def get_trace(self, trace_id: str, force_download: bool = False) -> Dict:
+    def get_trace(self, trace_id: str, force_download: bool = False) -> 'EliminationTrace':
         """
         Download and load a trace by ID.
 
@@ -529,8 +952,8 @@ class TraceRegistry:
 
         Returns
         -------
-        Dict
-            Loaded trace data (result from record_elimination_trace)
+        EliminationTrace
+            Loaded trace object
 
         Raises
         ------
@@ -556,25 +979,40 @@ class TraceRegistry:
             )
 
         trace_info = self.registry['traces'][trace_id]
-        cid = trace_info['cid']
+
+        # Check if trace has been retracted
+        if trace_info.get('retracted'):
+            reason = trace_info.get('retracted_reason', 'No reason given')
+            raise PTDBackendError(
+                f"Trace '{trace_id}' has been retracted: {reason}\n"
+                f"  This trace is no longer available for download."
+            )
 
         # Check local cache
         trace_cache_dir = self.cache_dir / "traces" / trace_id
         trace_file = trace_cache_dir / "trace.json.gz"
 
         if not force_download and trace_file.exists():
-            print(f"✓ Using cached trace: {trace_file}")
+            logger.info("Using cached trace: %s", trace_file)
         else:
-            # Download from IPFS
-            print(f"Downloading trace '{trace_id}' from IPFS...")
+            # Download from backend
+            logger.info("Downloading trace '%s'...", trace_id)
             trace_cache_dir.mkdir(parents=True, exist_ok=True)
+
+            # Validate output path stays within cache_dir
+            _validate_output_path(trace_file, self.cache_dir)
 
             # Get the trace.json.gz file from the directory CID
             dir_cid = trace_info['cid']
             file_path_in_ipfs = f"{dir_cid}/trace.json.gz"
-            self.ipfs.get(file_path_in_ipfs, output_path=trace_file)
+            self.backend.get(file_path_in_ipfs, output_path=trace_file)
 
-            print(f"✓ Downloaded to {trace_file}")
+            # Verify checksum if available
+            expected_checksum = trace_info.get('checksum')
+            if expected_checksum:
+                self._verify_checksum(trace_file, expected_checksum)
+
+            logger.info("Downloaded to %s", trace_file)
 
         # Load and decompress trace
         with gzip.open(trace_file, 'rt') as f:
@@ -582,6 +1020,37 @@ class TraceRegistry:
 
         # Use helper to deserialize
         return self._deserialize_trace(trace_dict)
+
+    def _verify_checksum(self, file_path: Path, expected: str) -> None:
+        """
+        Verify SHA-256 checksum of a downloaded file.
+
+        Parameters
+        ----------
+        file_path : Path
+            Path to the file to verify.
+        expected : str
+            Expected checksum in ``sha256:<hex>`` format.
+
+        Raises
+        ------
+        PTDBackendError
+            If the checksum does not match (corrupted file is deleted).
+        """
+        if not expected.startswith('sha256:'):
+            logger.warning("Unknown checksum format: %s", expected)
+            return
+
+        expected_hex = expected[len('sha256:'):]
+        actual_hex = hashlib.sha256(file_path.read_bytes()).hexdigest()
+
+        if actual_hex != expected_hex:
+            file_path.unlink(missing_ok=True)
+            raise PTDBackendError(
+                f"Checksum mismatch for {file_path.name}: "
+                f"expected {expected_hex[:16]}..., got {actual_hex[:16]}..."
+            )
+        logger.debug("Checksum verified for %s", file_path.name)
 
     def get_trace_by_hash(self, graph_hash: str, force_download: bool = False):
         """
@@ -622,7 +1091,7 @@ class TraceRegistry:
         trace_file = hash_cache_dir / "trace.json.gz"
 
         if not force_download and trace_file.exists():
-            print(f"✓ Using cached trace (by hash): {trace_file}")
+            logger.info("Using cached trace (by hash): %s", trace_file)
             # Load from cache
             with gzip.open(trace_file, 'rt') as f:
                 trace_dict = json.load(f)
@@ -631,7 +1100,7 @@ class TraceRegistry:
         # Search registry for matching graph_hash
         for trace_id, info in self.registry['traces'].items():
             if info.get('graph_hash') == graph_hash:
-                print(f"✓ Found trace '{trace_id}' with matching hash")
+                logger.info("Found trace '%s' with matching hash", trace_id)
                 # Download using existing get_trace method
                 trace = self.get_trace(trace_id, force_download=force_download)
 
@@ -639,33 +1108,195 @@ class TraceRegistry:
                 hash_cache_dir.mkdir(parents=True, exist_ok=True)
                 trace_by_id_file = self.cache_dir / "traces" / trace_id / "trace.json.gz"
                 if trace_by_id_file.exists():
-                    import shutil
                     shutil.copy(trace_by_id_file, trace_file)
-                    print(f"✓ Cached by hash: {hash_cache_dir}")
+                    logger.debug("Cached by hash: %s", hash_cache_dir)
 
                 return trace
 
         # Not found in registry
-        print(f"✗ No trace found for hash {graph_hash[:16]}...")
+        logger.info("No trace found for hash %s...", graph_hash[:16])
         return None
+
+    # ----------------------------------------------------------------
+    # Source & cache inspection
+    # ----------------------------------------------------------------
+
+    def trace_source(self, trace_id: str) -> Dict[str, Any]:
+        """
+        Report where a trace would be loaded from, without downloading it.
+
+        Parameters
+        ----------
+        trace_id : str
+            Trace identifier.
+
+        Returns
+        -------
+        Dict[str, Any]
+            ``source`` is one of ``"local_cache"``, ``"ipfs_daemon"``,
+            ``"http_gateway"``, or ``"unavailable"``.  Additional keys
+            give the ``cache_path``, ``cid``, and ``backend`` name.
+
+        Raises
+        ------
+        PTDBackendError
+            If the registry is not loaded or *trace_id* is unknown.
+        """
+        if self.registry is None:
+            raise PTDBackendError("Registry not loaded. Call update_registry() first.")
+        if trace_id not in self.registry['traces']:
+            raise PTDBackendError(f"Trace '{trace_id}' not found in registry.")
+
+        trace_info = self.registry['traces'][trace_id]
+        cache_path = self.cache_dir / "traces" / trace_id / "trace.json.gz"
+
+        info: Dict[str, Any] = {
+            "trace_id": trace_id,
+            "cid": trace_info.get("cid"),
+            "cache_path": str(cache_path),
+            "cached": cache_path.exists(),
+            "backend": self.backend.name,
+        }
+
+        if cache_path.exists():
+            info["source"] = "local_cache"
+        elif self.backend.name == "ipfs" and getattr(self.backend, 'client', None) is not None:
+            info["source"] = "ipfs_daemon"
+        elif self.backend.name == "ipfs":
+            info["source"] = "http_gateway"
+        else:
+            info["source"] = self.backend.name
+
+        return info
+
+    def clear_cache(self, trace_id: Optional[str] = None) -> int:
+        """
+        Delete locally cached trace files.
+
+        Parameters
+        ----------
+        trace_id : str, optional
+            If given, clear only this trace.  If ``None``, clear **all**
+            cached traces.
+
+        Returns
+        -------
+        int
+            Number of cache entries removed.
+        """
+        removed = 0
+        if trace_id is not None:
+            cache_path = self.cache_dir / "traces" / trace_id
+            if cache_path.exists():
+                shutil.rmtree(cache_path)
+                removed += 1
+                logger.info("Cleared cache for %s", trace_id)
+        else:
+            traces_dir = self.cache_dir / "traces"
+            if traces_dir.exists():
+                for child in traces_dir.iterdir():
+                    if child.is_dir():
+                        shutil.rmtree(child)
+                        removed += 1
+                logger.info("Cleared %d cached traces", removed)
+            by_hash_dir = self.cache_dir / "by_hash"
+            if by_hash_dir.exists():
+                for child in by_hash_dir.iterdir():
+                    if child.is_dir():
+                        shutil.rmtree(child)
+                        removed += 1
+        return removed
+
+    # ----------------------------------------------------------------
+    # Retraction
+    # ----------------------------------------------------------------
+
+    def retract_trace(self, trace_id: str, reason: str = "") -> None:
+        """
+        Mark a trace as retracted in the **local** registry cache.
+
+        This does **not** modify the upstream GitHub registry.  To
+        permanently retract a faulty trace, submit a pull request that
+        adds ``"retracted": true`` to the entry in ``registry.json``.
+
+        After retraction, :meth:`get_trace` will refuse to load the
+        trace and :meth:`list_traces` will skip it.
+
+        Parameters
+        ----------
+        trace_id : str
+            Trace to retract.
+        reason : str, optional
+            Free-form explanation (stored locally).
+
+        Raises
+        ------
+        PTDBackendError
+            If the registry is not loaded or *trace_id* is unknown.
+        """
+        if self.registry is None:
+            raise PTDBackendError("Registry not loaded.")
+        if trace_id not in self.registry['traces']:
+            raise PTDBackendError(f"Trace '{trace_id}' not found in registry.")
+
+        self.registry['traces'][trace_id]['retracted'] = True
+        if reason:
+            self.registry['traces'][trace_id]['retracted_reason'] = reason
+
+        # Persist to local cache
+        registry_path = self.cache_dir / "registry.json"
+        registry_path.write_text(json.dumps(self.registry, indent=2))
+
+        # Also delete cached trace data
+        self.clear_cache(trace_id)
+
+        logger.info("Retracted trace '%s': %s", trace_id, reason or "(no reason given)")
 
     def _deserialize_trace(self, trace_dict):
         """
-        Helper to deserialize trace from dict (extracted from get_trace).
+        Deserialize a trace dict into an :class:`EliminationTrace`.
 
-        This is the deserialization logic from get_trace(), factored out
-        for reuse in get_trace_by_hash().
+        Validates required keys, operation types, and integer constraints
+        before constructing the trace object.
+
+        Raises
+        ------
+        PTDBackendError
+            If the trace dict is missing required keys, contains invalid
+            operation types, or has negative integer fields.
         """
         from .trace_elimination import EliminationTrace, Operation, OpType
         import numpy as np
 
-        # Reconstruct operations
+        # ---- Validate required keys ----
+        missing = _REQUIRED_TRACE_KEYS - trace_dict.keys()
+        if missing:
+            raise PTDBackendError(
+                f"Trace data missing required keys: {missing}"
+            )
+
+        # ---- Validate integer fields are non-negative ----
+        for int_key in ('starting_vertex_idx', 'n_vertices', 'param_length', 'state_length'):
+            val = trace_dict[int_key]
+            if not isinstance(val, int) or val < 0:
+                raise PTDBackendError(
+                    f"Trace field '{int_key}' must be a non-negative integer, "
+                    f"got {val!r}"
+                )
+
+        # ---- Validate and reconstruct operations ----
+        valid_op_names = {member.name for member in OpType}
         operations = []
-        for op_dict in trace_dict['operations']:
-            op_type = OpType[op_dict['op_type']]  # Convert string back to enum
+        for i, op_dict in enumerate(trace_dict['operations']):
+            op_name = op_dict.get('op_type')
+            if op_name not in valid_op_names:
+                raise PTDBackendError(
+                    f"Invalid op_type '{op_name}' in operation {i}. "
+                    f"Valid types: {sorted(valid_op_names)}"
+                )
+            op_type = OpType[op_name]
             operands = op_dict.get('operands', [])
             coefficients = op_dict.get('coefficients')
-            # Convert coefficients to numpy array if present
             if coefficients is not None and not isinstance(coefficients, np.ndarray):
                 coefficients = np.array(coefficients)
             operations.append(Operation(
@@ -676,23 +1307,32 @@ class TraceRegistry:
                 coefficients=coefficients
             ))
 
-        # Convert lists back to numpy arrays
+        # ---- Convert lists to numpy arrays ----
         vertex_rates = np.array(trace_dict['vertex_rates']) if isinstance(trace_dict['vertex_rates'], list) else trace_dict['vertex_rates']
         edge_probs = np.array(trace_dict['edge_probs'], dtype=object) if isinstance(trace_dict['edge_probs'], list) else trace_dict['edge_probs']
         vertex_targets = np.array(trace_dict['vertex_targets'], dtype=object) if isinstance(trace_dict['vertex_targets'], list) else trace_dict['vertex_targets']
         states = np.array(trace_dict['states']) if isinstance(trace_dict['states'], list) else trace_dict['states']
 
-        # Reconstruct EliminationTrace object
+        # Optional fields with defaults
+        vertex_indices_data = trace_dict.get('vertex_indices')
+        if vertex_indices_data is not None:
+            vertex_indices = np.array(vertex_indices_data)
+        else:
+            vertex_indices = np.array([])
+
+        # ---- Construct EliminationTrace ----
         trace = EliminationTrace(
             operations=operations,
             vertex_rates=vertex_rates,
             edge_probs=edge_probs,
             vertex_targets=vertex_targets,
             states=states,
+            vertex_indices=vertex_indices,
             starting_vertex_idx=trace_dict['starting_vertex_idx'],
             n_vertices=trace_dict['n_vertices'],
             param_length=trace_dict['param_length'],
             state_length=trace_dict['state_length'],
+            reward_length=trace_dict.get('reward_length', 0),
             is_discrete=trace_dict.get('is_discrete', False),
             metadata=trace_dict.get('metadata', {})
         )
@@ -785,10 +1425,10 @@ class TraceRegistry:
             checksum_file = pkg_dir / "checksum.sha256"
             checksum_file.write_text(checksum)
 
-            # Add to IPFS
-            print(f"Publishing {trace_id} to IPFS...")
-            cid = self.ipfs.add(pkg_dir)
-            print(f"✓ Published to IPFS: {cid}")
+            # Add to backend
+            logger.info("Publishing %s...", trace_id)
+            cid = self.backend.add(pkg_dir)
+            logger.info("Published to IPFS: %s", cid)
 
             # Print PR instructions if requested
             if submit_pr:
@@ -798,6 +1438,7 @@ class TraceRegistry:
 
     def _print_pr_instructions(self, trace_id: str, cid: str, metadata: Dict, checksum: str):
         """Print instructions for submitting trace to public registry."""
+        # Intentionally uses print() — this is user-facing interactive output
         print("\n" + "="*70)
         print("To add this trace to the public registry:")
         print("="*70)
@@ -871,8 +1512,8 @@ def install_trace_library(collection: Optional[str] = None):
     >>> # Download all basic coalescent models
     >>> install_trace_library("coalescent_basic")
     Downloading 10 traces...
-    ✓ Downloaded coalescent_n5_theta1
-    ✓ Downloaded coalescent_n10_theta2
+    Downloaded coalescent_n5_theta1
+    Downloaded coalescent_n10_theta2
     ...
     """
     registry = TraceRegistry()
@@ -886,16 +1527,16 @@ def install_trace_library(collection: Optional[str] = None):
             )
 
         trace_ids = registry.registry['collections'][collection]['traces']
-        print(f"Downloading collection '{collection}' ({len(trace_ids)} traces)...")
+        logger.info("Downloading collection '%s' (%d traces)...", collection, len(trace_ids))
     else:
         # Download all traces
         trace_ids = list(registry.registry['traces'].keys())
-        print(f"Downloading all traces ({len(trace_ids)} total)...")
+        logger.info("Downloading all traces (%d total)...", len(trace_ids))
 
     # Download each trace
     for trace_id in trace_ids:
         try:
             registry.get_trace(trace_id)
-            print(f"✓ Downloaded {trace_id}")
+            logger.info("Downloaded %s", trace_id)
         except Exception as e:
             warnings.warn(f"Failed to download {trace_id}: {e}")

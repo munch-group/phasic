@@ -322,6 +322,7 @@ from .jax_config import CompilationConfig, get_default_config, set_default_confi
 #     install_model_library
 # )
 from .trace_repository import (
+    TransportBackend,
     IPFSBackend,
     TraceRegistry,
     get_trace,
@@ -329,7 +330,7 @@ from .trace_repository import (
 )
 
 # Hash-based trace lookup (convenience wrapper)
-def get_trace_by_hash(graph_hash: str, force_download: bool = False):
+def get_trace_by_hash(graph_hash: str, force_download: bool = False, backend: 'TransportBackend | None' = None):
     """
     Get elimination trace by graph structure hash.
 
@@ -341,6 +342,8 @@ def get_trace_by_hash(graph_hash: str, force_download: bool = False):
         SHA-256 hash of graph structure (from phasic.hash.compute_graph_hash)
     force_download : bool, default=False
         If True, re-download even if cached
+    backend : TransportBackend, optional
+        Custom transport backend for content retrieval.
 
     Returns
     -------
@@ -359,7 +362,7 @@ def get_trace_by_hash(graph_hash: str, force_download: bool = False):
     ...     from phasic.trace_elimination import record_elimination_trace
     ...     trace = record_elimination_trace(graph, theta_dim=1)
     """
-    registry = TraceRegistry()
+    registry = TraceRegistry(backend=backend) if backend else TraceRegistry()
     return registry.get_trace_by_hash(graph_hash, force_download=force_download)
 
 # JAX FFI wrappers (optional, requires JAX)
