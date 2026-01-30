@@ -72,9 +72,13 @@ from .exceptions import PTDConfigError
 #     return globals()[class_name]
 
 
-from tqdm import trange, tqdm
-trange = partial(trange, leave=False)
-tqdm = partial(tqdm, leave=False)
+try:
+    from vscodenb import pqdm as tqdm
+    from vscodenb import prange as trange
+except ImportError:
+    from tqdm import trange, tqdm
+    trange = partial(trange, leave=False)
+    tqdm = partial(tqdm, leave=False)
 
 #from jax import random, vmap, grad, jit
 
@@ -107,6 +111,64 @@ def _inverse_softplus(theta):
         theta,
         jnp.log(jnp.expm1(jnp.maximum(theta, 1e-6)))
     )
+
+def _compute_hpd(samples, alpha=0.95):
+    """Compute the Highest Posterior Density (HPD) interval.
+
+    Finds the shortest contiguous interval containing at least `alpha` fraction
+    of the samples. For unimodal posteriors, this naturally centers on the mode.
+
+    The algorithm sorts the samples and slides a window of size
+    ``ceil(n * alpha)`` across them, selecting the window whose endpoints
+    have the smallest difference.  This guarantees the minimum-width interval
+    that contains at least the requested fraction of mass.  Unlike equal-tailed
+    percentile intervals, the HPD interval is invariant to monotone
+    reparametrisation and, for skewed posteriors, is shorter and better
+    centred on the high-density region.
+
+    Parameters
+    ----------
+    samples : array_like
+        1D array of posterior samples.
+    alpha : float, default=0.95
+        Credible level (fraction of mass to include).
+
+    Returns
+    -------
+    lower : float
+        Lower bound of the HPD interval.
+    upper : float
+        Upper bound of the HPD interval.
+    """
+    samples = np.asarray(samples).ravel()
+    n = len(samples)
+
+    if n < 2:
+        warnings.warn("HPD interval requires at least 2 samples; returning (min, max).")
+        return float(samples.min()), float(samples.max())
+
+    if n < 10:
+        warnings.warn(
+            f"HPD interval computed from only {n} samples; result may be unreliable."
+        )
+
+    sorted_samples = np.sort(samples)
+
+    # Number of samples that must be inside the interval
+    n_included = int(np.ceil(n * alpha))
+    # Clamp to n so alpha=1.0 works
+    n_included = min(n_included, n)
+
+    # All contiguous windows of size n_included
+    # Width of each window: sorted[i + n_included - 1] - sorted[i]
+    widths = sorted_samples[n_included - 1:] - sorted_samples[:n - n_included + 1]
+
+    best = int(np.argmin(widths))
+    lower = float(sorted_samples[best])
+    upper = float(sorted_samples[best + n_included - 1])
+
+    return lower, upper
+
 
 def _hex_grid(x_min, x_max, y_min, y_max, size, flat_topped=False):
     """Generate hex grid midpoints.
@@ -4794,10 +4856,20 @@ class SVGD:
             theta_mean = particles_constrained.mean(axis=0)
             theta_std = particles_constrained.std(axis=0)
 
+            # HPD intervals per dimension
+            hpd_lower = np.empty(self.theta_dim)
+            hpd_upper = np.empty(self.theta_dim)
+            for i in range(self.theta_dim):
+                hpd_lower[i], hpd_upper[i] = _compute_hpd(
+                    np.asarray(particles_constrained[:, i])
+                )
+
             results = {
                 'particles': particles_constrained,
                 'theta_mean': theta_mean,
                 'theta_std': theta_std,
+                'hpd_lower': hpd_lower,
+                'hpd_upper': hpd_upper,
                 'particles_unconstrained': self.particles,  # Also return unconstrained
             }
 
@@ -4807,10 +4879,20 @@ class SVGD:
                 results['history'] = history_constrained
                 results['history_unconstrained'] = self.history
         else:
+            # HPD intervals per dimension
+            hpd_lower = np.empty(self.theta_dim)
+            hpd_upper = np.empty(self.theta_dim)
+            for i in range(self.theta_dim):
+                hpd_lower[i], hpd_upper[i] = _compute_hpd(
+                    np.asarray(self.particles[:, i])
+                )
+
             results = {
                 'particles': self.particles,
                 'theta_mean': self.theta_mean,
                 'theta_std': self.theta_std,
+                'hpd_lower': hpd_lower,
+                'hpd_upper': hpd_upper,
             }
 
             if self.history is not None:
@@ -4903,7 +4985,8 @@ class SVGD:
 
 
     def plot_posterior(self, true_theta=None, param_names=None, bins=20,
-                      figsize=None, save_path=None, unconstrained=False, return_fig=False):
+                      figsize=None, save_path=None, unconstrained=False, return_fig=False,
+                      ci_method='hpd', ci_level=0.95):
         """
         Plot posterior distributions for each parameter.
 
@@ -4925,6 +5008,20 @@ class SVGD:
             Only relevant when using parameter transformations.
         return_fig : bool, default=True
             If True, return (fig, axes). If False, call plt.show() instead.
+        ci_method : str, default='hpd'
+            Method for credible intervals shown as a shaded region on each
+            histogram.
+
+            - ``'hpd'``: Highest Posterior Density interval — the shortest
+              interval containing ``ci_level`` fraction of posterior samples.
+              Computed by sorting the particles and sliding a window of
+              ``ceil(n * ci_level)`` samples to find the narrowest span.
+              Better centred on the mode for skewed posteriors.
+            - ``'percentile'``: Equal-tailed percentile interval using
+              symmetric quantiles.
+
+        ci_level : float, default=0.95
+            Credible level for the shaded interval (e.g. 0.95 for 95%).
 
         Returns
         -------
@@ -4933,6 +5030,9 @@ class SVGD:
         """
         if not self.is_fitted:
             raise RuntimeError("Must call fit() before plotting")
+
+        if ci_method not in ('hpd', 'percentile'):
+            raise ValueError(f"ci_method must be 'hpd' or 'percentile', got '{ci_method}'")
 
         try:
             import matplotlib.pyplot as plt
@@ -4973,6 +5073,9 @@ class SVGD:
         fig, axes = plt.subplots(nrows, ncols, figsize=figsize, squeeze=False)
         axes = axes.flatten()
 
+        pct = int(ci_level * 100)
+        ci_label = f"HPD {pct}%" if ci_method == 'hpd' else f"CI {pct}%"
+
         for i in range(n_params):
             ax = axes[i]
 
@@ -4980,9 +5083,21 @@ class SVGD:
             ax.hist(particles[:, i], bins=bins, alpha=0.7, density=True,
                    edgecolor='black', label='Posterior')
 
+            # Credible interval shading
+            samples_i = np.asarray(particles[:, i])
+            if ci_method == 'hpd':
+                ci_lo, ci_hi = _compute_hpd(samples_i, alpha=ci_level)
+            else:
+                lo_pct = (1 - ci_level) / 2 * 100
+                hi_pct = (1 + ci_level) / 2 * 100
+                ci_lo = float(np.percentile(samples_i, lo_pct))
+                ci_hi = float(np.percentile(samples_i, hi_pct))
+            ax.axvspan(ci_lo, ci_hi, alpha=0.15, color='steelblue',
+                       label=f'{ci_label} [{ci_lo:.3f}, {ci_hi:.3f}]')
+
             # Posterior mean
-            ax.axvline(theta_mean[i], 
-                       color=black_or_white, 
+            ax.axvline(theta_mean[i],
+                       color=black_or_white,
                        linestyle='--',
                        label=f'Mean = {theta_mean[i]:.3f}')
 
@@ -5241,12 +5356,12 @@ class SVGD:
 
     def plot_ci(self, figsize=(7, 3), save_path=None, skip=0, unconstrained=False,
                 true_theta=None, ci=0.95, alpha=0.2, target=None, median=False,
-                return_fig=False):
+                return_fig=False, ci_method='hpd'):
         """
-        Plot mean parameter trajectory with confidence interval ribbon.
+        Plot mean parameter trajectory with credible interval ribbon.
 
         Shows the posterior mean over iterations with a shaded region representing
-        the specified confidence interval (default 95% CI).
+        the specified credible interval (default 95%).
 
         Parameters
         ----------
@@ -5262,7 +5377,7 @@ class SVGD:
         true_theta : array_like, optional
             True parameter values to overlay as horizontal lines
         ci : float, default=0.95
-            Confidence interval level (e.g., 0.95 for 95% CI)
+            Credible interval level (e.g., 0.95 for 95% CI)
         alpha : float, default=0.2
             Transparency of the CI ribbon
         target : array_like, optional
@@ -5271,6 +5386,15 @@ class SVGD:
             If True, plot the median trajectory as a dashed line
         return_fig : bool, default=True
             If True, return (fig, ax). If False, call plt.show() instead.
+        ci_method : str, default='hpd'
+            Method for credible intervals.
+
+            - ``'hpd'``: Highest Posterior Density interval — the shortest
+              interval containing ``ci`` fraction of posterior samples at each
+              iteration. Computed by sorting the particles and sliding a
+              window of ``ceil(n * ci)`` samples to find the narrowest span.
+            - ``'percentile'``: Equal-tailed percentile interval using
+              symmetric quantiles.
 
         Returns
         -------
@@ -5282,6 +5406,9 @@ class SVGD:
 
         if self.history is None:
             raise RuntimeError("History not available. Call fit(return_history=True) first")
+
+        if ci_method not in ('hpd', 'percentile'):
+            raise ValueError(f"ci_method must be 'hpd' or 'percentile', got '{ci_method}'")
 
         try:
             import matplotlib.pyplot as plt
@@ -5306,13 +5433,28 @@ class SVGD:
         # Convert history to array: (n_iterations, n_particles, theta_dim)
         history_array = jnp.stack(history)
 
-        # Compute percentiles for CI
-        lower_pct = (1 - ci) / 2 * 100
-        upper_pct = (1 + ci) / 2 * 100
-
         mean_over_time = jnp.mean(history_array, axis=1)  # (n_iterations, theta_dim)
-        lower_ci = jnp.percentile(history_array, lower_pct, axis=1)  # (n_iterations, theta_dim)
-        upper_ci = jnp.percentile(history_array, upper_pct, axis=1)  # (n_iterations, theta_dim)
+
+        n_iters = history_array.shape[0]
+        theta_dim = history_array.shape[2]
+
+        if ci_method == 'hpd':
+            # Compute HPD interval per iteration and dimension
+            lower_ci = np.empty((n_iters, theta_dim))
+            upper_ci = np.empty((n_iters, theta_dim))
+            for t in range(n_iters):
+                for d in range(theta_dim):
+                    lower_ci[t, d], upper_ci[t, d] = _compute_hpd(
+                        np.asarray(history_array[t, :, d]), alpha=ci
+                    )
+            ci_label = "HPD"
+        else:
+            lower_pct = (1 - ci) / 2 * 100
+            upper_pct = (1 + ci) / 2 * 100
+            lower_ci = jnp.percentile(history_array, lower_pct, axis=1)
+            upper_ci = jnp.percentile(history_array, upper_pct, axis=1)
+            ci_label = "CI"
+
         if median:
             median_over_time = jnp.median(history_array, axis=1)  # (n_iterations, theta_dim)
 
@@ -5325,7 +5467,7 @@ class SVGD:
         colors = plt.cm.tab10.colors
 
         if target is not None:
-            ax.axhline(target, color='C1', linestyle='--', alpha=0.7)              
+            ax.axhline(target, color='C1', linestyle='--', alpha=0.7)
 
         for i in range(self.theta_dim):
             param_name = rf"$\theta_{i}$"
@@ -5354,8 +5496,8 @@ class SVGD:
                 ax.axhline(val, color=color, linestyle='--', alpha=0.7)
 
         ax.set_xlabel('SVGD Iteration')
-        ax.set_ylabel(f'Posterior Mean ± {int(ci*100)}% CI' + space_label)
-        ax.set_title(f'Parameter Convergence with {int(ci*100)}% CI')
+        ax.set_ylabel(f'Posterior Mean ± {int(ci*100)}% {ci_label}' + space_label)
+        ax.set_title(f'Parameter Convergence with {int(ci*100)}% {ci_label}')
         ax.legend()
         ax.grid(alpha=0.3)
 
@@ -5580,7 +5722,49 @@ class SVGD:
 
     def plot_hdr(self, alphas=[0.95, 0.5], idx=[0, 1], figsize=(5, 4), hexgrid=True, trim=True,
                     n=15, margin=0.1, xlim=None, ylim=None, palette='viridis', pad=2,
-                    unconstrained=False, return_fig=False):
+                    unconstrained=False, return_fig=False, show_hpd=False, hpd_alpha=0.95):
+        """Plot 2D highest-density region with optional marginal HPD bands.
+
+        Displays a hex-grid log-likelihood heatmap and KDE-based HDR contours
+        for two selected parameter dimensions.
+
+        Parameters
+        ----------
+        alphas : list of float, default=[0.95, 0.5]
+            HDR contour levels (fraction of mass enclosed).
+        idx : list of int, default=[0, 1]
+            Indices of the two parameter dimensions to plot.
+        figsize : tuple, default=(5, 4)
+            Figure size (width, height).
+        hexgrid : bool, default=True
+            Whether to show the log-likelihood hex-grid heatmap.
+        trim : bool, default=True
+            Clip axes to the hex-grid extent.
+        n : int, default=15
+            Approximate number of hexagons along the shorter axis.
+        margin : float, default=0.1
+            Fractional margin around particle range.
+        xlim, ylim : tuple, optional
+            Manual axis limits.
+        palette : str, default='viridis'
+            Colormap for the hex-grid heatmap.
+        pad : int, default=2
+            Extra hex rows/columns beyond the data range.
+        unconstrained : bool, default=False
+            Show unconstrained (optimization-space) values.
+        return_fig : bool, default=False
+            If True, return the axes object instead of calling plt.show().
+        show_hpd : bool, default=False
+            If True, overlay marginal HPD intervals as translucent
+            vertical and horizontal bands.  The HPD interval is the
+            shortest contiguous interval containing ``hpd_alpha`` fraction
+            of the marginal particle samples (computed by sorting the
+            samples and sliding a window of ``ceil(n * hpd_alpha)``
+            elements to find the narrowest span).
+        hpd_alpha : float, default=0.95
+            Credible level for the marginal HPD bands (only used when
+            ``show_hpd=True``).
+        """
 
         def hex_grid(x_min, x_max, y_min, y_max, n, aspect=1.0, flat_topped=False, pad=1):
             """Generate hex grid midpoints that fill the bounding box with equal-edged hexagons.
@@ -5832,6 +6016,20 @@ class SVGD:
                               linestyles=linestyles[len(kde_levels):],
                               alpha=0.7)
         ax.clabel(kde_cont, inline=True, fmt=kde_label_map, fontsize=9)
+
+        # Marginal HPD intervals as shaded bands
+        if show_hpd:
+            pct = int(hpd_alpha * 100)
+            x_lo, x_hi = _compute_hpd(
+                np.asarray(particles_display[:, idx[0]]), alpha=hpd_alpha
+            )
+            y_lo, y_hi = _compute_hpd(
+                np.asarray(particles_display[:, idx[1]]), alpha=hpd_alpha
+            )
+            band_color = 'white' if hexgrid else 'steelblue'
+            ax.axvspan(x_lo, x_hi, alpha=0.15, color=band_color,
+                       label=f'HPD {pct}%')
+            ax.axhspan(y_lo, y_hi, alpha=0.15, color=band_color)
 
         # Clip to xlim/ylim to remove ragged edges
         if trim:
@@ -7098,10 +7296,30 @@ class SVGD:
         return self._return_animation_html(anim)
 
 
-    def summary(self):
-        """Print a summary of the inference results."""
+    def summary(self, ci_method='hpd', ci_level=0.95):
+        """Print a summary of the inference results.
+
+        Parameters
+        ----------
+        ci_method : str, default='hpd'
+            Method for credible intervals.
+
+            - ``'hpd'``: Highest Posterior Density interval — the shortest
+              interval containing ``ci_level`` fraction of the posterior
+              samples. Computed by sorting the particles and sliding a window
+              of ``ceil(n * ci_level)`` samples to find the narrowest span.
+              Better centred on the mode for skewed posteriors.
+            - ``'percentile'``: Equal-tailed percentile interval using the
+              ``(1 - ci_level)/2`` and ``(1 + ci_level)/2`` quantiles.
+
+        ci_level : float, default=0.95
+            Credible level (e.g. 0.95 for 95% intervals).
+        """
         if not self.is_fitted:
             raise RuntimeError("Must call fit() before getting summary")
+
+        if ci_method not in ('hpd', 'percentile'):
+            raise ValueError(f"ci_method must be 'hpd' or 'percentile', got '{ci_method}'")
 
         # Get transformed results if using parameter transformation
         results = self.get_results()
@@ -7111,33 +7329,50 @@ class SVGD:
 
         theta_map, _ = self.map_estimate_from_particles(unconstrained=False)
 
+        pct = int(ci_level * 100)
+        if ci_method == 'hpd':
+            lo_label = f"HPD {pct}% lo"
+            hi_label = f"HPD {pct}% hi"
+        else:
+            lo_pct = (1 - ci_level) / 2 * 100
+            hi_pct = (1 + ci_level) / 2 * 100
+            lo_label = f"CI {lo_pct:.1f}%"
+            hi_label = f"CI {hi_pct:.1f}%"
 
-        fields = [f"Parameter", "Fixed", f"MAP", f"Mean", f"SD", f"CI 2.5%", f"CI 97.5%"]
-        fmt_str = "{:<10} {:<10} {:<10} {:<10} {:<10} {:<10} {:<10}"
+        fields = ["Parameter", "Fixed", "MAP", "Mean", "SD", lo_label, hi_label]
+        fmt_str = "{:<10} {:<10} {:<10} {:<10} {:<10} {:<12} {:<12}"
         print(fmt_str.format(*fields))
 
         for i in range(self.theta_dim):
+            val_fmt = f'{{:.3e}}' if np.log10(abs(theta_mean[i]) + 1e-300) > 2 else f'{{:.4f}}'
+
             if self.fixed_mask is not None and self.fixed_mask[i]:
-                fields = [i, 
-                    'Yes' if self.fixed_mask is not None and self.fixed_mask[i] else 'No',
-                    f'{fmt.format(theta_mean[i])}', 
-                    'NA', 
-                    'NA', 
-                    'NA', 
-                    'NA', 
+                fields = [i,
+                    'Yes',
+                    val_fmt.format(theta_mean[i]),
+                    'NA',
+                    'NA',
+                    'NA',
+                    'NA',
                     ]
             else:
-                # Compute quantiles directly from particles for accurate CI
-                ci_lower = jnp.percentile(particles[:, i], 2.5).item()
-                ci_upper = jnp.percentile(particles[:, i], 97.5).item()
-                fmt = f'{{:.3e}}' if np.log10(abs(theta_mean[i])) > 2 else f'{{:.4f}}'
-                fields = [i, 
+                if ci_method == 'hpd':
+                    ci_lower, ci_upper = _compute_hpd(
+                        np.asarray(particles[:, i]), alpha=ci_level
+                    )
+                else:
+                    lo_pct = (1 - ci_level) / 2 * 100
+                    hi_pct = (1 + ci_level) / 2 * 100
+                    ci_lower = jnp.percentile(particles[:, i], lo_pct).item()
+                    ci_upper = jnp.percentile(particles[:, i], hi_pct).item()
+
+                fields = [i,
                         'Yes' if self.fixed_mask is not None and self.fixed_mask[i] else 'No',
-                        f'{fmt.format(theta_map[i])}',
-                        f'{fmt.format(theta_mean[i])}',
-                        f'{fmt.format(theta_std[i])}', 
-                        f'{fmt.format(ci_lower)}',
-                        f'{fmt.format(ci_upper)}',
+                        val_fmt.format(theta_map[i]),
+                        val_fmt.format(theta_mean[i]),
+                        val_fmt.format(theta_std[i]),
+                        val_fmt.format(ci_lower),
+                        val_fmt.format(ci_upper),
                         ]
             print(fmt_str.format(*fields))
 
