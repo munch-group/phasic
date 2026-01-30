@@ -41,8 +41,9 @@ include-in-header:
       }
       #title-block-header {
         background-image: url(./banner.png);
-        # background-size: cover;
-        background-size: contain;
+        background-size: cover;
+        # background-size: contain;
+        background-repeat: no-repeat;        
         background-position-x: center;
         background-position-y: center;
         height: 200px;
@@ -66,87 +67,102 @@ include-in-header:
 
 ::: {.grid}
 
-<!-- ---------------- -->
+<!-- ------------------------------------------------ -->
+
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-bounding-box"></i> **Graph representation**: <br>Intuitive graph representation makes constructing complex models straightforward.
+<i class="bi bi-infinity"></i> **Moments**: <br>
+Computes any number of  exact moments (mean, variance, skew, etc.) as well as cross-moments (covariance).
 
 :::
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-code-slash"></i> **Graph algorithms**: <br>C backend using graph-based algorithms for computing probability distributions and any number of exact moments.
+<i class="bi bi-graph-down"></i> **Distributions**: <br> 
+Computes exact PMF and PDF with arbitrary precision.
 
 :::
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-rocket-takeoff"></i> **Bayesian Inference**: <br> JAX integration and automatic differentiation allow inference using Stein Variational Gradient Descent.
+<i class="bi bi-bug"></i>**Continuous/Discrete**: <br>
+Automated conversion from continuous to discrete phase-type distributions with full support.
 
 :::
 
-<!-- ---------------- -->
+<!-- ------------------------------------------------ -->
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-infinity"></i> **Moments**: <br>Computes any number of  exact moments (mean, variance, skew, etc.) as well as cross-moments (covariance).
-
-:::
-
-::: {.g-col-12 .g-col-md-4}
-
-<i class="bi bi-graph-down"></i> **Distributions**: <br> Computes exact PMF and PDF with arbitrary precision.
+<i class="bi bi-bounding-box"></i> **Graph representation**: <br>
+Representing Markov processes as graphs makes makes model construction intuitive and straightforward.
 
 :::
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-bug"></i>**Continuous/Discrete**: <br>Automated conversion from continuous to discrete phase-type distributions with full support.
-
-:::
-
-<!-- ---------------- -->
-
-::: {.g-col-12 .g-col-md-4}
-
-<i class="bi bi-arrow-bar-up"></i> **Robust**: <br>Uses multiple-precision floating-point computation when needed.
+<i class="bi bi-code-slash"></i> **Graph algorithms**: <br>
+C backend using graph-based algorithms for computing probability distributions and any number of exact moments.
 
 :::
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-code-slash"></i> **C/C++ backend**: <br>High-performance C/C++ core with bindings for Python, R, and direct C/C++ usage. Leverages Eigen for optimized linear algebra operations, providing both speed and numerical stability for production applications.
+<i class="bi bi-rocket-takeoff"></i> **Bayesian Inference**: <br>
+JAX integration and automatic differentiation allow inference using Stein Variational Gradient Descent.
+
+:::
+
+
+<!-- ------------------------------------------------ -->
+
+::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-arrow-bar-up"></i> **Robust**: <br>
+Uses multiple-precision floating-point computation when needed.
 
 :::
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-bounding-box"></i> **Joint probabilities**: <br>Blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah.
-
-:::
-
-<!-- ---------------- -->
-
-::: {.g-col-12 .g-col-md-4}
-
-<i class="bi bi-arrow-bar-up""></i> **Distributed symbolic elimination**: <br>Computes the Gaussian elimination as symbolic graph operations.
+<i class="bi bi-code-slash"></i> **C/C++ backend**: <br>
+High-performance C/C++ core with APIs for both Python, R, and C++.
 
 :::
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-bounding-box"></i> **Distributed model cache**: symbolic elimination traces are cached for reuse and community sharing with torrent P2P<br>.
+<i class="bi bi-bounding-box"></i> **Joint probabilities**: <br>
+Blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah.
+
+:::
+
+<!-- ------------------------------------------------ -->
+
+::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-arrow-bar-up"></i> **Distributed symbolic elimination**: <br>
+Computes the Gaussian elimination as symbolic graph operations.
 
 :::
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-cpu"></i> **Multiprocessing**: <br>Automatically parallelizes inference computation across CPUs on a single device or multiple devices on a SLURM cluster.
+<i class="bi bi-bounding-box"></i> **Distributed model cache**:  <br>
+Symbolic elimination traces are cached for reuse and community sharing with torrent P2P.
 
 :::
 
-<!-- ---------------- -->
+::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-cpu"></i> **Multiprocessing**: <br>
+Automatically parallelizes inference computation across CPUs on a single device or multiple devices on a SLURM cluster.
+
+:::
+
+<!-- ------------------------------------------------ -->
+
 :::
 
 <br>
