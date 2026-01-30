@@ -66,6 +66,8 @@ include-in-header:
 
 ::: {.grid}
 
+<!-- ---------------- -->
+
 ::: {.g-col-12 .g-col-md-4}
 
 <i class="bi bi-bounding-box"></i> **Graph representation**: <br>Intuitive graph representation makes constructing complex models straightforward.
@@ -80,37 +82,61 @@ include-in-header:
 
 ::: {.g-col-12 .g-col-md-4}
 
+<i class="bi bi-rocket-takeoff"></i> **Bayesian Inference**: <br> JAX integration and automatic differentiation allow inference using Stein Variational Gradient Descent.
+
+:::
+
+<!-- ---------------- -->
+
+::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-infinity"></i> **Moments**: <br>Computes any number of  exact moments (mean, variance, skew, etc.) as well as cross-moments (covariance).
+
+:::
+
+::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-graph-down"></i> **Distributions**: <br> Computes exact PMF and PDF with arbitrary precision.
+
+:::
+
+::: {.g-col-12 .g-col-md-4}
+
 <i class="bi bi-bug"></i>**Continuous/Discrete**: <br>Automated conversion from continuous to discrete phase-type distributions with full support.
 
 :::
 
-<!-- ::: {.g-col-12 .g-col-md-4}
-
-<i class="bi bi-infinity"></i> **Moments**: <br>Efficiently compute statistical moments including mean, variance, and higher-order moments through matrix operations on the graph representation. Essential for distribution characterization and parameter estimation.
-
-::: -->
-
-<!-- ::: {.g-col-12 .g-col-md-4}
-
-<i class="bi bi-graph-down"></i> **Distributions**: <br>Compute probability mass functions (PMF), probability density functions (PDF), and cumulative distribution functions (CDF) with high precision. Support for a wide variety of phase-type distribution families and custom constructions.
-
-::: -->
-
-<!-- ::: {.g-col-12 .g-col-md-4}
-
-<i class="bi bi-code-slash"></i> **C/C++ backend**: <br>High-performance C/C++ core with bindings for Python, R, and direct C/C++ usage. Leverages Eigen for optimized linear algebra operations, providing both speed and numerical stability for production applications.
-
-::: -->
+<!-- ---------------- -->
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-arrow-bar-up"></i> **Parameterized DAGs**: <br>Computation model templates of allows cashing and model distribution.
+<i class="bi bi-arrow-bar-up"></i> **Robust**: <br>Uses multiple-precision floating-point computation when needed.
 
 :::
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-rocket-takeoff"></i> **Bayesian Inference**: <br> JAX integration and automatic differentiation allow inference using Stein Variational Gradient Descent.
+<i class="bi bi-code-slash"></i> **C/C++ backend**: <br>High-performance C/C++ core with bindings for Python, R, and direct C/C++ usage. Leverages Eigen for optimized linear algebra operations, providing both speed and numerical stability for production applications.
+
+:::
+
+::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-bounding-box"></i> **Joint probabilities**: <br>Blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah.
+
+:::
+
+<!-- ---------------- -->
+
+::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-arrow-bar-up""></i> **Distributed symbolic elimination**: <br>Computes the Gaussian elimination as symbolic graph operations.
+
+:::
+
+::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-bounding-box"></i> **Distributed model cache**: symbolic elimination traces are cached for reuse and community sharing with torrent P2P<br>.
 
 :::
 
@@ -120,7 +146,7 @@ include-in-header:
 
 :::
 
-
+<!-- ---------------- -->
 :::
 
 <br>
