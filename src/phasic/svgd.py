@@ -2,6 +2,7 @@ import logging
 import os
 import platform
 from time import time, sleep
+from typing import Optional, Self, Union
 import warnings
 import matplotlib
 import numpy as np
@@ -28,6 +29,7 @@ from jax.sharding import Mesh, NamedSharding, PartitionSpec as P
 from jax.experimental.pjit import pjit
 from jax.scipy.stats import norm
 
+from phasic.optax_wrapper import OptaxOptimizer
 from scipy.stats import gaussian_kde, gengamma
 
 from functools import partial
@@ -635,7 +637,7 @@ class StepSizeSchedule:
             Plot title. If None, uses class name
         ax : matplotlib.axes.Axes, optional
             Axes to plot on. If None, creates new figure
-        return_ax : bool, default=True
+        return_ax : bool, default=False
             If True, return the axes object. If False, call plt.show() instead.
 
         Returns
@@ -744,7 +746,7 @@ class ExpStepSize(StepSizeSchedule):
         self.last_step = last_step
         self.tau = tau
 
-    def __call__(self, iteration, particles=None):
+    def __call__(self, iteration, particles=None) -> float:
         decay = jnp.exp(-iteration / self.tau)
         return self.first_step * decay + self.last_step * (1 - decay)
 
@@ -1600,7 +1602,7 @@ class RegularizationSchedule:
             Plot title. If None, uses class name
         ax : matplotlib.axes.Axes, optional
             Axes to plot on. If None, creates new figure
-        return_ax : bool, default=True
+        return_ax : bool, default=False
             If True, return the axes object. If False, call plt.show() instead.
 
         Returns
@@ -2841,8 +2843,8 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
     fixed_values : array (theta_dim,), optional
         Values to fix parameters at (for dimensions where fixed_mask=1).
         Defaults to all 1.0 if not provided.
-    optimizer : Adam, optional
-        If provided, uses Adam optimizer for adaptive per-parameter learning rates.
+    optimizer : Adam, SGDMomentum, RMSprop, Adagrad, OptaxOptimizer
+        If provided, uses optimizer for adaptive per-parameter learning rates.
         When used, the `step_size` parameter is ignored.
 
     Returns
@@ -2999,11 +3001,12 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
         return particles + update
 
 
-def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
+def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=None,
              kernel=None, return_history=True, verbose=True, progress=False, compiled_grad=None,
              parallel_mode='vmap', n_devices=None,
              log_prob_fn_factory=None, regularization_schedule=None, lr_scale=1.0, fixed_mask=None, fixed_values=None,
-             optimizer=None):
+             optimizer: Optional[Union[Adam, SGDMomentum, RMSprop, Adagrad, OptaxOptimizer]] = None
+             ):
     """
     Run Stein Variational Gradient Descent
 
@@ -3034,8 +3037,8 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
         Parallelization strategy: 'vmap', 'pmap', or 'none'
     n_devices : int, optional
         Number of devices for pmap (only used if parallel_mode='pmap')
-    optimizer : Adam, optional
-        If provided, uses Adam optimizer for adaptive per-parameter learning rates.
+    optimizer : Adam, SGDMomentum, RMSprop, Adagrad, OptaxOptimizer
+        If provided, uses optimizer for adaptive per-parameter learning rates.
         When used, the `learning_rate` parameter is ignored.
 
     Returns
@@ -3054,25 +3057,65 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=0.001,
     history = [particles] if return_history else None
     history_iterations = [0] if return_history else []  # Track iteration numbers for history snapshots
 
-    # Handle step size schedule (backward compatible)
-    if isinstance(learning_rate, StepSizeSchedule):
-        step_schedule = learning_rate
-        use_schedule = True
-    elif isinstance(learning_rate, (int, float)):
-        step_schedule = ConstantStepSize(float(learning_rate))
-        use_schedule = False  # Can still use constant value
-    elif learning_rate is None:
-        # When using an optimizer (e.g., Adam, Adamelia), learning_rate may be None
-        # The optimizer handles step sizing internally
+    # # Handle step size schedule (backward compatible)
+    # if isinstance(learning_rate, StepSizeSchedule):
+    #     step_schedule = learning_rate
+    #     use_schedule = True
+    # elif isinstance(learning_rate, (int, float)):
+    #     step_schedule = ConstantStepSize(float(learning_rate))
+    #     use_schedule = False  # Can still use constant value
+    # elif learning_rate is None:
+    #     # When using an optimizer (e.g., Adam, Adamelia), learning_rate may be None
+    #     # The optimizer handles step sizing internally
+    #     step_schedule = None
+    #     use_schedule = False
+    # else:
+    #     raise TypeError(
+    #         f"learning_rate must be float, StepSizeSchedule, or None, got: {type(learning_rate)}"
+    #     )
+
+    # # Initialize optimizer if provided
+    # if optimizer is not None:
+    #     # Get shape for optimizer state (reduced space if fixed parameters)
+    #     if fixed_mask is not None:
+    #         learnable_dim = int(jnp.sum(fixed_mask == 0))
+    #         optimizer_shape = (len(theta_init), learnable_dim)
+    #     else:
+    #         optimizer_shape = theta_init.shape
+    #     optimizer.reset(optimizer_shape)
+    #     if verbose:
+    #         # Print optimizer-specific information
+    #         opt_name = type(optimizer).__name__
+    #         if hasattr(optimizer, 'beta1') and hasattr(optimizer, 'beta2'):
+    #             print(f"Using {opt_name} (lr={optimizer.lr}, β1={optimizer.beta1}, β2={optimizer.beta2})")
+    #         elif hasattr(optimizer, 'momentum'):
+    #             print(f"Using {opt_name} (lr={optimizer.lr}, momentum={optimizer.momentum})")
+    #         elif hasattr(optimizer, 'decay'):
+    #             print(f"Using {opt_name} (lr={optimizer.lr}, decay={optimizer.decay})")
+    #         else:
+    #             print(f"Using {opt_name} (lr={optimizer.lr})")
+
+    if learning_rate is None and optimizer is None:
+        raise ValueError("Either learning_rate or optimizer must be provided.")
+
+    if optimizer is None:
+        if isinstance(learning_rate, StepSizeSchedule):
+            step_schedule = learning_rate
+            use_schedule = True
+        elif isinstance(learning_rate, (int, float)):
+            step_schedule = ConstantStepSize(float(learning_rate))
+            use_schedule = False  # Can still use constant value
+        else:        
+            raise TypeError(
+                f"learning_rate must be float, StepSizeSchedule, or None, got: {type(learning_rate)}"
+            )
+    else:
         step_schedule = None
         use_schedule = False
-    else:
-        raise TypeError(
-            f"learning_rate must be float, StepSizeSchedule, or None, got: {type(learning_rate)}"
-        )
 
-    # Initialize optimizer if provided
-    if optimizer is not None:
+        if regularization_schedule is not None:
+            raise ValueError("When optimizer is provided, regularization_schedule must be None.")
+
         # Get shape for optimizer state (reduced space if fixed parameters)
         if fixed_mask is not None:
             learnable_dim = int(jnp.sum(fixed_mask == 0))
@@ -3373,13 +3416,11 @@ class SVGD:
         **Performance**: SVGD operates in reduced parameter space (learnable dims only)
         for computational efficiency. Kernel bandwidth is computed only over varying
         dimensions, improving convergence.
-    optimizer : Optimizer, optional
-        Optimizer for adaptive per-parameter learning rates. Default is Adam
-        when learning_rate=None and regularization=0.
+    optimizer : Adam, SGDMomentum, RMSprop, Adagrad, OptaxOptimizer
+        Optimizer for adaptive per-parameter learning rates. Default is None.
 
         Options include:
         - Adam: (default)Standard Adam optimizer
-        - Adamelia : Adam with oscillation detection and automatic LR reduction
         - SGDMomentum: SGD with momentum
         - RMSprop: RMSprop optimizer
         - Adagrad: Adagrad optimizer
@@ -3388,7 +3429,7 @@ class SVGD:
         (the optimizer has its own learning rate).
 
         Example:
-            >>> from phasic import SVGD, Adam, Adamelia
+            >>> from phasic import SVGD, Adam
             >>> # Default: uses Adam
             >>> svgd = SVGD(model, data, theta_dim=2)
             >>> # Explicit optimizer
@@ -3686,6 +3727,8 @@ class SVGD:
             )
 
         if optimizer is not None:
+            # Optimizer handles step sizing; override any step_schedule that was set
+            self.step_schedule = None
             logging.info(f"Using {optimizer.__class__.__name__} as optimizer for SVGD")
 
         self.bandwidth = bandwidth
