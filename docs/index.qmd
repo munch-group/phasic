@@ -69,88 +69,35 @@ include-in-header:
 
 <!-- ------------------------------------------------ -->
 
-
-::: {.g-col-12 .g-col-md-4}
-
-<i class="bi bi-infinity"></i> **Moments**: <br>
-Computes any number of  exact moments (mean, variance, skew, etc.) as well as cross-moments (covariance).
-
-:::
-
-::: {.g-col-12 .g-col-md-4}
-
-<i class="bi bi-graph-down"></i> **Distributions**: <br> 
-Computes exact PMF and PDF with arbitrary precision.
-
-:::
-
-::: {.g-col-12 .g-col-md-4}
-
-<i class="bi bi-bug"></i>**Continuous/Discrete**: <br>
-Automated conversion from continuous to discrete phase-type distributions with full support.
-
-:::
-
-<!-- ------------------------------------------------ -->
-
 ::: {.g-col-12 .g-col-md-4}
 
 <i class="bi bi-bounding-box"></i> **Graph representation**: <br>
-Representing Markov processes as graphs makes makes model construction intuitive and straightforward.
+Phasic represents Markov jump processes as graphs rather than matrices. User models are specified with a simple callback function.
 
 :::
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-code-slash"></i> **Graph algorithms**: <br>
-C backend using graph-based algorithms for computing probability distributions and any number of exact moments.
+<i class="bi bi-graph-down"></i> **Moments and Distributions**: <br>
+Compute PDFs and any number of exact moments for both continuous to discrete phase-type distributions.
 
 :::
 
 ::: {.g-col-12 .g-col-md-4}
 
 <i class="bi bi-rocket-takeoff"></i> **Bayesian Inference**: <br>
-JAX integration and automatic differentiation allow inference using Stein Variational Gradient Descent.
-
-:::
-
-
-<!-- ------------------------------------------------ -->
-
-::: {.g-col-12 .g-col-md-4}
-
-<i class="bi bi-arrow-bar-up"></i> **Robust**: <br>
-Uses multiple-precision floating-point computation when needed.
-
-:::
-
-::: {.g-col-12 .g-col-md-4}
-
-<i class="bi bi-code-slash"></i> **C/C++ backend**: <br>
-High-performance C/C++ core with APIs for both Python, R, and C++.
-
-:::
-
-::: {.g-col-12 .g-col-md-4}
-
-<i class="bi bi-bounding-box"></i> **Joint probabilities**: <br>
-Blah blah blah blah blah blah blah blah blah blah blah blah blah blah blah.
+Parameter inference using Stein Variational Gradient Descent produce confidence intervals of estimates.
 
 :::
 
 <!-- ------------------------------------------------ -->
 
-::: {.g-col-12 .g-col-md-4}
-
-<i class="bi bi-arrow-bar-up"></i> **Distributed symbolic elimination**: <br>
-Computes the Gaussian elimination as symbolic graph operations.
-
-:::
 
 ::: {.g-col-12 .g-col-md-4}
 
-<i class="bi bi-bounding-box"></i> **Distributed model cache**:  <br>
-Symbolic elimination traces are cached for reuse and community sharing with torrent P2P.
+<i class="bi bi-code-slash"></i> **Graph algorithms**: <br>
+Efficient graph-based algorithms directly implemented in C with APIs for both Python, R, and C++. 
+Tracing and caching of symbolic graph operations in Gaussian elimination allow evaluation of large models across parameter values.
 
 :::
 
@@ -160,6 +107,14 @@ Symbolic elimination traces are cached for reuse and community sharing with torr
 Automatically parallelizes inference computation across CPUs on a single device or multiple devices on a SLURM cluster.
 
 :::
+
+::: {.g-col-12 .g-col-md-4}
+
+<i class="bi bi-arrow-bar-up"></i> **Distributed symbolic elimination**: <br>
+Symbolic elimination traces are cached for reuse and community sharing by IPFS and a GitHub model hub.
+
+:::
+
 
 <!-- ------------------------------------------------ -->
 
