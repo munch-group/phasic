@@ -197,6 +197,7 @@ if HAS_JAX:
         Prior,
         GaussPrior,
         HalfCauchyPrior,
+        DataPrior,
         # Step size schedules
         StepSizeSchedule,
         ConstantStepSize,
@@ -228,6 +229,7 @@ else:
     Prior = None
     GaussPrior = None
     HalfCauchyPrior = None
+    DataPrior = None
     StepSizeSchedule = None
     ConstantStepSize = None
     ExpStepSize = None
@@ -248,6 +250,12 @@ else:
     # LocalAdaptiveBandwidth = None
     FisherPreconditioner = None
     MomentJacobianPreconditioner = None
+
+# Method of moments (requires JAX via svgd dependency, but MoMResult is always available)
+from .method_of_moments import MoMResult
+
+# Probability matching for joint probability graphs
+from .probability_matching import ProbMatchResult
 
 # Optax integration (optional dependency)
 try:
@@ -3735,8 +3743,13 @@ extern "C" {{
             - Single callable: prior(theta) -> scalar, applied to entire theta vector
             - List of Prior objects: One prior per parameter dimension.
               Use None for fixed parameters: prior=[GaussPrior(ci=[0,1]), None, GaussPrior(ci=[0,1])]
+            - DataPrior instance: Data-informed prior estimated from the observed data.
 
-            If None, uses standard normal prior: log p(theta) = -0.5 * sum(theta^2)
+            If None (default), constructs ``DataPrior(graph, observed_data, sd=5)``
+            which uses method-of-moments (or probability matching for joint probability
+            graphs) to estimate prior means from the data, with a wide spread
+            (5x the asymptotic standard error).  Falls back to standard normal
+            if DataPrior construction fails.
 
             **With fixed parameters**:
             When using a list of priors with the `fixed` parameter, you must provide None
@@ -3923,6 +3936,17 @@ extern "C" {{
         if discrete is None:
             discrete = self.is_discrete
 
+        # Default prior: DataPrior with sd=5 (wide, data-informed)
+        if prior is None:
+            from .svgd import DataPrior
+            try:
+                prior = DataPrior(
+                    self, observed_data, sd=5.0, fixed=fixed,
+                    theta_dim=theta_dim, discrete=discrete, verbose=verbose,
+                )
+            except Exception:
+                pass  # Fall through to SVGD's standard-normal default
+
         # Handle joint_index mode
         if self._joint_prob_base_graph_indexer is not None:
             logger = get_logger(__name__)
@@ -4042,6 +4066,184 @@ extern "C" {{
         # return svgd.get_results()
 
         return svgd
+
+    def method_of_moments(
+        self,
+        observed_data: ArrayLike,
+        nr_moments: int = None,
+        rewards = None,
+        fixed = None,
+        theta_dim: Optional[int] = None,
+        theta_init = None,
+        std_multiplier: float = 2.0,
+        discrete: Optional[bool] = None,
+        verbose: bool = True,
+    ) -> 'MoMResult':
+        """Find parameter estimates by matching model moments to sample moments.
+
+        Solves the nonlinear least-squares problem::
+
+            minimize ||moments_fn(theta) - sample_moments||^2
+            subject to  theta > 0
+
+        The returned ``MoMResult.prior`` list can be passed directly to
+        :meth:`Graph.svgd` as the ``prior`` argument, providing data-informed
+        priors centred on the method-of-moments estimates.
+
+        Parameters
+        ----------
+        observed_data : ArrayLike
+            Observed data.  1-D for univariate, 2-D ``(n_times, n_features)``
+            for multivariate models with 2-D reward vectors.
+        nr_moments : int, optional
+            Number of moments to match per feature dimension.  If ``None``
+            (default), automatically chosen to overdetermine the system:
+            ``max(2 * n_free_params, 4)`` for univariate data, adjusted
+            per feature for multivariate data.  Still auto-increased if
+            a user-specified value gives fewer equations than free parameters.
+        rewards : array_like, optional
+            Reward vectors.  ``None`` for standard moments, 1-D for a single
+            reward vector, 2-D ``(n_features, n_vertices)`` for multivariate.
+        fixed : list, optional
+            List of ``(index, value)`` tuples pinning specific parameters.
+        theta_dim : int, optional
+            Number of model parameters.  Inferred from the graph when ``None``.
+        theta_init : array_like, optional
+            Initial guess for the *free* parameters (excluding fixed ones).
+            If ``None`` a coordinate-wise grid search is used.
+        std_multiplier : float
+            Factor applied to the asymptotic standard error to obtain the
+            prior standard deviation: ``prior_std = std_multiplier * se``.
+        discrete : bool, optional
+            ``True`` for discrete (PMF) models, ``False`` for continuous (PDF).
+            If ``None``, inferred from ``self.is_discrete``.
+        verbose : bool
+            Print progress information.
+
+        Returns
+        -------
+        MoMResult
+            Dataclass with ``theta``, ``std``, ``prior``, ``success``, etc.
+
+        Examples
+        --------
+        >>> g = Graph(...)  # parameterized graph
+        >>> data = np.random.exponential(0.5, size=200)
+        >>> mom = g.method_of_moments(data)
+        >>> print(mom.theta)            # parameter estimate
+        >>> svgd = g.svgd(data, prior=mom.prior)  # use as SVGD prior
+        """
+        from .method_of_moments import method_of_moments as _mom
+
+        if discrete is None:
+            discrete = self.is_discrete
+        if theta_dim is None:
+            theta_dim = self.param_length()
+
+        return _mom(
+            self, observed_data,
+            nr_moments=nr_moments,
+            theta_dim=theta_dim,
+            theta_init=theta_init,
+            rewards=rewards,
+            fixed=fixed,
+            std_multiplier=std_multiplier,
+            discrete=discrete,
+            verbose=verbose,
+        )
+
+    def probability_matching(
+        self,
+        observed_data,
+        fixed=None,
+        theta_dim: Optional[int] = None,
+        theta_init=None,
+        std_multiplier: float = 2.0,
+        verbose: bool = True,
+    ) -> 'ProbMatchResult':
+        """Find parameter estimates by matching model probabilities to empirical probabilities.
+
+        For joint probability graphs (created via :meth:`joint_prob_graph`),
+        observations are feature-count tuples and the model outputs a
+        probability table.  This method minimises the squared difference
+        between model and empirical probabilities.
+
+        The returned ``ProbMatchResult.prior`` list can be passed directly
+        to :meth:`Graph.svgd` as the ``prior`` argument.
+
+        Parameters
+        ----------
+        observed_data : list of tuples
+            Observed feature-count tuples, e.g. ``[(0, 1, 0), (1, 0, 0), ...]``.
+            Each tuple must match a row in the joint probability table.
+        fixed : list, optional
+            List of ``(index, value)`` tuples pinning specific parameters.
+        theta_dim : int, optional
+            Number of model parameters.  Inferred from the graph when ``None``.
+        theta_init : array_like, optional
+            Initial guess for the *free* parameters (excluding fixed ones).
+            If ``None`` a coordinate-wise grid search is used.
+        std_multiplier : float
+            Factor applied to the asymptotic standard error to obtain the
+            prior standard deviation: ``prior_std = std_multiplier * se``.
+        verbose : bool
+            Print progress information.
+
+        Returns
+        -------
+        ProbMatchResult
+            Dataclass with ``theta``, ``std``, ``prior``, ``empirical_probs``,
+            ``model_probs``, ``unique_indices``, etc.
+
+        Raises
+        ------
+        ValueError
+            If the graph is not a joint probability graph.
+
+        Examples
+        --------
+        >>> jg = graph.joint_prob_graph(indexer, tot_reward_limit=2)
+        >>> jg.update_weights([1.0, 0.5])
+        >>> obs = [tuple(row) for row in jg.joint_prob_table().iloc[:, :-1].values]
+        >>> result = jg.probability_matching(obs, fixed=[(1, 0.5)])
+        >>> svgd = jg.svgd(obs, prior=result.prior, fixed=[(1, 0.5)])
+        """
+        from .probability_matching import probability_matching as _prob_match
+
+        if self._joint_prob_base_graph_indexer is None:
+            raise ValueError(
+                "probability_matching() requires a joint probability graph. "
+                "Build one with graph.joint_prob_graph(indexer, ...)."
+            )
+
+        if theta_dim is None:
+            theta_dim = self.param_length()
+
+        # Map observations (feature-count tuples) -> vertex indices
+        joint_prob_table = self.joint_prob_table()
+        obs2idx = joint_prob_table.groupby(
+            joint_prob_table.columns[:-1].to_list()
+        ).groups
+        obs_indices = []
+        for obs in observed_data:
+            key = tuple(obs)
+            idx = obs2idx[key]
+            if idx.size > 1:
+                p = joint_prob_table.loc[idx, 'prob'].to_numpy()
+                p = p / p.sum()
+                chosen_idx = np.random.choice(idx, p=p)
+                obs_indices.append(chosen_idx.item())
+            else:
+                obs_indices.append(idx.item())
+
+        return _prob_match(
+            self, obs_indices,
+            theta_dim=theta_dim,
+            theta_init=theta_init,
+            fixed=fixed,
+            std_multiplier=std_multiplier,
+            verbose=verbose,
+        )
 
     @classmethod
     def moments_from_graph(cls, graph: 'Graph', nr_moments: int = 2, use_ffi: bool = False) -> Callable:
