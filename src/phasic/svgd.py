@@ -373,7 +373,7 @@ class GaussPrior(Prior):
         else:
             return theta_samples
 
-    def plot(self, log=False, ax=None, return_fig=False, **kwargs):
+    def plot(self, log=False, ax=None, return_ax=False, **kwargs):
         """Plot the Gaussian prior distribution in THETA space.
 
         Parameters
@@ -382,7 +382,7 @@ class GaussPrior(Prior):
             If True, plot log-probability instead of probability density.
         ax : matplotlib.axes.Axes, optional
             Axes to plot on. If None, creates new figure.
-        return_fig : bool, default=True
+        return_ax : bool, default=True
             If True, return ax. If False, call plt.show() instead.
         **kwargs
             Additional arguments passed to plot function.
@@ -390,7 +390,7 @@ class GaussPrior(Prior):
         Returns
         -------
         matplotlib.axes.Axes
-            The axes with the plot (only if return_fig=False)
+            The axes with the plot (only if return_ax=False)
         """
         import matplotlib.pyplot as plt
         if ax is None:
@@ -408,7 +408,7 @@ class GaussPrior(Prior):
             ax.set_title(f'Gaussian({self.mu:.2g}, {self.sigma:.2g})')
             ax.set_ylabel('Density')
         ax.set_xlabel('Parameter value (θ)')
-        if return_fig:
+        if ax or return_ax:
             return ax
         else:
             plt.show()
@@ -545,7 +545,7 @@ class HalfCauchyPrior(Prior):
         else:
             return theta_samples
 
-    def plot(self, ax=None, show_ci=True, return_fig=False, **kwargs):
+    def plot(self, ax=None, show_ci=True, return_ax=False, **kwargs):
         """Plot the half-Cauchy prior distribution in THETA space.
 
         Parameters
@@ -554,7 +554,7 @@ class HalfCauchyPrior(Prior):
             Axes to plot on. If None, creates new figure.
         show_ci : bool, default=True
             If True and ci was specified, show vertical line at CI bound.
-        return_fig : bool, default=True
+        return_ax : bool, default=False
             If True, return ax. If False, call plt.show() instead.
         **kwargs
             Additional arguments passed to plot function.
@@ -562,7 +562,7 @@ class HalfCauchyPrior(Prior):
         Returns
         -------
         matplotlib.axes.Axes
-            The axes with the plot (only if return_fig=False)
+            The axes with the plot (only if return_ax=False)
         """
         import matplotlib.pyplot as plt
         if ax is None:
@@ -587,15 +587,242 @@ class HalfCauchyPrior(Prior):
         ax.set_title(f'HalfCauchy({self.scale:.2g})')
         ax.set_xlabel('Parameter value (θ)')
         ax.set_ylabel('Density')
-        if return_fig:
+        if ax or return_ax:
             return ax
         else:
             plt.show()
 
 
-# ============================================================================
-# Schedule Classes for Step Size and Bandwidth Control
-# ============================================================================
+class DataPrior(Prior):
+    """Data-informed prior estimated from observed data.
+
+    Auto-detects the graph type and uses method-of-moments (standard graphs)
+    or probability matching (joint probability graphs) to estimate parameter
+    prior means from the data.  The result is a list of per-parameter
+    ``GaussPrior`` objects (or ``None`` for fixed parameters) that can be
+    passed directly to :meth:`Graph.svgd`.
+
+    Implements the list-like interface so SVGD can iterate over per-parameter
+    priors, and the ``Prior`` interface (``__call__``, ``sample``, ``plot``)
+    for use as a single prior object.
+
+    Parameters
+    ----------
+    graph : Graph
+        Parameterized graph (standard or joint probability).
+    observed_data : array_like
+        Observed data appropriate for the graph type.
+    sd : float, default=2.0
+        Multiplier applied to the asymptotic standard error to obtain the
+        prior standard deviation (passed as ``std_multiplier``).
+    fixed : list, optional
+        List of ``(index, value)`` tuples pinning specific parameters.
+    nr_moments : int, optional
+        Number of moments (standard graphs only).
+    rewards : array_like, optional
+        Reward vectors (standard graphs only).
+    theta_dim : int, optional
+        Number of model parameters.  Inferred from the graph when ``None``.
+    theta_init : array_like, optional
+        Initial guess for the free parameters.
+    discrete : bool, optional
+        ``True`` for discrete models, ``False`` for continuous (standard graphs only).
+    verbose : bool, default=False
+        Print progress information.
+
+    Examples
+    --------
+    >>> from phasic import Graph, DataPrior
+    >>> g = Graph(...)
+    >>> data = g.sample(1000)
+    >>> svgd = g.svgd(data, prior=DataPrior(g, data))
+    """
+
+    def __init__(
+        self,
+        graph,
+        observed_data,
+        sd=2.0,
+        fixed=None,
+        nr_moments=None,
+        rewards=None,
+        theta_dim=None,
+        theta_init=None,
+        discrete=None,
+        verbose=False,
+    ):
+        is_joint = graph._joint_prob_base_graph_indexer is not None
+
+        if is_joint:
+            self._method = "probability_matching"
+            self._result = graph.probability_matching(
+                observed_data,
+                fixed=fixed,
+                std_multiplier=sd,
+                verbose=verbose,
+                theta_dim=theta_dim,
+                theta_init=theta_init,
+            )
+        else:
+            self._method = "method_of_moments"
+            self._result = graph.method_of_moments(
+                observed_data,
+                fixed=fixed,
+                std_multiplier=sd,
+                verbose=verbose,
+                nr_moments=nr_moments,
+                rewards=rewards,
+                theta_dim=theta_dim,
+                theta_init=theta_init,
+                discrete=discrete,
+            )
+
+        self._priors = self._result.prior
+        # Transform function set by SVGD when positive_params=True
+        self._transform = None
+
+        if not self._result.success:
+            warnings.warn(
+                f"DataPrior: {self._method} did not converge. "
+                f"Message: {self._result.message}"
+            )
+
+    # ----- properties --------------------------------------------------------
+
+    @property
+    def result(self):
+        """The underlying ``MoMResult`` or ``ProbMatchResult``."""
+        return self._result
+
+    @property
+    def theta(self):
+        """Parameter estimate from the underlying method."""
+        return self._result.theta
+
+    @property
+    def std(self):
+        """Standard errors of the parameter estimates."""
+        return self._result.std
+
+    @property
+    def success(self):
+        """Whether the underlying optimisation converged."""
+        return self._result.success
+
+    @property
+    def method(self):
+        """Name of the estimation method used."""
+        return self._method
+
+    # ----- list-like interface (per-parameter priors) ------------------------
+
+    def __iter__(self):
+        return iter(self._priors)
+
+    def __len__(self):
+        return len(self._priors)
+
+    def __getitem__(self, idx):
+        return self._priors[idx]
+
+    # ----- Prior interface ---------------------------------------------------
+
+    def __call__(self, phi):
+        """Compute total log-probability as the sum of per-parameter priors.
+
+        Parameters
+        ----------
+        phi : jnp.ndarray
+            Parameter vector (in unconstrained space).
+
+        Returns
+        -------
+        float
+            Sum of log-probabilities from non-None per-parameter priors.
+        """
+        total = 0.0
+        for i, prior_i in enumerate(self._priors):
+            if prior_i is not None:
+                total = total + prior_i(phi[i:i + 1])
+        return total
+
+    def sample(self, key, shape):
+        """Sample from per-parameter priors and concatenate.
+
+        Parameters
+        ----------
+        key : jax.random.PRNGKey
+            Random key.
+        shape : tuple
+            ``(n_particles, theta_dim)``
+
+        Returns
+        -------
+        jnp.ndarray
+            Samples with shape ``(n_particles, theta_dim)``.
+        """
+        n_particles = shape[0]
+        columns = []
+        for i, prior_i in enumerate(self._priors):
+            subkey = jax.random.fold_in(key, i)
+            if prior_i is not None:
+                col = prior_i.sample(subkey, (n_particles, 1))
+            else:
+                # Fixed parameter — fill with the point estimate
+                col = jnp.full((n_particles, 1), self._result.theta[i])
+            columns.append(col)
+        return jnp.concatenate(columns, axis=1)
+
+    def plot(self, axes=None, figsize=None, return_axes=False):
+        """Plot per-parameter prior distributions.
+
+        Parameters
+        ----------
+        axes : array of Axes, optional
+            Pre-existing axes (one per non-fixed parameter).
+        figsize : tuple, optional
+            Figure size when creating new axes.
+        return_axes : bool, default=False
+            If ``True``, return the axes array instead of calling ``plt.show()``.
+
+        Returns
+        -------
+        array of Axes or None
+        """
+        import matplotlib.pyplot as plt
+
+        free_indices = [i for i, p in enumerate(self._priors) if p is not None]
+        n_free = len(free_indices)
+        if n_free == 0:
+            return None
+
+        if axes is None:
+            if figsize is None:
+                figsize = (5, 3 * n_free)
+            fig, axes = plt.subplots(n_free, 1, figsize=figsize, squeeze=False)
+            axes = axes.ravel()
+
+        for ax, idx in zip(axes, free_indices):
+            self._priors[idx].plot(ax=ax, return_ax=True)
+            ax.set_title(f'theta[{idx}]  {self._method}')
+
+        plt.tight_layout()
+        if return_axes:
+            return axes
+        else:
+            plt.show()
+
+    # ----- repr --------------------------------------------------------------
+
+    def __repr__(self):
+        status = "converged" if self._result.success else "NOT converged"
+        theta_str = np.array2string(
+            np.asarray(self._result.theta), precision=4, separator=', ',
+        )
+        return (
+            f"DataPrior(method={self._method}, {status}, "
+            f"theta={theta_str})"
+        )
 
 class StepSizeSchedule:
     """
@@ -683,7 +910,7 @@ class StepSizeSchedule:
                        linestyle='--', alpha=0.5,
                     label=f'last_step={self.last_step:.4f}')
 
-        if return_ax:
+        if ax or return_ax:
             return ax
         else:
             plt.show()
@@ -3631,7 +3858,7 @@ class SVGD:
         self.observed_data = jnp.array(observed_data)
         self.prior = prior
         # Detect per-parameter priors (list/tuple of Prior objects)
-        self.prior_list = list(prior) if isinstance(prior, (list, tuple)) else None
+        self.prior_list = list(prior) if isinstance(prior, (list, tuple, DataPrior)) else None
         self.n_particles = n_particles
         self.n_iterations = n_iterations
         self.fixed = fixed
