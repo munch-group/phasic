@@ -1,3 +1,4 @@
+import os
 import subprocess
 import graphviz
 from collections import defaultdict
@@ -94,13 +95,17 @@ def plot_graph(graph:GraphType, filename:str=None,
         assert "Do not use both by_index and by_state"
 
     try:
-        from vscode import is_vscode_dark_theme
+        from vscodenb import is_vscode_dark_theme
     except ImportError:
         def is_vscode_dark_theme():
             return False
 
     if dark is None:
         dark = is_vscode_dark_theme()
+
+    # always light theme when executing via nbconvert
+    if os.environ.get('NBCONVERT', False):
+        dark = False
 
     if dark:
         edge_color = '#e6e6e6'
