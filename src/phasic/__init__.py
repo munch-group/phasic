@@ -1978,7 +1978,7 @@ class Graph(_Graph):
         else:
             return super().moments(power, rewards=rewards, **kwargs)
 
-    def expectation(self, rewards=[], discrete=False, **kwargs):
+    def expectation(self, rewards=[], **kwargs):
         """
         Compute expected value (first moment) of the phase-type distribution.
 
@@ -1987,9 +1987,6 @@ class Graph(_Graph):
         rewards : ArrayLike, optional
             Reward vector for reward-transformed expectation. If not provided,
             computes E[T] where T is time until absorption.
-        discrete : bool, default=False
-            If True, compute discrete-time expectation (DPH distribution).
-            Requires that the graph was discretized via discretize().
         **kwargs : dict
             Additional keyword arguments passed to C++ implementation.
 
@@ -2012,17 +2009,15 @@ class Graph(_Graph):
         if self.parameterized():
             trace = self._ensure_trace()
             if trace is not None:
-                return self._expectation_from_trace(rewards=rewards, discrete=discrete, **kwargs)
+                return self._expectation_from_trace(rewards=rewards, discrete=self.is_discrete, **kwargs)
 
         # Fall back to direct C++ computation for non-parameterized graphs
-        if discrete:
-            if not self.is_discrete:
-                raise ValueError("discrete=True only valid for discrete distributions")
+        if self.is_discrete:
             return super().expectation_discrete(rewards=rewards, **kwargs)
         else:
             return super().expectation(rewards=rewards, **kwargs)
 
-    def variance(self, rewards=[], discrete=False, **kwargs):
+    def variance(self, rewards=[], **kwargs):
         """
         Compute variance of the phase-type distribution.
 
@@ -2031,9 +2026,6 @@ class Graph(_Graph):
         rewards : ArrayLike, optional
             Reward vector for reward-transformed variance. If not provided,
             computes Var(T) where T is time until absorption.
-        discrete : bool, default=False
-            If True, compute discrete-time variance (DPH distribution).
-            Requires that the graph was discretized via discretize().
         **kwargs : dict
             Additional keyword arguments passed to C++ implementation.
 
@@ -2056,25 +2048,20 @@ class Graph(_Graph):
         if self.parameterized():
             trace = self._ensure_trace()
             if trace is not None:
-                return self._variance_from_trace(rewards=rewards, discrete=discrete, **kwargs)
+                return self._variance_from_trace(rewards=rewards, discrete=self.is_discrete, **kwargs)
 
         # Fall back to direct C++ computation for non-parameterized graphs
-        if discrete:
-            if not self.is_discrete:
-                raise ValueError("discrete=True only valid for discrete distributions")
+        if self.is_discrete:
             return super().variance_discrete(rewards=rewards, **kwargs)
         else:
             return super().variance(rewards=rewards, **kwargs)
 
-    def covariance(self, *args, discrete=False, **kwargs):
+    def covariance(self, *args, **kwargs):
         """
         Compute covariance matrix for multivariate phase-type distributions.
 
         Parameters
         ----------
-        discrete : bool, default=False
-            If True, compute discrete-time covariance (DPH distribution).
-            Requires that the graph was discretized via discretize().
         *args : tuple
             Additional positional arguments passed to C++ implementation.
         **kwargs : dict
@@ -2085,24 +2072,17 @@ class Graph(_Graph):
         np.ndarray
             Covariance matrix for the multivariate distribution.
 
-        Raises
-        ------
-        ValueError
-            If discrete=True but graph is not discrete.
-
         Notes
         -----
         This method is for multivariate phase-type distributions with
         multiple marginals. For univariate distributions, use variance().
         """
-        if discrete:
-            if not self.is_discrete:
-                raise ValueError("discrete=True only valid for discrete distributions")
+        if self.is_discrete:
             return super().covariance_discrete(*args, **kwargs)
         else:
             return super().covariance(*args, **kwargs)
 
-    def pdf(self, time, discrete=False, **kwargs):
+    def pdf(self, time, **kwargs):
         """
         Compute probability density/mass function using forward algorithm.
 
@@ -2113,9 +2093,6 @@ class Graph(_Graph):
         granularity : int, optional
             Granularity for uniformization (default: auto-detected as 2*max_rate).
             Higher values improve accuracy but increase computation time.
-        discrete : bool, default=False
-            If True, compute PMF for discrete-time distribution (DPH).
-            Requires that the graph was discretized via discretize().
         **kwargs : dict
             Additional keyword arguments passed to C++ implementation.
 
@@ -2123,11 +2100,6 @@ class Graph(_Graph):
         -------
         float or np.ndarray
             PDF/PMF value(s) at the specified time point(s).
-
-        Raises
-        ------
-        ValueError
-            If discrete=True but graph is not discrete.
 
         Notes
         -----
@@ -2137,14 +2109,12 @@ class Graph(_Graph):
         For continuous distributions: f(t) = α · exp(S·t) · s*
         For discrete distributions: p(n) = probability of absorption at jump n
         """
-        if discrete:
-            if not self.is_discrete:
-                raise ValueError("discrete=True only valid for discrete distributions")
+        if self.is_discrete:
             return super().pdf_discrete(time, **kwargs)
         else:
             return super().pdf(time, **kwargs)
 
-    def cdf(self, time, discrete=False, **kwargs):
+    def cdf(self, time, **kwargs):
         """
         Compute cumulative distribution function.
 
@@ -2152,9 +2122,6 @@ class Graph(_Graph):
         ----------
         time : float or ArrayLike
             Time point(s) at which to evaluate the CDF.
-        discrete : bool, default=False
-            If True, compute CDF for discrete-time distribution (DPH).
-            Requires that the graph was discretized via discretize().
         **kwargs : dict
             Additional keyword arguments passed to C++ implementation.
 
@@ -2163,32 +2130,22 @@ class Graph(_Graph):
         float or np.ndarray
             CDF value(s) P(T ≤ t) at the specified time point(s).
 
-        Raises
-        ------
-        ValueError
-            If discrete=True but graph is not discrete.
-
         Notes
         -----
         For continuous distributions: F(t) = P(T ≤ t) = 1 - α · exp(S·t) · 1
         For discrete distributions: F(n) = P(N ≤ n) = sum of PMF up to n
         """
-        if discrete:
-            if not self.is_discrete:
-                raise ValueError("discrete=True only valid for discrete distributions")
+        if self.is_discrete:
             return super().cdf_discrete(time, **kwargs)
         else:
             return super().cdf(time, **kwargs)
 
-    def distribution_context(self, *args, discrete=False, **kwargs):
+    def distribution_context(self, *args, **kwargs):
         """
         Create a distribution context for efficient repeated sampling.
 
         Parameters
         ----------
-        discrete : bool, default=False
-            If True, create context for discrete-time distribution (DPH).
-            Requires that the graph was discretized via discretize().
         *args : tuple
             Additional positional arguments passed to C++ implementation.
         **kwargs : dict
@@ -2199,25 +2156,18 @@ class Graph(_Graph):
         DistributionContext
             Context object that can be used for efficient sampling.
 
-        Raises
-        ------
-        ValueError
-            If discrete=True but graph is not discrete.
-
         Notes
         -----
         The distribution context precomputes data structures needed for
         sampling, making repeated sample() calls much faster than sampling
         directly from the graph.
         """
-        if discrete:
-            if not self.is_discrete:
-                raise ValueError("discrete=True only valid for discrete distributions")
+        if self.is_discrete:
             return super().distribution_context_discrete(*args, **kwargs)
         else:
             return super().distribution_context(*args, **kwargs)
 
-    def sample(self, n, discrete=False, **kwargs):
+    def sample(self, n, **kwargs):
         """
         Generate random samples from the phase-type distribution.
 
@@ -2225,9 +2175,6 @@ class Graph(_Graph):
         ----------
         n : int
             Number of samples to generate.
-        discrete : bool, default=False
-            If True, sample from discrete-time distribution (DPH).
-            Requires that the graph was discretized via discretize().
         **kwargs : dict
             Additional keyword arguments passed to C++ implementation.
 
@@ -2236,25 +2183,18 @@ class Graph(_Graph):
         np.ndarray
             Array of n samples from the distribution.
 
-        Raises
-        ------
-        ValueError
-            If discrete=True but graph is not discrete.
-
         Notes
         -----
         Sampling is done by simulating the underlying Markov chain until
         absorption. For more efficient repeated sampling, first create a
         distribution context using distribution_context().
         """
-        if discrete:
-            if not self.is_discrete:
-                raise ValueError("discrete=True only valid for discrete distributions")
-            return super().sample_discrete(n, **kwargs)
+        if self.is_discrete:
+            return np.array(super().sample_discrete(n, **kwargs))
         else:
-            return super().sample(n, **kwargs)
+            return np.array(super().sample(n, **kwargs))
 
-    def stop_probability(self, time, discrete=False, **kwargs):
+    def stop_probability(self, time, **kwargs):
         """
         Compute probability of being in each state at a given time.
 
@@ -2263,9 +2203,6 @@ class Graph(_Graph):
         time : float or int
             Time point (continuous) or jump number (discrete) at which to
             evaluate state probabilities.
-        discrete : bool, default=False
-            If True, compute for discrete-time distribution (DPH).
-            Requires that the graph was discretized via discretize().
         **kwargs : dict
             Additional keyword arguments passed to C++ implementation.
 
@@ -2274,20 +2211,13 @@ class Graph(_Graph):
         np.ndarray
             Probability of being in each state at the specified time.
 
-        Raises
-        ------
-        ValueError
-            If discrete=True but graph is not discrete.
-
         Notes
         -----
         For continuous distributions: probability vector at time t
         For discrete distributions: probability vector after n jumps
         Computed via matrix exponentiation or uniformization.
         """
-        if discrete:
-            if not self.is_discrete:
-                raise ValueError("discrete=True only valid for discrete distributions")
+        if self.is_discrete:
             return super().stop_probability_discrete(time, **kwargs)
         else:
             return super().stop_probability(time, **kwargs)
@@ -2349,15 +2279,12 @@ class Graph(_Graph):
         """
         return super().accumulated_visiting_time(*args, **kwargs)
 
-    def accumulated_occupancy(self, *args, discrete=False, **kwargs):
+    def accumulated_occupancy(self, *args, **kwargs):
         """
         Compute expected occupancy (visits or time) for each state.
 
         Parameters
         ----------
-        discrete : bool, default=False
-            If True, compute accumulated visits (discrete distribution).
-            If False, compute accumulated visiting time (continuous distribution).
         *args : tuple
             Additional positional arguments passed to C++ implementation.
         **kwargs : dict
@@ -2368,20 +2295,13 @@ class Graph(_Graph):
         np.ndarray
             Expected visits (discrete) or time (continuous) in each state.
 
-        Raises
-        ------
-        ValueError
-            If discrete=True but graph is not discrete.
-
         Notes
         -----
         This is a convenience method that dispatches to either:
-        - accumulated_visits() for discrete=True
-        - accumulated_visiting_time() for discrete=False
+        - accumulated_visits() for discrete distributions
+        - accumulated_visiting_time() for continuous distributions
         """
-        if discrete:
-            if not self.is_discrete:
-                raise ValueError("discrete=True only valid for discrete distributions")
+        if self.is_discrete:
             return self.accumulated_visits(*args, **kwargs)
         else:
             return self.accumulated_visiting_time(*args, **kwargs)
@@ -2539,7 +2459,7 @@ class Graph(_Graph):
 
         See Also
         --------
-        reward_transform : General reward transformation (dispatches to this for discrete=True)
+        reward_transform : General reward transformation (dispatches to this for discrete graphs)
         """
         return Graph(super().reward_transform_discrete(rewards))
     
