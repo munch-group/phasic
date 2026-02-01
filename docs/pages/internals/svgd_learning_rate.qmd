@@ -1,0 +1,253 @@
+# SVGD Learning Rate Selection
+
+This document describes how the SVGD learning rate is determined in phasic, covering the automatic calibration algorithm and the four code paths that arise from the combinations of user-specified vs. auto learning rate and static vs. dynamic regularization.
+
+## Background: the SVGD update
+
+At each iteration, SVGD updates a set of $n$ particles $\{\theta_i\}_{i=1}^{n}$ via
+
+$$
+\theta_i \;\leftarrow\; \theta_i \;+\; \epsilon\,\phi^*(\theta_i),
+$$
+
+where $\epsilon$ is the learning rate and $\phi^*$ is the optimal perturbation direction
+
+$$
+\phi^*(\theta_i) = \frac{1}{n}\sum_{j=1}^{n}
+\bigl[
+  k(\theta_j, \theta_i)\,\nabla_{\theta_j}\!\log p(\theta_j)
+  \;+\;
+  \nabla_{\theta_j} k(\theta_j, \theta_i)
+\bigr].
+$$
+
+The first term drives particles toward high-probability regions. The second term (the kernel repulsive force) prevents collapse.  The magnitude of $\phi^*$ depends on the scale of the log-probability gradients, the kernel bandwidth, and the number of particles. Choosing $\epsilon$ therefore requires knowledge of all three.
+
+## Automatic calibration (`learning_rate=None`)
+
+When no learning rate and no optimizer is provided, phasic runs a **pilot evaluation** of $\phi^*$ on the initial particles and sets
+
+$$
+\epsilon = \frac{\alpha \cdot h}{\overline{\lVert\phi^*\rVert} + \delta},
+$$
+
+where
+
+| Symbol | Meaning | Default |
+|--------|---------|---------|
+| $\alpha$ | `target_fraction` — desired first-step displacement as a fraction of inter-particle spread | 0.02 |
+| $h$ | characteristic scale — median pairwise distance divided by $\log(n+1)$ (the same quantity used by the median bandwidth heuristic) | computed |
+| $\overline{\lVert\phi^*\rVert}$ | mean $L^2$ norm of $\phi^*$ across particles | computed |
+| $\delta$ | guard against division by zero | $10^{-30}$ |
+
+The result is clipped to $[10^{-7},\; 1]$.
+
+### Why this works
+
+The ratio $h / \overline{\lVert\phi^*\rVert}$ has units of "learning rate": it is the step size that would move a particle by one characteristic inter-particle distance.  Multiplying by $\alpha = 0.02$ gives a conservative first step of about 2 % of the particle spread. This is **scale-invariant** because:
+
+- If the log-likelihood is multiplied by a constant $c$ (e.g. more data), $\nabla\log p$ scales by $c$, so $\lVert\phi^*\rVert$ scales by $c$, and $\epsilon$ scales by $1/c$ — exactly cancelling the gradient growth.
+- If the parameters are rescaled, both $h$ and $\lVert\phi^*\rVert$ rescale consistently, keeping $\epsilon$ appropriate.
+
+### Interaction with `lr_scale`
+
+When the user provides an explicit `learning_rate`, phasic applies an additional dataset-size correction:
+
+$$
+\texttt{lr\_scale} = \frac{1}{\max(1,\; n_{\mathrm{obs}} / 1000)}.
+$$
+
+This compensates for log-likelihood gradients scaling linearly with $n_{\mathrm{obs}}$.  When auto-calibration is active, the pilot already accounts for this naturally (larger $n_{\mathrm{obs}}$ produces larger $\lVert\phi^*\rVert$, which drives $\epsilon$ down), so `lr_scale` is set to 1.0 to avoid double-counting.
+
+## The four code paths
+
+The `SVGD.optimize()` method has two independent binary choices:
+
+1. **Learning rate**: user-specified (`float` or `StepSizeSchedule`) vs. auto-calibrated.
+2. **Regularization**: static ($\lambda$ fixed) vs. dynamic (`RegularizationSchedule`).
+
+This produces four paths. The table below summarizes how each combination flows through the code.
+
+| | Static regularization | Dynamic regularization |
+|---|---|---|
+| **User-specified lr** | Path A | Path B |
+| **Auto-calibrated lr** | Path C | Path D |
+
+### Path A: user-specified lr + static regularization
+
+This is the standard path. The user provides `learning_rate=0.01` (or a `StepSizeSchedule`) and `regularization` is a constant (including 0.0 for no regularization).
+
+**`__init__`:**
+
+- If `learning_rate` is a `float`: scaled by `lr_scale`, wrapped in `ConstantStepSize`.
+- If `learning_rate` is a `StepSizeSchedule`: stored directly; `lr_scale` applied at each iteration in the loop.
+
+**`optimize()`:**
+
+1. Gradient precompiled via `_precompile_unified()` (if JIT) or `jax.grad()` (if not).
+2. `log_prob_fn` created once via `functools.partial`.
+3. `run_svgd()` called with `learning_rate=self.step_schedule`, `lr_scale=self.lr_scale`.
+4. At each iteration: `step_size = schedule(t) * lr_scale`.
+
+**Update rule:**
+
+$$
+\theta_i \leftarrow \theta_i + \underbrace{s(t) \cdot \texttt{lr\_scale}}_{\epsilon_t} \cdot \phi^*(\theta_i)
+$$
+
+where $s(t)$ is the schedule value at iteration $t$.
+
+### Path B: user-specified lr + dynamic regularization
+
+The user provides an explicit `learning_rate` and a `RegularizationSchedule` (e.g. `ExpRegularization`). Because the regularization $\lambda(t)$ changes each iteration, the gradient cannot be precompiled — it is recomputed on the fly.
+
+**`__init__`:**
+
+- `learning_rate` handled as in Path A.
+- `self.regularization_schedule` stores the schedule object.
+- `self.use_regularization_schedule = True`.
+
+**`optimize()`:**
+
+1. A `log_prob_factory(reg_value)` is created — returns a fresh `log_prob_fn` for each $\lambda$.
+2. `run_svgd()` receives `log_prob_fn=None` and `log_prob_fn_factory=log_prob_factory`.
+3. At each iteration, `run_svgd` calls:
+   ```python
+   current_reg = regularization_schedule(step, particles)
+   log_prob_fn = log_prob_fn_factory(current_reg)
+   ```
+4. Gradients computed on the fly: `vmap(grad(log_prob_fn))`.
+5. Step size: `schedule(t) * lr_scale`.
+
+**Update rule (iteration $t$):**
+
+$$
+\theta_i \leftarrow \theta_i + \epsilon_t \cdot \phi^*_{\lambda(t)}(\theta_i),
+\quad\text{where}\quad
+\phi^*_{\lambda(t)} \text{ uses } \log p(\theta) + \lambda(t)\,R(\theta).
+$$
+
+Here $R(\theta)$ is the moment-matching regularization penalty.
+
+### Path C: auto-calibrated lr + static regularization
+
+The user provides `learning_rate=None` (and no `optimizer`). This triggers the pilot calibration.
+
+**`__init__`:**
+
+- `self.step_schedule = 'auto'` — a sentinel string.
+- `self.lr_scale = 1.0`.
+
+**`optimize()`:**
+
+1. Gradient precompiled as in Path A.
+2. `log_prob_fn` created as in Path A.
+3. **Calibration** (before the SVGD loop):
+   ```
+   calibrated_lr = _calibrate_learning_rate(
+       theta_init, log_prob_fn, kernel,
+       compiled_grad=compiled_grad, ...
+   )
+   ```
+   The precompiled gradient is passed in so the pilot uses the same efficient gradient function as the main loop.
+4. `self.step_schedule` replaced with `ConstantStepSize(calibrated_lr)`.
+5. `run_svgd()` called with `lr_scale=1.0`.
+
+**Update rule:**
+
+$$
+\theta_i \leftarrow \theta_i + \epsilon_{\text{auto}} \cdot \phi^*(\theta_i),
+\quad
+\epsilon_{\text{auto}} = \frac{\alpha\,h}{\overline{\lVert\phi^*\rVert}}.
+$$
+
+### Path D: auto-calibrated lr + dynamic regularization
+
+The user provides `learning_rate=None` and a `RegularizationSchedule`.
+
+**`__init__`:**
+
+- `self.step_schedule = 'auto'`.
+- `self.lr_scale = 1.0`.
+
+**`optimize()`:**
+
+1. `log_prob_factory` created as in Path B.
+2. **Calibration** — a pilot log-prob is created using the *initial* regularization value:
+   ```
+   log_prob_fn_pilot = log_prob_factory(self.regularization)
+   calibrated_lr = _calibrate_learning_rate(
+       theta_init, log_prob_fn_pilot, kernel, ...
+   )
+   ```
+   No precompiled gradient is available (dynamic regularization prohibits it), so gradients are computed via `vmap(grad(log_prob_fn_pilot))`.
+3. `self.step_schedule` replaced with `ConstantStepSize(calibrated_lr)`.
+4. `run_svgd()` called as in Path B, with `lr_scale=1.0`.
+
+**Update rule:**
+
+$$
+\theta_i \leftarrow \theta_i + \epsilon_{\text{auto}} \cdot \phi^*_{\lambda(t)}(\theta_i).
+$$
+
+The calibrated learning rate is constant, but the regularization (and hence the effective gradient direction) changes each iteration. The pilot uses $\lambda_0$ to set $\epsilon$, which is appropriate as long as the regularization schedule doesn't change the gradient scale dramatically.
+
+## Summary of key differences
+
+| Property | User-specified lr | Auto-calibrated lr |
+|---|---|---|
+| `lr_scale` | $1/\max(1, n_{\text{obs}}/1000)$ | 1.0 (pilot absorbs data scaling) |
+| Schedule type | Any `StepSizeSchedule` or float | `ConstantStepSize` (from pilot) |
+| Dataset-size invariance | Via `lr_scale` heuristic | Via pilot evaluation of $\lVert\phi^*\rVert$ |
+| Requires pilot step | No | Yes (one kernel + gradient evaluation) |
+
+| Property | Static regularization | Dynamic regularization |
+|---|---|---|
+| Gradient precompilation | Yes (JIT cached) | No (recomputed each iteration) |
+| `log_prob_fn` | Fixed `partial` | Created per iteration via factory |
+| Pilot `log_prob_fn` | Uses the main `log_prob_fn` | Uses `log_prob_factory(initial_reg)` |
+
+## Pilot calibration details
+
+The `_calibrate_learning_rate` function (defined in `src/phasic/svgd.py`) follows these steps:
+
+1. **Handle fixed parameters.** If `fixed_mask` is provided, project particles to the learnable subspace (exactly as `svgd_step` does).
+
+2. **Compute gradients.** Using `vmap(grad_fn)` where `grad_fn` is either the precompiled gradient (Path C) or `jax.grad(log_prob_fn)` (Path D).
+
+3. **Compute kernel.** Call `kernel.compute_kernel_grad(particles)` to get $K$ and $\nabla K$.
+
+4. **Compute $\phi^*$.** The standard SVGD direction:
+$$
+\phi^*_i = \frac{1}{n}\left[\sum_j K_{ij}\,\nabla_{\theta_j}\log p(\theta_j)
++ \sum_j \nabla_{\theta_j} K_{ij}\right].
+$$
+
+5. **Compute characteristic scale.** Median pairwise distance via `batch_median_heuristic`:
+$$
+h = \frac{\mathrm{median}_{i<j}\lVert\theta_i - \theta_j\rVert}{\log(n+1)}.
+$$
+
+6. **Set learning rate.**
+$$
+\epsilon = \mathrm{clip}\!\left(
+\frac{0.02 \cdot h}{\frac{1}{n}\sum_i \lVert\phi^*_i\rVert + 10^{-30}},\;
+10^{-7},\; 1.0
+\right).
+$$
+
+The cost is one gradient evaluation plus one kernel evaluation — negligible compared to the hundreds or thousands of SVGD iterations that follow.
+
+## When to use each path
+
+| Scenario | Recommended approach |
+|---|---|
+| First exploration of a new model | `learning_rate=None` (auto) — no tuning needed |
+| Known good learning rate from prior runs | `learning_rate=0.01` (or schedule) |
+| Large datasets ($n_{\text{obs}} > 1000$) | Auto works well; if using explicit lr, consider `ExpStepSize` |
+| Dynamic regularization for warm-starting | `learning_rate=None` + `RegularizationSchedule` |
+| Adaptive optimizer (Adam, etc.) | `optimizer=Adam(...)` — bypasses all of the above |
+
+::: {.callout-note}
+When an `optimizer` is provided (e.g. `Adam`), the learning rate system is bypassed entirely. The optimizer manages its own step sizes internally, and `lr_scale` has no effect.
+:::

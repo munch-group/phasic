@@ -1,24 +1,8 @@
-# Caching Strategies for phasic
+---
+title: Caching
+---
 
 This covers the comprehensive caching system in phasic, which provides **10-1000x speedups** for repeated model evaluations through multiple complementary caching mechanisms.
-
-## Overview
-
-phasic uses a **three-tier caching system**:
-
-1. **Graph Cache**: Caches built Graph objects (new in 0.22.0)
-2. **Trace Cache**: Caches expensive O(n³) elimination traces
-3. **JAX Compilation Cache**: Caches JIT-compiled XLA code
-
-### Cache Comparison
-
-| Cache Type | Location | What It Stores | When To Use |
-|------------|----------|----------------|-------------|
-| **Graph Cache** | `~/.phasic_cache/graphs/` | Fully constructed Graph objects | Expensive graph construction (many vertices) |
-| **Trace Cache** | `~/.phasic_cache/traces/` | Symbolic elimination traces | Hierarchical graphs with repeated evaluations |
-| **JAX Cache** | `~/.jax_cache` | Compiled XLA code | JAX-based models (pmf_from_graph) |
-
----
 
 ## Graph Cache
 
@@ -299,7 +283,7 @@ tar -xzf ~/my_caches.tar.gz
 
 ## Best Practices
 
-### When To Use Each Cache
+### Use cases
 
 **Graph Cache (`cache=True`)**:
 - Expensive graph construction (>1 second)

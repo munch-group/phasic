@@ -103,6 +103,7 @@ website:
             - pages/tutorial/08-laplace.ipynb
             - pages/tutorial/09-joint-probability.ipynb
             - pages/tutorial/10-finite-markov-chains.ipynb
+            - pages/tutorial/11-method-of-moments.ipynb
             - pages/tutorial/11-svgd-basics.ipynb
             - pages/tutorial/12-svgd-multi-feature.ipynb
             - pages/tutorial/13-svgd-multi-param.ipynb
@@ -114,6 +115,7 @@ website:
           contents:
             - pages/topics/visualize.ipynb
             - pages/topics/vscodenb.ipynb
+            - pages/topics/priors-and-schedules.ipynb
             - pages/topics/caching_guide.qmd
             - pages/topics/state-indexer.ipynb
             # - pages/tutorials/somecode.ipynb
@@ -131,7 +133,6 @@ website:
 
             - pages/internals/MPFR_FINAL_STATUS.md
             
-            - pages/internals/caching_guide.qmd
             - pages/internals/caching_architecture.md
             - pages/internals/caching.qmd
 
@@ -145,6 +146,7 @@ website:
             - pages/internals/svgd_trace_eval.qmd
             - pages/internals/preconditioning.md
             - pages/internals/svgd_step_sizes.qmd
+            - pages/internals/svgd_learning_rate.qmd
 
             - href: https://github.com/munch-group/phasic/issues
               text: Issue Tracker
