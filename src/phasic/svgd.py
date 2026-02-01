@@ -3910,17 +3910,17 @@ class SVGD:
         n_observations = float(self.observed_data.shape[0])
         lr_scale = 1.0 / max(1.0, n_observations / 1000.0)  # Scale down for > 1000 observations
 
-        # Default to Adamelia unless user explicitly provided learning_rate, schedule, or regularization
-        # This provides adaptive learning rates out-of-the-box for typical SVGD workloads
-        use_optimizer_default = (
-            optimizer is None and
-            learning_rate is None and  # Not explicitly provided
-            regularization == 0.0  # No moment regularization (often needs more careful step size control)
-        )
-
-        if use_optimizer_default:
-            # Use Adamelia with default parameters as the optimizer
-            optimizer = Adam()
+        if optimizer is not None:
+            if learning_rate is not None:
+                raise ValueError(
+                    "Cannot provide both optimizer and learning_rate. "
+                    "The optimizer has its own learning rate."
+                )
+            if regularization:
+                raise ValueError(
+                    "When using an optimizer, regularization must be 0.0. "
+                    "Moment regularization requires fixed learning rates."
+                )
             self.step_schedule = None  # Not used when optimizer is set
             self.learning_rate = None
             self.lr_scale = lr_scale
