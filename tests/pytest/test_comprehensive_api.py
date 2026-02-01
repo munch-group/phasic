@@ -4,10 +4,10 @@ Comprehensive test suite for the phasic Python API.
 Tests all core functionality of the Graph, Vertex, and Edge classes.
 """
 
+from phasic import Graph, Vertex, Edge, MatrixRepresentation
 import numpy as np
 import phasic as ptd
-from phasic import Graph, Vertex, Edge, MatrixRepresentation
-
+import pytest
 
 def approx(a, b, rel=1e-5):
     """Check if two values are approximately equal."""
@@ -95,8 +95,9 @@ class TestVertexOperations:
         assert found is not None
         assert found == v
 
-        not_found = g.find_vertex([99])
-        assert not_found is None
+        with pytest.raises(RuntimeError):
+           not_found = g.find_vertex([99])
+#        assert not_found is None
 
     def test_vertex_at(self):
         """Test accessing vertices by index."""
@@ -265,11 +266,11 @@ class TestMatrixOperations:
         start = g_orig.starting_vertex()
         v1 = g_orig.find_or_create_vertex([10])
         v2 = g_orig.find_or_create_vertex([20])
-
+        v3 = g_orig.find_or_create_vertex([30])
         start.add_edge(v1, 0.7)
         start.add_edge(v2, 0.3)
         v1.add_edge(v2, 1.5)
-        g_orig.normalize()
+        v2.add_edge(v3, 1.5)
 
         # Convert to matrices and back
         matrices = g_orig.as_matrices()
@@ -278,8 +279,8 @@ class TestMatrixOperations:
         # Compare PDFs
         times = [0.5, 1.0, 2.0]
         for t in times:
-            pdf_orig = g_orig.pdf(t, 100)
-            pdf_recon = g_recon.pdf(t, 100)
+            pdf_orig = g_orig.pdf(t)
+            pdf_recon = g_recon.pdf(t)
             assert pdf_orig == pytest.approx(pdf_recon, rel=1e-5)
 
 
@@ -290,11 +291,15 @@ class TestDistributionComputations:
         """Test PDF computation."""
         g = Graph(1)
         start = g.starting_vertex()
-        v = g.find_or_create_vertex([1])
-        start.add_edge(v, 1.0)
-        g.normalize()
+        v1 = g.find_or_create_vertex([10])
+        v2 = g.find_or_create_vertex([20])
+        v3 = g.find_or_create_vertex([30])
+        start.add_edge(v1, 0.7)
+        start.add_edge(v2, 0.3)
+        v1.add_edge(v2, 1.5)
+        v2.add_edge(v3, 1.5)
 
-        pdf = g.pdf(1.0, 100)
+        pdf = g.pdf(1.0)
         assert pdf >= 0
         assert pdf < float('inf')
 
@@ -302,22 +307,32 @@ class TestDistributionComputations:
         """Test CDF computation."""
         g = Graph(1)
         start = g.starting_vertex()
-        v = g.find_or_create_vertex([1])
-        start.add_edge(v, 1.0)
-        g.normalize()
+        v1 = g.find_or_create_vertex([10])
+        v2 = g.find_or_create_vertex([20])
+        v3 = g.find_or_create_vertex([30])
+        start.add_edge(v1, 0.7)
+        start.add_edge(v2, 0.3)
+        v1.add_edge(v2, 1.5)
+        v2.add_edge(v3, 1.5)
 
-        cdf = g.cdf(1.0, 100)
+        cdf = g.cdf(1.0)
         assert 0 <= cdf <= 1
 
     def test_pmf_discrete(self):
         """Test discrete PMF computation."""
         g = Graph(1)
         start = g.starting_vertex()
-        v = g.find_or_create_vertex([1])
-        start.add_edge(v, 1.0)
-        g.normalize()
+        v1 = g.find_or_create_vertex([10])
+        v2 = g.find_or_create_vertex([20])
+        v3 = g.find_or_create_vertex([30])
+        start.add_edge(v1, 0.7)
+        start.add_edge(v2, 0.3)
+        v1.add_edge(v2, 1.5)
+        v2.add_edge(v3, 1.5)
 
-        pmf = g.pmf_discrete(5)
+        _ = g.discretize(0.1)
+
+        pmf = g.pdf(5)
         assert pmf >= 0
         assert pmf <= 1
 
@@ -325,34 +340,49 @@ class TestDistributionComputations:
         """Test discrete CDF computation."""
         g = Graph(1)
         start = g.starting_vertex()
-        v = g.find_or_create_vertex([1])
-        start.add_edge(v, 1.0)
-        g.normalize()
+        v1 = g.find_or_create_vertex([10])
+        v2 = g.find_or_create_vertex([20])
+        v3 = g.find_or_create_vertex([30])
+        start.add_edge(v1, 0.7)
+        start.add_edge(v2, 0.3)
+        v1.add_edge(v2, 1.5)
+        v2.add_edge(v3, 1.5)
 
-        cdf = g.cdf_discrete(5)
+        cdf = g.cdf(5)
         assert 0 <= cdf <= 1
 
     def test_stop_probability(self):
         """Test stop probability computation."""
         g = Graph(1)
         start = g.starting_vertex()
-        v = g.find_or_create_vertex([1])
-        start.add_edge(v, 1.0)
-        g.normalize()
+        v1 = g.find_or_create_vertex([10])
+        v2 = g.find_or_create_vertex([20])
+        v3 = g.find_or_create_vertex([30])
+        start.add_edge(v1, 0.7)
+        start.add_edge(v2, 0.3)
+        v1.add_edge(v2, 1.5)
+        v2.add_edge(v3, 1.5)
 
-        prob = g.stop_probability(1.0, 100)
-        assert 0 <= prob <= 1
+        probs = g.stop_probability(1.0)
+        assert all([0 <= prob <= 1 for prob in probs])
 
     def test_stop_probability_discrete(self):
         """Test discrete stop probability."""
         g = Graph(1)
         start = g.starting_vertex()
-        v = g.find_or_create_vertex([1])
-        start.add_edge(v, 1.0)
-        g.normalize()
+        v1 = g.find_or_create_vertex([10])
+        v2 = g.find_or_create_vertex([20])
+        v3 = g.find_or_create_vertex([30])
+        start.add_edge(v1, 0.7)
+        start.add_edge(v2, 0.3)
+        v1.add_edge(v2, 1.5)
+        v2.add_edge(v3, 1.5)
 
-        prob = g.stop_probability_discrete(5)
-        assert 0 <= prob <= 1
+        _ = g.discretize(0.1)
+
+        assert all([0 <= prob <= 1 for prob in g.stop_probability(1)])
+        assert all([0 <= prob <= 1 for prob in g.stop_probability(3)])
+        assert all([0 <= prob <= 1 for prob in g.stop_probability(5)])
 
 
 class TestMoments:
@@ -362,23 +392,24 @@ class TestMoments:
         """Test expectation computation."""
         g = Graph(1)
         start = g.starting_vertex()
-        v = g.find_or_create_vertex([1])
-        start.add_edge(v, 2.0)
-        g.normalize()
+        v1 = g.find_or_create_vertex([10])
+        v2 = g.find_or_create_vertex([20])
+        start.add_edge(v1, 1.0)
+        v1.add_edge(v2, 2)
 
         exp = g.expectation()
         assert exp > 0
         # For exponential with rate 2, expectation should be 0.5
-        assert exp == pytest.approx(0.5, rel=0.1)
+        assert exp == pytest.approx(0.5) == 0.5
 
     def test_variance(self):
         """Test variance computation."""
         g = Graph(1)
         start = g.starting_vertex()
-        v = g.find_or_create_vertex([1])
-        start.add_edge(v, 2.0)
-        g.normalize()
-
+        v1 = g.find_or_create_vertex([10])
+        v2 = g.find_or_create_vertex([20])
+        start.add_edge(v1, 1.0)
+        v1.add_edge(v2, 2)
         var = g.variance()
         assert var >= 0
 
@@ -386,13 +417,13 @@ class TestMoments:
         """Test general moment computation."""
         g = Graph(1)
         start = g.starting_vertex()
-        v = g.find_or_create_vertex([1])
-        start.add_edge(v, 1.0)
-        g.normalize()
+        v1 = g.find_or_create_vertex([10])
+        v2 = g.find_or_create_vertex([20])
+        start.add_edge(v1, 1.0)
+        v1.add_edge(v2, 2)
 
         # Test different moments
-        m1 = g.moments(1)  # First moment (expectation)
-        m2 = g.moments(2)  # Second moment
+        m1, m2 = g.moments(1)  # First and second moment
 
         assert m1 > 0
         assert m2 > 0
@@ -400,27 +431,35 @@ class TestMoments:
 
     def test_covariance(self):
         """Test covariance computation."""
-        g = Graph(2)
+        g = Graph(1)
         start = g.starting_vertex()
-        v = g.find_or_create_vertex([1, 1])
-        start.add_edge(v, 1.0)
-        g.normalize()
+        v1 = g.find_or_create_vertex([10])
+        v2 = g.find_or_create_vertex([20])
+        v3 = g.find_or_create_vertex([30])
+        v4 = g.find_or_create_vertex([40])
+        start.add_edge(v1, 0.5)
+        start.add_edge(v2, 0.5)
+        #v1.add_edge(v2, 1.5)
+        v2.add_edge(v3, 1.5)
+        v1.add_edge(v4, 1.5)
+        v3.add_edge(v4, 1.5)
 
-        # Test with rewards
-        rewards = np.array([[1, 0], [0, 1]], dtype=float)
-        cov = g.covariance(rewards)
-        assert cov.shape == (2, 2)
+        assert pytest.approx(g.covariance([0, 1, 0, 0, 0], [0, 0, 1, 0, 0]), rel=1e-6) == -10/90
+        assert pytest.approx(g.covariance([0, 0, 1, 0, 0], [0, 0, 0, 1, 0]), rel=1e-6) == 10/90
 
     def test_expected_waiting_time(self):
         """Test expected waiting time."""
         g = Graph(1)
         start = g.starting_vertex()
-        v = g.find_or_create_vertex([1])
-        start.add_edge(v, 2.0)
-        g.normalize()
+        v1 = g.find_or_create_vertex([10])
+        v2 = g.find_or_create_vertex([20])
+        v3 = g.find_or_create_vertex([30])
+        start.add_edge(v1, 1.0)
+        v1.add_edge(v2, 2)
+        v2.add_edge(v3, 2)
+        
+        assert pytest.approx(g.expected_waiting_time()) == [1.0, 1.0, 0.5, 0.0]
 
-        wait_time = g.expected_waiting_time()
-        assert wait_time > 0
 
     def test_expectation_discrete(self):
         """Test discrete expectation."""

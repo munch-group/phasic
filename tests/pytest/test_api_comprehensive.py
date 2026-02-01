@@ -5,11 +5,12 @@ Tests all core functionality of the Graph, Vertex, and Edge classes.
 Standalone version that doesn't require pytest.
 """
 
+from phasic import Graph, Vertex, Edge, MatrixRepresentation
+import pytest
 import numpy as np
 import sys
 import traceback
 import phasic as ptd
-from phasic import Graph, Vertex, Edge, MatrixRepresentation
 
 
 def run_test(test_func, test_name):
@@ -249,27 +250,26 @@ def test_round_trip_matrices():
     start = g_orig.starting_vertex()
     v1 = g_orig.find_or_create_vertex([10])
     v2 = g_orig.find_or_create_vertex([20])
+    v3 = g_orig.find_or_create_vertex([30])
 
     start.add_edge(v1, 0.7)
     start.add_edge(v2, 0.3)
     v1.add_edge(v2, 1.5)
-    g_orig.normalize()
+    v2.add_edge(v3, 1.5)
 
     # Convert to matrices and back
     matrices = g_orig.as_matrices()
 
-    # Normalize IPV to sum to 1
-    ipv_normalized = matrices.ipv / matrices.ipv.sum()
+    assert pytest.approx(matrices.ipv.sum()) == 1.0
 
-    g_recon = Graph.from_matrices(ipv_normalized, matrices.sim, matrices.states)
+    g_recon = Graph.from_matrices(matrices.ipv, matrices.sim, matrices.states)
 
     # Compare PDFs
     times = [0.5, 1.0, 2.0]
     for t in times:
-        pdf_orig = g_orig.pdf(t, 100)
-        pdf_recon = g_recon.pdf(t, 100)
+        pdf_orig = g_orig.pdf(t)
+        pdf_recon = g_recon.pdf(t)
         assert abs(pdf_orig - pdf_recon) < 1e-4
-
 
 # ============================================================================
 # Distribution Computations Tests
@@ -283,7 +283,7 @@ def test_pdf_continuous():
     start.add_edge(v, 1.0)
     g.normalize()
 
-    pdf = g.pdf(1.0, 100)
+    pdf = g.pdf(1.0)
     assert pdf >= 0
     assert pdf < float('inf')
 
@@ -296,7 +296,7 @@ def test_cdf_continuous():
     start.add_edge(v, 1.0)
     g.normalize()
 
-    cdf = g.cdf(1.0, 100)
+    cdf = g.cdf(1.0)
     assert 0 <= cdf <= 1
 
 
@@ -308,7 +308,7 @@ def test_pmf_discrete():
     start.add_edge(v, 1.0)
     g.normalize()
 
-    pmf = g.pmf_discrete(5)
+    pmf = g.pdf(5)
     assert pmf >= 0
     assert pmf <= 1
 
@@ -321,9 +321,10 @@ def test_expectation():
     """Test expectation computation."""
     g = Graph(1)
     start = g.starting_vertex()
-    v = g.find_or_create_vertex([1])
-    start.add_edge(v, 2.0)
-    g.normalize()
+    v1 = g.find_or_create_vertex([1])
+    v2 = g.find_or_create_vertex([2])
+    start.add_edge(v1, 2.0)
+    v1.add_edge(v2, 2.0)
 
     exp = g.expectation()
     assert exp > 0
@@ -335,9 +336,10 @@ def test_variance():
     """Test variance computation."""
     g = Graph(1)
     start = g.starting_vertex()
-    v = g.find_or_create_vertex([1])
-    start.add_edge(v, 2.0)
-    g.normalize()
+    v1 = g.find_or_create_vertex([1])
+    v2 = g.find_or_create_vertex([2])
+    start.add_edge(v1, 2.0)
+    v1.add_edge(v2, 2.0)
 
     var = g.variance()
     assert var >= 0
@@ -347,9 +349,10 @@ def test_moments():
     """Test general moment computation."""
     g = Graph(1)
     start = g.starting_vertex()
-    v = g.find_or_create_vertex([1])
-    start.add_edge(v, 1.0)
-    g.normalize()
+    v1 = g.find_or_create_vertex([1])
+    v2 = g.find_or_create_vertex([2])
+    start.add_edge(v1, 2.0)
+    v1.add_edge(v2, 2.0)
 
     # Test different moments (returns list/array)
     m1_list = g.moments(1)  # First moment (expectation)
@@ -372,11 +375,12 @@ def test_sample_continuous():
     """Test continuous sampling."""
     g = Graph(1)
     start = g.starting_vertex()
-    v = g.find_or_create_vertex([1])
-    start.add_edge(v, 1.0)
-    g.normalize()
+    v1 = g.find_or_create_vertex([1])
+    v2 = g.find_or_create_vertex([2])
+    start.add_edge(v1, 2.0)
+    v1.add_edge(v2, 2.0)
 
-    sample_result = g.sample()
+    sample_result = g.sample(10)
     # sample() may return list or array
     sample = sample_result[0] if hasattr(sample_result, '__len__') else sample_result
     assert sample >= 0
@@ -386,11 +390,14 @@ def test_sample_discrete():
     """Test discrete sampling."""
     g = Graph(1)
     start = g.starting_vertex()
-    v = g.find_or_create_vertex([1])
-    start.add_edge(v, 1.0)
-    g.normalize()
+    v1 = g.find_or_create_vertex([1])
+    v2 = g.find_or_create_vertex([2])
+    start.add_edge(v1, 2.0)
+    v1.add_edge(v2, 2.0)
+    
+    rewards = g.discretize(0.1)
 
-    sample_result = g.sample_discrete()
+    sample_result = g.sample(10)
     # sample_discrete() may return list or array
     sample = sample_result[0] if hasattr(sample_result, '__len__') else sample_result
     assert sample >= 0
@@ -405,15 +412,20 @@ def test_discretize_basic():
     """Test basic discretization."""
     g = Graph(1)
     start = g.starting_vertex()
-    v = g.find_or_create_vertex([1])
-    start.add_edge(v, 1.0)
-    g.normalize()
+    v1 = g.find_or_create_vertex([1])
+    v2 = g.find_or_create_vertex([2])
+    start.add_edge(v1, 2.0)
+    v1.add_edge(v2, 2.0)
+    vertices_length_before = g.vertices_length()
 
-    g_discrete, rewards = g.discretize(reward_rate=0.1)
+    rewards = g.discretize(0.1)
+    assert g.is_discrete == True
 
-    assert g_discrete is not None
-    assert g_discrete.vertices_length() >= g.vertices_length()
-    assert rewards.shape[1] == g_discrete.vertices_length()
+    vertices_length_after = g.vertices_length()
+
+    assert g is not None
+    assert vertices_length_after >= vertices_length_before
+    assert rewards.size == vertices_length_after
 
 
 # ============================================================================
@@ -477,7 +489,6 @@ def test_serialize_basic():
     start.add_edge(v1, 0.5)
     start.add_edge(v2, 0.5)
     v1.add_edge(v2, 1.0)
-    g.normalize()
 
     serialized = g.serialize()
 
@@ -485,11 +496,13 @@ def test_serialize_basic():
     assert 'states' in serialized
     assert 'edges' in serialized
     assert 'start_edges' in serialized
-    assert 'state_dim' in serialized
     assert 'n_vertices' in serialized
+    assert 'vertex_indices' in serialized
+    assert 'param_length' in serialized
+    assert 'param_edges' in serialized
+    assert 'start_param_edges' in serialized
 
     # Check dimensions
-    assert serialized['state_dim'] == 2
     assert len(serialized['states']) > 0
 
 
