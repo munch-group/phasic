@@ -3040,6 +3040,103 @@ def _svgd_update_jitted(particles, K, grad_K, grad_log_p, step_size):
     return particles + step_size * phi
 
 
+def _calibrate_learning_rate(theta_init, log_prob_fn, kernel,
+                              parallel_mode='vmap', n_devices=None,
+                              compiled_grad=None, fixed_mask=None,
+                              fixed_values=None, target_fraction=0.02):
+    """Compute a scale-invariant default learning rate via a pilot SVGD step.
+
+    Runs a single evaluation of the SVGD update direction ``phi`` on the
+    initial particles and sets the learning rate so the first step moves
+    particles by ``target_fraction`` of the inter-particle distance::
+
+        lr = target_fraction * characteristic_scale / mean(||phi||)
+
+    Parameters
+    ----------
+    theta_init : array (n_particles, theta_dim)
+        Initial particle positions.
+    log_prob_fn : callable
+        Log probability function: theta -> scalar.
+    kernel : SVGDKernel
+        Kernel object for computing K and grad_K.
+    parallel_mode : str, default='vmap'
+        Parallelization strategy: 'vmap', 'pmap', or 'none'.
+    n_devices : int, optional
+        Number of devices for pmap.
+    compiled_grad : callable, optional
+        Precompiled gradient function.
+    fixed_mask : array, optional
+        Binary mask for fixed parameters.
+    fixed_values : array, optional
+        Values for fixed parameters.
+    target_fraction : float, default=0.02
+        Fraction of inter-particle distance for the first step.
+
+    Returns
+    -------
+    float
+        Calibrated learning rate, clipped to [1e-7, 1.0].
+    """
+    particles = theta_init
+    n_particles = particles.shape[0]
+
+    # Handle fixed parameters: project to learnable subspace
+    if fixed_mask is not None:
+        learnable_indices = jnp.where(fixed_mask == 0)[0]
+        particles_for_grad = particles[:, learnable_indices]
+
+        def log_prob_fn_reduced(theta_learnable):
+            if fixed_values is not None:
+                theta_full = jnp.array(fixed_values)
+            else:
+                theta_full = jnp.ones(len(fixed_mask))
+            theta_full = theta_full.at[learnable_indices].set(theta_learnable)
+            return log_prob_fn(theta_full)
+
+        if compiled_grad is not None:
+            def compiled_grad_reduced(theta_learnable):
+                if fixed_values is not None:
+                    theta_full = jnp.array(fixed_values)
+                else:
+                    theta_full = jnp.ones(len(fixed_mask))
+                theta_full = theta_full.at[learnable_indices].set(theta_learnable)
+                grad_full = compiled_grad(theta_full)
+                return grad_full[learnable_indices]
+            grad_fn = compiled_grad_reduced
+        else:
+            grad_fn = grad(log_prob_fn_reduced)
+    else:
+        particles_for_grad = particles
+        grad_fn = compiled_grad if compiled_grad is not None else grad(log_prob_fn)
+
+    # Compute gradients
+    if parallel_mode == 'vmap':
+        grad_log_p = vmap(grad_fn)(particles_for_grad)
+    else:
+        grad_log_p = jnp.array([grad_fn(p) for p in particles_for_grad])
+
+    # Compute kernel and kernel gradient
+    K, grad_K = kernel.compute_kernel_grad(particles_for_grad)
+
+    # SVGD update direction: phi = (K @ grad_log_p + sum(grad_K)) / n
+    positive_term = jnp.einsum('ij,jk->ik', K, grad_log_p) / n_particles
+    negative_term = jnp.sum(grad_K, axis=1) / n_particles
+    phi = positive_term + negative_term
+
+    # Characteristic scale: median pairwise distance (same as bandwidth heuristic)
+    characteristic_scale = batch_median_heuristic(particles_for_grad)
+
+    # Mean norm of the update direction
+    phi_norm = jnp.mean(jnp.linalg.norm(phi, axis=1))
+
+    lr = float(jnp.clip(
+        target_fraction * characteristic_scale / (phi_norm + 1e-30),
+        1e-7, 1.0
+    ))
+    return lr
+
+
 def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
               parallel_mode='vmap', n_devices=None, fixed_mask=None, fixed_values=None,
               optimizer=None):
@@ -3910,17 +4007,17 @@ class SVGD:
         n_observations = float(self.observed_data.shape[0])
         lr_scale = 1.0 / max(1.0, n_observations / 1000.0)  # Scale down for > 1000 observations
 
-        # Default to Adamelia unless user explicitly provided learning_rate, schedule, or regularization
-        # This provides adaptive learning rates out-of-the-box for typical SVGD workloads
-        use_optimizer_default = (
-            optimizer is None and
-            learning_rate is None and  # Not explicitly provided
-            regularization == 0.0  # No moment regularization (often needs more careful step size control)
-        )
-
-        if use_optimizer_default:
-            # Use Adamelia with default parameters as the optimizer
-            optimizer = Adam()
+        if optimizer is not None:
+            if learning_rate is not None:
+                raise ValueError(
+                    "Cannot provide both optimizer and learning_rate. "
+                    "The optimizer has its own learning rate."
+                )
+            if regularization:
+                raise ValueError(
+                    "When using an optimizer, regularization must be 0.0. "
+                    "Moment regularization requires fixed learning rates."
+                )
             self.step_schedule = None  # Not used when optimizer is set
             self.learning_rate = None
             self.lr_scale = lr_scale
@@ -3939,15 +4036,10 @@ class SVGD:
                     f"({int(n_observations)} observations)"
                 )
         elif learning_rate is None:
-            # User provided optimizer explicitly, or regularization > 0 with no learning_rate
-            # Use a sensible default learning rate
-            default_lr = 0.001
-            scaled_lr = default_lr * lr_scale
-            self.step_schedule = ConstantStepSize(scaled_lr)
-            self.learning_rate = scaled_lr
-            self.lr_scale = lr_scale
-            if regularization > 0.0:
-                logger.debug(f"Using default learning rate {default_lr} (regularization={regularization})")
+            # Defer to pilot calibration in optimize()
+            self.step_schedule = 'auto'
+            self.learning_rate = None
+            self.lr_scale = 1.0  # Pilot handles scale-invariance; no additional scaling
         else:
             raise TypeError(
                 f"learning_rate must be float, StepSizeSchedule, or None, got: {type(learning_rate)}"
@@ -5002,6 +5094,20 @@ class SVGD:
                     rewards=rewards
                 )
 
+            # Auto-calibrate learning rate if needed
+            if self.step_schedule == 'auto':
+                log_prob_fn_pilot = log_prob_factory(self.regularization)
+                calibrated_lr = _calibrate_learning_rate(
+                    self.theta_init, log_prob_fn_pilot, kernel,
+                    parallel_mode=self.parallel_mode,
+                    fixed_mask=self.fixed_mask,
+                    fixed_values=self.fixed_values,
+                )
+                self.step_schedule = ConstantStepSize(calibrated_lr)
+                self.learning_rate = calibrated_lr
+                if self.verbose:
+                    print(f"  Auto-calibrated learning rate: {calibrated_lr:.6f}")
+
             results = run_svgd(
                 log_prob_fn=None,  # Created dynamically per iteration
                 theta_init=self.theta_init,
@@ -5045,6 +5151,20 @@ class SVGD:
                 regularization=self.regularization,
                 rewards=rewards
             )
+
+            # Auto-calibrate learning rate if needed
+            if self.step_schedule == 'auto':
+                calibrated_lr = _calibrate_learning_rate(
+                    self.theta_init, log_prob_fn, kernel,
+                    parallel_mode=self.parallel_mode,
+                    compiled_grad=compiled_grad,
+                    fixed_mask=self.fixed_mask,
+                    fixed_values=self.fixed_values,
+                )
+                self.step_schedule = ConstantStepSize(calibrated_lr)
+                self.learning_rate = calibrated_lr
+                if self.verbose:
+                    print(f"  Auto-calibrated learning rate: {calibrated_lr:.6f}")
 
             # Print info
             if self.verbose:
