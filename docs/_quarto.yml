@@ -68,8 +68,8 @@ website:
 
   navbar:
     logo: PHASIC.png
-    logo-alt: "Phasic"  # For accessibility
-    logo-href: "/index.html"  # Where clicking the logo goes
+    logo-alt: "Phasic"
+    logo-href: "/index.html"
 
     left:
       - href: pages/quickstart.html
@@ -129,8 +129,6 @@ website:
             - pages/internals/architecture.qmd
             - pages/internals/call_tree.qmd
             
-            # - pages/internals/explicit_config_system.qmd
-
             - pages/internals/MPFR_FINAL_STATUS.md
             
             - pages/internals/caching_architecture.md
@@ -150,46 +148,32 @@ website:
 
             - href: https://github.com/munch-group/phasic/issues
               text: Issue Tracker
-        # - galleries/examples/index.qmd
+
 
 lightbox: true
 
 format:
   html:
+    linkcolor: "#0D7D92"
     grid:
       sidebar-width: 330px
       body-width: 900px
       margin-width: 270px
       gutter-width: 1.5rem
-      # margin-left, margin-right, margin-top, margin-bottom
-
-    # theme: [cosmo, numpy.theme, custom.scss] # numpy.theme for code highlighting
-
-    theme: [cosmo, custom.scss] # numpy.theme for code highlighting
+    theme: [cosmo, custom.scss] 
     highlight-style: numpy.theme
-
-    # theme:
-    #   light: [flatly, numpy.theme, custom.scss] 
-    #   dark: [darkly, numpy.theme, custom.scss] 
-
-    # theme: 
-    #   light: [cosmo, numpy.theme]
-    #   dark: [darkly, numpy-dark.theme]    
     css:
       - api/_styles-quartodoc.css
-      - numpy.css  # for code box styles highlighting styles
-      # - styles.css
-      # - custom.css
-      # - numpy-navbar-sidebar.css
     notebook-links: true
     callout-icon: false
-    code-overflow: wrap
+    code-overflow: scroll
+    code-tools:
+      source: repo
     fig-align: center    
     html-math-method: katex
     toc: true
     mermaid:
       theme: neutral     
-    linkcolor: "#0D7D92"
 
 quartodoc:
   package: phasic
@@ -197,8 +181,8 @@ quartodoc:
   # source_dir: ../src/cpp
   style: pkgdown
   dir: api
-  dynamic: true  # Use runtime import for compiled extensions
-  parser: numpy  # Use numpy docstring parser (more lenient)
+  dynamic: true  # use runtime import for compiled extensions
+  parser: numpy  # use numpy docstring parser (more lenient)
   render_interlinks: true
   options:
     signature_name: full
