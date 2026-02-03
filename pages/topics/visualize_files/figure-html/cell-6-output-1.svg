@@ -7,231 +7,232 @@
 <svg width="504pt" height="218pt"
  viewBox="0.00 0.00 504.00 218.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g id="graph0" class="graph" transform="scale(0.666667 0.666667) rotate(0) translate(36 291)">
+<polygon fill="#1f1f1f" stroke="none" points="-36,36 -36,-291 720,-291 720,36 -36,36"/>
 <!-- 0 -->
 <g id="node1" class="node">
 <title>0</title>
-<ellipse fill="#bbbbbb" stroke="black" cx="27" cy="-164" rx="27" ry="18"/>
+<ellipse fill="#777777" stroke="black" cx="27" cy="-164" rx="27" ry="18"/>
 <text xml:space="preserve" text-anchor="middle" x="27" y="-158.97" font-family="Helvetica,Arial,sans-serif" font-size="12.00">S</text>
 </g>
 <!-- 1 -->
 <g id="node2" class="node">
 <title>1</title>
-<ellipse fill="#eeeeee" stroke="black" cx="117" cy="-164" rx="27" ry="18"/>
+<ellipse fill="#c6c6c6" stroke="black" cx="117" cy="-164" rx="27" ry="18"/>
 <text xml:space="preserve" text-anchor="middle" x="117" y="-158.97" font-family="Helvetica,Arial,sans-serif" font-size="12.00">2,2</text>
 </g>
 <!-- 0&#45;&gt;1 -->
 <g id="edge1" class="edge">
 <title>0&#45;&gt;1</title>
-<path fill="none" stroke="#b41c46" d="M54.4,-164C61.89,-164 70.18,-164 78.2,-164"/>
-<polygon fill="#b41c46" stroke="#b41c46" points="78.1,-167.5 88.1,-164 78.1,-160.5 78.1,-167.5"/>
-<text xml:space="preserve" text-anchor="middle" x="83.4" y="-158.97" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#b41c46">1.00</text>
+<path fill="none" stroke="#f8889a" d="M54.4,-164C61.89,-164 70.18,-164 78.2,-164"/>
+<polygon fill="#f8889a" stroke="#f8889a" points="78.1,-167.5 88.1,-164 78.1,-160.5 78.1,-167.5"/>
+<text xml:space="preserve" text-anchor="middle" x="83.4" y="-158.97" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#f8889a">1.00</text>
 </g>
 <!-- 2 -->
 <g id="node3" class="node">
 <title>2</title>
-<ellipse fill="#eeeeee" stroke="black" cx="207" cy="-237" rx="27" ry="18"/>
+<ellipse fill="#c6c6c6" stroke="black" cx="207" cy="-237" rx="27" ry="18"/>
 <text xml:space="preserve" text-anchor="middle" x="207" y="-231.97" font-family="Helvetica,Arial,sans-serif" font-size="12.00">1,3</text>
 </g>
 <!-- 1&#45;&gt;2 -->
 <g id="edge2" class="edge">
 <title>1&#45;&gt;2</title>
-<path fill="none" stroke="#85511a" d="M134.55,-177.73C147.5,-188.47 165.72,-203.59 180.53,-215.87"/>
-<polygon fill="#85511a" stroke="#85511a" points="178.13,-218.43 188.06,-222.12 182.6,-213.04 178.13,-218.43"/>
-<text xml:space="preserve" text-anchor="middle" x="150.13" y="-188.9" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#85511a">1.00</text>
+<path fill="none" stroke="#ee9537" d="M134.55,-177.73C147.5,-188.47 165.72,-203.59 180.53,-215.87"/>
+<polygon fill="#ee9537" stroke="#ee9537" points="178.13,-218.43 188.06,-222.12 182.6,-213.04 178.13,-218.43"/>
+<text xml:space="preserve" text-anchor="middle" x="150.13" y="-188.9" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#ee9537">1.00</text>
 </g>
 <!-- 3 -->
 <g id="node4" class="node">
 <title>3</title>
-<ellipse fill="#eeeeee" stroke="black" cx="297" cy="-164" rx="27" ry="18"/>
+<ellipse fill="#c6c6c6" stroke="black" cx="297" cy="-164" rx="27" ry="18"/>
 <text xml:space="preserve" text-anchor="middle" x="297" y="-158.97" font-family="Helvetica,Arial,sans-serif" font-size="12.00">1,2</text>
 </g>
 <!-- 1&#45;&gt;3 -->
 <g id="edge3" class="edge">
 <title>1&#45;&gt;3</title>
-<path fill="none" stroke="#685e1a" d="M144.26,-164C174.37,-164 223.96,-164 258.21,-164"/>
-<polygon fill="#685e1a" stroke="#685e1a" points="258.11,-167.5 268.11,-164 258.11,-160.5 258.11,-167.5"/>
-<text xml:space="preserve" text-anchor="middle" x="195.26" y="-152.6" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#685e1a">1.00</text>
+<path fill="none" stroke="#bcaa36" d="M144.26,-164C174.37,-164 223.96,-164 258.21,-164"/>
+<polygon fill="#bcaa36" stroke="#bcaa36" points="258.11,-167.5 268.11,-164 258.11,-160.5 258.11,-167.5"/>
+<text xml:space="preserve" text-anchor="middle" x="195.26" y="-152.6" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#bcaa36">1.00</text>
 </g>
 <!-- 4 -->
 <g id="node5" class="node">
 <title>4</title>
-<ellipse fill="#eeeeee" stroke="black" cx="207" cy="-91" rx="27" ry="18"/>
+<ellipse fill="#c6c6c6" stroke="black" cx="207" cy="-91" rx="27" ry="18"/>
 <text xml:space="preserve" text-anchor="middle" x="207" y="-85.97" font-family="Helvetica,Arial,sans-serif" font-size="12.00">2,1</text>
 </g>
 <!-- 1&#45;&gt;4 -->
 <g id="edge4" class="edge">
 <title>1&#45;&gt;4</title>
-<path fill="none" stroke="#46671a" d="M134.55,-150.27C147.5,-139.53 165.72,-124.41 180.53,-112.13"/>
-<polygon fill="#46671a" stroke="#46671a" points="182.6,-114.96 188.06,-105.88 178.13,-109.57 182.6,-114.96"/>
-<text xml:space="preserve" text-anchor="middle" x="150.13" y="-116.3" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#46671a">1.00</text>
+<path fill="none" stroke="#82b936" d="M134.55,-150.27C147.5,-139.53 165.72,-124.41 180.53,-112.13"/>
+<polygon fill="#82b936" stroke="#82b936" points="182.6,-114.96 188.06,-105.88 178.13,-109.57 182.6,-114.96"/>
+<text xml:space="preserve" text-anchor="middle" x="150.13" y="-116.3" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#82b936">1.00</text>
 </g>
 <!-- 2&#45;&gt;3 -->
 <g id="edge6" class="edge">
 <title>2&#45;&gt;3</title>
-<path fill="none" stroke="#1d6862" d="M224.55,-223.27C237.5,-212.53 255.72,-197.41 270.53,-185.13"/>
-<polygon fill="#1d6862" stroke="#1d6862" points="272.6,-187.96 278.06,-178.88 268.13,-182.57 272.6,-187.96"/>
-<text xml:space="preserve" text-anchor="middle" x="240.13" y="-189.3" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#1d6862">1.00</text>
+<path fill="none" stroke="#3bbbb2" d="M224.55,-223.27C237.5,-212.53 255.72,-197.41 270.53,-185.13"/>
+<polygon fill="#3bbbb2" stroke="#3bbbb2" points="272.6,-187.96 278.06,-178.88 268.13,-182.57 272.6,-187.96"/>
+<text xml:space="preserve" text-anchor="middle" x="240.13" y="-189.3" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#3bbbb2">1.00</text>
 </g>
 <!-- 5 -->
 <g id="node6" class="node">
 <title>5</title>
-<ellipse fill="#eeeeee" stroke="black" cx="387" cy="-237" rx="27" ry="18"/>
+<ellipse fill="#c6c6c6" stroke="black" cx="387" cy="-237" rx="27" ry="18"/>
 <text xml:space="preserve" text-anchor="middle" x="387" y="-231.97" font-family="Helvetica,Arial,sans-serif" font-size="12.00">0,3</text>
 </g>
 <!-- 2&#45;&gt;5 -->
 <g id="edge5" class="edge">
 <title>2&#45;&gt;5</title>
-<path fill="none" stroke="#1b6a48" d="M234.26,-237C264.37,-237 313.96,-237 348.21,-237"/>
-<polygon fill="#1b6a48" stroke="#1b6a48" points="348.11,-240.5 358.11,-237 348.11,-233.5 348.11,-240.5"/>
-<text xml:space="preserve" text-anchor="middle" x="285.26" y="-225.6" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#1b6a48">1.00</text>
+<path fill="none" stroke="#38bf85" d="M234.26,-237C264.37,-237 313.96,-237 348.21,-237"/>
+<polygon fill="#38bf85" stroke="#38bf85" points="348.11,-240.5 358.11,-237 348.11,-233.5 348.11,-240.5"/>
+<text xml:space="preserve" text-anchor="middle" x="285.26" y="-225.6" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#38bf85">1.00</text>
 </g>
 <!-- 3&#45;&gt;5 -->
 <g id="edge7" class="edge">
 <title>3&#45;&gt;5</title>
-<path fill="none" stroke="#1e6577" d="M314.55,-177.73C327.5,-188.47 345.72,-203.59 360.53,-215.87"/>
-<polygon fill="#1e6577" stroke="#1e6577" points="358.13,-218.43 368.06,-222.12 362.6,-213.04 358.13,-218.43"/>
-<text xml:space="preserve" text-anchor="middle" x="330.13" y="-188.9" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#1e6577">1.00</text>
+<path fill="none" stroke="#3db7d6" d="M314.55,-177.73C327.5,-188.47 345.72,-203.59 360.53,-215.87"/>
+<polygon fill="#3db7d6" stroke="#3db7d6" points="358.13,-218.43 368.06,-222.12 362.6,-213.04 358.13,-218.43"/>
+<text xml:space="preserve" text-anchor="middle" x="330.13" y="-188.9" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#3db7d6">1.00</text>
 </g>
 <!-- 6 -->
 <g id="node7" class="node">
 <title>6</title>
-<ellipse fill="#eeeeee" stroke="black" cx="477" cy="-164" rx="27" ry="18"/>
+<ellipse fill="#c6c6c6" stroke="black" cx="477" cy="-164" rx="27" ry="18"/>
 <text xml:space="preserve" text-anchor="middle" x="477" y="-158.97" font-family="Helvetica,Arial,sans-serif" font-size="12.00">0,2</text>
 </g>
 <!-- 3&#45;&gt;6 -->
 <g id="edge8" class="edge">
 <title>3&#45;&gt;6</title>
-<path fill="none" stroke="#235cad" d="M324.26,-164C354.37,-164 403.96,-164 438.21,-164"/>
-<polygon fill="#235cad" stroke="#235cad" points="438.11,-167.5 448.11,-164 438.11,-160.5 438.11,-167.5"/>
-<text xml:space="preserve" text-anchor="middle" x="375.26" y="-152.6" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#235cad">1.00</text>
+<path fill="none" stroke="#86a8f6" d="M324.26,-164C354.37,-164 403.96,-164 438.21,-164"/>
+<polygon fill="#86a8f6" stroke="#86a8f6" points="438.11,-167.5 448.11,-164 438.11,-160.5 438.11,-167.5"/>
+<text xml:space="preserve" text-anchor="middle" x="375.26" y="-152.6" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#86a8f6">1.00</text>
 </g>
 <!-- 7 -->
 <g id="node8" class="node">
 <title>7</title>
-<ellipse fill="#eeeeee" stroke="black" cx="387" cy="-91" rx="27" ry="18"/>
+<ellipse fill="#c6c6c6" stroke="black" cx="387" cy="-91" rx="27" ry="18"/>
 <text xml:space="preserve" text-anchor="middle" x="387" y="-85.97" font-family="Helvetica,Arial,sans-serif" font-size="12.00">1,1</text>
 </g>
 <!-- 3&#45;&gt;7 -->
 <g id="edge9" class="edge">
 <title>3&#45;&gt;7</title>
-<path fill="none" stroke="#9225ba" d="M314.55,-150.27C327.5,-139.53 345.72,-124.41 360.53,-112.13"/>
-<polygon fill="#9225ba" stroke="#9225ba" points="362.6,-114.96 368.06,-105.88 358.13,-109.57 362.6,-114.96"/>
-<text xml:space="preserve" text-anchor="middle" x="330.13" y="-116.3" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#9225ba">1.00</text>
+<path fill="none" stroke="#d28ef6" d="M314.55,-150.27C327.5,-139.53 345.72,-124.41 360.53,-112.13"/>
+<polygon fill="#d28ef6" stroke="#d28ef6" points="362.6,-114.96 368.06,-105.88 358.13,-109.57 362.6,-114.96"/>
+<text xml:space="preserve" text-anchor="middle" x="330.13" y="-116.3" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#d28ef6">1.00</text>
 </g>
 <!-- 4&#45;&gt;3 -->
 <g id="edge10" class="edge">
 <title>4&#45;&gt;3</title>
-<path fill="none" stroke="#a72086" d="M224.55,-104.73C237.5,-115.47 255.72,-130.59 270.53,-142.87"/>
-<polygon fill="#a72086" stroke="#a72086" points="268.13,-145.43 278.06,-149.12 272.6,-140.04 268.13,-145.43"/>
-<text xml:space="preserve" text-anchor="middle" x="240.13" y="-115.9" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#a72086">1.00</text>
+<path fill="none" stroke="#f780d2" d="M224.55,-104.73C237.5,-115.47 255.72,-130.59 270.53,-142.87"/>
+<polygon fill="#f780d2" stroke="#f780d2" points="268.13,-145.43 278.06,-149.12 272.6,-140.04 268.13,-145.43"/>
+<text xml:space="preserve" text-anchor="middle" x="240.13" y="-115.9" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#f780d2">1.00</text>
 </g>
 <!-- 4&#45;&gt;7 -->
 <g id="edge11" class="edge">
 <title>4&#45;&gt;7</title>
-<path fill="none" stroke="#b41c46" d="M234.26,-91C264.37,-91 313.96,-91 348.21,-91"/>
-<polygon fill="#b41c46" stroke="#b41c46" points="348.11,-94.5 358.11,-91 348.11,-87.5 348.11,-94.5"/>
-<text xml:space="preserve" text-anchor="middle" x="285.26" y="-79.6" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#b41c46">1.00</text>
+<path fill="none" stroke="#f8889a" d="M234.26,-91C264.37,-91 313.96,-91 348.21,-91"/>
+<polygon fill="#f8889a" stroke="#f8889a" points="348.11,-94.5 358.11,-91 348.11,-87.5 348.11,-94.5"/>
+<text xml:space="preserve" text-anchor="middle" x="285.26" y="-79.6" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#f8889a">1.00</text>
 </g>
 <!-- 8 -->
 <g id="node9" class="node">
 <title>8</title>
-<ellipse fill="#eeeeee" stroke="black" cx="297" cy="-18" rx="27" ry="18"/>
+<ellipse fill="#c6c6c6" stroke="black" cx="297" cy="-18" rx="27" ry="18"/>
 <text xml:space="preserve" text-anchor="middle" x="297" y="-12.97" font-family="Helvetica,Arial,sans-serif" font-size="12.00">2,0</text>
 </g>
 <!-- 4&#45;&gt;8 -->
 <g id="edge12" class="edge">
 <title>4&#45;&gt;8</title>
-<path fill="none" stroke="#85511a" d="M224.55,-77.27C237.5,-66.53 255.72,-51.41 270.53,-39.13"/>
-<polygon fill="#85511a" stroke="#85511a" points="272.6,-41.96 278.06,-32.88 268.13,-36.57 272.6,-41.96"/>
-<text xml:space="preserve" text-anchor="middle" x="240.13" y="-43.3" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#85511a">1.00</text>
+<path fill="none" stroke="#ee9537" d="M224.55,-77.27C237.5,-66.53 255.72,-51.41 270.53,-39.13"/>
+<polygon fill="#ee9537" stroke="#ee9537" points="272.6,-41.96 278.06,-32.88 268.13,-36.57 272.6,-41.96"/>
+<text xml:space="preserve" text-anchor="middle" x="240.13" y="-43.3" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#ee9537">1.00</text>
 </g>
 <!-- 5&#45;&gt;6 -->
 <g id="edge13" class="edge">
 <title>5&#45;&gt;6</title>
-<path fill="none" stroke="#685e1a" d="M404.55,-223.27C417.5,-212.53 435.72,-197.41 450.53,-185.13"/>
-<polygon fill="#685e1a" stroke="#685e1a" points="452.6,-187.96 458.06,-178.88 448.13,-182.57 452.6,-187.96"/>
-<text xml:space="preserve" text-anchor="middle" x="420.13" y="-189.3" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#685e1a">1.00</text>
+<path fill="none" stroke="#bcaa36" d="M404.55,-223.27C417.5,-212.53 435.72,-197.41 450.53,-185.13"/>
+<polygon fill="#bcaa36" stroke="#bcaa36" points="452.6,-187.96 458.06,-178.88 448.13,-182.57 452.6,-187.96"/>
+<text xml:space="preserve" text-anchor="middle" x="420.13" y="-189.3" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#bcaa36">1.00</text>
 </g>
 <!-- 9 -->
 <g id="node10" class="node">
 <title>9</title>
-<ellipse fill="#eeeeee" stroke="black" cx="567" cy="-91" rx="27" ry="18"/>
+<ellipse fill="#c6c6c6" stroke="black" cx="567" cy="-91" rx="27" ry="18"/>
 <text xml:space="preserve" text-anchor="middle" x="567" y="-85.97" font-family="Helvetica,Arial,sans-serif" font-size="12.00">0,1</text>
 </g>
 <!-- 6&#45;&gt;9 -->
 <g id="edge14" class="edge">
 <title>6&#45;&gt;9</title>
-<path fill="none" stroke="#46671a" d="M494.55,-150.27C507.5,-139.53 525.72,-124.41 540.53,-112.13"/>
-<polygon fill="#46671a" stroke="#46671a" points="542.6,-114.96 548.06,-105.88 538.13,-109.57 542.6,-114.96"/>
-<text xml:space="preserve" text-anchor="middle" x="510.13" y="-116.3" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#46671a">1.00</text>
+<path fill="none" stroke="#82b936" d="M494.55,-150.27C507.5,-139.53 525.72,-124.41 540.53,-112.13"/>
+<polygon fill="#82b936" stroke="#82b936" points="542.6,-114.96 548.06,-105.88 538.13,-109.57 542.6,-114.96"/>
+<text xml:space="preserve" text-anchor="middle" x="510.13" y="-116.3" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#82b936">1.00</text>
 </g>
 <!-- 7&#45;&gt;6 -->
 <g id="edge15" class="edge">
 <title>7&#45;&gt;6</title>
-<path fill="none" stroke="#1b6a48" d="M404.55,-104.73C417.5,-115.47 435.72,-130.59 450.53,-142.87"/>
-<polygon fill="#1b6a48" stroke="#1b6a48" points="448.13,-145.43 458.06,-149.12 452.6,-140.04 448.13,-145.43"/>
-<text xml:space="preserve" text-anchor="middle" x="420.13" y="-115.9" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#1b6a48">1.00</text>
+<path fill="none" stroke="#38bf85" d="M404.55,-104.73C417.5,-115.47 435.72,-130.59 450.53,-142.87"/>
+<polygon fill="#38bf85" stroke="#38bf85" points="448.13,-145.43 458.06,-149.12 452.6,-140.04 448.13,-145.43"/>
+<text xml:space="preserve" text-anchor="middle" x="420.13" y="-115.9" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#38bf85">1.00</text>
 </g>
 <!-- 7&#45;&gt;9 -->
 <g id="edge16" class="edge">
 <title>7&#45;&gt;9</title>
-<path fill="none" stroke="#1d6862" d="M414.26,-91C444.37,-91 493.96,-91 528.21,-91"/>
-<polygon fill="#1d6862" stroke="#1d6862" points="528.11,-94.5 538.11,-91 528.11,-87.5 528.11,-94.5"/>
-<text xml:space="preserve" text-anchor="middle" x="465.26" y="-79.6" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#1d6862">1.00</text>
+<path fill="none" stroke="#3bbbb2" d="M414.26,-91C444.37,-91 493.96,-91 528.21,-91"/>
+<polygon fill="#3bbbb2" stroke="#3bbbb2" points="528.11,-94.5 538.11,-91 528.11,-87.5 528.11,-94.5"/>
+<text xml:space="preserve" text-anchor="middle" x="465.26" y="-79.6" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#3bbbb2">1.00</text>
 </g>
 <!-- 10 -->
 <g id="node11" class="node">
 <title>10</title>
-<ellipse fill="#eeeeee" stroke="black" cx="477" cy="-18" rx="27" ry="18"/>
+<ellipse fill="#c6c6c6" stroke="black" cx="477" cy="-18" rx="27" ry="18"/>
 <text xml:space="preserve" text-anchor="middle" x="477" y="-12.97" font-family="Helvetica,Arial,sans-serif" font-size="12.00">1,0</text>
 </g>
 <!-- 7&#45;&gt;10 -->
 <g id="edge17" class="edge">
 <title>7&#45;&gt;10</title>
-<path fill="none" stroke="#1e6577" d="M404.55,-77.27C417.5,-66.53 435.72,-51.41 450.53,-39.13"/>
-<polygon fill="#1e6577" stroke="#1e6577" points="452.6,-41.96 458.06,-32.88 448.13,-36.57 452.6,-41.96"/>
-<text xml:space="preserve" text-anchor="middle" x="420.13" y="-43.3" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#1e6577">1.00</text>
+<path fill="none" stroke="#3db7d6" d="M404.55,-77.27C417.5,-66.53 435.72,-51.41 450.53,-39.13"/>
+<polygon fill="#3db7d6" stroke="#3db7d6" points="452.6,-41.96 458.06,-32.88 448.13,-36.57 452.6,-41.96"/>
+<text xml:space="preserve" text-anchor="middle" x="420.13" y="-43.3" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#3db7d6">1.00</text>
 </g>
 <!-- 8&#45;&gt;7 -->
 <g id="edge18" class="edge">
 <title>8&#45;&gt;7</title>
-<path fill="none" stroke="#235cad" d="M314.55,-31.73C327.5,-42.47 345.72,-57.59 360.53,-69.87"/>
-<polygon fill="#235cad" stroke="#235cad" points="358.13,-72.43 368.06,-76.12 362.6,-67.04 358.13,-72.43"/>
-<text xml:space="preserve" text-anchor="middle" x="330.13" y="-42.9" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#235cad">1.00</text>
+<path fill="none" stroke="#86a8f6" d="M314.55,-31.73C327.5,-42.47 345.72,-57.59 360.53,-69.87"/>
+<polygon fill="#86a8f6" stroke="#86a8f6" points="358.13,-72.43 368.06,-76.12 362.6,-67.04 358.13,-72.43"/>
+<text xml:space="preserve" text-anchor="middle" x="330.13" y="-42.9" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#86a8f6">1.00</text>
 </g>
 <!-- 8&#45;&gt;10 -->
 <g id="edge19" class="edge">
 <title>8&#45;&gt;10</title>
-<path fill="none" stroke="#9225ba" d="M324.26,-18C354.37,-18 403.96,-18 438.21,-18"/>
-<polygon fill="#9225ba" stroke="#9225ba" points="438.11,-21.5 448.11,-18 438.11,-14.5 438.11,-21.5"/>
-<text xml:space="preserve" text-anchor="middle" x="375.26" y="-6.6" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#9225ba">1.00</text>
+<path fill="none" stroke="#d28ef6" d="M324.26,-18C354.37,-18 403.96,-18 438.21,-18"/>
+<polygon fill="#d28ef6" stroke="#d28ef6" points="438.11,-21.5 448.11,-18 438.11,-14.5 438.11,-21.5"/>
+<text xml:space="preserve" text-anchor="middle" x="375.26" y="-6.6" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#d28ef6">1.00</text>
 </g>
 <!-- 11 -->
 <g id="node12" class="node">
 <title>11</title>
-<ellipse fill="#bbbbbb" stroke="black" cx="657" cy="-54" rx="27" ry="18"/>
+<ellipse fill="#777777" stroke="black" cx="657" cy="-54" rx="27" ry="18"/>
 <text xml:space="preserve" text-anchor="middle" x="657" y="-48.98" font-family="Helvetica,Arial,sans-serif" font-size="12.00">0,0</text>
 </g>
 <!-- 9&#45;&gt;11 -->
 <g id="edge20" class="edge">
 <title>9&#45;&gt;11</title>
-<path fill="none" stroke="#a72086" d="M590.21,-81.66C600.13,-77.49 612.04,-72.48 622.99,-67.88"/>
-<polygon fill="#a72086" stroke="#a72086" points="624.24,-71.15 632.1,-64.05 621.52,-64.7 624.24,-71.15"/>
-<text xml:space="preserve" text-anchor="middle" x="600.38" y="-61.1" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#a72086">1.00</text>
+<path fill="none" stroke="#f780d2" d="M590.21,-81.66C600.13,-77.49 612.04,-72.48 622.99,-67.88"/>
+<polygon fill="#f780d2" stroke="#f780d2" points="624.24,-71.15 632.1,-64.05 621.52,-64.7 624.24,-71.15"/>
+<text xml:space="preserve" text-anchor="middle" x="600.38" y="-61.1" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#f780d2">1.00</text>
 </g>
 <!-- 10&#45;&gt;9 -->
 <g id="edge21" class="edge">
 <title>10&#45;&gt;9</title>
-<path fill="none" stroke="#b41c46" d="M494.55,-31.73C507.5,-42.47 525.72,-57.59 540.53,-69.87"/>
-<polygon fill="#b41c46" stroke="#b41c46" points="538.13,-72.43 548.06,-76.12 542.6,-67.04 538.13,-72.43"/>
-<text xml:space="preserve" text-anchor="middle" x="510.13" y="-42.9" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#b41c46">1.00</text>
+<path fill="none" stroke="#f8889a" d="M494.55,-31.73C507.5,-42.47 525.72,-57.59 540.53,-69.87"/>
+<polygon fill="#f8889a" stroke="#f8889a" points="538.13,-72.43 548.06,-76.12 542.6,-67.04 538.13,-72.43"/>
+<text xml:space="preserve" text-anchor="middle" x="510.13" y="-42.9" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#f8889a">1.00</text>
 </g>
 <!-- 10&#45;&gt;11 -->
 <g id="edge22" class="edge">
 <title>10&#45;&gt;11</title>
-<path fill="none" stroke="#85511a" d="M503.13,-23.08C533.52,-29.23 584.92,-39.62 619.63,-46.65"/>
-<polygon fill="#85511a" stroke="#85511a" points="618.74,-50.03 629.23,-48.59 620.12,-43.17 618.74,-50.03"/>
-<text xml:space="preserve" text-anchor="middle" x="555.53" y="-24.63" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#85511a">1.00</text>
+<path fill="none" stroke="#ee9537" d="M503.13,-23.08C533.52,-29.23 584.92,-39.62 619.63,-46.65"/>
+<polygon fill="#ee9537" stroke="#ee9537" points="618.74,-50.03 629.23,-48.59 620.12,-43.17 618.74,-50.03"/>
+<text xml:space="preserve" text-anchor="middle" x="555.53" y="-24.63" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#ee9537">1.00</text>
 </g>
 </g>
 </svg>
