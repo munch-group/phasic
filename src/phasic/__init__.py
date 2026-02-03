@@ -1897,7 +1897,7 @@ class Graph(_Graph):
             # C++ overload: update_weights(params, log=False)
             return super().update_weights(theta, log=log)
 
-    def _moments_from_trace(self, power: int = 1, rewards=None):
+    def _moments_from_trace(self, power: int = 1, rewards=None, discrete=False):
         """Compute moments using cached elimination trace.
 
         This instantiates a concrete graph from the trace with current
@@ -1909,6 +1909,9 @@ class Graph(_Graph):
             Moment power (1 for expectation, 2 for variance, etc.)
         rewards : ArrayLike, optional
             Reward vector for reward-transformed moments.
+        discrete : bool, default=False
+            If True, compute discrete-time moments (DPH distribution).
+            Requires that the graph was discretized via discretize().
 
         Returns
         -------
@@ -1930,9 +1933,9 @@ class Graph(_Graph):
 
         # Compute moments on the concrete graph using C++ implementation
         if rewards is not None:
-            return concrete_graph.moments(power, list(rewards))
+            return concrete_graph.moments(power, list(rewards), discrete=discrete)
         else:
-            return concrete_graph.moments(power)
+            return concrete_graph.moments(power, discrete=discrete)
 
     def _expectation_from_trace(self, rewards=None, discrete=False, **kwargs):
         """Compute expectation using cached elimination trace."""
