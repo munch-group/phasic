@@ -19,7 +19,9 @@ project:
     - "!pages/popgen/"
     - "!pages/topics/R/"
 
-
+comments:
+  hypothesis: true
+  
 execute:
   freeze: auto
   echo: true
