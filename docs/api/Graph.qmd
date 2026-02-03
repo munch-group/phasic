@@ -1,7 +1,7 @@
 # Graph { #phasic.Graph }
 
 ```python
-phasic.Graph(arg=None, ipv=None, **kwargs)
+phasic.Graph(arg, ipv=None, cache_graph=False, **kwargs)
 ```
 
 
@@ -10,7 +10,8 @@ phasic.Graph(arg=None, ipv=None, **kwargs)
 
 | Name | Description |
 | --- | --- |
-| [hierarchical](#phasic.Graph.hierarchical) | Whether this graph uses hierarchical trace-based computation. |
+| [cache_trace](#phasic.Graph.cache_trace) | Whether this graph caches the elimination trace. |
+| [hierarchical](#phasic.Graph.hierarchical) | Deprecated: use cache_trace instead. |
 | [trace_valid](#phasic.Graph.trace_valid) | Whether the cached trace is valid (not dirty). |
 
 ## Methods
@@ -32,20 +33,24 @@ phasic.Graph(arg=None, ipv=None, **kwargs)
 | [expectation](#phasic.Graph.expectation) | Compute expected value (first moment) of the phase-type distribution. |
 | [expected_sojourn_time](#phasic.Graph.expected_sojourn_time) | Compute expected sojourn time (residence time) in each state. |
 | [expected_waiting_time](#phasic.Graph.expected_waiting_time) | Compute expected waiting time until absorption. |
+| [extend](#phasic.Graph.extend) | Extend the graph by continuing to visit unvisited vertices using a callback. |
 | [find_or_create_vertex](#phasic.Graph.find_or_create_vertex) | Find or create a vertex with the given state. |
 | [from_matrices](#phasic.Graph.from_matrices) | Construct a Graph from matrix representation. |
 | [from_serialized](#phasic.Graph.from_serialized) | Reconstruct Graph from serialize() output. |
+| [method_of_moments](#phasic.Graph.method_of_moments) | Find parameter estimates by matching model moments to sample moments. |
 | [moments](#phasic.Graph.moments) | Compute k-th moment of the phase-type distribution. |
 | [moments_from_graph](#phasic.Graph.moments_from_graph) | Convert a parameterized Graph to a JAX-compatible function that computes moments. |
 | [normalize](#phasic.Graph.normalize) | Normalize edge weights to make the graph a proper probability distribution. |
-| [pdf](#phasic.Graph.pdf) | Compute probability density/mass function using forward algorithm. |
+| [pdf](#phasic.Graph.pdf) | Compute probability density function using distribution context. |
 | [plot](#phasic.Graph.plot) | Plots the graph using graphviz. See plot::plot_graph.py for more details. |
+| [pmf](#phasic.Graph.pmf) | Compute probability mass function using forward algorithm. |
 | [pmf_and_moments_from_graph](#phasic.Graph.pmf_and_moments_from_graph) | Convert a parameterized Graph to a function that computes both PMF/PDF and moments. |
 | [pmf_and_moments_from_graph_multivariate](#phasic.Graph.pmf_and_moments_from_graph_multivariate) | Create a multivariate phase-type model that handles 2D observations and rewards. |
 | [pmf_from_cpp](#phasic.Graph.pmf_from_cpp) | Load a phase-type model from a user's C++ file and return a JAX-compatible function. |
 | [pmf_from_graph](#phasic.Graph.pmf_from_graph) | Convert a Python-built Graph to a JAX-compatible function with full gradient support. |
 | [pmf_from_graph_joint_index](#phasic.Graph.pmf_from_graph_joint_index) | Create a JAX-compatible model for joint index distributions. |
 | [pmf_from_graph_parameterized](#phasic.Graph.pmf_from_graph_parameterized) | Convert a parameterized Python graph builder to a JAX-compatible function. |
+| [probability_matching](#phasic.Graph.probability_matching) | Find parameter estimates by matching model probabilities to empirical probabilities. |
 | [reward_transform](#phasic.Graph.reward_transform) | Apply reward transformation to create a new graph with modified rewards. |
 | [reward_transform_discrete](#phasic.Graph.reward_transform_discrete) | Apply reward transformation for discrete-time distributions. |
 | [sample](#phasic.Graph.sample) | Generate random samples from the phase-type distribution. |
@@ -59,16 +64,12 @@ phasic.Graph(arg=None, ipv=None, **kwargs)
 ### accumulated_occupancy { #phasic.Graph.accumulated_occupancy }
 
 ```python
-phasic.Graph.accumulated_occupancy(*args, discrete=False, **kwargs)
+phasic.Graph.accumulated_occupancy(*args, **kwargs)
 ```
 
 Compute expected occupancy (visits or time) for each state.
 
 #### Parameters {.doc-section .doc-section-parameters}
-
-<code>[**discrete**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
-
-:   If True, compute accumulated visits (discrete distribution). If False, compute accumulated visiting time (continuous distribution).
 
 <code>[***args**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [()]{.parameter-default}</code>
 
@@ -84,17 +85,11 @@ Compute expected occupancy (visits or time) for each state.
 
 :   Expected visits (discrete) or time (continuous) in each state.
 
-#### Raises {.doc-section .doc-section-raises}
-
-<code>[:]{.parameter-annotation-sep} [[ValueError](`ValueError`)]{.parameter-annotation}</code>
-
-:   If discrete=True but graph is not discrete.
-
 #### Notes {.doc-section .doc-section-notes}
 
 This is a convenience method that dispatches to either:
-- accumulated_visits() for discrete=True
-- accumulated_visiting_time() for discrete=False
+- accumulated_visits() for discrete distributions
+- accumulated_visiting_time() for continuous distributions
 
 ### accumulated_visiting_time { #phasic.Graph.accumulated_visiting_time }
 
@@ -173,9 +168,9 @@ matrices and associated information.
 
 #### Returns {.doc-section .doc-section-returns}
 
-<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[MatrixRepresentation](`phasic.MatrixRepresentation`)]{.parameter-annotation}</code>
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[namedtuple](`collections.namedtuple`)]{.parameter-annotation}</code>
 
-:   NamedTuple with the following attributes: - states: np.ndarray of shape (n_states, state_dim), dtype=int32     State vector for each vertex - sim: np.ndarray of shape (n_states, n_states), dtype=float64     Sub-intensity matrix - ipv: np.ndarray of shape (n_states,), dtype=float64     Initial probability vector - indices: np.ndarray of shape (n_states,), dtype=int32     1-based indices for vertices (for use with vertex_at())
+:   NamedTuple (MatrixRepresentation) with the following attributes: - states: np.ndarray of shape (n_states, state_dim), dtype=int32     State vector for each vertex - sim: np.ndarray of shape (n_states, n_states), dtype=float64     Sub-intensity matrix - ipv: np.ndarray of shape (n_states,), dtype=float64     Initial probability vector - indices: np.ndarray of shape (n_states,), dtype=int32     1-based indices for vertices (for use with vertex_at())
 
 #### Examples {.doc-section .doc-section-examples}
 
@@ -198,7 +193,7 @@ matrices and associated information.
 ### cdf { #phasic.Graph.cdf }
 
 ```python
-phasic.Graph.cdf(time, discrete=False, **kwargs)
+phasic.Graph.cdf(time, **kwargs)
 ```
 
 Compute cumulative distribution function.
@@ -209,10 +204,6 @@ Compute cumulative distribution function.
 
 :   Time point(s) at which to evaluate the CDF.
 
-<code>[**discrete**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
-
-:   If True, compute CDF for discrete-time distribution (DPH). Requires that the graph was discretized via discretize().
-
 <code>[****kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
 
 :   Additional keyword arguments passed to C++ implementation.
@@ -222,12 +213,6 @@ Compute cumulative distribution function.
 <code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) or [np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation}</code>
 
 :   CDF value(s) P(T ≤ t) at the specified time point(s).
-
-#### Raises {.doc-section .doc-section-raises}
-
-<code>[:]{.parameter-annotation-sep} [[ValueError](`ValueError`)]{.parameter-annotation}</code>
-
-:   If discrete=True but graph is not discrete.
 
 #### Notes {.doc-section .doc-section-notes}
 
@@ -242,7 +227,7 @@ phasic.Graph.clone()
 
 Create a deep copy of this graph.
 
-The cloned graph preserves the hierarchical setting but starts
+The cloned graph preserves the cache_trace setting but starts
 with a fresh (invalid) trace cache.
 
 #### Returns {.doc-section .doc-section-returns}
@@ -255,7 +240,7 @@ with a fresh (invalid) trace cache.
 
 ```python
 phasic.Graph.compute_trace(
-    theta_dim=None,
+    param_length=None,
     hierarchical=True,
     min_size=50,
     parallel='auto',
@@ -266,11 +251,11 @@ phasic.Graph.compute_trace(
 
 Compute elimination trace with optional hierarchical caching.
 
-When Graph was created with hierarchical=True, the trace is cached on the
+When Graph was created with cache_trace=True, the trace is cached on the
 instance for use by moments(), expectation(), etc. In this mode, the operation
 is NON-DESTRUCTIVE (graph is preserved via cloning).
 
-When Graph was created with hierarchical=False (default), the operation is
+When Graph was created with cache_trace=False (default), the operation is
 DESTRUCTIVE and will empty the graph during trace recording.
 
 #### Parameters {.doc-section .doc-section-parameters}
@@ -297,30 +282,30 @@ DESTRUCTIVE and will empty the graph during trace recording.
 
 <code>[**force**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
 
-:   If True, recompute trace even if a cached trace exists and is valid. Only applicable when Graph was created with hierarchical=True.
+:   If True, recompute trace even if a cached trace exists and is valid. Only applicable when Graph was created with cache_trace=True.
 
 #### Returns {.doc-section .doc-section-returns}
 
-<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[EliminationTrace](`EliminationTrace`)]{.parameter-annotation}</code>
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[EliminationTrace](`phasic.trace_elimination.EliminationTrace`)]{.parameter-annotation}</code>
 
 :   Elimination trace (from cache or computed)
 
 #### Notes {.doc-section .doc-section-notes}
 
-**Hierarchical Mode** (Graph created with hierarchical=True):
+**Caching Mode** (Graph created with cache_trace=True):
 - Trace is cached on the instance and reused by moments(), expectation(), etc.
 - Graph is cloned before trace recording, preserving the original
 - Subsequent calls return cached trace unless force=True or graph was modified
 
-**Non-Hierarchical Mode** (default):
+**Non-Caching Mode** (default):
 - The graph elimination algorithm is DESTRUCTIVE - vertices are eliminated
 - Use disk caching (hierarchical=True parameter) to avoid re-recording
 
 #### Examples {.doc-section .doc-section-examples}
 
 ```python
->>> # Hierarchical mode - non-destructive, cached on instance
->>> g = Graph(model, nr_samples=5, hierarchical=True)
+>>> # Cache mode - non-destructive, cached on instance
+>>> g = Graph(model, nr_samples=5, cache_trace=True)
 >>> g.normalize()
 >>> trace = g.compute_trace()  # Graph preserved, trace cached
 >>> g.update_weights([1.0, 2.0])
@@ -351,16 +336,12 @@ Modifications to the copy will not affect the original graph.
 ### covariance { #phasic.Graph.covariance }
 
 ```python
-phasic.Graph.covariance(*args, discrete=False, **kwargs)
+phasic.Graph.covariance(*args, **kwargs)
 ```
 
 Compute covariance matrix for multivariate phase-type distributions.
 
 #### Parameters {.doc-section .doc-section-parameters}
-
-<code>[**discrete**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
-
-:   If True, compute discrete-time covariance (DPH distribution). Requires that the graph was discretized via discretize().
 
 <code>[***args**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [()]{.parameter-default}</code>
 
@@ -376,12 +357,6 @@ Compute covariance matrix for multivariate phase-type distributions.
 
 :   Covariance matrix for the multivariate distribution.
 
-#### Raises {.doc-section .doc-section-raises}
-
-<code>[:]{.parameter-annotation-sep} [[ValueError](`ValueError`)]{.parameter-annotation}</code>
-
-:   If discrete=True but graph is not discrete.
-
 #### Notes {.doc-section .doc-section-notes}
 
 This method is for multivariate phase-type distributions with
@@ -390,7 +365,7 @@ multiple marginals. For univariate distributions, use variance().
 ### discretize { #phasic.Graph.discretize }
 
 ```python
-phasic.Graph.discretize(rate, **kwargs)
+phasic.Graph.discretize(rate, skip_existing=False, **kwargs)
 ```
 
 Discretizes graph inplace and returns reward matrix for added auxiliary states.
@@ -401,6 +376,10 @@ Discretizes graph inplace and returns reward matrix for added auxiliary states.
 
 :   float or callable
 
+<code>[**skip_existing**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, skip vertices that already have auxiliary vertices, by default False
+
 #### Returns {.doc-section .doc-section-returns}
 
 <code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[NDArray](`numpy.typing.NDArray`)\[[np](`numpy`).[int64](`numpy.int64`)\]]{.parameter-annotation}</code>
@@ -410,16 +389,12 @@ Discretizes graph inplace and returns reward matrix for added auxiliary states.
 ### distribution_context { #phasic.Graph.distribution_context }
 
 ```python
-phasic.Graph.distribution_context(*args, discrete=False, **kwargs)
+phasic.Graph.distribution_context(*args, **kwargs)
 ```
 
 Create a distribution context for efficient repeated sampling.
 
 #### Parameters {.doc-section .doc-section-parameters}
-
-<code>[**discrete**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
-
-:   If True, create context for discrete-time distribution (DPH). Requires that the graph was discretized via discretize().
 
 <code>[***args**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [()]{.parameter-default}</code>
 
@@ -434,12 +409,6 @@ Create a distribution context for efficient repeated sampling.
 <code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[DistributionContext](`DistributionContext`)]{.parameter-annotation}</code>
 
 :   Context object that can be used for efficient sampling.
-
-#### Raises {.doc-section .doc-section-raises}
-
-<code>[:]{.parameter-annotation-sep} [[ValueError](`ValueError`)]{.parameter-annotation}</code>
-
-:   If discrete=True but graph is not discrete.
 
 #### Notes {.doc-section .doc-section-notes}
 
@@ -515,7 +484,7 @@ SymbolicDAG.instantiate : Create concrete graph from parameters
 ### expectation { #phasic.Graph.expectation }
 
 ```python
-phasic.Graph.expectation(rewards=[], discrete=False, **kwargs)
+phasic.Graph.expectation(rewards=[], **kwargs)
 ```
 
 Compute expected value (first moment) of the phase-type distribution.
@@ -525,10 +494,6 @@ Compute expected value (first moment) of the phase-type distribution.
 <code>[**rewards**]{.parameter-name} [:]{.parameter-annotation-sep} [[ArrayLike](`numpy.typing.ArrayLike`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [\[\]]{.parameter-default}</code>
 
 :   Reward vector for reward-transformed expectation. If not provided, computes E[T] where T is time until absorption.
-
-<code>[**discrete**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
-
-:   If True, compute discrete-time expectation (DPH distribution). Requires that the graph was discretized via discretize().
 
 <code>[****kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
 
@@ -542,9 +507,10 @@ Compute expected value (first moment) of the phase-type distribution.
 
 #### Notes {.doc-section .doc-section-notes}
 
-If the graph was created with `hierarchical=True` and is parameterized,
-this method uses trace-based computation for 5-10x speedup on repeated
-evaluations. Otherwise falls back to direct C++ graph elimination.
+For parameterized graphs, this method uses trace-based computation
+which requires O(n) memory instead of O(n²) for the matrix-based approach.
+Set cache_trace=True when creating the graph to cache the trace for
+faster repeated evaluations.
 
 This is equivalent to moments(1, rewards).
 
@@ -610,6 +576,51 @@ Compute expected waiting time until absorption.
 
 This method wraps the C++ implementation of expected_waiting_time.
 Only available for continuous-time phase-type distributions.
+
+### extend { #phasic.Graph.extend }
+
+```python
+phasic.Graph.extend(callback=None, **kwargs)
+```
+
+Extend the graph by continuing to visit unvisited vertices using a callback.
+
+After manually adding vertices to the graph (e.g., via find_or_create_vertex),
+this method continues the callback-based graph building process, visiting all
+newly added unvisited vertices.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**callback**]{.parameter-name} [:]{.parameter-annotation-sep} [[callable](`callable`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Callback function to use for extending the graph. If None, uses the callback from the original Graph construction. The callback should accept a state array and return: - For non-parameterized: list of (state, weight) tuples - For parameterized: list of (state, base_weight, edge_state) tuples
+
+<code>[****kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
+
+:   Additional keyword arguments to pass to the callback function. If None, uses the kwargs from the original Graph construction.
+
+#### Raises {.doc-section .doc-section-raises}
+
+<code>[:]{.parameter-annotation-sep} [[RuntimeError](`RuntimeError`)]{.parameter-annotation}</code>
+
+:   If no callback is provided and the graph was not constructed with a callback.
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> # Build initial graph
+>>> graph = Graph(my_callback, nr_samples=5)
+>>>
+>>> # Manually add new vertex
+>>> special_vertex = graph.find_or_create_vertex([100, 200])
+>>> graph.starting_vertex().add_edge_parameterized(special_vertex, 0.0, [1.5])
+>>>
+>>> # Continue with callback to explore new vertices
+>>> graph.extend()  # Uses original callback
+>>>
+>>> # Or use different callback
+>>> graph.extend(callback=my_other_callback, param=value)
+```
 
 ### find_or_create_vertex { #phasic.Graph.find_or_create_vertex }
 
@@ -722,6 +733,87 @@ and reconstructed on worker processes.
 >>> assert g_reconstructed.vertices_length() == g.vertices_length()
 ```
 
+### method_of_moments { #phasic.Graph.method_of_moments }
+
+```python
+phasic.Graph.method_of_moments(
+    observed_data,
+    nr_moments=None,
+    rewards=None,
+    fixed=None,
+    theta_dim=None,
+    theta_init=None,
+    std_multiplier=2.0,
+    discrete=None,
+    verbose=True,
+)
+```
+
+Find parameter estimates by matching model moments to sample moments.
+
+Solves the nonlinear least-squares problem::
+
+    minimize ||moments_fn(theta) - sample_moments||^2
+    subject to  theta > 0
+
+The returned ``MoMResult.prior`` list can be passed directly to
+:meth:`Graph.svgd` as the ``prior`` argument, providing data-informed
+priors centred on the method-of-moments estimates.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**observed_data**]{.parameter-name} [:]{.parameter-annotation-sep} [[ArrayLike](`numpy.typing.ArrayLike`)]{.parameter-annotation}</code>
+
+:   Observed data.  1-D for univariate, 2-D ``(n_times, n_features)`` for multivariate models with 2-D reward vectors.
+
+<code>[**nr_moments**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Number of moments to match per feature dimension.  If ``None`` (default), automatically chosen to overdetermine the system: ``max(2 * n_free_params, 4)`` for univariate data, adjusted per feature for multivariate data.  Still auto-increased if a user-specified value gives fewer equations than free parameters.
+
+<code>[**rewards**]{.parameter-name} [:]{.parameter-annotation-sep} [[array_like](`array_like`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Reward vectors.  ``None`` for standard moments, 1-D for a single reward vector, 2-D ``(n_features, n_vertices)`` for multivariate.
+
+<code>[**fixed**]{.parameter-name} [:]{.parameter-annotation-sep} [[list](`list`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   List of ``(index, value)`` tuples pinning specific parameters.
+
+<code>[**theta_dim**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Number of model parameters.  Inferred from the graph when ``None``.
+
+<code>[**theta_init**]{.parameter-name} [:]{.parameter-annotation-sep} [[array_like](`array_like`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Initial guess for the *free* parameters (excluding fixed ones). If ``None`` a coordinate-wise grid search is used.
+
+<code>[**std_multiplier**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [2.0]{.parameter-default}</code>
+
+:   Factor applied to the asymptotic standard error to obtain the prior standard deviation: ``prior_std = std_multiplier * se``.
+
+<code>[**discrete**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   ``True`` for discrete (PMF) models, ``False`` for continuous (PDF). If ``None``, inferred from ``self.is_discrete``.
+
+<code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   Print progress information.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[MoMResult](`phasic.method_of_moments.MoMResult`)]{.parameter-annotation}</code>
+
+:   Dataclass with ``theta``, ``std``, ``prior``, ``success``, etc.
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> g = Graph(...)  # parameterized graph
+>>> data = np.random.exponential(0.5, size=200)
+>>> mom = g.method_of_moments(data)
+>>> print(mom.theta)            # parameter estimate
+>>> svgd = g.svgd(data, prior=mom.prior)  # use as SVGD prior
+```
+
 ### moments { #phasic.Graph.moments }
 
 ```python
@@ -756,9 +848,9 @@ Compute k-th moment of the phase-type distribution.
 
 #### Notes {.doc-section .doc-section-notes}
 
-If the graph was created with `hierarchical=True` and is parameterized,
-this method uses trace-based computation for 5-10x speedup on repeated
-evaluations. Otherwise falls back to direct C++ graph elimination.
+If the graph is parameterized, this method uses trace-based computation
+for 5-10x speedup on repeated evaluations and O(n) memory usage.
+Otherwise falls back to direct C++ graph elimination.
 
 For higher moments (k > 2), numerical stability may become an issue for
 complex distributions.
@@ -865,10 +957,10 @@ transition matrix satisfy the requirements for a valid phase-type distribution.
 ### pdf { #phasic.Graph.pdf }
 
 ```python
-phasic.Graph.pdf(time, discrete=False, **kwargs)
+phasic.Graph.pdf(time, granularity=None, **kwargs)
 ```
 
-Compute probability density/mass function using forward algorithm.
+Compute probability density function using distribution context.
 
 #### Parameters {.doc-section .doc-section-parameters}
 
@@ -876,13 +968,9 @@ Compute probability density/mass function using forward algorithm.
 
 :   Time point(s) at which to evaluate the PDF/PMF.
 
-<code>[**granularity**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+<code>[**granularity**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   Granularity for uniformization (default: auto-detected as 2*max_rate). Higher values improve accuracy but increase computation time.
-
-<code>[**discrete**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
-
-:   If True, compute PMF for discrete-time distribution (DPH). Requires that the graph was discretized via discretize().
 
 <code>[****kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
 
@@ -892,21 +980,13 @@ Compute probability density/mass function using forward algorithm.
 
 <code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) or [np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation}</code>
 
-:   PDF/PMF value(s) at the specified time point(s).
-
-#### Raises {.doc-section .doc-section-raises}
-
-<code>[:]{.parameter-annotation-sep} [[ValueError](`ValueError`)]{.parameter-annotation}</code>
-
-:   If discrete=True but graph is not discrete.
+:   PDF value(s) at the specified time point(s).
 
 #### Notes {.doc-section .doc-section-notes}
 
-This method uses the forward algorithm (Algorithm 4) via uniformization
-to compute the exact phase-type PDF/PMF, not an approximation.
+This method PDF through uniformization as a (very good) approximation.
 
 For continuous distributions: f(t) = α · exp(S·t) · s*
-For discrete distributions: p(n) = probability of absorption at jump n
 
 ### plot { #phasic.Graph.plot }
 
@@ -921,6 +1001,37 @@ Plots the graph using graphviz. See plot::plot_graph.py for more details.
 <code>[]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
 
 :   _description_
+
+### pmf { #phasic.Graph.pmf }
+
+```python
+phasic.Graph.pmf(time, **kwargs)
+```
+
+Compute probability mass function using forward algorithm.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**time**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) or [ArrayLike](`numpy.typing.ArrayLike`)]{.parameter-annotation}</code>
+
+:   Time point(s) at which to evaluate the PDF/PMF.
+
+<code>[****kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
+
+:   Additional keyword arguments passed to C++ implementation.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) or [np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation}</code>
+
+:   PMF value(s) at the specified time point(s).
+
+#### Notes {.doc-section .doc-section-notes}
+
+This method uses the forward algorithm (Algorithm 4) via uniformization
+to compute the exact phase-type PMF, not an approximation.
+
+For discrete distributions: p(n) = probability of absorption at jump n
 
 ### pmf_and_moments_from_graph { #phasic.Graph.pmf_and_moments_from_graph }
 
@@ -957,7 +1068,7 @@ separately because it builds the graph once and computes both quantities.
 
 :   If True, uses Foreign Function Interface approach.
 
-<code>[**param_length**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**theta_dim**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   Number of parameters for parameterized edges. If not provided, will be auto-detected by probing edge states. Providing this explicitly avoids potential issues with auto-detection reading garbage memory.
 
@@ -1033,7 +1144,7 @@ where each feature dimension has its own reward vector defining the marginal dis
 
 :   If True, uses Foreign Function Interface approach.
 
-<code>[**param_length**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**theta_dim**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   Number of parameters for parameterized edges.
 
@@ -1254,11 +1365,7 @@ graph.pdf(time), graph.dph_pmf(jump), graph.moments(power), etc.
 ### pmf_from_graph_joint_index { #phasic.Graph.pmf_from_graph_joint_index }
 
 ```python
-phasic.Graph.pmf_from_graph_joint_index(
-    graph,
-    theta_dim=None,
-    fixed_mask=None,
-)
+phasic.Graph.pmf_from_graph_joint_index(graph, theta_dim=None, fixed_mask=None)
 ```
 
 Create a JAX-compatible model for joint index distributions.
@@ -1279,7 +1386,7 @@ times for all states in a single pass through the elimination trace.
 
 :   Parameterized graph built using the Python API with parameterized edges.
 
-<code>[**param_length**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**theta_dim**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   Number of parameters for parameterized edges. If not provided, will be auto-detected from the graph.
 
@@ -1345,6 +1452,77 @@ or edge weights depend on parameters.
 >>> pdf = model(theta, times)
 ```
 
+### probability_matching { #phasic.Graph.probability_matching }
+
+```python
+phasic.Graph.probability_matching(
+    observed_data,
+    fixed=None,
+    theta_dim=None,
+    theta_init=None,
+    std_multiplier=2.0,
+    verbose=True,
+)
+```
+
+Find parameter estimates by matching model probabilities to empirical probabilities.
+
+For joint probability graphs (created via :meth:`joint_prob_graph`),
+observations are feature-count tuples and the model outputs a
+probability table.  This method minimises the squared difference
+between model and empirical probabilities.
+
+The returned ``ProbMatchResult.prior`` list can be passed directly
+to :meth:`Graph.svgd` as the ``prior`` argument.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**observed_data**]{.parameter-name} [:]{.parameter-annotation-sep} [list of tuples]{.parameter-annotation}</code>
+
+:   Observed feature-count tuples, e.g. ``[(0, 1, 0), (1, 0, 0), ...]``. Each tuple must match a row in the joint probability table.
+
+<code>[**fixed**]{.parameter-name} [:]{.parameter-annotation-sep} [[list](`list`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   List of ``(index, value)`` tuples pinning specific parameters.
+
+<code>[**theta_dim**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Number of model parameters.  Inferred from the graph when ``None``.
+
+<code>[**theta_init**]{.parameter-name} [:]{.parameter-annotation-sep} [[array_like](`array_like`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Initial guess for the *free* parameters (excluding fixed ones). If ``None`` a coordinate-wise grid search is used.
+
+<code>[**std_multiplier**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [2.0]{.parameter-default}</code>
+
+:   Factor applied to the asymptotic standard error to obtain the prior standard deviation: ``prior_std = std_multiplier * se``.
+
+<code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   Print progress information.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[ProbMatchResult](`phasic.probability_matching.ProbMatchResult`)]{.parameter-annotation}</code>
+
+:   Dataclass with ``theta``, ``std``, ``prior``, ``empirical_probs``, ``model_probs``, ``unique_indices``, etc.
+
+#### Raises {.doc-section .doc-section-raises}
+
+<code>[:]{.parameter-annotation-sep} [[ValueError](`ValueError`)]{.parameter-annotation}</code>
+
+:   If the graph is not a joint probability graph.
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> jg = graph.joint_prob_graph(indexer, tot_reward_limit=2)
+>>> jg.update_weights([1.0, 0.5])
+>>> obs = [tuple(row) for row in jg.joint_prob_table().iloc[:, :-1].values]
+>>> result = jg.probability_matching(obs, fixed=[(1, 0.5)])
+>>> svgd = jg.svgd(obs, prior=result.prior, fixed=[(1, 0.5)])
+```
+
 ### reward_transform { #phasic.Graph.reward_transform }
 
 ```python
@@ -1408,12 +1586,12 @@ For automatic dispatch, use reward_transform() instead.
 
 #### See Also {.doc-section .doc-section-see-also}
 
-reward_transform : General reward transformation (dispatches to this for discrete=True)
+reward_transform : General reward transformation (dispatches to this for discrete graphs)
 
 ### sample { #phasic.Graph.sample }
 
 ```python
-phasic.Graph.sample(n, discrete=False, **kwargs)
+phasic.Graph.sample(n, **kwargs)
 ```
 
 Generate random samples from the phase-type distribution.
@@ -1424,10 +1602,6 @@ Generate random samples from the phase-type distribution.
 
 :   Number of samples to generate.
 
-<code>[**discrete**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
-
-:   If True, sample from discrete-time distribution (DPH). Requires that the graph was discretized via discretize().
-
 <code>[****kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
 
 :   Additional keyword arguments passed to C++ implementation.
@@ -1437,12 +1611,6 @@ Generate random samples from the phase-type distribution.
 <code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation}</code>
 
 :   Array of n samples from the distribution.
-
-#### Raises {.doc-section .doc-section-raises}
-
-<code>[:]{.parameter-annotation-sep} [[ValueError](`ValueError`)]{.parameter-annotation}</code>
-
-:   If discrete=True but graph is not discrete.
 
 #### Notes {.doc-section .doc-section-notes}
 
@@ -1460,7 +1628,7 @@ Serialize graph to array representation for efficient computation.
 
 #### Parameters {.doc-section .doc-section-parameters}
 
-<code>[**param_length**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**theta_dim**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   Number of parameters for parameterized edges. If not provided, will be auto-detected by probing edge states. Providing this explicitly avoids potential issues with auto-detection reading garbage memory.
 
@@ -1468,12 +1636,12 @@ Serialize graph to array representation for efficient computation.
 
 <code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation}</code>
 
-:   Dictionary containing: - 'states': Array of vertex states (n_vertices, state_dim) - 'edges': Array of regular edges [from_idx, to_idx, weight] (n_edges, 3) - 'start_edges': Array of starting vertex regular edges [to_idx, weight] (n_start_edges, 2) - 'param_edges': Array of parameterized edges [from_idx, to_idx, x1, x2, ...] (n_param_edges, param_length+2) - 'start_param_edges': Array of starting vertex parameterized edges [to_idx, x1, x2, ...] (n_start_param_edges, param_length+1)   NOTE: start_param_edges should be empty (starting edges are not parameterized) - 'param_length': Length of parameter vector (0 if no parameterized edges) - 'state_length': Integer state dimension - 'n_vertices': Number of vertices
+:   Dictionary containing: - 'states': Array of vertex states (n_vertices, state_dim) - 'edges': Array of regular edges [from_idx, to_idx, weight] (n_edges, 3) - 'start_edges': Array of starting vertex regular edges [to_idx, weight] (n_start_edges, 2) - 'param_edges': Array of parameterized edges [from_idx, to_idx, x1, x2, ...] (n_param_edges, theta_dim+2) - 'start_param_edges': Array of starting vertex parameterized edges [to_idx, x1, x2, ...] (n_start_param_edges, theta_dim+1)   NOTE: start_param_edges should be empty (starting edges are not parameterized) - 'param_length': Length of parameter vector (0 if no parameterized edges) - 'state_length': Integer state dimension - 'n_vertices': Number of vertices
 
 ### state_probability { #phasic.Graph.state_probability }
 
 ```python
-phasic.Graph.state_probability(time, discrete=False, **kwargs)
+phasic.Graph.state_probability(time, **kwargs)
 ```
 
 Compute probability of being in each state at a given time.
@@ -1484,10 +1652,6 @@ Compute probability of being in each state at a given time.
 
 :   Time point (continuous) or jump number (discrete) at which to evaluate state probabilities.
 
-<code>[**discrete**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
-
-:   If True, compute for discrete-time distribution (DPH). Requires that the graph was discretized via discretize().
-
 <code>[****kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
 
 :   Additional keyword arguments passed to C++ implementation.
@@ -1497,12 +1661,6 @@ Compute probability of being in each state at a given time.
 <code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation}</code>
 
 :   Probability of being in each state at the specified time.
-
-#### Raises {.doc-section .doc-section-raises}
-
-<code>[:]{.parameter-annotation-sep} [[ValueError](`ValueError`)]{.parameter-annotation}</code>
-
-:   If discrete=True but graph is not discrete.
 
 #### Notes {.doc-section .doc-section-notes}
 
@@ -1513,7 +1671,7 @@ Computed via matrix exponentiation or uniformization.
 ### stop_probability { #phasic.Graph.stop_probability }
 
 ```python
-phasic.Graph.stop_probability(time, discrete=False, **kwargs)
+phasic.Graph.stop_probability(time, **kwargs)
 ```
 
 Compute probability of being in each state at a given time.
@@ -1524,10 +1682,6 @@ Compute probability of being in each state at a given time.
 
 :   Time point (continuous) or jump number (discrete) at which to evaluate state probabilities.
 
-<code>[**discrete**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
-
-:   If True, compute for discrete-time distribution (DPH). Requires that the graph was discretized via discretize().
-
 <code>[****kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
 
 :   Additional keyword arguments passed to C++ implementation.
@@ -1537,12 +1691,6 @@ Compute probability of being in each state at a given time.
 <code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation}</code>
 
 :   Probability of being in each state at the specified time.
-
-#### Raises {.doc-section .doc-section-raises}
-
-<code>[:]{.parameter-annotation-sep} [[ValueError](`ValueError`)]{.parameter-annotation}</code>
-
-:   If discrete=True but graph is not discrete.
 
 #### Notes {.doc-section .doc-section-notes}
 
@@ -1559,12 +1707,13 @@ phasic.Graph.svgd(
     prior=None,
     n_particles=None,
     n_iterations=100,
-    learning_rate=0.01,
-    bandwidth='median',
+    optimizer=None,
+    learning_rate=None,
+    bandwidth='median_per_dim',
     theta_init=None,
     theta_dim=None,
     return_history=True,
-    seed=42,
+    seed=None,
     verbose=False,
     progress=True,
     jit=None,
@@ -1579,7 +1728,7 @@ phasic.Graph.svgd(
     joint_index=False,
     rewards=None,
     fixed=None,
-    optimizer=None,
+    preconditioner='auto',
 )
 ```
 
@@ -1599,9 +1748,9 @@ pmf_from_graph() or pmf_from_cpp() where the model signature is model(theta, tim
 
 :   If True, computes discrete PMF. If False, computes continuous PDF. If undefined it is  inferred from the graph.is_discrete attribute.
 
-<code>[**prior**]{.parameter-name} [:]{.parameter-annotation-sep} [[callable](`callable`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**prior**]{.parameter-name} [:]{.parameter-annotation-sep} [callable or list of Prior objects]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
-:   Log prior function: prior(theta) -> scalar. If None, uses standard normal prior: log p(theta) = -0.5 * sum(theta^2)
+:   Log prior function for parameters. Can be: - Single callable: prior(theta) -> scalar, applied to entire theta vector - List of Prior objects: One prior per parameter dimension.   Use None for fixed parameters: prior=[GaussPrior(ci=[0,1]), None, GaussPrior(ci=[0,1])] - DataPrior instance: Data-informed prior estimated from the observed data.  If None (default), constructs ``DataPrior(graph, observed_data, sd=5)`` which uses method-of-moments (or probability matching for joint probability graphs) to estimate prior means from the data, with a wide spread (5x the asymptotic standard error).  Falls back to standard normal if DataPrior construction fails.  **With fixed parameters**: When using a list of priors with the `fixed` parameter, you must provide None at indices corresponding to fixed parameters. This is validated at initialization.  Example:     prior=[GaussPrior(ci=[0,1]), None, GaussPrior(ci=[0,1])],     fixed=[(1, 0.5)]  # theta[1] fixed, prior[1] must be None
 
 <code>[**n_particles**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [50]{.parameter-default}</code>
 
@@ -1611,13 +1760,17 @@ pmf_from_graph() or pmf_from_cpp() where the model signature is model(theta, tim
 
 :   Number of SVGD optimization steps
 
-<code>[**learning_rate**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.001]{.parameter-default}</code>
+<code>[**optimizer**]{.parameter-name} [:]{.parameter-annotation-sep} [[Optimizer](`Optimizer`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
-:   SVGD step size. Larger values = faster convergence but may be unstable.
+:   Learning rate optimizer instance from phasic.optimizers. Default is Adam when learning_rate=None and regularization=0. Options include Adamelia, Adam, SGDMomentum, RMSprop, Adagrad. When an optimizer is used, the learning_rate parameter is ignored (the optimizer has its own learning rate).
 
-<code>[**bandwidth**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'median\']{.parameter-default}</code>
+<code>[**learning_rate**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
-:   Kernel bandwidth selection method: - 'median': RBF kernel with median heuristic bandwidth (default) - 'rbf_adaptive': RBF kernel with adaptive bandwidth
+:   SVGD step size. If None (default), uses Adame optimizer with adaptive learning rates. If a float is provided, uses fixed learning rate approach. Larger values = faster convergence but may be unstable.
+
+<code>[**bandwidth**]{.parameter-name} [:]{.parameter-annotation-sep} [str, float, or array_like]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'median_per_dim\']{.parameter-default}</code>
+
+:   Kernel bandwidth selection method: - 'median_per_dim': Per-dimension median heuristic (default). Uses a   separate bandwidth per parameter dimension for an anisotropic kernel. - 'median': Scalar median heuristic (isotropic kernel) - float: Fixed scalar bandwidth value - array_like: Fixed per-dimension bandwidth vector
 
 <code>[**theta_init**]{.parameter-name} [:]{.parameter-annotation-sep} [[ArrayLike](`numpy.typing.ArrayLike`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
@@ -1625,13 +1778,13 @@ pmf_from_graph() or pmf_from_cpp() where the model signature is model(theta, tim
 
 <code>[**theta_dim**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
-:   Dimension of theta parameter vector. If None, inferred from the graph's parameterized edge structure via param_length(). Only required if theta_init is None and the graph has no parameterized edges.
+:   Dimension of theta parameter vector. Can be: - Set at graph construction: Graph(callback, theta_dim=2) - Overridden here for SVGD inference (if graph was modified/augmented)  If None, inferred from the graph's parameterized edge structure via param_length(). Only required if theta_init is None and the graph has no parameterized edges.  The value specified here overrides any theta_dim set during graph construction, which is useful if you've modified the graph structure (e.g., via extend()).
 
 <code>[**return_history**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
 
 :   If True, return particle positions throughout optimization
 
-<code>[**seed**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [42]{.parameter-default}</code>
+<code>[**seed**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   Random seed for reproducibility
 
@@ -1674,6 +1827,10 @@ pmf_from_graph() or pmf_from_cpp() where the model signature is model(theta, tim
 <code>[**rewards**]{.parameter-name} [:]{.parameter-annotation-sep} [[ArrayLike](`numpy.typing.ArrayLike`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   Reward vectors for computing reward-transformed likelihoods. Can be: - None: Standard phase-type likelihood (default) - 1D array (n_vertices,): Single reward vector for univariate models - 2D array (n_vertices, n_features): Multivariate rewards - one reward vector per feature   dimension. Requires use of pmf_and_moments_from_graph_multivariate() model. For multivariate models, observed_data should also be 2D (n_times, n_features).
+
+<code>[**preconditioner**]{.parameter-name} [:]{.parameter-annotation-sep} [str, preconditioner instance, or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'auto\']{.parameter-default}</code>
+
+:   Preconditioning method for multi-scale parameters: - 'auto' or 'jacobian': Moment Jacobian preconditioning (default, recommended).   Uses column norms of the moment Jacobian matrix for scaling. Simpler and   more robust than Fisher preconditioning. - 'fisher': Fisher diagonal preconditioning. Uses empirical Fisher information   matrix diagonal. Can be unstable when PMF values are small. - None or 'none': No preconditioning (original behavior) - MomentJacobianPreconditioner or FisherPreconditioner instance: Custom preconditioner
 
 #### Returns {.doc-section .doc-section-returns}
 
@@ -1740,13 +1897,13 @@ pmf_from_graph() or pmf_from_cpp() where the model signature is model(theta, tim
 ### update_weights { #phasic.Graph.update_weights }
 
 ```python
-phasic.Graph.update_weights(theta, log=False, callback=None)
+phasic.Graph.update_weights(theta, callback=None, log=False)
 ```
 
 Update parameterized edge weights with given parameters.
 
 This method wraps the C++ implementation to cache theta for use
-with trace-based computation in hierarchical mode.
+with trace-based computation.
 
 #### Parameters {.doc-section .doc-section-parameters}
 
@@ -1754,13 +1911,13 @@ with trace-based computation in hierarchical mode.
 
 :   Parameter vector to set edge weights.
 
-<code>[**log**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
-
-:   If True, use log-space computation.
-
 <code>[**callback**]{.parameter-name} [:]{.parameter-annotation-sep} [[callable](`callable`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   Custom callback for weight computation.
+
+<code>[**log**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, use log-space computation.
 
 #### Notes {.doc-section .doc-section-notes}
 
@@ -1770,7 +1927,7 @@ parameter values, not graph structure.
 ### variance { #phasic.Graph.variance }
 
 ```python
-phasic.Graph.variance(rewards=[], discrete=False, **kwargs)
+phasic.Graph.variance(rewards=[], **kwargs)
 ```
 
 Compute variance of the phase-type distribution.
@@ -1780,10 +1937,6 @@ Compute variance of the phase-type distribution.
 <code>[**rewards**]{.parameter-name} [:]{.parameter-annotation-sep} [[ArrayLike](`numpy.typing.ArrayLike`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [\[\]]{.parameter-default}</code>
 
 :   Reward vector for reward-transformed variance. If not provided, computes Var(T) where T is time until absorption.
-
-<code>[**discrete**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
-
-:   If True, compute discrete-time variance (DPH distribution). Requires that the graph was discretized via discretize().
 
 <code>[****kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
 
@@ -1797,8 +1950,9 @@ Compute variance of the phase-type distribution.
 
 #### Notes {.doc-section .doc-section-notes}
 
-If the graph was created with `hierarchical=True` and is parameterized,
-this method uses trace-based computation for 5-10x speedup on repeated
-evaluations. Otherwise falls back to direct C++ graph elimination.
+For parameterized graphs, this method uses trace-based computation
+which requires O(n) memory instead of O(n²) for the matrix-based approach.
+Set cache_trace=True when creating the graph to cache the trace for
+faster repeated evaluations.
 
 Computed as Var(T) = E[T^2] - E[T]^2 using moments.

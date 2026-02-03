@@ -8,3 +8,12 @@ Graph components (Vertex and Edge are documented as part of Graph)
 | | |
 | --- | --- |
 | [Graph](Graph.qmd#phasic.Graph) |  |
+
+## Inference
+
+Stein Variational Gradient Descent for Bayesian parameter inference.
+
+
+| | |
+| --- | --- |
+| [SVGD](SVGD.qmd#phasic.SVGD) | Stein Variational Gradient Descent (SVGD) for Bayesian parameter inference. |

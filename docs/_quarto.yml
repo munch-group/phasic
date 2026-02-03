@@ -163,7 +163,11 @@ format:
       gutter-width: 1.5rem
       # margin-left, margin-right, margin-top, margin-bottom
 
-    theme: [cosmo, numpy.theme, custom.scss] # numpy.theme for code highlighting
+    # theme: [cosmo, numpy.theme, custom.scss] # numpy.theme for code highlighting
+
+    theme: [cosmo, custom.scss] # numpy.theme for code highlighting
+    highlight-style: numpy.theme
+
     # theme:
     #   light: [flatly, numpy.theme, custom.scss] 
     #   dark: [darkly, numpy.theme, custom.scss] 

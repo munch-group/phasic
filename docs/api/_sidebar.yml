@@ -5,5 +5,8 @@ website:
     - contents:
       - api/Graph.qmd
       section: Graph Construction
+    - contents:
+      - api/SVGD.qmd
+      section: Inference
     id: api
   - id: dummy-sidebar
