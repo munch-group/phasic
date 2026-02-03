@@ -214,7 +214,9 @@ namespace phasic {
         void set_param_length(size_t param_length) {
             ptd_graph_set_param_length(this->c_graph(), param_length);
             if (ptd_err[0] != '\0') {
-                throw std::runtime_error((char *) ptd_err);
+                std::string error_msg((const char*)ptd_err);
+                ptd_err[0] = '\0';  // Clear error buffer to prevent stale errors
+                throw std::runtime_error(error_msg);
             }
         }
 
