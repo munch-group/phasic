@@ -1,0 +1,1034 @@
+# SVGD { #phasic.SVGD }
+
+```python
+phasic.SVGD(
+    model,
+    observed_data,
+    prior=None,
+    n_particles=None,
+    n_iterations=700,
+    learning_rate=None,
+    bandwidth='median_per_dim',
+    theta_init=None,
+    theta_dim=None,
+    seed=None,
+    verbose=True,
+    progress=False,
+    jit=None,
+    parallel=None,
+    n_devices=None,
+    precompile=True,
+    compilation_config=None,
+    positive_params=True,
+    param_transform=None,
+    regularization=0.0,
+    nr_moments=2,
+    rewards=None,
+    fixed=None,
+    optimizer=None,
+    preconditioner='auto',
+)
+```
+
+Stein Variational Gradient Descent (SVGD) for Bayesian parameter inference.
+
+This class provides an object-oriented interface for SVGD inference with
+automatic result storage and diagnostic plotting capabilities.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**model**]{.parameter-name} [:]{.parameter-annotation-sep} [[callable](`callable`)]{.parameter-annotation}</code>
+
+:   JAX-compatible parameterized model with signature: model(theta, data) -> values
+
+<code>[**observed_data**]{.parameter-name} [:]{.parameter-annotation-sep} [[array_like](`array_like`)]{.parameter-annotation}</code>
+
+:   Observed data points
+
+<code>[**prior**]{.parameter-name} [:]{.parameter-annotation-sep} [callable or list of Prior objects]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Log prior function for parameters. Can be: - Single callable: prior(theta) -> scalar, applied to entire theta vector - List of Prior objects: One prior per parameter dimension.   Use None for fixed parameters: prior=[GaussPrior(...), None, GaussPrior(...)]  If None, uses standard normal prior: log p(theta) = -0.5 * sum(theta^2)  **With fixed parameters**: When using a list of priors with the `fixed` parameter, you must provide None at indices corresponding to fixed parameters. This is validated at initialization.  Example:     prior=[GaussPrior(ci=[0,1]), None, GaussPrior(ci=[0,1])],     fixed=[(1, 0.5)]  # theta[1] fixed, prior[1] must be None
+
+<code>[**n_particles**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [is 20 times length of theta]{.parameter-default}</code>
+
+:   Number of SVGD particles
+
+<code>[**n_iterations**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1000]{.parameter-default}</code>
+
+:   Number of SVGD optimization steps
+
+<code>[**learning_rate**]{.parameter-name} [:]{.parameter-annotation-sep} [float, StepSizeSchedule, or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   SVGD step size. Can be: - None: Uses Adam optimizer with adaptive learning rates (default) - float: constant step size (uses fixed learning rate approach) - StepSizeSchedule object: dynamic step size schedule  When None and no optimizer is provided, Adam is used as the default optimizer (unless regularization > 0, which falls back to fixed lr=0.001). Examples: ConstantStepSize(0.01), ExpStepSize(0.1, 0.01, 500.0)
+
+<code>[**bandwidth**]{.parameter-name} [:]{.parameter-annotation-sep} [str, float, or array_like]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'median_per_dim\']{.parameter-default}</code>
+
+:   Kernel bandwidth selection. Can be: - 'median_per_dim': Per-dimension median heuristic (default). Uses a   separate bandwidth for each parameter dimension, giving an anisotropic   kernel that adapts to different parameter scales. - 'median': Scalar median heuristic (isotropic kernel) - float: Fixed scalar bandwidth value - array_like: Fixed per-dimension bandwidth vector
+
+<code>[**theta_init**]{.parameter-name} [:]{.parameter-annotation-sep} [[array_like](`array_like`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Initial particle positions (n_particles, theta_dim)
+
+<code>[**theta_dim**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Dimension of theta parameter vector (required if theta_init is None)
+
+<code>[**seed**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [42]{.parameter-default}</code>
+
+:   Random seed for reproducibility
+
+<code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   Print progress information
+
+<code>[**progress**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   Display progress bar during optimization
+
+<code>[**jit**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Enable JIT compilation. If None, uses value from phasic.get_config().jit. If True, requires JAX to be available (raises PTDConfigError otherwise). JIT compilation provides significant speedup but adds initial compilation overhead.
+
+<code>[**parallel**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Parallelization strategy: - 'vmap': Vectorize across particles (single device) - 'pmap': Parallelize across devices (uses multiple CPUs/GPUs) - 'none': No parallelization (sequential, useful for debugging) - None: Auto-select (pmap if multiple devices, vmap otherwise)  **Single-machine multi-CPU**: Auto-selection uses pmap for multi-core parallelization. **Multi-node SLURM**: Call initialize_distributed() then set parallel='pmap' explicitly.
+
+<code>[**n_devices**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Number of devices to use for pmap. Only used when parallel='pmap'. If None, uses all available devices. Must be <= number of available JAX devices. See: jax.devices() to check available devices, or configure via PTDALG_CPUS environment variable before import.
+
+<code>[**precompile**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   (Deprecated: use jit parameter instead) Precompile model and gradient functions for faster execution. Implies jit=True for backward compatibility. First run will take longer (compilation time) but subsequent iterations will be much faster. Compiled functions are cached in memory and on disk (~/.phasic_cache/).
+
+<code>[**compilation_config**]{.parameter-name} [:]{.parameter-annotation-sep} [CompilationConfig, dict, str, or Path]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   JAX compilation optimization configuration. Can be: - CompilationConfig object from phasic.CompilationConfig - dict with CompilationConfig parameters - str/Path to JSON config file - None (uses default balanced configuration)  The configuration controls JAX/XLA compilation behavior including: - Persistent cache directory for cross-session caching - Optimization level (0-3) - Parallel compilation settings  Examples: - Use preset: CompilationConfig.fast_compile() - Load from file: 'my_config.json' - Custom dict: {'optimization_level': 2, 'cache_dir': '/tmp/cache'}
+
+<code>[**positive_params**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   If True, constrains parameters to positive domain using softplus transformation. SVGD operates in unconstrained space (can be negative) but results are transformed to positive values.  DEFAULT=True because phase-type distribution parameters (rates) must be positive. Set to False only if you have a specific reason to allow negative parameters (e.g., regression coefficients, log-space parameterization).
+
+<code>[**param_transform**]{.parameter-name} [:]{.parameter-annotation-sep} [[callable](`callable`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Custom parameter transformation function. Overrides positive_params if provided. Should map unconstrained space to constrained space (e.g., lambda x: jax.nn.sigmoid(x) for parameters in [0,1]). Cannot be used together with positive_params=True.
+
+<code>[**regularization**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) or [RegularizationSchedule](`phasic.svgd.RegularizationSchedule`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.0]{.parameter-default}</code>
+
+:   Moment-based regularization strength. Can be: - float: constant regularization (0.0 = no regularization, >0.0 = regularized SVGD) - RegularizationSchedule object: dynamic regularization schedule Examples: ConstantRegularization(1.0), ExpRegularization(5.0, 0.1, 500.0)  If > 0.0, adds penalty term to match model moments to sample moments. Sample moments are computed from observed_data at initialization.  **Note**: Using RegularizationSchedule disables gradient precompilation for flexibility, which may be slower than constant regularization but allows dynamic strategies.
+
+<code>[**nr_moments**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [2]{.parameter-default}</code>
+
+:   Number of moments to use for regularization. Only used if regularization > 0. Typical values: 2 (mean and variance) or 3 (mean, variance, skewness).
+
+<code>[**fixed**]{.parameter-name} [:]{.parameter-annotation-sep} [array_like or list of tuples]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Specifies which parameters to fix during optimization. Two formats supported:  **Format 1 (Binary mask)**: Array indicating which parameters to fix at 1.0 - 0: Optimize this parameter - 1: Fix at 1.0 (do not optimize) Must have length theta_dim. Example: fixed=[0, 1] fixes theta[1]=1.0 while optimizing theta[0].  **Format 2 (Index-value tuples)**: List of (index, value) pairs - Each tuple specifies (parameter_index, fixed_value) - Only listed parameters are fixed; others are optimized - Values can be any positive number (not just 1.0) Example: fixed=[(1, 0.01)] fixes theta[1]=0.01 while optimizing theta[0]. Example: fixed=[(0, 2.5), (2, 0.1)] fixes theta[0]=2.5 and theta[2]=0.1.  **Performance**: SVGD operates in reduced parameter space (learnable dims only) for computational efficiency. Kernel bandwidth is computed only over varying dimensions, improving convergence.
+
+<code>[**optimizer**]{.parameter-name} [:]{.parameter-annotation-sep} [([Adam](`phasic.svgd.Adam`), [SGDMomentum](`phasic.svgd.SGDMomentum`), [RMSprop](`phasic.svgd.RMSprop`), [Adagrad](`phasic.svgd.Adagrad`), [OptaxOptimizer](`phasic.optax_wrapper.OptaxOptimizer`))]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Optimizer for adaptive per-parameter learning rates. Default is None.  Options include: - Adam: (default)Standard Adam optimizer - SGDMomentum: SGD with momentum - RMSprop: RMSprop optimizer - Adagrad: Adagrad optimizer  When an optimizer is provided, the `learning_rate` parameter is ignored (the optimizer has its own learning rate).  Example:     >>> from phasic import SVGD, Adam     >>> # Default: uses Adam     >>> svgd = SVGD(model, data, theta_dim=2)     >>> # Explicit optimizer     >>> svgd = SVGD(model, data, theta_dim=2, optimizer=Adam(learning_rate=0.01))
+
+## Attributes {.doc-section .doc-section-attributes}
+
+<code>[**particles**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`)]{.parameter-annotation}</code>
+
+:   Final posterior samples (n_particles, theta_dim)
+
+<code>[**theta_mean**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`)]{.parameter-annotation}</code>
+
+:   Posterior mean estimate
+
+<code>[**theta_std**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`)]{.parameter-annotation}</code>
+
+:   Posterior standard deviation
+
+<code>[**history**]{.parameter-name} [:]{.parameter-annotation-sep} [list of arrays, optional]{.parameter-annotation}</code>
+
+:   Particle evolution over iterations (if fit was called with return_history=True)
+
+<code>[**is_fitted**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation}</code>
+
+:   Whether fit() has been called
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> # Basic usage with auto-configuration
+>>> svgd = SVGD(model, observed_data, theta_dim=1)
+>>> svgd.fit()
+>>>
+>>> # Explicit single-device configuration
+>>> svgd = SVGD(model, observed_data, theta_dim=1, jit=True, parallel='vmap')
+>>> svgd.fit()
+>>>
+>>> # Multi-device parallelization
+>>> svgd = SVGD(model, observed_data, theta_dim=1,
+...             jit=True, parallel='pmap', n_devices=8)
+>>> svgd.fit()
+>>>
+>>> # No JIT (for debugging)
+>>> svgd = SVGD(model, observed_data, theta_dim=1, jit=False, parallel='none')
+>>> svgd.fit()
+>>>
+>>> # Multi-node SLURM (explicit distributed initialization)
+>>> from phasic import initialize_distributed
+>>> dist = initialize_distributed()  # Auto-detects SLURM environment
+>>> svgd = SVGD(model, observed_data, theta_dim=1,
+...             jit=True, parallel='pmap', n_devices=dist.num_processes)
+>>> svgd.fit()
+>>>
+>>> # Using step size schedules to prevent divergence
+>>> from phasic import ExpStepSize
+>>> schedule = ExpStepSize(first_step=0.1, last_step=0.01, tau=500.0)
+>>> svgd = SVGD(model, observed_data, theta_dim=1, learning_rate=schedule)
+>>> svgd.fit()
+>>>
+>>> # Using adaptive step size based on particle spread
+>>> from phasic import AdaptiveStepSize
+>>> schedule = AdaptiveStepSize(base_step=0.01, kl_target=0.1, adjust_rate=0.1)
+>>> svgd = SVGD(model, observed_data, theta_dim=1, learning_rate=schedule)
+>>> svgd.fit()
+>>>
+>>> # Using regularization schedules for moment matching
+>>> from phasic import ExpRegularization
+>>> reg_schedule = ExpRegularization(first_reg=5.0, last_reg=0.1, tau=500.0)
+>>> svgd = SVGD(model, observed_data, theta_dim=1,
+...             regularization=reg_schedule, nr_moments=2)
+>>> svgd.fit()  # Starts with strong regularization, gradually reduces
+>>>
+>>> # Using CDF-based regularization schedule (bidirectional)
+>>>
+>>> # Constant regularization (no schedule)
+>>> svgd = SVGD(model, observed_data, theta_dim=1, regularization=1.0, nr_moments=2)
+>>> svgd.fit()
+>>>
+>>> # Using custom bandwidth schedule
+>>> from phasic import LocalAdaptiveBandwidth
+>>> bandwidth = LocalAdaptiveBandwidth(alpha=0.9, k_frac=0.1)
+>>> svgd = SVGD(model, observed_data, theta_dim=1, kernel=bandwidth)
+>>> svgd.fit()
+>>>
+>>> # Access results
+>>> print(svgd.theta_mean)
+>>> print(svgd.theta_std)
+>>>
+>>> # Generate diagnostic plots
+>>> svgd.plot_posterior()
+>>> svgd.plot_trace()
+```
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [analyze_trace](#phasic.SVGD.analyze_trace) | Analyze SVGD convergence and suggest parameter improvements. |
+| [animate](#phasic.SVGD.animate) | Create an animation showing the evolution of a single parameter's distribution. |
+| [animate_pairwise](#phasic.SVGD.animate_pairwise) | Create an animated pairwise scatter plot showing SVGD particle evolution. |
+| [animate_parameter_pairs](#phasic.SVGD.animate_parameter_pairs) | Animate multiple parameter pairs simultaneously |
+| [check_convergence](#phasic.SVGD.check_convergence) | Monitor convergence of SVGD by tracking statistics for n-dimensional parameters |
+| [estimate_hdr](#phasic.SVGD.estimate_hdr) | Estimate the Highest Density Region (HDR) from particles. |
+| [get_results](#phasic.SVGD.get_results) | Get inference results as a dictionary. |
+| [map_estimate_from_particles](#phasic.SVGD.map_estimate_from_particles) | Find the MAP estimate from a set of particles by finding the particle |
+| [map_estimate_with_optimization](#phasic.SVGD.map_estimate_with_optimization) | Refine MAP estimate by starting from the best particle and performing |
+| [optimize](#phasic.SVGD.optimize) | Run SVGD inference with optional moment-based regularization. |
+| [plot_ci](#phasic.SVGD.plot_ci) | Plot mean parameter trajectory with credible interval ribbon. |
+| [plot_convergence](#phasic.SVGD.plot_convergence) | Plot convergence diagnostics showing mean and std over iterations. |
+| [plot_hdr](#phasic.SVGD.plot_hdr) | Plot 2D highest-density region with optional marginal HPD bands. |
+| [plot_pairwise](#phasic.SVGD.plot_pairwise) | Plot pairwise scatter plots for all parameter pairs. |
+| [plot_posterior](#phasic.SVGD.plot_posterior) | Plot posterior distributions for each parameter. |
+| [plot_trace](#phasic.SVGD.plot_trace) | Plot trace plots showing particle evolution over iterations. |
+| [summary](#phasic.SVGD.summary) | Print a summary of the inference results. |
+
+### analyze_trace { #phasic.SVGD.analyze_trace }
+
+```python
+phasic.SVGD.analyze_trace(burnin=None, verbose=True, return_dict=False)
+```
+
+Analyze SVGD convergence and suggest parameter improvements.
+
+Computes convergence diagnostics, detects issues, and recommends
+parameter updates for better performance.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**burnin**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Number of initial iterations to discard as burn-in. If None, auto-detects using convergence detection.
+
+<code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   Print detailed diagnostic report
+
+<code>[**return_dict**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   Return full diagnostics dictionary
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`) or None]{.parameter-annotation}</code>
+
+:   If return_dict=True, returns diagnostics dictionary with: - 'converged': bool - Whether SVGD converged - 'convergence_point': int or None - Iteration where converged - 'diversity': dict - Particle diversity metrics - 'variance_collapse': dict - Variance collapse diagnostics - 'suggestions': dict - Recommended parameter updates - 'issues': list - Detected problems
+
+#### Raises {.doc-section .doc-section-raises}
+
+<code>[:]{.parameter-annotation-sep} [[RuntimeError](`RuntimeError`)]{.parameter-annotation}</code>
+
+:   If fit() not called or history not available
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> svgd = SVGD(model, data, theta_dim=1, n_iterations=700)
+>>> svgd.fit(return_history=True)
+>>> svgd.analyze_trace()  # Prints diagnostic report
+```
+
+```python
+>>> # Get full diagnostics
+>>> diag = svgd.analyze_trace(return_dict=True, verbose=False)
+>>> if not diag['converged']:
+>>>     print("Need more iterations!")
+```
+
+### animate { #phasic.SVGD.animate }
+
+```python
+phasic.SVGD.animate(
+    param_idx=0,
+    true_theta=None,
+    param_name=None,
+    figsize=(8, 3),
+    skip=0,
+    thin=1,
+    interval=100,
+    duration=None,
+    bins=30,
+    show_particles=True,
+    max_particles=20,
+    save_as_gif=None,
+    save_as_mp4=None,
+    unconstrained=False,
+)
+```
+
+Create an animation showing the evolution of a single parameter's distribution.
+
+This method creates a side-by-side animation with:
+- Left panel: Histogram of current parameter distribution
+- Right panel: Particle trajectories over time
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**param_idx**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0]{.parameter-default}</code>
+
+:   Index of the parameter to animate (0-indexed)
+
+<code>[**true_theta**]{.parameter-name} [:]{.parameter-annotation-sep} [[array_like](`array_like`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   True parameter values. If provided, will overlay the true value for param_idx.
+
+<code>[**param_name**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Name for the parameter (e.g., 'jump rate'). If None, uses 'θ_{param_idx}'.
+
+<code>[**figsize**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [(8, 3)]{.parameter-default}</code>
+
+:   Figure size (width, height)
+
+<code>[**skip**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0]{.parameter-default}</code>
+
+:   Number of initial iterations to skip in the animation
+
+<code>[**thin**]{.parameter-name} [:]{.parameter-annotation-sep} [int, thin=1]{.parameter-annotation} [ = ]{.parameter-default-sep} [1]{.parameter-default}</code>
+
+:   Interval of interations to plot/annimate
+
+<code>[**interval**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [100]{.parameter-default}</code>
+
+:   Delay between frames in milliseconds
+
+<code>[**duration**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Duration of the animation in seconds, overrides interval and thin if set
+
+<code>[**bins**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [30]{.parameter-default}</code>
+
+:   Number of histogram bins
+
+<code>[**show_particles**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   If True, show individual particle trajectories in right panel
+
+<code>[**max_particles**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [20]{.parameter-default}</code>
+
+:   Maximum number of particle trajectories to show (for clarity)
+
+<code>[**save_as_gif**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Path to save animation as GIF (requires pillow)
+
+<code>[**save_as_mp4**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Path to save animation as MP4 (requires ffmpeg)
+
+<code>[**unconstrained**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If False, show constrained (model-space) parameter values. If True, show unconstrained (optimization-space) values. Only relevant when using parameter transformations.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[IPython](`IPython`).[display](`IPython.display`).[HTML](`IPython.display.HTML`)]{.parameter-annotation}</code>
+
+:   Animation as HTML for Jupyter notebook display
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> svgd = SVGD(model, data, theta_dim=3, n_iterations=70)
+>>> svgd.fit(return_history=True)
+>>> anim = svgd.animate(param_idx=0, true_theta=[2.0, 3.0, 2.0],
+...                     param_name='jump rate')
+```
+
+### animate_pairwise { #phasic.SVGD.animate_pairwise }
+
+```python
+phasic.SVGD.animate_pairwise(
+    true_theta=None,
+    param_names=None,
+    figsize=None,
+    skip=0,
+    thin=1,
+    interval=100,
+    duration=None,
+    save_as_gif=None,
+    save_as_mp4=None,
+    unconstrained=False,
+)
+```
+
+Create an animated pairwise scatter plot showing SVGD particle evolution.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**true_theta**]{.parameter-name} [:]{.parameter-annotation-sep} [[array_like](`array_like`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   True parameter values (if known) to overlay as red 'x' markers
+
+<code>[**param_names**]{.parameter-name} [:]{.parameter-annotation-sep} [list of str]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Names for each parameter dimension (e.g., ['jump', 'flood_left', 'flood_right'])
+
+<code>[**figsize**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Figure size (width, height). Auto-sized based on parameter dimension if None.
+
+<code>[**skip**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0]{.parameter-default}</code>
+
+:   Number of initial iterations to skip in the animation
+
+<code>[**thin**]{.parameter-name} [:]{.parameter-annotation-sep} [int, thin=1]{.parameter-annotation} [ = ]{.parameter-default-sep} [1]{.parameter-default}</code>
+
+:   Interval of interations to plot/annimate
+
+<code>[**interval**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [100]{.parameter-default}</code>
+
+:   Delay between frames in milliseconds
+
+<code>[**duration**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Duration of the animation in seconds, overrides interval and thin if set
+
+<code>[**save_as_gif**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Path to save animation as GIF (requires pillow)
+
+<code>[**save_as_mp4**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Path to save animation as MP4 (requires ffmpeg)
+
+<code>[**unconstrained**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If False, show constrained (model-space) parameter values. If True, show unconstrained (optimization-space) values. Only relevant when using parameter transformations.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[IPython](`IPython`).[display](`IPython.display`).[HTML](`IPython.display.HTML`)]{.parameter-annotation}</code>
+
+:   Animation as HTML for Jupyter notebook display
+
+#### Raises {.doc-section .doc-section-raises}
+
+<code>[:]{.parameter-annotation-sep} [[RuntimeError](`RuntimeError`)]{.parameter-annotation}</code>
+
+:   If fit() was not called with return_history=True
+
+<code>[:]{.parameter-annotation-sep} [[ImportError](`ImportError`)]{.parameter-annotation}</code>
+
+:   If matplotlib or required animation backend is not installed
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> svgd = SVGD(model, data, theta_dim=3, n_iterations=70)
+>>> svgd.fit(return_history=True)
+>>> anim = svgd.animate_pairwise(
+...     true_theta=[2.0, 3.0, 2.0],
+...     param_names=['jump', 'flood_left', 'flood_right'],
+...     save_as_gif='svgd_evolution.gif'
+... )
+```
+
+### animate_parameter_pairs { #phasic.SVGD.animate_parameter_pairs }
+
+```python
+phasic.SVGD.animate_parameter_pairs(
+    param_pairs=None,
+    true_params=None,
+    figsize=(15, 5),
+    save_as_gif=None,
+)
+```
+
+Animate multiple parameter pairs simultaneously
+
+Args:
+    particle_history: array of shape (n_iterations, n_particles, n_dims)
+    param_pairs: list of tuples [(i1,j1), (i2,j2), ...] for parameter pairs to show
+    true_params: optional true parameter values
+    figsize: figure size
+
+### check_convergence { #phasic.SVGD.check_convergence }
+
+```python
+phasic.SVGD.check_convergence(every=1, text=None, param_indices=None)
+```
+
+Monitor convergence of SVGD by tracking statistics for n-dimensional parameters
+
+### estimate_hdr { #phasic.SVGD.estimate_hdr }
+
+```python
+phasic.SVGD.estimate_hdr(alpha=0.95)
+```
+
+Estimate the Highest Density Region (HDR) from particles.
+
+Args:
+    particles: Array of shape (n_particles, dim)
+    log_prob_fn: Function that computes log probability
+    alpha: Coverage probability (e.g., 0.95 for 95% HDR)
+
+Returns:
+    List of particles that are within the HDR
+    The log probability threshold that defines the HDR
+
+### get_results { #phasic.SVGD.get_results }
+
+```python
+phasic.SVGD.get_results()
+```
+
+Get inference results as a dictionary.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation}</code>
+
+:   Dictionary containing: - 'particles': Final posterior samples (in constrained space if using transformation) - 'theta_mean': Posterior mean (in constrained space if using transformation) - 'theta_std': Posterior standard deviation (in constrained space if using transformation) - 'history': Particle evolution (if available, in constrained space if using transformation) - 'particles_unconstrained': Particles in unconstrained space (only if using transformation)
+
+### map_estimate_from_particles { #phasic.SVGD.map_estimate_from_particles }
+
+```python
+phasic.SVGD.map_estimate_from_particles(unconstrained=False)
+```
+
+Find the MAP estimate from a set of particles by finding the particle
+with the highest log probability.
+
+Args:
+    unconstrained : bool, default=False
+        If False, return constrained (model-space) parameter values.
+        If True, return unconstrained (optimization-space) values.
+        Only relevant when using parameter transformations.
+
+Returns:
+    The particle with highest log probability
+
+### map_estimate_with_optimization { #phasic.SVGD.map_estimate_with_optimization }
+
+```python
+phasic.SVGD.map_estimate_with_optimization(
+    n_steps=70,
+    step_size=0.01,
+    unconstrained=False,
+)
+```
+
+Refine MAP estimate by starting from the best particle and performing
+gradient ascent on the log probability.
+
+Args:
+    n_steps: Number of optimization steps
+    step_size: Step size for gradient ascent
+    unconstrained : bool, default=False
+        If False, return constrained (model-space) parameter values.
+        If True, return unconstrained (optimization-space) values.
+        Only relevant when using parameter transformations.
+
+Returns:
+    The refined MAP estimate after optimization
+
+### optimize { #phasic.SVGD.optimize }
+
+```python
+phasic.SVGD.optimize(rewards=None, return_history=True)
+```
+
+Run SVGD inference with optional moment-based regularization.
+
+Regularization settings are configured at SVGD initialization via
+regularization and nr_moments parameters.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**rewards**]{.parameter-name} [:]{.parameter-annotation-sep} [[array_like](`array_like`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Reward vector/matrix for multivariate phase-type distributions. - 1D array (n_vertices,): Single reward vector for univariate distribution - 2D array (n_features, n_vertices): Reward matrix for multivariate distribution   where each row rewards[j, :] defines the reward vector for feature j Must be provided if model requires rewards (multivariate distributions). Each reward serves as multiplier of vertex value in trace.
+
+<code>[**return_history**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   If True, store particle positions throughout optimization
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[self](`self`)]{.parameter-annotation}</code>
+
+:   Returns self for method chaining
+
+#### Raises {.doc-section .doc-section-raises}
+
+<code>[:]{.parameter-annotation-sep} [[NotImplementedError](`NotImplementedError`)]{.parameter-annotation}</code>
+
+:   If rewards parameter is provided (not yet implemented)
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> # Standard SVGD (no regularization)
+>>> model = Graph.pmf_and_moments_from_graph(graph)
+>>> svgd = SVGD(model, observed_data, theta_dim=1, regularization=0.0)
+>>> svgd.optimize()
+```
+
+```python
+>>> # SVGD with moment regularization
+>>> model = Graph.pmf_and_moments_from_graph(graph, nr_moments=2)
+>>> svgd = SVGD(model, observed_data, theta_dim=1, regularization=1.0, nr_moments=2)
+>>> svgd.optimize()
+```
+
+```python
+>>> # With custom moments and strong regularization
+>>> svgd = SVGD(model, observed_data, theta_dim=1, regularization=5.0, nr_moments=3)
+>>> svgd.optimize()
+```
+
+#### Notes {.doc-section .doc-section-notes}
+
+- Supports all JAX transformations: jit, grad, vmap, pmap
+- Supports multi-core parallelization via parallel='vmap'/'pmap'
+- Supports multi-machine distribution via initialize_distributed()
+- Gradient compilation is cached (both memory and disk) for performance
+- All functionality from fit() and fit_regularized() is preserved
+
+### plot_ci { #phasic.SVGD.plot_ci }
+
+```python
+phasic.SVGD.plot_ci(
+    figsize=(7, 3),
+    save_path=None,
+    skip=0,
+    unconstrained=False,
+    true_theta=None,
+    ci=0.95,
+    alpha=0.2,
+    target=None,
+    median=False,
+    return_fig=False,
+    ci_method='hpd',
+)
+```
+
+Plot mean parameter trajectory with credible interval ribbon.
+
+Shows the posterior mean over iterations with a shaded region representing
+the specified credible interval (default 95%).
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**figsize**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [(7, 3)]{.parameter-default}</code>
+
+:   Figure size (width, height)
+
+<code>[**save_path**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Path to save the plot
+
+<code>[**skip**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0]{.parameter-default}</code>
+
+:   Number of initial iterations to skip
+
+<code>[**unconstrained**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If False, show constrained (model-space) parameter values. If True, show unconstrained (optimization-space) values.
+
+<code>[**true_theta**]{.parameter-name} [:]{.parameter-annotation-sep} [[array_like](`array_like`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   True parameter values to overlay as horizontal lines
+
+<code>[**ci**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.95]{.parameter-default}</code>
+
+:   Credible interval level (e.g., 0.95 for 95% CI)
+
+<code>[**alpha**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.2]{.parameter-default}</code>
+
+:   Transparency of the CI ribbon
+
+<code>[**target**]{.parameter-name} [:]{.parameter-annotation-sep} [[array_like](`array_like`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Target parameter value to overlay as horizontal line
+
+<code>[**median**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, plot the median trajectory as a dashed line
+
+<code>[**return_fig**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   If True, return (fig, ax). If False, call plt.show() instead.
+
+<code>[**ci_method**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'hpd\']{.parameter-default}</code>
+
+:   Method for credible intervals.  - ``'hpd'``: Highest Posterior Density interval — the shortest   interval containing ``ci`` fraction of posterior samples at each   iteration. Computed by sorting the particles and sliding a   window of ``ceil(n * ci)`` samples to find the narrowest span. - ``'percentile'``: Equal-tailed percentile interval using   symmetric quantiles.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [([fig](`fig`), [ax](`ax`))]{.parameter-annotation}</code>
+
+:   Matplotlib figure and axes objects (only if return_fig=False)
+
+### plot_convergence { #phasic.SVGD.plot_convergence }
+
+```python
+phasic.SVGD.plot_convergence(
+    figsize=(7, 3),
+    save_path=None,
+    skip=0,
+    unconstrained=False,
+    return_fig=False,
+)
+```
+
+Plot convergence diagnostics showing mean and std over iterations.
+
+Requires fit() to have been called with return_history=True.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**figsize**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [(7, 4)]{.parameter-default}</code>
+
+:   Figure size (width, height)
+
+<code>[**save_path**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Path to save the plot
+
+<code>[**skip**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0]{.parameter-default}</code>
+
+:   Number of initial iterations to skip. Defaults to 0.
+
+<code>[**unconstrained**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If False, show constrained (model-space) parameter values. If True, show unconstrained (optimization-space) values. Only relevant when using parameter transformations.
+
+<code>[**return_fig**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   If True, return (fig, axes). If False, call plt.show() instead.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [([fig](`fig`), [axes](`axes`))]{.parameter-annotation}</code>
+
+:   Matplotlib figure and axes objects (only if return_fig=False)
+
+### plot_hdr { #phasic.SVGD.plot_hdr }
+
+```python
+phasic.SVGD.plot_hdr(
+    alphas=[0.95, 0.5],
+    idx=[0, 1],
+    figsize=(5, 4),
+    hexgrid=True,
+    trim=True,
+    n=15,
+    margin=0.1,
+    xlim=None,
+    ylim=None,
+    palette='viridis',
+    pad=2,
+    unconstrained=False,
+    return_fig=False,
+    show_hpd=False,
+    hpd_alpha=0.95,
+)
+```
+
+Plot 2D highest-density region with optional marginal HPD bands.
+
+Displays a hex-grid log-likelihood heatmap and KDE-based HDR contours
+for two selected parameter dimensions.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**alphas**]{.parameter-name} [:]{.parameter-annotation-sep} [list of float]{.parameter-annotation} [ = ]{.parameter-default-sep} [\[0.95, 0.5\]]{.parameter-default}</code>
+
+:   HDR contour levels (fraction of mass enclosed).
+
+<code>[**idx**]{.parameter-name} [:]{.parameter-annotation-sep} [list of int]{.parameter-annotation} [ = ]{.parameter-default-sep} [\[0, 1\]]{.parameter-default}</code>
+
+:   Indices of the two parameter dimensions to plot.
+
+<code>[**figsize**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [(5, 4)]{.parameter-default}</code>
+
+:   Figure size (width, height).
+
+<code>[**hexgrid**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   Whether to show the log-likelihood hex-grid heatmap.
+
+<code>[**trim**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   Clip axes to the hex-grid extent.
+
+<code>[**n**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [15]{.parameter-default}</code>
+
+:   Approximate number of hexagons along the shorter axis.
+
+<code>[**margin**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.1]{.parameter-default}</code>
+
+:   Fractional margin around particle range.
+
+<code>[**xlim**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Manual axis limits.
+
+<code>[**ylim**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Manual axis limits.
+
+<code>[**palette**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'viridis\']{.parameter-default}</code>
+
+:   Colormap for the hex-grid heatmap.
+
+<code>[**pad**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [2]{.parameter-default}</code>
+
+:   Extra hex rows/columns beyond the data range.
+
+<code>[**unconstrained**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   Show unconstrained (optimization-space) values.
+
+<code>[**return_fig**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, return the axes object instead of calling plt.show().
+
+<code>[**show_hpd**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, overlay marginal HPD intervals as translucent vertical and horizontal bands.  The HPD interval is the shortest contiguous interval containing ``hpd_alpha`` fraction of the marginal particle samples (computed by sorting the samples and sliding a window of ``ceil(n * hpd_alpha)`` elements to find the narrowest span).
+
+<code>[**hpd_alpha**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.95]{.parameter-default}</code>
+
+:   Credible level for the marginal HPD bands (only used when ``show_hpd=True``).
+
+### plot_pairwise { #phasic.SVGD.plot_pairwise }
+
+```python
+phasic.SVGD.plot_pairwise(
+    true_theta=None,
+    param_names=None,
+    figsize=None,
+    save_path=None,
+    unconstrained=False,
+    return_fig=False,
+)
+```
+
+Plot pairwise scatter plots for all parameter pairs.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**true_theta**]{.parameter-name} [:]{.parameter-annotation-sep} [[array_like](`array_like`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   True parameter values (if known) to overlay on plot
+
+<code>[**param_names**]{.parameter-name} [:]{.parameter-annotation-sep} [list of str]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Names for each parameter dimension
+
+<code>[**figsize**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Figure size (width, height)
+
+<code>[**save_path**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Path to save the plot
+
+<code>[**unconstrained**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If False, show constrained (model-space) parameter values. If True, show unconstrained (optimization-space) values. Only relevant when using parameter transformations.
+
+<code>[**return_fig**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   If True, return (fig, axes). If False, call plt.show() instead.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [([fig](`fig`), [axes](`axes`))]{.parameter-annotation}</code>
+
+:   Matplotlib figure and axes objects (only if return_fig=False)
+
+### plot_posterior { #phasic.SVGD.plot_posterior }
+
+```python
+phasic.SVGD.plot_posterior(
+    true_theta=None,
+    param_names=None,
+    bins=20,
+    figsize=None,
+    save_path=None,
+    unconstrained=False,
+    return_fig=False,
+    ci_method='hpd',
+    ci_level=0.95,
+)
+```
+
+Plot posterior distributions for each parameter.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**true_theta**]{.parameter-name} [:]{.parameter-annotation-sep} [[array_like](`array_like`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   True parameter values (if known) to overlay on plot
+
+<code>[**param_names**]{.parameter-name} [:]{.parameter-annotation-sep} [list of str]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Names for each parameter dimension
+
+<code>[**bins**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [20]{.parameter-default}</code>
+
+:   Number of histogram bins
+
+<code>[**figsize**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Figure size (width, height)
+
+<code>[**save_path**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Path to save the plot
+
+<code>[**unconstrained**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If False, show constrained (model-space) parameter values. If True, show unconstrained (optimization-space) values. Only relevant when using parameter transformations.
+
+<code>[**return_fig**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   If True, return (fig, axes). If False, call plt.show() instead.
+
+<code>[**ci_method**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'hpd\']{.parameter-default}</code>
+
+:   Method for credible intervals shown as a shaded region on each histogram.  - ``'hpd'``: Highest Posterior Density interval — the shortest   interval containing ``ci_level`` fraction of posterior samples.   Computed by sorting the particles and sliding a window of   ``ceil(n * ci_level)`` samples to find the narrowest span.   Better centred on the mode for skewed posteriors. - ``'percentile'``: Equal-tailed percentile interval using   symmetric quantiles.
+
+<code>[**ci_level**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.95]{.parameter-default}</code>
+
+:   Credible level for the shaded interval (e.g. 0.95 for 95%).
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [([fig](`fig`), [axes](`axes`))]{.parameter-annotation}</code>
+
+:   Matplotlib figure and axes objects (only if return_fig=False)
+
+### plot_trace { #phasic.SVGD.plot_trace }
+
+```python
+phasic.SVGD.plot_trace(
+    param_names=None,
+    figsize=None,
+    skip=0,
+    max_particles=None,
+    save_path=None,
+    unconstrained=False,
+    return_fig=False,
+)
+```
+
+Plot trace plots showing particle evolution over iterations.
+
+Requires fit() to have been called with return_history=True.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**param_names**]{.parameter-name} [:]{.parameter-annotation-sep} [list of str]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Names for each parameter dimension
+
+<code>[**figsize**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Figure size (width, height)
+
+<code>[**skip**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0]{.parameter-default}</code>
+
+:   Number of initial iterations to skip. Defaults to 0.
+
+<code>[**max_particles**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Max number of particles to plot. Defaults to all particles.
+
+<code>[**save_path**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Path to save the plot
+
+<code>[**unconstrained**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If False, show constrained (model-space) parameter values. If True, show unconstrained (optimization-space) values. Only relevant when using parameter transformations.
+
+<code>[**return_fig**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   If True, return (fig, axes). If False, call plt.show() instead.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [([fig](`fig`), [axes](`axes`))]{.parameter-annotation}</code>
+
+:   Matplotlib figure and axes objects (only if return_fig=False)
+
+### summary { #phasic.SVGD.summary }
+
+```python
+phasic.SVGD.summary(ci_method='hpd', ci_level=0.95)
+```
+
+Print a summary of the inference results.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**ci_method**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'hpd\']{.parameter-default}</code>
+
+:   Method for credible intervals.  - ``'hpd'``: Highest Posterior Density interval — the shortest   interval containing ``ci_level`` fraction of the posterior   samples. Computed by sorting the particles and sliding a window   of ``ceil(n * ci_level)`` samples to find the narrowest span.   Better centred on the mode for skewed posteriors. - ``'percentile'``: Equal-tailed percentile interval using the   ``(1 - ci_level)/2`` and ``(1 + ci_level)/2`` quantiles.
+
+<code>[**ci_level**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.95]{.parameter-default}</code>
+
+:   Credible level (e.g. 0.95 for 95% intervals).

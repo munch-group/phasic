@@ -349,23 +349,12 @@ The paper provides:
 - Empirical performance comparisons
 - Applications to population genetics
 
-## Related Documentation
-
-- **[State Space Construction](tutorials/state_space_construction.ipynb)** - Building phase-type models
-- **[Moments](tutorials/moments.ipynb)** - Computing expectations and variances
-- **[Distributions](tutorials/distributions.ipynb)** - PMF, PDF, and CDF computation
-- **[Graph Construction](../api/Graph.html)** - API reference
 
 ## References
-
-**Key references:**
 
 - Neuts, M.F. (1981). *Matrix-Geometric Solutions in Stochastic Models.* Johns Hopkins University Press.
 - Bladt, M., & Nielsen, B.F. (2017). *Matrix-Exponential Distributions in Applied Probability.* Springer.
 - Hobolth, A., Siri-Jegousse, A., & Bladt, M. (2019). Phase-type distributions in population genetics. *Theoretical Population Biology*, 127:16-32.
-
-**Graph algorithms:**
-
 - Duff, I.S., Erisman, A.M., & Reid, J.K. (2017). *Direct Methods for Sparse Matrices.* Oxford University Press.
 - Bobbio, A., Horváth, A., & Telek, M. (2004). The scale factor: a new degree of freedom in phase-type approximation. *Performance Evaluation*, 56(1-4):121-144.
 
