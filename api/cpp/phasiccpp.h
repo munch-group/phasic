@@ -947,6 +947,27 @@ namespace phasic {
             return vertex->edges_length;
         }
 
+        /**
+         * Check if this vertex is an auxiliary vertex.
+         *
+         * Auxiliary vertices are created by add_aux_vertex() and have special
+         * semantics (e.g., their return edge is always constant weight 1.0).
+         *
+         * @return true if vertex is auxiliary, false otherwise
+         */
+        bool is_aux() {
+            return vertex->is_aux;
+        }
+
+        /**
+         * Mark or unmark this vertex as auxiliary.
+         *
+         * @param value true to mark as auxiliary, false to unmark
+         */
+        void set_aux(bool value) {
+            vertex->is_aux = value;
+        }
+
         // NB: moved this from private to public to allow pybin11 to find it
         // @Tobias: is there a better way to do this?
         struct ptd_vertex *vertex;

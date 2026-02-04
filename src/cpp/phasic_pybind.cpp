@@ -3534,6 +3534,45 @@ int
     Number of edges leaving this vertex.
       )delim")
 
+    .def("is_aux", &phasic::Vertex::is_aux, R"delim(
+Check if this vertex is an auxiliary vertex.
+
+Auxiliary vertices are created by add_aux_vertex() and have special
+semantics (e.g., their return edge is always constant weight 1.0).
+
+Returns
+-------
+bool
+    True if vertex is auxiliary, False otherwise.
+
+Examples
+--------
+>>> g = phasic.Graph(2)
+>>> v = g.find_or_create_vertex([1, 0])
+>>> v.is_aux()
+False
+>>> aux = v.add_aux_vertex(2.0)
+>>> aux.is_aux()
+True
+      )delim")
+
+    .def("set_aux", &phasic::Vertex::set_aux, py::arg("value"), R"delim(
+Mark or unmark this vertex as auxiliary.
+
+Parameters
+----------
+value : bool
+    True to mark as auxiliary, False to unmark.
+
+Examples
+--------
+>>> g = phasic.Graph(2)
+>>> v = g.find_or_create_vertex([1, 0])
+>>> v.set_aux(True)
+>>> v.is_aux()
+True
+      )delim")
+
     ;
 
   py::class_<phasic::Edge>(m, "Edge", R"delim(

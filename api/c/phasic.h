@@ -147,6 +147,7 @@ struct ptd_vertex {
     struct ptd_graph *graph;
     size_t index;
     int *state;
+    bool is_aux;  // Marks auxiliary vertices created by add_aux_vertex()
 };
 
 struct ptd_graph *ptd_graph_create(size_t state_length);

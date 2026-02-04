@@ -1138,6 +1138,8 @@ struct ptd_clone_res ptd_clone_graph(struct ptd_graph *graph, struct ptd_avl_tre
             // Free the temporary state since ptd_vertex_create_state() makes a copy
             free(new_state);
 
+            new_v->is_aux = old_v->is_aux;
+
             vertex_map[i] = new_v;
         }
     }
