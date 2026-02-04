@@ -1250,18 +1250,49 @@ struct ptd_clone_res ptd_clone_graph(struct ptd_graph *graph, struct ptd_avl_tre
 
             struct ptd_vertex *new_target = vertex_map[target_idx];
 
-            // Add edge with cloned coefficients array
-            struct ptd_edge *new_edge = ptd_graph_add_edge(
-                new_v, new_target,
-                old_edge->coefficients,
-                old_edge->coefficients_length
-            );
+            if (new_v->is_aux && old_edge->coefficients == NULL) {
+                PTD_LOG_DEBUG("Handling edge from auxiliary vertex %zu to non-auxiliary vertex %zu", new_v->index, new_target->index);
 
-            if (new_edge == NULL) {
-                free(vertex_map);
-                ptd_graph_destroy(new_graph);
-                snprintf((char*)ptd_err, sizeof(ptd_err), "Failed to clone edge at vertex %zu", i);
-                return res;
+                // Constant weight weight back-edge from aux to parent
+
+                // Create edge manually to bypass validation (always constant weight 1.0)
+                struct ptd_edge *const_edge = (struct ptd_edge *)malloc(sizeof(*const_edge));
+
+                const_edge->to = new_target;
+                const_edge->weight = 1.0;
+                const_edge->coefficients_length = 0;  // No coefficients - pure constant
+                const_edge->coefficients = NULL;
+                const_edge->should_free_coefficients = false;
+
+                // Add edge to aux vertex's edge list
+                struct ptd_edge **new_edges = (struct ptd_edge **)realloc(
+                    new_v->edges,
+                    (new_v->edges_length + 1) * sizeof(struct ptd_edge *)
+                );
+                if (new_edges == NULL) {
+                    free(const_edge);
+                    // throw std::runtime_error("Failed to allocate edge array");
+                }
+                new_v->edges = new_edges;
+                new_v->edges[new_v->edges_length] = const_edge;
+                new_v->edges_length++;
+
+            } else {
+                PTD_LOG_DEBUG("Handling edge from non-auxiliary vertex %zu to vertex %zu", new_v->index, new_target->index);
+
+                // Add edge with cloned coefficients array
+                struct ptd_edge *new_edge = ptd_graph_add_edge(
+                    new_v, new_target,
+                    old_edge->coefficients,
+                    old_edge->coefficients_length
+                );
+
+                if (new_edge == NULL) {
+                    free(vertex_map);
+                    ptd_graph_destroy(new_graph);
+                    snprintf((char*)ptd_err, sizeof(ptd_err), "Failed to clone edge at vertex %zu", i);
+                    return res;
+                }
             }
         }
     }
@@ -2721,6 +2752,7 @@ struct ptd_vertex *ptd_vertex_create_state(struct ptd_graph *graph, int *state) 
     struct ptd_vertex *vertex = (struct ptd_vertex *) malloc(sizeof(*vertex));
     vertex->graph = graph;
     vertex->edges_length = 0;
+    vertex->is_aux = false;  // Default: not an auxiliary vertex
 
     // ALWAYS copy the state to avoid shared ownership issues
     // This prevents bugs where Python passes a pointer it doesn't own
@@ -2839,9 +2871,9 @@ struct ptd_edge *ptd_graph_add_edge(
         size_t coefficients_length
 ) {
     if (coefficients == NULL || coefficients_length == 0) {
-        snprintf((char*)ptd_err, sizeof(ptd_err),
+            snprintf((char*)ptd_err, sizeof(ptd_err),
             "ptd_graph_add_edge: coefficients cannot be NULL or empty");
-        return NULL;
+            return NULL;
     }
 
     if (from == to) {
@@ -2871,7 +2903,7 @@ struct ptd_edge *ptd_graph_add_edge(
     }
 
     // VALIDATION: Check consistency with existing edges
-    if (from->graph->param_length_locked) {
+    if (from->graph->param_length_locked && from->is_aux == false) {
         // Allow edges with MORE coefficients than param_length
         // Only the first param_length coefficients will be used
         if (from->index != from->graph->starting_vertex->index && coefficients_length < from->graph->param_length) {

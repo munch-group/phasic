@@ -2116,12 +2116,12 @@ class Graph(_Graph):
 
         This is equivalent to moments(1, rewards).
         """
-        # # For parameterized graphs, always use trace-based computation (O(n) memory)
-        # # to avoid O(n²) matrix allocation in the C++ fallback path
-        # if self.parameterized():
-        #     trace = self._ensure_trace()
-        #     if trace is not None:
-        #         return self._expectation_from_trace(rewards=rewards, discrete=self.is_discrete, **kwargs)
+        # For parameterized graphs, always use trace-based computation (O(n) memory)
+        # to avoid O(n²) matrix allocation in the C++ fallback path
+        if self.parameterized():
+            trace = self._ensure_trace()
+            if trace is not None:
+                return self._expectation_from_trace(rewards=rewards, discrete=self.is_discrete, **kwargs)
 
         # Fall back to direct C++ computation for non-parameterized graphs
         if self.is_discrete:
@@ -2155,12 +2155,12 @@ class Graph(_Graph):
 
         Computed as Var(T) = E[T^2] - E[T]^2 using moments.
         """        
-        # # For parameterized graphs, always use trace-based computation (O(n) memory)
-        # # to avoid O(n²) matrix allocation in the C++ fallback path
-        # if self.parameterized():
-        #     trace = self._ensure_trace()
-        #     if trace is not None:
-        #         return self._variance_from_trace(rewards=rewards, discrete=self.is_discrete, **kwargs)
+        # For parameterized graphs, always use trace-based computation (O(n) memory)
+        # to avoid O(n²) matrix allocation in the C++ fallback path
+        if self.parameterized():
+            trace = self._ensure_trace()
+            if trace is not None:
+                return self._variance_from_trace(rewards=rewards, discrete=self.is_discrete, **kwargs)
 
         # Fall back to direct C++ computation for non-parameterized graphs
         if self.is_discrete:
