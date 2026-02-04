@@ -1989,6 +1989,34 @@ class Graph(_Graph):
             else:
                 return concrete_graph.variance(**kwargs)
 
+    def _covariance_from_trace(self, rewards1=None, rewards2=None, discrete=False, **kwargs):
+        """Compute covariance using cached elimination trace."""
+        from .trace_elimination import instantiate_from_trace
+
+        trace = self._ensure_trace()
+        if trace is None:
+            raise RuntimeError("_covariance_from_trace called but no trace available")
+
+        theta = self._get_current_theta()
+        # Note: Do NOT call normalize() - the graph already has correct rates
+        concrete_graph = instantiate_from_trace(trace, theta)
+
+        # Choose appropriate method based on discrete flag
+        if discrete:
+            if not self.is_discrete:
+                raise ValueError("discrete=True only valid for discrete distributions")
+            if rewards1 is not None:
+                rewards1 = list(rewards1)
+            if rewards2 is not None:
+                rewards2 = list(rewards2)
+            return concrete_graph.covariance_discrete(rewards1=rewards1, rewards2=rewards2, **kwargs)
+        else:
+            if rewards1 is not None:
+                rewards1 = list(rewards1)
+            if rewards2 is not None:
+                rewards2 = list(rewards2)
+            return concrete_graph.covariance(rewards1=rewards1, rewards2=rewards2, **kwargs)
+
     def expected_waiting_time(self, *args, **kwargs):
         """
         Compute expected waiting time until absorption.
@@ -2116,6 +2144,18 @@ class Graph(_Graph):
 
         This is equivalent to moments(1, rewards).
         """
+        if self.cache_trace:
+            if self.is_discrete:
+                raise NotImplementedError("Trace-based expectation computation not implemented yet for discrete graphs.")
+                # trace = self._ensure_trace()
+                # if trace is None:
+                #     raise RuntimeError("No trace, is your Graph parameterized?")
+                # return self._expectation_from_trace(rewards=rewards, discrete=True, **kwargs)
+            else:
+                trace = self._ensure_trace()
+                if trace is None:
+                    raise RuntimeError("No trace, is your Graph parameterized?")
+                return self._expectation_from_trace(rewards=rewards, discrete=False, **kwargs)
         # # For parameterized graphs, always use trace-based computation (O(n) memory)
         # # to avoid O(n²) matrix allocation in the C++ fallback path
         # if self.parameterized():
@@ -2154,7 +2194,19 @@ class Graph(_Graph):
         faster repeated evaluations.
 
         Computed as Var(T) = E[T^2] - E[T]^2 using moments.
-        """        
+        """     
+        if self.cache_trace:
+            if self.is_discrete:
+                raise NotImplementedError("Trace-based expectation computation not implemented yet for discrete graphs.")
+                # trace = self._ensure_trace()
+                # if trace is None:
+                #     raise RuntimeError("No trace, is your Graph parameterized?")
+                # return self._variance_from_trace(rewards=rewards, discrete=True, **kwargs)
+            else:
+                trace = self._ensure_trace()
+                if trace is None:
+                    raise RuntimeError("No trace, is your Graph parameterized?")
+                return self._variance_from_trace(rewards=rewards, discrete=False, **kwargs)                     
         # # For parameterized graphs, always use trace-based computation (O(n) memory)
         # # to avoid O(n²) matrix allocation in the C++ fallback path
         # if self.parameterized():
@@ -2168,14 +2220,21 @@ class Graph(_Graph):
         else:
             return super().variance(rewards=rewards, **kwargs)
 
-    def covariance(self, *args, **kwargs):
+    def covariance(self, rewards1=[], rewards2=[], **kwargs):
         """
         Compute covariance matrix for multivariate phase-type distributions.
 
         Parameters
         ----------
-        *args : tuple
-            Additional positional arguments passed to C++ implementation.
+        rewards1 : list of float or ndarray
+            The first set of rewards, which should be applied to the 
+            phase-type distribution. Must have length equal to 
+            `vertices_length()`.
+        rewards2 : list of float or ndarray
+            The second set of rewards, which should be applied to the 
+            phase-type distribution. Must have length equal to 
+            `vertices_length()`.
+         
         **kwargs : dict
             Additional keyword arguments passed to C++ implementation.
 
@@ -2189,10 +2248,23 @@ class Graph(_Graph):
         This method is for multivariate phase-type distributions with
         multiple marginals. For univariate distributions, use variance().
         """
+        if self.cache_trace:
+            if self.is_discrete:
+                raise NotImplementedError("Trace-based expectation computation not implemented yet for discrete graphs.")
+                # trace = self._ensure_trace()
+                # if trace is None:
+                #     raise RuntimeError("No trace, is your Graph parameterized?")
+                # return self._covariance_from_trace(rewards1=rewards1, rewards2=rewards2, discrete=True, **kwargs)
+            else:
+                trace = self._ensure_trace()
+                if trace is None:
+                    raise RuntimeError("No trace, is your Graph parameterized?")
+                return self._covariance_from_trace(rewards1=rewards1, rewards2=rewards2, discrete=False, **kwargs)                     
+
         if self.is_discrete:
-            return super().covariance_discrete(*args, **kwargs)
+            return super().covariance_discrete(rewards1=rewards1, rewards2=rewards2, **kwargs)
         else:
-            return super().covariance(*args, **kwargs)
+            return super().covariance(rewards1=rewards1, rewards2=rewards2, **kwargs)
 
     def pdf(self, time, **kwargs):
         """
