@@ -966,6 +966,21 @@ throw std::runtime_error(error_formatted_line); \
 #include "../../src/c/phasic_log.h"
 #define DEBUG_PRINT(message, ...) ptd_log(PTD_LOG_LEVEL_DEBUG, message, ##__VA_ARGS__)
 
+/**
+ * Creates a Laplace-transformed graph.
+ *
+ * Returns a new graph where each transient state has an additional edge
+ * to the absorbing state with weight theta (or theta added to existing
+ * absorbing edge weight). This transformation allows computing the Laplace
+ * transform L(theta) = E[exp(-theta * T)] via expectation() on the result.
+ *
+ * @param graph The phase-type graph
+ * @param avl_tree The AVL tree for vertex lookup
+ * @param theta The Laplace transform parameter
+ * @return A clone result containing the transformed graph and its AVL tree
+ */
+struct ptd_clone_res ptd_graph_laplace_transform(struct ptd_graph *graph, struct ptd_avl_tree *avl_tree, double theta);
+
 #ifdef __cplusplus
 }
 #endif

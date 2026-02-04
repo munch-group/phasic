@@ -668,6 +668,20 @@ namespace phasic {
             return _dph_cdf[jumps];
         }
 
+        Graph laplace_transform(double theta) {
+            struct ptd_clone_res r = ptd_graph_laplace_transform(
+                this->c_graph(),
+                this->c_avl_tree(),
+                theta
+            );
+
+            if (r.graph == NULL) {
+                throw std::runtime_error((char*)ptd_err);
+            }
+
+            return Graph(r.graph, r.avl_tree);
+        }
+
         std::vector<double> stop_probability(double time, int granularity = 0) {
             if (this->rf_graph->ph_context_markov == NULL
                 || this->rf_graph->granularity_markov != granularity

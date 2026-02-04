@@ -2647,7 +2647,94 @@ class Graph(_Graph):
         reward_transform : General reward transformation (dispatches to this for discrete graphs)
         """
         return Graph(super().reward_transform_discrete(rewards))
-    
+
+    def laplace_transform(self, theta: float) -> Self:
+        """
+        Create a Laplace-transformed graph.
+
+        Returns a new graph where each transient state has an additional edge
+        to the absorbing state with weight theta (or theta added to existing
+        absorbing edge weight).
+
+        To compute the Laplace transform value L(theta) = E[exp(-theta * T)],
+        call expectation() on the result with a reward vector that is 1 for
+        states that had edges to absorbing in the original graph and 0 otherwise.
+
+        Parameters
+        ----------
+        theta : float
+            The Laplace transform parameter.
+
+        Returns
+        -------
+        Graph
+            A new graph representing the Laplace-transformed distribution.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> graph = Graph(coalescent_callback)
+        >>> # Get reward vector: 1 for states with absorbing edges, 0 otherwise
+        >>> rewards = graph.absorbing_state_rewards()
+        >>> laplace_graph = graph.laplace_transform(0.5)
+        >>> laplace_value = laplace_graph.expectation(rewards=rewards)
+
+        Notes
+        -----
+        The Laplace transform of a phase-type distribution PH(alpha, S) is:
+
+            L(theta) = E[exp(-theta * T)] = alpha * (theta*I - S)^(-1) * s
+
+        where s is the exit rate vector indicating states with direct
+        transitions to absorption.
+
+        For continuous distributions only. For discrete distributions, use the
+        z-transform instead.
+
+        See Also
+        --------
+        absorbing_state_rewards : Get the reward vector for Laplace transform computation
+        """
+        if self.is_discrete:
+            raise ValueError("Laplace transform only available for continuous distributions. "
+                           "Use z-transform for discrete distributions.")
+        return Graph(super().laplace_transform(theta))
+
+    def absorbing_state_rewards(self) -> np.ndarray:
+        """
+        Get a reward vector that is 1 for states with edges to absorbing states.
+
+        This reward vector is used for computing the Laplace transform value
+        from a Laplace-transformed graph.
+
+        Returns
+        -------
+        np.ndarray
+            Reward vector of length n_vertices. Element i is 1.0 if vertex i
+            has an edge to an absorbing state, 0.0 otherwise.
+
+        Examples
+        --------
+        >>> graph = Graph(coalescent_callback)
+        >>> rewards = graph.absorbing_state_rewards()
+        >>> laplace_graph = graph.laplace_transform(0.5)
+        >>> L_0_5 = laplace_graph.expectation(rewards=rewards)
+
+        See Also
+        --------
+        laplace_transform : Create a Laplace-transformed graph
+        """
+        n_vertices = self.vertices_length()
+        rewards = np.zeros(n_vertices)
+        for i in range(n_vertices):
+            vertex = self.vertex_at(i)
+            # Check if any edge goes to an absorbing state (no outgoing edges)
+            for edge in vertex.edges():
+                to_vertex = edge.to()
+                if to_vertex.edges_length() == 0:
+                    rewards[i] = 1.0
+                    break
+        return rewards
 
     def serialize(self, theta_dim: int = None) -> Dict[str, np.ndarray]:
         """

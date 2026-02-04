@@ -2364,7 +2364,36 @@ str
     >>> graph.pdf_discrete(3) # => density value at 3 jumps
       )delim")
       
-    .def("cdf_discrete", py::vectorize(&phasic::Graph::dph_cdf), py::arg("jumps"), 
+    .def("laplace_transform",
+         &phasic::Graph::laplace_transform,
+         py::arg("theta"),
+         py::return_value_policy::move, R"delim(
+    Creates a Laplace-transformed graph.
+
+    Returns a new graph where each transient state has an additional edge
+    to the absorbing state with weight theta (or theta added to existing
+    absorbing edge weight). This transformation allows computing the Laplace
+    transform L(theta) = E[exp(-theta * T)] via expectation() on the result.
+
+    Parameters
+    ----------
+    theta : float
+        The Laplace transform parameter.
+
+    Returns
+    -------
+    Graph
+        A new graph representing the Laplace-transformed distribution.
+        Call expectation() on the result to get the Laplace transform value.
+
+    Examples
+    --------
+    >>> graph = Graph(4)
+    >>> laplace_graph = graph.laplace_transform(0.5)
+    >>> laplace_value = laplace_graph.expectation()  # L(0.5) = E[exp(-0.5 * T)]
+      )delim")
+
+    .def("cdf_discrete", py::vectorize(&phasic::Graph::dph_cdf), py::arg("jumps"),
       py::return_value_policy::copy, R"delim(
     Cumulative distribution function of the discrete phase-type distribution.
 

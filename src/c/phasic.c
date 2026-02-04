@@ -13125,3 +13125,66 @@ struct ptd_elimination_trace *ptd_record_elimination_trace(struct ptd_graph *gra
 
     return trace;
 }
+
+
+/* For Laplace transform */
+
+// find (one of) the absorbing children if any of each state
+struct ptd_edge** ptd_graph_vertices_absorbing_edge(struct ptd_graph *graph) {
+
+  struct ptd_edge **abs_edges = (struct ptd_edge **) calloc(graph->vertices_length, sizeof(*abs_edges));
+    
+  for (size_t v = 0; v < graph->vertices_length; ++v) {
+      abs_edges[v] = NULL;
+      for (size_t e = 0; e < graph->vertices[v]->edges_length; ++e) {
+          if (graph->vertices[v]->edges[e]->to->edges_length == 0) {
+            abs_edges[v] = graph->vertices[v]->edges[e];
+            break;
+          }
+      }      
+  }
+  return abs_edges;
+}
+
+struct ptd_clone_res ptd_graph_laplace_transform(struct ptd_graph *graph, struct ptd_avl_tree *avl_tree, double theta) {
+
+    // Clone the graph
+    struct ptd_clone_res cloned = ptd_clone_graph(graph, avl_tree);
+    struct ptd_graph *new_graph = cloned.graph;
+
+    // Get array mapping each vertex to an absorbing edge if it has any
+    struct ptd_edge **vertices_absorbing_edge = ptd_graph_vertices_absorbing_edge(new_graph);
+
+    // Find an absorbing state
+    struct ptd_vertex *absorbing_vertex = NULL;
+    for (size_t v = new_graph->vertices_length; v > 0; --v) {
+        if (new_graph->vertices[v-1]->edges_length == 0) {
+            absorbing_vertex = new_graph->vertices[v-1];
+            break;
+        }
+    }
+
+    // For each transient state, add theta to existing absorbing edge or create new one
+    for (size_t v = 0; v < new_graph->vertices_length; ++v) {
+        struct ptd_vertex *vertex = new_graph->vertices[v];
+        // Skip starting and absorbing vertices
+        if (vertex == new_graph->starting_vertex || vertex->edges_length == 0) {
+            continue;
+        }
+        if (vertices_absorbing_edge[v]) {
+            // Add weight to existing edge to absorbing
+            for (size_t e = 0; e < vertex->edges_length; ++e) {
+                if (vertices_absorbing_edge[v] == vertex->edges[e]) {
+                    ptd_edge_update_weight(vertex->edges[e], vertex->edges[e]->weight + theta);
+                    break;
+                }
+            }
+        } else {
+            // Add new edge to absorbing with weight theta
+            ptd_graph_add_edge(vertex, absorbing_vertex, &theta, 1);
+        }
+    }
+    free(vertices_absorbing_edge);
+
+    return cloned;
+}
