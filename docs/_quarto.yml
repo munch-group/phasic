@@ -207,6 +207,25 @@ quartodoc:
   css: "api/_styles-quartodoc.css"
 
   sections:
+    - title: Library utilities
+      package: phasic
+      desc: |
+        Configuration and Logging.
+      contents:
+        - clear_caches
+        - configure
+        - get_config
+        - get_available_options
+        - PTDAlgorithmsConfig
+        - reset_config
+        - set_log_level
+        - get_logger
+    # - title: Notebook magics
+    #   package: phasic
+    #   desc: |
+    #     Cell magics for interactive use in Jupyter notebooks.
+    #   contents:
+    #     - srun
     - title: Graph Construction
       package: phasic
       desc: |
@@ -216,16 +235,21 @@ quartodoc:
         - StateIndexer
         - PropertySet
         - Property
+        - PropertyDict
+        - StateVector
+        - SymbolicDAG
     - title: SVGD
-      package: phasic
+      package: phasic.svgd
       desc: |
         Stein Variational Gradient Descent for Bayesian parameter inference.
       contents:
         - SVGD
-        # - SVGDKernel
         - SparseObservations
+        - dense_to_sparse
+        - is_sparse_observations
+        - SVGDKernel
     - title: Priors
-      package: phasic
+      package: phasic.svgd
       desc: |
         Prior distributions of model parameters.
       contents:
@@ -234,7 +258,7 @@ quartodoc:
         - HalfCauchyPrior
         - DataPrior
     - title: Learning rate and regularization
-      package: phasic
+      package: phasic.svgd
       desc: |
         Learning rate schedules and regularization techniques for Stein Variational Gradient Descent.
       contents:
@@ -254,13 +278,23 @@ quartodoc:
         - MomentJacobianPreconditioner
         - FisherPreconditioner
     - title: Optimizers
-      package: phasic
+      package: phasic.svgd
       desc: |
         Adaptive optimizers for SVGD.
         - Adam
         - SGDMomentum
         - RMSprop
         - Adagrad
+        - OptaxOptimizer
+    - title: Optimizers
+      package: phasic.exceptions
+      desc: |
+        Adaptive optimizers for SVGD.
+        - PTDAlgorithmsError
+        - PTDConfigError
+        - PTDBackendError
+        - PTDFeatureError
+        - PTDJAXError
 
 
 

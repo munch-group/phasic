@@ -56,7 +56,7 @@ def _pad_to_devices(arr: Any, n_devices: int) -> Any:
 
     Parameters
     ----------
-    arr : array_like
+    arr : np.ndarray
         Input array to pad
     n_devices : int
         Number of devices to shard across
@@ -90,7 +90,7 @@ def _shard_to_devices(arr: Any, n_devices: int) -> Any:
 
     Parameters
     ----------
-    arr : array_like
+    arr : np.ndarray
         Input array to shard
     n_devices : int
         Number of devices
@@ -120,7 +120,7 @@ def _unshard_from_devices(arr: Any, original_batch_size: int) -> Any:
 
     Parameters
     ----------
-    arr : array_like
+    arr : np.ndarray
         Sharded array from pmap
     original_batch_size : int
         Original batch size before padding
@@ -184,7 +184,7 @@ def get_batch_size(arg: Any) -> int:
 
     Parameters
     ----------
-    arg : array_like
+    arg : np.ndarray
         Batched input
 
     Returns

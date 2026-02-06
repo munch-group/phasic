@@ -43,7 +43,9 @@
       "Bash(quartodoc build:*)",
       "Bash(sed:*)",
       "WebFetch(domain:arxiv.org)",
-      "WebFetch(domain:openreview.net)"
+      "WebFetch(domain:openreview.net)",
+      "Bash(ls:*)",
+      "Bash(wc:*)"
     ],
     "deny": [],
     "ask": []

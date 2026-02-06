@@ -188,9 +188,9 @@ class PTDAlgorithmsConfig:
         PTDConfigError
             If strict=True and requested features are unavailable.
 
-        Warns
+        Notes
         -----
-        If strict=False and requested features are unavailable.
+        Logs a warning if strict=False and requested features are unavailable.
         """
         errors = []
         warnings = []

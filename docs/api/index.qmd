@@ -1,5 +1,21 @@
 # Function reference {.doc .doc-index}
 
+## Library utilities
+
+Configuration and Logging.
+
+
+| | |
+| --- | --- |
+| [clear_caches](clear_caches.qmd#phasic.clear_caches) | Clear all caching. |
+| [configure](configure.qmd#phasic.configure) | Configure phasic globally. |
+| [get_config](get_config.qmd#phasic.get_config) | Get current global configuration. |
+| [get_available_options](get_available_options.qmd#phasic.get_available_options) | Get dictionary of available options on this system. |
+| [PTDAlgorithmsConfig](PTDAlgorithmsConfig.qmd#phasic.PTDAlgorithmsConfig) | Global configuration for phasic behavior. |
+| [reset_config](reset_config.qmd#phasic.reset_config) | Reset configuration to default. |
+| [set_log_level](set_log_level.qmd#phasic.set_log_level) | Context manager and callable for changing the phasic logging level at runtime. |
+| [get_logger](get_logger.qmd#phasic.get_logger) | Get a logger for the specified module. |
+
 ## Graph Construction
 
 Graph components (Vertex and Edge are documented as part of Graph)
@@ -11,6 +27,9 @@ Graph components (Vertex and Edge are documented as part of Graph)
 | [StateIndexer](StateIndexer.qmd#phasic.StateIndexer) | Manages multiple independent property sets and slots with attribute access. |
 | [PropertySet](PropertySet.qmd#phasic.PropertySet) | Collection of properties forming a combinatorial state space. |
 | [Property](Property.qmd#phasic.Property) | Defines a single property in a state space. |
+| [PropertyDict](PropertyDict.qmd#phasic.PropertyDict) | Dict subclass that provides attribute access to keys. |
+| [StateVector](StateVector.qmd#phasic.StateVector) | Dict-like interface for multi-PropertySet state with attribute access. |
+| [SymbolicDAG](SymbolicDAG.qmd#phasic.SymbolicDAG) | Symbolic representation of an acyclic phase-type distribution graph. |
 
 ## SVGD
 
@@ -19,8 +38,11 @@ Stein Variational Gradient Descent for Bayesian parameter inference.
 
 | | |
 | --- | --- |
-| [SVGD](SVGD.qmd#phasic.SVGD) | Stein Variational Gradient Descent (SVGD) for Bayesian parameter inference. |
-| [SparseObservations](SparseObservations.qmd#phasic.SparseObservations) | Sparse representation of multivariate observations. |
+| [SVGD](SVGD.qmd#phasic.svgd.SVGD) | Stein Variational Gradient Descent (SVGD) for Bayesian parameter inference. |
+| [SparseObservations](SparseObservations.qmd#phasic.svgd.SparseObservations) | Sparse representation of multivariate observations. |
+| [dense_to_sparse](dense_to_sparse.qmd#phasic.svgd.dense_to_sparse) | Convert dense NaN-padded array to sparse observation format. |
+| [is_sparse_observations](is_sparse_observations.qmd#phasic.svgd.is_sparse_observations) | Check if data is in sparse observation format. |
+| [SVGDKernel](SVGDKernel.qmd#phasic.svgd.SVGDKernel) | RBF kernel for SVGD with automatic bandwidth selection. |
 
 ## Priors
 
@@ -29,10 +51,10 @@ Prior distributions of model parameters.
 
 | | |
 | --- | --- |
-| [Prior](Prior.qmd#phasic.Prior) | Base class for prior distributions. |
-| [GaussPrior](GaussPrior.qmd#phasic.GaussPrior) | Gaussian prior distribution. |
-| [HalfCauchyPrior](HalfCauchyPrior.qmd#phasic.HalfCauchyPrior) | Half-Cauchy prior distribution (positive support only). |
-| [DataPrior](DataPrior.qmd#phasic.DataPrior) | Data-informed prior estimated from observed data. |
+| [Prior](Prior.qmd#phasic.svgd.Prior) | Base class for prior distributions. |
+| [GaussPrior](GaussPrior.qmd#phasic.svgd.GaussPrior) | Gaussian prior distribution. |
+| [HalfCauchyPrior](HalfCauchyPrior.qmd#phasic.svgd.HalfCauchyPrior) | Half-Cauchy prior distribution (positive support only). |
+| [DataPrior](DataPrior.qmd#phasic.svgd.DataPrior) | Data-informed prior estimated from observed data. |
 
 ## Learning rate and regularization
 
@@ -41,15 +63,15 @@ Learning rate schedules and regularization techniques for Stein Variational Grad
 
 | | |
 | --- | --- |
-| [StepSizeSchedule](StepSizeSchedule.qmd#phasic.StepSizeSchedule) | Base class for step size schedules. |
-| [ConstantStepSize](ConstantStepSize.qmd#phasic.ConstantStepSize) | Constant step size (default behavior). |
-| [ExpStepSize](ExpStepSize.qmd#phasic.ExpStepSize) | Exponential decay schedule: step_size = first_step * exp(-iteration/tau) + last_step * (1 - exp(-iteration/tau)). |
-| [AdaptiveStepSize](AdaptiveStepSize.qmd#phasic.AdaptiveStepSize) | Adaptive step size based on particle spread (KL divergence proxy). |
-| [WarmupExpStepSize](WarmupExpStepSize.qmd#phasic.WarmupExpStepSize) | Linear warmup followed by exponential decay. |
-| [RegularizationSchedule](RegularizationSchedule.qmd#phasic.RegularizationSchedule) | Base class for regularization schedules. |
-| [ConstantRegularization](ConstantRegularization.qmd#phasic.ConstantRegularization) | Constant regularization (default behavior). |
-| [ExpRegularization](ExpRegularization.qmd#phasic.ExpRegularization) | Exponential decay schedule: reg = first_reg * exp(-iteration/tau) + last_reg * (1 - exp(-iteration/tau)). |
-| [ExponentialCDFRegularization](ExponentialCDFRegularization.qmd#phasic.ExponentialCDFRegularization) | Exponential CDF schedule: reg = first_reg + (last_reg - first_reg) * (1 - exp(-iteration/tau)). |
+| [StepSizeSchedule](StepSizeSchedule.qmd#phasic.svgd.StepSizeSchedule) | Base class for step size schedules. |
+| [ConstantStepSize](ConstantStepSize.qmd#phasic.svgd.ConstantStepSize) | Constant step size (default behavior). |
+| [ExpStepSize](ExpStepSize.qmd#phasic.svgd.ExpStepSize) | Exponential decay schedule: step_size = first_step * exp(-iteration/tau) + last_step * (1 - exp(-iteration/tau)). |
+| [AdaptiveStepSize](AdaptiveStepSize.qmd#phasic.svgd.AdaptiveStepSize) | Adaptive step size based on particle spread (KL divergence proxy). |
+| [WarmupExpStepSize](WarmupExpStepSize.qmd#phasic.svgd.WarmupExpStepSize) | Linear warmup followed by exponential decay. |
+| [RegularizationSchedule](RegularizationSchedule.qmd#phasic.svgd.RegularizationSchedule) | Base class for regularization schedules. |
+| [ConstantRegularization](ConstantRegularization.qmd#phasic.svgd.ConstantRegularization) | Constant regularization (default behavior). |
+| [ExpRegularization](ExpRegularization.qmd#phasic.svgd.ExpRegularization) | Exponential decay schedule: reg = first_reg * exp(-iteration/tau) + last_reg * (1 - exp(-iteration/tau)). |
+| [ExponentialCDFRegularization](ExponentialCDFRegularization.qmd#phasic.svgd.ExponentialCDFRegularization) | Exponential CDF schedule: reg = first_reg + (last_reg - first_reg) * (1 - exp(-iteration/tau)). |
 
 ## Preconditioning
 
@@ -65,3 +87,14 @@ Adaptive optimizers for SVGD.
 - SGDMomentum
 - RMSprop
 - Adagrad
+- OptaxOptimizer
+
+
+## Optimizers
+
+Adaptive optimizers for SVGD.
+- PTDAlgorithmsError
+- PTDConfigError
+- PTDBackendError
+- PTDFeatureError
+- PTDJAXError

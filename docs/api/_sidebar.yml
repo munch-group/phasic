@@ -3,14 +3,30 @@ website:
   - contents:
     - api/index.qmd
     - contents:
+      - api/clear_caches.qmd
+      - api/configure.qmd
+      - api/get_config.qmd
+      - api/get_available_options.qmd
+      - api/PTDAlgorithmsConfig.qmd
+      - api/reset_config.qmd
+      - api/set_log_level.qmd
+      - api/get_logger.qmd
+      section: Library utilities
+    - contents:
       - api/Graph.qmd
       - api/StateIndexer.qmd
       - api/PropertySet.qmd
       - api/Property.qmd
+      - api/PropertyDict.qmd
+      - api/StateVector.qmd
+      - api/SymbolicDAG.qmd
       section: Graph Construction
     - contents:
       - api/SVGD.qmd
       - api/SparseObservations.qmd
+      - api/dense_to_sparse.qmd
+      - api/is_sparse_observations.qmd
+      - api/SVGDKernel.qmd
       section: SVGD
     - contents:
       - api/Prior.qmd
@@ -31,6 +47,8 @@ website:
       section: Learning rate and regularization
     - contents: []
       section: Preconditioning
+    - contents: []
+      section: Optimizers
     - contents: []
       section: Optimizers
     id: api

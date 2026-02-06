@@ -1485,8 +1485,8 @@ class SymbolicDAG:
 
         Parameters
         ----------
-        params : array-like
-            Parameter vector, shape (n_params,)
+        params : numpy.typing.ArrayLike
+            Parameter vector, shape ``(n_params,)``.
 
         Returns
         -------
@@ -2346,8 +2346,8 @@ class Graph(_Graph):
 
         Returns
         -------
-        DistributionContext
-            Context object that can be used for efficient sampling.
+        object
+            Distribution context object that can be used for efficient sampling.
 
         Notes
         -----
@@ -3800,7 +3800,7 @@ extern "C" {
 
         Parameters
         ----------
-        cpp_file : str or Path
+        cpp_file : str or pathlib.Path
             Path to the user's C++ file
         discrete : bool
             If True, uses discrete phase-type distribution (DPH) computation.
@@ -4035,7 +4035,7 @@ extern "C" {{
             Number of SVGD particles. More particles = better posterior approximation but slower.
         n_iterations : int, default=1000
             Number of SVGD optimization steps
-        optimizer : Optimizer, optional
+        optimizer : object, optional
             Learning rate optimizer instance from phasic.optimizers. Default is Adam
             when learning_rate=None and regularization=0. Options include Adamelia, Adam,
             SGDMomentum, RMSprop, Adagrad. When an optimizer is used, the learning_rate
@@ -4044,13 +4044,13 @@ extern "C" {{
             SVGD step size. If None (default), uses Adame optimizer with adaptive
             learning rates. If a float is provided, uses fixed learning rate approach.
             Larger values = faster convergence but may be unstable.
-        bandwidth : str, float, or array_like, default='median_per_dim'
+        bandwidth : str, float, or np.ndarray, default='median_per_dim'
             Kernel bandwidth selection method:
             - 'median_per_dim': Per-dimension median heuristic (default). Uses a
               separate bandwidth per parameter dimension for an anisotropic kernel.
             - 'median': Scalar median heuristic (isotropic kernel)
             - float: Fixed scalar bandwidth value
-            - array_like: Fixed per-dimension bandwidth vector
+            - np.ndarray: Fixed per-dimension bandwidth vector
         theta_init : ArrayLike, optional
             Initial particle positions (n_particles, theta_dim).
             If None, initializes randomly from standard normal.
@@ -4086,7 +4086,7 @@ extern "C" {{
             (Deprecated: use jit parameter instead)
             Precompile model and gradient functions for faster execution.
             First run will take longer but subsequent iterations will be much faster.
-        compilation_config : CompilationConfig, dict, str, or Path, optional
+        compilation_config : CompilationConfig, dict, str, or pathlib.Path, optional
             JAX compilation optimization configuration. Can be:
             - CompilationConfig object from phasic.CompilationConfig
             - dict with CompilationConfig parameters
@@ -4374,14 +4374,14 @@ extern "C" {{
             ``max(2 * n_free_params, 4)`` for univariate data, adjusted
             per feature for multivariate data.  Still auto-increased if
             a user-specified value gives fewer equations than free parameters.
-        rewards : array_like, optional
+        rewards : np.ndarray, optional
             Reward vectors.  ``None`` for standard moments, 1-D for a single
             reward vector, 2-D ``(n_features, n_vertices)`` for multivariate.
         fixed : list, optional
             List of ``(index, value)`` tuples pinning specific parameters.
         theta_dim : int, optional
             Number of model parameters.  Inferred from the graph when ``None``.
-        theta_init : array_like, optional
+        theta_init : np.ndarray, optional
             Initial guess for the *free* parameters (excluding fixed ones).
             If ``None`` a coordinate-wise grid search is used.
         std_multiplier : float
@@ -4453,7 +4453,7 @@ extern "C" {{
             List of ``(index, value)`` tuples pinning specific parameters.
         theta_dim : int, optional
             Number of model parameters.  Inferred from the graph when ``None``.
-        theta_init : array_like, optional
+        theta_init : np.ndarray, optional
             Initial guess for the *free* parameters (excluding fixed ones).
             If ``None`` a coordinate-wise grid search is used.
         std_multiplier : float

@@ -432,7 +432,7 @@ def profile_svgd(model: object, observed_data: object, **svgd_kwargs: object) ->
     ----------
     model : callable
         JAX-compatible model function.
-    observed_data : array_like
+    observed_data : np.ndarray
         Observed data for inference.
     **svgd_kwargs
         Keyword arguments forwarded to ``Graph.svgd()``.

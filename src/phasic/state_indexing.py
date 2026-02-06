@@ -308,7 +308,7 @@ class PropertySet:
 
         Parameters
         ----------
-        index : int or ndarray of int
+        index : int or np.ndarray
             Linear index or array of indices to convert.
         as_dict : bool, default=False
             If True, return dict mapping property names to values.
@@ -318,7 +318,7 @@ class PropertySet:
 
         Returns
         -------
-        dataclass or dict or list or ndarray of int
+        object or dict or list or np.ndarray
             Default (as_dict=False, as_values=False):
                 - Scalar index: dataclass with properties accessible as attributes
                 - Array index: list of dataclasses
@@ -438,17 +438,17 @@ class PropertySet:
 
         Parameters
         ----------
-        props : dict or ndarray of int or None, optional
+        props : dict or np.ndarray or None, optional
             Property values to convert. Can be:
             - dict: mapping from property names to values (full or partial)
-            - ndarray: property values in same order as self.properties (must be complete)
+            - ``np.ndarray``: property values in same order as self.properties (must be complete)
             - None: use kwargs instead
         **kwargs : int
             Alternative to dict: pass properties as keyword arguments (full or partial).
 
         Returns
         -------
-        int or ndarray of int
+        int or np.ndarray
             - If all properties specified: scalar index
             - If partial properties specified: array of matching indices
             - If props is 2D array: array of indices (one per row)
@@ -612,7 +612,7 @@ class PropertySet:
 
         Returns
         -------
-        ndarray of int
+        np.ndarray
             Indices from 0 to state_length - 1
 
         Examples
@@ -681,7 +681,7 @@ class StateIndexer:
     property_sets : list[PropertySet] | list[Property] | None
         Either a list of PropertySet objects or a list of Property objects
         (which creates a single 'default' PropertySet for backward compatibility)
-    slots : list[str] | list[Slot] | None
+    slots : list[str] | None
         List of slot names or Slot objects (backward compatibility)
     **named_property_lists : list[Property]
         Keyword arguments mapping PropertySet names to lists of Property objects
@@ -745,7 +745,7 @@ class StateIndexer:
             Accessible as attributes returning int indices.
         property_sets : list[PropertySet] | list[Property] | None
             Either a list of PropertySet objects or a list of Property objects
-        slots : list[str] | list[Slot] | None
+        slots : list[str] | None
             List of slot names or Slot objects (backward compatibility)
         **named_property_lists : list[Property]
             Keyword arguments mapping names to Property lists
@@ -883,7 +883,7 @@ class StateIndexer:
 
         Returns
         -------
-        list[Slot]
+        list
             Slot objects in the order they were added.
         """
         return [self._slots[name] for name in self._slot_order]
@@ -1008,7 +1008,7 @@ class StateIndexer:
 
         Parameters
         ----------
-        props : dict or ndarray
+        props : dict or np.ndarray
             Property values (dict with property names as keys, or dataclass)
         raise_on_ambiguous : bool, default=False
             If True, raise ValueError with helpful message when detection fails
@@ -1242,7 +1242,7 @@ class StateIndexer:
 
         Parameters
         ----------
-        index : int or ndarray of int
+        index : int or np.ndarray
             Index or array of indices in concatenated space
         as_dict : bool, default=False
             If True, return dict instead of dataclass for property values
@@ -1385,15 +1385,15 @@ class StateIndexer:
 
         Parameters
         ----------
-        pset_name : str or dict or ndarray or None
+        pset_name : str or dict or np.ndarray or None
             - If str: Name of the PropertySet (explicit mode)
-            - If dict/ndarray: Property values (auto-detect mode, pset_name=None)
+            - If dict/``np.ndarray``: Property values (auto-detect mode, pset_name=None)
             - If None: use props parameter
-        props : dict or ndarray of int or None
+        props : dict or np.ndarray or None
             Property values to convert (used when pset_name is str).
             Can be:
             - dict: mapping from property names to values
-            - ndarray: property values in same order as PropertySet.properties
+            - ``np.ndarray``: property values in same order as PropertySet.properties
             - None: use kwargs instead
         **kwargs : int
             Alternative to dict: pass properties as keyword arguments
@@ -1594,7 +1594,7 @@ class StateIndexer:
 
         Returns
         -------
-        ndarray of int
+        np.ndarray
             Indices from 0 to state_length - 1
 
         Examples

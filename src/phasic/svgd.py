@@ -292,7 +292,7 @@ def _compute_hpd(samples: np.ndarray, alpha: float = 0.95) -> tuple[float, float
 
     Parameters
     ----------
-    samples : array_like
+    samples : np.ndarray
         1D array of posterior samples.
     alpha : float, default=0.95
         Credible level (fraction of mass to include).
@@ -784,7 +784,7 @@ class DataPrior(Prior):
     ----------
     graph : Graph
         Parameterized graph (standard or joint probability).
-    observed_data : array_like
+    observed_data : np.ndarray
         Observed data appropriate for the graph type.
     sd : float, default=2.0
         Multiplier applied to the asymptotic standard error to obtain the
@@ -793,11 +793,11 @@ class DataPrior(Prior):
         List of ``(index, value)`` tuples pinning specific parameters.
     nr_moments : int, optional
         Number of moments (standard graphs only).
-    rewards : array_like, optional
+    rewards : np.ndarray, optional
         Reward vectors (standard graphs only).
     theta_dim : int, optional
         Number of model parameters.  Inferred from the graph when ``None``.
-    theta_init : array_like, optional
+    theta_init : np.ndarray, optional
         Initial guess for the free parameters.
     discrete : bool, optional
         ``True`` for discrete models, ``False`` for continuous (standard graphs only).
@@ -3133,14 +3133,14 @@ class SVGDKernel:
         """
         Parameters
         ----------
-        bandwidth : str, float, or array_like, default='median_per_dim'
+        bandwidth : str, float, or np.ndarray, default='median_per_dim'
             Bandwidth selection method. Options:
             - 'median_per_dim': Per-dimension median heuristic (default).
               Computes a separate bandwidth for each parameter dimension,
               giving an anisotropic kernel that adapts to different parameter scales.
             - 'median': Scalar median heuristic (isotropic kernel)
             - float: Fixed scalar bandwidth value
-            - array_like: Fixed per-dimension bandwidth vector
+            - np.ndarray: Fixed per-dimension bandwidth vector
         preconditioner : MomentJacobianPreconditioner, FisherPreconditioner, or None, default=None
             If provided, particles are normalized by the preconditioner's scaling
             before kernel computation, and kernel gradients are transformed back.
@@ -3155,15 +3155,16 @@ class SVGDKernel:
 
         Parameters
         ----------
-        particles : array (n_particles, theta_dim)
-            Current particle positions
+        particles : jnp.ndarray
+            Current particle positions, shape ``(n_particles, theta_dim)``.
 
         Returns
         -------
-        K : array (n_particles, n_particles)
-            Kernel matrix
-        grad_K : array (n_particles, n_particles, theta_dim)
-            Gradient of kernel matrix w.r.t. original (unnormalized) particles
+        K : jnp.ndarray
+            Kernel matrix, shape ``(n_particles, n_particles)``.
+        grad_K : jnp.ndarray
+            Gradient of kernel matrix w.r.t. original (unnormalized) particles,
+            shape ``(n_particles, n_particles, theta_dim)``.
         """
         # Normalize particles if preconditioner is set
         if self.preconditioner is not None and self.preconditioner.scaling is not None:
@@ -3661,7 +3662,7 @@ def compute_sample_moments(data: jnp.ndarray | SparseObservations, nr_moments: i
 
     Parameters
     ----------
-    data : array_like or SparseObservations
+    data : np.ndarray or SparseObservations
         Observed data points. Can be:
         - 1D array: (n_times,) for univariate observations
         - 2D array: (n_times, n_features) for multivariate observations
@@ -3762,7 +3763,7 @@ class SVGD:
     ----------
     model : callable
         JAX-compatible parameterized model with signature: model(theta, data) -> values
-    observed_data : array_like
+    observed_data : np.ndarray
         Observed data points
     prior : callable or list of Prior objects, optional
         Log prior function for parameters. Can be:
@@ -3792,15 +3793,15 @@ class SVGD:
         When None and no optimizer is provided, Adam is used as the default
         optimizer (unless regularization > 0, which falls back to fixed lr=0.001).
         Examples: ConstantStepSize(0.01), ExpStepSize(0.1, 0.01, 500.0)
-    bandwidth : str, float, or array_like, default='median_per_dim'
+    bandwidth : str, float, or np.ndarray, default='median_per_dim'
         Kernel bandwidth selection. Can be:
         - 'median_per_dim': Per-dimension median heuristic (default). Uses a
           separate bandwidth for each parameter dimension, giving an anisotropic
           kernel that adapts to different parameter scales.
         - 'median': Scalar median heuristic (isotropic kernel)
         - float: Fixed scalar bandwidth value
-        - array_like: Fixed per-dimension bandwidth vector
-    theta_init : array_like, optional
+        - np.ndarray: Fixed per-dimension bandwidth vector
+    theta_init : np.ndarray, optional
         Initial particle positions (n_particles, theta_dim)
     theta_dim : int, optional
         Dimension of theta parameter vector (required if theta_init is None)
@@ -3877,7 +3878,7 @@ class SVGD:
     nr_moments : int, default=2
         Number of moments to use for regularization. Only used if regularization > 0.
         Typical values: 2 (mean and variance) or 3 (mean, variance, skewness).
-    fixed : array_like or list of tuples, optional
+    fixed : np.ndarray or list of tuples, optional
         Specifies which parameters to fix during optimization. Two formats supported:
 
         **Format 1 (Binary mask)**: Array indicating which parameters to fix at 1.0
@@ -5181,7 +5182,7 @@ class SVGD:
 
         Parameters
         ----------
-        rewards : array_like, optional
+        rewards : np.ndarray, optional
             Reward vector/matrix for multivariate phase-type distributions.
             - 1D array (n_vertices,): Single reward vector for univariate distribution
             - 2D array (n_features, n_vertices): Reward matrix for multivariate distribution
@@ -5193,8 +5194,8 @@ class SVGD:
 
         Returns
         -------
-        self
-            Returns self for method chaining
+        SVGD
+            Returns self for method chaining.
 
         Raises
         ------
@@ -5600,7 +5601,7 @@ class SVGD:
 
         Parameters
         ----------
-        true_theta : array_like, optional
+        true_theta : np.ndarray, optional
             True parameter values (if known) to overlay on plot
         param_names : list of str, optional
             Names for each parameter dimension
@@ -5633,8 +5634,8 @@ class SVGD:
 
         Returns
         -------
-        fig, axes
-            Matplotlib figure and axes objects (only if return_fig=False)
+        tuple[matplotlib.figure.Figure, numpy.ndarray]
+            Matplotlib figure and axes array (only if return_fig=True).
         """
         if not self.is_fitted:
             raise RuntimeError("Must call fit() before plotting")
@@ -5771,8 +5772,8 @@ class SVGD:
 
         Returns
         -------
-        fig, axes
-            Matplotlib figure and axes objects (only if return_fig=False)
+        tuple[matplotlib.figure.Figure, numpy.ndarray]
+            Matplotlib figure and axes array (only if return_fig=True).
         """
         if not self.is_fitted:
             raise RuntimeError("Must call fit() before plotting")
@@ -5887,8 +5888,8 @@ class SVGD:
 
         Returns
         -------
-        fig, axes
-            Matplotlib figure and axes objects (only if return_fig=False)
+        tuple[matplotlib.figure.Figure, numpy.ndarray]
+            Matplotlib figure and axes array (only if return_fig=True).
         """
         if not self.is_fitted:
             raise RuntimeError("Must call fit() before plotting")
@@ -5990,13 +5991,13 @@ class SVGD:
         unconstrained : bool, default=False
             If False, show constrained (model-space) parameter values.
             If True, show unconstrained (optimization-space) values.
-        true_theta : array_like, optional
+        true_theta : np.ndarray, optional
             True parameter values to overlay as horizontal lines
         ci : float, default=0.95
             Credible interval level (e.g., 0.95 for 95% CI)
         alpha : float, default=0.2
             Transparency of the CI ribbon
-        target : array_like, optional
+        target : np.ndarray, optional
             Target parameter value to overlay as horizontal line
         median : bool, default=False
             If True, plot the median trajectory as a dashed line
@@ -6014,8 +6015,8 @@ class SVGD:
 
         Returns
         -------
-        fig, ax
-            Matplotlib figure and axes objects (only if return_fig=False)
+        tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]
+            Matplotlib figure and axes (only if return_fig=True).
         """
         if not self.is_fitted:
             raise RuntimeError("Must call fit() before plotting")
@@ -6776,7 +6777,7 @@ class SVGD:
         param_pairs : list of tuple[int, int], optional
             Parameter pairs to show, e.g. [(0, 1), (2, 3)].
             Defaults to consecutive pairs.
-        true_params : array_like, optional
+        true_params : np.ndarray, optional
             True parameter values for comparison.
         figsize : tuple, default=(15, 5)
             Figure size (width, height).
@@ -7385,7 +7386,7 @@ class SVGD:
 
         Parameters
         ----------
-        true_theta : array_like, optional
+        true_theta : np.ndarray, optional
             True parameter values (if known) to overlay on plot
         param_names : list of str, optional
             Names for each parameter dimension
@@ -7402,8 +7403,8 @@ class SVGD:
 
         Returns
         -------
-        fig, axes
-            Matplotlib figure and axes objects (only if return_fig=False)
+        tuple[matplotlib.figure.Figure, numpy.ndarray]
+            Matplotlib figure and axes array (only if return_fig=True).
         """
         if not self.is_fitted:
             raise RuntimeError("Must call fit() before plotting")
@@ -7564,7 +7565,7 @@ class SVGD:
         ----------
         param_idx : int, default=0
             Index of the parameter to animate (0-indexed)
-        true_theta : array_like, optional
+        true_theta : np.ndarray, optional
             True parameter values. If provided, will overlay the true value for param_idx.
         param_name : str, optional
             Name for the parameter (e.g., 'jump rate'). If None, uses 'θ_{param_idx}'.
@@ -7747,7 +7748,7 @@ class SVGD:
 
         Parameters
         ----------
-        true_theta : array_like, optional
+        true_theta : np.ndarray, optional
             True parameter values (if known) to overlay as red 'x' markers
         param_names : list of str, optional
             Names for each parameter dimension (e.g., ['jump', 'flood_left', 'flood_right'])

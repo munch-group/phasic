@@ -1570,9 +1570,9 @@ def trace_to_log_likelihood(trace: EliminationTrace, observed_data, reward_vecto
     ----------
     trace : EliminationTrace
         Elimination trace from parameterized graph
-    observed_data : array_like
+    observed_data : np.ndarray
         Observed data points (e.g., coalescence times, absorption times)
-    reward_vector : array_like, optional
+    reward_vector : np.ndarray, optional
         Reward values for each vertex. If provided, falls back to exponential
         approximation (exact phase-type with rewards not yet implemented).
     granularity : int, default=100
@@ -1762,7 +1762,7 @@ def trace_to_pmf_function(trace: EliminationTrace, times, discrete: bool = False
     ----------
     trace : EliminationTrace
         Elimination trace from parameterized graph
-    times : array_like
+    times : np.ndarray
         Time points at which to evaluate PMF/PDF
     discrete : bool, default=False
         If True, evaluates discrete PMF; if False, evaluates continuous PDF

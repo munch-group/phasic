@@ -407,7 +407,7 @@ Discretizes graph inplace and returns reward matrix for added auxiliary states.
 
 #### Parameters {.doc-section .doc-section-parameters}
 
-<code>[**rate**]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+<code>[**rate**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) \| [Callable](`collections.abc.Callable`)]{.parameter-annotation}</code>
 
 :   float or callable
 
@@ -441,9 +441,9 @@ Create a distribution context for efficient repeated sampling.
 
 #### Returns {.doc-section .doc-section-returns}
 
-<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[DistributionContext](`DistributionContext`)]{.parameter-annotation}</code>
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[object](`object`)]{.parameter-annotation}</code>
 
-:   Context object that can be used for efficient sampling.
+:   Distribution context object that can be used for efficient sampling.
 
 #### Notes {.doc-section .doc-section-notes}
 
@@ -630,7 +630,7 @@ newly added unvisited vertices.
 
 :   Callback function to use for extending the graph. If None, uses the callback from the original Graph construction. The callback should accept a state array and return: - For non-parameterized: list of (state, weight) tuples - For parameterized: list of (state, base_weight, edge_state) tuples
 
-<code>[****kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
+<code>[****kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Any](`typing.Any`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
 
 :   Additional keyword arguments to pass to the callback function. If None, uses the kwargs from the original Graph construction.
 
@@ -718,7 +718,7 @@ and reconstructed on worker processes.
 
 #### Parameters {.doc-section .doc-section-parameters}
 
-<code>[**data**]{.parameter-name} [:]{.parameter-annotation-sep} [[Dict](`typing.Dict`)\[[str](`str`), [Any](`typing.Any`)\]]{.parameter-annotation}</code>
+<code>[**data**]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)\[[str](`str`), [Any](`typing.Any`)\]]{.parameter-annotation}</code>
 
 :   Dictionary returned by Graph.serialize() containing: - states: np.ndarray of shape (n_vertices, state_length) - edges: np.ndarray of shape (n_edges, 3) with [from_idx, to_idx, weight] - start_edges: np.ndarray of shape (n_start_edges, 2) with [to_idx, weight] - param_edges: np.ndarray of shape (n_param_edges, 2+param_length)   Format (v0.22.0+): [from_idx, to_idx, coeff1, coeff2, ...] - start_param_edges: np.ndarray of shape (n_start_param_edges, 1+param_length)   Format (v0.22.0+): [to_idx, coeff1, coeff2, ...] - param_length: int - state_length: int - n_vertices: int
 
@@ -860,7 +860,7 @@ priors centred on the method-of-moments estimates.
 
 :   Number of moments to match per feature dimension.  If ``None`` (default), automatically chosen to overdetermine the system: ``max(2 * n_free_params, 4)`` for univariate data, adjusted per feature for multivariate data.  Still auto-increased if a user-specified value gives fewer equations than free parameters.
 
-<code>[**rewards**]{.parameter-name} [:]{.parameter-annotation-sep} [[array_like](`array_like`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**rewards**]{.parameter-name} [:]{.parameter-annotation-sep} [[np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   Reward vectors.  ``None`` for standard moments, 1-D for a single reward vector, 2-D ``(n_features, n_vertices)`` for multivariate.
 
@@ -872,7 +872,7 @@ priors centred on the method-of-moments estimates.
 
 :   Number of model parameters.  Inferred from the graph when ``None``.
 
-<code>[**theta_init**]{.parameter-name} [:]{.parameter-annotation-sep} [[array_like](`array_like`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**theta_init**]{.parameter-name} [:]{.parameter-annotation-sep} [[np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   Initial guess for the *free* parameters (excluding fixed ones). If ``None`` a coordinate-wise grid search is used.
 
@@ -1090,7 +1090,7 @@ Plots the graph using graphviz. See plot::plot_graph.py for more details.
 
 #### Returns {.doc-section .doc-section-returns}
 
-<code>[]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[Any](`typing.Any`)]{.parameter-annotation}</code>
 
 :   _description_
 
@@ -1273,7 +1273,7 @@ use load_cpp_builder() instead to get a builder function that creates Graph obje
 
 #### Parameters {.doc-section .doc-section-parameters}
 
-<code>[**cpp_file**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`) or [Path](`Path`)]{.parameter-annotation}</code>
+<code>[**cpp_file**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`) or [pathlib](`pathlib`).[Path](`pathlib.Path`)]{.parameter-annotation}</code>
 
 :   Path to the user's C++ file
 
@@ -1550,7 +1550,7 @@ to :meth:`Graph.svgd` as the ``prior`` argument.
 
 :   Number of model parameters.  Inferred from the graph when ``None``.
 
-<code>[**theta_init**]{.parameter-name} [:]{.parameter-annotation-sep} [[array_like](`array_like`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**theta_init**]{.parameter-name} [:]{.parameter-annotation-sep} [[np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   Initial guess for the *free* parameters (excluding fixed ones). If ``None`` a coordinate-wise grid search is used.
 
@@ -1821,7 +1821,7 @@ pmf_from_graph() or pmf_from_cpp() where the model signature is model(theta, tim
 
 :   Number of SVGD optimization steps
 
-<code>[**optimizer**]{.parameter-name} [:]{.parameter-annotation-sep} [[Optimizer](`Optimizer`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**optimizer**]{.parameter-name} [:]{.parameter-annotation-sep} [[object](`object`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   Learning rate optimizer instance from phasic.optimizers. Default is Adam when learning_rate=None and regularization=0. Options include Adamelia, Adam, SGDMomentum, RMSprop, Adagrad. When an optimizer is used, the learning_rate parameter is ignored (the optimizer has its own learning rate).
 
@@ -1829,9 +1829,9 @@ pmf_from_graph() or pmf_from_cpp() where the model signature is model(theta, tim
 
 :   SVGD step size. If None (default), uses Adame optimizer with adaptive learning rates. If a float is provided, uses fixed learning rate approach. Larger values = faster convergence but may be unstable.
 
-<code>[**bandwidth**]{.parameter-name} [:]{.parameter-annotation-sep} [str, float, or array_like]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'median_per_dim\']{.parameter-default}</code>
+<code>[**bandwidth**]{.parameter-name} [:]{.parameter-annotation-sep} [str, float, or np.ndarray]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'median_per_dim\']{.parameter-default}</code>
 
-:   Kernel bandwidth selection method: - 'median_per_dim': Per-dimension median heuristic (default). Uses a   separate bandwidth per parameter dimension for an anisotropic kernel. - 'median': Scalar median heuristic (isotropic kernel) - float: Fixed scalar bandwidth value - array_like: Fixed per-dimension bandwidth vector
+:   Kernel bandwidth selection method: - 'median_per_dim': Per-dimension median heuristic (default). Uses a   separate bandwidth per parameter dimension for an anisotropic kernel. - 'median': Scalar median heuristic (isotropic kernel) - float: Fixed scalar bandwidth value - np.ndarray: Fixed per-dimension bandwidth vector
 
 <code>[**theta_init**]{.parameter-name} [:]{.parameter-annotation-sep} [[ArrayLike](`numpy.typing.ArrayLike`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
@@ -1869,7 +1869,7 @@ pmf_from_graph() or pmf_from_cpp() where the model signature is model(theta, tim
 
 :   (Deprecated: use jit parameter instead) Precompile model and gradient functions for faster execution. First run will take longer but subsequent iterations will be much faster.
 
-<code>[**compilation_config**]{.parameter-name} [:]{.parameter-annotation-sep} [CompilationConfig, dict, str, or Path]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**compilation_config**]{.parameter-name} [:]{.parameter-annotation-sep} [CompilationConfig, dict, str, or pathlib.Path]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   JAX compilation optimization configuration. Can be: - CompilationConfig object from phasic.CompilationConfig - dict with CompilationConfig parameters - str/Path to JSON config file - None (uses default balanced configuration)
 
