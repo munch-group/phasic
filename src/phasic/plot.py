@@ -8,8 +8,11 @@ import matplotlib.colors
 from itertools import cycle
 from numbers import Real as FloatingPointError
 
-from typing import TypeVar
+from typing import Optional, TypeVar
 from collections.abc import Callable
+
+from .logging_config import get_logger
+logger = get_logger(__name__)
 
 # from .vscode_theme import is_vscode_dark_theme
 
@@ -36,7 +39,7 @@ def plot_graph(graph:GraphType, filename:str=None,
                by_state:Callable=None, 
                by_index:Callable=None, 
                max_nodes:int=100, 
-               dark:bool=True,
+               dark:Optional[bool]=None,
                constraint:bool=True, ranksep:float=1, nodesep:float=1, rankdir:str="LR",
                size:tuple=(7, 7), fontsize:int=12, rainbow:bool=True, penwidth:FloatingPointError=1,
                seed:int=1,                
@@ -81,10 +84,17 @@ def plot_graph(graph:GraphType, filename:str=None,
     :
         Graphviz object for Jupyter notebooks display
     """
+    try:
+        from vscodenb import is_vscode_dark_theme
+        dark = is_vscode_dark_theme()
+    except ImportError:
+        logger.warning(f"vscodenb is not available. Defaulting to light theme.")
+        dark = False
 
-    # try: 
-    #     subprocess.check_call('dot', timeout=0.1)#.output.startswith('There is no layout engine support for "dot"'):
-    # except:
+    # always light theme when executing via nbconvert
+    if os.environ.get('NBCONVERT', False):
+        dark = False
+
     subprocess.check_call(['dot', '-c']) # register layout engine
 
     # backwards comp
@@ -93,19 +103,6 @@ def plot_graph(graph:GraphType, filename:str=None,
 
     if by_state and by_index:
         assert "Do not use both by_index and by_state"
-
-    try:
-        from vscodenb import is_vscode_dark_theme
-    except ImportError:
-        def is_vscode_dark_theme():
-            return False
-
-    if dark is None:
-        dark = is_vscode_dark_theme()
-
-    # always light theme when executing via nbconvert
-    if os.environ.get('NBCONVERT', False):
-        dark = False
 
     if dark:
         edge_color = '#e6e6e6'
