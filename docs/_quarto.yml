@@ -93,37 +93,35 @@ website:
       collapse-level: 3
       contents:
         - pages/quickstart.ipynb
-        - section: "Tutorial"
+        - section: "State space"
           contents:
-            - section: "State space"
-              contents:
-                - pages/tutorial/introduction.ipynb
-                - pages/tutorial/state-space.ipynb
-                - pages/tutorial/visualize.ipynb
-                - pages/tutorial/properties.ipynb
-                - pages/tutorial/discrete.ipynb
-                - pages/tutorial/state-space-utils.ipynb
-                - pages/tutorial/parametrization.ipynb
-            - section: "Computation"
-              contents:
-                - pages/tutorial/mpfr.ipynb
-                - pages/tutorial/trace_computing.ipynb
-                - pages/tutorial/caching.ipynb
-                - pages/tutorial/distributed.ipynb
-                - pages/tutorial/sharing.ipynb
-            - section: "Modelling"
-              contents:
-                - pages/tutorial/time-inhomogeneous.ipynb
-                - pages/tutorial/laplace.ipynb
-                - pages/tutorial/joint-probability.ipynb
-                - pages/tutorial/finite-markov-chains.ipynb
-            - section: "Inference"
-              contents:
-                - pages/tutorial/method-of-moments.ipynb
-                - pages/tutorial/svgd-basics.ipynb
-                - pages/tutorial/svgd-multi-feature.ipynb
-                - pages/tutorial/svgd-multi-param.ipynb
-                - pages/tutorial/svgd-joint-prob.ipynb
+            - pages/tutorial/introduction.ipynb
+            - pages/tutorial/state-space.ipynb
+            - pages/tutorial/visualize.ipynb
+            - pages/tutorial/properties.ipynb
+            - pages/tutorial/discrete.ipynb
+            - pages/tutorial/state-space-utils.ipynb
+            - pages/tutorial/parametrization.ipynb
+        - section: "Computation"
+          contents:
+            - pages/tutorial/mpfr.ipynb
+            - pages/tutorial/trace_computing.ipynb
+            - pages/tutorial/caching.ipynb
+            - pages/tutorial/distributed.ipynb
+            - pages/tutorial/sharing.ipynb
+        - section: "Modelling"
+          contents:
+            - pages/tutorial/time-inhomogeneous.ipynb
+            - pages/tutorial/laplace.ipynb
+            - pages/tutorial/joint-probability.ipynb
+            - pages/tutorial/finite-markov-chains.ipynb
+        - section: "Inference"
+          contents:
+            - pages/tutorial/method-of-moments.ipynb
+            - pages/tutorial/svgd-basics.ipynb
+            - pages/tutorial/svgd-multi-feature.ipynb
+            - pages/tutorial/svgd-multi-param.ipynb
+            - pages/tutorial/svgd-joint-prob.ipynb
         - section: "Topics"
           contents:
             - pages/topics/vscodenb.ipynb
@@ -220,12 +218,6 @@ quartodoc:
         - reset_config
         - set_log_level
         - get_logger
-    # - title: Notebook magics
-    #   package: phasic
-    #   desc: |
-    #     Cell magics for interactive use in Jupyter notebooks.
-    #   contents:
-    #     - srun
     - title: Graph Construction
       package: phasic
       desc: |

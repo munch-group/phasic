@@ -484,26 +484,30 @@ class PackageAnalyzer:
                 is_last_child = i == len(node.children) - 1
                 self.print_ascii_tree(child, prefix + extension, is_last_child, max_depth, current_depth + 1, align_width)
     
+    @staticmethod
+    def tree_to_dict(node: CallNode) -> Dict:
+        """Convert a CallNode tree to a plain dict."""
+        func_label = node.signature.get_function_label()
+        file_location = node.signature.get_file_location()
+        return {
+            'label': f"{func_label} -- {file_location}",
+            'file': node.signature.file_path,
+            'line': node.signature.line_number,
+            'children': [PackageAnalyzer.tree_to_dict(child) for child in node.children]
+        }
+
+    def call_trees_to_data(self, roots: List[CallNode]) -> Dict:
+        """Convert a list of CallNode roots to the JSON-compatible data dict."""
+        return {
+            'package': str(self.package_path),
+            'exports': list(self.exports),
+            'call_trees': [self.tree_to_dict(root) for root in roots]
+        }
+
     def save_to_json(self, output_path: str):
         """Save call tree to JSON file"""
         roots = self.build_full_tree()
-
-        # For JSON, we'll create a simple label combining function and file
-        def tree_to_dict(node: CallNode) -> Dict:
-            func_label = node.signature.get_function_label()
-            file_location = node.signature.get_file_location()
-            return {
-                'label': f"{func_label} -- {file_location}",
-                'file': node.signature.file_path,
-                'line': node.signature.line_number,
-                'children': [tree_to_dict(child) for child in node.children]
-            }
-
-        data = {
-            'package': str(self.package_path),
-            'exports': list(self.exports),
-            'call_trees': [tree_to_dict(root) for root in roots]
-        }
+        data = self.call_trees_to_data(roots)
 
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2)
@@ -534,6 +538,36 @@ class PackageAnalyzer:
             print()  # Empty line between trees
 
 
+def _build_callable_trees(analyzer, callable_name):
+    """Resolve --callable to a list of CallNode roots."""
+    roots = []
+    if '.' in callable_name:
+        parts = callable_name.split('.', 1)
+        key = analyzer.find_method(parts[0], parts[1])
+        if not key:
+            print(f"Error: Method '{callable_name}' not found", file=sys.stderr)
+            sys.exit(1)
+        tree = analyzer.build_call_tree(key)
+        if tree:
+            roots.append(tree)
+    else:
+        methods = analyzer.find_class_methods(callable_name)
+        if methods:
+            for method_key in sorted(methods):
+                tree = analyzer.build_call_tree(method_key)
+                if tree:
+                    roots.append(tree)
+        else:
+            key = analyzer.find_function(callable_name)
+            if not key:
+                print(f"Error: Callable '{callable_name}' not found (tried as function, class, and method)", file=sys.stderr)
+                sys.exit(1)
+            tree = analyzer.build_call_tree(key)
+            if tree:
+                roots.append(tree)
+    return roots
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Analyze Python package call tree (only package code, no external libraries)',
@@ -551,6 +585,15 @@ Examples:
   # Show call tree for a specific method
   %(prog)s src/phasic --callable Graph.serialize
 
+  # Output as mermaid sequence diagram
+  %(prog)s src/phasic --callable Graph.serialize --diagram sequence
+
+  # Output as mermaid flowchart
+  %(prog)s src/phasic --callable Graph.serialize --diagram flow
+
+  # Mermaid flowchart grouped by class, depth-limited
+  %(prog)s src/phasic --callable Graph.serialize --diagram flow --by-class -d 3
+
 Note: Only shows calls to functions/methods implemented in the specified package.
 External library calls (numpy, jax, etc.) are excluded.
         ''',
@@ -563,6 +606,10 @@ External library calls (numpy, jax, etc.) are excluded.
                        help='Maximum tree depth to display (default: 10)')
     parser.add_argument('--callable', dest='callable_name',
                        help='Show call tree for function, class, or Class.method')
+    parser.add_argument('--diagram', choices=['sequence', 'flow'],
+                       help="Output a mermaid diagram: 'sequence' or 'flow'")
+    parser.add_argument('--by-class', action='store_true',
+                       help='Group diagram participants/nodes by class instead of module')
 
     args = parser.parse_args()
 
@@ -572,10 +619,39 @@ External library calls (numpy, jax, etc.) are excluded.
 
     # Run analysis
     analyzer = PackageAnalyzer(args.package_path)
-    print(f"Analyzing package: {args.package_path}")
+    print(f"Analyzing package: {args.package_path}", file=sys.stderr)
     analyzer.analyze_package()
 
-    # Handle specific callable request
+    # --diagram mode: generate mermaid and exit
+    if args.diagram:
+        from call_graph_to_mermaid import generate_diagram
+
+        if args.callable_name:
+            roots = _build_callable_trees(analyzer, args.callable_name)
+        else:
+            roots = analyzer.build_full_tree()
+
+        if not roots:
+            print("No call tree found", file=sys.stderr)
+            sys.exit(1)
+
+        data = analyzer.call_trees_to_data(roots)
+        diagram = generate_diagram(data, args.diagram, args.max_depth, args.by_class)
+
+        if args.output and args.output != 'call_tree.json':
+            with open(args.output, 'w', encoding='utf-8') as f:
+                if args.output.endswith('.md'):
+                    f.write('```mermaid\n')
+                    f.write(diagram)
+                    f.write('```\n')
+                else:
+                    f.write(diagram)
+            print(f"Diagram written to {args.output}", file=sys.stderr)
+        else:
+            print(diagram)
+        return
+
+    # Handle specific callable request (ASCII tree)
     if args.callable_name:
         # Check if it's a Class.method format
         if '.' in args.callable_name:
