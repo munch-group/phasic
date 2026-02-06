@@ -21,8 +21,10 @@ Examples
 >>> ptd.configure(jax=True, jit=True, strict=False)
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import Literal, List, Dict, Any, Optional
+from typing import Literal, Any
 import os
 import sys
 
@@ -44,7 +46,7 @@ def _check_cpp_available() -> bool:
         return False
 
 
-def _get_available_backends() -> List[str]:
+def _get_available_backends() -> list[str]:
     """Get list of available computation backends."""
     backends = []
 
@@ -62,7 +64,7 @@ def _get_available_backends() -> List[str]:
     return backends
 
 
-def _get_available_platforms() -> List[str]:
+def _get_available_platforms() -> list[str]:
     """Get list of available JAX platforms."""
     platforms = ['cpu']  # CPU always available
 
@@ -334,7 +336,7 @@ class PTDAlgorithmsConfig:
         if self.verbose:
             print(f"PTDAlgorithms configured: {self}")
 
-    def get_available_options(self) -> Dict[str, Any]:
+    def get_available_options(self) -> dict[str, Any]:
         """
         Return dict of available options on this system.
 
@@ -370,7 +372,7 @@ class PTDAlgorithmsConfig:
         }
 
     @classmethod
-    def jax_only(cls) -> 'PTDAlgorithmsConfig':
+    def jax_only(cls) -> PTDAlgorithmsConfig:
         """
         Factory: JAX-based configuration (JIT enabled, no FFI).
 
@@ -388,7 +390,7 @@ class PTDAlgorithmsConfig:
         )
 
     @classmethod
-    def cpp_only(cls) -> 'PTDAlgorithmsConfig':
+    def cpp_only(cls) -> PTDAlgorithmsConfig:
         """
         Factory: Pure C++ configuration (no JAX, no JIT).
 
@@ -409,7 +411,7 @@ class PTDAlgorithmsConfig:
         )
 
     @classmethod
-    def permissive(cls) -> 'PTDAlgorithmsConfig':
+    def permissive(cls) -> PTDAlgorithmsConfig:
         """
         Factory: Permissive configuration (warnings instead of errors).
 
@@ -432,7 +434,7 @@ class PTDAlgorithmsConfig:
 
 
 # Global configuration instance
-_global_config: Optional[PTDAlgorithmsConfig] = None
+_global_config: PTDAlgorithmsConfig | None = None
 
 
 def configure(**kwargs) -> None:
@@ -525,7 +527,7 @@ def get_config() -> PTDAlgorithmsConfig:
     return _global_config
 
 
-def get_available_options() -> Dict[str, Any]:
+def get_available_options() -> dict[str, Any]:
     """
     Get dictionary of available options on this system.
 

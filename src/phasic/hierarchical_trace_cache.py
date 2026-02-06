@@ -15,6 +15,8 @@ Author: Kasper Munch
 Date: 2025-11-06
 """
 
+from __future__ import annotations
+
 import json
 import hashlib
 import os
@@ -28,11 +30,16 @@ except ImportError:
     # Use spawn context for consistency across platforms
     _mp_ctx = multiprocessing.get_context('spawn')
     Pool = _mp_ctx.Pool
-from typing import Dict, List, Tuple, Optional
+from typing import Any, TYPE_CHECKING
 from pathlib import Path
 import numpy as np
 from tqdm.auto import tqdm
 from .logging_config import get_logger
+
+if TYPE_CHECKING:
+    from . import Graph
+    from .phasic_pybind import SCCGraph, SCCVertex
+    from .trace_elimination import EliminationTrace, Operation
 
 logger = get_logger(__name__)
 
@@ -55,8 +62,8 @@ def _get_cache_path(graph_hash: str) -> Path:
     return cache_dir / f"{graph_hash}.json"
 
 
-def _load_trace_from_cache(graph_hash: str):
-    """Load trace from cache (returns None if not found)"""
+def _load_trace_from_cache(graph_hash: str) -> EliminationTrace | None:
+    """Load trace from cache (returns None if not found)."""
     from .trace_serialization import load_trace_from_cache
 
     logger.debug("Cache query: hash=%s...", graph_hash[:16])
@@ -71,8 +78,8 @@ def _load_trace_from_cache(graph_hash: str):
     return trace
 
 
-def _save_trace_to_cache(graph_hash: str, trace) -> bool:
-    """Save trace to cache (returns True on success)"""
+def _save_trace_to_cache(graph_hash: str, trace: EliminationTrace) -> bool:
+    """Save trace to cache (returns True on success)."""
     from .trace_serialization import save_trace_to_cache
 
     logger.debug("Saving trace to cache: hash=%s..., %d vertices, %d operations",
@@ -92,21 +99,21 @@ def _save_trace_to_cache(graph_hash: str, trace) -> bool:
 # SCC Decomposition
 # ============================================================================
 
-def get_scc_graphs(graph, min_size: int = 50) -> List[Tuple[str, 'Graph']]:
+def get_scc_graphs(graph, min_size: int = 50) -> list[tuple[str, Graph]]:
     """
     Extract SCC subgraphs in topological order.
 
     Parameters
     ----------
     graph : Graph
-        Input graph
-    min_size : int
-        Minimum vertices to subdivide (default 50)
+        Input graph.
+    min_size : int, default=50
+        Minimum vertices to subdivide.
 
     Returns
     -------
-    List[Tuple[str, Graph]]
-        List of (hash, scc_graph) pairs in topological order
+    list[tuple[str, Graph]]
+        List of (hash, scc_graph) pairs in topological order.
     """
     logger.debug("Starting SCC decomposition for graph with %d vertices",
                  graph.vertices_length())
@@ -151,9 +158,9 @@ def get_scc_graphs(graph, min_size: int = 50) -> List[Tuple[str, 'Graph']]:
 # Work Collection (with deduplication)
 # ============================================================================
 
-def collect_missing_traces_batch(graph, param_length: Optional[int] = None,
+def collect_missing_traces_batch(graph, param_length: int | None = None,
                                  min_size: int = 50,
-                                 verbose: bool = False) -> Dict[str, str]:
+                                 verbose: bool = False) -> tuple[dict[str, str], list[str], Any]:
     """
     Recursively collect ALL missing trace work units (deduplicated).
 
@@ -162,18 +169,22 @@ def collect_missing_traces_batch(graph, param_length: Optional[int] = None,
     Parameters
     ----------
     graph : Graph
-        Input graph
-    param_length : int, optional
-        Number of parameters
-    min_size : int
-        Minimum size to subdivide
+        Input graph.
+    param_length : int or None, optional
+        Number of parameters.
+    min_size : int, default=50
+        Minimum size to subdivide.
+    verbose : bool, default=False
+        If True, show progress bars.
 
     Returns
     -------
-    Tuple[Dict[str, Graph], List[str], SCCGraph]
-        - work_units: Mapping graph_hash -> graph_object (deduplicated)
-        - all_scc_hashes: List of all top-level SCC hashes in topological order
-        - top_level_scc_decomp: SCC decomposition of the top-level graph (for stitching)
+    work_units : dict[str, str]
+        Mapping graph_hash to serialized JSON graph (deduplicated).
+    all_scc_hashes : list[str]
+        All top-level SCC hashes in topological order.
+    top_level_scc_decomp : SCCGraph or None
+        SCC decomposition of the top-level graph (for stitching).
     """
     from . import Graph
 
@@ -368,10 +379,10 @@ def collect_missing_traces_batch(graph, param_length: Optional[int] = None,
 # Global work unit storage for JAX compatibility
 # Maps integer index -> (hash, json_string)
 # JAX can vmap over integer indices, but not Python objects
-_work_unit_store: Dict[int, Tuple[str, str]] = {}
+_work_unit_store: dict[int, tuple[str, str]] = {}
 
 
-def _record_trace_callback(idx: int) -> Tuple[str, 'EliminationTrace']:
+def _record_trace_callback(idx: int) -> tuple[str, EliminationTrace | None]:
     """
     Pure Python callback for trace recording (called from JAX via pure_callback).
 
@@ -381,17 +392,17 @@ def _record_trace_callback(idx: int) -> Tuple[str, 'EliminationTrace']:
     Parameters
     ----------
     idx : int
-        Index into _work_unit_store, or -1 for padding
+        Index into _work_unit_store, or -1 for padding.
 
     Returns
     -------
-    Tuple[str, EliminationTrace]
-        (graph_hash, computed_trace) or ("", None) for padding
+    tuple[str, EliminationTrace or None]
+        (graph_hash, computed_trace) or ("", None) for padding.
 
     Raises
     ------
     RuntimeError
-        If deserialization or trace computation fails
+        If deserialization or trace computation fails.
 
     Notes
     -----
@@ -456,7 +467,7 @@ def _record_trace_callback(idx: int) -> Tuple[str, 'EliminationTrace']:
 # ============================================================================
 
 # Per-process cache for loaded work units (avoids repeated disk reads)
-_pmap_file_cache: Dict[str, Tuple[str, str]] = {}
+_pmap_file_cache: dict[str, tuple[str, str]] = {}
 
 
 def _get_pmap_shared_dir() -> Path:
@@ -486,7 +497,7 @@ def _write_work_unit_to_file(work_dir: Path, idx: int, graph_hash: str, json_str
     Parameters
     ----------
     work_dir : Path
-        Session work directory
+        Session work directory.
     idx : int
         Work unit index
     graph_hash : str
@@ -505,24 +516,24 @@ def _write_work_unit_to_file(work_dir: Path, idx: int, graph_hash: str, json_str
     return file_path
 
 
-def _load_work_unit_from_file(file_path: str) -> Tuple[str, str]:
+def _load_work_unit_from_file(file_path: str) -> tuple[str, str]:
     """
     Load work unit from disk file with per-process caching.
 
     Parameters
     ----------
     file_path : str
-        Path to work unit file
+        Path to work unit file.
 
     Returns
     -------
     tuple[str, str]
-        (graph_hash, json_str)
+        (graph_hash, json_str).
 
     Raises
     ------
     FileNotFoundError
-        If work unit file doesn't exist
+        If work unit file doesn't exist.
     """
     from pathlib import Path
 
@@ -551,18 +562,18 @@ def _load_work_unit_from_file(file_path: str) -> Tuple[str, str]:
     return result
 
 
-def compute_missing_traces_parallel(work_units: Dict[str, str],
+def compute_missing_traces_parallel(work_units: dict[str, str],
                                    strategy: str = 'auto',
                                    min_size: int = 50,
                                    verbose: bool = False,
-                                   n_workers: Optional[int] = None) -> Dict[str, 'EliminationTrace']:
+                                   n_workers: int | None = None) -> dict[str, EliminationTrace]:
     """
     Distribute work across CPUs/devices using multiprocessing or sequential.
 
     Parameters
     ----------
-    work_units : Dict[str, str]
-        Mapping: graph_hash -> json_string (serialized graph)
+    work_units : dict[str, str]
+        Mapping: graph_hash to json_string (serialized graph).
     strategy : str, default='auto'
         Parallelization strategy:
         - 'auto': Use 'vmap' (multiprocessing) if available, else 'sequential'
@@ -578,17 +589,17 @@ def compute_missing_traces_parallel(work_units: Dict[str, str],
 
     Returns
     -------
-    Dict[str, EliminationTrace]
-        Mapping: hash -> computed_trace
+    dict[str, EliminationTrace]
+        Mapping: hash to computed_trace.
 
     Raises
     ------
     ValueError
-        If strategy is invalid
+        If strategy is invalid.
     ImportError
-        If JAX is not installed but vmap/pmap requested
+        If JAX is not installed but vmap/pmap requested.
     RuntimeError
-        If pmap requested but <2 devices available
+        If pmap requested but <2 devices available.
 
     Notes
     -----
@@ -867,10 +878,10 @@ def compute_missing_traces_parallel(work_units: Dict[str, str],
 # ============================================================================
 
 def _find_upstream_vertices(
-    original_graph: 'Graph',
-    internal_indices: List[int],
-    scc_graph: 'SCCGraph'
-) -> List[int]:
+    original_graph: Graph,
+    internal_indices: list[int],
+    scc_graph: SCCGraph
+) -> list[int]:
     """
     Find vertices in upstream SCCs that connect to the current SCC.
 
@@ -880,16 +891,16 @@ def _find_upstream_vertices(
     Parameters
     ----------
     original_graph : Graph
-        The original graph
-    internal_indices : List[int]
-        Internal vertex indices of the current SCC
+        The original graph.
+    internal_indices : list[int]
+        Internal vertex indices of the current SCC.
     scc_graph : SCCGraph
-        The SCC decomposition
+        The SCC decomposition.
 
     Returns
     -------
-    List[int]
-        List of original vertex indices in upstream SCCs
+    list[int]
+        List of original vertex indices in upstream SCCs.
     """
     internal_set = set(internal_indices)
     upstream_vertices = set()
@@ -915,10 +926,10 @@ def _find_upstream_vertices(
 
 
 def _find_upstream_connecting(
-    internal_indices: List[int],
-    upstream_vertices: List[int],
-    original_graph: 'Graph'
-) -> List[int]:
+    internal_indices: list[int],
+    upstream_vertices: list[int],
+    original_graph: Graph
+) -> list[int]:
     """
     Find internal vertices that receive edges from upstream vertices.
 
@@ -926,17 +937,17 @@ def _find_upstream_connecting(
 
     Parameters
     ----------
-    internal_indices : List[int]
-        Internal vertex indices of the current SCC
-    upstream_vertices : List[int]
-        Upstream vertex indices
+    internal_indices : list[int]
+        Internal vertex indices of the current SCC.
+    upstream_vertices : list[int]
+        Upstream vertex indices.
     original_graph : Graph
-        The original graph
+        The original graph.
 
     Returns
     -------
-    List[int]
-        List of internal vertex indices that connect to upstream
+    list[int]
+        List of internal vertex indices that connect to upstream.
     """
     internal_set = set(internal_indices)
     upstream_set = set(upstream_vertices)
@@ -956,9 +967,9 @@ def _find_upstream_connecting(
 
 
 def _find_downstream_connecting(
-    internal_indices: List[int],
-    original_graph: 'Graph'
-) -> List[int]:
+    internal_indices: list[int],
+    original_graph: Graph
+) -> list[int]:
     """
     Find internal vertices that have edges to vertices outside the SCC.
 
@@ -966,15 +977,15 @@ def _find_downstream_connecting(
 
     Parameters
     ----------
-    internal_indices : List[int]
-        Internal vertex indices of the current SCC
+    internal_indices : list[int]
+        Internal vertex indices of the current SCC.
     original_graph : Graph
-        The original graph
+        The original graph.
 
     Returns
     -------
-    List[int]
-        List of internal vertex indices that connect to downstream
+    list[int]
+        List of internal vertex indices that connect to downstream.
     """
     internal_set = set(internal_indices)
     downstream_connecting = set()
@@ -994,10 +1005,10 @@ def _find_downstream_connecting(
 
 
 def _find_downstream_vertices(
-    original_graph: 'Graph',
-    downstream_connecting: List[int],
-    internal_indices: List[int]
-) -> List[int]:
+    original_graph: Graph,
+    downstream_connecting: list[int],
+    internal_indices: list[int]
+) -> list[int]:
     """
     Find vertices that receive edges from downstream-connecting vertices.
 
@@ -1007,16 +1018,16 @@ def _find_downstream_vertices(
     Parameters
     ----------
     original_graph : Graph
-        The original graph
-    downstream_connecting : List[int]
-        Downstream-connecting vertex indices
-    internal_indices : List[int]
-        Internal vertex indices of the current SCC
+        The original graph.
+    downstream_connecting : list[int]
+        Downstream-connecting vertex indices.
+    internal_indices : list[int]
+        Internal vertex indices of the current SCC.
 
     Returns
     -------
-    List[int]
-        List of original vertex indices in downstream SCCs
+    list[int]
+        List of original vertex indices in downstream SCCs.
     """
     internal_set = set(internal_indices)
     downstream_vertices = set()
@@ -1034,10 +1045,10 @@ def _find_downstream_vertices(
 
 
 def _build_scc_subgraph(
-    original_graph: 'Graph',
-    scc: 'SCCVertex',
-    scc_graph: 'SCCGraph'
-) -> Tuple['Graph', Dict[str, any]]:
+    original_graph: Graph,
+    scc: SCCVertex,
+    scc_graph: SCCGraph
+) -> tuple[Graph, dict[str, Any]]:
     """
     Build SCC subgraph for non-first SCCs (with upstream vertices).
 
@@ -1065,16 +1076,16 @@ def _build_scc_subgraph(
     Returns
     -------
     scc_subgraph : Graph
-        Subgraph with auto-start at index 0 (not in original)
-    metadata : Dict
+        Subgraph with auto-start at index 0 (not in original).
+    metadata : dict[str, Any]
         Contains vertex categorization and mapping:
-        - 'upstream': List[int] - upstream vertex indices (original)
-        - 'upstream_connecting': List[int] - upstream-connecting indices (original)
-        - 'internal': List[int] - internal vertex indices (original)
-        - 'downstream_connecting': List[int] - downstream-connecting indices (original)
-        - 'downstream': List[int] - downstream vertex indices (original)
-        - 'vertex_map': Dict[int, int] - orig_idx -> subgraph_idx
-        - 'ordered_vertices': List[int | None] - trace[0]=None, trace[i+1]=ordered[i]
+        - 'upstream': list[int] - upstream vertex indices (original)
+        - 'upstream_connecting': list[int] - upstream-connecting indices (original)
+        - 'internal': list[int] - internal vertex indices (original)
+        - 'downstream_connecting': list[int] - downstream-connecting indices (original)
+        - 'downstream': list[int] - downstream vertex indices (original)
+        - 'vertex_map': dict[int, int] - orig_idx to subgraph_idx
+        - 'ordered_vertices': list[int | None] - trace[0]=None, trace[i+1]=ordered[i]
     """
     from . import Graph
 
@@ -1223,11 +1234,11 @@ def _build_scc_subgraph(
 
 
 def _build_first_scc_subgraph(
-    original_graph: 'Graph',
+    original_graph: Graph,
     starting_vertex_idx: int,
-    scc: 'SCCVertex',
-    scc_graph: 'SCCGraph'
-) -> Tuple['Graph', Dict[str, any]]:
+    scc: SCCVertex,
+    scc_graph: SCCGraph
+) -> tuple[Graph, dict[str, Any]]:
     """
     Build special subgraph for the first SCC (contains starting vertex).
 
@@ -1250,14 +1261,14 @@ def _build_first_scc_subgraph(
     Returns
     -------
     first_subgraph : Graph
-        Subgraph with starting vertex at index 0
-    metadata : Dict
+        Subgraph with starting vertex at index 0.
+    metadata : dict[str, Any]
         Contains:
         - 'upstream': [] (empty - no upstream for first SCC)
         - 'internal': [starting_vertex_idx]
-        - 'downstream': List[int] - downstream connecting vertices
-        - 'vertex_map': Dict[int, int] - orig_idx -> subgraph_idx
-        - 'ordered_vertices': List[int] - maps trace[i] -> orig_idx
+        - 'downstream': list[int] - downstream connecting vertices
+        - 'vertex_map': dict[int, int] - orig_idx to subgraph_idx
+        - 'ordered_vertices': list[int] - maps trace[i] to orig_idx
     """
     from . import Graph
 
@@ -1338,10 +1349,10 @@ def _build_first_scc_subgraph(
 
 
 def _identify_trace_vertices(
-    scc_graph: 'SCCGraph',
+    scc_graph: SCCGraph,
     scc_idx: int,
-    scc_trace: 'EliminationTrace'
-) -> Tuple[Dict[int, int], Dict[int, int]]:
+    scc_trace: EliminationTrace
+) -> tuple[dict[int, int], dict[int, int]]:
     """
     Identify which trace vertices correspond to internal vs connecting vertices.
 
@@ -1360,10 +1371,10 @@ def _identify_trace_vertices(
 
     Returns
     -------
-    internal_mapping : Dict[trace_v_idx, orig_v_idx]
-        Maps trace vertices to original graph for internal vertices
-    connecting_mapping : Dict[trace_v_idx, orig_v_idx]
-        Maps trace vertices to original graph for connecting vertices
+    internal_mapping : dict[int, int]
+        Maps trace vertex indices to original graph indices for internal vertices.
+    connecting_mapping : dict[int, int]
+        Maps trace vertex indices to original graph indices for connecting vertices.
     """
     original_graph = scc_graph.original_graph()
     sccs = list(scc_graph.sccs_in_topo_order())  # Convert to list to avoid iterator exhaustion
@@ -1404,10 +1415,10 @@ def _identify_trace_vertices(
 
 
 def _find_sister_vertices(
-    upstream_metadata: Dict[str, any],
-    downstream_metadata: Dict[str, any],
-    original_graph: 'Graph'
-) -> List[Tuple[int, int]]:
+    upstream_metadata: dict[str, Any],
+    downstream_metadata: dict[str, Any],
+    original_graph: Graph
+) -> list[tuple[int, int]]:
     """
     Find sister vertices between upstream and downstream subgraphs.
 
@@ -1426,9 +1437,9 @@ def _find_sister_vertices(
 
     Returns
     -------
-    List[Tuple[int, int]]
+    list[tuple[int, int]]
         List of (upstream_downstream_idx, downstream_upstream_idx) pairs
-        where indices are original graph indices
+        where indices are original graph indices.
     """
     sisters = []
 
@@ -1459,8 +1470,8 @@ def _find_sister_vertices(
 
 
 def _get_vertex_categories_from_metadata(
-    metadata: Dict[str, any]
-) -> Dict[str, List[int]]:
+    metadata: dict[str, Any]
+) -> dict[str, list[int]]:
     """
     Extract vertex categories from enhanced subgraph metadata.
 
@@ -1471,7 +1482,7 @@ def _get_vertex_categories_from_metadata(
 
     Returns
     -------
-    Dict[str, List[int]]
+    dict[str, list[int]]
         Dictionary mapping category names to lists of original vertex indices:
         - 'upstream': Upstream vertices
         - 'upstream_connecting': Upstream-connecting vertices
@@ -1488,7 +1499,7 @@ def _get_vertex_categories_from_metadata(
     }
 
 
-def _remap_operation(op: 'Operation', op_offset: int) -> 'Operation':
+def _remap_operation(op: Operation, op_offset: int) -> Operation:
     """
     Remap operation indices by adding offset.
 
@@ -1552,9 +1563,9 @@ def _remap_operation(op: 'Operation', op_offset: int) -> 'Operation':
 # ============================================================================
 
 def record_enhanced_scc_traces(
-    scc_graph: 'SCCGraph',
+    scc_graph: SCCGraph,
     param_length: int
-) -> Tuple[Dict[str, 'EliminationTrace'], Dict[str, Dict[str, any]]]:
+) -> tuple[dict[str, EliminationTrace], dict[str, dict[str, Any]]]:
     """
     Record elimination traces for each SCC using enhanced subgraphs.
 
@@ -1570,10 +1581,10 @@ def record_enhanced_scc_traces(
 
     Returns
     -------
-    scc_trace_dict : Dict[str, EliminationTrace]
-        Traces for each SCC, keyed by SCC hash
-    scc_metadata_dict : Dict[str, Dict]
-        Metadata for each SCC's enhanced subgraph, keyed by SCC hash
+    scc_trace_dict : dict[str, EliminationTrace]
+        Traces for each SCC, keyed by SCC hash.
+    scc_metadata_dict : dict[str, dict[str, Any]]
+        Metadata for each SCC's enhanced subgraph, keyed by SCC hash.
     """
     from .trace_elimination import record_elimination_trace
 
@@ -1606,11 +1617,11 @@ def record_enhanced_scc_traces(
 
 
 def stitch_scc_traces(
-    scc_graph: 'SCCGraph',
-    scc_trace_dict: Dict[str, 'EliminationTrace'],
-    scc_metadata_dict: Optional[Dict[str, Dict[str, any]]] = None,
+    scc_graph: SCCGraph,
+    scc_trace_dict: dict[str, EliminationTrace],
+    scc_metadata_dict: dict[str, dict[str, Any]] | None = None,
     verbose: bool = False
-) -> 'EliminationTrace':
+) -> EliminationTrace:
     """
     Merge SCC traces using sister vertex merging.
 
@@ -1623,9 +1634,9 @@ def stitch_scc_traces(
     ----------
     scc_graph : SCCGraph
         SCC decomposition with topological ordering
-    scc_trace_dict : Dict[str, EliminationTrace]
-        Traces for each SCC (recorded with enhanced subgraphs)
-    scc_metadata_dict : Dict[str, Dict], optional
+    scc_trace_dict : dict[str, EliminationTrace]
+        Traces for each SCC (recorded with enhanced subgraphs).
+    scc_metadata_dict : dict[str, dict[str, Any]] or None, optional
         Metadata for each SCC (from _build_scc_subgraph or _build_first_scc_subgraph).
         If None, metadata will be regenerated from SCC decomposition.
 
@@ -2011,11 +2022,11 @@ def stitch_scc_traces(
 # ============================================================================
 
 def get_trace_hierarchical(graph,
-                          param_length: Optional[int] = None,
+                          param_length: int | None = None,
                           min_size: int = 50,
                           parallel_strategy: str = 'auto',
                           use_scc_subdivision: bool = True,
-                          verbose: bool = False) -> 'EliminationTrace':
+                          verbose: bool = False) -> EliminationTrace:
     """
     Main entry point: Get trace with hierarchical SCC-based caching.
 

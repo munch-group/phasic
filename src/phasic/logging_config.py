@@ -36,10 +36,11 @@ Examples
 >>> logger.error("Error message")
 """
 
+from __future__ import annotations
+
 import logging
 import os
 import sys
-from typing import Optional
 
 
 # Package-level logger
@@ -64,7 +65,8 @@ class ColoredFormatter(logging.Formatter):
     }
     RESET = '\033[0m'
 
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
+        """Format the log record with ANSI color codes."""
         # Save original levelname
         levelname = record.levelname
 
@@ -103,9 +105,9 @@ def _should_use_colors() -> bool:
 
 
 def setup_logging(
-    level: Optional[str] = None,
-    log_file: Optional[str] = None,
-    fmt: Optional[str] = None,
+    level: str | None = None,
+    log_file: str | None = None,
+    fmt: str | None = None,
     force: bool = False
 ) -> None:
     """
@@ -201,7 +203,7 @@ def setup_logging(
         c_logger = logging.getLogger(f"{_PACKAGE_LOGGER_NAME}.c")
 
         # Define callback that forwards C logs to Python logger
-        def c_log_callback(level: int, message: str):
+        def c_log_callback(level: int, message: str) -> None:
             c_logger.log(level, message)
 
         # Register callback with C code
@@ -269,7 +271,30 @@ def get_logger(name: str) -> logging.Logger:
 
 
 class set_log_level:
-    def __init__(self, level:str="INFO", module: Optional[str] = None):
+    """Context manager and callable for changing the phasic logging level at runtime.
+
+    Can be used as a direct call to permanently change the level, or as a
+    context manager to temporarily change it.
+
+    Parameters
+    ----------
+    level : str, default='INFO'
+        Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL, NONE).
+    module : str or None, optional
+        Specific module to configure. If None, sets level for entire package.
+
+    Examples
+    --------
+    >>> # Permanent change
+    >>> set_log_level('DEBUG')
+
+    >>> # Temporary change via context manager
+    >>> with set_log_level('DEBUG'):
+    ...     # debug logging active here
+    ...     pass
+    """
+
+    def __init__(self, level: str = "INFO", module: str | None = None) -> None:
         """
         Change logging level at runtime.
 
@@ -322,11 +347,18 @@ class set_log_level:
             except (ImportError, AttributeError):
                 pass
 
-    def __enter__(self):
+    def __enter__(self) -> set_log_level:
+        """Enter context manager, applying the configured log level."""
         self.logger.setLevel(self.numeric_level)
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: object,
+    ) -> None:
+        """Exit context manager, restoring the original log level."""
         self.logger.setLevel(self.original_level)
 
 

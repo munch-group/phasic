@@ -24,10 +24,12 @@ Author: PtDAlgorithms Team
 Date: 2025-10-08
 """
 
+from __future__ import annotations
+
 import os
 import sys
 from dataclasses import dataclass, field
-from typing import Optional, Dict, Any, List
+from typing import Any
 import warnings
 
 from .logging_config import get_logger
@@ -52,7 +54,7 @@ class EnvironmentInfo:
         Whether running in an interactive shell (Jupyter/IPython)
     available_cpus : int
         Number of CPUs available for computation
-    slurm_info : Optional[Dict]
+    slurm_info : dict or None
         SLURM environment information (if running under SLURM)
     jax_already_imported : bool
         Whether JAX has already been imported (affects XLA_FLAGS configuration)
@@ -60,7 +62,7 @@ class EnvironmentInfo:
     env_type: str = 'script'
     is_interactive: bool = False
     available_cpus: int = 1
-    slurm_info: Optional[Dict] = None
+    slurm_info: dict | None = None
     jax_already_imported: bool = False
 
     def __str__(self) -> str:
@@ -93,16 +95,16 @@ class ParallelConfig:
         Number of JAX devices on this node
     strategy : str
         Parallelization strategy: 'pmap', 'vmap', or 'none'
-    env_info : EnvironmentInfo
+    env_info : EnvironmentInfo or None
         Environment information
-    devices : List
+    devices : list
         List of JAX devices
     """
     device_count: int = 1
     local_device_count: int = 1
     strategy: str = 'none'
-    env_info: Optional[EnvironmentInfo] = None
-    devices: List = field(default_factory=list)
+    env_info: EnvironmentInfo | None = None
+    devices: list = field(default_factory=list)
 
     def __str__(self) -> str:
         """Pretty print parallel configuration."""
@@ -202,7 +204,7 @@ def detect_environment() -> EnvironmentInfo:
 # JAX Configuration
 # ============================================================================
 
-def _determine_strategy(env_info: EnvironmentInfo, devices: List) -> str:
+def _determine_strategy(env_info: EnvironmentInfo, devices: list) -> str:
     """
     Determine best parallelization strategy.
 
@@ -210,7 +212,7 @@ def _determine_strategy(env_info: EnvironmentInfo, devices: List) -> str:
     ----------
     env_info : EnvironmentInfo
         Environment information
-    devices : List
+    devices : list
         List of JAX devices
 
     Returns
@@ -321,10 +323,10 @@ def configure_jax_for_environment(env_info: EnvironmentInfo, enable_x64: bool = 
 # Module-level state (will be managed by __init__.py)
 # ============================================================================
 
-_global_parallel_config: Optional[ParallelConfig] = None
+_global_parallel_config: ParallelConfig | None = None
 
 
-def get_parallel_config() -> Optional[ParallelConfig]:
+def get_parallel_config() -> ParallelConfig | None:
     """
     Get current parallel configuration.
 
@@ -336,7 +338,7 @@ def get_parallel_config() -> Optional[ParallelConfig]:
     return _global_parallel_config
 
 
-def set_parallel_config(config: Optional[ParallelConfig]):
+def set_parallel_config(config: ParallelConfig | None) -> None:
     """
     Set global parallel configuration (internal use).
 
@@ -386,12 +388,12 @@ class parallel_config:
     ...     result = g.pdf_batch(large_batch)
     """
 
-    def __init__(self, strategy=None, device_count=None):
+    def __init__(self, strategy: str | None = None, device_count: int | None = None) -> None:
         self.new_strategy = strategy
         self.new_device_count = device_count
-        self.previous_config = None
+        self.previous_config: ParallelConfig | None = None
 
-    def __enter__(self):
+    def __enter__(self) -> ParallelConfig:
         # Save current config
         self.previous_config = get_parallel_config()
 
@@ -418,7 +420,7 @@ class parallel_config:
         set_parallel_config(new_config)
         return new_config
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: type | None, exc_val: BaseException | None, exc_tb: Any) -> bool:
         # Restore previous config
         set_parallel_config(self.previous_config)
         return False
@@ -447,13 +449,13 @@ class disable_parallel:
     >>> result = g.pdf_batch(times)  # Uses parallel config
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.ctx = parallel_config(strategy='none')
 
-    def __enter__(self):
+    def __enter__(self) -> ParallelConfig:
         return self.ctx.__enter__()
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: type | None, exc_val: BaseException | None, exc_tb: Any) -> bool:
         return self.ctx.__exit__(exc_type, exc_val, exc_tb)
 
 

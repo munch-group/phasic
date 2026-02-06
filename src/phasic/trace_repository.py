@@ -56,6 +56,10 @@ References
   https://doi.org/10.1007/s11222-022-10155-6
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import json
 import gzip
 import hashlib
@@ -68,13 +72,16 @@ import subprocess
 import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, List, Optional, Union, Any
+from typing import Any
 from urllib.parse import urljoin
 
 import requests
 
 from .logging_config import get_logger
 from .exceptions import PTDBackendError
+
+if TYPE_CHECKING:
+    from .trace_elimination import EliminationTrace
 
 logger = get_logger(__name__)
 
@@ -122,7 +129,7 @@ class TransportBackend(ABC):
         """Human-readable backend name (e.g. ``'ipfs'``)."""
 
     @abstractmethod
-    def get(self, cid: str, output_path: Optional[Path] = None) -> bytes:
+    def get(self, cid: str, output_path: Path | None = None) -> bytes:
         """
         Retrieve content by content identifier.
 
@@ -160,7 +167,7 @@ class TransportBackend(ABC):
         """Whether this backend can retrieve whole directories."""
         return False
 
-    def get_directory(self, cid: str, output_dir: Path):
+    def get_directory(self, cid: str, output_dir: Path) -> None:
         """
         Retrieve an entire directory by CID.
 
@@ -305,7 +312,7 @@ def generate_swarm_key() -> str:
     return f"/key/swarm/psk/1.0.0/\n/base16/\n{hex_key}\n"
 
 
-def install_swarm_key(key_content: str, ipfs_dir: Optional[Path] = None) -> Path:
+def install_swarm_key(key_content: str, ipfs_dir: Path | None = None) -> Path:
     """
     Install a swarm key into the IPFS configuration directory.
 
@@ -350,7 +357,7 @@ def install_swarm_key(key_content: str, ipfs_dir: Optional[Path] = None) -> Path
     return key_path
 
 
-def detect_swarm_key(ipfs_dir: Optional[Path] = None) -> Optional[Path]:
+def detect_swarm_key(ipfs_dir: Path | None = None) -> Path | None:
     """
     Check whether a swarm key is installed.
 
@@ -371,7 +378,7 @@ def detect_swarm_key(ipfs_dir: Optional[Path] = None) -> Optional[Path]:
     return None
 
 
-def remove_swarm_key(ipfs_dir: Optional[Path] = None) -> bool:
+def remove_swarm_key(ipfs_dir: Path | None = None) -> bool:
     """
     Remove the swarm key to return the IPFS node to the public network.
 
@@ -395,8 +402,8 @@ def remove_swarm_key(ipfs_dir: Optional[Path] = None) -> bool:
 
 
 def configure_bootstrap_peers(
-    peers: List[str],
-    ipfs_dir: Optional[Path] = None,
+    peers: list[str],
+    ipfs_dir: Path | None = None,
 ) -> None:
     """
     Replace the IPFS bootstrap peer list.
@@ -407,7 +414,7 @@ def configure_bootstrap_peers(
 
     Parameters
     ----------
-    peers : List[str]
+    peers : list[str]
         Multiaddr strings of bootstrap peers to add.
     ipfs_dir : Path, optional
         IPFS configuration directory (passed via ``IPFS_PATH`` env).
@@ -469,7 +476,7 @@ class IPFSBackend(TransportBackend):
     ----------
     daemon_addr : str, default="/ip4/127.0.0.1/tcp/5001"
         IPFS daemon API address
-    gateways : List[str], optional
+    gateways : list[str], optional
         List of HTTP gateway URLs. If None, uses default public gateways.
     auto_start : bool, default=True
         If True, automatically start IPFS daemon if installed but not running
@@ -482,7 +489,7 @@ class IPFSBackend(TransportBackend):
         IPFS HTTP client if daemon available, None otherwise
     daemon_process : subprocess.Popen or None
         Process handle for auto-started daemon, None if not started
-    gateways : List[str]
+    gateways : list[str]
         List of HTTP gateway URLs for fallback
 
     Examples
@@ -511,10 +518,10 @@ class IPFSBackend(TransportBackend):
     def __init__(
         self,
         daemon_addr: str = "/ip4/127.0.0.1/tcp/5001",
-        gateways: Optional[List[str]] = None,
+        gateways: list[str] | None = None,
         auto_start: bool = True,
-        timeout: int = 30
-    ):
+        timeout: int = 30,
+    ) -> None:
         self.daemon_addr = daemon_addr
         self.timeout = timeout
         self.auto_start = auto_start
@@ -640,7 +647,7 @@ class IPFSBackend(TransportBackend):
         except (subprocess.SubprocessError, OSError):
             return False
 
-    def get(self, cid: str, output_path: Optional[Path] = None) -> bytes:
+    def get(self, cid: str, output_path: Path | None = None) -> bytes:
         """
         Get content from IPFS by CID.
 
@@ -689,7 +696,7 @@ class IPFSBackend(TransportBackend):
         # Fallback to HTTP gateways
         return self._get_via_gateway(cid, output_path)
 
-    def _get_via_gateway(self, cid: str, output_path: Optional[Path] = None) -> bytes:
+    def _get_via_gateway(self, cid: str, output_path: Path | None = None) -> bytes:
         """Retrieve content through HTTP gateways with retry logic."""
         last_error = None
         for gateway in self.gateways:
@@ -710,7 +717,7 @@ class IPFSBackend(TransportBackend):
             f"Failed to retrieve {cid} from IPFS daemon and all HTTP gateways"
         )
 
-    def get_directory(self, cid: str, output_dir: Path):
+    def get_directory(self, cid: str, output_dir: Path) -> None:
         """
         Get entire directory from IPFS by CID.
 
@@ -785,18 +792,18 @@ class IPFSBackend(TransportBackend):
     # Daemon status
     # ----------------------------------------------------------------
 
-    def status(self) -> Dict[str, Any]:
+    def status(self) -> dict[str, Any]:
         """
         Return a summary of the backend's connection state.
 
         Returns
         -------
-        Dict[str, Any]
+        dict[str, Any]
             Keys: ``daemon`` (bool), ``daemon_version`` (str or None),
             ``gateways`` (list of gateway URLs), ``ipfs_installed`` (bool).
         """
         swarm_key_path = detect_swarm_key(self._ipfs_dir)
-        info: Dict[str, Any] = {
+        info: dict[str, Any] = {
             "daemon": self.client is not None,
             "daemon_version": None,
             "gateways": list(self.gateways),
@@ -889,9 +896,8 @@ class IPFSBackend(TransportBackend):
         except Exception:
             return False
 
-    def __del__(self):
-        """
-        Cleanup on object destruction.
+    def __del__(self) -> None:
+        """Clean up on object destruction.
 
         Note: We intentionally do NOT kill the daemon here, as it should
         persist for other processes and future use.
@@ -936,7 +942,7 @@ def _request_with_retry(
     requests.RequestException
         After all retries are exhausted.
     """
-    last_exc: Optional[Exception] = None
+    last_exc: Exception | None = None
     for attempt in range(max_retries):
         try:
             response = requests.get(url, timeout=timeout)
@@ -1013,7 +1019,7 @@ class TraceRegistry:
 
     Attributes
     ----------
-    registry : Dict
+    registry : dict
         Loaded registry data from GitHub
     cache_dir : Path
         Local cache directory for downloaded traces
@@ -1044,11 +1050,11 @@ class TraceRegistry:
     def __init__(
         self,
         registry_repo: str = "munch-group/phasic-traces",
-        cache_dir: Optional[Path] = None,
-        backend: Optional[TransportBackend] = None,
-        ipfs_backend: Optional[IPFSBackend] = None,
-        auto_update: bool = True
-    ):
+        cache_dir: Path | None = None,
+        backend: TransportBackend | None = None,
+        ipfs_backend: IPFSBackend | None = None,
+        auto_update: bool = True,
+    ) -> None:
         self.registry_repo = registry_repo
         self.cache_dir = cache_dir or (Path.home() / ".phasic_traces")
         self.cache_dir.mkdir(parents=True, exist_ok=True)
@@ -1094,7 +1100,7 @@ class TraceRegistry:
         """Deprecated alias for :attr:`backend`."""
         return self.backend
 
-    def _load_cached_registry(self):
+    def _load_cached_registry(self) -> None:
         """Load registry from local cache if available."""
         registry_path = self.cache_dir / "registry.json"
         if registry_path.exists():
@@ -1105,7 +1111,7 @@ class TraceRegistry:
             except (json.JSONDecodeError, OSError, KeyError) as e:
                 logger.warning("Failed to load cached registry: %s", e)
 
-    def update_registry(self):
+    def update_registry(self) -> None:
         """
         Update registry from GitHub.
 
@@ -1134,10 +1140,10 @@ class TraceRegistry:
 
     def list_traces(
         self,
-        domain: Optional[str] = None,
-        model_type: Optional[str] = None,
-        tags: Optional[List[str]] = None
-    ) -> List[Dict[str, Any]]:
+        domain: str | None = None,
+        model_type: str | None = None,
+        tags: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
         """
         List available traces with optional filtering.
 
@@ -1147,12 +1153,12 @@ class TraceRegistry:
             Filter by domain (e.g., "population-genetics")
         model_type : str, optional
             Filter by model type (e.g., "coalescent")
-        tags : List[str], optional
+        tags : list[str], optional
             Filter by tags (all must match)
 
         Returns
         -------
-        List[Dict[str, Any]]
+        list[dict[str, Any]]
             List of trace metadata dictionaries
         """
         if self.registry is None:
@@ -1186,7 +1192,7 @@ class TraceRegistry:
 
         return traces
 
-    def get_trace(self, trace_id: str, force_download: bool = False) -> 'EliminationTrace':
+    def get_trace(self, trace_id: str, force_download: bool = False) -> EliminationTrace:
         """
         Download and load a trace by ID.
 
@@ -1299,7 +1305,7 @@ class TraceRegistry:
             )
         logger.debug("Checksum verified for %s", file_path.name)
 
-    def get_trace_by_hash(self, graph_hash: str, force_download: bool = False):
+    def get_trace_by_hash(self, graph_hash: str, force_download: bool = False) -> EliminationTrace | None:
         """
         Download and load a trace by graph structure hash.
 
@@ -1368,7 +1374,7 @@ class TraceRegistry:
     # Source & cache inspection
     # ----------------------------------------------------------------
 
-    def trace_source(self, trace_id: str) -> Dict[str, Any]:
+    def trace_source(self, trace_id: str) -> dict[str, Any]:
         """
         Report where a trace would be loaded from, without downloading it.
 
@@ -1379,7 +1385,7 @@ class TraceRegistry:
 
         Returns
         -------
-        Dict[str, Any]
+        dict[str, Any]
             ``source`` is one of ``"local_cache"``, ``"ipfs_daemon"``,
             ``"http_gateway"``, or ``"unavailable"``.  Additional keys
             give the ``cache_path``, ``cid``, and ``backend`` name.
@@ -1399,7 +1405,7 @@ class TraceRegistry:
 
         is_private = getattr(self.backend, 'private_network', False)
 
-        info: Dict[str, Any] = {
+        info: dict[str, Any] = {
             "trace_id": trace_id,
             "cid": trace_info.get("cid"),
             "cache_path": str(cache_path),
@@ -1421,7 +1427,7 @@ class TraceRegistry:
 
         return info
 
-    def clear_cache(self, trace_id: Optional[str] = None) -> int:
+    def clear_cache(self, trace_id: str | None = None) -> int:
         """
         Delete locally cached trace files.
 
@@ -1504,7 +1510,7 @@ class TraceRegistry:
 
         logger.info("Retracted trace '%s': %s", trace_id, reason or "(no reason given)")
 
-    def _deserialize_trace(self, trace_dict):
+    def _deserialize_trace(self, trace_dict: dict[str, Any]) -> EliminationTrace:
         """
         Deserialize a trace dict into an :class:`EliminationTrace`.
 
@@ -1593,12 +1599,12 @@ class TraceRegistry:
 
     def publish_trace(
         self,
-        trace: Dict,
+        trace: dict[str, Any],
         trace_id: str,
-        metadata: Dict,
-        construction_code: Optional[str] = None,
-        example_code: Optional[str] = None,
-        submit_pr: bool = False
+        metadata: dict[str, Any],
+        construction_code: str | None = None,
+        example_code: str | None = None,
+        submit_pr: bool = False,
     ) -> str:
         """
         Publish a trace to IPFS.
@@ -1608,11 +1614,11 @@ class TraceRegistry:
 
         Parameters
         ----------
-        trace : Dict
+        trace : dict
             Trace data from record_elimination_trace()
         trace_id : str
             Unique identifier for this trace
-        metadata : Dict
+        metadata : dict
             Metadata dictionary (see plan for schema)
         construction_code : str, optional
             Python code that builds this trace
@@ -1688,7 +1694,7 @@ class TraceRegistry:
 
             return cid
 
-    def _print_pr_instructions(self, trace_id: str, cid: str, metadata: Dict, checksum: str):
+    def _print_pr_instructions(self, trace_id: str, cid: str, metadata: dict[str, Any], checksum: str) -> None:
         """Print instructions for submitting trace to public registry."""
         # Intentionally uses print() — this is user-facing interactive output
         print("\n" + "="*70)
@@ -1721,7 +1727,7 @@ class TraceRegistry:
 # Helper Functions
 # ============================================================================
 
-def get_trace(trace_id: str, force_download: bool = False) -> Dict:
+def get_trace(trace_id: str, force_download: bool = False) -> EliminationTrace:
     """
     Download and load a trace by ID (convenience function).
 
@@ -1736,8 +1742,8 @@ def get_trace(trace_id: str, force_download: bool = False) -> Dict:
 
     Returns
     -------
-    Dict
-        Loaded trace data
+    EliminationTrace
+        Loaded trace object
 
     Examples
     --------
@@ -1749,7 +1755,7 @@ def get_trace(trace_id: str, force_download: bool = False) -> Dict:
     return registry.get_trace(trace_id, force_download=force_download)
 
 
-def install_trace_library(collection: Optional[str] = None):
+def install_trace_library(collection: str | None = None) -> None:
     """
     Download a collection of traces for offline use.
 

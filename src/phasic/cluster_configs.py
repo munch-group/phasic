@@ -19,9 +19,11 @@ Author: PtDAlgorithms Team
 Date: 2025-10-07
 """
 
+from __future__ import annotations
+
 import os
 from dataclasses import dataclass, field, asdict
-from typing import Optional, Dict, Any, List
+from typing import Any
 from pathlib import Path
 
 from .logging_config import get_logger
@@ -55,21 +57,21 @@ class ClusterConfig:
         Maximum job runtime (e.g., "01:00:00", "04:00:00")
     partition : str
         SLURM partition/queue name
-    qos : str, optional
+    qos : str or None
         Quality of service
     coordinator_port : int
         Port for JAX coordinator
     platform : str
         Platform type: "cpu" or "gpu"
-    gpus_per_node : int, optional
+    gpus_per_node : int or None
         Number of GPUs per node (if platform="gpu")
-    network_interface : str, optional
+    network_interface : str or None
         Network interface for inter-node communication (e.g., "ib0", "eth0")
-    extra_sbatch_options : Dict[str, str]
+    extra_sbatch_options : dict[str, str]
         Additional SBATCH options
-    env_vars : Dict[str, str]
+    env_vars : dict[str, str]
         Environment variables to set
-    modules_to_load : List[str]
+    modules_to_load : list[str]
         Modules to load before execution
     """
     name: str = "default"
@@ -78,14 +80,14 @@ class ClusterConfig:
     memory_per_cpu: str = "4G"
     time_limit: str = "01:00:00"
     partition: str = "compute"
-    qos: Optional[str] = None
+    qos: str | None = None
     coordinator_port: int = 12345
     platform: str = "cpu"
-    gpus_per_node: Optional[int] = None
-    network_interface: Optional[str] = None
-    extra_sbatch_options: Dict[str, str] = field(default_factory=dict)
-    env_vars: Dict[str, str] = field(default_factory=dict)
-    modules_to_load: List[str] = field(default_factory=list)
+    gpus_per_node: int | None = None
+    network_interface: str | None = None
+    extra_sbatch_options: dict[str, str] = field(default_factory=dict)
+    env_vars: dict[str, str] = field(default_factory=dict)
+    modules_to_load: list[str] = field(default_factory=list)
 
     @property
     def total_devices(self) -> int:
@@ -117,11 +119,11 @@ class ClusterConfig:
             lines.append(f"  Network: {self.network_interface}")
         return "\n".join(lines)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return asdict(self)
 
-    def to_yaml(self, filepath: Path):
+    def to_yaml(self, filepath: Path) -> None:
         """Save configuration to YAML file."""
         if not HAS_YAML:
             raise ImportError("PyYAML required for YAML export. Install with: pip install pyyaml")

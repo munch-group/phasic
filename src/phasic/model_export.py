@@ -10,11 +10,13 @@ Note: This module provides a simplified API by wrapping CacheManager.
 For advanced cache operations, use CacheManager directly.
 """
 
+from __future__ import annotations
+
 import os
 import json
 import shutil
 from pathlib import Path
-from typing import Optional, Dict, Any, Union
+from typing import Any
 from datetime import datetime
 
 # Import CacheManager for internal use
@@ -85,7 +87,7 @@ def clear_model_cache(verbose: bool = True) -> None:
         if verbose:
             print(f"Warning: Could not clear graph cache: {e}")
 
-def clear_caches(verbose: bool = False):
+def clear_caches(verbose: bool = False) -> None:
     """
     Clear all caching.
 
@@ -116,7 +118,8 @@ def clear_caches(verbose: bool = False):
     except (ImportError, AttributeError):
         pass
 
-def _clear_cache(cache_dir: Optional[Union[Path, str]] = None, verbose: bool = True) -> None:
+def _clear_cache(cache_dir: Path | str | None = None, verbose: bool = True) -> None:
+    """Remove all files from the specified cache directory."""
 
     manager = CacheManager(cache_dir=cache_dir)
 
@@ -138,7 +141,7 @@ def _clear_cache(cache_dir: Optional[Union[Path, str]] = None, verbose: bool = T
     #     print(f"Cache cleared")
 
 
-def cache_info(cache_dir: Optional[Union[Path, str]] = None) -> Dict[str, Any]:
+def cache_info(cache_dir: Path | str | None = None) -> dict[str, Any]:
     """
     Get information about JAX compilation cache.
 
@@ -197,7 +200,7 @@ def cache_info(cache_dir: Optional[Union[Path, str]] = None) -> Dict[str, Any]:
     }
 
 
-def get_all_cache_stats() -> Dict[str, Dict[str, Any]]:
+def get_all_cache_stats() -> dict[str, dict[str, Any]]:
     """
     Get statistics for all phasic caches.
 
@@ -258,7 +261,7 @@ def print_all_cache_info() -> None:
     print_trace_cache_info()
 
 
-def print_model_cache_info(cache_dir: Optional[Union[Path, str]] = None, max_files: int = 10) -> None:
+def print_model_cache_info(cache_dir: Path | str | None = None, max_files: int = 10) -> None:
     """
     Print formatted cache information.
 
@@ -295,12 +298,12 @@ def print_model_cache_info(cache_dir: Optional[Union[Path, str]] = None, max_fil
 
 
 def generate_warmup_script(
-    output_path: Union[Path, str],
+    output_path: Path | str,
     model_code: str,
     theta_dim: int,
     n_particles: int = 100,
-    data_shape: Optional[tuple] = None,
-    config_path: Optional[Union[Path, str]] = None
+    data_shape: tuple[int, ...] | None = None,
+    config_path: Path | str | None = None,
 ) -> None:
     """
     Generate a Python script to pre-populate JAX compilation cache.
@@ -451,13 +454,13 @@ print("=" * 70)
 
 
 def export_model_package(
-    output_dir: Union[Path, str],
+    output_dir: Path | str,
     model_code: str,
     theta_dim: int,
-    compilation_config: Optional[Any] = None,
+    compilation_config: Any | None = None,
     n_particles: int = 100,
-    data_shape: Optional[tuple] = None,
-    metadata: Optional[Dict[str, Any]] = None
+    data_shape: tuple[int, ...] | None = None,
+    metadata: dict[str, Any] | None = None,
 ) -> None:
     """
     Export a complete model package for distribution.

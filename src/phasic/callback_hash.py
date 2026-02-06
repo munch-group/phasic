@@ -15,18 +15,20 @@ Author: Claude Code
 Date: 2025-11-14
 """
 
+from __future__ import annotations
+
 import ast
 import hashlib
 import inspect
 import sys
 import textwrap
-from typing import Callable, Dict, Any
+from typing import Any, Callable
 
 # Version tag - increment to invalidate all cached graphs
 PHASIC_CALLBACK_VERSION = "1.0"
 
 
-def hash_callback(callback: Callable, **params) -> str:
+def hash_callback(callback: Callable, **params: Any) -> str:
     """
     Compute stable hash for callback function + parameters.
 

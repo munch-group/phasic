@@ -34,13 +34,12 @@ Authors: Kasper Munch
 Version: 0.1.0 (Phase 1)
 """
 
+from __future__ import annotations
+
 from enum import Enum
 from dataclasses import dataclass, field
-from typing import List, Tuple, Dict, Optional, Union, Any
+from typing import Any
 import numpy as np
-import pickle
-import json
-from pathlib import Path
 from .logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -69,28 +68,28 @@ class OpType(Enum):
 @dataclass
 class Operation:
     """
-    Single operation in the elimination trace
+    Single operation in the elimination trace.
 
     Attributes
     ----------
     op_type : OpType
-        Type of operation
-    operands : List[int]
-        Indices of operand operations (references to earlier ops)
-    const_value : Optional[float]
-        Value for CONST operations
-    param_idx : Optional[int]
-        Parameter index for PARAM operations
-    coefficients : Optional[np.ndarray]
-        Coefficients for DOT operations (linear combination of parameters)
+        Type of operation.
+    operands : list[int]
+        Indices of operand operations (references to earlier ops).
+    const_value : float or None
+        Value for CONST operations.
+    param_idx : int or None
+        Parameter index for PARAM operations.
+    coefficients : np.ndarray or None
+        Coefficients for DOT operations (linear combination of parameters).
     """
     op_type: OpType
-    operands: List[int] = field(default_factory=list)
-    const_value: Optional[float] = None
-    param_idx: Optional[int] = None
-    coefficients: Optional[np.ndarray] = None
+    operands: list[int] = field(default_factory=list)
+    const_value: float | None = None
+    param_idx: int | None = None
+    coefficients: np.ndarray | None = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         if self.op_type == OpType.CONST:
             return f"CONST({self.const_value})"
         elif self.op_type == OpType.PARAM:
@@ -108,50 +107,50 @@ class Operation:
 @dataclass
 class EliminationTrace:
     """
-    Complete trace of graph elimination operations
+    Complete trace of graph elimination operations.
 
     This structure captures all arithmetic operations performed during
     graph elimination, allowing efficient replay with different parameter values.
 
     Attributes
     ----------
-    operations : List[Operation]
-        Sequence of operations to execute
+    operations : list[Operation]
+        Sequence of operations to execute.
     vertex_rates : np.ndarray
-        Maps vertex_idx → operation_idx for rate expressions (n_vertices,)
-    edge_probs : List[List[int]]
-        Maps vertex_idx → list of operation indices for edge probabilities
-        edge_probs[i][j] is the operation index for the j-th edge of vertex i
-    vertex_targets : List[List[int]]
-        Maps vertex_idx → list of target vertex indices
-        vertex_targets[i][j] is the target vertex for the j-th edge of vertex i
+        Maps vertex_idx to operation_idx for rate expressions (n_vertices,).
+    edge_probs : list[list[int]]
+        Maps vertex_idx to list of operation indices for edge probabilities.
+        edge_probs[i][j] is the operation index for the j-th edge of vertex i.
+    vertex_targets : list[list[int]]
+        Maps vertex_idx to list of target vertex indices.
+        vertex_targets[i][j] is the target vertex for the j-th edge of vertex i.
     states : np.ndarray
-        Vertex states (n_vertices, state_length)
+        Vertex states (n_vertices, state_length).
     vertex_indices : np.ndarray
-        Original vertex indices from source graph (n_vertices,)
-        Maps enumeration position → original graph vertex index
-        Essential for graphs with duplicate states (e.g., trash loops)
+        Original vertex indices from source graph (n_vertices,).
+        Maps enumeration position to original graph vertex index.
+        Essential for graphs with duplicate states (e.g., trash loops).
     starting_vertex_idx : int
-        Index of starting vertex
+        Index of starting vertex.
     n_vertices : int
-        Number of vertices
+        Number of vertices.
     state_length : int
-        Dimension of state vectors
+        Dimension of state vectors.
     param_length : int
-        Number of parameters (0 for unit weights)
+        Number of parameters (0 for unit weights).
     reward_length : int
-        Number of reward parameters (0 for no reward transformation)
+        Number of reward parameters (0 for no reward transformation).
         If >0, rewards are stored as extended parameters at indices
-        [param_length, param_length + reward_length)
+        [param_length, param_length + reward_length).
     is_discrete : bool
-        Whether this is a discrete phase-type distribution
-    metadata : Dict[str, Any]
-        Additional metadata (graph statistics, timing info, etc.)
+        Whether this is a discrete phase-type distribution.
+    metadata : dict[str, Any]
+        Additional metadata (graph statistics, timing info, etc.).
     """
-    operations: List[Operation] = field(default_factory=list)
+    operations: list[Operation] = field(default_factory=list)
     vertex_rates: np.ndarray = field(default_factory=lambda: np.array([]))
-    edge_probs: List[List[int]] = field(default_factory=list)
-    vertex_targets: List[List[int]] = field(default_factory=list)
+    edge_probs: list[list[int]] = field(default_factory=list)
+    vertex_targets: list[list[int]] = field(default_factory=list)
     states: np.ndarray = field(default_factory=lambda: np.array([]))
     vertex_indices: np.ndarray = field(default_factory=lambda: np.array([]))
     starting_vertex_idx: int = 0
@@ -160,7 +159,7 @@ class EliminationTrace:
     param_length: int = 0
     reward_length: int = 0
     is_discrete: bool = False
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __repr__(self) -> str:
         """Concise representation for notebooks/REPL"""
@@ -215,9 +214,9 @@ class TraceBuilder:
     adding operations while tracking their indices for later reference.
     """
 
-    def __init__(self):
-        self.operations: List[Operation] = []
-        self._const_cache: Dict[float, int] = {}  # Cache for constant values
+    def __init__(self) -> None:
+        self.operations: list[Operation] = []
+        self._const_cache: dict[float, int] = {}  # Cache for constant values
 
     def add_const(self, value: float) -> int:
         """Add constant operation (with caching)"""
@@ -300,8 +299,8 @@ class TraceBuilder:
         ))
         return idx
 
-    def add_sum(self, operands: List[int]) -> int:
-        """Add sum operation"""
+    def add_sum(self, operands: list[int]) -> int:
+        """Add sum operation."""
         if len(operands) == 0:
             return self.add_const(0.0)
         if len(operands) == 1:
@@ -319,7 +318,7 @@ class TraceBuilder:
 # Graph Elimination with Trace Recording
 # ============================================================================
 
-def record_elimination_trace_simple(graph, theta_dim: Optional[int] = None) -> EliminationTrace:
+def record_elimination_trace_simple(graph, theta_dim: int | None = None) -> EliminationTrace:
     """
     Record trace of graph elimination operations (Original version without reward support)
 
@@ -358,8 +357,8 @@ def record_elimination_trace_simple(graph, theta_dim: Optional[int] = None) -> E
     )
 
 
-def record_elimination_trace(graph, theta_dim: Optional[int] = None,
-                            reward_length: Optional[int] = None,
+def record_elimination_trace(graph, theta_dim: int | None = None,
+                            reward_length: int | None = None,
                             enable_rewards: bool = False) -> EliminationTrace:
     """
     Record trace of graph elimination operations (Phase 2: supports parameterization)
@@ -903,9 +902,9 @@ def record_elimination_trace(graph, theta_dim: Optional[int] = None,
 # Trace Evaluation
 # ============================================================================
 
-def evaluate_trace(trace: EliminationTrace, params: Optional[np.ndarray] = None,
-                  rewards: Optional[np.ndarray] = None,
-                  use_log: bool = False) -> Dict[str, Any]:
+def evaluate_trace(trace: EliminationTrace, params: np.ndarray | None = None,
+                  rewards: np.ndarray | None = None,
+                  use_log: bool = False) -> dict[str, Any]:
     """
     Evaluate elimination trace with concrete parameter values
 
@@ -1137,7 +1136,7 @@ def evaluate_trace(trace: EliminationTrace, params: Optional[np.ndarray] = None,
 #     )
 
 
-def trace_to_c_arrays(trace: EliminationTrace):
+def trace_to_c_arrays(trace: EliminationTrace) -> dict[str, Any]:
     """
     Convert elimination trace to C-compatible array definitions
 
@@ -1265,8 +1264,8 @@ def trace_from_graph(graph) -> EliminationTrace:
     return record_elimination_trace(graph)
 
 
-def instantiate_from_trace(trace: EliminationTrace, params: Optional[np.ndarray] = None,
-                          rewards: Optional[np.ndarray] = None,
+def instantiate_from_trace(trace: EliminationTrace, params: np.ndarray | None = None,
+                          rewards: np.ndarray | None = None,
                           use_log: bool = False):
     """
     Instantiate graph from trace
@@ -1371,7 +1370,7 @@ def instantiate_from_trace(trace: EliminationTrace, params: Optional[np.ndarray]
 # JAX Integration (Phase 2)
 # ============================================================================
 
-def evaluate_trace_jax(trace: EliminationTrace, params, rewards=None, use_log=False):
+def evaluate_trace_jax(trace: EliminationTrace, params, rewards=None, use_log: bool = False) -> dict[str, Any]:
     """
     Evaluate elimination trace with JAX arrays (jit/grad/vmap compatible)
 
@@ -1556,7 +1555,8 @@ def trace_to_jax_fn(trace: EliminationTrace):
 # SVGD Integration (Phase 3)
 # ============================================================================
 
-def trace_to_log_likelihood(trace: EliminationTrace, observed_data, reward_vector=None, granularity=0, use_cpp=True, use_log=False):
+def trace_to_log_likelihood(trace: EliminationTrace, observed_data, reward_vector=None,
+                            granularity: int = 0, use_cpp: bool = True, use_log: bool = False):
     """
     Convert elimination trace to log-likelihood function for SVGD
 
@@ -1751,7 +1751,7 @@ def trace_to_log_likelihood(trace: EliminationTrace, observed_data, reward_vecto
     return log_likelihood
 
 
-def trace_to_pmf_function(trace: EliminationTrace, times, discrete=False):
+def trace_to_pmf_function(trace: EliminationTrace, times, discrete: bool = False):
     """
     Convert elimination trace to PMF/PDF evaluation function
 

@@ -1,9 +1,9 @@
-"""
-Exception classes for phasic.
+"""Exception classes for phasic.
 
 Provides clear, actionable error messages when features are unavailable
 or incorrectly configured.
 """
+from __future__ import annotations
 
 
 class PTDAlgorithmsError(Exception):
@@ -12,8 +12,7 @@ class PTDAlgorithmsError(Exception):
 
 
 class PTDConfigError(PTDAlgorithmsError):
-    """
-    Configuration error with suggested fixes.
+    """Configuration error with suggested fixes.
 
     Raised when the user requests functionality that is not available
     or when the configuration is invalid.
@@ -30,8 +29,7 @@ class PTDConfigError(PTDAlgorithmsError):
 
 
 class PTDBackendError(PTDAlgorithmsError):
-    """
-    Backend not available error.
+    """Backend not available error.
 
     Raised when a specific computation backend (JAX, FFI, C++) is requested
     but not available on the system.
@@ -48,8 +46,7 @@ class PTDBackendError(PTDAlgorithmsError):
 
 
 class PTDFeatureError(PTDAlgorithmsError):
-    """
-    Feature not available on this platform.
+    """Feature not available on this platform.
 
     Raised when a feature is requested that is not supported on the
     current platform (e.g., GPU features on CPU-only system).
@@ -65,8 +62,7 @@ class PTDFeatureError(PTDAlgorithmsError):
 
 
 class PTDJAXError(PTDAlgorithmsError):
-    """
-    JAX-specific error.
+    """JAX-specific error.
 
     Raised when JAX is required but not installed or when JAX operations fail.
 

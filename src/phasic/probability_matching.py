@@ -8,10 +8,11 @@ probability distribution to the model probability distribution, providing
 sensible prior means for SVGD inference.
 """
 
+from __future__ import annotations
+
 import numpy as np
 from dataclasses import dataclass
 from numpy.typing import ArrayLike
-from typing import Optional
 
 from .logging_config import get_logger
 from .method_of_moments import _reconstruct_theta
@@ -55,7 +56,7 @@ class ProbMatchResult:
     message: str
 
 
-def _estimate_multinomial_covariance(empirical_probs, n_obs):
+def _estimate_multinomial_covariance(empirical_probs: np.ndarray, n_obs: int) -> np.ndarray:
     """Estimate the covariance matrix of the empirical proportions.
 
     For a multinomial with probabilities p_i and n observations,
@@ -84,7 +85,7 @@ def _estimate_multinomial_covariance(empirical_probs, n_obs):
     return cov
 
 
-def _initial_guess_grid_probs(probs_fn, target_prob, n_free, fixed, theta_dim):
+def _initial_guess_grid_probs(probs_fn: object, target_prob: float, n_free: int, fixed: list[tuple[int, float]], theta_dim: int) -> np.ndarray:
     """Coordinate-wise grid search matching the most common observation probability.
 
     For each free parameter, searches a log-spaced grid while holding
@@ -139,11 +140,11 @@ def _initial_guess_grid_probs(probs_fn, target_prob, n_free, fixed, theta_dim):
 
 
 def probability_matching(
-    graph,
+    graph: object,
     observed_indices: ArrayLike,
-    theta_dim: int = None,
-    theta_init: np.ndarray = None,
-    fixed: list = None,
+    theta_dim: int | None = None,
+    theta_init: np.ndarray | None = None,
+    fixed: list[tuple[int, float]] | None = None,
     std_multiplier: float = 2.0,
     verbose: bool = True,
 ) -> ProbMatchResult:

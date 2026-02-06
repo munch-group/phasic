@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from ast import arg
 from functools import partial
 from collections import defaultdict, OrderedDict
@@ -5,7 +7,7 @@ from unittest import result
 import numpy as np
 import pandas as pd
 from numpy.typing import ArrayLike
-from typing import Any, TypeVar, List, Tuple, Dict, Union, NamedTuple, Optional, Self
+from typing import Any, TypeVar, Self
 from numpy.typing import NDArray
 from collections.abc import Sequence, MutableSequence, Callable
 import os
@@ -87,7 +89,7 @@ if _config.jax:
         default_config.apply(force=False)  # Don't override existing user configuration
 
         # Detect performance cores on Apple Silicon for multi-CPU
-        def get_performance_cores():
+        def get_performance_cores() -> int:
             """Get number of performance cores on Apple Silicon, or total CPUs otherwise"""
             try:
                 import subprocess
@@ -126,11 +128,11 @@ if _config.jax:
 
     # Filter to suppress JAX device list output
     class _DeviceListFilter:
-        def __init__(self, original):
+        def __init__(self, original: Any) -> None:
             self.original = original
             self.buffer = ''
 
-        def write(self, text):
+        def write(self, text: str) -> None:
             # Buffer the text to check full lines
             self.buffer += text
 
@@ -143,14 +145,14 @@ if _config.jax:
                 if not ('CpuDevice' in line or 'GpuDevice' in line):
                     self.original.write(line)
 
-        def flush(self):
+        def flush(self) -> None:
             # Flush any remaining buffer (except device lists)
             if self.buffer and not ('CpuDevice' in self.buffer or 'GpuDevice' in self.buffer):
                 self.original.write(self.buffer)
                 self.buffer = ''
             self.original.flush()
 
-        def __getattr__(self, name):
+        def __getattr__(self, name: str) -> Any:
             return getattr(self.original, name)
 
     # Install filter BEFORE importing JAX (and keep it active)
@@ -353,7 +355,7 @@ from .trace_elimination import EliminationTrace
 
 
 # Hash-based trace lookup (convenience wrapper)
-def get_trace_by_hash(graph_hash: str, force_download: bool = False, backend: 'TransportBackend | None' = None):
+def get_trace_by_hash(graph_hash: str, force_download: bool = False, backend: TransportBackend | None = None) -> EliminationTrace | None:
     """
     Get elimination trace by graph structure hash.
 
@@ -419,7 +421,7 @@ MatrixRepresentation = namedtuple("MatrixRepresentation", ['ipv', 'sim', 'states
 # Pure Helper Functions (Computation Phase - JAX Compatible)
 # ============================================================================
 
-def _compute_pmf_from_ctypes(theta, times, compute_func, graph_data, granularity, discrete):
+def _compute_pmf_from_ctypes(theta: ArrayLike, times: ArrayLike, compute_func: Any, graph_data: dict | None, granularity: int, discrete: bool) -> np.ndarray:
     """
     Pure function wrapper around ctypes PMF computation.
 
@@ -495,7 +497,7 @@ def _compute_pmf_from_ctypes(theta, times, compute_func, graph_data, granularity
     return output_np
 
 
-def _create_jax_callback_wrapper(compute_func, graph_data, discrete):
+def _create_jax_callback_wrapper(compute_func: Any, graph_data: dict, discrete: bool) -> Callable:
     """
     Create a pure JAX-compatible callback wrapper.
 
@@ -524,7 +526,7 @@ def _create_jax_callback_wrapper(compute_func, graph_data, discrete):
     return compute_pmf_pure
 
 
-def _create_jax_parameterized_wrapper(compute_func, graph_builder, discrete):
+def _create_jax_parameterized_wrapper(compute_func: Any, graph_builder: Callable, discrete: bool) -> Callable:
     """
     Create a pure JAX-compatible wrapper for parameterized models.
 
@@ -568,12 +570,12 @@ def _create_jax_parameterized_wrapper(compute_func, graph_builder, discrete):
 # Impure Helper Functions (Setup Phase - Run Once During Model Loading)
 # ============================================================================
 
-def _get_package_dir():
+def _get_package_dir() -> pathlib.Path:
     """Get package root directory (caching is acceptable)."""
     return pathlib.Path(__file__).parent.parent.parent
 
 
-def _serialize_graph_data(serialized):
+def _serialize_graph_data(serialized: dict) -> dict:
     """Extract and prepare graph arrays for computation."""
     states_flat = serialized['states'].flatten()
     edges_flat = serialized['edges'].flatten() if serialized['edges'].size > 0 else np.array([], dtype=np.float64)
@@ -590,7 +592,7 @@ def _serialize_graph_data(serialized):
     }
 
 
-def _generate_cpp_from_graph(serialized):
+def _generate_cpp_from_graph(serialized: dict) -> str:
     """
     Generate C++ build_model() function from serialized graph.
 
@@ -724,7 +726,7 @@ phasic::Graph build_model(const double* theta, int n_params) {{
     return cpp_code
 
 
-def _generate_cpp_from_trace(trace, observed_data, granularity=0):
+def _generate_cpp_from_trace(trace: EliminationTrace, observed_data: ArrayLike, granularity: int = 0) -> str:
     """
     Generate standalone C++ log-likelihood function from elimination trace.
 
@@ -1055,7 +1057,7 @@ extern "C" double compute_log_likelihood(const double* theta, int n_params) {{
     return cpp_code
 
 
-def _compile_trace_library(cpp_code, trace_hash):
+def _compile_trace_library(cpp_code: str, trace_hash: str) -> str:
     """
     Compile trace-based C++ code to shared library.
 
@@ -1121,7 +1123,7 @@ def _compile_trace_library(cpp_code, trace_hash):
             os.unlink(cpp_file)
 
 
-def clear_trace_cache():
+def clear_trace_cache() -> int:
     """
     Clear cached compiled trace libraries.
 
@@ -1154,7 +1156,7 @@ def clear_trace_cache():
     return count
 
 
-def _wrap_trace_log_likelihood_for_jax(lib_path, param_length):
+def _wrap_trace_log_likelihood_for_jax(lib_path: str, param_length: int) -> Callable:
     """
     Wrap C++ log-likelihood function for JAX compatibility.
 
@@ -1236,7 +1238,7 @@ def _wrap_trace_log_likelihood_for_jax(lib_path, param_length):
     return log_lik_jax
 
 
-def _compile_wrapper_library(wrapper_code, lib_name, extra_includes=None):
+def _compile_wrapper_library(wrapper_code: str, lib_name: str, extra_includes: list[str] | None = None) -> str:
     """
     Compile C++ wrapper code to shared library.
 
@@ -1286,7 +1288,7 @@ def _compile_wrapper_library(wrapper_code, lib_name, extra_includes=None):
     return lib_path
 
 
-def _setup_ctypes_signatures(lib, has_pmf=True, has_dph=True):
+def _setup_ctypes_signatures(lib: Any, has_pmf: bool = True, has_dph: bool = True) -> None:
     """Configure ctypes function signatures on loaded library."""
     if has_pmf:
         lib.compute_pmf.argtypes = [
@@ -1310,7 +1312,7 @@ def _setup_ctypes_signatures(lib, has_pmf=True, has_dph=True):
         lib.compute_dph_pmf.restype = None
 
 
-def _setup_ctypes_signatures_from_arrays(lib, discrete=False):
+def _setup_ctypes_signatures_from_arrays(lib: Any, discrete: bool = False) -> None:
     """Configure ctypes signatures for from_arrays compute function."""
     if discrete:
         # Discrete mode: no granularity parameter, uses int* for jumps
@@ -1345,7 +1347,7 @@ def _setup_ctypes_signatures_from_arrays(lib, discrete=False):
         lib.compute_pmf_from_arrays.restype = None
 
 
-def _callback(ipv):
+def _callback(ipv: list) -> Callable:
     """
     Turn callback functions with different signatures into a common one.
     Also makes return the ipv when called with empty state.
@@ -1416,7 +1418,7 @@ def _callback(ipv):
 with_ipv = _callback
 
 
-def _invalidates_trace(method):
+def _invalidates_trace(method: Callable) -> Callable:
     """Decorator that marks trace as dirty when graph structure changes.
 
     Used internally to invalidate the cached elimination trace when
@@ -1468,12 +1470,12 @@ class SymbolicDAG:
     >>> particles = [dag.instantiate(p) for p in param_vectors]
     """
 
-    def __init__(self, ptr: int):
+    def __init__(self, ptr: int) -> None:
         """Initialize from opaque pointer returned by Graph._eliminate_to_dag_internal()"""
         self._ptr = ptr
         self._info = None
 
-    def instantiate(self, params: ArrayLike) -> 'Graph':
+    def instantiate(self, params: ArrayLike) -> Graph:
         """
         Evaluate expression trees with concrete parameters to create a Graph.
 
@@ -1496,7 +1498,7 @@ class SymbolicDAG:
         return _symbolic_dag_instantiate(self._ptr, params_arr)
 
     @property
-    def info(self) -> Dict[str, Any]:
+    def info(self) -> dict[str, Any]:
         """Get metadata about the symbolic DAG"""
         if self._info is None:
             from .phasic_pybind import _symbolic_dag_get_info
@@ -1518,21 +1520,21 @@ class SymbolicDAG:
         """Whether the graph is acyclic (should always be True after elimination)"""
         return self.info['is_acyclic']
 
-    def __del__(self):
+    def __del__(self) -> None:
         """Free C memory when Python object is garbage collected"""
         if hasattr(self, '_ptr') and self._ptr != 0:
             from .phasic_pybind import _symbolic_dag_destroy
             _symbolic_dag_destroy(self._ptr)
             self._ptr = 0
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (f"SymbolicDAG(vertices={self.vertices_length}, "
                 f"params={self.param_length}, acyclic={self.is_acyclic})")
 
 
 class Graph(_Graph):
-    # def __init__(self, state_length:int=None, callback:Callable=None, ipv:List[Union[List[int], List[Union[List[int], float]]]] = None, parameterized:bool=False, **kwargs):
-    def __init__(self, arg:Union[int, Callable], ipv:Optional[Union[List[int], List[Union[List[int], float]]]]=None, cache_graph:bool=False, **kwargs):
+    # def __init__(self, state_length:int=None, callback:Callable=None, ipv:list[list[int] | list[list[int] | float]] | None = None, parameterized:bool=False, **kwargs):
+    def __init__(self, arg: int | Callable, ipv: list[int] | list[list[int] | float] | None = None, cache_graph: bool = False, **kwargs: Any) -> None:
         """
         Create a graph representing a phase-type distribution. This is the primary entry-point of the library. A starting vertex will always be added to the graph upon initialization.
 
@@ -1731,7 +1733,7 @@ class Graph(_Graph):
                 logger.warning(f"Failed to save graph to cache: {e}")
 
     @_invalidates_trace
-    def find_or_create_vertex(self, state):
+    def find_or_create_vertex(self, state: ArrayLike) -> Vertex:
         """Find or create a vertex with the given state.
 
         This method wraps the C++ implementation to track trace invalidation.
@@ -1739,7 +1741,7 @@ class Graph(_Graph):
         return super().find_or_create_vertex(state)
 
     @_invalidates_trace
-    def extend(self, callback=None, **kwargs):
+    def extend(self, callback: Callable | None = None, **kwargs: Any) -> None:
         """Extend the graph by continuing to visit unvisited vertices using a callback.
 
         After manually adding vertices to the graph (e.g., via find_or_create_vertex),
@@ -1805,7 +1807,7 @@ class Graph(_Graph):
         # Call C++ extension method
         super().extend_graph_callback_tuples_parameterized(callback_with_kwargs)
 
-    def _ensure_trace(self):
+    def _ensure_trace(self) -> EliminationTrace | None:
         """Ensure trace is available for computation.
 
         Returns the cached trace if caching is enabled, or computes a fresh
@@ -1876,7 +1878,7 @@ class Graph(_Graph):
         """Whether the cached trace is valid (not dirty)."""
         return self._trace is not None and not self._trace_dirty
 
-    def update_weights(self, theta, callback=None, log=False):
+    def update_weights(self, theta: ArrayLike, callback: Callable | None = None, log: bool = False) -> None:
         """Update parameterized edge weights with given parameters.
 
         This method wraps the C++ implementation to cache theta for use
@@ -1904,7 +1906,7 @@ class Graph(_Graph):
             # C++ overload: update_weights(params, log=False)
             return super().update_weights(theta, log=log)
 
-    def _moments_from_trace(self, power: int = 1, rewards=None, discrete=False):
+    def _moments_from_trace(self, power: int = 1, rewards: ArrayLike | None = None, discrete: bool = False) -> float:
         """Compute moments using cached elimination trace.
 
         This instantiates a concrete graph from the trace with current
@@ -1944,7 +1946,7 @@ class Graph(_Graph):
         else:
             return concrete_graph.moments(power, discrete=discrete)
 
-    def _expectation_from_trace(self, rewards=None, discrete=False, **kwargs):
+    def _expectation_from_trace(self, rewards: ArrayLike | None = None, discrete: bool = False, **kwargs: Any) -> float:
         """Compute expectation using cached elimination trace."""
         from .trace_elimination import instantiate_from_trace
 
@@ -1970,7 +1972,7 @@ class Graph(_Graph):
             else:
                 return concrete_graph.expectation(**kwargs)
 
-    def _variance_from_trace(self, rewards=None, discrete=False, **kwargs):
+    def _variance_from_trace(self, rewards: ArrayLike | None = None, discrete: bool = False, **kwargs: Any) -> float:
         """Compute variance using cached elimination trace."""
         from .trace_elimination import instantiate_from_trace
 
@@ -1996,7 +1998,7 @@ class Graph(_Graph):
             else:
                 return concrete_graph.variance(**kwargs)
 
-    def _covariance_from_trace(self, rewards1=None, rewards2=None, discrete=False, **kwargs):
+    def _covariance_from_trace(self, rewards1: ArrayLike | None = None, rewards2: ArrayLike | None = None, discrete: bool = False, **kwargs: Any) -> float:
         """Compute covariance using cached elimination trace."""
         from .trace_elimination import instantiate_from_trace
 
@@ -2024,7 +2026,7 @@ class Graph(_Graph):
                 rewards2 = list(rewards2)
             return concrete_graph.covariance(rewards1=rewards1, rewards2=rewards2, **kwargs)
 
-    def expected_waiting_time(self, *args, **kwargs):
+    def expected_waiting_time(self, *args: Any, **kwargs: Any) -> float:
         """
         Compute expected waiting time until absorption.
 
@@ -2048,7 +2050,7 @@ class Graph(_Graph):
         return super().expected_waiting_time(*args, **kwargs)
 
     
-    def expected_sojourn_time(self, *args, **kwargs):
+    def expected_sojourn_time(self, *args: Any, **kwargs: Any) -> ArrayLike:
         """
         Compute expected sojourn time (residence time) in each state.
 
@@ -2079,7 +2081,7 @@ class Graph(_Graph):
 
 
 
-    def moments(self, power, rewards=[], discrete=False, **kwargs):
+    def moments(self, power: int, rewards: ArrayLike = [], discrete: bool = False, **kwargs: Any) -> float:
         """
         Compute k-th moment of the phase-type distribution.
 
@@ -2125,7 +2127,7 @@ class Graph(_Graph):
         else:
             return super().moments(power, rewards=rewards, **kwargs)
 
-    def expectation(self, rewards=[], **kwargs):
+    def expectation(self, rewards: ArrayLike = [], **kwargs: Any) -> float:
         """
         Compute expected value (first moment) of the phase-type distribution.
 
@@ -2176,7 +2178,7 @@ class Graph(_Graph):
         else:
             return super().expectation(rewards=rewards, **kwargs)
 
-    def variance(self, rewards=[], **kwargs):
+    def variance(self, rewards: ArrayLike = [], **kwargs: Any) -> float:
         """
         Compute variance of the phase-type distribution.
 
@@ -2227,7 +2229,7 @@ class Graph(_Graph):
         else:
             return super().variance(rewards=rewards, **kwargs)
 
-    def covariance(self, rewards1=[], rewards2=[], **kwargs):
+    def covariance(self, rewards1: ArrayLike = [], rewards2: ArrayLike = [], **kwargs: Any) -> np.ndarray:
         """
         Compute covariance matrix for multivariate phase-type distributions.
 
@@ -2273,7 +2275,7 @@ class Graph(_Graph):
         else:
             return super().covariance(rewards1=rewards1, rewards2=rewards2, **kwargs)
 
-    def pdf(self, time, **kwargs):
+    def pdf(self, time: float | ArrayLike, **kwargs: Any) -> float | np.ndarray:
         """
         Compute probability density/mass function using forward algorithm.
 
@@ -2305,7 +2307,7 @@ class Graph(_Graph):
         else:
             return super().pdf(time, **kwargs)
 
-    def cdf(self, time, **kwargs):
+    def cdf(self, time: float | ArrayLike, **kwargs: Any) -> float | np.ndarray:
         """
         Compute cumulative distribution function.
 
@@ -2331,7 +2333,7 @@ class Graph(_Graph):
         else:
             return super().cdf(time, **kwargs)
 
-    def distribution_context(self, *args, **kwargs):
+    def distribution_context(self, *args: Any, **kwargs: Any) -> Any:
         """
         Create a distribution context for efficient repeated sampling.
 
@@ -2358,7 +2360,7 @@ class Graph(_Graph):
         else:
             return super().distribution_context(*args, **kwargs)
 
-    def sample(self, n, **kwargs):
+    def sample(self, n: int, **kwargs: Any) -> np.ndarray:
         """
         Generate random samples from the phase-type distribution.
 
@@ -2385,7 +2387,7 @@ class Graph(_Graph):
         else:
             return np.array(super().sample(n, **kwargs))
 
-    def stop_probability(self, time, **kwargs):
+    def stop_probability(self, time: float | int, **kwargs: Any) -> np.ndarray:
         """
         Compute probability of being in each state at a given time.
 
@@ -2417,7 +2419,7 @@ class Graph(_Graph):
     state_probability = stop_probability
 
 
-    def accumulated_visits(self, *args, **kwargs):
+    def accumulated_visits(self, *args: Any, **kwargs: Any) -> np.ndarray:
         """
         Compute expected number of visits to each state (discrete only).
 
@@ -2447,7 +2449,7 @@ class Graph(_Graph):
             raise ValueError("accumulated_visits only valid for discrete distributions")
         return super().accumulated_visits(*args, **kwargs)
 
-    def accumulated_visiting_time(self, *args, **kwargs):
+    def accumulated_visiting_time(self, *args: Any, **kwargs: Any) -> np.ndarray:
         """
         Compute expected time spent in each state (continuous only).
 
@@ -2470,7 +2472,7 @@ class Graph(_Graph):
         """
         return super().accumulated_visiting_time(*args, **kwargs)
 
-    def accumulated_occupancy(self, *args, **kwargs):
+    def accumulated_occupancy(self, *args: Any, **kwargs: Any) -> np.ndarray:
         """
         Compute expected occupancy (visits or time) for each state.
 
@@ -2498,7 +2500,7 @@ class Graph(_Graph):
             return self.accumulated_visiting_time(*args, **kwargs)
 
     @_invalidates_trace
-    def normalize(self, *args, **kwargs):
+    def normalize(self, *args: Any, **kwargs: Any) -> float:
         """
         Normalize edge weights to make the graph a proper probability distribution.
 
@@ -2530,7 +2532,7 @@ class Graph(_Graph):
             return super().normalize(*args, **kwargs)
 
     @_invalidates_trace
-    def discretize(self, rate, skip_existing=False, **kwargs) -> NDArray[np.int64]:
+    def discretize(self, rate: float | Callable, skip_existing: bool = False, **kwargs: Any) -> NDArray[np.int64]:
         """
         Discretizes graph inplace and returns reward matrix for added auxiliary states.
 
@@ -2743,7 +2745,7 @@ class Graph(_Graph):
                     break
         return rewards
 
-    def serialize(self, theta_dim: int = None) -> Dict[str, np.ndarray]:
+    def serialize(self, theta_dim: int | None = None) -> dict[str, np.ndarray]:
         """
         Serialize graph to array representation for efficient computation.
 
@@ -2923,7 +2925,7 @@ class Graph(_Graph):
         }
 
     @classmethod
-    def from_serialized(cls, data: Dict[str, Any]) -> 'Graph':
+    def from_serialized(cls, data: dict[str, Any]) -> Graph:
         """
         Reconstruct Graph from serialize() output.
 
@@ -2933,7 +2935,7 @@ class Graph(_Graph):
 
         Parameters
         ----------
-        data : Dict[str, Any]
+        data : dict[str, Any]
             Dictionary returned by Graph.serialize() containing:
             - states: np.ndarray of shape (n_vertices, state_length)
             - edges: np.ndarray of shape (n_edges, 3) with [from_idx, to_idx, weight]
@@ -3349,7 +3351,7 @@ class Graph(_Graph):
         )
 
     @classmethod
-    def from_matrices(cls, ipv: np.ndarray, sim: np.ndarray, states: Optional[np.ndarray] = None) -> Self:
+    def from_matrices(cls, ipv: np.ndarray, sim: np.ndarray, states: np.ndarray | None = None) -> Self:
         """
         Construct a Graph from matrix representation.
 
@@ -3392,7 +3394,7 @@ class Graph(_Graph):
         return Graph(base_graph)
 
     @classmethod
-    def pmf_from_graph(cls, graph: 'Graph', discrete: bool = False, use_cache: bool = True, theta_dim: int = None) -> Callable:
+    def pmf_from_graph(cls, graph: Graph, discrete: bool = False, use_cache: bool = True, theta_dim: int | None = None) -> Callable:
         """
         Convert a Python-built Graph to a JAX-compatible function with full gradient support.
 
@@ -3623,7 +3625,7 @@ class Graph(_Graph):
             return non_param_wrapper
 
     @classmethod
-    def pmf_from_graph_parameterized(cls, graph_builder: Callable, discrete: bool = False) -> Callable:
+    def pmf_from_graph_parameterized(cls, graph_builder: Callable[..., Graph], discrete: bool = False) -> Callable:
         """
         Convert a parameterized Python graph builder to a JAX-compatible function.
 
@@ -3783,7 +3785,7 @@ extern "C" {
         return _create_jax_parameterized_wrapper(compute_func, graph_builder, discrete)
 
     @classmethod
-    def pmf_from_cpp(cls, cpp_file: Union[str, pathlib.Path], discrete: bool = False) -> Callable:
+    def pmf_from_cpp(cls, cpp_file: str | pathlib.Path, discrete: bool = False) -> Callable:
         """
         Load a phase-type model from a user's C++ file and return a JAX-compatible function.
 
@@ -3967,33 +3969,33 @@ extern "C" {{
 
     def svgd(self,
              observed_data: ArrayLike,
-             discrete: Optional[bool] = None,
-             prior: Optional[Callable] = None,
-             n_particles: Optional[int] = None,
+             discrete: bool | None = None,
+             prior: Callable | None = None,
+             n_particles: int | None = None,
              n_iterations: int = 100,
-             optimizer: Optional[object] = None,
-             learning_rate: Optional[float] = None,
-             bandwidth = 'median_per_dim',
-             theta_init: Optional[ArrayLike] = None,
-             theta_dim: Optional[int] = None,
+             optimizer: object | None = None,
+             learning_rate: float | None = None,
+             bandwidth: str | float | ArrayLike = 'median_per_dim',
+             theta_init: ArrayLike | None = None,
+             theta_dim: int | None = None,
              return_history: bool = True,
-             seed: Optional[int] = None,
+             seed: int | None = None,
              verbose: bool = False,
              progress: bool = True,
-             jit: Optional[bool] = None,
-             parallel: Optional[str] = None,
-             n_devices: Optional[int] = None,
+             jit: bool | None = None,
+             parallel: str | None = None,
+             n_devices: int | None = None,
              precompile: bool = True,
-             compilation_config: Optional[object] = None,
+             compilation_config: object | None = None,
              regularization: float = 0.0,
              nr_moments: int = 2,
              positive_params: bool = True,
-             param_transform: Optional[Callable] = None,
+             param_transform: Callable | None = None,
              joint_index: bool = False,
-             rewards: Optional[ArrayLike] = None,
-             fixed: Optional[ArrayLike] = None,
-             preconditioner = 'auto',
-             ) -> Dict:
+             rewards: ArrayLike | None = None,
+             fixed: ArrayLike | None = None,
+             preconditioner: str | object | None = 'auto',
+             ) -> dict:
         """
         Run Stein Variational Gradient Descent (SVGD) inference for Bayesian parameter estimation.
 
@@ -4341,15 +4343,15 @@ extern "C" {{
     def method_of_moments(
         self,
         observed_data: ArrayLike,
-        nr_moments: int = None,
-        rewards = None,
-        fixed = None,
-        theta_dim: Optional[int] = None,
-        theta_init = None,
+        nr_moments: int | None = None,
+        rewards: ArrayLike | None = None,
+        fixed: list[tuple[int, float]] | None = None,
+        theta_dim: int | None = None,
+        theta_init: ArrayLike | None = None,
         std_multiplier: float = 2.0,
-        discrete: Optional[bool] = None,
+        discrete: bool | None = None,
         verbose: bool = True,
-    ) -> 'MoMResult':
+    ) -> MoMResult:
         """Find parameter estimates by matching model moments to sample moments.
 
         Solves the nonlinear least-squares problem::
@@ -4425,13 +4427,13 @@ extern "C" {{
 
     def probability_matching(
         self,
-        observed_data,
-        fixed=None,
-        theta_dim: Optional[int] = None,
-        theta_init=None,
+        observed_data: ArrayLike,
+        fixed: list[tuple[int, float]] | None = None,
+        theta_dim: int | None = None,
+        theta_init: ArrayLike | None = None,
         std_multiplier: float = 2.0,
         verbose: bool = True,
-    ) -> 'ProbMatchResult':
+    ) -> ProbMatchResult:
         """Find parameter estimates by matching model probabilities to empirical probabilities.
 
         For joint probability graphs (created via :meth:`joint_prob_graph`),
@@ -4517,7 +4519,7 @@ extern "C" {{
         )
 
     @classmethod
-    def moments_from_graph(cls, graph: 'Graph', nr_moments: int = 2, use_ffi: bool = False) -> Callable:
+    def moments_from_graph(cls, graph: Graph, nr_moments: int = 2, use_ffi: bool = False) -> Callable:
         """
         Convert a parameterized Graph to a JAX-compatible function that computes moments.
 
@@ -4715,9 +4717,9 @@ extern "C" {{
         return moments_fn
 
     @classmethod
-    def pmf_and_moments_from_graph(cls, graph: 'Graph', nr_moments: int = 2,
+    def pmf_and_moments_from_graph(cls, graph: Graph, nr_moments: int = 2,
                                    discrete: bool = False, use_ffi: bool = False,
-                                   theta_dim: int = None) -> Callable:
+                                   theta_dim: int | None = None) -> Callable:
         """
         Convert a parameterized Graph to a function that computes both PMF/PDF and moments.
 
@@ -4995,8 +4997,8 @@ extern "C" {{
         return model
 
     @classmethod
-    def pmf_from_graph_joint_index(cls, graph: 'Graph', theta_dim: int = None,
-                                    fixed_mask: 'jnp.ndarray' = None) -> Callable:
+    def pmf_from_graph_joint_index(cls, graph: Graph, theta_dim: int | None = None,
+                                    fixed_mask: Any = None) -> Callable:
         """
         Create a JAX-compatible model for joint index distributions.
 
@@ -5163,9 +5165,9 @@ extern "C" {{
         return model
 
     @classmethod
-    def pmf_and_moments_from_graph_multivariate(cls, graph: 'Graph', nr_moments: int = 2,
+    def pmf_and_moments_from_graph_multivariate(cls, graph: Graph, nr_moments: int = 2,
                                                 discrete: bool = False, use_ffi: bool = False,
-                                                theta_dim: int = None) -> Callable:
+                                                theta_dim: int | None = None) -> Callable:
         """
         Create a multivariate phase-type model that handles 2D observations and rewards.
 
@@ -5345,7 +5347,7 @@ extern "C" {{
 
         return model_multivariate
 
-    def plot(self, *args, **kwargs):
+    def plot(self, *args: Any, **kwargs: Any) -> Any:
         """
         Plots the graph using graphviz. See plot::plot_graph.py for more details.
 
@@ -5376,7 +5378,7 @@ extern "C" {{
         # rewards for computing marginal moments
         # """
 
-    def clone(self):
+    def clone(self) -> Graph:
         """Create a deep copy of this graph.
 
         The cloned graph preserves the cache_trace setting but starts
@@ -5397,12 +5399,12 @@ extern "C" {{
         cloned._last_theta = None
         return cloned
 
-    def compute_trace(self, param_length: Optional[int] = None,
+    def compute_trace(self, param_length: int | None = None,
                      hierarchical: bool = True,
                      min_size: int = 50,
                      parallel: str = 'auto',
                      verbose: bool = False,
-                     force: bool = False):
+                     force: bool = False) -> EliminationTrace:
         """
         Compute elimination trace with optional hierarchical caching.
 
@@ -5682,7 +5684,7 @@ extern "C" {{
     #     result = np.array([self.moments(int(p)) for p in powers_arr])
     #     return result
 
-    def eliminate_to_dag(self) -> 'SymbolicDAG':
+    def eliminate_to_dag(self) -> SymbolicDAG:
         """
         Perform symbolic graph elimination to create a reusable DAG structure.
 
@@ -5743,14 +5745,14 @@ extern "C" {{
 
 
 
-    def _joint_prob_reward(self, 
-                           state, 
-                        indexer,
-                        reward_indexer,
-                        current_rewards=None, 
-                        mutation_rate=1.0, 
-                        reward_limit=10, 
-                        tot_reward_limit=np.inf):
+    def _joint_prob_reward(self,
+                           state: np.ndarray,
+                        indexer: StateIndexer,
+                        reward_indexer: StateIndexer,
+                        current_rewards: np.ndarray | None = None,
+                        mutation_rate: float = 1.0,
+                        reward_limit: int | dict = 10,
+                        tot_reward_limit: float = np.inf) -> tuple[np.ndarray, float]:
 
             prop_set_names = [p.name for p in indexer.property_sets()]
             prop_set_name, *_ = prop_set_names
@@ -5790,12 +5792,12 @@ extern "C" {{
             return reward_rates, trash_rate
 
 
-    def joint_prob_graph(self, 
-                        base_graph_indexer:StateIndexer,
-                        reward_rates_callback:Optional[Callable]=None,
-                        mutation_rate:Optional[float]=1.0,
-                        reward_limit:Optional[int]=None, 
-                        tot_reward_limit:Optional[float]=np.inf) -> Graph:
+    def joint_prob_graph(self,
+                        base_graph_indexer: StateIndexer,
+                        reward_rates_callback: Callable | None = None,
+                        mutation_rate: float = 1.0,
+                        reward_limit: int | None = None,
+                        tot_reward_limit: float = np.inf) -> Graph:
 
         if self.param_length() == 0:
             raise ValueError("Graph must have parameterized edges for joint_prob_graph.")
@@ -5982,7 +5984,7 @@ extern "C" {{
         return joint_graph
 
 
-    def _get_joint_probs(self):
+    def _get_joint_probs(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
 
         if not self._joint_prob_base_graph_indexer:
             raise ValueError("Graph is not a joint probability representation.")
@@ -6035,7 +6037,7 @@ extern "C" {{
         return np.array(outcomes), np.array(probs), np.array(t_index)
 
 
-    def joint_prob_table(self):
+    def joint_prob_table(self) -> pd.DataFrame:
 
         if not self._joint_prob_base_graph_indexer:
             raise ValueError("Graph is not a joint probability representation.")
@@ -6057,7 +6059,7 @@ extern "C" {{
 
 # Module-level utility functions
 
-def load_cpp_builder(cpp_file: Union[str, pathlib.Path]) -> Callable:
+def load_cpp_builder(cpp_file: str | pathlib.Path) -> Callable:
     """
     Load a C++ model builder for direct Graph object creation without JAX wrapping.
 
@@ -6121,7 +6123,7 @@ def load_cpp_builder(cpp_file: Union[str, pathlib.Path]) -> Callable:
 # Automatic Parallelization API
 # ============================================================================
 
-def init_parallel(cpus: Optional[int] = None,
+def init_parallel(cpus: int | None = None,
                   force: bool = False,
                   enable_x64: bool = True) -> ParallelConfig:
     """

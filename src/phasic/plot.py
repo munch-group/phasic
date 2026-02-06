@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import subprocess
 import graphviz
@@ -6,27 +8,49 @@ import seaborn as sns
 import matplotlib
 import matplotlib.colors
 from itertools import cycle
-from numbers import Real as FloatingPointError
 
-from typing import Optional, TypeVar
-from collections.abc import Callable
+from typing import Any, TypeVar
+from collections.abc import Callable, Generator
 
 from .logging_config import get_logger
 logger = get_logger(__name__)
 
-# from .vscode_theme import is_vscode_dark_theme
+GraphType = TypeVar('Graph')
 
-GraphType = TypeVar('Graph') 
 
-# def random_color():
-#     return '#'+''.join(random.sample('0123456789ABCDEF', 6))
+def _get_color(n: int, lightness: float = 0.4) -> Generator[str, None, None]:
+    """Generate an infinite cycle of hex color strings from a HUSL palette.
 
-def _get_color(n, lightness=0.4):
+    Parameters
+    ----------
+    n : int
+        Number of distinct colors in the palette.
+    lightness : float
+        Lightness parameter for the HUSL palette, by default 0.4.
+
+    Yields
+    ------
+    str
+        Hex color string (e.g., ``'#a1b2c3'``).
+    """
     color_cycle = cycle([matplotlib.colors.to_hex(c) for c in sns.husl_palette(n, l=lightness)])
     for color in color_cycle:
         yield color
 
-def _format_rate(rate):
+def _format_rate(rate: float) -> str:
+    """Format a transition rate for display on graph edges.
+
+    Parameters
+    ----------
+    rate : float
+        The transition rate value.
+
+    Returns
+    -------
+    str
+        Formatted string using fixed-point for integers, scientific
+        notation otherwise.
+    """
     if rate == round(rate):
         return f"{rate:.2f}"
     else:
@@ -34,55 +58,65 @@ def _format_rate(rate):
 
 
 
-def plot_graph(graph:GraphType, filename:str=None,
-               subgraphfun:Callable=None, 
-               by_state:Callable=None, 
-               by_index:Callable=None, 
-               max_nodes:int=100, 
-               dark:Optional[bool]=None,
-               constraint:bool=True, ranksep:float=1, nodesep:float=1, rankdir:str="LR",
-               size:tuple=(7, 7), fontsize:int=12, rainbow:bool=True, penwidth:FloatingPointError=1,
-               seed:int=1,                
-               **kwargs) -> graphviz.Digraph:
-    """
-    Plot a graph using graphviz.
+def plot_graph(graph: Any, filename: str | None = None,
+               subgraphfun: Callable[..., str] | None = None,
+               by_state: Callable[..., str] | None = None,
+               by_index: Callable[[int], str] | None = None,
+               max_nodes: int = 100,
+               dark: bool | None = None,
+               constraint: bool = True, ranksep: float = 1, nodesep: float = 1, rankdir: str = "LR",
+               size: tuple[int, int] = (7, 7), fontsize: int = 12, rainbow: bool = True, penwidth: float = 1,
+               seed: int = 1,
+               **kwargs: Any) -> graphviz.Digraph | None:
+    """Plot a graph using graphviz.
 
+    Parameters
     ----------
-    graph : 
-        _description_
-    filename : 
-        If provided, save the graph to this file.
-    by_state : 
-        Callback function defining subgraph clusters. Must take a state as input and produce a string that serve as subgraph label. None by default.
-    by_index : 
-        Callback function defining subgraph clusters. Must take a vertex index as input and produce a string that serve as subgraph label. None by default.
-    subgraphfun : 
-        Callback function defining subgraph clusters. Must take a state as input and produce a string that serve as subgraph label. None by default.
-    max_nodes : 
-        Maximum number of vertices for graphs to plot, by default 100
-    dark : 
-        Whether to use dark mode for the graph, by default True
-    rainbow : 
-        Color edges randomly, by default True
-    size : 
-        Graphviz size, by default (7, 7)
-    constraint : 
-        Graphviz constaint, by default True
-    ranksep : 
-        Graphviz ranksep, by default 1
-    nodesep : 
-        Graphviz nodesep, by default 1
-    rankdir : 
-        Graphviz rankdir, by default "LR"
-    fontsize : 
-        Graphviz fontsize, by default 12
-    penwidth : 
-        Graphviz penwidth, by default 1
+    graph : Graph
+        The phasic graph object to visualize.
+    filename : str | None
+        If provided, save the graph to this file. The file extension
+        determines the output format (e.g., ``'graph.pdf'``).
+    subgraphfun : Callable[..., str] | None
+        Deprecated. Use ``by_state`` instead. Callback function defining
+        subgraph clusters by state.
+    by_state : Callable[..., str] | None
+        Callback function defining subgraph clusters. Takes a state as
+        input and returns a string used as the subgraph label.
+    by_index : Callable[[int], str] | None
+        Callback function defining subgraph clusters. Takes a vertex
+        index as input and returns a string used as the subgraph label.
+    max_nodes : int
+        Maximum number of vertices to plot, by default 100.
+    dark : bool | None
+        Whether to use dark mode for the graph. Detected automatically
+        from the VS Code theme if ``vscodenb`` is available.
+    constraint : bool
+        Graphviz constraint attribute, by default True.
+    ranksep : float
+        Graphviz ranksep attribute, by default 1.
+    nodesep : float
+        Graphviz nodesep attribute, by default 1.
+    rankdir : str
+        Graphviz rankdir attribute, by default ``"LR"``.
+    size : tuple[int, int]
+        Graphviz size as ``(width, height)``, by default ``(7, 7)``.
+    fontsize : int
+        Graphviz fontsize attribute, by default 12.
+    rainbow : bool
+        Whether to color edges with random colors, by default True.
+    penwidth : float
+        Graphviz penwidth attribute, by default 1.
+    seed : int
+        Random seed for graph layout, by default 1.
+    **kwargs : Any
+        Additional graphviz graph attributes.
 
     Returns
     -------
-    :
-        Graphviz object for Jupyter notebooks display
+    graphviz.Digraph | None
+        Graphviz Digraph object for display in Jupyter notebooks,
+        or ``None`` if the graph exceeds ``max_nodes``.
     """
     try:
         from vscodenb import is_vscode_dark_theme
@@ -123,7 +157,7 @@ def plot_graph(graph:GraphType, filename:str=None,
         edge_color = '#009900'
         node_edgecolor='black'
         node_fillcolor='#eeeeee'
-        edge_color='black' 
+        edge_color='black'
         start_edgecolor='black'
         start_fillcolor='#bbbbbb'
         abs_edgecolor='black'
@@ -140,48 +174,47 @@ def plot_graph(graph:GraphType, filename:str=None,
         print(f"Graph has too many nodes ({graph.vertices_length()}). Please set max_nodes to a higher value.")
         return None
 
-    graph_attr = dict(compound='true', newrank='true', pad='0.5', 
-                      ranksep=str(ranksep), nodesep=str(nodesep), 
+    graph_attr = dict(compound='true', newrank='true', pad='0.5',
+                      ranksep=str(ranksep), nodesep=str(nodesep),
                       bgcolor=bgcolor, rankdir=rankdir, ratio="auto",
                       size=f'{size[0]},{size[1]}',
                       start=str(seed),
                       fontname="Helvetica,Arial,sans-serif", **kwargs)
     node_attr = dict(style='filled', color='black',
-                     fontname="Helvetica,Arial,sans-serif", 
-                     fontsize=str(fontsize), 
+                     fontname="Helvetica,Arial,sans-serif",
+                     fontsize=str(fontsize),
                      fillcolor=str(node_fillcolor))
     edge_attr = dict(constraint='true' if constraint else 'false',
                      style='filled', labelfloat='false', labeldistance='0',
-                     fontname="Helvetica,Arial,sans-serif", 
-                     fontsize=str(fontsize), penwidth=str(penwidth))    
+                     fontname="Helvetica,Arial,sans-serif",
+                     fontsize=str(fontsize), penwidth=str(penwidth))
     dot = graphviz.Digraph(graph_attr=graph_attr, node_attr=node_attr, edge_attr=edge_attr)
     for i in range(graph.vertices_length()):
         vertex = graph.vertex_at(i)
         for edge in vertex.edges():
             if rainbow:
                 color = next(husl_colors)
-                # color = random_color()
             else:
                  color = edge_color
-            dot.edge(str(vertex.index()), str(edge.to().index()), 
+            dot.edge(str(vertex.index()), str(edge.to().index()),
                    xlabel=_format_rate(edge.weight()), color=color, fontcolor=color)
 
     subgraph_attr = dict(rank='same',
-                         style='filled', 
-                         fillcolor=subgraph_bgcolor, 
+                         style='filled',
+                         fillcolor=subgraph_bgcolor,
                          color=subgraph_edgecolor,
                          fontcolor=subgraph_label_fontcolor)
     subgraphs = defaultdict(list)
     for i in range(graph.vertices_length()):
         vertex = graph.vertex_at(i)
         if i == 0:
-            dot.node(str(vertex.index()), 'S', 
+            dot.node(str(vertex.index()), 'S',
                      style='filled', edge_color=start_edgecolor, fillcolor=start_fillcolor)
         elif not vertex.state().sum() and vertex.rate() == 1 and len(vertex.edges()) == 1:
-            dot.node(str(vertex.index()), 'AUX', 
+            dot.node(str(vertex.index()), 'AUX',
                      style='filled', edge_color=aux_edgecolor, fillcolor=aux_fillcolor)
         elif not vertex.edges():
-            dot.node(str(vertex.index()), ','.join(map(str, vertex.state())), 
+            dot.node(str(vertex.index()), ','.join(map(str, vertex.state())),
                      style='filled', edge_color=abs_edgecolor, fillcolor=abs_fillcolor)
         else:
             dot.node(str(vertex.index()), ','.join(map(str, vertex.state())),
@@ -199,7 +232,6 @@ def plot_graph(graph:GraphType, filename:str=None,
             with dot.subgraph(name=sglabel, graph_attr=subgraph_attr) as c:
                 for i in subgraphs[sglabel]:
                     vertex = graph.vertex_at(i)
-                    # c.node(str(vertex.index()), ','.join(map(str, vertex.state())))
                     c.node(str(vertex.index()))
 
     if filename:

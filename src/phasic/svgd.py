@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import logging
 import os
 import platform
 from time import time, sleep
-from typing import Optional, Self, Union, NamedTuple
+from typing import Callable, NamedTuple
 import warnings
 import matplotlib
 import numpy as np
@@ -47,7 +49,8 @@ from matplotlib.gridspec import GridSpec
 from matplotlib.collections import PolyCollection
 
 # "iridis" color map (viridis without the deep purple)
-def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
+def truncate_colormap(cmap: matplotlib.colors.Colormap, minval: float = 0.0, maxval: float = 1.0, n: int = 100) -> matplotlib.colors.LinearSegmentedColormap:
+    """Truncate a colormap to a subset of its range."""
     new_cmap = colors.LinearSegmentedColormap.from_list(
         'trunc({n},{a:.2f},{b:.2f})'.format(n=cmap.name, a=minval, b=maxval),
         cmap(np.linspace(minval, maxval, n)))
@@ -152,7 +155,7 @@ class SparseObservations(NamedTuple):
             mask = self.features == feature_idx
             return self.values[mask]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return ("SparseObservations("
                 f"values=<{len(self.values)} values>, "
                 f"n_features=<{self.n_features}, "
@@ -229,8 +232,19 @@ def dense_to_sparse(data: jnp.ndarray) -> SparseObservations:
     )
 
 
-def is_sparse_observations(data) -> bool:
-    """Check if data is in sparse observation format."""
+def is_sparse_observations(data: object) -> bool:
+    """Check if data is in sparse observation format.
+
+    Parameters
+    ----------
+    data : object
+        Data to check.
+
+    Returns
+    -------
+    bool
+        True if data is a ``SparseObservations`` instance.
+    """
     return isinstance(data, SparseObservations)
 
 
@@ -238,7 +252,7 @@ def is_sparse_observations(data) -> bool:
 # Helper Functions
 # ============================================================================
 
-def _inverse_softplus(theta):
+def _inverse_softplus(theta: jnp.ndarray) -> jnp.ndarray:
     """Inverse of softplus: phi = log(exp(theta) - 1).
 
     Numerically stable implementation that handles large values.
@@ -262,7 +276,7 @@ def _inverse_softplus(theta):
         jnp.log(jnp.expm1(jnp.maximum(theta, 1e-6)))
     )
 
-def _compute_hpd(samples, alpha=0.95):
+def _compute_hpd(samples: np.ndarray, alpha: float = 0.95) -> tuple[float, float]:
     """Compute the Highest Posterior Density (HPD) interval.
 
     Finds the shortest contiguous interval containing at least `alpha` fraction
@@ -320,14 +334,24 @@ def _compute_hpd(samples, alpha=0.95):
     return lower, upper
 
 
-def _hex_grid(x_min, x_max, y_min, y_max, size, flat_topped=False):
+def _hex_grid(x_min: float, x_max: float, y_min: float, y_max: float, size: float, flat_topped: bool = False) -> jnp.ndarray:
     """Generate hex grid midpoints.
-    
-    Args:
-        x_min, x_max, y_min, y_max: Bounding box
-        size: Distance from hex center to vertex
-        flat_topped: If False (default), pointy-topped hexagons.
-                     If True, flat-topped hexagons.
+
+    Parameters
+    ----------
+    x_min, x_max : float
+        Horizontal bounding box limits.
+    y_min, y_max : float
+        Vertical bounding box limits.
+    size : float
+        Distance from hex center to vertex.
+    flat_topped : bool, default=False
+        If False, pointy-topped hexagons. If True, flat-topped hexagons.
+
+    Returns
+    -------
+    jnp.ndarray
+        Array of midpoint coordinates with shape ``(n_points, 2)``.
     """
     if flat_topped:
         dx = 1.5 * size
@@ -363,7 +387,7 @@ class Prior:
     The sample method enables SVGD to initialize particles from the prior.
     """
 
-    def __call__(self, phi):
+    def __call__(self, phi: jnp.ndarray) -> float:
         """Compute log-probability of phi.
 
         Parameters
@@ -378,7 +402,7 @@ class Prior:
         """
         raise NotImplementedError("Subclasses must implement __call__")
 
-    def sample(self, key, shape):
+    def sample(self, key: jnp.ndarray, shape: tuple[int, ...]) -> jnp.ndarray:
         """Sample from the prior distribution.
 
         Parameters
@@ -395,7 +419,7 @@ class Prior:
         """
         raise NotImplementedError("Subclasses must implement sample")
 
-    def plot(self, ax=None, **kwargs):
+    def plot(self, ax: matplotlib.axes.Axes | None = None, **kwargs) -> matplotlib.axes.Axes:
         """Plot the prior distribution.
 
         Parameters
@@ -448,7 +472,7 @@ class GaussPrior(Prior):
     >>> svgd = graph.svgd(data, theta_dim=1, prior=prior)
     """
 
-    def __init__(self, mean=None, std=None, ci=None, prob=0.95):
+    def __init__(self, mean: float | None = None, std: float | None = None, ci: tuple[float, float] | None = None, prob: float = 0.95) -> None:
         if mean is not None and std is not None:
             self.mu = mean
             self.sigma = std
@@ -466,7 +490,7 @@ class GaussPrior(Prior):
         # Transform function set by SVGD when positive_params=True
         self._transform = None
 
-    def __call__(self, phi):
+    def __call__(self, phi: jnp.ndarray) -> float:
         """Compute log-probability.
 
         When _transform is set (by SVGD with positive_params=True), evaluates
@@ -495,7 +519,7 @@ class GaussPrior(Prior):
             # No transform: evaluate directly (backward compatible)
             return -0.5 * jnp.sum(((phi - self.mu) / self.sigma)**2)
 
-    def sample(self, key, shape):
+    def sample(self, key: jnp.ndarray, shape: tuple[int, ...]) -> jnp.ndarray:
         """Sample from the prior.
 
         When _transform is set, samples in THETA space and converts to PHI space.
@@ -523,7 +547,7 @@ class GaussPrior(Prior):
         else:
             return theta_samples
 
-    def plot(self, log=False, ax=None, return_ax=False, **kwargs):
+    def plot(self, log: bool = False, ax: matplotlib.axes.Axes | None = None, return_ax: bool = False, **kwargs) -> matplotlib.axes.Axes | None:
         """Plot the Gaussian prior distribution in THETA space.
 
         Parameters
@@ -603,7 +627,7 @@ class HalfCauchyPrior(Prior):
     >>> svgd = graph.svgd(data, theta_dim=1, prior=prior)
     """
 
-    def __init__(self, scale=None, ci=None, prob=0.95):
+    def __init__(self, scale: float | None = None, ci: float | None = None, prob: float = 0.95) -> None:
         # Validate parameters
         if scale is not None and ci is not None:
             raise ValueError("Cannot specify both 'scale' and 'ci'. Use one or the other.")
@@ -628,7 +652,7 @@ class HalfCauchyPrior(Prior):
         # Transform function set by SVGD when positive_params=True
         self._transform = None
 
-    def __call__(self, phi):
+    def __call__(self, phi: jnp.ndarray) -> float:
         """Compute log-probability.
 
         When _transform is set (by SVGD with positive_params=True), evaluates
@@ -666,7 +690,7 @@ class HalfCauchyPrior(Prior):
             )
             return jnp.sum(log_prob)
 
-    def sample(self, key, shape):
+    def sample(self, key: jnp.ndarray, shape: tuple[int, ...]) -> jnp.ndarray:
         """Sample from the prior.
 
         When _transform is set, samples in THETA space and converts to PHI space.
@@ -695,7 +719,7 @@ class HalfCauchyPrior(Prior):
         else:
             return theta_samples
 
-    def plot(self, ax=None, show_ci=True, return_ax=False, **kwargs):
+    def plot(self, ax: matplotlib.axes.Axes | None = None, show_ci: bool = True, return_ax: bool = False, **kwargs) -> matplotlib.axes.Axes | None:
         """Plot the half-Cauchy prior distribution in THETA space.
 
         Parameters
@@ -840,44 +864,47 @@ class DataPrior(Prior):
     # ----- properties --------------------------------------------------------
 
     @property
-    def result(self):
+    def result(self) -> object:
         """The underlying ``MoMResult`` or ``ProbMatchResult``."""
         return self._result
 
     @property
-    def theta(self):
+    def theta(self) -> np.ndarray:
         """Parameter estimate from the underlying method."""
         return self._result.theta
 
     @property
-    def std(self):
+    def std(self) -> np.ndarray:
         """Standard errors of the parameter estimates."""
         return self._result.std
 
     @property
-    def success(self):
+    def success(self) -> bool:
         """Whether the underlying optimisation converged."""
         return self._result.success
 
     @property
-    def method(self):
+    def method(self) -> str:
         """Name of the estimation method used."""
         return self._method
 
     # ----- list-like interface (per-parameter priors) ------------------------
 
-    def __iter__(self):
+    def __iter__(self) -> iter:
+        """Iterate over per-parameter priors."""
         return iter(self._priors)
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """Return number of per-parameter priors."""
         return len(self._priors)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> Prior | None:
+        """Get the prior for a specific parameter index."""
         return self._priors[idx]
 
     # ----- Prior interface ---------------------------------------------------
 
-    def __call__(self, phi):
+    def __call__(self, phi: jnp.ndarray) -> float:
         """Compute total log-probability as the sum of per-parameter priors.
 
         Parameters
@@ -896,7 +923,7 @@ class DataPrior(Prior):
                 total = total + prior_i(phi[i:i + 1])
         return total
 
-    def sample(self, key, shape):
+    def sample(self, key: jnp.ndarray, shape: tuple[int, ...]) -> jnp.ndarray:
         """Sample from per-parameter priors and concatenate.
 
         Parameters
@@ -923,7 +950,7 @@ class DataPrior(Prior):
             columns.append(col)
         return jnp.concatenate(columns, axis=1)
 
-    def plot(self, axes=None, figsize=None, return_axes=False):
+    def plot(self, axes: np.ndarray | None = None, figsize: tuple[float, float] | None = None, return_axes: bool = False) -> np.ndarray | None:
         """Plot per-parameter prior distributions.
 
         Parameters
@@ -964,7 +991,7 @@ class DataPrior(Prior):
 
     # ----- repr --------------------------------------------------------------
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         status = "converged" if self._result.success else "NOT converged"
         theta_str = np.array2string(
             np.asarray(self._result.theta), precision=4, separator=', ',
@@ -980,7 +1007,7 @@ class StepSizeSchedule:
 
     Subclasses should implement __call__(iteration, particles) returning a scalar step size.
     """
-    def __call__(self, iteration, particles=None):
+    def __call__(self, iteration: int, particles: jnp.ndarray | None = None) -> float:
         """
         Compute step size for given iteration.
 
@@ -998,7 +1025,7 @@ class StepSizeSchedule:
         """
         raise NotImplementedError
 
-    def plot(self, nr_iter, figsize=None, title=None, ax=None, return_ax=False):
+    def plot(self, nr_iter: int, figsize: tuple[float, float] | None = None, title: str | None = None, ax: matplotlib.axes.Axes | None = None, return_ax: bool = False) -> matplotlib.axes.Axes | None:
         """
         Plot the step size schedule over iterations.
 
@@ -1083,10 +1110,10 @@ class ConstantStepSize(StepSizeSchedule):
     >>> schedule(100)  # iteration 100
     0.01
     """
-    def __init__(self, step_size=0.01):
+    def __init__(self, step_size: float = 0.01) -> None:
         self.step_size = step_size
 
-    def __call__(self, iteration, particles=None):
+    def __call__(self, iteration: int, particles: jnp.ndarray | None = None) -> float:
         return self.step_size
 
 
@@ -1116,12 +1143,12 @@ class ExpStepSize(StepSizeSchedule):
     >>> schedule(5000)   # iteration 5000 (full decay)
     0.01
     """
-    def __init__(self, first_step=0.01, last_step=1e-6, tau=1000.0):
+    def __init__(self, first_step: float = 0.01, last_step: float = 1e-6, tau: float = 1000.0) -> None:
         self.first_step = first_step
         self.last_step = last_step
         self.tau = tau
 
-    def __call__(self, iteration, particles=None) -> float:
+    def __call__(self, iteration: int, particles: jnp.ndarray | None = None) -> float:
         decay = jnp.exp(-iteration / self.tau)
         return self.first_step * decay + self.last_step * (1 - decay)
 
@@ -1149,13 +1176,13 @@ class AdaptiveStepSize(StepSizeSchedule):
     >>> schedule(10, particles)  # will increase step size
     0.011
     """
-    def __init__(self, base_step=0.01, kl_target=0.1, adjust_rate=0.1):
+    def __init__(self, base_step: float = 0.01, kl_target: float = 0.1, adjust_rate: float = 0.1) -> None:
         self.base_step = base_step
         self.kl_target = kl_target
         self.adjust_rate = adjust_rate
         self.current_step = base_step
 
-    def __call__(self, iteration, particles=None):
+    def __call__(self, iteration: int, particles: jnp.ndarray | None = None) -> float:
         if particles is None:
             return self.current_step
 
@@ -1206,7 +1233,7 @@ class WarmupExpStepSize(StepSizeSchedule):
     >>> schedule(600)    # iteration 600: decaying after warmup
     0.0046
     """
-    def __init__(self, peak_lr=0.001, warmup_steps=70, last_lr=1e-6, tau=1000.0):
+    def __init__(self, peak_lr: float = 0.001, warmup_steps: int = 70, last_lr: float = 1e-6, tau: float = 1000.0) -> None:
         self.peak_lr = peak_lr
         self.warmup_steps = warmup_steps
         self.last_lr = last_lr
@@ -1215,7 +1242,7 @@ class WarmupExpStepSize(StepSizeSchedule):
         self.first_step = 0.0
         self.last_step = last_lr
 
-    def __call__(self, iteration, particles=None):
+    def __call__(self, iteration: int, particles: jnp.ndarray | None = None) -> float:
         warmup_steps = self.warmup_steps
         if iteration < warmup_steps:
             # Linear warmup from 0 to peak_lr
@@ -1301,7 +1328,7 @@ class Adam:
     in favor of the optimizer's learning rate.
     """
 
-    def __init__(self, learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8):
+    def __init__(self, learning_rate: float | StepSizeSchedule = 0.001, beta1: float | StepSizeSchedule = 0.9, beta2: float | StepSizeSchedule = 0.999, epsilon: float = 1e-8) -> None:
         # Accept either scalar or schedule for each hyperparameter
         self.lr_schedule = self._to_schedule(learning_rate)
         self.beta1_schedule = self._to_schedule(beta1)
@@ -1312,28 +1339,28 @@ class Adam:
         self.t = 0     # Timestep
 
     @staticmethod
-    def _to_schedule(value):
+    def _to_schedule(value: float | int | StepSizeSchedule) -> StepSizeSchedule:
         """Convert scalar to ConstantStepSize, or return schedule unchanged."""
         if isinstance(value, (int, float)):
             return ConstantStepSize(float(value))
         return value
 
     @property
-    def lr(self):
+    def lr(self) -> float:
         """Current learning rate (for display/logging)."""
         return self.lr_schedule(self.t) if self.t > 0 else self.lr_schedule(0)
 
     @property
-    def beta1(self):
+    def beta1(self) -> float:
         """Current beta1 value."""
         return self.beta1_schedule(self.t) if self.t > 0 else self.beta1_schedule(0)
 
     @property
-    def beta2(self):
+    def beta2(self) -> float:
         """Current beta2 value."""
         return self.beta2_schedule(self.t) if self.t > 0 else self.beta2_schedule(0)
 
-    def reset(self, shape):
+    def reset(self, shape: tuple[int, ...]) -> None:
         """
         Reset optimizer state for given particle shape.
 
@@ -1349,7 +1376,7 @@ class Adam:
         self.v = jnp.zeros(shape)
         self.t = 0
 
-    def step(self, phi, particles=None):
+    def step(self, phi: jnp.ndarray, particles: jnp.ndarray | None = None) -> jnp.ndarray:
         """
         Compute Adam update given SVGD gradient direction.
 
@@ -1441,10 +1468,10 @@ class Adamelia(Adam):
     >>> optimizer = Adamelia(learning_rate=0.01, jitter_on_oscillation=False)
     """
 
-    def __init__(self, learning_rate=0.3, beta1=0.9, beta2=0.999, epsilon=1e-8,
-                 oscillation_threshold=0.3, patience=3, lr_reduction_factor=0.5,
-                 min_lr=1e-6, verbose=False, jitter_scale=0.1,
-                 jitter_on_oscillation=True, seed=None):
+    def __init__(self, learning_rate: float | StepSizeSchedule = 0.3, beta1: float = 0.9, beta2: float = 0.999, epsilon: float = 1e-8,
+                 oscillation_threshold: float = 0.3, patience: int = 3, lr_reduction_factor: float = 0.5,
+                 min_lr: float = 1e-6, verbose: bool = False, jitter_scale: float = 0.1,
+                 jitter_on_oscillation: bool = True, seed: int | None = None) -> None:
         super().__init__(learning_rate, beta1, beta2, epsilon)
 
         self.oscillation_threshold = oscillation_threshold
@@ -1465,7 +1492,7 @@ class Adamelia(Adam):
         self.lr_reductions = 0
         self.lr_multiplier = 1.0  # Applied on top of schedule
 
-    def reset(self, shape):
+    def reset(self, shape: tuple[int, ...]) -> None:
         """Reset optimizer state including oscillation detection and jitter RNG."""
         super().reset(shape)
         self.phi_prev = None
@@ -1474,13 +1501,8 @@ class Adamelia(Adam):
         self.lr_multiplier = 1.0
         self.rng_key = jax.random.PRNGKey(self._seed)
 
-    def _detect_oscillation(self, phi):
-        """
-        Detect oscillation by checking gradient sign flips.
-
-        Returns True if more than oscillation_threshold fraction of
-        gradient components flipped sign compared to previous step.
-        """
+    def _detect_oscillation(self, phi: jnp.ndarray) -> bool:
+        """Detect oscillation by checking gradient sign flips."""
         if self.phi_prev is None:
             return False
 
@@ -1491,7 +1513,7 @@ class Adamelia(Adam):
 
         return float(flip_ratio) > self.oscillation_threshold
 
-    def _reduce_learning_rate(self):
+    def _reduce_learning_rate(self) -> None:
         """Reduce effective learning rate by multiplier."""
         new_multiplier = self.lr_multiplier * self.lr_reduction_factor
 
@@ -1509,7 +1531,7 @@ class Adamelia(Adam):
                         f"LR reduced to {effective_lr:.2e} "
                         f"(reduction #{self.lr_reductions})")
 
-    def _estimate_overshoot_amplitude(self, phi):
+    def _estimate_overshoot_amplitude(self, phi: jnp.ndarray) -> float:
         """
         Estimate how large the oscillation swing was.
 
@@ -1532,7 +1554,7 @@ class Adamelia(Adam):
 
         return float(jnp.mean(reversal))
 
-    def _compute_jitter(self, particles, overshoot_amplitude):
+    def _compute_jitter(self, particles: jnp.ndarray, overshoot_amplitude: float) -> jnp.ndarray:
         """
         Compute jitter scaled to particle spread, overshoot magnitude, and LR decay.
 
@@ -1563,7 +1585,7 @@ class Adamelia(Adam):
 
         return jax.random.normal(subkey, particles.shape) * jitter_magnitude
 
-    def step(self, phi, particles=None):
+    def step(self, phi: jnp.ndarray, particles: jnp.ndarray | None = None) -> jnp.ndarray:
         """
         Compute Adam update with oscillation detection and optional jitter.
 
@@ -1626,7 +1648,7 @@ class Adamelia(Adam):
         return update
 
     @property
-    def lr(self):
+    def lr(self) -> float:
         """Current effective learning rate (including reductions)."""
         base_lr = self.lr_schedule(self.t) if self.t > 0 else self.lr_schedule(0)
         return float(base_lr) * self.lr_multiplier
@@ -1677,7 +1699,7 @@ class SGDMomentum:
     growth, which can cause numerical issues when using positive_params=True.
     """
 
-    def __init__(self, learning_rate=0.01, momentum=0.9, max_velocity=1.0):
+    def __init__(self, learning_rate: float | StepSizeSchedule = 0.01, momentum: float | StepSizeSchedule = 0.9, max_velocity: float | None = 1.0) -> None:
         # Accept either scalar or schedule for each hyperparameter
         self.lr_schedule = self._to_schedule(learning_rate)
         self.momentum_schedule = self._to_schedule(momentum)
@@ -1686,28 +1708,28 @@ class SGDMomentum:
         self.t = 0  # Timestep for schedules
 
     @staticmethod
-    def _to_schedule(value):
+    def _to_schedule(value: float | int | StepSizeSchedule) -> StepSizeSchedule:
         """Convert scalar to ConstantStepSize, or return schedule unchanged."""
         if isinstance(value, (int, float)):
             return ConstantStepSize(float(value))
         return value
 
     @property
-    def lr(self):
+    def lr(self) -> float:
         """Current learning rate (for display/logging)."""
         return self.lr_schedule(self.t) if self.t > 0 else self.lr_schedule(0)
 
     @property
-    def momentum(self):
+    def momentum(self) -> float:
         """Current momentum value."""
         return self.momentum_schedule(self.t) if self.t > 0 else self.momentum_schedule(0)
 
-    def reset(self, shape):
+    def reset(self, shape: tuple[int, ...]) -> None:
         """Reset optimizer state for given particle shape."""
         self.v = jnp.zeros(shape)
         self.t = 0
 
-    def step(self, phi, particles=None):
+    def step(self, phi: jnp.ndarray, particles: jnp.ndarray | None = None) -> jnp.ndarray:
         """
         Compute SGD with momentum update.
 
@@ -1782,7 +1804,7 @@ class RMSprop:
     Update rule: v = decay * v + (1 - decay) * gradient²; params += lr * gradient / (√v + ε)
     """
 
-    def __init__(self, learning_rate=0.001, decay=0.99, epsilon=1e-8):
+    def __init__(self, learning_rate: float | StepSizeSchedule = 0.001, decay: float | StepSizeSchedule = 0.99, epsilon: float = 1e-8) -> None:
         # Accept either scalar or schedule for each hyperparameter
         self.lr_schedule = self._to_schedule(learning_rate)
         self.decay_schedule = self._to_schedule(decay)
@@ -1791,28 +1813,28 @@ class RMSprop:
         self.t = 0  # Timestep for schedules
 
     @staticmethod
-    def _to_schedule(value):
+    def _to_schedule(value: float | int | StepSizeSchedule) -> StepSizeSchedule:
         """Convert scalar to ConstantStepSize, or return schedule unchanged."""
         if isinstance(value, (int, float)):
             return ConstantStepSize(float(value))
         return value
 
     @property
-    def lr(self):
+    def lr(self) -> float:
         """Current learning rate (for display/logging)."""
         return self.lr_schedule(self.t) if self.t > 0 else self.lr_schedule(0)
 
     @property
-    def decay(self):
+    def decay(self) -> float:
         """Current decay value."""
         return self.decay_schedule(self.t) if self.t > 0 else self.decay_schedule(0)
 
-    def reset(self, shape):
+    def reset(self, shape: tuple[int, ...]) -> None:
         """Reset optimizer state for given particle shape."""
         self.v = jnp.zeros(shape)
         self.t = 0
 
-    def step(self, phi, particles=None):
+    def step(self, phi: jnp.ndarray, particles: jnp.ndarray | None = None) -> jnp.ndarray:
         """
         Compute RMSprop update.
 
@@ -1885,7 +1907,7 @@ class Adagrad:
     runs, consider using RMSprop or Adam which have bounded effective learning rates.
     """
 
-    def __init__(self, learning_rate=0.01, epsilon=1e-8):
+    def __init__(self, learning_rate: float | StepSizeSchedule = 0.01, epsilon: float = 1e-8) -> None:
         # Accept either scalar or schedule for learning rate
         self.lr_schedule = self._to_schedule(learning_rate)
         self.epsilon = epsilon
@@ -1893,23 +1915,23 @@ class Adagrad:
         self.t = 0  # Timestep for schedules
 
     @staticmethod
-    def _to_schedule(value):
+    def _to_schedule(value: float | int | StepSizeSchedule) -> StepSizeSchedule:
         """Convert scalar to ConstantStepSize, or return schedule unchanged."""
         if isinstance(value, (int, float)):
             return ConstantStepSize(float(value))
         return value
 
     @property
-    def lr(self):
+    def lr(self) -> float:
         """Current learning rate (for display/logging)."""
         return self.lr_schedule(self.t) if self.t > 0 else self.lr_schedule(0)
 
-    def reset(self, shape):
+    def reset(self, shape: tuple[int, ...]) -> None:
         """Reset optimizer state for given particle shape."""
         self.G = jnp.zeros(shape)
         self.t = 0
 
-    def step(self, phi, particles=None):
+    def step(self, phi: jnp.ndarray, particles: jnp.ndarray | None = None) -> jnp.ndarray:
         """
         Compute Adagrad update.
 
@@ -1945,7 +1967,7 @@ class RegularizationSchedule:
 
     Subclasses should implement __call__(iteration, particles) returning a scalar regularization value.
     """
-    def __call__(self, iteration, particles=None):
+    def __call__(self, iteration: int, particles: jnp.ndarray | None = None) -> float:
         """
         Compute regularization strength for given iteration.
 
@@ -1963,7 +1985,7 @@ class RegularizationSchedule:
         """
         raise NotImplementedError
 
-    def plot(self, nr_iter, figsize=None, title=None, ax=None, return_ax=False):
+    def plot(self, nr_iter: int, figsize: tuple[float, float] | None = None, title: str | None = None, ax: matplotlib.axes.Axes | None = None, return_ax: bool = False) -> matplotlib.axes.Axes | None:
         """
         Plot the regularization schedule over iterations.
 
@@ -2048,10 +2070,10 @@ class ConstantRegularization(RegularizationSchedule):
     >>> schedule(100)  # iteration 100
     1.0
     """
-    def __init__(self, regularization=0.0):
+    def __init__(self, regularization: float = 0.0) -> None:
         self.regularization = regularization
 
-    def __call__(self, iteration, particles=None):
+    def __call__(self, iteration: int, particles: jnp.ndarray | None = None) -> float:
         return self.regularization
 
 
@@ -2082,12 +2104,12 @@ class ExpRegularization(RegularizationSchedule):
     >>> schedule(5000)   # iteration 5000 (full decay)
     0.1
     """
-    def __init__(self, first_reg=1.0, last_reg=0.0, tau=1000.0):
+    def __init__(self, first_reg: float = 1.0, last_reg: float = 0.0, tau: float = 1000.0) -> None:
         self.first_reg = first_reg
         self.last_reg = last_reg
         self.tau = tau
 
-    def __call__(self, iteration, particles=None):
+    def __call__(self, iteration: int, particles: jnp.ndarray | None = None) -> float:
         decay = jnp.exp(-iteration / self.tau)
         return self.first_reg * decay + self.last_reg * (1 - decay)
 
@@ -2135,12 +2157,12 @@ class ExponentialCDFRegularization(RegularizationSchedule):
     >>> schedule(5000)   # iteration 5000 (nearly complete)
     0.1
     """
-    def __init__(self, first_reg=0.0, last_reg=1.0, tau=1000.0):
+    def __init__(self, first_reg: float = 0.0, last_reg: float = 1.0, tau: float = 1000.0) -> None:
         self.first_reg = first_reg
         self.last_reg = last_reg
         self.tau = tau
 
-    def __call__(self, iteration, particles=None):
+    def __call__(self, iteration: int, particles: jnp.ndarray | None = None) -> float:
         cdf = 1.0 - jnp.exp(-iteration / self.tau)
         return self.first_reg + (self.last_reg - self.first_reg) * cdf
 
@@ -2330,8 +2352,27 @@ class ExponentialCDFRegularization(RegularizationSchedule):
 #     params = jnp.concatenate([alpha, q_off_diag, exit_rates.flatten()])
 #     return params
 
-def unpack_theta(params, k, m):
-    """Unpack flattened parameter vector into components using JAX operations"""
+def unpack_theta(params: jnp.ndarray, k: int, m: int) -> tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]:
+    """Unpack flattened parameter vector into components using JAX operations.
+
+    Parameters
+    ----------
+    params : jnp.ndarray
+        Flattened parameter vector.
+    k : int
+        Number of absorption states (dimensions).
+    m : int
+        Number of transient states.
+
+    Returns
+    -------
+    alpha : jnp.ndarray
+        Initial distribution vector of length ``m``.
+    Q : jnp.ndarray
+        Sub-intensity matrix of shape ``(m, m)``.
+    exit_rates : jnp.ndarray
+        Exit rate matrix of shape ``(k, m)``.
+    """
     # Calculate dimensions
     alpha_dim = m
     sub_Q_dim = m * (m - 1)
@@ -2381,8 +2422,8 @@ def unpack_theta(params, k, m):
     
 #     return jnp.array(samples)
 
-def log_pmf_dph(x, params, k, m):
-    """Log probability mass function for discrete phase-type distribution"""
+def log_pmf_dph(x: jnp.ndarray, params: jnp.ndarray, k: int, m: int) -> float:
+    """Log probability mass function for discrete phase-type distribution."""
     alpha, Q, exit_rates = unpack_theta(params, k, m)
     
     # Simple approximation for discrete phase-type log-pmf
@@ -2413,14 +2454,14 @@ def log_pmf_dph(x, params, k, m):
 
 # Simpler approach: direct parameter mapping
 @jit
-def z_to_theta(z):
-    """Convert latent variable to parameter space"""
+def z_to_theta(z: jnp.ndarray) -> jnp.ndarray:
+    """Convert latent variable to parameter space."""
     return z  # Direct mapping for simplicity
 
 # SVGD functions
 @jit
-def rbf_kernel(x, y, bandwidth):
-    """RBF kernel function"""
+def rbf_kernel(x: jnp.ndarray, y: jnp.ndarray, bandwidth: float) -> float:
+    """RBF kernel function."""
     diff = x - y
     return jnp.exp(-jnp.sum(diff**2) / (2 * bandwidth**2))
 
@@ -2438,8 +2479,8 @@ def rbf_kernel(x, y, bandwidth):
 #     return median_dist / jnp.log(n_particles + 1)
 
 @jit 
-def batch_median_heuristic(particles):
-    """Vectorized median heuristic"""
+def batch_median_heuristic(particles: jnp.ndarray) -> float:
+    """Vectorized median heuristic for bandwidth selection."""
     n_particles = particles.shape[0]
     # Compute pairwise distances
     diff = particles[:, None, :] - particles[None, :, :]
@@ -2451,7 +2492,7 @@ def batch_median_heuristic(particles):
     return median_dist / jnp.log(n_particles + 1)
 
 @jit
-def batch_median_heuristic_per_dim(particles):
+def batch_median_heuristic_per_dim(particles: jnp.ndarray) -> jnp.ndarray:
     """Per-dimension median heuristic for anisotropic RBF kernel.
 
     Computes a separate bandwidth for each parameter dimension using
@@ -2484,8 +2525,8 @@ def batch_median_heuristic_per_dim(particles):
     return jnp.maximum(jnp.sqrt(h_sq), 1e-8)
 
 @jit
-def rbf_kernel_median(particles):
-    """RBF kernel with median heuristic bandwidth"""
+def rbf_kernel_median(particles: jnp.ndarray) -> tuple[jnp.ndarray, jnp.ndarray]:
+    """RBF kernel with median heuristic bandwidth."""
     bandwidth = batch_median_heuristic(particles)
     n_particles = particles.shape[0]
     
@@ -2506,8 +2547,8 @@ def rbf_kernel_median(particles):
 
 # Define log probability functions
 @jit
-def logp(theta, data, k, m):
-    """Log probability of data given parameters"""
+def logp(theta: jnp.ndarray, data: jnp.ndarray, k: int, m: int) -> float:
+    """Log probability of data given parameters."""
     return jnp.sum(vmap(lambda x: log_pmf_dph(x, theta, k, m))(data))
 
 # @jit  
@@ -2531,8 +2572,8 @@ def logp(theta, data, k, m):
 #     return max_step * decay + min_step * (1 - decay)
 
 @jit
-def local_adaptive_bandwidth(particles, alpha=0.9):
-    """Local adaptive bandwidth selection"""
+def local_adaptive_bandwidth(particles: jnp.ndarray, alpha: float = 0.9) -> jnp.ndarray:
+    """Local adaptive bandwidth selection."""
     n_particles = particles.shape[0]
     # Use k-nearest neighbors approach
     k_nn = max(1, n_particles // 10)
@@ -2550,8 +2591,8 @@ def local_adaptive_bandwidth(particles, alpha=0.9):
     return jnp.array(bandwidths)
 
 @jit
-def kl_adaptive_step(particles, kl_target=0.1):
-    """Adaptive step size based on KL divergence estimate"""
+def kl_adaptive_step(particles: jnp.ndarray, kl_target: float = 0.1) -> float:
+    """Adaptive step size based on KL divergence estimate."""
     # Estimate KL divergence using particle approximation
     n_particles = particles.shape[0]
     
@@ -2726,7 +2767,7 @@ def kl_adaptive_step(particles, kl_target=0.1):
 # ==============================================================================
 
 @jit
-def _compute_kernel_grad_impl(particles, bandwidth):
+def _compute_kernel_grad_impl(particles: jnp.ndarray, bandwidth: float | jnp.ndarray) -> tuple[jnp.ndarray, jnp.ndarray]:
     """
     JIT-compiled RBF kernel computation (core implementation)
 
@@ -2788,8 +2829,9 @@ class _PreconditionerBase:
         Floor for scaling values to avoid division by zero
     """
 
-    def __init__(self, model, observed_data, theta_dim,
-                 param_transform=None, rewards=None, epsilon=1e-8):
+    def __init__(self, model: Callable, observed_data: jnp.ndarray | SparseObservations,
+                 theta_dim: int, param_transform: Callable | None = None,
+                 rewards: jnp.ndarray | None = None, epsilon: float = 1e-8) -> None:
         self.model = model
         self.observed_data = observed_data
         self.theta_dim = theta_dim
@@ -2798,7 +2840,7 @@ class _PreconditionerBase:
         self.epsilon = epsilon
         self.scaling = None
 
-    def _find_moment_matching_reference(self, theta_init):
+    def _find_moment_matching_reference(self, theta_init: jnp.ndarray) -> jnp.ndarray:
         """Find reference point where model moments match data moments.
 
         Uses a data-driven search range: in unconstrained (phi) space,
@@ -2870,7 +2912,7 @@ class _PreconditionerBase:
 
         return theta_ref
 
-    def compute_scaling(self, theta_ref):
+    def compute_scaling(self, theta_ref: jnp.ndarray) -> None:
         """Compute scaling factors. Must be overridden by subclasses."""
         raise NotImplementedError
 
@@ -2901,7 +2943,7 @@ class MomentJacobianPreconditioner(_PreconditionerBase):
         Floor for scaling values to avoid division by zero
     """
 
-    def compute_scaling(self, theta_ref):
+    def compute_scaling(self, theta_ref: jnp.ndarray) -> None:
         """Compute Jacobian column norms at reference point and derive scaling.
 
         Uses moment-matching to find a better reference point before computing
@@ -2988,7 +3030,7 @@ class FisherPreconditioner(_PreconditionerBase):
         Floor for Fisher values to avoid division by zero
     """
 
-    def compute_scaling(self, theta_ref):
+    def compute_scaling(self, theta_ref: jnp.ndarray) -> None:
         """Compute Fisher diagonal at reference point and derive scaling.
 
         Uses moment-matching to find a better reference point before computing
@@ -3077,9 +3119,17 @@ class FisherPreconditioner(_PreconditionerBase):
 
 
 class SVGDKernel:
-    """RBF kernel for SVGD with automatic bandwidth selection"""
+    """RBF kernel for SVGD with automatic bandwidth selection.
 
-    def __init__(self, bandwidth='median_per_dim', preconditioner=None):
+    Parameters
+    ----------
+    bandwidth : str or float or jnp.ndarray, default='median_per_dim'
+        Bandwidth selection method or fixed value.
+    preconditioner : _PreconditionerBase or None, default=None
+        Optional preconditioner for normalizing particle space.
+    """
+
+    def __init__(self, bandwidth: str | float | jnp.ndarray = 'median_per_dim', preconditioner: _PreconditionerBase | None = None) -> None:
         """
         Parameters
         ----------
@@ -3099,7 +3149,7 @@ class SVGDKernel:
         self.bandwidth_method = bandwidth
         self.preconditioner = preconditioner
 
-    def compute_kernel_grad(self, particles):
+    def compute_kernel_grad(self, particles: jnp.ndarray) -> tuple[jnp.ndarray, jnp.ndarray]:
         """
         Compute RBF kernel matrix and its gradient (JIT-compiled)
 
@@ -3163,7 +3213,7 @@ class SVGDKernel:
 
 
 @jit
-def _svgd_update_jitted(particles, K, grad_K, grad_log_p, step_size):
+def _svgd_update_jitted(particles: jnp.ndarray, K: jnp.ndarray, grad_K: jnp.ndarray, grad_log_p: jnp.ndarray, step_size: float) -> jnp.ndarray:
     """
     JIT-compiled SVGD update (core computation)
 
@@ -3203,9 +3253,11 @@ def _svgd_update_jitted(particles, K, grad_K, grad_log_p, step_size):
     return particles + step_size * phi
 
 
-def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
-              parallel_mode='vmap', n_devices=None, fixed_mask=None, fixed_values=None,
-              optimizer=None):
+def svgd_step(particles: jnp.ndarray, log_prob_fn: callable, kernel: SVGDKernel, step_size: float,
+              compiled_grad: callable | None = None,
+              parallel_mode: str = 'vmap', n_devices: int | None = None,
+              fixed_mask: jnp.ndarray | None = None, fixed_values: jnp.ndarray | None = None,
+              optimizer: Adam | SGDMomentum | RMSprop | Adagrad | OptaxOptimizer | None = None) -> jnp.ndarray:
     """
     Perform single SVGD update step
 
@@ -3391,12 +3443,19 @@ def svgd_step(particles, log_prob_fn, kernel, step_size, compiled_grad=None,
         return particles + update
 
 
-def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=None,
-             kernel=None, return_history=True, verbose=True, progress=False, compiled_grad=None,
-             parallel_mode='vmap', n_devices=None,
-             log_prob_fn_factory=None, regularization_schedule=None, lr_scale=1.0, fixed_mask=None, fixed_values=None,
-             optimizer: Optional[Union[Adam, SGDMomentum, RMSprop, Adagrad, OptaxOptimizer]] = None
-             ):
+def run_svgd(log_prob_fn: Callable | None, theta_init: jnp.ndarray, n_steps: int,
+             learning_rate: float | StepSizeSchedule | None = None,
+             kernel: SVGDKernel | None = None, return_history: bool = True,
+             verbose: bool = True, progress: bool = False,
+             compiled_grad: Callable | None = None,
+             parallel_mode: str = 'vmap', n_devices: int | None = None,
+             log_prob_fn_factory: Callable | None = None,
+             regularization_schedule: RegularizationSchedule | None = None,
+             lr_scale: float = 1.0,
+             fixed_mask: jnp.ndarray | None = None,
+             fixed_values: jnp.ndarray | None = None,
+             optimizer: Adam | SGDMomentum | RMSprop | Adagrad | OptaxOptimizer | None = None
+             ) -> dict:
     """
     Run Stein Variational Gradient Descent
 
@@ -3593,7 +3652,7 @@ def run_svgd(log_prob_fn, theta_init, n_steps, learning_rate=None,
 # Helper Functions for Moment-Based Regularization
 # ============================================================================
 
-def compute_sample_moments(data, nr_moments):
+def compute_sample_moments(data: jnp.ndarray | SparseObservations, nr_moments: int) -> jnp.ndarray:
     """
     Compute sample moments from observed data.
 
@@ -3938,16 +3997,30 @@ class SVGD:
     # Class-level cache for compiled models (shared across instances)
     _compiled_cache = {}
 
-    def __init__(self, model, observed_data, prior=None, n_particles=None,
-                 n_iterations=700, learning_rate=None, bandwidth='median_per_dim',
-                 theta_init=None, theta_dim=None, seed=None, verbose=True, progress=False,
-                 jit=None,              # NEW: explicit JIT control
-                 parallel=None,         # NEW: 'vmap', 'pmap', 'none'
-                 n_devices=None,        # NEW: explicit device count for pmap
-                 precompile=True,       # Keep for backward compat
-                 compilation_config=None, positive_params=True, param_transform=None,
-                 regularization=0.0, nr_moments=2, rewards=None, fixed=None,
-                 optimizer=None, preconditioner='auto'):
+    def __init__(self, model: Callable, observed_data: jnp.ndarray | SparseObservations,
+                 prior: Prior | list[Prior | None] | DataPrior | None = None,
+                 n_particles: int | None = None,
+                 n_iterations: int = 700,
+                 learning_rate: float | StepSizeSchedule | None = None,
+                 bandwidth: str | float = 'median_per_dim',
+                 theta_init: jnp.ndarray | None = None,
+                 theta_dim: int | None = None,
+                 seed: int | None = None,
+                 verbose: bool = True,
+                 progress: bool = False,
+                 jit: bool | None = None,
+                 parallel: str | None = None,
+                 n_devices: int | None = None,
+                 precompile: bool = True,
+                 compilation_config: dict | str | None = None,
+                 positive_params: bool = True,
+                 param_transform: Callable | None = None,
+                 regularization: float | RegularizationSchedule = 0.0,
+                 nr_moments: int = 2,
+                 rewards: jnp.ndarray | None = None,
+                 fixed: dict | None = None,
+                 optimizer: Adam | SGDMomentum | RMSprop | Adagrad | OptaxOptimizer | None = None,
+                 preconditioner: str | _PreconditionerBase = 'auto') -> None:
 
         if n_particles is None:
             n_particles = 20 * theta_dim
@@ -4557,7 +4630,7 @@ class SVGD:
         # This allows caching for both regularized and non-regularized cases
         # Old behavior: if self.jit_enabled: self._precompile_model()
 
-    def _log_prob(self, theta):
+    def _log_prob(self, theta: jnp.ndarray) -> float:
         """
         Log probability function: log p(data|theta) + log p(theta)
 
@@ -4611,7 +4684,7 @@ class SVGD:
 
         return log_lik + log_pri
 
-    def _log_prob_regularized(self, theta, sample_moments, nr_moments, regularization):
+    def _log_prob_regularized(self, theta: jnp.ndarray, sample_moments: jnp.ndarray, nr_moments: int, regularization: float) -> float:
         """
         Regularized log probability with moment matching term.
 
@@ -4677,8 +4750,8 @@ class SVGD:
 
         return log_lik + log_pri - moment_penalty
 
-    def _log_prob_unified(self, theta, nr_moments=0, sample_moments=None,
-                         regularization=0.0, rewards=None):
+    def _log_prob_unified(self, theta: jnp.ndarray, nr_moments: int = 0, sample_moments: jnp.ndarray | None = None,
+                         regularization: float = 0.0, rewards: jnp.ndarray | None = None) -> float:
         """
         Unified log probability with optional moment regularization.
 
@@ -4828,8 +4901,8 @@ class SVGD:
             # No regularization: moments computed but not used
             return log_lik + log_pri
 
-    def _get_cache_path(self):
-        """Generate cache path for this model configuration"""
+    def _get_cache_path(self) -> pathlib.Path:
+        """Generate cache path for this model configuration."""
         # Create cache key from model id and shapes
         theta_shape = (self.theta_dim,)
         if self._sparse_format:
@@ -4845,7 +4918,7 @@ class SVGD:
 
         return cache_dir / f"compiled_svgd_{cache_hash}.pkl"
 
-    def _get_cache_key_unified(self, nr_moments, regularization, rewards=None):
+    def _get_cache_key_unified(self, nr_moments: int, regularization: float, rewards: tuple | None = None) -> str:
         """
         Generate cache key including regularization parameters.
 
@@ -4877,8 +4950,8 @@ class SVGD:
         cache_hash = hashlib.sha256(cache_key.encode()).hexdigest()[:16]
         return cache_hash
 
-    def _save_compiled(self, cache_path):
-        """Save compiled model and gradient to disk"""
+    def _save_compiled(self, cache_path: pathlib.Path) -> None:
+        """Save compiled model and gradient to disk."""
         try:
             with open(cache_path, 'wb') as f:
                 pickle.dump({
@@ -4892,8 +4965,8 @@ class SVGD:
             # Pickling JIT functions with closures often fails - this is expected
             pass
 
-    def _load_compiled(self, cache_path):
-        """Load compiled model and gradient from disk"""
+    def _load_compiled(self, cache_path: pathlib.Path) -> bool:
+        """Load compiled model and gradient from disk."""
         if cache_path.exists():
             try:
                 with open(cache_path, 'rb') as f:
@@ -4909,8 +4982,8 @@ class SVGD:
                 return False
         return False
 
-    def _precompile_model(self):
-        """Precompile model and gradient for known shapes"""
+    def _precompile_model(self) -> None:
+        """Precompile model and gradient for known shapes."""
         # Generate cache key
         theta_shape = (self.theta_dim,)
         if self._sparse_format:
@@ -4966,7 +5039,7 @@ class SVGD:
         }
         self._save_compiled(cache_path)
 
-    def _create_log_prob_fn_with_regularization(self, regularization_value):
+    def _create_log_prob_fn_with_regularization(self, regularization_value: float) -> Callable:
         """
         Create log_prob function with specific regularization value.
 
@@ -4991,7 +5064,7 @@ class SVGD:
             rewards=self.rewards 
         )
 
-    def _precompile_unified(self, nr_moments, sample_moments, regularization, rewards=None):
+    def _precompile_unified(self, nr_moments: int, sample_moments: jnp.ndarray | None, regularization: float, rewards: jnp.ndarray | None = None) -> Callable:
         """
         Precompile gradient for unified log_prob with given regularization settings.
 
@@ -5099,7 +5172,7 @@ class SVGD:
 
         return compiled_grad
 
-    def optimize(self, rewards=None, return_history=True):
+    def optimize(self, rewards: jnp.ndarray | None = None, return_history: bool = True) -> SVGD:
         """
         Run SVGD inference with optional moment-based regularization.
 
@@ -5353,7 +5426,7 @@ class SVGD:
         return self
 
 
-    def get_results(self):
+    def get_results(self) -> dict:
         """
         Get inference results as a dictionary.
 
@@ -5424,19 +5497,22 @@ class SVGD:
 
         return results
 
-    def map_estimate_from_particles(self, unconstrained=False):
+    def map_estimate_from_particles(self, unconstrained: bool = False) -> tuple[list, float]:
         """
         Find the MAP estimate from a set of particles by finding the particle
         with the highest log probability.
 
-        Args:
-            unconstrained : bool, default=False
-                If False, return constrained (model-space) parameter values.
-                If True, return unconstrained (optimization-space) values.
-                Only relevant when using parameter transformations.
+        Parameters
+        ----------
+        unconstrained : bool, default=False
+            If False, return constrained (model-space) parameter values.
+            If True, return unconstrained (optimization-space) values.
+            Only relevant when using parameter transformations.
 
-        Returns:
-            The particle with highest log probability
+        Returns
+        -------
+        tuple[list, float]
+            Tuple of (parameter values as list, log probability).
         """
         n_particles = self.particles.shape[0]
 
@@ -5463,21 +5539,26 @@ class SVGD:
         return map_particle.tolist(), log_probs[map_idx].item()
 
 
-    def map_estimate_with_optimization(self, n_steps=70, step_size=0.01, unconstrained=False):
+    def map_estimate_with_optimization(self, n_steps: int = 70, step_size: float = 0.01, unconstrained: bool = False) -> tuple[list, float]:
         """
         Refine MAP estimate by starting from the best particle and performing
         gradient ascent on the log probability.
 
-        Args:
-            n_steps: Number of optimization steps
-            step_size: Step size for gradient ascent
-            unconstrained : bool, default=False
-                If False, return constrained (model-space) parameter values.
-                If True, return unconstrained (optimization-space) values.
-                Only relevant when using parameter transformations.
+        Parameters
+        ----------
+        n_steps : int, default=70
+            Number of optimization steps.
+        step_size : float, default=0.01
+            Step size for gradient ascent.
+        unconstrained : bool, default=False
+            If False, return constrained (model-space) parameter values.
+            If True, return unconstrained (optimization-space) values.
+            Only relevant when using parameter transformations.
 
-        Returns:
-            The refined MAP estimate after optimization
+        Returns
+        -------
+        tuple[list, float]
+            Tuple of (refined parameter values as list, log probability).
         """
 
         print("Rewards not yet implemented")
@@ -5508,9 +5589,12 @@ class SVGD:
         return x.tolist(), log_prob_fn(x).item()
 
 
-    def plot_posterior(self, true_theta=None, param_names=None, bins=20,
-                      figsize=None, save_path=None, unconstrained=False, return_fig=False,
-                      ci_method='hpd', ci_level=0.95):
+    def plot_posterior(self, true_theta: jnp.ndarray | list | None = None,
+                      param_names: list[str] | None = None, bins: int = 20,
+                      figsize: tuple[float, float] | None = None,
+                      save_path: str | None = None,
+                      unconstrained: bool = False, return_fig: bool = False,
+                      ci_method: str = 'hpd', ci_level: float = 0.95):
         """
         Plot posterior distributions for each parameter.
 
@@ -5656,9 +5740,11 @@ class SVGD:
             plt.show()
 
 
-    def plot_trace(self, param_names=None, figsize=None,
-                   skip=0, max_particles=None, save_path=None, unconstrained=False,
-                   return_fig=False):
+    def plot_trace(self, param_names: list[str] | None = None,
+                   figsize: tuple[float, float] | None = None,
+                   skip: int = 0, max_particles: int | None = None,
+                   save_path: str | None = None, unconstrained: bool = False,
+                   return_fig: bool = False):
         """
         Plot trace plots showing particle evolution over iterations.
 
@@ -5776,8 +5862,9 @@ class SVGD:
         else:
             plt.show()
 
-    def plot_convergence(self, figsize=(7, 3), save_path=None, skip=0, unconstrained=False,
-                         return_fig=False):
+    def plot_convergence(self, figsize: tuple[float, float] = (7, 3),
+                         save_path: str | None = None, skip: int = 0,
+                         unconstrained: bool = False, return_fig: bool = False):
         """
         Plot convergence diagnostics showing mean and std over iterations.
 
@@ -5878,9 +5965,14 @@ class SVGD:
         else:
             plt.show()
 
-    def plot_ci(self, figsize=(7, 3), save_path=None, skip=0, unconstrained=False,
-                true_theta=None, ci=0.95, alpha=0.2, target=None, median=False,
-                return_fig=False, ci_method='hpd'):
+    def plot_ci(self, figsize: tuple[float, float] = (7, 3),
+                save_path: str | None = None, skip: int = 0,
+                unconstrained: bool = False,
+                true_theta: jnp.ndarray | list | None = None,
+                ci: float = 0.95, alpha: float = 0.2,
+                target: jnp.ndarray | list | None = None,
+                median: bool = False, return_fig: bool = False,
+                ci_method: str = 'hpd'):
         """
         Plot mean parameter trajectory with credible interval ribbon.
 
@@ -6112,8 +6204,8 @@ class SVGD:
     #     sns.despine(ax=ax)
 
 
-    def check_convergence(self, every=1, text=None, param_indices=None):
-        """Monitor convergence of SVGD by tracking statistics for n-dimensional parameters"""
+    def check_convergence(self, every: int = 1, text: str | list[str] | None = None, param_indices: list[int] | None = None) -> None:
+        """Monitor convergence of SVGD by tracking statistics for n-dimensional parameters."""
         mean_params = []
         std_params = []
         log_probs = []
@@ -6201,18 +6293,21 @@ class SVGD:
         plt.tight_layout()
 
 
-    def estimate_hdr(self, alpha=0.95):
+    def estimate_hdr(self, alpha: float = 0.95) -> tuple[jnp.ndarray, jnp.ndarray]:
         """
         Estimate the Highest Density Region (HDR) from particles.
-        
-        Args:
-            particles: Array of shape (n_particles, dim)
-            log_prob_fn: Function that computes log probability
-            alpha: Coverage probability (e.g., 0.95 for 95% HDR)
-        
-        Returns:
-            List of particles that are within the HDR
-            The log probability threshold that defines the HDR
+
+        Parameters
+        ----------
+        alpha : float, default=0.95
+            Coverage probability (e.g., 0.95 for 95% HDR).
+
+        Returns
+        -------
+        hdr_particles : array
+            Particles that are within the HDR.
+        threshold : float
+            The log probability threshold that defines the HDR.
         """
 
         log_prob_fn = partial(
@@ -6244,9 +6339,14 @@ class SVGD:
         return hdr_particles, threshold
 
 
-    def plot_hdr(self, alphas=[0.95, 0.5], idx=[0, 1], figsize=(5, 4), hexgrid=True, trim=True,
-                    n=15, margin=0.1, xlim=None, ylim=None, palette='viridis', pad=2,
-                    unconstrained=False, return_fig=False, show_hpd=False, hpd_alpha=0.95):
+    def plot_hdr(self, alphas: list[float] = [0.95, 0.5], idx: list[int] = [0, 1],
+                    figsize: tuple[float, float] = (5, 4), hexgrid: bool = True,
+                    trim: bool = True, n: int = 15, margin: float = 0.1,
+                    xlim: tuple[float, float] | None = None,
+                    ylim: tuple[float, float] | None = None,
+                    palette: str = 'viridis', pad: int = 2,
+                    unconstrained: bool = False, return_fig: bool = False,
+                    show_hpd: bool = False, hpd_alpha: float = 0.95):
         """Plot 2D highest-density region with optional marginal HPD bands.
 
         Displays a hex-grid log-likelihood heatmap and KDE-based HDR contours
@@ -6664,16 +6764,24 @@ class SVGD:
     #     svgd_plots.animate_parameter_pairs(self.history, **params)
 
 
-    def animate_parameter_pairs(self, param_pairs=None, true_params=None, 
-                            figsize=(15, 5), save_as_gif=None):
+    def animate_parameter_pairs(self, param_pairs: list[tuple[int, int]] | None = None,
+                            true_params: jnp.ndarray | list | None = None,
+                            figsize: tuple[float, float] = (15, 5),
+                            save_as_gif: str | None = None):
         """
-        Animate multiple parameter pairs simultaneously
-        
-        Args:
-            particle_history: array of shape (n_iterations, n_particles, n_dims)
-            param_pairs: list of tuples [(i1,j1), (i2,j2), ...] for parameter pairs to show
-            true_params: optional true parameter values
-            figsize: figure size
+        Animate multiple parameter pairs simultaneously.
+
+        Parameters
+        ----------
+        param_pairs : list of tuple[int, int], optional
+            Parameter pairs to show, e.g. [(0, 1), (2, 3)].
+            Defaults to consecutive pairs.
+        true_params : array_like, optional
+            True parameter values for comparison.
+        figsize : tuple, default=(15, 5)
+            Figure size (width, height).
+        save_as_gif : str, optional
+            Path to save animation as GIF.
         """
         n_dims = self.history.shape[2]
         
@@ -6761,7 +6869,7 @@ class SVGD:
     # Convergence Analysis and Diagnostics
     # ========================================================================
 
-    def _compute_particle_diversity(self, particles):
+    def _compute_particle_diversity(self, particles: jnp.ndarray) -> dict:
         """
         Compute particle diversity metrics.
 
@@ -6806,7 +6914,7 @@ class SVGD:
             'ess_ratio': float(ess_estimate / n_particles)
         }
 
-    def _detect_convergence_point(self, trajectory, window=50, threshold=0.01):
+    def _detect_convergence_point(self, trajectory: jnp.ndarray, window: int = 50, threshold: float = 0.01) -> int | None:
         """
         Detect iteration where trajectory converged.
 
@@ -6843,7 +6951,7 @@ class SVGD:
 
         return None
 
-    def _detect_variance_collapse(self, history_array):
+    def _detect_variance_collapse(self, history_array: jnp.ndarray) -> dict:
         """
         Detect if particles collapsed to same value (variance collapse).
 
@@ -6887,7 +6995,7 @@ class SVGD:
             'max_diversity': float(max_std)
         }
 
-    def _suggest_learning_rate(self, diagnostics):
+    def _suggest_learning_rate(self, diagnostics: dict) -> dict:
         """
         Suggest learning rate improvements based on diagnostics.
 
@@ -6953,7 +7061,7 @@ class SVGD:
                 'reason': 'Good convergence behavior'
             }
 
-    def _suggest_particles(self, diagnostics):
+    def _suggest_particles(self, diagnostics: dict) -> dict:
         """
         Suggest particle count based on diagnostics.
 
@@ -6993,7 +7101,7 @@ class SVGD:
                 'reason': 'Particle count is appropriate'
             }
 
-    def analyze_trace(self, burnin=None, verbose=True, return_dict=False):
+    def analyze_trace(self, burnin: int | None = None, verbose: bool = True, return_dict: bool = False) -> dict | None:
         """
         Analyze SVGD convergence and suggest parameter improvements.
 
@@ -7125,7 +7233,7 @@ class SVGD:
         if return_dict:
             return diagnostics
 
-    def _print_analysis_report(self, diag, space_label=""):
+    def _print_analysis_report(self, diag: dict, space_label: str = "") -> None:
         """Print formatted analysis report."""
 
         # Convergence status
@@ -7234,7 +7342,7 @@ class SVGD:
 
         # print("=" * 80)
 
-    def _print_optimizer_suggestion(self, diag):
+    def _print_optimizer_suggestion(self, diag: dict) -> None:
         """Print optimizer recommendation based on diagnostics."""
         # Detect oscillation by checking sign changes in gradient direction
         has_oscillation = False
@@ -7267,8 +7375,11 @@ class SVGD:
                 print(f"Optimizer: {opt_name} working well")
                 # print()
 
-    def plot_pairwise(self, true_theta=None, param_names=None,
-                     figsize=None, save_path=None, unconstrained=False, return_fig=False):
+    def plot_pairwise(self, true_theta: jnp.ndarray | list | None = None,
+                     param_names: list[str] | None = None,
+                     figsize: tuple[float, float] | None = None,
+                     save_path: str | None = None,
+                     unconstrained: bool = False, return_fig: bool = False):
         """
         Plot pairwise scatter plots for all parameter pairs.
 
@@ -7382,7 +7493,7 @@ class SVGD:
         else:
             plt.show()
 
-    def _validate_animation_params(self, skip):
+    def _validate_animation_params(self, skip: int) -> tuple:
         """Validate common animation parameters and import dependencies."""
         if not self.is_fitted:
             raise RuntimeError("Must call fit() before animating")
@@ -7408,7 +7519,7 @@ class SVGD:
                 "matplotlib is required for animation. Install with: pip install matplotlib"
             )
 
-    def _save_animation(self, anim, save_as_gif, save_as_mp4, interval):
+    def _save_animation(self, anim: object, save_as_gif: str | None, save_as_mp4: str | None, interval: int) -> None:
         """Save animation to file if requested."""
         if save_as_gif:
             try:
@@ -7426,7 +7537,7 @@ class SVGD:
             except Exception as e:
                 print(f"Warning: Could not save MP4: {e}")
 
-    def _return_animation_html(self, anim):
+    def _return_animation_html(self, anim: object) -> object:
         """Return animation as HTML for Jupyter display."""
         try:
             from IPython.display import HTML
@@ -7435,10 +7546,13 @@ class SVGD:
             print("Warning: IPython not available. Returning animation object.")
             return anim
 
-    def animate(self, param_idx=0, true_theta=None, param_name=None,
-                figsize=(8, 3), skip=0, thin=1, interval=100, duration=None, bins=30,
-                show_particles=True, max_particles=20,
-                save_as_gif=None, save_as_mp4=None, unconstrained=False):
+    def animate(self, param_idx: int = 0, true_theta: jnp.ndarray | list | None = None,
+                param_name: str | None = None,
+                figsize: tuple[float, float] = (8, 3), skip: int = 0, thin: int = 1,
+                interval: int = 100, duration: int | None = None, bins: int = 30,
+                show_particles: bool = True, max_particles: int = 20,
+                save_as_gif: str | None = None, save_as_mp4: str | None = None,
+                unconstrained: bool = False):
         """
         Create an animation showing the evolution of a single parameter's distribution.
 
@@ -7620,9 +7734,14 @@ class SVGD:
         self._save_animation(anim, save_as_gif, save_as_mp4, interval)
         return self._return_animation_html(anim)
 
-    def animate_pairwise(self, true_theta=None, param_names=None,
-                        figsize=None, skip=0, thin=1, interval=100, duration=None,
-                        save_as_gif=None, save_as_mp4=None, unconstrained=False):
+    def animate_pairwise(self, true_theta: jnp.ndarray | list | None = None,
+                        param_names: list[str] | None = None,
+                        figsize: tuple[float, float] | None = None,
+                        skip: int = 0, thin: int = 1, interval: int = 100,
+                        duration: int | None = None,
+                        save_as_gif: str | None = None,
+                        save_as_mp4: str | None = None,
+                        unconstrained: bool = False):
         """
         Create an animated pairwise scatter plot showing SVGD particle evolution.
 
@@ -7820,7 +7939,7 @@ class SVGD:
         return self._return_animation_html(anim)
 
 
-    def summary(self, ci_method='hpd', ci_level=0.95):
+    def summary(self, ci_method: str = 'hpd', ci_level: float = 0.95) -> None:
         """Print a summary of the inference results.
 
         Parameters

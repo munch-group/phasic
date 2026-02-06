@@ -9,12 +9,14 @@ Provides configurable optimization settings for JAX/XLA compilation with:
 - Pre-defined presets
 """
 
+from __future__ import annotations
+
+import json
+import multiprocessing
 import os
 import platform
-import multiprocessing
 from pathlib import Path
-from typing import Optional, Dict, Any, Union
-import json
+from typing import Any
 
 
 class CompilationConfig:
@@ -100,16 +102,16 @@ class CompilationConfig:
 
     def __init__(
         self,
-        cache_dir: Optional[Union[Path, str]] = None,
-        shared_cache_dir: Optional[Union[Path, str]] = None,
+        cache_dir: Path | str | None = None,
+        shared_cache_dir: Path | str | None = None,
         optimization_level: int = 2,
         parallel_compile: bool = True,
         min_cache_time: float = 1.0,
         enable_x64: bool = True,
         platform: str = 'cpu',
-        cpu_threads: Optional[int] = None,
+        cpu_threads: int | None = None,
         cache_strategy: str = 'local'
-    ):
+    ) -> None:
         self.cache_dir = Path(cache_dir) if cache_dir else Path.home() / '.jax_cache'
         self.shared_cache_dir = Path(shared_cache_dir) if shared_cache_dir else None
         self.optimization_level = optimization_level
@@ -128,7 +130,13 @@ class CompilationConfig:
 
     @staticmethod
     def _get_performance_cores() -> int:
-        """Get number of performance cores on Apple Silicon, or total CPUs otherwise"""
+        """Get number of performance cores on Apple Silicon, or total CPUs otherwise.
+
+        Returns
+        -------
+        int
+            Number of performance cores available.
+        """
         try:
             # Check if we're on Apple Silicon
             if platform.system() == 'Darwin' and platform.machine() == 'arm64':
@@ -205,8 +213,14 @@ class CompilationConfig:
         # Create cache directory if it doesn't exist
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
-    def as_dict(self) -> Dict[str, Any]:
-        """Export configuration as dictionary"""
+    def as_dict(self) -> dict[str, Any]:
+        """Export configuration as a serializable dictionary.
+
+        Returns
+        -------
+        dict[str, Any]
+            Configuration values keyed by parameter name.
+        """
         return {
             'cache_dir': str(self.cache_dir),
             'shared_cache_dir': str(self.shared_cache_dir) if self.shared_cache_dir else None,
@@ -219,7 +233,7 @@ class CompilationConfig:
             'cache_strategy': self.cache_strategy
         }
 
-    def save_to_file(self, path: Union[Path, str]) -> None:
+    def save_to_file(self, path: Path | str) -> None:
         """
         Save configuration to JSON file.
 
@@ -240,7 +254,7 @@ class CompilationConfig:
             json.dump(self.as_dict(), f, indent=2)
 
     @classmethod
-    def load_from_file(cls, path: Union[Path, str]) -> 'CompilationConfig':
+    def load_from_file(cls, path: Path | str) -> CompilationConfig:
         """
         Load configuration from JSON file.
 
@@ -267,7 +281,7 @@ class CompilationConfig:
         return cls(**data)
 
     @classmethod
-    def fast_compile(cls) -> 'CompilationConfig':
+    def fast_compile(cls) -> CompilationConfig:
         """
         Preset for fast compilation (prioritize compile speed).
 
@@ -293,7 +307,7 @@ class CompilationConfig:
         )
 
     @classmethod
-    def balanced(cls) -> 'CompilationConfig':
+    def balanced(cls) -> CompilationConfig:
         """
         Preset for balanced compile/runtime performance (default).
 
@@ -319,7 +333,7 @@ class CompilationConfig:
         )
 
     @classmethod
-    def max_performance(cls) -> 'CompilationConfig':
+    def max_performance(cls) -> CompilationConfig:
         """
         Preset for maximum runtime performance.
 
@@ -366,7 +380,14 @@ _default_config = None
 
 
 def get_default_config() -> CompilationConfig:
-    """Get the global default compilation configuration"""
+    """Get the global default compilation configuration.
+
+    Returns
+    -------
+    CompilationConfig
+        The current global default configuration. Creates a balanced
+        preset on first access.
+    """
     global _default_config
     if _default_config is None:
         _default_config = CompilationConfig.balanced()
@@ -374,6 +395,12 @@ def get_default_config() -> CompilationConfig:
 
 
 def set_default_config(config: CompilationConfig) -> None:
-    """Set the global default compilation configuration"""
+    """Set the global default compilation configuration.
+
+    Parameters
+    ----------
+    config : CompilationConfig
+        The configuration to use as the global default.
+    """
     global _default_config
     _default_config = config

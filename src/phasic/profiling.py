@@ -5,52 +5,59 @@ Functions for analyzing pstats.Stats objects from Graph.svgd() calls
 to understand computation vs JAX overhead distribution.
 """
 
+from __future__ import annotations
+
 import pstats
-from typing import Dict, List, Tuple, Optional
 import re
 
 
 def analyze_svgd_profile(stats: pstats.Stats,
                          top_n: int = 20,
-                         print_report: bool = True) -> Dict:
-    """
-    Analyze profiling data from Graph.svgd() to show computation vs JAX overhead.
+                         print_report: bool = True) -> dict[str, object]:
+    """Analyze profiling data from Graph.svgd() to show computation vs JAX overhead.
 
     This function categorizes function calls into:
+
     - Core computation (model evaluation, gradient computation)
     - JAX overhead (JIT compilation, dispatch, tracing)
     - SVGD algorithm (kernel, updates, particles)
     - Other overhead
 
-    Args:
-        stats: pstats.Stats object from profiling a Graph.svgd() call
-        top_n: Number of top functions to show in each category
-        print_report: If True, print a formatted report to stdout
+    Parameters
+    ----------
+    stats : pstats.Stats
+        Stats object from profiling a ``Graph.svgd()`` call.
+    top_n : int, optional
+        Number of top functions to show in each category. Default: 20.
+    print_report : bool, optional
+        If ``True``, print a formatted report to stdout. Default: ``True``.
 
-    Returns:
+    Returns
+    -------
+    dict[str, object]
         Dictionary with keys:
-            - 'total_time': Total cumulative time
-            - 'computation_pct': Percentage spent on core computation
-            - 'jax_overhead_pct': Percentage spent on JAX operations
-            - 'svgd_pct': Percentage spent on SVGD algorithm
-            - 'other_pct': Percentage spent on other operations
-            - 'categories': Dict mapping category name to list of (function, time, pct)
-            - 'jax_breakdown': Detailed breakdown of JAX overhead types
 
-    Example:
-        >>> import cProfile
-        >>> import pstats
-        >>> from phasic import Graph
-        >>>
-        >>> # Profile SVGD
-        >>> profiler = cProfile.Profile()
-        >>> profiler.enable()
-        >>> results = Graph.svgd(model, data, theta_dim=2, n_iterations=100)
-        >>> profiler.disable()
-        >>>
-        >>> # Analyze
-        >>> stats = pstats.Stats(profiler)
-        >>> analysis = analyze_svgd_profile(stats)
+        - ``'total_time'``: Total cumulative time.
+        - ``'computation_pct'``: Percentage spent on core computation.
+        - ``'jax_overhead_pct'``: Percentage spent on JAX operations.
+        - ``'svgd_pct'``: Percentage spent on SVGD algorithm.
+        - ``'other_pct'``: Percentage spent on other operations.
+        - ``'categories'``: Dict mapping category name to list of function dicts.
+        - ``'jax_breakdown'``: Detailed breakdown of JAX overhead types.
+
+    Examples
+    --------
+    >>> import cProfile
+    >>> import pstats
+    >>> from phasic import Graph
+    >>>
+    >>> profiler = cProfile.Profile()
+    >>> profiler.enable()
+    >>> results = Graph.svgd(model, data, theta_dim=2, n_iterations=100)
+    >>> profiler.disable()
+    >>>
+    >>> stats = pstats.Stats(profiler)
+    >>> analysis = analyze_svgd_profile(stats)
     """
 
     # Extract function statistics
@@ -418,37 +425,41 @@ def analyze_svgd_profile(stats: pstats.Stats,
     return result
 
 
-def profile_svgd(model, observed_data, **svgd_kwargs):
-    """
-    Convenience function to profile a Graph.svgd() call.
+def profile_svgd(model: object, observed_data: object, **svgd_kwargs: object) -> tuple[object, dict[str, object]]:
+    """Profile a ``Graph.svgd()`` call and return results with analysis.
 
-    Args:
-        model: JAX-compatible model function
-        observed_data: Observed data for inference
-        **svgd_kwargs: Keyword arguments to pass to Graph.svgd()
+    Parameters
+    ----------
+    model : callable
+        JAX-compatible model function.
+    observed_data : array_like
+        Observed data for inference.
+    **svgd_kwargs
+        Keyword arguments forwarded to ``Graph.svgd()``.
 
-    Returns:
-        Tuple of (svgd_results, profile_analysis)
+    Returns
+    -------
+    tuple[object, dict[str, object]]
+        A 2-tuple of ``(svgd_results, profile_analysis)``.
 
-    Example:
-        >>> from phasic import Graph
-        >>> from phasic.profiling import profile_svgd
-        >>>
-        >>> # Build model
-        >>> graph = build_my_model()
-        >>> model = Graph.pmf_from_graph(graph, discrete=False)
-        >>>
-        >>> # Profile SVGD
-        >>> results, analysis = profile_svgd(
-        ...     model,
-        ...     observed_data,
-        ...     theta_dim=2,
-        ...     n_particles=100,
-        ...     n_iterations=200
-        ... )
-        >>>
-        >>> print(f"Computation: {analysis['computation_pct']:.1f}%")
-        >>> print(f"JAX overhead: {analysis['jax_overhead_pct']:.1f}%")
+    Examples
+    --------
+    >>> from phasic import Graph
+    >>> from phasic.profiling import profile_svgd
+    >>>
+    >>> graph = build_my_model()
+    >>> model = Graph.pmf_from_graph(graph, discrete=False)
+    >>>
+    >>> results, analysis = profile_svgd(
+    ...     model,
+    ...     observed_data,
+    ...     theta_dim=2,
+    ...     n_particles=100,
+    ...     n_iterations=200
+    ... )
+    >>>
+    >>> print(f"Computation: {analysis['computation_pct']:.1f}%")
+    >>> print(f"JAX overhead: {analysis['jax_overhead_pct']:.1f}%")
     """
     import cProfile
     from ..import Graph

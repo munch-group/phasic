@@ -30,6 +30,10 @@ Example
 >>> svgd = SVGD(model=model, observed_data=data, theta_dim=2, optimizer=optimizer)
 """
 
+from __future__ import annotations
+
+from typing import Any
+
 try:
     import optax
     HAS_OPTAX = True
@@ -71,7 +75,7 @@ class OptaxOptimizer:
     ... ))
     """
 
-    def __init__(self, optax_optimizer):
+    def __init__(self, optax_optimizer: Any) -> None:
         """Initialize wrapper with an Optax optimizer.
 
         Parameters
@@ -95,30 +99,44 @@ class OptaxOptimizer:
         self._params = None  # Track params for optimizers that need them (e.g., adamw)
 
     @property
-    def lr(self):
+    def lr(self) -> float | None:
         """Current learning rate (for display/logging).
 
-        Note: This is approximate for Optax optimizers with schedules,
+        Returns
+        -------
+        float or None
+            The current learning rate. Returns ``None`` for Optax optimizers
+            since Optax manages learning rate internally.
+
+        Notes
+        -----
+        This is approximate for Optax optimizers with schedules,
         as Optax handles learning rate internally.
         """
         # Optax doesn't expose learning rate directly; return placeholder
         return None
 
     @property
-    def t(self):
-        """Current timestep."""
+    def t(self) -> int:
+        """Current timestep.
+
+        Returns
+        -------
+        int
+            Number of optimization steps taken so far.
+        """
         return self._t
 
-    def reset(self, shape, params=None):
+    def reset(self, shape: tuple[int, ...], params: Any = None) -> None:
         """Initialize optimizer state for given particle shape.
 
         Called at the start of optimization to initialize the Optax state.
 
         Parameters
         ----------
-        shape : tuple
+        shape : tuple[int, ...]
             Shape of particles array (n_particles, theta_dim).
-        params : array, optional
+        params : jax.Array or None, optional
             Initial parameter values. If provided, used for optimizers
             that need current params (e.g., adamw for weight decay).
         """
@@ -129,23 +147,25 @@ class OptaxOptimizer:
         self.state = self.optimizer.init(params)
         self._t = 0
 
-    def step(self, phi, params=None, particles=None):
+    def step(self, phi: Any, params: Any = None, particles: Any = None) -> Any:
         """Compute update using Optax optimizer.
 
         Parameters
         ----------
-        phi : array (n_particles, theta_dim)
-            SVGD gradient direction: (K @ grad_log_p + sum(grad_K)) / n_particles
-        params : array, optional
+        phi : jax.Array
+            SVGD gradient direction of shape ``(n_particles, theta_dim)``:
+            ``(K @ grad_log_p + sum(grad_K)) / n_particles``.
+        params : jax.Array or None, optional
             Current parameter values. Required for optimizers with weight decay
             (e.g., adamw). If not provided, uses internally tracked params.
-        particles : array, optional
+        particles : jax.Array or None, optional
             Alias for params, for compatibility with phasic optimizer interface.
 
         Returns
         -------
-        update : array (n_particles, theta_dim)
-            Scaled update to add to particles.
+        jax.Array
+            Scaled update of shape ``(n_particles, theta_dim)`` to add to
+            particles.
         """
         self._t += 1
         if params is None:
@@ -165,7 +185,7 @@ class OptaxOptimizer:
 
 # Convenience factory functions
 
-def optax_adam(learning_rate=0.001, b1=0.9, b2=0.999, eps=1e-8):
+def optax_adam(learning_rate: float = 0.001, b1: float = 0.9, b2: float = 0.999, eps: float = 1e-8) -> OptaxOptimizer:
     """Create Optax Adam optimizer wrapped for phasic.
 
     Parameters
@@ -196,7 +216,7 @@ def optax_adam(learning_rate=0.001, b1=0.9, b2=0.999, eps=1e-8):
     return OptaxOptimizer(optax.adam(learning_rate, b1, b2, eps))
 
 
-def optax_adamw(learning_rate=0.001, b1=0.9, b2=0.999, eps=1e-8, weight_decay=0.01):
+def optax_adamw(learning_rate: float = 0.001, b1: float = 0.9, b2: float = 0.999, eps: float = 1e-8, weight_decay: float = 0.01) -> OptaxOptimizer:
     """Create Optax AdamW optimizer wrapped for phasic.
 
     AdamW implements Adam with decoupled weight decay regularization,
@@ -227,7 +247,7 @@ def optax_adamw(learning_rate=0.001, b1=0.9, b2=0.999, eps=1e-8, weight_decay=0.
     return OptaxOptimizer(optax.adamw(learning_rate, b1, b2, eps, weight_decay=weight_decay))
 
 
-def optax_sgd(learning_rate=0.01, momentum=0.0, nesterov=False):
+def optax_sgd(learning_rate: float = 0.01, momentum: float = 0.0, nesterov: bool = False) -> OptaxOptimizer:
     """Create Optax SGD optimizer wrapped for phasic.
 
     Parameters
@@ -251,7 +271,7 @@ def optax_sgd(learning_rate=0.01, momentum=0.0, nesterov=False):
     return OptaxOptimizer(optax.sgd(learning_rate, momentum, nesterov))
 
 
-def optax_rmsprop(learning_rate=0.001, decay=0.9, eps=1e-8, momentum=0.0):
+def optax_rmsprop(learning_rate: float = 0.001, decay: float = 0.9, eps: float = 1e-8, momentum: float = 0.0) -> OptaxOptimizer:
     """Create Optax RMSprop optimizer wrapped for phasic.
 
     Parameters
@@ -277,7 +297,7 @@ def optax_rmsprop(learning_rate=0.001, decay=0.9, eps=1e-8, momentum=0.0):
     return OptaxOptimizer(optax.rmsprop(learning_rate, decay, eps, momentum=momentum))
 
 
-def optax_adagrad(learning_rate=0.01, initial_accumulator_value=0.1, eps=1e-7):
+def optax_adagrad(learning_rate: float = 0.01, initial_accumulator_value: float = 0.1, eps: float = 1e-7) -> OptaxOptimizer:
     """Create Optax Adagrad optimizer wrapped for phasic.
 
     Parameters
@@ -301,7 +321,7 @@ def optax_adagrad(learning_rate=0.01, initial_accumulator_value=0.1, eps=1e-7):
     return OptaxOptimizer(optax.adagrad(learning_rate, initial_accumulator_value, eps))
 
 
-def optax_chain(*transforms):
+def optax_chain(*transforms: Any) -> OptaxOptimizer:
     """Create chained Optax transforms wrapped for phasic.
 
     This allows combining multiple gradient transformations, such as
@@ -346,7 +366,7 @@ def optax_chain(*transforms):
     return OptaxOptimizer(optax.chain(*transforms))
 
 
-def optax_lion(learning_rate=1e-4, b1=0.9, b2=0.99, weight_decay=0.0):
+def optax_lion(learning_rate: float = 1e-4, b1: float = 0.9, b2: float = 0.99, weight_decay: float = 0.0) -> OptaxOptimizer:
     """Create Optax Lion optimizer wrapped for phasic.
 
     Lion (Evolved Sign Momentum) is a memory-efficient optimizer discovered

@@ -50,8 +50,10 @@ Example
 >>> indexer.index_to_props(5)  # {'descendants': 5}
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, make_dataclass
-from typing import Any, Dict, List, Optional, Union, Self
+from typing import Any, Self
 import numpy as np
 import numpy.typing as npt
 
@@ -227,7 +229,7 @@ class PropertySet:
     ----------
     name : str
         Name of this property set (e.g., 'lineage', 'metadata')
-    properties : List[Property]
+    properties : list[Property]
         List of properties defining the state space, in order from least to
         most significant
 
@@ -235,9 +237,9 @@ class PropertySet:
     ----------
     name : str
         PropertySet name
-    properties : List[Property]
+    properties : list[Property]
         Property definitions
-    property_dict : Dict[str, Property]
+    property_dict : dict[str, Property]
         Property lookup by name
     state_length : int
         Total number of states in this property set
@@ -257,7 +259,7 @@ class PropertySet:
     >>> assert idx == 15
     """
 
-    def __init__(self, name: str, properties: List[Property]) -> None:
+    def __init__(self, name: str, properties: list[Property]) -> None:
         """
         Initialize property set with name and property definitions.
 
@@ -297,10 +299,10 @@ class PropertySet:
 
     def index_to_props(
         self,
-        index: Union[int, npt.NDArray[np.integer]],
+        index: int | npt.NDArray[np.integer],
         as_dict: bool = False,
         as_values: bool = False
-    ) -> Union[Dict[str, int], List[Dict[str, int]], npt.NDArray[np.integer], object, List[object]]:
+    ) -> dict[str, int] | list[dict[str, int]] | npt.NDArray[np.integer] | object | list[object]:
         """
         Convert linear index to property values.
 
@@ -419,17 +421,15 @@ class PropertySet:
             )
             return PropsClass(**decoded_values)
 
-    def i2p(self, *args, **kwargs):
-        """
-        Alias for index_to_props.
-        """
+    def i2p(self, *args: Any, **kwargs: Any) -> dict[str, int] | list[dict[str, int]] | npt.NDArray[np.integer] | object | list[object]:
+        """Alias for :meth:`index_to_props`."""
         return self.index_to_props(*args, **kwargs)
 
     def props_to_index(
         self,
-        props: Union[Dict[str, int], npt.NDArray[np.integer], None] = None,
+        props: dict[str, int] | npt.NDArray[np.integer] | None = None,
         **kwargs: int
-    ) -> Union[int, npt.NDArray[np.integer]]:
+    ) -> int | npt.NDArray[np.integer]:
         """
         Convert property values to linear index.
 
@@ -576,10 +576,8 @@ class PropertySet:
 
         return matching_indices
 
-    def p2i(self, *args, **kwargs):
-        """
-        Alias for props_to_index.
-        """
+    def p2i(self, *args: Any, **kwargs: Any) -> int | npt.NDArray[np.integer]:
+        """Alias for :meth:`props_to_index`."""
         return self.props_to_index(*args, **kwargs)
 
     def __iter__(self):
@@ -680,12 +678,12 @@ class StateIndexer:
     *slot_names : str
         Positional slot names (each occupies exactly 1 index).
         Accessible as attributes returning int indices.
-    property_sets : List[PropertySet] or List[Property], optional
+    property_sets : list[PropertySet] | list[Property] | None
         Either a list of PropertySet objects or a list of Property objects
         (which creates a single 'default' PropertySet for backward compatibility)
-    slots : List[str] or List[Slot], optional
+    slots : list[str] | list[Slot] | None
         List of slot names or Slot objects (backward compatibility)
-    **named_property_lists : dict
+    **named_property_lists : list[Property]
         Keyword arguments mapping PropertySet names to lists of Property objects
 
     Attributes
@@ -733,10 +731,10 @@ class StateIndexer:
     def __init__(
         self,
         *slot_names: str,
-        property_sets: Optional[Union[List[PropertySet], List[Property]]] = None,
-        slots: Optional[Union[List[str], List[Slot]]] = None,
-        **named_property_lists
-    ):
+        property_sets: list[PropertySet] | list[Property] | None = None,
+        slots: list[str] | list[Slot] | None = None,
+        **named_property_lists: list[Property]
+    ) -> None:
         """
         Create StateIndexer with named property sets and slots.
 
@@ -745,11 +743,11 @@ class StateIndexer:
         *slot_names : str
             Positional slot names (each occupies exactly 1 index).
             Accessible as attributes returning int indices.
-        property_sets : List[PropertySet] or List[Property], optional
+        property_sets : list[PropertySet] | list[Property] | None
             Either a list of PropertySet objects or a list of Property objects
-        slots : List[str] or List[Slot], optional
+        slots : list[str] | list[Slot] | None
             List of slot names or Slot objects (backward compatibility)
-        **named_property_lists : dict
+        **named_property_lists : list[Property]
             Keyword arguments mapping names to Property lists
 
         Raises
@@ -870,14 +868,27 @@ class StateIndexer:
         # Create and cache result class for index_to_props
         object.__setattr__(self, '_result_class', self._create_result_class())
 
-    def property_sets(self) -> List[PropertySet]:
+    def property_sets(self) -> list[PropertySet]:
+        """Return all PropertySets in insertion order.
+
+        Returns
+        -------
+        list[PropertySet]
+            PropertySet objects in the order they were added.
+        """
         return [self._property_sets[name] for name in self._pset_order]
-    
-    def slots(self) -> List[Slot]:
+
+    def slots(self) -> list[Slot]:
+        """Return all Slots in insertion order.
+
+        Returns
+        -------
+        list[Slot]
+            Slot objects in the order they were added.
+        """
         return [self._slots[name] for name in self._slot_order]
 
-
-    def _create_result_class(self):
+    def _create_result_class(self) -> type:
         """
         Create dynamic dataclass for index_to_props results.
 
@@ -905,7 +916,7 @@ class StateIndexer:
         """Access PropertySet by name using indexer['name']."""
         return self._property_sets[name]
 
-    def __getattr__(self, name: str) -> Union[PropertySet, int]:
+    def __getattr__(self, name: str) -> PropertySet | int:
         """
         Access PropertySet or Slot by name using indexer.name.
 
@@ -924,7 +935,7 @@ class StateIndexer:
             return self._offsets[name]
         raise AttributeError(f"No PropertySet or Slot named '{name}'")
 
-    def __setattr__(self, name: str, value):
+    def __setattr__(self, name: str, value: Any) -> None:
         """Prevent setting attributes that conflict with PropertySet or Slot names."""
         if hasattr(self, '_property_sets') and name in self._property_sets:
             raise AttributeError(f"Cannot modify PropertySet '{name}' via attribute assignment")
@@ -932,7 +943,7 @@ class StateIndexer:
             raise AttributeError(f"Cannot modify Slot '{name}' via attribute assignment")
         object.__setattr__(self, name, value)
 
-    def __dir__(self):
+    def __dir__(self) -> list[str]:
         """Include PropertySet and Slot names in dir() output for autocomplete."""
         return list(super().__dir__()) + list(self._property_sets.keys()) + list(self._slots.keys())
 
@@ -986,9 +997,9 @@ class StateIndexer:
 
     def _detect_property_set(
         self,
-        props: Union[Dict[str, int], npt.NDArray[np.integer]],
+        props: dict[str, int] | npt.NDArray[np.integer],
         raise_on_ambiguous: bool = False
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Auto-detect PropertySet from property names.
 
@@ -1073,7 +1084,7 @@ class StateIndexer:
             return None
 
     @property
-    def index_ranges(self) -> Dict[str, tuple[int, int]]:
+    def index_ranges(self) -> dict[str, tuple[int, int]]:
         """
         Get index range for each PropertySet and Slot in concatenated space.
 
@@ -1104,7 +1115,7 @@ class StateIndexer:
         return ranges
 
     # Index decomposition/composition (concatenated index space)
-    def _decompose_index(self, index: int) -> tuple[str, Union[int, None]]:
+    def _decompose_index(self, index: int) -> tuple[str, int | None]:
         """
         Decompose concatenated index into PropertySet/Slot name and local index.
 
@@ -1160,7 +1171,7 @@ class StateIndexer:
         # Should never reach here if bounds check passed
         raise RuntimeError(f"Failed to decompose index {index}")
 
-    def _compose_index(self, name: str, local_index: Optional[int] = None) -> int:
+    def _compose_index(self, name: str, local_index: int | None = None) -> int:
         """
         Compose concatenated index from PropertySet/Slot name and local index.
 
@@ -1218,11 +1229,11 @@ class StateIndexer:
 
     def index_to_props(
         self,
-        index: Union[int, npt.NDArray[np.integer]],
+        index: int | npt.NDArray[np.integer],
         as_dict: bool = False,
         as_values: bool = False,
         flatten: bool = False
-    ) -> Union[object, List[object]]:
+    ) -> object | list[object]:
         """
         Convert index to property values or slot indicator.
 
@@ -1352,16 +1363,14 @@ class StateIndexer:
 
         return self._result_class(**field_values)
 
-    def i2p(self, *args, **kwargs):
-        """
-        Alias for index_to_props.
-        """
+    def i2p(self, *args: Any, **kwargs: Any) -> object | list[object]:
+        """Alias for :meth:`index_to_props`."""
         return self.index_to_props(*args, **kwargs)
 
     def props_to_index(
         self,
-        pset_name: Union[str, Dict[str, int], npt.NDArray[np.integer], None] = None,
-        props: Union[Dict[str, int], npt.NDArray[np.integer], None] = None,
+        pset_name: str | dict[str, int] | npt.NDArray[np.integer] | None = None,
+        props: dict[str, int] | npt.NDArray[np.integer] | None = None,
         **kwargs: int
     ) -> int:
         """
@@ -1481,13 +1490,11 @@ class StateIndexer:
         local_index = self._property_sets[actual_pset_name].props_to_index(actual_props, **kwargs)
         return self._compose_index(actual_pset_name, local_index)
 
-    def p2i(self, *args, **kwargs):
-        """
-        Alias for props_to_index.
-        """
+    def p2i(self, *args: Any, **kwargs: Any) -> int:
+        """Alias for :meth:`props_to_index`."""
         return self.props_to_index(*args, **kwargs)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Stable string representation of StateIndexer for caching.
 
@@ -1511,7 +1518,7 @@ class StateIndexer:
 
         return f"StateIndexer({', '.join(components)})"
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         """
         Stable hash for StateIndexer based on structure.
 
@@ -1540,7 +1547,7 @@ class StateIndexer:
 
         return hash(tuple(hash_components))
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         """
         Equality check based on structure, not identity.
 
@@ -1577,7 +1584,8 @@ class StateIndexer:
         return True
 
 
-    def __iter__(self):
+    def __iter__(self) -> Any:
+        """Iterate over all indices in the concatenated state space."""
         return iter(range(self.state_length))
 
     def indices(self) -> np.ndarray:
@@ -1599,7 +1607,7 @@ class StateIndexer:
         """
         return np.arange(self.state_length)
 
-    def append(self, other: 'StateIndexer', prefix_other: Optional[str] = None) -> 'StateIndexer':
+    def append(self, other: StateIndexer, prefix_other: str | None = None) -> StateIndexer:
         """
         Create new StateIndexer by appending another's PropertySets and Slots.
 
@@ -1703,7 +1711,7 @@ class StateIndexer:
         # Reconstruct using from_dict
         return StateIndexer.from_dict(merged)
 
-    def __add__(self, other: 'StateIndexer') -> 'StateIndexer':
+    def __add__(self, other: StateIndexer) -> StateIndexer:
         """
         Combine two StateIndexers using the + operator.
 
@@ -1739,7 +1747,7 @@ class StateIndexer:
         """
         return self.append(other)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """
         Serialize StateIndexer to JSON-compatible dict.
 
@@ -1783,7 +1791,7 @@ class StateIndexer:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> Self:
+    def from_dict(cls, data: dict[str, Any]) -> Self:
         """
         Reconstruct StateIndexer from serialized dict.
 
@@ -1882,8 +1890,8 @@ class StateVector:
     def __init__(
         self,
         state_indexer: StateIndexer,
-        indices: Optional[Dict[str, int]] = None,
-        state: Optional[Dict[str, Dict[str, int]]] = None
+        indices: dict[str, int] | None = None,
+        state: dict[str, dict[str, int]] | None = None
     ) -> None:
         """
         Initialize state vector from indices or state.
@@ -1923,7 +1931,7 @@ class StateVector:
         else:
             raise ValueError("Must specify either indices or state")
 
-    def __getitem__(self, key: Union[str, tuple]):
+    def __getitem__(self, key: str | tuple[str, str]) -> Any:
         """
         Access using indexer syntax: state['lineage'] or state['lineage', 'descendants'].
 
@@ -1943,9 +1951,8 @@ class StateVector:
         else:
             return self._state[key]
 
-    def __getattr__(self, name: str):
-        """
-        Access using attribute syntax: state.lineage or state.descendants.
+    def __getattr__(self, name: str) -> Any:
+        """Access using attribute syntax: state.lineage or state.descendants.
 
         For PropertySet names, returns the PropertyDict.
         For property names, searches all PropertySets (must be unique).
@@ -1953,17 +1960,17 @@ class StateVector:
         Parameters
         ----------
         name : str
-            PropertySet or property name
+            PropertySet or property name.
 
         Returns
         -------
-        PropertyDict or int
-            PropertyDict if PropertySet name, int if property name
+        PropertyDict | int
+            PropertyDict if PropertySet name, int if property name.
 
         Raises
         ------
         AttributeError
-            If name not found or is ambiguous
+            If name not found or is ambiguous.
         """
         if name.startswith('_'):
             raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
@@ -1990,7 +1997,7 @@ class StateVector:
 
         raise AttributeError(f"No PropertySet or property named '{name}'")
 
-    def __setattr__(self, name: str, value):
+    def __setattr__(self, name: str, value: Any) -> None:
         """Prevent direct attribute assignment (use update methods instead)."""
         if name.startswith('_') or name in ('state_indexer',):
             object.__setattr__(self, name, value)
@@ -2000,7 +2007,7 @@ class StateVector:
                 f"Use state.lineage.prop_name = value and call update_indices()"
             )
 
-    def __dir__(self):
+    def __dir__(self) -> list[str]:
         """Include PropertySet and property names for autocomplete."""
         base_attrs = list(super().__dir__())
         pset_names = list(self._state.keys())
@@ -2015,7 +2022,7 @@ class StateVector:
         return base_attrs + pset_names + unique_props
 
     @property
-    def indices(self) -> Dict[str, int]:
+    def indices(self) -> dict[str, int]:
         """
         Get current indices.
 
@@ -2027,7 +2034,7 @@ class StateVector:
         return self._indices.copy()
 
     @property
-    def state(self) -> Dict[str, Dict[str, int]]:
+    def state(self) -> dict[str, dict[str, int]]:
         """
         Get current full state.
 
@@ -2038,7 +2045,7 @@ class StateVector:
         """
         return {k: dict(v) for k, v in self._state.items()}
 
-    def update_indices(self):
+    def update_indices(self) -> None:
         """
         Recompute indices from current state.
 
@@ -2050,7 +2057,7 @@ class StateVector:
             self.state_indexer.state_to_indices(self._state)
         )
 
-    def copy(self) -> 'StateVector':
+    def copy(self) -> StateVector:
         """
         Create a copy of this state vector.
 
@@ -2099,7 +2106,7 @@ class StateSpace(PropertySet):
     11
     """
 
-    def __init__(self, properties: List[Property], name: str = 'default') -> None:
+    def __init__(self, properties: list[Property], name: str = 'default') -> None:
         """
         Initialize StateSpace (backward compatibility).
 

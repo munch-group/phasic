@@ -7,10 +7,14 @@ the updated state back, making isolated cells contribute to the notebook scope.
 Usage:
     %%srun
     # Your code here - behaves like a normal cell but runs in subprocess
-    
+
     %%srun --no-state
     # Run truly isolated without state transfer
 """
+
+from __future__ import annotations
+
+from typing import Any
 
 import ast
 import subprocess
@@ -28,8 +32,20 @@ import numpy as np
 import pandas as pd
 
 
-def extract_imports_from_code(code):
-    """Extract import statements from Python code."""
+def extract_imports_from_code(code: str) -> list[str]:
+    """
+    Extract import statements from Python code.
+
+    Parameters
+    ----------
+    code : str
+        Python source code to parse.
+
+    Returns
+    -------
+    list[str]
+        List of import statement strings found in the code.
+    """
     imports = []
     
     try:
@@ -49,8 +65,20 @@ def extract_imports_from_code(code):
     return imports
 
 
-def get_all_previous_imports(ipython):
-    """Collect all import statements from cells executed before the current one."""
+def get_all_previous_imports(ipython: Any) -> list[str]:
+    """
+    Collect all import statements from cells executed before the current one.
+
+    Parameters
+    ----------
+    ipython : Any
+        The active IPython interactive shell instance.
+
+    Returns
+    -------
+    list[str]
+        De-duplicated list of import statement strings from earlier cells.
+    """
     all_imports = []
     seen_imports = set()
     
@@ -69,10 +97,21 @@ def get_all_previous_imports(ipython):
     return all_imports
 
 
-def serialize_globals(globals_dict):
+def serialize_globals(globals_dict: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]]:
     """
     Serialize the globals dictionary for transfer to subprocess.
-    Returns (serializable_dict, failed_items).
+
+    Parameters
+    ----------
+    globals_dict : dict[str, Any]
+        The namespace dictionary to serialize (typically ``user_ns``).
+
+    Returns
+    -------
+    tuple[dict[str, Any], dict[str, str]]
+        A two-element tuple of ``(serializable, failed)`` where
+        *serializable* contains items that can be pickled via ``dill``
+        and *failed* maps variable names to short failure descriptions.
     """
     import warnings
     
@@ -126,8 +165,24 @@ def serialize_globals(globals_dict):
     return serializable, failed
 
 
-def create_subprocess_script(imports, cell_code, transfer_state=True):
-    """Create the Python script that will run in the subprocess."""
+def create_subprocess_script(imports: list[str], cell_code: str, transfer_state: bool = True) -> str:
+    """
+    Create the Python script that will run in the subprocess.
+
+    Parameters
+    ----------
+    imports : list[str]
+        Import statements to prepend to the script.
+    cell_code : str
+        The user's cell code to execute.
+    transfer_state : bool, default=True
+        If True, include state loading/saving logic in the script.
+
+    Returns
+    -------
+    str
+        Complete Python script source ready for subprocess execution.
+    """
     
     script = '''
 import sys
@@ -206,9 +261,15 @@ if len(sys.argv) > 2:
 
 @magics_class
 class RunSrunMagic(Magics):
-    
+    """IPython cell magic that executes code via ``srun`` in a subprocess.
+
+    The magic supports state transfer between the notebook and the subprocess
+    so that variables created or modified in the subprocess are reflected back
+    into the notebook namespace.
+    """
+
     @cell_magic
-    def srun(self, line, cell):
+    def srun(self, line: str, cell: str) -> None:
         """
         Run code in a subprocess with optional state transfer.
         
@@ -405,7 +466,7 @@ class RunSrunMagic(Magics):
                 if temp_file:
                     Path(temp_file).unlink(missing_ok=True)
     
-    def _compare_values(self, val1, val2):
+    def _compare_values(self, val1: Any, val2: Any) -> bool:
         """Compare two values for equality, handling special cases."""
         try:
             if type(val1) != type(val2):
@@ -422,18 +483,18 @@ class RunSrunMagic(Magics):
             return False
 
 
-def load_ipython_extension(ipython):
+def load_ipython_extension(ipython: Any) -> None:
     """Load the extension in IPython."""
     ipython.register_magics(RunSrunMagic)
     print("Enhanced srun magic loaded. Use %%srun to run cells with state transfer.")
 
 
-def unload_ipython_extension(ipython):
+def unload_ipython_extension(ipython: Any) -> None:
     """Unload the extension."""
     print("Enhanced srun magic unloaded.")
 
 
-def register_magic():
+def register_magic() -> None:
     """Manually register the magic if not loading as extension."""
     ip = get_ipython()
     if ip:

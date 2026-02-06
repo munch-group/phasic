@@ -28,11 +28,13 @@ Author: PtDAlgorithms Team
 Date: 2025-10-07
 """
 
+from __future__ import annotations
+
 import os
 import sys
 import subprocess
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict, Any
+from typing import Any
 from .logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -55,15 +57,15 @@ class DistributedConfig:
         Address of the coordinator node (host:port)
     coordinator_port : int
         Port for coordinator communication
-    job_id : Optional[str]
+    job_id : str or None
         SLURM job ID (if running under SLURM)
     local_device_count : int
         Number of devices on this node
     global_device_count : int
         Total number of devices across all nodes
-    local_devices : List
+    local_devices : list
         List of local JAX devices
-    global_devices : List
+    global_devices : list
         List of all JAX devices (across all nodes)
     is_coordinator : bool
         True if this is the coordinator process (rank 0)
@@ -75,11 +77,11 @@ class DistributedConfig:
     cpus_per_task: int = 1
     coordinator_address: str = "localhost:12345"
     coordinator_port: int = 12345
-    job_id: Optional[str] = None
+    job_id: str | None = None
     local_device_count: int = 1
     global_device_count: int = 1
-    local_devices: List = field(default_factory=list)
-    global_devices: List = field(default_factory=list)
+    local_devices: list = field(default_factory=list)
+    global_devices: list = field(default_factory=list)
     is_coordinator: bool = True
     platform: str = "cpu"
 
@@ -97,7 +99,7 @@ class DistributedConfig:
         return "\n".join(lines)
 
 
-def detect_slurm_environment() -> Dict[str, Any]:
+def detect_slurm_environment() -> dict[str, Any]:
     """
     Detect and parse SLURM environment variables.
 
@@ -153,7 +155,7 @@ def detect_slurm_environment() -> Dict[str, Any]:
     return env
 
 
-def get_coordinator_address(slurm_env: Dict[str, Any], port: int = 12345) -> str:
+def get_coordinator_address(slurm_env: dict[str, Any], port: int = 12345) -> str:
     """
     Determine the coordinator address for JAX distributed.
 
@@ -209,7 +211,7 @@ def get_coordinator_address(slurm_env: Dict[str, Any], port: int = 12345) -> str
     return f"localhost:{port}"
 
 
-def configure_jax_devices(num_devices: int, platform: str = "cpu"):
+def configure_jax_devices(num_devices: int, platform: str = "cpu") -> None:
     """
     Configure JAX device count using XLA_FLAGS.
 
@@ -255,7 +257,7 @@ def initialize_jax_distributed(
     coordinator_address: str,
     num_processes: int,
     process_id: int
-):
+) -> None:
     """
     Initialize JAX distributed computing.
 

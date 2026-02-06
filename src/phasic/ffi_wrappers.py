@@ -35,11 +35,14 @@ Usage Example:
     ```
 """
 
+from __future__ import annotations
+
 import json
+from typing import Any
+
 import jax
 import jax.numpy as jnp
 from jax import ffi
-from typing import Union, Dict, Any
 import numpy as np
 
 # Import configuration and exceptions
@@ -65,7 +68,7 @@ _lib = None
 # Helper Functions
 # ============================================================================
 
-def _make_json_serializable(obj):
+def _make_json_serializable(obj: Any) -> Any:
     """
     Convert an object to JSON-serializable format.
 
@@ -73,12 +76,12 @@ def _make_json_serializable(obj):
 
     Parameters
     ----------
-    obj : any
+    obj : Any
         Object to convert (can be dict, list, ndarray, or scalar)
 
     Returns
     -------
-    any
+    Any
         JSON-serializable version of obj
     """
     if isinstance(obj, np.ndarray):
@@ -91,7 +94,7 @@ def _make_json_serializable(obj):
         return obj
 
 
-def _ensure_json_string(structure_json: Union[str, Dict]) -> str:
+def _ensure_json_string(structure_json: str | dict) -> str:
     """
     Ensure structure_json is a JSON string.
 
@@ -120,7 +123,7 @@ def _ensure_json_string(structure_json: Union[str, Dict]) -> str:
         )
 
 
-def _serialize_graph_structure(graph) -> str:
+def _serialize_graph_structure(graph: Any) -> str:
     """
     Serialize a Graph object to JSON string for FFI.
 
@@ -153,7 +156,7 @@ def _serialize_graph_structure(graph) -> str:
 
 _FFI_REGISTERED = False
 
-def _register_ffi_targets():
+def _register_ffi_targets() -> bool:
     """Register FFI targets with JAX.
 
     This function is called lazily on first use, AFTER JAX is initialized.
@@ -469,7 +472,7 @@ def _compute_pmf_and_moments_impl(structure_json: str, theta_np: np.ndarray,
 # Public API
 # ============================================================================
 
-def compute_pmf_ffi(structure_json: Union[str, Dict], theta: jax.Array, times: jax.Array,
+def compute_pmf_ffi(structure_json: str | dict, theta: jax.Array, times: jax.Array,
                    discrete: bool = False, granularity: int = 0) -> jax.Array:
     """
     Compute PMF (discrete) or PDF (continuous) using JAX FFI.
@@ -549,7 +552,7 @@ def compute_pmf_ffi(structure_json: Union[str, Dict], theta: jax.Array, times: j
     return result
 
 
-def compute_moments_ffi(structure_json: Union[str, Dict], theta: jax.Array,
+def compute_moments_ffi(structure_json: str | dict, theta: jax.Array,
                        nr_moments: int) -> jax.Array:
     """
     Compute distribution moments using JAX FFI.
@@ -623,11 +626,11 @@ def compute_moments_ffi(structure_json: Union[str, Dict], theta: jax.Array,
     return result
 
 
-def compute_pmf_and_moments_ffi(structure_json: Union[str, Dict], theta: jax.Array,
+def compute_pmf_and_moments_ffi(structure_json: str | dict, theta: jax.Array,
                                times: jax.Array, nr_moments: int,
                                discrete: bool = False,
                                granularity: int = 0,
-                               rewards: jax.Array = None) -> tuple[jax.Array, jax.Array]:
+                               rewards: jax.Array | None = None) -> tuple[jax.Array, jax.Array]:
     """
     Compute both PMF and moments efficiently using JAX FFI.
 
@@ -727,7 +730,7 @@ def compute_pmf_and_moments_ffi(structure_json: Union[str, Dict], theta: jax.Arr
     return pmf_result, moments_result
 
 
-def compute_pmf_multivariate_ffi(structure_json: Union[str, Dict], theta: jax.Array,
+def compute_pmf_multivariate_ffi(structure_json: str | dict, theta: jax.Array,
                                 times: jax.Array, rewards: jax.Array,
                                 discrete: bool = False, granularity: int = 0,
                                 compute_joint: bool = False) -> jax.Array:
@@ -864,7 +867,7 @@ def compute_pmf_multivariate_ffi(structure_json: Union[str, Dict], theta: jax.Ar
     return result
 
 
-def compute_sojourn_times_ffi(structure_json: Union[str, Dict], theta: jax.Array,
+def compute_sojourn_times_ffi(structure_json: str | dict, theta: jax.Array,
                                indices: jax.Array) -> jax.Array:
     """
     Compute expected sojourn times for a subset of vertices using JAX FFI.

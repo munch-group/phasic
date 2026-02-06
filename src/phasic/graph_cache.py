@@ -11,11 +11,13 @@ Author: Claude Code
 Date: 2025-11-14
 """
 
+from __future__ import annotations
+
 import json
 import os
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, Dict, Any, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 import numpy as np
 
 if TYPE_CHECKING:
@@ -61,7 +63,7 @@ class GraphCache:
     True
     """
 
-    def __init__(self, cache_dir: Optional[Path] = None):
+    def __init__(self, cache_dir: Path | None = None) -> None:
         """
         Initialize graph cache.
 
@@ -74,7 +76,7 @@ class GraphCache:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         logger.debug(f"GraphCache initialized: {self.cache_dir}")
 
-    def save_graph(self, graph: 'Graph', callback, **params) -> str:
+    def save_graph(self, graph: Graph, callback: Any, **params: Any) -> str:
         """
         Save graph to cache.
 
@@ -136,7 +138,7 @@ class GraphCache:
 
         return cache_key
 
-    def load_graph(self, callback, **params) -> Optional['Graph']:
+    def load_graph(self, callback: Any, **params: Any) -> Graph | None:
         """
         Load graph from cache.
 
@@ -192,7 +194,7 @@ class GraphCache:
             logger.error(f"Failed to load cached graph {cache_key[:16]}: {e}")
             return None
 
-    def get_or_build(self, callback, **params) -> 'Graph':
+    def get_or_build(self, callback: Any, **params: Any) -> Graph:
         """
         Get graph from cache or build if not found.
 
@@ -245,7 +247,7 @@ class GraphCache:
         logger.info(f"Cleared {count} cached graphs")
         return count
 
-    def get_cache_stats(self) -> Dict[str, Any]:
+    def get_cache_stats(self) -> dict[str, Any]:
         """
         Get cache statistics.
 
@@ -425,7 +427,7 @@ def get_cache_dir() -> Path:
     return DEFAULT_CACHE_DIR
 
 
-def get_graph_cache_stats() -> Dict[str, Any]:
+def get_graph_cache_stats() -> dict[str, Any]:
     """
     Get graph cache statistics.
 

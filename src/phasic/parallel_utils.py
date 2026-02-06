@@ -25,9 +25,11 @@ Author: PtDAlgorithms Team
 Date: 2025-10-08
 """
 
+from __future__ import annotations
+
 import functools
 import numpy as np
-from typing import Any, Callable, Optional, Tuple, Union
+from typing import Any, Callable
 
 from .logging_config import get_logger
 
@@ -199,7 +201,7 @@ def get_batch_size(arg: Any) -> int:
 # Parallel Execution
 # ============================================================================
 
-def apply_pmap(func: Callable, args: Tuple, n_devices: int) -> Any:
+def apply_pmap(func: Callable, args: tuple, n_devices: int) -> Any:
     """
     Apply pmap parallelization to function.
 
@@ -244,7 +246,7 @@ def apply_pmap(func: Callable, args: Tuple, n_devices: int) -> Any:
     return result
 
 
-def apply_vmap(func: Callable, args: Tuple) -> Any:
+def apply_vmap(func: Callable, args: tuple) -> Any:
     """
     Apply vmap parallelization to function.
 

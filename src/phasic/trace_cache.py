@@ -5,15 +5,22 @@ Provides Python-level tools for managing trace caching.
 Caching happens both at C level and Python level.
 """
 
+from __future__ import annotations
+
 import os
 import json
 import hashlib
 from pathlib import Path
-from typing import Dict, List, Optional
 
 
 def get_cache_dir() -> Path:
-    """Get path to trace cache directory"""
+    """Get path to trace cache directory.
+
+    Returns
+    -------
+    Path
+        Path to ``~/.phasic_cache/traces/``.
+    """
     home = Path.home()
     cache_dir = home / ".phasic_cache" / "traces"
     return cache_dir
@@ -21,10 +28,12 @@ def get_cache_dir() -> Path:
 
 def clear_trace_cache() -> int:
     """
-    Clear all cached elimination traces
+    Clear all cached elimination traces.
 
-    Returns:
-        Number of cache files removed
+    Returns
+    -------
+    int
+        Number of cache files removed.
     """
     cache_dir = get_cache_dir()
 
@@ -42,14 +51,17 @@ def clear_trace_cache() -> int:
     return count
 
 
-def get_trace_cache_stats() -> Dict[str, any]:
+def get_trace_cache_stats() -> dict[str, object]:
     """
-    Get statistics about the trace cache
+    Get statistics about the trace cache.
 
-    Returns:
+    Returns
+    -------
+    dict[str, object]
         Dictionary with cache statistics:
         - total_files: Number of cached traces
         - total_bytes: Total disk space used
+        - total_mb: Total disk space used in megabytes
         - cache_dir: Path to cache directory
     """
     cache_dir = get_cache_dir()
@@ -104,14 +116,17 @@ def print_trace_cache_info() -> None:
         print(f"Total size: {stats['total_mb']:.2f} MB")
 
 
-def list_cached_traces() -> List[Dict[str, any]]:
+def list_cached_traces() -> list[dict[str, object]]:
     """
-    List all cached elimination traces
+    List all cached elimination traces.
 
-    Returns:
+    Returns
+    -------
+    list[dict[str, object]]
         List of dictionaries with cache entry information:
         - hash: Content hash of the graph
         - size_bytes: File size in bytes
+        - size_kb: File size in kilobytes
         - modified: Last modification time
     """
     cache_dir = get_cache_dir()
@@ -155,13 +170,17 @@ def list_cached_traces() -> List[Dict[str, any]]:
 
 def remove_cached_trace(hash_key: str) -> bool:
     """
-    Remove a specific cached trace by hash
+    Remove a specific cached trace by hash.
 
-    Args:
-        hash_key: Content hash of the graph
+    Parameters
+    ----------
+    hash_key : str
+        Content hash of the graph.
 
-    Returns:
-        True if cache entry was removed, False otherwise
+    Returns
+    -------
+    bool
+        True if cache entry was removed, False otherwise.
     """
     cache_dir = get_cache_dir()
     cache_file = cache_dir / f"{hash_key}.json"
@@ -176,16 +195,21 @@ def remove_cached_trace(hash_key: str) -> bool:
         return False
 
 
-def cleanup_old_traces(max_size_mb: float = 100.0, max_age_days: Optional[int] = None) -> int:
+def cleanup_old_traces(max_size_mb: float = 100.0, max_age_days: int | None = None) -> int:
     """
-    Clean up old or excess cached traces
+    Clean up old or excess cached traces.
 
-    Args:
-        max_size_mb: Maximum total cache size in MB
-        max_age_days: Remove traces older than this many days (None = no age limit)
+    Parameters
+    ----------
+    max_size_mb : float, default=100.0
+        Maximum total cache size in MB.
+    max_age_days : int or None, default=None
+        Remove traces older than this many days. None means no age limit.
 
-    Returns:
-        Number of cache entries removed
+    Returns
+    -------
+    int
+        Number of cache entries removed.
     """
     import time
 
@@ -241,11 +265,13 @@ def cleanup_old_traces(max_size_mb: float = 100.0, max_age_days: Optional[int] =
     return removed
 
 
-def verify_cache_working() -> Dict[str, any]:
+def verify_cache_working() -> dict[str, object]:
     """
-    Verify that trace cache is working correctly
+    Verify that trace cache is working correctly.
 
-    Returns:
+    Returns
+    -------
+    dict[str, object]
         Dictionary with cache status:
         - cache_dir: Path to cache directory
         - exists: Whether cache directory exists
@@ -255,11 +281,12 @@ def verify_cache_working() -> Dict[str, any]:
         - error: Error message if any test failed
         - disabled: Whether cache is disabled via environment variable
 
-    Example:
-        >>> from phasic.trace_cache import verify_cache_working
-        >>> status = verify_cache_working()
-        >>> if not status['test_passed']:
-        ...     print(f"Cache not working: {status['error']}")
+    Examples
+    --------
+    >>> from phasic.trace_cache import verify_cache_working
+    >>> status = verify_cache_working()
+    >>> if not status['test_passed']:
+    ...     print(f"Cache not working: {status['error']}")
     """
     import tempfile
     import time
@@ -316,16 +343,21 @@ def verify_cache_working() -> Dict[str, any]:
     return status
 
 
-def save_trace_to_cache_python(graph, trace):
+def save_trace_to_cache_python(graph, trace) -> None:
     """
-    Save elimination trace to cache (Python-level)
+    Save elimination trace to cache (Python-level).
 
-    Args:
-        graph: The graph that was eliminated
-        trace: The recorded elimination trace
+    Parameters
+    ----------
+    graph : Graph
+        The graph that was eliminated.
+    trace : EliminationTrace
+        The recorded elimination trace.
 
-    Raises:
-        RuntimeError: If cache save fails (unless PHASIC_DISABLE_CACHE=1)
+    Raises
+    ------
+    RuntimeError
+        If cache save fails (unless PHASIC_DISABLE_CACHE=1).
     """
     # Compute hash from graph
     graph_data = graph.serialize()

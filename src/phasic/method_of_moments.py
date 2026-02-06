@@ -5,11 +5,12 @@ Finds parameter estimates by matching model moments to sample moments,
 providing sensible prior means for SVGD inference.
 """
 
+from __future__ import annotations
+
 import math
 import numpy as np
 from dataclasses import dataclass
 from numpy.typing import ArrayLike
-from typing import Optional
 
 from .logging_config import get_logger
 
@@ -49,7 +50,7 @@ class MoMResult:
     message: str
 
 
-def _estimate_moment_covariance(observed_data, nr_moments, n_features):
+def _estimate_moment_covariance(observed_data: np.ndarray, nr_moments: int, n_features: int) -> np.ndarray:
     """Estimate the covariance matrix of the sample moments.
 
     For each raw sample moment m_k = mean(X^k), its sampling variance is
@@ -92,7 +93,7 @@ def _estimate_moment_covariance(observed_data, nr_moments, n_features):
         return cov
 
 
-def _reconstruct_theta(theta_free, theta_dim, fixed):
+def _reconstruct_theta(theta_free: np.ndarray, theta_dim: int, fixed: list[tuple[int, float]]) -> np.ndarray:
     """Insert fixed values back into the full theta vector."""
     if not fixed:
         return theta_free
@@ -108,7 +109,7 @@ def _reconstruct_theta(theta_free, theta_dim, fixed):
     return theta_full
 
 
-def _initial_guess_grid(moments_fn, target_first_moment, n_free, fixed, theta_dim):
+def _initial_guess_grid(moments_fn: object, target_first_moment: np.ndarray, n_free: int, fixed: list[tuple[int, float]], theta_dim: int) -> np.ndarray:
     """Coordinate-wise grid search matching the first moment.
 
     For each free parameter, searches a log-spaced grid while holding
@@ -146,13 +147,13 @@ def _initial_guess_grid(moments_fn, target_first_moment, n_free, fixed, theta_di
 
 
 def method_of_moments(
-    graph,
+    graph: object,
     observed_data: ArrayLike,
-    nr_moments: int = None,
-    theta_dim: int = None,
-    theta_init: np.ndarray = None,
-    rewards: np.ndarray = None,
-    fixed: list = None,
+    nr_moments: int | None = None,
+    theta_dim: int | None = None,
+    theta_init: np.ndarray | None = None,
+    rewards: np.ndarray | None = None,
+    fixed: list[tuple[int, float]] | None = None,
     std_multiplier: float = 2.0,
     discrete: bool = False,
     verbose: bool = True,

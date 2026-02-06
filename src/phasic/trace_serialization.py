@@ -16,10 +16,11 @@ PHASIC_DISABLE_CACHE : str
     Set to "1" to disable all cache operations
 """
 
+from __future__ import annotations
+
 import os
 import numpy as np
 from pathlib import Path
-from typing import Optional
 
 from .trace_elimination import EliminationTrace, Operation, OpType
 from .logging_config import get_logger
@@ -80,19 +81,18 @@ def is_cache_disabled() -> bool:
     return os.environ.get("PHASIC_DISABLE_CACHE", "0") == "1"
 
 
-def _c_trace_to_python(trace_ptr: int) -> Optional[EliminationTrace]:
-    """
-    Convert C trace struct to Python EliminationTrace.
+def _c_trace_to_python(trace_ptr: int) -> EliminationTrace | None:
+    """Convert C trace struct to Python EliminationTrace.
 
     Parameters
     ----------
     trace_ptr : int
-        Pointer to C struct ptd_elimination_trace
+        Pointer to C struct ptd_elimination_trace.
 
     Returns
     -------
     EliminationTrace or None
-        Python trace object, or None on error
+        Python trace object, or None on error.
     """
     if trace_ptr == 0:
         return None
@@ -177,7 +177,7 @@ def _c_trace_to_python(trace_ptr: int) -> Optional[EliminationTrace]:
         return None
 
 
-def load_trace_from_cache(hash_hex: str) -> Optional[EliminationTrace]:
+def load_trace_from_cache(hash_hex: str) -> EliminationTrace | None:
     """
     Load elimination trace from disk cache.
 
@@ -355,7 +355,7 @@ def clear_cache() -> int:
         return count
 
 
-def get_cache_info() -> dict:
+def get_cache_info() -> dict[str, object]:
     """
     Get information about the cache.
 

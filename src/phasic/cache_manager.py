@@ -22,13 +22,15 @@ Example Usage:
     >>> manager.export_cache('my_models_cache.tar.gz')
 """
 
+from __future__ import annotations
+
 import os
 import json
 import shutil
 import tarfile
 import tempfile
 from pathlib import Path
-from typing import Optional, Dict, Any, List, Callable, Union
+from typing import Any, Callable
 from datetime import datetime
 import hashlib
 
@@ -52,12 +54,13 @@ class CacheManager:
     Parameters
     ----------
     cache_dir : Path or str
+        Directory used for storing compiled JAX cache files.
     """
 
-    def __init__(self, cache_dir: Optional[Union[Path, str]]):
+    def __init__(self, cache_dir: Path | str) -> None:
         self.cache_dir = Path(cache_dir)
 
-    def info(self) -> Dict[str, Any]:
+    def info(self) -> dict[str, Any]:
         """
         Get JAX cache statistics.
 
@@ -102,7 +105,7 @@ class CacheManager:
             'files': files
         }
 
-    def clear(self, confirm: bool = False, verbose: bool = False):
+    def clear(self, confirm: bool = False, verbose: bool = False) -> None:
         """
         Clear JAX compilation cache.
 
@@ -147,10 +150,10 @@ class CacheManager:
     def prewarm_model(
         self,
         model_fn: Callable,
-        theta_samples: List,
-        time_grids: List,
+        theta_samples: list,
+        time_grids: list,
         show_progress: bool = True
-    ):
+    ) -> None:
         """
         Pre-warm JAX cache by compiling model for various input shapes.
 
@@ -226,10 +229,10 @@ class CacheManager:
 
     def export_cache(
         self,
-        output_path: Union[Path, str],
-        patterns: Optional[List[str]] = None,
+        output_path: Path | str,
+        patterns: list[str] | None = None,
         compress: bool = True
-    ):
+    ) -> None:
         """
         Export JAX cache to tarball for distribution.
 
@@ -290,9 +293,9 @@ class CacheManager:
 
     def import_cache(
         self,
-        tarball_path: Union[Path, str],
+        tarball_path: Path | str,
         overwrite: bool = False
-    ):
+    ) -> None:
         """
         Import JAX cache from tarball.
 
@@ -340,9 +343,9 @@ class CacheManager:
 
     def sync_from_remote(
         self,
-        remote_cache_dir: Union[Path, str],
+        remote_cache_dir: Path | str,
         dry_run: bool = False
-    ):
+    ) -> None:
         """
         Synchronize cache from remote directory (e.g., shared filesystem).
 
@@ -403,7 +406,7 @@ class CacheManager:
         else:
             print(f"✓ Sync complete: {copied} files copied, {skipped} already up to date")
 
-    def vacuum(self, max_age_days: int = 30, max_size_gb: float = 10.0):
+    def vacuum(self, max_age_days: int = 30, max_size_gb: float = 10.0) -> None:
         """
         Clean up old cache entries.
 
@@ -473,7 +476,7 @@ class CacheManager:
         print(f"  Cache size now: {total_size / (1024**2):.1f} MB")
 
 
-def print_jax_cache_info(cache_dir: Optional[Union[Path, str]] = None):
+def print_jax_cache_info(cache_dir: Path | str | None = None) -> None:
     """
     Print formatted JAX cache information.
 
@@ -513,10 +516,10 @@ def print_jax_cache_info(cache_dir: Optional[Union[Path, str]] = None):
 
 
 def configure_layered_cache(
-    local_cache_dir: Optional[Union[Path, str]] = None,
-    shared_cache_dir: Optional[Union[Path, str]] = None,
+    local_cache_dir: Path | str | None = None,
+    shared_cache_dir: Path | str | None = None,
     enable: bool = True
-):
+) -> None:
     """
     Configure layered cache strategy (local + shared).
 
