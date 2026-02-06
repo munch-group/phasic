@@ -18,6 +18,7 @@ phasic.Graph(arg, ipv=None, cache_graph=False, **kwargs)
 
 | Name | Description |
 | --- | --- |
+| [absorbing_state_rewards](#phasic.Graph.absorbing_state_rewards) | Get a reward vector that is 1 for states with edges to absorbing states. |
 | [accumulated_occupancy](#phasic.Graph.accumulated_occupancy) | Compute expected occupancy (visits or time) for each state. |
 | [accumulated_visiting_time](#phasic.Graph.accumulated_visiting_time) | Compute expected time spent in each state (continuous only). |
 | [accumulated_visits](#phasic.Graph.accumulated_visits) | Compute expected number of visits to each state (discrete only). |
@@ -37,13 +38,13 @@ phasic.Graph(arg, ipv=None, cache_graph=False, **kwargs)
 | [find_or_create_vertex](#phasic.Graph.find_or_create_vertex) | Find or create a vertex with the given state. |
 | [from_matrices](#phasic.Graph.from_matrices) | Construct a Graph from matrix representation. |
 | [from_serialized](#phasic.Graph.from_serialized) | Reconstruct Graph from serialize() output. |
+| [laplace_transform](#phasic.Graph.laplace_transform) | Create a Laplace-transformed graph. |
 | [method_of_moments](#phasic.Graph.method_of_moments) | Find parameter estimates by matching model moments to sample moments. |
 | [moments](#phasic.Graph.moments) | Compute k-th moment of the phase-type distribution. |
 | [moments_from_graph](#phasic.Graph.moments_from_graph) | Convert a parameterized Graph to a JAX-compatible function that computes moments. |
 | [normalize](#phasic.Graph.normalize) | Normalize edge weights to make the graph a proper probability distribution. |
-| [pdf](#phasic.Graph.pdf) | Compute probability density function using distribution context. |
+| [pdf](#phasic.Graph.pdf) | Compute probability density/mass function using forward algorithm. |
 | [plot](#phasic.Graph.plot) | Plots the graph using graphviz. See plot::plot_graph.py for more details. |
-| [pmf](#phasic.Graph.pmf) | Compute probability mass function using forward algorithm. |
 | [pmf_and_moments_from_graph](#phasic.Graph.pmf_and_moments_from_graph) | Convert a parameterized Graph to a function that computes both PMF/PDF and moments. |
 | [pmf_and_moments_from_graph_multivariate](#phasic.Graph.pmf_and_moments_from_graph_multivariate) | Create a multivariate phase-type model that handles 2D observations and rewards. |
 | [pmf_from_cpp](#phasic.Graph.pmf_from_cpp) | Load a phase-type model from a user's C++ file and return a JAX-compatible function. |
@@ -60,6 +61,36 @@ phasic.Graph(arg, ipv=None, cache_graph=False, **kwargs)
 | [svgd](#phasic.Graph.svgd) | Run Stein Variational Gradient Descent (SVGD) inference for Bayesian parameter estimation. |
 | [update_weights](#phasic.Graph.update_weights) | Update parameterized edge weights with given parameters. |
 | [variance](#phasic.Graph.variance) | Compute variance of the phase-type distribution. |
+
+### absorbing_state_rewards { #phasic.Graph.absorbing_state_rewards }
+
+```python
+phasic.Graph.absorbing_state_rewards()
+```
+
+Get a reward vector that is 1 for states with edges to absorbing states.
+
+This reward vector is used for computing the Laplace transform value
+from a Laplace-transformed graph.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation}</code>
+
+:   Reward vector of length n_vertices. Element i is 1.0 if vertex i has an edge to an absorbing state, 0.0 otherwise.
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> graph = Graph(coalescent_callback)
+>>> rewards = graph.absorbing_state_rewards()
+>>> laplace_graph = graph.laplace_transform(0.5)
+>>> L_0_5 = laplace_graph.expectation(rewards=rewards)
+```
+
+#### See Also {.doc-section .doc-section-see-also}
+
+laplace_transform : Create a Laplace-transformed graph
 
 ### accumulated_occupancy { #phasic.Graph.accumulated_occupancy }
 
@@ -168,9 +199,9 @@ matrices and associated information.
 
 #### Returns {.doc-section .doc-section-returns}
 
-<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[namedtuple](`collections.namedtuple`)]{.parameter-annotation}</code>
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[MatrixRepresentation](`phasic.MatrixRepresentation`)]{.parameter-annotation}</code>
 
-:   NamedTuple (MatrixRepresentation) with the following attributes: - states: np.ndarray of shape (n_states, state_dim), dtype=int32     State vector for each vertex - sim: np.ndarray of shape (n_states, n_states), dtype=float64     Sub-intensity matrix - ipv: np.ndarray of shape (n_states,), dtype=float64     Initial probability vector - indices: np.ndarray of shape (n_states,), dtype=int32     1-based indices for vertices (for use with vertex_at())
+:   NamedTuple with the following attributes: - states: np.ndarray of shape (n_states, state_dim), dtype=int32     State vector for each vertex - sim: np.ndarray of shape (n_states, n_states), dtype=float64     Sub-intensity matrix - ipv: np.ndarray of shape (n_states,), dtype=float64     Initial probability vector - indices: np.ndarray of shape (n_states,), dtype=int32     1-based indices for vertices (for use with vertex_at())
 
 #### Examples {.doc-section .doc-section-examples}
 
@@ -336,16 +367,20 @@ Modifications to the copy will not affect the original graph.
 ### covariance { #phasic.Graph.covariance }
 
 ```python
-phasic.Graph.covariance(*args, **kwargs)
+phasic.Graph.covariance(rewards1=[], rewards2=[], **kwargs)
 ```
 
 Compute covariance matrix for multivariate phase-type distributions.
 
 #### Parameters {.doc-section .doc-section-parameters}
 
-<code>[***args**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [()]{.parameter-default}</code>
+<code>[**rewards1**]{.parameter-name} [:]{.parameter-annotation-sep} [list of float or ndarray]{.parameter-annotation} [ = ]{.parameter-default-sep} [\[\]]{.parameter-default}</code>
 
-:   Additional positional arguments passed to C++ implementation.
+:   The first set of rewards, which should be applied to the  phase-type distribution. Must have length equal to  `vertices_length()`.
+
+<code>[**rewards2**]{.parameter-name} [:]{.parameter-annotation-sep} [list of float or ndarray]{.parameter-annotation} [ = ]{.parameter-default-sep} [\[\]]{.parameter-default}</code>
+
+:   The second set of rewards, which should be applied to the  phase-type distribution. Must have length equal to  `vertices_length()`.
 
 <code>[****kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
 
@@ -733,6 +768,61 @@ and reconstructed on worker processes.
 >>> assert g_reconstructed.vertices_length() == g.vertices_length()
 ```
 
+### laplace_transform { #phasic.Graph.laplace_transform }
+
+```python
+phasic.Graph.laplace_transform(theta)
+```
+
+Create a Laplace-transformed graph.
+
+Returns a new graph where each transient state has an additional edge
+to the absorbing state with weight theta (or theta added to existing
+absorbing edge weight).
+
+To compute the Laplace transform value L(theta) = E[exp(-theta * T)],
+call expectation() on the result with a reward vector that is 1 for
+states that had edges to absorbing in the original graph and 0 otherwise.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**theta**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation}</code>
+
+:   The Laplace transform parameter.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[Graph](`phasic.Graph`)]{.parameter-annotation}</code>
+
+:   A new graph representing the Laplace-transformed distribution.
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> import numpy as np
+>>> graph = Graph(coalescent_callback)
+>>> # Get reward vector: 1 for states with absorbing edges, 0 otherwise
+>>> rewards = graph.absorbing_state_rewards()
+>>> laplace_graph = graph.laplace_transform(0.5)
+>>> laplace_value = laplace_graph.expectation(rewards=rewards)
+```
+
+#### Notes {.doc-section .doc-section-notes}
+
+The Laplace transform of a phase-type distribution PH(alpha, S) is:
+
+    L(theta) = E[exp(-theta * T)] = alpha * (theta*I - S)^(-1) * s
+
+where s is the exit rate vector indicating states with direct
+transitions to absorption.
+
+For continuous distributions only. For discrete distributions, use the
+z-transform instead.
+
+#### See Also {.doc-section .doc-section-see-also}
+
+absorbing_state_rewards : Get the reward vector for Laplace transform computation
+
 ### method_of_moments { #phasic.Graph.method_of_moments }
 
 ```python
@@ -957,10 +1047,10 @@ transition matrix satisfy the requirements for a valid phase-type distribution.
 ### pdf { #phasic.Graph.pdf }
 
 ```python
-phasic.Graph.pdf(time, granularity=None, **kwargs)
+phasic.Graph.pdf(time, **kwargs)
 ```
 
-Compute probability density function using distribution context.
+Compute probability density/mass function using forward algorithm.
 
 #### Parameters {.doc-section .doc-section-parameters}
 
@@ -968,7 +1058,7 @@ Compute probability density function using distribution context.
 
 :   Time point(s) at which to evaluate the PDF/PMF.
 
-<code>[**granularity**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**granularity**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
 
 :   Granularity for uniformization (default: auto-detected as 2*max_rate). Higher values improve accuracy but increase computation time.
 
@@ -980,13 +1070,15 @@ Compute probability density function using distribution context.
 
 <code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) or [np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation}</code>
 
-:   PDF value(s) at the specified time point(s).
+:   PDF/PMF value(s) at the specified time point(s).
 
 #### Notes {.doc-section .doc-section-notes}
 
-This method PDF through uniformization as a (very good) approximation.
+This method uses the forward algorithm (Algorithm 4) via uniformization
+to compute the exact phase-type PDF/PMF, not an approximation.
 
 For continuous distributions: f(t) = α · exp(S·t) · s*
+For discrete distributions: p(n) = probability of absorption at jump n
 
 ### plot { #phasic.Graph.plot }
 
@@ -1001,37 +1093,6 @@ Plots the graph using graphviz. See plot::plot_graph.py for more details.
 <code>[]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
 
 :   _description_
-
-### pmf { #phasic.Graph.pmf }
-
-```python
-phasic.Graph.pmf(time, **kwargs)
-```
-
-Compute probability mass function using forward algorithm.
-
-#### Parameters {.doc-section .doc-section-parameters}
-
-<code>[**time**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) or [ArrayLike](`numpy.typing.ArrayLike`)]{.parameter-annotation}</code>
-
-:   Time point(s) at which to evaluate the PDF/PMF.
-
-<code>[****kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
-
-:   Additional keyword arguments passed to C++ implementation.
-
-#### Returns {.doc-section .doc-section-returns}
-
-<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) or [np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation}</code>
-
-:   PMF value(s) at the specified time point(s).
-
-#### Notes {.doc-section .doc-section-notes}
-
-This method uses the forward algorithm (Algorithm 4) via uniformization
-to compute the exact phase-type PMF, not an approximation.
-
-For discrete distributions: p(n) = probability of absorption at jump n
 
 ### pmf_and_moments_from_graph { #phasic.Graph.pmf_and_moments_from_graph }
 
@@ -1386,7 +1447,7 @@ times for all states in a single pass through the elimination trace.
 
 :   Parameterized graph built using the Python API with parameterized edges.
 
-<code>[**theta_dim**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**param_length**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
 
 :   Number of parameters for parameterized edges. If not provided, will be auto-detected from the graph.
 
