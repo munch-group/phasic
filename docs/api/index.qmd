@@ -8,8 +8,11 @@ Graph components (Vertex and Edge are documented as part of Graph)
 | | |
 | --- | --- |
 | [Graph](Graph.qmd#phasic.Graph) |  |
+| [StateIndexer](StateIndexer.qmd#phasic.StateIndexer) | Manages multiple independent property sets and slots with attribute access. |
+| [PropertySet](PropertySet.qmd#phasic.PropertySet) | Collection of properties forming a combinatorial state space. |
+| [Property](Property.qmd#phasic.Property) | Defines a single property in a state space. |
 
-## Inference
+## SVGD
 
 Stein Variational Gradient Descent for Bayesian parameter inference.
 
@@ -17,3 +20,48 @@ Stein Variational Gradient Descent for Bayesian parameter inference.
 | | |
 | --- | --- |
 | [SVGD](SVGD.qmd#phasic.SVGD) | Stein Variational Gradient Descent (SVGD) for Bayesian parameter inference. |
+| [SparseObservations](SparseObservations.qmd#phasic.SparseObservations) | Sparse representation of multivariate observations. |
+
+## Priors
+
+Prior distributions of model parameters.
+
+
+| | |
+| --- | --- |
+| [Prior](Prior.qmd#phasic.Prior) | Base class for prior distributions. |
+| [GaussPrior](GaussPrior.qmd#phasic.GaussPrior) | Gaussian prior distribution. |
+| [HalfCauchyPrior](HalfCauchyPrior.qmd#phasic.HalfCauchyPrior) | Half-Cauchy prior distribution (positive support only). |
+| [DataPrior](DataPrior.qmd#phasic.DataPrior) | Data-informed prior estimated from observed data. |
+
+## Learning rate and regularization
+
+Learning rate schedules and regularization techniques for Stein Variational Gradient Descent.
+
+
+| | |
+| --- | --- |
+| [StepSizeSchedule](StepSizeSchedule.qmd#phasic.StepSizeSchedule) | Base class for step size schedules. |
+| [ConstantStepSize](ConstantStepSize.qmd#phasic.ConstantStepSize) | Constant step size (default behavior). |
+| [ExpStepSize](ExpStepSize.qmd#phasic.ExpStepSize) | Exponential decay schedule: step_size = first_step * exp(-iteration/tau) + last_step * (1 - exp(-iteration/tau)). |
+| [AdaptiveStepSize](AdaptiveStepSize.qmd#phasic.AdaptiveStepSize) | Adaptive step size based on particle spread (KL divergence proxy). |
+| [WarmupExpStepSize](WarmupExpStepSize.qmd#phasic.WarmupExpStepSize) | Linear warmup followed by exponential decay. |
+| [RegularizationSchedule](RegularizationSchedule.qmd#phasic.RegularizationSchedule) | Base class for regularization schedules. |
+| [ConstantRegularization](ConstantRegularization.qmd#phasic.ConstantRegularization) | Constant regularization (default behavior). |
+| [ExpRegularization](ExpRegularization.qmd#phasic.ExpRegularization) | Exponential decay schedule: reg = first_reg * exp(-iteration/tau) + last_reg * (1 - exp(-iteration/tau)). |
+| [ExponentialCDFRegularization](ExponentialCDFRegularization.qmd#phasic.ExponentialCDFRegularization) | Exponential CDF schedule: reg = first_reg + (last_reg - first_reg) * (1 - exp(-iteration/tau)). |
+
+## Preconditioning
+
+Preconditioning techniques for Stein Variational Gradient Descent for homogenous learning.
+- MomentJacobianPreconditioner
+- FisherPreconditioner
+
+
+## Optimizers
+
+Adaptive optimizers for SVGD.
+- Adam
+- SGDMomentum
+- RMSprop
+- Adagrad

@@ -4,9 +4,34 @@ website:
     - api/index.qmd
     - contents:
       - api/Graph.qmd
+      - api/StateIndexer.qmd
+      - api/PropertySet.qmd
+      - api/Property.qmd
       section: Graph Construction
     - contents:
       - api/SVGD.qmd
-      section: Inference
+      - api/SparseObservations.qmd
+      section: SVGD
+    - contents:
+      - api/Prior.qmd
+      - api/GaussPrior.qmd
+      - api/HalfCauchyPrior.qmd
+      - api/DataPrior.qmd
+      section: Priors
+    - contents:
+      - api/StepSizeSchedule.qmd
+      - api/ConstantStepSize.qmd
+      - api/ExpStepSize.qmd
+      - api/AdaptiveStepSize.qmd
+      - api/WarmupExpStepSize.qmd
+      - api/RegularizationSchedule.qmd
+      - api/ConstantRegularization.qmd
+      - api/ExpRegularization.qmd
+      - api/ExponentialCDFRegularization.qmd
+      section: Learning rate and regularization
+    - contents: []
+      section: Preconditioning
+    - contents: []
+      section: Optimizers
     id: api
   - id: dummy-sidebar

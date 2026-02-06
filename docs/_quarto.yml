@@ -213,22 +213,56 @@ quartodoc:
         Graph components (Vertex and Edge are documented as part of Graph)
       contents:
         - Graph
-    # - title: JAX-compatible utils
-    #   package: phasic
-    #   desc: |
-    #     JAX-compatible phase-type distribution computations with FFI integration.
-    #     Supports JIT compilation, automatic differentiation, and vmap/pmap parallelization.
-    #   contents:
-    #     - compute_pmf_ffi
-    #     - compute_moments_ffi
-    #     - compute_pmf_and_moments_ffi
-
-    - title: Inference
+        - StateIndexer
+        - PropertySet
+        - Property
+    - title: SVGD
       package: phasic
       desc: |
         Stein Variational Gradient Descent for Bayesian parameter inference.
       contents:
         - SVGD
+        # - SVGDKernel
+        - SparseObservations
+    - title: Priors
+      package: phasic
+      desc: |
+        Prior distributions of model parameters.
+      contents:
+        - Prior
+        - GaussPrior
+        - HalfCauchyPrior
+        - DataPrior
+    - title: Learning rate and regularization
+      package: phasic
+      desc: |
+        Learning rate schedules and regularization techniques for Stein Variational Gradient Descent.
+      contents:
+        - StepSizeSchedule
+        - ConstantStepSize
+        - ExpStepSize
+        - AdaptiveStepSize
+        - WarmupExpStepSize
+        - RegularizationSchedule
+        - ConstantRegularization
+        - ExpRegularization
+        - ExponentialCDFRegularization
+    - title: Preconditioning
+      package: phasic
+      desc: |
+        Preconditioning techniques for Stein Variational Gradient Descent for homogenous learning.
+        - MomentJacobianPreconditioner
+        - FisherPreconditioner
+    - title: Optimizers
+      package: phasic
+      desc: |
+        Adaptive optimizers for SVGD.
+        - Adam
+        - SGDMomentum
+        - RMSprop
+        - Adagrad
+
+
 
     # - title: Distributed Computing
     #   package: phasic
