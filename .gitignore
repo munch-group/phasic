@@ -47,3 +47,5 @@ debug_*.py
 
 # tmp script files generated from notebooks for testing
 tests/pytest/[0-9]*
+
+docs/pages/topics/graph_output.*
