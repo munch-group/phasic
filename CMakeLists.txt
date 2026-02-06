@@ -24,9 +24,13 @@ set_target_properties(libphasic PROPERTIES
         PUBLIC_HEADER api/c/phasic.h)
 configure_file(phasic.pc.in phasic.pc @ONLY)
 
-target_include_directories(libphasic PRIVATE src/c ${MPFR_INCLUDE_DIRS} ${GMP_INCLUDE_DIRS})
-target_link_libraries(libphasic PRIVATE ${MPFR_LIBRARIES} ${GMP_LIBRARIES})
-target_link_directories(libphasic PRIVATE ${MPFR_LIBRARY_DIRS} ${GMP_LIBRARY_DIRS})
+target_include_directories(libphasic PRIVATE src/c)
+if(PHASIC_HAVE_MPFR)
+    target_include_directories(libphasic PRIVATE ${MPFR_INCLUDE_DIRS} ${GMP_INCLUDE_DIRS})
+    target_link_libraries(libphasic PRIVATE ${MPFR_LIBRARIES} ${GMP_LIBRARIES})
+    target_link_directories(libphasic PRIVATE ${MPFR_LIBRARY_DIRS} ${GMP_LIBRARY_DIRS})
+    target_compile_definitions(libphasic PRIVATE HAVE_MPFR)
+endif()
 install(TARGETS libphasic
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
@@ -43,9 +47,13 @@ set_target_properties(libphasiccpp PROPERTIES
         SOVERSION 1
         PUBLIC_HEADER api/cpp/phasiccpp.h)
 configure_file(phasiccpp.pc.in phasiccpp.pc @ONLY)
-target_include_directories(libphasiccpp PRIVATE src/cpp ${MPFR_INCLUDE_DIRS} ${GMP_INCLUDE_DIRS})
-target_link_libraries(libphasiccpp PRIVATE ${MPFR_LIBRARIES} ${GMP_LIBRARIES})
-target_link_directories(libphasiccpp PRIVATE ${MPFR_LIBRARY_DIRS} ${GMP_LIBRARY_DIRS})
+target_include_directories(libphasiccpp PRIVATE src/cpp)
+if(PHASIC_HAVE_MPFR)
+    target_include_directories(libphasiccpp PRIVATE ${MPFR_INCLUDE_DIRS} ${GMP_INCLUDE_DIRS})
+    target_link_libraries(libphasiccpp PRIVATE ${MPFR_LIBRARIES} ${GMP_LIBRARIES})
+    target_link_directories(libphasiccpp PRIVATE ${MPFR_LIBRARY_DIRS} ${GMP_LIBRARY_DIRS})
+    target_compile_definitions(libphasiccpp PRIVATE HAVE_MPFR)
+endif()
 install(TARGETS libphasiccpp
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
@@ -122,20 +130,22 @@ if(NOT nlohmann_json_FOUND)
 endif()
 
 # Find MPFR and GMP for high-precision arithmetic
-# REQUIRED means build will fail if not found (no silent fallbacks)
-find_package(PkgConfig REQUIRED)
+# Required on Linux/macOS, optional on Windows
+find_package(PkgConfig QUIET)
 
-# Set PKG_CONFIG_PATH to include conda/pixi library paths
-set(PKG_CONFIG_PATH_BACKUP $ENV{PKG_CONFIG_PATH})
-foreach(prefix ${CONDA_PREFIXES})
-    set(ENV{PKG_CONFIG_PATH} "${prefix}/lib/pkgconfig:${prefix}/share/pkgconfig:$ENV{PKG_CONFIG_PATH}")
-endforeach()
+if(PkgConfig_FOUND)
+    # Set PKG_CONFIG_PATH to include conda/pixi library paths
+    set(PKG_CONFIG_PATH_BACKUP $ENV{PKG_CONFIG_PATH})
+    foreach(prefix ${CONDA_PREFIXES})
+        set(ENV{PKG_CONFIG_PATH} "${prefix}/lib/pkgconfig:${prefix}/share/pkgconfig:$ENV{PKG_CONFIG_PATH}")
+    endforeach()
 
-pkg_check_modules(MPFR REQUIRED mpfr)
-pkg_check_modules(GMP REQUIRED gmp)
+    pkg_check_modules(MPFR QUIET mpfr)
+    pkg_check_modules(GMP QUIET gmp)
 
-# Restore original PKG_CONFIG_PATH
-set(ENV{PKG_CONFIG_PATH} ${PKG_CONFIG_PATH_BACKUP})
+    # Restore original PKG_CONFIG_PATH
+    set(ENV{PKG_CONFIG_PATH} ${PKG_CONFIG_PATH_BACKUP})
+endif()
 
 if(MPFR_FOUND AND GMP_FOUND)
     message(STATUS "✓ MPFR found: version ${MPFR_VERSION}")
@@ -143,8 +153,14 @@ if(MPFR_FOUND AND GMP_FOUND)
     message(STATUS "  MPFR include dirs: ${MPFR_INCLUDE_DIRS}")
     message(STATUS "  MPFR library dirs: ${MPFR_LIBRARY_DIRS}")
     message(STATUS "  MPFR libraries: ${MPFR_LIBRARIES}")
+    set(PHASIC_HAVE_MPFR TRUE)
 else()
-    message(FATAL_ERROR "MPFR or GMP not found. Install via pixi: pixi install")
+    if(WIN32)
+        message(WARNING "MPFR/GMP not found - high-precision arithmetic disabled on Windows")
+        set(PHASIC_HAVE_MPFR FALSE)
+    else()
+        message(FATAL_ERROR "MPFR or GMP not found. Install via pixi: pixi install")
+    endif()
 endif()
 
 find_package(OpenMP)
@@ -242,10 +258,13 @@ endif()
 
 pybind11_add_module(phasic_pybind ${PYBIND_SOURCES})
 
-target_link_libraries(phasic_pybind PUBLIC Eigen3::Eigen pybind11::module nlohmann_json::nlohmann_json ${MPFR_LIBRARIES} ${GMP_LIBRARIES})
-target_include_directories(phasic_pybind PRIVATE ${MPFR_INCLUDE_DIRS} ${GMP_INCLUDE_DIRS})
-target_link_directories(phasic_pybind PRIVATE ${MPFR_LIBRARY_DIRS} ${GMP_LIBRARY_DIRS})
-target_compile_definitions(phasic_pybind PRIVATE HAVE_MPFR)
+target_link_libraries(phasic_pybind PUBLIC Eigen3::Eigen pybind11::module nlohmann_json::nlohmann_json)
+if(PHASIC_HAVE_MPFR)
+    target_link_libraries(phasic_pybind PUBLIC ${MPFR_LIBRARIES} ${GMP_LIBRARIES})
+    target_include_directories(phasic_pybind PRIVATE ${MPFR_INCLUDE_DIRS} ${GMP_INCLUDE_DIRS})
+    target_link_directories(phasic_pybind PRIVATE ${MPFR_LIBRARY_DIRS} ${GMP_LIBRARY_DIRS})
+    target_compile_definitions(phasic_pybind PRIVATE HAVE_MPFR)
+endif()
 
 # Add XLA FFI include directory if available
 if(XLA_FFI_RESULT EQUAL 0)
