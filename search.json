@@ -387,25 +387,14 @@
   {
     "objectID": "pages/tutorial/introduction.html",
     "href": "pages/tutorial/introduction.html",
-    "title": "Introduction",
+    "title": "The Coalescent",
     "section": "",
-    "text": "This sequence of tutorials show-cases the complete Python API of the Phasic library, a high-performance computational framework for modelling inference on waiting times in Markov jump processes. In addition to this introduction, the tutorial covers the following topics - in each as a jupyter notebook you can download and play with yourself.\nIntroduction: The coalescent process as an example of a Markov jump process.\nState-space construction: Multiple approaches to building state spaces: manual construction, callback functions, and matrix interfaces.\nVisualizing state space: Plot state space graphs for visual inspection.\nMoments and distributions: Computing moments, expectations, variances, PDFs, CDFs, and reward transformations.\nDiscrete phase-type distributions: Discretization of continuous models, discrete PMFs and CDFs, and multivariate marginal distributions.\nState vector indexing: The state indexing utility for mapping between flat indices and structured state properties.\nParameterized models: Parameterizing edge weights to evaluate models across different parameter values without graph reconstruction.",
+    "text": "The sequence of tutorials show-cases the complete Python API of the Phasic library, a high-performance computational framework for modelling inference on waiting times in Markov jump processes. In addition to this introduction, the tutorial covers the following topics - in each as a jupyter notebook you can download and play with yourself.\n\nThroughout the tutorials we use the Coalescent model as an example. The Coalescent is a continuous-time Markov chain that models the ancestry of a sample of individuals from a population. Lineages coalesce into fewer lineages with more descendants until only a single common ancestral lineage remains. Branches in the resulting tree represent lineages. We call those with a single sampled descendant singleton lineages. The ones with two descendants are doubletons and so on. With four samples, the Coalescent jumps with four singletons and terminates with a single quadrupleton (4’ton). We can encode the states of this Markov chain as vectors enumerating the number of of 1’tons, 2’tons, 3’tons, and 4’tons.\n\n\n\n\n\n\n\n  \n    Download notebook\n    \n      \n      \n      \n    \n  \n\n\n\n\nfrom phasic import Graph # ALWAYS import phasic first to set jax backend correctly\nimport numpy as np\nimport seaborn as sns\nfrom vscodenb import set_vscode_theme\nset_vscode_theme()\nsns.set_palette('tab10')\n\n\n\n\n\nOverriding theme from NOTEBOOK_THEME environment variable. &lt;phasic._DeviceListFilter object at 0x17c3d1890&gt;\n\n\n\n                                  \n        \n\n\n\n\nOverriding theme from NOTEBOOK_THEME environment variable. &lt;phasic._DeviceListFilter object at 0x17c3d1890&gt;\n\n\n\n\n\n\n\n\nFigure 1: The coalescent process with four samples. The S (starting) state just signifies that the process begins in state (4,0,0,0). Edges are annotated with the coalescence rates that, in this model represents the transition rates of the model\n\n\n\n\n\nIf you can think of your favorite Markov model in this way, phasic does the rest for you.",
     "crumbs": [
       "Documentation",
       "Tutorial",
-      "Introduction"
-    ]
-  },
-  {
-    "objectID": "pages/tutorial/introduction.html#the-coalescent-process",
-    "href": "pages/tutorial/introduction.html#the-coalescent-process",
-    "title": "Introduction",
-    "section": "The Coalescent process",
-    "text": "The Coalescent process\nThe tutorial uses the Coalescent process as an example. The Coalescent is a continuous-time Markov chain that models the ancestry of a sample of individuals from a population. Lineages coalesce into fewer lineages with more descendants until only a single common ancestral lineage remains. Branches in the resulting tree represent lineages. We call those with a single sampled descendant singleton lineages. The ones with two descendants are doubletons and so on. With four samples, the Coalescent jumps with four singletons and terminates with a single quadrupleton (4’ton). We can encode the states of this Markov chain as vectors enumerating the number of of 1’tons, 2’tons, 3’tons, and 4’tons:\n\nfrom phasic import Graph # ALWAYS import phasic first to set jax backend correctly\nimport numpy as np\nimport seaborn as sns\nfrom vscodenb import set_vscode_theme\nset_vscode_theme()\nsns.set_palette('tab10')\n\n\n\n\n\nOverriding theme from NOTEBOOK_THEME environment variable. &lt;phasic._DeviceListFilter object at 0x17c3d1890&gt;\n\n\n\n                                  \n        \n\n\n\n\nOverriding theme from NOTEBOOK_THEME environment variable. &lt;phasic._DeviceListFilter object at 0x17c3d1890&gt;\n\n\n\n\n\n\n\n\nFigure 1: The coalescent process with four samples. The S (starting) state just signifies that the process begins in state (4,0,0,0). Edges are annotated with the coalescence rates that, in this model represents the transition rates of the model\n\n\n\n\n\nIf you can think of your favorite Markov model in this way, phasic does the rest for you.",
-    "crumbs": [
-      "Documentation",
-      "Tutorial",
-      "Introduction"
+      "State space",
+      "The Coalescent"
     ]
   },
   {
