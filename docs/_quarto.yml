@@ -169,8 +169,8 @@ format:
     notebook-links: true
     callout-icon: false
     code-overflow: scroll
-    code-tools:
-      source: repo
+    # code-tools:
+    #   source: repo
     fig-align: center    
     html-math-method: katex
     toc: true

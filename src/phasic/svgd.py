@@ -152,6 +152,13 @@ class SparseObservations(NamedTuple):
             mask = self.features == feature_idx
             return self.values[mask]
 
+    def __repr__(self):
+        return ("SparseObservations("
+                f"values=<{len(self.values)} values>, "
+                f"n_features=<{self.n_features}, "
+                f"features=<{len(self.values)} values>, "
+                f"slices=<{len(self.values)} values>)")
+    
 
 def dense_to_sparse(data: jnp.ndarray) -> SparseObservations:
     """Convert dense NaN-padded array to sparse observation format.
