@@ -32,6 +32,7 @@ dependencies = [
   'jax',
   'numpy',
   'eigen',
+  'mpfr',
   "ipython",
   "ipykernel",
   "ipywidgets",
