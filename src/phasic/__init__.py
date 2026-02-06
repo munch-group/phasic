@@ -223,6 +223,10 @@ if HAS_JAX:
         # Preconditioning
         FisherPreconditioner,
         MomentJacobianPreconditioner,
+        # Sparse observations for multivariate SVGD
+        SparseObservations,
+        dense_to_sparse,
+        is_sparse_observations,
     )
 else:
     SVGD = None
@@ -250,6 +254,9 @@ else:
     # LocalAdaptiveBandwidth = None
     FisherPreconditioner = None
     MomentJacobianPreconditioner = None
+    SparseObservations = None
+    dense_to_sparse = None
+    is_sparse_observations = None
 
 # Method of moments (requires JAX via svgd dependency, but MoMResult is always available)
 from .method_of_moments import MoMResult
@@ -4973,7 +4980,10 @@ extern "C" {{
                 pmf_minus, moments_minus = _compute_pure(theta_minus, times, rewards)
 
                 # Combine gradients from both PMF and moments
-                grad_pmf_i = jnp.sum(g_pmf * (pmf_plus - pmf_minus) / (2 * eps))
+                # Use nansum to handle NaN values in PMF (from missing observations)
+                # NaN in PMF means the observation was missing, so it shouldn't contribute to gradient
+                pmf_diff = (pmf_plus - pmf_minus) / (2 * eps)
+                grad_pmf_i = jnp.nansum(g_pmf * pmf_diff)
                 grad_moments_i = jnp.sum(g_moments * (moments_plus - moments_minus) / (2 * eps))
                 grad_i = grad_pmf_i + grad_moments_i
 
@@ -5249,7 +5259,8 @@ extern "C" {{
         )
 
         def model_multivariate(theta, times, rewards=None):
-            """Multivariate wrapper handling 1D and 2D rewards"""
+            """Multivariate wrapper handling 1D and 2D rewards, including sparse observations."""
+            from .svgd import SparseObservations, is_sparse_observations
 
             # Auto-detect dimensionality
             if rewards is None:
@@ -5266,31 +5277,65 @@ extern "C" {{
                 # 2D case: Loop over features
                 # Using Python loop here to avoid JAX FFI dtype issues with scan
                 n_features = rewards_arr.shape[0]
-                times_arr = jnp.asarray(times)
 
-                pmf_list = []
-                moments_list = []
+                # Check if times is in sparse observation format
+                if is_sparse_observations(times):
+                    # Sparse format: extract observations per feature using pre-computed slices
+                    pmf_list = []
+                    moments_list = []
 
-                for j in range(n_features):
-                    # Extract reward vector for feature j (ensure float64 for C++ compatibility)
-                    reward_j = rewards_arr[j, :].astype(jnp.float64)
+                    for j in range(n_features):
+                        # Extract reward vector for feature j
+                        reward_j = rewards_arr[j, :].astype(jnp.float64)
 
-                    # Extract times for feature j (support both 1D and 2D times)
-                    if times_arr.ndim == 2:
-                        times_j = times_arr[:, j]
-                    else:
-                        times_j = times_arr  # Broadcast same times to all features
+                        # Extract observations for this feature using JAX-compatible method
+                        times_j = times.get_feature_values(j)
 
-                    # Compute PMF and moments for this feature
-                    pmf_j, moments_j = model_1d(theta, times_j, rewards=reward_j)
-                    pmf_list.append(pmf_j)
-                    moments_list.append(moments_j)
+                        # Skip if no observations for this feature
+                        if times_j.shape[0] == 0:
+                            # Return empty PMF and moments with NaN
+                            pmf_list.append(jnp.array([]))
+                            moments_list.append(jnp.full(nr_moments, jnp.nan))
+                            continue
 
-                # Stack results
-                pmf = jnp.stack(pmf_list, axis=1)  # (n_times, n_features)
-                moments = jnp.stack(moments_list, axis=0)  # (n_features, nr_moments)
+                        pmf_j, moments_j = model_1d(theta, times_j, rewards=reward_j)
+                        pmf_list.append(pmf_j)
+                        moments_list.append(moments_j)
 
-                return pmf, moments
+                    # For sparse: concatenate PMFs (not stack - different lengths per feature)
+                    # Return as flat array of PMF values in same order as input
+                    pmf = jnp.concatenate(pmf_list) if any(len(p) > 0 for p in pmf_list) else jnp.array([])
+                    moments = jnp.stack(moments_list, axis=0)  # (n_features, nr_moments)
+
+                    return pmf, moments
+
+                else:
+                    # Dense format: existing behavior
+                    times_arr = jnp.asarray(times)
+                    pmf_list = []
+                    moments_list = []
+
+                    for j in range(n_features):
+                        # Extract reward vector for feature j (ensure float64 for C++ compatibility)
+                        reward_j = rewards_arr[j, :].astype(jnp.float64)
+
+                        # Extract times for feature j (support both 1D and 2D times)
+                        # NaN times are handled by C++ layer - they return NaN in output
+                        if times_arr.ndim == 2:
+                            times_j = times_arr[:, j]
+                        else:
+                            times_j = times_arr  # Broadcast same times to all features
+
+                        pmf_j, moments_j = model_1d(theta, times_j, rewards=reward_j)
+
+                        pmf_list.append(pmf_j)
+                        moments_list.append(moments_j)
+
+                    # Stack results
+                    pmf = jnp.stack(pmf_list, axis=1)  # (n_times, n_features)
+                    moments = jnp.stack(moments_list, axis=0)  # (n_features, nr_moments)
+
+                    return pmf, moments
 
             else:
                 raise ValueError(

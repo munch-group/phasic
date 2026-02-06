@@ -270,6 +270,45 @@ rewards_old = jnp.ones((n_vertices, n_features))  # Column per feature
 rewards_new = rewards_old.T  # Transpose: row per feature
 ```
 
+### Sparse Observation Format (NEW)
+
+For multivariate models where different features have different numbers of observations, use `SparseObservations` instead of dense NaN-padded arrays. This avoids NaN propagation through JAX gradients.
+
+```python
+from phasic import SparseObservations, dense_to_sparse, SVGD
+
+# Option 1: Convert from dense NaN-padded array
+dense_obs = jnp.array([
+    [1.0, np.nan, 3.0],   # Feature 0 has value, Feature 1 missing, Feature 2 has value
+    [1.5, 2.0, np.nan],   # etc.
+])
+sparse_obs = dense_to_sparse(dense_obs)
+
+# Option 2: Create directly with pre-computed slices
+# (Required for JAX JIT compatibility)
+sparse_obs = SparseObservations(
+    values=jnp.array([1.0, 1.5, 2.0, 3.0]),  # All valid values, grouped by feature
+    features=jnp.array([0, 0, 1, 2]),         # Feature index for each value
+    n_features=3,
+    slices=((0, 2), (2, 3), (3, 4))           # (start, end) indices per feature
+)
+
+# Use in SVGD
+svgd = SVGD(
+    model=model,
+    observed_data=sparse_obs,  # Works just like dense observations
+    theta_dim=2,
+    rewards=rewards_2d
+)
+svgd.optimize()
+```
+
+**Key Benefits:**
+- No NaN propagation through JAX callbacks
+- Memory efficient for very sparse observation patterns
+- Supports unequal observation counts per feature
+- `dense_to_sparse()` automatically computes slices
+
 ### Reward Transformation
 
 ```python

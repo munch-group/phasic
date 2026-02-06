@@ -2,7 +2,7 @@ import logging
 import os
 import platform
 from time import time, sleep
-from typing import Optional, Self, Union
+from typing import Optional, Self, Union, NamedTuple
 import warnings
 import matplotlib
 import numpy as np
@@ -85,6 +85,147 @@ except ImportError:
 #from jax import random, vmap, grad, jit
 
 black_or_white = matplotlib.rcParams['text.color']
+
+# ============================================================================
+# Sparse Observation Format for Multivariate SVGD
+# ============================================================================
+
+class SparseObservations(NamedTuple):
+    """Sparse representation of multivariate observations.
+
+    Replaces dense NaN-padded format with parallel arrays containing only
+    valid observations. This avoids NaN propagation through JAX callbacks
+    during gradient computation.
+
+    Attributes
+    ----------
+    values : jnp.ndarray
+        Observation values (n_obs,) - no NaN values
+    features : jnp.ndarray
+        Feature index for each observation (n_obs,) - integers
+    n_features : int
+        Total number of features (for rewards indexing)
+    slices : tuple of tuples, optional
+        Pre-computed (start, end) slices for each feature to avoid
+        dynamic boolean indexing in JIT-compiled code. If provided,
+        observations must be sorted by feature index.
+
+    Examples
+    --------
+    >>> # 10 observations for feature 0, 10 for feature 1, 10 for feature 2
+    >>> sparse = SparseObservations(
+    ...     values=jnp.array([1.1, 1.2, ..., 2.1, 2.2, ..., 3.1, 3.2, ...]),
+    ...     features=jnp.array([0, 0, ..., 1, 1, ..., 2, 2, ...]),
+    ...     n_features=3
+    ... )
+
+    See Also
+    --------
+    dense_to_sparse : Convert dense NaN-padded array to sparse format
+    """
+    values: jnp.ndarray
+    features: jnp.ndarray
+    n_features: int
+    slices: tuple = None  # Optional: pre-computed (start, end) per feature
+
+    def get_feature_values(self, feature_idx: int) -> jnp.ndarray:
+        """Get observation values for a specific feature.
+
+        Uses pre-computed slices if available (JAX JIT compatible),
+        otherwise falls back to boolean indexing (not JIT compatible).
+
+        Parameters
+        ----------
+        feature_idx : int
+            Feature index
+
+        Returns
+        -------
+        jnp.ndarray
+            Observation values for this feature
+        """
+        if self.slices is not None:
+            start, end = self.slices[feature_idx]
+            return self.values[start:end]
+        else:
+            # Fallback (not JIT compatible)
+            mask = self.features == feature_idx
+            return self.values[mask]
+
+
+def dense_to_sparse(data: jnp.ndarray) -> SparseObservations:
+    """Convert dense NaN-padded array to sparse observation format.
+
+    Parameters
+    ----------
+    data : jnp.ndarray
+        Dense 2D array of shape (n_times, n_features) where NaN indicates
+        missing observations.
+
+    Returns
+    -------
+    SparseObservations
+        Sparse representation with only valid observations, sorted by feature
+        with pre-computed slices for JAX JIT compatibility.
+
+    Examples
+    --------
+    >>> dense = jnp.array([
+    ...     [1.0, np.nan, 3.0],
+    ...     [np.nan, 2.0, np.nan],
+    ...     [1.5, 2.5, 3.5]
+    ... ])
+    >>> sparse = dense_to_sparse(dense)
+    >>> print(sparse.values)   # [1.0, 1.5, 2.0, 2.5, 3.0, 3.5]
+    >>> print(sparse.features) # [0, 0, 1, 1, 2, 2]
+    >>> print(sparse.n_features)  # 3
+    """
+    data = jnp.asarray(data)
+    if data.ndim != 2:
+        raise ValueError(
+            f"dense_to_sparse requires 2D array (n_times, n_features). "
+            f"Got shape: {data.shape}"
+        )
+
+    n_times, n_features = data.shape
+
+    # Collect values and feature indices, keeping track of counts for slices
+    values_list = []
+    features_list = []
+    slices = []
+    current_pos = 0
+
+    for j in range(n_features):
+        col = data[:, j]
+        valid_mask = ~jnp.isnan(col)
+        valid_values = col[valid_mask]
+        count = len(valid_values)
+
+        values_list.append(valid_values)
+        features_list.append(jnp.full(valid_values.shape, j, dtype=jnp.int32))
+        slices.append((current_pos, current_pos + count))
+        current_pos += count
+
+    # Concatenate all features
+    if values_list:
+        values = jnp.concatenate(values_list)
+        features = jnp.concatenate(features_list)
+    else:
+        values = jnp.array([], dtype=jnp.float64)
+        features = jnp.array([], dtype=jnp.int32)
+
+    return SparseObservations(
+        values=values,
+        features=features,
+        n_features=n_features,
+        slices=tuple(slices)
+    )
+
+
+def is_sparse_observations(data) -> bool:
+    """Check if data is in sparse observation format."""
+    return isinstance(data, SparseObservations)
+
 
 # ============================================================================
 # Helper Functions
@@ -2667,8 +2808,13 @@ class _PreconditionerBase:
         theta_ref : array (theta_dim,)
             Improved reference point in unconstrained space.
         """
-        times = jnp.atleast_1d(jnp.array(self.observed_data))
-        data_mean = float(jnp.mean(times))
+        # Handle sparse vs dense observation format
+        if is_sparse_observations(self.observed_data):
+            times = self.observed_data  # Keep as SparseObservations for model call
+            data_mean = float(jnp.mean(self.observed_data.values))
+        else:
+            times = jnp.atleast_1d(jnp.array(self.observed_data))
+            data_mean = float(jnp.mean(times))
 
         # Data-driven search range in unconstrained space
         # inverse softplus: log(exp(x) - 1) ≈ x for large x
@@ -2775,7 +2921,11 @@ class MomentJacobianPreconditioner(_PreconditionerBase):
         else:
             theta_c = theta_ref
 
-        times = jnp.atleast_1d(jnp.array(self.observed_data))
+        # Handle sparse vs dense observation format
+        if is_sparse_observations(self.observed_data):
+            times = self.observed_data  # Keep as SparseObservations
+        else:
+            times = jnp.atleast_1d(jnp.array(self.observed_data))
         _, moments_ref = self.model(theta_c, times, rewards=self.rewards)
         moments_ref = moments_ref.flatten()
         n_moments = len(moments_ref)
@@ -2859,8 +3009,14 @@ class FisherPreconditioner(_PreconditionerBase):
             theta_c = theta_ref
             logger.debug("FisherPreconditioner: no param_transform, using raw theta_ref")
 
-        times = jnp.atleast_1d(jnp.array(self.observed_data))
-        logger.debug("FisherPreconditioner: %d observation points", len(times))
+        # Handle sparse vs dense observation format
+        if is_sparse_observations(self.observed_data):
+            times = self.observed_data  # Keep as SparseObservations
+            n_times = len(self.observed_data.values)
+        else:
+            times = jnp.atleast_1d(jnp.array(self.observed_data))
+            n_times = len(times)
+        logger.debug("FisherPreconditioner: %d observation points", n_times)
 
         # Reference PMF values: p(x_n | theta_ref) for all observations
         pmf_ref, _ = self.model(theta_c, times, rewards=self.rewards)
@@ -3434,15 +3590,16 @@ def compute_sample_moments(data, nr_moments):
     """
     Compute sample moments from observed data.
 
-    For multivariate data (2D), computes moments independently per feature,
-    ignoring NaN values within each feature.
+    For multivariate data (2D or SparseObservations), computes moments
+    independently per feature, ignoring NaN values within each feature.
 
     Parameters
     ----------
-    data : array_like
+    data : array_like or SparseObservations
         Observed data points. Can be:
         - 1D array: (n_times,) for univariate observations
         - 2D array: (n_times, n_features) for multivariate observations
+        - SparseObservations: sparse format with values and feature indices
     nr_moments : int
         Number of moments to compute
 
@@ -3451,7 +3608,7 @@ def compute_sample_moments(data, nr_moments):
     jnp.array
         Sample moments:
         - 1D data: Shape (nr_moments,) with [mean, mean(X^2), ..., mean(X^k)]
-        - 2D data: Shape (n_features, nr_moments) with per-feature moments
+        - 2D/sparse data: Shape (n_features, nr_moments) with per-feature moments
 
     Examples
     --------
@@ -3465,7 +3622,37 @@ def compute_sample_moments(data, nr_moments):
     >>> moments = compute_sample_moments(data, nr_moments=2)
     >>> print(moments.shape)  # (2, 2) = (n_features, nr_moments)
     >>> # Feature 0: mean=2.0, Feature 1: mean=20.0 (ignoring NaN)
+    >>>
+    >>> # Sparse format
+    >>> sparse = SparseObservations(
+    ...     values=jnp.array([1.0, 2.0, 3.0, 10.0, 30.0]),
+    ...     features=jnp.array([0, 0, 0, 1, 1]),
+    ...     n_features=2
+    ... )
+    >>> moments = compute_sample_moments(sparse, nr_moments=2)
+    >>> print(moments.shape)  # (2, 2) = (n_features, nr_moments)
     """
+    # Handle sparse observations
+    if is_sparse_observations(data):
+        n_features = data.n_features
+        moments = []
+        for j in range(n_features):
+            # Extract values for this feature
+            mask = data.features == j
+            values_j = data.values[mask]
+
+            feature_moments = []
+            for k in range(1, nr_moments + 1):
+                # Compute k-th moment - no NaN since sparse format has only valid values
+                if len(values_j) > 0:
+                    feature_moments.append(jnp.mean(values_j**k))
+                else:
+                    # No observations for this feature - use NaN
+                    feature_moments.append(jnp.nan)
+            moments.append(feature_moments)
+        return jnp.array(moments)  # Shape: (n_features, nr_moments)
+
+    # Handle dense arrays
     data = jnp.array(data)
 
     if data.ndim == 1:
@@ -3489,8 +3676,8 @@ def compute_sample_moments(data, nr_moments):
 
     else:
         raise ValueError(
-            f"Data must be 1D or 2D for moment computation. "
-            f"Got shape: {data.shape}"
+            f"Data must be 1D, 2D, or SparseObservations. "
+            f"Got type: {type(data)}, shape: {data.shape}"
         )
 
 
@@ -3896,7 +4083,18 @@ class SVGD:
 
         self.model = model
 
-        self.observed_data = jnp.array(observed_data)
+        # Handle sparse vs dense observation format
+        if is_sparse_observations(observed_data):
+            self.observed_data = observed_data  # Keep as SparseObservations
+            self._sparse_format = True
+            n_observations = float(len(observed_data.values))
+            if verbose:
+                print(f"Using sparse observation format: {len(observed_data.values)} observations across {observed_data.n_features} features")
+        else:
+            self.observed_data = jnp.array(observed_data)
+            self._sparse_format = False
+            n_observations = float(self.observed_data.shape[0])
+
         self.prior = prior
         # Detect per-parameter priors (list/tuple of Prior objects)
         self.prior_list = list(prior) if isinstance(prior, (list, tuple, DataPrior)) else None
@@ -3907,7 +4105,6 @@ class SVGD:
         # Handle step size schedule and optimizer selection
         # Auto-scale learning rate by number of observations to prevent gradient explosion
         # Gradients scale with n_observations (not total elements), so we normalize by that
-        n_observations = float(self.observed_data.shape[0])
         lr_scale = 1.0 / max(1.0, n_observations / 1000.0)  # Scale down for > 1000 observations
 
         if optimizer is not None:
@@ -4274,12 +4471,24 @@ class SVGD:
             # This avoids negative edge weights and FFI initialization crashes
             if self.param_transform is not None:
                 test_theta = jnp.abs(test_theta)
-            test_times = self.observed_data[:min(2, len(self.observed_data))]
+
+            # Extract test times (handle sparse vs dense format)
+            if self._sparse_format:
+                # For sparse, take first 2 observations from the values array
+                n_test = min(2, len(self.observed_data.values))
+                test_times = SparseObservations(
+                    values=self.observed_data.values[:n_test],
+                    features=self.observed_data.features[:n_test],
+                    n_features=self.observed_data.n_features
+                )
+            else:
+                test_times = self.observed_data[:min(2, len(self.observed_data))]
 
             # Test with rewards if provided
             if self.rewards is not None:
                 # For 2D rewards, extract first 2 columns to match test_times
-                if jnp.asarray(self.rewards).ndim == 2 and test_times.ndim == 2:
+                # (only for dense format - sparse format doesn't need this)
+                if not self._sparse_format and jnp.asarray(self.rewards).ndim == 2 and test_times.ndim == 2:
                     test_rewards = jnp.asarray(self.rewards)[:, :test_times.shape[1]]
                 else:
                     test_rewards = self.rewards
@@ -4524,29 +4733,52 @@ class SVGD:
 
         pmf_vals, model_moments = result
 
-        # Log-likelihood term (handle missing observations via NaN)
-        # Distinguish between NaN observations (expected) and NaN PMF values (error)
-        obs_mask = ~jnp.isnan(self.observed_data)  # Valid observations
-        pmf_mask = ~jnp.isnan(pmf_vals)             # Valid PMF computations
+        # Log-likelihood term - handle sparse vs dense format differently
+        if self._sparse_format:
+            # Sparse format: all values are valid (no NaN), simpler computation
+            # pmf_vals should be 1D array matching the number of observations
+            pmf_mask = ~jnp.isnan(pmf_vals)
 
-        # Check for invalid PMF using debug callback (JAX-compatible error checking)
-        # This won't block JIT compilation but will warn if NaN PMF occurs
-        invalid_pmf = obs_mask & ~pmf_mask
+            def check_nan_pmf_sparse(pmf_mask):
+                """Callback to check for NaN PMF values (executed during runtime, not tracing)"""
+                if not np.all(pmf_mask):
+                    nan_count = np.sum(~pmf_mask)
+                    raise ValueError(
+                        f"Model returned NaN PMF values for valid observations. "
+                        f"Check model implementation and parameter values. "
+                        f"NaN count: {nan_count}"
+                    )
 
-        def check_nan_pmf(invalid_mask):
-            """Callback to check for NaN PMF values (executed during runtime, not tracing)"""
-            if np.any(invalid_mask):
-                raise ValueError(
-                    f"Model returned NaN PMF values for valid observations. "
-                    f"Check model implementation and parameter values. "
-                    f"NaN count: {np.sum(invalid_mask)}"
-                )
+            # Register debug callback (only executes at runtime, not during tracing)
+            jax.debug.callback(check_nan_pmf_sparse, pmf_mask)
 
-        # Register debug callback (only executes at runtime, not during tracing)
-        jax.debug.callback(check_nan_pmf, invalid_pmf)
+            # All observations are valid in sparse format - simple sum
+            log_lik = jnp.sum(jnp.log(pmf_vals + 1e-10))
 
-        # Compute log-likelihood only on valid observations (skip NaN observations)
-        log_lik = jnp.sum(jnp.where(obs_mask, jnp.log(pmf_vals + 1e-10), 0.0))
+        else:
+            # Dense format: handle missing observations via NaN
+            # Distinguish between NaN observations (expected) and NaN PMF values (error)
+            obs_mask = ~jnp.isnan(self.observed_data)  # Valid observations
+            pmf_mask = ~jnp.isnan(pmf_vals)             # Valid PMF computations
+
+            # Check for invalid PMF using debug callback (JAX-compatible error checking)
+            # This won't block JIT compilation but will warn if NaN PMF occurs
+            invalid_pmf = obs_mask & ~pmf_mask
+
+            def check_nan_pmf(invalid_mask):
+                """Callback to check for NaN PMF values (executed during runtime, not tracing)"""
+                if np.any(invalid_mask):
+                    raise ValueError(
+                        f"Model returned NaN PMF values for valid observations. "
+                        f"Check model implementation and parameter values. "
+                        f"NaN count: {np.sum(invalid_mask)}"
+                    )
+
+            # Register debug callback (only executes at runtime, not during tracing)
+            jax.debug.callback(check_nan_pmf, invalid_pmf)
+
+            # Compute log-likelihood only on valid observations (skip NaN observations)
+            log_lik = jnp.sum(jnp.where(obs_mask, jnp.log(pmf_vals + 1e-10), 0.0))
 
         # Log-prior term (evaluated in unconstrained space)
         if self.prior_list is not None:
@@ -4593,7 +4825,10 @@ class SVGD:
         """Generate cache path for this model configuration"""
         # Create cache key from model id and shapes
         theta_shape = (self.theta_dim,)
-        times_shape = self.observed_data.shape
+        if self._sparse_format:
+            times_shape = (len(self.observed_data.values), self.observed_data.n_features)
+        else:
+            times_shape = self.observed_data.shape
         cache_key = f"{id(self.model)}_{theta_shape}_{times_shape}"
         cache_hash = hashlib.sha256(cache_key.encode()).hexdigest()[:16]
 
@@ -4625,7 +4860,10 @@ class SVGD:
             Cache hash for this configuration
         """
         theta_shape = (self.theta_dim,)
-        times_shape = self.observed_data.shape
+        if self._sparse_format:
+            times_shape = (len(self.observed_data.values), self.observed_data.n_features)
+        else:
+            times_shape = self.observed_data.shape
         # Include nr_moments, regularization, and rewards in cache key
         rewards_str = str(rewards) if rewards is not None else "None"
         cache_key = f"{id(self.model)}_{theta_shape}_{times_shape}_{nr_moments}_{regularization}_{rewards_str}"
@@ -4668,7 +4906,10 @@ class SVGD:
         """Precompile model and gradient for known shapes"""
         # Generate cache key
         theta_shape = (self.theta_dim,)
-        times_shape = self.observed_data.shape
+        if self._sparse_format:
+            times_shape = (len(self.observed_data.values), self.observed_data.n_features)
+        else:
+            times_shape = self.observed_data.shape
         memory_cache_key = (id(self.model), theta_shape, times_shape)
 
         # Check memory cache first
@@ -4776,7 +5017,11 @@ class SVGD:
         else:
             rewards_tuple = None
         cache_hash = self._get_cache_key_unified(nr_moments, regularization, rewards_tuple)
-        memory_cache_key = (id(self.model), self.theta_dim, self.observed_data.shape,
+        if self._sparse_format:
+            obs_shape = (len(self.observed_data.values), self.observed_data.n_features)
+        else:
+            obs_shape = self.observed_data.shape
+        memory_cache_key = (id(self.model), self.theta_dim, obs_shape,
                            nr_moments, regularization, rewards_tuple)
 
         # Check memory cache first
@@ -4809,7 +5054,7 @@ class SVGD:
         # Need to compile
         if self.verbose:
             print(f"\nPrecompiling gradient function...")
-            print(f"  Theta shape: {(self.theta_dim,)}, Times shape: {self.observed_data.shape}")
+            print(f"  Theta shape: {(self.theta_dim,)}, Times shape: {obs_shape}")
             if regularization > 0:
                 print(f"  Moment regularization: λ={regularization}, nr_moments={nr_moments}")
             print(f"  This may take several minutes for large models...")
@@ -4986,7 +5231,8 @@ class SVGD:
             if self.verbose:
                 print(f"\nStarting SVGD inference with regularization schedule...")
                 print(f"  Model: parameterized phase-type distribution")
-                print(f"  Data points: {len(self.observed_data)}")
+                n_data = len(self.observed_data.values) if self._sparse_format else len(self.observed_data)
+                print(f"  Data points: {n_data}")
                 print(f"  Prior: {'custom' if self.prior is not None else 'standard normal'}")
                 print(f"  Regularization: dynamic schedule (initial λ = {self.regularization})")
                 print(f"  Nr moments: {self.nr_moments}")
@@ -5050,7 +5296,8 @@ class SVGD:
             if self.verbose:
                 print(f"\nStarting SVGD inference...")
                 print(f"  Model: parameterized phase-type distribution")
-                print(f"  Data points: {len(self.observed_data)}")
+                n_data = len(self.observed_data.values) if self._sparse_format else len(self.observed_data)
+                print(f"  Data points: {n_data}")
                 print(f"  Prior: {'custom' if self.prior is not None else 'standard normal'}")
                 if use_regularization:
                     print(f"  Moment regularization: λ = {self.regularization}")

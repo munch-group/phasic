@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <sstream>
 #include <cmath>
+#include <limits>
 
 using json = nlohmann::json;
 
@@ -386,19 +387,19 @@ GraphBuilder::compute_pmf_and_moments(
                 rewards_vec_1d[i] = rewards_ptr[i];
             }
         } else if (rewards_info.ndim == 2) {
-            // 2D rewards: (n_vertices, n_features)
+            // 2D rewards: (n_features, n_vertices) - each row is one feature's reward vector
             is_2d_rewards = true;
-            n_vertices = rewards_info.shape[0];
-            n_features = rewards_info.shape[1];
+            n_features = rewards_info.shape[0];
+            n_vertices = rewards_info.shape[1];
 
-            // Extract each feature's reward vector
+            // Extract each feature's reward vector (each row = one feature)
             rewards_2d.resize(n_features, std::vector<double>(n_vertices));
             double* rewards_ptr = static_cast<double*>(rewards_info.ptr);
 
             for (size_t j = 0; j < n_features; j++) {
                 for (size_t i = 0; i < n_vertices; i++) {
-                    // Row-major: rewards[i, j] = ptr[i * n_features + j]
-                    rewards_2d[j][i] = rewards_ptr[i * n_features + j];
+                    // Row-major: rewards[j, i] = ptr[j * n_vertices + i]
+                    rewards_2d[j][i] = rewards_ptr[j * n_vertices + i];
                 }
             }
         } else {
@@ -427,14 +428,23 @@ GraphBuilder::compute_pmf_and_moments(
                 Graph g_transformed = g.reward_transform(rewards_2d[j]);
 
                 // Compute PDF/PMF for feature j from transformed graph
+                // Skip NaN times - return NaN in output for those positions
                 if (discrete) {
                     for (size_t t = 0; t < n_times; t++) {
-                        int jump_count = static_cast<int>(times_vec[t]);
-                        pmf_2d[t][j] = g_transformed.dph_pmf(jump_count);
+                        if (std::isnan(times_vec[t])) {
+                            pmf_2d[t][j] = std::numeric_limits<double>::quiet_NaN();
+                        } else {
+                            int jump_count = static_cast<int>(times_vec[t]);
+                            pmf_2d[t][j] = g_transformed.dph_pmf(jump_count);
+                        }
                     }
                 } else {
                     for (size_t t = 0; t < n_times; t++) {
-                        pmf_2d[t][j] = g_transformed.pdf(times_vec[t], granularity);
+                        if (std::isnan(times_vec[t])) {
+                            pmf_2d[t][j] = std::numeric_limits<double>::quiet_NaN();
+                        } else {
+                            pmf_2d[t][j] = g_transformed.pdf(times_vec[t], granularity);
+                        }
                     }
                 }
 
@@ -453,14 +463,23 @@ GraphBuilder::compute_pmf_and_moments(
                 Graph g_transformed = g.reward_transform(rewards_vec_1d);
 
                 // Compute PDF/PMF from transformed graph
+                // Skip NaN times - return NaN in output for those positions
                 if (discrete) {
                     for (size_t t = 0; t < n_times; t++) {
-                        int jump_count = static_cast<int>(times_vec[t]);
-                        pmf_2d[t][0] = g_transformed.dph_pmf(jump_count);
+                        if (std::isnan(times_vec[t])) {
+                            pmf_2d[t][0] = std::numeric_limits<double>::quiet_NaN();
+                        } else {
+                            int jump_count = static_cast<int>(times_vec[t]);
+                            pmf_2d[t][0] = g_transformed.dph_pmf(jump_count);
+                        }
                     }
                 } else {
                     for (size_t t = 0; t < n_times; t++) {
-                        pmf_2d[t][0] = g_transformed.pdf(times_vec[t], granularity);
+                        if (std::isnan(times_vec[t])) {
+                            pmf_2d[t][0] = std::numeric_limits<double>::quiet_NaN();
+                        } else {
+                            pmf_2d[t][0] = g_transformed.pdf(times_vec[t], granularity);
+                        }
                     }
                 }
 
@@ -469,14 +488,23 @@ GraphBuilder::compute_pmf_and_moments(
                 moments_2d[0] = compute_moments_impl(g_transformed, nr_moments, std::vector<double>());
             } else {
                 // Use original graph (no transformation)
+                // Skip NaN times - return NaN in output for those positions
                 if (discrete) {
                     for (size_t t = 0; t < n_times; t++) {
-                        int jump_count = static_cast<int>(times_vec[t]);
-                        pmf_2d[t][0] = g.dph_pmf(jump_count);
+                        if (std::isnan(times_vec[t])) {
+                            pmf_2d[t][0] = std::numeric_limits<double>::quiet_NaN();
+                        } else {
+                            int jump_count = static_cast<int>(times_vec[t]);
+                            pmf_2d[t][0] = g.dph_pmf(jump_count);
+                        }
                     }
                 } else {
                     for (size_t t = 0; t < n_times; t++) {
-                        pmf_2d[t][0] = g.pdf(times_vec[t], granularity);
+                        if (std::isnan(times_vec[t])) {
+                            pmf_2d[t][0] = std::numeric_limits<double>::quiet_NaN();
+                        } else {
+                            pmf_2d[t][0] = g.pdf(times_vec[t], granularity);
+                        }
                     }
                 }
 
@@ -608,6 +636,12 @@ py::array_t<double> GraphBuilder::compute_pmf_multivariate(
             // Compute PDF/PMF for all time points for feature j
             for (size_t i = 0; i < n_times; i++) {
                 double time_ij = times_2d[i][j];
+
+                // Skip NaN times - return NaN in output for missing data
+                if (std::isnan(time_ij)) {
+                    pmf_2d[i][j] = std::numeric_limits<double>::quiet_NaN();
+                    continue;
+                }
 
                 // Sparse mode: zero observation → zero PDF
                 if (time_ij == 0.0) {

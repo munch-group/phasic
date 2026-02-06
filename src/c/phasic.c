@@ -3128,6 +3128,27 @@ void ptd_graph_update_weights(
                 (unsigned long)params_length);
             return;
         }
+
+        // // Validate no NaN or Inf parameters
+        // for (size_t i = 0; i < params_length; i++) {
+        //     if (isnan(params[i])) {
+        //         snprintf((char*)ptd_err, sizeof(ptd_err),
+        //             "Invalid parameter value: params[%zu] is NaN. "
+        //             "SVGD or optimization may have diverged.",
+        //             (unsigned long)i);
+        //         PTD_LOG_ERROR("update_weights: params[%zu] is NaN", i);
+        //         return;
+        //     }
+        //     if (isinf(params[i])) {
+        //         snprintf((char*)ptd_err, sizeof(ptd_err),
+        //             "Invalid parameter value: params[%zu] is Inf. "
+        //             "SVGD or optimization may have diverged.",
+        //             (unsigned long)i);
+        //         PTD_LOG_ERROR("update_weights: params[%zu] is Inf", i);
+        //         return;
+        //     }
+        // }
+
         theta = params;
         theta_len = params_length;
     }
@@ -3209,6 +3230,30 @@ void ptd_graph_update_weights(
                     edge->weight += edge->coefficients[k] * theta[k];
                 }
             }
+
+            // // Validate computed weight
+            // if (isnan(edge->weight)) {
+            //     snprintf((char*)ptd_err, sizeof(ptd_err),
+            //         "Edge weight computation produced NaN at vertex %zu, edge %zu. "
+            //         "Check coefficients and parameter values.",
+            //         (unsigned long)i, (unsigned long)j);
+            //     PTD_LOG_ERROR("update_weights: edge[%zu][%zu] weight is NaN", i, j);
+            //     if (need_free) {
+            //         free(theta);
+            //     }
+            //     return;
+            // }
+            // if (edge->weight < 0.0) {
+            //     snprintf((char*)ptd_err, sizeof(ptd_err),
+            //         "Edge weight computation produced negative value (%g) at vertex %zu, edge %zu. "
+            //         "Check coefficients and parameter values.",
+            //         edge->weight, (unsigned long)i, (unsigned long)j);
+            //     PTD_LOG_ERROR("update_weights: edge[%zu][%zu] weight is negative: %g", i, j, edge->weight);
+            //     if (need_free) {
+            //         free(theta);
+            //     }
+            //     return;
+            // }
         }
     }
 
@@ -5845,6 +5890,14 @@ struct ptd_desc_reward_compute *ptd_graph_build_ex_absorbation_time_comp_graph_p
 
         switch (command.type) {
             case NEW_ADD:
+                // // Check for NaN in multiplier before adding command
+                // if (isnan(*command.multiplierptr)) {
+                //     PTD_LOG_ERROR("build_parameterized: NaN multiplier detected at command %zu "
+                //         "(from=%zu, to=%zu). Numerical instability during graph elimination.",
+                //         i, command.from, command.to);
+                //     if (commands) free(commands);
+                //     return NULL;
+                // }
                 commands = add_command(
                         commands,
                         command.from,
@@ -5855,17 +5908,59 @@ struct ptd_desc_reward_compute *ptd_graph_build_ex_absorbation_time_comp_graph_p
                 break;
             case P:
                 *(command.fromT) = *(command.fromT) + *command.toT * command.multiplier;
+                // Check for NaN after arithmetic
+                // if (isnan(*(command.fromT))) {
+                //     sprintf((char*)ptd_err, "build_parameterized: P command %zu produced NaN (toT=%g, multiplier=%g).", i, *command.toT, command.multiplier);
+                //     if (commands) free(commands);
+                //     return NULL;
+                // }
                 break;
             case PP:
                 *(command.fromT) = *(command.fromT) + *command.toT * *command.multiplierptr;
+                // // Check for NaN after arithmetic (e.g., 0 * Inf = NaN)
+                // if (isnan(*(command.fromT))) {
+                //     sprintf((char*)ptd_err, "build_parameterized: PP command %zu produced NaN (toT=%g, multiplierptr=%g).", i, *command.toT, *command.multiplierptr);
+                //     if (commands) free(commands);
+                //     return NULL;
+                // }
                 break;
             case INV:
+                // // Check for NaN input
+                // if (isnan(*(command.fromT))) {
+                //     sprintf((char*)ptd_err, "build_parameterized: INV command %zu has NaN input.", i);
+                //     if (commands) free(commands);
+                //     return NULL;
+                // }
+                // // Check for division by zero (self-loop probability >= 1)
+                // if (fabs(*(command.fromT)) <= 1e-15) {
+                //     sprintf((char*)ptd_err, "build_parameterized: Inverse of near-zero value at command %zu (value=%g). Likely self-loop probability >= 1.",i, *(command.fromT));
+                //     if (commands) free(commands);
+                //     return NULL;
+                // }
                 *(command.fromT) = 1 / *(command.fromT);
                 break;
             case ONE_MINUS:
                 *(command.fromT) = 1 - *command.fromT;
+                // // Check for NaN propagation
+                // if (isnan(*(command.fromT))) {
+                //     sprintf((char*)ptd_err, "build_parameterized: ONE_MINUS command %zu produced NaN.", i);
+                //     if (commands) free(commands);
+                //     return NULL;
+                // }
                 break;
             case DIVIDE:
+                // // Check for NaN inputs
+                // if (isnan(*(command.fromT)) || isnan(*command.toT)) {
+                //     sprintf((char*)ptd_err, "build_parameterized: DIVIDE command %zu has NaN input (fromT=%g, toT=%g).", i, *(command.fromT), *command.toT);
+                //     if (commands) free(commands);
+                //     return NULL;
+                // }
+                // // Check for division by zero (zero outgoing probability)
+                // if (fabs(*command.toT) <= 1e-15) {
+                //     sprintf((char*)ptd_err, "build_parameterized: Division by near-zero value at command %zu (divisor=%g). Parent has zero outgoing probability.", i, *command.toT);
+                //     if (commands) free(commands);
+                //     return NULL;
+                // }
                 *(command.fromT) /= *command.toT;
                 break;
             case ZERO:
@@ -6036,8 +6131,7 @@ double *ptd_expected_waiting_time(struct ptd_graph *graph, double *rewards) {
     double min_multiplier = INFINITY;
     size_t ill_conditioned_count = 0;
 
-#ifdef HAVE_MPFR
-    // Pre-scan to check if MPFR should be used
+    // Pre-scan elimination commands for condition number
     double prescanned_max = 0.0;
     double prescanned_min = INFINITY;
     for (size_t j = 0; j < graph->reward_compute_graph->length; ++j) {
@@ -6049,11 +6143,8 @@ double *ptd_expected_waiting_time(struct ptd_graph *graph, double *rewards) {
         }
     }
 
-    // Get MPFR configuration from environment variables (set by phasic.configure())
-    bool force_mpfr = (getenv("PHASIC_FORCE_MPFR") != NULL);
-
-    // Get condition threshold from config (default 1e12 for better default behavior)
-    double condition_threshold = 1e12;  // Lower default to catch more ill-conditioned cases
+    // Get condition threshold from config (default 1e12)
+    double condition_threshold = 1e12;
     const char *threshold_env = getenv("PHASIC_CONDITION_THRESHOLD");
     if (threshold_env != NULL) {
         condition_threshold = atof(threshold_env);
@@ -6062,8 +6153,11 @@ double *ptd_expected_waiting_time(struct ptd_graph *graph, double *rewards) {
     double condition_number = (prescanned_min != INFINITY && prescanned_max > 0.0)
                              ? (prescanned_max / prescanned_min) : 0.0;
 
+#ifdef HAVE_MPFR
+    bool force_mpfr = (getenv("PHASIC_FORCE_MPFR") != NULL);
+
     if (force_mpfr || condition_number > condition_threshold) {
-        PTD_LOG_INFO("Using MPFR for moment computation (condition %.2e > threshold %.2e)",
+        PTD_LOG_INFO("Auto-activating MPFR for moment computation (condition %.2e > threshold %.2e)",
                      condition_number, condition_threshold);
 
         // Calculate precision: check env var first, then auto-calculate
@@ -6097,6 +6191,13 @@ double *ptd_expected_waiting_time(struct ptd_graph *graph, double *rewards) {
             PTD_LOG_WARNING("MPFR execution failed - falling back to double precision");
         }
     }
+#else
+    // Non-MPFR build: warn if poor conditioning detected
+    if (condition_number > condition_threshold) {
+        PTD_LOG_WARNING("Poor conditioning detected (condition number = %.2e > threshold %.2e). "
+                        "Rebuild with MPFR support for accurate high-precision results.",
+                        condition_number, condition_threshold);
+    }
 #endif
 
     for (size_t j = 0; j < graph->reward_compute_graph->length; ++j) {
@@ -6120,13 +6221,12 @@ double *ptd_expected_waiting_time(struct ptd_graph *graph, double *rewards) {
             if (abs_mult > max_multiplier) max_multiplier = abs_mult;
             if (abs_mult < min_multiplier) min_multiplier = abs_mult;
 
-            // Warn about ill-conditioned multipliers (unless disabled via config)
-            bool warnings_disabled = (getenv("PHASIC_DISABLE_CONDITION_WARNINGS") != NULL);
-            if (!warnings_disabled && (abs_mult > 1e10 || abs_mult < 1e-10)) {
+            // Track ill-conditioned multipliers for debug logging
+            if (abs_mult > 1e10 || abs_mult < 1e-10) {
                 ill_conditioned_count++;
                 if (ill_conditioned_count == 1) {  // Log first occurrence only
-                    PTD_LOG_WARNING("Ill-conditioned multiplier detected: %.2e at command %zu (may affect numerical stability)",
-                                   command.multiplier, j);
+                    PTD_LOG_DEBUG("Ill-conditioned multiplier detected: %.2e at command %zu",
+                                 command.multiplier, j);
                 }
             }
         }
@@ -6149,17 +6249,11 @@ double *ptd_expected_waiting_time(struct ptd_graph *graph, double *rewards) {
         }
     }
 
-    // Log conditioning summary (unless warnings disabled)
-    bool warnings_disabled = (getenv("PHASIC_DISABLE_CONDITION_WARNINGS") != NULL);
-    if (!warnings_disabled && min_multiplier != INFINITY && max_multiplier > 0.0) {
-        double condition_number = max_multiplier / min_multiplier;
-        if (condition_number > 1e8) {
-            PTD_LOG_WARNING("Poor conditioning detected: condition number = %.2e (%zu ill-conditioned operations)",
-                           condition_number, ill_conditioned_count);
-        } else {
-            PTD_LOG_DEBUG("Conditioning: max_mult=%.2e, min_mult=%.2e, condition=%.2e",
-                         max_multiplier, min_multiplier, condition_number);
-        }
+    // Log conditioning summary at DEBUG level
+    if (min_multiplier != INFINITY && max_multiplier > 0.0) {
+        double observed_condition = max_multiplier / min_multiplier;
+        PTD_LOG_DEBUG("Conditioning summary: max_mult=%.2e, min_mult=%.2e, condition=%.2e (%zu ill-conditioned operations)",
+                     max_multiplier, min_multiplier, observed_condition, ill_conditioned_count);
     }
 
     return result;
