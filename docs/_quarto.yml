@@ -90,6 +90,7 @@ website:
       title: Get Started
       style: floating
       align: left
+      collapse-level: 3
       contents:
         - pages/quickstart.ipynb
         - section: "Tutorial"
