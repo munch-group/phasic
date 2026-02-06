@@ -5,7 +5,7 @@ GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
 if [[ `git status --porcelain` ]]; then
-  echo -e "${RED}Changes to pyproject.toml must be pushed first.${NC}"
+  echo -e "${RED}Changes must be pushed first.${NC}"
   exit
 else
   v=$(python -c "

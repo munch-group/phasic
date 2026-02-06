@@ -163,18 +163,18 @@ description = "Install phasic in development mode with FFI support"
 args = [ { "arg" = "notebook" } ]
 cmd = "jupyter nbconvert --log-level=WARN --to notebook --execute --inplace --TagRemovePreprocessor.enabled=True --TagRemovePreprocessor.remove_cell_tags='{skip-execution}' {{ notebook }}"
 
-[tool.pixi.tasks.api-docs]
+[tool.pixi.tasks.api]
 cmd = "./scripts/docs-build-render.sh"
 description = "Build quartodoc api doc pages"
 
-[tool.pixi.tasks.notebook-docs]
+[tool.pixi.tasks.docs]
 cmd = "./scripts/docs-run-notebooks.sh"
 description = "Execute documentation notebooks in-place"
 
-[tool.pixi.tasks.docs]
-depends-on = ["notebook-docs", "api-docs"]
-cmd = "git add -u docs"
-description = "Run documentation notebooks build api docs and stage ./docs"
+# [tool.pixi.tasks.docs]
+# depends-on = ["notebook-docs", "api-docs"]
+# cmd = "git add -u docs"
+# description = "Run documentation notebooks build api docs and stage ./docs"
 
 [tool.pixi.tasks.clean]
 cmd = "git clean -id"
@@ -184,8 +184,18 @@ description = "Removes untracked files and directories but respects your .gitign
 cmd = "jupyter nbconvert docs/pages/tutorial/*.ipynb --to script --output-dir tests/pytest && pytest tests/pytest/"
 description = "Run tests"
 
+[tool.pixi.tasks.bump]
+args = [
+  { "arg" = "kind", "default" = "patch" },  # can be patch, minor, major
+  { "arg" = "flag", "default" = "" },     # can be --pre, --release
+]
+cmd = "./scripts/bump_version.py --{{ kind }} {{ flag }} && git add pyproject.toml && git commit -m '{{ kind }} {{ flag }} version bump'
+
+[tool.pixi.tasks.release]
+cmd = "git push && ./scripts/github-release.sh && echo 'Update released!'"
+
 [tool.pixi.tasks.commit]
-depends-on = ["test", "docs"]
+depends-on = ["test", "api", "docs"]
 cmd = "./scripts/git-commit.sh"
 
 [tool.pixi.tasks.version]
