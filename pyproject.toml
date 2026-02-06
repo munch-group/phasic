@@ -184,6 +184,9 @@ description = "Removes untracked files and directories but respects your .gitign
 cmd = "jupyter nbconvert docs/pages/tutorial/*.ipynb --to script --output-dir tests/pytest && pytest tests/pytest/"
 description = "Run tests"
 
+[tool.pixi.tasks.commit]
+cmd = "./scripts/git-commit.sh"
+
 [tool.pixi.tasks.bump]
 args = [
   { "arg" = "kind", "default" = "patch" },  # can be patch, minor, major
@@ -192,18 +195,19 @@ args = [
 cmd = "./scripts/bump_version.py --{{ kind }} {{ flag }} && git add pyproject.toml && git commit -m '{{ kind }} {{ flag }} version bump'
 
 [tool.pixi.tasks.release]
-cmd = "git push && ./scripts/github-release.sh && echo 'Update released!'"
-
-[tool.pixi.tasks.commit]
-depends-on = ["test", "api", "docs"]
-cmd = "./scripts/git-commit.sh"
-
+args = [
+  { "arg" = "kind", "default" = "patch" },  # can be patch, minor, major
+  { "arg" = "flag", "default" = "" },     # can be --pre, --release
+]
+cmd = "./scripts/bump_version.py --{{ kind }} {{ flag }} && git add pyproject.toml && git commit -m '{{ kind }} {{ flag }} version bump' && git push && ./scripts/github-release.sh && echo 'Update released!'"
+description = "Bump version patch and push tag to build/upload conda/pypi packages"
+  
 [tool.pixi.tasks.version]
 args = [
   { "arg" = "kind", "default" = "patch" },  # can be patch, minor, major
   { "arg" = "flag", "default" = "" },     # can be --pre, --release
 ]
 cmd = "./scripts/bump_version.py --{{ kind }} {{ flag }} && git add pyproject.toml && git commit -m '{{ kind }} {{ flag }} version bump' && git push && ./scripts/github-release.sh && echo 'Update released!'"
-depends-on = ["commit"]
+depends-on = ["test", "api", "docs", "commit"]
 description = "Bump version patch and push tag to build/upload conda/pypi packages"
 
