@@ -64,11 +64,11 @@ jobs:
         CIBW_BUILD: cp39-* cp310-* cp311-* cp312-* cp313-*
         # Skip musllinux (not commonly needed) and 32-bit builds
         CIBW_SKIP: "*-musllinux_* *-win32 *-manylinux_i686"
+        # Use manylinux_2_28 (AlmaLinux 8) instead of manylinux2014 (CentOS 7 EOL)
+        CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
+        CIBW_MANYLINUX_AARCH64_IMAGE: manylinux_2_28
         # Install mpfr and gmp build dependencies
-        CIBW_BEFORE_ALL_LINUX: >-
-          dnf install -y epel-release &&
-          (dnf config-manager --set-enabled powertools || dnf config-manager --set-enabled crb || true) &&
-          dnf install -y mpfr-devel gmp-devel pkgconf
+        CIBW_BEFORE_ALL_LINUX: yum install -y mpfr-devel gmp-devel pkgconf
         CIBW_BEFORE_ALL_MACOS: brew install mpfr gmp pkg-config
         # Build ARM64 wheels on Linux using QEMU
         CIBW_ARCHS_LINUX: x86_64 aarch64
