@@ -38,8 +38,6 @@ jobs:
         with:
           # To install LaTeX to build PDF book 
           tinytex: true 
-          # uncomment below and fill to pin a version
-          version: v2026.02
 
       - name: Render Quarto Project - default profile
         uses: quarto-dev/quarto-actions/render@v2
