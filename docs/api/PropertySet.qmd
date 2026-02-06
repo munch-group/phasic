@@ -1,0 +1,209 @@
+# PropertySet { #phasic.PropertySet }
+
+```python
+phasic.PropertySet(name, properties)
+```
+
+Collection of properties forming a combinatorial state space.
+
+PropertySet implements a mixed-radix numbering system where each property
+occupies a "digit" with its own base. This allows efficient conversion
+between flat integer indices and structured property dictionaries.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**name**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation}</code>
+
+:   Name of this property set (e.g., 'lineage', 'metadata')
+
+<code>[**properties**]{.parameter-name} [:]{.parameter-annotation-sep} [[list](`list`)\[[Property](`phasic.state_indexing.Property`)\]]{.parameter-annotation}</code>
+
+:   List of properties defining the state space, in order from least to most significant
+
+## Attributes {.doc-section .doc-section-attributes}
+
+<code>[**name**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation}</code>
+
+:   PropertySet name
+
+<code>[**properties**]{.parameter-name} [:]{.parameter-annotation-sep} [[list](`list`)\[[Property](`phasic.state_indexing.Property`)\]]{.parameter-annotation}</code>
+
+:   Property definitions
+
+<code>[**property_dict**]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)\[[str](`str`), [Property](`phasic.state_indexing.Property`)\]]{.parameter-annotation}</code>
+
+:   Property lookup by name
+
+<code>[**state_length**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Total number of states in this property set
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> # Single locus with population structure
+>>> pset = PropertySet('lineage', [
+...     Property('descendants', max_value=10),
+...     Property('population', max_value=2, min_value=1)
+... ])
+>>> pset.state_length
+22  # 11 * 2
+```
+
+```python
+>>> props = pset.index_to_props(15)
+>>> idx = pset.props_to_index(props)
+>>> assert idx == 15
+```
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [i2p](#phasic.PropertySet.i2p) | Alias for :meth:`index_to_props`. |
+| [index_to_props](#phasic.PropertySet.index_to_props) | Convert linear index to property values. |
+| [indices](#phasic.PropertySet.indices) | Get all indices in this PropertySet as a numpy array. |
+| [p2i](#phasic.PropertySet.p2i) | Alias for :meth:`props_to_index`. |
+| [props_to_index](#phasic.PropertySet.props_to_index) | Convert property values to linear index. |
+
+### i2p { #phasic.PropertySet.i2p }
+
+```python
+phasic.PropertySet.i2p(*args, **kwargs)
+```
+
+Alias for :meth:`index_to_props`.
+
+### index_to_props { #phasic.PropertySet.index_to_props }
+
+```python
+phasic.PropertySet.index_to_props(index, as_dict=False, as_values=False)
+```
+
+Convert linear index to property values.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**index**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`) or [np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation}</code>
+
+:   Linear index or array of indices to convert.
+
+<code>[**as_dict**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, return dict mapping property names to values.
+
+<code>[**as_values**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, return array of property values instead of dataclass. Takes precedence over as_dict.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[object](`object`) or [dict](`dict`) or [list](`list`) or [np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation}</code>
+
+:   Default (as_dict=False, as_values=False):     - Scalar index: dataclass with properties accessible as attributes     - Array index: list of dataclasses If as_dict=True:     - Scalar index: dictionary mapping property names to values     - Array index: list of dictionaries If as_values=True:     - Scalar index: array of decoded property values     - Array index: 2D array (n_indices, n_properties)
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> pset = PropertySet('lineage', [
+...     Property('descendants_l1', max_value=2),
+...     Property('descendants_l2', max_value=2)
+... ])
+>>> # Default: dataclass with attribute access
+>>> props = pset.index_to_props(5)
+>>> props.descendants_l1
+2
+>>> props.descendants_l2
+1
+>>> # As dict
+>>> pset.index_to_props(5, as_dict=True)
+{'descendants_l1': 2, 'descendants_l2': 1}
+>>> # As values array
+>>> pset.index_to_props(5, as_values=True)
+array([2, 1])
+```
+
+### indices { #phasic.PropertySet.indices }
+
+```python
+phasic.PropertySet.indices()
+```
+
+Get all indices in this PropertySet as a numpy array.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation}</code>
+
+:   Indices from 0 to state_length - 1
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> pset = PropertySet('lineage', [
+...     Property('descendants_l1', max_value=2),
+...     Property('descendants_l2', max_value=2)
+... ])
+>>> pset.indices()
+array([0, 1, 2, 3, 4, 5, 6, 7, 8])
+```
+
+### p2i { #phasic.PropertySet.p2i }
+
+```python
+phasic.PropertySet.p2i(*args, **kwargs)
+```
+
+Alias for :meth:`props_to_index`.
+
+### props_to_index { #phasic.PropertySet.props_to_index }
+
+```python
+phasic.PropertySet.props_to_index(props=None, **kwargs)
+```
+
+Convert property values to linear index.
+
+Supports partial property specifications: if only a subset of properties
+is provided, returns array of all indices matching those properties.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**props**]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`) or [np](`numpy`).[ndarray](`numpy.ndarray`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Property values to convert. Can be: - dict: mapping from property names to values (full or partial) - ``np.ndarray``: property values in same order as self.properties (must be complete) - None: use kwargs instead
+
+<code>[****kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
+
+:   Alternative to dict: pass properties as keyword arguments (full or partial).
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`) or [np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation}</code>
+
+:   - If all properties specified: scalar index - If partial properties specified: array of matching indices - If props is 2D array: array of indices (one per row)
+
+#### Raises {.doc-section .doc-section-raises}
+
+<code>[:]{.parameter-annotation-sep} [[ValueError](`ValueError`)]{.parameter-annotation}</code>
+
+:   If both props and kwargs are specified, or neither is specified.
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> space = StateSpace([
+...     Property('a', max_value=2),
+...     Property('b', max_value=2)
+... ])
+>>> # Full specification -> scalar index
+>>> space.props_to_index({'a': 2, 'b': 1})
+5
+>>> space.props_to_index(a=2, b=1)  # kwargs alternative
+5
+>>> # Partial specification -> array of matching indices
+>>> space.props_to_index({'a': 2})  # All indices where a=2
+array([2, 5, 8])  # Corresponds to a=2,b=0; a=2,b=1; a=2,b=2
+>>> space.props_to_index(b=1)  # All indices where b=1
+array([1, 4, 7])  # Corresponds to a=0,b=1; a=1,b=1; a=2,b=1
+```

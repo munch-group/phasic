@@ -1,0 +1,23 @@
+# ConstantRegularization { #phasic.svgd.ConstantRegularization }
+
+```python
+phasic.svgd.ConstantRegularization(regularization=0.0)
+```
+
+Constant regularization (default behavior).
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**regularization**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.0]{.parameter-default}</code>
+
+:   Fixed regularization strength for all iterations
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> schedule = ConstantRegularization(1.0)
+>>> schedule(0)  # iteration 0
+1.0
+>>> schedule(100)  # iteration 100
+1.0
+```

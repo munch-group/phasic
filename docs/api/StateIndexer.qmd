@@ -1,0 +1,462 @@
+# StateIndexer { #phasic.StateIndexer }
+
+```python
+phasic.StateIndexer(
+    *slot_names,
+    property_sets=None,
+    slots=None,
+    **named_property_lists,
+)
+```
+
+Manages multiple independent property sets and slots with attribute access.
+
+StateIndexer allows organizing state variables into named PropertySets and Slots,
+where each PropertySet defines an independent combinatorial space and each Slot
+occupies a single index. This is useful for separating primary state features
+(e.g., lineage properties) from auxiliary metadata (e.g., timing, identifiers).
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[***slot_names**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [()]{.parameter-default}</code>
+
+:   Positional slot names (each occupies exactly 1 index). Accessible as attributes returning int indices.
+
+<code>[**property_sets**]{.parameter-name} [:]{.parameter-annotation-sep} [[list](`list`)\[[PropertySet](`phasic.state_indexing.PropertySet`)\] \| [list](`list`)\[[Property](`phasic.state_indexing.Property`)\] \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Either a list of PropertySet objects or a list of Property objects (which creates a single 'default' PropertySet for backward compatibility)
+
+<code>[**slots**]{.parameter-name} [:]{.parameter-annotation-sep} [[list](`list`)\[[str](`str`)\] \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   List of slot names or Slot objects (backward compatibility)
+
+<code>[****named_property_lists**]{.parameter-name} [:]{.parameter-annotation-sep} [[list](`list`)\[[Property](`phasic.state_indexing.Property`)\]]{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
+
+:   Keyword arguments mapping PropertySet names to lists of Property objects
+
+## Attributes {.doc-section .doc-section-attributes}
+
+<code>[**state_length**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Total states across all PropertySets and slots (backward compatibility)
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> # Positional slot arguments (NEW)
+>>> indexer = StateIndexer(
+...     'epoch', 'branch_id',
+...     lineage=[Property('descendants', max_value=10)],  # indices 0-10
+...     metadata=[Property('time_bin', max_value=100)]    # indices 11-111
+... )
+>>> indexer.lineage.state_length
+11
+>>> indexer.metadata.state_length
+101
+>>> indexer.epoch  # Slot index
+112
+>>> indexer.branch_id  # Slot index
+113
+```
+
+```python
+>>> # Backward compatible with slots= parameter
+>>> indexer = StateIndexer(
+...     lineage=[Property('descendants', max_value=10)],
+...     metadata=[Property('time_bin', max_value=100)],
+...     slots=['epoch', 'branch_id']
+... )
+```
+
+```python
+>>> # Access via attributes
+>>> props = indexer.lineage.index_to_props(5)
+>>> props
+{'descendants': 5}
+```
+
+```python
+>>> # Backward compatible with single PropertySet
+>>> indexer = StateIndexer([Property('descendants', max_value=10)])
+>>> indexer.state_length  # Delegates to default PropertySet
+11
+>>> indexer.index_to_props(5)  # Delegates to default PropertySet
+{'descendants': 5}
+```
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [append](#phasic.StateIndexer.append) | Create new StateIndexer by appending another's PropertySets and Slots. |
+| [from_dict](#phasic.StateIndexer.from_dict) | Reconstruct StateIndexer from serialized dict. |
+| [i2p](#phasic.StateIndexer.i2p) | Alias for :meth:`index_to_props`. |
+| [index_to_props](#phasic.StateIndexer.index_to_props) | Convert index to property values or slot indicator. |
+| [indices](#phasic.StateIndexer.indices) | Get all indices in concatenated space as a numpy array. |
+| [items](#phasic.StateIndexer.items) | Get (name, PropertySet) pairs. |
+| [keys](#phasic.StateIndexer.keys) | Get PropertySet names. |
+| [p2i](#phasic.StateIndexer.p2i) | Alias for :meth:`props_to_index`. |
+| [property_sets](#phasic.StateIndexer.property_sets) | Return all PropertySets in insertion order. |
+| [props_to_index](#phasic.StateIndexer.props_to_index) | Convert property values to index in concatenated space. |
+| [slots](#phasic.StateIndexer.slots) | Return all Slots in insertion order. |
+| [to_dict](#phasic.StateIndexer.to_dict) | Serialize StateIndexer to JSON-compatible dict. |
+| [values](#phasic.StateIndexer.values) | Get PropertySet objects. |
+
+### append { #phasic.StateIndexer.append }
+
+```python
+phasic.StateIndexer.append(other, prefix_other=None)
+```
+
+Create new StateIndexer by appending another's PropertySets and Slots.
+
+The resulting indexer has:
+- All PropertySets from self (indices 0 to self.state_length - 1)
+- All PropertySets from other (indices offset by self.state_length)
+- Slots from both indexers
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**other**]{.parameter-name} [:]{.parameter-annotation-sep} [[StateIndexer](`phasic.state_indexing.StateIndexer`)]{.parameter-annotation}</code>
+
+:   StateIndexer to append
+
+<code>[**prefix_other**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   If provided, prefix all PropertySet and Slot names from `other` with this string. If None (default), name collisions raise ValueError.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[StateIndexer](`phasic.state_indexing.StateIndexer`)]{.parameter-annotation}</code>
+
+:   New StateIndexer with combined PropertySets and Slots
+
+#### Raises {.doc-section .doc-section-raises}
+
+<code>[:]{.parameter-annotation-sep} [[ValueError](`ValueError`)]{.parameter-annotation}</code>
+
+:   If PropertySet or Slot names collide and prefix_other is None
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> indexer1 = StateIndexer(
+...     lineage=[Property('descendants', max_value=10)]
+... )
+>>> indexer2 = StateIndexer(
+...     metadata=[Property('time_bin', max_value=100)]
+... )
+>>> combined = indexer1.append(indexer2)
+>>> combined.state_length
+112  # 11 + 101
+>>> combined.lineage.state_length
+11
+>>> combined.metadata.state_length
+101
+```
+
+```python
+>>> # With prefix to avoid name collisions
+>>> indexer3 = StateIndexer(
+...     lineage=[Property('descendants', max_value=5)]
+... )
+>>> combined = indexer1.append(indexer3, prefix_other='other_')
+>>> combined.lineage.state_length  # Original
+11
+>>> combined.other_lineage.state_length  # Prefixed
+6
+```
+
+### from_dict { #phasic.StateIndexer.from_dict }
+
+```python
+phasic.StateIndexer.from_dict(data)
+```
+
+Reconstruct StateIndexer from serialized dict.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**data**]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation}</code>
+
+:   Dictionary created by to_dict()
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[StateIndexer](`phasic.state_indexing.StateIndexer`)]{.parameter-annotation}</code>
+
+:   Reconstructed StateIndexer with identical structure
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> indexer = StateIndexer(
+...     'epoch',
+...     lineage=[Property('descendants', max_value=10)]
+... )
+>>> data = indexer.to_dict()
+>>> reconstructed = StateIndexer.from_dict(data)
+>>> reconstructed.state_length == indexer.state_length
+True
+```
+
+### i2p { #phasic.StateIndexer.i2p }
+
+```python
+phasic.StateIndexer.i2p(*args, **kwargs)
+```
+
+Alias for :meth:`index_to_props`.
+
+### index_to_props { #phasic.StateIndexer.index_to_props }
+
+```python
+phasic.StateIndexer.index_to_props(
+    index,
+    as_dict=False,
+    as_values=False,
+    flatten=False,
+)
+```
+
+Convert index to property values or slot indicator.
+
+Returns dynamic dataclass with PropertySet/Slot names as attributes.
+Only the matching PropertySet/Slot is set, others are None.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**index**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`) or [np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation}</code>
+
+:   Index or array of indices in concatenated space
+
+<code>[**as_dict**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, return dict instead of dataclass for property values
+
+<code>[**as_values**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, return array of property values
+
+<code>[**flatten**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, return properties directly without IndexResult wrapper. Only works when index maps to a single PropertySet (not a slot).
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [IndexResult or list of IndexResult or properties]{.parameter-annotation}</code>
+
+:   Default: Dataclass with one attribute per PropertySet/Slot name. If flatten=True: Properties directly (dataclass, dict, or array)
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> indexer = StateIndexer(
+...     lineage=[Property('descendants', max_value=10)],
+...     metadata=[Property('time_bin', max_value=100)],
+...     slots=['epoch']
+... )
+>>> # Index in lineage range
+>>> result = indexer.index_to_props(5)
+>>> result.lineage.descendants
+5
+>>> result.metadata
+None
+>>> result.epoch
+None
+>>> # Index in metadata range
+>>> result = indexer.index_to_props(15)
+>>> result.lineage
+None
+>>> result.metadata.time_bin
+4
+>>> # Index is epoch slot
+>>> result = indexer.index_to_props(112)
+>>> result.lineage
+None
+>>> result.metadata
+None
+>>> result.epoch
+True
+```
+
+### indices { #phasic.StateIndexer.indices }
+
+```python
+phasic.StateIndexer.indices()
+```
+
+Get all indices in concatenated space as a numpy array.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation}</code>
+
+:   Indices from 0 to state_length - 1
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> indexer = StateIndexer(
+...     lineage=[Property('descendants', max_value=2)]
+... )
+>>> indexer.indices()
+array([0, 1, 2])
+```
+
+### items { #phasic.StateIndexer.items }
+
+```python
+phasic.StateIndexer.items()
+```
+
+Get (name, PropertySet) pairs.
+
+### keys { #phasic.StateIndexer.keys }
+
+```python
+phasic.StateIndexer.keys()
+```
+
+Get PropertySet names.
+
+### p2i { #phasic.StateIndexer.p2i }
+
+```python
+phasic.StateIndexer.p2i(*args, **kwargs)
+```
+
+Alias for :meth:`props_to_index`.
+
+### property_sets { #phasic.StateIndexer.property_sets }
+
+```python
+phasic.StateIndexer.property_sets()
+```
+
+Return all PropertySets in insertion order.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[list](`list`)\[[PropertySet](`phasic.state_indexing.PropertySet`)\]]{.parameter-annotation}</code>
+
+:   PropertySet objects in the order they were added.
+
+### props_to_index { #phasic.StateIndexer.props_to_index }
+
+```python
+phasic.StateIndexer.props_to_index(pset_name=None, props=None, **kwargs)
+```
+
+Convert property values to index in concatenated space.
+
+Note: This method is for PropertySets only. To get slot indices, use
+attribute access: indexer.slot_name
+
+Supports two calling patterns:
+1. Explicit PropertySet: props_to_index('pset_name', props_dict)
+2. Auto-detect (single PropertySet only): props_to_index(props_dict)
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**pset_name**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`) or [dict](`dict`) or [np](`numpy`).[ndarray](`numpy.ndarray`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   - If str: Name of the PropertySet (explicit mode) - If dict/``np.ndarray``: Property values (auto-detect mode, pset_name=None) - If None: use props parameter
+
+<code>[**props**]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`) or [np](`numpy`).[ndarray](`numpy.ndarray`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Property values to convert (used when pset_name is str). Can be: - dict: mapping from property names to values - ``np.ndarray``: property values in same order as PropertySet.properties - None: use kwargs instead
+
+<code>[****kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
+
+:   Alternative to dict: pass properties as keyword arguments
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Index in concatenated space
+
+#### Raises {.doc-section .doc-section-raises}
+
+<code>[:]{.parameter-annotation-sep} [[KeyError](`KeyError`)]{.parameter-annotation}</code>
+
+:   If pset_name doesn't exist
+
+<code>[:]{.parameter-annotation-sep} [[ValueError](`ValueError`)]{.parameter-annotation}</code>
+
+:   If auto-detect mode used with multiple PropertySets
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> # Explicit PropertySet name
+>>> indexer = StateIndexer(
+...     lineage=[Property('descendants', max_value=10)],
+...     metadata=[Property('time_bin', max_value=100)],
+...     slots=['epoch']
+... )
+>>> indexer.props_to_index('lineage', {'descendants': 5})
+5
+>>> indexer.props_to_index('metadata', time_bin=4)  # kwargs
+15
+>>> # For slots, use attribute access directly:
+>>> indexer.epoch  # Returns 112
+```
+
+```python
+>>> # Auto-detect (single PropertySet only)
+>>> single = StateIndexer(lineage=[Property('descendants', max_value=10)])
+>>> single.props_to_index({'descendants': 5})
+5
+```
+
+### slots { #phasic.StateIndexer.slots }
+
+```python
+phasic.StateIndexer.slots()
+```
+
+Return all Slots in insertion order.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[list](`list`)]{.parameter-annotation}</code>
+
+:   Slot objects in the order they were added.
+
+### to_dict { #phasic.StateIndexer.to_dict }
+
+```python
+phasic.StateIndexer.to_dict()
+```
+
+Serialize StateIndexer to JSON-compatible dict.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation}</code>
+
+:   Dictionary containing all information needed to reconstruct the StateIndexer, including PropertySets, Properties, slots, and their ordering.
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> indexer = StateIndexer(
+...     'epoch',
+...     lineage=[Property('descendants', max_value=10)],
+...     metadata=[Property('time_bin', max_value=100)]
+... )
+>>> data = indexer.to_dict()
+>>> reconstructed = StateIndexer.from_dict(data)
+>>> reconstructed.state_length == indexer.state_length
+True
+```
+
+### values { #phasic.StateIndexer.values }
+
+```python
+phasic.StateIndexer.values()
+```
+
+Get PropertySet objects.

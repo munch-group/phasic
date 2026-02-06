@@ -1,0 +1,65 @@
+# RegularizationSchedule { #phasic.svgd.RegularizationSchedule }
+
+```python
+phasic.svgd.RegularizationSchedule()
+```
+
+Base class for regularization schedules.
+
+Subclasses should implement __call__(iteration, particles) returning a scalar regularization value.
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [plot](#phasic.svgd.RegularizationSchedule.plot) | Plot the regularization schedule over iterations. |
+
+### plot { #phasic.svgd.RegularizationSchedule.plot }
+
+```python
+phasic.svgd.RegularizationSchedule.plot(
+    nr_iter,
+    figsize=None,
+    title=None,
+    ax=None,
+    return_ax=False,
+)
+```
+
+Plot the regularization schedule over iterations.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**nr_iter**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Number of iterations to plot
+
+<code>[**figsize**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [(4, 3)]{.parameter-default}</code>
+
+:   Figure size (width, height) in inches
+
+<code>[**title**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Plot title. If None, uses class name
+
+<code>[**ax**]{.parameter-name} [:]{.parameter-annotation-sep} [[matplotlib](`matplotlib`).[axes](`matplotlib.axes`).[Axes](`matplotlib.axes.Axes`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Axes to plot on. If None, creates new figure
+
+<code>[**return_ax**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, return the axes object. If False, call plt.show() instead.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**ax**]{.parameter-name} [:]{.parameter-annotation-sep} [[matplotlib](`matplotlib`).[axes](`matplotlib.axes`).[Axes](`matplotlib.axes.Axes`) or None]{.parameter-annotation}</code>
+
+:   Axes object if return_ax=False, otherwise None
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> schedule = ExpRegularization(first_reg=5.0, last_reg=0.1, tau=500.0)
+>>> ax = schedule.plot(nr_iter=2000)
+>>> plt.show()
+```

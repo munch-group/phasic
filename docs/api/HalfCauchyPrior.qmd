@@ -1,0 +1,117 @@
+# HalfCauchyPrior { #phasic.svgd.HalfCauchyPrior }
+
+```python
+phasic.svgd.HalfCauchyPrior(scale=None, ci=None, prob=0.95)
+```
+
+Half-Cauchy prior distribution (positive support only).
+
+The prior is defined in THETA space (the natural parameter space).
+When used with positive_params=True, SVGD automatically handles
+the transformation to PHI space with proper Jacobian correction.
+
+Useful for scale parameters due to heavy tails.
+PDF: f(θ) = 2 / (π × scale × (1 + (θ/scale)²)) for θ > 0
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**scale**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Scale parameter of the half-Cauchy distribution. Mutually exclusive with `ci`.
+
+<code>[**ci**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Upper bound of the credible interval. The scale is computed such that P(θ < ci) = prob. Mutually exclusive with `scale`.
+
+<code>[**prob**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.95]{.parameter-default}</code>
+
+:   Coverage probability for the credible interval (only used with `ci`). E.g., prob=0.95 means 95% of the prior mass is below `ci`.
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> # Specify scale directly
+>>> prior = HalfCauchyPrior(scale=2.0)
+>>>
+>>> # Specify via 95% CI upper bound
+>>> prior = HalfCauchyPrior(ci=10.0)  # 95% of mass below 10
+>>>
+>>> # Specify via 90% CI upper bound
+>>> prior = HalfCauchyPrior(ci=10.0, prob=0.90)
+>>>
+>>> # Plot to verify prior matches your beliefs
+>>> prior.plot()
+>>>
+>>> # Use in SVGD
+>>> svgd = graph.svgd(data, theta_dim=1, prior=prior)
+```
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [plot](#phasic.svgd.HalfCauchyPrior.plot) | Plot the half-Cauchy prior distribution in THETA space. |
+| [sample](#phasic.svgd.HalfCauchyPrior.sample) | Sample from the prior. |
+
+### plot { #phasic.svgd.HalfCauchyPrior.plot }
+
+```python
+phasic.svgd.HalfCauchyPrior.plot(
+    ax=None,
+    show_ci=True,
+    return_ax=False,
+    **kwargs,
+)
+```
+
+Plot the half-Cauchy prior distribution in THETA space.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**ax**]{.parameter-name} [:]{.parameter-annotation-sep} [[matplotlib](`matplotlib`).[axes](`matplotlib.axes`).[Axes](`matplotlib.axes.Axes`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Axes to plot on. If None, creates new figure.
+
+<code>[**show_ci**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   If True and ci was specified, show vertical line at CI bound.
+
+<code>[**return_ax**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, return ax. If False, call plt.show() instead.
+
+<code>[****kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
+
+:   Additional arguments passed to plot function.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[matplotlib](`matplotlib`).[axes](`matplotlib.axes`).[Axes](`matplotlib.axes.Axes`)]{.parameter-annotation}</code>
+
+:   The axes with the plot (only if return_ax=False)
+
+### sample { #phasic.svgd.HalfCauchyPrior.sample }
+
+```python
+phasic.svgd.HalfCauchyPrior.sample(key, shape)
+```
+
+Sample from the prior.
+
+When _transform is set, samples in THETA space and converts to PHI space.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**key**]{.parameter-name} [:]{.parameter-annotation-sep} [[jax](`jax`).[random](`jax.random`).[PRNGKey](`jax.random.PRNGKey`)]{.parameter-annotation}</code>
+
+:   Random key
+
+<code>[**shape**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation}</code>
+
+:   Shape of samples (n_particles, theta_dim)
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`)]{.parameter-annotation}</code>
+
+:   Samples (in PHI space if transform is set)

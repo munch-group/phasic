@@ -1,0 +1,112 @@
+# GaussPrior { #phasic.svgd.GaussPrior }
+
+```python
+phasic.svgd.GaussPrior(mean=None, std=None, ci=None, prob=0.95)
+```
+
+Gaussian prior distribution.
+
+The prior is defined in THETA space (the natural parameter space).
+When used with positive_params=True, SVGD automatically handles
+the transformation to PHI space with proper Jacobian correction.
+
+Can be specified via mean/std or credible interval.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**mean**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Prior mean in THETA space. Required if std is provided.
+
+<code>[**std**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Prior standard deviation in THETA space. Required if mean is provided.
+
+<code>[**ci**]{.parameter-name} [:]{.parameter-annotation-sep} [tuple of (float, float)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Credible interval (low, high) in THETA space. Alternative to mean/std.
+
+<code>[**prob**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.95]{.parameter-default}</code>
+
+:   Probability mass in the credible interval (only used with ci).
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> # Specify via mean and std
+>>> prior = GaussPrior(mean=5.0, std=2.0)
+>>>
+>>> # Specify via 95% credible interval
+>>> prior = GaussPrior(ci=(2.0, 8.0))
+>>>
+>>> # Plot to verify prior matches your beliefs
+>>> prior.plot()  # Shows Gaussian centered at 5
+>>>
+>>> # Use in SVGD - transformations handled automatically
+>>> svgd = graph.svgd(data, theta_dim=1, prior=prior)
+```
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [plot](#phasic.svgd.GaussPrior.plot) | Plot the Gaussian prior distribution in THETA space. |
+| [sample](#phasic.svgd.GaussPrior.sample) | Sample from the prior. |
+
+### plot { #phasic.svgd.GaussPrior.plot }
+
+```python
+phasic.svgd.GaussPrior.plot(log=False, ax=None, return_ax=False, **kwargs)
+```
+
+Plot the Gaussian prior distribution in THETA space.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**log**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, plot log-probability instead of probability density.
+
+<code>[**ax**]{.parameter-name} [:]{.parameter-annotation-sep} [[matplotlib](`matplotlib`).[axes](`matplotlib.axes`).[Axes](`matplotlib.axes.Axes`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Axes to plot on. If None, creates new figure.
+
+<code>[**return_ax**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   If True, return ax. If False, call plt.show() instead.
+
+<code>[****kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
+
+:   Additional arguments passed to plot function.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[matplotlib](`matplotlib`).[axes](`matplotlib.axes`).[Axes](`matplotlib.axes.Axes`)]{.parameter-annotation}</code>
+
+:   The axes with the plot (only if return_ax=False)
+
+### sample { #phasic.svgd.GaussPrior.sample }
+
+```python
+phasic.svgd.GaussPrior.sample(key, shape)
+```
+
+Sample from the prior.
+
+When _transform is set, samples in THETA space and converts to PHI space.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**key**]{.parameter-name} [:]{.parameter-annotation-sep} [[jax](`jax`).[random](`jax.random`).[PRNGKey](`jax.random.PRNGKey`)]{.parameter-annotation}</code>
+
+:   Random key
+
+<code>[**shape**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation}</code>
+
+:   Shape of samples (n_particles, theta_dim)
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`)]{.parameter-annotation}</code>
+
+:   Samples (in PHI space if transform is set)

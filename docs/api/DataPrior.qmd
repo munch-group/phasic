@@ -1,0 +1,148 @@
+# DataPrior { #phasic.svgd.DataPrior }
+
+```python
+phasic.svgd.DataPrior(
+    graph,
+    observed_data,
+    sd=2.0,
+    fixed=None,
+    nr_moments=None,
+    rewards=None,
+    theta_dim=None,
+    theta_init=None,
+    discrete=None,
+    verbose=False,
+)
+```
+
+Data-informed prior estimated from observed data.
+
+Auto-detects the graph type and uses method-of-moments (standard graphs)
+or probability matching (joint probability graphs) to estimate parameter
+prior means from the data.  The result is a list of per-parameter
+``GaussPrior`` objects (or ``None`` for fixed parameters) that can be
+passed directly to :meth:`Graph.svgd`.
+
+Implements the list-like interface so SVGD can iterate over per-parameter
+priors, and the ``Prior`` interface (``__call__``, ``sample``, ``plot``)
+for use as a single prior object.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**graph**]{.parameter-name} [:]{.parameter-annotation-sep} [[Graph](`phasic.Graph`)]{.parameter-annotation}</code>
+
+:   Parameterized graph (standard or joint probability).
+
+<code>[**observed_data**]{.parameter-name} [:]{.parameter-annotation-sep} [[np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation}</code>
+
+:   Observed data appropriate for the graph type.
+
+<code>[**sd**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [2.0]{.parameter-default}</code>
+
+:   Multiplier applied to the asymptotic standard error to obtain the prior standard deviation (passed as ``std_multiplier``).
+
+<code>[**fixed**]{.parameter-name} [:]{.parameter-annotation-sep} [[list](`list`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   List of ``(index, value)`` tuples pinning specific parameters.
+
+<code>[**nr_moments**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Number of moments (standard graphs only).
+
+<code>[**rewards**]{.parameter-name} [:]{.parameter-annotation-sep} [[np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Reward vectors (standard graphs only).
+
+<code>[**theta_dim**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Number of model parameters.  Inferred from the graph when ``None``.
+
+<code>[**theta_init**]{.parameter-name} [:]{.parameter-annotation-sep} [[np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Initial guess for the free parameters.
+
+<code>[**discrete**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   ``True`` for discrete models, ``False`` for continuous (standard graphs only).
+
+<code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   Print progress information.
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> from phasic import Graph, DataPrior
+>>> g = Graph(...)
+>>> data = g.sample(1000)
+>>> svgd = g.svgd(data, prior=DataPrior(g, data))
+```
+
+## Attributes
+
+| Name | Description |
+| --- | --- |
+| [method](#phasic.svgd.DataPrior.method) | Name of the estimation method used. |
+| [result](#phasic.svgd.DataPrior.result) | The underlying ``MoMResult`` or ``ProbMatchResult``. |
+| [std](#phasic.svgd.DataPrior.std) | Standard errors of the parameter estimates. |
+| [success](#phasic.svgd.DataPrior.success) | Whether the underlying optimisation converged. |
+| [theta](#phasic.svgd.DataPrior.theta) | Parameter estimate from the underlying method. |
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [plot](#phasic.svgd.DataPrior.plot) | Plot per-parameter prior distributions. |
+| [sample](#phasic.svgd.DataPrior.sample) | Sample from per-parameter priors and concatenate. |
+
+### plot { #phasic.svgd.DataPrior.plot }
+
+```python
+phasic.svgd.DataPrior.plot(axes=None, figsize=None, return_axes=False)
+```
+
+Plot per-parameter prior distributions.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**axes**]{.parameter-name} [:]{.parameter-annotation-sep} [array of Axes]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Pre-existing axes (one per non-fixed parameter).
+
+<code>[**figsize**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Figure size when creating new axes.
+
+<code>[**return_axes**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If ``True``, return the axes array instead of calling ``plt.show()``.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [array of Axes or None]{.parameter-annotation}</code>
+
+:   
+
+### sample { #phasic.svgd.DataPrior.sample }
+
+```python
+phasic.svgd.DataPrior.sample(key, shape)
+```
+
+Sample from per-parameter priors and concatenate.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**key**]{.parameter-name} [:]{.parameter-annotation-sep} [[jax](`jax`).[random](`jax.random`).[PRNGKey](`jax.random.PRNGKey`)]{.parameter-annotation}</code>
+
+:   Random key.
+
+<code>[**shape**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation}</code>
+
+:   ``(n_particles, theta_dim)``
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[jnp](`jax.numpy`).[ndarray](`jax.numpy.ndarray`)]{.parameter-annotation}</code>
+
+:   Samples with shape ``(n_particles, theta_dim)``.

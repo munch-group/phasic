@@ -1,0 +1,22 @@
+# get_config { #phasic.get_config }
+
+```python
+phasic.get_config()
+```
+
+Get current global configuration.
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[PTDAlgorithmsConfig](`phasic.config.PTDAlgorithmsConfig`)]{.parameter-annotation}</code>
+
+:   Current configuration (creates default if none exists)
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> import phasic as ptd
+>>> config = ptd.get_config()
+>>> print(config.jax, config.jit, config.backend)
+True True jax
+```

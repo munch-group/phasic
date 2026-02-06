@@ -1,0 +1,33 @@
+# dense_to_sparse { #phasic.svgd.dense_to_sparse }
+
+```python
+phasic.svgd.dense_to_sparse(data)
+```
+
+Convert dense NaN-padded array to sparse observation format.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**data**]{.parameter-name} [:]{.parameter-annotation-sep} [[jnp](`jax.numpy`).[ndarray](`jax.numpy.ndarray`)]{.parameter-annotation}</code>
+
+:   Dense 2D array of shape (n_times, n_features) where NaN indicates missing observations.
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[SparseObservations](`phasic.svgd.SparseObservations`)]{.parameter-annotation}</code>
+
+:   Sparse representation with only valid observations, sorted by feature with pre-computed slices for JAX JIT compatibility.
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> dense = jnp.array([
+...     [1.0, np.nan, 3.0],
+...     [np.nan, 2.0, np.nan],
+...     [1.5, 2.5, 3.5]
+... ])
+>>> sparse = dense_to_sparse(dense)
+>>> print(sparse.values)   # [1.0, 1.5, 2.0, 2.5, 3.0, 3.5]
+>>> print(sparse.features) # [0, 0, 1, 1, 2, 2]
+>>> print(sparse.n_features)  # 3
+```

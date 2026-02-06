@@ -1,0 +1,24 @@
+# get_available_options { #phasic.get_available_options }
+
+```python
+phasic.get_available_options()
+```
+
+Get dictionary of available options on this system.
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation}</code>
+
+:   Available features and backends
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> import phasic as ptd
+>>> opts = ptd.get_available_options()
+>>> if opts['jax']:
+...     ptd.configure(jax=True, jit=True)
+... else:
+...     ptd.configure(jax=False, backend='cpp')
+```

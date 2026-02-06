@@ -1,0 +1,51 @@
+# configure { #phasic.configure }
+
+```python
+phasic.configure(**kwargs)
+```
+
+Configure phasic globally.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[****kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
+
+:   Configuration options (see PTDAlgorithmsConfig for details) Valid options: jax, jit, ffi, openmp, strict, platform, backend, verbose
+
+## Raises {.doc-section .doc-section-raises}
+
+<code>[:]{.parameter-annotation-sep} [[PTDConfigError](`phasic.exceptions.PTDConfigError`)]{.parameter-annotation}</code>
+
+:   If strict=True and configuration is invalid
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> import phasic as ptd
+```
+
+```python
+>>> # Standard configuration (FFI+OpenMP enabled by default)
+>>> ptd.configure(jax=True, jit=True, ffi=True, openmp=True)
+```
+
+```python
+>>> # Disable FFI/OpenMP if build issues (slower, single-core only)
+>>> ptd.configure(ffi=False, openmp=False)
+```
+
+```python
+>>> # Permissive (warnings not errors)
+>>> ptd.configure(jax=True, strict=False)
+```
+
+```python
+>>> # Pure C++ (no JAX)
+>>> ptd.configure(jax=False, jit=False, backend='cpp')
+```
+
+```python
+>>> # Check what's available first
+>>> print(ptd.get_available_options())
+>>> ptd.configure(jax=True, jit=True)
+```

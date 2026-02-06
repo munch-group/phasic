@@ -1,0 +1,205 @@
+# PTDAlgorithmsConfig { #phasic.PTDAlgorithmsConfig }
+
+```python
+phasic.PTDAlgorithmsConfig(
+    jax=True,
+    jit=True,
+    ffi=True,
+    openmp=True,
+    strict=True,
+    platform='cpu',
+    backend='jax',
+    verbose=False,
+    force_high_precision=False,
+    mpfr_precision_bits=0,
+    condition_threshold=1000000000000.0,
+    enable_condition_warnings=True,
+)
+```
+
+Global configuration for phasic behavior.
+
+All optional features must be explicitly enabled/disabled.
+No silent fallbacks.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**jax**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   Require JAX functionality. If True and JAX not installed, raises error.
+
+<code>[**jit**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   Enable JIT compilation. Requires jax=True.
+
+<code>[**ffi**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   Enable FFI backend for zero-copy C++ computation. Provides 5-10x speedup over pure_callback. Requires XLA headers during build. Set to False only if FFI cannot be built on your system.
+
+<code>[**openmp**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   Enable OpenMP multi-threading in FFI handlers. Provides ~8x additional speedup on 8-core systems (800% CPU vs 100%). Requires ffi=True. Set to False only if OpenMP unavailable on your system.
+
+<code>[**strict**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   If True, raise errors when features unavailable. If False, print warnings and continue.
+
+<code>[**platform**]{.parameter-name} [:]{.parameter-annotation-sep} [[Literal](`typing.Literal`)\[\'cpu\', \'gpu\', \'tpu\'\]]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'cpu\']{.parameter-default}</code>
+
+:   JAX platform to use. Requires jax=True.
+
+<code>[**backend**]{.parameter-name} [:]{.parameter-annotation-sep} [[Literal](`typing.Literal`)\[\'jax\', \'cpp\', \'ffi\'\]]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'jax\']{.parameter-default}</code>
+
+:   Default computation backend for FFI wrappers.
+
+<code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   Print configuration details on startup.
+
+<code>[**force_high_precision**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   Force MPFR high-precision arithmetic for all trace evaluations. Raises error if MPFR not available. Auto-activation at condition > 1e20 still occurs.
+
+<code>[**mpfr_precision_bits**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0]{.parameter-default}</code>
+
+:   MPFR precision in bits (0 = auto-determine from condition number). Examples: 128 (standard), 256 (high), 512 (very high), 1024 (extreme).
+
+<code>[**condition_threshold**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e20]{.parameter-default}</code>
+
+:   Condition number threshold for auto-activating MPFR. Lower values are more conservative. Set to inf to disable auto-activation.
+
+<code>[**enable_condition_warnings**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   Enable/disable warnings about ill-conditioned operations.
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> config = PTDAlgorithmsConfig(jax=True, jit=True, ffi=False)
+>>> config.validate()  # Check if configuration is valid
+```
+
+```python
+>>> # Or use factory methods
+>>> config = PTDAlgorithmsConfig.jax_only()  # JAX with JIT
+>>> config = PTDAlgorithmsConfig.cpp_only()  # Pure C++, no JAX
+```
+
+## Attributes
+
+| Name | Description |
+| --- | --- |
+| [backend](#phasic.PTDAlgorithmsConfig.backend) | str(object='') -> str |
+| [condition_threshold](#phasic.PTDAlgorithmsConfig.condition_threshold) | Convert a string or number to a floating point number, if possible. |
+| [enable_condition_warnings](#phasic.PTDAlgorithmsConfig.enable_condition_warnings) | bool(x) -> bool |
+| [ffi](#phasic.PTDAlgorithmsConfig.ffi) | bool(x) -> bool |
+| [force_high_precision](#phasic.PTDAlgorithmsConfig.force_high_precision) | bool(x) -> bool |
+| [jax](#phasic.PTDAlgorithmsConfig.jax) | bool(x) -> bool |
+| [jit](#phasic.PTDAlgorithmsConfig.jit) | bool(x) -> bool |
+| [mpfr_precision_bits](#phasic.PTDAlgorithmsConfig.mpfr_precision_bits) | int([x]) -> integer |
+| [openmp](#phasic.PTDAlgorithmsConfig.openmp) | bool(x) -> bool |
+| [platform](#phasic.PTDAlgorithmsConfig.platform) | str(object='') -> str |
+| [strict](#phasic.PTDAlgorithmsConfig.strict) | bool(x) -> bool |
+| [verbose](#phasic.PTDAlgorithmsConfig.verbose) | bool(x) -> bool |
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [cpp_only](#phasic.PTDAlgorithmsConfig.cpp_only) | Factory: Pure C++ configuration (no JAX, no JIT). |
+| [get_available_options](#phasic.PTDAlgorithmsConfig.get_available_options) | Return dict of available options on this system. |
+| [jax_only](#phasic.PTDAlgorithmsConfig.jax_only) | Factory: JAX-based configuration (JIT enabled, no FFI). |
+| [permissive](#phasic.PTDAlgorithmsConfig.permissive) | Factory: Permissive configuration (warnings instead of errors). |
+| [validate](#phasic.PTDAlgorithmsConfig.validate) | Validate configuration and check feature availability. |
+
+### cpp_only { #phasic.PTDAlgorithmsConfig.cpp_only }
+
+```python
+phasic.PTDAlgorithmsConfig.cpp_only()
+```
+
+Factory: Pure C++ configuration (no JAX, no JIT).
+
+Useful for environments without JAX or when JIT overhead
+is not worth it.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[PTDAlgorithmsConfig](`phasic.config.PTDAlgorithmsConfig`)]{.parameter-annotation}</code>
+
+:   Config with jax=False, jit=False, backend='cpp'
+
+### get_available_options { #phasic.PTDAlgorithmsConfig.get_available_options }
+
+```python
+phasic.PTDAlgorithmsConfig.get_available_options()
+```
+
+Return dict of available options on this system.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation}</code>
+
+:   Dictionary with keys: - 'jax': bool, whether JAX is installed - 'jit': bool, whether JIT is available (same as jax) - 'ffi': bool, whether FFI is available (always False now) - 'backends': list of available backends - 'platforms': list of available JAX platforms - 'cpp': bool, whether C++ module is available
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> import phasic as ptd
+>>> opts = ptd.get_available_options()
+>>> print(opts)
+{'jax': True, 'jit': True, 'ffi': False,
+ 'backends': ['jax', 'cpp'],
+ 'platforms': ['cpu'],
+ 'cpp': True}
+```
+
+### jax_only { #phasic.PTDAlgorithmsConfig.jax_only }
+
+```python
+phasic.PTDAlgorithmsConfig.jax_only()
+```
+
+Factory: JAX-based configuration (JIT enabled, no FFI).
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[PTDAlgorithmsConfig](`phasic.config.PTDAlgorithmsConfig`)]{.parameter-annotation}</code>
+
+:   Config with jax=True, jit=True, backend='jax'
+
+### permissive { #phasic.PTDAlgorithmsConfig.permissive }
+
+```python
+phasic.PTDAlgorithmsConfig.permissive()
+```
+
+Factory: Permissive configuration (warnings instead of errors).
+
+Useful for development when you want to test functionality
+even if some features are missing.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[PTDAlgorithmsConfig](`phasic.config.PTDAlgorithmsConfig`)]{.parameter-annotation}</code>
+
+:   Config with strict=False
+
+### validate { #phasic.PTDAlgorithmsConfig.validate }
+
+```python
+phasic.PTDAlgorithmsConfig.validate()
+```
+
+Validate configuration and check feature availability.
+
+#### Raises {.doc-section .doc-section-raises}
+
+<code>[:]{.parameter-annotation-sep} [[PTDConfigError](`phasic.exceptions.PTDConfigError`)]{.parameter-annotation}</code>
+
+:   If strict=True and requested features are unavailable.
+
+#### Notes {.doc-section .doc-section-notes}
+
+Logs a warning if strict=False and requested features are unavailable.

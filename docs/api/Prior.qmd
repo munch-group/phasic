@@ -1,0 +1,65 @@
+# Prior { #phasic.svgd.Prior }
+
+```python
+phasic.svgd.Prior()
+```
+
+Base class for prior distributions.
+
+Subclasses must implement __call__ (log-probability) and sample methods.
+The sample method enables SVGD to initialize particles from the prior.
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [plot](#phasic.svgd.Prior.plot) | Plot the prior distribution. |
+| [sample](#phasic.svgd.Prior.sample) | Sample from the prior distribution. |
+
+### plot { #phasic.svgd.Prior.plot }
+
+```python
+phasic.svgd.Prior.plot(ax=None, **kwargs)
+```
+
+Plot the prior distribution.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**ax**]{.parameter-name} [:]{.parameter-annotation-sep} [[matplotlib](`matplotlib`).[axes](`matplotlib.axes`).[Axes](`matplotlib.axes.Axes`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Axes to plot on. If None, creates new figure.
+
+<code>[****kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
+
+:   Additional arguments passed to plot function.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[matplotlib](`matplotlib`).[axes](`matplotlib.axes`).[Axes](`matplotlib.axes.Axes`)]{.parameter-annotation}</code>
+
+:   The axes with the plot
+
+### sample { #phasic.svgd.Prior.sample }
+
+```python
+phasic.svgd.Prior.sample(key, shape)
+```
+
+Sample from the prior distribution.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**key**]{.parameter-name} [:]{.parameter-annotation-sep} [[jax](`jax`).[random](`jax.random`).[PRNGKey](`jax.random.PRNGKey`)]{.parameter-annotation}</code>
+
+:   Random key for JAX
+
+<code>[**shape**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation}</code>
+
+:   Shape of samples, typically (n_particles, theta_dim)
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[jnp](`jax.numpy`).[ndarray](`jax.numpy.ndarray`)]{.parameter-annotation}</code>
+
+:   Samples from prior with given shape

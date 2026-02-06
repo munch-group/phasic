@@ -1,0 +1,48 @@
+# WarmupExpStepSize { #phasic.svgd.WarmupExpStepSize }
+
+```python
+phasic.svgd.WarmupExpStepSize(
+    peak_lr=0.001,
+    warmup_steps=70,
+    last_lr=1e-06,
+    tau=1000.0,
+)
+```
+
+Linear warmup followed by exponential decay.
+
+Useful for Adam optimizer where initial learning rate should ramp up
+before decaying. Prevents large updates early when moment estimates
+are poorly calibrated.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**peak_lr**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.001]{.parameter-default}</code>
+
+:   Maximum learning rate reached at end of warmup
+
+<code>[**warmup_steps**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [100]{.parameter-default}</code>
+
+:   Number of iterations for linear warmup
+
+<code>[**last_lr**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-6]{.parameter-default}</code>
+
+:   Final learning rate as iteration → ∞
+
+<code>[**tau**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1000.0]{.parameter-default}</code>
+
+:   Decay time constant after warmup (larger = slower decay)
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> schedule = WarmupExpStepSize(peak_lr=0.01, warmup_steps=70, last_lr=0.001, tau=500)
+>>> schedule(0)      # iteration 0: start of warmup
+0.0001
+>>> schedule(50)     # iteration 50: halfway through warmup
+0.0051
+>>> schedule(100)    # iteration 100: end of warmup, peak lr
+0.01
+>>> schedule(600)    # iteration 600: decaying after warmup
+0.0046
+```

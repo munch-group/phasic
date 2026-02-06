@@ -1,0 +1,36 @@
+# get_logger { #phasic.get_logger }
+
+```python
+phasic.get_logger(name)
+```
+
+Get a logger for the specified module.
+
+This function should be used by all phasic modules to create loggers.
+It ensures consistent logger naming and hierarchy.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**name**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation}</code>
+
+:   Module name (typically __name__)
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[logging](`logging`).[Logger](`logging.Logger`)]{.parameter-annotation}</code>
+
+:   Logger instance
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> from phasic.logging_config import get_logger
+>>> logger = get_logger(__name__)
+>>> logger.info("Module initialized")
+```
+
+## Notes {.doc-section .doc-section-notes}
+
+- Loggers use hierarchical names: phasic.module_name
+- Child loggers inherit settings from parent 'phasic' logger
+- This allows fine-grained control: e.g., phasic.svgd can have different level

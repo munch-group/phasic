@@ -1,0 +1,121 @@
+# Property { #phasic.Property }
+
+```python
+phasic.Property(name, max_value, min_value=0, offset=0)
+```
+
+Defines a single property in a state space.
+
+A property represents one dimension of the lineage state (e.g., number of
+descendants, population label, derived allele status). Each property has
+a name and min/max values for validation and encoding.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**name**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation}</code>
+
+:   Property name (e.g., 'descendants', 'population')
+
+<code>[**max_value**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Maximum value this property can take
+
+<code>[**min_value**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0]{.parameter-default}</code>
+
+:   Minimum value this property can take (default 0)
+
+<code>[**offset**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0]{.parameter-default}</code>
+
+:   Deprecated: Use min_value instead. Minimum value offset (default 0).
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> # Number of descendants (0 to sample_size)
+>>> prop = Property('descendants', max_value=10)
+>>> prop.validate_value(5)  # OK
+>>> prop.validate_value(11)  # ValueError
+```
+
+```python
+>>> # Population label (1 to n_populations)
+>>> prop = Property('population', max_value=2, min_value=1)
+>>> prop.validate_value(1)  # OK
+>>> prop.validate_value(0)  # ValueError
+```
+
+## Attributes
+
+| Name | Description |
+| --- | --- |
+| [base](#phasic.Property.base) | Radix base for mixed-radix system: max_value - min_value + 1. |
+| [min_value](#phasic.Property.min_value) | int([x]) -> integer |
+| [offset](#phasic.Property.offset) | int([x]) -> integer |
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [decode_value](#phasic.Property.decode_value) | Decode a state vector element to property value (add min_value). |
+| [encode_value](#phasic.Property.encode_value) | Encode a property value to state vector element (subtract min_value). |
+| [validate_value](#phasic.Property.validate_value) | Validate that a property value is in the valid range. |
+
+### decode_value { #phasic.Property.decode_value }
+
+```python
+phasic.Property.decode_value(encoded)
+```
+
+Decode a state vector element to property value (add min_value).
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**encoded**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   State vector element value (0-based offset)
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Property value (with min_value applied)
+
+### encode_value { #phasic.Property.encode_value }
+
+```python
+phasic.Property.encode_value(value)
+```
+
+Encode a property value to state vector element (subtract min_value).
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**value**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Property value to encode
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   State vector element value (0-based offset from min_value)
+
+### validate_value { #phasic.Property.validate_value }
+
+```python
+phasic.Property.validate_value(value)
+```
+
+Validate that a property value is in the valid range.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**value**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Value to validate
+
+#### Raises {.doc-section .doc-section-raises}
+
+<code>[:]{.parameter-annotation-sep} [[ValueError](`ValueError`)]{.parameter-annotation}</code>
+
+:   If value is out of range [min_value, max_value]

@@ -1,0 +1,20 @@
+# PropertyDict { #phasic.PropertyDict }
+
+```python
+phasic.PropertyDict()
+```
+
+Dict subclass that provides attribute access to keys.
+
+Used to wrap property dictionaries for convenient attribute-style access.
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> props = PropertyDict({'descendants': 5, 'population': 1})
+>>> props.descendants  # Instead of props['descendants']
+5
+>>> props.population = 2
+>>> props['population']
+2
+```

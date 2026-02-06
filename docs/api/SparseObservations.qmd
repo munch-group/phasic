@@ -1,0 +1,73 @@
+# SparseObservations { #phasic.svgd.SparseObservations }
+
+```python
+phasic.svgd.SparseObservations()
+```
+
+Sparse representation of multivariate observations.
+
+Replaces dense NaN-padded format with parallel arrays containing only
+valid observations. This avoids NaN propagation through JAX callbacks
+during gradient computation.
+
+## Attributes {.doc-section .doc-section-attributes}
+
+<code>[**values**]{.parameter-name} [:]{.parameter-annotation-sep} [[jnp](`jax.numpy`).[ndarray](`jax.numpy.ndarray`)]{.parameter-annotation}</code>
+
+:   Observation values (n_obs,) - no NaN values
+
+<code>[**features**]{.parameter-name} [:]{.parameter-annotation-sep} [[jnp](`jax.numpy`).[ndarray](`jax.numpy.ndarray`)]{.parameter-annotation}</code>
+
+:   Feature index for each observation (n_obs,) - integers
+
+<code>[**n_features**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Total number of features (for rewards indexing)
+
+<code>[**slices**]{.parameter-name} [:]{.parameter-annotation-sep} [tuple of tuples, optional]{.parameter-annotation}</code>
+
+:   Pre-computed (start, end) slices for each feature to avoid dynamic boolean indexing in JIT-compiled code. If provided, observations must be sorted by feature index.
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> # 10 observations for feature 0, 10 for feature 1, 10 for feature 2
+>>> sparse = SparseObservations(
+...     values=jnp.array([1.1, 1.2, ..., 2.1, 2.2, ..., 3.1, 3.2, ...]),
+...     features=jnp.array([0, 0, ..., 1, 1, ..., 2, 2, ...]),
+...     n_features=3
+... )
+```
+
+## See Also {.doc-section .doc-section-see-also}
+
+dense_to_sparse : Convert dense NaN-padded array to sparse format
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [get_feature_values](#phasic.svgd.SparseObservations.get_feature_values) | Get observation values for a specific feature. |
+
+### get_feature_values { #phasic.svgd.SparseObservations.get_feature_values }
+
+```python
+phasic.svgd.SparseObservations.get_feature_values(feature_idx)
+```
+
+Get observation values for a specific feature.
+
+Uses pre-computed slices if available (JAX JIT compatible),
+otherwise falls back to boolean indexing (not JIT compatible).
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**feature_idx**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Feature index
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[jnp](`jax.numpy`).[ndarray](`jax.numpy.ndarray`)]{.parameter-annotation}</code>
+
+:   Observation values for this feature

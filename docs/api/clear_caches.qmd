@@ -1,0 +1,24 @@
+# clear_caches { #phasic.clear_caches }
+
+```python
+phasic.clear_caches(verbose=False)
+```
+
+Clear all caching.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   Print information about cleared cache. Default: True
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> from phasic import clear_caches()
+>>> clear_caches()
+```
+
+## See Also {.doc-section .doc-section-see-also}
+
+CacheManager.clear : Advanced cache clearing with confirmation

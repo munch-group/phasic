@@ -1,0 +1,65 @@
+# StepSizeSchedule { #phasic.svgd.StepSizeSchedule }
+
+```python
+phasic.svgd.StepSizeSchedule()
+```
+
+Base class for step size schedules.
+
+Subclasses should implement __call__(iteration, particles) returning a scalar step size.
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [plot](#phasic.svgd.StepSizeSchedule.plot) | Plot the step size schedule over iterations. |
+
+### plot { #phasic.svgd.StepSizeSchedule.plot }
+
+```python
+phasic.svgd.StepSizeSchedule.plot(
+    nr_iter,
+    figsize=None,
+    title=None,
+    ax=None,
+    return_ax=False,
+)
+```
+
+Plot the step size schedule over iterations.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**nr_iter**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Number of iterations to plot
+
+<code>[**figsize**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [(4, 3)]{.parameter-default}</code>
+
+:   Figure size (width, height) in inches
+
+<code>[**title**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Plot title. If None, uses class name
+
+<code>[**ax**]{.parameter-name} [:]{.parameter-annotation-sep} [[matplotlib](`matplotlib`).[axes](`matplotlib.axes`).[Axes](`matplotlib.axes.Axes`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Axes to plot on. If None, creates new figure
+
+<code>[**return_ax**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   If True, return the axes object. If False, call plt.show() instead.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**ax**]{.parameter-name} [:]{.parameter-annotation-sep} [[matplotlib](`matplotlib`).[axes](`matplotlib.axes`).[Axes](`matplotlib.axes.Axes`) or None]{.parameter-annotation}</code>
+
+:   Axes object if return_ax=False, otherwise None
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> schedule = ExpStepSize(first_step=0.1, last_step=0.01, tau=500.0)
+>>> ax = schedule.plot(nr_iter=2000)
+>>> plt.show()
+```

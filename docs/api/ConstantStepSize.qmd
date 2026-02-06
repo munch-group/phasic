@@ -1,0 +1,23 @@
+# ConstantStepSize { #phasic.svgd.ConstantStepSize }
+
+```python
+phasic.svgd.ConstantStepSize(step_size=0.01)
+```
+
+Constant step size (default behavior).
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**step_size**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.01]{.parameter-default}</code>
+
+:   Fixed step size for all iterations
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> schedule = ConstantStepSize(0.01)
+>>> schedule(0)  # iteration 0
+0.01
+>>> schedule(100)  # iteration 100
+0.01
+```

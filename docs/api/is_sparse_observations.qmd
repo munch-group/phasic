@@ -1,0 +1,19 @@
+# is_sparse_observations { #phasic.svgd.is_sparse_observations }
+
+```python
+phasic.svgd.is_sparse_observations(data)
+```
+
+Check if data is in sparse observation format.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**data**]{.parameter-name} [:]{.parameter-annotation-sep} [[object](`object`)]{.parameter-annotation}</code>
+
+:   Data to check.
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation}</code>
+
+:   True if data is a ``SparseObservations`` instance.

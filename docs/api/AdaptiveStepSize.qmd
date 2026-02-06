@@ -1,0 +1,33 @@
+# AdaptiveStepSize { #phasic.svgd.AdaptiveStepSize }
+
+```python
+phasic.svgd.AdaptiveStepSize(base_step=0.01, kl_target=0.1, adjust_rate=0.1)
+```
+
+Adaptive step size based on particle spread (KL divergence proxy).
+
+Increases step size when particles are too concentrated (low KL),
+decreases when particles are too dispersed (high KL).
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**base_step**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.01]{.parameter-default}</code>
+
+:   Base step size
+
+<code>[**kl_target**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.1]{.parameter-default}</code>
+
+:   Target KL divergence (in log-space particle spread)
+
+<code>[**adjust_rate**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.1]{.parameter-default}</code>
+
+:   Rate of adjustment (0 = no adjustment, 1 = immediate)
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> schedule = AdaptiveStepSize(base_step=0.01, kl_target=0.1)
+>>> particles = jnp.array([[1.0], [1.1], [0.9]])  # concentrated
+>>> schedule(10, particles)  # will increase step size
+0.011
+```

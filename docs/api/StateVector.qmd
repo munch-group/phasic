@@ -1,0 +1,96 @@
+# StateVector { #phasic.StateVector }
+
+```python
+phasic.StateVector(state_indexer, indices=None, state=None)
+```
+
+Dict-like interface for multi-PropertySet state with attribute access.
+
+StateVector wraps a StateIndexer and provides convenient access to properties
+via dictionary syntax or attributes. It maintains both indices and property
+dict representations for each PropertySet.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**state_indexer**]{.parameter-name} [:]{.parameter-annotation-sep} [[StateIndexer](`phasic.state_indexing.StateIndexer`)]{.parameter-annotation}</code>
+
+:   StateIndexer defining valid property sets
+
+<code>[**indices**]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Dict mapping PropertySet names to indices
+
+<code>[**state**]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Nested dict {pset_name: {prop_name: value}}
+
+## Attributes {.doc-section .doc-section-attributes}
+
+<code>[**state_indexer**]{.parameter-name} [:]{.parameter-annotation-sep} [[StateIndexer](`phasic.state_indexing.StateIndexer`)]{.parameter-annotation}</code>
+
+:   Associated state indexer
+
+<code>[**indices**]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation}</code>
+
+:   Current indices for each PropertySet
+
+<code>[**state**]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation}</code>
+
+:   Current property values for each PropertySet
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> # Multi-PropertySet usage
+>>> indexer = StateIndexer(
+...     lineage=[Property('descendants', max_value=10)],
+...     metadata=[Property('time_bin', max_value=1000)]
+... )
+>>> state_vec = StateVector(indexer, state={
+...     'lineage': {'descendants': 5},
+...     'metadata': {'time_bin': 100}
+... })
+>>> state_vec.lineage.descendants  # Attribute access
+5
+>>> state_vec.metadata.time_bin
+100
+```
+
+```python
+>>> # Backward compatible single PropertySet usage
+>>> indexer = StateIndexer([Property('descendants', max_value=10)])
+>>> state_vec = StateVector(indexer, indices={'default': 5})
+>>> state_vec['default']['descendants']
+5
+```
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [copy](#phasic.StateVector.copy) | Create a copy of this state vector. |
+| [update_indices](#phasic.StateVector.update_indices) | Recompute indices from current state. |
+
+### copy { #phasic.StateVector.copy }
+
+```python
+phasic.StateVector.copy()
+```
+
+Create a copy of this state vector.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[StateVector](`phasic.state_indexing.StateVector`)]{.parameter-annotation}</code>
+
+:   New StateVector with same indexer and property values.
+
+### update_indices { #phasic.StateVector.update_indices }
+
+```python
+phasic.StateVector.update_indices()
+```
+
+Recompute indices from current state.
+
+Call this after modifying property values via attribute/item assignment.

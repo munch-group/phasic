@@ -1,0 +1,16 @@
+# reset_config { #phasic.reset_config }
+
+```python
+phasic.reset_config()
+```
+
+Reset configuration to default.
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> import phasic as ptd
+>>> ptd.configure(jax=False, backend='cpp')
+>>> ptd.reset_config()  # Back to defaults
+>>> assert ptd.get_config().jax == True
+```

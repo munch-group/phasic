@@ -1,0 +1,36 @@
+# ExpStepSize { #phasic.svgd.ExpStepSize }
+
+```python
+phasic.svgd.ExpStepSize(first_step=0.01, last_step=1e-06, tau=1000.0)
+```
+
+Exponential decay schedule: step_size = first_step * exp(-iteration/tau) + last_step * (1 - exp(-iteration/tau)).
+
+This schedule helps prevent divergence with large datasets by gradually reducing
+the step size as optimization progresses.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**first_step**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.01]{.parameter-default}</code>
+
+:   Initial (first) step size at iteration 0
+
+<code>[**last_step**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-6]{.parameter-default}</code>
+
+:   Final (last) step size as iteration → ∞
+
+<code>[**tau**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1000.0]{.parameter-default}</code>
+
+:   Decay time constant (larger = slower decay)
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> schedule = ExpStepSize(first_step=0.1, last_step=0.01, tau=500.0)
+>>> schedule(0)      # iteration 0
+0.1
+>>> schedule(500)    # iteration 500 (≈63% decay)
+0.037
+>>> schedule(5000)   # iteration 5000 (full decay)
+0.01
+```

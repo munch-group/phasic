@@ -1,0 +1,59 @@
+# ExponentialCDFRegularization { #phasic.svgd.ExponentialCDFRegularization }
+
+```python
+phasic.svgd.ExponentialCDFRegularization(
+    first_reg=0.0,
+    last_reg=1.0,
+    tau=1000.0,
+)
+```
+
+Exponential CDF schedule: reg = first_reg + (last_reg - first_reg) * (1 - exp(-iteration/tau)).
+
+This schedule uses the exponential cumulative distribution function (CDF) to create
+a smooth S-curve transition between first_reg and last_reg. Unlike exponential decay,
+this is bidirectional and works naturally for both increasing and decreasing schedules.
+
+The CDF approach provides:
+- Smooth, continuous transitions
+- Fast initial change that gradually slows
+- Natural interpretation: tau is the "characteristic time" (63% transition at tau)
+- Works equally well for increasing or decreasing regularization
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**first_reg**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.0]{.parameter-default}</code>
+
+:   Initial (first) regularization strength at iteration 0
+
+<code>[**last_reg**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1.0]{.parameter-default}</code>
+
+:   Final (last) regularization strength as iteration → ∞
+
+<code>[**tau**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1000.0]{.parameter-default}</code>
+
+:   Transition time constant (larger = slower transition)
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> # Increasing regularization (useful for progressive regularization)
+>>> schedule = ExponentialCDFRegularization(first_reg=0.0, last_reg=1.0, tau=500.0)
+>>> schedule(0)      # iteration 0
+0.0
+>>> schedule(500)    # iteration 500 (≈63% transition)
+0.632
+>>> schedule(5000)   # iteration 5000 (nearly complete)
+0.993
+```
+
+```python
+>>> # Decreasing regularization (similar to exponential decay)
+>>> schedule = ExponentialCDFRegularization(first_reg=5.0, last_reg=0.1, tau=500.0)
+>>> schedule(0)      # iteration 0
+5.0
+>>> schedule(500)    # iteration 500 (≈63% transition)
+1.9
+>>> schedule(5000)   # iteration 5000 (nearly complete)
+0.1
+```
