@@ -19,12 +19,14 @@ outputs:
           - ninja
           - pybind11>=2.10.0
           - eigen
+          - mpfr
           - nlohmann_json
         host:
           - python #{{ python }}
           - scikit-build-core
           - pybind11>=2.10.0
           - eigen
+          - mpfr
           - nlohmann_json
           - jax >=0.4.0
           - jaxlib >=0.4.0
@@ -32,6 +34,7 @@ outputs:
           - python #{{ python }}
           - pybind11>=2.10.0
           - eigen
+          - mpfr
           - numpy
           - python-graphviz
           - ipython
