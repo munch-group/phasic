@@ -96,26 +96,32 @@ website:
           contents:
             - pages/tutorial/introduction.ipynb
             - pages/tutorial/state-space.ipynb
+            - pages/tutorial/visualize.ipynb
             - pages/tutorial/properties.ipynb
             - pages/tutorial/discrete.ipynb
             - pages/tutorial/state-space-utils.ipynb
             - pages/tutorial/parametrization.ipynb
+            - section: "Computation"
+              contents:
+                # Computation
+                - pages/tutorial/mpfr.ipynb
+                - pages/tutorial/trace_computing.ipynb
+                - pages/tutorial/caching.ipynb
+                - pages/tutorial/distributed.ipynb
+                - pages/tutorial/sharing.ipynb
+            # Modelling
             - pages/tutorial/time-inhomogeneous.ipynb
-            - pages/tutorial/trace_computing.ipynb
             - pages/tutorial/laplace.ipynb
             - pages/tutorial/joint-probability.ipynb
             - pages/tutorial/finite-markov-chains.ipynb
+            # Inference
             - pages/tutorial/method-of-moments.ipynb
             - pages/tutorial/svgd-basics.ipynb
             - pages/tutorial/svgd-multi-feature.ipynb
             - pages/tutorial/svgd-multi-param.ipynb
             - pages/tutorial/svgd-joint-prob.ipynb
-            - pages/tutorial/distributed.ipynb
-            # - pages/tutorial/16-caching.ipynb
-            - pages/tutorial/17-sharing.ipynb
         - section: "Topics"
           contents:
-            - pages/topics/visualize.ipynb
             - pages/topics/vscodenb.ipynb
             - pages/topics/priors-and-schedules.ipynb
             - pages/topics/caching_guide.qmd
@@ -124,20 +130,20 @@ website:
         # - section: "Popgen models"
         #   contents:
         #     - pages/popgen/python/demography/coalescent-epochs.ipynb
-        # - section: "Internals"
-        #   contents:
-        #     - pages/background/math_and_alg.qmd
+        - section: "Internals"
+          contents:
+            - pages/background/math_and_alg.qmd
 
-        #     - pages/internals/architecture.qmd
-        #     - pages/internals/call_tree.qmd
+            - pages/internals/architecture.qmd
+            - pages/internals/call_tree.qmd
             
-        #     - pages/internals/MPFR_FINAL_STATUS.md
+            - pages/internals/MPFR_FINAL_STATUS.md
             
-        #     - pages/internals/caching_architecture.md
-        #     - pages/internals/caching.qmd
+            - pages/internals/caching_architecture.md
+            - pages/internals/caching.qmd
 
-        #     - pages/internals/python_cpp_bridge_jax_integration.md
-        #     - pages/internals/ffi_and_openmp.qmd
+            - pages/internals/python_cpp_bridge_jax_integration.md
+            - pages/internals/ffi_and_openmp.qmd
 
         #     - pages/internals/trace_ipfs.ipynb
         #     - pages/internals/trace_elimination_retracing.md
