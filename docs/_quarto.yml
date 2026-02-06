@@ -95,9 +95,9 @@ website:
         - pages/quickstart.ipynb
         - section: "Tutorial"
           contents:
-            - pages/tutorial/introduction.ipynb
             - section: "State space"
               contents:
+                - pages/tutorial/introduction.ipynb
                 - pages/tutorial/state-space.ipynb
                 - pages/tutorial/visualize.ipynb
                 - pages/tutorial/properties.ipynb
