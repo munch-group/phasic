@@ -131,6 +131,7 @@ endif()
 
 # Find MPFR and GMP for high-precision arithmetic
 # Required on Linux/macOS, optional on Windows
+# Try pkg-config first, then fall back to find_library/find_path
 find_package(PkgConfig QUIET)
 
 if(PkgConfig_FOUND)
@@ -147,12 +148,33 @@ if(PkgConfig_FOUND)
     set(ENV{PKG_CONFIG_PATH} ${PKG_CONFIG_PATH_BACKUP})
 endif()
 
+# Fallback: find mpfr/gmp directly if pkg-config didn't find them
+if(NOT MPFR_FOUND)
+    find_library(MPFR_LIBRARY NAMES mpfr)
+    find_path(MPFR_INCLUDE_DIR NAMES mpfr.h)
+    if(MPFR_LIBRARY AND MPFR_INCLUDE_DIR)
+        set(MPFR_FOUND TRUE)
+        set(MPFR_LIBRARIES ${MPFR_LIBRARY})
+        set(MPFR_INCLUDE_DIRS ${MPFR_INCLUDE_DIR})
+        set(MPFR_LIBRARY_DIRS "")
+    endif()
+endif()
+
+if(NOT GMP_FOUND)
+    find_library(GMP_LIBRARY NAMES gmp)
+    find_path(GMP_INCLUDE_DIR NAMES gmp.h)
+    if(GMP_LIBRARY AND GMP_INCLUDE_DIR)
+        set(GMP_FOUND TRUE)
+        set(GMP_LIBRARIES ${GMP_LIBRARY})
+        set(GMP_INCLUDE_DIRS ${GMP_INCLUDE_DIR})
+        set(GMP_LIBRARY_DIRS "")
+    endif()
+endif()
+
 if(MPFR_FOUND AND GMP_FOUND)
-    message(STATUS "✓ MPFR found: version ${MPFR_VERSION}")
-    message(STATUS "✓ GMP found: version ${GMP_VERSION}")
+    message(STATUS "✓ MPFR found: ${MPFR_LIBRARIES}")
+    message(STATUS "✓ GMP found: ${GMP_LIBRARIES}")
     message(STATUS "  MPFR include dirs: ${MPFR_INCLUDE_DIRS}")
-    message(STATUS "  MPFR library dirs: ${MPFR_LIBRARY_DIRS}")
-    message(STATUS "  MPFR libraries: ${MPFR_LIBRARIES}")
     set(PHASIC_HAVE_MPFR TRUE)
 else()
     if(WIN32)
