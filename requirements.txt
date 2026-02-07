@@ -1,4 +1,20 @@
 pybind11>=2.10.0
-graphviz
-ipython
+jax >=0.4.0
+jaxlib>=0.4.0
+numpy
 eigen
+mpfr
+ipython
+ipykernel
+ipywidgets
+json5
+requests
+graphviz
+python-graphviz
+nlohmann_json
+seaborn
+pyyaml
+psutil
+rich
+tqdm
+multiprocess>=0.70.0

@@ -1,0 +1,19 @@
+# PTDFeatureError { #phasic.exceptions.PTDFeatureError }
+
+```python
+phasic.exceptions.PTDFeatureError()
+```
+
+Feature not available on this platform.
+
+Raised when a feature is requested that is not supported on the
+current platform (e.g., GPU features on CPU-only system).
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> ptd.configure(platform='gpu')  # On CPU-only system
+PTDFeatureError: platform='gpu' requested but no GPU available.
+  Available platforms: ['cpu']
+  Install GPU support or set platform='cpu'
+```

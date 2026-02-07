@@ -1,0 +1,20 @@
+# PTDConfigError { #phasic.exceptions.PTDConfigError }
+
+```python
+phasic.exceptions.PTDConfigError()
+```
+
+Configuration error with suggested fixes.
+
+Raised when the user requests functionality that is not available
+or when the configuration is invalid.
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> import phasic as ptd
+>>> ptd.configure(jax=True, ffi=True)  # FFI not available
+PTDConfigError: ffi=True but FFI is currently disabled.
+  Reason: Memory corruption bug (see FFI_MEMORY_CORRUPTION_FIX.md)
+  Fix: Set ffi=False
+```

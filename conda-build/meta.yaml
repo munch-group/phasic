@@ -33,18 +33,25 @@ outputs:
         run:
           - python #{{ python }}
           - pybind11>=2.10.0
+          - jax >=0.4.0
+          - jaxlib>=0.4.0
+          - numpy
           - eigen
           - mpfr
-          - numpy
-          - python-graphviz
           - ipython
+          - ipykernel
+          - ipywidgets
+          - json5
+          - requests
+          - graphviz
+          - python-graphviz
+          - nlohmann_json
           - seaborn
-          - tqdm
           - pyyaml
           - psutil
           - rich
-          - jax >=0.4.0
-          - jaxlib >=0.4.0
+          - tqdm
+          - multiprocess>=0.70.0
       build:
         number: 1
         noarch: false

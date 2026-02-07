@@ -1,0 +1,19 @@
+# PTDJAXError { #phasic.exceptions.PTDJAXError }
+
+```python
+phasic.exceptions.PTDJAXError()
+```
+
+JAX-specific error.
+
+Raised when JAX is required but not installed or when JAX operations fail.
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> import phasic as ptd
+>>> ptd.configure(jax=True)  # JAX not installed
+PTDJAXError: jax=True but JAX not installed.
+  Install: pip install jax jaxlib
+  Or: phasic.configure(jax=False)
+```

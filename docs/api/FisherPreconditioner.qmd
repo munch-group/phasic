@@ -1,0 +1,68 @@
+# FisherPreconditioner { #phasic.svgd.FisherPreconditioner }
+
+```python
+phasic.svgd.FisherPreconditioner(
+    model,
+    observed_data,
+    theta_dim,
+    param_transform=None,
+    rewards=None,
+    epsilon=1e-08,
+)
+```
+
+Diagonal Fisher information preconditioner for multi-scale SVGD.
+
+Computes the diagonal of the empirical Fisher information matrix at a
+reference parameter point, then uses it to normalize the kernel's
+particle space so that all dimensions have comparable information content.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**model**]{.parameter-name} [:]{.parameter-annotation-sep} [[callable](`callable`)]{.parameter-annotation}</code>
+
+:   Model function: model(theta, data, rewards=None) -> (pmf, moments)
+
+<code>[**observed_data**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`)]{.parameter-annotation}</code>
+
+:   Observation data points
+
+<code>[**theta_dim**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Number of parameters (learnable dimensions only if fixed params exist)
+
+<code>[**param_transform**]{.parameter-name} [:]{.parameter-annotation-sep} [[callable](`callable`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Transformation from unconstrained to constrained space (e.g., softplus)
+
+<code>[**rewards**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Optional rewards for multivariate models
+
+<code>[**epsilon**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-8]{.parameter-default}</code>
+
+:   Floor for Fisher values to avoid division by zero
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [compute_scaling](#phasic.svgd.FisherPreconditioner.compute_scaling) | Compute Fisher diagonal at reference point and derive scaling. |
+
+### compute_scaling { #phasic.svgd.FisherPreconditioner.compute_scaling }
+
+```python
+phasic.svgd.FisherPreconditioner.compute_scaling(theta_ref)
+```
+
+Compute Fisher diagonal at reference point and derive scaling.
+
+Uses moment-matching to find a better reference point before computing
+the Fisher information. The provided theta_ref is used as a starting
+point for the moment-matching search.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**theta_ref**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`)([theta_dim](`theta_dim`))]{.parameter-annotation}</code>
+
+:   Initial reference point in unconstrained space (same space as particles). Used as starting point for moment-matching refinement.

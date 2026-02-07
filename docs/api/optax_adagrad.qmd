@@ -1,0 +1,31 @@
+# optax_adagrad { #phasic.optax_wrapper.optax_adagrad }
+
+```python
+phasic.optax_wrapper.optax_adagrad(
+    learning_rate=0.01,
+    initial_accumulator_value=0.1,
+    eps=1e-07,
+)
+```
+
+Create Optax Adagrad optimizer wrapped for phasic.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**learning_rate**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) or [optax](`optax`).[Schedule](`optax.Schedule`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.01]{.parameter-default}</code>
+
+:   Learning rate.
+
+<code>[**initial_accumulator_value**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.1]{.parameter-default}</code>
+
+:   Initial value for accumulator.
+
+<code>[**eps**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-7]{.parameter-default}</code>
+
+:   Small constant for numerical stability.
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[OptaxOptimizer](`phasic.optax_wrapper.OptaxOptimizer`)]{.parameter-annotation}</code>
+
+:   Wrapped Adagrad optimizer compatible with phasic SVGD.

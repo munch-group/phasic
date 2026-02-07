@@ -1,0 +1,45 @@
+# optax_lion { #phasic.optax_wrapper.optax_lion }
+
+```python
+phasic.optax_wrapper.optax_lion(
+    learning_rate=0.0001,
+    b1=0.9,
+    b2=0.99,
+    weight_decay=0.0,
+)
+```
+
+Create Optax Lion optimizer wrapped for phasic.
+
+Lion (Evolved Sign Momentum) is a memory-efficient optimizer discovered
+through program search. It uses sign-based updates and typically requires
+a lower learning rate than Adam.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**learning_rate**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) or [optax](`optax`).[Schedule](`optax.Schedule`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-4]{.parameter-default}</code>
+
+:   Learning rate. Typically 3-10x smaller than Adam.
+
+<code>[**b1**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.9]{.parameter-default}</code>
+
+:   Exponential decay rate for first moment.
+
+<code>[**b2**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.99]{.parameter-default}</code>
+
+:   Exponential decay rate for the gradient moving average.
+
+<code>[**weight_decay**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.0]{.parameter-default}</code>
+
+:   Weight decay coefficient.
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[OptaxOptimizer](`phasic.optax_wrapper.OptaxOptimizer`)]{.parameter-annotation}</code>
+
+:   Wrapped Lion optimizer compatible with phasic SVGD.
+
+## References {.doc-section .doc-section-references}
+
+Chen et al. (2023). Symbolic Discovery of Optimization Algorithms.
+arXiv:2302.06675. https://arxiv.org/abs/2302.06675

@@ -1,0 +1,91 @@
+# SGDMomentum { #phasic.svgd.SGDMomentum }
+
+```python
+phasic.svgd.SGDMomentum(learning_rate=0.01, momentum=0.9, max_velocity=1.0)
+```
+
+SGD with momentum optimizer for SVGD.
+
+Momentum helps accelerate gradients in the right direction and dampens
+oscillations. It accumulates a velocity vector in directions of persistent
+gradient descent.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**learning_rate**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) or [StepSizeSchedule](`phasic.svgd.StepSizeSchedule`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.01]{.parameter-default}</code>
+
+:   Step size for parameter updates. Can be a schedule for learning rate decay.
+
+<code>[**momentum**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) or [StepSizeSchedule](`phasic.svgd.StepSizeSchedule`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.9]{.parameter-default}</code>
+
+:   Momentum coefficient. Higher values give more weight to past gradients. Typical values: 0.9 (standard), 0.99 (high momentum). Can be a schedule.
+
+<code>[**max_velocity**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [1.0]{.parameter-default}</code>
+
+:   Maximum absolute velocity to prevent unbounded accumulation. Set to None to disable velocity clipping (not recommended with positive_params=True as it can cause numerical issues).
+
+## Attributes {.doc-section .doc-section-attributes}
+
+<code>[**v**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`) or None]{.parameter-annotation}</code>
+
+:   Velocity (accumulated gradient), shape (n_particles, theta_dim)
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> from phasic import SVGD, SGDMomentum
+>>>
+>>> optimizer = SGDMomentum(learning_rate=0.01, momentum=0.9)
+>>> svgd = SVGD(
+...     model=model,
+...     observed_data=observations,
+...     theta_dim=2,
+...     optimizer=optimizer
+... )
+```
+
+## Notes {.doc-section .doc-section-notes}
+
+Update rule: v = momentum * v + lr * gradient; params += v
+
+Velocity is clipped to [-max_velocity, max_velocity] to prevent unbounded
+growth, which can cause numerical issues when using positive_params=True.
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [reset](#phasic.svgd.SGDMomentum.reset) | Reset optimizer state for given particle shape. |
+| [step](#phasic.svgd.SGDMomentum.step) | Compute SGD with momentum update. |
+
+### reset { #phasic.svgd.SGDMomentum.reset }
+
+```python
+phasic.svgd.SGDMomentum.reset(shape)
+```
+
+Reset optimizer state for given particle shape.
+
+### step { #phasic.svgd.SGDMomentum.step }
+
+```python
+phasic.svgd.SGDMomentum.step(phi, particles=None)
+```
+
+Compute SGD with momentum update.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**phi**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`)([n_particles](`n_particles`), [theta_dim](`theta_dim`))]{.parameter-annotation}</code>
+
+:   SVGD gradient direction.
+
+<code>[**particles**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`)([n_particles](`n_particles`), [theta_dim](`theta_dim`))]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Current particle positions. Not used by SGDMomentum.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**update**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`)([n_particles](`n_particles`), [theta_dim](`theta_dim`))]{.parameter-annotation}</code>
+
+:   Scaled update to add to particles.

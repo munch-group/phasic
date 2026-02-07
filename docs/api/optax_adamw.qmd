@@ -1,0 +1,44 @@
+# optax_adamw { #phasic.optax_wrapper.optax_adamw }
+
+```python
+phasic.optax_wrapper.optax_adamw(
+    learning_rate=0.001,
+    b1=0.9,
+    b2=0.999,
+    eps=1e-08,
+    weight_decay=0.01,
+)
+```
+
+Create Optax AdamW optimizer wrapped for phasic.
+
+AdamW implements Adam with decoupled weight decay regularization,
+which can help prevent overfitting.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**learning_rate**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) or [optax](`optax`).[Schedule](`optax.Schedule`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.001]{.parameter-default}</code>
+
+:   Learning rate.
+
+<code>[**b1**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.9]{.parameter-default}</code>
+
+:   Exponential decay rate for first moment.
+
+<code>[**b2**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.999]{.parameter-default}</code>
+
+:   Exponential decay rate for second moment.
+
+<code>[**eps**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-8]{.parameter-default}</code>
+
+:   Small constant for numerical stability.
+
+<code>[**weight_decay**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.01]{.parameter-default}</code>
+
+:   Weight decay coefficient.
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[OptaxOptimizer](`phasic.optax_wrapper.OptaxOptimizer`)]{.parameter-annotation}</code>
+
+:   Wrapped AdamW optimizer compatible with phasic SVGD.

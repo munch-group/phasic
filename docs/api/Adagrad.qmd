@@ -1,0 +1,93 @@
+# Adagrad { #phasic.svgd.Adagrad }
+
+```python
+phasic.svgd.Adagrad(learning_rate=0.01, epsilon=1e-08)
+```
+
+Adagrad optimizer for SVGD.
+
+Adagrad adapts the learning rate for each parameter based on the
+accumulated sum of squared gradients. Parameters with large gradients
+get smaller learning rates, and parameters with small gradients get
+larger learning rates.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**learning_rate**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) or [StepSizeSchedule](`phasic.svgd.StepSizeSchedule`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.01]{.parameter-default}</code>
+
+:   Base learning rate. Can be a schedule for learning rate decay.
+
+<code>[**epsilon**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-8]{.parameter-default}</code>
+
+:   Small constant for numerical stability.
+
+## Attributes {.doc-section .doc-section-attributes}
+
+<code>[**G**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`) or None]{.parameter-annotation}</code>
+
+:   Accumulated sum of squared gradients, shape (n_particles, theta_dim)
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> from phasic import SVGD, Adagrad
+>>>
+>>> optimizer = Adagrad(learning_rate=0.01)
+>>> svgd = SVGD(
+...     model=model,
+...     observed_data=observations,
+...     theta_dim=2,
+...     optimizer=optimizer
+... )
+```
+
+## References {.doc-section .doc-section-references}
+
+Duchi, J., Hazan, E., & Singer, Y. (2011). Adaptive Subgradient Methods
+for Online Learning and Stochastic Optimization. JMLR 12:2121-2159.
+
+## Notes {.doc-section .doc-section-notes}
+
+Update rule: G += gradient²; params += lr * gradient / (√G + ε)
+
+Warning: The learning rate decays over time as G accumulates. For long
+runs, consider using RMSprop or Adam which have bounded effective learning rates.
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [reset](#phasic.svgd.Adagrad.reset) | Reset optimizer state for given particle shape. |
+| [step](#phasic.svgd.Adagrad.step) | Compute Adagrad update. |
+
+### reset { #phasic.svgd.Adagrad.reset }
+
+```python
+phasic.svgd.Adagrad.reset(shape)
+```
+
+Reset optimizer state for given particle shape.
+
+### step { #phasic.svgd.Adagrad.step }
+
+```python
+phasic.svgd.Adagrad.step(phi, particles=None)
+```
+
+Compute Adagrad update.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**phi**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`)([n_particles](`n_particles`), [theta_dim](`theta_dim`))]{.parameter-annotation}</code>
+
+:   SVGD gradient direction.
+
+<code>[**particles**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`)([n_particles](`n_particles`), [theta_dim](`theta_dim`))]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Current particle positions. Not used by Adagrad.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**update**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`)([n_particles](`n_particles`), [theta_dim](`theta_dim`))]{.parameter-annotation}</code>
+
+:   Scaled update to add to particles.

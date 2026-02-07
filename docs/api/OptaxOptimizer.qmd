@@ -1,0 +1,97 @@
+# OptaxOptimizer { #phasic.optax_wrapper.OptaxOptimizer }
+
+```python
+phasic.optax_wrapper.OptaxOptimizer(optax_optimizer)
+```
+
+Wrapper to use Optax optimizers with phasic's SVGD interface.
+
+This class adapts Optax's functional optimizer interface to phasic's
+object-oriented optimizer interface expected by SVGD.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**optax_optimizer**]{.parameter-name} [:]{.parameter-annotation-sep} [[optax](`optax`).[GradientTransformation](`optax.GradientTransformation`)]{.parameter-annotation}</code>
+
+:   An Optax optimizer or chain of gradient transformations.
+
+## Attributes {.doc-section .doc-section-attributes}
+
+<code>[**optimizer**]{.parameter-name} [:]{.parameter-annotation-sep} [[optax](`optax`).[GradientTransformation](`optax.GradientTransformation`)]{.parameter-annotation}</code>
+
+:   The underlying Optax optimizer.
+
+<code>[**state**]{.parameter-name} [:]{.parameter-annotation-sep} [[optax](`optax`).[OptState](`optax.OptState`) or None]{.parameter-annotation}</code>
+
+:   The optimizer state, initialized by reset().
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> import optax
+>>> from phasic.optax_wrapper import OptaxOptimizer
+>>>
+>>> # Wrap any Optax optimizer
+>>> optimizer = OptaxOptimizer(optax.adam(learning_rate=0.001))
+>>>
+>>> # Or use with gradient clipping
+>>> optimizer = OptaxOptimizer(optax.chain(
+...     optax.clip_by_global_norm(1.0),
+...     optax.adam(0.001)
+... ))
+```
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [reset](#phasic.optax_wrapper.OptaxOptimizer.reset) | Initialize optimizer state for given particle shape. |
+| [step](#phasic.optax_wrapper.OptaxOptimizer.step) | Compute update using Optax optimizer. |
+
+### reset { #phasic.optax_wrapper.OptaxOptimizer.reset }
+
+```python
+phasic.optax_wrapper.OptaxOptimizer.reset(shape, params=None)
+```
+
+Initialize optimizer state for given particle shape.
+
+Called at the start of optimization to initialize the Optax state.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**shape**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)\[[int](`int`), ...\]]{.parameter-annotation}</code>
+
+:   Shape of particles array (n_particles, theta_dim).
+
+<code>[**params**]{.parameter-name} [:]{.parameter-annotation-sep} [[jax](`jax`).[Array](`jax.Array`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Initial parameter values. If provided, used for optimizers that need current params (e.g., adamw for weight decay).
+
+### step { #phasic.optax_wrapper.OptaxOptimizer.step }
+
+```python
+phasic.optax_wrapper.OptaxOptimizer.step(phi, params=None, particles=None)
+```
+
+Compute update using Optax optimizer.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**phi**]{.parameter-name} [:]{.parameter-annotation-sep} [[jax](`jax`).[Array](`jax.Array`)]{.parameter-annotation}</code>
+
+:   SVGD gradient direction of shape ``(n_particles, theta_dim)``: ``(K @ grad_log_p + sum(grad_K)) / n_particles``.
+
+<code>[**params**]{.parameter-name} [:]{.parameter-annotation-sep} [[jax](`jax`).[Array](`jax.Array`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Current parameter values. Required for optimizers with weight decay (e.g., adamw). If not provided, uses internally tracked params.
+
+<code>[**particles**]{.parameter-name} [:]{.parameter-annotation-sep} [[jax](`jax`).[Array](`jax.Array`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Alias for params, for compatibility with phasic optimizer interface.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[jax](`jax`).[Array](`jax.Array`)]{.parameter-annotation}</code>
+
+:   Scaled update of shape ``(n_particles, theta_dim)`` to add to particles.

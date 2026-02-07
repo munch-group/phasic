@@ -3820,20 +3820,20 @@ extern "C" {
 
         Examples
         --------
-        # JAX-compatible approach (default - for SVGD, gradients, optimization)
+        JAX-compatible approach (default - for SVGD, gradients, optimization):
         >>> model = Graph.pmf_from_cpp("my_model.cpp")
         >>> theta = jnp.array([1.0, 2.0])
         >>> times = jnp.linspace(0, 10, 100)
         >>> pmf = model(theta, times)
         >>> gradient = jax.grad(lambda p: jnp.sum(model(p, times)))(theta)
 
-        # Discrete phase-type distribution
+        Discrete phase-type distribution:
         >>> model = Graph.pmf_from_cpp("my_model.cpp", discrete=True)
         >>> theta = jnp.array([1.0, 2.0])
         >>> jumps = jnp.array([1, 2, 3, 4, 5])
         >>> dph_pmf = model(theta, jumps)
 
-        # For direct C++ access without JAX (faster for repeated evaluations):
+        For direct C++ access without JAX (faster for repeated evaluations):
         >>> builder = load_cpp_builder("my_model.cpp")
         >>> graph = builder(np.array([1.0, 2.0]))  # Build graph once
         >>> pdf1 = graph.pdf(1.0)  # Use many times

@@ -1,0 +1,129 @@
+# Adam { #phasic.svgd.Adam }
+
+```python
+phasic.svgd.Adam(learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-08)
+```
+
+Adam optimizer for SVGD with per-parameter adaptive learning rates.
+
+Adam maintains running estimates of the first moment (mean) and second moment
+(uncentered variance) of gradients, using these to adaptively scale updates
+per-parameter. This is especially useful when:
+- Gradients have vastly different scales across parameters
+- Dataset size causes large gradient magnitudes
+- Optimization landscape has varying curvature
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**learning_rate**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) or [StepSizeSchedule](`phasic.svgd.StepSizeSchedule`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.001]{.parameter-default}</code>
+
+:   Base learning rate (α in Adam paper). Can be a schedule (e.g., ExpStepSize, WarmupExpStepSize) for learning rate decay during optimization.
+
+<code>[**beta1**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) or [StepSizeSchedule](`phasic.svgd.StepSizeSchedule`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.9]{.parameter-default}</code>
+
+:   Exponential decay rate for first moment estimates (momentum). Higher = more smoothing, slower adaptation. Can be a schedule for advanced warmup strategies.
+
+<code>[**beta2**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) or [StepSizeSchedule](`phasic.svgd.StepSizeSchedule`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.999]{.parameter-default}</code>
+
+:   Exponential decay rate for second moment estimates (gradient variance). Higher = longer memory of gradient magnitudes. Can be a schedule.
+
+<code>[**epsilon**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-8]{.parameter-default}</code>
+
+:   Small constant for numerical stability in division.
+
+## Attributes {.doc-section .doc-section-attributes}
+
+<code>[**m**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`) or None]{.parameter-annotation}</code>
+
+:   First moment estimate (shape: n_particles, theta_dim)
+
+<code>[**v**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`) or None]{.parameter-annotation}</code>
+
+:   Second moment estimate (shape: n_particles, theta_dim)
+
+<code>[**t**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Current timestep (for bias correction)
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> from phasic import SVGD, Adam
+>>>
+>>> # Create optimizer with default settings
+>>> optimizer = Adam(learning_rate=0.01)
+>>>
+>>> # Use with SVGD
+>>> svgd = SVGD(
+...     model=model,
+...     observed_data=observations,
+...     theta_dim=2,
+...     optimizer=optimizer,
+...     n_particles=50,
+...     n_iterations=200
+... )
+>>> svgd.fit()
+>>>
+>>> # Exponential decay learning rate
+>>> optimizer = Adam(learning_rate=ExpStepSize(first_step=0.01, last_step=0.001, tau=500))
+>>>
+>>> # Warmup + decay (recommended for large models)
+>>> optimizer = Adam(learning_rate=WarmupExpStepSize(peak_lr=0.01, warmup_steps=70))
+```
+
+## References {.doc-section .doc-section-references}
+
+Kingma, D. P., & Ba, J. (2014). Adam: A Method for Stochastic Optimization.
+arXiv:1412.6980. https://arxiv.org/abs/1412.6980
+
+## Notes {.doc-section .doc-section-notes}
+
+When using Adam, the `learning_rate` parameter passed to SVGD is ignored
+in favor of the optimizer's learning rate.
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [reset](#phasic.svgd.Adam.reset) | Reset optimizer state for given particle shape. |
+| [step](#phasic.svgd.Adam.step) | Compute Adam update given SVGD gradient direction. |
+
+### reset { #phasic.svgd.Adam.reset }
+
+```python
+phasic.svgd.Adam.reset(shape)
+```
+
+Reset optimizer state for given particle shape.
+
+Called at the start of optimization to initialize moment estimates.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**shape**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation}</code>
+
+:   Shape of particles array (n_particles, theta_dim) or (n_particles, learnable_dim) if fixed parameters are used.
+
+### step { #phasic.svgd.Adam.step }
+
+```python
+phasic.svgd.Adam.step(phi, particles=None)
+```
+
+Compute Adam update given SVGD gradient direction.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**phi**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`)([n_particles](`n_particles`), [theta_dim](`theta_dim`))]{.parameter-annotation}</code>
+
+:   SVGD gradient direction: (K @ grad_log_p + sum(grad_K)) / n_particles This is the direction of steepest ascent in the RKHS.
+
+<code>[**particles**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`)([n_particles](`n_particles`), [theta_dim](`theta_dim`))]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Current particle positions. Not used by base Adam, but available for subclasses (e.g., Adamelia jitter).
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**update**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`)([n_particles](`n_particles`), [theta_dim](`theta_dim`))]{.parameter-annotation}</code>
+
+:   Scaled update to add to particles. Each element is adaptively scaled based on the history of gradients for that parameter.

@@ -1,0 +1,71 @@
+# MomentJacobianPreconditioner { #phasic.svgd.MomentJacobianPreconditioner }
+
+```python
+phasic.svgd.MomentJacobianPreconditioner(
+    model,
+    observed_data,
+    theta_dim,
+    param_transform=None,
+    rewards=None,
+    epsilon=1e-08,
+)
+```
+
+Moment Jacobian preconditioner for multi-scale SVGD.
+
+Computes J[k,j] = d(moment_k)/d(theta_j) via finite differences at a
+reference point, then uses column norms as scaling factors.
+Scaling D_j = ||J[:,j]|| (column norm), normalized to mean 1.
+
+This is simpler and more robust than Fisher preconditioning because it
+avoids dividing by PMF values (which can blow up when PMF is small).
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**model**]{.parameter-name} [:]{.parameter-annotation-sep} [[callable](`callable`)]{.parameter-annotation}</code>
+
+:   Model function: model(theta, data, rewards=None) -> (pmf, moments)
+
+<code>[**observed_data**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`)]{.parameter-annotation}</code>
+
+:   Observation data points
+
+<code>[**theta_dim**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Number of parameters (learnable dimensions only if fixed params exist)
+
+<code>[**param_transform**]{.parameter-name} [:]{.parameter-annotation-sep} [[callable](`callable`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Transformation from unconstrained to constrained space (e.g., softplus)
+
+<code>[**rewards**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Optional rewards for multivariate models
+
+<code>[**epsilon**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-8]{.parameter-default}</code>
+
+:   Floor for scaling values to avoid division by zero
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [compute_scaling](#phasic.svgd.MomentJacobianPreconditioner.compute_scaling) | Compute Jacobian column norms at reference point and derive scaling. |
+
+### compute_scaling { #phasic.svgd.MomentJacobianPreconditioner.compute_scaling }
+
+```python
+phasic.svgd.MomentJacobianPreconditioner.compute_scaling(theta_ref)
+```
+
+Compute Jacobian column norms at reference point and derive scaling.
+
+Uses moment-matching to find a better reference point before computing
+the Jacobian. The provided theta_ref is used as a starting point for
+the moment-matching search.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**theta_ref**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`)([theta_dim](`theta_dim`))]{.parameter-annotation}</code>
+
+:   Initial reference point in unconstrained space (same space as particles). Used as starting point for moment-matching refinement.

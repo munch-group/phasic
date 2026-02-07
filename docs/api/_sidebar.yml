@@ -3,6 +3,69 @@ website:
   - contents:
     - api/index.qmd
     - contents:
+      - api/Graph.qmd
+      section: Graph
+    - contents:
+      - api/StateIndexer.qmd
+      - api/PropertySet.qmd
+      - api/Property.qmd
+      - api/PropertyDict.qmd
+      - api/StateVector.qmd
+      section: Graph Construction
+    - contents:
+      - api/SVGD.qmd
+      - contents:
+        - api/SparseObservations.qmd
+        - api/dense_to_sparse.qmd
+        - api/is_sparse_observations.qmd
+        section: Sparse observations
+      - contents:
+        - api/DataPrior.qmd
+        - api/Prior.qmd
+        - api/GaussPrior.qmd
+        - api/HalfCauchyPrior.qmd
+        section: Priors
+      - contents:
+        - api/StepSizeSchedule.qmd
+        - api/ConstantStepSize.qmd
+        - api/ExpStepSize.qmd
+        - api/AdaptiveStepSize.qmd
+        - api/WarmupExpStepSize.qmd
+        section: Learning rate and regularization
+      - contents:
+        - api/RegularizationSchedule.qmd
+        - api/ConstantRegularization.qmd
+        - api/ExpRegularization.qmd
+        section: Regularization
+      - contents:
+        - api/MomentJacobianPreconditioner.qmd
+        - api/FisherPreconditioner.qmd
+        section: Preconditioning
+      - contents:
+        - api/Adam.qmd
+        - api/SGDMomentum.qmd
+        - api/RMSprop.qmd
+        - api/Adagrad.qmd
+        section: Optimizers
+      - contents:
+        - api/OptaxOptimizer.qmd
+        - api/optax_adam.qmd
+        - api/optax_adamw.qmd
+        - api/optax_sgd.qmd
+        - api/optax_rmsprop.qmd
+        - api/optax_adagrad.qmd
+        - api/optax_chain.qmd
+        - api/optax_lion.qmd
+        section: Optax optimizer support
+      section: Inference
+    - contents:
+      - api/PTDAlgorithmsError.qmd
+      - api/PTDConfigError.qmd
+      - api/PTDBackendError.qmd
+      - api/PTDFeatureError.qmd
+      - api/PTDJAXError.qmd
+      section: Exceptions
+    - contents:
       - api/clear_caches.qmd
       - api/configure.qmd
       - api/get_config.qmd
@@ -12,44 +75,5 @@ website:
       - api/set_log_level.qmd
       - api/get_logger.qmd
       section: Library utilities
-    - contents:
-      - api/Graph.qmd
-      - api/StateIndexer.qmd
-      - api/PropertySet.qmd
-      - api/Property.qmd
-      - api/PropertyDict.qmd
-      - api/StateVector.qmd
-      - api/SymbolicDAG.qmd
-      section: Graph Construction
-    - contents:
-      - api/SVGD.qmd
-      - api/SparseObservations.qmd
-      - api/dense_to_sparse.qmd
-      - api/is_sparse_observations.qmd
-      - api/SVGDKernel.qmd
-      section: SVGD
-    - contents:
-      - api/Prior.qmd
-      - api/GaussPrior.qmd
-      - api/HalfCauchyPrior.qmd
-      - api/DataPrior.qmd
-      section: Priors
-    - contents:
-      - api/StepSizeSchedule.qmd
-      - api/ConstantStepSize.qmd
-      - api/ExpStepSize.qmd
-      - api/AdaptiveStepSize.qmd
-      - api/WarmupExpStepSize.qmd
-      - api/RegularizationSchedule.qmd
-      - api/ConstantRegularization.qmd
-      - api/ExpRegularization.qmd
-      - api/ExponentialCDFRegularization.qmd
-      section: Learning rate and regularization
-    - contents: []
-      section: Preconditioning
-    - contents: []
-      section: Optimizers
-    - contents: []
-      section: Optimizers
     id: api
   - id: dummy-sidebar

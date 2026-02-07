@@ -1,0 +1,20 @@
+# PTDBackendError { #phasic.exceptions.PTDBackendError }
+
+```python
+phasic.exceptions.PTDBackendError()
+```
+
+Backend not available error.
+
+Raised when a specific computation backend (JAX, FFI, C++) is requested
+but not available on the system.
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> from phasic.ffi_wrappers import compute_pmf_ffi
+>>> pmf = compute_pmf_ffi(..., backend='ffi')
+PTDBackendError: FFI backend requested but not available.
+  FFI is currently disabled (see FFI_MEMORY_CORRUPTION_FIX.md).
+  Available backends: ['jax', 'cpp']
+```

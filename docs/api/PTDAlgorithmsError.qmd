@@ -1,0 +1,7 @@
+# PTDAlgorithmsError { #phasic.exceptions.PTDAlgorithmsError }
+
+```python
+phasic.exceptions.PTDAlgorithmsError()
+```
+
+Base exception for all phasic errors.

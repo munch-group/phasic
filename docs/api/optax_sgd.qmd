@@ -1,0 +1,27 @@
+# optax_sgd { #phasic.optax_wrapper.optax_sgd }
+
+```python
+phasic.optax_wrapper.optax_sgd(learning_rate=0.01, momentum=0.0, nesterov=False)
+```
+
+Create Optax SGD optimizer wrapped for phasic.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**learning_rate**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) or [optax](`optax`).[Schedule](`optax.Schedule`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.01]{.parameter-default}</code>
+
+:   Learning rate.
+
+<code>[**momentum**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.0]{.parameter-default}</code>
+
+:   Momentum coefficient. Set to 0.9 for standard momentum.
+
+<code>[**nesterov**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   Whether to use Nesterov momentum.
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[OptaxOptimizer](`phasic.optax_wrapper.OptaxOptimizer`)]{.parameter-annotation}</code>
+
+:   Wrapped SGD optimizer compatible with phasic SVGD.

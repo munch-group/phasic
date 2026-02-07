@@ -1,0 +1,36 @@
+# optax_rmsprop { #phasic.optax_wrapper.optax_rmsprop }
+
+```python
+phasic.optax_wrapper.optax_rmsprop(
+    learning_rate=0.001,
+    decay=0.9,
+    eps=1e-08,
+    momentum=0.0,
+)
+```
+
+Create Optax RMSprop optimizer wrapped for phasic.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**learning_rate**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) or [optax](`optax`).[Schedule](`optax.Schedule`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.001]{.parameter-default}</code>
+
+:   Learning rate.
+
+<code>[**decay**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.9]{.parameter-default}</code>
+
+:   Decay rate for exponential moving average.
+
+<code>[**eps**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-8]{.parameter-default}</code>
+
+:   Small constant for numerical stability.
+
+<code>[**momentum**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.0]{.parameter-default}</code>
+
+:   Momentum coefficient.
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[OptaxOptimizer](`phasic.optax_wrapper.OptaxOptimizer`)]{.parameter-annotation}</code>
+
+:   Wrapped RMSprop optimizer compatible with phasic SVGD.

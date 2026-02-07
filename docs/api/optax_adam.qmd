@@ -1,0 +1,43 @@
+# optax_adam { #phasic.optax_wrapper.optax_adam }
+
+```python
+phasic.optax_wrapper.optax_adam(
+    learning_rate=0.001,
+    b1=0.9,
+    b2=0.999,
+    eps=1e-08,
+)
+```
+
+Create Optax Adam optimizer wrapped for phasic.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**learning_rate**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) or [optax](`optax`).[Schedule](`optax.Schedule`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.001]{.parameter-default}</code>
+
+:   Learning rate. Can be a scalar or an Optax schedule.
+
+<code>[**b1**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.9]{.parameter-default}</code>
+
+:   Exponential decay rate for first moment.
+
+<code>[**b2**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.999]{.parameter-default}</code>
+
+:   Exponential decay rate for second moment.
+
+<code>[**eps**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-8]{.parameter-default}</code>
+
+:   Small constant for numerical stability.
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[OptaxOptimizer](`phasic.optax_wrapper.OptaxOptimizer`)]{.parameter-annotation}</code>
+
+:   Wrapped Adam optimizer compatible with phasic SVGD.
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> from phasic import optax_adam, SVGD
+>>> svgd = SVGD(model=model, data=data, theta_dim=2, optimizer=optax_adam(0.001))
+```
