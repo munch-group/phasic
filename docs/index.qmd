@@ -13,7 +13,7 @@ listing:
       - pages/vignettes/genetic-diversity.ipynb
       - pages/vignettes/telecommunication.ipynb
       - pages/vignettes/drainage-capacity.ipynb
-      - pages/vignettes/reaction-kinetics.ipynb
+      - pages/vignettes/uranium_decay.ipynb
       # - pages/vignettes/risk-assessment.ipynb
     # sort: "date desc"
     # categories: true
