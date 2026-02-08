@@ -2,25 +2,23 @@
 title: "Caching System"
 ---
 
-This guide covers the comprehensive three-layer caching system in phasic, which provides **10-1000x speedups** for repeated model evaluations.
+Phasic optimizes performance through a three-layer caching system, each targeting a different computational bottleneck:
 
-::: {.callout-tip}
-## Quick Summary
-phasic uses three complementary cache layers:
+- **Graph Elimination** (10-1000ms): O(n³), structure-dependent
+- **Gradient Compilation** (1-60s): First SVGD initialization
+- **XLA Compilation** (1-10s): Shape-dependent
+- **Evaluation** (<1ms): Parameter-dependent
+
+By caching all three stages, repeated evaluations become nearly instant!
+
 1. **Trace Cache** - Graph elimination operations (10-1000x speedup)
 2. **SVGD Compilation Cache** - JIT-compiled gradients (instant on hit)
 3. **JAX Compilation Cache** - XLA compilations (seconds → instant)
-:::
 
----
-
-## Overview
-
-### Three-Layer Architecture
-
-phasic optimizes performance through a three-layer caching system, each targeting a different computational bottleneck:
+For parameterized models, computation happens in stages:
 
 ```{mermaid}
+%%| echo: false
 flowchart TB
     A[User Code] --> B[Layer 1: Trace Cache]
     B --> C[Layer 2: SVGD Compilation Cache]
@@ -41,21 +39,6 @@ flowchart TB
 
 ### Why Three Layers?
 
-For parameterized models, computation happens in stages:
-
-```
-Graph Build → [Trace Cache: Elimination] → Eliminated Graph →
-    [SVGD Cache: Gradient] → Compiled Gradient →
-    [JAX Cache: XLA] → Optimized Code → Result
-```
-
-**Computational Costs:**
-- **Graph Elimination** (10-1000ms): O(n³), structure-dependent
-- **Gradient Compilation** (1-60s): First SVGD initialization
-- **XLA Compilation** (1-10s): Shape-dependent
-- **Evaluation** (<1ms): Parameter-dependent
-
-By caching all three stages, repeated evaluations become nearly instant!
 
 ---
 
@@ -75,6 +58,7 @@ The trace cache stores pre-computed **graph elimination traces** from `record_el
 ### How It Works
 
 ```{mermaid}
+%%| echo: false
 flowchart LR
     A[Graph Structure] --> B[Serialize & Hash]
     B --> C{Cache Hit?}
@@ -160,6 +144,7 @@ The disk component often fails due to pickle limitations with JAX JIT functions.
 ### How It Works
 
 ```{mermaid}
+%%| echo: false
 flowchart LR
     A[SVGD Init] --> B{Memory Cache?}
     B -->|Hit| C[Reuse Gradient<br/>instant]
@@ -232,6 +217,7 @@ JAX caches compiled **XLA code** based on:
 ### How It Works
 
 ```{mermaid}
+%%| echo: false
 flowchart LR
     A[jit-f-x call] --> B[Compute Cache Key<br/>signature + shapes]
     B --> C{Cache Hit?}

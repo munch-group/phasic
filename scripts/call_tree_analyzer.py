@@ -610,6 +610,8 @@ External library calls (numpy, jax, etc.) are excluded.
                        help="Output a mermaid diagram: 'sequence' or 'flow'")
     parser.add_argument('--by-class', action='store_true',
                        help='Group diagram participants/nodes by class instead of module')
+    parser.add_argument('--quiet', action='store_true',
+                       help='Suppress summary output, only show diagram or JSON')
 
     args = parser.parse_args()
 
@@ -619,7 +621,8 @@ External library calls (numpy, jax, etc.) are excluded.
 
     # Run analysis
     analyzer = PackageAnalyzer(args.package_path)
-    print(f"Analyzing package: {args.package_path}", file=sys.stderr)
+    if not args.quiet:
+        print(f"Analyzing package: {args.package_path}", file=sys.stderr)
     analyzer.analyze_package()
 
     # --diagram mode: generate mermaid and exit
@@ -664,9 +667,9 @@ External library calls (numpy, jax, etc.) are excluded.
             if not key:
                 print(f"Error: Method '{class_name}.{method_name}' not found", file=sys.stderr)
                 sys.exit(1)
-            print(f"\n{'='*60}")
-            print(f"Call Tree for {class_name}.{method_name}()")
-            print(f"{'='*60}\n")
+            # print(f"\n{'='*60}")
+            # print(f"Call Tree for {class_name}.{method_name}()")
+            # print(f"{'='*60}\n")
             tree = analyzer.build_call_tree(key)
             if tree:
                 analyzer.print_ascii_tree(tree, max_depth=args.max_depth)
@@ -677,9 +680,9 @@ External library calls (numpy, jax, etc.) are excluded.
             # Try as a class first (show all methods)
             methods = analyzer.find_class_methods(args.callable_name)
             if methods:
-                print(f"\n{'='*60}")
-                print(f"Call Trees for class {args.callable_name} ({len(methods)} methods)")
-                print(f"{'='*60}\n")
+                # print(f"\n{'='*60}")
+                # print(f"Call Trees for class {args.callable_name} ({len(methods)} methods)")
+                # print(f"{'='*60}\n")
                 for method_key in sorted(methods):
                     sig = analyzer.all_functions[method_key]
                     print(f"\n{sig.class_name}.{sig.name}():")
@@ -704,8 +707,9 @@ External library calls (numpy, jax, etc.) are excluded.
                     print("No call tree found")
 
     else:
-        # Print full summary
-        analyzer.print_summary()
+        if not args.quiet:
+            # Print full summary
+            analyzer.print_summary()
 
         # Save to JSON
         analyzer.save_to_json(args.output)

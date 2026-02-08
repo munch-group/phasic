@@ -74,7 +74,7 @@ website:
     logo-href: "/index.html"
 
     left:
-      - href: pages/quickstart.html
+      - href: pages/getting_started.html
         text: Documentation
       - href: api/
         text: Python API reference
@@ -92,7 +92,7 @@ website:
       align: left
       collapse-level: 3
       contents:
-        - pages/quickstart.ipynb
+        - pages/getting_started.ipynb
         - section: "State space"
           contents:
             - pages/tutorial/introduction.ipynb
@@ -129,35 +129,37 @@ website:
             - pages/topics/caching_guide.qmd
             - pages/topics/state-indexer.ipynb
             # - pages/tutorials/somecode.ipynb
+
         # - section: "Popgen models"
         #   contents:
         #     - pages/popgen/python/demography/coalescent-epochs.ipynb
-        - section: "Internals"
-          contents:
-            - pages/background/math_and_alg.qmd
 
-            - pages/internals/architecture.qmd
-            - pages/internals/call_tree.qmd
+        # - section: "Internals"
+        #   contents:
+        #     - pages/background/math_and_alg.qmd
+
+        #     - pages/internals/architecture.qmd
+        #     - pages/internals/call_tree.qmd
             
-            - pages/internals/MPFR_FINAL_STATUS.md
+        #     - pages/internals/MPFR_FINAL_STATUS.md
             
-            - pages/internals/caching_architecture.md
-            - pages/internals/caching.qmd
+        #     - pages/internals/caching_architecture.md
+        #     - pages/internals/caching.qmd
 
-            - pages/internals/python_cpp_bridge_jax_integration.md
-            - pages/internals/ffi_and_openmp.qmd
+        #     - pages/internals/python_cpp_bridge_jax_integration.md
+        #     - pages/internals/ffi_and_openmp.qmd
 
-        #     - pages/internals/trace_ipfs.ipynb
-        #     - pages/internals/trace_elimination_retracing.md
+        # #     - pages/internals/trace_ipfs.ipynb
+        # #     - pages/internals/trace_elimination_retracing.md
 
-        #     - pages/internals/svgd.ipynb
-        #     - pages/internals/svgd_trace_eval.qmd
-        #     - pages/internals/preconditioning.md
-        #     - pages/internals/svgd_step_sizes.qmd
-        #     - pages/internals/svgd_learning_rate.qmd
+        # #     - pages/internals/svgd.ipynb
+        # #     - pages/internals/svgd_trace_eval.qmd
+        # #     - pages/internals/preconditioning.md
+        # #     - pages/internals/svgd_step_sizes.qmd
+        # #     - pages/internals/svgd_learning_rate.qmd
 
-            - href: https://github.com/munch-group/phasic/issues
-              text: Issue Tracker
+        #     - href: https://github.com/munch-group/phasic/issues
+        #       text: Issue Tracker
 
 
 lightbox: true

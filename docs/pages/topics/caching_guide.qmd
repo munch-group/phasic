@@ -289,13 +289,11 @@ tar -xzf ~/my_caches.tar.gz
 - Expensive graph construction (>1 second)
 - Same callback + parameters used repeatedly
 - Sharing pre-built graphs across sessions
-- ❌ Rapidly changing callbacks (cache invalidation overhead)
 
 **Trace Cache (`hierarchical=True`)**:
 - Computing moments/expectations repeatedly
 - SVGD or MCMC with many iterations
 - Same graph structure, different parameters
-- ❌ Single-use graphs
 
 **JAX Cache**:
 - Always enable (default)
@@ -370,24 +368,3 @@ from phasic import clear_caches
 clear_caches(verbose=True)  # Clear all caches
 ```
 
----
-
-## Performance Benchmarks
-
-### Graph Cache Impact
-
-| Model Size | No Cache | With Cache | Speedup |
-|------------|----------|------------|------------|
-| 100 vertices | 2s | instant | ∞ (cached) |
-| 1,000 vertices | 15s | instant | ∞ (cached) |
-| 10,000 vertices | 120s | instant | ∞ (cached) |
-
-### Combined Impact
-
-**Workflow:** MCMC with 1,000 iterations on 100-vertex graph
-
-- **No caching:** 2s build × 1,000 = 33 minutes
-- **Graph cache:** instant build + 1,000 × fast eval = 10 seconds
-- **Both caches:** instant build + instant eval = <1 second
-
-**Total speedup:** ~2,000x
