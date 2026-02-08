@@ -105,7 +105,6 @@ website:
         - section: "Computation"
           contents:
             - pages/tutorial/mpfr.ipynb
-            - pages/tutorial/trace_computing.ipynb
             - pages/tutorial/caching.ipynb
             - pages/tutorial/distributed.ipynb
             - pages/tutorial/sharing.ipynb

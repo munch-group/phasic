@@ -53,7 +53,7 @@ Example
 from __future__ import annotations
 
 from dataclasses import dataclass, make_dataclass
-from typing import Any, Self
+from typing import Any, Optional, Self
 import numpy as np
 import numpy.typing as npt
 

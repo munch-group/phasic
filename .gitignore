@@ -49,3 +49,9 @@ debug_*.py
 tests/pytest/[0-9]*
 
 docs/pages/topics/graph_output.*
+tests/pytest/tmp/*
+docs/pages/tutorial/*.png
+docs/pages/tutorial/*.jpg
+docs/pages/tutorial/*.svg
+docs/pages/tutorial/*.pdf
+

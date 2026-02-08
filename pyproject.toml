@@ -163,7 +163,7 @@ description = "Install phasic in development mode with FFI support"
 
 [tool.pixi.tasks.notebook]
 args = [ { "arg" = "notebook" } ]
-cmd = "jupyter nbconvert --log-level=WARN --to notebook --execute --inplace --TagRemovePreprocessor.enabled=True --TagRemovePreprocessor.remove_cell_tags='{skip-execution}' {{ notebook }}"
+cmd = "jupyter nbconvert --log-level=WARN --to notebook --execute --inplace --TagRemovePreprocessor.enabled=True --TagRemovePreprocessor.remove_cell_tags='{\"skip-execution\"}' {{ notebook }}"
 
 [tool.pixi.tasks.api]
 cmd = "./scripts/docs-build-render.sh"
@@ -183,7 +183,7 @@ cmd = "git clean -id"
 description = "Removes untracked files and directories but respects your .gitignores"
 
 [tool.pixi.tasks.test]
-cmd = "jupyter nbconvert docs/pages/tutorial/*.ipynb --to script --output-dir tests/pytest && pytest tests/pytest/"
+cmd = "mkdir -p tests/pytest/tmp && jupyter nbconvert docs/pages/tutorial/*.ipynb --to script --TagRemovePreprocessor.enabled=True --TagRemovePreprocessor.remove_cell_tags='{\"skip-execution\"}' --output-dir tests/pytest/tmp && pytest tests/pytest/"
 description = "Run tests"
 
 [tool.pixi.tasks.commit]

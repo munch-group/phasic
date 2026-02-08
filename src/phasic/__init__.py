@@ -1352,7 +1352,36 @@ def _callback(ipv: list) -> Callable:
     Turn callback functions with different signatures into a common one.
     Also makes return the ipv when called with empty state.
     """
-    if all(isinstance(x, int) for x in ipv):
+    # Validate ipv
+    if not isinstance(ipv, (list, tuple)):
+        raise TypeError(
+            f"ipv must be a list, got {type(ipv).__name__}. "
+            f"Example: ipv=[5] or ipv=[[[5,0,0], 1.0]]"
+        )
+    if len(ipv) == 0:
+        raise ValueError("ipv must be non-empty")
+
+    # Simple format: [int, int, ...] → single starting state
+    if all(isinstance(x, (int, np.integer)) for x in ipv):
+        pass  # OK — converted to [[state, 1.0]] below
+    # Explicit format: [[state, prob], ...]
+    elif all(isinstance(x, (list, tuple)) and len(x) == 2 for x in ipv):
+        for i, (state, prob) in enumerate(ipv):
+            if not isinstance(state, (list, tuple, np.ndarray)):
+                raise TypeError(
+                    f"ipv[{i}][0] must be a list (state vector), got {type(state).__name__}"
+                )
+            if not isinstance(prob, (int, float, np.integer, np.floating)):
+                raise TypeError(
+                    f"ipv[{i}][1] must be a number (probability), got {type(prob).__name__}"
+                )
+    else:
+        raise TypeError(
+            f"ipv must be a list of ints (e.g. [5]) or list of [state, prob] pairs "
+            f"(e.g. [[[5,0], 0.7], [[4,1], 0.3]]). Got: {ipv!r}"
+        )
+
+    if all(isinstance(x, (int, np.integer)) for x in ipv):
         ipv = [[ipv, 1.0]]
 
     def decorator(func):
@@ -1629,6 +1658,28 @@ class Graph(_Graph):
         elif cache_trace is None:
             cache_trace = False
 
+        # Validate arg
+        if isinstance(arg, int):
+            if arg < 1:
+                raise ValueError(f"state_length must be >= 1, got {arg}")
+        elif not callable(arg) and not isinstance(arg, _Graph):
+            raise TypeError(
+                f"First argument must be an integer state_length, a callback function, "
+                f"or a Graph instance, got {type(arg).__name__}"
+            )
+
+        # Validate ipv usage
+        if not callable(arg) and ipv is not None:
+            raise ValueError("ipv is only used with a callback function, not with integer state_length")
+
+        # Validate theta_dim if provided
+        theta_dim_arg = kwargs.get('theta_dim', None)
+        if theta_dim_arg is not None:
+            if not isinstance(theta_dim_arg, (int, np.integer)):
+                raise TypeError(f"theta_dim must be an integer, got {type(theta_dim_arg).__name__}")
+            if theta_dim_arg < 1:
+                raise ValueError(f"theta_dim must be >= 1, got {theta_dim_arg}")
+
         self._joint_prob_base_graph_indexer = None  # flag to signify joint probability representation; defaults to until set internally
 
         # Wrap callback with IPV BEFORE cache operations to ensure consistent hashing
@@ -1898,6 +1949,16 @@ class Graph(_Graph):
         This does NOT invalidate the cached trace since it only changes
         parameter values, not graph structure.
         """
+        theta_array = np.asarray(theta, dtype=np.float64)
+        if theta_array.ndim != 1:
+            raise ValueError(f"theta must be 1-dimensional, got shape {theta_array.shape}")
+        if theta_array.size == 0 and callback is None:
+            raise ValueError("theta must be non-empty")
+        if np.any(np.isnan(theta_array)):
+            raise ValueError("theta contains NaN values")
+        if theta_array.size > 0 and np.any(np.isinf(theta_array)):
+            raise ValueError("theta contains infinite values")
+
         self._last_theta = np.asarray(theta)
         if callback is not None:
             # C++ overload: update_weights(params, callback) - no log parameter
@@ -2153,6 +2214,18 @@ class Graph(_Graph):
 
         This is equivalent to moments(1, rewards).
         """
+        if len(rewards) > 0:
+            rewards_arr = np.asarray(rewards, dtype=np.float64)
+            if rewards_arr.ndim != 1:
+                raise ValueError(f"rewards must be 1-dimensional, got shape {rewards_arr.shape}")
+            if np.any(np.isnan(rewards_arr)):
+                raise ValueError("rewards contains NaN values")
+            n_vertices = self.vertices_length()
+            if len(rewards_arr) != n_vertices:
+                raise ValueError(
+                    f"rewards length ({len(rewards_arr)}) must equal number of vertices ({n_vertices})"
+                )
+
         if self.cache_trace:
             if self.is_discrete:
                 raise NotImplementedError("Trace-based expectation computation not implemented yet for discrete graphs.")
@@ -2203,7 +2276,19 @@ class Graph(_Graph):
         faster repeated evaluations.
 
         Computed as Var(T) = E[T^2] - E[T]^2 using moments.
-        """     
+        """
+        if len(rewards) > 0:
+            rewards_arr = np.asarray(rewards, dtype=np.float64)
+            if rewards_arr.ndim != 1:
+                raise ValueError(f"rewards must be 1-dimensional, got shape {rewards_arr.shape}")
+            if np.any(np.isnan(rewards_arr)):
+                raise ValueError("rewards contains NaN values")
+            n_vertices = self.vertices_length()
+            if len(rewards_arr) != n_vertices:
+                raise ValueError(
+                    f"rewards length ({len(rewards_arr)}) must equal number of vertices ({n_vertices})"
+                )
+
         if self.cache_trace:
             if self.is_discrete:
                 raise NotImplementedError("Trace-based expectation computation not implemented yet for discrete graphs.")
@@ -2302,6 +2387,17 @@ class Graph(_Graph):
         For continuous distributions: f(t) = α · exp(S·t) · s*
         For discrete distributions: p(n) = probability of absorption at jump n
         """
+        time_arr = np.asarray(time, dtype=np.float64)
+        if np.any(np.isnan(time_arr)):
+            raise ValueError("time contains NaN values")
+        if np.any(time_arr < 0):
+            raise ValueError("time must be non-negative")
+        granularity = kwargs.get('granularity', 0)
+        if not isinstance(granularity, (int, np.integer)):
+            raise TypeError(f"granularity must be an integer, got {type(granularity).__name__}")
+        if granularity < 0:
+            raise ValueError(f"granularity must be >= 0, got {granularity}")
+
         if self.is_discrete:
             return super().pdf_discrete(time, **kwargs)
         else:
@@ -2546,8 +2642,13 @@ class Graph(_Graph):
         Returns
         -------
         :
-            Reward matrix for added auxiliary states 
+            Reward matrix for added auxiliary states
         """
+        if not callable(rate):
+            if not isinstance(rate, (int, float, np.integer, np.floating)):
+                raise TypeError(f"rate must be a number or callable, got {type(rate).__name__}")
+            if rate <= 0 or rate >= 1:
+                raise ValueError(f"rate must be in (0, 1), got {rate}")
 
         # if not callable(rate):
         #     def rate_fn(state):
@@ -2627,6 +2728,15 @@ class Graph(_Graph):
         moments : Compute moments with optional reward vector
         expectation : Compute expectation with optional reward vector
         """
+        rewards_arr = np.asarray(rewards, dtype=np.float64)
+        if np.any(np.isnan(rewards_arr)):
+            raise ValueError("rewards contains NaN values")
+        if rewards_arr.ndim == 1:
+            if len(rewards_arr) != self.vertices_length():
+                raise ValueError(
+                    f"rewards length ({len(rewards_arr)}) must equal number of vertices ({self.vertices_length()})"
+                )
+
         if self.is_discrete:
             return Graph(super().reward_transform_discrete(rewards))
         else:
@@ -4196,6 +4306,18 @@ extern "C" {{
             )
 
         from .svgd import SVGD
+
+        # Validate SVGD parameters
+        if n_particles is not None and n_particles < 1:
+            raise ValueError(f"n_particles must be >= 1, got {n_particles}")
+        if n_iterations < 1:
+            raise ValueError(f"n_iterations must be >= 1, got {n_iterations}")
+        if learning_rate is not None and isinstance(learning_rate, (int, float, np.integer, np.floating)) and learning_rate <= 0:
+            raise ValueError(f"learning_rate must be positive, got {learning_rate}")
+        if regularization < 0:
+            raise ValueError(f"regularization must be >= 0, got {regularization}")
+        if nr_moments < 1:
+            raise ValueError(f"nr_moments must be >= 1, got {nr_moments}")
 
         # Auto-infer theta_dim from graph if not provided
         if theta_dim is None and theta_init is None:
