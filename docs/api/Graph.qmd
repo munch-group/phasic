@@ -1299,7 +1299,7 @@ use load_cpp_builder() instead to get a builder function that creates Graph obje
 
 #### Examples {.doc-section .doc-section-examples}
 
-# JAX-compatible approach (default - for SVGD, gradients, optimization)
+JAX-compatible approach (default - for SVGD, gradients, optimization):
 
 ```python
 >>> model = Graph.pmf_from_cpp("my_model.cpp")
@@ -1309,7 +1309,7 @@ use load_cpp_builder() instead to get a builder function that creates Graph obje
 >>> gradient = jax.grad(lambda p: jnp.sum(model(p, times)))(theta)
 ```
 
-# Discrete phase-type distribution
+Discrete phase-type distribution:
 
 ```python
 >>> model = Graph.pmf_from_cpp("my_model.cpp", discrete=True)
@@ -1318,7 +1318,7 @@ use load_cpp_builder() instead to get a builder function that creates Graph obje
 >>> dph_pmf = model(theta, jumps)
 ```
 
-# For direct C++ access without JAX (faster for repeated evaluations):
+For direct C++ access without JAX (faster for repeated evaluations):
 
 ```python
 >>> builder = load_cpp_builder("my_model.cpp")
