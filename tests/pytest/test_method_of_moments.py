@@ -21,6 +21,7 @@ from itertools import combinations_with_replacement
 
 from phasic import (
     Graph, GaussPrior, SVGD, ProbMatchResult, DataPrior,
+    dense_to_sparse, SparseObservations,
     with_ipv, StateIndexer, Property,
 )
 from phasic.method_of_moments import MoMResult, method_of_moments
@@ -117,28 +118,36 @@ def test_overdetermined():
     result = g.method_of_moments(data, nr_moments=4, verbose=False)
 
     assert result.success
-    assert result.model_moments.shape == (4,)
-    assert result.sample_moments.shape == (4,)
+    # SparseObservations always returns (n_features, nr_moments) for sample moments
+    assert result.sample_moments.shape == (1, 4)
+    # model moments shape depends on the model (no rewards → 1D)
+    assert result.model_moments.ravel().shape == (4,)
 
 
 # ---------------------------------------------------------------------------
 # 4. Auto nr_moments increase
 # ---------------------------------------------------------------------------
 
-def test_auto_nr_moments_increase(capsys):
+def test_auto_nr_moments_increase(caplog):
     """If nr_moments gives fewer equations than free params, it auto-increases."""
+    import logging
     np.random.seed(42)
     data = (np.random.exponential(0.2, size=200)
             + np.random.exponential(0.5, size=200))
 
     g = _build_two_stage_graph()
-    result = g.method_of_moments(data, nr_moments=1, verbose=True)
+    phasic_logger = logging.getLogger("phasic")
+    phasic_logger.propagate = True
+    try:
+        with caplog.at_level("INFO", logger="phasic"):
+            result = g.method_of_moments(data, nr_moments=1, verbose=True)
+    finally:
+        phasic_logger.propagate = False
 
-    captured = capsys.readouterr()
-    assert "increased nr_moments" in captured.out
+    assert any("increased nr_moments" in r.message for r in caplog.records)
     assert result.success
     # Should have been increased to at least 2
-    assert result.model_moments.shape[0] >= 2
+    assert result.model_moments.ravel().shape[0] >= 2
 
 
 def test_default_nr_moments_is_overdetermined():
@@ -268,7 +277,7 @@ def test_multivariate_rewards():
     base_data = np.random.exponential(1.0 / true_rate, size=n_samples)
     feature_0 = base_data * 1.0
     feature_1 = base_data * 2.0
-    observed_data = np.column_stack([feature_0, feature_1])
+    observed_data = dense_to_sparse(jnp.column_stack([feature_0, feature_1]))
 
     result = g.method_of_moments(
         observed_data, nr_moments=2, rewards=rewards, verbose=False,
@@ -335,17 +344,23 @@ def test_verbose_false_no_crash():
     assert isinstance(result, MoMResult)
 
 
-def test_verbose_true_no_crash(capsys):
-    """verbose=True should print info and not crash."""
+def test_verbose_true_no_crash(caplog):
+    """verbose=True should log info and not crash."""
+    import logging
     np.random.seed(42)
     data = np.random.exponential(0.5, size=100)
 
     g = _build_exponential_graph()
-    result = g.method_of_moments(data, verbose=True)
+    phasic_logger = logging.getLogger("phasic")
+    phasic_logger.propagate = True
+    try:
+        with caplog.at_level("INFO", logger="phasic"):
+            result = g.method_of_moments(data, verbose=True)
+    finally:
+        phasic_logger.propagate = False
     assert isinstance(result, MoMResult)
 
-    captured = capsys.readouterr()
-    assert "MoM:" in captured.out
+    assert any("theta_dim=" in r.message for r in caplog.records)
 
 
 # ---------------------------------------------------------------------------
@@ -665,3 +680,82 @@ def test_data_prior_repr():
     r = repr(dp)
     assert "method_of_moments" in r
     assert "converged" in r
+
+
+# ---------------------------------------------------------------------------
+# 23. Input validation — method_of_moments
+# ---------------------------------------------------------------------------
+
+def test_mom_rejects_1d_array_with_nan():
+    """1-D array containing NaN should raise ValueError."""
+    g = _build_exponential_graph()
+    data = np.array([1.0, 2.0, np.nan, 3.0])
+
+    with pytest.raises(ValueError, match="NaN"):
+        g.method_of_moments(data, verbose=False)
+
+
+def test_mom_rejects_2d_array():
+    """2-D array should raise TypeError (use SparseObservations instead)."""
+    g = _build_exponential_graph()
+    data = np.array([[1.0, 2.0], [3.0, 4.0]])
+
+    with pytest.raises(TypeError, match="1-D array or SparseObservations"):
+        g.method_of_moments(data, verbose=False)
+
+
+def test_mom_rejects_sparse_without_rewards():
+    """Multivariate SparseObservations without rewards should raise ValueError."""
+    g = _build_exponential_graph()
+    sparse = dense_to_sparse(jnp.column_stack([
+        jnp.array([1.0, 2.0, 3.0]),
+        jnp.array([4.0, 5.0, 6.0]),
+    ]))
+    assert sparse.n_features == 2
+
+    with pytest.raises(ValueError, match="rewards must be provided"):
+        g.method_of_moments(sparse, verbose=False)
+
+
+def test_mom_accepts_valid_1d_array():
+    """A plain 1-D array without NaN should be accepted."""
+    np.random.seed(42)
+    data = np.random.exponential(0.5, size=100)
+
+    g = _build_exponential_graph()
+    result = g.method_of_moments(data, nr_moments=2, verbose=False)
+    assert result.success
+
+
+# ---------------------------------------------------------------------------
+# 24. Input validation — svgd
+# ---------------------------------------------------------------------------
+
+def test_svgd_rejects_1d_array_with_nan():
+    """1-D array containing NaN should raise ValueError in svgd()."""
+    g = _build_exponential_graph()
+    data = np.array([1.0, 2.0, np.nan, 3.0])
+
+    with pytest.raises(ValueError, match="NaN"):
+        g.svgd(data, n_particles=4, n_iterations=1, verbose=False)
+
+
+def test_svgd_rejects_2d_array():
+    """2-D array should raise TypeError in svgd()."""
+    g = _build_exponential_graph()
+    data = np.array([[1.0, 2.0], [3.0, 4.0]])
+
+    with pytest.raises(TypeError, match="1-D array or SparseObservations"):
+        g.svgd(data, n_particles=4, n_iterations=1, verbose=False)
+
+
+def test_svgd_rejects_sparse_without_rewards():
+    """SparseObservations without rewards should raise ValueError in svgd()."""
+    g = _build_exponential_graph()
+    sparse = dense_to_sparse(jnp.column_stack([
+        jnp.array([1.0, 2.0, 3.0]),
+        jnp.array([4.0, 5.0, 6.0]),
+    ]))
+
+    with pytest.raises(ValueError, match="rewards must be provided"):
+        g.svgd(sparse, n_particles=4, n_iterations=1, verbose=False)

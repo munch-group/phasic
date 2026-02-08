@@ -114,6 +114,8 @@ website:
             - pages/tutorial/laplace.ipynb
             - pages/tutorial/joint-probability.ipynb
             - pages/tutorial/finite-markov-chains.ipynb
+            # - pages/tutorial/state-lumping.ipynb
+            # - pages/topics/R/partitioning.ipynb
         - section: "Inference"
           contents:
             - pages/tutorial/method-of-moments.ipynb

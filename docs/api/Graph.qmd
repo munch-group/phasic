@@ -852,9 +852,9 @@ priors centred on the method-of-moments estimates.
 
 #### Parameters {.doc-section .doc-section-parameters}
 
-<code>[**observed_data**]{.parameter-name} [:]{.parameter-annotation-sep} [[ArrayLike](`numpy.typing.ArrayLike`)]{.parameter-annotation}</code>
+<code>[**observed_data**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`) or [SparseObservations](`phasic.svgd.SparseObservations`)]{.parameter-annotation}</code>
 
-:   Observed data.  1-D for univariate, 2-D ``(n_times, n_features)`` for multivariate models with 2-D reward vectors.
+:   Observed data.  A plain 1-D array is accepted for univariate models (must not contain NaN).  For multivariate models use ``SparseObservations`` (see ``dense_to_sparse()``), in which case ``rewards`` must also be provided.
 
 <code>[**nr_moments**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
@@ -1801,9 +1801,9 @@ pmf_from_graph() or pmf_from_cpp() where the model signature is model(theta, tim
 
 #### Parameters {.doc-section .doc-section-parameters}
 
-<code>[**observed_data**]{.parameter-name} [:]{.parameter-annotation-sep} [[ArrayLike](`numpy.typing.ArrayLike`)]{.parameter-annotation}</code>
+<code>[**observed_data**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`) or [SparseObservations](`phasic.svgd.SparseObservations`)]{.parameter-annotation}</code>
 
-:   Observed data points. For continuous models (PDF), these are time points where the density was observed. For discrete models (PMF), these are jump counts.
+:   Observed data.  A plain 1-D array is accepted for univariate models (must not contain NaN).  For multivariate models use ``SparseObservations`` (see ``dense_to_sparse()``), in which case ``rewards`` must also be provided.
 
 <code>[**discrete**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 

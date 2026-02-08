@@ -10,9 +10,9 @@ from __future__ import annotations
 import math
 import numpy as np
 from dataclasses import dataclass
-from numpy.typing import ArrayLike
 
 from .logging_config import get_logger
+from .svgd import SparseObservations
 
 logger = get_logger(__name__)
 
@@ -50,47 +50,34 @@ class MoMResult:
     message: str
 
 
-def _estimate_moment_covariance(observed_data: np.ndarray, nr_moments: int, n_features: int) -> np.ndarray:
+def _estimate_moment_covariance(observed_data: SparseObservations, nr_moments: int, n_features: int) -> np.ndarray:
     """Estimate the covariance matrix of the sample moments.
 
     For each raw sample moment m_k = mean(X^k), its sampling variance is
     Var(m_k) = Var(X^k) / n.  The covariance between m_j and m_k is
     Cov(X^j, X^k) / n.
 
-    For multivariate data (n_features > 1), the moments are ordered as
+    The moments are ordered as
     [feature_0_moment_1, ..., feature_0_moment_K, feature_1_moment_1, ...]
     and the covariance is block-diagonal (features are independent samples).
     """
-    n_obs = observed_data.shape[0]
     n_eq = n_features * nr_moments
+    cov = np.zeros((n_eq, n_eq), dtype=np.float64)
 
-    if observed_data.ndim == 1:
-        # Univariate: build matrix of X^k columns
-        powers = np.column_stack([observed_data ** k for k in range(1, nr_moments + 1)])
-        # Cov(m_hat) = Cov(X^k) / n
-        cov = np.cov(powers, rowvar=False, ddof=1) / n_obs
-        if cov.ndim == 0:
-            cov = cov.reshape(1, 1)
-        return cov
-    else:
-        # Multivariate: block-diagonal, one block per feature
-        cov = np.zeros((n_eq, n_eq), dtype=np.float64)
-        for f in range(n_features):
-            col = observed_data[:, f]
-            # Use only non-NaN observations for this feature
-            valid = ~np.isnan(col)
-            col_valid = col[valid]
-            n_valid = len(col_valid)
-            if n_valid < 2:
-                # Not enough data — leave this block as zeros (will trigger fallback)
-                continue
-            powers = np.column_stack([col_valid ** k for k in range(1, nr_moments + 1)])
-            block = np.cov(powers, rowvar=False, ddof=1) / n_valid
-            if block.ndim == 0:
-                block = block.reshape(1, 1)
-            idx = f * nr_moments
-            cov[idx:idx + nr_moments, idx:idx + nr_moments] = block
-        return cov
+    for f in range(n_features):
+        col_valid = np.asarray(observed_data.get_feature_values(f))
+        n_valid = len(col_valid)
+        if n_valid < 2:
+            # Not enough data — leave this block as zeros (will trigger fallback)
+            continue
+        powers = np.column_stack([col_valid ** k for k in range(1, nr_moments + 1)])
+        block = np.cov(powers, rowvar=False, ddof=1) / n_valid
+        if block.ndim == 0:
+            block = block.reshape(1, 1)
+        idx = f * nr_moments
+        cov[idx:idx + nr_moments, idx:idx + nr_moments] = block
+
+    return cov
 
 
 def _reconstruct_theta(theta_free: np.ndarray, theta_dim: int, fixed: list[tuple[int, float]]) -> np.ndarray:
@@ -148,7 +135,7 @@ def _initial_guess_grid(moments_fn: object, target_first_moment: np.ndarray, n_f
 
 def method_of_moments(
     graph: object,
-    observed_data: ArrayLike,
+    observed_data: np.ndarray | SparseObservations,
     nr_moments: int | None = None,
     theta_dim: int | None = None,
     theta_init: np.ndarray | None = None,
@@ -171,9 +158,10 @@ def method_of_moments(
     ----------
     graph : Graph
         Parameterized phasic graph.
-    observed_data : ArrayLike
-        Observed data. 1-D for univariate, 2-D ``(n_times, n_features)``
-        for multivariate models.
+    observed_data : array or SparseObservations
+        Observed data.  A plain 1-D array is accepted for univariate
+        models.  For multivariate models use ``SparseObservations``
+        (see ``dense_to_sparse()``).
     nr_moments : int, optional
         Number of moments to match per feature dimension.  If ``None``
         (default), automatically chosen to overdetermine the system:
@@ -205,7 +193,14 @@ def method_of_moments(
     from scipy.optimize import least_squares
 
     from . import Graph
+    import logging as _logging
     from .svgd import compute_sample_moments, GaussPrior
+
+    # Enable INFO output when verbose=True
+    if verbose:
+        _prev_level = logger.getEffectiveLevel()
+        if _prev_level > _logging.INFO:
+            logger.setLevel(_logging.INFO)
 
     # ------------------------------------------------------------------
     # 1. Infer dimensions
@@ -228,13 +223,32 @@ def method_of_moments(
     # ------------------------------------------------------------------
     # 2. Determine data shape and number of features
     # ------------------------------------------------------------------
-    observed_data = np.asarray(observed_data, dtype=np.float64)
-    if observed_data.ndim == 1:
-        n_features = 1
-    elif observed_data.ndim == 2:
-        n_features = observed_data.shape[1]
-    else:
-        raise ValueError(f"observed_data must be 1-D or 2-D, got shape {observed_data.shape}")
+    if not isinstance(observed_data, SparseObservations):
+        # Accept a plain 1-D array for univariate data
+        import jax.numpy as jnp
+        arr = np.asarray(observed_data, dtype=np.float64)
+        if arr.ndim != 1:
+            raise TypeError(
+                "observed_data must be a 1-D array or SparseObservations. "
+                "For multivariate data, use dense_to_sparse()."
+            )
+        if np.any(np.isnan(arr)):
+            raise ValueError(
+                "observed_data contains NaN values. "
+                "Use SparseObservations for data with missing values."
+            )
+        observed_data = SparseObservations(
+            values=jnp.asarray(arr),
+            features=jnp.zeros(len(arr), dtype=jnp.int32),
+            n_features=1,
+            slices=((0, len(arr)),),
+        )
+
+    if isinstance(observed_data, SparseObservations) and observed_data.n_features > 1 and rewards is None:
+        raise ValueError(
+            "rewards must be provided for multivariate SparseObservations (n_features > 1)."
+        )
+    n_features = observed_data.n_features
 
     # ------------------------------------------------------------------
     # 3. Choose nr_moments (auto or user-specified)
@@ -254,8 +268,8 @@ def method_of_moments(
         nr_moments = math.ceil(n_free / max(1, n_features))
         n_equations = n_features * nr_moments
         if verbose:
-            print(f"MoM: increased nr_moments from {nr_moments_old} to {nr_moments} "
-                  f"(need >= {n_free} equations, have {n_equations})")
+            logger.info(f"increased nr_moments from {nr_moments_old} to {nr_moments} "
+                        f"(need >= {n_free} equations, have {n_equations})")
 
     # ------------------------------------------------------------------
     # 4. Build moments function
@@ -268,7 +282,7 @@ def method_of_moments(
                 graph, nr_moments=nr_moments, discrete=discrete,
                 use_ffi=False, theta_dim=theta_dim,
             )
-            dummy_times = jnp.ones(1) if observed_data.ndim == 1 else jnp.ones((1, n_features))
+            dummy_times = jnp.ones(1) if n_features == 1 else jnp.ones((1, n_features))
             rewards_jnp = jnp.array(rewards_arr)
 
             def moments_fn(theta):
@@ -304,10 +318,10 @@ def method_of_moments(
     target_moments = np.asarray(compute_sample_moments(observed_data, nr_moments))
 
     if verbose:
-        print(f"MoM: theta_dim={theta_dim}, n_free={n_free}, "
-              f"nr_moments={nr_moments}, n_features={n_features}, "
-              f"n_equations={n_equations}")
-        print(f"MoM: sample moments =\n{target_moments}")
+        logger.info(f"theta_dim={theta_dim}, n_free={n_free}, "
+                    f"nr_moments={nr_moments}, n_features={n_features}, "
+                    f"n_equations={n_equations}")
+        logger.info(f"sample moments =\n{target_moments}")
 
     # ------------------------------------------------------------------
     # 6. Initial guess
@@ -331,7 +345,7 @@ def method_of_moments(
 
     if verbose:
         theta_full_init = _reconstruct_theta(x0, theta_dim, fixed)
-        print(f"MoM: initial guess (full theta) = {theta_full_init}")
+        logger.info(f"initial guess (full theta) = {theta_full_init}")
 
     # ------------------------------------------------------------------
     # 7. Define residual
@@ -360,10 +374,10 @@ def method_of_moments(
     residual_sum = float(np.sum(result.fun ** 2))
 
     if verbose:
-        print(f"MoM: {'converged' if result.success else 'FAILED'} — {result.message}")
-        print(f"MoM: theta = {theta_full_opt}")
-        print(f"MoM: residual = {residual_sum:.6e}")
-        print(f"MoM: model moments =\n{model_moments_opt}")
+        logger.info(f"{'converged' if result.success else 'FAILED'} — {result.message}")
+        logger.info(f"theta = {theta_full_opt}")
+        logger.info(f"residual = {residual_sum:.6e}")
+        logger.info(f"model moments =\n{model_moments_opt}")
 
     # ------------------------------------------------------------------
     # 9. Estimate std via the delta method
@@ -376,7 +390,7 @@ def method_of_moments(
     # perturbations to parameter perturbations, and Cov(m_hat) is
     # the covariance of the sample moments estimated from the data.
     # ------------------------------------------------------------------
-    n_obs = observed_data.shape[0]
+    n_obs = len(observed_data.values)
     std_full = np.full(theta_dim, np.nan)
     try:
         # Jacobian dm/dtheta_free at the solution, shape (n_eq, n_free)
@@ -396,7 +410,7 @@ def method_of_moments(
         # Fall back to coefficient-of-variation heuristic
         std_free = 0.5 * np.abs(theta_free_opt)
         if verbose:
-            print("MoM: WARNING — delta method failed, using fallback std = 0.5 * |theta|")
+            logger.warning("delta method failed, using fallback std = 0.5 * |theta|")
 
     # Map std back to full theta vector
     j = 0
@@ -424,6 +438,10 @@ def method_of_moments(
                 mean=float(theta_full_opt[i]),
                 std=float(std_multiplier * std_full[i]),
             ))
+
+    # Restore logger level if we changed it
+    if verbose and _prev_level > _logging.INFO:
+        logger.setLevel(_prev_level)
 
     return MoMResult(
         theta=theta_full_opt,

@@ -10,7 +10,7 @@ listing:
     fields: [image, title]
     grid-columns: 4
     contents:
-      - pages/vignettes/genetic-diversity.ipynb
+      - pages/tutorial/introduction.ipynb
       - pages/vignettes/telecommunication.ipynb
       - pages/vignettes/drainage-capacity.ipynb
       - pages/vignettes/uranium_decay.ipynb

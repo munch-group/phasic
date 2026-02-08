@@ -4078,7 +4078,7 @@ extern "C" {{
 
 
     def svgd(self,
-             observed_data: ArrayLike,
+             observed_data: ArrayLike | SparseObservations,
              discrete: bool | None = None,
              prior: Callable | None = None,
              n_particles: int | None = None,
@@ -4115,9 +4115,11 @@ extern "C" {{
 
         Parameters
         ----------
-        observed_data : ArrayLike
-            Observed data points. For continuous models (PDF), these are time points where
-            the density was observed. For discrete models (PMF), these are jump counts.
+        observed_data : array or SparseObservations
+            Observed data.  A plain 1-D array is accepted for univariate
+            models (must not contain NaN).  For multivariate models use
+            ``SparseObservations`` (see ``dense_to_sparse()``), in which
+            case ``rewards`` must also be provided.
         discrete : bool, default=None
             If True, computes discrete PMF. If False, computes continuous PDF. If undefined it is 
             inferred from the graph.is_discrete attribute.
@@ -4310,14 +4312,38 @@ extern "C" {{
         # Validate SVGD parameters
         if n_particles is not None and n_particles < 1:
             raise ValueError(f"n_particles must be >= 1, got {n_particles}")
+
         if n_iterations < 1:
             raise ValueError(f"n_iterations must be >= 1, got {n_iterations}")
-        if learning_rate is not None and isinstance(learning_rate, (int, float, np.integer, np.floating)) and learning_rate <= 0:
+
+        if learning_rate is not None and not isinstance(learning_rate, StepSizeSchedule) and isinstance(learning_rate, (int, float, np.integer, np.floating)) and learning_rate <= 0:
             raise ValueError(f"learning_rate must be positive, got {learning_rate}")
-        if regularization < 0:
+        
+        if not isinstance(regularization, RegularizationSchedule) and regularization < 0:
             raise ValueError(f"regularization must be >= 0, got {regularization}")
         if nr_moments < 1:
             raise ValueError(f"nr_moments must be >= 1, got {nr_moments}")
+
+        # Validate observed_data: must be 1-D array or SparseObservations
+        # (skip for joint probability graphs — they accept lists of tuples)
+        _is_joint_graph = self._joint_prob_base_graph_indexer is not None
+        from .svgd import SparseObservations as _SparseObs, is_sparse_observations
+        if not is_sparse_observations(observed_data) and not joint_index and not _is_joint_graph:
+            observed_data = np.asarray(observed_data, dtype=np.float64)
+            if observed_data.ndim != 1:
+                raise TypeError(
+                    "observed_data must be a 1-D array or SparseObservations. "
+                    "For multivariate data, use dense_to_sparse()."
+                )
+            if np.any(np.isnan(observed_data)):
+                raise ValueError(
+                    "observed_data contains NaN values. "
+                    "Use SparseObservations for data with missing values."
+                )
+        elif is_sparse_observations(observed_data) and rewards is None:
+            raise ValueError(
+                "rewards must be provided when using SparseObservations."
+            )
 
         # Auto-infer theta_dim from graph if not provided
         if theta_dim is None and theta_init is None:
@@ -4464,7 +4490,7 @@ extern "C" {{
 
     def method_of_moments(
         self,
-        observed_data: ArrayLike,
+        observed_data: ArrayLike | SparseObservations,
         nr_moments: int | None = None,
         rewards: ArrayLike | None = None,
         fixed: list[tuple[int, float]] | None = None,
@@ -4487,9 +4513,11 @@ extern "C" {{
 
         Parameters
         ----------
-        observed_data : ArrayLike
-            Observed data.  1-D for univariate, 2-D ``(n_times, n_features)``
-            for multivariate models with 2-D reward vectors.
+        observed_data : array or SparseObservations
+            Observed data.  A plain 1-D array is accepted for univariate
+            models (must not contain NaN).  For multivariate models use
+            ``SparseObservations`` (see ``dense_to_sparse()``), in which
+            case ``rewards`` must also be provided.
         nr_moments : int, optional
             Number of moments to match per feature dimension.  If ``None``
             (default), automatically chosen to overdetermine the system:
