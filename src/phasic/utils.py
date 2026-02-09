@@ -146,7 +146,7 @@ def _data_units_per_point(ax, direction='x'):
         return (ylim[1] - ylim[0]) / (bbox.height * 72)
 
 
-def draw_coalescent_tree(sequence, ax=None, figsize=(8, 5.5), seed=42):
+def draw_coalescent_tree(sequence, ax=None, figsize=(7, 6), seed=42):
     
     np.random.seed(seed)
 

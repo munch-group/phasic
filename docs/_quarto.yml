@@ -97,10 +97,10 @@ website:
           contents:
             - pages/tutorial/introduction.ipynb
             - pages/tutorial/state-space.ipynb
+            - pages/tutorial/state-space-utils.ipynb
             - pages/tutorial/visualize.ipynb
             - pages/tutorial/properties.ipynb
             - pages/tutorial/discrete.ipynb
-            - pages/tutorial/state-space-utils.ipynb
             - pages/tutorial/parametrization.ipynb
         - section: "Computation"
           contents:
