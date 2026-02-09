@@ -21,9 +21,9 @@ if test -d $DIR; then
       echo $CMD
     #  NOTEBOOK_THEME=light PYDEVD_DISABLE_FILE_VALIDATION=1 $CMD || exit 1 ;
      NOTEBOOK_THEME=light PYDEVD_DISABLE_FILE_VALIDATION=1 $CMD > /dev/null 2>&1 && {
-      echo -e "${GREEN}Success${FILE}${NC}"
+      echo -e "${GREEN}Successfully executed ${FILE}${NC}"
      } || {
-        echo -e "${RED}Error${FILE}${NC}"
+        echo -e "${RED}Error executing ${FILE}${NC}"
         errors=true
       }
       echo
