@@ -370,7 +370,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/uriparser-0.9.8-hac33072_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/urllib3-2.5.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/varint-1.0.2-pyhd8ed1ab_1.conda
-      - conda: https://conda.anaconda.org/munch-group/linux-64/vscodenb-0.1.33-0.conda
+      - conda: https://conda.anaconda.org/munch-group/linux-64/vscodenb-0.1.34-0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/wadler-lindig-0.1.7-pyhe01879c_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/watchdog-6.0.0-py311h38be061_2.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/wayland-1.24.0-hd6090a7_1.conda
@@ -774,7 +774,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/uriparser-0.9.8-h00cdb27_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/urllib3-2.5.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/varint-1.0.2-pyhd8ed1ab_1.conda
-      - conda: https://conda.anaconda.org/munch-group/osx-arm64/vscodenb-0.1.32-0.conda
+      - conda: https://conda.anaconda.org/munch-group/osx-arm64/vscodenb-0.1.34-0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/wadler-lindig-0.1.7-pyhe01879c_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/watchdog-6.0.0-py311h9408147_2.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/wcwidth-0.2.14-pyhd8ed1ab_0.conda
@@ -8471,10 +8471,10 @@ packages:
   - pkg:pypi/varint?source=hash-mapping
   size: 8822
   timestamp: 1735330690008
-- conda: https://conda.anaconda.org/munch-group/linux-64/vscodenb-0.1.33-0.conda
+- conda: https://conda.anaconda.org/munch-group/linux-64/vscodenb-0.1.34-0.conda
   noarch: python
-  sha256: 9eb4f3072e06f022ef9762cf15937a2e2997c2bb9fbabff56b5ca6fc382f9483
-  md5: 9d18f3602347461174a03eeb31c5c4b7
+  sha256: ea2da6c051372d8c26f6cc7b2bb791e73b5381c80454739c1144095635a92788
+  md5: 68875d4d3c5a29ca4c808433fe60df9c
   depends:
   - ipython
   - json5
@@ -8488,12 +8488,12 @@ packages:
   - seaborn
   - tqdm
   license: MIT
-  size: 50243
-  timestamp: 1770596644761
-- conda: https://conda.anaconda.org/munch-group/osx-arm64/vscodenb-0.1.32-0.conda
+  size: 50416
+  timestamp: 1770801970074
+- conda: https://conda.anaconda.org/munch-group/osx-arm64/vscodenb-0.1.34-0.conda
   noarch: python
-  sha256: adca762fedbf53942f119a3c89933b033313ac7149e7aae2f14d4e5dcf5ae7f7
-  md5: 7306f808e26f765026668b76ca7a46c9
+  sha256: cb3acd97f787fc20357230dcbd0ff002f056be9e857e914951b5f559a732dc6a
+  md5: 20b430361b32a1347832cb13ff56d1c1
   depends:
   - ipython
   - json5
@@ -8507,8 +8507,8 @@ packages:
   - seaborn
   - tqdm
   license: MIT
-  size: 49684
-  timestamp: 1769859738902
+  size: 50032
+  timestamp: 1770802021210
 - conda: https://conda.anaconda.org/conda-forge/noarch/wadler-lindig-0.1.7-pyhe01879c_0.conda
   sha256: af400decd8578d521c752594bb9380eb4d1e1e53e919c18dd2d65429f032e36c
   md5: d93a6a7cf86ac0c6c2f00c287c3a030c
