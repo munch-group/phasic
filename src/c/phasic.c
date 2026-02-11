@@ -2632,6 +2632,7 @@ struct ptd_graph *ptd_graph_create(size_t state_length) {
     graph->vertices = NULL;
     graph->reward_compute_graph = NULL;
     graph->parameterized_reward_compute_graph = NULL;
+    graph->reward_compute_graph_mpfr = NULL;
     graph->starting_vertex = ptd_vertex_create(graph);
     graph->was_dph = false;
     graph->elimination_trace = NULL;
