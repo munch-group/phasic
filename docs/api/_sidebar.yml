@@ -13,58 +13,55 @@ website:
       - api/StateVector.qmd
       section: Graph Construction
     - contents:
-      - api/SVGD.qmd
-      - contents:
-        - api/SparseObservations.qmd
-        - api/dense_to_sparse.qmd
-        - api/is_sparse_observations.qmd
-        section: Sparse observations
-      - contents:
-        - api/DataPrior.qmd
-        - api/Prior.qmd
-        - api/GaussPrior.qmd
-        - api/HalfCauchyPrior.qmd
-        section: Priors
-      - contents:
-        - api/StepSizeSchedule.qmd
-        - api/ConstantStepSize.qmd
-        - api/ExpStepSize.qmd
-        - api/AdaptiveStepSize.qmd
-        - api/WarmupExpStepSize.qmd
-        section: Learning rate and regularization
-      - contents:
-        - api/RegularizationSchedule.qmd
-        - api/ConstantRegularization.qmd
-        - api/ExpRegularization.qmd
-        section: Regularization
-      - contents:
-        - api/MomentJacobianPreconditioner.qmd
-        - api/FisherPreconditioner.qmd
-        section: Preconditioning
-      - contents:
-        - api/Adam.qmd
-        - api/SGDMomentum.qmd
-        - api/RMSprop.qmd
-        - api/Adagrad.qmd
-        section: Optimizers
-      - contents:
-        - api/OptaxOptimizer.qmd
-        - api/optax_adam.qmd
-        - api/optax_adamw.qmd
-        - api/optax_sgd.qmd
-        - api/optax_rmsprop.qmd
-        - api/optax_adagrad.qmd
-        - api/optax_chain.qmd
-        - api/optax_lion.qmd
-        section: Optax optimizer support
-      section: Inference
-    - contents:
       - api/PTDAlgorithmsError.qmd
       - api/PTDConfigError.qmd
       - api/PTDBackendError.qmd
       - api/PTDFeatureError.qmd
       - api/PTDJAXError.qmd
       section: Exceptions
+    - contents:
+      - api/SparseObservations.qmd
+      - api/dense_to_sparse.qmd
+      - api/is_sparse_observations.qmd
+      section: Sparse observations
+    - contents:
+      - api/MomentJacobianPreconditioner.qmd
+      - api/FisherPreconditioner.qmd
+      - api/SVGD.qmd
+      - api/SVGDKernel.qmd
+      section: Preconditioning and Stein Variational Gradient Descent
+    - contents:
+      - api/DataPrior.qmd
+      - api/Prior.qmd
+      - api/GaussPrior.qmd
+      - api/HalfCauchyPrior.qmd
+      section: Priors
+    - contents:
+      - api/StepSizeSchedule.qmd
+      - api/ConstantStepSize.qmd
+      - api/ExpStepSize.qmd
+      - api/AdaptiveStepSize.qmd
+      - api/WarmupExpStepSize.qmd
+      - api/RegularizationSchedule.qmd
+      - api/ConstantRegularization.qmd
+      - api/ExpRegularization.qmd
+      section: Learning rate and regularization
+    - contents:
+      - api/Adam.qmd
+      - api/SGDMomentum.qmd
+      - api/RMSprop.qmd
+      - api/Adagrad.qmd
+      section: Optimizers
+    - contents:
+      - api/OptaxOptimizer.qmd
+      - api/optax_adam.qmd
+      - api/optax_adamw.qmd
+      - api/optax_sgd.qmd
+      - api/optax_rmsprop.qmd
+      - api/optax_adagrad.qmd
+      - api/optax_chain.qmd
+      - api/optax_lion.qmd
+      section: Optax optimizer support
     - contents:
       - api/clear_caches.qmd
       - api/configure.qmd

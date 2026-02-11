@@ -23,16 +23,20 @@ integer vectors of states and the model properties they represent.
 | [PropertyDict](PropertyDict.qmd#phasic.PropertyDict) | Dict subclass that provides attribute access to keys. |
 | [StateVector](StateVector.qmd#phasic.StateVector) | Dict-like interface for multi-PropertySet state with attribute access. |
 
-## Inference
+## Exceptions
 
-The main inference UI is `Graph.svgd`, which internally uses the `SVGD` class.
+Custom exceptions for error handling in phasic.
 
 
 | | |
 | --- | --- |
-| [SVGD](SVGD.qmd#phasic.svgd.SVGD) | Stein Variational Gradient Descent (SVGD) for Bayesian parameter inference. |
+| [PTDAlgorithmsError](PTDAlgorithmsError.qmd#phasic.exceptions.PTDAlgorithmsError) | Base exception for all phasic errors. |
+| [PTDConfigError](PTDConfigError.qmd#phasic.exceptions.PTDConfigError) | Configuration error with suggested fixes. |
+| [PTDBackendError](PTDBackendError.qmd#phasic.exceptions.PTDBackendError) | Backend not available error. |
+| [PTDFeatureError](PTDFeatureError.qmd#phasic.exceptions.PTDFeatureError) | Feature not available on this platform. |
+| [PTDJAXError](PTDJAXError.qmd#phasic.exceptions.PTDJAXError) | JAX-specific error. |
 
-### Sparse observations
+## Sparse observations
 
 Sparse observations for multi-feature data.
 
@@ -43,7 +47,19 @@ Sparse observations for multi-feature data.
 | [dense_to_sparse](dense_to_sparse.qmd#phasic.svgd.dense_to_sparse) | Convert dense NaN-padded array to sparse observation format. |
 | [is_sparse_observations](is_sparse_observations.qmd#phasic.svgd.is_sparse_observations) | Check if data is in sparse observation format. |
 
-### Priors
+## Preconditioning and Stein Variational Gradient Descent
+
+Stein Variational Gradient Descent and preconditioners.
+
+
+| | |
+| --- | --- |
+| [MomentJacobianPreconditioner](MomentJacobianPreconditioner.qmd#phasic.svgd.MomentJacobianPreconditioner) | Moment Jacobian preconditioner for multi-scale SVGD. |
+| [FisherPreconditioner](FisherPreconditioner.qmd#phasic.svgd.FisherPreconditioner) | Diagonal Fisher information preconditioner for multi-scale SVGD. |
+| [SVGD](SVGD.qmd#phasic.svgd.SVGD) | Stein Variational Gradient Descent (SVGD) for Bayesian parameter inference. |
+| [SVGDKernel](SVGDKernel.qmd#phasic.svgd.SVGDKernel) | RBF kernel for SVGD with automatic bandwidth selection. |
+
+## Priors
 
 Prior distributions of model parameters.
 
@@ -55,7 +71,7 @@ Prior distributions of model parameters.
 | [GaussPrior](GaussPrior.qmd#phasic.svgd.GaussPrior) | Gaussian prior distribution. |
 | [HalfCauchyPrior](HalfCauchyPrior.qmd#phasic.svgd.HalfCauchyPrior) | Half-Cauchy prior distribution (positive support only). |
 
-### Learning rate and regularization
+## Learning rate and regularization
 
 Learning rate schedules and regularization techniques for 
 Stein Variational Gradient Descent.
@@ -68,30 +84,11 @@ Stein Variational Gradient Descent.
 | [ExpStepSize](ExpStepSize.qmd#phasic.svgd.ExpStepSize) | Exponential decay schedule: step_size = first_step * exp(-iteration/tau) + last_step * (1 - exp(-iteration/tau)). |
 | [AdaptiveStepSize](AdaptiveStepSize.qmd#phasic.svgd.AdaptiveStepSize) | Adaptive step size based on particle spread (KL divergence proxy). |
 | [WarmupExpStepSize](WarmupExpStepSize.qmd#phasic.svgd.WarmupExpStepSize) | Linear warmup followed by exponential decay. |
-
-### Regularization
-
-Moment regularization techniques for 
-Stein Variational Gradient Descent.
-
-
-| | |
-| --- | --- |
 | [RegularizationSchedule](RegularizationSchedule.qmd#phasic.svgd.RegularizationSchedule) | Base class for regularization schedules. |
 | [ConstantRegularization](ConstantRegularization.qmd#phasic.svgd.ConstantRegularization) | Constant regularization (default behavior). |
 | [ExpRegularization](ExpRegularization.qmd#phasic.svgd.ExpRegularization) | Exponential decay schedule: reg = first_reg * exp(-iteration/tau) + last_reg * (1 - exp(-iteration/tau)). |
 
-### Preconditioning
-
-Automated preconditioning for homogenous learning.
-
-
-| | |
-| --- | --- |
-| [MomentJacobianPreconditioner](MomentJacobianPreconditioner.qmd#phasic.svgd.MomentJacobianPreconditioner) | Moment Jacobian preconditioner for multi-scale SVGD. |
-| [FisherPreconditioner](FisherPreconditioner.qmd#phasic.svgd.FisherPreconditioner) | Diagonal Fisher information preconditioner for multi-scale SVGD. |
-
-### Optimizers
+## Optimizers
 
 Adaptive optimizers. Recommended only for models that 
 will not otherwise converge. 
@@ -104,7 +101,7 @@ will not otherwise converge.
 | [RMSprop](RMSprop.qmd#phasic.svgd.RMSprop) | RMSprop optimizer for SVGD. |
 | [Adagrad](Adagrad.qmd#phasic.svgd.Adagrad) | Adagrad optimizer for SVGD. |
 
-### Optax optimizer support
+## Optax optimizer support
 
 Support for using optimizers from the external Optax library 
 some of them pre-wrapped for convenience. Recommended only for
@@ -122,19 +119,6 @@ want to experiment with a wider range of optimizers.
 | [optax_adagrad](optax_adagrad.qmd#phasic.optax_wrapper.optax_adagrad) | Create Optax Adagrad optimizer wrapped for phasic. |
 | [optax_chain](optax_chain.qmd#phasic.optax_wrapper.optax_chain) | Create chained Optax transforms wrapped for phasic. |
 | [optax_lion](optax_lion.qmd#phasic.optax_wrapper.optax_lion) | Create Optax Lion optimizer wrapped for phasic. |
-
-## Exceptions
-
-Custom exceptions for error handling in phasic.
-
-
-| | |
-| --- | --- |
-| [PTDAlgorithmsError](PTDAlgorithmsError.qmd#phasic.exceptions.PTDAlgorithmsError) | Base exception for all phasic errors. |
-| [PTDConfigError](PTDConfigError.qmd#phasic.exceptions.PTDConfigError) | Configuration error with suggested fixes. |
-| [PTDBackendError](PTDBackendError.qmd#phasic.exceptions.PTDBackendError) | Backend not available error. |
-| [PTDFeatureError](PTDFeatureError.qmd#phasic.exceptions.PTDFeatureError) | Feature not available on this platform. |
-| [PTDJAXError](PTDJAXError.qmd#phasic.exceptions.PTDJAXError) | JAX-specific error. |
 
 ## Library utilities
 
