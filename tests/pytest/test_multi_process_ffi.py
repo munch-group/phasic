@@ -34,11 +34,11 @@ def setup_multi_cpu():
 
 
 @pytest.fixture
-def rabbits_graph():
-    """Create a simple parameterized rabbits graph for testing."""
+def mutations_graph():
+    """Create a simple parameterized mutations graph for testing."""
     g = Graph(2)  # 2D state: [n_left, n_right]
 
-    # Initial state: 2 rabbits on left island
+    # Initial state: 2 mutations on left island
     initial = g.find_or_create_vertex([2, 0])
     g.starting_vertex().add_edge(initial, [1.0, 0.0])
 
@@ -48,7 +48,7 @@ def rabbits_graph():
         vertex = g.vertex_at(index)
         state = vertex.state()
 
-        # Birth: rabbit jumps left to right (rate = theta[0])
+        # Birth: mutation jumps left to right (rate = theta[0])
         if state[0] > 0:
             child = g.find_or_create_vertex([state[0] - 1, state[1] + 1])
             vertex.add_edge(child, [1.0, 0.0])
@@ -66,9 +66,9 @@ def rabbits_graph():
 class TestComputePmfFfiMultiProcess:
     """Test compute_pmf_ffi with multi-process JAX."""
 
-    def test_basic_pmf_serialization(self, rabbits_graph, setup_multi_cpu):
+    def test_basic_pmf_serialization(self, mutations_graph, setup_multi_cpu):
         """Test that compute_pmf_ffi can serialize/deserialize correctly."""
-        structure_json = rabbits_graph.serialize()
+        structure_json = mutations_graph.serialize()
         theta = jnp.array([1.0, 2.0])
         times = jnp.array([0.5, 1.0, 1.5])
 
@@ -78,9 +78,9 @@ class TestComputePmfFfiMultiProcess:
         assert pdf.shape == times.shape
         assert jnp.all(jnp.isfinite(pdf))
 
-    def test_pmf_vmap_batching(self, rabbits_graph, setup_multi_cpu):
+    def test_pmf_vmap_batching(self, mutations_graph, setup_multi_cpu):
         """Test vmap batching over theta with multiple devices."""
-        structure_json = rabbits_graph.serialize()
+        structure_json = mutations_graph.serialize()
         times = jnp.array([0.5, 1.0, 1.5])
         theta_batch = jnp.array([[0.5, 1.0], [1.0, 2.0], [2.0, 4.0]])
 
@@ -97,9 +97,9 @@ class TestComputePmfFfiMultiProcess:
             pdf_individual = compute_pmf_ffi(structure_json, theta, times, False, 100)
             np.testing.assert_allclose(pdf_batch[i], pdf_individual, rtol=1e-10)
 
-    def test_pmf_jit_vmap_combination(self, rabbits_graph, setup_multi_cpu):
+    def test_pmf_jit_vmap_combination(self, mutations_graph, setup_multi_cpu):
         """Test combined JIT + vmap with multi-process."""
-        structure_json = rabbits_graph.serialize()
+        structure_json = mutations_graph.serialize()
         times = jnp.array([0.5, 1.0])
         theta_batch = jnp.array([[1.0, 2.0], [2.0, 3.0]])
 
@@ -120,9 +120,9 @@ class TestComputePmfFfiMultiProcess:
 class TestComputeMomentsFfiMultiProcess:
     """Test compute_moments_ffi with multi-process JAX."""
 
-    def test_basic_moments_serialization(self, rabbits_graph, setup_multi_cpu):
+    def test_basic_moments_serialization(self, mutations_graph, setup_multi_cpu):
         """Test that compute_moments_ffi can serialize/deserialize correctly."""
-        structure_json = rabbits_graph.serialize()
+        structure_json = mutations_graph.serialize()
         theta = jnp.array([1.0, 2.0])
         nr_moments = 3
 
@@ -132,9 +132,9 @@ class TestComputeMomentsFfiMultiProcess:
         assert moments.shape == (nr_moments,)
         assert jnp.all(jnp.isfinite(moments))
 
-    def test_moments_vmap_batching(self, rabbits_graph, setup_multi_cpu):
+    def test_moments_vmap_batching(self, mutations_graph, setup_multi_cpu):
         """Test vmap batching over theta with multiple devices."""
-        structure_json = rabbits_graph.serialize()
+        structure_json = mutations_graph.serialize()
         nr_moments = 3
         theta_batch = jnp.array([[0.5, 1.0], [1.0, 2.0], [2.0, 4.0]])
 
@@ -151,9 +151,9 @@ class TestComputeMomentsFfiMultiProcess:
             moments_individual = compute_moments_ffi(structure_json, theta, nr_moments)
             np.testing.assert_allclose(moments_batch[i], moments_individual, rtol=1e-10)
 
-    def test_moments_jit_vmap_combination(self, rabbits_graph, setup_multi_cpu):
+    def test_moments_jit_vmap_combination(self, mutations_graph, setup_multi_cpu):
         """Test combined JIT + vmap with multi-process."""
-        structure_json = rabbits_graph.serialize()
+        structure_json = mutations_graph.serialize()
         nr_moments = 3
         theta_batch = jnp.array([[1.0, 2.0], [2.0, 3.0]])
 
@@ -170,9 +170,9 @@ class TestComputeMomentsFfiMultiProcess:
 
         np.testing.assert_allclose(moments_jit_vmap, moments_vmap_only, rtol=1e-10)
 
-    def test_moments_thread_local_caching(self, rabbits_graph, setup_multi_cpu):
+    def test_moments_thread_local_caching(self, mutations_graph, setup_multi_cpu):
         """Test that thread-local caching works correctly across processes."""
-        structure_json = rabbits_graph.serialize()
+        structure_json = mutations_graph.serialize()
         theta = jnp.array([1.0, 2.0])
         nr_moments = 5
 
@@ -189,9 +189,9 @@ class TestComputeMomentsFfiMultiProcess:
 class TestComputePmfAndMomentsFfiMultiProcess:
     """Test compute_pmf_and_moments_ffi with multi-process JAX."""
 
-    def test_basic_pmf_and_moments_serialization(self, rabbits_graph, setup_multi_cpu):
+    def test_basic_pmf_and_moments_serialization(self, mutations_graph, setup_multi_cpu):
         """Test that compute_pmf_and_moments_ffi can serialize/deserialize correctly."""
-        structure_json = rabbits_graph.serialize()
+        structure_json = mutations_graph.serialize()
         theta = jnp.array([1.0, 2.0])
         times = jnp.array([0.5, 1.0])
         nr_moments = 2
@@ -206,9 +206,9 @@ class TestComputePmfAndMomentsFfiMultiProcess:
         assert jnp.all(jnp.isfinite(pdf))
         assert jnp.all(jnp.isfinite(moments))
 
-    def test_pmf_and_moments_vmap_batching(self, rabbits_graph, setup_multi_cpu):
+    def test_pmf_and_moments_vmap_batching(self, mutations_graph, setup_multi_cpu):
         """Test vmap batching over theta with multiple devices."""
-        structure_json = rabbits_graph.serialize()
+        structure_json = mutations_graph.serialize()
         times = jnp.array([0.5, 1.0])
         nr_moments = 2
         theta_batch = jnp.array([[1.0, 2.0], [2.0, 3.0]])
@@ -252,9 +252,9 @@ class TestMultiProcessConsistency:
         assert device_count >= 1
         assert local_device_count >= 1
 
-    def test_all_ffi_functions_together(self, rabbits_graph, setup_multi_cpu):
+    def test_all_ffi_functions_together(self, mutations_graph, setup_multi_cpu):
         """Integration test: all FFI functions work together in multi-process."""
-        structure_json = rabbits_graph.serialize()
+        structure_json = mutations_graph.serialize()
         theta_batch = jnp.array([[1.0, 2.0], [2.0, 3.0], [3.0, 4.0]])
         times = jnp.array([0.5, 1.0])
         nr_moments = 3
