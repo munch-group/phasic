@@ -55,3 +55,6 @@ docs/pages/tutorial/*.jpg
 docs/pages/tutorial/*.svg
 docs/pages/tutorial/*.pdf
 
+.slurm-code-pixi-env.sh
+.slurm-code-slurm-env.sh
+sc-phasic-*.out
