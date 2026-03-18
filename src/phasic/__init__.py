@@ -89,15 +89,21 @@ if _config.jax:
         default_config.apply(force=False)  # Don't override existing user configuration
 
         # Detect performance cores on Apple Silicon for multi-CPU
-        def get_performance_cores() -> int:
-            """Get number of performance cores on Apple Silicon, or total CPUs otherwise"""
+        def get_available_cpus() -> int:
+            """Get number of CPUs available to this process.
+
+            Priority:
+            1. Apple Silicon P-cores (macOS ARM64 only)
+            2. SLURM allocation (SLURM_CPUS_PER_TASK or SLURM_CPUS_ON_NODE)
+            3. OS-reported affinity (respects cgroups)
+            4. Total CPU count (last resort)
+            """
             try:
                 import subprocess
                 import platform
 
                 # Check if we're on Apple Silicon
                 if platform.system() == 'Darwin' and platform.machine() == 'arm64':
-                    # Get P-cores (performance cores)
                     result = subprocess.run(
                         ['sysctl', '-n', 'hw.perflevel0.physicalcpu'],
                         capture_output=True, text=True, check=True
@@ -107,11 +113,25 @@ if _config.jax:
             except (subprocess.CalledProcessError, FileNotFoundError, ValueError):
                 pass
 
-            # Fallback to total CPU count
+            # SLURM: respect allocated CPUs, not full node count
+            for var in ('SLURM_CPUS_PER_TASK', 'SLURM_CPUS_ON_NODE'):
+                val = os.environ.get(var)
+                if val is not None:
+                    try:
+                        return max(int(val), 1)
+                    except ValueError:
+                        pass
+
+            # os.sched_getaffinity respects cgroup restrictions (Linux)
+            try:
+                return len(os.sched_getaffinity(0))
+            except (AttributeError, OSError):
+                pass
+
             return os.cpu_count() or 1
 
         # Configure multi-device CPU count (for pmap)
-        cpu_count = int(os.environ.get('PTDALG_CPUS', get_performance_cores()))
+        cpu_count = int(os.environ.get('PTDALG_CPUS', get_available_cpus()))
         xla_flags = os.environ.get('XLA_FLAGS', '')
         device_flag = f"--xla_force_host_platform_device_count={cpu_count}"
 
@@ -4499,6 +4519,7 @@ extern "C" {{
         std_multiplier: float = 2.0,
         discrete: bool | None = None,
         verbose: bool = True,
+        weighted: bool = True,
     ) -> MoMResult:
         """Find parameter estimates by matching model moments to sample moments.
 
@@ -4520,10 +4541,12 @@ extern "C" {{
             case ``rewards`` must also be provided.
         nr_moments : int, optional
             Number of moments to match per feature dimension.  If ``None``
-            (default), automatically chosen to overdetermine the system:
-            ``max(2 * n_free_params, 4)`` for univariate data, adjusted
-            per feature for multivariate data.  Still auto-increased if
-            a user-specified value gives fewer equations than free parameters.
+            (default), automatically chosen based on ``weighted``:
+            when ``weighted=True``, adaptive selection prunes high-order
+            moments by condition number; when ``weighted=False``, uses
+            the heuristic ``max(2 * n_free_params, 4)``.
+            Still auto-increased if a user-specified value gives fewer
+            equations than free parameters.
         rewards : np.ndarray, optional
             Reward vectors.  ``None`` for standard moments, 1-D for a single
             reward vector, 2-D ``(n_features, n_vertices)`` for multivariate.
@@ -4542,6 +4565,11 @@ extern "C" {{
             If ``None``, inferred from ``self.is_discrete``.
         verbose : bool
             Print progress information.
+        weighted : bool
+            If ``True`` (default), use two-step efficient GMM with optimal
+            weighting matrix ``W = Σ⁻¹``.  This down-weights high-variance
+            moments and generally produces tighter standard errors.
+            If ``False``, use unweighted least squares (legacy behavior).
 
         Returns
         -------
@@ -4573,6 +4601,7 @@ extern "C" {{
             std_multiplier=std_multiplier,
             discrete=discrete,
             verbose=verbose,
+            weighted=weighted,
         )
 
     def probability_matching(
