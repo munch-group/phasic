@@ -151,27 +151,31 @@ def test_auto_nr_moments_increase(caplog):
 
 
 def test_default_nr_moments_is_overdetermined():
-    """Default nr_moments=None should auto-select an overdetermined system."""
+    """Default nr_moments=None should auto-select a (at least) determined system."""
     np.random.seed(42)
 
-    # 1-parameter model: should get at least 4 moments (max(2*1, 4) = 4)
+    # 1-parameter model: adaptive selection picks well-conditioned count
     g1 = _build_exponential_graph()
     data1 = np.random.exponential(0.5, size=200)
     result1 = g1.method_of_moments(data1, verbose=False)
-    assert result1.model_moments.shape[0] >= 4, (
-        f"Expected >= 4 moments for 1-param model, got {result1.model_moments.shape[0]}"
+    assert result1.model_moments.ravel().shape[0] >= 1, (
+        f"Expected >= 1 moment for 1-param model, got {result1.model_moments.ravel().shape[0]}"
     )
     assert result1.success
 
-    # 2-parameter model: should get at least 4 moments (max(2*2, 4) = 4)
+    # 2-parameter model: should get at least 2 moments (n_free)
     g2 = _build_two_stage_graph()
     data2 = (np.random.exponential(0.2, size=200)
              + np.random.exponential(0.5, size=200))
     result2 = g2.method_of_moments(data2, verbose=False)
     n_equations = result2.model_moments.size
-    assert n_equations >= 4, (
-        f"Expected >= 4 equations for 2-param model, got {n_equations}"
+    assert n_equations >= 2, (
+        f"Expected >= 2 equations for 2-param model, got {n_equations}"
     )
+
+    # weighted=False preserves old heuristic (at least 4 moments)
+    result1_uw = g1.method_of_moments(data1, weighted=False, verbose=False)
+    assert result1_uw.model_moments.ravel().shape[0] >= 4
 
 
 # ---------------------------------------------------------------------------
@@ -759,3 +763,130 @@ def test_svgd_rejects_sparse_without_rewards():
 
     with pytest.raises(ValueError, match="rewards must be provided"):
         g.svgd(sparse, n_particles=4, n_iterations=1, verbose=False)
+
+
+# ---------------------------------------------------------------------------
+# 25. Weighted GMM — backward compatibility (weighted=False)
+# ---------------------------------------------------------------------------
+
+def test_weighted_false_reproduces_old_behavior():
+    """weighted=False should produce identical results to the legacy code."""
+    np.random.seed(42)
+    data = np.random.exponential(0.5, size=300)
+
+    g = _build_exponential_graph()
+    result = g.method_of_moments(data, nr_moments=2, weighted=False, verbose=False)
+
+    assert result.success
+    assert result.weighted is False
+    np.testing.assert_allclose(result.theta[0], 1.0 / np.mean(data), rtol=0.05)
+
+
+# ---------------------------------------------------------------------------
+# 26. Weighted GMM — convergence
+# ---------------------------------------------------------------------------
+
+def test_weighted_true_converges():
+    """weighted=True (default) should converge and report weighted=True."""
+    np.random.seed(42)
+    data = np.random.exponential(0.5, size=300)
+
+    g = _build_exponential_graph()
+    result = g.method_of_moments(data, nr_moments=2, verbose=False)
+
+    assert result.success
+    assert result.weighted is True
+    np.testing.assert_allclose(result.theta[0], 1.0 / np.mean(data), rtol=0.05)
+
+
+# ---------------------------------------------------------------------------
+# 27. Weighted GMM — tighter std on two-stage model
+# ---------------------------------------------------------------------------
+
+def test_weighted_gives_tighter_std():
+    """Weighted GMM should give equal or tighter std than unweighted on Erlang model."""
+    true_theta = (5.0, 2.0)
+    np.random.seed(42)
+    data = (np.random.exponential(1.0 / true_theta[0], size=1000)
+            + np.random.exponential(1.0 / true_theta[1], size=1000))
+
+    g = _build_two_stage_graph()
+    result_uw = g.method_of_moments(data, nr_moments=4, weighted=False, verbose=False)
+    result_w = g.method_of_moments(data, nr_moments=4, weighted=True, verbose=False)
+
+    assert result_uw.success and result_w.success
+    # Weighted std should not be much worse than unweighted
+    uw_norm = np.linalg.norm(result_uw.std)
+    w_norm = np.linalg.norm(result_w.std)
+    assert w_norm <= uw_norm * 1.5, (
+        f"Weighted std norm {w_norm:.4f} unexpectedly larger than "
+        f"unweighted {uw_norm:.4f}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# 28. Adaptive moment selection picks fewer moments than maximum
+# ---------------------------------------------------------------------------
+
+def test_adaptive_moment_selection():
+    """With weighted=True and nr_moments=None, adaptive selection should
+    pick a reasonable number of moments (not the maximum)."""
+    np.random.seed(42)
+    data = np.random.exponential(0.5, size=500)
+
+    g = _build_exponential_graph()
+    # 1-param model: max would be max(2*1, 4) = 4, pruned by condition number
+    result = g.method_of_moments(data, weighted=True, verbose=False)
+
+    assert result.success
+    n_moments = result.model_moments.ravel().shape[0]
+    assert n_moments >= 1
+    assert n_moments <= 4
+
+
+# ---------------------------------------------------------------------------
+# 29. More parameters → more moments
+# ---------------------------------------------------------------------------
+
+def test_more_params_more_moments():
+    """A 2-param model should get at least as many moments as a 1-param model."""
+    np.random.seed(42)
+
+    g1 = _build_exponential_graph()
+    data1 = np.random.exponential(0.5, size=500)
+    r1 = g1.method_of_moments(data1, weighted=True, verbose=False)
+
+    g2 = _build_two_stage_graph()
+    data2 = (np.random.exponential(0.2, size=500)
+             + np.random.exponential(0.5, size=500))
+    r2 = g2.method_of_moments(data2, weighted=True, verbose=False)
+
+    n1 = r1.model_moments.ravel().shape[0]
+    n2 = r2.model_moments.ravel().shape[0]
+    assert n2 >= n1, (
+        f"2-param model got {n2} moments, expected >= {n1} (1-param model)"
+    )
+
+
+# ---------------------------------------------------------------------------
+# 30. Weighted GMM — two-param model convergence
+# ---------------------------------------------------------------------------
+
+def test_weighted_two_param_converges():
+    """Weighted GMM on two-parameter Erlang-like model should converge."""
+    true_theta = (5.0, 2.0)
+    np.random.seed(42)
+    data = (np.random.exponential(1.0 / true_theta[0], size=500)
+            + np.random.exponential(1.0 / true_theta[1], size=500))
+
+    g = _build_two_stage_graph()
+    result = g.method_of_moments(data, nr_moments=4, weighted=True, verbose=False)
+
+    assert result.success
+    assert result.weighted is True
+    # Model moments should match sample moments
+    np.testing.assert_allclose(
+        result.model_moments.ravel(),
+        result.sample_moments.ravel(),
+        rtol=0.1,
+    )

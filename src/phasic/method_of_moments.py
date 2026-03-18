@@ -39,6 +39,8 @@ class MoMResult:
         Model moments evaluated at ``theta``.
     message : str
         Solver status message.
+    weighted : bool
+        Whether optimal weighting was used in the estimation.
     """
     theta: np.ndarray
     std: np.ndarray
@@ -48,6 +50,64 @@ class MoMResult:
     sample_moments: np.ndarray
     model_moments: np.ndarray
     message: str
+    weighted: bool = False
+
+
+def _compute_weight_transform(moment_cov: np.ndarray) -> tuple[np.ndarray | None, str]:
+    """Compute Lᵀ such that ||Lᵀ r||² = rᵀ W r with W = Σ⁻¹.
+
+    Returns (L_transpose, method) where method is 'cholesky', 'diagonal', or 'identity'.
+    Tries full Cholesky first, falls back to diagonal, then identity.
+    """
+    # Try full Cholesky: W = Σ⁻¹ = (L L^T)⁻¹, so ||L⁻¹ r||² = rᵀ Σ⁻¹ r
+    try:
+        cond = np.linalg.cond(moment_cov)
+        if cond < 1e10 and np.all(np.diag(moment_cov) > 0):
+            L = np.linalg.cholesky(moment_cov)
+            Lt = np.linalg.inv(L)
+            return Lt, 'cholesky'
+    except np.linalg.LinAlgError:
+        pass
+
+    # Fallback: diagonal weighting W_ii = 1/Var(m_i)
+    diag = np.diag(moment_cov)
+    if np.all(diag > 0) and np.all(np.isfinite(diag)):
+        Lt = np.diag(1.0 / np.sqrt(diag))
+        return Lt, 'diagonal'
+
+    # Final fallback: unweighted
+    return None, 'identity'
+
+
+def _select_nr_moments(
+    observed_data: SparseObservations,
+    n_features: int,
+    n_free: int,
+    max_nr_moments: int,
+    cond_threshold: float = 1e3,
+) -> int:
+    """Select nr_moments by pruning from max until Σ is well-conditioned.
+
+    Starts at max_nr_moments and reduces until the moment covariance matrix
+    has condition number below cond_threshold, or reaches the minimum
+    (enough equations to match free parameters).
+    """
+    min_nr = max(math.ceil(n_free / max(1, n_features)), 1)
+
+    for nr in range(max_nr_moments, min_nr - 1, -1):
+        n_eq = n_features * nr
+        if n_eq < n_free:
+            continue
+        try:
+            cov = _estimate_moment_covariance(observed_data, nr, n_features)
+            cond = np.linalg.cond(cov)
+            if cond < cond_threshold:
+                return nr
+        except (np.linalg.LinAlgError, ValueError):
+            continue
+
+    # If nothing is well-conditioned, use minimum that gives enough equations
+    return max(min_nr, 1)
 
 
 def _estimate_moment_covariance(observed_data: SparseObservations, nr_moments: int, n_features: int) -> np.ndarray:
@@ -144,6 +204,7 @@ def method_of_moments(
     std_multiplier: float = 2.0,
     discrete: bool = False,
     verbose: bool = True,
+    weighted: bool = True,
 ) -> MoMResult:
     """Find parameter estimates by matching model moments to sample moments.
 
@@ -153,6 +214,11 @@ def method_of_moments(
         subject to  theta > 0
 
     using ``scipy.optimize.least_squares`` (Trust Region Reflective).
+
+    When ``weighted=True`` (default), uses two-step efficient GMM:
+    Step 1 runs unweighted LS, then Step 2 re-runs with the optimal
+    weighting matrix ``W = Σ⁻¹`` using the Step 1 solution as starting
+    point.  This down-weights high-variance moments.
 
     Parameters
     ----------
@@ -164,9 +230,10 @@ def method_of_moments(
         (see ``dense_to_sparse()``).
     nr_moments : int, optional
         Number of moments to match per feature dimension.  If ``None``
-        (default), automatically chosen to overdetermine the system:
-        ``max(2 * n_free_params, 4)`` for univariate data, adjusted
-        downward per feature for multivariate data.
+        (default), automatically chosen based on ``weighted``:
+        when ``weighted=True``, adaptive selection prunes high-order
+        moments by condition number; when ``weighted=False``, uses
+        the heuristic ``max(2 * n_free_params, 4)``.
     theta_dim : int, optional
         Number of model parameters.  Inferred from the graph if not given.
     theta_init : np.ndarray, optional
@@ -183,6 +250,10 @@ def method_of_moments(
         Whether the model is discrete (PMF) or continuous (PDF).
     verbose : bool
         Print progress information.
+    weighted : bool
+        If ``True`` (default), use two-step efficient GMM with optimal
+        weighting matrix ``W = Σ⁻¹``.  If ``False``, use unweighted
+        least squares (legacy behavior).
 
     Returns
     -------
@@ -254,11 +325,21 @@ def method_of_moments(
     # 3. Choose nr_moments (auto or user-specified)
     # ------------------------------------------------------------------
     if nr_moments is None:
-        # Auto-select: overdetermined by at least 2x, minimum 4 moments
-        if n_features > 1:
-            nr_moments = max(math.ceil(2 * n_free / n_features), 4)
+        if weighted:
+            # Adaptive selection: start from old heuristic, prune by condition number
+            if n_features > 1:
+                max_nr = max(math.ceil(2 * n_free / n_features), 4)
+            else:
+                max_nr = max(2 * n_free, 4)
+            nr_moments = _select_nr_moments(
+                observed_data, n_features, n_free, max_nr,
+            )
         else:
-            nr_moments = max(2 * n_free, 4)
+            # Legacy heuristic: overdetermined by at least 2x, minimum 4 moments
+            if n_features > 1:
+                nr_moments = max(math.ceil(2 * n_free / n_features), 4)
+            else:
+                nr_moments = max(2 * n_free, 4)
 
     n_equations = n_features * nr_moments
 
@@ -348,22 +429,49 @@ def method_of_moments(
         logger.info(f"initial guess (full theta) = {theta_full_init}")
 
     # ------------------------------------------------------------------
-    # 7. Define residual
+    # 7. Define residual and compute weight transform
     # ------------------------------------------------------------------
     def residual_fn(theta_free):
         theta_full = _reconstruct_theta(theta_free, theta_dim, fixed)
         model_mom = moments_fn(theta_full)
         return model_mom.ravel() - target_moments.ravel()
 
+    # Compute moment covariance for weighting and std estimation
+    moment_cov = _estimate_moment_covariance(observed_data, nr_moments, n_features)
+
     # ------------------------------------------------------------------
-    # 8. Optimise
+    # 8. Optimise (two-step GMM if weighted=True)
     # ------------------------------------------------------------------
+    # Step 1: unweighted least squares
     result = least_squares(
         residual_fn, x0,
         bounds=(1e-10, np.inf),
         method='trf',
         max_nfev=200 * n_free,
     )
+
+    # Step 2: weighted least squares (if requested and weights available)
+    applied_weighting = False
+    if weighted:
+        Lt, weight_method = _compute_weight_transform(moment_cov)
+        if Lt is not None:
+            def weighted_residual_fn(theta_free):
+                r = residual_fn(theta_free)
+                return Lt @ r
+
+            result_weighted = least_squares(
+                weighted_residual_fn, result.x,
+                bounds=(1e-10, np.inf),
+                method='trf',
+                max_nfev=200 * n_free,
+            )
+            result = result_weighted
+            applied_weighting = True
+            if verbose:
+                logger.info(f"weighted GMM step 2 ({weight_method}): "
+                            f"{'converged' if result.success else 'FAILED'}")
+        elif verbose:
+            logger.info("weighted GMM: fallback to unweighted (moment covariance singular)")
 
     theta_free_opt = result.x
     theta_full_opt = _reconstruct_theta(theta_free_opt, theta_dim, fixed)
@@ -382,29 +490,28 @@ def method_of_moments(
     # ------------------------------------------------------------------
     # 9. Estimate std via the delta method
     #
-    # The sampling covariance of the MoM estimator is:
+    # Unweighted: Cov(theta_hat) = G @ Sigma @ G.T
+    #   where G = pinv(J_u), J_u = unweighted Jacobian
     #
-    #   Cov(theta_hat) = G @ Cov(m_hat) @ G.T
-    #
-    # where G = (dm/dtheta)^{-1} (or pseudo-inverse) maps moment
-    # perturbations to parameter perturbations, and Cov(m_hat) is
-    # the covariance of the sample moments estimated from the data.
+    # Weighted GMM with W = Sigma^{-1}:
+    #   Cov(theta_hat) = (J_w^T J_w)^{-1}
+    #   where J_w = Lt @ J_u = result.jac (the weighted Jacobian)
     # ------------------------------------------------------------------
     n_obs = len(observed_data.values)
     std_full = np.full(theta_dim, np.nan)
     try:
-        # Jacobian dm/dtheta_free at the solution, shape (n_eq, n_free)
-        J = result.jac
+        if applied_weighting:
+            # Weighted: result.jac = Lt @ J_u, so (J_w^T J_w)^{-1} is the
+            # efficient GMM sandwich estimator
+            J_w = result.jac
+            JtJ = J_w.T @ J_w
+            cov_theta = np.linalg.pinv(JtJ)
+        else:
+            # Unweighted: standard delta method
+            J = result.jac
+            G = np.linalg.pinv(J)
+            cov_theta = G @ moment_cov @ G.T
 
-        # Estimate Cov(m_hat) from the data
-        moment_cov = _estimate_moment_covariance(observed_data, nr_moments, n_features)
-
-        # G = pseudo-inverse of J: maps moment perturbations -> theta perturbations
-        # J has shape (n_eq, n_free); we want G of shape (n_free, n_eq)
-        G = np.linalg.pinv(J)
-
-        # Delta method: Cov(theta_hat) = G @ Cov(m_hat) @ G.T
-        cov_theta = G @ moment_cov @ G.T
         std_free = np.sqrt(np.maximum(np.diag(cov_theta), 0.0))
     except (np.linalg.LinAlgError, ValueError):
         # Fall back to coefficient-of-variation heuristic
@@ -452,4 +559,5 @@ def method_of_moments(
         sample_moments=target_moments,
         model_moments=model_moments_opt,
         message=str(result.message),
+        weighted=applied_weighting,
     )
