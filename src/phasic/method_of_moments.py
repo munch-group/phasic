@@ -54,26 +54,35 @@ class MoMResult:
 
 
 def _compute_weight_transform(moment_cov: np.ndarray) -> tuple[np.ndarray | None, str]:
-    """Compute Lᵀ such that ||Lᵀ r||² = rᵀ W r with W = Σ⁻¹.
+    """Compute a matrix T such that ||T r||² = rᵀ W r with W = Σ⁻¹.
 
-    Returns (L_transpose, method) where method is 'cholesky', 'diagonal', or 'identity'.
-    Tries full Cholesky first, falls back to diagonal, then identity.
+    For the Cholesky case: Σ = L Lᵀ, so Σ⁻¹ = L⁻ᵀ L⁻¹, and
+    T = L⁻¹ gives ||L⁻¹ r||² = rᵀ L⁻ᵀ L⁻¹ r = rᵀ Σ⁻¹ r.
+
+    Returns
+    -------
+    T : np.ndarray or None
+        Weight transform matrix, or ``None`` if Σ is degenerate.
+    method : str
+        One of ``'cholesky'``, ``'diagonal'``, or ``'identity'``.
+
+    Fallback chain: full Cholesky → diagonal weighting → identity.
     """
-    # Try full Cholesky: W = Σ⁻¹ = (L L^T)⁻¹, so ||L⁻¹ r||² = rᵀ Σ⁻¹ r
+    # Try full Cholesky
     try:
         cond = np.linalg.cond(moment_cov)
         if cond < 1e10 and np.all(np.diag(moment_cov) > 0):
             L = np.linalg.cholesky(moment_cov)
-            Lt = np.linalg.inv(L)
-            return Lt, 'cholesky'
+            T = np.linalg.inv(L)
+            return T, 'cholesky'
     except np.linalg.LinAlgError:
         pass
 
     # Fallback: diagonal weighting W_ii = 1/Var(m_i)
     diag = np.diag(moment_cov)
     if np.all(diag > 0) and np.all(np.isfinite(diag)):
-        Lt = np.diag(1.0 / np.sqrt(diag))
-        return Lt, 'diagonal'
+        T = np.diag(1.0 / np.sqrt(diag))
+        return T, 'diagonal'
 
     # Final fallback: unweighted
     return None, 'identity'
@@ -216,9 +225,20 @@ def method_of_moments(
     using ``scipy.optimize.least_squares`` (Trust Region Reflective).
 
     When ``weighted=True`` (default), uses two-step efficient GMM:
-    Step 1 runs unweighted LS, then Step 2 re-runs with the optimal
-    weighting matrix ``W = Σ⁻¹`` using the Step 1 solution as starting
-    point.  This down-weights high-variance moments.
+
+    1. Run unweighted least squares to get a preliminary estimate θ̂₁.
+    2. Estimate the moment covariance Σ from data, compute the Cholesky
+       factor of W = Σ⁻¹, and re-run weighted LS starting from θ̂₁.
+       The weight transform falls back from full Cholesky → diagonal
+       weighting → identity (unweighted) if Σ is ill-conditioned.
+
+    Standard errors are computed via the delta method.  In the weighted
+    case the efficient GMM sandwich estimator ``Cov(θ̂) = (Jw^T Jw)^{-1}``
+    is used, where ``Jw`` is the weighted Jacobian at the solution.
+
+    The returned ``MoMResult.prior`` list can be passed directly to
+    ``Graph.svgd()`` as the ``prior`` argument, providing data-informed
+    priors centred on the method-of-moments estimates.
 
     Parameters
     ----------
@@ -226,14 +246,18 @@ def method_of_moments(
         Parameterized phasic graph.
     observed_data : array or SparseObservations
         Observed data.  A plain 1-D array is accepted for univariate
-        models.  For multivariate models use ``SparseObservations``
-        (see ``dense_to_sparse()``).
+        models (must not contain NaN).  For multivariate models use
+        ``SparseObservations`` (see ``dense_to_sparse()``), in which
+        case ``rewards`` must also be provided.
     nr_moments : int, optional
         Number of moments to match per feature dimension.  If ``None``
         (default), automatically chosen based on ``weighted``:
-        when ``weighted=True``, adaptive selection prunes high-order
-        moments by condition number; when ``weighted=False``, uses
-        the heuristic ``max(2 * n_free_params, 4)``.
+        when ``weighted=True``, adaptive selection starts from
+        ``max(2 * n_free, 4)`` and prunes high-order moments whose
+        covariance matrix condition number exceeds 1e3; when
+        ``weighted=False``, uses the heuristic ``max(2 * n_free, 4)``
+        directly.  Still auto-increased if a user-specified value gives
+        fewer equations than free parameters.
     theta_dim : int, optional
         Number of model parameters.  Inferred from the graph if not given.
     theta_init : np.ndarray, optional
@@ -245,20 +269,23 @@ def method_of_moments(
     fixed : list, optional
         List of ``(index, value)`` tuples pinning specific parameters.
     std_multiplier : float
-        ``prior_std = std_multiplier * asymptotic_std``.
+        Factor applied to the asymptotic standard error to obtain the
+        prior standard deviation: ``prior_std = std_multiplier * se``.
     discrete : bool
         Whether the model is discrete (PMF) or continuous (PDF).
     verbose : bool
         Print progress information.
     weighted : bool
         If ``True`` (default), use two-step efficient GMM with optimal
-        weighting matrix ``W = Σ⁻¹``.  If ``False``, use unweighted
-        least squares (legacy behavior).
+        weighting matrix ``W = Σ⁻¹``.  This down-weights high-variance
+        moments and generally produces tighter standard errors.
+        If ``False``, use unweighted least squares (legacy behavior).
 
     Returns
     -------
     MoMResult
-        Dataclass with ``theta``, ``std``, ``prior``, etc.
+        Dataclass with ``theta``, ``std``, ``prior``, ``success``,
+        ``weighted``, etc.
     """
     import jax.numpy as jnp
     from scipy.optimize import least_squares
@@ -453,11 +480,11 @@ def method_of_moments(
     # Step 2: weighted least squares (if requested and weights available)
     applied_weighting = False
     if weighted:
-        Lt, weight_method = _compute_weight_transform(moment_cov)
-        if Lt is not None:
+        T, weight_method = _compute_weight_transform(moment_cov)
+        if T is not None:
             def weighted_residual_fn(theta_free):
                 r = residual_fn(theta_free)
-                return Lt @ r
+                return T @ r
 
             result_weighted = least_squares(
                 weighted_residual_fn, result.x,
@@ -495,13 +522,13 @@ def method_of_moments(
     #
     # Weighted GMM with W = Sigma^{-1}:
     #   Cov(theta_hat) = (J_w^T J_w)^{-1}
-    #   where J_w = Lt @ J_u = result.jac (the weighted Jacobian)
+    #   where J_w = T @ J_u = result.jac (the weighted Jacobian)
     # ------------------------------------------------------------------
     n_obs = len(observed_data.values)
     std_full = np.full(theta_dim, np.nan)
     try:
         if applied_weighting:
-            # Weighted: result.jac = Lt @ J_u, so (J_w^T J_w)^{-1} is the
+            # Weighted: result.jac = T @ J_u, so (J_w^T J_w)^{-1} is the
             # efficient GMM sandwich estimator
             J_w = result.jac
             JtJ = J_w.T @ J_w
