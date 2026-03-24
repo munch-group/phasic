@@ -3,6 +3,7 @@ from __future__ import annotations
 from ast import arg
 from functools import partial
 from collections import defaultdict, OrderedDict
+from itertools import product
 from unittest import result
 import numpy as np
 import pandas as pd
@@ -53,7 +54,7 @@ from phasic.graph_cache import GraphCache, get_graph_cache_stats, print_graph_ca
 # from .vscode_theme import set_phasic_theme
 # from .vscode_theme import phasic_theme as theme
 # from .vscode_theme import set_theme # backwards compatibility
-from . import plot
+# from . import plot
 
 # Get configuration (creates default if none exists)
 _config = get_config()
@@ -1789,6 +1790,8 @@ class Graph(_Graph):
         self._trace_dirty = True  # True = trace needs (re)computation
         self._last_theta = None  # Cached theta from update_weights()
 
+        self._last_callback_vertices_length = self.vertices_length()  # Track vertices length at last callback call for extend()
+
         # Save to cache if requested and construction succeeded
         if callable(arg) and cache_graph:
             from .graph_cache import GraphCache
@@ -1812,7 +1815,7 @@ class Graph(_Graph):
         return super().find_or_create_vertex(state)
 
     @_invalidates_trace
-    def extend(self, callback: Callable | None = None, **kwargs: Any) -> None:
+    def extend(self, callback: Callable | None = None, vertex_index: int | None = None, **kwargs: Any) -> None:
         """Extend the graph by continuing to visit unvisited vertices using a callback.
 
         After manually adding vertices to the graph (e.g., via find_or_create_vertex),
@@ -1876,7 +1879,12 @@ class Graph(_Graph):
         callback_with_kwargs = partial(callback, **kwargs)
 
         # Call C++ extension method
-        super().extend_graph_callback_tuples_parameterized(callback_with_kwargs)
+        extend_kwargs = {}
+        if vertex_index is None:
+            extend_kwargs['vertex_index'] = self._last_callback_vertices_length
+        else:
+            extend_kwargs['vertex_index'] = vertex_index
+        super().extend_graph_callback_tuples_parameterized(callback_with_kwargs, **extend_kwargs)
 
     def _ensure_trace(self) -> EliminationTrace | None:
         """Ensure trace is available for computation.
@@ -5526,16 +5534,310 @@ extern "C" {{
 
         return model_multivariate
 
-    def plot(self, *args: Any, **kwargs: Any) -> Any:
-        """
-        Plots the graph using graphviz. See plot::plot_graph.py for more details.
+
+    # def plot(self, *args: Any, **kwargs: Any) -> Any:
+    #     """
+    #     Plots the graph using graphviz. See plot::plot_graph.py for more details.
+
+    #     Returns
+    #     -------
+    #     :
+    #         _description_
+    #     """
+    #     return plot.plot_graph(self, *args, **kwargs)
+
+    def plot(
+        graph: Any, 
+        filename: str | None = None,
+        wrap: bool|int = True,
+        label_fmt: Callable[[Any], str] | None = None,
+        subgraphfun: Callable[..., str] | None = None,
+        by_state: Callable[..., str] | None = None,
+        by_index: Callable[[int], str] | None = None,
+        max_nodes: int = 100,
+        dark: bool | None = None,
+        constraint: bool = True, ranksep: float = 1, nodesep: float = 1, rankdir: str = "LR",
+        size: tuple[int, int] = (7, 7), fontsize: int = 12, rainbow: bool = True, penwidth: float = 1,
+        seed: int = 1,
+        **kwargs: Any) -> graphviz.Digraph | None:
+        """Plot a graph using graphviz.
+
+        Parameters
+        ----------
+        graph : Graph
+            The phasic graph object to visualize.
+        filename : str | None
+            If provided, save the graph to this file. The file extension
+            determines the output format (e.g., ``'graph.pdf'``).
+        wrap : bool | int
+            Whether to wrap vertex labels, and if so, the maximum number of
+            characters per line. By default True.
+        subgraphfun : Callable[..., str] | None
+            Deprecated. Use ``by_state`` instead. Callback function defining
+            subgraph clusters by state.
+        by_state : Callable[..., str] | None
+            Callback function defining subgraph clusters. Takes a state as
+            input and returns a string used as the subgraph label.
+        by_index : Callable[[int], str] | None
+            Callback function defining subgraph clusters. Takes a vertex
+            index as input and returns a string used as the subgraph label.
+        max_nodes : int
+            Maximum number of vertices to plot, by default 100.
+        dark : bool | None
+            Whether to use dark mode for the graph. Detected automatically
+            from the VS Code theme if ``vscodenb`` is available.
+        constraint : bool
+            Graphviz constraint attribute, by default True.
+        ranksep : float
+            Graphviz ranksep attribute, by default 1.
+        nodesep : float
+            Graphviz nodesep attribute, by default 1.
+        rankdir : str
+            Graphviz rankdir attribute, by default ``"LR"``.
+        size : tuple[int, int]
+            Graphviz size as ``(width, height)``, by default ``(7, 7)``.
+        fontsize : int
+            Graphviz fontsize attribute, by default 12.
+        rainbow : bool
+            Whether to color edges with random colors, by default True.
+        penwidth : float
+            Graphviz penwidth attribute, by default 1.
+        seed : int
+            Random seed for graph layout, by default 1.
+        **kwargs : Any
+            Additional graphviz graph attributes.
 
         Returns
         -------
-        :
-            _description_
+        graphviz.Digraph | None
+            Graphviz Digraph object for display in Jupyter notebooks,
+            or ``None`` if the graph exceeds ``max_nodes``.
         """
-        return plot.plot_graph(self, *args, **kwargs)
+
+
+        import math
+        import os
+        import subprocess
+        import graphviz
+        from collections import defaultdict
+        import seaborn as sns
+        import matplotlib
+        import matplotlib.colors
+        from itertools import cycle
+        from functools import partial
+
+        from typing import Any, TypeVar
+        from collections.abc import Callable, Generator
+
+        from .logging_config import get_logger
+        logger = get_logger(__name__)
+
+        GraphType = TypeVar('Graph')
+
+
+        def _get_color(n: int, lightness: float = 0.4) -> Generator[str, None, None]:
+            """Generate an infinite cycle of hex color strings from a HUSL palette.
+
+            Parameters
+            ----------
+            n : int
+                Number of distinct colors in the palette.
+            lightness : float
+                Lightness parameter for the HUSL palette, by default 0.4.
+
+            Yields
+            ------
+            str
+                Hex color string (e.g., ``'#a1b2c3'``).
+            """
+            color_cycle = cycle([matplotlib.colors.to_hex(c) for c in sns.husl_palette(n, l=lightness)])
+            for color in color_cycle:
+                yield color
+
+        def _format_rate(rate: float) -> str:
+            """Format a transition rate for display on graph edges.
+
+            Parameters
+            ----------
+            rate : float
+                The transition rate value.
+
+            Returns
+            -------
+            str
+                Formatted string using fixed-point for integers, scientific
+                notation otherwise.
+            """
+            if rate == round(rate):
+                return f"{rate:.2f}"
+            else:
+                return f"{rate:.2e}"
+
+        def format_label(vertex, wrap=True, max_cols=8):
+            state = vertex.state()
+            n = len(state) 
+            if wrap is False or n <= max_cols:
+                return ','.join(map(str, state))
+            
+            if wrap is True:
+
+                target = math.isqrt(n // 2) or 1
+                best = (1, n)                                                                     
+                for b in range(max(1, target - 100), target + 101):                               
+                    if n % b == 0:                                                                
+                        a = n // b                                                                
+                        if abs(a - 2 * b) < abs(best[0] - 2 * best[1]):                           
+                            best = (a, b)   
+                rows, cols = best
+
+                # for i in range(int(math.sqrt(n)), 0, -1):
+                #     if n % i == 0:
+                #         rows, cols = i, n // i
+                #         break
+
+                cols = cols if cols < max_cols else int(math.sqrt(n)+2)
+            elif isinstance(wrap, int):
+                cols = wrap
+            else:
+                cols = 9999
+            l = []
+            for i in range(1+n//cols):
+                r = ','.join(map(str, state[i*cols:(i+1)*cols]))
+                if not r:
+                    break
+                l.append(r)
+            return ',\n'.join(l)
+
+
+        try:
+            from vscodenb import is_vscode_dark_theme
+            dark = is_vscode_dark_theme()
+        except ImportError:
+            logger.warning(f"vscodenb is not available. Defaulting to light theme.")
+            dark = False
+
+        # always light theme when executing via nbconvert
+        if os.environ.get('NBCONVERT', False):
+            dark = False
+
+        if label_fmt is None:
+            label_fmt = partial(format_label, wrap=wrap)
+        elif label_fmt is False:
+            label_fmt = lambda vertex: str(vertex.index())
+
+        subprocess.check_call(['dot', '-c']) # register layout engine
+
+        # backwards comp
+        if by_state is None and subgraphfun is not None:
+            by_state = subgraphfun
+
+        if by_state and by_index:
+            assert "Do not use both by_index and by_state"
+
+        if dark:
+            edge_color = '#e6e6e6'
+            node_edgecolor = '#888888'
+            node_fillcolor = "#c6c6c6"
+            start_edgecolor = 'black'
+            start_fillcolor = '#777777'
+            abs_edgecolor = 'black'
+            abs_fillcolor = '#777777'
+            aux_edgecolor = 'black'
+            aux_fillcolor = '#3e3e3e'
+            bgcolor = '#1F1F1F'
+            subgraph_label_fontcolor = '#e6e6e6'
+            subgraph_bgcolor='#2e2e2e'
+            subgraph_edgecolor='#e6e6e6'
+            husl_colors = _get_color(10, lightness=0.7)
+        else:
+            edge_color = '#009900'
+            node_edgecolor='black'
+            node_fillcolor='#eeeeee'
+            edge_color='black'
+            start_edgecolor='black'
+            start_fillcolor='#bbbbbb'
+            abs_edgecolor='black'
+            abs_fillcolor='#bbbbbb'
+            aux_edgecolor='black'
+            aux_fillcolor='#bbbbbb'
+            bgcolor='transparent'
+            subgraph_label_fontcolor = 'black'
+            subgraph_bgcolor='white'
+            subgraph_edgecolor='black'
+            husl_colors = _get_color(10, lightness=0.4)
+
+        if graph.vertices_length() > max_nodes:
+            print(f"Graph has too many nodes ({graph.vertices_length()}). Please set max_nodes to a higher value.")
+            return None
+
+        graph_attr = dict(compound='true', newrank='true', pad='0.5',
+                        ranksep=str(ranksep), nodesep=str(nodesep),
+                        bgcolor=bgcolor, rankdir=rankdir, ratio="auto",
+                        size=f'{size[0]},{size[1]}',
+                        start=str(seed),
+                        fontname="Helvetica,Arial,sans-serif", **kwargs)
+        node_attr = dict(style='filled', color='black',
+                        fontname="Helvetica,Arial,sans-serif",
+                        fontsize=str(fontsize),
+                        fillcolor=str(node_fillcolor))
+        edge_attr = dict(constraint='true' if constraint else 'false',
+                        style='filled', labelfloat='false', labeldistance='0',
+                        fontname="Helvetica,Arial,sans-serif",
+                        fontsize=str(fontsize), penwidth=str(penwidth))
+        dot = graphviz.Digraph(graph_attr=graph_attr, node_attr=node_attr, edge_attr=edge_attr)
+        for i in range(graph.vertices_length()):
+            vertex = graph.vertex_at(i)
+            for edge in vertex.edges():
+                if rainbow:
+                    color = next(husl_colors)
+                else:
+                    color = edge_color
+                dot.edge(str(vertex.index()), str(edge.to().index()),
+                    xlabel=_format_rate(edge.weight()), color=color, fontcolor=color)
+
+        subgraph_attr = dict(rank='same',
+                            style='filled',
+                            fillcolor=subgraph_bgcolor,
+                            color=subgraph_edgecolor,
+                            fontcolor=subgraph_label_fontcolor)
+        subgraphs = defaultdict(list)
+        for i in range(graph.vertices_length()):
+            vertex = graph.vertex_at(i)
+            label = label_fmt(vertex)
+            if i == 0:
+                dot.node(str(vertex.index()), 'S',
+                        style='filled', edge_color=start_edgecolor, fillcolor=start_fillcolor)
+            elif not vertex.state().sum() and vertex.rate() == 1 and len(vertex.edges()) == 1:
+                dot.node(str(vertex.index()), 'AUX',
+                        style='filled', edge_color=aux_edgecolor, fillcolor=aux_fillcolor)
+            elif not vertex.edges():
+                dot.node(str(vertex.index()), label,
+                        style='filled', edge_color=abs_edgecolor, fillcolor=abs_fillcolor)
+            else:
+                dot.node(str(vertex.index()), label,
+                        style='filled', edge_color=node_edgecolor, fillcolor=node_fillcolor)
+
+            if i != 0:
+                if by_state:
+                    subgraphs[f'cluster_{by_state(vertex.state())}'].append(i)
+                elif by_index:
+                    subgraphs[f'cluster_{by_index(vertex.index())}'].append(i)
+
+        if by_state or by_index:
+            for sglabel in subgraphs:
+                subgraph_attr['label'] = sglabel.replace('cluster_', '')
+                with dot.subgraph(name=sglabel, graph_attr=subgraph_attr) as c:
+                    for i in subgraphs[sglabel]:
+                        vertex = graph.vertex_at(i)
+                        c.node(str(vertex.index()))
+
+        if filename:
+            name, suffix = filename.rsplit('.', 1)
+            dot.render(name, format=suffix, cleanup=True)
+
+        return dot
+
+
 
     def copy(self) -> Self:
         """
@@ -5933,6 +6235,8 @@ extern "C" {{
                         reward_limit: int | dict = 10,
                         tot_reward_limit: float = np.inf) -> tuple[np.ndarray, float]:
 
+            logger = get_logger(__name__)
+
             prop_set_names = [p.name for p in indexer.property_sets()]
             prop_set_name, *_ = prop_set_names
 
@@ -5949,12 +6253,29 @@ extern "C" {{
             reward_rates = np.zeros(reward_length)
             trash_rate = 0
 
-            for i in range(indexer.state_length):
-                props = indexer.index_to_props(i, as_dict=True)
-                for prop, value in getattr(props, prop_set_name).items():
-                    rate = state[i] * mutation_rate 
-                    reward_idx = reward_indexer.props_to_index(**{f'{prop_set_name}_{prop}': value})
+            reward_prop_names = set(prop.name for prop_set in reward_indexer.property_sets() for prop in prop_set.properties)
 
+            # for each base graph state index
+            for i in range(indexer[prop_set_name].state_length):
+                # get properties for the property set
+                props = indexer[prop_set_name].index_to_props(i, as_dict=True)
+
+#                props = indexer.index_to_props(i, as_dict=True)
+                # for prop, value in getattr(props, prop_set_name).items():
+
+                # for each property and its value
+                for prop, value in props.items():
+
+                    # make flattened prop_set + property nmae
+                    _prop_name = f'{prop_set_name}_{prop}'
+
+                    if _prop_name not in reward_prop_names:
+                        continue
+
+                    reward_idx = reward_indexer.props_to_index(**{_prop_name: value})
+                    rate = state[i] * mutation_rate 
+
+                    # logger.debug("i: %d; prop: %s; value: %s; rate: %e; reward_idx: %d", i, repr(prop), repr(value), rate, reward_idx)
                     if isinstance(reward_limit, dict):
                         if current_rewards[i] + 1 > reward_limit[prop] and np.sum(current_rewards + r) <= tot_reward_limit:
                             reward_rates[reward_idx] += rate
@@ -5973,52 +6294,57 @@ extern "C" {{
 
     def joint_prob_graph(self,
                         base_graph_indexer: StateIndexer,
+                        reward_only: list | None = None,
                         reward_rates_callback: Callable | None = None,
                         mutation_rate: float = 1.0,
                         reward_limit: int | None = None,
                         tot_reward_limit: float = np.inf) -> Graph:
 
+        logger = get_logger(__name__)
+
         if self.param_length() == 0:
             raise ValueError("Graph must have parameterized edges for joint_prob_graph.")
+        if reward_limit is None and tot_reward_limit == np.inf:        
+            raise ValueError("Either reward_limit or tot_reward_limit must be specified.")
+        if len(base_graph_indexer.property_sets()) != 1:
+            raise ValueError("Indexer must have exactly one property set representing the base graph state.")
 
         if reward_rates_callback is None:
             # default to joint prob reward callback
             reward_rates_callback = self._joint_prob_reward
 
-        if reward_limit is None and tot_reward_limit == np.inf:        
-            raise ValueError("Either reward_limit or tot_reward_limit must be specified.")
-
         base_starting_vertex = self.starting_vertex()
 
-        if len(base_graph_indexer.property_sets()) != 1:
-            raise ValueError("Indexer must have exactly one property set representing the base graph state.")
-
-        # indexer for rewards (each property gets its own property set)
+        # create indexer for rewards (each property gets its own property set)
         reward_prop_sets = []
+        _rewarded_props = []
         property_set = base_graph_indexer.property_sets()[0]
         for p in property_set.properties:
-            reward_prop_sets.append(
-                PropertySet(
-                    name=f'{property_set.name}_{p.name}',
-                    properties=[
-                        Property(f'{property_set.name}_{p.name}', 
-                                min_value=p.min_value, 
-                                max_value=p.max_value)
-                                ]
+            if reward_only is None or p.name in reward_only:
+                _rewarded_props.append(p)                    
+                reward_prop_sets.append(
+                    PropertySet(
+                        name=f'{property_set.name}_{p.name}',
+                        properties=[
+                            Property(f'{property_set.name}_{p.name}', 
+                                    min_value=p.min_value, 
+                                    max_value=p.max_value)
+                                    ]
+                        )
                     )
-                )
         kwargs = OrderedDict()        
         for x in reward_prop_sets:
             kwargs[x.name] = x.properties
-        reward_indexer = StateIndexer(**kwargs)        
+        reward_indexer = StateIndexer(**kwargs)                    
+        reward_length = reward_indexer.state_length
+
+        # logger.debug(f"Reward indexer created with {reward_indexer.state_length} states: {reward_indexer}")
 
         # append reward indexer to original indexer
         joint_graph_indexer = base_graph_indexer + reward_indexer
 
         # joint graph state vector length
         state_vector_length = joint_graph_indexer.state_length
-
-        reward_length = reward_indexer.state_length
 
         # indices for original and new parts of the state vector
         state_indices = base_graph_indexer.indices()
@@ -6028,13 +6354,13 @@ extern "C" {{
         joint_graph = Graph(state_vector_length)
         starting_vertex = joint_graph.starting_vertex()
 
-        # array of zeros for extended state vector
+        # array of zeros for extension of state vector
         null_rewards = np.zeros(reward_length)
 
         # graph index of last vertex visited
         index = 0
 
-        # Get param_length for extracting parameterized edge coefficients
+        # get param_length for extracting parameterized edge coefficients
         param_length = self.param_length()
 
         # copy initial (extended) states to new graph
@@ -6068,7 +6394,7 @@ extern "C" {{
             base_state = vertex.state()[state_indices]
             base_vertex = self.find_vertex(base_state)
 
-            # add edges and children of base vertex
+            # add edges and children of vertex in base graph
             for edge in base_vertex.parameterized_edges():
                 # child states are copies of the base_vertex child_states
                 # extended with a with a copy of the extended part of the 
@@ -6108,7 +6434,8 @@ extern "C" {{
             # get rates to states representing an additional mutation
             rates, trash_rate = reward_rates_callback(
                 current_state, 
-                base_graph_indexer, reward_indexer,
+                base_graph_indexer, 
+                reward_indexer,
                 current_rewards, 
                 mutation_rate=mutation_rate, 
                 reward_limit=reward_limit, 
@@ -6129,6 +6456,8 @@ extern "C" {{
                                     
             index = index + 1 
 
+        t_vertex_indices = np.unique(t_vertex_indices).tolist()
+
         #     pgbar_this = index/joint_graph.vertices_length()
         #     pgbar.update(pgbar_this - pgbar_prev)
         #     pgbar_prev = pgbar_this
@@ -6146,10 +6475,45 @@ extern "C" {{
             if rate > 0:
                 joint_graph.vertex_at(i).add_edge(trash_vertex, np.append(np.zeros(self.param_length()), rate))
 
+        if reward_only is not None:
+            # for sets of t-states representing the same observation, remove them from
+            # the list of t-states and add prob 1 edges to a new t-state representing all
+            # of them. t-states in such sets are the ones that only differ by properties not
+            # in the reward_only keyword arg
+            values = []
+            for p in property_set.properties:
+                if p.name in reward_only:
+                    values.append(list(range(p.min_value, p.max_value+1)))
+            idxs = []
+            for tup in product(*values):
+                idxs.extend(property_set.props_to_index(**dict(zip(reward_only, tup))))
+            idxs = np.array(sorted(idxs))
+
+            t_vertex_sets = defaultdict(list)
+            for i in range(joint_graph.vertices_length()):
+                state = joint_graph.vertex_at(i).state()
+                mask = np.ones(state_vector_length, np.bool)
+                mask[idxs] = 0
+                if i in t_vertex_indices:
+                    t_vertex_sets[tuple(state[mask].tolist())].append(i)
+
+            for t_vertex_set in t_vertex_sets.values():
+                state = np.repeat(0, state_vector_length)
+                state[mask] = joint_graph.vertex_at(t_vertex_set[0]).state()[mask]
+                t_set_abs = joint_graph.create_vertex(state)    
+                for i in t_vertex_set:
+                    joint_graph.vertex_at(i).add_edge(
+                        t_set_abs, 
+                        np.append(np.zeros(self.param_length()), 1.0)
+                        )
+                    t_vertex_indices.remove(i)
+                t_vertex_indices.append(t_set_abs.index())
+
+
         # the t-states represent variants of the original absorbing state
         # add a new absorbing with edges from all t-states
         new_absorbing = joint_graph.create_vertex(np.repeat(0, state_vector_length))
-        t_vertex_indices = np.unique(t_vertex_indices)
+        
         for i in t_vertex_indices:
             joint_graph.vertex_at(i).add_edge(new_absorbing, np.append(np.zeros(self.param_length()), 1.0))
 
@@ -6159,6 +6523,7 @@ extern "C" {{
         joint_graph.set_was_dph(True)  # Enable auto-normalization in C update_weights()
 
         joint_graph._joint_prob_base_graph_indexer = base_graph_indexer
+        joint_graph._rewarded_props = _rewarded_props
 
         return joint_graph
 
@@ -6182,23 +6547,6 @@ extern "C" {{
 
         idx2obs = {}
         for rewards, idx in zip(state_reward_matrix, t_vertex_indices):
-            # print(rewards, idx)
-
-            # if base_graph_indexer is not None:
-            #     properties = [p.name for p in base_graph_indexer.properties]
-            #     prop_a, prop_b = properties
-            #     obs = np.zeros((base_graph_indexer.property_dict[prop_a].max_value+1,
-            #                     base_graph_indexer.property_dict[prop_b].max_value+1), dtype=int)
-            #     for i in range(rewards.size):
-            #         if rewards[i] > 0:
-            #             props = base_graph_indexer.index_to_props(i, as_dict=True)
-            #             obs[props[prop_a], props[prop_b]] += rewards[i]
-            #     obs = tuple([tuple(row.tolist()) for row in obs])
-            #     idx2obs[obs] = int(idx)
-
-            # else:
-            #     idx2obs[int(idx)] = tuple(rewards.tolist())
-
             idx2obs[int(idx)] = tuple(rewards.tolist())
 
         t_indices = list(idx2obs.keys())
@@ -6225,10 +6573,8 @@ extern "C" {{
 
         records = [[*obs, prob, idx] for obs, prob, idx in zip(outcomes, probs, t_vertex_indices)]
         column_names = []
-        prop_sets = self._joint_prob_base_graph_indexer.property_sets()
-        if len(prop_sets) != 1:
-            raise ValueError("Indexer must have exactly one property set representing the base graph state.")
-        for p in prop_sets[0].properties:
+
+        for p in self._rewarded_props:
             for i in range(p.min_value, p.max_value+1):
                 column_names.append(f"{p.name}_{i}")
         column_names.extend(['prob', 't_vertex_index'])

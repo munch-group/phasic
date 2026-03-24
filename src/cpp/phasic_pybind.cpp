@@ -567,14 +567,15 @@ double _covariance_discrete(phasic::Graph &graph,
   // Extend version: continues visiting vertices starting from current vertices_length()
   void extend_state_space_callback_tuples(
       phasic::Graph *graph,
-      const std::function<std::vector<py::object> (const py::array_t<int> &state)> &callback) {
+      const std::function<std::vector<py::object> (const py::array_t<int> &state)> &callback,
+      int vertex_index = 1) {
 
       if (!graph) {
         throw std::runtime_error("Graph pointer is null");
       }
 
       // Start from current position (don't re-visit already processed vertices)
-      int index = 1;
+      int index = vertex_index;
       while (index < graph->vertices_length()) {
 
         phasic::Vertex this_vertex = graph->vertex_at(index);
@@ -606,14 +607,15 @@ double _covariance_discrete(phasic::Graph &graph,
   // Parameterized extend version
   void extend_state_space_callback_tuples_parameterized(
       phasic::Graph *graph,
-      const std::function<std::vector<py::object> (const py::array_t<int> &state)> &callback) {
+      const std::function<std::vector<py::object> (const py::array_t<int> &state)> &callback,
+      int vertex_index = 1) {
 
       if (!graph) {
         throw std::runtime_error("Graph pointer is null");
       }
 
       // Start from current position (don't re-visit already processed vertices)
-      int index = 1;
+      int index = vertex_index;
       while (index < graph->vertices_length()) {
 
         phasic::Vertex this_vertex = graph->vertex_at(index);
@@ -2058,10 +2060,11 @@ str
       )delim")
       
     .def("extend_graph_callback_tuples",
-      [](phasic::Graph &self, const std::function<std::vector<py::object> (const py::array_t<int> &state)> &callback) {
-        extend_state_space_callback_tuples(&self, callback);
+      [](phasic::Graph &self, const std::function<std::vector<py::object> (const py::array_t<int> &state)> &callback, int vertex_index) {
+        extend_state_space_callback_tuples(&self, callback, vertex_index);
       },
       py::arg("callback"),
+      py::arg("vertex_index") = 1,
       R"delim(
     Extends the graph by continuing to visit unvisited vertices using a callback (non-parameterized).
 
@@ -2090,10 +2093,11 @@ str
       )delim")
 
     .def("extend_graph_callback_tuples_parameterized",
-      [](phasic::Graph &self, const std::function<std::vector<py::object> (const py::array_t<int> &state)> &callback) {
-        extend_state_space_callback_tuples_parameterized(&self, callback);
+      [](phasic::Graph &self, const std::function<std::vector<py::object> (const py::array_t<int> &state)> &callback, int vertex_index) {
+        extend_state_space_callback_tuples_parameterized(&self, callback, vertex_index);
       },
       py::arg("callback"),
+      py::arg("vertex_index") = 1,
       R"delim(
     Extends the graph by continuing to visit unvisited vertices using a callback (parameterized).
 

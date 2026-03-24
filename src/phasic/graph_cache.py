@@ -247,6 +247,17 @@ class GraphCache:
         logger.info(f"Cleared {count} cached graphs")
         return count
 
+    def clear(self) -> int:
+        """
+        Alias for clear_graph_cache().
+
+        Returns
+        -------
+        int
+            Number of graphs removed
+        """
+        return self.clear_graph_cache()
+
     def get_cache_stats(self) -> dict[str, Any]:
         """
         Get cache statistics.
