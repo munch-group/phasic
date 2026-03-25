@@ -1,7 +1,7 @@
 # Graph { #phasic.Graph }
 
 ```python
-phasic.Graph(arg, ipv=None, cache_graph=False, **kwargs)
+phasic.Graph(arg, ipv=None, graph_cache=False, **kwargs)
 ```
 
 
@@ -44,7 +44,7 @@ phasic.Graph(arg, ipv=None, cache_graph=False, **kwargs)
 | [moments_from_graph](#phasic.Graph.moments_from_graph) | Convert a parameterized Graph to a JAX-compatible function that computes moments. |
 | [normalize](#phasic.Graph.normalize) | Normalize edge weights to make the graph a proper probability distribution. |
 | [pdf](#phasic.Graph.pdf) | Compute probability density/mass function using forward algorithm. |
-| [plot](#phasic.Graph.plot) | Plots the graph using graphviz. See plot::plot_graph.py for more details. |
+| [plot](#phasic.Graph.plot) | Plot a graph using graphviz. |
 | [pmf_and_moments_from_graph](#phasic.Graph.pmf_and_moments_from_graph) | Convert a parameterized Graph to a function that computes both PMF/PDF and moments. |
 | [pmf_and_moments_from_graph_multivariate](#phasic.Graph.pmf_and_moments_from_graph_multivariate) | Create a multivariate phase-type model that handles 2D observations and rewards. |
 | [pmf_from_cpp](#phasic.Graph.pmf_from_cpp) | Load a phase-type model from a user's C++ file and return a JAX-compatible function. |
@@ -615,7 +615,7 @@ Only available for continuous-time phase-type distributions.
 ### extend { #phasic.Graph.extend }
 
 ```python
-phasic.Graph.extend(callback=None, **kwargs)
+phasic.Graph.extend(callback=None, vertex_index=None, **kwargs)
 ```
 
 Extend the graph by continuing to visit unvisited vertices using a callback.
@@ -836,6 +836,7 @@ phasic.Graph.method_of_moments(
     std_multiplier=2.0,
     discrete=None,
     verbose=True,
+    weighted=True,
 )
 ```
 
@@ -858,7 +859,7 @@ priors centred on the method-of-moments estimates.
 
 <code>[**nr_moments**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
-:   Number of moments to match per feature dimension.  If ``None`` (default), automatically chosen to overdetermine the system: ``max(2 * n_free_params, 4)`` for univariate data, adjusted per feature for multivariate data.  Still auto-increased if a user-specified value gives fewer equations than free parameters.
+:   Number of moments to match per feature dimension.  If ``None`` (default), automatically chosen based on ``weighted``: when ``weighted=True``, adaptive selection prunes high-order moments by condition number; when ``weighted=False``, uses the heuristic ``max(2 * n_free_params, 4)``. Still auto-increased if a user-specified value gives fewer equations than free parameters.
 
 <code>[**rewards**]{.parameter-name} [:]{.parameter-annotation-sep} [[np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
@@ -887,6 +888,10 @@ priors centred on the method-of-moments estimates.
 <code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
 
 :   Print progress information.
+
+<code>[**weighted**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   If ``True`` (default), use two-step efficient GMM with optimal weighting matrix ``W = Σ⁻¹``.  This down-weights high-variance moments and generally produces tighter standard errors. If ``False``, use unweighted least squares (legacy behavior).
 
 #### Returns {.doc-section .doc-section-returns}
 
@@ -1083,16 +1088,110 @@ For discrete distributions: p(n) = probability of absorption at jump n
 ### plot { #phasic.Graph.plot }
 
 ```python
-phasic.Graph.plot(*args, **kwargs)
+phasic.Graph.plot(
+    graph,
+    filename=None,
+    wrap=True,
+    label_fmt=None,
+    subgraphfun=None,
+    by_state=None,
+    by_index=None,
+    max_nodes=100,
+    dark=None,
+    constraint=True,
+    ranksep=1,
+    nodesep=1,
+    rankdir='LR',
+    size=(7, 7),
+    fontsize=12,
+    rainbow=True,
+    penwidth=1,
+    seed=1,
+    **kwargs,
+)
 ```
 
-Plots the graph using graphviz. See plot::plot_graph.py for more details.
+Plot a graph using graphviz.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**graph**]{.parameter-name} [:]{.parameter-annotation-sep} [[Graph](`phasic.Graph`)]{.parameter-annotation}</code>
+
+:   The phasic graph object to visualize.
+
+<code>[**filename**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   If provided, save the graph to this file. The file extension determines the output format (e.g., ``'graph.pdf'``).
+
+<code>[**wrap**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`) \| [int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   Whether to wrap vertex labels, and if so, the maximum number of characters per line. By default True.
+
+<code>[**subgraphfun**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`collections.abc.Callable`)\[..., [str](`str`)\] \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Deprecated. Use ``by_state`` instead. Callback function defining subgraph clusters by state.
+
+<code>[**by_state**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`collections.abc.Callable`)\[..., [str](`str`)\] \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Callback function defining subgraph clusters. Takes a state as input and returns a string used as the subgraph label.
+
+<code>[**by_index**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`collections.abc.Callable`)\[\[[int](`int`)\], [str](`str`)\] \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Callback function defining subgraph clusters. Takes a vertex index as input and returns a string used as the subgraph label.
+
+<code>[**max_nodes**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [100]{.parameter-default}</code>
+
+:   Maximum number of vertices to plot, by default 100.
+
+<code>[**dark**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Whether to use dark mode for the graph. Detected automatically from the VS Code theme if ``vscodenb`` is available.
+
+<code>[**constraint**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   Graphviz constraint attribute, by default True.
+
+<code>[**ranksep**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1]{.parameter-default}</code>
+
+:   Graphviz ranksep attribute, by default 1.
+
+<code>[**nodesep**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1]{.parameter-default}</code>
+
+:   Graphviz nodesep attribute, by default 1.
+
+<code>[**rankdir**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'LR\']{.parameter-default}</code>
+
+:   Graphviz rankdir attribute, by default ``"LR"``.
+
+<code>[**size**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)\[[int](`int`), [int](`int`)\]]{.parameter-annotation} [ = ]{.parameter-default-sep} [(7, 7)]{.parameter-default}</code>
+
+:   Graphviz size as ``(width, height)``, by default ``(7, 7)``.
+
+<code>[**fontsize**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [12]{.parameter-default}</code>
+
+:   Graphviz fontsize attribute, by default 12.
+
+<code>[**rainbow**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   Whether to color edges with random colors, by default True.
+
+<code>[**penwidth**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1]{.parameter-default}</code>
+
+:   Graphviz penwidth attribute, by default 1.
+
+<code>[**seed**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1]{.parameter-default}</code>
+
+:   Random seed for graph layout, by default 1.
+
+<code>[****kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Any](`typing.Any`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
+
+:   Additional graphviz graph attributes.
 
 #### Returns {.doc-section .doc-section-returns}
 
-<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[Any](`typing.Any`)]{.parameter-annotation}</code>
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[graphviz](`graphviz`).[Digraph](`graphviz.Digraph`) \| None]{.parameter-annotation}</code>
 
-:   _description_
+:   Graphviz Digraph object for display in Jupyter notebooks, or ``None`` if the graph exceeds ``max_nodes``.
 
 ### pmf_and_moments_from_graph { #phasic.Graph.pmf_and_moments_from_graph }
 

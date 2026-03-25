@@ -47,7 +47,7 @@ Sparse observations for multi-feature data.
 | [dense_to_sparse](dense_to_sparse.qmd#phasic.svgd.dense_to_sparse) | Convert dense NaN-padded array to sparse observation format. |
 | [is_sparse_observations](is_sparse_observations.qmd#phasic.svgd.is_sparse_observations) | Check if data is in sparse observation format. |
 
-## Preconditioning and Stein Variational Gradient Descent
+## Stein Variational Gradient Descent
 
 Stein Variational Gradient Descent and preconditioners.
 

@@ -50,7 +50,11 @@ interlinks:
     statsmodels:
       url: https://www.statsmodels.org/stable/ 
     jax:
-      url: https://docs.jax.dev/en/latest/     
+      url: https://docs.jax.dev/en/latest/
+    optax:
+      url: https://optax.readthedocs.io/en/latest/
+    ipython:
+      url: https://ipython.readthedocs.io/en/stable/
     # quartodoc-test:
     #   url: https://machow.github.io/quartodoc
     #   inv: objects-test.txt
@@ -59,6 +63,12 @@ website:
   # title: "phasic"
   title: ""
   page-navigation: true
+
+
+  repo-url: https://github.com/munch-group/phasic/
+  repo-subdir: docs        # if .qmd files live in a subdirectory
+  repo-branch: main        # defaults to main
+  repo-actions: [edit, issue, source]
 
   # announcement: 
   #   icon: exclamation-lg
@@ -102,6 +112,7 @@ website:
             - pages/tutorial/properties.ipynb
             - pages/tutorial/discrete.ipynb
             - pages/tutorial/parametrization.ipynb
+            - pages/tutorial/graph-cache.ipynb
         - section: "Modelling"
           contents:
             - pages/tutorial/time-inhomogeneous.ipynb
@@ -120,7 +131,7 @@ website:
             - pages/tutorial/svgd-joint-prob.ipynb
         - section: "Computation"
           contents:
-            - pages/tutorial/caching.ipynb
+            - pages/tutorial/trace-and-jax-caching.ipynb
             - pages/tutorial/mpfr.ipynb
             - pages/tutorial/distributed.ipynb
             - pages/tutorial/sharing.ipynb

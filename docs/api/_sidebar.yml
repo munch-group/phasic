@@ -29,7 +29,7 @@ website:
       - api/FisherPreconditioner.qmd
       - api/SVGD.qmd
       - api/SVGDKernel.qmd
-      section: Preconditioning and Stein Variational Gradient Descent
+      section: Stein Variational Gradient Descent
     - contents:
       - api/DataPrior.qmd
       - api/Prior.qmd

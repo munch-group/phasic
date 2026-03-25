@@ -1584,7 +1584,7 @@ class SymbolicDAG:
 
 class Graph(_Graph):
     # def __init__(self, state_length:int=None, callback:Callable=None, ipv:list[list[int] | list[list[int] | float]] | None = None, parameterized:bool=False, **kwargs):
-    def __init__(self, arg: int | Callable, ipv: list[int] | list[list[int] | float] | None = None, cache_graph: bool = False, **kwargs: Any) -> None:
+    def __init__(self, arg: int | Callable, ipv: list[int] | list[list[int] | float] | None = None, graph_cache: bool = False, **kwargs: Any) -> None:
         """
         Create a graph representing a phase-type distribution. This is the primary entry-point of the library. A starting vertex will always be added to the graph upon initialization.
 
@@ -1711,7 +1711,7 @@ class Graph(_Graph):
                 callback_for_cache = _callback(ipv)(arg)
 
         # Try loading from cache if requested
-        if callable(arg) and cache_graph:
+        if callable(arg) and graph_cache:
             from .graph_cache import GraphCache
             from .logging_config import get_logger
             logger = get_logger(__name__)
@@ -1793,7 +1793,7 @@ class Graph(_Graph):
         self._last_callback_vertices_length = self.vertices_length()  # Track vertices length at last callback call for extend()
 
         # Save to cache if requested and construction succeeded
-        if callable(arg) and cache_graph:
+        if callable(arg) and graph_cache:
             from .graph_cache import GraphCache
             from .logging_config import get_logger
             logger = get_logger(__name__)

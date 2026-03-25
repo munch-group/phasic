@@ -2,18 +2,12 @@
 title: Caching
 ---
 
-This covers the comprehensive caching system in phasic, which provides **10-1000x speedups** for repeated model evaluations through multiple complementary caching mechanisms.
+This page covers the comprehensive caching system in phasic, which provides **10-1000x speedups** for repeated model evaluations through multiple complementary caching mechanisms.
 
 ## Graph Cache
 
-### What It Caches
 
-The graph cache stores **fully constructed Graph objects** to disk, keyed by:
-- Callback function source code
-- All construction parameters
-- Initial probability vector (IPV)
-
-This is perfect for expensive graph constructions that take seconds or minutes to build.
+The graph cache allow fast reconstruction of graphs that take a long time to build. The cache is keyed by the callback function source code with all its construction parameters and initial probability vector (IPV). To enable the use of cache, just pass `cache=True` to the `Graph` constructor:
 
 ### Basic Usage
 
