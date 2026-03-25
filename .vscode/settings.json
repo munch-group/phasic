@@ -97,10 +97,6 @@
             "group": "Default"
         },
         {
-            "filePath": "src",
-            "group": "Default"
-        },
-        {
             "filePath": "docs/pages/tutorials/full_api",
             "group": "Default"
         },
@@ -113,11 +109,11 @@
             "group": "Default"
         },
         {
-            "filePath": "docs/pages",
+            "filePath": "applications/popgen",
             "group": "Default"
         },
         {
-            "filePath": "scripts",
+            "filePath": "docs/pages",
             "group": "Default"
         }
     ],

@@ -102,12 +102,6 @@ website:
             - pages/tutorial/properties.ipynb
             - pages/tutorial/discrete.ipynb
             - pages/tutorial/parametrization.ipynb
-        - section: "Computation"
-          contents:
-            - pages/tutorial/mpfr.ipynb
-            - pages/tutorial/caching.ipynb
-            - pages/tutorial/distributed.ipynb
-            - pages/tutorial/sharing.ipynb
         - section: "Modelling"
           contents:
             - pages/tutorial/time-inhomogeneous.ipynb
@@ -120,13 +114,19 @@ website:
           contents:
             - pages/tutorial/method-of-moments.ipynb
             - pages/tutorial/svgd-basics.ipynb
+            - pages/tutorial/priors-and-schedules.ipynb
             - pages/tutorial/svgd-multi-feature.ipynb
             - pages/tutorial/svgd-multi-param.ipynb
             - pages/tutorial/svgd-joint-prob.ipynb
+        - section: "Computation"
+          contents:
+            - pages/tutorial/caching.ipynb
+            - pages/tutorial/mpfr.ipynb
+            - pages/tutorial/distributed.ipynb
+            - pages/tutorial/sharing.ipynb
         - section: "Topics"
           contents:
             - pages/topics/vscodenb.ipynb
-            - pages/topics/priors-and-schedules.ipynb
             - pages/topics/caching_guide.qmd
             - pages/topics/state-indexer.ipynb
             # - pages/tutorials/somecode.ipynb
@@ -248,7 +248,7 @@ quartodoc:
         - dense_to_sparse
         - is_sparse_observations
 
-    - title: Preconditioning and Stein Variational Gradient Descent
+    - title: Stein Variational Gradient Descent
       package: phasic.svgd
       desc: |
         Stein Variational Gradient Descent and preconditioners.
