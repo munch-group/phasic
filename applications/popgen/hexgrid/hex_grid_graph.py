@@ -203,7 +203,7 @@ class HexGridGraph:
 
         return hex_probs
     
-    def get_cumulated_occupancies(self, time: float) -> np.ndarray:
+    def get_accumulated_occupancies(self, time: float) -> np.ndarray:
         """
         Get state probabilities mapped to hex cell indices.
 
@@ -217,7 +217,7 @@ class HexGridGraph:
             raise ValueError("Graph not built. Call build_graph() first.")
 
         # Get raw probabilities from graph
-        raw_vals = np.array(self.graph.cumulated_occupancy(time))
+        raw_vals = np.array(self.graph.accumulated_occupancy(time))
 
         # Map to hex cell indices
         n_hex = len(self.hex_centers)
@@ -345,7 +345,7 @@ class HexGridGraph:
 
         return fig, ax
 
-    def plot_cumulated_occupancy(self,
+    def plot_accumulated_occupancy(self,
                                  time: float,
                                  **plot_kwargs) -> Tuple[plt.Figure, plt.Axes]:
         """
@@ -362,11 +362,11 @@ class HexGridGraph:
             raise ValueError("Graph not built. Call build_graph() first.")
 
         # Get cumulated occupancy for all vertices at once
-        occupancy = np.array(self.graph.cumulated_occupancy(time))
+        occupancy = np.array(self.graph.accumulated_occupancy(time))
 
         # Set defaults that can be overridden
-        plot_kwargs.setdefault('title', f'Cumulated Occupancy at t={time:.2f}')
-        plot_kwargs.setdefault('colorbar_label', 'Cumulated Occupancy')
+        plot_kwargs.setdefault('title', f'Accumulated Occupancy at t={time:.2f}')
+        plot_kwargs.setdefault('colorbar_label', 'Accumulated Occupancy')
 
         # Plot
         return self.plot_hex_grid(values=occupancy, **plot_kwargs)
@@ -492,7 +492,7 @@ def example_random_walk():
     )
 
     # Plot static cumulated occupancy
-    fig, ax = hex_graph.plot_cumulated_occupancy(time=10.0)
+    fig, ax = hex_graph.plot_accumulated_occupancy(time=10.0)
     plt.show()
 
     # Create animation
