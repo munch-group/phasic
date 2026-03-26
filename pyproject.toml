@@ -13,7 +13,7 @@ wheel.packages = ["src/phasic"]
 
 [project]
 name = "phasic"
-version = "0.26.26"
+version = "0.26.27"
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Education",
