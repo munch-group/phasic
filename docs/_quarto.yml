@@ -112,7 +112,6 @@ website:
             - pages/tutorial/properties.ipynb
             - pages/tutorial/discrete.ipynb
             - pages/tutorial/parametrization.ipynb
-            - pages/tutorial/graph-cache.ipynb
         - section: "Modelling"
           contents:
             - pages/tutorial/time-inhomogeneous.ipynb
@@ -123,6 +122,7 @@ website:
             # - pages/topics/R/partitioning.ipynb
         - section: "Inference"
           contents:
+            - pages/tutorial/trace-and-jax-caching.ipynb
             - pages/tutorial/method-of-moments.ipynb
             - pages/tutorial/svgd-basics.ipynb
             - pages/tutorial/priors-and-schedules.ipynb
@@ -131,7 +131,6 @@ website:
             - pages/tutorial/svgd-joint-prob.ipynb
         - section: "Computation"
           contents:
-            - pages/tutorial/trace-and-jax-caching.ipynb
             - pages/tutorial/mpfr.ipynb
             - pages/tutorial/distributed.ipynb
             - pages/tutorial/sharing.ipynb
