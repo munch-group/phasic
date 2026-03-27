@@ -17,7 +17,7 @@
 <g id="node2" class="node">
 <title>1</title>
 <ellipse fill="#eeeeee" stroke="black" cx="153" cy="-18" rx="27" ry="18"/>
-<text xml:space="preserve" text-anchor="middle" x="153" y="-13.72" font-family="Helvetica,Arial,sans-serif" font-size="12.00">1</text>
+<text xml:space="preserve" text-anchor="middle" x="153" y="-13.72" font-family="Helvetica,Arial,sans-serif" font-size="12.00">2</text>
 </g>
 <!-- 0&#45;&gt;1 -->
 <g id="edge1" class="edge">
@@ -30,14 +30,14 @@
 <g id="node3" class="node">
 <title>2</title>
 <ellipse fill="#bbbbbb" stroke="black" cx="279" cy="-18" rx="27" ry="18"/>
-<text xml:space="preserve" text-anchor="middle" x="279" y="-13.72" font-family="Helvetica,Arial,sans-serif" font-size="12.00">2</text>
+<text xml:space="preserve" text-anchor="middle" x="279" y="-13.72" font-family="Helvetica,Arial,sans-serif" font-size="12.00">1</text>
 </g>
 <!-- 1&#45;&gt;2 -->
 <g id="edge2" class="edge">
 <title>1&#45;&gt;2</title>
 <path fill="none" stroke="#85511a" d="M180.3,-18C197.72,-18 220.86,-18 240.24,-18"/>
 <polygon fill="#85511a" stroke="#85511a" points="240.23,-21.5 250.23,-18 240.23,-14.5 240.23,-21.5"/>
-<text xml:space="preserve" text-anchor="middle" x="204.26" y="-6.6" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#85511a">2.00</text>
+<text xml:space="preserve" text-anchor="middle" x="192.26" y="-6.6" font-family="Helvetica,Arial,sans-serif" font-size="12.00" fill="#85511a">4.00e&#45;01</text>
 </g>
 </g>
 </svg>
