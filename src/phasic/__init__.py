@@ -3,7 +3,7 @@ from __future__ import annotations
 from ast import arg
 from functools import partial
 from collections import defaultdict, OrderedDict
-from itertools import product
+from itertools import product, zip_longest
 from unittest import result
 import numpy as np
 import pandas as pd
@@ -6475,7 +6475,17 @@ extern "C" {{
             if rate > 0:
                 joint_graph.vertex_at(i).add_edge(trash_vertex, np.append(np.zeros(self.param_length()), rate))
 
+
         if reward_only is not None:
+            reward_only = sorted(reward_only)
+            sorted_prop_names = sorted([p.name for p in property_set.properties])
+            if all(x == y for x, y in zip_longest(reward_only, sorted_prop_names)):
+                # no effect anyway
+                logger.info('Specified reward_only lists all properties. Set to None for same effect.')
+                reward_only = None
+
+        if reward_only is not None:
+
             # for sets of t-states representing the same observation, remove them from
             # the list of t-states and add prob 1 edges to a new t-state representing all
             # of them. t-states in such sets are the ones that only differ by properties not

@@ -112,14 +112,6 @@ website:
             - pages/tutorial/properties.ipynb
             - pages/tutorial/discrete.ipynb
             - pages/tutorial/parametrization.ipynb
-        - section: "Modelling"
-          contents:
-            - pages/tutorial/time-inhomogeneous.ipynb
-            - pages/tutorial/laplace.ipynb
-            - pages/tutorial/joint-probability.ipynb
-            - pages/tutorial/finite-markov-chains.ipynb
-            # - pages/tutorial/state-lumping.ipynb
-            # - pages/topics/R/partitioning.ipynb
         - section: "Inference"
           contents:
             - pages/tutorial/trace-and-jax-caching.ipynb
@@ -134,6 +126,14 @@ website:
             - pages/tutorial/mpfr.ipynb
             - pages/tutorial/distributed.ipynb
             - pages/tutorial/sharing.ipynb
+        - section: "Modelling"
+          contents:
+            - pages/tutorial/time-inhomogeneous.ipynb
+            - pages/tutorial/laplace.ipynb
+            - pages/tutorial/joint-probability.ipynb
+            - pages/tutorial/finite-markov-chains.ipynb
+            # - pages/tutorial/state-lumping.ipynb
+            # - pages/topics/R/partitioning.ipynb
         - section: "Topics"
           contents:
             - pages/topics/vscodenb.ipynb
