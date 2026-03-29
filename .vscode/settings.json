@@ -115,6 +115,10 @@
         {
             "filePath": "docs/pages",
             "group": "Default"
+        },
+        {
+            "filePath": "/Users/kmt/Downloads/phase_type_lattice.R",
+            "group": "Default"
         }
     ],
     "yaml.schemas": {
@@ -124,5 +128,6 @@
         "tests"
     ],
     "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true
+    "python.testing.pytestEnabled": true,
+    "favorites.sortOrder": "MANUAL"
 }
