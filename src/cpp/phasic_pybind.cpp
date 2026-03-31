@@ -1634,6 +1634,59 @@ str
     )delim")
 
 
+    .def("sample_path",
+      [](phasic::Graph &graph, int n) {
+        set_c_seed();
+        py::list results;
+
+        for (int i = 0; i < n; i++) {
+            auto [indices, times] = graph.random_sample_path();
+
+            size_t len = indices.size();
+            py::array_t<long> py_indices(len);
+            py::array_t<double> py_times(len);
+
+            auto idx_buf = py_indices.mutable_unchecked<1>();
+            auto time_buf = py_times.mutable_unchecked<1>();
+
+            for (size_t j = 0; j < len; j++) {
+                idx_buf(j) = (long) indices[j];
+                time_buf(j) = times[j];
+            }
+
+            py::dict path;
+            path["vertex_indices"] = py_indices;
+            path["entry_times"] = py_times;
+            results.append(path);
+        }
+
+        if (n == 1) {
+            return py::cast<py::object>(results[0]);
+        }
+        return py::cast<py::object>(results);
+
+      }, py::return_value_policy::move, py::arg("n")=1, R"delim(
+    Samples a complete path through the Markov chain.
+
+    Simulates the underlying Markov chain from the starting vertex until
+    absorption, recording every vertex visited and the cumulative time
+    at which each vertex was entered.
+
+    Parameters
+    ----------
+    n : int, optional
+        The number of paths to sample. Default is 1.
+
+    Returns
+    -------
+    dict or list of dict
+        If n=1, returns a single dict. If n>1, returns a list of dicts.
+        Each dict has:
+        - 'vertex_indices': numpy array of vertex indices visited
+        - 'entry_times': numpy array of cumulative entry times
+    )delim")
+
+
     .def("sample_discrete",
       [](phasic::Graph &graph, int n, std::vector<double>rewards) {
 

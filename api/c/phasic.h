@@ -278,6 +278,16 @@ struct ptd_vertex *ptd_random_sample_stop_vertex(struct ptd_graph *graph, double
 
 struct ptd_vertex *ptd_dph_random_sample_stop_vertex(struct ptd_graph *graph, int jumps);
 
+struct ptd_sample_path {
+    size_t *vertex_indices;   /* Array of vertex indices visited */
+    double *entry_times;      /* Cumulative time when each vertex was entered */
+    size_t length;            /* Number of vertices in the path */
+};
+
+struct ptd_sample_path *ptd_random_sample_path(struct ptd_graph *graph);
+
+void ptd_sample_path_destroy(struct ptd_sample_path *path);
+
 double ptd_defect(struct ptd_graph *graph);
 
 int ptd_validate_graph(const struct ptd_graph *graph);

@@ -6734,6 +6734,77 @@ long double ptd_random_sample(struct ptd_graph *graph, double *rewards) {
     return outcome;
 }
 
+struct ptd_sample_path *ptd_random_sample_path(struct ptd_graph *graph) {
+    size_t capacity = 16;
+    struct ptd_sample_path *path = (struct ptd_sample_path *) malloc(sizeof(*path));
+    path->vertex_indices = (size_t *) malloc(capacity * sizeof(size_t));
+    path->entry_times = (double *) malloc(capacity * sizeof(double));
+    path->length = 0;
+
+    double cumulative_time = 0.0;
+    struct ptd_vertex *vertex = graph->starting_vertex;
+
+    /* Record starting vertex */
+    path->vertex_indices[path->length] = vertex->index;
+    path->entry_times[path->length] = 0.0;
+    path->length++;
+
+    while (vertex->edges_length != 0) {
+        /* Sample waiting time */
+        long double draw_wait = (long double) rand() / (long double) RAND_MAX;
+
+        double rate = 0;
+        for (size_t i = 0; i < vertex->edges_length; ++i) {
+            rate += vertex->edges[i]->weight;
+        }
+
+        long double waiting_time = -logl(draw_wait + 0.0000001) / rate;
+
+        if (vertex == graph->starting_vertex) {
+            waiting_time = 0;
+        }
+
+        cumulative_time += (double) waiting_time;
+
+        /* Select next vertex */
+        long double draw_direction = (long double) rand() / (long double) RAND_MAX;
+        long double weight_sum = 0;
+        size_t edge_index = 0;
+
+        for (size_t i = 0; i < vertex->edges_length; ++i) {
+            weight_sum += vertex->edges[i]->weight;
+            if (weight_sum / rate >= draw_direction) {
+                edge_index = i;
+                break;
+            }
+        }
+
+        vertex = vertex->edges[edge_index]->to;
+
+        /* Grow arrays if needed */
+        if (path->length >= capacity) {
+            capacity *= 2;
+            path->vertex_indices = (size_t *) realloc(path->vertex_indices, capacity * sizeof(size_t));
+            path->entry_times = (double *) realloc(path->entry_times, capacity * sizeof(double));
+        }
+
+        /* Record this vertex */
+        path->vertex_indices[path->length] = vertex->index;
+        path->entry_times[path->length] = cumulative_time;
+        path->length++;
+    }
+
+    return path;
+}
+
+void ptd_sample_path_destroy(struct ptd_sample_path *path) {
+    if (path != NULL) {
+        free(path->vertex_indices);
+        free(path->entry_times);
+        free(path);
+    }
+}
+
 long double *ptd_mph_random_sample(struct ptd_graph *graph, double *rewards, size_t vertex_rewards_length) {
     long double *outcome = (long double *) calloc(vertex_rewards_length, sizeof(*outcome));
 

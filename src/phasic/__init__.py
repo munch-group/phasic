@@ -252,21 +252,9 @@ if HAS_JAX:
         is_sparse_observations,
     )
     from .mcmc import MCMC
-    from .importance_sampling import (
-        inhomogeneous_log_density,
-        homogeneous_log_density,
-        importance_log_weight,
-        make_demographic_log_likelihood,
-        piecewise_constant_integral,
-    )
 else:
     SVGD = None
     MCMC = None
-    inhomogeneous_log_density = None
-    homogeneous_log_density = None
-    importance_log_weight = None
-    make_demographic_log_likelihood = None
-    piecewise_constant_integral = None
     Prior = None
     GaussPrior = None
     HalfCauchyPrior = None
@@ -2524,6 +2512,44 @@ class Graph(_Graph):
             return np.array(super().sample_discrete(n, **kwargs))
         else:
             return np.array(super().sample(n, **kwargs))
+
+    def sample_path(self, n: int = 1) -> dict | list[dict]:
+        """
+        Sample complete path(s) through the Markov chain.
+
+        Simulates the underlying Markov chain from the starting vertex until
+        absorption, recording every vertex visited and the cumulative time
+        at which each vertex was entered.
+
+        Parameters
+        ----------
+        n : int, default=1
+            Number of paths to sample.
+
+        Returns
+        -------
+        dict or list of dict
+            If n=1, returns a single dict with keys:
+            - 'vertex_indices': np.ndarray of vertex indices visited
+            - 'entry_times': np.ndarray of cumulative entry times
+
+            If n>1, returns a list of such dicts.
+
+        Notes
+        -----
+        The first entry is always the starting vertex with entry_time=0.
+        The last entry is the absorbing vertex. Sojourn times can be
+        computed as the differences between consecutive entry times.
+
+        Examples
+        --------
+        >>> g = Graph(...)  # build graph
+        >>> path = g.sample_path()
+        >>> path['vertex_indices']  # array of visited vertex indices
+        >>> path['entry_times']     # cumulative times
+        >>> sojourn_times = np.diff(path['entry_times'])
+        """
+        return super().sample_path(n)
 
     def stop_probability(self, time: float | int, **kwargs: Any) -> np.ndarray:
         """

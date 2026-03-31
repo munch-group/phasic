@@ -431,6 +431,14 @@ namespace phasic {
             return res;
         }
 
+        std::pair<std::vector<size_t>, std::vector<double>> random_sample_path() {
+            struct ptd_sample_path *path = ptd_random_sample_path(c_graph());
+            std::vector<size_t> indices(path->vertex_indices, path->vertex_indices + path->length);
+            std::vector<double> times(path->entry_times, path->entry_times + path->length);
+            ptd_sample_path_destroy(path);
+            return {indices, times};
+        }
+
         size_t random_sample_stop_vertex(double time) {
             struct ptd_vertex *res = ptd_random_sample_stop_vertex(c_graph(), time);
 

@@ -458,3 +458,111 @@ class TestMCMCErrors:
                 param_transform=lambda x: x,
                 verbose=False,
             )
+
+    def test_both_model_and_log_prob_fn(self):
+        """Cannot provide both model and log_prob_fn."""
+        data = np.array([1.0, 2.0])
+        g = build_exponential_graph()
+        model = Graph.pmf_and_moments_from_graph(g, nr_moments=2, discrete=False)
+
+        with pytest.raises(ValueError, match="Cannot provide both"):
+            MCMC(
+                model=model,
+                observed_data=data,
+                log_prob_fn=lambda theta: -0.5 * jnp.sum(theta**2),
+                theta_dim=1,
+                verbose=False,
+            )
+
+    def test_neither_model_nor_log_prob_fn(self):
+        """Must provide either model or log_prob_fn."""
+        with pytest.raises(ValueError, match="Must provide either"):
+            MCMC(theta_dim=1, verbose=False)
+
+    def test_model_without_observed_data(self):
+        """model requires observed_data."""
+        g = build_exponential_graph()
+        model = Graph.pmf_and_moments_from_graph(g, nr_moments=2, discrete=False)
+
+        with pytest.raises(ValueError, match="observed_data.*required"):
+            MCMC(model=model, theta_dim=1, verbose=False)
+
+
+class TestMCMCLogProbFn:
+    """Tests for log_prob_fn mode."""
+
+    def test_log_prob_fn_basic(self):
+        """MCMC with log_prob_fn runs and produces samples."""
+        def log_lik(theta):
+            return -0.5 * jnp.sum((theta - 3.0)**2 / 0.5**2)
+
+        mcmc = MCMC(
+            log_prob_fn=log_lik,
+            theta_dim=1,
+            n_samples=1000,
+            n_chains=2,
+            burn_in=200,
+            proposal_scale=0.5,
+            positive_params=False,
+            verbose=False,
+            progress=False,
+            seed=42,
+        )
+        mcmc.run()
+
+        assert mcmc.is_fitted
+        results = mcmc.get_results()
+        assert results['particles'].shape == (2000, 1)
+
+        # Should recover mean between 0 (default prior) and 3 (likelihood)
+        mean = float(results['theta_mean'][0])
+        assert 1.0 < mean < 4.0, f"Expected between 1 and 4, got {mean}"
+
+    def test_log_prob_fn_with_prior(self):
+        """log_prob_fn mode adds prior correctly."""
+        from phasic import GaussPrior
+
+        # Likelihood peaks at 5.0, prior peaks at 1.0
+        # Posterior should be between them
+        def log_lik(theta):
+            return -0.5 * jnp.sum((theta - 5.0)**2)
+
+        mcmc = MCMC(
+            log_prob_fn=log_lik,
+            prior=GaussPrior(mean=1.0, std=1.0),
+            theta_dim=1,
+            n_samples=1000,
+            n_chains=2,
+            burn_in=200,
+            proposal_scale=0.5,
+            positive_params=False,
+            verbose=False,
+            progress=False,
+            seed=42,
+        )
+        mcmc.run()
+
+        mean = float(mcmc.get_results()['theta_mean'][0])
+        assert 1.0 < mean < 5.0, f"Posterior mean should be between prior and likelihood, got {mean}"
+
+    def test_log_prob_fn_positive_params(self):
+        """log_prob_fn mode works with positive_params=True."""
+        def log_lik(theta):
+            return -0.5 * jnp.sum((theta - 2.0)**2)
+
+        mcmc = MCMC(
+            log_prob_fn=log_lik,
+            theta_dim=1,
+            n_samples=500,
+            n_chains=2,
+            burn_in=200,
+            proposal_scale=0.5,
+            positive_params=True,
+            verbose=False,
+            progress=False,
+            seed=42,
+        )
+        mcmc.run()
+
+        results = mcmc.get_results()
+        assert np.all(results['particles'] > 0)

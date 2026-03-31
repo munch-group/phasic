@@ -51,13 +51,31 @@ class MCMC:
     random-walk Metropolis-Hastings. Supports multiple independent chains,
     parameter transformations, and fixed parameters.
 
+    There are two ways to specify the likelihood:
+
+    **Mode 1: model + observed_data** (for phase-type models)
+        Provide ``model`` and ``observed_data``. The log-likelihood is computed
+        internally as ``sum(log(model(theta, data)))``.
+
+    **Mode 2: log_prob_fn** (for custom likelihoods)
+        Provide ``log_prob_fn(theta) -> scalar``. This is called directly as
+        the log-likelihood, bypassing the model+data pattern. Useful when the
+        likelihood doesn't fit the ``model(theta, data) -> pmf_values`` interface.
+
+    Exactly one of ``model`` or ``log_prob_fn`` must be provided.
+
     Parameters
     ----------
-    model : callable
+    model : callable, optional
         JAX-compatible parameterized model with signature:
-        model(theta, data) -> values or model(theta, data) -> (pmf, moments)
-    observed_data : np.ndarray or SparseObservations
-        Observed data points.
+        model(theta, data) -> values or model(theta, data) -> (pmf, moments).
+        Mutually exclusive with ``log_prob_fn``.
+    observed_data : np.ndarray or SparseObservations, optional
+        Observed data points. Required when using ``model``, ignored when
+        using ``log_prob_fn``.
+    log_prob_fn : callable, optional
+        Direct log-likelihood function with signature: log_prob_fn(theta) -> scalar.
+        The prior is added automatically by MCMC. Mutually exclusive with ``model``.
     prior : callable, list of Prior, DataPrior, or None
         Log prior function. Same semantics as SVGD:
         - Single callable: prior(theta) -> scalar
@@ -93,6 +111,7 @@ class MCMC:
         Custom parameter transformation. Overrides positive_params.
     rewards : np.ndarray, optional
         Reward vector/matrix for multivariate phase-type distributions.
+        Only used in model mode.
     fixed : list of tuples or array, optional
         Fixed parameters. Same format as SVGD:
         - [(index, value), ...] or binary mask [0, 1, 0, ...]
@@ -112,18 +131,26 @@ class MCMC:
 
     Examples
     --------
+    Using a phasic model:
+
     >>> from phasic import Graph, MCMC
     >>> g = build_exponential_graph()
     >>> model = Graph.pmf_from_graph(g, discrete=False)
-    >>> mcmc = MCMC(model, observed_data, theta_dim=1)
+    >>> mcmc = MCMC(model=model, observed_data=data, theta_dim=1)
     >>> mcmc.run()
-    >>> print(mcmc.get_results()['theta_mean'])
+
+    Using a custom log-likelihood:
+
+    >>> def my_log_lik(theta):
+    ...     return -0.5 * jnp.sum((theta - 2.0)**2)
+    >>> mcmc = MCMC(log_prob_fn=my_log_lik, theta_dim=1, positive_params=False)
+    >>> mcmc.run()
     """
 
     def __init__(
         self,
-        model: Callable,
-        observed_data: jnp.ndarray | SparseObservations,
+        model: Callable | None = None,
+        observed_data: jnp.ndarray | SparseObservations | None = None,
         prior: Prior | list[Prior | None] | DataPrior | None = None,
         n_samples: int = 10_000,
         n_chains: int = 4,
@@ -140,7 +167,25 @@ class MCMC:
         param_transform: Callable | None = None,
         rewards: jnp.ndarray | None = None,
         fixed: list | None = None,
+        log_prob_fn: Callable | None = None,
     ) -> None:
+
+        # Validate mode: exactly one of model or log_prob_fn
+        if model is not None and log_prob_fn is not None:
+            raise ValueError(
+                "Cannot provide both 'model' and 'log_prob_fn'. "
+                "Use 'model' with 'observed_data' for phase-type models, "
+                "or 'log_prob_fn' for custom log-likelihood functions."
+            )
+        if model is None and log_prob_fn is None:
+            raise ValueError(
+                "Must provide either 'model' (with 'observed_data') or 'log_prob_fn'."
+            )
+        if model is not None and observed_data is None:
+            raise ValueError(
+                "'observed_data' is required when using 'model'. "
+                "Use 'log_prob_fn' instead if you don't have observation data."
+            )
 
         if seed is None:
             seed = np.random.randint(1, 10000)
@@ -151,6 +196,7 @@ class MCMC:
             jit = config.jit
 
         self.model = model
+        self._log_prob_fn = log_prob_fn
         self.n_samples = n_samples
         self.n_chains = n_chains
         self.burn_in = burn_in
@@ -162,12 +208,16 @@ class MCMC:
         self.rewards = rewards
         self.fixed = fixed
 
-        # Handle observations
-        if is_sparse_observations(observed_data):
-            self.observed_data = observed_data
-            self._sparse_format = True
+        # Handle observations (only needed in model mode)
+        if model is not None:
+            if is_sparse_observations(observed_data):
+                self.observed_data = observed_data
+                self._sparse_format = True
+            else:
+                self.observed_data = jnp.array(observed_data)
+                self._sparse_format = False
         else:
-            self.observed_data = jnp.array(observed_data)
+            self.observed_data = None
             self._sparse_format = False
 
         # Prior handling (same as SVGD)
@@ -353,23 +403,27 @@ class MCMC:
         else:
             theta = phi
 
-        # Model evaluation
-        result = self.model(theta, self.observed_data)
-
-        if isinstance(result, tuple):
-            model_values = result[0]
-        else:
-            model_values = result
-
         # Log-likelihood
-        if self._sparse_format:
-            log_lik = jnp.sum(jnp.log(model_values + 1e-10))
+        if self._log_prob_fn is not None:
+            # Direct log-probability mode
+            log_lik = self._log_prob_fn(theta)
         else:
-            obs_mask = ~jnp.isnan(self.observed_data) if self.observed_data.ndim > 1 else jnp.ones(self.observed_data.shape, dtype=bool)
-            if self.observed_data.ndim > 1:
-                log_lik = jnp.sum(jnp.where(obs_mask, jnp.log(model_values + 1e-10), 0.0))
+            # Model + data mode
+            result = self.model(theta, self.observed_data)
+
+            if isinstance(result, tuple):
+                model_values = result[0]
             else:
+                model_values = result
+
+            if self._sparse_format:
                 log_lik = jnp.sum(jnp.log(model_values + 1e-10))
+            else:
+                obs_mask = ~jnp.isnan(self.observed_data) if self.observed_data.ndim > 1 else jnp.ones(self.observed_data.shape, dtype=bool)
+                if self.observed_data.ndim > 1:
+                    log_lik = jnp.sum(jnp.where(obs_mask, jnp.log(model_values + 1e-10), 0.0))
+                else:
+                    log_lik = jnp.sum(jnp.log(model_values + 1e-10))
 
         # Log-prior
         if self.prior_list is not None:
@@ -396,9 +450,8 @@ class MCMC:
         total_iter = self.burn_in + self.n_samples * self.thin
         n_chains = self.n_chains
 
-        # Optionally JIT compile log_prob
-        if self.rewards is not None:
-            # Wrap model to pass rewards
+        # Optionally wrap model with rewards (only in model mode)
+        if self.rewards is not None and self.model is not None:
             original_model = self.model
             def model_with_rewards(theta, data):
                 return original_model(theta, data, rewards=self.rewards)
