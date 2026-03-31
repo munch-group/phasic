@@ -416,14 +416,7 @@ class MCMC:
             else:
                 model_values = result
 
-            if self._sparse_format:
-                log_lik = jnp.sum(jnp.log(model_values + 1e-10))
-            else:
-                obs_mask = ~jnp.isnan(self.observed_data) if self.observed_data.ndim > 1 else jnp.ones(self.observed_data.shape, dtype=bool)
-                if self.observed_data.ndim > 1:
-                    log_lik = jnp.sum(jnp.where(obs_mask, jnp.log(model_values + 1e-10), 0.0))
-                else:
-                    log_lik = jnp.sum(jnp.log(model_values + 1e-10))
+            log_lik = jnp.sum(jnp.log(model_values + 1e-10))
 
         # Log-prior
         if self.prior_list is not None:
