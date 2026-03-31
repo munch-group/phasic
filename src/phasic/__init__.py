@@ -252,9 +252,19 @@ if HAS_JAX:
         is_sparse_observations,
     )
     from .mcmc import MCMC
+    from .bffg import (
+        path_to_rewards,
+        path_exit_rates,
+        importance_log_weight_from_rates,
+        importance_weighted_log_likelihood,
+    )
 else:
     SVGD = None
     MCMC = None
+    path_to_rewards = None
+    path_exit_rates = None
+    importance_log_weight_from_rates = None
+    importance_weighted_log_likelihood = None
     Prior = None
     GaussPrior = None
     HalfCauchyPrior = None

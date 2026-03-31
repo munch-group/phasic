@@ -50,7 +50,9 @@
       "Bash(wait)",
       "Bash(grep -r \"importance\\\\|density_ratio\\\\|log_weight\\\\|log_prob\\\\|path.*sample\\\\|full.*path\" /Users/kmt/phasic/src/phasic/*.py)",
       "Bash(grep -r \"log_weight\\\\|importance\\\\|density.*ratio\\\\|likelihood.*ratio\\\\|KL.*div\\\\|wasserstein\" /Users/kmt/phasic/src/phasic/*.py)",
-      "Bash(grep -r \"sample.*path\\\\|trace.*path\\\\|markov.*chain\\\\|trajectory\\\\|jump.*sequence\" /Users/kmt/phasic/src/phasic/*.py)"
+      "Bash(grep -r \"sample.*path\\\\|trace.*path\\\\|markov.*chain\\\\|trajectory\\\\|jump.*sequence\" /Users/kmt/phasic/src/phasic/*.py)",
+      "Bash(grep -r rewards /Users/kmt/phasic/api --include=*.cpp --include=*.hpp --include=*.py)",
+      "Bash(find /Users/kmt/phasic -type f \\\\\\(-name *.cpp -o -name *.hpp -o -name *.h \\\\\\))"
     ],
     "deny": [],
     "ask": []
