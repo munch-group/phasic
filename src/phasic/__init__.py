@@ -251,8 +251,22 @@ if HAS_JAX:
         dense_to_sparse,
         is_sparse_observations,
     )
+    from .mcmc import MCMC
+    from .importance_sampling import (
+        inhomogeneous_log_density,
+        homogeneous_log_density,
+        importance_log_weight,
+        make_demographic_log_likelihood,
+        piecewise_constant_integral,
+    )
 else:
     SVGD = None
+    MCMC = None
+    inhomogeneous_log_density = None
+    homogeneous_log_density = None
+    importance_log_weight = None
+    make_demographic_log_likelihood = None
+    piecewise_constant_integral = None
     Prior = None
     GaussPrior = None
     HalfCauchyPrior = None
@@ -4515,6 +4529,178 @@ extern "C" {{
         # return svgd.get_results()
 
         return svgd
+
+    def mcmc(self,
+             observed_data: ArrayLike | SparseObservations,
+             discrete: bool | None = None,
+             prior: Callable | None = None,
+             n_samples: int = 10_000,
+             n_chains: int = 4,
+             burn_in: int = 1000,
+             thin: int = 1,
+             proposal_scale: float | ArrayLike | None = None,
+             theta_init: ArrayLike | None = None,
+             theta_dim: int | None = None,
+             seed: int | None = None,
+             verbose: bool = False,
+             progress: bool = True,
+             jit: bool | None = None,
+             positive_params: bool = True,
+             param_transform: Callable | None = None,
+             rewards: ArrayLike | None = None,
+             fixed: ArrayLike | None = None,
+             ) -> object:
+        """
+        Run MCMC Metropolis-Hastings inference for Bayesian parameter estimation.
+
+        Samples from the posterior distribution p(theta | data) using
+        random-walk Metropolis-Hastings with multiple independent chains.
+
+        Parameters
+        ----------
+        observed_data : array or SparseObservations
+            Observed data. A plain 1-D array for univariate models.
+            For multivariate models use ``SparseObservations``.
+        discrete : bool, optional
+            If True, computes discrete PMF. If False, continuous PDF.
+            If None, inferred from the graph.
+        prior : callable or list of Prior objects, optional
+            Log prior function. If None, constructs ``DataPrior``.
+        n_samples : int, default=10000
+            Number of posterior samples per chain (after burn-in).
+        n_chains : int, default=4
+            Number of independent chains.
+        burn_in : int, default=1000
+            Number of initial samples to discard.
+        thin : int, default=1
+            Keep every thin-th sample.
+        proposal_scale : float or array, optional
+            Proposal standard deviation. If None, defaults to 0.1.
+        theta_init : array, optional
+            Initial parameter values. Shape (n_chains, theta_dim) or (theta_dim,).
+        theta_dim : int, optional
+            Dimension of parameter vector. Inferred from graph if None.
+        seed : int, optional
+            Random seed.
+        verbose : bool, default=False
+            Print progress information.
+        progress : bool, default=True
+            Display progress bar.
+        jit : bool or None, default=None
+            JIT-compile log-probability function.
+        positive_params : bool, default=True
+            Constrain parameters to positive domain via softplus.
+        param_transform : callable, optional
+            Custom parameter transformation.
+        rewards : array, optional
+            Reward vector/matrix for multivariate distributions.
+        fixed : list or array, optional
+            Fixed parameters: [(index, value), ...] or binary mask.
+
+        Returns
+        -------
+        MCMC
+            MCMC object with results accessible via get_results() and summary().
+
+        Examples
+        --------
+        >>> g = Graph(...)  # parameterized graph
+        >>> data = np.random.exponential(0.5, size=200)
+        >>> mcmc = g.mcmc(data, n_samples=5000, n_chains=4)
+        >>> mcmc.summary()
+        >>> print(mcmc.get_results()['theta_mean'])
+        """
+        if not HAS_JAX:
+            raise ImportError(
+                "JAX is required for MCMC inference. "
+                "Install with: pip install 'phasic[jax]' or pip install jax jaxlib"
+            )
+
+        from .mcmc import MCMC
+
+        # Validate observed_data
+        from .svgd import SparseObservations as _SparseObs, is_sparse_observations
+        if not is_sparse_observations(observed_data):
+            observed_data = np.asarray(observed_data, dtype=np.float64)
+            if observed_data.ndim != 1:
+                raise TypeError(
+                    "observed_data must be a 1-D array or SparseObservations. "
+                    "For multivariate data, use dense_to_sparse()."
+                )
+            if np.any(np.isnan(observed_data)):
+                raise ValueError(
+                    "observed_data contains NaN values. "
+                    "Use SparseObservations for data with missing values."
+                )
+        elif is_sparse_observations(observed_data) and rewards is None:
+            raise ValueError("rewards must be provided when using SparseObservations.")
+
+        # Auto-infer theta_dim
+        if theta_dim is None and theta_init is None:
+            theta_dim = self.param_length()
+            if theta_dim == 0:
+                raise ValueError(
+                    "theta_dim could not be inferred. Either the graph has no parameterized edges, "
+                    "or you must specify theta_dim (or theta_init) explicitly."
+                )
+
+        if discrete is None:
+            discrete = self.is_discrete
+
+        # Default prior: DataPrior
+        if prior is None:
+            from .svgd import DataPrior
+            try:
+                prior = DataPrior(
+                    self, observed_data, sd=5.0, fixed=fixed,
+                    theta_dim=theta_dim, discrete=discrete, verbose=verbose,
+                )
+            except Exception:
+                pass  # Fall through to MCMC's standard-normal default
+
+        # Build model (MCMC only needs PMF, not moments)
+        if rewards is not None:
+            import jax.numpy as jnp
+            rewards_arr = jnp.asarray(rewards, dtype=jnp.float64)
+            if rewards_arr.ndim == 2:
+                model = Graph.pmf_and_moments_from_graph_multivariate(
+                    self, nr_moments=2, discrete=discrete,
+                    use_ffi=False, theta_dim=theta_dim
+                )
+            else:
+                model = Graph.pmf_and_moments_from_graph(
+                    self, nr_moments=2, discrete=discrete,
+                    theta_dim=theta_dim
+                )
+        else:
+            model = Graph.pmf_and_moments_from_graph(
+                self, nr_moments=2, discrete=discrete,
+                theta_dim=theta_dim
+            )
+
+        mcmc = MCMC(
+            model=model,
+            observed_data=observed_data,
+            prior=prior,
+            n_samples=n_samples,
+            n_chains=n_chains,
+            burn_in=burn_in,
+            thin=thin,
+            proposal_scale=proposal_scale,
+            theta_init=theta_init,
+            theta_dim=theta_dim,
+            seed=seed,
+            verbose=verbose,
+            progress=progress,
+            jit=jit,
+            positive_params=positive_params,
+            param_transform=param_transform,
+            rewards=rewards,
+            fixed=fixed,
+        )
+
+        mcmc.run()
+        return mcmc
 
     def method_of_moments(
         self,
