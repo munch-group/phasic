@@ -6736,6 +6736,8 @@ long double ptd_random_sample(struct ptd_graph *graph, double *rewards) {
 
 struct ptd_sample_path *ptd_random_sample_path(struct ptd_graph *graph) {
     size_t capacity = 16;
+    /* Safety limit: max steps = 100 * number of vertices */
+    size_t max_steps = 100 * graph->vertices_length;
     struct ptd_sample_path *path = (struct ptd_sample_path *) malloc(sizeof(*path));
     path->vertex_indices = (size_t *) malloc(capacity * sizeof(size_t));
     path->entry_times = (double *) malloc(capacity * sizeof(double));
@@ -6749,7 +6751,7 @@ struct ptd_sample_path *ptd_random_sample_path(struct ptd_graph *graph) {
     path->entry_times[path->length] = 0.0;
     path->length++;
 
-    while (vertex->edges_length != 0) {
+    while (vertex->edges_length != 0 && path->length < max_steps) {
         /* Sample waiting time */
         long double draw_wait = (long double) rand() / (long double) RAND_MAX;
 
@@ -6774,6 +6776,148 @@ struct ptd_sample_path *ptd_random_sample_path(struct ptd_graph *graph) {
         for (size_t i = 0; i < vertex->edges_length; ++i) {
             weight_sum += vertex->edges[i]->weight;
             if (weight_sum / rate >= draw_direction) {
+                edge_index = i;
+                break;
+            }
+        }
+
+        vertex = vertex->edges[edge_index]->to;
+
+        /* Grow arrays if needed */
+        if (path->length >= capacity) {
+            capacity *= 2;
+            path->vertex_indices = (size_t *) realloc(path->vertex_indices, capacity * sizeof(size_t));
+            path->entry_times = (double *) realloc(path->entry_times, capacity * sizeof(double));
+        }
+
+        /* Record this vertex */
+        path->vertex_indices[path->length] = vertex->index;
+        path->entry_times[path->length] = cumulative_time;
+        path->length++;
+    }
+
+    return path;
+}
+
+double *ptd_backward_probabilities(struct ptd_graph *graph,
+                                   size_t *target_vertices,
+                                   size_t n_targets) {
+    size_t n = graph->vertices_length;
+    double *h = (double *) calloc(n, sizeof(double));
+
+    /* Mark target vertices */
+    for (size_t i = 0; i < n_targets; ++i) {
+        if (target_vertices[i] < n) {
+            h[target_vertices[i]] = 1.0;
+        }
+    }
+
+    /* Backward pass: process vertices in reverse order.
+     * For each non-terminal vertex v:
+     *   h[v] = sum_i (weight_i / total_weight) * h[edge_i.to]
+     * where weight_i / total_weight is the transition probability.
+     * Target vertices keep h=1 regardless of their edges.
+     */
+    for (size_t vi = n; vi > 0; --vi) {
+        size_t idx = vi - 1;
+        struct ptd_vertex *v = graph->vertices[idx];
+
+        if (v->edges_length == 0) {
+            continue;  /* Absorbing vertex: keep h as initialized */
+        }
+
+        /* Skip target vertices — they keep h=1 even if they have edges */
+        if (h[idx] == 1.0) {
+            int is_target = 0;
+            for (size_t i = 0; i < n_targets; ++i) {
+                if (target_vertices[i] == idx) {
+                    is_target = 1;
+                    break;
+                }
+            }
+            if (is_target) continue;
+        }
+
+        /* Compute total exit rate for normalization */
+        double total_weight = 0;
+        for (size_t i = 0; i < v->edges_length; ++i) {
+            total_weight += v->edges[i]->weight;
+        }
+
+        if (total_weight <= 0) {
+            h[idx] = 0;
+            continue;
+        }
+
+        double prob = 0;
+        for (size_t i = 0; i < v->edges_length; ++i) {
+            double trans_prob = v->edges[i]->weight / total_weight;
+            prob += trans_prob * h[v->edges[i]->to->index];
+        }
+        h[idx] = prob;
+    }
+
+    return h;
+}
+
+struct ptd_sample_path *ptd_random_sample_path_conditioned(
+    struct ptd_graph *graph,
+    double *backward_probs) {
+
+    size_t capacity = 16;
+    struct ptd_sample_path *path = (struct ptd_sample_path *) malloc(sizeof(*path));
+    path->vertex_indices = (size_t *) malloc(capacity * sizeof(size_t));
+    path->entry_times = (double *) malloc(capacity * sizeof(double));
+    path->length = 0;
+
+    double cumulative_time = 0.0;
+    struct ptd_vertex *vertex = graph->starting_vertex;
+
+    /* Record starting vertex */
+    path->vertex_indices[path->length] = vertex->index;
+    path->entry_times[path->length] = 0.0;
+    path->length++;
+
+    while (vertex->edges_length != 0 && backward_probs[vertex->index] < 1.0) {
+        /* Stop if we've reached a target vertex (h=1) even if it has edges */
+
+        /* Sample waiting time (same as ptd_random_sample_path) */
+        long double draw_wait = (long double) rand() / (long double) RAND_MAX;
+
+        double rate = 0;
+        for (size_t i = 0; i < vertex->edges_length; ++i) {
+            rate += vertex->edges[i]->weight;
+        }
+
+        long double waiting_time = -logl(draw_wait + 0.0000001) / rate;
+
+        if (vertex == graph->starting_vertex) {
+            waiting_time = 0;
+        }
+
+        cumulative_time += (double) waiting_time;
+
+        /* Guided selection: weight by edge_weight * backward_prob[target] */
+        double guided_total = 0;
+        for (size_t i = 0; i < vertex->edges_length; ++i) {
+            guided_total += vertex->edges[i]->weight *
+                           backward_probs[vertex->edges[i]->to->index];
+        }
+
+        if (guided_total <= 0) {
+            break;  /* No reachable target from here — stop */
+        }
+
+        long double draw_direction = (long double) rand() / (long double) RAND_MAX;
+        long double weight_sum = 0;
+        size_t edge_index = 0;
+
+        for (size_t i = 0; i < vertex->edges_length; ++i) {
+            double guided_weight = vertex->edges[i]->weight *
+                                  backward_probs[vertex->edges[i]->to->index];
+            weight_sum += guided_weight;
+
+            if (weight_sum / guided_total >= draw_direction) {
                 edge_index = i;
                 break;
             }

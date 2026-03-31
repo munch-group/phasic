@@ -286,6 +286,17 @@ struct ptd_sample_path {
 
 struct ptd_sample_path *ptd_random_sample_path(struct ptd_graph *graph);
 
+struct ptd_sample_path *ptd_random_sample_path_conditioned(
+    struct ptd_graph *graph,
+    double *backward_probs
+);
+
+double *ptd_backward_probabilities(
+    struct ptd_graph *graph,
+    size_t *target_vertices,
+    size_t n_targets
+);
+
 void ptd_sample_path_destroy(struct ptd_sample_path *path);
 
 double ptd_defect(struct ptd_graph *graph);

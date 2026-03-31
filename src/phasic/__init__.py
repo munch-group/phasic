@@ -2561,6 +2561,51 @@ class Graph(_Graph):
         """
         return super().sample_path(n)
 
+    def backward_probabilities(self, target_vertices: list[int]) -> np.ndarray:
+        """
+        Compute P(reach target | start at v) for each vertex v.
+
+        For each vertex, computes the probability of eventually reaching
+        one of the target terminal states. Uses backward induction over
+        the graph structure.
+
+        Parameters
+        ----------
+        target_vertices : list of int
+            Indices of target terminal vertices.
+
+        Returns
+        -------
+        np.ndarray
+            Array of length vertices_length() with backward probability
+            for each vertex. Values are between 0 and 1.
+        """
+        return np.array(super().backward_probabilities(target_vertices))
+
+    def sample_path_conditioned(self, target_vertices: list[int], n: int = 1) -> dict | list[dict]:
+        """
+        Sample path(s) conditioned on reaching a target terminal state.
+
+        Uses guided forward sampling: at each step, the next state is
+        chosen proportional to ``edge_weight * h(next_state)`` where
+        ``h`` is the backward probability of reaching the target. This
+        ensures every sampled path ends at one of the target vertices.
+
+        Parameters
+        ----------
+        target_vertices : list of int
+            Indices of target terminal vertices.
+        n : int, default=1
+            Number of paths to sample.
+
+        Returns
+        -------
+        dict or list of dict
+            Same format as sample_path().
+        """
+        bp = self.backward_probabilities(target_vertices)
+        return super().sample_path_conditioned(bp.tolist(), n)
+
     def stop_probability(self, time: float | int, **kwargs: Any) -> np.ndarray:
         """
         Compute probability of being in each state at a given time.

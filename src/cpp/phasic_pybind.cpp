@@ -1687,6 +1687,83 @@ str
     )delim")
 
 
+    .def("backward_probabilities",
+      [](phasic::Graph &graph, std::vector<size_t> target_vertices) {
+        auto result = graph.backward_probabilities(target_vertices);
+        size_t len = result.size();
+        py::array_t<double> py_result(len);
+        auto buf = py_result.mutable_unchecked<1>();
+        for (size_t i = 0; i < len; i++) {
+            buf(i) = result[i];
+        }
+        return py_result;
+      }, py::return_value_policy::move, py::arg("target_vertices"), R"delim(
+    Compute backward probabilities: P(reach target | start at v) for each vertex.
+
+    Parameters
+    ----------
+    target_vertices : list of int
+        Indices of target terminal vertices.
+
+    Returns
+    -------
+    numpy array
+        Array of length vertices_length() with backward probability for each vertex.
+    )delim")
+
+
+    .def("sample_path_conditioned",
+      [](phasic::Graph &graph, std::vector<double> backward_probs, int n) {
+        set_c_seed();
+        py::list results;
+
+        for (int i = 0; i < n; i++) {
+            auto [indices, times] = graph.random_sample_path_conditioned(backward_probs);
+
+            size_t len = indices.size();
+            py::array_t<long> py_indices(len);
+            py::array_t<double> py_times(len);
+
+            auto idx_buf = py_indices.mutable_unchecked<1>();
+            auto time_buf = py_times.mutable_unchecked<1>();
+
+            for (size_t j = 0; j < len; j++) {
+                idx_buf(j) = (long) indices[j];
+                time_buf(j) = times[j];
+            }
+
+            py::dict path;
+            path["vertex_indices"] = py_indices;
+            path["entry_times"] = py_times;
+            results.append(path);
+        }
+
+        if (n == 1) {
+            return py::cast<py::object>(results[0]);
+        }
+        return py::cast<py::object>(results);
+
+      }, py::return_value_policy::move, py::arg("backward_probs"), py::arg("n")=1, R"delim(
+    Sample path(s) conditioned on reaching a target terminal state.
+
+    Uses guided forward sampling where the next state is chosen proportional
+    to edge_weight * backward_prob[next_state], ensuring the path reaches
+    the target.
+
+    Parameters
+    ----------
+    backward_probs : numpy array
+        Pre-computed backward probabilities from backward_probabilities().
+    n : int, optional
+        Number of paths to sample. Default is 1.
+
+    Returns
+    -------
+    dict or list of dict
+        Same format as sample_path().
+    )delim")
+
+
     .def("sample_discrete",
       [](phasic::Graph &graph, int n, std::vector<double>rewards) {
 

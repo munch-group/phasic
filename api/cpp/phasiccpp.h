@@ -439,6 +439,26 @@ namespace phasic {
             return {indices, times};
         }
 
+        std::vector<double> backward_probabilities(std::vector<size_t> target_vertices) {
+            double *h = ptd_backward_probabilities(
+                c_graph(), &target_vertices[0], target_vertices.size()
+            );
+            std::vector<double> result(h, h + c_graph()->vertices_length);
+            free(h);
+            return result;
+        }
+
+        std::pair<std::vector<size_t>, std::vector<double>>
+        random_sample_path_conditioned(std::vector<double> backward_probs) {
+            struct ptd_sample_path *path = ptd_random_sample_path_conditioned(
+                c_graph(), &backward_probs[0]
+            );
+            std::vector<size_t> indices(path->vertex_indices, path->vertex_indices + path->length);
+            std::vector<double> times(path->entry_times, path->entry_times + path->length);
+            ptd_sample_path_destroy(path);
+            return {indices, times};
+        }
+
         size_t random_sample_stop_vertex(double time) {
             struct ptd_vertex *res = ptd_random_sample_stop_vertex(c_graph(), time);
 
