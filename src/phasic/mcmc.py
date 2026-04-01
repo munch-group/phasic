@@ -10,9 +10,19 @@ as SVGD.
 from __future__ import annotations
 
 import logging
+import os
 import warnings
 from typing import Callable
 from time import time
+
+try:
+    import multiprocess
+    _mp_ctx = multiprocess.get_context('spawn')
+    _Pool = _mp_ctx.Pool
+except ImportError:
+    import multiprocessing
+    _mp_ctx = multiprocessing.get_context('spawn')
+    _Pool = _mp_ctx.Pool
 
 import numpy as np
 import jax
@@ -115,6 +125,20 @@ class MCMC:
     fixed : list of tuples or array, optional
         Fixed parameters. Same format as SVGD:
         - [(index, value), ...] or binary mask [0, 1, 0, ...]
+    adaptive : bool, default=True
+        Enable adaptive Metropolis proposal (Haario et al., 2001).
+        During burn-in, learns an empirical covariance from chain history
+        and adapts proposal scale toward ``target_acceptance``.
+    adapt_after : int, optional
+        Start adapting after this many iterations. Default: ``max(2 * theta_dim, 100)``.
+    target_acceptance : float, default=0.234
+        Target acceptance rate for scale adaptation (optimal for
+        multi-dimensional targets).
+    parallel : str or None, optional
+        Chain parallelization mode:
+        - ``'processes'``: multiprocess Pool (for non-JIT log_prob_fn)
+        - ``'vmap'``: JAX vectorization (for JIT-compiled log_prob_fn)
+        - ``None``: auto-detect based on JIT setting and chain count
 
     Attributes
     ----------
@@ -168,6 +192,10 @@ class MCMC:
         rewards: jnp.ndarray | None = None,
         fixed: list | None = None,
         log_prob_fn: Callable | None = None,
+        adaptive: bool = True,
+        adapt_after: int | None = None,
+        target_acceptance: float = 0.234,
+        parallel: str | None = None,
     ) -> None:
 
         # Validate mode: exactly one of model or log_prob_fn
@@ -380,6 +408,23 @@ class MCMC:
         else:
             self.proposal_scale = jnp.array(proposal_scale)
 
+        # Adaptive proposal (Haario et al., 2001)
+        self.adaptive = adaptive
+        self.adapt_after = adapt_after if adapt_after is not None else max(2 * self.theta_dim, 100)
+        self.target_acceptance = target_acceptance
+
+        # Parallel chain execution
+        if parallel is None:
+            if self.jit_enabled and n_chains > 1:
+                self.parallel = 'vmap'
+            else:
+                # Non-JIT log_prob_fn (e.g., BFFG with C++ path sampling)
+                # can't be vmapped or pickled for multiprocessing.
+                # Run sequentially — speedup comes from adaptive proposals.
+                self.parallel = None
+        else:
+            self.parallel = parallel
+
         # Results
         self._chains_phi = None  # Chains in unconstrained space
         self.acceptance_rate = None
@@ -432,6 +477,244 @@ class MCMC:
 
         return log_lik + log_pri
 
+    def _run_chain(self, chain_idx: int, log_prob_fn: Callable,
+                   chain_seed: int) -> tuple[np.ndarray, float]:
+        """Run a single MCMC chain.
+
+        Returns
+        -------
+        chain_samples : np.ndarray, shape (n_samples, theta_dim)
+        acceptance_count : float
+        """
+        total_iter = self.burn_in + self.n_samples * self.thin
+        chain_key = jax.random.PRNGKey(chain_seed)
+        phi_current = self.theta_init[chain_idx]
+        lp_current = float(log_prob_fn(phi_current))
+
+        chain_phi = np.empty((self.n_samples, self.theta_dim))
+        acceptance_count = 0.0
+        sample_idx = 0
+
+        # Adaptive proposal state
+        if self.adaptive:
+            # Free dimensions (exclude fixed params)
+            if self.fixed_mask is not None:
+                free_mask = np.asarray(1 - self.fixed_mask, dtype=bool)
+            else:
+                free_mask = np.ones(self.theta_dim, dtype=bool)
+            n_free = int(free_mask.sum())
+            s_d = 2.4**2 / max(n_free, 1)
+            epsilon = 1e-6
+            log_scale = 0.0
+            adapt_interval = max(50, self.theta_dim * 5)
+            # Cholesky of initial diagonal proposal
+            chol = np.diag(np.asarray(self.proposal_scale[free_mask]))
+            # History buffer for covariance estimation
+            history = []
+            recent_accepts = 0
+            recent_total = 0
+
+        iterator = range(total_iter)
+        if self.progress:
+            iterator = trange(total_iter,
+                              desc=f"Chain {chain_idx+1}/{self.n_chains}")
+
+        for i in iterator:
+            chain_key, prop_key, accept_key = jax.random.split(chain_key, 3)
+            noise = jax.random.normal(prop_key, (self.theta_dim,))
+
+            # Propose
+            if self.adaptive and i >= self.adapt_after:
+                # Adaptive: use learned covariance on free dimensions
+                scale = np.exp(log_scale)
+                free_noise = np.asarray(noise[free_mask])
+                free_step = scale * chol @ free_noise
+                phi_proposed = np.asarray(phi_current).copy()
+                phi_proposed[free_mask] += free_step
+                phi_proposed = jnp.array(phi_proposed)
+            else:
+                # Fixed diagonal proposal
+                phi_proposed = phi_current + self.proposal_scale * noise
+
+            # Enforce fixed params
+            if self.fixed_mask is not None:
+                phi_proposed = jnp.where(self.fixed_mask, self.fixed_values,
+                                         phi_proposed)
+
+            # Evaluate
+            lp_proposed = float(log_prob_fn(phi_proposed))
+
+            # Accept/reject
+            log_alpha = lp_proposed - lp_current
+            log_u = float(jnp.log(jax.random.uniform(accept_key)))
+            accepted = log_u < log_alpha
+
+            if accepted:
+                phi_current = phi_proposed
+                lp_current = lp_proposed
+                if i >= self.burn_in:
+                    acceptance_count += 1
+
+            # Adaptive: accumulate history and periodically update
+            if self.adaptive:
+                history.append(np.asarray(phi_current[free_mask]))
+                recent_total += 1
+                if accepted:
+                    recent_accepts += 1
+
+                if i >= self.adapt_after and (i - self.adapt_after) % adapt_interval == 0 and len(history) > n_free + 1:
+                    # Update empirical covariance
+                    H = np.array(history)
+                    cov = np.cov(H.T)
+                    if cov.ndim == 0:
+                        cov = np.array([[float(cov)]])
+                    cov_reg = s_d * cov + s_d * epsilon * np.eye(n_free)
+                    try:
+                        chol = np.linalg.cholesky(cov_reg)
+                    except np.linalg.LinAlgError:
+                        pass  # Keep previous Cholesky
+
+                    # Robbins-Monro scale adaptation
+                    if recent_total > 0:
+                        current_rate = recent_accepts / recent_total
+                        gamma = 1.0 / np.sqrt(max(i, 1))
+                        log_scale += gamma * (current_rate - self.target_acceptance)
+                        recent_accepts = 0
+                        recent_total = 0
+
+            # Store (after burn-in, with thinning)
+            if i >= self.burn_in and (i - self.burn_in) % self.thin == 0:
+                chain_phi[sample_idx] = np.asarray(phi_current)
+                sample_idx += 1
+
+        return chain_phi, acceptance_count
+
+    def _run_chains_vmap(self, log_prob_fn: Callable) -> tuple[np.ndarray, np.ndarray]:
+        """Run all chains in lockstep using vmap for parallel log_prob evaluation.
+
+        Returns
+        -------
+        chains_phi : np.ndarray, shape (n_chains, n_samples, theta_dim)
+        acceptance_counts : np.ndarray, shape (n_chains,)
+        """
+        n_chains = self.n_chains
+        total_iter = self.burn_in + self.n_samples * self.thin
+
+        # Vectorized log_prob: evaluate all chains at once
+        vmap_log_prob = jax.vmap(log_prob_fn)
+
+        # State: all chains
+        phi_all = jnp.array(self.theta_init)  # (n_chains, theta_dim)
+        lp_all = vmap_log_prob(phi_all)        # (n_chains,)
+
+        chains_phi = np.empty((n_chains, self.n_samples, self.theta_dim))
+        acceptance_counts = np.zeros(n_chains)
+        sample_idx = np.zeros(n_chains, dtype=int)
+
+        # Per-chain adaptive state
+        if self.adaptive:
+            if self.fixed_mask is not None:
+                free_mask = np.asarray(1 - self.fixed_mask, dtype=bool)
+            else:
+                free_mask = np.ones(self.theta_dim, dtype=bool)
+            n_free = int(free_mask.sum())
+            s_d = 2.4**2 / max(n_free, 1)
+            epsilon = 1e-6
+            log_scales = np.zeros(n_chains)
+            adapt_interval = max(50, self.theta_dim * 5)
+            chols = [np.diag(np.asarray(self.proposal_scale[free_mask]))
+                     for _ in range(n_chains)]
+            histories = [[] for _ in range(n_chains)]
+            recent_accepts = np.zeros(n_chains)
+            recent_totals = np.zeros(n_chains)
+
+        key = jax.random.PRNGKey(self.seed + 1000)
+
+        iterator = range(total_iter)
+        if self.progress:
+            iterator = trange(total_iter, desc=f"MCMC ({n_chains} chains)")
+
+        for i in iterator:
+            key, prop_key, accept_key = jax.random.split(key, 3)
+
+            # Generate noise for all chains at once
+            noise_all = jax.random.normal(
+                prop_key, (n_chains, self.theta_dim)
+            )
+
+            # Propose for all chains
+            if self.adaptive and i >= self.adapt_after:
+                # Adaptive: per-chain Cholesky (can't vmap numpy ops)
+                phi_proposed_list = []
+                for c in range(n_chains):
+                    scale = np.exp(log_scales[c])
+                    free_noise = np.asarray(noise_all[c, free_mask])
+                    free_step = scale * chols[c] @ free_noise
+                    phi_p = np.asarray(phi_all[c]).copy()
+                    phi_p[free_mask] += free_step
+                    phi_proposed_list.append(phi_p)
+                phi_proposed = jnp.array(phi_proposed_list)
+            else:
+                phi_proposed = phi_all + self.proposal_scale * noise_all
+
+            # Enforce fixed params
+            if self.fixed_mask is not None:
+                phi_proposed = jnp.where(
+                    self.fixed_mask[None, :], self.fixed_values[None, :],
+                    phi_proposed
+                )
+
+            # Evaluate all chains in parallel via vmap
+            lp_proposed = vmap_log_prob(phi_proposed)  # (n_chains,)
+
+            # Accept/reject per chain
+            log_alpha = lp_proposed - lp_all
+            log_u = jnp.log(jax.random.uniform(accept_key, (n_chains,)))
+            accepted = log_u < log_alpha
+
+            # Update states
+            phi_all = jnp.where(accepted[:, None], phi_proposed, phi_all)
+            lp_all = jnp.where(accepted, lp_proposed, lp_all)
+
+            if i >= self.burn_in:
+                acceptance_counts += np.asarray(accepted)
+
+            # Adaptive: update per-chain histories
+            if self.adaptive:
+                for c in range(n_chains):
+                    histories[c].append(np.asarray(phi_all[c, free_mask]))
+                    recent_totals[c] += 1
+                    if accepted[c]:
+                        recent_accepts[c] += 1
+
+                    if (i >= self.adapt_after
+                            and (i - self.adapt_after) % adapt_interval == 0
+                            and len(histories[c]) > n_free + 1):
+                        H = np.array(histories[c])
+                        cov = np.cov(H.T)
+                        if cov.ndim == 0:
+                            cov = np.array([[float(cov)]])
+                        cov_reg = s_d * cov + s_d * epsilon * np.eye(n_free)
+                        try:
+                            chols[c] = np.linalg.cholesky(cov_reg)
+                        except np.linalg.LinAlgError:
+                            pass
+
+                        if recent_totals[c] > 0:
+                            current_rate = recent_accepts[c] / recent_totals[c]
+                            gamma = 1.0 / np.sqrt(max(i, 1))
+                            log_scales[c] += gamma * (current_rate - self.target_acceptance)
+                            recent_accepts[c] = 0
+                            recent_totals[c] = 0
+
+            # Store
+            if i >= self.burn_in and (i - self.burn_in) % self.thin == 0:
+                for c in range(n_chains):
+                    chains_phi[c, sample_idx[c]] = np.asarray(phi_all[c])
+                    sample_idx[c] += 1
+
+        return chains_phi, acceptance_counts
+
     def run(self) -> MCMC:
         """Run MCMC sampling.
 
@@ -440,7 +723,6 @@ class MCMC:
         MCMC
             Returns self for method chaining.
         """
-        total_iter = self.burn_in + self.n_samples * self.thin
         n_chains = self.n_chains
 
         # Optionally wrap model with rewards (only in model mode)
@@ -453,7 +735,6 @@ class MCMC:
         log_prob_fn = self._log_prob
         if self.jit_enabled:
             log_prob_fn = jax.jit(self._log_prob)
-            # Trigger compilation
             if self.verbose:
                 print("JIT compiling log-probability function...", end=" ", flush=True)
             t0 = time()
@@ -462,58 +743,47 @@ class MCMC:
                 print(f"done ({time() - t0:.1f}s)")
 
         if self.verbose:
+            adapt_str = f", adaptive" if self.adaptive else ""
+            par_str = f", parallel={self.parallel}" if self.parallel else ""
             print(f"\nStarting MCMC ({n_chains} chains, {self.n_samples} samples, "
-                  f"burn-in={self.burn_in}, thin={self.thin})")
+                  f"burn-in={self.burn_in}{adapt_str}{par_str})")
 
-        # Allocate storage
-        chains_phi = np.empty((n_chains, self.n_samples, self.theta_dim))
-        acceptance_counts = np.zeros(n_chains)
-
-        key = jax.random.PRNGKey(self.seed + 1000)
-
-        for c in range(n_chains):
-            key, chain_key = jax.random.split(key)
-            phi_current = self.theta_init[c]
-            lp_current = float(log_prob_fn(phi_current))
-            sample_idx = 0
-
-            iterator = range(total_iter)
-            if self.progress:
-                iterator = trange(total_iter, desc=f"Chain {c+1}/{n_chains}")
-
-            for i in iterator:
-                chain_key, prop_key, accept_key = jax.random.split(chain_key, 3)
-
-                # Propose
-                noise = jax.random.normal(prop_key, (self.theta_dim,))
-                phi_proposed = phi_current + self.proposal_scale * noise
-
-                # Enforce fixed params
-                if self.fixed_mask is not None:
-                    phi_proposed = jnp.where(self.fixed_mask, self.fixed_values, phi_proposed)
-
-                # Evaluate
-                lp_proposed = float(log_prob_fn(phi_proposed))
-
-                # Accept/reject
-                log_alpha = lp_proposed - lp_current
-                log_u = float(jnp.log(jax.random.uniform(accept_key)))
-
-                if log_u < log_alpha:
-                    phi_current = phi_proposed
-                    lp_current = lp_proposed
-                    if i >= self.burn_in:
-                        acceptance_counts[c] += 1
-
-                # Store (after burn-in, with thinning)
-                if i >= self.burn_in and (i - self.burn_in) % self.thin == 0:
-                    chains_phi[c, sample_idx] = np.asarray(phi_current)
-                    sample_idx += 1
-
-            if self.verbose:
-                post_burnin_total = self.n_samples * self.thin
-                rate = acceptance_counts[c] / post_burnin_total
-                print(f"  Chain {c+1}: acceptance rate = {rate:.3f}")
+        # Run chains
+        if self.parallel == 'vmap' and n_chains > 1:
+            # JAX vmap: all chains evaluate log_prob in parallel
+            chains_phi, acceptance_counts = self._run_chains_vmap(log_prob_fn)
+        elif self.parallel == 'processes' and n_chains > 1:
+            # multiprocess Pool: separate processes per chain
+            key = jax.random.PRNGKey(self.seed + 1000)
+            chain_seeds = []
+            for c in range(n_chains):
+                key, subkey = jax.random.split(key)
+                chain_seeds.append(int(jax.random.randint(subkey, (), 0, 2**31)))
+            max_workers = min(n_chains, os.cpu_count() or 1)
+            args = [(c, log_prob_fn, chain_seeds[c]) for c in range(n_chains)]
+            with _Pool(processes=max_workers) as pool:
+                results_list = pool.starmap(self._run_chain, args)
+            chains_phi = np.empty((n_chains, self.n_samples, self.theta_dim))
+            acceptance_counts = np.zeros(n_chains)
+            for c, (chain_samples, acc_count) in enumerate(results_list):
+                chains_phi[c] = chain_samples
+                acceptance_counts[c] = acc_count
+        else:
+            # Sequential
+            key = jax.random.PRNGKey(self.seed + 1000)
+            chain_seeds = []
+            for c in range(n_chains):
+                key, subkey = jax.random.split(key)
+                chain_seeds.append(int(jax.random.randint(subkey, (), 0, 2**31)))
+            results_list = [
+                self._run_chain(c, log_prob_fn, chain_seeds[c])
+                for c in range(n_chains)
+            ]
+            chains_phi = np.empty((n_chains, self.n_samples, self.theta_dim))
+            acceptance_counts = np.zeros(n_chains)
+            for c, (chain_samples, acc_count) in enumerate(results_list):
+                chains_phi[c] = chain_samples
+                acceptance_counts[c] = acc_count
 
         self._chains_phi = chains_phi
         total_post_burnin = self.n_samples * self.thin
@@ -521,13 +791,14 @@ class MCMC:
         self.is_fitted = True
 
         if self.verbose:
+            for c in range(n_chains):
+                print(f"  Chain {c+1}: acceptance rate = {self.acceptance_rate[c]:.3f}")
             results = self.get_results()
             print(f"\nMCMC complete!")
             print(f"Posterior mean: {results['theta_mean']}")
             print(f"Posterior std:  {results['theta_std']}")
             if n_chains >= 2:
-                rhat = results['rhat']
-                print(f"R-hat:          {rhat}")
+                print(f"R-hat:          {results['rhat']}")
 
         return self
 

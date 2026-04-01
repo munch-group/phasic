@@ -566,3 +566,152 @@ class TestMCMCLogProbFn:
 
         results = mcmc.get_results()
         assert np.all(results['particles'] > 0)
+
+
+class TestMCMCAdaptive:
+    """Tests for adaptive Metropolis proposal."""
+
+    def test_adaptive_runs(self):
+        """Adaptive MCMC runs without error."""
+        def log_lik(theta):
+            return -0.5 * jnp.sum((theta - 2.0)**2)
+
+        mcmc = MCMC(
+            log_prob_fn=log_lik,
+            theta_dim=2,
+            n_samples=500,
+            n_chains=2,
+            burn_in=300,
+            adaptive=True,
+            positive_params=False,
+            verbose=False, progress=False, seed=42,
+        )
+        mcmc.run()
+        assert mcmc.is_fitted
+
+    def test_adaptive_false(self):
+        """adaptive=False uses fixed proposal (backward compatible)."""
+        def log_lik(theta):
+            return -0.5 * jnp.sum((theta - 2.0)**2)
+
+        mcmc = MCMC(
+            log_prob_fn=log_lik,
+            theta_dim=1,
+            n_samples=500,
+            n_chains=2,
+            burn_in=200,
+            adaptive=False,
+            positive_params=False,
+            verbose=False, progress=False, seed=42,
+        )
+        mcmc.run()
+        assert mcmc.is_fitted
+
+    def test_adaptive_acceptance_rate(self):
+        """Adaptive should produce acceptance rate in a reasonable range."""
+        def log_lik(theta):
+            return -0.5 * jnp.sum((theta - jnp.array([2.0, 3.0]))**2 / 0.5**2)
+
+        mcmc = MCMC(
+            log_prob_fn=log_lik,
+            theta_dim=2,
+            n_samples=2000,
+            n_chains=2,
+            burn_in=500,
+            adaptive=True,
+            target_acceptance=0.234,
+            positive_params=False,
+            verbose=False, progress=False, seed=42,
+        )
+        mcmc.run()
+
+        for rate in mcmc.acceptance_rate:
+            assert 0.05 < rate < 0.6, (
+                f"Acceptance rate {rate:.3f} should be in reasonable range"
+            )
+
+    def test_adaptive_with_fixed_params(self):
+        """Adaptive works with fixed parameters."""
+        g = Graph(1)
+        start = g.starting_vertex()
+        v2 = g.find_or_create_vertex([2])
+        v1 = g.find_or_create_vertex([1])
+        start.add_edge(v2, 1.0)
+        v2.add_edge_parameterized(v1, 0.0, [1.0, 0.0])
+        g.update_parameterized_weights([2.0, 1.0])
+        data = np.array(g.sample(100))
+        model = Graph.pmf_and_moments_from_graph(g, nr_moments=2, discrete=False, theta_dim=2)
+
+        mcmc = MCMC(
+            model=model, observed_data=data,
+            theta_dim=2, n_samples=300, n_chains=2,
+            burn_in=200, adaptive=True,
+            fixed=[(1, 1.0)],
+            verbose=False, progress=False, seed=42,
+        )
+        mcmc.run()
+        results = mcmc.get_results()
+        fixed_vals = np.asarray(results['particles'][:, 1])
+        assert np.allclose(fixed_vals, 1.0, atol=0.01)
+
+
+class TestMCMCParallel:
+    """Tests for parallel chain execution."""
+
+    def test_processes_parallel(self):
+        """Process-based parallelism runs and gives valid results."""
+        def log_lik(theta):
+            return -0.5 * jnp.sum((theta - 2.0)**2)
+
+        mcmc = MCMC(
+            log_prob_fn=log_lik,
+            theta_dim=1,
+            n_samples=500,
+            n_chains=4,
+            burn_in=200,
+            parallel='processes',
+            positive_params=False,
+            verbose=False, progress=False, seed=42,
+        )
+        mcmc.run()
+        assert mcmc.is_fitted
+        assert mcmc.acceptance_rate.shape == (4,)
+        assert np.all(mcmc.acceptance_rate > 0)
+
+    def test_vmap_parallel(self):
+        """Vmap parallelism runs and gives valid results."""
+        def log_lik(theta):
+            return -0.5 * jnp.sum((theta - 2.0)**2)
+
+        mcmc = MCMC(
+            log_prob_fn=log_lik,
+            theta_dim=1,
+            n_samples=500,
+            n_chains=4,
+            burn_in=200,
+            parallel='vmap',
+            positive_params=False,
+            verbose=False, progress=False, seed=42,
+        )
+        mcmc.run()
+        assert mcmc.is_fitted
+        assert mcmc.acceptance_rate.shape == (4,)
+        assert np.all(mcmc.acceptance_rate > 0)
+
+    def test_vmap_with_model(self):
+        """Vmap works with phasic model (JIT-compatible)."""
+        true_theta = 2.0
+        data = generate_data(true_theta, n_samples=100)
+        g = build_exponential_graph()
+        model = Graph.pmf_and_moments_from_graph(g, nr_moments=2, discrete=False)
+
+        mcmc = MCMC(
+            model=model, observed_data=data,
+            theta_dim=1, n_samples=500, n_chains=4,
+            burn_in=200, proposal_scale=0.5,
+            parallel='vmap',
+            verbose=False, progress=False, seed=42,
+        )
+        mcmc.run()
+        mean = float(mcmc.get_results()['theta_mean'][0])
+        assert 0.5 < mean < 5.0, f"Posterior mean {mean} out of range"
