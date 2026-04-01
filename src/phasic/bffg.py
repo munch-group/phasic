@@ -117,6 +117,64 @@ def path_exit_rates(graph, path: dict) -> tuple[np.ndarray, np.ndarray]:
     return np.array(rates), np.array(sojourns)
 
 
+def path_exit_rates_by_param(graph, path: dict) -> tuple[np.ndarray, np.ndarray]:
+    """Compute per-parameter exit rate contributions along a sampled path.
+
+    For parameterized graphs, the exit rate at each vertex decomposes as:
+
+    .. math::
+
+        r_v = \\sum_p \\theta_p \\cdot \\sum_{\\text{edges from } v} c_{e,p}
+
+    where ``c_{e,p}`` is the coefficient of parameter ``p`` on edge ``e``.
+    This function returns the per-parameter rate contributions
+    (``sum of coefficients * theta_p``) at each transient vertex.
+
+    Parameters
+    ----------
+    graph : Graph
+        The parameterized graph from which the path was sampled.
+    path : dict
+        Path dict from ``graph.sample_path()`` or
+        ``graph.sample_path_conditioned()``.
+
+    Returns
+    -------
+    rate_components : np.ndarray, shape ``(n_steps, n_params)``
+        Per-parameter exit rate contribution at each transient vertex.
+        ``rate_components[step, p]`` is ``theta_p * sum(coeffs_p)`` over
+        all outgoing edges at that step's vertex.
+    sojourn_times : np.ndarray, shape ``(n_steps,)``
+        Sojourn time at each corresponding vertex.
+    """
+    indices = path['vertex_indices']
+    times = path['entry_times']
+    vertices = graph.vertices()
+    n_params = graph.param_length()
+
+    all_sojourn = np.diff(times)
+
+    components = []
+    sojourns = []
+    for step in range(1, len(all_sojourn)):
+        v_idx = int(indices[step])
+        v = vertices[v_idx]
+        if v.edges_length() == 0:
+            break
+
+        # Sum coefficients per parameter across all outgoing edges
+        param_rates = np.zeros(n_params)
+        for e in v.parameterized_edges():
+            coeffs = e.edge_state(n_params)
+            for p in range(len(coeffs)):
+                param_rates[p] += coeffs[p]
+
+        components.append(param_rates)
+        sojourns.append(all_sojourn[step])
+
+    return np.array(components), np.array(sojourns)
+
+
 def importance_log_weight_from_rates(
     exit_rates_proposal: np.ndarray,
     exit_rates_target: np.ndarray,

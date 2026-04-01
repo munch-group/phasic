@@ -255,6 +255,7 @@ if HAS_JAX:
     from .bffg import (
         path_to_rewards,
         path_exit_rates,
+        path_exit_rates_by_param,
         importance_log_weight_from_rates,
         importance_weighted_log_likelihood,
     )
@@ -263,6 +264,7 @@ else:
     MCMC = None
     path_to_rewards = None
     path_exit_rates = None
+    path_exit_rates_by_param = None
     importance_log_weight_from_rates = None
     importance_weighted_log_likelihood = None
     Prior = None
