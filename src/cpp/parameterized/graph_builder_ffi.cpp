@@ -900,32 +900,74 @@ ffi::Error SamplePathConditionedFfiImpl(
             builder_cache[json_str] = builder;
         }
 
+        // Parse dimensions for vmap batching
         auto theta_dims = theta.dimensions();
+        auto target_dims = target_vertex.dimensions();
+        auto seed_dims = seed.dimensions();
+
         size_t theta_len = theta_dims[theta_dims.size() - 1];
+        size_t ml = static_cast<size_t>(max_length);
 
         const double* theta_data = theta.typed_data();
-        int32_t target_v = target_vertex.typed_data()[0];
-        unsigned int rng_seed = static_cast<unsigned int>(seed.typed_data()[0]);
-
+        const int32_t* target_data = target_vertex.typed_data();
+        const int32_t* seed_data = seed.typed_data();
         int32_t* indices_out = out_indices->typed_data();
         double* times_out = out_times->typed_data();
 
-        // Build concrete graph with these theta values
-        Graph g = builder->build(theta_data, theta_len);
+        // Determine batch sizes per buffer (handle broadcasting)
+        size_t theta_batch = (theta_dims.size() == 2) ? theta_dims[0] : 1;
+        size_t target_batch = (target_dims.size() == 2) ? target_dims[0] : 1;
+        size_t seed_batch = (seed_dims.size() == 2) ? seed_dims[0] : 1;
+        size_t batch_size = std::max({theta_batch, target_batch, seed_batch});
 
-        // Compute backward probs for the target
-        size_t target_sz = static_cast<size_t>(target_v);
-        double* h = ptd_backward_probabilities(g.c_graph(), &target_sz, 1);
+        if (batch_size > 1) {
+            // Batched: OpenMP parallel over batch elements.
+            // Each thread uses its own thread-local GraphBuilder.
+            #pragma omp parallel for if(batch_size > 4)
+            for (size_t b = 0; b < batch_size; b++) {
+                // Thread-local builder lookup
+                std::shared_ptr<GraphBuilder> local_builder;
+                auto local_it = builder_cache.find(json_str);
+                if (local_it != builder_cache.end()) {
+                    local_builder = local_it->second;
+                } else {
+                    local_builder = std::make_shared<GraphBuilder>(json_str);
+                    builder_cache[json_str] = local_builder;
+                }
 
-        // Sample conditioned path into fixed-size buffers
-        ptd_random_sample_path_conditioned_fixed(
-            g.c_graph(), h,
-            static_cast<size_t>(max_length),
-            rng_seed,
-            indices_out, times_out
-        );
+                // Handle broadcasting: use b if batched, 0 if singleton
+                const double* theta_b = theta_data + (theta_batch > 1 ? b * theta_len : 0);
+                int32_t target_v = target_data[target_batch > 1 ? b : 0];
+                unsigned int rng_seed = static_cast<unsigned int>(
+                    seed_data[seed_batch > 1 ? b : 0]
+                );
+                int32_t* idx_out = indices_out + b * ml;
+                double* time_out = times_out + b * ml;
 
-        free(h);
+                Graph g = local_builder->build(theta_b, theta_len);
+                size_t target_sz = static_cast<size_t>(target_v);
+                double* h = ptd_backward_probabilities(g.c_graph(), &target_sz, 1);
+
+                ptd_random_sample_path_conditioned_fixed(
+                    g.c_graph(), h, ml, rng_seed, idx_out, time_out
+                );
+                free(h);
+            }
+        } else {
+            // Single sample (no batch)
+            int32_t target_v = target_data[0];
+            unsigned int rng_seed = static_cast<unsigned int>(seed_data[0]);
+
+            Graph g = builder->build(theta_data, theta_len);
+            size_t target_sz = static_cast<size_t>(target_v);
+            double* h = ptd_backward_probabilities(g.c_graph(), &target_sz, 1);
+
+            ptd_random_sample_path_conditioned_fixed(
+                g.c_graph(), h, ml, rng_seed, indices_out, times_out
+            );
+            free(h);
+        }
+
         return ffi::Error::Success();
     } catch (const std::exception& e) {
         return ffi::Error::Internal(

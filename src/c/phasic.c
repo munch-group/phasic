@@ -6957,8 +6957,8 @@ size_t ptd_random_sample_path_conditioned_fixed(
     int *out_vertex_indices,
     double *out_entry_times) {
 
-    /* Seed the RNG deterministically */
-    srand(seed);
+    /* Thread-safe RNG using rand_r */
+    unsigned int rng_state = seed;
 
     size_t length = 0;
     double cumulative_time = 0.0;
@@ -6973,7 +6973,7 @@ size_t ptd_random_sample_path_conditioned_fixed(
         if (length >= max_length) break;
 
         /* Sample waiting time */
-        long double draw_wait = (long double) rand() / (long double) RAND_MAX;
+        long double draw_wait = (long double) rand_r(&rng_state) / (long double) RAND_MAX;
 
         double rate = 0;
         for (size_t i = 0; i < vertex->edges_length; ++i) {
@@ -6997,7 +6997,7 @@ size_t ptd_random_sample_path_conditioned_fixed(
 
         if (guided_total <= 0) break;
 
-        long double draw_direction = (long double) rand() / (long double) RAND_MAX;
+        long double draw_direction = (long double) rand_r(&rng_state) / (long double) RAND_MAX;
         long double weight_sum = 0;
         size_t edge_index = 0;
 

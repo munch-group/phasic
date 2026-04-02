@@ -333,7 +333,7 @@ def theta_target_fn(theta_mcmc, t):
 
 ## Code to Remove After Implementation
 
-The current thread-based parallelism workaround (documented in `docs/mcmc-thread-parallelism.md`) becomes obsolete. Remove:
+The current thread-based parallelism workaround (documented in `scratch/mcmc-thread-parallelism.md`) becomes obsolete. Remove:
 
 ### In `src/phasic/mcmc.py`:
 
@@ -373,4 +373,4 @@ The current thread-based parallelism workaround (documented in `docs/mcmc-thread
 
 ### Files to delete:
 
-- `docs/mcmc-thread-parallelism.md` — obsoleted by this implementation.
+- `scratch/mcmc-thread-parallelism.md` — obsoleted by this implementation.

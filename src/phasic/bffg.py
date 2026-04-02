@@ -513,44 +513,46 @@ def bffg_log_prob(jg_disc, jg_continuous, theta_proposal, theta_target_fn,
         log_w, _ = jax.lax.scan(step_fn, 0.0, jnp.arange(max_steps))
         return log_w
 
+    # Precompute all seeds: (n_loci * n_paths,) and target vertices repeated
+    _total_samples = n_loci * n_paths
+    _all_seeds = jnp.arange(1, _total_samples + 1, dtype=jnp.int32)
+    _all_targets = jnp.repeat(obs_jnp, n_paths)  # each target repeated n_paths times
+    _theta_proposal_jnp = jnp.array(theta_proposal)
+
+    # Batch sample all paths in one vmapped FFI call
+    def _sample_one(seed, target_v):
+        return sample_path_conditioned_ffi(
+            structure_continuous,
+            _theta_proposal_jnp,
+            jnp.array([target_v], dtype=jnp.int32),
+            jnp.array([seed], dtype=jnp.int32),
+            max_path_length,
+        )
+
+    _vmap_sample = jax.vmap(_sample_one)
+
+    # Batch weight computation
+    def _weight_one(v_idx, e_times, theta_mcmc):
+        return _importance_weight_one_path(v_idx, e_times, _theta_proposal_jnp, theta_mcmc)
+
     def likelihood_correction_jit(theta_mcmc):
         """JIT-compatible BFFG importance weight correction via FFI.
 
-        Parameters
-        ----------
-        theta_mcmc : jax.Array
-            MCMC parameter vector.
-
-        Returns
-        -------
-        scalar
-            Sum of log E[w] across loci.
+        Uses vmapped FFI calls for batched path sampling and weight
+        computation — a single trace regardless of n_loci and n_paths.
         """
-        theta_proposal_arr = jnp.array(theta_proposal)
-        total = jnp.zeros(())
+        # Sample all paths at once: (n_loci*n_paths, max_path_length)
+        all_v_idx, all_e_times = _vmap_sample(_all_seeds, _all_targets)
 
-        for locus in range(n_loci):
-            target_v = obs_jnp[locus]
-            log_weights = jnp.zeros(n_paths)
+        # Compute all weights at once
+        all_weights = jax.vmap(lambda vi, et: _weight_one(vi, et, theta_mcmc))(
+            all_v_idx, all_e_times
+        )
 
-            for m in range(n_paths):
-                seed = jnp.array([locus * n_paths + m + 1], dtype=jnp.int32)
-                v_idx, e_times = sample_path_conditioned_ffi(
-                    structure_continuous,
-                    theta_proposal_arr,
-                    jnp.array([target_v], dtype=jnp.int32),
-                    seed,
-                    max_path_length,
-                )
-                w = _importance_weight_one_path(
-                    v_idx, e_times, theta_proposal_arr, theta_mcmc
-                )
-                log_weights = log_weights.at[m].set(w)
-
-            log_ratio = logsumexp(log_weights) - jnp.log(n_paths)
-            total = total + log_ratio
-
-        return total
+        # Reshape to (n_loci, n_paths) and aggregate
+        weights_matrix = all_weights.reshape(n_loci, n_paths)
+        log_ratios = jax.vmap(lambda w: logsumexp(w) - jnp.log(n_paths))(weights_matrix)
+        return jnp.sum(log_ratios)
 
     if return_model:
         return model, likelihood_correction_jit
