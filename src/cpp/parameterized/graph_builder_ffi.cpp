@@ -821,6 +821,119 @@ ffi::Error ComputeSojournTimesFfiImpl(
     }
 }
 
+// ===========================================================================
+// BackwardProbabilitiesFfiImpl
+// ===========================================================================
+
+ffi::Error BackwardProbabilitiesFfiImpl(
+    std::string_view structure_json,
+    ffi::Buffer<ffi::F64> theta,
+    ffi::Buffer<ffi::S32> target_vertices,
+    ffi::ResultBuffer<ffi::F64> result
+) {
+    try {
+        std::string json_str(structure_json);
+
+        std::shared_ptr<GraphBuilder> builder;
+        auto it = builder_cache.find(json_str);
+        if (it != builder_cache.end()) {
+            builder = it->second;
+        } else {
+            builder = std::make_shared<GraphBuilder>(json_str);
+            builder_cache[json_str] = builder;
+        }
+
+        auto theta_dims = theta.dimensions();
+        size_t theta_len = theta_dims[theta_dims.size() - 1];
+        auto target_dims = target_vertices.dimensions();
+        size_t n_targets = target_dims[target_dims.size() - 1];
+
+        const double* theta_data = theta.typed_data();
+        const int32_t* target_data = target_vertices.typed_data();
+        double* result_data = result->typed_data();
+
+        // Build concrete graph with these theta values
+        Graph g = builder->build(theta_data, theta_len);
+
+        std::vector<size_t> targets(n_targets);
+        for (size_t i = 0; i < n_targets; i++) {
+            targets[i] = static_cast<size_t>(target_data[i]);
+        }
+
+        double* h = ptd_backward_probabilities(g.c_graph(), targets.data(), n_targets);
+        size_t n_verts = g.c_graph()->vertices_length;
+        for (size_t i = 0; i < n_verts; i++) {
+            result_data[i] = h[i];
+        }
+        free(h);
+
+        return ffi::Error::Success();
+    } catch (const std::exception& e) {
+        return ffi::Error::Internal(
+            std::string("BackwardProbabilitiesFfiImpl error: ") + e.what()
+        );
+    }
+}
+
+// ===========================================================================
+// SamplePathConditionedFfiImpl
+// ===========================================================================
+
+ffi::Error SamplePathConditionedFfiImpl(
+    std::string_view structure_json,
+    int32_t max_length,
+    ffi::Buffer<ffi::F64> theta,
+    ffi::Buffer<ffi::S32> target_vertex,
+    ffi::Buffer<ffi::S32> seed,
+    ffi::ResultBuffer<ffi::S32> out_indices,
+    ffi::ResultBuffer<ffi::F64> out_times
+) {
+    try {
+        std::string json_str(structure_json);
+
+        std::shared_ptr<GraphBuilder> builder;
+        auto it = builder_cache.find(json_str);
+        if (it != builder_cache.end()) {
+            builder = it->second;
+        } else {
+            builder = std::make_shared<GraphBuilder>(json_str);
+            builder_cache[json_str] = builder;
+        }
+
+        auto theta_dims = theta.dimensions();
+        size_t theta_len = theta_dims[theta_dims.size() - 1];
+
+        const double* theta_data = theta.typed_data();
+        int32_t target_v = target_vertex.typed_data()[0];
+        unsigned int rng_seed = static_cast<unsigned int>(seed.typed_data()[0]);
+
+        int32_t* indices_out = out_indices->typed_data();
+        double* times_out = out_times->typed_data();
+
+        // Build concrete graph with these theta values
+        Graph g = builder->build(theta_data, theta_len);
+
+        // Compute backward probs for the target
+        size_t target_sz = static_cast<size_t>(target_v);
+        double* h = ptd_backward_probabilities(g.c_graph(), &target_sz, 1);
+
+        // Sample conditioned path into fixed-size buffers
+        ptd_random_sample_path_conditioned_fixed(
+            g.c_graph(), h,
+            static_cast<size_t>(max_length),
+            rng_seed,
+            indices_out, times_out
+        );
+
+        free(h);
+        return ffi::Error::Success();
+    } catch (const std::exception& e) {
+        return ffi::Error::Internal(
+            std::string("SamplePathConditionedFfiImpl error: ") + e.what()
+        );
+    }
+}
+
 } // namespace ffi_handlers
 
 // Export binding creation functions for Python-side FFI registration
@@ -906,6 +1019,37 @@ XLA_FFI_Handler* CreateComputeSojournTimesHandler() {
             .Arg<xla::ffi::Buffer<xla::ffi::S32>>()    // indices (int32, batched by vmap)
             .Ret<xla::ffi::Buffer<xla::ffi::F64>>()    // result (sojourn times)
             .To(ffi_handlers::ComputeSojournTimesFfiImpl)
+            .release();
+        return bound_handler->Call(call_frame);
+    };
+    return handler;
+}
+
+XLA_FFI_Handler* CreateBackwardProbabilitiesHandler() {
+    static constexpr XLA_FFI_Handler* handler = +[](XLA_FFI_CallFrame* call_frame) {
+        static auto* bound_handler = xla::ffi::Ffi::Bind()
+            .Attr<std::string_view>("structure_json")
+            .Arg<xla::ffi::Buffer<xla::ffi::F64>>()    // theta
+            .Arg<xla::ffi::Buffer<xla::ffi::S32>>()    // target_vertices
+            .Ret<xla::ffi::Buffer<xla::ffi::F64>>()    // backward_probs
+            .To(ffi_handlers::BackwardProbabilitiesFfiImpl)
+            .release();
+        return bound_handler->Call(call_frame);
+    };
+    return handler;
+}
+
+XLA_FFI_Handler* CreateSamplePathConditionedHandler() {
+    static constexpr XLA_FFI_Handler* handler = +[](XLA_FFI_CallFrame* call_frame) {
+        static auto* bound_handler = xla::ffi::Ffi::Bind()
+            .Attr<std::string_view>("structure_json")
+            .Attr<int32_t>("max_length")
+            .Arg<xla::ffi::Buffer<xla::ffi::F64>>()    // theta
+            .Arg<xla::ffi::Buffer<xla::ffi::S32>>()    // target_vertex
+            .Arg<xla::ffi::Buffer<xla::ffi::S32>>()    // seed
+            .Ret<xla::ffi::Buffer<xla::ffi::S32>>()    // vertex_indices
+            .Ret<xla::ffi::Buffer<xla::ffi::F64>>()    // entry_times
+            .To(ffi_handlers::SamplePathConditionedFfiImpl)
             .release();
         return bound_handler->Call(call_frame);
     };

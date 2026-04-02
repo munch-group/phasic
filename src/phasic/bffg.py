@@ -14,6 +14,7 @@ likelihoods) should be defined by the user.
 from __future__ import annotations
 
 import numpy as np
+import jax
 import jax.numpy as jnp
 from jax.scipy.special import logsumexp
 
@@ -251,69 +252,86 @@ def importance_weighted_log_likelihood(
 
 def bffg_log_prob(jg_disc, jg_continuous, theta_proposal, theta_target_fn,
                   observed_data, n_paths=5, zero_mut_idx=None,
-                  theta_proposal_fn=None):
-    """Create a BFFG log-probability function for inhomogeneous models.
+                  theta_proposal_fn=None, return_model=False):
+    """Create BFFG inference components for inhomogeneous models.
 
-    Constructs a ``log_prob_fn(theta) -> scalar`` suitable for
-    ``MCMC(log_prob_fn=...)``. Internally computes:
+    Computes:
 
     .. math::
 
         \\log P_{\\text{target}}(s) = \\log P_{\\text{model}}(s \\mid \\theta)
         + \\log \\hat{E}[w]
 
-    where :math:`P_{\\text{model}}(s \\mid \\theta)` is the proposal
-    model evaluated at the MCMC parameters (using the discrete graph),
-    and :math:`\\hat{E}[w]` corrects from the smooth proposal to the
-    true step-function target via conditioned path sampling.
+    where :math:`P_{\\text{model}}` is the smooth proposal model
+    (JIT-compatible, uses trace cache via FFI) and :math:`\\hat{E}[w]`
+    is the BFFG importance weight correction (stochastic, non-JIT).
 
     Parameters
     ----------
     jg_disc : Graph
         Discrete joint_prob_graph for computing SFS probabilities.
-        ``update_weights`` is called with ``theta_proposal_fn(theta_mcmc)``
-        at each MCMC evaluation.
     jg_continuous : Graph
         Continuous joint_prob_graph (``is_discrete=False``) for
         conditioned path sampling and importance weight computation.
     theta_proposal : array
         Proposal parameter vector used in ``jg_continuous``.
     theta_target_fn : callable
-        Maps ``(theta_mcmc, t) -> theta_at_time``. Given the MCMC
-        parameter vector and a time along the path, returns the
-        target parameter vector at that time.
+        Maps ``(theta_mcmc, t) -> theta_at_time``.
     observed_data : array of int
         Terminal vertex indices (one per locus).
     n_paths : int, default=5
         Number of conditioned paths per locus per evaluation.
     zero_mut_idx : int or None
-        Terminal vertex index for zero mutations. If provided,
-        excluded from the normalization.
+        Terminal vertex index for zero mutations (excluded from
+        normalization).
     theta_proposal_fn : callable, optional
-        Maps ``theta_mcmc -> theta_graph``. Converts the MCMC
-        parameter vector to the graph parameter vector for
-        evaluating ``jg_disc``. If None, defaults to the fixed
-        ``theta_proposal``.
+        Maps ``theta_mcmc -> theta_graph``. Must be JAX-traceable
+        when ``return_model=True``.
+    return_model : bool, default=False
+        If True, returns ``(model, likelihood_correction)`` for use
+        with ``MCMC(model=..., likelihood_correction=...)``.
+        The model is JIT+vmap compatible.
+        If False, returns a single ``log_prob_fn`` (backward
+        compatible).
 
     Returns
     -------
-    callable
-        ``log_prob_fn(theta) -> float`` for use with
-        ``MCMC(log_prob_fn=...)``.
+    callable or tuple
+        If ``return_model=False``: ``log_prob_fn(theta) -> float``.
+        If ``return_model=True``: ``(model, correction)`` where
+        ``model(theta, vertex_indices) -> (probs, moments)`` is
+        JIT-compatible and ``correction(theta) -> float`` is
+        the stochastic BFFG term.
     """
+    from .ffi_wrappers import compute_sojourn_times_ffi
+
     theta_proposal = np.asarray(theta_proposal)
     observed_data = np.asarray(observed_data)
     n_loci = len(observed_data)
 
-    # Precompute and cache edge coefficients and targets for every vertex.
-    # This avoids repeated Python->C++ calls during weight computation.
+    # Serialize graph once — trace cached in C++ GraphBuilder via FFI
+    structure_dict = jg_disc.serialize()
+
+    # Find ascertained terminal indices (once)
+    jg_disc.update_weights(theta_proposal.tolist())
+    jpt_init = jg_disc.joint_prob_table()
+    all_terminals = list(jpt_init.index)
+    if zero_mut_idx is not None:
+        asc_terminals = jnp.array(
+            [int(v) for v in all_terminals if v != zero_mut_idx],
+            dtype=jnp.int32
+        )
+    else:
+        asc_terminals = jnp.array([int(v) for v in all_terminals], dtype=jnp.int32)
+
+    # Precompute and cache edge coefficients for importance weight computation.
     vertices = jg_continuous.vertices()
     n_params = jg_continuous.param_length()
     n_verts = jg_continuous.vertices_length()
 
-    _vertex_edge_coeffs = [None] * n_verts   # np.array per vertex
-    _vertex_edge_targets = [None] * n_verts  # list of target indices
-    _vertex_prop_rates = [None] * n_verts    # edge_coeffs @ theta_proposal
+    _vertex_edge_coeffs = [None] * n_verts
+    _vertex_edge_targets = [None] * n_verts
+    _vertex_prop_rates = [None] * n_verts
 
     for vi in range(n_verts):
         v = vertices[vi]
@@ -323,11 +341,10 @@ def bffg_log_prob(jg_disc, jg_continuous, theta_proposal, theta_target_fn,
         if not edges:
             continue
         coeffs = np.array([list(e.edge_state(n_params)) for e in edges])
-        # Ensure coeffs has n_params columns (pad if needed)
         if coeffs.ndim == 1:
             coeffs = coeffs.reshape(1, -1)
         if coeffs.shape[1] < n_params:
-            coeffs = np.pad(coeffs, ((0,0),(0, n_params - coeffs.shape[1])))
+            coeffs = np.pad(coeffs, ((0, 0), (0, n_params - coeffs.shape[1])))
         targets = [e.to().index() for e in edges]
         _vertex_edge_coeffs[vi] = coeffs
         _vertex_edge_targets[vi] = targets
@@ -344,7 +361,7 @@ def bffg_log_prob(jg_disc, jg_continuous, theta_proposal, theta_target_fn,
             vi = int(indices[step])
             coeffs = _vertex_edge_coeffs[vi]
             if coeffs is None:
-                break  # absorbing vertex
+                break
 
             theta_t = theta_target_fn_bound(times[step])
             edge_rates_tgt = coeffs @ np.asarray(theta_t)
@@ -353,7 +370,6 @@ def bffg_log_prob(jg_disc, jg_continuous, theta_proposal, theta_target_fn,
             r_prop = edge_rates_prop.sum()
             r_tgt = edge_rates_tgt.sum()
 
-            # Find which edge was taken
             next_idx = int(indices[step + 1]) if step + 1 < len(indices) else -1
             targets = _vertex_edge_targets[vi]
             taken_edge = None
@@ -375,37 +391,203 @@ def bffg_log_prob(jg_disc, jg_continuous, theta_proposal, theta_target_fn,
 
         return log_w
 
+    # --- JIT-compatible model via FFI ---
+
+    def model(theta_mcmc, vertex_indices, rewards=None):
+        """JIT-compatible model: P(s | theta) via FFI trace cache.
+
+        Parameters
+        ----------
+        theta_mcmc : jax.Array
+            MCMC parameter vector.
+        vertex_indices : jax.Array
+            Terminal vertex indices (observed data).
+
+        Returns
+        -------
+        tuple of (jax.Array, jax.Array)
+            (normalized_probs, dummy_moments)
+        """
+        if theta_proposal_fn is not None:
+            theta_graph = theta_proposal_fn(theta_mcmc)
+        else:
+            theta_graph = theta_mcmc
+        theta_graph = jnp.atleast_1d(jnp.asarray(theta_graph))
+        vertex_indices = jnp.atleast_1d(vertex_indices).astype(jnp.int32)
+
+        sojourn_obs = compute_sojourn_times_ffi(
+            structure_dict, theta_graph, vertex_indices
+        )
+        sojourn_all = compute_sojourn_times_ffi(
+            structure_dict, theta_graph, asc_terminals
+        )
+        norm = jnp.sum(sojourn_all)
+        probs = sojourn_obs / norm
+
+        return probs, jnp.zeros(2)
+
+    # --- Non-JIT correction: stochastic importance weights ---
+
+    def likelihood_correction(theta_mcmc):
+        """BFFG importance weight correction (stochastic, non-JIT fallback).
+
+        Returns
+        -------
+        float
+            Sum of log E[w] across loci.
+        """
+        theta_mcmc_np = np.asarray(theta_mcmc)
+        total = 0.0
+
+        for locus in range(n_loci):
+            target_v = int(observed_data[locus])
+            log_weights = np.empty(n_paths)
+            theta_fn_bound = lambda t: theta_target_fn(theta_mcmc_np, t)
+
+            for m in range(n_paths):
+                path = jg_continuous.sample_path_conditioned([target_v])
+                log_weights[m] = _full_importance_log_weight(path, theta_fn_bound)
+
+            log_ratio = float(importance_weighted_log_likelihood(
+                jnp.zeros(n_paths), jnp.array(log_weights)
+            ))
+            total += log_ratio
+
+        return total
+
+    # --- JIT-compatible correction via FFI ---
+
+    from .ffi_wrappers import sample_path_conditioned_ffi
+
+    # Dense edge coefficient arrays for JAX weight computation
+    max_edges = max(
+        (len(v.parameterized_edges()) for v in vertices if v.edges_length() > 0),
+        default=1
+    )
+    dense_edge_coeffs = np.zeros((n_verts, max_edges, n_params))
+    dense_edge_targets = np.full((n_verts, max_edges), -1, dtype=np.int32)
+    for vi in range(n_verts):
+        if _vertex_edge_coeffs[vi] is not None:
+            ne = _vertex_edge_coeffs[vi].shape[0]
+            dense_edge_coeffs[vi, :ne, :] = _vertex_edge_coeffs[vi]
+            for ei, t in enumerate(_vertex_edge_targets[vi]):
+                dense_edge_targets[vi, ei] = t
+
+    dense_edge_coeffs_jax = jnp.array(dense_edge_coeffs)
+    dense_edge_targets_jax = jnp.array(dense_edge_targets)
+    max_path_length = 2 * n_verts
+    structure_continuous = jg_continuous.serialize()
+    obs_jnp = jnp.array(observed_data, dtype=jnp.int32)
+
+    def _importance_weight_one_path(vertex_indices, entry_times,
+                                    theta_proposal_arr, theta_mcmc):
+        """Pure JAX importance weight for one path."""
+        sojourns = jnp.diff(entry_times)
+        max_steps = vertex_indices.shape[0] - 2
+
+        def step_fn(log_w, step_idx):
+            vi = vertex_indices[step_idx + 1]
+            valid = vi >= 0
+
+            coeffs = dense_edge_coeffs_jax[vi]  # (max_edges, n_params)
+            erp = coeffs @ theta_proposal_arr
+            theta_t = theta_target_fn(theta_mcmc, entry_times[step_idx + 1])
+            ert = coeffs @ theta_t
+
+            rp = jnp.sum(erp)
+            rt = jnp.sum(ert)
+
+            next_vi = vertex_indices[step_idx + 2]
+            edge_match = dense_edge_targets_jax[vi] == next_vi
+            taken = jnp.argmax(edge_match)
+
+            s_k = sojourns[step_idx + 1]
+            dw_rate = jnp.log(rt + 1e-30) - jnp.log(rp + 1e-30) - (rt - rp) * s_k
+            pp = erp[taken] / (rp + 1e-30)
+            pt = ert[taken] / (rt + 1e-30)
+            dw_trans = jnp.log(pt + 1e-30) - jnp.log(pp + 1e-30)
+
+            dw = jnp.where(valid & (rp > 0) & (rt > 0), dw_rate + dw_trans, 0.0)
+            return log_w + dw, None
+
+        log_w, _ = jax.lax.scan(step_fn, 0.0, jnp.arange(max_steps))
+        return log_w
+
+    def likelihood_correction_jit(theta_mcmc):
+        """JIT-compatible BFFG importance weight correction via FFI.
+
+        Parameters
+        ----------
+        theta_mcmc : jax.Array
+            MCMC parameter vector.
+
+        Returns
+        -------
+        scalar
+            Sum of log E[w] across loci.
+        """
+        theta_proposal_arr = jnp.array(theta_proposal)
+        total = jnp.zeros(())
+
+        for locus in range(n_loci):
+            target_v = obs_jnp[locus]
+            log_weights = jnp.zeros(n_paths)
+
+            for m in range(n_paths):
+                seed = jnp.array([locus * n_paths + m + 1], dtype=jnp.int32)
+                v_idx, e_times = sample_path_conditioned_ffi(
+                    structure_continuous,
+                    theta_proposal_arr,
+                    jnp.array([target_v], dtype=jnp.int32),
+                    seed,
+                    max_path_length,
+                )
+                w = _importance_weight_one_path(
+                    v_idx, e_times, theta_proposal_arr, theta_mcmc
+                )
+                log_weights = log_weights.at[m].set(w)
+
+            log_ratio = logsumexp(log_weights) - jnp.log(n_paths)
+            total = total + log_ratio
+
+        return total
+
+    if return_model:
+        return model, likelihood_correction_jit
+
+    # --- Backward-compatible: single log_prob_fn ---
+
     def log_prob_fn(theta_mcmc):
-        """BFFG log-probability for inhomogeneous model."""
+        """BFFG log-probability (combined model + correction)."""
         theta_mcmc_np = np.asarray(theta_mcmc)
 
-        # Evaluate model at theta_mcmc
+        # Model evaluation via FFI (uses trace cache)
         if theta_proposal_fn is not None:
-            theta_graph = theta_proposal_fn(theta_mcmc_np)
+            theta_graph = jnp.array(theta_proposal_fn(theta_mcmc_np))
         else:
-            theta_graph = theta_proposal
-        jg_disc.update_weights(list(theta_graph))
-        jpt = jg_disc.joint_prob_table()
+            theta_graph = jnp.array(theta_proposal)
+        obs_jnp = jnp.array(observed_data, dtype=jnp.int32)
 
-        # Ascertained normalization
-        total_prob = jpt['prob'].sum()
-        if zero_mut_idx is not None:
-            total_prob -= float(jpt.loc[zero_mut_idx, 'prob'])
-        log_norm = np.log(total_prob) if total_prob > 0 else -1e10
+        sojourn_obs = np.asarray(compute_sojourn_times_ffi(
+            structure_dict, theta_graph, obs_jnp
+        ))
+        sojourn_all = np.asarray(compute_sojourn_times_ffi(
+            structure_dict, theta_graph, asc_terminals
+        ))
+        norm = sojourn_all.sum()
+        log_norm = np.log(norm) if norm > 0 else -1e10
 
         total = 0.0
         for locus in range(n_loci):
             target_v = int(observed_data[locus])
-            p = float(jpt.loc[target_v, 'prob'])
+            p = sojourn_obs[locus]
             if p <= 0:
                 total += -1e10
                 continue
             log_p_model = np.log(p) - log_norm
 
-            # Importance weight correction
             log_weights = np.empty(n_paths)
             theta_fn_bound = lambda t: theta_target_fn(theta_mcmc_np, t)
-
             for m in range(n_paths):
                 path = jg_continuous.sample_path_conditioned([target_v])
                 log_weights[m] = _full_importance_log_weight(path, theta_fn_bound)

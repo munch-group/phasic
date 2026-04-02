@@ -4932,6 +4932,22 @@ Use Graph.distribution_context(granularity) instead.
   >>> capsule = parameterized.get_compute_sojourn_times_ffi_capsule()
   >>> jax.ffi.register_ffi_target("ptd_compute_sojourn_times", capsule, platform="cpu", api_version=1)
   )delim");
+
+  param_module.def("get_backward_probabilities_ffi_capsule", []() -> py::capsule {
+      auto* handler = phasic::parameterized::CreateBackwardProbabilitiesHandler();
+      return py::capsule(reinterpret_cast<void*>(handler), "xla._CUSTOM_CALL_TARGET");
+  }, R"delim(
+  Get PyCapsule for JAX FFI backward_probabilities handler.
+  Computes P(reach target | start at v) for each vertex.
+  )delim");
+
+  param_module.def("get_sample_path_conditioned_ffi_capsule", []() -> py::capsule {
+      auto* handler = phasic::parameterized::CreateSamplePathConditionedHandler();
+      return py::capsule(reinterpret_cast<void*>(handler), "xla._CUSTOM_CALL_TARGET");
+  }, R"delim(
+  Get PyCapsule for JAX FFI conditioned path sampling handler.
+  Samples a path conditioned on reaching a target vertex, with fixed-size output.
+  )delim");
 #endif
 
   // ============================================================================

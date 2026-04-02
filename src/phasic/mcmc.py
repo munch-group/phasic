@@ -421,13 +421,13 @@ class MCMC:
         self.target_acceptance = target_acceptance
 
         # Parallel chain execution
+        # vmap requires fully JIT-traceable _log_prob (model+data, no correction, no log_prob_fn)
+        can_vmap = (log_prob_fn is None and likelihood_correction is None
+                    and model is not None)
         if parallel is None:
-            if self.jit_enabled and n_chains > 1:
+            if can_vmap and n_chains > 1:
                 self.parallel = 'vmap'
             else:
-                # Non-JIT log_prob_fn (e.g., BFFG with C++ path sampling)
-                # can't be vmapped or pickled for multiprocessing.
-                # Run sequentially — speedup comes from adaptive proposals.
                 self.parallel = None
         else:
             self.parallel = parallel
@@ -470,10 +470,6 @@ class MCMC:
 
             log_lik = jnp.sum(jnp.log(model_values + 1e-10))
 
-        # Likelihood correction (e.g., BFFG importance weight term)
-        if self.likelihood_correction is not None:
-            log_lik = log_lik + self.likelihood_correction(theta)
-
         # Log-prior
         if self.prior_list is not None:
             log_pri = sum(
@@ -501,6 +497,9 @@ class MCMC:
         chain_key = jax.random.PRNGKey(chain_seed)
         phi_current = self.theta_init[chain_idx]
         lp_current = float(log_prob_fn(phi_current))
+        if self.likelihood_correction is not None:
+            theta_current = self.param_transform(phi_current) if self.param_transform else phi_current
+            lp_current += float(self.likelihood_correction(theta_current))
 
         chain_phi = np.empty((self.n_samples, self.theta_dim))
         acceptance_count = 0.0
@@ -554,6 +553,9 @@ class MCMC:
 
             # Evaluate
             lp_proposed = float(log_prob_fn(phi_proposed))
+            if self.likelihood_correction is not None:
+                theta_proposed = self.param_transform(phi_proposed) if self.param_transform else phi_proposed
+                lp_proposed += float(self.likelihood_correction(theta_proposed))
 
             # Accept/reject
             log_alpha = lp_proposed - lp_current
@@ -618,6 +620,12 @@ class MCMC:
         phi_all = jnp.array(self.theta_init)  # (n_chains, theta_dim)
         lp_all = vmap_log_prob(phi_all)        # (n_chains,)
 
+        # Add non-JIT correction if present
+        if self.likelihood_correction is not None:
+            for c in range(n_chains):
+                theta_c = self.param_transform(phi_all[c]) if self.param_transform else phi_all[c]
+                lp_all = lp_all.at[c].add(float(self.likelihood_correction(theta_c)))
+
         chains_phi = np.empty((n_chains, self.n_samples, self.theta_dim))
         acceptance_counts = np.zeros(n_chains)
         sample_idx = np.zeros(n_chains, dtype=int)
@@ -677,6 +685,16 @@ class MCMC:
 
             # Evaluate all chains in parallel via vmap
             lp_proposed = vmap_log_prob(phi_proposed)  # (n_chains,)
+
+            # Add non-JIT correction if present (threaded across chains)
+            if self.likelihood_correction is not None:
+                from concurrent.futures import ThreadPoolExecutor
+                def _eval_correction(c):
+                    theta_c = self.param_transform(phi_proposed[c]) if self.param_transform else phi_proposed[c]
+                    return float(self.likelihood_correction(theta_c))
+                with ThreadPoolExecutor(max_workers=n_chains) as pool:
+                    corrections = list(pool.map(_eval_correction, range(n_chains)))
+                lp_proposed = lp_proposed + jnp.array(corrections)
 
             # Accept/reject per chain
             log_alpha = lp_proposed - lp_all
@@ -744,7 +762,11 @@ class MCMC:
             self.model = model_with_rewards
 
         log_prob_fn = self._log_prob
-        if self.jit_enabled:
+        # JIT only when _log_prob is fully traceable (model+data mode, no correction)
+        can_jit = (self.jit_enabled
+                   and self._log_prob_fn is None
+                   and self.likelihood_correction is None)
+        if can_jit:
             log_prob_fn = jax.jit(self._log_prob)
             if self.verbose:
                 print("JIT compiling log-probability function...", end=" ", flush=True)

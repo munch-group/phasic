@@ -134,6 +134,48 @@ ffi::Error ComputeSojournTimesFfiImpl(
     ffi::ResultBuffer<ffi::F64> result
 );
 
+/**
+ * FFI handler for backward probabilities computation.
+ *
+ * Inputs:
+ *   - structure_json: Graph structure (string_view attribute, STATIC)
+ *   - theta: Parameters (F64, shape: [n_params]) - BATCHED by vmap
+ *   - target_vertices: Target terminal indices (S32, shape: [n_targets])
+ *
+ * Output:
+ *   - backward_probs: P(reach target | start at v) for each vertex (F64, shape: [n_vertices])
+ */
+ffi::Error BackwardProbabilitiesFfiImpl(
+    std::string_view structure_json,
+    ffi::Buffer<ffi::F64> theta,
+    ffi::Buffer<ffi::S32> target_vertices,
+    ffi::ResultBuffer<ffi::F64> result
+);
+
+/**
+ * FFI handler for conditioned path sampling with fixed-size output.
+ *
+ * Inputs:
+ *   - structure_json: Graph structure (string_view attribute, STATIC)
+ *   - max_length: Maximum path length (int32 attribute, STATIC)
+ *   - theta: Parameters (F64, shape: [n_params]) - BATCHED by vmap
+ *   - target_vertex: Target terminal index (S32, shape: [1])
+ *   - seed: Random seed (S32, shape: [1])
+ *
+ * Outputs:
+ *   - vertex_indices: Path vertex indices, -1 padded (S32, shape: [max_length])
+ *   - entry_times: Cumulative entry times, 0.0 padded (F64, shape: [max_length])
+ */
+ffi::Error SamplePathConditionedFfiImpl(
+    std::string_view structure_json,
+    int32_t max_length,
+    ffi::Buffer<ffi::F64> theta,
+    ffi::Buffer<ffi::S32> target_vertex,
+    ffi::Buffer<ffi::S32> seed,
+    ffi::ResultBuffer<ffi::S32> out_indices,
+    ffi::ResultBuffer<ffi::F64> out_times
+);
+
 } // namespace ffi_handlers
 
 // Functions to create FFI handlers for Python-side registration
@@ -143,6 +185,8 @@ XLA_FFI_Handler* CreateComputeMomentsHandler();
 XLA_FFI_Handler* CreateComputePmfAndMomentsHandler();
 XLA_FFI_Handler* CreateComputePmfMultivariateHandler();
 XLA_FFI_Handler* CreateComputeSojournTimesHandler();
+XLA_FFI_Handler* CreateBackwardProbabilitiesHandler();
+XLA_FFI_Handler* CreateSamplePathConditionedHandler();
 
 } // namespace parameterized
 } // namespace phasic

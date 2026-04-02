@@ -299,6 +299,15 @@ double *ptd_backward_probabilities(
 
 void ptd_sample_path_destroy(struct ptd_sample_path *path);
 
+size_t ptd_random_sample_path_conditioned_fixed(
+    struct ptd_graph *graph,
+    double *backward_probs,
+    size_t max_length,
+    unsigned int seed,
+    int *out_vertex_indices,
+    double *out_entry_times
+);
+
 double ptd_defect(struct ptd_graph *graph);
 
 int ptd_validate_graph(const struct ptd_graph *graph);

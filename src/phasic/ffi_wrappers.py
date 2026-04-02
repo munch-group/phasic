@@ -257,6 +257,27 @@ def _register_ffi_targets() -> bool:
                 platform="cpu",
                 api_version=1  # XLA FFI API v1.0
             )
+
+            # BFFG handlers: backward probabilities and conditioned path sampling
+            try:
+                backward_probs_capsule = cpp_module.parameterized.get_backward_probabilities_ffi_capsule()
+                jax.ffi.register_ffi_target(
+                    "ptd_backward_probabilities",
+                    backward_probs_capsule,
+                    platform="cpu",
+                    api_version=1
+                )
+
+                sample_path_capsule = cpp_module.parameterized.get_sample_path_conditioned_ffi_capsule()
+                jax.ffi.register_ffi_target(
+                    "ptd_sample_path_conditioned",
+                    sample_path_capsule,
+                    platform="cpu",
+                    api_version=1
+                )
+            except AttributeError:
+                pass  # BFFG FFI handlers not available (optional)
+
         except Exception as e:
             # FFI registration failed
             raise PTDBackendError(
@@ -974,6 +995,105 @@ def compute_sojourn_times_ffi(structure_json: str | dict, theta: jax.Array,
         structure_json=structure_str  # Attr: JSON string (STATIC, not batched)
     )
     return result
+
+
+def sample_path_conditioned_ffi(
+    structure_json: str | dict,
+    theta: 'jax.Array',
+    target_vertex: 'jax.Array',
+    seed: 'jax.Array',
+    max_length: int,
+) -> tuple['jax.Array', 'jax.Array']:
+    """Sample a conditioned path via FFI with fixed-size output.
+
+    Parameters
+    ----------
+    structure_json : str or dict
+        Serialized graph structure.
+    theta : jax.Array
+        Parameter vector, shape (n_params,).
+    target_vertex : jax.Array
+        Target terminal vertex index, shape (1,), int32.
+    seed : jax.Array
+        Random seed, shape (1,), int32.
+    max_length : int
+        Fixed output size. Path padded with -1/0.0 sentinels.
+
+    Returns
+    -------
+    vertex_indices : jax.Array, shape (max_length,), int32
+        Visited vertex indices, -1 padded.
+    entry_times : jax.Array, shape (max_length,), float64
+        Cumulative entry times, 0.0 padded.
+    """
+    _register_ffi_targets()
+    structure_str = _ensure_json_string(structure_json)
+    theta = jnp.asarray(theta, dtype=jnp.float64)
+    target_vertex = jnp.atleast_1d(jnp.asarray(target_vertex, dtype=jnp.int32))
+    seed = jnp.atleast_1d(jnp.asarray(seed, dtype=jnp.int32))
+
+    result_shapes = (
+        jax.ShapeDtypeStruct((max_length,), jnp.int32),
+        jax.ShapeDtypeStruct((max_length,), jnp.float64),
+    )
+
+    ffi_fn = jax.ffi.ffi_call(
+        "ptd_sample_path_conditioned",
+        result_shapes,
+        vmap_method="expand_dims"
+    )
+
+    return ffi_fn(
+        theta,
+        target_vertex,
+        seed,
+        structure_json=structure_str,
+        max_length=np.int32(max_length),
+    )
+
+
+def backward_probabilities_ffi(
+    structure_json: str | dict,
+    theta: 'jax.Array',
+    target_vertices: 'jax.Array',
+    n_vertices: int,
+) -> 'jax.Array':
+    """Compute backward probabilities via FFI.
+
+    Parameters
+    ----------
+    structure_json : str or dict
+        Serialized graph structure.
+    theta : jax.Array
+        Parameter vector, shape (n_params,).
+    target_vertices : jax.Array
+        Target terminal indices, shape (n_targets,), int32.
+    n_vertices : int
+        Total number of vertices (output size).
+
+    Returns
+    -------
+    jax.Array, shape (n_vertices,)
+        P(reach target | start at v) for each vertex.
+    """
+    _register_ffi_targets()
+    structure_str = _ensure_json_string(structure_json)
+    theta = jnp.asarray(theta, dtype=jnp.float64)
+    target_vertices = jnp.atleast_1d(jnp.asarray(target_vertices, dtype=jnp.int32))
+
+    result_shape = jax.ShapeDtypeStruct((n_vertices,), jnp.float64)
+
+    ffi_fn = jax.ffi.ffi_call(
+        "ptd_backward_probabilities",
+        result_shape,
+        vmap_method="expand_dims"
+    )
+
+    return ffi_fn(
+        theta,
+        target_vertices,
+        structure_json=structure_str,
+    )
 
 
 # ============================================================================

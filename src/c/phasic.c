@@ -6949,6 +6949,84 @@ void ptd_sample_path_destroy(struct ptd_sample_path *path) {
     }
 }
 
+size_t ptd_random_sample_path_conditioned_fixed(
+    struct ptd_graph *graph,
+    double *backward_probs,
+    size_t max_length,
+    unsigned int seed,
+    int *out_vertex_indices,
+    double *out_entry_times) {
+
+    /* Seed the RNG deterministically */
+    srand(seed);
+
+    size_t length = 0;
+    double cumulative_time = 0.0;
+    struct ptd_vertex *vertex = graph->starting_vertex;
+
+    /* Record starting vertex */
+    out_vertex_indices[length] = (int) vertex->index;
+    out_entry_times[length] = 0.0;
+    length++;
+
+    while (vertex->edges_length != 0 && backward_probs[vertex->index] < 1.0) {
+        if (length >= max_length) break;
+
+        /* Sample waiting time */
+        long double draw_wait = (long double) rand() / (long double) RAND_MAX;
+
+        double rate = 0;
+        for (size_t i = 0; i < vertex->edges_length; ++i) {
+            rate += vertex->edges[i]->weight;
+        }
+
+        long double waiting_time = -logl(draw_wait + 0.0000001) / rate;
+
+        if (vertex == graph->starting_vertex) {
+            waiting_time = 0;
+        }
+
+        cumulative_time += (double) waiting_time;
+
+        /* Guided selection */
+        double guided_total = 0;
+        for (size_t i = 0; i < vertex->edges_length; ++i) {
+            guided_total += vertex->edges[i]->weight *
+                           backward_probs[vertex->edges[i]->to->index];
+        }
+
+        if (guided_total <= 0) break;
+
+        long double draw_direction = (long double) rand() / (long double) RAND_MAX;
+        long double weight_sum = 0;
+        size_t edge_index = 0;
+
+        for (size_t i = 0; i < vertex->edges_length; ++i) {
+            double guided_weight = vertex->edges[i]->weight *
+                                  backward_probs[vertex->edges[i]->to->index];
+            weight_sum += guided_weight;
+            if (weight_sum / guided_total >= draw_direction) {
+                edge_index = i;
+                break;
+            }
+        }
+
+        vertex = vertex->edges[edge_index]->to;
+
+        out_vertex_indices[length] = (int) vertex->index;
+        out_entry_times[length] = cumulative_time;
+        length++;
+    }
+
+    /* Pad remaining with sentinels */
+    for (size_t i = length; i < max_length; ++i) {
+        out_vertex_indices[i] = -1;
+        out_entry_times[i] = 0.0;
+    }
+
+    return length;
+}
+
 long double *ptd_mph_random_sample(struct ptd_graph *graph, double *rewards, size_t vertex_rewards_length) {
     long double *outcome = (long double *) calloc(vertex_rewards_length, sizeof(*outcome));
 
