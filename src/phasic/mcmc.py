@@ -983,3 +983,31 @@ class MCMC:
                   f"{float(ess[i]):>8.1f}")
         print("-" * 70)
         print(f"Acceptance rates: {', '.join(f'{r:.3f}' for r in self.acceptance_rate)}")
+
+    def plot_posterior(self, **kwargs):
+        """Plot posterior distributions. See :func:`phasic.plot.plot_posterior`."""
+        if not self.is_fitted:
+            raise RuntimeError("Must call run() before plotting")
+        from .plot import plot_posterior
+        return plot_posterior(self.get_results(), **kwargs)
+
+    def plot_chains(self, **kwargs):
+        """Plot chain traces. See :func:`phasic.plot.plot_chains`."""
+        if not self.is_fitted:
+            raise RuntimeError("Must call run() before plotting")
+        from .plot import plot_chains
+        return plot_chains(self.get_results(), **kwargs)
+
+    def plot_autocorrelation(self, **kwargs):
+        """Plot autocorrelation. See :func:`phasic.plot.plot_autocorrelation`."""
+        if not self.is_fitted:
+            raise RuntimeError("Must call run() before plotting")
+        from .plot import plot_autocorrelation
+        return plot_autocorrelation(self.get_results(), **kwargs)
+
+    def plot_pairwise(self, **kwargs):
+        """Plot pairwise scatter. See :func:`phasic.plot.plot_pairwise`."""
+        if not self.is_fitted:
+            raise RuntimeError("Must call run() before plotting")
+        from .plot import plot_pairwise
+        return plot_pairwise(self.get_results(), **kwargs)

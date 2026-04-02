@@ -72,7 +72,7 @@ jobs:
         # os: [ubuntu-latest, windows-latest]
         # os: [macOS-latest, macos-13, ubuntu-latest]
         # os: [macOS-latest, macos-13, ubuntu-latest, windows-latest]
-        os: [macOS-latest, ubuntu-latest]
+        os: [macOS-latest, ubuntu-22.04]
 
     steps:
       - uses: actions/checkout@v3

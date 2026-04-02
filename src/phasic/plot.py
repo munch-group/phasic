@@ -1,286 +1,380 @@
-# from __future__ import annotations
+"""
+Shared plotting utilities for phasic inference results.
 
-# import math
-# import os
-# import subprocess
-# import graphviz
-# from collections import defaultdict
-# import seaborn as sns
-# import matplotlib
-# import matplotlib.colors
-# from itertools import cycle
-# from functools import partial
+Standalone functions that accept a ``results`` dict from either
+``SVGD.get_results()`` or ``MCMC.get_results()`` and produce
+publication-quality plots.
+"""
 
-# from typing import Any, TypeVar
-# from collections.abc import Callable, Generator
+from __future__ import annotations
 
-# from .logging_config import get_logger
-# logger = get_logger(__name__)
+import numpy as np
 
-# GraphType = TypeVar('Graph')
-
-
-# def _get_color(n: int, lightness: float = 0.4) -> Generator[str, None, None]:
-#     """Generate an infinite cycle of hex color strings from a HUSL palette.
-
-#     Parameters
-#     ----------
-#     n : int
-#         Number of distinct colors in the palette.
-#     lightness : float
-#         Lightness parameter for the HUSL palette, by default 0.4.
-
-#     Yields
-#     ------
-#     str
-#         Hex color string (e.g., ``'#a1b2c3'``).
-#     """
-#     color_cycle = cycle([matplotlib.colors.to_hex(c) for c in sns.husl_palette(n, l=lightness)])
-#     for color in color_cycle:
-#         yield color
-
-# def _format_rate(rate: float) -> str:
-#     """Format a transition rate for display on graph edges.
-
-#     Parameters
-#     ----------
-#     rate : float
-#         The transition rate value.
-
-#     Returns
-#     -------
-#     str
-#         Formatted string using fixed-point for integers, scientific
-#         notation otherwise.
-#     """
-#     if rate == round(rate):
-#         return f"{rate:.2f}"
-#     else:
-#         return f"{rate:.2e}"
-
-# def format_label(state, wrap=True, max_cols=8):
-#     n = len(state) 
-#     if wrap is False or n <= max_cols:
-#         return ','.join(map(str, state))
-    
-#     if wrap is True:
-
-#         target = math.isqrt(n // 2) or 1
-#         best = (1, n)                                                                     
-#         for b in range(max(1, target - 100), target + 101):                               
-#             if n % b == 0:                                                                
-#                 a = n // b                                                                
-#                 if abs(a - 2 * b) < abs(best[0] - 2 * best[1]):                           
-#                     best = (a, b)   
-#         rows, cols = best
-
-#         # for i in range(int(math.sqrt(n)), 0, -1):
-#         #     if n % i == 0:
-#         #         rows, cols = i, n // i
-#         #         break
-
-#         cols = cols if cols < max_cols else int(math.sqrt(n)+2)
-#     elif isinstance(wrap, int):
-#         cols = wrap
-#     else:
-#         cols = 9999
-#     l = []
-#     for i in range(1+n//cols):
-#         r = ','.join(map(str, state[i*cols:(i+1)*cols]))
-#         if not r:
-#             break
-#         l.append(r)
-#     return ',\n'.join(l)
+try:
+    import matplotlib
+    import matplotlib.pyplot as plt
+    HAS_MPL = True
+    _text_color = matplotlib.rcParams['text.color']
+except ImportError:
+    HAS_MPL = False
+    _text_color = 'black'
 
 
-# def plot_graph(graph: Any, 
-#                filename: str | None = None,
-#                wrap: bool|int = True,
-#                label_fmt: Callable[[Any], str] | None = None,
-#                subgraphfun: Callable[..., str] | None = None,
-#                by_state: Callable[..., str] | None = None,
-#                by_index: Callable[[int], str] | None = None,
-#                max_nodes: int = 100,
-#                dark: bool | None = None,
-#                constraint: bool = True, ranksep: float = 1, nodesep: float = 1, rankdir: str = "LR",
-#                size: tuple[int, int] = (7, 7), fontsize: int = 12, rainbow: bool = True, penwidth: float = 1,
-#                seed: int = 1,
-#                **kwargs: Any) -> graphviz.Digraph | None:
-#     """Plot a graph using graphviz.
+def _require_matplotlib():
+    if not HAS_MPL:
+        raise ImportError(
+            "matplotlib is required for plotting. "
+            "Install with: pip install matplotlib"
+        )
 
-#     Parameters
-#     ----------
-#     graph : Graph
-#         The phasic graph object to visualize.
-#     filename : str | None
-#         If provided, save the graph to this file. The file extension
-#         determines the output format (e.g., ``'graph.pdf'``).
-#     wrap : bool | int
-#         Whether to wrap vertex labels, and if so, the maximum number of
-#         characters per line. By default True.
-#     subgraphfun : Callable[..., str] | None
-#         Deprecated. Use ``by_state`` instead. Callback function defining
-#         subgraph clusters by state.
-#     by_state : Callable[..., str] | None
-#         Callback function defining subgraph clusters. Takes a state as
-#         input and returns a string used as the subgraph label.
-#     by_index : Callable[[int], str] | None
-#         Callback function defining subgraph clusters. Takes a vertex
-#         index as input and returns a string used as the subgraph label.
-#     max_nodes : int
-#         Maximum number of vertices to plot, by default 100.
-#     dark : bool | None
-#         Whether to use dark mode for the graph. Detected automatically
-#         from the VS Code theme if ``vscodenb`` is available.
-#     constraint : bool
-#         Graphviz constraint attribute, by default True.
-#     ranksep : float
-#         Graphviz ranksep attribute, by default 1.
-#     nodesep : float
-#         Graphviz nodesep attribute, by default 1.
-#     rankdir : str
-#         Graphviz rankdir attribute, by default ``"LR"``.
-#     size : tuple[int, int]
-#         Graphviz size as ``(width, height)``, by default ``(7, 7)``.
-#     fontsize : int
-#         Graphviz fontsize attribute, by default 12.
-#     rainbow : bool
-#         Whether to color edges with random colors, by default True.
-#     penwidth : float
-#         Graphviz penwidth attribute, by default 1.
-#     seed : int
-#         Random seed for graph layout, by default 1.
-#     **kwargs : Any
-#         Additional graphviz graph attributes.
 
-#     Returns
-#     -------
-#     graphviz.Digraph | None
-#         Graphviz Digraph object for display in Jupyter notebooks,
-#         or ``None`` if the graph exceeds ``max_nodes``.
-#     """
-#     try:
-#         from vscodenb import is_vscode_dark_theme
-#         dark = is_vscode_dark_theme()
-#     except ImportError:
-#         logger.warning(f"vscodenb is not available. Defaulting to light theme.")
-#         dark = False
+def _compute_hpd(samples, alpha=0.95):
+    """Compute Highest Posterior Density interval."""
+    samples = np.sort(samples)
+    n = len(samples)
+    interval_size = int(np.ceil(n * alpha))
+    if interval_size >= n:
+        return float(samples[0]), float(samples[-1])
+    widths = samples[interval_size:] - samples[:n - interval_size]
+    best = int(np.argmin(widths))
+    return float(samples[best]), float(samples[best + interval_size])
 
-#     # always light theme when executing via nbconvert
-#     if os.environ.get('NBCONVERT', False):
-#         dark = False
 
-#     if label_fmt is None:
-#         label_fmt = partial(format_label, wrap=wrap)
+def plot_posterior(results: dict,
+                   true_theta: list | np.ndarray | None = None,
+                   param_names: list[str] | None = None,
+                   bins: int = 20,
+                   figsize: tuple[float, float] | None = None,
+                   save_path: str | None = None,
+                   ci_method: str = 'hpd',
+                   ci_level: float = 0.95,
+                   return_fig: bool = False):
+    """Plot posterior distributions for each parameter.
 
-#     subprocess.check_call(['dot', '-c']) # register layout engine
+    Works with results from both SVGD and MCMC.
 
-#     # backwards comp
-#     if by_state is None and subgraphfun is not None:
-#         by_state = subgraphfun
+    Parameters
+    ----------
+    results : dict
+        From ``SVGD.get_results()`` or ``MCMC.get_results()``.
+        Must contain ``'particles'`` and ``'theta_mean'``.
+    true_theta : array-like, optional
+        True parameter values to overlay.
+    param_names : list of str, optional
+        Names for each parameter.
+    bins : int, default=20
+        Histogram bins.
+    figsize : tuple, optional
+        Figure size.
+    save_path : str, optional
+        Path to save figure.
+    ci_method : str, default='hpd'
+        ``'hpd'`` or ``'percentile'``.
+    ci_level : float, default=0.95
+        Credible interval level.
+    return_fig : bool, default=False
+        If True, return (fig, axes) instead of showing.
 
-#     if by_state and by_index:
-#         assert "Do not use both by_index and by_state"
+    Returns
+    -------
+    tuple or None
+        (fig, axes) if return_fig=True.
+    """
+    _require_matplotlib()
 
-#     if dark:
-#         edge_color = '#e6e6e6'
-#         node_edgecolor = '#888888'
-#         node_fillcolor = "#c6c6c6"
-#         start_edgecolor = 'black'
-#         start_fillcolor = '#777777'
-#         abs_edgecolor = 'black'
-#         abs_fillcolor = '#777777'
-#         aux_edgecolor = 'black'
-#         aux_fillcolor = '#3e3e3e'
-#         bgcolor = '#1F1F1F'
-#         subgraph_label_fontcolor = '#e6e6e6'
-#         subgraph_bgcolor='#2e2e2e'
-#         subgraph_edgecolor='#e6e6e6'
-#         husl_colors = _get_color(10, lightness=0.7)
-#     else:
-#         edge_color = '#009900'
-#         node_edgecolor='black'
-#         node_fillcolor='#eeeeee'
-#         edge_color='black'
-#         start_edgecolor='black'
-#         start_fillcolor='#bbbbbb'
-#         abs_edgecolor='black'
-#         abs_fillcolor='#bbbbbb'
-#         aux_edgecolor='black'
-#         aux_fillcolor='#bbbbbb'
-#         bgcolor='transparent'
-#         subgraph_label_fontcolor = 'black'
-#         subgraph_bgcolor='white'
-#         subgraph_edgecolor='black'
-#         husl_colors = _get_color(10, lightness=0.4)
+    particles = np.asarray(results['particles'])
+    theta_mean = np.asarray(results['theta_mean'])
+    n_params = particles.shape[1]
 
-#     if graph.vertices_length() > max_nodes:
-#         print(f"Graph has too many nodes ({graph.vertices_length()}). Please set max_nodes to a higher value.")
-#         return None
+    if n_params <= 2:
+        nrows, ncols = 1, n_params
+        figsize = figsize or (4 * n_params, 3)
+    else:
+        ncols = min(3, n_params)
+        nrows = (n_params + ncols - 1) // ncols
+        figsize = figsize or (4 * ncols, 3 * nrows)
 
-#     graph_attr = dict(compound='true', newrank='true', pad='0.5',
-#                       ranksep=str(ranksep), nodesep=str(nodesep),
-#                       bgcolor=bgcolor, rankdir=rankdir, ratio="auto",
-#                       size=f'{size[0]},{size[1]}',
-#                       start=str(seed),
-#                       fontname="Helvetica,Arial,sans-serif", **kwargs)
-#     node_attr = dict(style='filled', color='black',
-#                      fontname="Helvetica,Arial,sans-serif",
-#                      fontsize=str(fontsize),
-#                      fillcolor=str(node_fillcolor))
-#     edge_attr = dict(constraint='true' if constraint else 'false',
-#                      style='filled', labelfloat='false', labeldistance='0',
-#                      fontname="Helvetica,Arial,sans-serif",
-#                      fontsize=str(fontsize), penwidth=str(penwidth))
-#     dot = graphviz.Digraph(graph_attr=graph_attr, node_attr=node_attr, edge_attr=edge_attr)
-#     for i in range(graph.vertices_length()):
-#         vertex = graph.vertex_at(i)
-#         for edge in vertex.edges():
-#             if rainbow:
-#                 color = next(husl_colors)
-#             else:
-#                  color = edge_color
-#             dot.edge(str(vertex.index()), str(edge.to().index()),
-#                    xlabel=_format_rate(edge.weight()), color=color, fontcolor=color)
+    fig, axes = plt.subplots(nrows, ncols, figsize=figsize, squeeze=False)
+    axes = axes.flatten()
 
-#     subgraph_attr = dict(rank='same',
-#                          style='filled',
-#                          fillcolor=subgraph_bgcolor,
-#                          color=subgraph_edgecolor,
-#                          fontcolor=subgraph_label_fontcolor)
-#     subgraphs = defaultdict(list)
-#     for i in range(graph.vertices_length()):
-#         vertex = graph.vertex_at(i)
-#         label = label_fmt(vertex.state())
-#         if i == 0:
-#             dot.node(str(vertex.index()), 'S',
-#                      style='filled', edge_color=start_edgecolor, fillcolor=start_fillcolor)
-#         elif not vertex.state().sum() and vertex.rate() == 1 and len(vertex.edges()) == 1:
-#             dot.node(str(vertex.index()), 'AUX',
-#                      style='filled', edge_color=aux_edgecolor, fillcolor=aux_fillcolor)
-#         elif not vertex.edges():
-#             dot.node(str(vertex.index()), label,
-#                      style='filled', edge_color=abs_edgecolor, fillcolor=abs_fillcolor)
-#         else:
-#             dot.node(str(vertex.index()), label,
-#                      style='filled', edge_color=node_edgecolor, fillcolor=node_fillcolor)
+    pct = int(ci_level * 100)
+    ci_label = f"HPD {pct}%" if ci_method == 'hpd' else f"CI {pct}%"
 
-#         if i != 0:
-#             if by_state:
-#                 subgraphs[f'cluster_{by_state(vertex.state())}'].append(i)
-#             elif by_index:
-#                 subgraphs[f'cluster_{by_index(vertex.index())}'].append(i)
+    for i in range(n_params):
+        ax = axes[i]
+        samples_i = particles[:, i]
 
-#     if by_state or by_index:
-#         for sglabel in subgraphs:
-#             subgraph_attr['label'] = sglabel.replace('cluster_', '')
-#             with dot.subgraph(name=sglabel, graph_attr=subgraph_attr) as c:
-#                 for i in subgraphs[sglabel]:
-#                     vertex = graph.vertex_at(i)
-#                     c.node(str(vertex.index()))
+        ax.hist(samples_i, bins=bins, alpha=0.7, density=True,
+                edgecolor='black', label='Posterior')
 
-#     if filename:
-#         name, suffix = filename.rsplit('.', 1)
-#         dot.render(name, format=suffix, cleanup=True)
+        # Credible interval
+        if ci_method == 'hpd':
+            ci_lo, ci_hi = _compute_hpd(samples_i, alpha=ci_level)
+        else:
+            lo_pct = (1 - ci_level) / 2 * 100
+            hi_pct = (1 + ci_level) / 2 * 100
+            ci_lo = float(np.percentile(samples_i, lo_pct))
+            ci_hi = float(np.percentile(samples_i, hi_pct))
+        ax.axvspan(ci_lo, ci_hi, alpha=0.15, color='steelblue',
+                   label=f'{ci_label} [{ci_lo:.3f}, {ci_hi:.3f}]')
 
-#     return dot
+        # Mean
+        ax.axvline(theta_mean[i], color=_text_color, linestyle='--',
+                   label=f'Mean = {theta_mean[i]:.3f}')
+
+        # True value
+        if true_theta is not None:
+            true_val = np.asarray(true_theta)[i]
+            ax.axvline(true_val, color='magenta', linestyle='--',
+                       label=f'True = {true_val:.3f}')
+
+        name = param_names[i] if param_names else rf"$\theta_{i}$"
+        ax.set_xlabel(name)
+        ax.set_ylabel('Density')
+        ax.set_title(f'Posterior: {name}')
+        ax.legend(fontsize=8)
+
+    for i in range(n_params, len(axes)):
+        axes[i].axis('off')
+
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    if return_fig:
+        return fig, axes
+    else:
+        plt.show()
+
+
+def plot_chains(results: dict,
+                true_theta: list | np.ndarray | None = None,
+                param_names: list[str] | None = None,
+                figsize: tuple[float, float] | None = None,
+                save_path: str | None = None,
+                return_fig: bool = False,
+                sharey: bool = False):
+    """Plot MCMC chain traces (all chains overlaid per parameter).
+
+    Parameters
+    ----------
+    results : dict
+        Must contain ``'chains'`` with shape ``(n_chains, n_samples, theta_dim)``.
+    true_theta : array-like, optional
+        True parameter values.
+    param_names : list of str, optional
+        Names for each parameter.
+    figsize : tuple, optional
+        Figure size.
+    save_path : str, optional
+        Path to save figure.
+    return_fig : bool, default=False
+        If True, return (fig, axes).
+
+    Returns
+    -------
+    tuple or None
+        (fig, axes) if return_fig=True.
+    """
+    _require_matplotlib()
+
+    chains = np.asarray(results['chains'])
+    n_chains, n_samples, n_params = chains.shape
+
+    if n_params <= 2:
+        nrows, ncols = 1, n_params
+        figsize = figsize or (5 * n_params, 3)
+    else:
+        ncols = min(3, n_params)
+        nrows = (n_params + ncols - 1) // ncols
+        figsize = figsize or (5 * ncols, 3 * nrows)
+
+    fig, axes = plt.subplots(nrows, ncols, figsize=figsize, squeeze=False,
+                             sharey=sharey)
+    axes = axes.flatten()
+
+    for i in range(n_params):
+        ax = axes[i]
+        for c in range(n_chains):
+            ax.plot(chains[c, :, i], alpha=0.6, lw=0.5, label=f'Chain {c+1}')
+
+        if true_theta is not None:
+            ax.axhline(np.asarray(true_theta)[i], color='red', ls='--',
+                       lw=1.5, label=f'True')
+
+        name = param_names[i] if param_names else rf"$\theta_{i}$"
+        ax.set_xlabel('Sample')
+        ax.set_ylabel(name)
+        ax.set_title(f'Trace: {name}')
+        if i == 0:
+            ax.legend(fontsize=7)
+
+    for i in range(n_params, len(axes)):
+        axes[i].axis('off')
+
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    if return_fig:
+        return fig, axes
+    else:
+        plt.show()
+
+
+def plot_autocorrelation(results: dict,
+                         max_lag: int = 50,
+                         param_names: list[str] | None = None,
+                         figsize: tuple[float, float] | None = None,
+                         save_path: str | None = None,
+                         return_fig: bool = False):
+    """Plot autocorrelation function for each parameter.
+
+    Parameters
+    ----------
+    results : dict
+        Must contain ``'particles'`` with shape ``(n_samples, theta_dim)``.
+    max_lag : int, default=50
+        Maximum lag to compute.
+    param_names : list of str, optional
+        Names for each parameter.
+    figsize : tuple, optional
+        Figure size.
+    save_path : str, optional
+        Path to save figure.
+    return_fig : bool, default=False
+        If True, return (fig, axes).
+
+    Returns
+    -------
+    tuple or None
+        (fig, axes) if return_fig=True.
+    """
+    _require_matplotlib()
+
+    particles = np.asarray(results['particles'])
+    n_samples, n_params = particles.shape
+
+    if n_params <= 2:
+        nrows, ncols = 1, n_params
+        figsize = figsize or (5 * n_params, 3)
+    else:
+        ncols = min(3, n_params)
+        nrows = (n_params + ncols - 1) // ncols
+        figsize = figsize or (5 * ncols, 3 * nrows)
+
+    fig, axes = plt.subplots(nrows, ncols, figsize=figsize, squeeze=False)
+    axes = axes.flatten()
+
+    for i in range(n_params):
+        ax = axes[i]
+        x = particles[:, i]
+        mean = np.mean(x)
+        var = np.var(x)
+        if var == 0:
+            ax.bar(range(max_lag), [1.0] + [0.0] * (max_lag - 1), width=1, alpha=0.7)
+        else:
+            acf = []
+            for k in range(max_lag):
+                if k == 0:
+                    acf.append(1.0)
+                else:
+                    rho = np.mean((x[:n_samples-k] - mean) * (x[k:] - mean)) / var
+                    acf.append(rho)
+            ax.bar(range(max_lag), acf, width=1, alpha=0.7, color='steelblue')
+            ax.axhline(0, color='black', lw=0.5)
+            ax.axhline(1.96 / np.sqrt(n_samples), color='red', ls='--', lw=0.5)
+            ax.axhline(-1.96 / np.sqrt(n_samples), color='red', ls='--', lw=0.5)
+
+        name = param_names[i] if param_names else rf"$\theta_{i}$"
+        ax.set_xlabel('Lag')
+        ax.set_ylabel('ACF')
+        ax.set_title(f'Autocorrelation: {name}')
+
+    for i in range(n_params, len(axes)):
+        axes[i].axis('off')
+
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    if return_fig:
+        return fig, axes
+    else:
+        plt.show()
+
+
+def plot_pairwise(results: dict,
+                  true_theta: list | np.ndarray | None = None,
+                  param_names: list[str] | None = None,
+                  figsize: tuple[float, float] | None = None,
+                  save_path: str | None = None,
+                  return_fig: bool = False):
+    """Plot pairwise scatter of posterior samples.
+
+    Parameters
+    ----------
+    results : dict
+        Must contain ``'particles'`` and ``'theta_mean'``.
+    true_theta : array-like, optional
+        True parameter values.
+    param_names : list of str, optional
+        Names for each parameter.
+    figsize : tuple, optional
+        Figure size.
+    save_path : str, optional
+        Path to save figure.
+    return_fig : bool, default=False
+        If True, return (fig, axes).
+
+    Returns
+    -------
+    tuple or None
+        (fig, axes) if return_fig=True.
+    """
+    _require_matplotlib()
+
+    particles = np.asarray(results['particles'])
+    theta_mean = np.asarray(results['theta_mean'])
+    n_params = particles.shape[1]
+
+    if n_params < 2:
+        raise ValueError("Need at least 2 parameters for pairwise plot")
+
+    n_pairs = n_params * (n_params - 1) // 2
+    ncols = min(3, n_pairs)
+    nrows = (n_pairs + ncols - 1) // ncols
+    figsize = figsize or (5 * ncols, 4 * nrows)
+
+    fig, axes = plt.subplots(nrows, ncols, figsize=figsize, squeeze=False)
+    axes = axes.flatten()
+
+    pair_idx = 0
+    for i in range(n_params):
+        for j in range(i + 1, n_params):
+            ax = axes[pair_idx]
+            ax.scatter(particles[:, i], particles[:, j], alpha=0.15, s=5, c='C0')
+
+            ax.plot(theta_mean[i], theta_mean[j], 'C1*', markersize=12,
+                    label=f'Mean ({theta_mean[i]:.2f}, {theta_mean[j]:.2f})')
+
+            if true_theta is not None:
+                tv = np.asarray(true_theta)
+                ax.plot(tv[i], tv[j], 'r*', markersize=12,
+                        label=f'True ({tv[i]:.2f}, {tv[j]:.2f})')
+
+            ni = param_names[i] if param_names else rf"$\theta_{i}$"
+            nj = param_names[j] if param_names else rf"$\theta_{j}$"
+            ax.set_xlabel(ni)
+            ax.set_ylabel(nj)
+            ax.set_title(f'{ni} vs {nj}')
+            ax.legend(fontsize=7)
+            pair_idx += 1
+
+    for i in range(pair_idx, len(axes)):
+        axes[i].axis('off')
+
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    if return_fig:
+        return fig, axes
+    else:
+        plt.show()

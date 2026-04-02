@@ -921,37 +921,72 @@ ffi::Error SamplePathConditionedFfiImpl(
         size_t batch_size = std::max({theta_batch, target_batch, seed_batch});
 
         if (batch_size > 1) {
-            // Batched: OpenMP parallel over batch elements.
-            // Each thread uses its own thread-local GraphBuilder.
-            #pragma omp parallel for if(batch_size > 4)
-            for (size_t b = 0; b < batch_size; b++) {
-                // Thread-local builder lookup
-                std::shared_ptr<GraphBuilder> local_builder;
-                auto local_it = builder_cache.find(json_str);
-                if (local_it != builder_cache.end()) {
-                    local_builder = local_it->second;
-                } else {
-                    local_builder = std::make_shared<GraphBuilder>(json_str);
-                    builder_cache[json_str] = local_builder;
+            bool theta_is_broadcast = (theta_batch <= 1);
+
+            if (theta_is_broadcast) {
+                // Optimized: build graph ONCE, cache backward probs per unique target
+                Graph g = builder->build(theta_data, theta_len);
+
+                // Precompute backward probs for each unique target vertex
+                std::unordered_map<int32_t, double*> bp_cache;
+                for (size_t b = 0; b < batch_size; b++) {
+                    int32_t tv = target_data[target_batch > 1 ? b : 0];
+                    if (bp_cache.find(tv) == bp_cache.end()) {
+                        size_t target_sz = static_cast<size_t>(tv);
+                        bp_cache[tv] = ptd_backward_probabilities(
+                            g.c_graph(), &target_sz, 1
+                        );
+                    }
                 }
 
-                // Handle broadcasting: use b if batched, 0 if singleton
-                const double* theta_b = theta_data + (theta_batch > 1 ? b * theta_len : 0);
-                int32_t target_v = target_data[target_batch > 1 ? b : 0];
-                unsigned int rng_seed = static_cast<unsigned int>(
-                    seed_data[seed_batch > 1 ? b : 0]
-                );
-                int32_t* idx_out = indices_out + b * ml;
-                double* time_out = times_out + b * ml;
+                // Sample all paths in parallel (graph and bp_cache are read-only)
+                #pragma omp parallel for if(batch_size > 4)
+                for (size_t b = 0; b < batch_size; b++) {
+                    int32_t tv = target_data[target_batch > 1 ? b : 0];
+                    unsigned int rng_seed = static_cast<unsigned int>(
+                        seed_data[seed_batch > 1 ? b : 0]
+                    );
+                    ptd_random_sample_path_conditioned_fixed(
+                        g.c_graph(), bp_cache[tv], ml, rng_seed,
+                        indices_out + b * ml, times_out + b * ml
+                    );
+                }
 
-                Graph g = local_builder->build(theta_b, theta_len);
-                size_t target_sz = static_cast<size_t>(target_v);
-                double* h = ptd_backward_probabilities(g.c_graph(), &target_sz, 1);
+                // Free cached backward probs
+                for (auto& [key, ptr] : bp_cache) {
+                    free(ptr);
+                }
+            } else {
+                // Theta varies per batch element: build graph per element
+                #pragma omp parallel for if(batch_size > 4)
+                for (size_t b = 0; b < batch_size; b++) {
+                    std::shared_ptr<GraphBuilder> local_builder;
+                    auto local_it = builder_cache.find(json_str);
+                    if (local_it != builder_cache.end()) {
+                        local_builder = local_it->second;
+                    } else {
+                        local_builder = std::make_shared<GraphBuilder>(json_str);
+                        builder_cache[json_str] = local_builder;
+                    }
 
-                ptd_random_sample_path_conditioned_fixed(
-                    g.c_graph(), h, ml, rng_seed, idx_out, time_out
-                );
-                free(h);
+                    const double* theta_b = theta_data + b * theta_len;
+                    int32_t tv = target_data[target_batch > 1 ? b : 0];
+                    unsigned int rng_seed = static_cast<unsigned int>(
+                        seed_data[seed_batch > 1 ? b : 0]
+                    );
+
+                    Graph g = local_builder->build(theta_b, theta_len);
+                    size_t target_sz = static_cast<size_t>(tv);
+                    double* h = ptd_backward_probabilities(
+                        g.c_graph(), &target_sz, 1
+                    );
+
+                    ptd_random_sample_path_conditioned_fixed(
+                        g.c_graph(), h, ml, rng_seed,
+                        indices_out + b * ml, times_out + b * ml
+                    );
+                    free(h);
+                }
             }
         } else {
             // Single sample (no batch)

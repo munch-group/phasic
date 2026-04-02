@@ -475,7 +475,15 @@ def bffg_log_prob(jg_disc, jg_continuous, theta_proposal, theta_target_fn,
 
     dense_edge_coeffs_jax = jnp.array(dense_edge_coeffs)
     dense_edge_targets_jax = jnp.array(dense_edge_targets)
-    max_path_length = 2 * n_verts
+
+    # Compute max path length from longest path in DAG (forward edges only)
+    _longest = np.zeros(n_verts, dtype=int)
+    for vi in range(n_verts):
+        if _vertex_edge_targets[vi] is not None:
+            for t in _vertex_edge_targets[vi]:
+                if t > vi:  # forward edge (skip trash back-edges)
+                    _longest[t] = max(_longest[t], _longest[vi] + 1)
+    max_path_length = int(_longest.max()) + 2  # +2 for start vertex and terminal
     structure_continuous = jg_continuous.serialize()
     obs_jnp = jnp.array(observed_data, dtype=jnp.int32)
 
