@@ -258,6 +258,7 @@ if HAS_JAX:
         path_exit_rates_by_param,
         importance_log_weight_from_rates,
         importance_weighted_log_likelihood,
+        bffg_log_prob,
     )
 else:
     SVGD = None
@@ -267,6 +268,7 @@ else:
     path_exit_rates_by_param = None
     importance_log_weight_from_rates = None
     importance_weighted_log_likelihood = None
+    bffg_log_prob = None
     Prior = None
     GaussPrior = None
     HalfCauchyPrior = None
@@ -5454,7 +5456,8 @@ extern "C" {{
 
     @classmethod
     def pmf_from_graph_joint_index(cls, graph: Graph, theta_dim: int | None = None,
-                                    fixed_mask: Any = None) -> Callable:
+                                    fixed_mask: Any = None,
+                                    exclude_vertices: list[int] | None = None) -> Callable:
         """
         Create a JAX-compatible model for joint index distributions.
 
@@ -5479,6 +5482,12 @@ extern "C" {{
             Binary mask indicating which parameters are fixed (1=fixed, 0=learnable).
             If provided, gradients for fixed dimensions will be zero in the custom VJP.
             This is used to skip finite difference computation for fixed parameters.
+        exclude_vertices : list of int, optional
+            Vertex indices to exclude from the normalization constant.
+            Use this for ascertainment bias correction — e.g., exclude the
+            zero-mutation terminal state when conditioning on observing at
+            least one mutation. The excluded vertices are removed from the
+            denominator, so the model returns P(s | s not in excluded set).
 
         Returns
         -------
@@ -5532,7 +5541,11 @@ extern "C" {{
                 if len(edge.to().edges()) == 0:  # points to absorbing state
                     all_terminal_indices.append(vertex.index())
                     break
-        all_terminal_indices = jnp.array(sorted(set(all_terminal_indices)), dtype=jnp.int32)
+        all_terminal_indices = sorted(set(all_terminal_indices))
+        if exclude_vertices is not None:
+            exclude_set = set(int(v) for v in exclude_vertices)
+            all_terminal_indices = [v for v in all_terminal_indices if v not in exclude_set]
+        all_terminal_indices = jnp.array(all_terminal_indices, dtype=jnp.int32)
 
         def _compute_pure(theta, vertex_indices):
             """Pure computation using FFI for memory-efficient subset computation."""

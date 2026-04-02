@@ -125,6 +125,11 @@ class MCMC:
     fixed : list of tuples or array, optional
         Fixed parameters. Same format as SVGD:
         - [(index, value), ...] or binary mask [0, 1, 0, ...]
+    likelihood_correction : callable, optional
+        Additive correction to the log-likelihood, with signature
+        ``likelihood_correction(theta) -> scalar``. Added after the model
+        log-likelihood. Used for BFFG importance weight corrections in
+        inhomogeneous models.
     adaptive : bool, default=True
         Enable adaptive Metropolis proposal (Haario et al., 2001).
         During burn-in, learns an empirical covariance from chain history
@@ -196,6 +201,7 @@ class MCMC:
         adapt_after: int | None = None,
         target_acceptance: float = 0.234,
         parallel: str | None = None,
+        likelihood_correction: Callable | None = None,
     ) -> None:
 
         # Validate mode: exactly one of model or log_prob_fn
@@ -225,6 +231,7 @@ class MCMC:
 
         self.model = model
         self._log_prob_fn = log_prob_fn
+        self.likelihood_correction = likelihood_correction
         self.n_samples = n_samples
         self.n_chains = n_chains
         self.burn_in = burn_in
@@ -462,6 +469,10 @@ class MCMC:
                 model_values = result
 
             log_lik = jnp.sum(jnp.log(model_values + 1e-10))
+
+        # Likelihood correction (e.g., BFFG importance weight term)
+        if self.likelihood_correction is not None:
+            log_lik = log_lik + self.likelihood_correction(theta)
 
         # Log-prior
         if self.prior_list is not None:
