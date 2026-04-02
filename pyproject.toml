@@ -199,12 +199,8 @@ args = [
 cmd = "./scripts/bump_version.py --{{ kind }} {{ flag }} && git add pyproject.toml && git commit -m '{{ kind }} {{ flag }} version bump'"
 
 [tool.pixi.tasks.release]
-args = [
-  { "arg" = "kind", "default" = "patch" },  # can be patch, minor, major
-  { "arg" = "flag", "default" = "" },     # can be --pre, --release
-]
-cmd = "git add pyproject.toml && git commit -m '{{ kind }} {{ flag }} version bump' && git push && ./scripts/github-release.sh"
-description = "Bump version patch and push tag to build/upload conda/pypi packages"
+cmd = "./scripts/github-release.sh"
+description = "Make release and push tag to build/upload conda/pypi packages"
 
 [tool.pixi.tasks.version]
 args = [
