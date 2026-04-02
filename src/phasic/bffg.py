@@ -379,7 +379,7 @@ def bffg_log_prob(jg_disc, jg_continuous, theta_proposal, theta_target_fn,
         """BFFG log-probability for inhomogeneous model."""
         theta_mcmc_np = np.asarray(theta_mcmc)
 
-        # Evaluate model at theta_mcmc (not fixed proposal)
+        # Evaluate model at theta_mcmc
         if theta_proposal_fn is not None:
             theta_graph = theta_proposal_fn(theta_mcmc_np)
         else:
@@ -387,7 +387,7 @@ def bffg_log_prob(jg_disc, jg_continuous, theta_proposal, theta_target_fn,
         jg_disc.update_weights(list(theta_graph))
         jpt = jg_disc.joint_prob_table()
 
-        # Build ascertained log-probabilities for this theta
+        # Ascertained normalization
         total_prob = jpt['prob'].sum()
         if zero_mut_idx is not None:
             total_prob -= float(jpt.loc[zero_mut_idx, 'prob'])
