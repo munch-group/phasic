@@ -40,7 +40,11 @@
 #else
     #include <sys/stat.h>
     #include <sys/types.h>
-    // Windows doesn't need unistd.h
+    // Windows doesn't have rand_r; provide a simple replacement
+    static int rand_r(unsigned int *seedp) {
+        *seedp = *seedp * 1103515245 + 12345;
+        return (int)((*seedp / 65536) % 32768);
+    }
 #endif
 
 #include "phasic.h"
