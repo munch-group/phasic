@@ -71,6 +71,13 @@ ipfs = [
 optax = [
     'optax>=0.2.0',
 ]
+spatial = [
+    "shapely>=2.0",
+]
+geo = [
+    "shapely>=2.0",
+    "geopandas>=0.14",
+]
 dev = [
     "pytest",
     "tszip>=0.2.5",

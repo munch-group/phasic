@@ -49,6 +49,7 @@ from .state_indexing import (
     PropertyDict,
     StateVector
 )
+from .hex_grid import HexGrid, HexCell
 from phasic.graph_cache import GraphCache, get_graph_cache_stats, print_graph_cache_info
 
 # from .vscode_theme import set_phasic_theme
