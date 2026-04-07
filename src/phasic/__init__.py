@@ -712,18 +712,11 @@ def _generate_cpp_from_graph(serialized: dict) -> str:
         # Starting vertex parameterized edges
         for i, edge in enumerate(start_param_edges):
             to_idx = int(edge[0])
-            base_weight = edge[1]
-            edge_state = edge[2:]
-            # Generate weight computation: w = base_weight + x1*theta[0] + x2*theta[1] + ...
-            # Only include non-zero coefficients for efficiency and correctness
-            weight_terms = [f"{edge_state[j]}*theta[{j}]"
-                           for j in range(len(edge_state))
-                           if edge_state[j] != 0.0]
-            if weight_terms:
-                weight_expr = f"{base_weight} + " + " + ".join(weight_terms)
-            else:
-                # All coefficients are zero - use only base_weight
-                weight_expr = f"{base_weight}"
+            coeffs = edge[1:]
+            weight_terms = [f"{coeffs[j]}*theta[{j}]"
+                           for j in range(len(coeffs))
+                           if coeffs[j] != 0.0]
+            weight_expr = " + ".join(weight_terms) if weight_terms else "0.0"
             param_edge_code.append(f"    double w_start_{to_idx} = {weight_expr};")
             param_edge_code.append(f"    start->add_edge(*vertices[{to_idx}], w_start_{to_idx});")
 
@@ -731,18 +724,11 @@ def _generate_cpp_from_graph(serialized: dict) -> str:
         for i, edge in enumerate(param_edges):
             from_idx = int(edge[0])
             to_idx = int(edge[1])
-            base_weight = edge[2]
-            edge_state = edge[3:]
-            # Generate weight computation: w = base_weight + x1*theta[0] + x2*theta[1] + ...
-            # Only include non-zero coefficients for efficiency and correctness
-            weight_terms = [f"{edge_state[j]}*theta[{j}]"
-                           for j in range(len(edge_state))
-                           if edge_state[j] != 0.0]
-            if weight_terms:
-                weight_expr = f"{base_weight} + " + " + ".join(weight_terms)
-            else:
-                # All coefficients are zero - use only base_weight
-                weight_expr = f"{base_weight}"
+            coeffs = edge[2:]
+            weight_terms = [f"{coeffs[j]}*theta[{j}]"
+                           for j in range(len(coeffs))
+                           if coeffs[j] != 0.0]
+            weight_expr = " + ".join(weight_terms) if weight_terms else "0.0"
             param_edge_code.append(f"    double w_{from_idx}_{to_idx} = {weight_expr};")
             param_edge_code.append(f"    vertices[{from_idx}]->add_edge(*vertices[{to_idx}], w_{from_idx}_{to_idx});")
 
@@ -1463,7 +1449,8 @@ def _callback(ipv: list) -> Callable:
                 return transitions
             
             # make sure returned types are correct
-            # Handle 3-tuples: (state, base_weight, edge_state) for parameterized edges
+            # Handle 3-tuples: (state, weight, edge_state) for parameterized edges
+            # weight is ignored (vestigial); prefer 2-tuple (state, [coeffs]) format
             if len(transitions[0]) == 3:
                 return [[list(map(int, s)), float(w), list(e)] for s, w, e in transitions]
             # Handle 2-tuples with list as second element: (state, [coeffs]) - legacy format
@@ -1607,7 +1594,7 @@ class Graph(_Graph):
 
         The graph can be initialized in two ways:
         - By providing a state length to create an empty graph.
-        - By providing a callback function that generates the graph. The callback function should take a list of integers as its only argument and return a list of tuples, where each tuple contains a state and a list of tuples, where each tuple contains a state and a rate. For parameterized edges, the callback should return 3-tuples (state, weight, edge_state). If the ipv argument is not provided, the function must return the ipv if given an empty state array as argument.
+        - By providing a callback function that generates the graph. The callback function should take a list of integers as its only argument and return a list of tuples, where each tuple contains a state and a list of tuples, where each tuple contains a state and a rate. For parameterized edges, the callback should return 2-tuples (state, [coefficients]). If the ipv argument is not provided, the function must return the ipv if given an empty state array as argument.
 
         Parameters
         ----------
@@ -1846,7 +1833,7 @@ class Graph(_Graph):
             callback from the original Graph construction. The callback should
             accept a state array and return:
             - For non-parameterized: list of (state, weight) tuples
-            - For parameterized: list of (state, base_weight, edge_state) tuples
+            - For parameterized: list of (state, [coefficients]) tuples
         **kwargs
             Additional keyword arguments to pass to the callback function. If None,
             uses the kwargs from the original Graph construction.
@@ -1863,7 +1850,7 @@ class Graph(_Graph):
         >>>
         >>> # Manually add new vertex
         >>> special_vertex = graph.find_or_create_vertex([100, 200])
-        >>> graph.starting_vertex().add_edge_parameterized(special_vertex, 0.0, [1.5])
+        >>> graph.starting_vertex().add_edge(special_vertex, [1.5])
         >>>
         >>> # Continue with callback to explore new vertices
         >>> graph.extend()  # Uses original callback
@@ -3332,7 +3319,7 @@ class Graph(_Graph):
                 f"  Actual: {start_edges.shape}"
             )
 
-        # Note: As of v0.22.0, base_weight was removed from parameterized edges
+        # Parameterized edge format: [from_idx, to_idx, coeff1, coeff2, ...]
         # Format is now [from, to, c1, c2, ...] with 2+coefficients_length columns
         # The coefficient length may be >= param_length (edges can have extra coefficients)
         # Infer actual coefficient length from array shape
@@ -3387,7 +3374,7 @@ class Graph(_Graph):
                     f"  Expected: (n_start_param_edges, {expected_start_param_edge_cols})\n"
                     f"  Actual: {start_param_edges.shape}\n"
                     f"  Note: theta_dim={theta_dim}, so columns should be 1+{theta_dim}={expected_start_param_edge_cols}\n"
-                    f"  Format: [to_idx, coeff1, coeff2, ...] (no base_weight as of v0.22.0)"
+                    f"  Format: [to_idx, coeff1, coeff2, ...]"
                 )
 
         # Create empty graph
@@ -3443,8 +3430,7 @@ class Graph(_Graph):
             try:
                 from_vertex = idx_to_vertex[from_idx]
                 to_vertex = idx_to_vertex[to_idx]
-                # As of v0.22.0, base_weight=0.0 for all parameterized edges
-                from_vertex.add_edge_parameterized(to_vertex, 0.0, edge_state)
+                from_vertex.add_edge(to_vertex, edge_state)
             except Exception as e:
                 raise RuntimeError(
                     f"Graph deserialization failed: cannot add parameterized edge\n"
@@ -3468,8 +3454,7 @@ class Graph(_Graph):
 
             try:
                 to_vertex = idx_to_vertex[to_idx]
-                # As of v0.22.0, base_weight=0.0 for all parameterized edges
-                start.add_edge_parameterized(to_vertex, 0.0, edge_state)
+                start.add_edge(to_vertex, edge_state)
             except Exception as e:
                 raise RuntimeError(
                     f"Graph deserialization failed: cannot add start parameterized edge\n"

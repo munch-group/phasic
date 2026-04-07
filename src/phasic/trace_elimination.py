@@ -729,7 +729,7 @@ def record_elimination_trace(graph, theta_dim: int | None = None,
             edge_state = edge_state[:theta_dim]
             coeffs = np.array(edge_state, dtype=np.float64)
 
-            # Compute weight expression (no base_weight)
+            # Compute weight as dot product of coefficients and theta
             weight_idx = builder.add_dot(coeffs)
 
             # prob = weight * rate

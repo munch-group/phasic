@@ -2237,7 +2237,7 @@ str
     Parameters
     ----------
     callback : callable
-        Callback function that accepts a state array and returns a list of (state, base_weight, edge_state) tuples.
+        Callback function that accepts a state array and returns a list of (state, weight, edge_state) tuples.
 
     Returns
     -------

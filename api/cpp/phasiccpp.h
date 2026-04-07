@@ -1135,8 +1135,6 @@ namespace phasic {
             return _weight;
         }
 
-        // base_weight() method removed - starting edges are never parameterized
-
         // Expose coefficients_length from base class
         size_t coefficients_length() const {
             return Edge::coefficients_length();

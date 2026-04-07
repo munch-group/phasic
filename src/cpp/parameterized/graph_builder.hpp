@@ -239,7 +239,6 @@ private:
     struct ParameterizedEdge {
         int from_idx;
         int to_idx;
-        // base_weight removed - starting edges are never parameterized
         std::vector<double> coefficients;  // Length = param_length
     };
     std::vector<ParameterizedEdge> param_edges_;

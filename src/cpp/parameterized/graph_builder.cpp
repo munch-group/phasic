@@ -66,7 +66,7 @@ void GraphBuilder::parse_structure(const std::string& json_str) {
                 ParameterizedEdge edge;
                 edge.from_idx = edge_arr[0].get<int>();
                 edge.to_idx = edge_arr[1].get<int>();
-                // No base_weight
+
                 edge.coefficients.reserve(param_length_);
                 for (int i = 2; i < 2 + param_length_; i++) {
                     edge.coefficients.push_back(edge_arr[i].get<double>());
@@ -85,7 +85,7 @@ void GraphBuilder::parse_structure(const std::string& json_str) {
                 ParameterizedEdge edge;
                 edge.from_idx = -1;  // Starting vertex
                 edge.to_idx = edge_arr[0].get<int>();
-                // No base_weight
+
                 edge.coefficients.reserve(param_length_);
                 for (int i = 1; i < 1 + param_length_; i++) {
                     edge.coefficients.push_back(edge_arr[i].get<double>());
@@ -172,7 +172,7 @@ Graph GraphBuilder::build(const double* theta, size_t theta_len) {
         Vertex* from_v = vertices[edge.from_idx];
         Vertex* to_v = vertices[edge.to_idx];
 
-        // Compute weight: dot product only (no base_weight)
+        // Compute weight: dot product of coefficients and theta
         double weight = 0.0;
         for (int i = 0; i < param_length_; i++) {
             weight += edge.coefficients[i] * theta[i];
@@ -185,7 +185,7 @@ Graph GraphBuilder::build(const double* theta, size_t theta_len) {
     for (const auto& edge : start_param_edges_) {
         Vertex* to_v = vertices[edge.to_idx];
 
-        // Compute weight: dot product only (no base_weight)
+        // Compute weight: dot product of coefficients and theta
         double weight = 0.0;
         for (int i = 0; i < param_length_; i++) {
             weight += edge.coefficients[i] * theta[i];

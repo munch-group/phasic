@@ -458,7 +458,7 @@ class HexGrid:
             HexGrid. Returns list of transitions:
 
             - Non-parameterized: ``[(next_state, rate), ...]``
-            - Parameterized: ``[(next_state, base_weight, coefficients), ...]``
+            - Parameterized: ``[(next_state, coefficients), ...]``
         property_set : PropertySet
             The PropertySet containing ``row``/``col`` properties (and
             possibly other properties). Used to determine ``state_length``.
@@ -522,11 +522,9 @@ class HexGrid:
 
                 for t in transitions:
                     if parameterized:
-                        next_state, base_weight, coeffs = t
+                        next_state, coeffs = t
                         nv = graph.find_or_create_vertex(list(next_state))
-                        vertex.add_edge_parameterized(
-                            nv, base_weight=base_weight, edge_state=coeffs
-                        )
+                        vertex.add_edge(nv, coeffs)
                     else:
                         next_state, rate = t[0], t[1]
                         nv = graph.find_or_create_vertex(list(next_state))
