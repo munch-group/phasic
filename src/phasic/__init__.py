@@ -5904,6 +5904,7 @@ extern "C" {{
         from collections import defaultdict
         import seaborn as sns
         import matplotlib
+        import matplotlib.pyplot as plt
         import matplotlib.colors
         from itertools import cycle
         from functools import partial
@@ -6016,6 +6017,14 @@ extern "C" {{
         if by_state and by_index:
             assert "Do not use both by_index and by_state"
 
+        # get matplotlib background color for graph background
+        plt.ioff()
+        fig, ax = plt.subplots()
+        bg_color = ax.get_facecolor()
+        plt.close(fig)
+        plt.ion()
+        bg_color = matplotlib.colors.to_hex(bg_color)
+
         if dark:
             edge_color = '#e6e6e6'
             node_edgecolor = '#888888'
@@ -6026,7 +6035,8 @@ extern "C" {{
             abs_fillcolor = '#777777'
             aux_edgecolor = 'black'
             aux_fillcolor = '#3e3e3e'
-            bgcolor = '#1F1F1F'
+            # bgcolor = '#1F1F1F'
+            bgcolor = bg_color
             subgraph_label_fontcolor = '#e6e6e6'
             subgraph_bgcolor='#2e2e2e'
             subgraph_edgecolor='#e6e6e6'
@@ -6042,9 +6052,11 @@ extern "C" {{
             abs_fillcolor='#bbbbbb'
             aux_edgecolor='black'
             aux_fillcolor='#bbbbbb'
-            bgcolor='transparent'
+            # bgcolor='transparent'
+            bgcolor=bg_color
             subgraph_label_fontcolor = 'black'
-            subgraph_bgcolor='white'
+            # subgraph_bgcolor='white'
+            subgraph_bgcolor=bg_color
             subgraph_edgecolor='black'
             husl_colors = _get_color(10, lightness=0.4)
 
