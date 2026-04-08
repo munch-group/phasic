@@ -53,7 +53,10 @@
       "Bash(grep -r \"sample.*path\\\\|trace.*path\\\\|markov.*chain\\\\|trajectory\\\\|jump.*sequence\" /Users/kmt/phasic/src/phasic/*.py)",
       "Bash(grep -r rewards /Users/kmt/phasic/api --include=*.cpp --include=*.hpp --include=*.py)",
       "Bash(find /Users/kmt/phasic -type f \\\\\\(-name *.cpp -o -name *.hpp -o -name *.h \\\\\\))",
-      "Bash(grep -l \"Graph.*callback\\\\|@_callback\\\\|@with_ipv\" /Users/kmt/phasic/tests/pytest/*.py)"
+      "Bash(grep -l \"Graph.*callback\\\\|@_callback\\\\|@with_ipv\" /Users/kmt/phasic/tests/pytest/*.py)",
+      "Bash(pdftotext /Users/kmt/phasic/source_docs/roikjer.pdf -)",
+      "WebFetch(domain:en.wikipedia.org)",
+      "WebFetch(domain:www2.imm.dtu.dk)"
     ],
     "deny": [],
     "ask": []
