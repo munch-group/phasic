@@ -132,6 +132,8 @@ website:
             - pages/tutorial/laplace.ipynb
             - pages/tutorial/joint-probability.ipynb
             - pages/tutorial/finite-markov-chains.ipynb
+            - pages/tutorial/hex-grid.ipynb
+            - pages/tutorial/resistance-surface.ipynb
             # - pages/tutorial/state-lumping.ipynb
             # - pages/topics/R/partitioning.ipynb
         - section: "Topics"
@@ -229,7 +231,7 @@ quartodoc:
     - title: Graph Construction
       package: phasic
       desc: |
-        The state indexing utility for mapping between between the 
+        The state indexing utility for mapping between between the
         integer vectors of states and the model properties they represent.
       contents:
         - StateIndexer
@@ -237,6 +239,15 @@ quartodoc:
         - Property
         - PropertyDict
         - StateVector
+
+    - title: Spatial Grids
+      package: phasic
+      desc: |
+        Hexagonal grid utilities for spatial phase-type models on
+        geographic boundaries.
+      contents:
+        - HexGrid
+        - HexCell
 
     - title: Exceptions
       package: phasic.exceptions

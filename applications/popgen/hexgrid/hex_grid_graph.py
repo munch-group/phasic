@@ -129,13 +129,9 @@ class HexGridGraph:
 
             for transition in transitions:
                 if parameterized:
-                    next_state, base_weight, coefficients = transition
+                    next_state, coefficients = transition
                     next_vertex = self.graph.find_or_create_vertex(list(next_state))
-                    vertex.add_edge_parameterized(
-                        next_vertex,
-                        base_weight=base_weight,
-                        edge_state=coefficients
-                    )
+                    vertex.add_edge(next_vertex, coefficients)
                 else:
                     next_state, rate, _ = transition
                     next_vertex = self.graph.find_or_create_vertex(list(next_state))
