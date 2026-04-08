@@ -120,7 +120,7 @@ def test_stitch_validation():
     graph = Graph(1)
     v0 = graph.starting_vertex()
     v1 = graph.find_or_create_vertex([1])
-    v0.add_edge_parameterized(v1, base_weight=0.0, edge_state=[1.0])
+    v0.add_edge(v1, [1.0])
 
     scc_graph = graph.scc_decomposition()
 

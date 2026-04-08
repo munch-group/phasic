@@ -51,7 +51,10 @@ A **continuous phase-type (PH) distribution** represents the time until absorpti
 
 **Vertices** = states, **Edges** = transitions with rates/probabilities
 
-- **Parameterized edges**: weight = c₁θ₁ + c₂θ₂ + ... + cₙθₙ + base_weight
+- **Parameterized edges**: weight depends on `weight_mode`:
+  - `'linear'` (default): weight = c₁θ₁ + c₂θ₂ + ... + cₙθₙ
+  - `'log'`: weight = (c₁θ₁)(c₂θ₂)···(cₙθₙ) (multiplicative, computed in log-space)
+  - `'callback'`: weight = callback(θ, coefficients) (arbitrary Python function)
 - **Graph elimination** (Algorithm 3): Converts cyclic → acyclic via Gaussian elimination on graph
 - **Sparse graphs**: Only store actual transitions, not full n×n matrix
 
@@ -91,8 +94,8 @@ def coalescent_callback(state):
     if n <= 1:
         return []
     rate = n * (n - 1) / 2
-    # For parameterized: return (next_state, base_weight, [coeff_vector])
-    return [(np.array([n - 1]), 0.0, [rate])]
+    # For parameterized: return (next_state, [coeff_vector])
+    return [(np.array([n - 1]), [rate])]
 
 g = Graph(
     state_length=1,
@@ -105,9 +108,31 @@ g = Graph(
 g = Graph(1)
 v0 = g.starting_vertex()
 v1 = g.find_or_create_vertex([1])
-v0.add_edge_parameterized(v1, base_weight=0.0, edge_state=[2.0, 0.5])
+v0.add_edge(v1, [2.0, 0.5])
 # Edge weight = 2.0*θ[0] + 0.5*θ[1]
 ```
+
+### Weight Modes
+
+Parameterized edges support three weight computation modes that flow through the full JAX/FFI/SVGD pipeline:
+
+```python
+# Linear (default): weight = Σ c_k θ_k
+g.weight_mode = 'linear'
+
+# Log/multiplicative: weight = Π(c_k θ_k)
+# Useful when coefficients and parameters represent factors
+g.weight_mode = 'log'
+
+# Callback: weight = callback(theta, coefficients)
+# For arbitrary non-linear weight functions
+def resistance_weight(theta, coeffs):
+    return np.exp(-np.dot(coeffs, theta))
+
+g.weight_callback = resistance_weight  # Automatically sets weight_mode='callback'
+```
+
+All three modes work with `pmf_from_graph`, `pmf_and_moments_from_graph`, `graph.svgd()`, `jax.grad`, and `jax.vmap`. Log mode uses the C++ FFI path (fast, multi-core). Callback mode uses `jax.pure_callback` (sequential, Python overhead per evaluation).
 
 ### Computing PDF/PMF
 
@@ -326,6 +351,39 @@ reward_matrix = np.array([
 # Each row = one marginal's complete reward vector
 ```
 
+### HexGrid Spatial Models
+
+`HexGrid` creates hexagonal grids within geographic boundaries, producing `Property` objects that compose with `StateIndexer` for spatial phase-type models.
+
+```python
+from phasic import Graph, HexGrid, StateIndexer, Property
+
+# Create grid from shapefile
+grid = HexGrid.from_shapefile('africa.shp', hex_size=5)
+
+# Grid properties compose with other state properties
+indexer = StateIndexer(
+    cell=grid.properties() + [Property('lineage', min_value=1, max_value=2)]
+)
+
+# Transition function receives grid as second argument
+def migration(state, grid, indexer=None, rate=None):
+    transitions = []
+    # ... use grid.neighbors(row, col), indexer.cell.p2i(), etc.
+    return transitions
+
+# Build graph via standard Graph constructor
+graph = Graph(migration, ipv=[(initial, 1)], grid=grid, indexer=indexer, rate=1.0)
+
+# Or via HexGrid.build_graph for simpler models
+graph = grid.build_graph(transition_fn, indexer.cell)
+
+# Map results back to grid
+grid_values = grid.map_to_grid(graph, indexer.cell, values)
+```
+
+Key methods: `grid.neighbors(r, c)`, `grid.coords_to_rowcol(x, y)`, `grid.valid_cells()`, `grid.properties()`.
+
 ---
 
 ## Important Implementation Details
@@ -454,7 +512,7 @@ Implemented machine-precision gradient computation for phase-type distribution P
 - Exact PDF and gradient computation with error ≤ 2.05e-16
 - Two API workflows: direct parameter passing and integrated parameter update
 - Zero API signature changes - full backward compatibility with C++/R/Python
-- 4 lines of code modified to add `base_weight` field
+- Minimal code changes for gradient support
 
 **API Functions**:
 
@@ -487,7 +545,7 @@ int ptd_graph_pdf_parameterized(
 ```
 
 **Architecture Solution**:
-Added `base_weight` field to `struct ptd_edge_parameterized` to preserve original weight for gradient computation while allowing `update_weight_parameterized()` to store concrete weights for fast PDF computation.
+Preserves original edge coefficients for gradient computation while allowing `update_weight_parameterized()` to store concrete weights for fast PDF computation.
 
 **Test Results**:
 - `test_single_exp_grad.c`: error = 0.00e+00 ✓
@@ -636,6 +694,7 @@ PTD_LOG_ERROR("Failed to allocate memory for %zu bytes", size);
 
 **Python Modules:**
 - `src/phasic/__init__.py` - Graph class, SVGD, main API
+- `src/phasic/hex_grid.py` - HexGrid spatial grid utilities
 - `src/phasic/trace_elimination.py` - Trace recording and evaluation (Phases 1-4)
 - `src/phasic/ffi_wrappers.py` - JAX FFI integration (Phase 5 in progress)
 - `src/phasic/svgd.py` - SVGD implementation
@@ -662,5 +721,5 @@ pixi run test
 
 ---
 
-*Last updated: 2025-10-15*
+*Last updated: 2026-04-08*
 - When creating a markdown file summarizing changes made, please prompt to add changed and new files to git, commit them with a message from the markdown file, but do not add the markdown file itself. Prompt only once and then do git add, commit, and push without prompting further.

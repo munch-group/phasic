@@ -630,6 +630,54 @@ def _serialize_graph_data(serialized: dict) -> dict:
     }
 
 
+def _apply_weight_callback(serialized: dict, theta: np.ndarray, callback: Callable) -> dict:
+    """Apply a weight callback to produce a non-parameterized serialized graph.
+
+    For each parameterized edge, calls ``callback(theta, coefficients)`` to
+    compute a concrete weight, then moves the edge into the regular edges array.
+
+    Parameters
+    ----------
+    serialized : dict
+        From ``Graph.serialize()``.
+    theta : ndarray
+        Parameter vector.
+    callback : callable
+        ``(theta, coefficients) -> weight``.
+
+    Returns
+    -------
+    dict
+        Modified serialized dict with all edges as regular (non-parameterized).
+    """
+    param_edges = serialized['param_edges']
+    start_param_edges = serialized['start_param_edges']
+
+    # Compute concrete weights via callback
+    new_edges = list(serialized['edges'].tolist()) if len(serialized['edges']) > 0 else []
+    for edge in param_edges:
+        from_idx, to_idx = int(edge[0]), int(edge[1])
+        coeffs = np.array(edge[2:])
+        weight = float(callback(theta, coeffs))
+        new_edges.append([from_idx, to_idx, weight])
+
+    new_start_edges = list(serialized['start_edges'].tolist()) if len(serialized['start_edges']) > 0 else []
+    for edge in start_param_edges:
+        to_idx = int(edge[0])
+        coeffs = np.array(edge[1:])
+        weight = float(callback(theta, coeffs))
+        new_start_edges.append([to_idx, weight])
+
+    result = dict(serialized)
+    result['edges'] = np.array(new_edges, dtype=np.float64) if new_edges else np.empty((0, 3), dtype=np.float64)
+    result['start_edges'] = np.array(new_start_edges, dtype=np.float64) if new_start_edges else np.empty((0, 2), dtype=np.float64)
+    result['param_edges'] = np.empty((0, 0), dtype=np.float64)
+    result['start_param_edges'] = np.empty((0, 0), dtype=np.float64)
+    result['param_length'] = 0
+    result['weight_mode'] = 'linear'
+    return result
+
+
 def _generate_cpp_from_graph(serialized: dict) -> str:
     """
     Generate C++ build_model() function from serialized graph.
@@ -1793,6 +1841,8 @@ class Graph(_Graph):
         self._trace = None  # Cached EliminationTrace
         self._trace_dirty = True  # True = trace needs (re)computation
         self._last_theta = None  # Cached theta from update_weights()
+        self._weight_mode = 'linear'  # Weight computation mode: 'linear', 'log', or 'callback'
+        self._weight_callback = None  # Custom weight callback for 'callback' mode
 
         self._last_callback_vertices_length = self.vertices_length()  # Track vertices length at last callback call for extend()
 
@@ -1961,6 +2011,46 @@ class Graph(_Graph):
         """Whether the cached trace is valid (not dirty)."""
         return self._trace is not None and not self._trace_dirty
 
+    @property
+    def weight_mode(self) -> str:
+        """Weight computation mode for parameterized edges.
+
+        One of ``'linear'`` (default), ``'log'``, or ``'callback'``.
+
+        - ``'linear'``: weight = Σ c_k θ_k
+        - ``'log'``: weight = Π(c_k θ_k) (computed in log-space for stability)
+        - ``'callback'``: weight = callback(theta, coefficients)
+        """
+        return self._weight_mode
+
+    @weight_mode.setter
+    def weight_mode(self, mode: str) -> None:
+        if mode not in ('linear', 'log', 'callback'):
+            raise ValueError(
+                f"weight_mode must be 'linear', 'log', or 'callback', got {mode!r}"
+            )
+        self._weight_mode = mode
+
+    @property
+    def weight_callback(self) -> Callable | None:
+        """Custom callback for computing edge weights from theta and coefficients.
+
+        Setting this automatically sets ``weight_mode = 'callback'``.
+
+        The callback signature is ``(theta, coefficients) -> weight`` where
+        ``theta`` is a numpy array and ``coefficients`` is a numpy array of
+        edge coefficients.
+        """
+        return self._weight_callback
+
+    @weight_callback.setter
+    def weight_callback(self, fn: Callable | None) -> None:
+        self._weight_callback = fn
+        if fn is not None:
+            self._weight_mode = 'callback'
+        elif self._weight_mode == 'callback':
+            self._weight_mode = 'linear'
+
     def update_weights(self, theta: ArrayLike, callback: Callable | None = None, log: bool = False) -> None:
         """Update parameterized edge weights with given parameters.
 
@@ -1978,8 +2068,13 @@ class Graph(_Graph):
 
         Notes
         -----
-        This does NOT invalidate the cached trace since it only changes
+        This updates edge weights on the live Graph object (C++ side).
+        It does NOT invalidate the cached trace since it only changes
         parameter values, not graph structure.
+
+        For the JAX/FFI/SVGD pipeline, use ``graph.weight_mode`` instead.
+        That property controls how ``pmf_from_graph()`` and
+        ``pmf_and_moments_from_graph()`` compute edge weights from theta.
         """
         theta_array = np.asarray(theta, dtype=np.float64)
         if theta_array.ndim != 1:
@@ -3146,7 +3241,8 @@ class Graph(_Graph):
             'start_param_edges': start_param_edges,
             'param_length': theta_dim,
             'state_length': state_length,
-            'n_vertices': n_vertices
+            'n_vertices': n_vertices,
+            'weight_mode': self._weight_mode,
         }
 
     @classmethod
@@ -3722,7 +3818,72 @@ class Graph(_Graph):
             f.write(cpp_code)
 
         # Return appropriate signature based on parameterization
-        if has_param_edges:
+        if has_param_edges and serialized.get('weight_mode') == 'callback':
+            # CALLBACK MODE: Python-level weight computation before C++ call
+            import json
+            from .ffi_wrappers import _make_json_serializable
+            from . import phasic_pybind as cpp_module
+
+            weight_callback = graph.weight_callback
+            if weight_callback is None:
+                raise ValueError(
+                    "Graph has weight_mode='callback' but no weight_callback set. "
+                    "Set graph.weight_callback = my_callback_fn before calling pmf_from_graph()."
+                )
+
+            # Keep original serialized dict for callback application
+            _serialized = serialized
+
+            def _compute_pdf_callback(theta_np, times_np):
+                """Apply weight callback, build graph, compute PDF."""
+                concrete = _apply_weight_callback(_serialized, theta_np, weight_callback)
+                json_str = json.dumps(_make_json_serializable(concrete))
+                builder = cpp_module.parameterized.GraphBuilder(json_str)
+                # theta is unused by non-parameterized builder, pass dummy
+                return builder.compute_pmf(
+                    np.zeros(0), times_np, discrete=discrete, granularity=0
+                )
+
+            def model_pure(theta, times):
+                result_shape = jax.ShapeDtypeStruct(times.shape, times.dtype)
+                return jax.pure_callback(
+                    lambda t, tm: _compute_pdf_callback(
+                        np.asarray(t, dtype=np.float64),
+                        np.asarray(tm, dtype=np.float64)
+                    ).astype(times.dtype),
+                    result_shape,
+                    theta,
+                    times,
+                    vmap_method='sequential'
+                )
+
+            # Add custom VJP for gradients (finite differences)
+            @jax.custom_vjp
+            def jax_model(theta, times):
+                return model_pure(theta, times)
+
+            def jax_model_fwd(theta, times):
+                pdf = model_pure(theta, times)
+                return pdf, (theta, times)
+
+            def jax_model_bwd(res, g):
+                theta, times = res
+                n_params = theta.shape[0]
+                eps = 1e-7
+                theta_bar = []
+                for i in range(n_params):
+                    theta_plus = theta.at[i].add(eps)
+                    theta_minus = theta.at[i].add(-eps)
+                    pdf_plus = model_pure(theta_plus, times)
+                    pdf_minus = model_pure(theta_minus, times)
+                    grad_i = jnp.sum(g * (pdf_plus - pdf_minus) / (2 * eps))
+                    theta_bar.append(grad_i)
+                return jnp.array(theta_bar), None
+
+            jax_model.defvjp(jax_model_fwd, jax_model_bwd)
+            return jax_model
+
+        elif has_param_edges:
             # PARAMETERIZED MODEL: Use FFI for multi-core parallelization
             import json
             from .ffi_wrappers import _make_json_serializable, compute_pmf_ffi
@@ -5247,14 +5408,64 @@ extern "C" {{
                 "Create graph with parameterized=True and use add_edge_parameterized()."
             )
 
-        # Check if FFI is available - respect parameter, allow config override
-        config = get_config()
-        if not use_ffi:  # If explicitly disabled, respect it
-            use_ffi = False
-        else:  # If True or default, check config
-            use_ffi = config.ffi  # Enable FFI for multi-core parallelization (C++ binding fixed!)
+        # Callback mode: Python-level weight computation
+        if serialized.get('weight_mode') == 'callback':
+            import json
+            from .ffi_wrappers import _make_json_serializable
+            from . import phasic_pybind as cpp_module
 
-        if use_ffi:
+            weight_callback = graph.weight_callback
+            if weight_callback is None:
+                raise ValueError(
+                    "Graph has weight_mode='callback' but no weight_callback set."
+                )
+
+            _serialized = serialized
+
+            def _compute_callback(theta_np, times_np, rewards_np=None):
+                concrete = _apply_weight_callback(_serialized, theta_np, weight_callback)
+                json_str = json.dumps(_make_json_serializable(concrete))
+                builder = cpp_module.parameterized.GraphBuilder(json_str)
+                return builder.compute_pmf_and_moments(
+                    np.zeros(0), times_np,
+                    nr_moments=nr_moments, discrete=discrete,
+                    granularity=0, rewards=rewards_np
+                )
+
+            def _compute_pure(theta, times, rewards=None):
+                pmf_shape = jax.ShapeDtypeStruct(times.shape, times.dtype)
+                moments_shape = jax.ShapeDtypeStruct((nr_moments,), times.dtype)
+
+                def _cb(t, tm):
+                    pmf, moments = _compute_callback(
+                        np.asarray(t, dtype=np.float64),
+                        np.asarray(tm, dtype=np.float64),
+                        np.asarray(rewards, dtype=np.float64) if rewards is not None else None
+                    )
+                    return pmf.astype(times.dtype), moments.astype(times.dtype)
+
+                return jax.pure_callback(
+                    _cb, (pmf_shape, moments_shape),
+                    theta, times,
+                    vmap_method='sequential'
+                )
+
+            # Jump to the VJP wrapping below (shared with FFI/pybind paths)
+            # Fall through to the VJP code at the end of this method
+            use_ffi = False
+            _callback_mode = True
+        else:
+            _callback_mode = False
+
+        if not _callback_mode:
+            # Check if FFI is available - respect parameter, allow config override
+            config = get_config()
+            if not use_ffi:  # If explicitly disabled, respect it
+                use_ffi = False
+            else:  # If True or default, check config
+                use_ffi = config.ffi  # Enable FFI for multi-core parallelization (C++ binding fixed!)
+
+        if not _callback_mode and use_ffi:
             # FFI MODE: Zero-copy XLA-optimized computation with multi-core support
             from functools import partial
             import json
@@ -5281,7 +5492,7 @@ extern "C" {{
                 theta = jnp.atleast_1d(theta)
                 times = jnp.atleast_1d(times)
                 return model_ffi_partial(theta=theta, times=times, rewards=rewards)
-        else:
+        elif not _callback_mode:
             # Use pybind11 GraphBuilder (same as pmf_from_graph)
             import json
             from . import phasic_pybind as cpp_module

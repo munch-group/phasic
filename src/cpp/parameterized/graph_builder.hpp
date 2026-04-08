@@ -217,11 +217,15 @@ public:
      */
     std::vector<double> compute_moments_impl(Graph& g, int nr_moments, const std::vector<double>& rewards);
 
+    /** Weight computation mode for parameterized edges. */
+    enum class WeightMode { LINEAR, LOG };
+
 private:
     // Cached structure data (parsed from JSON once)
     int param_length_;      // Number of parameters
     int state_length_;      // Dimension of state vectors
     int n_vertices_;        // Number of vertices (excluding starting vertex)
+    WeightMode weight_mode_ = WeightMode::LINEAR;
 
     // Vertex states: (n_vertices, state_length)
     std::vector<std::vector<int>> states_;
@@ -251,6 +255,11 @@ private:
      * @throws std::runtime_error if JSON parsing fails
      */
     void parse_structure(const std::string& json_str);
+
+    /**
+     * @brief Compute edge weight from coefficients and theta using current weight_mode_
+     */
+    double compute_weight(const std::vector<double>& coefficients, const double* theta) const;
 
     /**
      * @brief Compute factorial: n!

@@ -23,6 +23,16 @@ void GraphBuilder::parse_structure(const std::string& json_str) {
         state_length_ = j.at("state_length").get<int>();
         n_vertices_ = j.at("n_vertices").get<int>();
 
+        // Parse weight computation mode (default: linear)
+        if (j.contains("weight_mode")) {
+            std::string mode = j.at("weight_mode").get<std::string>();
+            if (mode == "log") {
+                weight_mode_ = WeightMode::LOG;
+            } else if (mode != "linear") {
+                throw std::invalid_argument("Unknown weight_mode: " + mode);
+            }
+        }
+
         // Parse states
         states_.reserve(n_vertices_);
         auto states_json = j.at("states");
@@ -171,30 +181,40 @@ Graph GraphBuilder::build(const double* theta, size_t theta_len) {
     for (const auto& edge : param_edges_) {
         Vertex* from_v = vertices[edge.from_idx];
         Vertex* to_v = vertices[edge.to_idx];
-
-        // Compute weight: dot product of coefficients and theta
-        double weight = 0.0;
-        for (int i = 0; i < param_length_; i++) {
-            weight += edge.coefficients[i] * theta[i];
-        }
-
-        from_v->add_edge(*to_v, weight);
+        from_v->add_edge(*to_v, compute_weight(edge.coefficients, theta));
     }
 
     // Add starting vertex parameterized edges
     for (const auto& edge : start_param_edges_) {
         Vertex* to_v = vertices[edge.to_idx];
-
-        // Compute weight: dot product of coefficients and theta
-        double weight = 0.0;
-        for (int i = 0; i < param_length_; i++) {
-            weight += edge.coefficients[i] * theta[i];
-        }
-
-        start->add_edge(*to_v, weight);
+        start->add_edge(*to_v, compute_weight(edge.coefficients, theta));
     }
 
     return g;
+}
+
+double GraphBuilder::compute_weight(const std::vector<double>& coefficients, const double* theta) const {
+    if (weight_mode_ == WeightMode::LOG) {
+        // Multiplicative weight: exp(Σ log(c_k * θ_k)) = Π(c_k * θ_k)
+        double log_sum = 0.0;
+        for (int i = 0; i < param_length_; i++) {
+            double product = coefficients[i] * theta[i];
+            if (product <= 0.0) {
+                throw std::invalid_argument(
+                    "log weight mode requires all (coefficient * parameter) products to be positive. "
+                    "Got non-positive product at index " + std::to_string(i));
+            }
+            log_sum += std::log(product);
+        }
+        return std::exp(log_sum);
+    } else {
+        // Linear weight: Σ c_k * θ_k
+        double weight = 0.0;
+        for (int i = 0; i < param_length_; i++) {
+            weight += coefficients[i] * theta[i];
+        }
+        return weight;
+    }
 }
 
 double GraphBuilder::factorial(int n) {
