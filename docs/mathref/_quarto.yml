@@ -1,6 +1,6 @@
 project:
   type: book
-  output-dir: ../_build/som
+  output-dir: ../_build/mathref
 
 book:
   title: "Phasic — Supplementary Online Material"

@@ -40,8 +40,6 @@ flowchart TB
 ### Why Three Layers?
 
 
----
-
 ## Layer 1: Trace Cache {#trace-cache}
 
 ### What It Caches
@@ -119,8 +117,6 @@ print(f"Location: {trace_cache_dir}")
 | 37 vertices | 45ms | 1.3ms | 35x |
 | 67 vertices | 250ms | 2.1ms | 120x |
 | 100+ vertices | 500ms+ | 5ms | 100x+ |
-
----
 
 ## Layer 2: SVGD Compilation Cache {#svgd-cache}
 
@@ -200,8 +196,6 @@ svgd2 = SVGD(
 - Not recommended for critical workflows
 
 **Recommendation:** Rely on memory cache within session, JAX cache across sessions.
-
----
 
 ## Layer 3: JAX Compilation Cache {#jax-cache}
 
@@ -330,8 +324,6 @@ manager.sync_from_remote('/shared/project/jax_cache')
 | Same shape | 5-10s | <1ms | >5,000x |
 | Different params | 5-10s | <1ms | >5,000x |
 
----
-
 ## Quick Start {#quick-start}
 
 ### Single Machine Workflow
@@ -405,8 +397,6 @@ manager.prewarm_model(model, theta_samples, time_grids)
 # Now production queries are instant!
 pdf = model(jnp.ones(2), jnp.linspace(0.1, 5, 50))  # <1ms
 ```
-
----
 
 ## Advanced Usage {#advanced}
 
@@ -514,8 +504,6 @@ srun python my_inference.py
 rsync -av $LOCAL_CACHE/ $SHARED_CACHE/
 ```
 
----
-
 ## Testing the Cache System {#testing}
 
 ### Comprehensive Test Suite
@@ -565,8 +553,6 @@ print(f"    New compilations: {info_after['num_files'] - info_before['num_files'
 print("\n[3] Detailed Cache Info")
 print_cache_info(max_files=5)
 ```
-
----
 
 ## Best Practices {#best-practices}
 
@@ -641,8 +627,6 @@ config.apply()
 import jax
 ```
 
----
-
 ## Troubleshooting {#troubleshooting}
 
 ### Cache Not Working?
@@ -710,8 +694,6 @@ rm -rf ~/.phasic_cache/traces/*
 1. Use cached traces (build same structure multiple times)
 2. Pre-warm JAX cache with `prewarm_model()`
 3. Use smaller models for testing, production models for deployment
-
----
 
 ## Performance Benchmarks {#benchmarks}
 

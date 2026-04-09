@@ -211,8 +211,6 @@ conda install r-phasic  # Installs both Python + R
 
 The package follows all CRAN policies and best practices for packages with external dependencies.
 
----
-
 **Ready to submit:** YES
 **Confidence level:** HIGH (follows established patterns from tensorflow, keras, etc.)
 

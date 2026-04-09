@@ -550,7 +550,7 @@ This section specifies the team of specialized agents that together produce exha
 
 **What agents must never do:**
 
-- Never modify source code, tests, build files, or any file outside `docs/som/` and `docs/notation_standard.md`
+- Never modify source code, tests, build files, or any file outside `docs/mathref/` and `docs/notation_standard.md`
 - Never construct a "proof" that is actually a rationalization of buggy behavior
 - Never silently drop a theorem or weaken its statement to avoid having to report a bug
 - Never assume that passing tests prove correctness (tests may be incomplete or wrong themselves)
@@ -1000,8 +1000,8 @@ The pipeline maintains a **verification ledger** — one row per artifact (each 
 | File | Purpose |
 |------|---------|
 | `docs/notation_standard.md` | Authoritative notation — all symbols, conventions, formatting rules, pseudocode conventions |
-| `docs/som/PRODUCTION_PLAN.md` | SOM file structure, batch ordering, cross-reference rules, deduplication ownership |
-| `docs/som/_template.md` | Within-file section template — mandatory structure for every SOM file |
+| `docs/mathref/PRODUCTION_PLAN.md` | SOM file structure, batch ordering, cross-reference rules, deduplication ownership |
+| `docs/mathref/_template.md` | Within-file section template — mandatory structure for every SOM file |
 | `CLAUDE.md` | Project context, development rules, API patterns |
 
 Additionally:
@@ -1028,9 +1028,9 @@ No documentation page is considered complete until all five gates pass:
 
 ## 15. SOM Production Plan
 
-The Supplementary Online Material (SOM) lives in `docs/som/`. Its file structure, production batches, cross-reference system, deduplication strategy, and final homogeneity pass are defined in:
+The Supplementary Online Material (SOM) lives in `docs/mathref/`. Its file structure, production batches, cross-reference system, deduplication strategy, and final homogeneity pass are defined in:
 
-> **`docs/som/PRODUCTION_PLAN.md`**
+> **`docs/mathref/PRODUCTION_PLAN.md`**
 
 That document is the authoritative plan for SOM production. This notation standard governs the notation and agent behavior; the production plan governs what files exist, in what order they are produced, and how they reference each other.
 
@@ -1053,13 +1053,13 @@ When new code is added to phasic and needs formal documentation in the SOM, use 
 > **Target SOM file:** [either an existing file number to extend, or "new file NN_name.md"]
 >
 > Please:
-> 1. Read `docs/notation_standard.md`, `docs/som/PRODUCTION_PLAN.md`, and `docs/som/_template.md` first
+> 1. Read `docs/notation_standard.md`, `docs/mathref/PRODUCTION_PLAN.md`, and `docs/mathref/_template.md` first
 > 2. Run Agent 1 (Codebase Analyst) on the source files I mentioned
 > 3. Run Agent 2 (Math Formalization) to produce definitions, theorems, and proofs
 > 4. Run Agent 3 (Algorithm Pseudocode) to produce pseudocode with correspondence tables
 > 5. Run Agent 4 (Verification) to verify proofs and algorithm-code correspondence
 > 6. Run Agent 5 (Notation Compliance) to check notation standard compliance
-> 7. Update `docs/som/00_index.md` registries with any new algorithms or definitions
+> 7. Update `docs/mathref/00_index.md` registries with any new algorithms or definitions
 
 **If the new feature fits into an existing SOM file** (e.g., a new sampling method goes into `17_sampling.md`):
 - Agents 2 and 3 append to the existing file, continuing the definition/theorem numbering
@@ -1108,7 +1108,7 @@ For a fast check of a single file without full proof verification:
 
 > **Prompt to Claude:**
 >
-> Please run Agent 5 (Notation Compliance) from `docs/notation_standard.md` Section 14 on `docs/som/NN_filename.md`. Check symbols, template compliance, cross-references, numbering, and symbol index completeness.
+> Please run Agent 5 (Notation Compliance) from `docs/notation_standard.md` Section 14 on `docs/mathref/NN_filename.md`. Check symbols, template compliance, cross-references, numbering, and symbol index completeness.
 
 ### 16.4 Full Cross-SOM Consistency Check
 
@@ -1116,7 +1116,7 @@ To re-run the homogeneity pass from `PRODUCTION_PLAN.md` Section 8 after a serie
 
 > **Prompt to Claude:**
 >
-> Please run the full homogeneity pass (H1-H5) from `docs/som/PRODUCTION_PLAN.md` Section 8 across all SOM files. Check: H1 (internal consistency — cross-references, algorithm counter, definition uniqueness), H4 (notation compliance sweep), and flag any issues.
+> Please run the full homogeneity pass (H1-H5) from `docs/mathref/PRODUCTION_PLAN.md` Section 8 across all SOM files. Check: H1 (internal consistency — cross-references, algorithm counter, definition uniqueness), H4 (notation compliance sweep), and flag any issues.
 
 H2 (exhaustiveness) and H3 (non-duplication) are typically only needed after adding new files, not after editing existing ones.
 

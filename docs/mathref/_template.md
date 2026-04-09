@@ -1,12 +1,12 @@
 # [NN] Title
 
 <!-- 
-  SOM File Template — Mandatory structure for every file in docs/som/ (except 00_index.md).
+  SOM File Template — Mandatory structure for every file in docs/mathref/ (except 00_index.md).
   Replace [NN] with the file number. Replace "Title" with the descriptive title.
   Delete this comment block before finalizing.
   
   All notation must follow docs/notation_standard.md.
-  All cross-references must follow docs/som/PRODUCTION_PLAN.md Section 5.
+  All cross-references must follow docs/mathref/PRODUCTION_PLAN.md Section 5.
   Algorithm numbers use the global counter registered in 00_index.md.
 -->
 

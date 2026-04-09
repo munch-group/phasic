@@ -4,8 +4,6 @@
 **Status:** Complete
 **Branch:** master
 
----
-
 ## Summary
 
 Implemented FFI+OpenMP as the default backend for phasic, removing all silent fallbacks and requiring explicit configuration for disabled features.
@@ -17,8 +15,6 @@ Implemented FFI+OpenMP as the default backend for phasic, removing all silent fa
 - Updated configuration system to accept `openmp` parameter
 - All functions now fail loudly if FFI unavailable (no silent degradation)
 
----
-
 ## Design Decision
 
 **User Request:**
@@ -29,8 +25,6 @@ Implemented FFI+OpenMP as the default backend for phasic, removing all silent fa
 - **Correctness:** Silent fallbacks hide performance issues and confuse users
 - **Transparency:** Users should know immediately if they don't have optimal performance
 - **Opt-out available:** Users can explicitly disable if needed
-
----
 
 ## Changes Made
 
@@ -143,8 +137,6 @@ The `compute_pmf_fallback()`, `compute_moments_fallback()`, and `compute_pmf_and
 - Potential future use cases
 - Backward compatibility if needed
 
----
-
 ## Behavior Changes
 
 ### Before This Change
@@ -208,8 +200,6 @@ result = compute_pmf_ffi(...)
 # → Full performance!
 ```
 
----
-
 ## Migration Guide
 
 ### For Users With FFI Already Built
@@ -270,8 +260,6 @@ svgd = SVGD(..., parallel='pmap', n_devices=total_devices)
 svgd = SVGD(..., parallel='vmap')  # Uses FFI+OpenMP
 ```
 
----
-
 ## Testing
 
 ### Verified Functionality
@@ -298,8 +286,6 @@ Pass
 
 **3. FFI Usage:**
 The test output shows no fallback warnings, confirming FFI is being used by default.
-
----
 
 ## Performance Impact
 
@@ -334,15 +320,11 @@ Clear error message:
      phasic.configure(ffi=False, openmp=False)"
 ```
 
----
-
 ## Related Documents
 
 - **FFI_MULTICORE_IMPLEMENTATION.md** - Original FFI+OpenMP implementation
 - **SVGD_DEFAULTS_SLURM_REVIEW.md** - SLURM auto-detection removal
 - **FFI_MEMORY_CORRUPTION_FIX.md** - Historical FFI disable reason (now fixed)
-
----
 
 ## Backward Compatibility
 
@@ -361,8 +343,6 @@ This is an **improvement** - users now know when they don't have optimal perform
 - `compute_moments_fallback()` - kept for testing
 - `compute_pmf_and_moments_fallback()` - kept for testing
 
----
-
 ## Future Work
 
 ### Phase 5 (In Progress): JAX FFI Gradients
@@ -375,8 +355,6 @@ Next steps:
 3. Full autodiff support (jax.grad through FFI)
 
 When complete: FFI will provide both forward and backward passes in C++, enabling full JAX autodiff with FFI performance.
-
----
 
 ## Implementation Details
 
@@ -418,8 +396,6 @@ PTDBackendError (base class from exceptions.py)
 7. Call FFI via jax.ffi.ffi_call() with vmap_method='expand_dims'
 ```
 
----
-
 ## Files Modified
 
 1. **src/phasic/config.py**
@@ -433,8 +409,6 @@ PTDBackendError (base class from exceptions.py)
    - Lines 156-244: Replaced silent fallbacks with errors in `_register_ffi_targets()`
    - Lines 442-519: Removed fallback in `compute_pmf_ffi()`
    - Lines 557-630: Removed fallback in `compute_pmf_and_moments_ffi()`
-
----
 
 ## Summary
 

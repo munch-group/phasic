@@ -20,7 +20,7 @@ project:
     - "!pages/benchmarks/**"
     - "!pages/popgen/"
     - "!pages/topics/R/"
-    - "!som/"  # SOM is a separate Quarto book project with its own _quarto.yml
+    - "!mathref/"  # Mathematical Reference is a separate Quarto book project with its own _quarto.yml
 
 comments:
   hypothesis: true
@@ -91,7 +91,7 @@ website:
         text: Documentation
       - href: api/
         text: Python API reference
-      - href: som/index.html
+      - href: mathref/index.html
         text: Mathematical Reference
       # - href: r_api/
       #   text: R API reference

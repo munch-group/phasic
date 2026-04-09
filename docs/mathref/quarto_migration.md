@@ -35,7 +35,7 @@ The current Quarto setup is `type: website`. **Cross-document theorem references
 
 ### Step 1: Create SOM as Quarto Book Sub-Project
 
-Add a `docs/som/_quarto.yml` that defines the SOM as a standalone book:
+Add a `docs/mathref/_quarto.yml` that defines the SOM as a standalone book:
 
 ```yaml
 project:
@@ -66,7 +66,7 @@ format:
 
 ### Step 2: Rename All Files .md → .qmd
 
-Mechanical: `for f in docs/som/[0-2]*.md; do mv "$f" "${f%.md}.qmd"; done`
+Mechanical: `for f in docs/mathref/[0-2]*.md; do mv "$f" "${f%.md}.qmd"; done`
 
 ### Step 3: Convert Definition Blocks
 
@@ -182,7 +182,7 @@ The global registries become less critical since Quarto auto-generates a table o
 
 ## Execution Order
 
-1. Create `docs/som/_quarto.yml` book config
+1. Create `docs/mathref/_quarto.yml` book config
 2. Build the label mapping table (all 168 definitions/theorems → labels)
 3. Convert files in batches of 3-5, starting from 01 (lowest dependencies):
    - Batch A: 01, 02, 03 (foundations — test cross-refs work)
@@ -192,12 +192,12 @@ The global registries become less critical since Quarto auto-generates a table o
    - Batch E: 18, 19, 20, 21, 22 (inference)
    - Batch F: 23, 24, 25, 26, 27 (spatial + integration)
    - Batch G: 00_index.qmd (finalize)
-4. Test build: `cd docs/som && quarto render`
+4. Test build: `cd docs/mathref && quarto render`
 5. Update notation_standard.md and _template.md
 
 ## Verification
 
-- `quarto render` in docs/som/ produces no cross-reference warnings
+- `quarto render` in docs/mathref/ produces no cross-reference warnings
 - All `@def-*`, `@thm-*`, `@eq-*` references render as clickable links
 - Auto-numbering matches the chapter structure (Def 1.1, 1.2, ... in chapter 1; Def 6.1, 6.2, ... in chapter 6)
 - **No hardcoded numbers remain** in definition/theorem/lemma headers (grep for `**Definition \d`, `**Theorem \d`, `**Lemma \d` — should return zero)
@@ -207,8 +207,8 @@ The global registries become less critical since Quarto auto-generates a table o
 
 ## Critical Files
 
-- `docs/som/_quarto.yml` (new)
-- `docs/som/*.qmd` (28 renamed files)
+- `docs/mathref/_quarto.yml` (new)
+- `docs/mathref/*.qmd` (28 renamed files)
 - `docs/notation_standard.md` (update cross-ref format rules)
-- `docs/som/_template.md` (update with Quarto div syntax)
-- `docs/som/PRODUCTION_PLAN.md` (update cross-ref section)
+- `docs/mathref/_template.md` (update with Quarto div syntax)
+- `docs/mathref/PRODUCTION_PLAN.md` (update cross-ref section)

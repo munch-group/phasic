@@ -26,7 +26,7 @@ All files: `NN_descriptive_snake_case.md` where `NN` is zero-padded. A file may 
 ### 2.2 Complete File Listing
 
 ```
-docs/som/
+docs/mathref/
   00_index.md                         # TOC, dependency DAG, global registries
   01_preliminaries.md                 # PH definitions (CPH, DPH, MPH), notation preamble
   02_graph_representation.md          # Weighted directed graph, AVL tree, validation, cloning
