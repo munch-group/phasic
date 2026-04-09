@@ -2,7 +2,7 @@
 title: "Sampling"
 ---
 
-## Introduction
+## Introduction {.unnumbered}
 
 This file formalizes the algorithms for sampling random paths from phase-type distributions represented as directed graphs. Sampling serves three purposes in phasic: (i) Monte Carlo estimation of functionals (expected rewards, moments, distributions) as a complement to the exact forward algorithm of [14]; (ii) generation of training data for inference methods such as BFFG (documented in a later file); and (iii) simulation studies for model validation.
 
@@ -16,14 +16,16 @@ Given a sampled path, the **path reward decomposition** computes the accumulated
 - `src/c/phasic.c` (functions: `ptd_random_sample`, `ptd_random_sample_path`, `ptd_dph_random_sample`, `ptd_backward_probabilities`, `ptd_random_sample_path_conditioned`, `ptd_random_sample_path_conditioned_fixed`)
 - `src/phasic/bffg.py` (functions: `path_to_rewards`, `path_exit_rates`)
 
-## Definitions
+## Definitions {.unnumbered}
 
-### Random paths
+### Random paths {.unnumbered}
 
 A sampled path records the sequence of states visited by the Markov chain together with the cumulative entry times, providing a complete trajectory from the initial state to absorption.
 
 ::: {#def-17-random-path}
-## Random path
+
+#### Random path
+
 *Let $G = (V, E, W)$ be a phase-type graph with starting vertex $v_0$ and let $\{X_t\}$ denote the associated Markov process. A random path is a finite sequence*
 
 $$\mathcal{P} = \bigl((v^{(0)}, t^{(0)}),\; (v^{(1)}, t^{(1)}),\; \ldots,\; (v^{(L)}, t^{(L)})\bigr),$$ {#eq-17-random-path}
@@ -35,10 +37,12 @@ $$\mathcal{P} = \bigl((v^{(0)}, t^{(0)}),\; (v^{(1)}, t^{(1)}),\; \ldots,\; (v^{
 
 > **Example.** In a two-state CPH with $v_0 \to v_1$ (rate 1) and $v_1 \to v_a$ (rate 2), a typical path might be $\mathcal{P} = ((v_0, 0),\, (v_1, 0),\, (v_a, 0.37))$. The sojourn time at $v_1$ is $\Delta t^{(1)} = 0.37$, drawn from $\operatorname{Exp}(2)$. The sojourn time at $v_0$ is $\Delta t^{(0)} = 0$ by convention.
 
-### Unconditioned sampling
+### Unconditioned sampling {.unnumbered}
 
 ::: {#def-17-unconditioned-sampling}
-## Unconditioned path sampling
+
+#### Unconditioned path sampling
+
 *Let $G = (V, E, W)$ be a phase-type graph. The unconditioned sampling procedure generates a random path $\mathcal{P}$ as follows. Starting at $v^{(0)} = v_0$ with $t^{(0)} = 0$, repeat until $v^{(k)}$ is absorbing:*
 
 1. *Compute the total outgoing rate $\lambda_{v^{(k)}} = \sum_{z \in \operatorname{children}(v^{(k)})} w(v^{(k)} \to z)$.*
@@ -58,10 +62,12 @@ $$\mathcal{P} = \bigl((v^{(0)}, t^{(0)}),\; (v^{(1)}, t^{(1)}),\; \ldots,\; (v^{
 
 > **Example.** Consider a graph with $v_0 \to v_1$ (weight 1), $v_1 \to v_2$ (weight 3), and $v_1 \to v_a$ (weight 2). At $v_1$, $\lambda_{v_1} = 5$. The sojourn time is $\operatorname{Exp}(5)$-distributed (mean 0.2). The chain transitions to $v_2$ with probability 3/5 or absorbs at $v_a$ with probability 2/5.
 
-### Backward probabilities
+### Backward probabilities {.unnumbered}
 
 ::: {#def-17-backward-prob}
-## Backward probability vector
+
+#### Backward probability vector
+
 *Let $G = (V, E, W)$ be a phase-type graph and let $A \subseteq V$ be a non-empty set of target vertices (typically a subset of absorbing vertices). The backward probability vector $\mathbf{h} = (h_1, \ldots, h_{|V|})$ is defined by*
 
 $$h_v = \Pr\bigl(\text{the process eventually reaches some } a \in A \mid X_0 = v\bigr).$$ {#eq-17-backward-prob}
@@ -77,10 +83,12 @@ $$h_v = \begin{cases} 1 & \text{if } v \in A, \\ 0 & \text{if } v \text{ is abso
 
 > **Example.** Consider a graph with $v_1 \to v_a$ (weight 2) and $v_1 \to v_b$ (weight 3), where both $v_a$ and $v_b$ are absorbing. If $A = \{v_a\}$, then $h_{v_a} = 1$, $h_{v_b} = 0$, and $h_{v_1} = (2/5) \cdot 1 + (3/5) \cdot 0 = 0.4$.
 
-### Conditioned sampling
+### Conditioned sampling {.unnumbered}
 
 ::: {#def-17-conditioned-sampling}
-## Conditioned path sampling
+
+#### Conditioned path sampling
+
 *Let $G = (V, E, W)$ be a phase-type graph, $A \subseteq V$ a set of target vertices, and $\mathbf{h}$ the backward probability vector for $A$ (@def-17-backward-prob). The conditioned sampling procedure generates a random path $\mathcal{P}$ that reaches $A$ with probability 1, by modifying the transition probabilities at each step. Starting at $v^{(0)} = v_0$, repeat until $v^{(k)} \in A$ or $v^{(k)}$ is absorbing:*
 
 1. *Compute the total outgoing rate $\lambda_{v^{(k)}}$ and the sojourn time as in @def-17-unconditioned-sampling.*
@@ -100,10 +108,12 @@ $$\Pr\bigl(v^{(k+1)} = z \mid v^{(k)}\bigr) = \frac{w(v^{(k)} \to z) \cdot h_z}{
 
 > **Example.** In the example from @def-17-backward-prob with $A = \{v_a\}$: the unconditioned probabilities from $v_1$ are $(2/5, 3/5)$ for $(v_a, v_b)$. The guided probabilities are proportional to $(2 \cdot 1, 3 \cdot 0) = (2, 0)$, so the process transitions to $v_a$ with probability 1. Every conditioned path from $v_1$ reaches $v_a$.
 
-### Path reward decomposition
+### Path reward decomposition {.unnumbered}
 
 ::: {#def-17-path-reward}
-## Path reward decomposition
+
+#### Path reward decomposition
+
 *Let $\mathcal{P} = ((v^{(0)}, t^{(0)}), \ldots, (v^{(L)}, t^{(L)}))$ be a random path (@def-17-random-path) and let $\mathbf{r} = (r_1, \ldots, r_p)^\top$ be a reward vector assigning non-negative rewards to vertices (Section 3.3 of the notation standard). The accumulated reward along $\mathcal{P}$ is*
 
 $$\tilde{\tau}(\mathcal{P}) = \sum_{k=0}^{L-1} r_{v^{(k)}} \cdot \Delta t^{(k)},$$ {#eq-17-path-reward}
@@ -117,10 +127,12 @@ $$\tilde{\tau}_j(\mathcal{P}) = \sum_{k=0}^{L-1} R_{v^{(k)},j} \cdot \Delta t^{(
 
 > **Example.** Consider a path $\mathcal{P} = ((v_0, 0), (v_1, 0), (v_2, 0.3), (v_a, 0.8))$ with rewards $r_{v_0} = 0$, $r_{v_1} = 2$, $r_{v_2} = 1$. The sojourn times are $\Delta t^{(0)} = 0$, $\Delta t^{(1)} = 0.3$, $\Delta t^{(2)} = 0.5$. The accumulated reward is $0 \cdot 0 + 2 \cdot 0.3 + 1 \cdot 0.5 = 1.1$.
 
-## Theorems and Proofs
+## Theorems and Proofs {.unnumbered}
 
 ::: {#thm-17-unconditioned-correctness}
-## Correctness of unconditioned sampling
+
+#### Correctness of unconditioned sampling
+
 *Let $G = (V, E, W)$ be a phase-type graph representing $\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})$ and let $\mathcal{P}$ be a path generated by the unconditioned sampling procedure (@def-17-unconditioned-sampling). Then the total absorption time $\tau(\mathcal{P}) = t^{(L)}$ has distribution $\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})$, and for any reward vector $\mathbf{r}$, the accumulated reward $\tilde{\tau}(\mathcal{P})$ has the reward-transformed distribution $\operatorname{PH}(\boldsymbol{\alpha}, \triangle(\mathbf{r})^{-1}\mathbf{S})$ (when all rewards are strictly positive).*
 :::
 
@@ -139,7 +151,9 @@ Since the procedure simulates the holding times, transition probabilities, and i
 :::
 
 ::: {#thm-17-conditioned-correctness}
-## Correctness of conditioned sampling
+
+#### Correctness of conditioned sampling
+
 *Let $G = (V, E, W)$ be a phase-type graph, $A \subseteq V$ a set of target vertices, $\mathbf{h}$ the backward probability vector (@def-17-backward-prob), and $\mathcal{P}$ a path generated by the conditioned sampling procedure (@def-17-conditioned-sampling). Then:*
 
 1. *The path $\mathcal{P}$ terminates in $A$ with probability 1 (provided $h_{v_0} > 0$).*
@@ -166,10 +180,11 @@ $$\prod_{k=0}^{L-1} \tilde{q}_{v^{(k)} v^{(k+1)}} = \prod_{k=0}^{L-1} \frac{q_{v
 since $h_{v^{(L)}} = 1$ for $v^{(L)} \in A$. The factor $1/h_{v^{(0)}}$ is exactly the normalizing constant $1/\Pr(\text{absorption into } A \mid X_0 = v^{(0)})$. Therefore the guided path probability equals the unconditioned path probability divided by the probability of the conditioning event, which is the defining property of the conditional distribution. $\square$
 :::
 
-## Algorithms
+## Algorithms {.unnumbered}
 
 ::: {#alg-17-unconditioned-sampling}
-## Unconditioned Path Sampling
+
+#### Unconditioned Path Sampling
 
 *Description.* Given a phase-type graph $G$, this algorithm generates a random path from the starting vertex to an absorbing vertex by simulating the Markov chain. At each transient vertex, it draws a sojourn time from the exponential distribution with rate equal to the total outgoing rate, then selects the next vertex with probability proportional to the edge weights. If a reward vector is provided, the accumulated reward is computed along the path.
 
@@ -238,7 +253,8 @@ Unconditioned Path Sampling
 :::
 
 ::: {#alg-17-backward-probability}
-## Backward Probability Computation
+
+#### Backward Probability Computation
 
 *Description.* Given a phase-type graph $G$ and a set of target vertices $A$, this algorithm computes the backward probability vector $\mathbf{h}$ (@def-17-backward-prob) via a single reverse pass over the vertices. Since the backward probability of a vertex depends only on the backward probabilities of its children, processing vertices in reverse index order ensures that all children are processed before their parents, provided the graph's topological structure is compatible with the index ordering. For graphs where the index ordering does not perfectly reflect the topological order, the algorithm still converges because it solves the fixed-point equation (@eq-17-backward-system) through a backward sweep.
 
@@ -288,7 +304,8 @@ Backward Probability Computation
 :::
 
 ::: {#alg-17-conditioned-sampling}
-## Conditioned Path Sampling
+
+#### Conditioned Path Sampling
 
 *Description.* Given a phase-type graph $G$ and a backward probability vector $\mathbf{h}$ (computed by @alg-17-backward-probability), this algorithm generates a random path conditioned on reaching the target set $A$. The key modification compared to @alg-17-unconditioned-sampling is that the transition probability at each step is reweighted by the backward probability of the candidate child vertex, implementing the Doob $h$-transform (@thm-17-conditioned-correctness).
 
@@ -348,7 +365,7 @@ Conditioned Path Sampling
 **Correctness.** Follows from @thm-17-conditioned-correctness. The guided transition probability in line 25 implements @eq-17-guided-prob. The termination condition $h[v] < 1$ in line 9 ensures the process stops upon reaching a target vertex (where $h = 1$). The guard $g \leq 0$ in line 19 handles the degenerate case where no target is reachable (which cannot occur if $h_{v_0} > 0$, but provides numerical safety).
 :::
 
-## Numerical Considerations
+## Numerical Considerations {.unnumbered}
 
 **Exponential variate generation.** The implementation uses $-\log(U + \epsilon) / \lambda_v$ with $\epsilon = 10^{-7}$ (see `phasic.c` line 6709) rather than $-\log(U) / \lambda_v$. This prevents overflow when $U = 0$ (which can occur with finite-precision pseudorandom number generators). The bias introduced is negligible: the maximum relative error in the waiting time is $|\log(U + \epsilon) - \log(U)| / |\log(U)| \leq \epsilon / (U |\log(U)|)$, which is small for all but the most extreme tail events.
 
@@ -358,7 +375,7 @@ Conditioned Path Sampling
 
 **Thread safety.** The standard `ptd_random_sample_path_conditioned` uses the global `rand()` function, which is not thread-safe. The variant `ptd_random_sample_path_conditioned_fixed` accepts a seed parameter and uses `rand_r()` for thread-safe generation with reproducible sequences.
 
-## Implementation Notes
+## Implementation Notes {.unnumbered}
 
 **Source code mapping:**
 
@@ -385,7 +402,7 @@ Conditioned Path Sampling
 
 - **Fixed-buffer variant.** `ptd_random_sample_path_conditioned_fixed` pre-allocates a fixed-size output buffer and uses `rand_r()` for thread-safe generation. Unused entries are padded with sentinel values ($-1$ for vertex indices, $0$ for times).
 
-## Symbol Index
+## Symbol Index {.unnumbered}
 
 | Symbol | Name | First appearance |
 |--------|------|-----------------|

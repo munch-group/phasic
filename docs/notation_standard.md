@@ -286,9 +286,13 @@ Algorithm N: Descriptive Title
 
 ## 9. Numbering and Cross-Referencing
 
-### 9.1 Definitions, Theorems, Lemmas
+### 9.1 Section Numbering
 
-Use a single counter per section:
+Only chapter-level headings (the `title:` in each `.qmd` file's YAML front matter) are numbered. All within-chapter section headings (`##`, `###`) are unnumbered and use the `{.unnumbered}` attribute. Definitions, theorems, algorithms, and other cross-referenceable environments are numbered by Quarto's cross-reference system (see below), not by section numbering.
+
+### 9.2 Definitions, Theorems, Lemmas
+
+Definitions, theorems, lemmas, etc. are placed inside Quarto `::: {#id}` fenced divs. The title inside each div uses a `####` heading. Quarto's cross-reference system numbers these per chapter:
 
 - **Definition N.M** (e.g., Definition 2.1)
 - **Theorem N.M**
@@ -297,11 +301,11 @@ Use a single counter per section:
 - **Corollary N.M**
 - **Proof.** Begins with "Proof." in italic, ends with $\square$.
 
-### 9.2 Algorithms
+### 9.3 Algorithms
 
-Algorithms are numbered with a separate counter: **Algorithm 1**, **Algorithm 2**, etc.
+Algorithms are numbered with a separate counter: **Algorithm N.M** (per chapter, matching definitions and theorems).
 
-### 9.3 Equations
+### 9.4 Equations
 
 Equations are numbered sequentially within each document section: (1), (2), etc. Only number equations that are referenced elsewhere.
 
@@ -325,7 +329,13 @@ All mathematical documentation must follow a **narrative definition-by-definitio
    - A complexity analysis
    - A correctness argument or proof
 
-### 10.2 Symbol Index
+### 10.2 Markdown Formatting Rules
+
+- **Blank lines around headers.** Every heading at any level (`##`, `###`, `####`) must have a blank line both above and below it. This includes `####` titles inside `::: {#id}` fenced divs.
+- **Blank line after div opener.** The `::: {#id}` line that opens a definition, theorem, or algorithm div must be followed by a blank line before the `####` title.
+- **No self-references.** A div block must not reference its own label (e.g., do not write `@def-01-ctmjp` inside the `::: {#def-01-ctmjp}` block). The label is for external cross-references only.
+
+### 10.3 Symbol Index
 
 Every documentation page that introduces notation must include a **Symbol Index** section at the end, listing all symbols introduced on that page in alphabetical order with brief definitions and the definition/equation number where they first appear.
 

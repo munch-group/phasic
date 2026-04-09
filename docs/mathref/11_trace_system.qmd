@@ -2,7 +2,7 @@
 title: "Trace System"
 ---
 
-## Introduction
+## Introduction {.unnumbered}
 
 This file formalizes the trace-based approach to graph elimination, which replaces the symbolic expression tree representation (@def-10-symbolic-graph) with a flat, linear sequence of arithmetic operations. Where symbolic elimination builds tree-structured expressions whose size can grow exponentially with graph depth, trace recording captures the same computation as a sequential instruction stream of bounded length. The key benefit is evaluation cost: replaying a trace with concrete parameters requires $O(N)$ arithmetic operations (where $N$ is the trace length, bounded by $O(|V|^2)$), compared to $O(|V|^2)$ expression tree evaluations that may involve significant pointer-chasing overhead.
 
@@ -18,14 +18,16 @@ The trace system also integrates with the disk cache (using graph content hashes
 - `src/c/trace/trace_internal.h` (functions: `add_const_to_trace`, `add_dot_to_trace`, `add_binary_op_to_trace`, `add_inv_to_trace`, `add_sum_to_trace`)
 - `src/c/trace/trace_cache.c` (functions: `load_trace_from_cache`, `save_trace_to_cache`, `get_cache_dir`)
 
-## Definitions
+## Definitions {.unnumbered}
 
 > **Recall** (@def-09-expression-tree). *An expression tree is a rooted tree $\mathcal{E}$ where each node has a type drawn from the set $\{\texttt{Const}, \texttt{Param}, \texttt{Dot}, \texttt{Add}, \texttt{Sub}, \texttt{Mul}, \texttt{Div}, \texttt{Inv}\}$ and carries data according to its type.*
 
 > **Recall** (@def-06-vertex-elimination). *Vertex elimination* of $v \in V$ removes $v$ from $G$ and adds, for each parent $u$ and child $z$, a bypass edge $(u \to z)$ with weight $w'(u \to v) \cdot w'(v \to z)$, merging with existing edges and renormalizing the parent's outgoing probabilities.
 
 ::: {#def-11-trace-operation}
-## Trace operation
+
+#### Trace operation
+
 *A trace operation is a tuple $\omega = (\tau, d, \mathbf{a})$ where:*
 
 - *$\tau \in \{\texttt{Const}, \texttt{Param}, \texttt{Dot}, \texttt{Add}, \texttt{Mul}, \texttt{Div}, \texttt{Inv}, \texttt{Sum}\}$ is the operation type,*
@@ -46,7 +48,9 @@ The trace system also integrates with the disk cache (using graph content hashes
 > **Example.** The expression $1 / (\theta_1 + 2\theta_2)$ would be recorded as four operations: $\omega_0 = (\texttt{Dot}, (1, 2), ())$ computes $\theta_1 + 2\theta_2$; $\omega_1 = (\texttt{Inv}, \emptyset, (0))$ computes $1/\omega_0$. In the C implementation, the $\texttt{Dot}$ operation stores the coefficient vector $\mathbf{c} = (1, 2)$ and computes $\mathbf{c}^\top \boldsymbol{\theta}$ during evaluation.
 
 ::: {#def-11-elimination-trace}
-## Elimination trace
+
+#### Elimination trace
+
 *An elimination trace for a parameterized phase-type graph $G = (V, E, W)$ with parameter dimension $k$ is a tuple $\mathcal{T} = (\boldsymbol{\omega}, \mathbf{m}_{\text{rate}}, \mathbf{m}_{\text{prob}}, \mathbf{m}_{\text{tgt}}, \Sigma, i_0)$ where:*
 
 - *$\boldsymbol{\omega} = (\omega_0, \omega_1, \ldots, \omega_{N-1})$ is an ordered sequence of $N$ trace operations (@def-11-trace-operation),*
@@ -62,7 +66,9 @@ The trace system also integrates with the disk cache (using graph content hashes
 > **Example.** For a three-vertex graph (starting, transient, absorbing) with one parameter, the trace might contain 5 operations (one DOT for the edge weight, one SUM for the total rate, one INV for the vertex scalar, one MUL for the edge probability, and one CONST for the absorbing state rate). The mapping $\mathbf{m}_{\text{rate}}[1] = 2$ indicates that operation $\omega_2$ computes the inverse rate of vertex 1.
 
 ::: {#def-11-trace-evaluation}
-## Trace evaluation
+
+#### Trace evaluation
+
 *Let $\mathcal{T} = (\boldsymbol{\omega}, \mathbf{m}_{\text{rate}}, \mathbf{m}_{\text{prob}}, \mathbf{m}_{\text{tgt}}, \Sigma, i_0)$ be an elimination trace with $N$ operations and parameter dimension $k$. Given a concrete parameter vector $\boldsymbol{\theta} \in \mathbb{R}^k$, the trace evaluation produces a value array $\mathbf{y} = (y_0, y_1, \ldots, y_{N-1}) \in \mathbb{R}^N$ by sequential execution:*
 
 *For $i = 0, 1, \ldots, N-1$, let $\omega_i = (\tau_i, d_i, \mathbf{a}_i)$. Then:*
@@ -85,10 +91,12 @@ y_{a_1} / y_{a_2} & \text{if } \tau_i = \texttt{Div}, \\
 
 > **Example.** Given the trace from the example in @def-11-elimination-trace and parameter $\theta_1 = 3.0$: the DOT operation computes $\mathbf{c}^\top \boldsymbol{\theta}$; the SUM aggregates edge weights; the INV computes the vertex scalar $1/\lambda_v$; and the MUL converts weights to probabilities. The entire evaluation touches each operation exactly once.
 
-## Theorems and Proofs
+## Theorems and Proofs {.unnumbered}
 
 ::: {#thm-11-trace-correctness}
-## Trace evaluation correctness
+
+#### Trace evaluation correctness
+
 *Let $G = (V, E, W)$ be a parameterized phase-type graph with parameter dimension $k$, and let $\mathcal{T}$ be the elimination trace produced by @alg-11-trace-recording (trace recording). For any $\boldsymbol{\theta} \in \mathbb{R}^k$ such that all vertex total outgoing rates are positive, the trace evaluation (@def-11-trace-evaluation) produces the same vertex scalars and edge probabilities as performing concrete graph elimination (@alg-06-full-elimination) on the instantiated graph $G(\boldsymbol{\theta})$.*
 :::
 
@@ -117,7 +125,9 @@ Each of these operations mirrors exactly one step of concrete elimination (@def-
 :::
 
 ::: {#thm-11-trace-complexity}
-## Trace complexity
+
+#### Trace complexity
+
 *Let $G = (V, E, W)$ be a parameterized phase-type graph. Then:*
 
 1. *Recording the elimination trace (@alg-11-trace-recording) has time complexity $O(|V|^3)$ and space complexity $O(|V|^2)$.*
@@ -133,10 +143,11 @@ Each of these operations mirrors exactly one step of concrete elimination (@def-
 (3) Trace evaluation (@alg-11-trace-evaluation) performs one arithmetic operation per trace entry, scanning the value array sequentially. Each operation accesses at most $O(k)$ values (for DOT with $k$ parameters) or $O(1)$ values (for binary operations). For bounded $k$, the total cost is $O(N)$. $\square$
 :::
 
-## Algorithms
+## Algorithms {.unnumbered}
 
 ::: {#alg-11-trace-recording}
-## Trace Recording
+
+#### Trace Recording
 
 *Description.* This algorithm performs graph elimination while recording all arithmetic operations as a linear trace. The input is a parameterized phase-type graph $G$ with parameter dimension $k$. The algorithm follows the same elimination order as @alg-06-full-elimination but, instead of computing numeric values, emits trace operations that can later be replayed with any parameter vector.
 
@@ -240,7 +251,8 @@ Trace Recording
 :::
 
 ::: {#alg-11-trace-evaluation}
-## Trace Evaluation
+
+#### Trace Evaluation
 
 *Description.* This algorithm replays a previously recorded elimination trace with a concrete parameter vector. It scans the operation sequence once, computing each operation's value from the parameter vector and previously computed values. The result is a set of vertex scalars and edge probabilities that define the concrete eliminated graph.
 
@@ -298,7 +310,7 @@ Trace Evaluation
 **Correctness.** Follows from @thm-11-trace-correctness. The sequential evaluation respects the data dependencies because every operand index $a_j < i$, ensuring that all operand values are computed before they are needed.
 :::
 
-## Numerical Considerations
+## Numerical Considerations {.unnumbered}
 
 **Division by zero.** The INV and DIV operations can encounter zero denominators when a vertex has zero total outgoing rate (e.g., an absorbing vertex assigned a non-zero rate during a malformed graph construction). The implementation guards against this by assigning rate 0.0 to absorbing vertices before the elimination loop (line 10 of @alg-11-trace-recording). For transient vertices, a zero total rate indicates a degenerate parameterization ($\boldsymbol{\theta}$ produces zero weights), which is a user error.
 
@@ -306,7 +318,7 @@ Trace Evaluation
 
 **Log-space DOT evaluation.** When `use_log=True`, the DOT operation is interpreted as a product in log-space: $\exp(\sum_j \log(c_j \theta_j))$. This is used for the `'log'` weight mode (@def-01-param-edges). All coefficient-parameter products $c_j \theta_j$ must be strictly positive; the implementation raises an error otherwise.
 
-## Implementation Notes
+## Implementation Notes {.unnumbered}
 
 **Source code mapping:**
 
@@ -327,7 +339,7 @@ Trace Evaluation
 - The C implementation (`ptd_trace_operation`) uses a union-like struct with fields for all operation types, while the Python implementation uses a dataclass with optional fields. Both represent the same logical structure.
 - Disk caching is handled at the C level via `trace_cache.c`: traces are serialized to JSON and stored under `~/.phasic_cache/traces/{hash}.json`, where the hash is the graph content hash (see [12]).
 
-## Symbol Index
+## Symbol Index {.unnumbered}
 
 | Symbol | Name | First appearance |
 |--------|------|-----------------|

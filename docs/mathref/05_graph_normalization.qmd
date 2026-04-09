@@ -2,7 +2,7 @@
 title: "Graph Normalization"
 ---
 
-## Introduction
+## Introduction {.unnumbered}
 
 This file documents the normalization algorithms that prepare phase-type graphs for elimination ([06]) and moment computation. Normalization separates a graph into two components: **transition probabilities** (the normalized edge weights) and **holding time information** (vertex scalars). This separation is what allows the elimination algorithm to manipulate transition structure independently of timing.
 
@@ -15,12 +15,14 @@ Both algorithms modify the graph in place and return an array of vertex scalars.
 **Source files:**
 - `src/c/phasic.c` (functions: `ptd_normalize_graph`, `ptd_dph_normalize_graph`)
 
-## Definitions
+## Definitions {.unnumbered}
 
-### Continuous normalization
+### Continuous normalization {.unnumbered}
 
 ::: {#def-05-continuous-normalization}
-## Continuous graph normalization
+
+#### Continuous graph normalization
+
 *Let $G = (V, E, W)$ be a phase-type graph representing $\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})$ (@def-01-ph-graph). The continuous normalization of $G$ produces:*
 
 1. *A normalized graph $G' = (V, E, W')$ where for each edge $(v \to z) \in E$:*
@@ -38,7 +40,9 @@ $$x_v = \begin{cases} 1/\lambda_v & \text{if } \lambda_v > 0, \\ 1 & \text{if } 
 > **Example.** Consider a vertex $v_1$ with two outgoing edges: $w(v_1 \to v_2) = 3$ and $w(v_1 \to v_a) = 2$ (where $v_a$ is absorbing). The total outgoing rate is $\lambda_{v_1} = 5$. After normalization: $w'(v_1 \to v_2) = 3/5 = 0.6$, $w'(v_1 \to v_a) = 2/5 = 0.4$, and $x_{v_1} = 1/5 = 0.2$. The process waits $\operatorname{Exp}(5)$ time at $v_1$, then transitions to $v_2$ with probability 0.6 or absorbs with probability 0.4.
 
 ::: {#def-05-embedded-chain}
-## Embedded discrete-time Markov chain
+
+#### Embedded discrete-time Markov chain
+
 *Let $G = (V, E, W)$ represent $\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})$ and let $G' = (V, E, W')$ be its continuous normalization (@def-05-continuous-normalization). The normalized edge weights define the transition probabilities of the embedded discrete-time Markov chain:*
 
 $$q_{ij} = w'(v_i \to v_j) = \frac{s_{ij}}{\lambda_{v_i}} \quad \text{for } i \neq j,$$ {#eq-05-embedded-transition}
@@ -48,10 +52,12 @@ $$q_{ij} = w'(v_i \to v_j) = \frac{s_{ij}}{\lambda_{v_i}} \quad \text{for } i \n
 
 > **Intuition.** The embedded chain records which state the process jumps to, ignoring how long it waits before jumping. The continuous phase-type distribution is fully determined by the embedded chain probabilities $\{q_{ij}\}$ and the holding rates $\{\lambda_{v_i}\}$. This decomposition is standard in the theory of continuous-time Markov chains (see, e.g., Norris 1997, Chapter 2).
 
-### Discrete normalization
+### Discrete normalization {.unnumbered}
 
 ::: {#def-05-discrete-normalization}
-## Discrete graph normalization
+
+#### Discrete graph normalization
+
 *Let $G = (V, E, W)$ be a phase-type graph representing $\operatorname{DPH}_p(\boldsymbol{\alpha}, \mathbf{T})$ (@def-01-dph). For each non-starting, non-absorbing vertex $v_i$ with self-loop probability $p_{ii} = 1 - \sum_{z \in \operatorname{children}(v_i)} w(v_i \to z) > \epsilon$ (where $\epsilon = 10^{-7}$), the discrete normalization augments $G$ by:*
 
 1. *Creating an auxiliary vertex $a_i$ (@def-05-auxiliary-vertex);*
@@ -66,7 +72,9 @@ $$q_{ij} = w'(v_i \to v_j) = \frac{s_{ij}}{\lambda_{v_i}} \quad \text{for } i \n
 > **Example.** Consider a DPH vertex $v_1$ with edges $w(v_1 \to v_2) = 0.3$ and $w(v_1 \to v_a) = 0.2$, so the total transition probability is $0.5$ and the self-loop probability is $p_{11} = 1 - 0.5 = 0.5$. After normalization, an auxiliary vertex $a_1$ is created with edges $w(v_1 \to a_1) = 0.5$ and $w(a_1 \to v_1) = 1.0$. The vertex scalars are $x_{v_1} = 1$ and $x_{a_1} = 0$. At $v_1$, the chain either transitions out (to $v_2$ or $v_a$) with probability 0.5, or bounces through $a_1$ and returns, simulating the self-loop.
 
 ::: {#def-05-auxiliary-vertex}
-## Auxiliary vertex
+
+#### Auxiliary vertex
+
 *An auxiliary vertex $a_i$ created by discrete normalization (@def-05-discrete-normalization) has the following properties:*
 
 - *It has exactly one outgoing edge: $(a_i \to v_i)$ with weight $1.0$;*
@@ -77,10 +85,12 @@ $$q_{ij} = w'(v_i \to v_j) = \frac{s_{ij}}{\lambda_{v_i}} \quad \text{for } i \n
 
 > **Intuition.** The zero reward ensures that time spent "bouncing" through the auxiliary vertex does not contribute to accumulated reward or moments. The auxiliary vertex is transparent to the absorption time distribution: the number of steps until absorption in the augmented graph has the same distribution as in the original chain, because the geometric number of bounces through $a_i$ before leaving $v_i$ reproduces the original self-loop holding time.
 
-## Theorems and Proofs
+## Theorems and Proofs {.unnumbered}
 
 ::: {#thm-05-continuous-preserves}
-## Continuous normalization preserves the PH distribution
+
+#### Continuous normalization preserves the PH distribution
+
 *Let $G = (V, E, W)$ represent $\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})$ and let $(G', \mathbf{x})$ be the result of continuous normalization (@def-05-continuous-normalization). Then the normalized graph $G'$ with vertex scalars $\mathbf{x}$ encodes the same distribution $\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})$. Specifically, the sub-intensity matrix $\mathbf{S}$ is exactly recoverable as:*
 
 $$s_{ij} = \frac{w'(v_i \to v_j)}{x_{v_i}} = w'(v_i \to v_j) \cdot \lambda_{v_i} \quad \text{for } i \neq j,$$ {#eq-05-recover-offdiag}
@@ -101,7 +111,9 @@ again by @def-01-graph-matrix ($s_{ii} = -\lambda_{v_i}$). Since both the initia
 :::
 
 ::: {#thm-05-discrete-preserves}
-## DPH normalization preserves the DPH distribution
+
+#### DPH normalization preserves the DPH distribution
+
 *Let $G = (V, E, W)$ represent $\operatorname{DPH}_p(\boldsymbol{\alpha}, \mathbf{T})$ and let $(G^+, \mathbf{x})$ be the result of discrete normalization (@def-05-discrete-normalization), where $G^+$ is the augmented graph with auxiliary vertices. Then the absorption time $\tau^+$ in the augmented chain (counting only steps that arrive at original vertices, i.e., steps where $x_v = 1$) has the same distribution as $\tau \sim \operatorname{DPH}_p(\boldsymbol{\alpha}, \mathbf{T})$.*
 :::
 
@@ -125,10 +137,11 @@ In both chains, the contribution per self-loop cycle is 1 (one step in the origi
 **Step 3: Distribution equivalence.** By Step 2, starting from any original vertex $v_i$, the augmented chain's weighted time until the next original-vertex transition and the destination vertex have the same joint distribution as in the original chain. Since the initial distribution $\boldsymbol{\alpha}$ only assigns mass to original vertices, an inductive argument on the number of transitions gives $\tilde{\tau} \stackrel{d}{=} \tau$. $\square$
 :::
 
-## Algorithms
+## Algorithms {.unnumbered}
 
 ::: {#alg-05-continuous-normalization}
-## Continuous Graph Normalization
+
+#### Continuous Graph Normalization
 
 *Description.* This algorithm normalizes a continuous phase-type graph in place. For each vertex, it computes the total outgoing rate $\lambda_v$, divides each outgoing edge weight by $\lambda_v$, and stores $x_v = 1/\lambda_v$ in the output array. Absorbing vertices (with $\lambda_v = 0$) receive $x_v = 1$.
 
@@ -173,7 +186,8 @@ Continuous Graph Normalization
 :::
 
 ::: {#alg-05-discrete-normalization}
-## Discrete Graph Normalization
+
+#### Discrete Graph Normalization
 
 *Description.* This algorithm normalizes a discrete phase-type graph by creating auxiliary vertices for self-loop probabilities. For each non-starting, non-absorbing vertex with self-loop probability exceeding a threshold $\epsilon = 10^{-7}$, it creates an auxiliary vertex and the corresponding bounce edges. The vertex scalar array stores 1 for original vertices and 0 for auxiliary vertices.
 
@@ -227,7 +241,7 @@ Discrete Graph Normalization
 **Correctness.** Follows from @thm-05-discrete-preserves. Each auxiliary vertex $a_i$ with its two edges encodes the self-loop probability $T_{ii}$ as a bounce, and the zero vertex scalar ensures auxiliary visits do not contribute to the absorption time count.
 :::
 
-## Numerical Considerations
+## Numerical Considerations {.unnumbered}
 
 **Division by zero in continuous normalization.** When $\lambda_v = 0$ (absorbing vertex), the algorithm sets $x_v = 1$ and skips the edge normalization loop (there are no edges to normalize). The check `rate == 0` uses exact floating-point comparison, which is safe because absorbing vertices have exactly zero outgoing edges, so the sum is exactly 0.0.
 
@@ -235,7 +249,7 @@ Discrete Graph Normalization
 
 **Division by $\lambda_v$ when $\lambda_v$ is small.** In continuous normalization, if $\lambda_v$ is very small but positive, the division $w(v \to z) / \lambda_v$ can amplify floating-point errors. However, in practice, $w(v \to z) \leq \lambda_v$ for all edges (since edge weights are non-negative and $\lambda_v$ is their sum), so the normalized weight satisfies $0 \leq w'(v \to z) \leq 1$, and the division is numerically stable.
 
-## Implementation Notes
+## Implementation Notes {.unnumbered}
 
 **Source code mapping:**
 
@@ -254,7 +268,7 @@ Discrete Graph Normalization
 
 **Remark** (SUSPECTED_CODE_ISSUE: Continuous normalization of starting vertex). The continuous normalization algorithm normalizes the starting vertex $v_0$ in the same way as transient vertices. When the initial distribution has a defect ($\alpha_0 > 0$, so $\lambda_{v_0} = \sum_i \alpha_i < 1$), the normalization produces $w'(v_0 \to v_i) = \alpha_i / \lambda_{v_0}$ and $x_{v_0} = 1/\lambda_{v_0}$. Downstream algorithms that expect the starting vertex edges to encode the raw initial probabilities $\alpha_i$ must multiply by $x_{v_0}^{-1}$ to recover them. This is not necessarily a bug (the elimination algorithm may account for it), but it is worth noting that the normalization changes the semantics of the starting vertex edges when there is a defect.
 
-## Symbol Index
+## Symbol Index {.unnumbered}
 
 | Symbol | Name | First appearance |
 |--------|------|-----------------|

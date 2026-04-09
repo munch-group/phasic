@@ -2,7 +2,7 @@
 title: "Graph Hashing"
 ---
 
-## Introduction
+## Introduction {.unnumbered}
 
 This file formalizes the content-addressable hashing scheme used by phasic to identify graph structures for trace caching. When the trace system ([11]) records an elimination trace for a parameterized graph, the trace is stored on disk indexed by a hash of the graph's structure. On subsequent runs with a structurally identical graph (but possibly different parameter values), the cached trace is loaded directly, avoiding the $O(|V|^3)$ recording cost.
 
@@ -16,14 +16,16 @@ The hash depends on the graph's topology (which vertices connect to which), edge
 - `src/c/phasic_hash.c` (functions: `ptd_graph_content_hash`, `hash_vertex_structure`, `compare_edges`, `ptd_hash_equal`, `ptd_hash_from_hex`)
 - `api/c/phasic_hash.h` (types: `ptd_hash_result`; functions: `ptd_graph_content_hash`, `ptd_hash_equal`, `ptd_hash_destroy`, `ptd_hash_from_hex`)
 
-## Definitions
+## Definitions {.unnumbered}
 
 > **Recall** (@def-01-ph-graph). *A phase-type graph is a weighted directed graph $G = (V, E, W)$ with a starting vertex $v_0$, transient vertices, and absorbing vertices.*
 
 > **Recall** (@def-01-param-edges). *A parameterized edge $(v \to z)$ carries a coefficient vector $\mathbf{c} = (c_1, \ldots, c_k)$ and computes its weight according to a weight mode.*
 
 ::: {#def-12-structural-signature}
-## Graph structural signature
+
+#### Graph structural signature
+
 *Let $G = (V, E, W)$ be a phase-type graph with state dimension $d$ and parameter dimension $k$. The structural signature of $G$ is the tuple $\mathcal{S}(G) = (d, k, |V|, \delta, \{\sigma(v), \mathcal{N}(v)\}_{v \in V})$ where:*
 
 - *$d$ is the state dimension,*
@@ -41,7 +43,9 @@ The hash depends on the graph's topology (which vertices connect to which), edge
 > **Example.** A coalescent model with 5 lineages always produces the same structural signature regardless of the coalescent rate parameter. The state vectors, edge coefficient vectors, and graph topology are determined by the model structure, not by the rate.
 
 ::: {#def-12-vertex-content-hash}
-## Vertex content hash
+
+#### Vertex content hash
+
 *Let $v \in V$ be a vertex of a phase-type graph with state vector $\sigma(v) \in \mathbb{Z}^d$ and outgoing edges to targets $z_1, \ldots, z_m$. The vertex content hash is*
 
 $$h(v) = \operatorname{SHA\text{-}256}\!\left(\sigma(v) \,\|\, \bigl(j_{\pi(1)}, \mathbf{c}_{v \to z_{\pi(1)}}\bigr) \,\|\, \cdots \,\|\, \bigl(j_{\pi(m)}, \mathbf{c}_{v \to z_{\pi(m)}}\bigr)\right)$$
@@ -56,7 +60,9 @@ $$h(v) = \operatorname{SHA\text{-}256}\!\left(\sigma(v) \,\|\, \bigl(j_{\pi(1)},
 > **Example.** For a vertex with state $\sigma(v) = (3,)$ and two outgoing edges to vertices 5 and 7 with coefficients $[1.0, 0.0]$ and $[0.0, 1.0]$ respectively, the hash input is the byte concatenation: $\texttt{bytes}((3,)) \| \texttt{bytes}(5, [1.0, 0.0]) \| \texttt{bytes}(7, [0.0, 1.0])$.
 
 ::: {#def-12-graph-content-hash}
-## Graph content hash
+
+#### Graph content hash
+
 *Let $G = (V, E, W)$ be a phase-type graph with vertices ordered by index $v_0, v_1, \ldots, v_{|V|-1}$. The graph content hash is*
 
 $$H(G) = \operatorname{SHA\text{-}256}\!\left(d \,\|\, k \,\|\, |V| \,\|\, \delta \,\|\, h_{64}(v_0) \,\|\, h_{64}(v_1) \,\|\, \cdots \,\|\, h_{64}(v_{|V|-1})\right)$$
@@ -72,10 +78,12 @@ $$H(G) = \operatorname{SHA\text{-}256}\!\left(d \,\|\, k \,\|\, |V| \,\|\, \delt
 
 > **Example.** For a 10-vertex coalescent graph, $H_{\text{hex}}(G)$ might be `a3f2e9c8b1d4...` (64 hex characters). This string is used as the filename for the cached trace: `~/.phasic_cache/traces/a3f2e9c8b1d4....json`.
 
-## Theorems and Proofs
+## Theorems and Proofs {.unnumbered}
 
 ::: {#thm-12-determinism}
-## Determinism
+
+#### Determinism
+
 *For any phase-type graph $G$, the graph content hash $H(G)$ is deterministic: it depends only on the structural signature $\mathcal{S}(G)$ and is independent of memory layout, pointer values, and execution order.*
 :::
 
@@ -92,7 +100,9 @@ Therefore $H(G)$ depends only on $\mathcal{S}(G)$. $\square$
 :::
 
 ::: {#thm-12-collision-resistance}
-## Collision resistance
+
+#### Collision resistance
+
 *Let $G_1$ and $G_2$ be two phase-type graphs with $\mathcal{S}(G_1) \neq \mathcal{S}(G_2)$. Then $\Pr[H(G_1) = H(G_2)] \leq 2^{-128}$ under the standard random oracle model for SHA-256.*
 :::
 
@@ -110,10 +120,11 @@ For any practical graph size ($|V| \ll 2^{32}$), this probability is negligible.
 **Remark.** The two-level structure introduces a potential weakness at the vertex-level truncation (64-bit hashes). For graphs with $|V| \approx 2^{32}$, the birthday bound on vertex hash collisions approaches 1. In practice, phasic graphs have $|V| < 10^6$, and the 64-bit truncation provides ample collision resistance. For extremely large graphs, the vertex hash could be extended to the full 256 bits at the cost of $4\times$ more data in the graph-level SHA-256 input. $\square$
 :::
 
-## Algorithms
+## Algorithms {.unnumbered}
 
 ::: {#alg-12-graph-hash}
-## Graph Content Hash
+
+#### Graph Content Hash
 
 *Description.* This algorithm computes the content-addressable hash of a phase-type graph. It proceeds in two phases: first, compute a 64-bit hash for each vertex by hashing its state vector and sorted edge structure; second, aggregate the vertex hashes with graph metadata into a final 256-bit SHA-256 digest.
 
@@ -175,7 +186,7 @@ Graph Content Hash
 **Correctness.** Follows from @thm-12-determinism (determinism) and @thm-12-collision-resistance (collision resistance). The canonical edge ordering ensures that the hash is independent of the internal edge storage order.
 :::
 
-## Implementation Notes
+## Implementation Notes {.unnumbered}
 
 **Source code mapping:**
 
@@ -194,7 +205,7 @@ Graph Content Hash
 - The `ptd_graph_hash_from_json` function is declared but returns NULL in the current implementation; JSON-based hashing is handled at the Python level instead.
 - Edges with NULL coefficient arrays are treated as having weight-only edges (no parameterization), and only the target index is hashed for such edges.
 
-## Symbol Index
+## Symbol Index {.unnumbered}
 
 | Symbol | Name | First appearance |
 |--------|------|-----------------|

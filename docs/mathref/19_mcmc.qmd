@@ -2,7 +2,7 @@
 title: "Metropolis-Hastings with Adaptive Proposals"
 ---
 
-## Introduction
+## Introduction {.unnumbered}
 
 This file formalizes the **Metropolis-Hastings (MH) algorithm with adaptive proposals** as implemented in phasic for Bayesian parameter inference in phase-type models. Metropolis-Hastings is a Markov chain Monte Carlo (MCMC) method that generates a sequence of correlated samples from the posterior distribution $p(\boldsymbol{\theta} \mid \mathbf{y})$ by proposing candidate moves and accepting or rejecting them based on the posterior density ratio. The adaptive variant (Haario, Saksman & Tamminen, 2001) learns the empirical covariance of the target from the chain history during a burn-in phase, enabling efficient proposals that match the posterior geometry without manual tuning.
 
@@ -14,10 +14,12 @@ In the phasic pipeline, MCMC serves as an alternative to SVGD ([18]) for posteri
 
 - `src/phasic/mcmc.py` (class: `MCMC`; methods: `_log_prob`, `_run_chain`, `_run_chains_vmap`, `run`)
 
-## Definitions
+## Definitions {.unnumbered}
 
 ::: {#def-19-mh .definition}
-## Metropolis-Hastings Algorithm
+
+#### Metropolis-Hastings Algorithm
+
 *Let $p(\boldsymbol{\theta} \mid \mathbf{y})$ be a target posterior density (known up to a normalizing constant) on $\mathbb{R}^d$, and let $q(\boldsymbol{\theta}' \mid \boldsymbol{\theta})$ be a proposal distribution. The **Metropolis-Hastings algorithm** generates a Markov chain $\{\boldsymbol{\theta}_t\}_{t=0}^{\infty}$ as follows: at each step, propose $\boldsymbol{\theta}' \sim q(\cdot \mid \boldsymbol{\theta}_t)$, compute the acceptance ratio*
 
 $$\alpha(\boldsymbol{\theta}_t, \boldsymbol{\theta}') = \min\!\left(1, \; \frac{p(\boldsymbol{\theta}' \mid \mathbf{y}) \, q(\boldsymbol{\theta}_t \mid \boldsymbol{\theta}')}{p(\boldsymbol{\theta}_t \mid \mathbf{y}) \, q(\boldsymbol{\theta}' \mid \boldsymbol{\theta}_t)}\right),$$ {#eq-19-acceptance-ratio}
@@ -36,7 +38,9 @@ $$\alpha(\boldsymbol{\theta}_t, \boldsymbol{\theta}') = \min\!\left(1, \; \frac{
 > **Example.** For a Gaussian posterior $p(\theta \mid y) \propto \exp(-\theta^2/2)$ and a Gaussian random-walk proposal $\theta' = \theta_t + \epsilon$, $\epsilon \sim \mathcal{N}(0, \sigma^2)$: $\log \alpha = -(\theta'^2 - \theta_t^2)/2$. A move from $\theta_t = 0$ to $\theta' = 1$ has $\log \alpha = -0.5$, so $\alpha \approx 0.61$.
 
 ::: {#def-19-adaptive-proposal .definition}
-## Adaptive Proposal
+
+#### Adaptive Proposal
+
 *The **adaptive Metropolis (AM) proposal** (Haario et al., 2001) updates the proposal covariance from the chain history. After an initial phase of $t_a$ iterations with a fixed diagonal proposal $q_0(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) = \mathcal{N}(\boldsymbol{\theta}, \operatorname{diag}(\boldsymbol{\sigma}_0^2))$, the proposal switches to*
 
 $$q_t(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) = \mathcal{N}\!\left(\boldsymbol{\theta}, \; s_d \left( \hat{\boldsymbol{\Sigma}}_t + \varepsilon \mathbf{I}_d \right) \right),$$ {#eq-19-adaptive-proposal}
@@ -59,7 +63,9 @@ $$\log \sigma_{t+1} = \log \sigma_t + \gamma_t \left( \bar{\alpha}_t - \alpha^* 
 > **Example.** For a 2D posterior with $\operatorname{Cov}(\theta_1, \theta_2) = \begin{pmatrix} 1 & 0.9 \\ 0.9 & 1 \end{pmatrix}$, the adaptive proposal learns this covariance and proposes correlated moves along the principal axes, achieving an acceptance rate near 0.234 compared to $< 0.05$ with an isotropic proposal of matched marginal variance.
 
 ::: {#def-19-detailed-balance .definition}
-## Acceptance Ratio and Detailed Balance
+
+#### Acceptance Ratio and Detailed Balance
+
 *A Markov chain with transition kernel $P(\boldsymbol{\theta}' \mid \boldsymbol{\theta})$ satisfies **detailed balance** with respect to $p$ if*
 
 $$p(\boldsymbol{\theta}) \, P(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) = p(\boldsymbol{\theta}') \, P(\boldsymbol{\theta} \mid \boldsymbol{\theta}') \quad \text{for all } \boldsymbol{\theta}, \boldsymbol{\theta}'.$$ {#eq-19-detailed-balance}
@@ -69,10 +75,12 @@ $$p(\boldsymbol{\theta}) \, P(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) = p
 
 > **Intuition.** Detailed balance is a sufficient condition for $p$ to be the equilibrium distribution of the Markov chain. It means that, at stationarity, the probability flow from $\boldsymbol{\theta}$ to $\boldsymbol{\theta}'$ equals the flow from $\boldsymbol{\theta}'$ to $\boldsymbol{\theta}$. This is a stronger condition than stationarity alone (which only requires that net flows balance) and is the key property that makes MH correct.
 
-## Theorems and Proofs
+## Theorems and Proofs {.unnumbered}
 
 ::: {#thm-19-mh-detailed-balance .theorem}
-## MH Satisfies Detailed Balance
+
+#### MH Satisfies Detailed Balance
+
 *The Metropolis-Hastings transition kernel*
 
 $$P(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) = q(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) \, \alpha(\boldsymbol{\theta}, \boldsymbol{\theta}') \quad \text{for } \boldsymbol{\theta}' \neq \boldsymbol{\theta}$$ {#eq-19-mh-kernel}
@@ -99,7 +107,9 @@ The two sides are equal, verifying @eq-19-db-verify. The case $r > 1$ is identic
 :::
 
 ::: {#thm-19-adaptive-ergodicity .theorem}
-## Adaptive Proposals Preserve Ergodicity under Diminishing Adaptation
+
+#### Adaptive Proposals Preserve Ergodicity under Diminishing Adaptation
+
 *Let $\{P_t\}_{t \geq 0}$ be a sequence of MH transition kernels where $P_t$ uses the adaptive proposal $q_t$ from @def-19-adaptive-proposal. If the adaptation satisfies:*
 
 *(i) Diminishing adaptation: $\sup_{\boldsymbol{\theta}} \lVert P_{t+1}(\cdot \mid \boldsymbol{\theta}) - P_t(\cdot \mid \boldsymbol{\theta}) \rVert_{\text{TV}} \to 0$ as $t \to \infty$.*
@@ -119,12 +129,13 @@ For condition (ii), since each $P_t$ is itself a valid MH kernel with stationary
 Given (i) and (ii), the result follows from the adaptive MCMC ergodicity theorem of Roberts & Rosenthal (2007, Theorem 2): diminishing adaptation and containment together imply that the adaptive chain has the same limiting distribution as the fixed-kernel chain, which is the target $p(\boldsymbol{\theta} \mid \mathbf{y})$. The ergodic theorem for adaptive MCMC then gives the almost-sure convergence of time averages. $\square$
 :::
 
-## Algorithms
+## Algorithms {.unnumbered}
 
 ::: {#alg-19-mcmc}
-## Metropolis-Hastings with Adaptive Proposals
 
-*Description.* @alg-19-mcmc generates posterior samples from $p(\boldsymbol{\theta} \mid \mathbf{y})$ via random-walk Metropolis-Hastings with adaptive covariance proposals. The algorithm runs $C$ independent chains, each for $B + N \cdot K$ iterations (burn-in $B$, $N$ post-burn-in samples with thinning interval $K$). During the burn-in phase, the proposal covariance is updated from chain history at regular intervals, and the proposal scale is adjusted toward the target acceptance rate via Robbins-Monro. After burn-in, samples are collected at thinning intervals. The algorithm operates in unconstrained space $\boldsymbol{\phi}$ and transforms to constrained space $\boldsymbol{\theta}$ via softplus at the end.
+#### Metropolis-Hastings with Adaptive Proposals
+
+*Description.* Generates posterior samples from $p(\boldsymbol{\theta} \mid \mathbf{y})$ via random-walk Metropolis-Hastings with adaptive covariance proposals. The algorithm runs $C$ independent chains, each for $B + N \cdot K$ iterations (burn-in $B$, $N$ post-burn-in samples with thinning interval $K$). During the burn-in phase, the proposal covariance is updated from chain history at regular intervals, and the proposal scale is adjusted toward the target acceptance rate via Robbins-Monro. After burn-in, samples are collected at thinning intervals. The algorithm operates in unconstrained space $\boldsymbol{\phi}$ and transforms to constrained space $\boldsymbol{\theta}$ via softplus at the end.
 
 ```
 Metropolis-Hastings with Adaptive Proposals
@@ -208,7 +219,7 @@ Metropolis-Hastings with Adaptive Proposals
 **Correctness.** By @thm-19-mh-detailed-balance, the accept/reject step at line 25 ensures detailed balance with respect to $p$ for any symmetric proposal (both the diagonal and adaptive proposals are symmetric Gaussians). By @thm-19-adaptive-ergodicity, the adaptive covariance updates preserve ergodicity because: (a) the Robbins-Monro step $\gamma_t = 1/\sqrt{t}$ satisfies $\gamma_t \to 0$ (diminishing adaptation), and (b) the chain has bounded state space for typical phase-type parameters (containment). The burn-in phase (lines 38--41) discards the transient period before the chain has converged, and thinning reduces autocorrelation in the stored samples.
 :::
 
-## Numerical Considerations
+## Numerical Considerations {.unnumbered}
 
 **Positivity constraint.** As in SVGD ([18]), MCMC operates in unconstrained space $\boldsymbol{\phi} \in \mathbb{R}^d$ and maps to constrained space $\boldsymbol{\theta} \in \mathbb{R}^d_{>0}$ via softplus. The log-posterior includes the Jacobian correction from the change of variables.
 
@@ -220,7 +231,7 @@ Metropolis-Hastings with Adaptive Proposals
 
 **Parallel chains.** Two parallelization modes are supported: (1) `vmap` mode evaluates log-posteriors for all chains simultaneously via JAX vectorization (requires JIT-compatible model); (2) `processes` mode uses Python multiprocessing for independent chains (supports non-JIT models). Sequential execution is the fallback.
 
-## Implementation Notes
+## Implementation Notes {.unnumbered}
 
 **Source code mapping:**
 
@@ -239,7 +250,7 @@ Metropolis-Hastings with Adaptive Proposals
 - The `likelihood_correction` parameter (for BFFG importance weights in inhomogeneous models) is an additive correction to the log-likelihood applied after the model evaluation. This is not shown in the pseudocode for simplicity.
 - Prior handling reuses the same `Prior`, `GaussPrior`, `HalfCauchyPrior`, `DataPrior`, and `SparseObservations` classes from `svgd.py`, imported at the top of `mcmc.py`.
 
-## Symbol Index
+## Symbol Index {.unnumbered}
 
 | Symbol | Name | First appearance |
 |--------|------|-----------------|

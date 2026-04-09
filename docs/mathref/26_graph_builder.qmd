@@ -2,7 +2,7 @@
 title: "Graph Builder"
 ---
 
-## Introduction
+## Introduction {.unnumbered}
 
 This file formalizes the `GraphBuilder` class, which implements the separation of graph structure (topology and edge coefficients) from parameters (the vector $\boldsymbol{\theta}$) for efficient repeated evaluation. In inference workflows such as SVGD ([18]) and MCMC ([19]), the same graph structure is evaluated with hundreds or thousands of different parameter vectors. Parsing the JSON serialization and constructing vertices and edges from scratch for each $\boldsymbol{\theta}$ is wasteful when the topology is fixed.
 
@@ -15,7 +15,7 @@ The `GraphBuilder` addresses this by parsing the JSON representation once, cachi
 - `src/cpp/parameterized/graph_builder.hpp` (class declaration)
 - `src/cpp/parameterized/graph_builder.cpp` (implementation)
 
-## Definitions
+## Definitions {.unnumbered}
 
 > **Recall** (@def-01-param-edges). *A parameterized edge $(v \to z)$ carries a coefficient vector $\mathbf{c} = (c_1, \ldots, c_d)$ and computes its weight as $w(v \to z; \boldsymbol{\theta}) = \sum_j c_j \theta_j$ (linear mode) or $w = \prod_j (c_j \theta_j)$ (log mode).*
 
@@ -24,7 +24,9 @@ The `GraphBuilder` addresses this by parsing the JSON representation once, cachi
 > **Recall** (@def-15-moment-replay). *The $k$-th moment $\mathbb{E}[\tau^k]$ is computed via $k$ successive applications of the expected waiting time computation on the graph.*
 
 ::: {#def-26-serialization .definition}
-## Graph Structure Serialization
+
+#### Graph Structure Serialization
+
 *Let $G = (V, E, W)$ be a parameterized phase-type graph (@def-01-param-edges) with $p$ transient vertices, parameter length $d$, and state length $\ell$. The serialization of $G$ is a JSON object $J$ with the following fields:*
 
 - *`states`: a $p \times \ell$ array of integer state vectors, $\texttt{states}[i] = \mathbf{s}_{v_i}$ for $i = 0, \ldots, p-1$.*
@@ -59,7 +61,9 @@ The `GraphBuilder` addresses this by parsing the JSON representation once, cachi
 > The single parameterized edge from vertex 0 to vertex 1 has coefficient $c_1 = 1.0$, so $w = 1.0 \cdot \theta_1 = \theta_1$.
 
 ::: {#def-26-graph-builder .definition}
-## GraphBuilder
+
+#### GraphBuilder
+
 *A GraphBuilder is a C++ object $\mathcal{B}$ initialized from a serialized graph structure $J$ (@def-26-serialization). It caches the parsed representation and provides the operation:*
 
 $$\mathcal{B}.\operatorname{build}(\boldsymbol{\theta}) = G(\boldsymbol{\theta}),$$ {#eq-26-build}
@@ -80,7 +84,9 @@ w & \text{if } (v_i \to v_j) \text{ is a fixed edge with weight } w, \\
 > **Example.** In SVGD with 100 particles and 1000 iterations, the GraphBuilder is constructed once from the serialized graph. Each of the $100 \times 1000 = 100{,}000$ evaluations calls `build(theta)` + `pdf(t, g)`, reusing the cached vertex states and edge connectivity. Without caching, each evaluation would re-parse the JSON string.
 
 ::: {#def-26-batch-eval .definition}
-## Batch Evaluation
+
+#### Batch Evaluation
+
 *Given a GraphBuilder $\mathcal{B}$ and a collection of parameter vectors $\boldsymbol{\theta}^{(1)}, \ldots, \boldsymbol{\theta}^{(B)} \in \mathbb{R}^d$, the batch evaluation is:*
 
 $$\mathcal{B}.\operatorname{batch\_pmf}(\boldsymbol{\Theta}, \mathbf{t}) = \begin{pmatrix} h(\boldsymbol{\theta}^{(1)}, \mathbf{t}) \\ \vdots \\ h(\boldsymbol{\theta}^{(B)}, \mathbf{t}) \end{pmatrix} \in \mathbb{R}^{B \times n},$$ {#eq-26-batch}
@@ -92,10 +98,12 @@ $$\mathcal{B}.\operatorname{batch\_pmf}(\boldsymbol{\Theta}, \mathbf{t}) = \begi
 
 > **Example.** With 100 SVGD particles on an 8-core machine, `jax.vmap(compute_pmf_ffi)` dispatches 100 evaluations to the FFI handler, which processes them in batches of 8 (one per OpenMP thread), achieving approximately $8\times$ speedup over sequential evaluation.
 
-## Theorems and Proofs
+## Theorems and Proofs {.unnumbered}
 
 ::: {#thm-26-equivalence .theorem}
-## GraphBuilder Equivalence
+
+#### GraphBuilder Equivalence
+
 *Let $G = (V, E, W)$ be a parameterized phase-type graph with serialization $J = \operatorname{serialize}(G)$, and let $\mathcal{B} = \operatorname{GraphBuilder}(J)$. For any valid parameter vector $\boldsymbol{\theta} \in \mathbb{R}^d$:*
 
 1. *The concrete graph $G(\boldsymbol{\theta}) = \mathcal{B}.\operatorname{build}(\boldsymbol{\theta})$ has the same vertex set $V$ (with the same state vectors), the same edge set $E$ (with the same connectivity), and edge weights satisfying @eq-26-weight-eval.*
@@ -121,10 +129,11 @@ We verify each claim.
 **(3) Moment computation.** The `compute_moments` method (lines 271--307) calls `build(theta)` and then `compute_moments_impl`, which iteratively calls `g.expected_waiting_time(rewards)` (the C++ implementation of @alg-15-sojourn-cross-moments from [15]) and applies the factorial scaling $\mathbb{E}[\tau^k] = k! \cdot r_0^{(k)}$ where $r_0^{(k)}$ is the $k$-th iterated expected waiting time at the starting vertex. $\square$
 :::
 
-## Algorithms
+## Algorithms {.unnumbered}
 
 ::: {#alg-26-graph-builder-pmf}
-## GraphBuilder PMF Computation
+
+#### GraphBuilder PMF Computation
 
 *Description.* This algorithm describes the full pipeline from a serialized graph structure and parameter vector to PDF/PMF values. It is the C++ implementation behind the JAX FFI handler (@alg-25-jax-pmf). The key optimization is that JSON parsing and structure caching happen once (at `GraphBuilder` construction), while graph instantiation and forward algorithm execution happen per evaluation. For batch processing, the GraphBuilder is reused across all parameter vectors in the batch.
 
@@ -252,7 +261,7 @@ GraphBuilder PMF Computation
 **Correctness.** Follows from @thm-26-equivalence. The `Build` function reconstructs $G(\boldsymbol{\theta})$ from the cached structure with weights evaluated at $\boldsymbol{\theta}$. The `ComputePMF` and `ComputeMoments` functions invoke the same C++ implementations used by @alg-14-dph-forward-step and @alg-14-cph-uniformization ([14]) and @alg-15-sojourn-cross-moments ([15]).
 :::
 
-## Implementation Notes
+## Implementation Notes {.unnumbered}
 
 **Source code mapping:**
 
@@ -272,7 +281,7 @@ GraphBuilder PMF Computation
 - The `compute_pmf_multivariate` method handles sparse observations (zero entries = no observation) by skipping the forward algorithm for those entries.
 - The GIL release/acquire pattern (`py::gil_scoped_release`) is a pybind11 implementation detail not reflected in the pseudocode. It copies data from NumPy arrays to C++ vectors before releasing the GIL, then copies results back to NumPy arrays after reacquiring it.
 
-## Symbol Index
+## Symbol Index {.unnumbered}
 
 | Symbol | Name | First appearance |
 |--------|------|-----------------|

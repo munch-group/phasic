@@ -2,7 +2,7 @@
 title: "Symbolic Graph Elimination"
 ---
 
-## Introduction
+## Introduction {.unnumbered}
 
 This file formalizes the symbolic graph elimination algorithm, which performs vertex elimination (@def-06-vertex-elimination) on a parameterized graph while recording the elimination operations as symbolic expression trees (@def-09-expression-tree) rather than computing numeric values. The result is a symbolic acyclic graph whose edge weights are expression trees that can be instantiated with any concrete parameter vector in $O(|V|^2)$ time, avoiding the $O(|V|^3)$ cost of repeating the full elimination.
 
@@ -14,12 +14,14 @@ This is the key algorithmic innovation that enables efficient Bayesian inference
 - `src/c/phasic_symbolic.c` (functions: `ptd_graph_symbolic_elimination`, `ptd_graph_symbolic_instantiate`, `ptd_graph_symbolic_instantiate_batch`)
 - `api/c/phasic.h` (types: `ptd_graph_symbolic`, `ptd_vertex_symbolic`, `ptd_edge_symbolic`)
 
-## Definitions
+## Definitions {.unnumbered}
 
 > **Recall** (@def-06-vertex-elimination). *Vertex elimination* of $v \in V$ removes $v$ from $G$ and adds, for each parent $u$ and child $z$, a bypass edge $(u \to z)$ with weight $w'(u \to v) \cdot w'(v \to z)$, merging with existing edges and renormalizing the parent's outgoing probabilities. Self-loops created during elimination are resolved by scaling the parent's vertex scalar by $1/(1-p)$ where $p$ is the self-loop probability.
 
 ::: {#def-10-symbolic-graph}
-## Symbolic graph
+
+#### Symbolic graph
+
 *A symbolic graph is a tuple $G_{\mathrm{sym}} = (V, E_{\mathrm{sym}}, k)$ where:*
 
 - *$V$ is the set of vertices (identical to the vertex set of the original graph),*
@@ -35,7 +37,9 @@ This is the key algorithmic innovation that enables efficient Bayesian inference
 > **Example.** For a two-state coalescent parameterized by rate $\theta_1$, the symbolic graph after elimination might have an edge from $v_0$ to the absorbing vertex with probability expression $\texttt{Const}(1.0)$ and a rate expression $\texttt{Inv}(\texttt{Param}(1))$ (representing expected waiting time $1/\theta_1$).
 
 ::: {#def-10-symbolic-vertex-elimination}
-## Symbolic vertex elimination
+
+#### Symbolic vertex elimination
+
 *Let $G_{\mathrm{sym}} = (V, E_{\mathrm{sym}}, k)$ be a symbolic graph and let $v \in V$ be a transient, non-starting vertex to be eliminated. The symbolic elimination of $v$ produces a modified symbolic graph $G_{\mathrm{sym}}^{(-v)}$ by the following operations:*
 
 *For each parent $u \in \operatorname{parents}(v)$ and each child $z \in \operatorname{children}(v)$:*
@@ -56,7 +60,9 @@ This is the key algorithmic innovation that enables efficient Bayesian inference
 > **Intuition.** This is exactly vertex elimination (@def-06-vertex-elimination), but every arithmetic operation on edge weights is replaced by the corresponding expression tree constructor. Where concrete elimination computes $p_{\mathrm{bypass}} = p_{u \to v} \cdot p_{v \to z}$, symbolic elimination constructs $\texttt{Mul}_\mathcal{I}(\mathcal{E}_{u \to v}, \mathcal{E}_{v \to z})$. The interned constructors ensure that identical subexpressions are shared.
 
 ::: {#def-10-symbolic-instantiation}
-## Symbolic graph instantiation
+
+#### Symbolic graph instantiation
+
 *Let $G_{\mathrm{sym}} = (V, E_{\mathrm{sym}}, k)$ be a symbolic graph and let $\boldsymbol{\theta} \in \mathbb{R}^k$ be a concrete parameter vector. The instantiation $G_{\mathrm{sym}}(\boldsymbol{\theta})$ produces a concrete phase-type graph $G = (V, E, W)$ by:*
 
 1. *Creating a concrete vertex for each vertex in $V$ with the same state vector.*
@@ -67,10 +73,12 @@ This is the key algorithmic innovation that enables efficient Bayesian inference
 
 > **Example.** For a coalescent model with parameter $\theta_1 = 2.0$: the symbolic graph's rate expression $\texttt{Inv}(\texttt{Param}(1))$ evaluates to $1/2 = 0.5$, and probability expressions evaluate to concrete transition probabilities. The resulting concrete graph can be passed to the forward algorithm for PDF computation.
 
-## Theorems and Proofs
+## Theorems and Proofs {.unnumbered}
 
 ::: {#thm-10-symbolic-correctness}
-## Symbolic elimination correctness
+
+#### Symbolic elimination correctness
+
 *Let $G$ be a parameterized phase-type graph with parameter vector $\boldsymbol{\theta} \in \mathbb{R}^k$, and let $G_{\mathrm{sym}}$ be the result of symbolic graph elimination (applying @def-10-symbolic-vertex-elimination to all transient vertices in topological order). Then for any $\boldsymbol{\theta}$ such that all denominators are non-zero:*
 
 $$G_{\mathrm{sym}}(\boldsymbol{\theta}) = \operatorname{Eliminate}(G(\boldsymbol{\theta}))$$
@@ -101,7 +109,9 @@ By @lem-09-cse-preserves-evaluation, interning does not affect evaluation. There
 :::
 
 ::: {#thm-10-complexity}
-## Complexity of symbolic elimination and instantiation
+
+#### Complexity of symbolic elimination and instantiation
+
 *Let $G = (V, E, W)$ be a parameterized phase-type graph with $n = |V|$ vertices.*
 
 *(a) Symbolic graph elimination (@alg-10-symbolic-elimination) runs in $O(n^3)$ time and produces $O(n^2)$ symbolic edges.*
@@ -119,10 +129,11 @@ By @lem-09-cse-preserves-evaluation, interning does not affect evaluation. There
 (c) The combined cost follows directly from (a) and (b). Without symbolic elimination, each parameter vector requires $O(n^3)$ for concrete elimination. With symbolic elimination, the $O(n^3)$ setup is amortized over $m$ evaluations, each costing $O(n^2 \cdot h)$ instead of $O(n^3)$. $\square$
 :::
 
-## Algorithms
+## Algorithms {.unnumbered}
 
 ::: {#alg-10-symbolic-elimination}
-## Symbolic Graph Elimination
+
+#### Symbolic Graph Elimination
 
 *Description.* This algorithm performs graph elimination symbolically, building expression trees at each edge instead of computing numeric values. It proceeds in five phases: (1) topological ordering via SCC decomposition, (2) symbolic vertex and rate expression creation, (3) edge weight to probability conversion, (4) elimination loop with bypass edges, and (5) result structure assembly.
 
@@ -215,7 +226,8 @@ Symbolic Graph Elimination
 :::
 
 ::: {#alg-10-symbolic-instantiation}
-## Symbolic Graph Instantiation
+
+#### Symbolic Graph Instantiation
 
 *Description.* This algorithm evaluates all expression trees in a symbolic graph with a concrete parameter vector, producing a concrete phase-type graph. It is the fast path that replaces repeated calls to the full elimination algorithm.
 
@@ -267,7 +279,7 @@ Symbolic Graph Instantiation
 **Correctness.** Follows from @thm-10-symbolic-correctness. By @thm-09-evaluation-correctness, each expression evaluation produces the correct numeric value. The probability-to-rate conversion $w = p / (1/\lambda_v) = p \cdot \lambda_v$ recovers the original edge weight from the normalized probability and the rate.
 :::
 
-## Numerical Considerations
+## Numerical Considerations {.unnumbered}
 
 **Division by zero.** The inverse rate expression $\mathcal{E}_v^{\mathrm{rate}} = \texttt{Inv}(\sum_z \mathcal{E}_w)$ produces division by zero if the total outgoing weight is zero for some $\boldsymbol{\theta}$. This corresponds to a degenerate parameter configuration where a transient vertex has no outgoing transitions, which violates the phase-type graph invariants (@def-01-ph-graph). The implementation does not guard against this; it is the user's responsibility to ensure $\boldsymbol{\theta}$ lies in the valid parameter domain.
 
@@ -275,7 +287,7 @@ Symbolic Graph Instantiation
 
 **Expression tree depth.** Without CSE, expression trees can grow exponentially with the number of elimination steps (each elimination can double the tree depth through multiplication). The intern table (@def-09-cse-interning) converts trees to DAGs, bounding the total number of unique nodes by $O(|V|^2)$. However, the evaluation algorithm (@alg-09-expression-evaluation) traverses the tree structure, not the DAG, so shared subtrees may be evaluated multiple times. A memoized evaluation strategy would reduce this to $O(|V|^2)$ total operations per instantiation.
 
-## Implementation Notes
+## Implementation Notes {.unnumbered}
 
 **Source code mapping:**
 
@@ -301,7 +313,7 @@ Symbolic Graph Instantiation
 
 - **`ptd_graph_add_edge` in instantiation.** The instantiation function (@alg-10-symbolic-instantiation) calls `ptd_graph_add_edge` with a scalar weight (after converting probability to rate). This creates edges in constant mode, not parameterized mode, since the instantiated graph is concrete.
 
-## Symbol Index
+## Symbol Index {.unnumbered}
 
 | Symbol | Name | First appearance |
 |--------|------|-----------------|

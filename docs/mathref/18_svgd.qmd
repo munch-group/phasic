@@ -2,7 +2,7 @@
 title: "Stein Variational Gradient Descent"
 ---
 
-## Introduction
+## Introduction {.unnumbered}
 
 This file formalizes **Stein Variational Gradient Descent (SVGD)**, a deterministic particle-based method for approximate Bayesian inference. Given a target posterior distribution $p(\boldsymbol{\theta} \mid \mathbf{y})$ over the parameter vector $\boldsymbol{\theta} \in \mathbb{R}^d$ of a phase-type model and observed data $\mathbf{y}$, SVGD maintains a finite set of $n$ particles $\{\boldsymbol{\theta}^{(i)}\}_{i=1}^{n}$ and iteratively transports them toward the posterior by following the direction that maximally decreases the KL divergence from the particle distribution to the target. The key insight is that this optimal direction can be computed in closed form using a reproducing kernel Hilbert space (RKHS), requiring only evaluations of $\nabla_{\boldsymbol{\theta}} \log p(\boldsymbol{\theta} \mid \mathbf{y})$ at the particle locations and kernel evaluations between particles.
 
@@ -14,10 +14,12 @@ In the phasic pipeline, SVGD serves as the primary inference engine for estimati
 
 - `src/phasic/svgd.py` (classes: `SVGD`, `SVGDKernel`, `Prior`, `GaussPrior`, `HalfCauchyPrior`, `DataPrior`, `SparseObservations`; functions: `rbf_kernel`, `batch_median_heuristic`, `batch_median_heuristic_per_dim`, `svgd_step`, `run_svgd`, `_svgd_update_jitted`, `dense_to_sparse`)
 
-## Definitions
+## Definitions {.unnumbered}
 
 ::: {#def-18-stein-operator .definition}
-## Stein Operator and Stein Discrepancy
+
+#### Stein Operator and Stein Discrepancy
+
 *Let $p$ be a smooth density on $\mathbb{R}^d$ and $\boldsymbol{\phi} \colon \mathbb{R}^d \to \mathbb{R}^d$ a smooth vector field. The **Stein operator** of $p$ applied to $\boldsymbol{\phi}$ is*
 
 $$\mathcal{A}_p \boldsymbol{\phi}(\boldsymbol{\theta}) = \nabla_{\boldsymbol{\theta}} \log p(\boldsymbol{\theta})^\top \boldsymbol{\phi}(\boldsymbol{\theta}) + \nabla_{\boldsymbol{\theta}} \cdot \boldsymbol{\phi}(\boldsymbol{\theta}),$$ {#eq-18-stein-operator}
@@ -32,7 +34,9 @@ $$\mathbb{S}(q, p) = \sup_{\boldsymbol{\phi} \in \mathcal{F}} \left( \mathbb{E}_
 > **Example.** For a univariate Gaussian target $p(\theta) \propto \exp(-\theta^2 / 2)$, we have $\nabla \log p(\theta) = -\theta$. The Stein operator applied to $\phi(\theta) = 1$ gives $\mathcal{A}_p \phi(\theta) = -\theta$, and $\mathbb{E}_q[-\theta] = -\mathbb{E}_q[\theta]$, which is zero only when $q$ has mean zero.
 
 ::: {#def-18-rbf-kernel .definition}
-## RBF Kernel and Bandwidth Selection
+
+#### RBF Kernel and Bandwidth Selection
+
 *The **radial basis function (RBF) kernel** is*
 
 $$k(\boldsymbol{\theta}, \boldsymbol{\theta}') = \exp\!\left( -\frac{\lVert \boldsymbol{\theta} - \boldsymbol{\theta}' \rVert^2}{2h^2} \right),$$ {#eq-18-rbf-kernel}
@@ -53,7 +57,9 @@ $$h_l = \sqrt{\frac{\operatorname{median}\{(\theta^{(i)}_l - \theta^{(j)}_l)^2 :
 > **Example.** For $n = 100$ particles in $\mathbb{R}^2$, if the median pairwise distance is 0.5, then $h = 0.5 / \sqrt{\log 101} \approx 0.233$.
 
 ::: {#def-18-svgd-update .definition}
-## SVGD Update Rule
+
+#### SVGD Update Rule
+
 *Given $n$ particles $\{\boldsymbol{\theta}^{(i)}\}_{i=1}^{n}$, a kernel $k$, and the target log-density $\log p$, the **SVGD perturbation direction** for particle $i$ is*
 
 $$\hat{\boldsymbol{\phi}}^*(\boldsymbol{\theta}^{(i)}) = \frac{1}{n} \sum_{j=1}^{n} \Big[ k(\boldsymbol{\theta}^{(j)}, \boldsymbol{\theta}^{(i)}) \, \nabla_{\boldsymbol{\theta}^{(j)}} \log p(\boldsymbol{\theta}^{(j)}) + \nabla_{\boldsymbol{\theta}^{(j)}} k(\boldsymbol{\theta}^{(j)}, \boldsymbol{\theta}^{(i)}) \Big].$$ {#eq-18-svgd-direction}
@@ -66,7 +72,9 @@ $$\hat{\boldsymbol{\phi}}^*(\boldsymbol{\theta}^{(i)}) = \frac{1}{n} \sum_{j=1}^
 > **Example.** With a single particle ($n = 1$), the repulsive term vanishes (since $\nabla_{\boldsymbol{\theta}} k(\boldsymbol{\theta}, \boldsymbol{\theta}) = \mathbf{0}$), and SVGD reduces to gradient ascent on $\log p$, recovering maximum a posteriori (MAP) estimation.
 
 ::: {#def-18-particle-system .definition}
-## Particle System
+
+#### Particle System
+
 *An **SVGD particle system** is a tuple $(\{\boldsymbol{\theta}^{(i)}\}_{i=1}^{n}, k, p, \epsilon)$ where:*
 
 - *$\boldsymbol{\theta}^{(i)} \in \mathbb{R}^d$ for $i = 1, \ldots, n$ are the particle positions,*
@@ -80,7 +88,9 @@ $$\hat{\boldsymbol{\phi}}^*(\boldsymbol{\theta}^{(i)}) = \frac{1}{n} \sum_{j=1}^
 > **Intuition.** The particle system represents the posterior nonparametrically: each particle is one plausible parameter vector, and the density of particles in a region reflects the posterior probability of that region. Unlike MCMC, all particles evolve simultaneously and interact through the kernel, enabling cooperative exploration of the parameter space.
 
 ::: {#def-18-step-size .definition}
-## Step Size Schedules
+
+#### Step Size Schedules
+
 *A **step size schedule** is a function $\epsilon \colon \mathbb{N}_0 \to \mathbb{R}_{>0}$ mapping iteration $t$ to step size $\epsilon_t$. The implementations are:*
 
 1. *Constant: $\epsilon_t = \epsilon_0$ for all $t$.*
@@ -92,7 +102,9 @@ $$\hat{\boldsymbol{\phi}}^*(\boldsymbol{\theta}^{(i)}) = \frac{1}{n} \sum_{j=1}^
 > **Intuition.** Constant step sizes are simplest but may require manual tuning. Exponential decay starts with large exploratory steps and refines as convergence approaches. The adaptive schedule monitors particle spread as a proxy for how well the particles cover the posterior: if they are too spread, the step size decreases to prevent divergence; if too concentrated, it increases to encourage exploration. Warmup is particularly useful with Adam optimization, where moment estimates are unreliable in early iterations.
 
 ::: {#def-18-prior .definition}
-## Prior Distributions
+
+#### Prior Distributions
+
 *A **prior** on the parameter vector $\boldsymbol{\theta} \in \mathbb{R}^d_{>0}$ specifies a log-density $\log \pi(\boldsymbol{\theta})$ and a sampling method. The implementations are:*
 
 1. *Gaussian prior: $\log \pi(\boldsymbol{\theta}) = -\frac{1}{2} \sum_{l=1}^{d} \left(\frac{\theta_l - \mu_l}{\sigma_l}\right)^2 + C$, where $\mu_l, \sigma_l$ are per-dimension mean and standard deviation.*
@@ -105,7 +117,9 @@ $$\hat{\boldsymbol{\phi}}^*(\boldsymbol{\theta}^{(i)}) = \frac{1}{n} \sum_{j=1}^
 > **Intuition.** The Gaussian prior encodes a belief that each parameter is near some value with known uncertainty. The half-Cauchy prior has heavier tails and is standard for scale parameters that could be much larger than expected. The data-driven prior automates prior specification by extracting information from the data using method-of-moments, which is especially useful when no strong domain knowledge is available. The Jacobian correction ensures that the change of variables from constrained ($\boldsymbol{\theta}$) to unconstrained ($\boldsymbol{\phi}$) space preserves the correct probability density.
 
 ::: {#def-18-sparse-obs .definition}
-## Sparse Observations
+
+#### Sparse Observations
+
 *For a multivariate phase-type model with $m$ feature dimensions, a **sparse observation format** is a tuple $(\mathbf{v}, \mathbf{f}, m, \mathcal{S})$ where:*
 
 - *$\mathbf{v} = (v_1, \ldots, v_N) \in \mathbb{R}^N$ is the vector of all valid observation values (no missing entries),*
@@ -122,10 +136,12 @@ $$\ell(\boldsymbol{\theta}; \mathbf{v}, \mathbf{f}) = \sum_{j=0}^{m-1} \sum_{k=s
 
 > **Example.** For 3 features with 10, 5, and 8 observations respectively, $N = 23$, $\mathbf{v}$ contains all 23 values sorted by feature, $\mathbf{f} = (0, \ldots, 0, 1, \ldots, 1, 2, \ldots, 2)$, and $\mathcal{S} = \{(0, 10), (10, 15), (15, 23)\}$.
 
-## Theorems and Proofs
+## Theorems and Proofs {.unnumbered}
 
 ::: {#thm-18-svgd-kl .theorem}
-## SVGD Update Decreases KL Divergence
+
+#### SVGD Update Decreases KL Divergence
+
 *Let $q$ be a distribution on $\mathbb{R}^d$, $p$ the target distribution, and $\mathcal{H}$ the RKHS of a positive-definite kernel $k$. Define the perturbation $\boldsymbol{\phi}^* = \arg\max_{\boldsymbol{\phi} \in \mathcal{H}^d, \, \lVert \boldsymbol{\phi} \rVert_{\mathcal{H}} \leq 1} \{-\frac{d}{d\epsilon}\operatorname{KL}(q_{[\epsilon \boldsymbol{\phi}]} \| p) \big|_{\epsilon=0}\}$, where $q_{[\epsilon \boldsymbol{\phi}]}$ is the distribution of $\boldsymbol{\theta} + \epsilon \boldsymbol{\phi}(\boldsymbol{\theta})$ when $\boldsymbol{\theta} \sim q$. Then:*
 
 *(i) The steepest descent direction in KL divergence is given by $\boldsymbol{\phi}^*(\cdot) = \mathbb{E}_q[\mathcal{A}_p k(\boldsymbol{\theta}, \cdot)]$, where $\mathcal{A}_p$ is the Stein operator (@def-18-stein-operator).*
@@ -145,12 +161,13 @@ $$\mathbb{E}_q[\mathcal{A}_p \boldsymbol{\phi}(\boldsymbol{\theta})] = \sum_{l=1
 By the Cauchy--Schwarz inequality in $\mathcal{H}$, the supremum over $\lVert \boldsymbol{\phi} \rVert_{\mathcal{H}} \leq 1$ is achieved when $\boldsymbol{\phi}^*$ is proportional to the function $\boldsymbol{\theta}' \mapsto \mathbb{E}_q[\nabla \log p(\boldsymbol{\theta}) \, k(\boldsymbol{\theta}, \boldsymbol{\theta}') + \nabla_{\boldsymbol{\theta}} k(\boldsymbol{\theta}, \boldsymbol{\theta}')]$, which proves (i). The maximum value equals $\lVert \boldsymbol{\phi}^* \rVert_{\mathcal{H}}^2$. By Stein's identity, $\mathbb{E}_p[\mathcal{A}_p \boldsymbol{\phi}] = 0$ for all $\boldsymbol{\phi}$ (assuming $p$ satisfies mild boundary conditions), so $\boldsymbol{\phi}^* = \mathbf{0}$ if and only if $q = p$, proving (ii). $\square$
 :::
 
-## Algorithms
+## Algorithms {.unnumbered}
 
 ::: {#alg-18-svgd}
-## SVGD Optimization
 
-*Description.* @alg-18-svgd performs Bayesian posterior inference by evolving $n$ particles under the SVGD dynamics. At each iteration, the algorithm: (1) computes the kernel matrix and its gradient using the median heuristic bandwidth; (2) evaluates the log-posterior gradient at each particle; (3) combines these via the SVGD update rule (@def-18-svgd-update); and (4) applies the step size (possibly via an adaptive optimizer such as Adam). The algorithm operates in unconstrained space $\boldsymbol{\phi}$ and maps back to constrained space $\boldsymbol{\theta}$ via a parameter transformation (e.g., softplus for positivity).
+#### SVGD Optimization
+
+*Description.* Performs Bayesian posterior inference by evolving $n$ particles under the SVGD dynamics. At each iteration, the algorithm: (1) computes the kernel matrix and its gradient using the median heuristic bandwidth; (2) evaluates the log-posterior gradient at each particle; (3) combines these via the SVGD update rule (@def-18-svgd-update); and (4) applies the step size (possibly via an adaptive optimizer such as Adam). The algorithm operates in unconstrained space $\boldsymbol{\phi}$ and maps back to constrained space $\boldsymbol{\theta}$ via a parameter transformation (e.g., softplus for positivity).
 
 ```
 SVGD Optimization
@@ -205,7 +222,7 @@ SVGD Optimization
 **Correctness.** By @thm-18-svgd-kl, each SVGD step follows the steepest descent direction in KL divergence within the RKHS of the kernel $k$. Lines 10--13 compute $\nabla_{\boldsymbol{\phi}} \log p$ (the score function including the Jacobian correction for the parameter transform). Lines 14--16 implement @eq-18-svgd-direction exactly: the `positive_term` is the $\mathbf{K} \nabla \log p$ product (via `jnp.einsum('ij,jk->ik', K, grad_log_p)`) and the `negative_term` is $\sum_j \nabla_{\boldsymbol{\phi}^{(j)}} k$ (via `jnp.sum(grad_K, axis=1)`). The kernel gradient for the RBF kernel is $\nabla_{\boldsymbol{\theta}} k(\boldsymbol{\theta}, \boldsymbol{\theta}') = -k(\boldsymbol{\theta}, \boldsymbol{\theta}') \cdot (\boldsymbol{\theta} - \boldsymbol{\theta}') / h^2$, computed in `_compute_kernel_grad_impl`.
 :::
 
-## Numerical Considerations
+## Numerical Considerations {.unnumbered}
 
 **Positivity constraint.** Phase-type distribution parameters (rates) must be positive. SVGD operates in unconstrained space $\boldsymbol{\phi} \in \mathbb{R}^d$ and maps to $\boldsymbol{\theta} \in \mathbb{R}^d_{>0}$ via the softplus transform $\theta_l = \log(1 + e^{\phi_l})$, which is smooth, monotonic, and has bounded gradient. The Jacobian correction $\log \sigma(\phi_l) = -\log(1 + e^{-\phi_l})$ is subtracted from the log-density to account for the change of variables. For large $\phi_l > 20$, $\theta_l \approx \phi_l$ (the inverse softplus uses an identity approximation to avoid overflow).
 
@@ -215,7 +232,7 @@ SVGD Optimization
 
 **Sparse observations.** The `SparseObservations` format avoids NaN propagation through JAX callbacks. Each feature's observations are accessed via pre-computed integer slices rather than boolean masks, which is compatible with `jax.jit` (boolean indexing produces variable-length outputs that are not JIT-traceable).
 
-## Implementation Notes
+## Implementation Notes {.unnumbered}
 
 **Source code mapping:**
 
@@ -241,7 +258,7 @@ SVGD Optimization
 - The optional preconditioner normalizes particles before kernel computation and transforms gradients back, making the kernel isotropic in preconditioned space. This is not shown in the pseudocode.
 - When an optimizer (e.g., Adam) is used, line 20 applies the optimizer's adaptive update (maintaining first and second moment estimates) rather than a simple $\boldsymbol{\phi} + \epsilon \boldsymbol{\psi}$ step.
 
-## Symbol Index
+## Symbol Index {.unnumbered}
 
 | Symbol | Name | First appearance |
 |--------|------|-----------------|

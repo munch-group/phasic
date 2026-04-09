@@ -2,7 +2,7 @@
 title: "Method of Moments Estimation"
 ---
 
-## Introduction
+## Introduction {.unnumbered}
 
 This file formalizes the **method of moments (MoM) estimator** for phase-type distribution parameters. Given observed data and a parameterized phase-type model, MoM finds parameter estimates by minimizing the distance between sample moments (computed from data) and model moments (computed from the phase-type distribution as a function of the parameter vector). The resulting estimates serve as informed starting points or prior centers for subsequent Bayesian inference via SVGD ([18]) or MCMC ([19]).
 
@@ -14,10 +14,12 @@ In the phasic pipeline, MoM operates after model construction ([08]) and moment 
 
 - `src/phasic/method_of_moments.py` (functions: `method_of_moments`, `_compute_weight_transform`, `_select_nr_moments`, `_initial_guess_grid`, `_estimate_moment_covariance`, `_reconstruct_theta`)
 
-## Definitions
+## Definitions {.unnumbered}
 
 ::: {#def-21-sample-model-moments .definition}
-## Sample Moments and Model Moments
+
+#### Sample Moments and Model Moments
+
 *Let $x_1, \ldots, x_n$ be i.i.d. observations from a phase-type distribution $\operatorname{PH}(\boldsymbol{\alpha}, \mathbf{S}(\boldsymbol{\theta}))$. For multivariate observations with $F$ features, let $x_{i,f}$ denote the $f$-th feature of observation $i$. The **sample moments** are*
 
 $$\hat{m}_{f,k} = \frac{1}{n_f} \sum_{i=1}^{n_f} x_{i,f}^k, \quad k = 1, \ldots, K, \;\; f = 1, \ldots, F,$$ {#eq-21-sample-moments}
@@ -34,7 +36,9 @@ $$\mu_{f,k}(\boldsymbol{\theta}) = k! \, \boldsymbol{\alpha} \left( (-\mathbf{S}
 > **Example.** For a univariate model with $K = 2$ moments and $n = 100$ observations: $\hat{m}_1 = \bar{x}$ (sample mean) and $\hat{m}_2 = n^{-1}\sum x_i^2$ (sample second moment). If the model is $\operatorname{Exp}(\theta)$, then $\mu_1(\theta) = 1/\theta$ and $\mu_2(\theta) = 2/\theta^2$.
 
 ::: {#def-21-moment-objective .definition}
-## Moment Matching Objective
+
+#### Moment Matching Objective
+
 *The **moment matching objective** is the weighted nonlinear least-squares problem*
 
 $$\hat{\boldsymbol{\theta}} = \arg\min_{\boldsymbol{\theta} > 0} \left\lVert \mathbf{T}\left(\boldsymbol{\mu}(\boldsymbol{\theta}) - \hat{\mathbf{m}}\right) \right\rVert_2^2,$$ {#eq-21-moment-objective}
@@ -45,7 +49,9 @@ $$\hat{\boldsymbol{\theta}} = \arg\min_{\boldsymbol{\theta} > 0} \left\lVert \ma
 > **Intuition.** The weight matrix $\mathbf{W}$ accounts for the different scales and variances of the moments. Without weighting ($\mathbf{T} = \mathbf{I}$), high-order moments (which are typically much larger) would dominate the objective. Optimal weighting uses $\mathbf{W} = \boldsymbol{\Sigma}^{-1}$, the inverse of the moment covariance, which normalizes each moment by its sampling variability.
 
 ::: {#def-21-optimal-weighting .definition}
-## Optimal Weighting via Moment Covariance
+
+#### Optimal Weighting via Moment Covariance
+
 *The **moment covariance matrix** $\boldsymbol{\Sigma} \in \mathbb{R}^{FK \times FK}$ has a block-diagonal structure (features are independent):*
 
 $$\boldsymbol{\Sigma} = \operatorname{diag}(\boldsymbol{\Sigma}_1, \ldots, \boldsymbol{\Sigma}_F),$$ {#eq-21-moment-cov-block}
@@ -59,10 +65,12 @@ $$(\boldsymbol{\Sigma}_f)_{jk} = \frac{1}{n_f} \operatorname{Cov}(X_f^j, X_f^k) 
 
 > **Intuition.** The Cholesky factorization of $\boldsymbol{\Sigma}$ transforms the correlated moment residuals into uncorrelated, unit-variance residuals. This is the standard efficient GMM weighting (Hansen, 1982): it produces the minimum-variance estimator among all GMM estimators using the same moment conditions. The fallback chain ensures robustness when the sample size is small relative to the number of moments.
 
-## Theorems and Proofs
+## Theorems and Proofs {.unnumbered}
 
 ::: {#thm-21-consistency .theorem}
-## Consistency of the Method of Moments Estimator
+
+#### Consistency of the Method of Moments Estimator
+
 *Suppose (i) the moment function $\boldsymbol{\mu}(\boldsymbol{\theta})$ is continuous on $\Theta = \mathbb{R}^d_{>0}$, (ii) the true parameter $\boldsymbol{\theta}^*$ is the unique solution of $\boldsymbol{\mu}(\boldsymbol{\theta}) = \mathbb{E}[\hat{\mathbf{m}}]$ (identification), and (iii) the observations $x_1, \ldots, x_n$ are i.i.d. with finite $2K$-th moment. Then the MoM estimator $\hat{\boldsymbol{\theta}}_n$ satisfies*
 
 $$\hat{\boldsymbol{\theta}}_n \xrightarrow{n \to \infty} \boldsymbol{\theta}^* \quad \text{in probability.}$$
@@ -88,12 +96,13 @@ $$\hat{\boldsymbol{\theta}}_n - \boldsymbol{\theta}^* \approx -(\mathbf{J}_w^\to
 Since $\sqrt{n}(\hat{\mathbf{m}} - \boldsymbol{\mu}(\boldsymbol{\theta}^*)) \xrightarrow{d} \mathcal{N}(\mathbf{0}, \boldsymbol{\Sigma})$ by the central limit theorem, applying the linear transformation gives @eq-21-asymptotic-cov. When $\mathbf{W} = \boldsymbol{\Sigma}^{-1}$ and $\mathbf{T} = \mathbf{L}^{-1}$, the covariance simplifies: $\mathbf{G} \boldsymbol{\Sigma} \mathbf{G}^\top = (\mathbf{J}_w^\top \mathbf{J}_w)^{-1} \mathbf{J}_w^\top (\mathbf{T} \boldsymbol{\Sigma} \mathbf{T}^\top) \mathbf{J}_w (\mathbf{J}_w^\top \mathbf{J}_w)^{-1} = (\mathbf{J}_w^\top \mathbf{J}_w)^{-1}$, since $\mathbf{T} \boldsymbol{\Sigma} \mathbf{T}^\top = \mathbf{L}^{-1} \mathbf{L} \mathbf{L}^\top \mathbf{L}^{-\top} = \mathbf{I}$. Dividing by $n$ gives @eq-21-efficient-cov. $\square$
 :::
 
-## Algorithms
+## Algorithms {.unnumbered}
 
 ::: {#alg-21-method-of-moments}
-## Method of Moments Estimation
 
-*Description.* @alg-21-method-of-moments estimates the parameter vector $\boldsymbol{\theta}$ of a parameterized phase-type model by matching model moments to sample moments. The algorithm proceeds in several stages: (1) compute sample moments from the data, (2) optionally select the number of moments $K$ by condition number analysis, (3) find an initial guess via coordinate-wise grid search on the first moment, (4) solve the unweighted least-squares problem, and (5) optionally re-solve with optimal GMM weighting. Standard errors are computed via the delta method (@thm-21-consistency) and used to construct Gaussian priors.
+#### Method of Moments Estimation
+
+*Description.* Estimates the parameter vector $\boldsymbol{\theta}$ of a parameterized phase-type model by matching model moments to sample moments. The algorithm proceeds in several stages: (1) compute sample moments from the data, (2) optionally select the number of moments $K$ by condition number analysis, (3) find an initial guess via coordinate-wise grid search on the first moment, (4) solve the unweighted least-squares problem, and (5) optionally re-solve with optimal GMM weighting. Standard errors are computed via the delta method (@thm-21-consistency) and used to construct Gaussian priors.
 
 ```
 Method of Moments Estimation
@@ -181,7 +190,7 @@ Method of Moments Estimation
 **Correctness.** By @thm-21-consistency, the estimator is consistent under identification and finite moments. The two-step GMM procedure achieves efficiency: the first step provides a consistent (but possibly inefficient) estimate, and the second step uses the estimated optimal weighting $\mathbf{W} = \hat{\boldsymbol{\Sigma}}^{-1}$ to minimize asymptotic variance. The delta method standard errors (@eq-21-efficient-cov) provide valid confidence intervals asymptotically.
 :::
 
-## Numerical Considerations
+## Numerical Considerations {.unnumbered}
 
 **Condition number pruning.** When `weighted=True` and `nr_moments` is not specified, the function `_select_nr_moments` starts from a maximum number of moments and decreases until the moment covariance matrix has condition number below $10^3$. This prevents ill-conditioning from high-order moments that have extreme variance, which would make the Cholesky factorization unstable and the weighted residuals unreliable.
 
@@ -193,7 +202,7 @@ Method of Moments Estimation
 
 **Multivariate data.** The implementation accepts `SparseObservations` for multivariate data with potentially different numbers of observations per feature. The moment covariance is block-diagonal (features are independent), with each block estimated from the valid observations of that feature.
 
-## Implementation Notes
+## Implementation Notes {.unnumbered}
 
 **Source code mapping:**
 
@@ -213,7 +222,7 @@ Method of Moments Estimation
 - The `MoMResult` dataclass also stores `sample_moments`, `model_moments`, and `weighted` flag for diagnostic purposes, not shown in the pseudocode.
 - Fixed parameters are handled via `_reconstruct_theta`, which inserts fixed values into the full parameter vector at each residual evaluation. The solver only optimizes over free parameters.
 
-## Symbol Index
+## Symbol Index {.unnumbered}
 
 | Symbol | Name | First appearance |
 |--------|------|-----------------|

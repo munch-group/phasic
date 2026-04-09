@@ -2,7 +2,7 @@
 title: "SCC and Topological Sort"
 ---
 
-## Introduction
+## Introduction {.unnumbered}
 
 This file documents the two structural graph algorithms that precede every major computation in phasic: **strongly connected component (SCC) detection** and **topological sorting**. Together, these algorithms decompose a phase-type graph into a directed acyclic structure that determines the order in which vertices are processed during normalization ([05]), elimination ([06]), reward transformation ([07]), and moment computation ([15]).
 
@@ -16,12 +16,14 @@ Phasic implements Tarjan's algorithm (Tarjan, 1972) for SCC detection and Kahn's
 - `src/c/phasic.c` (functions: `strongconnect2`, `ptd_find_strongly_connected_components`, `ptd_find_strongly_connected_components_acyclic`, `ptd_directed_graph_topological_sort`, `ptd_scc_graph_topological_sort`, `ptd_graph_is_acyclic`, `ptd_isolate_starting_vertex_scc`)
 - `api/c/phasic.h` (structs: `ptd_scc_graph`, `ptd_scc_vertex`, `ptd_scc_edge`, `ptd_directed_graph`, `ptd_directed_vertex`, `ptd_directed_edge`)
 
-## Definitions
+## Definitions {.unnumbered}
 
-### Strongly connected components
+### Strongly connected components {.unnumbered}
 
 ::: {#def-04-scc}
-## Strongly connected component
+
+#### Strongly connected component
+
 *Let $G = (V, E, W)$ be a phase-type graph (@def-01-ph-graph). A strongly connected component (SCC) of $G$ is a maximal subset $C \subseteq V$ such that for every pair of vertices $u, v \in C$, there exists a directed path from $u$ to $v$ and a directed path from $v$ to $u$ in $G$. The set of all SCCs partitions $V$: every vertex belongs to exactly one SCC.*
 :::
 
@@ -29,10 +31,12 @@ Phasic implements Tarjan's algorithm (Tarjan, 1972) for SCC detection and Kahn's
 
 > **Example.** Consider a phase-type graph with vertices $\{v_0, v_1, v_2, v_3, v_a\}$ where $v_0$ is the starting vertex, $v_a$ is absorbing, and edges include $v_1 \to v_2$, $v_2 \to v_1$, $v_1 \to v_3$, $v_3 \to v_a$. The SCCs are $\{v_0\}$, $\{v_1, v_2\}$, $\{v_3\}$, and $\{v_a\}$. The set $\{v_1, v_2\}$ is strongly connected because $v_1$ can reach $v_2$ and $v_2$ can reach $v_1$. It is maximal because adding any other vertex would break the mutual reachability property.
 
-### Condensation DAG
+### Condensation DAG {.unnumbered}
 
 ::: {#def-04-condensation}
-## Condensation DAG
+
+#### Condensation DAG
+
 *Let $G = (V, E, W)$ be a phase-type graph with SCCs $C_1, \ldots, C_m$. The condensation of $G$ is the directed graph $G^{\text{SCC}} = (V^{\text{SCC}}, E^{\text{SCC}})$ where:*
 
 - *$V^{\text{SCC}} = \{C_1, \ldots, C_m\}$ (one meta-vertex per SCC);*
@@ -52,7 +56,9 @@ Phasic implements Tarjan's algorithm (Tarjan, 1972) for SCC detection and Kahn's
 > **Example.** For the graph in the example above, the condensation has four meta-vertices: $\{v_0\}$, $\{v_1, v_2\}$, $\{v_3\}$, $\{v_a\}$, with edges $\{v_0\} \to \{v_1, v_2\}$, $\{v_1, v_2\} \to \{v_3\}$, $\{v_3\} \to \{v_a\}$.
 
 ::: {#def-04-topological-ordering}
-## Topological ordering
+
+#### Topological ordering
+
 *Let $G^{\text{SCC}} = (V^{\text{SCC}}, E^{\text{SCC}})$ be the condensation DAG of a phase-type graph. A topological ordering of $G^{\text{SCC}}$ is a linear ordering $C_{\pi(1)}, C_{\pi(2)}, \ldots, C_{\pi(m)}$ of the meta-vertices such that for every edge $(C_{\pi(i)} \to C_{\pi(j)}) \in E^{\text{SCC}}$, we have $i < j$.*
 :::
 
@@ -61,7 +67,9 @@ Phasic implements Tarjan's algorithm (Tarjan, 1972) for SCC detection and Kahn's
 > **Example.** For the condensation above, one valid topological ordering is $\{v_a\}, \{v_3\}, \{v_1, v_2\}, \{v_0\}$. This is also the reverse of the reachability order from $v_0$: absorbing states are processed first, and the starting vertex last.
 
 ::: {#def-04-dfs-discovery}
-## DFS discovery time and low-link
+
+#### DFS discovery time and low-link
+
 *In a depth-first search (DFS) of graph $G = (V, E, W)$, define for each vertex $v \in V$:*
 
 - *The discovery index $\operatorname{idx}(v)$: the order in which $v$ is first visited, starting from 0;*
@@ -72,10 +80,12 @@ Phasic implements Tarjan's algorithm (Tarjan, 1972) for SCC detection and Kahn's
 
 > **Intuition.** The low-link value tracks the "earliest" vertex (by discovery time) that $v$ can reach by going forward in the DFS tree and then taking one back edge. If $\operatorname{low}(v) = \operatorname{idx}(v)$, then $v$ is the root of its SCC: no vertex in the subtree rooted at $v$ can reach back to a vertex discovered before $v$.
 
-## Theorems and Proofs
+## Theorems and Proofs {.unnumbered}
 
 ::: {#thm-04-tarjan}
-## Correctness of Tarjan's algorithm
+
+#### Correctness of Tarjan's algorithm
+
 *@alg-04-tarjan-scc correctly identifies all strongly connected components of a phase-type graph $G = (V, E, W)$ in $O(|V| + |E|)$ time.*
 :::
 
@@ -90,7 +100,9 @@ We prove correctness by establishing two properties: (1) every set of vertices p
 :::
 
 ::: {#thm-04-condensation-dag}
-## The condensation is a DAG
+
+#### The condensation is a DAG
+
 *Let $G^{\text{SCC}} = (V^{\text{SCC}}, E^{\text{SCC}})$ be the condensation of a phase-type graph $G$. Then $G^{\text{SCC}}$ is a directed acyclic graph.*
 :::
 
@@ -101,7 +113,9 @@ Composing these paths, we obtain a directed path from any vertex in $C_{i_1}$ to
 :::
 
 ::: {#thm-04-topological-sort}
-## Topological sort of a DAG
+
+#### Topological sort of a DAG
+
 *Let $G^{\text{SCC}} = (V^{\text{SCC}}, E^{\text{SCC}})$ be a DAG with $n$ meta-vertices and $m$ edges. A topological ordering of $G^{\text{SCC}}$ exists and can be computed by Kahn's algorithm in $O(n + m)$ time. Moreover, the algorithm detects if the input is not a DAG (i.e., contains a cycle) by checking whether all vertices were processed.*
 :::
 
@@ -117,10 +131,11 @@ If the graph contains a cycle, the vertices in the cycle never have their in-deg
 **Complexity.** Each meta-vertex is enqueued and dequeued at most once: $O(n)$. Each edge is examined exactly once when its source is dequeued: $O(m)$. The initial in-degree computation requires examining all edges: $O(m)$. Total: $O(n + m)$. $\square$
 :::
 
-## Algorithms
+## Algorithms {.unnumbered}
 
 ::: {#alg-04-tarjan-scc}
-## Tarjan's SCC Detection
+
+#### Tarjan's SCC Detection
 
 *Description.* Given a phase-type graph $G = (V, E, W)$, this algorithm computes the condensation $G^{\text{SCC}}$ by identifying all strongly connected components using Tarjan's depth-first search algorithm. For each vertex, it maintains a discovery index and a low-link value. Vertices are pushed onto a stack when discovered and popped when an SCC root is identified (i.e., when $\operatorname{low}(v) = \operatorname{idx}(v)$). After all SCCs are identified, the algorithm constructs the condensation edges by scanning each SCC's internal vertices for edges to vertices in other SCCs.
 
@@ -206,7 +221,8 @@ Tarjan's SCC Detection
 :::
 
 ::: {#alg-04-topological-sort}
-## Topological Sort of Condensation DAG
+
+#### Topological Sort of Condensation DAG
 
 *Description.* Given the condensation $G^{\text{SCC}}$ (which is a DAG by @thm-04-condensation-dag), this algorithm produces a topological ordering of the meta-vertices using Kahn's algorithm. It initializes an in-degree counter for each meta-vertex, enqueues all sources (in-degree 0), and repeatedly dequeues a meta-vertex, appends it to the output, and decrements the in-degree of its successors.
 
@@ -273,7 +289,7 @@ Topological Sort of Condensation DAG
 **Correctness.** Follows from @thm-04-topological-sort. The algorithm correctly produces a topological ordering when the input is a DAG, and returns null when the input contains a cycle (detected by $k < n$). The disconnected-source handling (lines 27--33) ensures that vertices with no incoming edges that are not reachable from the starting vertex are still processed; this is a one-time scan triggered only when the queue empties prematurely.
 :::
 
-## Implementation Notes
+## Implementation Notes {.unnumbered}
 
 **Source code mapping:**
 
@@ -304,7 +320,7 @@ Topological Sort of Condensation DAG
 
 **Remark** (SUSPECTED_CODE_ISSUE: SCC array over-allocation). The allocation `calloc(graph->vertices_length * 10, sizeof(size_t))` at line 2158 for `scc_indices` (and similarly for `low_links`, `scc_on_stack`, `visited`) allocates 10 times more memory than needed. The arrays are indexed by `vertex->index`, which ranges from 0 to `vertices_length - 1`. The factor of 10 wastes memory without correctness benefit, since the graph is not modified during SCC detection.
 
-## Symbol Index
+## Symbol Index {.unnumbered}
 
 | Symbol | Name | First appearance |
 |--------|------|-----------------|

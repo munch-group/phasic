@@ -6,7 +6,7 @@ title: "Index"
 **Date:** 2026-04-09
 **Status:** All 27 content files complete. Converted to Quarto book with native cross-references.
 
-## Reading Guide
+## Reading Guide {.unnumbered}
 
 This Supplementary Online Material (SOM) provides exhaustive mathematical and algorithmic documentation for every algorithm in the phasic library. Each file contains formal definitions, theorems with proofs, algorithm pseudocode with correspondence tables, complexity analysis, and correctness arguments.
 
@@ -16,7 +16,7 @@ This Supplementary Online Material (SOM) provides exhaustive mathematical and al
 
 **Relationship to other documentation:** The SOM formalizes and proves; it does not duplicate API documentation (`docs/pages/`), tutorials, or how-to guides. Implementation Notes sections bridge the SOM to the codebase.
 
-## Document dependency DAG
+## Document dependency DAG {.unnumbered}
 
 ```
 01 Preliminaries
@@ -48,7 +48,7 @@ This Supplementary Online Material (SOM) provides exhaustive mathematical and al
  └── 27 Van Loan Equivalence ← 06, 14, 15
 ```
 
-## Global Algorithm Registry
+## Global Algorithm Registry {.unnumbered}
 
 | Algorithm | Title | Source function(s) |
 |-----------|-------|--------------------|
@@ -93,7 +93,7 @@ This Supplementary Online Material (SOM) provides exhaustive mathematical and al
 | @alg-25-jax-pmf | JAX-Compatible PMF Computation | `compute_pmf_ffi` |
 | @alg-26-graph-builder-pmf | GraphBuilder PMF Computation | `GraphBuilder.compute_pmf` |
 
-## Global Definition Registry
+## Global Definition Registry {.unnumbered}
 
 Definitions are numbered NN.M (file number, sequential within file). This table is populated as batches complete.
 
@@ -101,83 +101,83 @@ Definitions are numbered NN.M (file number, sequential within file). This table 
 |------------|------|------|
 | — | *To be populated* | — |
 
-## Coverage Matrix
+## Coverage Matrix {.unnumbered}
 
 Every public function in the phasic codebase must appear in at least one SOM file's Implementation Notes section. This matrix is populated during the final homogeneity pass (Batch 15, check H2).
 
-### `src/c/phasic.c`
+### `src/c/phasic.c` {.unnumbered}
 
 | Function | SOM file(s) | Status |
 |----------|-------------|--------|
 | — | *To be populated* | — |
 
-### `src/c/phasic_symbolic.c`
+### `src/c/phasic_symbolic.c` {.unnumbered}
 
 | Function | SOM file(s) | Status |
 |----------|-------------|--------|
 | — | *To be populated* | — |
 
-### `src/c/phasic_hash.c`
+### `src/c/phasic_hash.c` {.unnumbered}
 
 | Function | SOM file(s) | Status |
 |----------|-------------|--------|
 | — | *To be populated* | — |
 
-### `src/phasic/trace_elimination.py`
+### `src/phasic/trace_elimination.py` {.unnumbered}
 
 | Function/Class | SOM file(s) | Status |
 |----------------|-------------|--------|
 | — | *To be populated* | — |
 
-### `src/phasic/svgd.py`
+### `src/phasic/svgd.py` {.unnumbered}
 
 | Function/Class | SOM file(s) | Status |
 |----------------|-------------|--------|
 | — | *To be populated* | — |
 
-### `src/phasic/mcmc.py`
+### `src/phasic/mcmc.py` {.unnumbered}
 
 | Function/Class | SOM file(s) | Status |
 |----------------|-------------|--------|
 | — | *To be populated* | — |
 
-### `src/phasic/bffg.py`
+### `src/phasic/bffg.py` {.unnumbered}
 
 | Function/Class | SOM file(s) | Status |
 |----------------|-------------|--------|
 | — | *To be populated* | — |
 
-### `src/phasic/method_of_moments.py`
+### `src/phasic/method_of_moments.py` {.unnumbered}
 
 | Function/Class | SOM file(s) | Status |
 |----------------|-------------|--------|
 | — | *To be populated* | — |
 
-### `src/phasic/probability_matching.py`
+### `src/phasic/probability_matching.py` {.unnumbered}
 
 | Function/Class | SOM file(s) | Status |
 |----------------|-------------|--------|
 | — | *To be populated* | — |
 
-### `src/phasic/state_indexing.py`
+### `src/phasic/state_indexing.py` {.unnumbered}
 
 | Function/Class | SOM file(s) | Status |
 |----------------|-------------|--------|
 | — | *To be populated* | — |
 
-### `src/phasic/hex_grid.py`
+### `src/phasic/hex_grid.py` {.unnumbered}
 
 | Function/Class | SOM file(s) | Status |
 |----------------|-------------|--------|
 | — | *To be populated* | — |
 
-### `src/cpp/parameterized/graph_builder.cpp`
+### `src/cpp/parameterized/graph_builder.cpp` {.unnumbered}
 
 | Function/Class | SOM file(s) | Status |
 |----------------|-------------|--------|
 | — | *To be populated* | — |
 
-## Revision History
+## Revision History {.unnumbered}
 
 | Version | Date | Changes |
 |---------|------|---------|

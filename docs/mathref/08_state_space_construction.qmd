@@ -2,7 +2,7 @@
 title: "State Space Construction"
 ---
 
-## Introduction
+## Introduction {.unnumbered}
 
 This file formalizes the iterative state space construction algorithm that builds a phase-type graph from a user-provided transition function. The construction corresponds to Algorithm 1 in Roikjer, Hobolth & Munch (2022) and is the primary entry point for model specification in phasic: the user defines a callback that, given a state, returns the set of transitions (next states and edge weights), and the algorithm explores the reachable state space by breadth-first search, deduplicating states via an AVL tree.
 
@@ -15,10 +15,12 @@ State space construction is the first stage of the phasic pipeline. The resultin
 - `src/phasic/__init__.py` (class: `Graph`, constructor with `callback` parameter)
 - `src/phasic/state_indexing.py` (class: `StateIndexer`, `Property` -- state encoding reference)
 
-## Definitions
+## Definitions {.unnumbered}
 
 ::: {#def-08-transition-function}
-## State transition function
+
+#### State transition function
+
 *Let $d \in \mathbb{N}$ be the state dimension and let $\Sigma = \mathbb{Z}^d$ be the state space. A state transition function is a mapping*
 
 $$\delta \colon \Sigma \to \mathcal{P}_{\mathrm{fin}}(\Sigma \times \mathbb{R}_{>0})$$
@@ -37,7 +39,9 @@ $$\delta_{\boldsymbol{\theta}} \colon \Sigma \to \mathcal{P}_{\mathrm{fin}}(\Sig
 > **Example.** For the Kingman coalescent with $n$ lineages, the state is a single integer $\sigma = (n)$, and $\delta((n)) = \{((n-1), \binom{n}{2})\}$ for $n \geq 2$, and $\delta((1)) = \emptyset$ (absorbing). The rate $\binom{n}{2}$ is the coalescent rate when $n$ lineages remain.
 
 ::: {#def-08-state-space-construction}
-## Iterative state space construction
+
+#### Iterative state space construction
+
 *Let $\delta$ be a state transition function (@def-08-transition-function), let $\sigma_0 \in \Sigma$ be an initial state, and let $\boldsymbol{\alpha}_0 = (\sigma_{0,1}, w_1), \ldots, (\sigma_{0,m}, w_m)$ be an initial probability vector specifying the starting distribution over initial states with $\sum_{i=1}^m w_i \leq 1$. The iterative state space construction produces a phase-type graph $G = (V, E, W)$ (@def-01-ph-graph) by:*
 
 1. *Creating a starting vertex $v_0$ with edges $w(v_0 \to v_{\sigma_{0,i}}) = w_i$ for each initial state $\sigma_{0,i}$.*
@@ -51,10 +55,12 @@ $$\delta_{\boldsymbol{\theta}} \colon \Sigma \to \mathcal{P}_{\mathrm{fin}}(\Sig
 
 > **Example.** For the coalescent with $n = 4$: the initial state is $(4)$. The BFS discovers $(3)$ from $(4)$, then $(2)$ from $(3)$, then $(1)$ from $(2)$. State $(1)$ is absorbing ($\delta((1)) = \emptyset$), so the construction terminates with $|V| = 5$ (one starting vertex plus four state vertices).
 
-## Theorems and Proofs
+## Theorems and Proofs {.unnumbered}
 
 ::: {#thm-08-termination-correctness}
-## Termination and correctness of state space construction
+
+#### Termination and correctness of state space construction
+
 *Let $\delta$ be a state transition function (@def-08-transition-function) such that the set of states reachable from the initial states $\{\sigma_{0,1}, \ldots, \sigma_{0,m}\}$ under repeated application of $\delta$ is finite with cardinality $n$. Then the iterative state space construction (@def-08-state-space-construction):*
 
 *(a) Terminates after at most $n$ dequeue operations.*
@@ -73,7 +79,9 @@ $$\delta_{\boldsymbol{\theta}} \colon \Sigma \to \mathcal{P}_{\mathrm{fin}}(\Sig
 :::
 
 ::: {#lem-08-avl-dedup-complexity}
-## AVL tree deduplication complexity
+
+#### AVL tree deduplication complexity
+
 *The state space construction performs $O(n)$ AVL tree operations (find-or-insert), each costing $O(d \log n)$ where $d$ is the state dimension (for lexicographic key comparison). The total deduplication cost is $O(n \cdot d \cdot \log n)$.*
 :::
 
@@ -81,10 +89,11 @@ $$\delta_{\boldsymbol{\theta}} \colon \Sigma \to \mathcal{P}_{\mathrm{fin}}(\Sig
 Each of the $n$ reachable states triggers exactly one find-or-insert operation (when first encountered) and at most $|\delta(\sigma)|$ find operations (when checking successors). By @thm-02-avl-ops, each AVL find-or-insert operation costs $O(d \log n)$ where the $d$ factor accounts for the lexicographic comparison of $d$-dimensional integer keys. The total number of find operations is bounded by $|E|$, the number of edges. $\square$
 :::
 
-## Algorithms
+## Algorithms {.unnumbered}
 
 ::: {#alg-08-generate-state-space}
-## GenerateStateSpace
+
+#### GenerateStateSpace
 
 *Description.* This algorithm implements the iterative state space construction (@def-08-state-space-construction). It performs a breadth-first traversal of the state space, using an AVL tree for $O(\log n)$ state deduplication. The algorithm corresponds to Algorithm 1 in Roikjer, Hobolth & Munch (2022).
 
@@ -145,7 +154,7 @@ GenerateStateSpace
 **Correctness.** Follows from @thm-08-termination-correctness. The BFS ensures all reachable states are visited, the AVL tree ensures each state is represented by exactly one vertex, and the resulting graph satisfies the phase-type graph structure (@def-01-ph-graph).
 :::
 
-## Implementation Notes
+## Implementation Notes {.unnumbered}
 
 **Source code mapping:**
 
@@ -164,7 +173,7 @@ GenerateStateSpace
 
 - **Parameterized edges.** When `parameterized=True`, the callback returns coefficient vectors $\mathbf{c}$ instead of scalar weights $w$. The `ptd_graph_add_edge` function stores the coefficient array on the edge, and the edge mode is locked to `PTD_EDGE_MODE_PARAMETERIZED` after the first non-IPV edge is added.
 
-## Symbol Index
+## Symbol Index {.unnumbered}
 
 | Symbol | Name | First appearance |
 |--------|------|-----------------|

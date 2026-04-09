@@ -2,7 +2,7 @@
 title: "Graph Elimination"
 ---
 
-## Introduction
+## Introduction {.unnumbered}
 
 This file formalizes the central algorithm of phasic: Gaussian elimination on a phase-type graph (Algorithm 3 in Roikjer, Hobolth & Munch 2022, Section 2.6). Graph elimination converts a (possibly cyclic) normalized phase-type graph into an acyclic representation by systematically removing vertices and adding bypass edges. The resulting acyclic graph, together with a cached sequence of arithmetic commands, enables efficient computation of moments of any order.
 
@@ -16,10 +16,12 @@ The algorithm operates on normalized graphs (@def-05-continuous-normalization) a
 - `src/c/phasic.c` (functions: `ptd_graph_ex_absorbation_time_comp_graph`, `ptd_expected_waiting_time`, `ptd_precompute_reward_compute_graph`)
 - `api/c/phasic.h` (structs: `ptd_desc_reward_compute`, `ptd_reward_increase`)
 
-## Definitions
+## Definitions {.unnumbered}
 
 ::: {#def-06-vertex-elimination}
-## Vertex elimination
+
+#### Vertex elimination
+
 *Let $G = (V, E, W')$ be a normalized phase-type graph (@def-05-continuous-normalization) with vertex scalars $\mathbf{x}$. The elimination of a transient vertex $v \in V$ (where $v \neq v_0$ and $v$ is not absorbing) produces a modified graph $G^{(-v)}$ by the following operations:*
 
 1. *For each parent $u \in \operatorname{parents}(v)$ with $u \neq v$ and each child $z \in \operatorname{children}(v)$ with $z \neq v$:*
@@ -36,7 +38,9 @@ The algorithm operates on normalized graphs (@def-05-continuous-normalization) a
 > **Example.** Consider three transient vertices $v_1, v_2, v_3$ and an absorbing vertex $v_a$ with normalized edges: $w'(v_1 \to v_2) = 0.6$, $w'(v_1 \to v_a) = 0.4$, $w'(v_2 \to v_3) = 0.7$, $w'(v_2 \to v_a) = 0.3$. Eliminating $v_2$: the bypass from $v_1$ to $v_3$ has weight $0.6 \times 0.7 = 0.42$, and the bypass from $v_1$ to $v_a$ adds $0.6 \times 0.3 = 0.18$ to the existing $0.4$, giving $0.58$. After renormalization (sum $= 0.42 + 0.58 = 1.0$), the weights remain unchanged.
 
 ::: {#def-06-self-loop-resolution}
-## Self-loop resolution
+
+#### Self-loop resolution
+
 *During elimination of vertex $v$, if a parent $u$ has a bypass edge to itself (i.e., $v$ has an edge to $u$ and $u$ has an edge to $v$), a self-loop with effective probability $p = w'(u \to v) \cdot w'(v \to u)$ is created. Self-loop resolution removes this self-loop by applying the geometric series factor:*
 
 $$x_u \leftarrow x_u \cdot \frac{1}{1 - p}.$$ {#eq-06-self-loop}
@@ -47,14 +51,18 @@ $$x_u \leftarrow x_u \cdot \frac{1}{1 - p}.$$ {#eq-06-self-loop}
 > **Example.** Suppose $u$ has vertex scalar $x_u = 0.5$ and the elimination of $v$ creates a self-loop at $u$ with probability $p = 0.3$. After resolution: $x_u \leftarrow 0.5 \cdot 1/(1 - 0.3) = 0.5/0.7 \approx 0.714$. The chain now visits $u$ an expected $1/0.7 \approx 1.43$ times per sojourn, each lasting $0.5$ time units, for a total of $0.714$.
 
 ::: {#def-06-acyclic-graph}
-## Acyclic graph representation
+
+#### Acyclic graph representation
+
 *A phase-type graph $G = (V, E, W')$ is acyclic if the subgraph induced by the transient vertices (excluding the starting and absorbing vertices) contains no directed cycles. The elimination algorithm (@alg-06-full-elimination) transforms any normalized phase-type graph into an acyclic graph representation by eliminating all transient vertices that participate in cycles, recording the bypass operations as commands.*
 :::
 
 > **Intuition.** An acyclic graph enables recursive (bottom-up) computation of moments: since there are no cycles, each vertex's contribution can be computed exactly once in reverse topological order. The cyclic information is not lost; it is encoded in the vertex scalars via self-loop resolution factors.
 
 ::: {#def-06-elimination-invariants}
-## Elimination invariants
+
+#### Elimination invariants
+
 *The graph elimination algorithm maintains three invariants at each step:*
 
 1. *Absorption probabilities: for each remaining vertex $u$ and each absorbing vertex $v_a$, the probability of eventually reaching $v_a$ from $u$ in the modified graph equals the probability in the original graph.*
@@ -67,7 +75,9 @@ $$x_u \leftarrow x_u \cdot \frac{1}{1 - p}.$$ {#eq-06-self-loop}
 > **Intuition.** Invariant 1 ensures that the structure of absorption is preserved. Invariant 2 ensures that moments can be correctly computed from the modified graph. Invariant 3 ensures that the graph remains a valid representation of a normalized Markov chain at every intermediate step. Together, these invariants guarantee that the final acyclic graph encodes the same phase-type distribution as the original.
 
 ::: {#def-06-elimination-ordering}
-## Elimination ordering
+
+#### Elimination ordering
+
 *The elimination ordering is a permutation of the transient vertices $v_1, \ldots, v_p$ that determines the sequence in which vertices are eliminated. In phasic, this ordering is determined by:*
 
 1. *Compute the strongly connected components (SCC) of the graph (@alg-04-tarjan-scc).*
@@ -81,7 +91,9 @@ $$x_u \leftarrow x_u \cdot \frac{1}{1 - p}.$$ {#eq-06-self-loop}
 > **Intuition.** The SCC-based ordering ensures that vertices within cycles are processed together, while the topological ordering of SCCs ensures that inter-component dependencies are handled correctly. Within an SCC, the elimination order does not affect correctness (@thm-06-acyclic-absorption below) but may affect numerical stability. The condition that only parents with higher indices are considered during bypass ensures that already-eliminated vertices are not revisited.
 
 ::: {#def-06-reward-compute-graph}
-## Reward compute graph
+
+#### Reward compute graph
+
 *The reward compute graph is a cached sequence of $N$ commands $C = (c_0, c_1, \ldots, c_{N-1})$, where each command $c_j$ is a triple $(\text{from}, \text{to}, \text{multiplier})$ representing the operation:*
 
 $$\text{result}[\text{from}] \leftarrow \text{result}[\text{from}] + \text{result}[\text{to}] \times \text{multiplier}.$$ {#eq-06-command}
@@ -98,10 +110,12 @@ $$\text{result}[\text{from}] \leftarrow \text{result}[\text{from}] + \text{resul
 
 > **Example.** For a graph with vertices $\{v_0, v_1, v_2, v_a\}$ where $v_0$ is starting and $v_a$ is absorbing, the command sequence might be: (i) initialize $\text{result}[0] = 0$, $\text{result}[1] = x_{v_1}$, $\text{result}[2] = x_{v_2}$, $\text{result}[3] = 0$; (ii) elimination of $v_1$: $\text{result}[2] \mathrel{+}= \text{result}[1] \times w'(v_2 \to v_1)$; (iii) reverse accumulation: $\text{result}[0] \mathrel{+}= \text{result}[2] \times w'(v_0 \to v_2)$, etc.
 
-## Theorems and Proofs
+## Theorems and Proofs {.unnumbered}
 
 ::: {#thm-06-elimination-preserves-reward}
-## Vertex elimination preserves expected accumulated reward
+
+#### Vertex elimination preserves expected accumulated reward
+
 *Let $G$ be a normalized phase-type graph with vertex scalars $\mathbf{x}$, and let $G^{(-v)}$ be the graph after eliminating transient vertex $v$ (@def-06-vertex-elimination). For every remaining vertex $u$, the expected accumulated reward until absorption starting from $u$ is the same in $G$ and $G^{(-v)}$.*
 :::
 
@@ -138,7 +152,9 @@ where the factor $1/(1-p)$ accounts for the expected $1/(1-p)$ visits to $u$ bef
 :::
 
 ::: {#thm-06-self-loop-preserves-reward}
-## Self-loop resolution preserves expected accumulated reward
+
+#### Self-loop resolution preserves expected accumulated reward
+
 *Let $u$ be a vertex with self-loop probability $p$ (arising from the elimination of some vertex $v$). After self-loop resolution --- removing the self-loop and scaling $x_u \leftarrow x_u / (1 - p)$ --- the expected accumulated reward starting from $u$ is unchanged.*
 :::
 
@@ -157,7 +173,9 @@ $$\mathbb{E}_u[\tilde{\tau}]^{\text{resolved}} = \frac{x_u}{1 - p} + \sum_{z \ne
 :::
 
 ::: {#thm-06-acyclic-absorption}
-## Elimination produces an acyclic graph with correct absorption probabilities
+
+#### Elimination produces an acyclic graph with correct absorption probabilities
+
 *Let $G$ be a normalized phase-type graph. After eliminating all transient vertices (in any valid elimination ordering from @def-06-elimination-ordering), the resulting graph $G^*$ is acyclic: it contains only the starting vertex $v_0$ and absorbing vertices, connected by direct edges. The absorption probabilities from $v_0$ to each absorbing vertex are the same as in the original graph $G$.*
 :::
 
@@ -168,7 +186,9 @@ $$\mathbb{E}_u[\tilde{\tau}]^{\text{resolved}} = \frac{x_u}{1 - p} + \sum_{z \ne
 :::
 
 ::: {#thm-06-elimination-complexity}
-## Elimination complexity
+
+#### Elimination complexity
+
 *For a phase-type graph with $|V|$ vertices and $|E|$ edges:*
 
 1. *The one-time elimination cost (@alg-06-full-elimination) is $O(|V|^3)$ time and $O(|V|^2)$ space.*
@@ -181,10 +201,11 @@ $$\mathbb{E}_u[\tilde{\tau}]^{\text{resolved}} = \frac{x_u}{1 - p} + \sum_{z \ne
 **(2)** The command sequence has $|V|$ initialization commands plus at most $O(|V|^2)$ elimination and accumulation commands (bounded by the number of edges in the fully eliminated graph). Each command is a single multiply-accumulate operation on the result array of size $|V|$, giving $O(N) \leq O(|V|^2)$ time and $O(|V|)$ space. $\square$
 :::
 
-## Algorithms
+## Algorithms {.unnumbered}
 
 ::: {#alg-06-vertex-elimination}
-## Vertex Elimination (Single Vertex)
+
+#### Vertex Elimination (Single Vertex)
 
 *Description.* This algorithm eliminates a single transient vertex $v_i$ from a normalized phase-type graph. For each parent of $v_i$ (that has not already been eliminated), it creates bypass edges to all of $v_i$'s children, handles self-loops via geometric series resolution, and renormalizes the parent's outgoing edges. It records each operation as a command in the reward compute sequence.
 
@@ -247,7 +268,8 @@ Vertex Elimination
 :::
 
 ::: {#alg-06-full-elimination}
-## Full Graph Elimination
+
+#### Full Graph Elimination
 
 *Description.* This algorithm converts a (possibly cyclic) normalized phase-type graph into an acyclic representation by eliminating all transient vertices. It first determines the elimination order using SCC decomposition and topological sort, then eliminates vertices one by one using @alg-06-vertex-elimination, and finally records reverse-order edge accumulation commands for the remaining acyclic graph. The output is the reward compute graph (@def-06-reward-compute-graph).
 
@@ -310,7 +332,8 @@ Full Graph Elimination
 :::
 
 ::: {#alg-06-moment-commands}
-## Moment Computation via Elimination Commands
+
+#### Moment Computation via Elimination Commands
 
 *Description.* Given a reward compute graph (the cached command sequence from @alg-06-full-elimination) and a reward vector, this algorithm computes the expected accumulated reward at each vertex by replaying the commands. The expected absorption time is recovered as $\text{result}[v_0]$ (the starting vertex entry). By replacing the reward vector with reward-transformed values, higher moments and reward-transformed moments can be computed using the same command sequence.
 
@@ -362,7 +385,7 @@ Moment Computation via Elimination Commands
 **Correctness.** The command sequence is generated by @alg-06-full-elimination to encode the complete elimination process: initialization (vertex scalars), bypass operations (@thm-06-elimination-preserves-reward), self-loop resolutions (@thm-06-self-loop-preserves-reward), and reverse-order edge accumulation. Replaying the commands with a reward vector $\mathbf{r}$ computes the first-step expansion (@eq-06-first-step) for each vertex, with $x_v$ replaced by $r_v \cdot x_v$ (the reward-weighted vertex scalar). The result at the starting vertex $v_0$ gives $\mathbb{E}[\tilde{\tau}] = \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{r}) \mathbf{e}$, the expected accumulated reward (@def-01-reward-cph).
 :::
 
-## Numerical Considerations
+## Numerical Considerations {.unnumbered}
 
 **Condition number monitoring.** The implementation monitors the condition number of the elimination by tracking the ratio of the largest to smallest multiplier magnitudes across all commands. When this ratio exceeds a configurable threshold (default $10^{12}$, controlled by the `PHASIC_CONDITION_THRESHOLD` environment variable), the system automatically activates MPFR arbitrary-precision arithmetic if available. The MPFR precision is computed as $\lceil \log_2(\text{condition number}) \rceil + 64$ bits, clamped to the range $[128, 1024]$.
 
@@ -374,7 +397,7 @@ Moment Computation via Elimination Commands
 
 **Sorted edge merge.** The implementation sorts each vertex's edge list by pointer address and uses a merge-based algorithm (analogous to merge sort's merge step) to combine the edge lists of the eliminated vertex and each parent. This ensures that existing edges to the same target are correctly identified and updated rather than duplicated, and new bypass edges are inserted in sorted order. The use of sentinel values (dummy minimum and maximum pointers) simplifies boundary handling.
 
-## Implementation Notes
+## Implementation Notes {.unnumbered}
 
 **Source code mapping:**
 
@@ -399,7 +422,7 @@ Moment Computation via Elimination Commands
 
 - **@alg-06-moment-commands (MPFR fallback):** When the condition number exceeds the threshold, `ptd_expected_waiting_time` delegates to `ptd_expected_waiting_time_mpfr`, which replays the same command sequence using MPFR arbitrary-precision arithmetic. The MPFR command sequence stores multipliers as string representations in scientific notation to preserve full precision.
 
-## Symbol Index
+## Symbol Index {.unnumbered}
 
 | Symbol | Name | First appearance |
 |--------|------|-----------------|

@@ -2,7 +2,7 @@
 title: "JAX Integration"
 ---
 
-## Introduction
+## Introduction {.unnumbered}
 
 This file formalizes the integration of phasic's C++ graph algorithms with the JAX automatic differentiation framework. The core challenge is that phasic's distribution computations (PDF, PMF, moments) are implemented in C++ for performance, but JAX requires all operations in a computation graph to be JAX-traceable for transformations such as `jit` (compilation), `grad` (differentiation), `vmap` (batching), and `pmap` (parallelization). The solution uses two complementary mechanisms:
 
@@ -19,7 +19,7 @@ These mechanisms allow phasic models to participate in JAX-based inference workf
 - `src/phasic/ffi_wrappers.py` (functions: `compute_pmf_ffi`, `compute_moments_ffi`, `compute_pmf_and_moments_ffi`, `_register_ffi_targets`)
 - `src/phasic/__init__.py` (functions: `pmf_from_graph`, `pmf_and_moments_from_graph`, custom VJP definitions)
 
-## Definitions
+## Definitions {.unnumbered}
 
 > **Recall** (@def-11-elimination-trace). *A trace $\mathcal{T}$ is a sequence of linear operations recorded during graph elimination, enabling fast re-evaluation with different parameter vectors.*
 
@@ -28,7 +28,9 @@ These mechanisms allow phasic models to participate in JAX-based inference workf
 > **Recall** (@def-09-expression-tree). *A symbolic expression represents an edge weight as a function of the parameter vector $\boldsymbol{\theta}$ with stored coefficients.*
 
 ::: {#def-25-pure-callback .definition}
-## JAX Pure Callback
+
+#### JAX Pure Callback
+
 *Let $h : \mathbb{R}^d \times \mathbb{R}^n \to \mathbb{R}^n$ be a function implemented in C++ that computes the PDF or PMF of a phase-type distribution:*
 
 $$h(\boldsymbol{\theta}, \mathbf{t}) = (f(t_1; \boldsymbol{\theta}), f(t_2; \boldsymbol{\theta}), \ldots, f(t_n; \boldsymbol{\theta})),$$ {#eq-25-pdf-function}
@@ -47,7 +49,9 @@ $$h(\boldsymbol{\theta}, \mathbf{t}) = (f(t_1; \boldsymbol{\theta}), f(t_2; \bol
 > **Example.** The function `compute_pmf_ffi` wraps the C++ `GraphBuilder::compute_pmf` method. Given a serialized graph structure $J$ (a JSON string), it computes $h(\boldsymbol{\theta}, \mathbf{t})$ by: (i) constructing a `GraphBuilder` from $J$, (ii) calling `build(theta)` to instantiate a concrete graph, and (iii) evaluating the forward algorithm (@alg-14-cph-uniformization) at each time point.
 
 ::: {#def-25-custom-vjp .definition}
-## Custom VJP for Phase-Type PDF
+
+#### Custom VJP for Phase-Type PDF
+
 *Let $h(\boldsymbol{\theta}, \mathbf{t})$ be as in @def-25-pure-callback. A custom VJP for $h$ consists of two functions:*
 
 1. *The forward function $h_{\mathrm{fwd}} : (\boldsymbol{\theta}, \mathbf{t}) \mapsto (h(\boldsymbol{\theta}, \mathbf{t}), (\boldsymbol{\theta}, \mathbf{t}))$, which computes the output and saves residuals (the inputs) for use in the backward pass.*
@@ -68,7 +72,9 @@ $$\frac{\partial f(t_i; \boldsymbol{\theta})}{\partial \theta_j} \approx \frac{h
 > **Example.** For SVGD with a two-parameter coalescent model ($d = 2$), the backward pass evaluates the C++ forward algorithm 4 times (two perturbations per parameter). With a 67-vertex graph and 100 time points, this takes approximately 20 ms, well within SVGD iteration budgets.
 
 ::: {#def-25-static-dynamic .definition}
-## Static vs. Dynamic Arguments
+
+#### Static vs. Dynamic Arguments
+
 *In the JAX FFI interface for phase-type computation, arguments are classified as:*
 
 - *Static arguments: the graph structure JSON string $J$, the `discrete` flag, the `granularity` parameter, and `nr_moments`. These are passed as XLA attributes and are fixed at JIT compilation time. Changing a static argument triggers recompilation.*
@@ -86,10 +92,12 @@ $$\texttt{ffi\_call}(J, \texttt{granularity}, \texttt{discrete}; \boldsymbol{\th
 
 > **Example.** In `jax.jit(compute_pmf_ffi, static_argnums=(0, 3, 4))`, argument 0 (`structure_json`), 3 (`discrete`), and 4 (`granularity`) are static. The JIT-compiled function accepts different $\boldsymbol{\theta}$ and $\mathbf{t}$ values without recompilation.
 
-## Theorems and Proofs
+## Theorems and Proofs {.unnumbered}
 
 ::: {#thm-25-callback-semantics .theorem}
-## Pure Callback Preserves Semantics
+
+#### Pure Callback Preserves Semantics
+
 *Let $G = (V, E, W)$ be a parameterized phase-type graph with serialized structure $J = \operatorname{serialize}(G)$. Let $h_{\mathrm{C++}}(\boldsymbol{\theta}, \mathbf{t})$ denote the C++ implementation of PDF computation via the forward algorithm (@alg-14-cph-uniformization), and let $\tilde{h}(\boldsymbol{\theta}, \mathbf{t})$ denote the JAX pure callback wrapper (@def-25-pure-callback). Then*
 
 $$\tilde{h}(\boldsymbol{\theta}, \mathbf{t}) = h_{\mathrm{C++}}(\boldsymbol{\theta}, \mathbf{t})$$ {#eq-25-semantic-equiv}
@@ -104,7 +112,9 @@ For the FFI path (as opposed to `pure_callback`), the argument is analogous: the
 :::
 
 ::: {#thm-25-vjp-accuracy .theorem}
-## Custom VJP Computes Correct Gradients
+
+#### Custom VJP Computes Correct Gradients
+
 *Let $h(\boldsymbol{\theta}, \mathbf{t})$ be the phase-type PDF function (@def-25-pure-callback), and let $h_{\mathrm{bwd}}$ be the backward function (@def-25-custom-vjp) using central finite differences with step size $\epsilon$. Then for each $j = 1, \ldots, d$:*
 
 $$\left| \bar{\theta}_j - \bar{\mathbf{y}}^\top \frac{\partial h}{\partial \theta_j}(\boldsymbol{\theta}, \mathbf{t}) \right| \leq \frac{\epsilon^2}{6} \sum_{i=1}^{n} |\bar{y}_i| \cdot \max_{\xi \in [\theta_j - \epsilon, \theta_j + \epsilon]} \left| \frac{\partial^3 f(t_i; \boldsymbol{\theta})}{\partial \theta_j^3} \right| + O(\epsilon_{\mathrm{mach}} / \epsilon),$$ {#eq-25-vjp-error}
@@ -124,10 +134,11 @@ The cancellation error arises from subtracting two nearly equal floating-point n
 The VJP $\bar{\theta}_j = \sum_i \bar{y}_i \cdot \widehat{\partial f / \partial \theta_j}$ accumulates these per-component errors with weights $\bar{y}_i$. The bound (@eq-25-vjp-error) follows by the triangle inequality. For phase-type PDFs with bounded third derivatives (which holds for all finite-state models with bounded rates), the $O(\epsilon^2)$ truncation term dominates for $\epsilon = 10^{-7}$, giving total error $O(10^{-9})$ per gradient component. $\square$
 :::
 
-## Algorithms
+## Algorithms {.unnumbered}
 
 ::: {#alg-25-jax-pmf}
-## JAX-Compatible PMF Computation
+
+#### JAX-Compatible PMF Computation
 
 *Description.* This algorithm describes the end-to-end computation of phase-type PDF/PMF values through the JAX FFI interface. It separates the one-time setup (FFI registration, JSON parsing) from the per-call computation (graph construction, forward algorithm). The algorithm supports three JAX transformations: `jit` (static arguments trigger recompilation), `vmap` (batch dimension added to dynamic arguments, processed in parallel via OpenMP), and `grad` (custom VJP invoked for backward pass).
 
@@ -221,7 +232,7 @@ JAX-Compatible PMF Computation
 **Correctness.** The forward pass computes the exact phase-type PDF/PMF by @thm-25-callback-semantics (semantic preservation). The backward pass computes gradients correct to $O(10^{-9})$ by @thm-25-vjp-accuracy (finite difference accuracy). The `vmap` transformation adds a batch dimension processed by the FFI handler's OpenMP loop, producing identical results to sequential evaluation (floating-point associativity may cause $O(\epsilon_{\mathrm{mach}})$ differences).
 :::
 
-## Numerical Considerations
+## Numerical Considerations {.unnumbered}
 
 **Finite difference step size.** The step size $\epsilon = 10^{-7}$ is chosen to balance truncation error ($O(\epsilon^2) \approx 10^{-14}$) against cancellation error ($O(\epsilon_{\mathrm{mach}} / \epsilon) \approx 10^{-9}$). For parameters $\theta_j$ of very different magnitudes, relative step sizes $\epsilon_j = \epsilon \cdot |\theta_j|$ would be more appropriate, but the current implementation uses a fixed absolute step size. This is adequate for phasic's typical use cases where parameters are $O(1)$.
 
@@ -229,7 +240,7 @@ JAX-Compatible PMF Computation
 
 **GIL management.** The C++ FFI handler releases the Python GIL during computation, enabling true multi-threaded parallelism when `vmap` dispatches multiple parameter vectors to OpenMP threads. This is critical for SVGD, where 100+ particles are evaluated per iteration.
 
-## Implementation Notes
+## Implementation Notes {.unnumbered}
 
 **Source code mapping:**
 
@@ -246,7 +257,7 @@ JAX-Compatible PMF Computation
 - The VJP backward pass in the pseudocode uses a loop over parameters; the implementation accumulates gradients into a list and converts to a JAX array at the end.
 - The implementation supports both `pmf_from_graph` (which uses `pure_callback` with VJP) and `compute_pmf_ffi` (which uses direct FFI). The custom VJP is defined on the `pmf_from_graph` path; the FFI path currently relies on JAX's numerical differentiation or external gradient computation.
 
-## Symbol Index
+## Symbol Index {.unnumbered}
 
 | Symbol | Name | First appearance |
 |--------|------|-----------------|

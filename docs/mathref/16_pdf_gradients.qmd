@@ -2,7 +2,7 @@
 title: "PDF Gradients"
 ---
 
-## Introduction
+## Introduction {.unnumbered}
 
 This file formalizes the computation of gradients of phase-type distribution PDFs with respect to model parameters. Given a parameterized phase-type graph (@def-01-ph-graph) with parameter vector $\boldsymbol{\theta}$, the gradient $\nabla_{\boldsymbol{\theta}} f(t; \boldsymbol{\theta})$ is needed for gradient-based inference methods such as Stein Variational Gradient Descent (SVGD) and Hamiltonian Monte Carlo (HMC).
 
@@ -15,7 +15,7 @@ This approach achieves machine-precision gradients (error $\leq 2.05 \times 10^{
 **Source files:**
 - `src/c/phasic.c` (functions: `compute_pmf_with_gradient`, `ptd_graph_pdf_with_gradient`)
 
-## Definitions
+## Definitions {.unnumbered}
 
 > **Recall** (@def-14-uniformization). *Uniformization of a CPH graph with granularity $g$ produces the sub-transition matrix $\mathbf{T}_g = \mathbf{I} + \frac{1}{g}\mathbf{S}$, and the PDF is recovered as $f(t) = g \sum_{k=0}^{\infty} p_k^{(g)} \cdot \Pr(N = k)$ where $N \sim \operatorname{Poisson}(gt)$.*
 
@@ -24,7 +24,9 @@ This approach achieves machine-precision gradients (error $\leq 2.05 \times 10^{
 > **Recall** (@def-09-expression-evaluation). *A parameterized edge $(v \to z)$ carries a coefficient vector $\mathbf{c}$ and computes its weight as $w(v \to z; \boldsymbol{\theta}) = \sum_j c_j \theta_j$ (linear mode).*
 
 ::: {#def-16-pdf-gradient}
-## PDF gradient via uniformization
+
+#### PDF gradient via uniformization
+
 *Let $G = (V, E, W)$ be a parameterized phase-type graph representing $\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S}(\boldsymbol{\theta}))$ where $\boldsymbol{\theta} = (\theta_1, \ldots, \theta_d)$ is the parameter vector. The uniformization rate is*
 
 $$\lambda(\boldsymbol{\theta}) = \max_{v \in V} \lambda_v(\boldsymbol{\theta}), \quad \text{where } \lambda_v(\boldsymbol{\theta}) = \sum_{z \in \operatorname{children}(v)} w(v \to z; \boldsymbol{\theta}).$$ {#eq-16-uniformization-rate}
@@ -39,7 +41,9 @@ $$\frac{\partial f}{\partial \theta_j}(t; \boldsymbol{\theta}) = \frac{\partial}
 > **Intuition.** The PDF is a product $f = \lambda \cdot \text{PMF}_{\text{Poisson-weighted}}$. Differentiating requires the chain rule applied to three dependencies on $\boldsymbol{\theta}$: (i) the transition probabilities in the uniformized chain affect $a_k$, (ii) the uniformization rate $\lambda$ affects the Poisson weights, and (iii) $\lambda$ appears as a direct multiplicative factor. These three contributions are combined in the final gradient formula.
 
 ::: {#def-16-parameterized-forward-step}
-## Parameterized forward step with gradient tracking
+
+#### Parameterized forward step with gradient tracking
+
 *Let $\mathbf{p}^{(k)}$ be the forward probability vector and let $\frac{\partial \mathbf{p}^{(k)}}{\partial \theta_j}$ be the gradient of each entry with respect to $\theta_j$. The parameterized forward step produces $\mathbf{p}^{(k+1)}$ and $\frac{\partial \mathbf{p}^{(k+1)}}{\partial \theta_j}$ by:*
 
 *For each vertex $v$ and each outgoing edge $(v \to z)$ with parameterized weight $w(v \to z; \boldsymbol{\theta})$, the transition probability in the uniformized chain is $p_{vz} = w(v \to z; \boldsymbol{\theta}) / \lambda(\boldsymbol{\theta})$. The probability transfer and its gradient are:*
@@ -61,10 +65,12 @@ $$\frac{\partial p^{(k+1)}_v}{\partial \theta_j} \mathrel{+}= \frac{\partial p^{
 
 > **Example.** Consider a single parameterized edge $(v_1 \to v_a)$ with weight $w = c \cdot \theta$ and $\lambda = c \cdot \theta$. At step $k = 0$ (after initialization), $\pi^{(1)}_{v_1} = \alpha_1$ and $\frac{\partial \pi^{(1)}_{v_1}}{\partial \theta} = 0$ (the initial distribution does not depend on $\theta$). After one forward step: $\pi^{(2)}_{v_a} \mathrel{+}= \alpha_1 \cdot \frac{c\theta}{\lambda} = \alpha_1$ (absorption is certain), and $\frac{\partial \pi^{(2)}_{v_a}}{\partial \theta} \mathrel{+}= 0 + \alpha_1 \cdot \frac{c}{\lambda} = \alpha_1 \cdot \frac{c}{c\theta} = \frac{\alpha_1}{\theta}$.
 
-## Theorems and Proofs
+## Theorems and Proofs {.unnumbered}
 
 ::: {#thm-16-gradient-correctness}
-## Gradient formula correctness
+
+#### Gradient formula correctness
+
 *Let $G$ be a parameterized phase-type graph with parameter vector $\boldsymbol{\theta}$, uniformization rate $\lambda = \lambda(\boldsymbol{\theta})$, and let $a_k(\boldsymbol{\theta})$ be the absorption probability at discrete step $k$. The PDF gradient is:*
 
 $$\frac{\partial f}{\partial \theta_j} = \frac{\partial \text{PMF}}{\partial \theta_j} \cdot \lambda - \text{PMF} \cdot \frac{\partial \lambda}{\partial \theta_j},$$ {#eq-16-pdf-grad-formula}
@@ -98,10 +104,11 @@ Since $\sum_k a_k \operatorname{Po}(k; \lambda t)(k - \lambda t)$ represents the
 The implementation computes $\frac{\partial \text{PMF}}{\partial \theta_j}$ via accumulation during the forward iteration (combining both terms of @eq-16-pmf-gradient step by step using Kahan summation), and then converts to the PDF gradient via @eq-16-pdf-grad-formula. The empirically determined sign in the implementation is $\frac{\partial f}{\partial \theta_j} = \frac{\partial \text{PMF}}{\partial \theta_j} \cdot \lambda - \text{PMF} \cdot \frac{\partial \lambda}{\partial \theta_j}$, where the minus sign accounts for the double-counting of $\lambda$-dependence: the PMF gradient already incorporates the Poisson weight gradient (second term in @eq-16-pmf-gradient), so naively adding $\frac{\partial \lambda}{\partial \theta_j} \cdot \text{PMF}$ from the product rule would double-count this contribution. The minus sign corrects for this. $\square$
 :::
 
-## Algorithms
+## Algorithms {.unnumbered}
 
 ::: {#alg-16-pdf-gradient}
-## PDF + Gradient Computation
+
+#### PDF + Gradient Computation
 
 *Description.* This algorithm computes both the PDF value and its gradient with respect to parameters at a given time point. It extends @alg-14-cph-uniformization by maintaining gradient arrays alongside probability arrays. The algorithm proceeds in four phases: (1) compute the uniformization rate $\lambda$ and its gradient $\nabla_{\boldsymbol{\theta}} \lambda$, (2) precompute Poisson probabilities, (3) iterate forward steps with gradient tracking, accumulating PMF and gradient contributions with Kahan summation, and (4) convert from PMF to PDF using the product rule.
 
@@ -231,7 +238,7 @@ PDF + Gradient Computation
 **Correctness.** The probability propagation (lines 48, 58) is identical to @alg-14-dph-forward-step with $\delta = 1/\lambda$ (uniformization). The gradient propagation (lines 49--53, 59--63) correctly applies the product rule to each probability transfer (@def-16-parameterized-forward-step, @eq-16-grad-transfer and @eq-16-self-loop-grad). The PMF accumulation (lines 70--76) combines the two gradient terms from @eq-16-pmf-gradient: the absorption probability gradient (Term 1) and the Poisson weight gradient (Term 2). The final PMF-to-PDF conversion (lines 86--89) implements @eq-16-pdf-grad-formula of @thm-16-gradient-correctness. Kahan summation (@alg-03-kahan-summation) is used for all accumulations to maintain numerical precision over many steps.
 :::
 
-## Numerical Considerations
+## Numerical Considerations {.unnumbered}
 
 **Poisson probability computation.** The Poisson probabilities are computed in log-space as $\exp(-\lambda t + k \log(\lambda t) - \log \Gamma(k+1))$ to avoid overflow for large $k$ or $\lambda t$. The log-gamma function `lgamma` is numerically stable for all positive arguments.
 
@@ -245,7 +252,7 @@ PDF + Gradient Computation
 
 **Sign of $\lambda$ gradient in PDF conversion.** The implementation uses $\frac{\partial f}{\partial \theta_j} = \frac{\partial \text{PMF}}{\partial \theta_j} \cdot \lambda - \text{PMF} \cdot \frac{\partial \lambda}{\partial \theta_j}$ (@eq-16-pdf-grad-formula). The minus sign (rather than plus) is because the PMF gradient accumulation already incorporates the Poisson weight gradient term (Term 2 in @eq-16-pmf-gradient), which accounts for how $\lambda$ affects the Poisson weights. Naively applying the product rule $f = \lambda \cdot \text{PMF}$ with $\frac{\partial f}{\partial \theta_j} = \frac{\partial \lambda}{\partial \theta_j} \cdot \text{PMF} + \lambda \cdot \frac{\partial \text{PMF}}{\partial \theta_j}$ would double-count the $\lambda$-dependence that is already captured in $\frac{\partial \text{PMF}}{\partial \theta_j}$.
 
-## Implementation Notes
+## Implementation Notes {.unnumbered}
 
 **Source code mapping:**
 
@@ -264,7 +271,7 @@ PDF + Gradient Computation
 - The 2D gradient arrays (`prob_grad`, `next_prob_grad`) are allocated as arrays of pointers to rows, not as contiguous blocks. This simplifies row-level operations but may incur cache misses.
 - A commented-out alternative implementation (`ptd_graph_pdf_parameterized`) exists in the source (lines 8418--8480) that integrates with the `update_weight_parameterized` workflow. This version is currently disabled.
 
-## Symbol Index
+## Symbol Index {.unnumbered}
 
 | Symbol | Name | First appearance |
 |--------|------|-----------------|

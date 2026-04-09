@@ -2,7 +2,7 @@
 title: "Backward Filtering Forward Guiding"
 ---
 
-## Introduction
+## Introduction {.unnumbered}
 
 This file formalizes **Backward Filtering Forward Guiding (BFFG)**, an importance-weighting framework for inference with phase-type distributions under inhomogeneous (time-varying) parameters. The core problem is computing the likelihood $p(\mathbf{y} \mid \boldsymbol{\theta}_{\text{target}})$ when the target parameter vector varies over time, making direct forward-algorithm computation intractable. BFFG addresses this by sampling paths under a tractable homogeneous proposal model (with fixed parameters $\boldsymbol{\theta}_{\text{prop}}$) and reweighting those paths to account for the target model. The importance weights are derived from the ratio of path densities under the target and proposal continuous-time Markov chains.
 
@@ -14,10 +14,12 @@ In the phasic pipeline, BFFG enables Bayesian inference for models where transit
 
 - `src/phasic/bffg.py` (functions: `path_to_rewards`, `path_exit_rates`, `path_exit_rates_by_param`, `importance_log_weight_from_rates`, `importance_weighted_log_likelihood`, `bffg_log_prob`)
 
-## Definitions
+## Definitions {.unnumbered}
 
 ::: {#def-20-proposal-target .definition}
-## Proposal and Target Distributions
+
+#### Proposal and Target Distributions
+
 *Let $G = (V, E)$ be a parameterized phase-type graph with parameter vector $\boldsymbol{\theta} \in \mathbb{R}^d_{>0}$ and coefficient vectors $\mathbf{c}_e \in \mathbb{R}^d$ on each edge $e \in E$. The **proposal distribution** is the phase-type distribution $\operatorname{PH}(\boldsymbol{\alpha}, \mathbf{S}(\boldsymbol{\theta}_{\text{prop}}))$ with fixed parameter vector $\boldsymbol{\theta}_{\text{prop}}$, where each edge weight is $w(e) = \mathbf{c}_e^\top \boldsymbol{\theta}_{\text{prop}}$. The **target distribution** is determined by a time-varying parameter function $\boldsymbol{\theta}_{\text{target}}: \mathbb{R}_{\geq 0} \to \mathbb{R}^d_{>0}$, so that at time $t$ the edge weight under the target is $w_{\text{target}}(e, t) = \mathbf{c}_e^\top \boldsymbol{\theta}_{\text{target}}(t)$.*
 :::
 
@@ -26,7 +28,9 @@ In the phasic pipeline, BFFG enables Bayesian inference for models where transit
 > **Example.** In a coalescent model with 5 lineages, the coalescent rate at state $n$ is $\binom{n}{2} \theta^{-1}$ where $\theta$ is the effective population size. The proposal uses a fixed $\theta_{\text{prop}}$, while the target has $\theta_{\text{target}}(t)$ varying (e.g., an exponential growth model). Each edge coefficient encodes $\binom{n}{2}$, and the parameter $\theta^{-1}$ gives the rate scaling.
 
 ::: {#def-20-exit-rate .definition}
-## Path Exit Rate Decomposition
+
+#### Path Exit Rate Decomposition
+
 *Let $\omega = (v_0, v_1, \ldots, v_K, v_{\text{abs}})$ be a path through the graph with sojourn times $s_1, \ldots, s_K$ at the transient vertices $v_1, \ldots, v_K$. The **exit rate** at vertex $v_k$ under parameter vector $\boldsymbol{\theta}$ is*
 
 $$\lambda_{v_k}(\boldsymbol{\theta}) = \sum_{e \in \operatorname{out}(v_k)} \mathbf{c}_e^\top \boldsymbol{\theta},$$ {#eq-20-exit-rate}
@@ -41,7 +45,9 @@ $$\lambda_{v_k}(\boldsymbol{\theta}) = \sum_{j=1}^{d} \theta_j \sum_{e \in \oper
 > **Intuition.** The exit rate from a vertex is the total rate at which the process leaves that state. For parameterized graphs, this rate is a linear function of the parameters, and the per-parameter decomposition (@eq-20-exit-rate-decomp) allows efficient computation of exit rates under different parameter vectors without re-traversing the graph structure.
 
 ::: {#def-20-importance-weight .definition}
-## Importance Log-Weight
+
+#### Importance Log-Weight
+
 *For a path $\omega$ with transient vertices $v_1, \ldots, v_K$, sojourn times $s_1, \ldots, s_K$, and taken transitions $e_1, \ldots, e_K$, the **importance log-weight** is the log-ratio of the path density under the target to the path density under the proposal:*
 
 $$\log w(\omega) = \sum_{k=1}^{K} \left[ \log \lambda_{v_k}^{\text{tgt}} - \log \lambda_{v_k}^{\text{prop}} - \left(\lambda_{v_k}^{\text{tgt}} - \lambda_{v_k}^{\text{prop}}\right) s_k + \log \frac{p_k^{\text{tgt}}}{p_k^{\text{prop}}} \right],$$ {#eq-20-importance-logweight}
@@ -54,7 +60,9 @@ $$\log w(\omega) = \sum_{k=1}^{K} \left[ \log \lambda_{v_k}^{\text{tgt}} - \log 
 > **Example.** If at vertex $v_k$ the proposal has exit rate $\lambda^{\text{prop}} = 3.0$ and the target has $\lambda^{\text{tgt}} = 4.5$, with sojourn time $s_k = 0.2$, and the taken edge has proposal probability $p^{\text{prop}} = 0.5$ and target probability $p^{\text{tgt}} = 0.6$, the contribution to the log-weight is $\log(4.5) - \log(3.0) - (4.5 - 3.0)(0.2) + \log(0.6) - \log(0.5) \approx 0.405 - 0.300 + 0.182 = 0.287$.
 
 ::: {#def-20-iw-loglik .definition}
-## Importance-Weighted Log-Likelihood
+
+#### Importance-Weighted Log-Likelihood
+
 *Given $M$ paths $\omega_1, \ldots, \omega_M$ sampled independently from the proposal distribution, with log-likelihoods $\ell_1, \ldots, \ell_M$ (of observed data given each path) and log importance weights $\log w_1, \ldots, \log w_M$, the **importance-weighted log-likelihood** estimator is*
 
 $$\hat{\ell} = -\log M + \operatorname{logsumexp}(\ell_1 + \log w_1, \; \ldots, \; \ell_M + \log w_M).$$ {#eq-20-iw-loglik}
@@ -66,10 +74,12 @@ $$\hat{\ell}_{\text{correction}} = -\log M + \operatorname{logsumexp}(\log w_1, 
 
 > **Intuition.** This is the standard self-normalized importance sampling estimator in log-space. The $\operatorname{logsumexp}$ function provides numerical stability by factoring out the maximum log-weight before exponentiating. Each path contributes its data likelihood weighted by how much more (or less) likely that path is under the target than under the proposal. The $-\log M$ term normalizes by the number of samples.
 
-## Theorems and Proofs
+## Theorems and Proofs {.unnumbered}
 
 ::: {#thm-20-unbiasedness .theorem}
-## Unbiasedness of Importance Weights
+
+#### Unbiasedness of Importance Weights
+
 *Let $\omega \sim \operatorname{PH}(\boldsymbol{\alpha}, \mathbf{S}(\boldsymbol{\theta}_{\text{prop}}))$ be a path sampled from the proposal distribution, and let $w(\omega) = \exp(\log w(\omega))$ with $\log w(\omega)$ as in @def-20-importance-weight. If $\boldsymbol{\theta}_{\text{target}}$ is constant (homogeneous target), then $\mathbb{E}_{\text{prop}}[w(\omega)] = 1$.*
 :::
 
@@ -82,7 +92,9 @@ where the last equality holds because $p(\omega)$ integrates to 1 over all paths
 :::
 
 ::: {#thm-20-convergence .theorem}
-## Convergence of Importance-Weighted Likelihood
+
+#### Convergence of Importance-Weighted Likelihood
+
 *Let $\omega_1, \ldots, \omega_M$ be i.i.d. paths from the proposal, let $L(\omega_m) = \exp(\ell_m)$ be the data likelihood given path $\omega_m$, and let $w_m = w(\omega_m)$ be the importance weight. Then*
 
 $$\hat{L} = \frac{1}{M} \sum_{m=1}^{M} L(\omega_m) \, w(\omega_m) \xrightarrow{M \to \infty} \mathbb{E}_{\text{target}}[L(\omega)] = P(\mathbf{y} \mid \boldsymbol{\theta}_{\text{target}}) \quad \text{almost surely.}$$
@@ -100,12 +112,13 @@ $$\mathbb{E}_{\text{prop}}[L(\omega) w(\omega)] = \int L(\omega) \frac{p(\omega)
 The final expectation equals $P(\mathbf{y} \mid \boldsymbol{\theta}_{\text{target}})$ by the law of total probability (marginalizing the likelihood over the latent path). The estimator $\hat{L}$ is finite with probability 1 because both $L$ and $w$ are bounded on a finite-state continuous-time Markov chain with bounded rates. $\square$
 :::
 
-## Algorithms
+## Algorithms {.unnumbered}
 
 ::: {#alg-20-bffg}
-## BFFG Log-Probability Estimation
 
-*Description.* @alg-20-bffg computes an estimate of the log-probability $\log P(\mathbf{y} \mid \boldsymbol{\theta}_{\text{target}})$ by combining a proposal model evaluation with a stochastic importance weight correction. For each observed data point (locus), the proposal log-probability is obtained via the forward algorithm on the homogeneous proposal graph, and a set of $M$ conditioned paths are sampled from the proposal. Each path's importance log-weight is computed by traversing the path vertices, computing exit rates and transition probabilities under both proposal and target, and summing the log-ratios. The per-locus correction is the logsumexp of the log-weights minus $\log M$. The total log-probability is the sum of per-locus proposal log-probabilities and corrections.
+#### BFFG Log-Probability Estimation
+
+*Description.* Computes an estimate of the log-probability $\log P(\mathbf{y} \mid \boldsymbol{\theta}_{\text{target}})$ by combining a proposal model evaluation with a stochastic importance weight correction. For each observed data point (locus), the proposal log-probability is obtained via the forward algorithm on the homogeneous proposal graph, and a set of $M$ conditioned paths are sampled from the proposal. Each path's importance log-weight is computed by traversing the path vertices, computing exit rates and transition probabilities under both proposal and target, and summing the log-ratios. The per-locus correction is the logsumexp of the log-weights minus $\log M$. The total log-probability is the sum of per-locus proposal log-probabilities and corrections.
 
 ```
 BFFG Log-Probability Estimation
@@ -169,7 +182,7 @@ BFFG Log-Probability Estimation
 **Correctness.** By @thm-20-unbiasedness, each importance weight $w(\omega_m)$ is unbiased ($\mathbb{E}[w] = 1$) when the target is homogeneous. By @thm-20-convergence, the estimator $\hat{L} = M^{-1} \sum_m w_m$ converges almost surely to the true likelihood ratio as $M \to \infty$. For the inhomogeneous case, the importance weight formula (@eq-20-importance-logweight) remains a valid density ratio because it computes the exact ratio of the continuous-time path densities evaluated at the time-specific target parameters. The log-space computation via $\operatorname{logsumexp}$ (line 27) is numerically equivalent to $\log(M^{-1} \sum_m \exp(\log w_m))$.
 :::
 
-## Numerical Considerations
+## Numerical Considerations {.unnumbered}
 
 **Log-space computation.** All weight computations are performed in log-space to avoid overflow and underflow. The importance log-weight (@eq-20-importance-logweight) involves differences of log-rates and products of sojourn times with rate differences, both of which remain in a numerically tractable range. The final aggregation uses $\operatorname{logsumexp}$, which subtracts the maximum log-weight before exponentiating.
 
@@ -179,7 +192,7 @@ BFFG Log-Probability Estimation
 
 **JIT and non-JIT paths.** The implementation provides two execution paths: a non-JIT fallback (`_full_importance_log_weight`) that directly queries the graph data structure for each path step, and a JIT-compatible path (`_importance_weight_one_path`) that uses precomputed dense arrays and `jax.lax.scan` for fixed-size iteration. The `return_model=True` flag selects the JIT path.
 
-## Implementation Notes
+## Implementation Notes {.unnumbered}
 
 **Source code mapping:**
 
@@ -204,7 +217,7 @@ BFFG Log-Probability Estimation
 - The `bffg_log_prob` function returns either a single `log_prob_fn` (backward compatible) or a `(model, likelihood_correction)` tuple for integration with MCMC ([19]). The pseudocode shows only the combined log-probability for simplicity.
 - Edge coefficients are precomputed and cached in closure variables (`_vertex_edge_coeffs`, `_vertex_prop_rates`) at graph construction time, not recomputed per path traversal.
 
-## Symbol Index
+## Symbol Index {.unnumbered}
 
 | Symbol | Name | First appearance |
 |--------|------|-----------------|

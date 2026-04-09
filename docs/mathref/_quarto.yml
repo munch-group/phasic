@@ -71,3 +71,6 @@ format:
     toc: true
     number-sections: true
     code-overflow: scroll
+    # filters: 
+    #   - quarto
+    #   - headers.lua    

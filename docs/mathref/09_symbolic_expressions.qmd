@@ -2,7 +2,7 @@
 title: "Symbolic Expressions"
 ---
 
-## Introduction
+## Introduction {.unnumbered}
 
 This file formalizes the expression tree abstract data type (ADT) that enables deferred computation in phasic. When a phase-type graph has parameterized edges (@def-01-param-edges), the edge weights are functions of a parameter vector $\boldsymbol{\theta}$. Rather than recomputing the entire graph elimination for each new $\boldsymbol{\theta}$, phasic records the elimination operations as symbolic expression trees that can be evaluated efficiently with any concrete parameter vector. This file defines the expression tree nodes, their evaluation semantics, common subexpression elimination (CSE) via interning, and symbolic differentiation for gradient computation.
 
@@ -14,10 +14,12 @@ The expression system is the foundation for symbolic graph elimination ([10]), t
 - `api/c/phasic.h` (types: `ptd_expression`, `enum ptd_expr_type`, `ptd_expr_intern_table`)
 - `src/c/phasic_symbolic.c` (functions: `ptd_expr_evaluate_iterative`, `ptd_expr_derivative`, `ptd_expr_copy_iterative`, `ptd_expr_destroy_iterative`, `edge_weight_to_expr`)
 
-## Definitions
+## Definitions {.unnumbered}
 
 ::: {#def-09-expression-tree}
-## Expression tree
+
+#### Expression tree
+
 *An expression tree is a rooted tree $\mathcal{E}$ where each node has a type drawn from the set $\{\texttt{Const}, \texttt{Param}, \texttt{Dot}, \texttt{Add}, \texttt{Sub}, \texttt{Mul}, \texttt{Div}, \texttt{Inv}\}$ and carries data according to its type:*
 
 | Node type | Data | Children | Semantics |
@@ -37,7 +39,9 @@ The expression system is the foundation for symbolic graph elimination ([10]), t
 > **Example.** The expression $2\theta_1 + 3\theta_2$ is represented as a single $\texttt{Dot}$ node: $\texttt{Dot}((2, 3), (1, 2))$. The expression $\theta_1 / (\theta_1 + \theta_2)$ is represented as $\texttt{Div}(\texttt{Param}(1), \texttt{Add}(\texttt{Param}(1), \texttt{Param}(2)))$.
 
 ::: {#def-09-expression-evaluation}
-## Expression evaluation
+
+#### Expression evaluation
+
 *Let $\mathcal{E}$ be an expression tree and let $\boldsymbol{\theta} = (\theta_1, \ldots, \theta_k)$ be a parameter vector. The evaluation function $\operatorname{eval}(\mathcal{E}, \boldsymbol{\theta})$ is defined recursively:*
 
 $$\operatorname{eval}(\mathcal{E}, \boldsymbol{\theta}) = \begin{cases}
@@ -55,7 +59,9 @@ c & \text{if } \mathcal{E} = \texttt{Const}(c) \\
 > **Intuition.** Evaluation is a standard post-order tree traversal: evaluate children first, then combine. The implementation uses an iterative (stack-based) traversal to avoid stack overflow on deep expression trees.
 
 ::: {#def-09-cse-interning}
-## Common Subexpression Elimination via interning
+
+#### Common Subexpression Elimination via interning
+
 *An intern table $\mathcal{I}$ is a hash table mapping expression structure to canonical expression nodes. For each expression $\mathcal{E}$, the interning function $\operatorname{intern}(\mathcal{I}, \mathcal{E})$ returns a canonical representative: if an expression structurally equal to $\mathcal{E}$ already exists in $\mathcal{I}$, its existing node is returned; otherwise, $\mathcal{E}$ is inserted and returned as the new canonical representative.*
 
 *Two expressions $\mathcal{E}_1$ and $\mathcal{E}_2$ are structurally equal if they have the same type, the same data (constants, parameter indices, coefficient vectors), and recursively structurally equal children.*
@@ -68,7 +74,9 @@ c & \text{if } \mathcal{E} = \texttt{Const}(c) \\
 > **Example.** If vertex $v$ has edges with weights $\mathcal{E}_1$ and $\mathcal{E}_2$, the total rate is $\mathcal{E}_\lambda = \texttt{Add}_\mathcal{I}(\mathcal{E}_1, \mathcal{E}_2)$. The normalized probability for the first edge is $\texttt{Mul}_\mathcal{I}(\mathcal{E}_1, \texttt{Inv}_\mathcal{I}(\mathcal{E}_\lambda))$. If another vertex also needs $\texttt{Inv}_\mathcal{I}(\mathcal{E}_\lambda)$, the intern table returns the same node rather than creating a duplicate.
 
 ::: {#def-09-expression-differentiation}
-## Expression differentiation
+
+#### Expression differentiation
+
 *Let $\mathcal{E}$ be an expression tree. The symbolic derivative of $\mathcal{E}$ with respect to parameter $\theta_j$ is an expression tree $\partial_j \mathcal{E}$ defined recursively:*
 
 $$\partial_j \mathcal{E} = \begin{cases}
@@ -90,10 +98,12 @@ $$\partial_j \mathcal{E} = \begin{cases}
 
 > **Example.** For $\mathcal{E} = \texttt{Mul}(\texttt{Param}(1), \texttt{Param}(2))$ representing $\theta_1 \cdot \theta_2$, we have $\partial_1 \mathcal{E} = \texttt{Add}(\texttt{Mul}(\texttt{Param}(1), \texttt{Const}(0)), \texttt{Mul}(\texttt{Param}(2), \texttt{Const}(1))) = \texttt{Add}(\texttt{Const}(0), \texttt{Param}(2))$. Evaluating at any $\boldsymbol{\theta}$ gives $\theta_2$, which is the correct derivative.
 
-## Theorems and Proofs
+## Theorems and Proofs {.unnumbered}
 
 ::: {#thm-09-evaluation-correctness}
-## Evaluation correctness
+
+#### Evaluation correctness
+
 *Let $\mathcal{E}$ be an expression tree and $\boldsymbol{\theta} \in \mathbb{R}^k$ be a parameter vector such that no division by zero occurs during evaluation. Then $\operatorname{eval}(\mathcal{E}, \boldsymbol{\theta})$ is well-defined and equals the real number obtained by the standard arithmetic interpretation of $\mathcal{E}$.*
 :::
 
@@ -106,7 +116,9 @@ By structural induction on $\mathcal{E}$.
 :::
 
 ::: {#thm-09-differentiation-correctness}
-## Differentiation correctness
+
+#### Differentiation correctness
+
 *Let $\mathcal{E}$ be an expression tree and $\boldsymbol{\theta} \in \mathbb{R}^k$ be a parameter vector such that no division by zero occurs. Then for each $j \in \{1, \ldots, k\}$:*
 
 $$\operatorname{eval}(\partial_j \mathcal{E}, \boldsymbol{\theta}) = \frac{\partial}{\partial \theta_j} \operatorname{eval}(\mathcal{E}, \boldsymbol{\theta}).$$
@@ -127,7 +139,9 @@ For $\texttt{Inv}$: $\frac{\partial}{\partial \theta_j}(1/f) = -f'/f^2 = (0 - f'
 :::
 
 ::: {#lem-09-cse-preserves-evaluation}
-## CSE preserves evaluation
+
+#### CSE preserves evaluation
+
 *Let $\mathcal{I}$ be an intern table. For any expression $\mathcal{E}$ and parameter vector $\boldsymbol{\theta}$:*
 
 $$\operatorname{eval}(\operatorname{intern}(\mathcal{I}, \mathcal{E}), \boldsymbol{\theta}) = \operatorname{eval}(\mathcal{E}, \boldsymbol{\theta}).$$
@@ -137,10 +151,11 @@ $$\operatorname{eval}(\operatorname{intern}(\mathcal{I}, \mathcal{E}), \boldsymb
 The intern function $\operatorname{intern}(\mathcal{I}, \mathcal{E})$ returns either $\mathcal{E}$ itself (if no structurally equal expression exists in $\mathcal{I}$) or an existing expression $\mathcal{E}'$ that is structurally equal to $\mathcal{E}$. Since structural equality implies identical type, identical data, and recursively structurally equal children, a straightforward structural induction shows that $\operatorname{eval}(\mathcal{E}', \boldsymbol{\theta}) = \operatorname{eval}(\mathcal{E}, \boldsymbol{\theta})$ for all $\boldsymbol{\theta}$. $\square$
 :::
 
-## Algorithms
+## Algorithms {.unnumbered}
 
 ::: {#alg-09-expression-evaluation}
-## Expression Evaluation
+
+#### Expression Evaluation
 
 *Description.* This algorithm evaluates an expression tree with a concrete parameter vector using iterative post-order traversal. The iterative approach avoids stack overflow on deep trees (which can arise from long chains of eliminations). The algorithm uses an explicit stack of (node, visited) pairs.
 
@@ -210,7 +225,7 @@ Expression Evaluation (Iterative)
 **Correctness.** Follows from @thm-09-evaluation-correctness. The iterative post-order traversal visits each node after its children have been evaluated, reproducing the recursive evaluation semantics of @def-09-expression-evaluation.
 :::
 
-## Implementation Notes
+## Implementation Notes {.unnumbered}
 
 **Source code mapping:**
 
@@ -232,7 +247,7 @@ Expression Evaluation (Iterative)
 
 - **Edge coefficient optimization.** The `edge_weight_to_expr` function optimizes common cases: if all coefficients are zero, it returns $\texttt{Const}(w)$ (the current evaluated weight). If there is a single coefficient equal to 1.0, it returns $\texttt{Param}(j)$ instead of $\texttt{Dot}$. Otherwise, it constructs a sparse $\texttt{Dot}$ node containing only non-zero coefficients.
 
-## Symbol Index
+## Symbol Index {.unnumbered}
 
 | Symbol | Name | First appearance |
 |--------|------|-----------------|

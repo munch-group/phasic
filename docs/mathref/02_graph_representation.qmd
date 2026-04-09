@@ -2,7 +2,7 @@
 title: "Graph Representation"
 ---
 
-## Introduction
+## Introduction {.unnumbered}
 
 This file documents the concrete data structures and algorithms that implement the abstract weighted directed graph defined in [01]. While @def-01-weighted-digraph specifies *what* a graph is (vertices, edges, weights), this file specifies *how* phasic stores and manipulates graphs in memory: dynamic edge lists for efficient construction, an AVL tree for state deduplication during graph building, validation of structural invariants, and deep cloning of graph objects.
 
@@ -14,14 +14,16 @@ These data structures are the foundation of every computational algorithm in pha
 - `src/c/phasic.c` (functions: `ptd_graph_add_edge`, `ptd_avl_find_or_create`, `ptd_validate_graph`, `ptd_clone_graph`)
 - `api/c/phasic.h` (structs: `ptd_graph`, `ptd_vertex`, `ptd_edge`, `ptd_avl_node`)
 
-## Definitions
+## Definitions {.unnumbered}
 
-### Dynamic edge storage
+### Dynamic edge storage {.unnumbered}
 
 In a dense matrix representation, the adjacency structure occupies $O(|V|^2)$ space regardless of the number of edges. For sparse phase-type graphs, phasic stores edges in per-vertex dynamic arrays.
 
 ::: {#def-02-edge-list}
-## Dynamic edge list
+
+#### Dynamic edge list
+
 *Let $v \in V$ be a vertex in a phase-type graph $G = (V, E, W)$ (@def-01-weighted-digraph). The dynamic edge list of $v$ is a resizable array $\mathcal{E}(v)$ that stores all outgoing edges $(v \to z) \in E$. The array has a logical size $|\mathcal{E}(v)|$ (the number of edges currently stored) and a capacity $\operatorname{cap}(\mathcal{E}(v))$ (the number of slots allocated). New edges are appended at the end. When $|\mathcal{E}(v)| = \operatorname{cap}(\mathcal{E}(v))$, the capacity is doubled before the insertion proceeds. Initially, $\operatorname{cap}(\mathcal{E}(v)) = 0$ and storage is allocated on first insertion.*
 :::
 
@@ -30,18 +32,22 @@ In a dense matrix representation, the adjacency structure occupies $O(|V|^2)$ sp
 > **Example.** A vertex $v$ with three children $z_1, z_2, z_3$ has $|\mathcal{E}(v)| = 3$. If the current capacity is 4, adding a fourth edge requires no reallocation. Adding a fifth edge triggers a reallocation to capacity 8.
 
 ::: {#def-02-vertex-array}
-## Vertex array
+
+#### Vertex array
+
 *The graph $G$ stores all vertices in a dynamic array $\mathcal{V}(G)$ with the same doubling growth strategy as @def-02-edge-list. The starting vertex $v_0$ (@def-01-ph-graph) is always at index 0. Each vertex carries a state vector $\sigma(v) \in \mathbb{Z}^d$, where $d$ is the state dimension of the graph.*
 :::
 
 > **Intuition.** The state vector $\sigma(v)$ is the label that distinguishes vertices during graph construction. For example, in a coalescent model with $d = 1$, the state vector records the number of lineages. The vertex array provides $O(1)$ access by index, which is used extensively by elimination and moment algorithms.
 
-### AVL tree for state deduplication
+### AVL tree for state deduplication {.unnumbered}
 
 During graph construction, the same state may be encountered multiple times (e.g., different coalescent events may lead to the same number of remaining lineages). An AVL tree ensures each distinct state vector maps to exactly one vertex.
 
 ::: {#def-02-avl-tree}
-## AVL tree for state deduplication
+
+#### AVL tree for state deduplication
+
 *Let $d$ be the state dimension. An AVL tree $\mathcal{A}$ is a balanced binary search tree whose keys are state vectors $\sigma \in \mathbb{Z}^d$ and whose values are pointers to vertices in $\mathcal{V}(G)$. The key comparison is lexicographic on the byte representation: for state vectors $\sigma = (\sigma_1, \ldots, \sigma_d)$ and $\sigma' = (\sigma'_1, \ldots, \sigma'_d)$, the comparison is performed by `memcmp` on the $d \cdot \operatorname{sizeof}(\texttt{int})$ bytes. The tree maintains the AVL balance invariant: for every node $n$, the heights of its left and right subtrees differ by at most 1. Balance is restored after insertions by the four standard rotations (left, right, left-right, right-left).*
 :::
 
@@ -50,18 +56,22 @@ During graph construction, the same state may be encountered multiple times (e.g
 > **Example.** In a coalescent model with state dimension $d = 1$, the tree keys are single integers (the number of lineages). When the state space construction encounters state $(3)$, the AVL tree either finds the existing vertex for 3 lineages or creates a new one. The tree with states $\{1, 2, 3, 4, 5\}$ might have 3 at the root, with 1 and 2 in the left subtree and 4 and 5 in the right.
 
 ::: {#def-02-avl-balance}
-## AVL balance factor
+
+#### AVL balance factor
+
 *For a node $n$ in the AVL tree $\mathcal{A}$, the balance factor is $\beta(n) = h(n_R) - h(n_L)$, where $h(n_L)$ and $h(n_R)$ are the heights of the left and right subtrees respectively, with the convention $h(\texttt{null}) = -1$. The AVL invariant requires $\beta(n) \in \{-1, 0, 1\}$ for all nodes $n$.*
 :::
 
 > **Intuition.** The balance factor determines which rotation to apply after an insertion. A balance factor of $\pm 2$ at some node triggers a rotation that restores the invariant.
 
-### Graph validation
+### Graph validation {.unnumbered}
 
 After construction, a graph may be validated to detect structural errors. Phasic checks a specific invariant: the absence of parallel (duplicate) edges.
 
 ::: {#def-02-validation}
-## Graph validation invariants
+
+#### Graph validation invariants
+
 *A phase-type graph $G = (V, E, W)$ satisfies the validation invariants if and only if for every vertex $v \in V$ and every pair of edges $(v \to z_1), (v \to z_2) \in \mathcal{E}(v)$ with the same target ($z_1 = z_2$), the two edges are the same edge (i.e., no vertex has two distinct edges to the same target).*
 :::
 
@@ -71,12 +81,14 @@ After construction, a graph may be validated to detect structural errors. Phasic
 
 **Remark.** The validation algorithm does *not* check: non-negative weights (enforced by the weight computation modes in @def-01-param-edges), connectivity, or the absence of self-loops (self-loops are forbidden by the edge insertion function, not by validation).
 
-### Graph cloning
+### Graph cloning {.unnumbered}
 
 Some algorithms (e.g., reward transformation) modify the graph in place. To preserve the original, a deep clone is required.
 
 ::: {#def-02-clone}
-## Graph clone
+
+#### Graph clone
+
 *A clone of a phase-type graph $G = (V, E, W)$ is a new graph $G' = (V', E', W')$ satisfying:*
 
 1. *There is a bijection $\mu : V \to V'$ (the vertex map) such that $\sigma(\mu(v)) = \sigma(v)$ for all $v \in V$ (state vectors are copied).*
@@ -89,10 +101,12 @@ Some algorithms (e.g., reward transformation) modify the graph in place. To pres
 
 > **Intuition.** Cloning produces an independent copy: any modification to $G'$ leaves $G$ unchanged, and vice versa. The omission of cached results is deliberate — cached results reference the original vertices and would be invalidated by any modification to $G'$.
 
-## Theorems and Proofs
+## Theorems and Proofs {.unnumbered}
 
 ::: {#thm-02-avl-ops}
-## AVL tree operations
+
+#### AVL tree operations
+
 *Let $\mathcal{A}$ be an AVL tree containing $|V|$ nodes with state vectors of dimension $d$. The operations FindOrInsert and Find each require $O(d \log |V|)$ time.*
 :::
 
@@ -105,7 +119,9 @@ For Find (lookup without insertion), the cost is exactly the search cost: $O(d \
 :::
 
 ::: {#thm-02-amortized-insert}
-## Amortized O(1) edge insertion
+
+#### Amortized O(1) edge insertion
+
 *Let $\mathcal{E}(v)$ be a dynamic edge list with doubling growth strategy (@def-02-edge-list). Starting from an empty list, the amortized cost of inserting $n$ edges is $O(1)$ per insertion.*
 :::
 
@@ -114,7 +130,9 @@ We use aggregate analysis. After $n$ insertions, the total number of copy operat
 :::
 
 ::: {#thm-02-validation}
-## Validation correctness and complexity
+
+#### Validation correctness and complexity
+
 *@alg-02-graph-validation (Graph Validation) correctly identifies all parallel edges and runs in $O(|V| \cdot \Delta \log \Delta)$ time, where $\Delta = \max_{v \in V} |\mathcal{E}(v)|$ is the maximum out-degree.*
 :::
 
@@ -129,7 +147,9 @@ Equivalently, since $\sum_v |\mathcal{E}(v)| = |E|$, the total is $O(|E| \log \D
 :::
 
 ::: {#thm-02-clone}
-## Clone correctness and complexity
+
+#### Clone correctness and complexity
+
 *@alg-02-graph-clone (Graph Clone) produces a graph $G'$ satisfying @def-02-clone in $O(|V| \cdot |E|)$ time in the current implementation, or $O(|V| + |E|)$ time with an index-based vertex map.*
 :::
 
@@ -141,10 +161,11 @@ Complexity: Phase 1 is $O(|V| d)$ for copying state vectors. Phase 2 iterates ov
 If instead the implementation used the vertex map $\mu$ (an array mapping old indices to new vertices, computed in Phase 1), each edge target lookup would be $O(1)$, reducing Phase 2 to $O(|E|)$ and the total to $O(|V| d \log |V| + |E|)$. See the Implementation Notes for the suspected code issue. $\square$
 :::
 
-## Algorithms
+## Algorithms {.unnumbered}
 
 ::: {#alg-02-avl-find-or-insert}
-## AVL Find-or-Insert
+
+#### AVL Find-or-Insert
 
 *Description.* Given a state vector $\sigma \in \mathbb{Z}^d$, this algorithm searches the AVL tree $\mathcal{A}$ for a node with key $\sigma$. If found, it returns the associated vertex. If not found, it creates a new vertex with state vector $\sigma$, inserts a new node into the tree, rebalances as needed, and returns the new vertex.
 
@@ -199,7 +220,8 @@ AVL Find-or-Insert
 :::
 
 ::: {#alg-02-graph-validation}
-## Graph Validation
+
+#### Graph Validation
 
 *Description.* This algorithm checks a phase-type graph for the presence of parallel (duplicate) edges. For each vertex, it sorts the edge list by target pointer and scans for consecutive duplicates.
 
@@ -235,7 +257,8 @@ Graph Validation
 :::
 
 ::: {#alg-02-graph-clone}
-## Graph Clone
+
+#### Graph Clone
 
 *Description.* This algorithm creates a deep copy of a phase-type graph. It proceeds in three phases: (1) create vertices with copied state vectors, (2) clone edges using a vertex map, (3) rebuild the AVL tree. Graph metadata (parameter length, edge mode, DPH flag) is copied during graph creation; cached computation results (elimination traces, reward compute graphs) are not copied.
 
@@ -282,7 +305,7 @@ Graph Clone
 **Correctness.** Follows from @thm-02-clone. Properties (1)-(6) of @def-02-clone are established by the three phases.
 :::
 
-## Implementation Notes
+## Implementation Notes {.unnumbered}
 
 **Source code mapping:**
 
@@ -307,7 +330,7 @@ Graph Clone
 
 **Remark** (Suspected code issue: `ptd_clone_graph` target lookup). In Phase 2 of the clone algorithm, the implementation performs a linear scan of the cloned vertex array to find the target vertex $\mu(v_j)$ for each edge, rather than using the index-based vertex map computed in Phase 1. This results in $O(|V|)$ time per edge lookup instead of $O(1)$, making the overall clone complexity $O(|V| \cdot |E|)$ rather than the achievable $O(|V| d \log |V| + |E|)$. The vertex map array is available from Phase 1 and could be used to resolve targets in constant time.
 
-## Symbol Index
+## Symbol Index {.unnumbered}
 
 | Symbol | Name | First appearance |
 |--------|------|-----------------|
