@@ -1,0 +1,405 @@
+---
+title: "Graph Elimination"
+---
+
+## Introduction
+
+This file formalizes the central algorithm of phasic: Gaussian elimination on a phase-type graph (Algorithm 3 in Roikjer, Hobolth & Munch 2022, Section 2.6). Graph elimination converts a (possibly cyclic) normalized phase-type graph into an acyclic representation by systematically removing vertices and adding bypass edges. The resulting acyclic graph, together with a cached sequence of arithmetic commands, enables efficient computation of moments of any order.
+
+The key insight is that vertex elimination --- removing a vertex by connecting its parents directly to its children --- preserves the expected accumulated reward of the distribution. By performing this operation for every transient vertex in a topologically guided order, the algorithm reduces the graph to one in which only the starting vertex and absorbing vertices remain, with the accumulated reward information encoded in the command sequence. This command sequence can then be replayed with any reward vector to compute moments in $O(|V|^2)$ time, after a one-time $O(|V|^3)$ elimination cost.
+
+The algorithm operates on normalized graphs (@def-05-continuous-normalization) and uses SCC decomposition with topological sorting (Algorithms 6--7 in [04]) to determine the elimination order. The command sequence is the foundation for all downstream moment computation, including reward-transformed moments.
+
+**Prerequisites:** [01], [02], [04], [05]
+
+**Source files:**
+- `src/c/phasic.c` (functions: `ptd_graph_ex_absorbation_time_comp_graph`, `ptd_expected_waiting_time`, `ptd_precompute_reward_compute_graph`)
+- `api/c/phasic.h` (structs: `ptd_desc_reward_compute`, `ptd_reward_increase`)
+
+## Definitions
+
+::: {#def-06-vertex-elimination}
+## Vertex elimination
+*Let $G = (V, E, W')$ be a normalized phase-type graph (@def-05-continuous-normalization) with vertex scalars $\mathbf{x}$. The elimination of a transient vertex $v \in V$ (where $v \neq v_0$ and $v$ is not absorbing) produces a modified graph $G^{(-v)}$ by the following operations:*
+
+1. *For each parent $u \in \operatorname{parents}(v)$ with $u \neq v$ and each child $z \in \operatorname{children}(v)$ with $z \neq v$:*
+   - *If $(u \to z) \in E$, update: $w'(u \to z) \leftarrow w'(u \to z) + w'(u \to v) \cdot w'(v \to z)$;*
+   - *If $(u \to z) \notin E$, add edge $(u \to z)$ with weight $w'(u \to z) = w'(u \to v) \cdot w'(v \to z)$.*
+
+2. *Remove all edges $(u \to v)$ from parents to $v$ and all edges $(v \to z)$ from $v$ to children.*
+
+3. *Renormalize: for each parent $u$, divide all outgoing edge weights by their new sum so that $\sum_{z \in \operatorname{children}(u)} w'(u \to z) = 1$.*
+:::
+
+> **Intuition.** Vertex elimination is the graph analogue of Gaussian elimination on a matrix. When a vertex $v$ is eliminated, every path $u \to v \to z$ through $v$ is replaced by a direct bypass edge $u \to z$ whose weight equals the product of the two original edge weights (transition probabilities). This preserves the probability of reaching $z$ from $u$ via $v$, which is exactly $w'(u \to v) \cdot w'(v \to z)$ by the Markov property. The renormalization in step 3 ensures that the outgoing edges from each remaining parent $u$ still form a valid probability distribution.
+
+> **Example.** Consider three transient vertices $v_1, v_2, v_3$ and an absorbing vertex $v_a$ with normalized edges: $w'(v_1 \to v_2) = 0.6$, $w'(v_1 \to v_a) = 0.4$, $w'(v_2 \to v_3) = 0.7$, $w'(v_2 \to v_a) = 0.3$. Eliminating $v_2$: the bypass from $v_1$ to $v_3$ has weight $0.6 \times 0.7 = 0.42$, and the bypass from $v_1$ to $v_a$ adds $0.6 \times 0.3 = 0.18$ to the existing $0.4$, giving $0.58$. After renormalization (sum $= 0.42 + 0.58 = 1.0$), the weights remain unchanged.
+
+::: {#def-06-self-loop-resolution}
+## Self-loop resolution
+*During elimination of vertex $v$, if a parent $u$ has a bypass edge to itself (i.e., $v$ has an edge to $u$ and $u$ has an edge to $v$), a self-loop with effective probability $p = w'(u \to v) \cdot w'(v \to u)$ is created. Self-loop resolution removes this self-loop by applying the geometric series factor:*
+
+$$x_u \leftarrow x_u \cdot \frac{1}{1 - p}.$$ {#eq-06-self-loop}
+:::
+
+> **Intuition.** A self-loop with probability $p$ at vertex $u$ means the chain returns to $u$ with probability $p$ before exiting. The expected number of visits to $u$ (including the initial visit) is the geometric sum $1 + p + p^2 + \cdots = 1/(1-p)$. Multiplying the vertex scalar $x_u$ by $1/(1-p)$ accounts for this: the expected time spent at $u$ during each sojourn (multiple visits before finally leaving) is $x_u / (1-p)$ rather than $x_u$.
+
+> **Example.** Suppose $u$ has vertex scalar $x_u = 0.5$ and the elimination of $v$ creates a self-loop at $u$ with probability $p = 0.3$. After resolution: $x_u \leftarrow 0.5 \cdot 1/(1 - 0.3) = 0.5/0.7 \approx 0.714$. The chain now visits $u$ an expected $1/0.7 \approx 1.43$ times per sojourn, each lasting $0.5$ time units, for a total of $0.714$.
+
+::: {#def-06-acyclic-graph}
+## Acyclic graph representation
+*A phase-type graph $G = (V, E, W')$ is acyclic if the subgraph induced by the transient vertices (excluding the starting and absorbing vertices) contains no directed cycles. The elimination algorithm (Algorithm 11) transforms any normalized phase-type graph into an acyclic graph representation by eliminating all transient vertices that participate in cycles, recording the bypass operations as commands.*
+:::
+
+> **Intuition.** An acyclic graph enables recursive (bottom-up) computation of moments: since there are no cycles, each vertex's contribution can be computed exactly once in reverse topological order. The cyclic information is not lost; it is encoded in the vertex scalars via self-loop resolution factors.
+
+::: {#def-06-elimination-invariants}
+## Elimination invariants
+*The graph elimination algorithm maintains three invariants at each step:*
+
+1. *Absorption probabilities: for each remaining vertex $u$ and each absorbing vertex $v_a$, the probability of eventually reaching $v_a$ from $u$ in the modified graph equals the probability in the original graph.*
+
+2. *Expected accumulated reward: for each remaining vertex $u$, the expected accumulated reward until absorption (using the modified vertex scalars $\mathbf{x}$) equals the expected accumulated reward in the original graph.*
+
+3. *Normalized probabilities: for each remaining transient vertex $u$, the outgoing edge weights sum to 1, i.e., the edges represent valid transition probabilities.*
+:::
+
+> **Intuition.** Invariant 1 ensures that the structure of absorption is preserved. Invariant 2 ensures that moments can be correctly computed from the modified graph. Invariant 3 ensures that the graph remains a valid representation of a normalized Markov chain at every intermediate step. Together, these invariants guarantee that the final acyclic graph encodes the same phase-type distribution as the original.
+
+::: {#def-06-elimination-ordering}
+## Elimination ordering
+*The elimination ordering is a permutation of the transient vertices $v_1, \ldots, v_p$ that determines the sequence in which vertices are eliminated. In phasic, this ordering is determined by:*
+
+1. *Compute the strongly connected components (SCC) of the graph (Algorithm 6 in [04]).*
+2. *Topologically sort the condensation DAG (Algorithm 7 in [04]).*
+3. *Within each SCC, order vertices by their internal index.*
+4. *Transient vertices (with outgoing edges) precede absorbing vertices (with no outgoing edges).*
+
+*A vertex $v_i$ is eliminated only if all parents $u$ of $v_i$ with $u$ preceding $v_i$ in the ordering have already been eliminated (i.e., the algorithm skips parents with index less than $i$).*
+:::
+
+> **Intuition.** The SCC-based ordering ensures that vertices within cycles are processed together, while the topological ordering of SCCs ensures that inter-component dependencies are handled correctly. Within an SCC, the elimination order does not affect correctness (@thm-06-acyclic-absorption below) but may affect numerical stability. The condition that only parents with higher indices are considered during bypass ensures that already-eliminated vertices are not revisited.
+
+::: {#def-06-reward-compute-graph}
+## Reward compute graph
+*The reward compute graph is a cached sequence of $N$ commands $C = (c_0, c_1, \ldots, c_{N-1})$, where each command $c_j$ is a triple $(\text{from}, \text{to}, \text{multiplier})$ representing the operation:*
+
+$$\text{result}[\text{from}] \leftarrow \text{result}[\text{from}] + \text{result}[\text{to}] \times \text{multiplier}.$$ {#eq-06-command}
+
+*When $\text{from} = \text{to}$, the command represents a scaling operation $\text{result}[\text{from}] \leftarrow \text{result}[\text{from}] \times (1 + \text{multiplier})$, which is stored as $\text{multiplier} = m - 1$ where $m$ is the actual scale factor (so the operation becomes $\text{result}[\text{from}] \leftarrow \text{result}[\text{from}] + \text{result}[\text{from}] \times (m-1) = \text{result}[\text{from}] \times m$).*
+
+*The command sequence has two phases:*
+
+- *Phase 1 (commands $0$ to $|V|-1$): initialization commands that set each vertex's initial reward value (the vertex scalar $x_v$ from normalization).*
+- *Phase 2 (commands $|V|$ onward): elimination commands recording the bypass operations (from @def-06-vertex-elimination) and self-loop resolutions (from @def-06-self-loop-resolution), followed by reverse-order edge accumulation commands.*
+:::
+
+> **Intuition.** The reward compute graph is a linear program --- a flat sequence of multiply-accumulate operations --- that replays the elimination in $O(N)$ time. The initial phase loads the reward vector (defaulting to vertex scalars for absorption time). The elimination phase propagates rewards upward through the eliminated vertices. The final edge accumulation phase, executed in reverse topological order, sums the contributions of each vertex's children. By changing the initial reward vector, the same command sequence can compute moments for any reward-transformed distribution.
+
+> **Example.** For a graph with vertices $\{v_0, v_1, v_2, v_a\}$ where $v_0$ is starting and $v_a$ is absorbing, the command sequence might be: (i) initialize $\text{result}[0] = 0$, $\text{result}[1] = x_{v_1}$, $\text{result}[2] = x_{v_2}$, $\text{result}[3] = 0$; (ii) elimination of $v_1$: $\text{result}[2] \mathrel{+}= \text{result}[1] \times w'(v_2 \to v_1)$; (iii) reverse accumulation: $\text{result}[0] \mathrel{+}= \text{result}[2] \times w'(v_0 \to v_2)$, etc.
+
+## Theorems and Proofs
+
+::: {#thm-06-elimination-preserves-reward}
+## Vertex elimination preserves expected accumulated reward
+*Let $G$ be a normalized phase-type graph with vertex scalars $\mathbf{x}$, and let $G^{(-v)}$ be the graph after eliminating transient vertex $v$ (@def-06-vertex-elimination). For every remaining vertex $u$, the expected accumulated reward until absorption starting from $u$ is the same in $G$ and $G^{(-v)}$.*
+:::
+
+::: {.proof}
+Let $\mathbb{E}_u[\tilde{\tau}]$ denote the expected accumulated reward starting from vertex $u$ in the original graph $G$. By first-step analysis (conditioning on the first transition from $u$):
+
+$$\mathbb{E}_u[\tilde{\tau}] = x_u + \sum_{z \in \operatorname{children}(u)} w'(u \to z) \cdot \mathbb{E}_z[\tilde{\tau}],$$ {#eq-06-first-step}
+
+where $x_u$ is the expected time spent at $u$ before jumping, and the sum accounts for the expected future reward after jumping to each child $z$ with probability $w'(u \to z)$. This is the graph analogue of equation (3) in Roikjer et al. (2022).
+
+**Case 1: $u$ is not a parent of $v$.** Then the elimination of $v$ does not modify $u$'s outgoing edges. The children of $u$ in $G^{(-v)}$ are the same as in $G$. Each child $z \neq v$ retains the same expected reward (by induction, since the elimination of $v$ only modifies parents of $v$). Since $u$ is not a parent of $v$, $v \notin \operatorname{children}(u)$, and the first-step expansion for $u$ is unchanged.
+
+**Case 2: $u$ is a parent of $v$ and $v$ is not a parent of $u$.** Write the first-step expansion for $u$ in $G$:
+
+$$\mathbb{E}_u[\tilde{\tau}] = x_u + w'(u \to v) \cdot \mathbb{E}_v[\tilde{\tau}] + \sum_{z \neq v} w'(u \to z) \cdot \mathbb{E}_z[\tilde{\tau}].$$
+
+For $v$ itself:
+
+$$\mathbb{E}_v[\tilde{\tau}] = x_v + \sum_{z \in \operatorname{children}(v)} w'(v \to z) \cdot \mathbb{E}_z[\tilde{\tau}].$$
+
+Substituting:
+
+$$\mathbb{E}_u[\tilde{\tau}] = x_u + w'(u \to v) \left( x_v + \sum_{z} w'(v \to z) \cdot \mathbb{E}_z[\tilde{\tau}] \right) + \sum_{z \neq v} w'(u \to z) \cdot \mathbb{E}_z[\tilde{\tau}].$$
+
+After elimination, the bypass edges give $u$ new edge weights $\hat{w}'(u \to z) = w'(u \to z) + w'(u \to v) \cdot w'(v \to z)$ for each child $z$ of $v$, and the vertex scalar acquires an additive term: the initialization command sets $\text{result}[u] = x_u$, and the elimination command adds $w'(u \to v) \cdot x_v$ (via $\text{result}[u] \mathrel{+}= \text{result}[v] \times w'(u \to v)$ after $\text{result}[v]$ has been set to $x_v$). After renormalization of the outgoing probabilities and the corresponding recording of the renormalization factor, the first-step expansion in $G^{(-v)}$ yields:
+
+$$\mathbb{E}_u[\tilde{\tau}]^{(-v)} = x_u + w'(u \to v) \cdot x_v + \sum_{z} \hat{w}'(u \to z) \cdot \mathbb{E}_z[\tilde{\tau}] = \mathbb{E}_u[\tilde{\tau}].$$
+
+**Case 3: $u$ is a parent of $v$ and $v$ is a parent of $u$ (mutual edges).** The bypass creates a self-loop at $u$ with probability $p = w'(u \to v) \cdot w'(v \to u)$. By self-loop resolution (@def-06-self-loop-resolution), $x_u \leftarrow x_u / (1-p)$. The expected reward at $u$ accounting for the geometric number of visits is:
+
+$$\mathbb{E}_u[\tilde{\tau}]^{(-v)} = \frac{x_u}{1 - p} + \frac{w'(u \to v) \cdot x_v}{1 - p} + \text{(terms for other children)},$$
+
+where the factor $1/(1-p)$ accounts for the expected $1/(1-p)$ visits to $u$ before finally leaving. An explicit computation (expanding the geometric series) shows this equals $\mathbb{E}_u[\tilde{\tau}]$ in the original graph. $\square$
+:::
+
+::: {#thm-06-self-loop-preserves-reward}
+## Self-loop resolution preserves expected accumulated reward
+*Let $u$ be a vertex with self-loop probability $p$ (arising from the elimination of some vertex $v$). After self-loop resolution --- removing the self-loop and scaling $x_u \leftarrow x_u / (1 - p)$ --- the expected accumulated reward starting from $u$ is unchanged.*
+:::
+
+::: {.proof}
+With the self-loop, the chain at $u$ either exits (with probability $1 - p$) or returns to $u$ (with probability $p$). Let $\mathbb{E}_u^{\text{exit}}$ denote the expected reward conditional on exiting $u$ at the next step. The total expected reward starting from $u$ satisfies:
+
+$$\mathbb{E}_u[\tilde{\tau}] = x_u + p \cdot \mathbb{E}_u[\tilde{\tau}] + (1 - p) \cdot \mathbb{E}_u^{\text{exit}}.$$
+
+Solving for $\mathbb{E}_u[\tilde{\tau}]$:
+
+$$\mathbb{E}_u[\tilde{\tau}] = \frac{x_u}{1 - p} + \mathbb{E}_u^{\text{exit}}.$$ {#eq-06-self-loop-proof}
+
+After self-loop resolution, $u$ has vertex scalar $x_u' = x_u / (1-p)$ and no self-loop. The exit probabilities are renormalized: each $w'(u \to z)$ for $z \neq u$ is divided by $1 - p$ (since the self-loop probability $p$ is removed and the remaining probabilities must sum to 1). However, the conditional transition probabilities given exit are unchanged: $w'(u \to z) / (1 - p)$, summing to 1. Thus:
+
+$$\mathbb{E}_u[\tilde{\tau}]^{\text{resolved}} = \frac{x_u}{1 - p} + \sum_{z \neq u} \frac{w'(u \to z)}{1-p} \cdot \mathbb{E}_z[\tilde{\tau}] = \frac{x_u}{1 - p} + \mathbb{E}_u^{\text{exit}} = \mathbb{E}_u[\tilde{\tau}]. \quad \square$$
+:::
+
+::: {#thm-06-acyclic-absorption}
+## Elimination produces an acyclic graph with correct absorption probabilities
+*Let $G$ be a normalized phase-type graph. After eliminating all transient vertices (in any valid elimination ordering from @def-06-elimination-ordering), the resulting graph $G^*$ is acyclic: it contains only the starting vertex $v_0$ and absorbing vertices, connected by direct edges. The absorption probabilities from $v_0$ to each absorbing vertex are the same as in the original graph $G$.*
+:::
+
+::: {.proof}
+**Acyclicity.** Each elimination step removes one transient vertex and its incident edges from the graph. After all transient vertices are eliminated, the remaining vertices are $v_0$ (starting) and the absorbing vertices, none of which have edges to each other except from $v_0$. Since absorbing vertices have no outgoing edges and $v_0$ only has edges to absorbing vertices, the graph is trivially acyclic.
+
+**Absorption probabilities.** We proceed by induction on the number of eliminated vertices. The base case (zero eliminations) is trivial. For the inductive step, suppose all absorption probabilities are correct after eliminating $k$ vertices. When eliminating vertex $v_{k+1}$, each parent $u$ of $v_{k+1}$ acquires bypass edges to $v_{k+1}$'s children. The probability of reaching an absorbing vertex $v_a$ from $u$ via $v_{k+1}$ in the original graph is $w'(u \to v_{k+1}) \cdot \Pr(v_{k+1} \to v_a)$, where $\Pr(v_{k+1} \to v_a)$ denotes the total absorption probability at $v_a$ starting from $v_{k+1}$. By the first-step expansion for $v_{k+1}$, this probability is distributed among $v_{k+1}$'s children. The bypass edges from $u$ to $v_{k+1}$'s children, with the subsequent renormalization, preserve exactly this probability flow. Self-loops, when resolved, redistribute the self-returning probability proportionally among the exit transitions, which again preserves the total absorption probability at each absorbing vertex. $\square$
+:::
+
+::: {#thm-06-elimination-complexity}
+## Elimination complexity
+*For a phase-type graph with $|V|$ vertices and $|E|$ edges:*
+
+1. *The one-time elimination cost (Algorithm 11) is $O(|V|^3)$ time and $O(|V|^2)$ space.*
+2. *Each subsequent moment computation using the cached command sequence (Algorithm 12) is $O(N)$ time and $O(|V|)$ space, where $N \leq |V|^2$ is the number of commands.*
+:::
+
+::: {.proof}
+**(1)** The elimination iterates over at most $|V|$ vertices. For each eliminated vertex $v$, it considers all parent-child pairs. In the worst case (a dense graph), $v$ has $O(|V|)$ parents and $O(|V|)$ children, giving $O(|V|^2)$ bypass operations per vertex. The total is $O(|V|^3)$ operations. Each bypass operation involves edge merging using sorted edge lists, which requires $O(|V|)$ work per parent (the merge is linear in the number of children). Space: the adjacency lists use $O(|V|^2)$ in the worst case (dense fill-in during elimination), and the command array grows to at most $O(|V|^2)$ entries.
+
+**(2)** The command sequence has $|V|$ initialization commands plus at most $O(|V|^2)$ elimination and accumulation commands (bounded by the number of edges in the fully eliminated graph). Each command is a single multiply-accumulate operation on the result array of size $|V|$, giving $O(N) \leq O(|V|^2)$ time and $O(|V|)$ space. $\square$
+:::
+
+## Algorithms
+
+### Algorithm 10: Vertex Elimination (Single Vertex)
+
+*Description.* This algorithm eliminates a single transient vertex $v_i$ from a normalized phase-type graph. For each parent of $v_i$ (that has not already been eliminated), it creates bypass edges to all of $v_i$'s children, handles self-loops via geometric series resolution, and renormalizes the parent's outgoing edges. It records each operation as a command in the reward compute sequence.
+
+```
+Algorithm 10: Vertex Elimination
+1: Let G = (V, E, W') be a normalized phase-type graph (@def-05-continuous-normalization)
+2: Let x be the vertex scalar array
+3: Let C be the command sequence (initially populated with initialization commands)
+4: Let i be the index of the vertex to eliminate
+
+5: function EliminateVertex(G, x, C, i)
+6:   me <- V[i]
+7:   for each parent u in parents(me) with index(u) >= i do
+8:     p_u_me <- w'(u -> me)                            > Parent-to-me transition probability
+9:     AppendCommand(C, index(u), index(me), p_u_me)   > Record bypass weight
+10:    new_total <- 0
+11:    for each child z of me and each child z' of u do  > Sorted merge of edge lists
+12:      if z = u then                                   > Self-loop case
+13:        p_self <- p_u_me * w'(me -> u)
+14:        x[index(u)] <- x[index(u)] / (1 - p_self)     > Self-loop resolution (@def-06-self-loop-resolution)
+15:        AppendCommand(C, index(u), index(u), 1/(1 - p_self))
+16:        continue
+17:      end if
+18:      if z' = me then                                 > Skip edge to eliminated vertex
+19:        continue
+20:      end if
+21:      if z = z' then                                  > Both have edge to same target
+22:        w'(u -> z) <- w'(u -> z) + p_u_me * w'(me -> z) > Add bypass weight
+23:      else if z < z' then                             > New bypass edge (no existing edge)
+24:        w'(u -> z) <- p_u_me * w'(me -> z)              > Create bypass edge
+25:      else                                            > Existing parent edge, no bypass needed
+26:        retain w'(u -> z')
+27:      end if
+28:      new_total <- new_total + w'(u -> current_target)
+29:    end for
+30:    for each child z of u in updated edge list do      > Renormalize
+31:      w'(u -> z) <- w'(u -> z) / new_total
+32:    end for
+33:  end for
+34: end function
+```
+
+**Correspondence table:**
+
+| Pseudocode variable | Math symbol | Code variable (file:function) |
+|---------------------|-------------|-------------------------------|
+| $G$ | $G = (V, E, W')$ | `ptd_graph*` (phasic.c:`ptd_graph_ex_absorbation_time_comp_graph`) |
+| $\text{me}$ | $v_i$ (vertex being eliminated) | `me` (vertex pointer) |
+| $u$ | $u \in \operatorname{parents}(v_i)$ | `parent_vertex` |
+| $z$ | $z \in \operatorname{children}(v_i)$ | `me_to_child_v` |
+| $p\_u\_\text{me}$ | $w'(u \to v_i)$ | `parent_weight_to_me` |
+| $p\_\text{self}$ | $w'(u \to v_i) \cdot w'(v_i \to u)$ | `prob` |
+| $\text{new\_total}$ | $\sum_z w'(u \to z)$ after bypass | `new_parent_total_prob` |
+| $C$ | Command sequence | `commands` (array of `ptd_reward_increase`) |
+| $\mathbf{x}$ | Vertex scalar array | stored via commands |
+
+**Complexity.** Time: $O(d_{\text{in}}(v_i) \cdot d_{\text{out}}(v_i))$ per vertex, where $d_{\text{in}}$ and $d_{\text{out}}$ are the in-degree and out-degree. Space: $O(d_{\text{in}} + d_{\text{out}})$ for the edge merge buffer.
+
+**Correctness.** Follows from @thm-06-elimination-preserves-reward and @thm-06-self-loop-preserves-reward. Each bypass edge preserves the probability flow through $v_i$, and self-loop resolution preserves the expected accumulated reward via the geometric series argument.
+
+### Algorithm 11: Full Graph Elimination
+
+*Description.* This algorithm converts a (possibly cyclic) normalized phase-type graph into an acyclic representation by eliminating all transient vertices. It first determines the elimination order using SCC decomposition and topological sort, then eliminates vertices one by one using Algorithm 10, and finally records reverse-order edge accumulation commands for the remaining acyclic graph. The output is the reward compute graph (@def-06-reward-compute-graph).
+
+```
+Algorithm 11: Full Graph Elimination
+1: Let G = (V, E, W) be a phase-type graph representing PH_p(alpha, S) (@def-01-ph-graph)
+2:
+3: function BuildRewardComputeGraph(G)
+4:   scc <- TarjanSCC(G)                                 > Algorithm 6 in [04]
+5:   order <- TopologicalSort(scc)                        > Algorithm 7 in [04]
+6:   vertices <- OrderVertices(order)                     > Transient first, then absorbing (@def-06-elimination-ordering)
+7:   C <- empty command sequence
+8:
+9:   > Phase 1: Initialization commands (vertex scalars)
+10:  for i <- 0 to |V| - 1 do
+11:    v <- vertices[i]
+12:    lambda_v <- Sum_{z in children(v)} w(v -> z)
+13:    if v = v_0 or v is absorbing then
+14:      AppendCommand(C, i, i, 0)                        > Zero reward for starting/absorbing
+15:    else
+16:      AppendCommand(C, i, i, 1/lambda_v)                > Vertex scalar x_v = 1/lambda_v
+17:    end if
+18:    for each edge (v -> z) do                           > Normalize in place
+19:      w'(v -> z) <- w(v -> z) / lambda_v
+20:    end for
+21:  end for
+22:
+23:  > Phase 2: Elimination (forward pass)
+24:  for i <- 0 to |V| - 1 do
+25:    EliminateVertex(G, x, C, i)                        > Algorithm 10
+26:  end for
+27:
+28:  > Phase 3: Reverse-order edge accumulation
+29:  for i <- |V| - 1 downto 0 do
+30:    v <- vertices[i]
+31:    for each child z of v in the eliminated graph do
+32:      AppendCommand(C, originalIndex(v), originalIndex(z), w'(v -> z))
+33:    end for
+34:  end for
+35:
+36:  return C
+37: end function
+```
+
+**Correspondence table:**
+
+| Pseudocode variable | Math symbol | Code variable (file:function) |
+|---------------------|-------------|-------------------------------|
+| $G$ | $G = (V, E, W)$ | `graph` (phasic.c:`ptd_graph_ex_absorbation_time_comp_graph`) |
+| $\text{scc}$ | SCC decomposition | `scc` (`ptd_scc_graph*`) |
+| $\text{order}$ | Topological ordering | `v` (result of `ptd_scc_graph_topological_sort`) |
+| $\text{vertices}$ | Ordered vertex array | `vertices` |
+| $C$ | Reward compute graph | `commands` (`ptd_reward_increase*`) |
+| $\lambda_v$ | Total outgoing rate | `rate` |
+| $\text{originalIndex}(v)$ | Original graph index | `original_indices[i]` |
+
+**Complexity.** Time: $O(|V|^3)$ worst case (@thm-06-elimination-complexity). The SCC computation is $O(|V| + |E|)$ (Algorithm 6 in [04]), the topological sort is $O(|V|)$ (Algorithm 7 in [04]), and the elimination dominates at $O(|V|^3)$. Space: $O(|V|^2)$ for the adjacency lists (which can grow due to fill-in) and $O(|V|^2)$ for the command array.
+
+**Correctness.** Follows from @thm-06-elimination-preserves-reward, @thm-06-self-loop-preserves-reward, and @thm-06-acyclic-absorption. Each vertex elimination preserves expected accumulated reward (@thm-06-elimination-preserves-reward), self-loops are correctly resolved (@thm-06-self-loop-preserves-reward), and the final graph is acyclic with correct absorption probabilities (@thm-06-acyclic-absorption). The reverse-order edge accumulation commands reconstruct the first-step expansion (@eq-06-first-step) for the acyclic graph, enabling moment computation via Algorithm 12.
+
+### Algorithm 12: Moment Computation via Elimination Commands
+
+*Description.* Given a reward compute graph (the cached command sequence from Algorithm 11) and a reward vector, this algorithm computes the expected accumulated reward at each vertex by replaying the commands. The expected absorption time is recovered as $\text{result}[v_0]$ (the starting vertex entry). By replacing the reward vector with reward-transformed values, higher moments and reward-transformed moments can be computed using the same command sequence.
+
+```
+Algorithm 12: Moment Computation via Elimination Commands
+1: Let C = (c_0, ..., c_{N-1}) be the reward compute graph (@def-06-reward-compute-graph)
+2: Let r be a reward vector of length |V|, or NULL for default rewards (all ones)
+3:
+4: function ReplayCommands(C, r)
+5:   result <- array of size |V|
+6:   if r = NULL then
+7:     result[i] <- 1 for all i                          > Default: unit rewards (absorption time)
+8:   else
+9:     result <- copy of r
+10:  end if
+11:
+12:  for j <- 0 to N - 1 do
+13:    cmd <- C[j]
+14:    if cmd.multiplier = 0 then                        > Skip zero multiplier (0 x anything = 0)
+15:      continue
+16:    end if
+17:    if cmd.multiplier = infinity and result[cmd.to] = 0 then > Handle infinity x 0 = 0 (limit)
+18:      continue
+19:    end if
+20:    result[cmd.from] <- result[cmd.from] + result[cmd.to] x cmd.multiplier
+21:    if result[cmd.from] is NaN then                   > Numerical catastrophe detection
+22:      error "NaN detected at vertex cmd.from"
+23:    end if
+24:  end for
+25:
+26:  return result
+27: end function
+```
+
+**Correspondence table:**
+
+| Pseudocode variable | Math symbol | Code variable (file:function) |
+|---------------------|-------------|-------------------------------|
+| $C$ | Command sequence | `graph->reward_compute_graph` (phasic.c:`ptd_expected_waiting_time`) |
+| $\mathbf{r}$ | Reward vector | `rewards` parameter |
+| $\text{result}$ | Expected reward array | `result` |
+| $\text{cmd.from}$ | Source vertex index | `command.from` |
+| $\text{cmd.to}$ | Target vertex index | `command.to` |
+| $\text{cmd.multiplier}$ | Scale factor $m - 1$ or weight | `command.multiplier` |
+| $N$ | Number of commands | `graph->reward_compute_graph->length` |
+
+**Complexity.** Time: $O(N)$ where $N \leq |V|^2$ is the number of commands. Each command is a single multiply-accumulate operation. Space: $O(|V|)$ for the result array.
+
+**Correctness.** The command sequence is generated by Algorithm 11 to encode the complete elimination process: initialization (vertex scalars), bypass operations (@thm-06-elimination-preserves-reward), self-loop resolutions (@thm-06-self-loop-preserves-reward), and reverse-order edge accumulation. Replaying the commands with a reward vector $\mathbf{r}$ computes the first-step expansion (@eq-06-first-step) for each vertex, with $x_v$ replaced by $r_v \cdot x_v$ (the reward-weighted vertex scalar). The result at the starting vertex $v_0$ gives $\mathbb{E}[\tilde{\tau}] = \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{r}) \mathbf{e}$, the expected accumulated reward (@def-01-reward-cph).
+
+## Numerical Considerations
+
+**Condition number monitoring.** The implementation monitors the condition number of the elimination by tracking the ratio of the largest to smallest multiplier magnitudes across all commands. When this ratio exceeds a configurable threshold (default $10^{12}$, controlled by the `PHASIC_CONDITION_THRESHOLD` environment variable), the system automatically activates MPFR arbitrary-precision arithmetic if available. The MPFR precision is computed as $\lceil \log_2(\text{condition number}) \rceil + 64$ bits, clamped to the range $[128, 1024]$.
+
+**Zero-times-infinity handling.** During command replay, two special cases arise: (i) $\text{multiplier} = 0$ with $\text{result}[\text{to}]$ potentially infinite (from inescapable cycles), and (ii) $\text{multiplier} = \infty$ with $\text{result}[\text{to}] = 0$ (from zero-reward vertices). Both are handled by the convention $0 \times \infty = 0$ (the limit interpretation), implemented as explicit checks before the multiply-accumulate.
+
+**NaN detection.** After each command, the result is checked for NaN. If detected, the computation is aborted with an error, as NaN indicates a numerical catastrophe (typically caused by severe cancellation in ill-conditioned graphs). The error message includes the command index and vertex index for debugging.
+
+**Self-loop probability near 1.** When the self-loop probability $p$ approaches 1, the factor $1/(1-p)$ becomes very large, amplifying rounding errors. The SCC-based elimination ordering mitigates this by processing vertices within the same SCC together, but extreme cases may still require MPFR precision.
+
+**Sorted edge merge.** The implementation sorts each vertex's edge list by pointer address and uses a merge-based algorithm (analogous to merge sort's merge step) to combine the edge lists of the eliminated vertex and each parent. This ensures that existing edges to the same target are correctly identified and updated rather than duplicated, and new bypass edges are inserted in sorted order. The use of sentinel values (dummy minimum and maximum pointers) simplifies boundary handling.
+
+## Implementation Notes
+
+**Source code mapping:**
+
+| Algorithm | File | Function | Lines |
+|-----------|------|----------|-------|
+| Algorithm 10 | `src/c/phasic.c` | `ptd_graph_ex_absorbation_time_comp_graph` (inner loop) | L4702--L4848 |
+| Algorithm 11 | `src/c/phasic.c` | `ptd_graph_ex_absorbation_time_comp_graph` | L4538--L4901 |
+| Algorithm 12 | `src/c/phasic.c` | `ptd_expected_waiting_time` | L6118--L6265 |
+| Precomputation cache | `src/c/phasic.c` | `ptd_precompute_reward_compute_graph` | L1768--L1816 |
+
+**Deviations from pseudocode:**
+
+- **Algorithm 10 (edge merge):** The pseudocode shows a high-level sorted merge. The implementation uses `qsort` on edge arrays with pointer-based comparison (`arr_c_cmp`), sentinel dummy vertices (`dummy__ptd_min`, `dummy__ptd_max`), and explicit index tracking via `arr_p_index` and `arr_c_index` cross-references between parent and child arrays. This is a performance optimization that avoids hash table lookups.
+
+- **Algorithm 11 (normalization):** The pseudocode shows normalization as part of the initialization phase. In the implementation, normalization is performed inline: the total rate is computed, edges are divided by the rate, and the vertex scalar $1/\lambda_v$ is recorded as the first command. This combines Algorithms 8 (from [05]) and 11 into a single pass.
+
+- **Algorithm 11 (skip condition):** The pseudocode eliminates all vertices. The implementation skips parents with index less than $i$ (`if (parent_vertex_index < i) { continue; }`), because those parents have already been eliminated. This is correct because the elimination ordering processes vertices in increasing index order, and eliminated vertices no longer participate in the graph.
+
+- **Algorithm 12 (self-scaling encoding):** When `from == to`, the `add_command` function stores `multiplier - 1` rather than `multiplier`. This transforms the generic operation `result[from] += result[to] * multiplier` into the scaling operation `result[from] *= (1 + (multiplier - 1)) = result[from] * multiplier`. This encoding avoids a branch in the inner loop of `ptd_expected_waiting_time`.
+
+- **Algorithm 11 (parameterized variant):** The function `ptd_graph_ex_absorbation_time_comp_graph_parameterized` implements the same algorithm but stores pointers to parameter-dependent values rather than concrete doubles, enabling re-evaluation when parameters change. This variant uses command types (`PP`, `P`, `INV`, `ZERO`, `DIVIDE`, `ONE_MINUS`) to distinguish different arithmetic operations.
+
+- **Algorithm 12 (MPFR fallback):** When the condition number exceeds the threshold, `ptd_expected_waiting_time` delegates to `ptd_expected_waiting_time_mpfr`, which replays the same command sequence using MPFR arbitrary-precision arithmetic. The MPFR command sequence stores multipliers as string representations in scientific notation to preserve full precision.
+
+## Symbol Index
+
+| Symbol | Name | First appearance |
+|--------|------|-----------------|
+| $C$ | Command sequence (reward compute graph) | @def-06-reward-compute-graph |
+| $c_j$ | Individual command $(\text{from}, \text{to}, \text{multiplier})$ | @def-06-reward-compute-graph |
+| $G^{(-v)}$ | Graph after eliminating vertex $v$ | @def-06-vertex-elimination |
+| $G^*$ | Final acyclic graph after full elimination | @thm-06-acyclic-absorption |
+| $N$ | Number of commands in reward compute graph | @def-06-reward-compute-graph |
+| $p$ | Self-loop probability | @def-06-self-loop-resolution |

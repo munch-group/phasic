@@ -4,8 +4,6 @@
 **Status:** Draft  
 **Scope:** All phasic documentation, supplementary materials, and future papers  
 
----
-
 ## 1. Purpose and Scope
 
 This document defines the standard mathematical, graph-theoretic, and algorithmic notation for all documentation produced for the phasic project. It governs:
@@ -24,8 +22,6 @@ The notation is designed to be acceptable to both the **applied probability / ma
 
 Where these sources conflict, this standard specifies the resolution.
 
----
-
 ## 2. Typographic Conventions
 
 ### 2.1 General Rules
@@ -40,16 +36,27 @@ Where these sources conflict, this standard specifies the resolution.
 | Sets | Non-bold uppercase italic | *V*, *E*, *N* | `V`, `E`, `\mathbb{N}` |
 | Functions | Non-bold italic or roman | *f*, *w*, children, parents | `f`, `w`, `\operatorname{children}` |
 | Operators / named functions | Upright roman | exp, log, diag, Pr | `\exp`, `\log`, `\operatorname{diag}`, `\Pr` |
+| Named constants / enum values / operation types | Monospace (typewriter) | Const, Add, Mul, Div, Inv, Dot, Param, Sub, Sum | `\texttt{Const}`, `\texttt{Add}`, `\texttt{Mul}` |
 
 ### 2.2 LaTeX Implementation
 
 Use `\mathbf{}` for roman bold (latin matrices and vectors: **S**, **T**, **e**, **t**) and `\boldsymbol{}` for bold Greek (**α**, **π**, **Λ**). This ensures correct rendering across journal LaTeX classes.
 
-### 2.3 Markdown / Documentation Site
+### 2.3 Named Constants and Operation Types in Math Mode
+
+When named constants, enumeration values, or operation types appear inside mathematical expressions (e.g., expression tree node types, trace operation types), render them in **monospace** using `\texttt{}`:
+
+$$\mathcal{E} = \texttt{Add}(\texttt{Param}(1), \texttt{Const}(3.0))$$
+
+**Do not use `\textsc{}`** (LaTeX small caps). The `\textsc` command is not supported by MathJax and will fail to render in the Quarto documentation site and in any markdown context using MathJax or KaTeX. The `\texttt{}` command is supported by MathJax, KaTeX, and all standard LaTeX document classes.
+
+**Rationale:** Monospace visually distinguishes named constants from mathematical variables (which are italic) and from operators (which are upright roman). It also mirrors the convention that these names correspond to code-level enum values (e.g., `PTD_EXPR_CONST`, `OpType.DOT`).
+
+**In pseudocode blocks** (outside math mode), named constants may appear as plain PascalCase text (e.g., `Const`, `Add`) without any special formatting, since pseudocode already uses non-bold italic for all variables (Section 8.1, rule 4).
+
+### 2.4 Markdown / Documentation Site
 
 In markdown contexts where LaTeX math mode is available (e.g., Quarto, MathJax), use the same LaTeX commands inside `$...$` delimiters. In plain-text contexts, denote vectors and matrices in **bold** using markdown bold syntax and scalars in *italic*.
-
----
 
 ## 3. Phase-Type Distribution Notation
 
@@ -126,8 +133,6 @@ $$\mathbb{E}[\tilde{\tau}^n] = n! \, \boldsymbol{\alpha} \left( (-\mathbf{S})^{-
 $$\mathbb{E}[Y_i Y_j] = \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{R}_{\cdot i}) \mathbf{U} \triangle(\mathbf{R}_{\cdot j}) \mathbf{e} + \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{R}_{\cdot j}) \mathbf{U} \triangle(\mathbf{R}_{\cdot i}) \mathbf{e},$$
 where $\mathbf{R}_{\cdot j}$ denotes column $j$ of $\mathbf{R}$.
 
----
-
 ## 4. Graph Notation
 
 ### 4.1 Directed Weighted Graph
@@ -177,8 +182,6 @@ When edge weights depend on a parameter vector $\boldsymbol{\theta} = (\theta_1,
 | `log` | $w = \prod_{j} (c_j \theta_j)$ (computed in log-space) | Multiplicative parameterization |
 | `callback` | $w = \phi(\boldsymbol{\theta}, \mathbf{c})$ for arbitrary function $\phi$ | Non-linear parameterization |
 
----
-
 ## 5. Markov Chain and Stochastic Process Notation
 
 | Symbol | Name | Definition |
@@ -192,8 +195,6 @@ When edge weights depend on a parameter vector $\boldsymbol{\theta} = (\theta_1,
 | $Z_i$ | Occupation time | Total time spent in state $i$ before absorption |
 | $N_{ij}$ | Transition count | Number of transitions from state $i$ to state $j$ |
 | $B_i$ | Starting count | Number of processes initiating in state $i$ (in a sample) |
-
----
 
 ## 6. Probability and Statistics Notation
 
@@ -223,8 +224,6 @@ When edge weights depend on a parameter vector $\boldsymbol{\theta} = (\theta_1,
 | Binomial | $\operatorname{Binom}(n, p)$ |
 | Erlang | $\operatorname{Erlang}(k, \lambda)$ |
 
----
-
 ## 7. Algorithmic Notation
 
 ### 7.1 Specific Mathematical Notation in Algorithms
@@ -247,8 +246,6 @@ When edge weights depend on a parameter vector $\boldsymbol{\theta} = (\theta_1,
 | $O(f(n))$ | Asymptotic upper bound |
 | $\Omega(f(n))$ | Asymptotic lower bound |
 | $\Theta(f(n))$ | Asymptotically tight bound |
-
----
 
 ## 8. Algorithm Pseudocode Conventions
 
@@ -287,8 +284,6 @@ Algorithm N: Descriptive Title
 - When referencing matrices or vectors that are bold in the surrounding text, they appear non-bold and italic inside pseudocode, relying on context (the variable name and surrounding algorithm) for disambiguation
 - Use $\leftarrow$ for assignment, $=$ only for equality tests and definitions
 
----
-
 ## 9. Numbering and Cross-Referencing
 
 ### 9.1 Definitions, Theorems, Lemmas
@@ -309,8 +304,6 @@ Algorithms are numbered with a separate counter: **Algorithm 1**, **Algorithm 2*
 ### 9.3 Equations
 
 Equations are numbered sequentially within each document section: (1), (2), etc. Only number equations that are referenced elsewhere.
-
----
 
 ## 10. Documentation Structure Conventions
 
@@ -336,8 +329,6 @@ All mathematical documentation must follow a **narrative definition-by-definitio
 
 Every documentation page that introduces notation must include a **Symbol Index** section at the end, listing all symbols introduced on that page in alphabetical order with brief definitions and the definition/equation number where they first appear.
 
----
-
 ## 11. Conflict Resolutions
 
 This section records explicit decisions where conventions from different fields conflict.
@@ -350,8 +341,6 @@ This section records explicit decisions where conventions from different fields 
 | $\lambda_v$ for total outgoing rate vs. $\lambda$ for eigenvalue | $\lambda_v$ (subscripted) for vertex rate; $\lambda$ (unsubscripted) for eigenvalue or generic rate | Subscript disambiguates |
 | **π** for initial distribution vs. **π** for stationary distribution | Use **α** for initial distribution; reserve **π** for stationary distributions | Avoids ambiguity; consistent with the majority of PH literature |
 | Bold vectors in text vs. non-bold in pseudocode | Bold in mathematical text and equations; non-bold italic in pseudocode | The context (equation vs. algorithm block) disambiguates; standard practice in Springer publications |
-
----
 
 ## 12. Symbol Quick Reference
 
@@ -392,8 +381,6 @@ This section records explicit decisions where conventions from different fields 
 | $W$ | no | Weight function $W: E \to \mathbb{R}$ |
 | $w(v \to z)$ | no | Weight of a specific edge |
 | $x_v$ | no | Vertex scalar (expected waiting time) |
-
----
 
 ## 13. Updating This Standard
 
@@ -543,8 +530,6 @@ When submitting to a journal that requires different notation (e.g., a journal t
 - Any contributor (human or AI) producing mathematical documentation for phasic must load this standard at the start of the task.
 - Changes to this standard require the full procedure in Sections 13.2–13.4. Skipping the impact analysis is not permitted.
 
----
-
 ## 14. Agent Team for Documentation Production
 
 This section specifies the team of specialized agents that together produce exhaustive, mathematically correct, and algorithmically verified documentation from the phasic codebase. The codebase is the sole input; the agents must extract, formalize, prove, and verify everything from source code, tests, and existing technical documents.
@@ -620,8 +605,6 @@ This section specifies the team of specialized agents that together produce exha
 - When code and comments disagree, report the discrepancy.
 - Do not speculate about mathematical properties not evident in the code. Flag unknowns for the Proof Writer.
 
----
-
 #### Agent 2: Mathematical Formalization Writer
 
 **Purpose:** Transform extraction reports into rigorous mathematical definitions, theorems, and proofs following this notation standard.
@@ -642,8 +625,6 @@ This section specifies the team of specialized agents that together produce exha
 - When formalizing, preserve the correspondence to the code: include remarks like "In the implementation, this corresponds to the loop at line N of Algorithm M."
 - Follow Section 8 (pseudocode conventions) exactly for all algorithm listings.
 
----
-
 #### Agent 3: Algorithm Pseudocode Writer
 
 **Purpose:** Produce clean, correct, and complete pseudocode for every algorithm, following Section 8 of this notation standard.
@@ -663,8 +644,6 @@ This section specifies the team of specialized agents that together produce exha
 - If the code handles edge cases (e.g., zero rewards, self-loops, absorbing vertices), the pseudocode must handle them too.
 - Use the variable naming from the notation standard (Section 12), not from the source code.
 - Include a correspondence table after each algorithm mapping pseudocode names ↔ code variable names ↔ mathematical symbols.
-
----
 
 #### Agent 4: Verification Agent
 
@@ -713,8 +692,6 @@ This section specifies the team of specialized agents that together produce exha
 - If a proof is wrong, do not fix it. Report the error to Agent 2 for correction.
 - If an algorithm diverges from the code, report it — do not silently reconcile.
 
----
-
 #### Agent 5: Notation Compliance and Consistency Checker
 
 **Purpose:** Ensure that all documentation produced by Agents 2–4 is internally consistent and compliant with this notation standard.
@@ -732,8 +709,6 @@ This section specifies the team of specialized agents that together produce exha
 **Rules for this agent:**
 - This is a mechanical check, not a mathematical one. Do not evaluate proof correctness — that is Agent 4's job.
 - Flag every deviation, no matter how minor. A misplaced bold or a missing subscript is a real error in a notation standard.
-
----
 
 ### 14.2 Workflow
 
@@ -1025,6 +1000,8 @@ The pipeline maintains a **verification ledger** — one row per artifact (each 
 | File | Purpose |
 |------|---------|
 | `docs/notation_standard.md` | Authoritative notation — all symbols, conventions, formatting rules, pseudocode conventions |
+| `docs/som/PRODUCTION_PLAN.md` | SOM file structure, batch ordering, cross-reference rules, deduplication ownership |
+| `docs/som/_template.md` | Within-file section template — mandatory structure for every SOM file |
 | `CLAUDE.md` | Project context, development rules, API patterns |
 
 Additionally:
@@ -1049,9 +1026,120 @@ No documentation page is considered complete until all five gates pass:
 | G4: Verified | Agent 4 | Zero unresolved errors in the verification report |
 | G5: Notation compliant | Agent 5 | Zero notation violations in the compliance report |
 
----
+## 15. SOM Production Plan
 
-## 15. Revision History
+The Supplementary Online Material (SOM) lives in `docs/som/`. Its file structure, production batches, cross-reference system, deduplication strategy, and final homogeneity pass are defined in:
+
+> **`docs/som/PRODUCTION_PLAN.md`**
+
+That document is the authoritative plan for SOM production. This notation standard governs the notation and agent behavior; the production plan governs what files exist, in what order they are produced, and how they reference each other.
+
+All agents producing SOM content must read both this standard and the production plan before starting.
+
+## 16. Invoking Agents: Practical Operations Guide
+
+This section provides copy-paste prompts for the two most common operations: adding documentation for new features, and proofreading edits.
+
+### 16.1 Adding Documentation for a New Feature or Algorithm
+
+When new code is added to phasic and needs formal documentation in the SOM, use this prompt to invoke the full 5-agent pipeline:
+
+> **Prompt to Claude:**
+>
+> I have added a new feature/algorithm to phasic. Please document it in the SOM using the 5-agent pipeline defined in `docs/notation_standard.md` Section 14.
+>
+> **What changed:** [describe the new feature, which source files were added/modified]
+>
+> **Target SOM file:** [either an existing file number to extend, or "new file NN_name.md"]
+>
+> Please:
+> 1. Read `docs/notation_standard.md`, `docs/som/PRODUCTION_PLAN.md`, and `docs/som/_template.md` first
+> 2. Run Agent 1 (Codebase Analyst) on the source files I mentioned
+> 3. Run Agent 2 (Math Formalization) to produce definitions, theorems, and proofs
+> 4. Run Agent 3 (Algorithm Pseudocode) to produce pseudocode with correspondence tables
+> 5. Run Agent 4 (Verification) to verify proofs and algorithm-code correspondence
+> 6. Run Agent 5 (Notation Compliance) to check notation standard compliance
+> 7. Update `docs/som/00_index.md` registries with any new algorithms or definitions
+
+**If the new feature fits into an existing SOM file** (e.g., a new sampling method goes into `17_sampling.md`):
+- Agents 2 and 3 append to the existing file, continuing the definition/theorem numbering
+- Agent 4 verifies both the new content and that it is consistent with the existing content
+- Agent 5 checks the full file
+
+**If the new feature requires a new SOM file** (e.g., a completely new inference method):
+- The new file gets the next available number (28, 29, ...)
+- Update `PRODUCTION_PLAN.md` Section 2.2 (file listing) and Section 6.1 (deduplication ownership)
+- Update `00_index.md` file listing, dependency DAG, and algorithm registry
+- The new file must follow `_template.md` exactly
+
+### 16.2 Proofreading Edits for Math, Logic, and Consistency
+
+When you have manually edited SOM files (for clarity, to fix exposition, to add examples, etc.) and want to verify your edits haven't broken anything, use this prompt:
+
+> **Prompt to Claude:**
+>
+> I have edited the following SOM files: [list files]. Please proofread my edits using Agents 4 and 5 from `docs/notation_standard.md` Section 14.
+>
+> Please:
+> 1. Read `docs/notation_standard.md` (Sections 2-8, 11, 12) and the edited files
+> 2. Run Agent 4 (Verification):
+>    - Verify all proofs in the edited files are still logically valid
+>    - Check dimensional consistency of all equations
+>    - Trace one concrete example through any modified algorithm
+>    - Verify cross-references to other SOM files still point to existing definitions
+> 3. Run Agent 5 (Notation Compliance):
+>    - Check all symbols against the notation standard
+>    - Verify no new forward references were introduced
+>    - Verify the symbol index is still complete
+>    - Check template section order
+> 4. If my edits changed any definitions or theorems that are referenced by OTHER files, check those downstream files too for consistency
+>
+> Report any issues as PASS/FAIL with exact locations.
+
+**Key: the "downstream check."** If you edit a definition in file 06 that is referenced by files 07, 10, 11, and 13, those files need re-checking. The prompt above asks for this explicitly. Claude should:
+
+1. Grep for references to the edited definition across all SOM files
+2. Verify each reference still makes sense after the edit
+3. If an Extended Recall in another file quotes the edited definition verbatim, verify the quote still matches
+
+### 16.3 Quick Notation Check (Single File)
+
+For a fast check of a single file without full proof verification:
+
+> **Prompt to Claude:**
+>
+> Please run Agent 5 (Notation Compliance) from `docs/notation_standard.md` Section 14 on `docs/som/NN_filename.md`. Check symbols, template compliance, cross-references, numbering, and symbol index completeness.
+
+### 16.4 Full Cross-SOM Consistency Check
+
+To re-run the homogeneity pass from `PRODUCTION_PLAN.md` Section 8 after a series of edits:
+
+> **Prompt to Claude:**
+>
+> Please run the full homogeneity pass (H1-H5) from `docs/som/PRODUCTION_PLAN.md` Section 8 across all SOM files. Check: H1 (internal consistency — cross-references, algorithm counter, definition uniqueness), H4 (notation compliance sweep), and flag any issues.
+
+H2 (exhaustiveness) and H3 (non-duplication) are typically only needed after adding new files, not after editing existing ones.
+
+### 16.5 What Each Agent Invocation Looks Like in Practice
+
+When Claude runs the agent pipeline, it:
+
+1. **Agent 1** — Spawns a sub-agent that reads the source files and produces an extraction report (not written to disk; passed to Agents 2/3)
+2. **Agents 2+3** — Spawns one or two sub-agents that write the actual `.md` file content
+3. **Agent 4** — Spawns a sub-agent that reads the written file and the source code, produces a PASS/FAIL verification report
+4. **Agent 5** — Spawns a sub-agent that reads the written file and the notation standard, produces a compliance report
+5. **Fixes** — Claude applies fixes based on Agent 4/5 reports, then re-runs the failing checks
+
+For proofreading (Section 16.2), only steps 3-5 run, since the content already exists.
+
+### 16.6 When NOT to Use the Full Pipeline
+
+- **Fixing a typo**: Just fix it. No agents needed.
+- **Updating an Implementation Notes section** (line numbers changed, function renamed): Just update it. Run Agent 5 (quick notation check) if you want.
+- **Adding a Remark or Example**: Run Agent 4 on the file to verify the example is correct. Agent 5 is optional.
+- **Changing notation standard itself**: Follow Section 13 (Updating This Standard) — that has its own procedure with impact analysis.
+
+## 17. Revision History
 
 | Version | Date | Changes |
 |---------|------|---------|
@@ -1060,3 +1148,6 @@ No documentation page is considered complete until all five gates pass:
 | 1.2 | 2026-04-08 | Added Section 14: five-agent team specification with workflow, quality gates, required reading, and source file mapping |
 | 1.3 | 2026-04-08 | Expanded Section 14.2 with subsections 14.2.1–14.2.9: rejection report format, severity levels, error classification, routing table, re-verification rules, source code bug handling, termination/escalation with round-trip limits, dispute protocol, verification ledger with provenance and cascade tracking |
 | 1.4 | 2026-04-08 | Added Section 14.0: "Code Correctness Is Not Assumed" foundational principle — per-agent obligations when code appears wrong, explicit prohibition on fabricating proofs or weakening theorems, SUSPECTED_CODE_ISSUE flag in extraction reports, never-modify-code rule |
+| 1.5 | 2026-04-08 | Added Section 15: SOM production plan reference. Updated Section 14.3 required reading to include `PRODUCTION_PLAN.md` and `_template.md` |
+| 1.6 | 2026-04-09 | Added Section 2.3: Named constants and operation types must use `\texttt{}` (monospace) in math mode, not `\textsc{}` (unsupported by MathJax). Added row to Section 2.1 typographic conventions table. |
+| 1.7 | 2026-04-09 | Added Section 16: Practical operations guide — copy-paste prompts for adding new documentation, proofreading edits, quick notation checks, full consistency checks, and when NOT to use the pipeline. |

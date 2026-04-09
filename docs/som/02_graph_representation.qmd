@@ -1,0 +1,316 @@
+---
+title: "Graph Representation"
+---
+
+## Introduction
+
+This file documents the concrete data structures and algorithms that implement the abstract weighted directed graph defined in [01]. While @def-01-weighted-digraph specifies *what* a graph is (vertices, edges, weights), this file specifies *how* phasic stores and manipulates graphs in memory: dynamic edge lists for efficient construction, an AVL tree for state deduplication during graph building, validation of structural invariants, and deep cloning of graph objects.
+
+These data structures are the foundation of every computational algorithm in phasic. State space construction (file [08]) builds graphs using the AVL tree and edge insertion operations defined here. Normalization ([05]), elimination ([06]), and all subsequent algorithms operate on graphs stored in the representation formalized below.
+
+**Prerequisites:** [01]
+
+**Source files:**
+- `src/c/phasic.c` (functions: `ptd_graph_add_edge`, `ptd_avl_find_or_create`, `ptd_validate_graph`, `ptd_clone_graph`)
+- `api/c/phasic.h` (structs: `ptd_graph`, `ptd_vertex`, `ptd_edge`, `ptd_avl_node`)
+
+## Definitions
+
+### Dynamic edge storage
+
+In a dense matrix representation, the adjacency structure occupies $O(|V|^2)$ space regardless of the number of edges. For sparse phase-type graphs, phasic stores edges in per-vertex dynamic arrays.
+
+::: {#def-02-edge-list}
+## Dynamic edge list
+*Let $v \in V$ be a vertex in a phase-type graph $G = (V, E, W)$ (@def-01-weighted-digraph). The dynamic edge list of $v$ is a resizable array $\mathcal{E}(v)$ that stores all outgoing edges $(v \to z) \in E$. The array has a logical size $|\mathcal{E}(v)|$ (the number of edges currently stored) and a capacity $\operatorname{cap}(\mathcal{E}(v))$ (the number of slots allocated). New edges are appended at the end. When $|\mathcal{E}(v)| = \operatorname{cap}(\mathcal{E}(v))$, the capacity is doubled before the insertion proceeds. Initially, $\operatorname{cap}(\mathcal{E}(v)) = 0$ and storage is allocated on first insertion.*
+:::
+
+> **Intuition.** Each vertex owns a contiguous block of memory holding its outgoing edges. The doubling strategy ensures that although individual insertions may trigger a reallocation (copying all existing edges), the average cost per insertion is constant. Edges are not sorted during normal operation; the order reflects the order in which they were added.
+
+> **Example.** A vertex $v$ with three children $z_1, z_2, z_3$ has $|\mathcal{E}(v)| = 3$. If the current capacity is 4, adding a fourth edge requires no reallocation. Adding a fifth edge triggers a reallocation to capacity 8.
+
+::: {#def-02-vertex-array}
+## Vertex array
+*The graph $G$ stores all vertices in a dynamic array $\mathcal{V}(G)$ with the same doubling growth strategy as @def-02-edge-list. The starting vertex $v_0$ (@def-01-ph-graph) is always at index 0. Each vertex carries a state vector $\sigma(v) \in \mathbb{Z}^d$, where $d$ is the state dimension of the graph.*
+:::
+
+> **Intuition.** The state vector $\sigma(v)$ is the label that distinguishes vertices during graph construction. For example, in a coalescent model with $d = 1$, the state vector records the number of lineages. The vertex array provides $O(1)$ access by index, which is used extensively by elimination and moment algorithms.
+
+### AVL tree for state deduplication
+
+During graph construction, the same state may be encountered multiple times (e.g., different coalescent events may lead to the same number of remaining lineages). An AVL tree ensures each distinct state vector maps to exactly one vertex.
+
+::: {#def-02-avl-tree}
+## AVL tree for state deduplication
+*Let $d$ be the state dimension. An AVL tree $\mathcal{A}$ is a balanced binary search tree whose keys are state vectors $\sigma \in \mathbb{Z}^d$ and whose values are pointers to vertices in $\mathcal{V}(G)$. The key comparison is lexicographic on the byte representation: for state vectors $\sigma = (\sigma_1, \ldots, \sigma_d)$ and $\sigma' = (\sigma'_1, \ldots, \sigma'_d)$, the comparison is performed by `memcmp` on the $d \cdot \operatorname{sizeof}(\texttt{int})$ bytes. The tree maintains the AVL balance invariant: for every node $n$, the heights of its left and right subtrees differ by at most 1. Balance is restored after insertions by the four standard rotations (left, right, left-right, right-left).*
+:::
+
+> **Intuition.** The AVL tree is a lookup table: given a state vector, it returns either the existing vertex with that state or creates a new one. The balanced-tree structure ensures that lookups and insertions take $O(\log |V|)$ comparisons, and each comparison costs $O(d)$ for the byte-level comparison of state vectors.
+
+> **Example.** In a coalescent model with state dimension $d = 1$, the tree keys are single integers (the number of lineages). When the state space construction encounters state $(3)$, the AVL tree either finds the existing vertex for 3 lineages or creates a new one. The tree with states $\{1, 2, 3, 4, 5\}$ might have 3 at the root, with 1 and 2 in the left subtree and 4 and 5 in the right.
+
+::: {#def-02-avl-balance}
+## AVL balance factor
+*For a node $n$ in the AVL tree $\mathcal{A}$, the balance factor is $\beta(n) = h(n_R) - h(n_L)$, where $h(n_L)$ and $h(n_R)$ are the heights of the left and right subtrees respectively, with the convention $h(\texttt{null}) = -1$. The AVL invariant requires $\beta(n) \in \{-1, 0, 1\}$ for all nodes $n$.*
+:::
+
+> **Intuition.** The balance factor determines which rotation to apply after an insertion. A balance factor of $\pm 2$ at some node triggers a rotation that restores the invariant.
+
+### Graph validation
+
+After construction, a graph may be validated to detect structural errors. Phasic checks a specific invariant: the absence of parallel (duplicate) edges.
+
+::: {#def-02-validation}
+## Graph validation invariants
+*A phase-type graph $G = (V, E, W)$ satisfies the validation invariants if and only if for every vertex $v \in V$ and every pair of edges $(v \to z_1), (v \to z_2) \in \mathcal{E}(v)$ with the same target ($z_1 = z_2$), the two edges are the same edge (i.e., no vertex has two distinct edges to the same target).*
+:::
+
+> **Intuition.** Parallel edges would make the weight function $W$ ambiguous: $w(v \to z)$ must be a single value. The graph construction functions prevent parallel edges at insertion time; validation provides a post-hoc check.
+
+> **Example.** If vertex $v$ has edges to $z_1$ and $z_2$ with $z_1 \neq z_2$, the graph is valid (with respect to this invariant). If $v$ has two edges both targeting $z_1$, validation fails.
+
+**Remark.** The validation algorithm does *not* check: non-negative weights (enforced by the weight computation modes in @def-01-param-edges), connectivity, or the absence of self-loops (self-loops are forbidden by the edge insertion function, not by validation).
+
+### Graph cloning
+
+Some algorithms (e.g., reward transformation) modify the graph in place. To preserve the original, a deep clone is required.
+
+::: {#def-02-clone}
+## Graph clone
+*A clone of a phase-type graph $G = (V, E, W)$ is a new graph $G' = (V', E', W')$ satisfying:*
+
+1. *There is a bijection $\mu : V \to V'$ (the vertex map) such that $\sigma(\mu(v)) = \sigma(v)$ for all $v \in V$ (state vectors are copied).*
+2. *$(v \to z) \in E$ if and only if $(\mu(v) \to \mu(z)) \in E'$, and $w'(\mu(v) \to \mu(z)) = w(v \to z)$ (edges and weights are preserved).*
+3. *The starting vertex of $G'$ is $\mu(v_0)$.*
+4. *If edges carry coefficient vectors $\mathbf{c}$, these are deep-copied: modifying a coefficient in $G'$ does not affect $G$.*
+5. *The AVL tree of $G'$ is rebuilt to reference the new vertices $V'$.*
+6. *Cached computation results (e.g., from elimination) are not copied.*
+:::
+
+> **Intuition.** Cloning produces an independent copy: any modification to $G'$ leaves $G$ unchanged, and vice versa. The omission of cached results is deliberate — cached results reference the original vertices and would be invalidated by any modification to $G'$.
+
+## Theorems and Proofs
+
+::: {#thm-02-avl-ops}
+## AVL tree operations
+*Let $\mathcal{A}$ be an AVL tree containing $|V|$ nodes with state vectors of dimension $d$. The operations FindOrInsert and Find each require $O(d \log |V|)$ time.*
+:::
+
+::: {.proof}
+The AVL balance invariant ensures that the height of the tree is at most $1.4404 \log_2(|V| + 2) - 0.3277$ (the Fibonacci bound on AVL tree height; see Adelson-Velsky & Landis, 1962). Thus the number of nodes visited during a search or insertion is $O(\log |V|)$. At each node, the key comparison performs a `memcmp` on $d \cdot \operatorname{sizeof}(\texttt{int})$ bytes, which takes $O(d)$ time. The total comparison cost is therefore $O(d \log |V|)$.
+
+For FindOrInsert, if the key is not found, a new node is created in $O(d)$ time (copying the state vector) and inserted as a leaf. The subsequent rebalancing traverses at most $O(\log |V|)$ ancestors, performing at most two rotations, each in $O(1)$ time. The total insertion cost is $O(d \log |V|)$.
+
+For Find (lookup without insertion), the cost is exactly the search cost: $O(d \log |V|)$. $\square$
+:::
+
+::: {#thm-02-amortized-insert}
+## Amortized O(1) edge insertion
+*Let $\mathcal{E}(v)$ be a dynamic edge list with doubling growth strategy (@def-02-edge-list). Starting from an empty list, the amortized cost of inserting $n$ edges is $O(1)$ per insertion.*
+:::
+
+::: {.proof}
+We use aggregate analysis. After $n$ insertions, the total number of copy operations due to reallocations is at most $\sum_{i=0}^{\lfloor \log_2 n \rfloor} 2^i \leq 2n - 1$. This is because reallocations occur when the capacity doubles from $2^i$ to $2^{i+1}$, copying $2^i$ existing edges. The geometric series sums to less than $2n$. Adding the $n$ direct insertions (each $O(1)$ without reallocation), the total work is at most $3n$. The amortized cost per insertion is therefore $3n / n = O(1)$. $\square$
+:::
+
+::: {#thm-02-validation}
+## Validation correctness and complexity
+*Algorithm 2 (Graph Validation) correctly identifies all parallel edges and runs in $O(|V| \cdot \Delta \log \Delta)$ time, where $\Delta = \max_{v \in V} |\mathcal{E}(v)|$ is the maximum out-degree.*
+:::
+
+::: {.proof}
+For each vertex $v$, the algorithm sorts $\mathcal{E}(v)$ by target vertex pointer, then performs a linear scan comparing adjacent entries. Two edges $(v \to z_1)$ and $(v \to z_2)$ with $z_1 = z_2$ are parallel if and only if they are adjacent after sorting by target. The sort ensures all edges with the same target are consecutive, so the linear scan detects every parallel pair.
+
+The sort of $\mathcal{E}(v)$ takes $O(|\mathcal{E}(v)| \log |\mathcal{E}(v)|)$ time, and the linear scan takes $O(|\mathcal{E}(v)|)$ time. Summing over all vertices:
+
+$$\sum_{v \in V} O(|\mathcal{E}(v)| \log |\mathcal{E}(v)|) \leq \sum_{v \in V} O(\Delta \log \Delta) = O(|V| \cdot \Delta \log \Delta).$$
+
+Equivalently, since $\sum_v |\mathcal{E}(v)| = |E|$, the total is $O(|E| \log \Delta)$. $\square$
+:::
+
+::: {#thm-02-clone}
+## Clone correctness and complexity
+*Algorithm 3 (Graph Clone) produces a graph $G'$ satisfying @def-02-clone in $O(|V| \cdot |E|)$ time in the current implementation, or $O(|V| + |E|)$ time with an index-based vertex map.*
+:::
+
+::: {.proof}
+Correctness: Phase 1 creates $|V'| = |V|$ vertices with copied state vectors, establishing the bijection $\mu$. Phase 2 iterates over all edges in $G$ and creates corresponding edges in $G'$ with the same weight and deep-copied coefficients, so $E'$ is in bijection with $E$ and weights are preserved. Phase 3 rebuilds the AVL tree for $G'$ by inserting all vertices of $V'$, which takes $O(|V| d \log |V|)$ time.
+
+Complexity: Phase 1 is $O(|V| d)$ for copying state vectors. Phase 2 iterates over all $|E|$ edges. For each edge $(v_i \to v_j) \in E$, the implementation performs a linear scan of $\mathcal{V}(G')$ to find $\mu(v_j)$, taking $O(|V|)$ per edge. The total for Phase 2 is thus $O(|V| \cdot |E|)$. Phase 3 is $O(|V| d \log |V|)$. The bottleneck is Phase 2.
+
+If instead the implementation used the vertex map $\mu$ (an array mapping old indices to new vertices, computed in Phase 1), each edge target lookup would be $O(1)$, reducing Phase 2 to $O(|E|)$ and the total to $O(|V| d \log |V| + |E|)$. See the Implementation Notes for the suspected code issue. $\square$
+:::
+
+## Algorithms
+
+### Algorithm 1: AVL Find-or-Insert
+
+*Description.* Given a state vector $\sigma \in \mathbb{Z}^d$, this algorithm searches the AVL tree $\mathcal{A}$ for a node with key $\sigma$. If found, it returns the associated vertex. If not found, it creates a new vertex with state vector $\sigma$, inserts a new node into the tree, rebalances as needed, and returns the new vertex.
+
+```
+Algorithm 1: AVL Find-or-Insert
+1: Let G = (V, E, W) be a phase-type graph with AVL tree A and state dimension d
+2: Let σ ∈ Z^d be the query state vector
+3:
+4: function FindOrInsert(A, σ, G)
+5:   n ← root(A)
+6:   parent ← null
+7:   while n ≠ null do
+8:     cmp ← memcmp(σ, key(n), d · sizeof(int))    ▷ Lexicographic byte comparison
+9:     if cmp = 0 then
+10:      return vertex(n)                             ▷ State already exists
+11:    else if cmp < 0 then
+12:      parent ← n
+13:      n ← left(n)
+14:    else
+15:      parent ← n
+16:      n ← right(n)
+17:    end if
+18:  end while
+19:  v ← CreateVertex(G, copy(σ))                    ▷ New vertex with copied state vector
+20:  n_new ← CreateNode(σ, v)
+21:  if parent = null then
+22:    root(A) ← n_new
+23:  else if cmp < 0 then
+24:    left(parent) ← n_new
+25:  else
+26:    right(parent) ← n_new
+27:  end if
+28:  Rebalance(A, n_new)                              ▷ Walk up to root, fix balance factors, rotate if needed
+29:  return v
+30: end function
+```
+
+**Correspondence table:**
+
+| Pseudocode variable | Math symbol | Code variable (file:function) |
+|---------------------|-------------|-------------------------------|
+| $A$ | $\mathcal{A}$ | `ptd_avl_tree` (phasic.c:`ptd_avl_find_or_create`) |
+| $\sigma$ | $\sigma(v)$ | `state` parameter (phasic.c:`ptd_avl_find_or_create`) |
+| $n$ | — | `current` node pointer |
+| $cmp$ | — | result of `memcmp` |
+| $v$ | $v \in V$ | `ptd_vertex` pointer |
+| $d$ | $d$ (state dimension) | `graph->state_length` |
+
+**Complexity.** Time: $O(d \log |V|)$ (by @thm-02-avl-ops). Space: $O(d)$ for the new node if insertion occurs.
+
+**Correctness.** Follows from @thm-02-avl-ops. The binary search visits $O(\log |V|)$ nodes by the AVL height bound. The `memcmp` comparison induces a total order on $\mathbb{Z}^d$ (via byte representation), ensuring the BST property is well-defined. Rotations preserve the BST property and restore the AVL invariant.
+
+### Algorithm 2: Graph Validation
+
+*Description.* This algorithm checks a phase-type graph for the presence of parallel (duplicate) edges. For each vertex, it sorts the edge list by target pointer and scans for consecutive duplicates.
+
+```
+Algorithm 2: Graph Validation
+1: Let G = (V, E, W) be a phase-type graph
+2:
+3: function ValidateGraph(G)
+4:   for v ∈ V do
+5:     Sort E(v) by target vertex pointer               ▷ O(|E(v)| log |E(v)|) comparison sort
+6:     for i ← 1 to |E(v)| - 1 do
+7:       if target(E(v)[i]) = target(E(v)[i-1]) then
+8:         return false                                  ▷ Parallel edge detected
+9:       end if
+10:    end for
+11:  end for
+12:  return true
+13: end function
+```
+
+**Correspondence table:**
+
+| Pseudocode variable | Math symbol | Code variable (file:function) |
+|---------------------|-------------|-------------------------------|
+| $G$ | $G = (V, E, W)$ | `ptd_graph*` (phasic.c:`ptd_validate_graph`) |
+| $v$ | $v \in V$ | vertex loop variable |
+| $\mathcal{E}(v)$ | $\mathcal{E}(v)$ | `vertex->edges` array |
+| target | — | `edge->to` pointer |
+
+**Complexity.** Time: $O(|E| \log \Delta)$ where $\Delta$ is the maximum out-degree (by @thm-02-validation). Space: $O(1)$ additional (sorting is in-place).
+
+**Correctness.** Follows from @thm-02-validation.
+
+### Algorithm 3: Graph Clone
+
+*Description.* This algorithm creates a deep copy of a phase-type graph. It proceeds in three phases: (1) create vertices with copied state vectors, (2) clone edges using a vertex map, (3) rebuild the AVL tree. Graph metadata (parameter length, edge mode, DPH flag) is copied during graph creation; cached computation results (elimination traces, reward compute graphs) are not copied.
+
+```
+Algorithm 3: Graph Clone
+1: Let G = (V, E, W) be a phase-type graph with |V| vertices indexed 0, ..., |V|-1
+2:
+3: function CloneGraph(G)
+4:   G' ← CreateEmptyGraph(state_dimension(G))
+5:                                                       ▷ Phase 1: Clone vertices
+6:   for i ← 0 to |V| - 1 do
+7:     v ← V[i]
+8:     v' ← CreateVertex(G', copy(σ(v)))                ▷ Deep copy of state vector
+9:     μ[i] ← v'                                        ▷ Record vertex map
+10:  end for
+11:                                                      ▷ Phase 2: Clone edges
+12:  for i ← 0 to |V| - 1 do
+13:    v ← V[i]
+14:    for (v → z) ∈ E(v) do
+15:      j ← index(z)                                   ▷ Find index of target vertex
+16:      AddEdge(μ[i], μ[j], w(v → z), copy(c(v → z)))  ▷ Deep copy weight and coefficients
+17:    end for
+18:  end for
+19:                                                      ▷ Phase 3: Rebuild AVL tree
+20:  for i ← 0 to |V'| - 1 do
+21:    InsertIntoAVL(A', σ(V'[i]), V'[i])
+22:  end for
+23:  return G'
+24: end function
+```
+
+**Correspondence table:**
+
+| Pseudocode variable | Math symbol | Code variable (file:function) |
+|---------------------|-------------|-------------------------------|
+| $G$ | $G = (V, E, W)$ | `ptd_graph*` (phasic.c:`ptd_clone_graph`) |
+| $G'$ | $G' = (V', E', W')$ | cloned `ptd_graph*` |
+| $\mu$ | $\mu : V \to V'$ | vertex map array |
+| $\sigma(v)$ | $\sigma(v)$ | `vertex->state` |
+| $\mathbf{c}(v \to z)$ | $\mathbf{c}$ | `edge->coefficients` |
+
+**Complexity.** Time: $O(|V| \cdot |E|)$ in current implementation; $O(|V| d \log |V| + |E|)$ with index-based vertex map (by @thm-02-clone). Space: $O(|V| + |E|)$ for the cloned graph.
+
+**Correctness.** Follows from @thm-02-clone. Properties (1)-(6) of @def-02-clone are established by the three phases.
+
+## Implementation Notes
+
+**Source code mapping:**
+
+| Algorithm | File | Function | Notes |
+|-----------|------|----------|-------|
+| Algorithm 1 | `src/c/phasic.c` | `ptd_avl_find_or_create` | AVL tree find-or-insert |
+| Algorithm 2 | `src/c/phasic.c` | `ptd_validate_graph` | Graph validation |
+| Algorithm 3 | `src/c/phasic.c` | `ptd_clone_graph` | Graph deep clone |
+| — | `src/c/phasic.c` | `ptd_graph_add_edge` | Edge insertion (uses @def-02-edge-list) |
+
+**Deviations from pseudocode:**
+
+- **Algorithm 1 (AVL):** The implementation stores parent pointers in each AVL node, which simplifies the rebalancing walk. The pseudocode abstracts this as `Rebalance(A, n_new)`.
+
+- **Algorithm 2 (Validation):** The sort in the implementation uses `qsort` on the edge array, comparing target vertex pointers as integers. The pseudocode abstracts this as a generic comparison sort.
+
+- **Algorithm 3 (Clone):** The pseudocode shows an index-based vertex map $\mu$. See the suspected code issue below regarding the actual implementation.
+
+- **Edge insertion (`ptd_graph_add_edge`):** Self-loops are explicitly forbidden: attempting to add an edge $(v \to v)$ raises an error. The coefficient vector length is validated against the graph's parameter dimension. The initial weight is computed as $w = \sum_j c_j \cdot 1 = \sum_j c_j$ (i.e., with an implicit $\boldsymbol{\theta} = \mathbf{e}$).
+
+**Remark** (Suspected code issue: `ptd_avl_tree_max_depth`). The function `ptd_avl_tree_max_depth` contains a bug: both the left-subtree and right-subtree recursive calls recurse into the left child. Specifically, the line computing the right subtree depth calls `ptd_avl_tree_max_depth(node->left)` instead of `ptd_avl_tree_max_depth(node->right)`. This causes the function to return an incorrect tree height when the right subtree is deeper than the left. The bug does not affect AVL tree correctness (insertions and lookups do not use `max_depth`), but any code relying on the reported tree height will get incorrect results.
+
+**Remark** (Suspected code issue: `ptd_clone_graph` target lookup). In Phase 2 of the clone algorithm, the implementation performs a linear scan of the cloned vertex array to find the target vertex $\mu(v_j)$ for each edge, rather than using the index-based vertex map computed in Phase 1. This results in $O(|V|)$ time per edge lookup instead of $O(1)$, making the overall clone complexity $O(|V| \cdot |E|)$ rather than the achievable $O(|V| d \log |V| + |E|)$. The vertex map array is available from Phase 1 and could be used to resolve targets in constant time.
+
+## Symbol Index
+
+| Symbol | Name | First appearance |
+|--------|------|-----------------|
+| $\mathcal{A}$ | AVL tree for state deduplication | @def-02-avl-tree |
+| $\beta(n)$ | AVL balance factor | @def-02-avl-balance |
+| $\operatorname{cap}(\mathcal{E}(v))$ | Capacity of dynamic edge list | @def-02-edge-list |
+| $d$ | State dimension | @def-02-vertex-array |
+| $\Delta$ | Maximum out-degree | @thm-02-validation |
+| $\mathcal{E}(v)$ | Dynamic edge list of vertex $v$ | @def-02-edge-list |
+| $\mu$ | Vertex map (clone bijection) | @def-02-clone |
+| $\sigma(v)$ | State vector of vertex $v$ | @def-02-vertex-array |
+| $\mathcal{V}(G)$ | Vertex array of graph $G$ | @def-02-vertex-array |

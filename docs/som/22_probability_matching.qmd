@@ -1,0 +1,207 @@
+---
+title: "Probability Matching Estimation"
+---
+
+## Introduction
+
+This file formalizes **probability matching estimation** for phase-type models with discrete joint probability structure. Unlike moment matching ([21]), which operates on continuous observations and their moments, probability matching targets models where observations are categorical (vertex indices in a joint probability graph) and the model produces a probability table over terminal vertices. The estimator minimizes the distance between the empirical probability distribution (from observed frequency counts) and the model probability distribution (from normalized expected sojourn times), providing parameter estimates and priors for subsequent Bayesian inference.
+
+In the phasic pipeline, probability matching applies to joint probability graphs constructed via `Graph.joint_prob_graph()`, where each observation corresponds to a terminal vertex index (e.g., a mutation count tuple in population genetics). The model probabilities are computed via the forward algorithm ([14]) and normalized over all terminal vertices. The estimation is cast as a nonlinear least-squares problem with multinomial covariance for standard error estimation via the delta method.
+
+**Prerequisites:** [01], [14]
+
+**Source files:**
+
+- `src/phasic/probability_matching.py` (functions: `probability_matching`, `_estimate_multinomial_covariance`, `_initial_guess_grid_probs`)
+
+## Definitions
+
+::: {#def-22-empirical-model-pmf .definition}
+## Empirical and Model PMF
+*Let $y_1, \ldots, y_n$ be i.i.d. observations, each taking values in a finite set of terminal vertex indices $\mathcal{V}_{\text{term}} = \{v_{t_1}, \ldots, v_{t_J}\} \subset V$. Let $\mathcal{V}_{\text{obs}} = \{v_{t_{i_1}}, \ldots, v_{t_{i_K}}\} \subseteq \mathcal{V}_{\text{term}}$ be the set of $K$ distinct observed vertex indices, with counts $n_k = \#\{i : y_i = v_{t_{i_k}}\}$. The **empirical PMF** is*
+
+$$\hat{p}_k = \frac{n_k}{n}, \quad k = 1, \ldots, K.$$ {#eq-22-empirical-pmf}
+
+*The **model PMF** at parameter $\boldsymbol{\theta}$ is computed from the normalized expected sojourn times at terminal vertices:*
+
+$$p_k(\boldsymbol{\theta}) = \frac{x_{v_{t_{i_k}}}(\boldsymbol{\theta})}{\sum_{j=1}^{J} x_{v_{t_j}}(\boldsymbol{\theta})}, \quad k = 1, \ldots, K,$$ {#eq-22-model-pmf}
+
+*where $x_v(\boldsymbol{\theta})$ is the expected sojourn time at vertex $v$ under parameter $\boldsymbol{\theta}$, computed via the forward algorithm ([14]).*
+:::
+
+> **Intuition.** The empirical PMF is simply the observed relative frequency of each vertex index in the data. The model PMF is the theoretical probability of each vertex under the phase-type model, obtained by normalizing the expected sojourn times (which are proportional to absorption probabilities in the joint probability graph construction). Probability matching finds the parameter that makes these two distributions as close as possible.
+
+> **Example.** In a coalescent model with mutations, terminal vertices represent site frequency spectrum (SFS) categories. If $n = 1000$ loci are observed with counts $(n_1, n_2, n_3) = (500, 350, 150)$ for singletons, doubletons, and tripletons, then $\hat{\mathbf{p}} = (0.5, 0.35, 0.15)$. The model predicts $\mathbf{p}(\theta) = (0.52, 0.30, 0.18)$ for some $\theta$, and probability matching adjusts $\theta$ to reduce this discrepancy.
+
+::: {#def-22-prob-objective .definition}
+## Probability Matching Objective
+*The **probability matching objective** is the nonlinear least-squares problem*
+
+$$\hat{\boldsymbol{\theta}} = \arg\min_{\boldsymbol{\theta} > 0} \sum_{k=1}^{K} \left( p_k(\boldsymbol{\theta}) - \hat{p}_k \right)^2.$$ {#eq-22-prob-objective}
+
+*The constraint $\boldsymbol{\theta} > 0$ ensures positive rates. This is equivalent to minimizing $\lVert \mathbf{p}(\boldsymbol{\theta}) - \hat{\mathbf{p}} \rVert_2^2$, where $\mathbf{p}(\boldsymbol{\theta}) = (p_1(\boldsymbol{\theta}), \ldots, p_K(\boldsymbol{\theta}))^\top$ and $\hat{\mathbf{p}} = (\hat{p}_1, \ldots, \hat{p}_K)^\top$.*
+:::
+
+> **Intuition.** The objective measures the squared Euclidean distance between the model and empirical probability vectors. Unlike maximum likelihood (which uses the multinomial log-likelihood), least-squares probability matching is computationally simpler and provides a natural residual structure for standard error estimation. The two approaches are asymptotically equivalent for well-specified models.
+
+::: {#def-22-multinomial-cov .definition}
+## Multinomial Covariance
+*Under the multinomial model $(n_1, \ldots, n_K) \sim \operatorname{Multinomial}(n, \hat{p}_1, \ldots, \hat{p}_K)$, the **covariance of the empirical proportions** is*
+
+$$\operatorname{Cov}(\hat{p}_i, \hat{p}_j) = \frac{1}{n} \begin{cases} \hat{p}_i(1 - \hat{p}_i) & \text{if } i = j, \\ -\hat{p}_i \hat{p}_j & \text{if } i \neq j. \end{cases}$$ {#eq-22-multinomial-cov}
+
+*In matrix form, $\boldsymbol{\Sigma}_{\hat{\mathbf{p}}} = n^{-1}(\operatorname{diag}(\hat{\mathbf{p}}) - \hat{\mathbf{p}} \hat{\mathbf{p}}^\top)$.*
+:::
+
+> **Intuition.** The multinomial covariance captures the sampling variability of the empirical proportions. Diagonal entries are the variance of each proportion (largest when $\hat{p}_k \approx 0.5$, smallest when $\hat{p}_k$ is near 0 or 1). Off-diagonal entries are negative: if one proportion is above its expectation, others must be below (since proportions sum to 1). The $1/n$ factor reflects that variability decreases with sample size. This covariance is used in the delta method to propagate uncertainty from $\hat{\mathbf{p}}$ to $\hat{\boldsymbol{\theta}}$.
+
+> **Example.** For $K = 3$ categories with $\hat{\mathbf{p}} = (0.5, 0.35, 0.15)$ and $n = 100$:
+> $$\boldsymbol{\Sigma}_{\hat{\mathbf{p}}} = \frac{1}{100}\begin{pmatrix} 0.25 & -0.175 & -0.075 \\ -0.175 & 0.2275 & -0.0525 \\ -0.075 & -0.0525 & 0.1275 \end{pmatrix}.$$
+
+## Theorems and Proofs
+
+::: {#thm-22-multinomial-cov .theorem}
+## Multinomial Covariance Is Exact for Independent Observations
+*Let $y_1, \ldots, y_n$ be i.i.d. draws from a categorical distribution with probabilities $\mathbf{p}^* = (p_1^*, \ldots, p_K^*)$, and let $\hat{p}_k = n_k / n$ where $n_k = \sum_{i=1}^{n} \mathbb{1}_{\{y_i = k\}}$. Then:*
+
+*(i) $\mathbb{E}[\hat{p}_k] = p_k^*$ (unbiasedness).*
+
+*(ii) $\operatorname{Cov}(\hat{p}_i, \hat{p}_j) = n^{-1}(\delta_{ij} p_i^* - p_i^* p_j^*)$, where $\delta_{ij}$ is the Kronecker delta.*
+
+*(iii) The plug-in estimator $\hat{\boldsymbol{\Sigma}}_{\hat{\mathbf{p}}}$ from @def-22-multinomial-cov (replacing $p_k^*$ with $\hat{p}_k$) is a consistent estimator of $\operatorname{Cov}(\hat{\mathbf{p}})$.*
+:::
+
+::: {.proof}
+(i) Since each $y_i$ is an independent draw, $n_k = \sum_{i=1}^{n} \mathbb{1}_{\{y_i = k\}}$ is a sum of i.i.d. Bernoulli($p_k^*$) random variables. Thus $\mathbb{E}[n_k] = n p_k^*$ and $\mathbb{E}[\hat{p}_k] = p_k^*$.
+
+(ii) For the diagonal, $\operatorname{Var}(n_k) = n p_k^*(1 - p_k^*)$ (binomial variance), so $\operatorname{Var}(\hat{p}_k) = n^{-2} \operatorname{Var}(n_k) = n^{-1} p_k^*(1 - p_k^*)$. For the off-diagonal ($i \neq j$), consider a single observation: $\operatorname{Cov}(\mathbb{1}_{\{y = i\}}, \mathbb{1}_{\{y = j\}}) = \mathbb{E}[\mathbb{1}_{\{y = i\}} \mathbb{1}_{\{y = j\}}] - p_i^* p_j^* = 0 - p_i^* p_j^*$ (since $y$ cannot equal both $i$ and $j$). Summing over $n$ independent observations: $\operatorname{Cov}(n_i, n_j) = -n p_i^* p_j^*$, so $\operatorname{Cov}(\hat{p}_i, \hat{p}_j) = -n^{-1} p_i^* p_j^*$. Combining both cases gives @eq-22-multinomial-cov with $p_k^*$ in place of $\hat{p}_k$.
+
+(iii) By the strong law of large numbers, $\hat{p}_k \xrightarrow{\text{a.s.}} p_k^*$ for each $k$. Since the covariance formula (@eq-22-multinomial-cov) is a continuous function of $\hat{p}_k$, the continuous mapping theorem gives $\hat{\boldsymbol{\Sigma}}_{\hat{\mathbf{p}}} \xrightarrow{\text{a.s.}} \boldsymbol{\Sigma}_{\hat{\mathbf{p}}}$, establishing consistency. $\square$
+:::
+
+## Algorithms
+
+### Algorithm 34: Probability Matching Estimation
+
+*Description.* Algorithm 34 estimates the parameter vector $\boldsymbol{\theta}$ of a joint probability graph by matching model probabilities to empirical probabilities. The algorithm: (1) tabulates observed vertex indices and computes empirical probabilities, (2) constructs a model probability function that evaluates normalized sojourn times via the forward algorithm, (3) finds an initial guess by coordinate-wise grid search matching the most common observation's probability, (4) solves the least-squares problem (@eq-22-prob-objective), and (5) computes standard errors via the delta method using the multinomial covariance from @thm-22-multinomial-cov.
+
+```
+Algorithm 34: Probability Matching Estimation
+1: Let G = (V, E) be a parameterized joint probability graph with d parameters
+2: Let y_1, ..., y_n be observed vertex indices (integers)
+3: Let fixed be a set of (index, value) pairs for fixed parameters
+4: Let d_free = d - |fixed| be the number of free parameters
+5:
+6: function ProbabilityMatching(G, y, fixed)
+7:   (v_1, ..., v_K), (n_1, ..., n_K) <- Unique(y)
+8:                                                  triangleright K distinct observations
+9:   p_hat_k <- n_k / n for k = 1, ..., K           triangleright Eq. (1)
+10:  V_term <- AllTerminalVertices(G)                triangleright For normalization
+11:
+12:  function p(theta)                               triangleright Model PMF
+13:    x_obs <- ForwardAlgorithm(G, theta, (v_1, ..., v_K))
+14:                                                  triangleright Sojourn times via [14]
+15:    x_all <- ForwardAlgorithm(G, theta, V_term)
+16:    return x_obs / sum(x_all)                     triangleright Eq. (2)
+17:  end function
+18:
+19:  x0 <- InitialGuessGridProbs(p, max(p_hat), d_free, fixed)
+20:                                                  triangleright Match most common obs
+21:
+22:  r(theta_free) <- p(Reconstruct(theta_free, fixed)) - p_hat
+23:                                                  triangleright Residual function
+24:
+25:  theta_hat <- LeastSquares(r, x0, bounds=(epsilon, inf))
+26:                                                  triangleright Eq. (3), TRF solver
+27:
+28:  J <- Jacobian(r, theta_hat)                     triangleright From solver
+29:  Sigma_p <- MultinomialCovariance(p_hat, n)      triangleright Eq. (4)
+30:  G_mat <- pinv(J)
+31:  Cov_theta <- G_mat * Sigma_p * G_mat^T          triangleright Delta method
+32:  se <- sqrt(diag(Cov_theta))
+33:  prior_i <- GaussPrior(theta_hat_i, c * se_i) for free i
+34:                                                  triangleright c = std_multiplier
+35:  return (theta_hat, se, prior, p_hat, p(theta_hat))
+36: end function
+```
+
+**Correspondence table:**
+
+| Pseudocode variable | Math symbol | Code variable (file:function) |
+|---------------------|-------------|-------------------------------|
+| `G` | $G = (V, E)$ | `graph` (`probability_matching.py:probability_matching`) |
+| `y` | $y_1, \ldots, y_n$ | `observed_indices` (`probability_matching.py:probability_matching`) |
+| `d` | $d$ (parameter dimension) | `theta_dim` (`probability_matching.py:probability_matching`) |
+| `d_free` | $d_{\text{free}}$ | `n_free` (`probability_matching.py:probability_matching`) |
+| `K` | $K$ (distinct observations) | `n_unique` (`probability_matching.py:probability_matching`) |
+| `n` | $n$ (total observations) | `n_obs` (`probability_matching.py:probability_matching`) |
+| `p_hat` | $\hat{\mathbf{p}}$ | `empirical_probs` (`probability_matching.py:probability_matching`) |
+| `V_term` | $\mathcal{V}_{\text{term}}$ | `all_terminal_indices_arr` (`probability_matching.py:probability_matching`) |
+| `p` | $\mathbf{p}(\boldsymbol{\theta})$ | `probs_fn` (`probability_matching.py:probability_matching`) |
+| `x_obs` | sojourn times at observed vertices | `sojourn_obs` (`probability_matching.py:probs_fn`) |
+| `x_all` | sojourn times at all terminals | `sojourn_all` (`probability_matching.py:probs_fn`) |
+| `x0` | initial guess | `x0` (`probability_matching.py:probability_matching`) |
+| `r` | residual function | `residual_fn` (`probability_matching.py:probability_matching`) |
+| `theta_hat` | $\hat{\boldsymbol{\theta}}$ | `theta_full_opt` (`probability_matching.py:probability_matching`) |
+| `J` | $\mathbf{J}$ (Jacobian) | `result.jac` (`probability_matching.py:probability_matching`) |
+| `Sigma_p` | $\boldsymbol{\Sigma}_{\hat{\mathbf{p}}}$ | `multinomial_cov` (`probability_matching.py:probability_matching`) |
+| `G_mat` | $\mathbf{G} = \mathbf{J}^+$ | `G` (`probability_matching.py:probability_matching`) |
+| `Cov_theta` | $\operatorname{Cov}(\hat{\boldsymbol{\theta}})$ | `cov_theta` (`probability_matching.py:probability_matching`) |
+| `se` | standard errors | `std_free` / `std_full` (`probability_matching.py:probability_matching`) |
+| `c` | std multiplier | `std_multiplier` (`probability_matching.py:probability_matching`) |
+
+**Complexity.** Time: $O(N_{\text{iter}} \cdot (C_{\text{fwd}} \cdot (K + J) + K))$, where $N_{\text{iter}}$ is the number of least-squares iterations (at most $200 \cdot d_{\text{free}}$), $C_{\text{fwd}}$ is the cost of one forward algorithm evaluation per vertex ([14]), $K$ is the number of distinct observations, and $J$ is the total number of terminal vertices (for normalization). The initial grid search costs $O(d_{\text{free}} \cdot 30 \cdot C_{\text{fwd}} \cdot (K + J))$. The multinomial covariance computation and delta method cost $O(K^2)$ and $O(K^2 \cdot d_{\text{free}})$ respectively. Space: $O(K^2)$ for the multinomial covariance matrix plus $O(J)$ for the terminal vertex array.
+
+**Correctness.** The empirical PMF $\hat{\mathbf{p}}$ is an unbiased and consistent estimator of the true PMF $\mathbf{p}^*$ (@thm-22-multinomial-cov(i)). Under standard regularity conditions on the model (continuous $\mathbf{p}(\boldsymbol{\theta})$ and unique identification), the least-squares estimator $\hat{\boldsymbol{\theta}}$ is consistent for $\boldsymbol{\theta}^*$. The standard errors are obtained via the delta method: $\operatorname{Cov}(\hat{\boldsymbol{\theta}}) \approx \mathbf{G} \boldsymbol{\Sigma}_{\hat{\mathbf{p}}} \mathbf{G}^\top$, where $\mathbf{G} = \mathbf{J}^+$ and $\boldsymbol{\Sigma}_{\hat{\mathbf{p}}}$ is the multinomial covariance from @thm-22-multinomial-cov.
+
+## Numerical Considerations
+
+**Normalization.** The model probabilities (@eq-22-model-pmf) require normalization over all terminal vertices, not just the observed ones. Unobserved terminal vertices may have non-zero probability under the model, and excluding them would bias the probabilities upward. The implementation identifies all terminal vertices (vertices with no outgoing edges that are reachable from vertices that do have outgoing edges) and computes their sojourn times for normalization.
+
+**Positivity constraint.** As in [21], the Trust Region Reflective solver enforces $\theta_j > 10^{-10}$ via bound constraints, preventing numerical issues with zero rates.
+
+**Singular Jacobian.** When $K > d_{\text{free}}$ (more probability equations than parameters), the Jacobian $\mathbf{J}$ is tall and the pseudoinverse $\mathbf{J}^+$ is used. When $K \leq d_{\text{free}}$ (underdetermined), the pseudoinverse provides the minimum-norm solution. If the pseudoinverse computation fails (due to numerically singular $\mathbf{J}$), the fallback heuristic $\text{se}_j = 0.5 |\hat{\theta}_j|$ is used.
+
+**Standard error floor.** As in [21], standard errors for free parameters are floored at $0.5 \cdot \max(|\hat{\theta}_j|, 10^{-4})$ to ensure priors always have non-degenerate spread.
+
+**Multinomial covariance singularity.** The multinomial covariance matrix $\boldsymbol{\Sigma}_{\hat{\mathbf{p}}}$ is always singular (its rank is $K - 1$ since the probabilities sum to 1). The pseudoinverse in the delta method handles this automatically: $\mathbf{G} = \mathbf{J}^+$ operates on the column space of $\mathbf{J}$, which typically has rank $\min(K, d_{\text{free}})$.
+
+## Implementation Notes
+
+**Source code mapping:**
+
+| Algorithm | File | Function | Lines |
+|-----------|------|----------|-------|
+| Algorithm 34 (entry) | `src/phasic/probability_matching.py` | `probability_matching` | L142--L357 |
+| Multinomial covariance | `src/phasic/probability_matching.py` | `_estimate_multinomial_covariance` | L59--L85 |
+| Initial guess grid | `src/phasic/probability_matching.py` | `_initial_guess_grid_probs` | L88--L139 |
+| Theta reconstruction | `src/phasic/method_of_moments.py` | `_reconstruct_theta` | L152--L165 |
+
+**Deviations from pseudocode:**
+
+- The model probability function `probs_fn` uses `compute_sojourn_times_ffi` from the FFI wrappers rather than directly calling the forward algorithm. This leverages the trace cache for efficient repeated evaluation with different parameter vectors.
+- The terminal vertex identification traverses the graph structure once to find all vertices that have at least one edge leading to a vertex with no outgoing edges. The pseudocode abstracts this as `AllTerminalVertices(G)`.
+- The `ProbMatchResult` dataclass stores `empirical_probs`, `model_probs`, and `unique_indices` for diagnostic comparison, not shown in the pseudocode return.
+- The initial guess grid (`_initial_guess_grid_probs`) matches the maximum model probability to the maximum empirical probability, rather than matching specific vertex probabilities. This is a robust heuristic that works regardless of which vertex is most common.
+- The `_reconstruct_theta` function is imported from `method_of_moments.py`, sharing the fixed-parameter insertion logic between both estimation methods.
+
+## Symbol Index
+
+| Symbol | Name | First appearance |
+|--------|------|-----------------|
+| $d_{\text{free}}$ | Number of free parameters | Algorithm 34 |
+| $\hat{\boldsymbol{\theta}}$ | Probability matching estimator | @def-22-prob-objective |
+| $\mathbf{G}$ | Pseudoinverse of Jacobian $\mathbf{J}^+$ | Algorithm 34 |
+| $\hat{\mathbf{p}}$ | Empirical PMF vector | @def-22-empirical-model-pmf |
+| $\hat{p}_k$ | Empirical probability of category $k$ | @def-22-empirical-model-pmf |
+| $\mathbf{J}$ | Jacobian of model PMF | Algorithm 34 |
+| $K$ | Number of distinct observed categories | @def-22-empirical-model-pmf |
+| $J$ | Total number of terminal vertices | @def-22-empirical-model-pmf |
+| $n$ | Number of observations | @def-22-empirical-model-pmf |
+| $n_k$ | Count of category $k$ | @def-22-empirical-model-pmf |
+| $\mathbf{p}(\boldsymbol{\theta})$ | Model PMF vector | @def-22-empirical-model-pmf |
+| $p_k(\boldsymbol{\theta})$ | Model probability of category $k$ | @def-22-empirical-model-pmf |
+| $\boldsymbol{\Sigma}_{\hat{\mathbf{p}}}$ | Multinomial covariance matrix | @def-22-multinomial-cov |
+| $\mathcal{V}_{\text{obs}}$ | Set of observed vertex indices | @def-22-empirical-model-pmf |
+| $\mathcal{V}_{\text{term}}$ | Set of all terminal vertex indices | @def-22-empirical-model-pmf |
+| $x_v(\boldsymbol{\theta})$ | Expected sojourn time at vertex $v$ | @def-22-empirical-model-pmf |

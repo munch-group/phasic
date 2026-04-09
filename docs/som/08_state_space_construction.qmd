@@ -1,0 +1,175 @@
+---
+title: "State Space Construction"
+---
+
+## Introduction
+
+This file formalizes the iterative state space construction algorithm that builds a phase-type graph from a user-provided transition function. The construction corresponds to Algorithm 1 in Roikjer, Hobolth & Munch (2022) and is the primary entry point for model specification in phasic: the user defines a callback that, given a state, returns the set of transitions (next states and edge weights), and the algorithm explores the reachable state space by breadth-first search, deduplicating states via an AVL tree.
+
+State space construction is the first stage of the phasic pipeline. The resulting graph $G = (V, E, W)$ is subsequently normalized ([05]), eliminated ([06]), and used for distribution computation ([14]) or reward transformation ([07]). When edges carry coefficient vectors rather than scalar weights, the graph is parameterized (@def-01-param-edges) and can be processed symbolically ([09], [10]).
+
+**Prerequisites:** [01], [02]
+
+**Source files:**
+- `src/c/phasic.c` (functions: `ptd_find_or_create_vertex`)
+- `src/phasic/__init__.py` (class: `Graph`, constructor with `callback` parameter)
+- `src/phasic/state_indexing.py` (class: `StateIndexer`, `Property` -- state encoding reference)
+
+## Definitions
+
+::: {#def-08-transition-function}
+## State transition function
+*Let $d \in \mathbb{N}$ be the state dimension and let $\Sigma = \mathbb{Z}^d$ be the state space. A state transition function is a mapping*
+
+$$\delta \colon \Sigma \to \mathcal{P}_{\mathrm{fin}}(\Sigma \times \mathbb{R}_{>0})$$
+
+*that assigns to each state $\sigma \in \Sigma$ a finite (possibly empty) set of pairs $(\sigma', w)$ where $\sigma'$ is a successor state and $w > 0$ is the transition weight. The set $\delta(\sigma) = \emptyset$ indicates that $\sigma$ is absorbing.*
+
+*In the parameterized case, the transition function instead returns coefficient vectors:*
+
+$$\delta_{\boldsymbol{\theta}} \colon \Sigma \to \mathcal{P}_{\mathrm{fin}}(\Sigma \times \mathbb{R}^k)$$
+
+*where each pair $(\sigma', \mathbf{c})$ specifies a successor state and a coefficient vector $\mathbf{c} = (c_1, \ldots, c_k)$ that determines the edge weight via a weight mode (@def-01-param-edges).*
+:::
+
+> **Intuition.** The transition function $\delta$ encodes the rules of a continuous-time Markov chain: given the current state, it specifies all possible transitions and their rates. In population genetics, $\sigma$ might encode lineage counts across populations, and $\delta$ returns coalescence and migration events with their respective rates. The function is provided by the user as a Python callback.
+
+> **Example.** For the Kingman coalescent with $n$ lineages, the state is a single integer $\sigma = (n)$, and $\delta((n)) = \{((n-1), \binom{n}{2})\}$ for $n \geq 2$, and $\delta((1)) = \emptyset$ (absorbing). The rate $\binom{n}{2}$ is the coalescent rate when $n$ lineages remain.
+
+::: {#def-08-state-space-construction}
+## Iterative state space construction
+*Let $\delta$ be a state transition function (@def-08-transition-function), let $\sigma_0 \in \Sigma$ be an initial state, and let $\boldsymbol{\alpha}_0 = (\sigma_{0,1}, w_1), \ldots, (\sigma_{0,m}, w_m)$ be an initial probability vector specifying the starting distribution over initial states with $\sum_{i=1}^m w_i \leq 1$. The iterative state space construction produces a phase-type graph $G = (V, E, W)$ (@def-01-ph-graph) by:*
+
+1. *Creating a starting vertex $v_0$ with edges $w(v_0 \to v_{\sigma_{0,i}}) = w_i$ for each initial state $\sigma_{0,i}$.*
+2. *Maintaining a queue $Q$ of unvisited states, initialized with $\{\sigma_{0,1}, \ldots, \sigma_{0,m}\}$.*
+3. *Maintaining an AVL tree $\mathcal{A}$ (@def-02-avl-tree) mapping state vectors to vertices for $O(\log |V|)$ deduplication.*
+4. *Iteratively: dequeue a state $\sigma$, compute $\delta(\sigma)$, and for each $(\sigma', w) \in \delta(\sigma)$: look up $\sigma'$ in $\mathcal{A}$; if absent, create a new vertex, insert it into $\mathcal{A}$, and enqueue $\sigma'$; add edge $(v_\sigma \to v_{\sigma'})$ with weight $w$.*
+5. *Terminating when $Q = \emptyset$.*
+:::
+
+> **Intuition.** This is a breadth-first exploration of the state space starting from the initial states. The AVL tree ensures that each distinct state is represented by exactly one vertex, even if it is reachable via multiple paths. The construction terminates when all reachable states have been visited.
+
+> **Example.** For the coalescent with $n = 4$: the initial state is $(4)$. The BFS discovers $(3)$ from $(4)$, then $(2)$ from $(3)$, then $(1)$ from $(2)$. State $(1)$ is absorbing ($\delta((1)) = \emptyset$), so the construction terminates with $|V| = 5$ (one starting vertex plus four state vertices).
+
+## Theorems and Proofs
+
+::: {#thm-08-termination-correctness}
+## Termination and correctness of state space construction
+*Let $\delta$ be a state transition function (@def-08-transition-function) such that the set of states reachable from the initial states $\{\sigma_{0,1}, \ldots, \sigma_{0,m}\}$ under repeated application of $\delta$ is finite with cardinality $n$. Then the iterative state space construction (@def-08-state-space-construction):*
+
+*(a) Terminates after at most $n$ dequeue operations.*
+
+*(b) Produces a phase-type graph $G = (V, E, W)$ satisfying @def-01-ph-graph with $|V| = n + 1$ (including the starting vertex).*
+
+*(c) The graph-matrix correspondence (@def-01-graph-matrix) yields a valid sub-intensity matrix $\mathbf{S}$ (or sub-transition matrix $\mathbf{T}$ for DPH) representing the Markov chain defined by $\delta$.*
+:::
+
+::: {.proof}
+(a) Each state is enqueued at most once because the AVL tree lookup in step 4 prevents reinsertion of a state already in $\mathcal{A}$. Since the reachable state space has cardinality $n$, at most $n$ states are enqueued and dequeued.
+
+(b) The starting vertex $v_0$ is created in step 1 with edges encoding the initial distribution, satisfying the starting vertex conditions of @def-01-ph-graph. Each reachable state $\sigma$ corresponds to exactly one vertex $v_\sigma$ (uniqueness enforced by the AVL tree). A vertex $v_\sigma$ is absorbing (no outgoing edges) if and only if $\delta(\sigma) = \emptyset$. All edges have positive weights (since $\delta$ returns $w > 0$). The total vertex count is $n$ reachable states plus one starting vertex.
+
+(c) By the graph-matrix correspondence (@def-01-graph-matrix), the off-diagonal entry $s_{ij}$ of $\mathbf{S}$ equals $w(v_i \to v_j)$, which equals the weight returned by $\delta$ for the transition from state $i$ to state $j$. The diagonal entry $s_{ii} = -\lambda_{v_i} = -\sum_j w(v_i \to v_j)$ is the negative total outgoing rate. Since all off-diagonal entries are non-negative and row sums are non-positive (by construction), $\mathbf{S}$ is a valid sub-intensity matrix. For DPH, the same argument applies with $\mathbf{T}$ where row sums are at most 1 (ensured by the user's transition function). $\square$
+:::
+
+::: {#lem-08-avl-dedup-complexity}
+## AVL tree deduplication complexity
+*The state space construction performs $O(n)$ AVL tree operations (find-or-insert), each costing $O(d \log n)$ where $d$ is the state dimension (for lexicographic key comparison). The total deduplication cost is $O(n \cdot d \cdot \log n)$.*
+:::
+
+::: {.proof}
+Each of the $n$ reachable states triggers exactly one find-or-insert operation (when first encountered) and at most $|\delta(\sigma)|$ find operations (when checking successors). By @thm-02-avl-ops, each AVL find-or-insert operation costs $O(d \log n)$ where the $d$ factor accounts for the lexicographic comparison of $d$-dimensional integer keys. The total number of find operations is bounded by $|E|$, the number of edges. $\square$
+:::
+
+## Algorithms
+
+### Algorithm 14: GenerateStateSpace
+
+*Description.* This algorithm implements the iterative state space construction (@def-08-state-space-construction). It performs a breadth-first traversal of the state space, using an AVL tree for $O(\log n)$ state deduplication. The algorithm corresponds to Algorithm 1 in Roikjer, Hobolth & Munch (2022).
+
+```
+Algorithm 14: GenerateStateSpace
+1: Let δ be a state transition function (Definition 8.1)
+2: Let (σ₀₁, w₁), ..., (σ₀ₘ, wₘ) be initial state-weight pairs with Σᵢ wᵢ ≤ 1
+3: Let d be the state dimension
+
+4: function GenerateStateSpace(δ, {(σ₀ᵢ, wᵢ)}, d)
+5:   G ← new phase-type graph with state dimension d
+6:   A ← new AVL tree with key length d               ▷ For state deduplication
+7:   Q ← empty queue                                   ▷ BFS frontier
+8:
+9:   for i ← 1 to m do                                 ▷ Process initial states
+10:    v ← FindOrCreateVertex(G, A, σ₀ᵢ)
+11:    AddEdge(v₀, v, wᵢ)                              ▷ v₀ is the starting vertex of G
+12:    Enqueue(Q, σ₀ᵢ)
+13:  end for
+14:
+15:  while Q ≠ ∅ do
+16:    σ ← Dequeue(Q)
+17:    v ← AvlFind(A, σ)                               ▷ Look up vertex for state σ
+18:    for each (σ', w) ∈ δ(σ) do                       ▷ Apply transition function
+19:      node ← AvlFindOrInsert(A, σ')
+20:      if node is newly inserted then
+21:        v' ← CreateVertex(G, σ')
+22:        node.entry ← v'
+23:        Enqueue(Q, σ')                               ▷ New state discovered
+24:      else
+25:        v' ← node.entry                              ▷ State already visited
+26:      end if
+27:      AddEdge(v, v', w)
+28:    end for
+29:  end while
+30:
+31:  return G
+32: end function
+```
+
+**Correspondence table:**
+
+| Pseudocode variable | Math symbol | Code variable (file:function) |
+|---------------------|-------------|-------------------------------|
+| $G$ | $G = (V, E, W)$ | `graph` (`phasic.c:ptd_graph_create`) |
+| $\mathcal{A}$ | AVL tree $\mathcal{A}$ | `avl_tree` (`phasic.c:ptd_avl_tree_create`) |
+| $Q$ | BFS queue | iteration over unvisited vertices (Python `__init__.py:Graph`) |
+| $\delta$ | transition function $\delta$ | `callback` (Python callback parameter) |
+| $\sigma$ | state vector $\sigma \in \mathbb{Z}^d$ | `child_state` (`phasic.c:ptd_find_or_create_vertex`) |
+| $v_0$ | starting vertex $v_0$ | `graph->starting_vertex` (`phasic.c`) |
+| $v, v'$ | vertices $v, v' \in V$ | `vertex`, `child` (`phasic.c:ptd_find_or_create_vertex`) |
+| $d$ | state dimension | `graph->state_length` (`phasic.c`) |
+| FindOrCreateVertex | AVL lookup + vertex creation | `ptd_find_or_create_vertex` (`phasic.c`) |
+| AvlFindOrInsert | AVL find-or-insert | `ptd_avl_tree_find_or_insert` (`phasic.c`) |
+
+**Complexity.** Time: $O(|E| \cdot d \cdot \log |V|)$ where $|E|$ is the total number of edges (transitions), $d$ is the state dimension, and $|V|$ is the number of reachable states. The $d \cdot \log |V|$ factor is the cost of each AVL tree operation (@lem-08-avl-dedup-complexity). Space: $O(|V| \cdot d + |E|)$ for storing the graph and AVL tree.
+
+**Correctness.** Follows from @thm-08-termination-correctness. The BFS ensures all reachable states are visited, the AVL tree ensures each state is represented by exactly one vertex, and the resulting graph satisfies the phase-type graph structure (@def-01-ph-graph).
+
+## Implementation Notes
+
+**Source code mapping:**
+
+| Algorithm | File | Function | Notes |
+|-----------|------|----------|-------|
+| Algorithm 14 (FindOrCreateVertex) | `src/c/phasic.c` | `ptd_find_or_create_vertex` | L7339-L7353 |
+| Algorithm 14 (AVL operations) | `src/c/phasic.c` | `ptd_avl_tree_find_or_insert`, `ptd_avl_tree_find` | AVL tree implementation |
+| Algorithm 14 (BFS driver) | `src/phasic/__init__.py` | `Graph.__init__` with `callback` | Python-level BFS loop |
+| State encoding | `src/phasic/state_indexing.py` | `StateIndexer`, `Property` | Mixed-radix state encoding |
+
+**Deviations from pseudocode:**
+
+- **BFS driver location.** The pseudocode presents a monolithic algorithm, but the implementation splits responsibility: the BFS loop and callback invocation are in the Python `Graph` constructor, while the C function `ptd_find_or_create_vertex` handles the AVL lookup and vertex creation for each individual state. The Python layer calls into C for each discovered state.
+
+- **State encoding.** The pseudocode uses abstract state vectors $\sigma \in \mathbb{Z}^d$. In practice, states are encoded as integer arrays of length `state_length`. The `StateIndexer` class provides a mixed-radix encoding system that maps structured state descriptions (e.g., lineage counts per population) to flat integer arrays, but this encoding is transparent to the construction algorithm.
+
+- **Parameterized edges.** When `parameterized=True`, the callback returns coefficient vectors $\mathbf{c}$ instead of scalar weights $w$. The `ptd_graph_add_edge` function stores the coefficient array on the edge, and the edge mode is locked to `PTD_EDGE_MODE_PARAMETERIZED` after the first non-IPV edge is added.
+
+## Symbol Index
+
+| Symbol | Name | First appearance |
+|--------|------|-----------------|
+| $\mathcal{A}$ | AVL tree for state deduplication | @def-08-state-space-construction |
+| $d$ | State dimension | @def-08-transition-function |
+| $\delta$ | State transition function | @def-08-transition-function |
+| $\delta_{\boldsymbol{\theta}}$ | Parameterized state transition function | @def-08-transition-function |
+| $Q$ | BFS queue of unvisited states | @def-08-state-space-construction |
+| $\Sigma$ | State space ($\mathbb{Z}^d$) | @def-08-transition-function |
+| $\sigma, \sigma'$ | State vectors | @def-08-transition-function |

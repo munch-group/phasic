@@ -1,0 +1,227 @@
+---
+title: "Van Loan Equivalence"
+---
+
+## Introduction
+
+This file formalizes the mathematical equivalence between Van Loan's block matrix method for computing integrals involving matrix exponentials and phasic's graph-based algorithms for phase-type distributions. Van Loan's method (Van Loan, 1978) computes integrals of the form $\int_0^t e^{\mathbf{A}s} \mathbf{B} \, ds$ by exponentiating a single augmented block matrix. Phasic's graph algorithms compute the same quantities---accumulated occupancy times, survival probabilities, and reward-accumulated moments---through the forward algorithm and graph elimination on sparse graph structures.
+
+The equivalence has practical significance: it establishes that phasic can serve as a general-purpose engine for Van Loan integration on large, sparse Markov systems where traditional matrix methods are computationally infeasible. In particular, epoch-wise (time-inhomogeneous) models with piecewise-constant rates, which arise in population genetics (coalescent models with demographic history), are handled by sequential graph construction with cross-epoch transition edges. The cross-epoch formula involves survival probabilities and accumulated occupancy times that correspond precisely to the blocks of the Van Loan matrix exponential product.
+
+This file formalizes and proves the results presented informally in `docs/pages/topics/van_loen_graph_equivalence.md`.
+
+**Prerequisites:** [01], [06], [14], [15]
+
+**Source files:**
+
+- `src/c/phasic.c` (functions: `ptd_graph_stop_probability`, `ptd_graph_accumulated_visiting_time`)
+- `src/phasic/__init__.py` (methods: `Graph.stop_probability`, `Graph.accumulated_visiting_time`)
+
+## Definitions
+
+> **Recall** (@def-01-cph). *A continuous phase-type distribution $\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})$ has PDF $f_\tau(t) = \boldsymbol{\alpha} e^{\mathbf{S}t} \mathbf{s}$ where $\mathbf{s} = -\mathbf{S}\mathbf{e}$.*
+
+> **Recall** (@def-14-uniformization). *Uniformization of a CPH graph with granularity $g$ produces a discrete-time chain with sub-transition matrix $\mathbf{T}_g = \mathbf{I} + \frac{1}{g}\mathbf{S}$.*
+
+> **Recall** (@def-15-moment-replay). *The $k$-th moment $\mathbb{E}[\tau^k] = k! \, \boldsymbol{\alpha} (-\mathbf{S})^{-k} \mathbf{e}$ is computed via iterated expected waiting time on the graph.*
+
+> **Recall** (@def-06-vertex-elimination). *Graph elimination converts a cyclic graph to an acyclic graph by Gaussian elimination on the graph structure, enabling algebraic computation of moments and expected rewards.*
+
+::: {#def-27-van-loan .definition}
+## Van Loan Block Matrix Method
+*Let $\mathbf{S}$ be a $p \times p$ sub-intensity matrix and $\mathbf{R}_1, \ldots, \mathbf{R}_k$ be $p \times p$ diagonal reward matrices (@def-01-reward-cph). The Van Loan block matrix of order $k$ is the $(k+1)p \times (k+1)p$ matrix:*
+
+$$\mathbf{V}_k = \begin{pmatrix}
+\mathbf{S} & \triangle(\mathbf{r}_1) & \mathbf{0} & \cdots & \mathbf{0} \\
+\mathbf{0} & \mathbf{S} & \triangle(\mathbf{r}_2) & \cdots & \mathbf{0} \\
+\vdots & & \ddots & \ddots & \vdots \\
+\mathbf{0} & \cdots & \mathbf{0} & \mathbf{S} & \triangle(\mathbf{r}_k) \\
+\mathbf{0} & \cdots & \mathbf{0} & \mathbf{0} & \mathbf{S}
+\end{pmatrix},$$ {#eq-27-van-loan-matrix}
+
+*where $\triangle(\mathbf{r}_j)$ denotes the diagonal matrix with reward vector $\mathbf{r}_j$ on the diagonal. The matrix exponential $e^{\mathbf{V}_k t}$ has the block structure:*
+
+$$[e^{\mathbf{V}_k t}]_{1, k+1} = \mathbf{M}_k(t),$$ {#eq-27-block-exponential}
+
+*where $\mathbf{M}_k(t)$ is the $k$-th order reward-accumulated integral:*
+
+$$\mathbf{M}_1(t) = \int_0^t e^{\mathbf{S}s} \triangle(\mathbf{r}_1) e^{\mathbf{S}(t-s)} \, ds.$$ {#eq-27-reward-integral}
+
+*For unit rewards ($\triangle(\mathbf{r}_1) = \mathbf{I}$), $\mathbf{M}_1(t) = \int_0^t e^{\mathbf{S}s} \, ds \cdot e^{\mathbf{S}(t-s)}$, and the expected accumulated occupancy time starting from distribution $\boldsymbol{\alpha}$ is $\boldsymbol{\alpha} \int_0^t e^{\mathbf{S}s} \, ds$.*
+:::
+
+> **Intuition.** Van Loan's key insight is that the integral of a matrix exponential times another matrix can be computed by exponentiating a larger block matrix. The off-diagonal blocks of the result "accumulate" the integral during the matrix exponential computation, much like augmented systems in solving linear ODEs. For phase-type distributions, this provides accumulated occupancy times (how long the process spends in each state) and reward-weighted integrals.
+
+> **Example.** For a single exponential distribution with rate $\lambda$ ($\mathbf{S} = (-\lambda)$, $p = 1$) and unit reward, the Van Loan block matrix is $\mathbf{V}_1 = \begin{pmatrix} -\lambda & 1 \\ 0 & -\lambda \end{pmatrix}$. Its exponential is $e^{\mathbf{V}_1 t} = \begin{pmatrix} e^{-\lambda t} & t e^{-\lambda t} \\ 0 & e^{-\lambda t} \end{pmatrix}$. The $(1,2)$ entry is $t e^{-\lambda t} = \int_0^t e^{-\lambda s} \, ds \cdot e^{-\lambda(t-s)}|_{s=t} = \frac{1 - e^{-\lambda t}}{\lambda} \cdot e^{-\lambda \cdot 0}$... In fact, the direct computation gives $\int_0^t e^{-\lambda s} ds = (1 - e^{-\lambda t})/\lambda$, while the block exponential gives $te^{-\lambda t}$. These differ because $\mathbf{M}_1(t) = \int_0^t e^{\mathbf{S}s} \triangle(\mathbf{r}) e^{\mathbf{S}(t-s)} ds$, which for $p = 1$ is $\int_0^t e^{-\lambda s} \cdot 1 \cdot e^{-\lambda(t-s)} ds = t e^{-\lambda t}$. The occupancy integral $\boldsymbol{\alpha} \int_0^t e^{\mathbf{S}s} ds = (1 - e^{-\lambda t})/\lambda$ is recovered from the $(1,2)$ entry of $e^{\mathbf{V}_1 t}$ via the relation $\boldsymbol{\alpha} \mathbf{M}_1(t) \mathbf{e} = \boldsymbol{\alpha} \int_0^t e^{\mathbf{S}s} ds \cdot e^{\mathbf{S}(t-s)} \mathbf{e}$. In phasic, the function `accumulated_visiting_time(t)` computes $\boldsymbol{\alpha} \int_0^t e^{\mathbf{S}s} ds$ directly.
+
+::: {#def-27-epoch .definition}
+## Epoch-Wise Phase-Type Model
+*An epoch-wise phase-type model consists of:*
+
+1. *A sequence of epochs $[t_0, t_1), [t_1, t_2), \ldots, [t_{\ell-1}, t_\ell)$ with $0 = t_0 < t_1 < \cdots < t_\ell \leq \infty$.*
+2. *A sub-intensity matrix $\mathbf{S}_i$ for each epoch $i$, so that the process evolves according to $\mathbf{S}_i$ during $[t_{i-1}, t_i)$.*
+3. *A common state space $\{1, \ldots, p\}$ across all epochs (states may become inactive by having zero rates).*
+
+*The transition probability matrix across epoch $i$ is $\mathbf{P}_i = e^{\mathbf{S}_i \Delta t_i}$ where $\Delta t_i = t_i - t_{i-1}$. The overall transition probability from time $0$ to time $t_\ell$ is:*
+
+$$\mathbf{P}(0, t_\ell) = \prod_{i=1}^{\ell} e^{\mathbf{S}_i \Delta t_i}.$$ {#eq-27-epoch-product}
+
+*The survival probability vector at the end of epoch $i$ is:*
+
+$$\boldsymbol{\sigma}_i = \boldsymbol{\alpha} \prod_{j=1}^{i} e^{\mathbf{S}_j \Delta t_j} = \boldsymbol{\alpha} \mathbf{P}(0, t_i),$$ {#eq-27-survival}
+
+*where $\sigma_{i,k}$ is the probability of being in state $k$ at time $t_i$ without having been absorbed.*
+:::
+
+> **Intuition.** Epoch-wise models capture time-inhomogeneous processes (such as coalescent models with changing population sizes) by a piecewise-constant approximation. Within each epoch, the process is a standard CTMC; at epoch boundaries, the state distribution is carried forward as the initial distribution for the next epoch. This is a product integral: the overall evolution is the ordered product of per-epoch matrix exponentials.
+
+> **Example.** A coalescent model for 5 samples with two population sizes: $N_e = 1000$ during $[0, 100)$ and $N_e = 5000$ during $[100, \infty)$. The state space is $\{5, 4, 3, 2, 1\}$ (number of lineages). Epoch 1 has rates $\binom{k}{2}/1000$ and epoch 2 has rates $\binom{k}{2}/5000$.
+
+::: {#def-27-cross-epoch .definition}
+## Cross-Epoch Reward Accumulation
+*Consider two consecutive epochs with sub-intensity matrices $\mathbf{S}_1$ (for $[0, t_1)$) and $\mathbf{S}_2$ (for $[t_1, t_2)$), and reward vectors $\mathbf{r}_1, \mathbf{r}_2$. The cross-epoch Van Loan product is:*
+
+$$\mathbf{Q}_1 \mathbf{Q}_2 = \begin{pmatrix} \mathbf{P}_1 & \mathbf{M}_1 \\ \mathbf{0} & \mathbf{P}_1 \end{pmatrix} \begin{pmatrix} \mathbf{P}_2 & \mathbf{M}_2 \\ \mathbf{0} & \mathbf{P}_2 \end{pmatrix} = \begin{pmatrix} \mathbf{P}_1 \mathbf{P}_2 & \mathbf{P}_1 \mathbf{M}_2 + \mathbf{M}_1 \mathbf{P}_2 \\ \mathbf{0} & \mathbf{P}_1 \mathbf{P}_2 \end{pmatrix},$$ {#eq-27-cross-epoch}
+
+*where $\mathbf{Q}_i = e^{\mathbf{V}_i \Delta t_i}$ is the block matrix exponential for epoch $i$. The upper-right block $\mathbf{P}_1 \mathbf{M}_2 + \mathbf{M}_1 \mathbf{P}_2$ decomposes the total accumulated reward into:*
+
+- *$\mathbf{P}_1 \mathbf{M}_2$: survive epoch 1 (probability $\mathbf{P}_1$), then accumulate reward in epoch 2 ($\mathbf{M}_2$).*
+- *$\mathbf{M}_1 \mathbf{P}_2$: accumulate reward in epoch 1 ($\mathbf{M}_1$), then survive epoch 2 ($\mathbf{P}_2$).*
+
+*In phasic's graph representation, the corresponding quantities are:*
+
+- *$\boldsymbol{\sigma}_1 = \boldsymbol{\alpha} \mathbf{P}_1 \mathbf{e}$: the `stop_probability` at the end of epoch 1.*
+- *$\boldsymbol{\tau}_1 = \boldsymbol{\alpha} \int_0^{t_1} e^{\mathbf{S}_1 s} \, ds$: the `accumulated_visiting_time` during epoch 1.*
+- *The epoch transition rate $\rho_i = \sigma_{1,i} / \tau_{1,i}$: the rate at which probability mass in state $i$ transitions from epoch 1 to epoch 2.*
+:::
+
+> **Intuition.** The cross-epoch product formula is the matrix analogue of the law of total expectation: the total expected reward decomposes into "reward accumulated before the epoch boundary" and "reward accumulated after." The graph-based approach implements this decomposition by computing survival probabilities and accumulated occupancy times at epoch boundaries, then constructing transition edges that correctly weight the probability flow into subsequent epochs.
+
+> **Example.** For a two-state model with $\boldsymbol{\alpha} = (1, 0)$, if `stop_probability` at the end of epoch 1 gives $\boldsymbol{\sigma}_1 = (0.3, 0.5)$ and `accumulated_visiting_time` gives $\boldsymbol{\tau}_1 = (0.6, 0.4)$, the epoch transition rates are $\rho_1 = 0.3/0.6 = 0.5$ and $\rho_2 = 0.5/0.4 = 1.25$. These rates are added as edges from epoch-1 states to epoch-2 states.
+
+## Theorems and Proofs
+
+::: {#thm-27-van-loan-equiv .theorem}
+## Van Loan Equivalence
+*Let $\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})$ be a continuous phase-type distribution with graph $G = (V, E, W)$. For time $t > 0$:*
+
+1. *The accumulated occupancy vector computed by phasic's forward algorithm equals the Van Loan integral:*
+$$\operatorname{accumulated\_visiting\_time}(G, t) = \boldsymbol{\alpha} \int_0^t e^{\mathbf{S}s} \, ds.$$ {#eq-27-avt-equiv}
+
+2. *The survival probability vector equals the diagonal block of the Van Loan exponential:*
+$$\operatorname{stop\_probability}(G, t) = \boldsymbol{\alpha} e^{\mathbf{S}t}.$$ {#eq-27-stop-equiv}
+
+3. *For reward vector $\mathbf{r}$ and the reward-transformed distribution (@def-01-reward-cph):*
+$$\mathbb{E}[\tilde{\tau}] = \boldsymbol{\alpha} \left(\int_0^\infty e^{\mathbf{S}s} \, ds \right) \triangle(\mathbf{r}) \mathbf{e} = \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{r}) \mathbf{e},$$ {#eq-27-reward-equiv}
+*where $\mathbf{U} = (-\mathbf{S})^{-1}$ is the Green matrix. This is the $(1, 2)$ block of $\lim_{t \to \infty} e^{\mathbf{V}_1 t}$ with $\triangle(\mathbf{r})$ as the off-diagonal block, left-multiplied by $\boldsymbol{\alpha}$ and right-multiplied by $\mathbf{e}$.*
+:::
+
+::: {.proof}
+**(1)** The accumulated occupancy at vertex $v_j$ up to time $t$ is:
+
+$$\tau_j(t) = \int_0^t \Pr(X_s = j) \, ds = \int_0^t [\boldsymbol{\alpha} e^{\mathbf{S}s}]_j \, ds = \left[\boldsymbol{\alpha} \int_0^t e^{\mathbf{S}s} \, ds \right]_j.$$
+
+Phasic computes this via the forward algorithm (Algorithm 23 in [14]) by accumulating the probability mass at each vertex across all discrete steps. With uniformization parameter $g$, the forward probability at step $k$ is $\mathbf{p}^{(k)} = \boldsymbol{\alpha} \mathbf{T}_g^k$ where $\mathbf{T}_g = \mathbf{I} + \mathbf{S}/g$. Each step represents a time interval $\Delta t = 1/g$. The accumulated occupancy after $K$ steps is:
+
+$$\hat{\tau}_j = \frac{1}{g} \sum_{k=0}^{K} p^{(k)}_j = \frac{1}{g} \sum_{k=0}^{K} [\boldsymbol{\alpha} \mathbf{T}_g^k]_j.$$
+
+As $K \to \infty$ with $K/g \to t$, the Poisson weighting of the uniformized chain gives:
+
+$$\tau_j(t) = \sum_{k=0}^{\infty} \frac{1}{g} [\boldsymbol{\alpha} \mathbf{T}_g^k]_j \cdot \operatorname{Po}(k; gt) \to [\boldsymbol{\alpha} \int_0^t e^{\mathbf{S}s} \, ds]_j$$
+
+by the uniformization theorem (@thm-14-uniformization-convergence). This is precisely the $j$-th component of the Van Loan integral (@eq-27-reward-integral of @def-27-van-loan with $\triangle(\mathbf{r}) = \mathbf{I}$).
+
+**(2)** The survival probability at vertex $v_j$ at time $t$ is $\Pr(X_t = j) = [\boldsymbol{\alpha} e^{\mathbf{S}t}]_j$, which is the $j$-th entry of $\boldsymbol{\alpha} \mathbf{P}(t)$ where $\mathbf{P}(t) = e^{\mathbf{S}t}$. This is the $(1,1)$ block of $e^{\mathbf{V}_1 t}$, left-multiplied by $\boldsymbol{\alpha}$.
+
+**(3)** Taking $t \to \infty$ in @eq-27-avt-equiv and using $\int_0^\infty e^{\mathbf{S}s} ds = -\mathbf{S}^{-1} = \mathbf{U}$ (which converges because $\mathbf{S}$ has all eigenvalues with strictly negative real parts for proper phase-type distributions), we get the expected occupancy $\boldsymbol{\alpha} \mathbf{U}$. Multiplying by the diagonal reward matrix and summing gives @eq-27-reward-equiv. $\square$
+:::
+
+::: {#thm-27-epoch-construction .theorem}
+## Graph-Based Epoch Construction Equals Van Loan Product
+*Let $\mathbf{S}_1, \mathbf{S}_2$ be sub-intensity matrices for epochs $[0, t_1)$ and $[t_1, \infty)$ respectively, with initial distribution $\boldsymbol{\alpha}$. Let $G_1, G_2$ be the corresponding phase-type graphs. The phasic epoch construction---computing stop probabilities and accumulated occupancy for epoch 1, adding cross-epoch edges with rates $\rho_i = \sigma_{1,i} / \tau_{1,i}$, and extending the graph with epoch 2---produces the same expected reward as the Van Loan product formula:*
+
+$$\mathbb{E}[\text{total reward}] = \boldsymbol{\alpha} \mathbf{M}_1^{(\infty)} \mathbf{r}_1 + \boldsymbol{\alpha} \mathbf{P}_1 \mathbf{U}_2 \mathbf{r}_2,$$ {#eq-27-total-reward}
+
+*where $\mathbf{M}_1^{(\infty)} = \int_0^{t_1} e^{\mathbf{S}_1 s} ds$, $\mathbf{P}_1 = e^{\mathbf{S}_1 t_1}$, and $\mathbf{U}_2 = (-\mathbf{S}_2)^{-1}$, and $\mathbf{r}_1, \mathbf{r}_2$ are reward vectors for epochs 1 and 2 respectively.*
+:::
+
+::: {.proof}
+In the phasic graph construction, the expected reward decomposes into contributions from each epoch.
+
+**Epoch 1 reward.** The expected reward accumulated during epoch 1 is:
+
+$$R_1 = \boldsymbol{\alpha} \int_0^{t_1} e^{\mathbf{S}_1 s} ds \cdot \triangle(\mathbf{r}_1) \mathbf{e} = \boldsymbol{\alpha} \mathbf{M}_1^{(\infty)} \mathbf{r}_1.$$
+
+This is computed directly by phasic's `accumulated_visiting_time` (@thm-27-van-loan-equiv, part 1), multiplied by the reward vector.
+
+**Epoch 2 reward.** In the extended graph, the cross-epoch edges from epoch-1 state $i$ to epoch-2 state $i$ have rate $\rho_i = \sigma_{1,i} / \tau_{1,i}$ where $\sigma_{1,i} = [\boldsymbol{\alpha} e^{\mathbf{S}_1 t_1}]_i$ and $\tau_{1,i} = [\boldsymbol{\alpha} \int_0^{t_1} e^{\mathbf{S}_1 s} ds]_i$. In the extended graph, the accumulated occupancy in epoch-1 state $i$ is $\tau_{1,i}$. The rate of flow from epoch-1 state $i$ to epoch-2 state $i$ is $\tau_{1,i} \cdot \rho_i = \tau_{1,i} \cdot \sigma_{1,i} / \tau_{1,i} = \sigma_{1,i}$. This means the initial distribution entering epoch 2 is $\boldsymbol{\sigma}_1 = \boldsymbol{\alpha} e^{\mathbf{S}_1 t_1} = \boldsymbol{\alpha} \mathbf{P}_1$.
+
+The expected reward in epoch 2, starting from distribution $\boldsymbol{\sigma}_1$, is:
+
+$$R_2 = \boldsymbol{\sigma}_1 \int_0^{\infty} e^{\mathbf{S}_2 s} ds \cdot \triangle(\mathbf{r}_2) \mathbf{e} = \boldsymbol{\alpha} \mathbf{P}_1 \mathbf{U}_2 \mathbf{r}_2.$$
+
+Adding the two contributions: $\mathbb{E}[\text{total reward}] = R_1 + R_2 = \boldsymbol{\alpha} \mathbf{M}_1^{(\infty)} \mathbf{r}_1 + \boldsymbol{\alpha} \mathbf{P}_1 \mathbf{U}_2 \mathbf{r}_2$.
+
+Now compare with the Van Loan product. The block matrix product (@eq-27-cross-epoch of @def-27-cross-epoch) gives the upper-right block as $\mathbf{P}_1 \mathbf{M}_2^{(\infty)} + \mathbf{M}_1^{(\infty)} \mathbf{P}_2^{(\infty)}$. For the final epoch with $t_2 \to \infty$, $\mathbf{P}_2^{(\infty)} = \lim_{t \to \infty} e^{\mathbf{S}_2 t} = \mathbf{0}$ (all mass is absorbed), and $\mathbf{M}_2^{(\infty)} = \mathbf{U}_2$. So the upper-right block becomes $\mathbf{P}_1 \mathbf{U}_2 + \mathbf{M}_1^{(\infty)} \cdot \mathbf{0} = \mathbf{P}_1 \mathbf{U}_2$. The total expected reward from the Van Loan approach is:
+
+$$\boldsymbol{\alpha} (\mathbf{M}_1^{(\infty)} \triangle(\mathbf{r}_1) \mathbf{e} + \mathbf{P}_1 \mathbf{U}_2 \triangle(\mathbf{r}_2) \mathbf{e}) = \boldsymbol{\alpha} \mathbf{M}_1^{(\infty)} \mathbf{r}_1 + \boldsymbol{\alpha} \mathbf{P}_1 \mathbf{U}_2 \mathbf{r}_2,$$
+
+which matches @eq-27-total-reward. The argument extends to $\ell > 2$ epochs by induction: at each epoch boundary, the cross-epoch rate construction correctly propagates the survival probability as the initial distribution for the next epoch. $\square$
+:::
+
+## Correspondence Table
+
+The following table maps between Van Loan's matrix formulation and phasic's graph-based computation.
+
+| Van Loan (Matrix) | Phasic (Graph) | Mathematical object |
+|-------------------|----------------|---------------------|
+| Sub-intensity matrix $\mathbf{S}$ | Graph edge weights $W$ | Infinitesimal generator (transient part) |
+| Matrix exponential $e^{\mathbf{S}t}$ | Forward algorithm (Alg. 23 in [14]) | Transition probability matrix |
+| $\int_0^t e^{\mathbf{S}s} \, ds$ | `accumulated_visiting_time(t)` | Green matrix truncated at $t$ |
+| $e^{\mathbf{S}t} \mathbf{e}$ | `stop_probability(t)` | Survival probability vector |
+| Block matrix $\mathbf{V}_1 = \begin{pmatrix} \mathbf{S} & \triangle(\mathbf{r}) \\ \mathbf{0} & \mathbf{S} \end{pmatrix}$ | Graph + reward transformation (Alg. 13 in [07]) | Augmented state space |
+| $\prod_{i} e^{\mathbf{V}_i \Delta t_i}$ | Sequential `add_epoch()` construction | Product integral across epochs |
+| Upper-right block of $e^{\mathbf{V}t}$ | Accumulated occupancy after transform | Reward-weighted integral |
+| $(k{+}1) \times (k{+}1)$ block matrix | $k$ successive reward transforms (Alg. 13 in [07]) | Higher moments |
+| $(-\mathbf{S})^{-1} = \mathbf{U}$ | Graph elimination (Alg. 10 in [06]) | Green matrix |
+
+## Numerical Considerations
+
+**Sparsity advantage.** The Van Loan block matrix $\mathbf{V}_k$ has dimension $(k+1)p$, requiring $O((k+1)^2 p^2)$ storage and $O((k+1)^3 p^3)$ time for the matrix exponential. For a coalescent model with $n$ samples, $p = O(n!)$ (partition function), making matrix methods infeasible for $n > 10$. The graph approach stores only the $O(p + m)$ non-zero transitions ($m = O(n^2 \cdot p)$ for coalescent models) and computes the forward algorithm in $O(K_s \cdot m)$ time per evaluation point.
+
+**Epoch boundary precision.** The cross-epoch rate $\rho_i = \sigma_{1,i} / \tau_{1,i}$ involves division. When both $\sigma_{1,i}$ and $\tau_{1,i}$ are very small (state $i$ is rarely occupied), numerical cancellation can produce inaccurate rates. In practice, states with negligible occupancy contribute negligibly to the total reward, so this does not affect overall accuracy. The implementation does not guard against division by zero; states with $\tau_{1,i} = 0$ are never reached and should not have cross-epoch edges.
+
+**Moment computation via iterated Green matrix.** The $k$-th moment formula $\mathbb{E}[\tau^k] = k! \, \boldsymbol{\alpha} \mathbf{U}^k \mathbf{e}$ involves the $k$-th power of the Green matrix. In phasic, this is computed by $k$ applications of `expected_waiting_time` (Algorithm 25 in [15]), which applies graph elimination at each iteration. Each elimination costs $O(p^2)$ for dense graphs or $O(m)$ for sparse graphs, compared to $O(p^3)$ for computing $\mathbf{U}^k$ via matrix inversion. For $k$ moments of a sparse graph: phasic uses $O(k \cdot m)$ vs. $O(k \cdot p^3)$ for the matrix approach.
+
+## Implementation Notes
+
+**Source code mapping:**
+
+| Concept | File | Function | Lines |
+|---------|------|----------|-------|
+| Accumulated occupancy | `src/c/phasic.c` | `ptd_graph_accumulated_visiting_time` | (C implementation) |
+| Stop probability | `src/c/phasic.c` | `ptd_graph_stop_probability` | (C implementation) |
+| Python wrapper | `src/phasic/__init__.py` | `Graph.accumulated_visiting_time` | (pybind11 binding) |
+| Python wrapper | `src/phasic/__init__.py` | `Graph.stop_probability` | (pybind11 binding) |
+| Reward transform | `src/c/phasic.c` | `ptd_graph_reward_transform` | (C implementation) |
+| Graph elimination | `src/c/phasic.c` | `ptd_graph_eliminate` | (C implementation) |
+
+**Deviations from formalization:**
+
+- The formalization treats the epoch construction as a mathematical operation on matrices. The implementation constructs the extended graph incrementally by adding vertices and edges, which is more memory-efficient but produces the same mathematical result.
+- The informal document (`van_loen_graph_equivalence.md`) presents the proof sketch without explicit reference to uniformization; this formalization connects the forward algorithm (which uses uniformization) to the continuous-time quantities via @thm-14-uniformization-convergence.
+- Higher-order moments via nested Van Loan blocks correspond to successive reward transformations in phasic. The implementation uses `Graph.reward_transform(rewards)` followed by `Graph.moments(k)`, which applies graph elimination to the reward-transformed graph.
+
+## Symbol Index
+
+| Symbol | Name | First appearance |
+|--------|------|-----------------|
+| $\mathbf{V}_k$ | Van Loan block matrix of order $k$ | @def-27-van-loan |
+| $\mathbf{M}_k(t)$ | $k$-th order reward-accumulated integral | @def-27-van-loan |
+| $\Delta t_i$ | Duration of epoch $i$ ($= t_i - t_{i-1}$) | @def-27-epoch |
+| $\mathbf{S}_i$ | Sub-intensity matrix for epoch $i$ | @def-27-epoch |
+| $\mathbf{P}_i$ | Transition probability matrix for epoch $i$ ($= e^{\mathbf{S}_i \Delta t_i}$) | @def-27-epoch |
+| $\boldsymbol{\sigma}_i$ | Survival probability vector at end of epoch $i$ | @def-27-epoch |
+| $\mathbf{Q}_i$ | Block matrix exponential for epoch $i$ | @def-27-cross-epoch |
+| $\rho_i$ | Cross-epoch transition rate for state $i$ ($= \sigma_{1,i} / \tau_{1,i}$) | @def-27-cross-epoch |
+| $\mathbf{M}_i^{(\infty)}$ | Accumulated occupancy integral over epoch $i$ | @thm-27-epoch-construction |

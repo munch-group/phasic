@@ -1,0 +1,309 @@
+---
+title: "Symbolic Graph Elimination"
+---
+
+## Introduction
+
+This file formalizes the symbolic graph elimination algorithm, which performs vertex elimination (@def-06-vertex-elimination) on a parameterized graph while recording the elimination operations as symbolic expression trees (@def-09-expression-tree) rather than computing numeric values. The result is a symbolic acyclic graph whose edge weights are expression trees that can be instantiated with any concrete parameter vector in $O(|V|^2)$ time, avoiding the $O(|V|^3)$ cost of repeating the full elimination.
+
+This is the key algorithmic innovation that enables efficient Bayesian inference with phasic: during SVGD or MCMC, the elimination is performed once symbolically, and each likelihood evaluation requires only the cheap instantiation step. The symbolic system builds on the expression tree ADT from [09] and the vertex elimination procedure from [06].
+
+**Prerequisites:** [01], [06], [09]
+
+**Source files:**
+- `src/c/phasic_symbolic.c` (functions: `ptd_graph_symbolic_elimination`, `ptd_graph_symbolic_instantiate`, `ptd_graph_symbolic_instantiate_batch`)
+- `api/c/phasic.h` (types: `ptd_graph_symbolic`, `ptd_vertex_symbolic`, `ptd_edge_symbolic`)
+
+## Definitions
+
+> **Recall** (@def-06-vertex-elimination). *Vertex elimination* of $v \in V$ removes $v$ from $G$ and adds, for each parent $u$ and child $z$, a bypass edge $(u \to z)$ with weight $w'(u \to v) \cdot w'(v \to z)$, merging with existing edges and renormalizing the parent's outgoing probabilities. Self-loops created during elimination are resolved by scaling the parent's vertex scalar by $1/(1-p)$ where $p$ is the self-loop probability.
+
+::: {#def-10-symbolic-graph}
+## Symbolic graph
+*A symbolic graph is a tuple $G_{\mathrm{sym}} = (V, E_{\mathrm{sym}}, k)$ where:*
+
+- *$V$ is the set of vertices (identical to the vertex set of the original graph),*
+- *$E_{\mathrm{sym}}$ is a set of symbolic edges, where each edge $(v \to z) \in E_{\mathrm{sym}}$ carries an expression tree $\mathcal{E}_{v \to z}$ (@def-09-expression-tree) representing the transition probability as a function of $\boldsymbol{\theta} \in \mathbb{R}^k$,*
+- *each vertex $v$ carries a rate expression $\mathcal{E}_v^{\mathrm{rate}}$ representing $1/\lambda_v(\boldsymbol{\theta})$, the inverse of the total outgoing rate,*
+- *$k$ is the parameter dimension.*
+
+*The symbolic graph is acyclic: the subgraph induced by the transient vertices contains no directed cycles.*
+:::
+
+> **Intuition.** A symbolic graph is the result of performing graph elimination symbolically. Where a concrete graph stores numeric edge weights, a symbolic graph stores expression trees that evaluate to those weights given a parameter vector. The graph structure (which vertices connect to which) is fixed; only the edge weights vary with $\boldsymbol{\theta}$.
+
+> **Example.** For a two-state coalescent parameterized by rate $\theta_1$, the symbolic graph after elimination might have an edge from $v_0$ to the absorbing vertex with probability expression $\texttt{Const}(1.0)$ and a rate expression $\texttt{Inv}(\texttt{Param}(1))$ (representing expected waiting time $1/\theta_1$).
+
+::: {#def-10-symbolic-vertex-elimination}
+## Symbolic vertex elimination
+*Let $G_{\mathrm{sym}} = (V, E_{\mathrm{sym}}, k)$ be a symbolic graph and let $v \in V$ be a transient, non-starting vertex to be eliminated. The symbolic elimination of $v$ produces a modified symbolic graph $G_{\mathrm{sym}}^{(-v)}$ by the following operations:*
+
+*For each parent $u \in \operatorname{parents}(v)$ and each child $z \in \operatorname{children}(v)$:*
+
+1. *If $z = u$ (self-loop): compute the loop probability expression $\mathcal{E}_p = \texttt{Mul}_\mathcal{I}(\mathcal{E}_{u \to v}, \mathcal{E}_{v \to u})$ and the scale expression $\mathcal{E}_s = \texttt{Inv}_\mathcal{I}(\texttt{Sub}_\mathcal{I}(\texttt{Const}(1), \mathcal{E}_p))$. Multiply all of $u$'s outgoing edge expressions by $\mathcal{E}_s$.*
+
+2. *If $z = v$ (edge back to eliminated vertex): skip.*
+
+3. *If $u$ already has a symbolic edge to $z$: update $\mathcal{E}_{u \to z} \leftarrow \texttt{Add}_\mathcal{I}(\mathcal{E}_{u \to z}, \texttt{Mul}_\mathcal{I}(\mathcal{E}_{u \to v}, \mathcal{E}_{v \to z}))$.*
+
+4. *If $u$ has no edge to $z$: create a new symbolic edge with $\mathcal{E}_{u \to z} = \texttt{Mul}_\mathcal{I}(\mathcal{E}_{u \to v}, \mathcal{E}_{v \to z})$.*
+
+*After processing all parents, remove $v$ and all its incident edges. Renormalize each parent $u$'s edge expressions: compute $\mathcal{E}_{\mathrm{total}} = \sum_z \mathcal{E}_{u \to z}$ and set $\mathcal{E}_{u \to z} \leftarrow \texttt{Div}_\mathcal{I}(\mathcal{E}_{u \to z}, \mathcal{E}_{\mathrm{total}})$.*
+
+*All constructors use the intern table $\mathcal{I}$ (@def-09-cse-interning) for common subexpression elimination.*
+:::
+
+> **Intuition.** This is exactly vertex elimination (@def-06-vertex-elimination), but every arithmetic operation on edge weights is replaced by the corresponding expression tree constructor. Where concrete elimination computes $p_{\mathrm{bypass}} = p_{u \to v} \cdot p_{v \to z}$, symbolic elimination constructs $\texttt{Mul}_\mathcal{I}(\mathcal{E}_{u \to v}, \mathcal{E}_{v \to z})$. The interned constructors ensure that identical subexpressions are shared.
+
+::: {#def-10-symbolic-instantiation}
+## Symbolic graph instantiation
+*Let $G_{\mathrm{sym}} = (V, E_{\mathrm{sym}}, k)$ be a symbolic graph and let $\boldsymbol{\theta} \in \mathbb{R}^k$ be a concrete parameter vector. The instantiation $G_{\mathrm{sym}}(\boldsymbol{\theta})$ produces a concrete phase-type graph $G = (V, E, W)$ by:*
+
+1. *Creating a concrete vertex for each vertex in $V$ with the same state vector.*
+2. *For each symbolic edge $(v \to z) \in E_{\mathrm{sym}}$: evaluating the probability expression $p = \operatorname{eval}(\mathcal{E}_{v \to z}, \boldsymbol{\theta})$ (@def-09-expression-evaluation), evaluating the inverse rate $r = \operatorname{eval}(\mathcal{E}_v^{\mathrm{rate}}, \boldsymbol{\theta})$, and setting the concrete edge weight $w(v \to z) = p / r$ (converting probability back to rate).*
+:::
+
+> **Intuition.** Instantiation replays the result of elimination with concrete numbers. Since the expression trees encode all the bypass, merge, and normalization operations that occurred during elimination, evaluating them produces the same edge weights that concrete elimination would have produced. The cost is $O(|E_{\mathrm{sym}}|)$ expression evaluations instead of $O(|V|^3)$ elimination operations.
+
+> **Example.** For a coalescent model with parameter $\theta_1 = 2.0$: the symbolic graph's rate expression $\texttt{Inv}(\texttt{Param}(1))$ evaluates to $1/2 = 0.5$, and probability expressions evaluate to concrete transition probabilities. The resulting concrete graph can be passed to the forward algorithm for PDF computation.
+
+## Theorems and Proofs
+
+::: {#thm-10-symbolic-correctness}
+## Symbolic elimination correctness
+*Let $G$ be a parameterized phase-type graph with parameter vector $\boldsymbol{\theta} \in \mathbb{R}^k$, and let $G_{\mathrm{sym}}$ be the result of symbolic graph elimination (applying @def-10-symbolic-vertex-elimination to all transient vertices in topological order). Then for any $\boldsymbol{\theta}$ such that all denominators are non-zero:*
+
+$$G_{\mathrm{sym}}(\boldsymbol{\theta}) = \operatorname{Eliminate}(G(\boldsymbol{\theta}))$$
+
+*where $G(\boldsymbol{\theta})$ is the concrete graph obtained by evaluating all parameterized edges with $\boldsymbol{\theta}$, and $\operatorname{Eliminate}$ is the concrete graph elimination (Algorithm 11 in [06]).*
+:::
+
+::: {.proof}
+We proceed by induction on the number of elimination steps.
+
+**Base case.** Before any eliminations, the symbolic graph's edge expressions are constructed by `edge_weight_to_expr`: each parameterized edge with coefficient vector $\mathbf{c}$ becomes a $\texttt{Dot}$ expression (or $\texttt{Param}$ or $\texttt{Const}$ in degenerate cases). The probability expressions are $\mathcal{E}_{v \to z} = \texttt{Mul}_\mathcal{I}(\mathcal{E}_w, \mathcal{E}_v^{\mathrm{rate}})$ where $\mathcal{E}_w$ is the weight expression and $\mathcal{E}_v^{\mathrm{rate}} = \texttt{Inv}_\mathcal{I}(\sum_z \mathcal{E}_{w,z})$. By @thm-09-evaluation-correctness (evaluation correctness) and @lem-09-cse-preserves-evaluation (CSE preserves evaluation):
+
+$$\operatorname{eval}(\mathcal{E}_{v \to z}, \boldsymbol{\theta}) = \frac{w(v \to z; \boldsymbol{\theta})}{\sum_z w(v \to z; \boldsymbol{\theta})} = w'(v \to z; \boldsymbol{\theta})$$
+
+which is the normalized edge weight in the concrete graph, matching the initial state of concrete elimination (after normalization as in @def-05-continuous-normalization).
+
+**Inductive step.** Suppose the claim holds before eliminating vertex $v$. Each operation in symbolic elimination (@def-10-symbolic-vertex-elimination) mirrors the corresponding operation in concrete elimination (@def-06-vertex-elimination):
+
+- Bypass edge creation: concrete computes $p_{\mathrm{bypass}} = p_{u \to v} \cdot p_{v \to z}$; symbolic constructs $\texttt{Mul}_\mathcal{I}(\mathcal{E}_{u \to v}, \mathcal{E}_{v \to z})$. By the induction hypothesis, evaluating $\mathcal{E}_{u \to v}$ and $\mathcal{E}_{v \to z}$ at $\boldsymbol{\theta}$ yields $p_{u \to v}(\boldsymbol{\theta})$ and $p_{v \to z}(\boldsymbol{\theta})$. By @thm-09-evaluation-correctness, the product expression evaluates to $p_{u \to v}(\boldsymbol{\theta}) \cdot p_{v \to z}(\boldsymbol{\theta})$.
+
+- Edge merging: concrete computes $p' = p_{\mathrm{old}} + p_{\mathrm{bypass}}$; symbolic constructs $\texttt{Add}_\mathcal{I}(\mathcal{E}_{\mathrm{old}}, \mathcal{E}_{\mathrm{bypass}})$. By @thm-09-evaluation-correctness, this evaluates correctly.
+
+- Self-loop resolution: concrete computes $1/(1-p)$; symbolic constructs $\texttt{Inv}_\mathcal{I}(\texttt{Sub}_\mathcal{I}(\texttt{Const}(1), \mathcal{E}_p))$. By @thm-09-evaluation-correctness, this evaluates correctly when $p(\boldsymbol{\theta}) \neq 1$.
+
+- Renormalization: concrete divides by the sum of probabilities; symbolic constructs division expressions. By @thm-09-evaluation-correctness, this evaluates correctly.
+
+By @lem-09-cse-preserves-evaluation, interning does not affect evaluation. Therefore, after eliminating $v$, the symbolic graph still satisfies the invariant: instantiation at $\boldsymbol{\theta}$ produces the same graph as concrete elimination at $\boldsymbol{\theta}$. $\square$
+:::
+
+::: {#thm-10-complexity}
+## Complexity of symbolic elimination and instantiation
+*Let $G = (V, E, W)$ be a parameterized phase-type graph with $n = |V|$ vertices.*
+
+*(a) Symbolic graph elimination (Algorithm 16) runs in $O(n^3)$ time and produces $O(n^2)$ symbolic edges.*
+
+*(b) Instantiation (Algorithm 17) runs in $O(n^2 \cdot h)$ time per parameter vector, where $h$ is the maximum expression tree height. With CSE, $h$ is bounded by $O(n)$, giving $O(n^3)$ worst-case instantiation time, but in practice $h$ is much smaller.*
+
+*(c) For $m$ parameter vectors, the total cost is $O(n^3 + m \cdot n^2 \cdot h)$, compared to $O(m \cdot n^3)$ for repeated concrete elimination. The break-even point is $m \approx n / h$ evaluations.*
+:::
+
+::: {.proof}
+(a) The elimination loop iterates over all $n$ vertices. For each vertex $v$, it examines all parent-child pairs. In the worst case (dense graph), a vertex has $O(n)$ parents and $O(n)$ children, yielding $O(n^2)$ bypass operations per vertex and $O(n^3)$ total. Each bypass operation constructs a constant number of expression nodes via interned constructors ($O(1)$ amortized hash table operations). The number of symbolic edges after elimination is at most $O(n^2)$ because the acyclic graph has at most $n(n-1)/2$ edges.
+
+(b) Instantiation evaluates one expression per symbolic edge plus one rate expression per vertex. There are $O(n^2)$ edges and $O(n)$ vertices. Each expression evaluation costs $O(h)$ where $h$ is the tree height (Algorithm 15 in [09]). With CSE, the expression DAG has $O(n^2)$ nodes total (bounded by the number of elimination operations), and each node is evaluated at most once if a caching evaluation strategy is used.
+
+(c) The combined cost follows directly from (a) and (b). Without symbolic elimination, each parameter vector requires $O(n^3)$ for concrete elimination. With symbolic elimination, the $O(n^3)$ setup is amortized over $m$ evaluations, each costing $O(n^2 \cdot h)$ instead of $O(n^3)$. $\square$
+:::
+
+## Algorithms
+
+### Algorithm 16: Symbolic Graph Elimination
+
+*Description.* This algorithm performs graph elimination symbolically, building expression trees at each edge instead of computing numeric values. It proceeds in five phases: (1) topological ordering via SCC decomposition, (2) symbolic vertex and rate expression creation, (3) edge weight to probability conversion, (4) elimination loop with bypass edges, and (5) result structure assembly.
+
+```
+Algorithm 16: Symbolic Graph Elimination
+1: Let G = (V, E, W) be a parameterized phase-type graph (see @def-01-param-edges)
+2: Let k = param_length(G) be the parameter dimension
+
+3: function SymbolicElimination(G)
+4:   I ← CreateInternTable(4096)                       ▷ CSE intern table (Def. 9.3 in [09])
+5:
+6:   ▷ Phase 1: Topological ordering
+7:   SCC ← FindSCCs(G)                                 ▷ Algorithm 6 in [04]
+8:   order ← TopologicalSort(SCC)                      ▷ Algorithm 7 in [04]
+9:   Reorder V: non-absorbing vertices first (in topological order), then absorbing
+10:
+11:  ▷ Phase 2: Create symbolic vertices with rate expressions
+12:  for each v ∈ V do
+13:    E_weights ← [EdgeToExpr(e) for e ∈ edges(v)]    ▷ Convert coefficients to expressions
+14:    if edges(v) ≠ ∅ then
+15:      rate_expr(v) ← Inv_I(Sum_I(E_weights))        ▷ 1 / Σ weights
+16:    else
+17:      rate_expr(v) ← Const(0)                        ▷ Absorbing vertex
+18:    end if
+19:  end for
+20:
+21:  ▷ Phase 3: Convert edge weights to probability expressions
+22:  for each v ∈ V do
+23:    for each edge (v → z) ∈ E do
+24:      E_w ← EdgeToExpr(v → z)
+25:      prob_expr(v → z) ← Mul_I(E_w, rate_expr(v))   ▷ prob = weight / total_weight
+26:    end for
+27:  end for
+28:
+29:  ▷ Phase 4: Elimination loop (mirrors Algorithm 11 in [06])
+30:  for i ← 0 to |V| - 1 do
+31:    v ← vertices[i]
+32:    if v is absorbing then continue end if
+33:
+34:    for each parent u ∈ parents(v) with u.index > i do
+35:      for each child z ∈ children(v) do
+36:        if z = u then                                ▷ Self-loop (Def. 6.2 in [06])
+37:          E_p ← Mul_I(prob_expr(u → v), prob_expr(v → u))
+38:          E_s ← Inv_I(Sub_I(Const(1), E_p))
+39:          Scale all of u's edge expressions by E_s
+40:        else if z = v then
+41:          continue                                    ▷ Skip edge back to eliminated vertex
+42:        else if (u → z) exists then                   ▷ Merge bypass with existing edge
+43:          E_bypass ← Mul_I(prob_expr(u → v), prob_expr(v → z))
+44:          prob_expr(u → z) ← Add_I(prob_expr(u → z), E_bypass)
+45:        else                                          ▷ New bypass edge
+46:          prob_expr(u → z) ← Mul_I(prob_expr(u → v), prob_expr(v → z))
+47:        end if
+48:      end for
+49:
+50:      Remove edge (u → v)
+51:
+52:      ▷ Renormalize parent's edge expressions
+53:      E_total ← Sum_I([prob_expr(u → z) for z ∈ children(u)])
+54:      for each z ∈ children(u) do
+55:        prob_expr(u → z) ← Div_I(prob_expr(u → z), E_total)
+56:      end for
+57:    end for
+58:  end for
+59:
+60:  ▷ Phase 5: Build result structure
+61:  G_sym ← new symbolic graph with vertices, edges, expressions
+62:  return G_sym
+63: end function
+```
+
+**Correspondence table:**
+
+| Pseudocode variable | Math symbol | Code variable (file:function) |
+|---------------------|-------------|-------------------------------|
+| $G$ | $G = (V, E, W)$ | `graph` (`phasic_symbolic.c:ptd_graph_symbolic_elimination`) |
+| $G_{\mathrm{sym}}$ | symbolic graph $G_{\mathrm{sym}}$ | `result` (type `ptd_graph_symbolic`) |
+| $\mathcal{I}$ | intern table $\mathcal{I}$ | `intern_table` (`ptd_expr_intern_table`) |
+| `rate_expr(v)` | $\mathcal{E}_v^{\mathrm{rate}}$ | `sv->rate_expr` (`ptd_vertex_symbolic_ll`) |
+| `prob_expr(v -> z)` | $\mathcal{E}_{v \to z}$ | `se->prob_expr` (`ptd_edge_symbolic_ll`) |
+| `EdgeToExpr` | coefficient-to-expression conversion | `edge_weight_to_expr` (static function) |
+| `Mul_I`, `Add_I`, etc. | $\texttt{Mul}_\mathcal{I}$, $\texttt{Add}_\mathcal{I}$, etc. | `ptd_expr_mul_interned`, `ptd_expr_add_interned`, etc. |
+| `parents(v)` | $\operatorname{parents}(v)$ | `me->parents` (linked list `ptd_parent_link_ll`) |
+| `children(v)` | $\operatorname{children}(v)$ | edge list traversal (`first_edge` to `last_edge`) |
+| `order` | topological order | `topo_sorted` (`ptd_scc_graph_topological_sort`) |
+
+**Complexity.** Time: $O(|V|^3)$ for the elimination loop (@thm-10-complexity(a)). Space: $O(|V|^2 \cdot h)$ where $h$ is the average expression tree height; with CSE, the total number of unique expression nodes is $O(|V|^2)$.
+
+**Correctness.** Follows from @thm-10-symbolic-correctness. Each symbolic operation mirrors the corresponding concrete operation in Algorithm 11 in [06], and @thm-09-evaluation-correctness guarantees that evaluating the expression trees reproduces the numeric results.
+
+### Algorithm 17: Symbolic Graph Instantiation
+
+*Description.* This algorithm evaluates all expression trees in a symbolic graph with a concrete parameter vector, producing a concrete phase-type graph. It is the fast path that replaces repeated calls to the full elimination algorithm.
+
+```
+Algorithm 17: Symbolic Graph Instantiation
+1: Let G_sym = (V, E_sym, k) be a symbolic graph (Definition 10.1)
+2: Let θ = (θ₁, ..., θₖ) be a concrete parameter vector
+
+3: function Instantiate(G_sym, θ)
+4:   G ← new phase-type graph with state dimension = G_sym.state_length
+5:
+6:   ▷ Create vertices with state vectors from symbolic graph
+7:   for i ← 0 to |V| - 1 do
+8:     if i = 0 then
+9:       Set state of starting vertex to G_sym.vertices[0].state
+10:    else
+11:      CreateVertex(G, G_sym.vertices[i].state)
+12:    end if
+13:  end for
+14:
+15:  ▷ Evaluate expressions and create edges
+16:  for i ← 0 to |V| - 1 do
+17:    inv_rate ← EvaluateExpression(rate_expr(i), θ)  ▷ Algorithm 15 in [09]
+18:    for each symbolic edge (i → j) ∈ E_sym do
+19:      prob ← EvaluateExpression(prob_expr(i → j), θ)
+20:      weight ← prob / inv_rate                       ▷ Convert probability to rate
+21:      AddEdge(G.vertices[i], G.vertices[j], weight)
+22:    end for
+23:  end for
+24:
+25:  return G
+26: end function
+```
+
+**Correspondence table:**
+
+| Pseudocode variable | Math symbol | Code variable (file:function) |
+|---------------------|-------------|-------------------------------|
+| $G_{\mathrm{sym}}$ | symbolic graph $G_{\mathrm{sym}}$ | `symbolic` (`phasic_symbolic.c:ptd_graph_symbolic_instantiate`) |
+| $\boldsymbol{\theta}$ | parameter vector $\boldsymbol{\theta}$ | `params` (`phasic_symbolic.c:ptd_graph_symbolic_instantiate`) |
+| $G$ | concrete graph $G = (V, E, W)$ | `graph` (returned `ptd_graph`) |
+| `inv_rate` | $\operatorname{eval}(\mathcal{E}_v^{\mathrm{rate}}, \boldsymbol{\theta})$ | `inv_rate` (local variable) |
+| `prob` | $\operatorname{eval}(\mathcal{E}_{v \to z}, \boldsymbol{\theta})$ | `prob` (local variable) |
+| `weight` | $w(v \to z) = p / (1/\lambda_v)$ | `weight` (local variable) |
+| `EvaluateExpression` | $\operatorname{eval}(\mathcal{E}, \boldsymbol{\theta})$ | `ptd_expr_evaluate_iterative` |
+
+**Complexity.** Time: $O(|E_{\mathrm{sym}}| \cdot h + |V|)$ where $|E_{\mathrm{sym}}|$ is the number of symbolic edges and $h$ is the maximum expression tree height. In the worst case $|E_{\mathrm{sym}}| = O(|V|^2)$, giving $O(|V|^2 \cdot h)$. Space: $O(|V| + |E_{\mathrm{sym}}|)$ for the new concrete graph.
+
+**Correctness.** Follows from @thm-10-symbolic-correctness. By @thm-09-evaluation-correctness, each expression evaluation produces the correct numeric value. The probability-to-rate conversion $w = p / (1/\lambda_v) = p \cdot \lambda_v$ recovers the original edge weight from the normalized probability and the rate.
+
+## Numerical Considerations
+
+**Division by zero.** The inverse rate expression $\mathcal{E}_v^{\mathrm{rate}} = \texttt{Inv}(\sum_z \mathcal{E}_w)$ produces division by zero if the total outgoing weight is zero for some $\boldsymbol{\theta}$. This corresponds to a degenerate parameter configuration where a transient vertex has no outgoing transitions, which violates the phase-type graph invariants (@def-01-ph-graph). The implementation does not guard against this; it is the user's responsibility to ensure $\boldsymbol{\theta}$ lies in the valid parameter domain.
+
+**Self-loop probability approaching 1.** When the self-loop probability $p(\boldsymbol{\theta}) \to 1$, the scale expression $1/(1-p)$ diverges. This corresponds to an absorbing cycle in the original graph, which again violates the phase-type graph invariants. In practice, well-specified models avoid this regime.
+
+**Expression tree depth.** Without CSE, expression trees can grow exponentially with the number of elimination steps (each elimination can double the tree depth through multiplication). The intern table (@def-09-cse-interning) converts trees to DAGs, bounding the total number of unique nodes by $O(|V|^2)$. However, the evaluation algorithm (Algorithm 15 in [09]) traverses the tree structure, not the DAG, so shared subtrees may be evaluated multiple times. A memoized evaluation strategy would reduce this to $O(|V|^2)$ total operations per instantiation.
+
+## Implementation Notes
+
+**Source code mapping:**
+
+| Algorithm | File | Function | Notes |
+|-----------|------|----------|-------|
+| Algorithm 16 (full) | `src/c/phasic_symbolic.c` | `ptd_graph_symbolic_elimination` | L248-L694 |
+| Algorithm 16 (Phase 1: ordering) | `src/c/phasic_symbolic.c` | lines within `ptd_graph_symbolic_elimination` | Uses `ptd_find_strongly_connected_components` and `ptd_scc_graph_topological_sort` |
+| Algorithm 16 (Phase 4: elimination) | `src/c/phasic_symbolic.c` | lines within `ptd_graph_symbolic_elimination` | L412-L563 |
+| Algorithm 17 | `src/c/phasic_symbolic.c` | `ptd_graph_symbolic_instantiate` | L746-L805 |
+| Algorithm 17 (batch) | `src/c/phasic_symbolic.c` | `ptd_graph_symbolic_instantiate_batch` | L810-L825 |
+| Cleanup | `src/c/phasic_symbolic.c` | `ptd_graph_symbolic_destroy` | L703-L739 |
+| Serialization | `src/c/phasic_symbolic.c` | `ptd_graph_symbolic_to_json`, `ptd_graph_symbolic_from_json` | JSON serialization |
+
+**Deviations from pseudocode:**
+
+- **Linked list edge representation.** The implementation uses doubly-linked lists with sentinel nodes (`first_edge`, `last_edge`) for efficient insertion, deletion, and traversal during elimination. The pseudocode abstracts this as set operations on `children(v)` and `parents(v)`. The linked list approach avoids the overhead of dynamic array resizing during the elimination loop.
+
+- **Parent tracking.** The implementation maintains explicit back-pointers (`ptd_parent_link_ll`) from each vertex to its parents. This allows efficient iteration over parents during elimination without scanning all edges. The pseudocode assumes $\operatorname{parents}(v)$ is directly available.
+
+- **Edge ordering.** Symbolic edges are inserted in sorted order (by target vertex pointer address) via `insert_edge_sorted_ll`. This ensures deterministic iteration order and efficient edge lookup via `find_edge_ll`. The pseudocode does not specify ordering.
+
+- **Expression memory management.** The intern table owns the canonical expression nodes during elimination. When building the result structure (Phase 5), expressions are deep-copied via `ptd_expr_copy_iterative` so that the result is independent of the intern table, which is then destroyed. The pseudocode does not address memory management.
+
+- **`ptd_graph_add_edge` in instantiation.** The instantiation function (Algorithm 17) calls `ptd_graph_add_edge` with a scalar weight (after converting probability to rate). This creates edges in constant mode, not parameterized mode, since the instantiated graph is concrete.
+
+## Symbol Index
+
+| Symbol | Name | First appearance |
+|--------|------|-----------------|
+| $\mathcal{E}_{v \to z}$ | Symbolic edge probability expression | @def-10-symbolic-graph |
+| $\mathcal{E}_v^{\mathrm{rate}}$ | Symbolic vertex rate expression ($1/\lambda_v$) | @def-10-symbolic-graph |
+| $G_{\mathrm{sym}}$ | Symbolic graph | @def-10-symbolic-graph |
+| $G_{\mathrm{sym}}(\boldsymbol{\theta})$ | Instantiated concrete graph | @def-10-symbolic-instantiation |
+| $G_{\mathrm{sym}}^{(-v)}$ | Symbolic graph after eliminating vertex $v$ | @def-10-symbolic-vertex-elimination |
+| $E_{\mathrm{sym}}$ | Set of symbolic edges | @def-10-symbolic-graph |

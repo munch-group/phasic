@@ -1,0 +1,247 @@
+---
+title: "Reward Transformation"
+---
+
+## Introduction
+
+This file formalizes the reward transformation algorithm for phase-type graphs (Algorithm 2 in Roikjer, Hobolth & Munch 2022, Section 2.3). Given a phase-type graph and a reward vector $\mathbf{r}$, the algorithm constructs a new graph whose absorption time distribution equals the reward-transformed distribution $\operatorname{PH}_p(\boldsymbol{\alpha}, \triangle(\mathbf{r})^{-1}\mathbf{S})$ (@def-01-reward-cph). The transformation handles two cases: vertices with positive reward (whose outgoing edge weights are scaled by $1/r_v$) and vertices with zero reward (which are eliminated from the graph using bypass edges).
+
+Reward transformation is the graph-level implementation of the matrix formula $\mathbf{S}' = \triangle(\mathbf{r})^{-1}\mathbf{S}$. For vertices with positive reward, this is a straightforward scaling of rates. For vertices with zero reward, the matrix formula breaks down (since $r_v^{-1}$ is undefined), and the graph algorithm provides the correct handling: the vertex is removed via the same bypass technique used in graph elimination. This dual treatment --- scaling for positive rewards, elimination for zero rewards --- is what makes the graph-based approach more general than the matrix approach.
+
+The algorithm operates on the original (unnormalized) graph, performs internal normalization, applies the transformation, and constructs a new graph with the transformed rates. The discrete phase-type variant additionally handles integer rewards greater than 1 by inserting chains of auxiliary vertices.
+
+**Prerequisites:** [01], [04], [05], [06]
+
+**Source files:**
+- `src/c/phasic.c` (functions: `_ptd_graph_reward_transform`, `ptd_graph_reward_transform`, `ptd_graph_dph_reward_transform`)
+
+## Definitions
+
+> **Recall** (@def-06-vertex-elimination). *Vertex elimination* of $v \in V$ removes $v$ from $G$ and adds, for each parent $u$ and child $z$, a bypass edge $(u \to z)$ with weight $w'(u \to v) \cdot w'(v \to z)$, merging with existing edges and renormalizing the parent's outgoing probabilities. Self-loops created during elimination are resolved by scaling the parent's vertex scalar by $1/(1-p)$ where $p$ is the self-loop probability.
+
+::: {#def-07-positive-reward}
+## Positive reward transformation on a graph
+*Let $G = (V, E, W)$ be a phase-type graph representing $\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})$ (@def-01-ph-graph) and let $\mathbf{r} = (r_1, \ldots, r_p)^\top$ be a reward vector with $r_v > 0$ for a transient vertex $v$. The positive reward transformation of vertex $v$ replaces the outgoing edge weights by:*
+
+$$w_{\text{new}}(v \to z) = \frac{w(v \to z)}{r_v} \quad \text{for all } z \in \operatorname{children}(v).$$ {#eq-07-positive-scaling}
+
+*Equivalently, on the normalized graph with vertex scalar $x_v = 1/\lambda_v$, the transformation replaces the vertex scalar by:*
+
+$$x_v' = \frac{x_v}{r_v} = \frac{r_v}{\lambda_v},$$ {#eq-07-vertex-scalar}
+
+*while the normalized transition probabilities $w'(v \to z) = w(v \to z)/\lambda_v$ remain unchanged.*
+
+*In the implementation, the transformation is applied after normalization: the reward is divided by the original rate ($r_v \leftarrow r_v / \lambda_v$, storing $x_v' = r_v / \lambda_v$), and the new graph's edge weights are computed as $w'(v \to z) / x_v'$ to produce the transformed rates.*
+:::
+
+> **Intuition.** Dividing all outgoing rates from $v$ by $r_v$ slows down the transitions out of $v$ by a factor of $r_v$. This is exactly the effect of the reward transformation: if the reward rate at state $v$ is $r_v$, then the time spent accumulating reward at $v$ is $r_v$ times the holding time, which is equivalent to the holding time being $r_v$ times longer (i.e., the exit rate being divided by $r_v$). This is the graph-level implementation of row $v$ of the matrix product $\triangle(\mathbf{r})^{-1}\mathbf{S}$.
+
+> **Example.** Consider vertex $v_1$ with outgoing edges $w(v_1 \to v_2) = 6$ and $w(v_1 \to v_a) = 4$ (total rate $\lambda_{v_1} = 10$, vertex scalar $x_{v_1} = 0.1$). With reward $r_1 = 2$: the new edge weights are $w_{\text{new}}(v_1 \to v_2) = 6/2 = 3$ and $w_{\text{new}}(v_1 \to v_a) = 4/2 = 2$. The new total rate is $5$, and the new vertex scalar is $x_{v_1}' = 0.1 \cdot 2 = 0.2 = 1/5$. The transition probabilities are unchanged: $3/5 = 0.6$ and $2/5 = 0.4$.
+
+::: {#def-07-zero-reward}
+## Zero reward transformation on a graph
+*Let $G = (V, E, W)$ be a phase-type graph and let $v$ be a transient vertex with reward $r_v = 0$. The zero reward transformation of $v$ removes $v$ from the graph using vertex elimination (@def-06-vertex-elimination): for each parent $u$ and each child $z$ of $v$, a bypass edge $(u \to z)$ is created with weight $w'(u \to v) \cdot w'(v \to z)$, existing edges are merged, and self-loops are resolved. After elimination, $v$ and all its incident edges are removed from the graph.*
+:::
+
+> **Intuition.** A zero reward means that the process accumulates no reward while in state $v$. In the absorption time interpretation, this means $v$ contributes nothing to the total. Since $v$ is instantaneously traversed (contributing zero time/reward), it can be removed from the graph by short-circuiting: probability mass that enters $v$ is immediately redistributed among $v$'s children according to the transition probabilities. This is exactly what vertex elimination achieves. The zero reward case is the only case where the matrix formula $\triangle(\mathbf{r})^{-1}\mathbf{S}$ fails (since $1/0$ is undefined), making the graph-based approach essential.
+
+> **Example.** Consider a graph with $v_0 \to v_1 \to v_2 \to v_a$ where $v_1$ has reward $r_1 = 0$. With normalized edges $w'(v_0 \to v_1) = 0.7$, $w'(v_0 \to v_a) = 0.3$, $w'(v_1 \to v_2) = 0.8$, $w'(v_1 \to v_a) = 0.2$: eliminating $v_1$ creates bypass edges $w'(v_0 \to v_2) = 0.7 \times 0.8 = 0.56$ and adds $0.7 \times 0.2 = 0.14$ to the existing $w'(v_0 \to v_a) = 0.3$, giving $0.44$. After renormalization: $w'(v_0 \to v_2) = 0.56$ and $w'(v_0 \to v_a) = 0.44$ (sum $= 1.0$).
+
+::: {#def-07-general-reward}
+## General reward transformation
+*Let $G = (V, E, W)$ be a phase-type graph representing $\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})$ and let $\mathbf{r} = (r_1, \ldots, r_p)^\top$ be a reward vector with $r_v \geq 0$ for all transient vertices $v$. The general reward transformation of $G$ with respect to $\mathbf{r}$ produces a new graph $G' = (V', E', W')$ by:*
+
+1. *For each transient vertex $v$ with $r_v \leq \epsilon$ (where $\epsilon = 10^{-6}$): apply zero reward transformation (@def-07-zero-reward), removing $v$ from the graph.*
+2. *For each remaining transient vertex $v$ with $r_v > \epsilon$: apply positive reward transformation (@def-07-positive-reward), scaling outgoing rates by $1/r_v$.*
+3. *The starting vertex $v_0$ and absorbing vertices are assigned $r_v = 1$ (treated as positive reward, unmodified).*
+
+*The resulting graph $G'$ represents $\operatorname{PH}_{p'}(\boldsymbol{\alpha}', \mathbf{S}')$ where $p' \leq p$ (vertices with zero reward have been removed), $\boldsymbol{\alpha}'$ is the absorption-probability-preserving initial distribution on the remaining vertices, and $\mathbf{S}'$ corresponds to the reward-scaled rates.*
+:::
+
+> **Intuition.** The general reward transformation partitions vertices into two groups: those that contribute to the reward ($r_v > 0$) and those that do not ($r_v = 0$). The zero-reward vertices are "invisible" in the reward-transformed distribution and can be eliminated. The positive-reward vertices have their rates rescaled to account for the reward accumulation. The threshold $\epsilon = 10^{-6}$ prevents treating very small but positive rewards as zero, which would change the topology of the graph.
+
+## Theorems and Proofs
+
+::: {#thm-07-positive-reward}
+## Positive reward transformation produces the correct distribution
+*Let $G = (V, E, W)$ represent $\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})$ and let $\mathbf{r}$ be a reward vector with $r_v > 0$ for all transient vertices. The graph $G'$ obtained by positive reward transformation (@def-07-positive-reward) represents $\operatorname{PH}_p(\boldsymbol{\alpha}, \triangle(\mathbf{r})^{-1}\mathbf{S})$.*
+:::
+
+::: {.proof}
+We show that the sub-intensity matrix $\mathbf{S}'$ of $G'$ equals $\triangle(\mathbf{r})^{-1}\mathbf{S}$ entry by entry.
+
+**Off-diagonal entries** ($i \neq j$): By @def-07-positive-reward, the new edge weight from $v_i$ to $v_j$ is $w_{\text{new}}(v_i \to v_j) = w(v_i \to v_j) / r_i$. By the graph-matrix correspondence (@def-01-graph-matrix), $w(v_i \to v_j) = s_{ij}$, so $s_{ij}' = s_{ij}/r_i$. This is the $(i,j)$ entry of $\triangle(\mathbf{r})^{-1}\mathbf{S}$, since $(\triangle(\mathbf{r})^{-1})_{ii} = 1/r_i$ and the matrix product gives $(\triangle(\mathbf{r})^{-1}\mathbf{S})_{ij} = s_{ij}/r_i$.
+
+**Diagonal entries** ($j = i$): The new total outgoing rate from $v_i$ is $\lambda_{v_i}' = \sum_{j \neq i} s_{ij}' + s_i' = \lambda_{v_i}/r_i$, since all outgoing rates are divided by $r_i$. Thus $s_{ii}' = -\lambda_{v_i}' = -\lambda_{v_i}/r_i = s_{ii}/r_i = (\triangle(\mathbf{r})^{-1}\mathbf{S})_{ii}$.
+
+**Initial distribution**: The starting vertex's outgoing edge weights (encoding $\boldsymbol{\alpha}$) are not modified by the reward transformation (the starting vertex is assigned $r_{v_0} = 1$), so $\boldsymbol{\alpha}' = \boldsymbol{\alpha}$.
+
+Therefore $G'$ represents $\operatorname{PH}_p(\boldsymbol{\alpha}, \triangle(\mathbf{r})^{-1}\mathbf{S})$, which by @thm-01-reward-closure has the same distribution as the reward-transformed variable $\tilde{\tau} = \int_0^\tau r(X_t) \, dt$. $\square$
+:::
+
+::: {#thm-07-zero-reward-preserves}
+## Zero reward vertex removal preserves expected accumulated reward
+*Let $G$ be a phase-type graph with reward vector $\mathbf{r}$ where $r_v = 0$ for some transient vertex $v$. The graph $G'$ obtained by zero reward transformation of $v$ (@def-07-zero-reward) has the same expected accumulated reward as $G$: for every remaining vertex $u$, $\mathbb{E}_u[\tilde{\tau}]_{G'} = \mathbb{E}_u[\tilde{\tau}]_G$.*
+:::
+
+::: {.proof}
+We must show that $\tilde{\tau} = \int_0^{\tau} r(X_t) \, dt$ has the same distribution in $G$ and $G'$.
+
+Since $r_v = 0$, the contribution of vertex $v$ to the accumulated reward is $r_v \cdot Z_v = 0$, where $Z_v$ is the total time spent in state $v$. Thus $\tilde{\tau} = \sum_{i \neq v} r_i Z_i$ in $G$, which does not depend on the time spent in $v$ at all.
+
+The zero reward transformation applies vertex elimination (@def-06-vertex-elimination) to $v$, producing $G'$. By @thm-06-elimination-preserves-reward, vertex elimination preserves the expected accumulated reward $x_u$ at all remaining vertices $u$, and by @thm-06-acyclic-absorption, it preserves the absorption probabilities. Self-loop resolution (@thm-06-self-loop-preserves-reward) correctly adjusts $x_u$ for cycles through $v$.
+
+It remains to connect the preservation of vertex scalars $x_u$ to the preservation of the reward-weighted variable $\tilde{\tau}$. For each remaining vertex $u$, the expected reward accumulated during visits to $u$ is $r_u \cdot \mathbb{E}[Z_u]$, where $\mathbb{E}[Z_u]$ is the expected occupation time in $u$. Since elimination preserves $x_u$ and the transition probabilities among remaining vertices, the expected occupation time $\mathbb{E}[Z_u]$ in $G'$ equals that in $G$ for every remaining vertex $u$. Therefore $\mathbb{E}[\tilde{\tau}]_{G'} = \sum_{u \neq v} r_u \cdot \mathbb{E}[Z_u]_{G'} = \sum_{u \neq v} r_u \cdot \mathbb{E}[Z_u]_G = \mathbb{E}[\tilde{\tau}]_G$, where the last equality uses $r_v = 0$. The argument extends to all moments via the higher-moment machinery of @thm-06-elimination-complexity, which applies the same elimination commands to different reward vectors. $\square$
+:::
+
+## Algorithms
+
+### Algorithm 13: Reward Transformation
+
+*Description.* This algorithm constructs a new phase-type graph representing the reward-transformed distribution. It first normalizes the input graph, then eliminates all zero-reward vertices using bypass edges (the same technique as graph elimination in [06]), and finally constructs a new graph from the remaining vertices with scaled edge weights. The algorithm handles both continuous (CPH) and discrete (DPH) phase-type distributions.
+
+For the continuous case, positive rewards scale the outgoing rates by $1/r_v$. For the discrete case, integer rewards $r_v > 1$ are implemented by inserting a chain of $r_v$ auxiliary vertices that each pass through deterministically, effectively counting $r_v$ steps per visit to the original state.
+
+```
+Algorithm 13: Reward Transformation
+1: Let G = (V, E, W) be a phase-type graph representing PH_p(alpha, S) (@def-01-ph-graph)
+2: Let r be a reward vector of length |V| with r_v >= 0 for all transient vertices
+3: Let epsilon <- 10^{-6}
+
+4: function RewardTransform(G, r)
+5:   > Step 1: Determine elimination order
+6:   scc <- TarjanSCC(G)                               > Algorithm 6 in [04]
+7:   order <- TopologicalSort(scc)                      > Algorithm 7 in [04]
+8:   vertices <- OrderVertices(order)                    > Transient first, absorbing last
+
+10:  > Step 2: Assign effective rewards
+11:  for i <- 0 to |V| - 1 do
+12:    if r[originalIndex(i)] <= epsilon then
+13:      r'[i] <- 0                                      > Treat as zero reward
+14:    else
+15:      r'[i] <- r[originalIndex(i)]
+16:    end if
+17:    if vertices[i] = v_0 or vertices[i] is absorbing then
+18:      r'[i] <- 1                                      > Protect starting and absorbing vertices
+19:    end if
+20:  end for
+
+22:  > Step 3: Normalize and incorporate positive rewards into vertex scalars
+23:  for i <- 0 to |V| - 1 do
+24:    lambda_v <- Sum_{z in children(vertices[i])} w(vertices[i] -> z)
+25:    for each edge (vertices[i] -> z) do
+26:      w'(vertices[i] -> z) <- w(vertices[i] -> z) / lambda_v   > Normalize (@def-05-continuous-normalization)
+27:    end for
+28:    if r'[i] != 0 then
+29:      r'[i] <- r'[i] / lambda_v                            > Reward becomes x_v' = r_v / lambda_v
+30:    end if
+31:  end for
+
+33:  > Step 4: Eliminate zero-reward vertices
+34:  for i <- 0 to |V| - 1 do
+35:    if r'[i] != 0 then                                 > Skip positive-reward vertices
+36:      continue
+37:    end if
+38:    if vertices[i] = v_0 then                         > Never eliminate starting vertex
+39:      continue
+40:    end if
+41:    v <- vertices[i]
+42:    for each parent u in parents(v) do
+43:      p_u_v <- w'(u -> v)
+44:      > Sorted merge of u's and v's edge lists (same as Algorithm 10 in [06])
+45:      for each child z of v do
+46:        if z = u then                                  > Self-loop: geometric resolution
+47:          p_self <- p_u_v * w'(v -> u)
+48:          r'[index(u)] <- r'[index(u)] / (1 - p_self)  > Scale vertex reward
+49:        else if (u -> z) exists then                    > Merge with existing edge
+50:          w'(u -> z) <- w'(u -> z) + p_u_v * w'(v -> z)
+51:        else                                           > New bypass edge
+52:          w'(u -> z) <- p_u_v * w'(v -> z)
+53:        end if
+54:      end for
+55:      Renormalize all outgoing edges of u              > Ensure Sum_z w'(u -> z) = 1
+56:    end for
+57:  end for
+
+59:  > Step 5: Construct new graph from remaining vertices
+60:  G' <- new empty graph
+61:  for each vertex v with r'[index(v)] > 0 do
+62:    v' <- create vertex in G' with state of v
+63:  end for
+64:  for each vertex v with r'[index(v)] > 0 do
+65:    for each child z of v in the modified edge list do
+66:      w_new(v' -> z') <- w'(v -> z) / r'[index(v)]      > Scale by 1/x_v' to get rates
+67:    end for
+68:  end for
+
+70:  > Step 6: Restore original graph edge weights
+71:  for i <- 0 to |V| - 1 do
+72:    for each edge (vertices[i] -> z) do
+73:      w(vertices[i] -> z) <- w(vertices[i] -> z) * lambda_v   > Undo normalization
+74:    end for
+75:  end for
+
+77:  return G'
+78: end function
+```
+
+**Correspondence table:**
+
+| Pseudocode variable | Math symbol | Code variable (file:function) |
+|---------------------|-------------|-------------------------------|
+| $G$ | $G = (V, E, W)$ | `graph` (phasic.c:`_ptd_graph_reward_transform`) |
+| $\mathbf{r}$ | Reward vector | `__rewards` parameter |
+| $\mathbf{r}'$ | Effective rewards (after normalization) | `rewards` (local copy) |
+| $\epsilon$ | Zero-reward threshold | `REWARD_EPSILON` ($10^{-6}$) |
+| $\lambda_v$ | Total outgoing rate | `rate`, `old_rates[i]` |
+| $w'(v \to z)$ | Normalized edge weight | `vertex_edges[i][j].prob` |
+| $p\_u\_v$ | Parent-to-vertex transition probability | `parent_weight_to_me` |
+| $p\_\text{self}$ | Self-loop probability | `prob` |
+| $G'$ | Transformed graph | `new_graph` |
+| $v_0$ | Starting vertex | `graph->starting_vertex` |
+
+**Complexity.** Time: $O(|V_0|^3)$ worst case, where $|V_0|$ is the number of zero-reward vertices. The SCC computation and topological sort are $O(|V| + |E|)$. Each zero-reward vertex elimination involves merging edge lists with all parents, at worst $O(|V|^2)$ per vertex. The positive-reward scaling is $O(|E|)$. The new graph construction is $O(|V'| + |E'|)$ where $|V'| = |V| - |V_0|$ and $|E'|$ is the edge count in the transformed graph (which may be larger than $|E|$ due to fill-in from bypass edges). Space: $O(|V|^2)$ for the working edge lists during elimination, plus $O(|V'| + |E'|)$ for the new graph.
+
+**Correctness.** For positive-reward vertices: @thm-07-positive-reward shows that scaling edge weights by $1/r_v$ produces the sub-intensity matrix $\triangle(\mathbf{r})^{-1}\mathbf{S}$. For zero-reward vertices: @thm-07-zero-reward-preserves shows that vertex elimination (using bypass edges as in @def-06-vertex-elimination) preserves the expected accumulated reward. The combined transformation correctly handles mixed reward vectors with both positive and zero entries.
+
+## Numerical Considerations
+
+**Reward threshold.** The threshold $\epsilon = 10^{-6}$ (`REWARD_EPSILON`) is used to classify rewards as zero. Rewards $r_v \leq \epsilon$ are treated as exactly zero, triggering vertex elimination rather than rate scaling. This prevents extreme rate scaling (dividing by very small $r_v$) that would produce numerically unstable large edge weights.
+
+**Original graph preservation.** The algorithm normalizes the input graph in place (dividing edge weights by vertex rates) to perform the elimination, then restores the original edge weights by multiplying back the saved rates. This ensures the input graph is not permanently modified, which is critical when the same graph is reused for multiple reward transformations. The rates are saved in the `old_rates` array.
+
+**Self-loop resolution in reward context.** When a zero-reward vertex $v$ is eliminated and creates a self-loop at parent $u$, the self-loop probability $p$ is resolved by scaling $u$'s effective reward: $r'_u \leftarrow r'_u / (1-p)$. This differs slightly from the graph elimination case (@def-06-self-loop-resolution), where the vertex scalar $x_u$ is scaled. The effect is the same: the expected time/reward at $u$ is increased by the geometric factor to account for the cycles through $v$.
+
+**Discrete reward transformation.** For DPH distributions, rewards are integers. The function `ptd_graph_dph_reward_transform` first eliminates zero-reward vertices (using the same `_ptd_graph_reward_transform` with zero/one reward encoding), then handles integer rewards $r_v > 1$ by inserting chains of $r_v$ auxiliary vertices. Each auxiliary vertex has a single outgoing edge with weight 1 to the next vertex in the chain, and the last auxiliary vertex receives the original vertex's outgoing edges (including the self-loop if present). This chain ensures the process must visit $r_v$ vertices (accumulating $r_v$ steps of reward) each time it enters state $v$, correctly implementing the discrete reward $\tilde{\tau} = \sum_{t=0}^{\tau} r(X_t)$.
+
+## Implementation Notes
+
+**Source code mapping:**
+
+| Algorithm | File | Function | Lines |
+|-----------|------|----------|-------|
+| Algorithm 13 (core) | `src/c/phasic.c` | `_ptd_graph_reward_transform` | L3550--L4023 |
+| Algorithm 13 (CPH wrapper) | `src/c/phasic.c` | `ptd_graph_reward_transform` | L4025--L4036 |
+| Algorithm 13 (DPH) | `src/c/phasic.c` | `ptd_graph_dph_reward_transform` | L4038--L4232 |
+
+**Deviations from pseudocode:**
+
+- **New graph construction:** The pseudocode shows construction as a simple loop over remaining vertices. The implementation uses three index-mapping arrays (`new_indicesGtoN`, `new_indicesNtoG`, `new_indicesNtoO`) to translate between the elimination-ordering indices, the new graph indices, and the original graph indices. This triple mapping is needed because vertices are reindexed during SCC-based ordering (@def-06-elimination-ordering) and again when constructing the new graph (which omits eliminated vertices).
+
+- **Edge weight in new graph:** The pseudocode shows $w_{\text{new}}(v' \to z') = w'(v \to z) / r'[\text{index}(v)]$. The implementation stores $r'[i]$ as $r_v / \lambda_v$ (the reward divided by the original rate), so dividing the normalized probability $w'(v \to z)$ by $r'[i]$ gives $w'(v \to z) \cdot \lambda_v / r_v = w(v \to z) / r_v$, which is the correct transformed rate.
+
+- **Edge list merge:** The same sorted-merge technique with sentinel dummy vertices is used as in Algorithm 10 (see Implementation Notes in [06]). The edge lists are sorted by pointer address, and existing edges to the same target are identified by pointer equality.
+
+- **DPH self-loop handling:** When constructing auxiliary vertex chains for discrete rewards $r_v > 1$, the implementation checks whether the last auxiliary vertex should have a self-loop edge. If the original vertex has self-loop probability $p_{ii} > \epsilon$, an edge from the last auxiliary vertex back to the original vertex with weight $1 - \text{rate}$ is added, where rate is the sum of outgoing edge weights. This reproduces the self-loop structure of the original DPH at the end of the auxiliary chain.
+
+- **DPH rate validation:** Before performing the discrete transformation, the implementation validates that all vertex outgoing rates are at most 1 (with tolerance $10^{-4}$), since DPH edge weights are probabilities. If a vertex has rate exceeding 1.0001, the function returns NULL with an error message indicating the graph may not be a valid discrete phase-type distribution.
+
+## Symbol Index
+
+| Symbol | Name | First appearance |
+|--------|------|-----------------|
+| $\epsilon$ | Zero-reward threshold ($10^{-6}$) | @def-07-general-reward |
+| $G'$ | Reward-transformed graph | @def-07-general-reward |
+| $\mathbf{r}'$ | Effective reward vector (after threshold and normalization) | Algorithm 13 |
+| $w_{\text{new}}(v \to z)$ | Transformed edge weight | @def-07-positive-reward |
+| $x_v'$ | Transformed vertex scalar ($r_v / \lambda_v$) | @def-07-positive-reward |

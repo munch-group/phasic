@@ -1,0 +1,234 @@
+---
+title: "Method of Moments Estimation"
+---
+
+## Introduction
+
+This file formalizes the **method of moments (MoM) estimator** for phase-type distribution parameters. Given observed data and a parameterized phase-type model, MoM finds parameter estimates by minimizing the distance between sample moments (computed from data) and model moments (computed from the phase-type distribution as a function of the parameter vector). The resulting estimates serve as informed starting points or prior centers for subsequent Bayesian inference via SVGD ([18]) or MCMC ([19]).
+
+In the phasic pipeline, MoM operates after model construction ([08]) and moment computation ([15]). The model moments are evaluated via reward-transformed moment formulas, and the estimation is cast as a nonlinear least-squares problem solved by the Trust Region Reflective algorithm. An optional two-step efficient Generalized Method of Moments (GMM) procedure uses the inverse of the estimated moment covariance as an optimal weighting matrix, down-weighting high-variance moments. Standard errors are computed via the delta method for constructing Gaussian priors.
+
+**Prerequisites:** [01], [15]
+
+**Source files:**
+
+- `src/phasic/method_of_moments.py` (functions: `method_of_moments`, `_compute_weight_transform`, `_select_nr_moments`, `_initial_guess_grid`, `_estimate_moment_covariance`, `_reconstruct_theta`)
+
+## Definitions
+
+::: {#def-21-sample-model-moments .definition}
+## Sample Moments and Model Moments
+*Let $x_1, \ldots, x_n$ be i.i.d. observations from a phase-type distribution $\operatorname{PH}(\boldsymbol{\alpha}, \mathbf{S}(\boldsymbol{\theta}))$. For multivariate observations with $F$ features, let $x_{i,f}$ denote the $f$-th feature of observation $i$. The **sample moments** are*
+
+$$\hat{m}_{f,k} = \frac{1}{n_f} \sum_{i=1}^{n_f} x_{i,f}^k, \quad k = 1, \ldots, K, \;\; f = 1, \ldots, F,$$ {#eq-21-sample-moments}
+
+*where $n_f$ is the number of valid (non-missing) observations for feature $f$ and $K$ is the number of moments matched. The **model moments** $\mu_{f,k}(\boldsymbol{\theta})$ are the $k$-th moments of the phase-type distribution under parameter $\boldsymbol{\theta}$, computed via the reward-transformed moment formula ([15]):*
+
+$$\mu_{f,k}(\boldsymbol{\theta}) = k! \, \boldsymbol{\alpha} \left( (-\mathbf{S}(\boldsymbol{\theta}))^{-1} \triangle(\mathbf{r}_f) \right)^k \mathbf{e},$$ {#eq-21-model-moments}
+
+*where $\mathbf{r}_f$ is the reward vector for feature $f$. The sample and model moments are arranged as vectors $\hat{\mathbf{m}}, \boldsymbol{\mu}(\boldsymbol{\theta}) \in \mathbb{R}^{FK}$ with the ordering $(f=1,k=1), (f=1,k=2), \ldots, (f=F,k=K)$.*
+:::
+
+> **Intuition.** Sample moments are empirical averages of powers of the data. Model moments are the corresponding theoretical quantities predicted by the phase-type model for a given parameter vector. When the model is correct, there exists a $\boldsymbol{\theta}^*$ such that $\boldsymbol{\mu}(\boldsymbol{\theta}^*) = \mathbb{E}[\hat{\mathbf{m}}]$, and the method of moments seeks this parameter.
+
+> **Example.** For a univariate model with $K = 2$ moments and $n = 100$ observations: $\hat{m}_1 = \bar{x}$ (sample mean) and $\hat{m}_2 = n^{-1}\sum x_i^2$ (sample second moment). If the model is $\operatorname{Exp}(\theta)$, then $\mu_1(\theta) = 1/\theta$ and $\mu_2(\theta) = 2/\theta^2$.
+
+::: {#def-21-moment-objective .definition}
+## Moment Matching Objective
+*The **moment matching objective** is the weighted nonlinear least-squares problem*
+
+$$\hat{\boldsymbol{\theta}} = \arg\min_{\boldsymbol{\theta} > 0} \left\lVert \mathbf{T}\left(\boldsymbol{\mu}(\boldsymbol{\theta}) - \hat{\mathbf{m}}\right) \right\rVert_2^2,$$ {#eq-21-moment-objective}
+
+*where $\mathbf{T} \in \mathbb{R}^{FK \times FK}$ is a weight transform matrix. This is equivalent to minimizing the generalized sum of squared residuals $(\boldsymbol{\mu}(\boldsymbol{\theta}) - \hat{\mathbf{m}})^\top \mathbf{W} (\boldsymbol{\mu}(\boldsymbol{\theta}) - \hat{\mathbf{m}})$ with weight matrix $\mathbf{W} = \mathbf{T}^\top \mathbf{T}$. The constraint $\boldsymbol{\theta} > 0$ ensures positive rates.*
+:::
+
+> **Intuition.** The weight matrix $\mathbf{W}$ accounts for the different scales and variances of the moments. Without weighting ($\mathbf{T} = \mathbf{I}$), high-order moments (which are typically much larger) would dominate the objective. Optimal weighting uses $\mathbf{W} = \boldsymbol{\Sigma}^{-1}$, the inverse of the moment covariance, which normalizes each moment by its sampling variability.
+
+::: {#def-21-optimal-weighting .definition}
+## Optimal Weighting via Moment Covariance
+*The **moment covariance matrix** $\boldsymbol{\Sigma} \in \mathbb{R}^{FK \times FK}$ has a block-diagonal structure (features are independent):*
+
+$$\boldsymbol{\Sigma} = \operatorname{diag}(\boldsymbol{\Sigma}_1, \ldots, \boldsymbol{\Sigma}_F),$$ {#eq-21-moment-cov-block}
+
+*where $\boldsymbol{\Sigma}_f \in \mathbb{R}^{K \times K}$ has entries*
+
+$$(\boldsymbol{\Sigma}_f)_{jk} = \frac{1}{n_f} \operatorname{Cov}(X_f^j, X_f^k) = \frac{1}{n_f} \left( \frac{1}{n_f - 1} \sum_{i=1}^{n_f} (x_{i,f}^j - \hat{m}_{f,j})(x_{i,f}^k - \hat{m}_{f,k}) \right).$$ {#eq-21-moment-cov-entries}
+
+*The **optimal weight transform** $\mathbf{T}$ is the inverse of the Cholesky factor of $\boldsymbol{\Sigma}$: if $\boldsymbol{\Sigma} = \mathbf{L}\mathbf{L}^\top$, then $\mathbf{T} = \mathbf{L}^{-1}$, giving $\mathbf{W} = \mathbf{T}^\top \mathbf{T} = \boldsymbol{\Sigma}^{-1}$. A fallback chain is employed: if $\boldsymbol{\Sigma}$ is ill-conditioned (condition number $\geq 10^{10}$), diagonal weighting $T_{ii} = 1/\sqrt{\Sigma_{ii}}$ is used; if the diagonal also contains non-positive entries, the identity $\mathbf{T} = \mathbf{I}$ (unweighted) is used.*
+:::
+
+> **Intuition.** The Cholesky factorization of $\boldsymbol{\Sigma}$ transforms the correlated moment residuals into uncorrelated, unit-variance residuals. This is the standard efficient GMM weighting (Hansen, 1982): it produces the minimum-variance estimator among all GMM estimators using the same moment conditions. The fallback chain ensures robustness when the sample size is small relative to the number of moments.
+
+## Theorems and Proofs
+
+::: {#thm-21-consistency .theorem}
+## Consistency of the Method of Moments Estimator
+*Suppose (i) the moment function $\boldsymbol{\mu}(\boldsymbol{\theta})$ is continuous on $\Theta = \mathbb{R}^d_{>0}$, (ii) the true parameter $\boldsymbol{\theta}^*$ is the unique solution of $\boldsymbol{\mu}(\boldsymbol{\theta}) = \mathbb{E}[\hat{\mathbf{m}}]$ (identification), and (iii) the observations $x_1, \ldots, x_n$ are i.i.d. with finite $2K$-th moment. Then the MoM estimator $\hat{\boldsymbol{\theta}}_n$ satisfies*
+
+$$\hat{\boldsymbol{\theta}}_n \xrightarrow{n \to \infty} \boldsymbol{\theta}^* \quad \text{in probability.}$$
+
+*Furthermore, the asymptotic covariance of $\hat{\boldsymbol{\theta}}_n$ is*
+
+$$\sqrt{n}(\hat{\boldsymbol{\theta}}_n - \boldsymbol{\theta}^*) \xrightarrow{d} \mathcal{N}\!\left(\mathbf{0}, \; \mathbf{G} \boldsymbol{\Sigma} \mathbf{G}^\top \right),$$ {#eq-21-asymptotic-cov}
+
+*where $\mathbf{G} = (\mathbf{J}^\top \mathbf{W} \mathbf{J})^{-1} \mathbf{J}^\top \mathbf{W}$ is the generalized inverse mapping, $\mathbf{J} = \partial \boldsymbol{\mu} / \partial \boldsymbol{\theta}^\top \big|_{\boldsymbol{\theta}^*}$ is the Jacobian of the moment function, and $\boldsymbol{\Sigma}$ is the moment covariance. For the efficient GMM weighting $\mathbf{W} = \boldsymbol{\Sigma}^{-1}$, this simplifies to*
+
+$$\operatorname{Cov}(\hat{\boldsymbol{\theta}}_n) \approx \frac{1}{n} (\mathbf{J}_w^\top \mathbf{J}_w)^{-1},$$ {#eq-21-efficient-cov}
+
+*where $\mathbf{J}_w = \mathbf{T} \mathbf{J}$ is the weighted Jacobian.*
+:::
+
+::: {.proof}
+By the strong law of large numbers and condition (iii), $\hat{\mathbf{m}} \xrightarrow{\text{a.s.}} \mathbb{E}[\hat{\mathbf{m}}] = \boldsymbol{\mu}(\boldsymbol{\theta}^*)$. The objective function $Q_n(\boldsymbol{\theta}) = \lVert \mathbf{T}(\boldsymbol{\mu}(\boldsymbol{\theta}) - \hat{\mathbf{m}}) \rVert^2$ converges uniformly on compact subsets to $Q(\boldsymbol{\theta}) = \lVert \mathbf{T}(\boldsymbol{\mu}(\boldsymbol{\theta}) - \boldsymbol{\mu}(\boldsymbol{\theta}^*)) \rVert^2$ by continuity of $\boldsymbol{\mu}$. By identification (ii), $Q(\boldsymbol{\theta})$ has a unique minimizer at $\boldsymbol{\theta}^*$, so $\hat{\boldsymbol{\theta}}_n \to \boldsymbol{\theta}^*$ in probability (standard extremum estimator consistency; see Newey & McFadden, 1994, Theorem 2.1).
+
+For the asymptotic distribution, linearize $\boldsymbol{\mu}(\hat{\boldsymbol{\theta}}_n) \approx \boldsymbol{\mu}(\boldsymbol{\theta}^*) + \mathbf{J}(\hat{\boldsymbol{\theta}}_n - \boldsymbol{\theta}^*)$. The first-order condition of the weighted least-squares problem gives $\mathbf{J}_w^\top \mathbf{T}(\boldsymbol{\mu}(\hat{\boldsymbol{\theta}}_n) - \hat{\mathbf{m}}) = \mathbf{0}$, which after linearization yields
+
+$$\hat{\boldsymbol{\theta}}_n - \boldsymbol{\theta}^* \approx -(\mathbf{J}_w^\top \mathbf{J}_w)^{-1} \mathbf{J}_w^\top \mathbf{T}(\boldsymbol{\mu}(\boldsymbol{\theta}^*) - \hat{\mathbf{m}}).$$
+
+Since $\sqrt{n}(\hat{\mathbf{m}} - \boldsymbol{\mu}(\boldsymbol{\theta}^*)) \xrightarrow{d} \mathcal{N}(\mathbf{0}, \boldsymbol{\Sigma})$ by the central limit theorem, applying the linear transformation gives @eq-21-asymptotic-cov. When $\mathbf{W} = \boldsymbol{\Sigma}^{-1}$ and $\mathbf{T} = \mathbf{L}^{-1}$, the covariance simplifies: $\mathbf{G} \boldsymbol{\Sigma} \mathbf{G}^\top = (\mathbf{J}_w^\top \mathbf{J}_w)^{-1} \mathbf{J}_w^\top (\mathbf{T} \boldsymbol{\Sigma} \mathbf{T}^\top) \mathbf{J}_w (\mathbf{J}_w^\top \mathbf{J}_w)^{-1} = (\mathbf{J}_w^\top \mathbf{J}_w)^{-1}$, since $\mathbf{T} \boldsymbol{\Sigma} \mathbf{T}^\top = \mathbf{L}^{-1} \mathbf{L} \mathbf{L}^\top \mathbf{L}^{-\top} = \mathbf{I}$. Dividing by $n$ gives @eq-21-efficient-cov. $\square$
+:::
+
+## Algorithms
+
+### Algorithm 33: Method of Moments Estimation
+
+*Description.* Algorithm 33 estimates the parameter vector $\boldsymbol{\theta}$ of a parameterized phase-type model by matching model moments to sample moments. The algorithm proceeds in several stages: (1) compute sample moments from the data, (2) optionally select the number of moments $K$ by condition number analysis, (3) find an initial guess via coordinate-wise grid search on the first moment, (4) solve the unweighted least-squares problem, and (5) optionally re-solve with optimal GMM weighting. Standard errors are computed via the delta method (@thm-21-consistency) and used to construct Gaussian priors.
+
+```
+Algorithm 33: Method of Moments Estimation
+1: Let G = (V, E) be a parameterized phase-type graph with d parameters
+2: Let x_1, ..., x_n be observed data (possibly multivariate, F features)
+3: Let K be the number of moments (auto-selected if not specified)
+4: Let fixed be a set of (index, value) pairs for fixed parameters
+5: Let d_free = d - |fixed| be the number of free parameters
+6:
+7: function MethodOfMoments(G, x, K, fixed, weighted)
+8:   m_hat <- SampleMoments(x, K, F)               triangleright Eq. (1)
+9:   if K = nil then
+10:    if weighted then
+11:      K <- SelectNrMoments(x, F, d_free)         triangleright Condition number pruning
+12:    else
+13:      K <- max(2 * d_free, 4) / F                triangleright Heuristic overdetermination
+14:    end if
+15:  end if
+16:  Sigma <- EstimateMomentCovariance(x, K, F)     triangleright Eq. (5)
+17:  mu(theta) <- ModelMoments(G, theta, K, F)      triangleright Eq. (2) via [15]
+18:
+19:  x0 <- InitialGuessGrid(mu, m_hat[1], d_free, fixed)
+20:                                                  triangleright Grid search on first moment
+21:  r(theta_free) <- mu(Reconstruct(theta_free, fixed)) - m_hat
+22:                                                  triangleright Residual function
+23:
+24:  theta_1 <- LeastSquares(r, x0, bounds=(epsilon, inf))
+25:                                                  triangleright Step 1: unweighted
+26:
+27:  if weighted then
+28:    T, method <- ComputeWeightTransform(Sigma)    triangleright Definition 21.3
+29:    if T != nil then
+30:      r_w(theta_free) <- T * r(theta_free)        triangleright Weighted residual
+31:      theta_hat <- LeastSquares(r_w, theta_1, bounds=(epsilon, inf))
+32:                                                  triangleright Step 2: GMM
+33:    else
+34:      theta_hat <- theta_1
+35:    end if
+36:  else
+37:    theta_hat <- theta_1
+38:  end if
+39:
+40:  J <- Jacobian(r, theta_hat)                     triangleright Finite differences
+41:  if weighted and T != nil then
+42:    Cov_theta <- pinv(J_w^T J_w)                  triangleright Eq. (7)
+43:  else
+44:    G_mat <- pinv(J)
+45:    Cov_theta <- G_mat * Sigma * G_mat^T          triangleright Eq. (6)
+46:  end if
+47:  se <- sqrt(diag(Cov_theta))
+48:  prior_i <- GaussPrior(theta_hat_i, c * se_i) for free i
+49:                                                  triangleright c = std_multiplier
+50:  return (theta_hat, se, prior)
+51: end function
+```
+
+**Correspondence table:**
+
+| Pseudocode variable | Math symbol | Code variable (file:function) |
+|---------------------|-------------|-------------------------------|
+| `G` | $G = (V, E)$ | `graph` (`method_of_moments.py:method_of_moments`) |
+| `x` | $x_1, \ldots, x_n$ | `observed_data` (`method_of_moments.py:method_of_moments`) |
+| `K` | $K$ (number of moments) | `nr_moments` (`method_of_moments.py:method_of_moments`) |
+| `F` | $F$ (number of features) | `n_features` (`method_of_moments.py:method_of_moments`) |
+| `d` | $d$ (parameter dimension) | `theta_dim` (`method_of_moments.py:method_of_moments`) |
+| `d_free` | $d_{\text{free}}$ | `n_free` (`method_of_moments.py:method_of_moments`) |
+| `m_hat` | $\hat{\mathbf{m}}$ | `target_moments` (`method_of_moments.py:method_of_moments`) |
+| `Sigma` | $\boldsymbol{\Sigma}$ | `moment_cov` (`method_of_moments.py:method_of_moments`) |
+| `mu` | $\boldsymbol{\mu}(\boldsymbol{\theta})$ | `moments_fn` (`method_of_moments.py:method_of_moments`) |
+| `T` | $\mathbf{T}$ (weight transform) | `T` (`method_of_moments.py:_compute_weight_transform`) |
+| `x0` | initial guess | `x0` (`method_of_moments.py:method_of_moments`) |
+| `r` | residual function | `residual_fn` (`method_of_moments.py:method_of_moments`) |
+| `r_w` | weighted residual | `weighted_residual_fn` (`method_of_moments.py:method_of_moments`) |
+| `theta_1` | step-1 estimate | `result.x` (first call) (`method_of_moments.py:method_of_moments`) |
+| `theta_hat` | $\hat{\boldsymbol{\theta}}$ | `theta_full_opt` (`method_of_moments.py:method_of_moments`) |
+| `J` | $\mathbf{J}$ (Jacobian) | `result.jac` (`method_of_moments.py:method_of_moments`) |
+| `J_w` | $\mathbf{J}_w = \mathbf{T}\mathbf{J}$ | `J_w = result.jac` (weighted) (`method_of_moments.py:method_of_moments`) |
+| `Cov_theta` | $\operatorname{Cov}(\hat{\boldsymbol{\theta}})$ | `cov_theta` (`method_of_moments.py:method_of_moments`) |
+| `se` | standard errors | `std_free` / `std_full` (`method_of_moments.py:method_of_moments`) |
+| `c` | std multiplier | `std_multiplier` (`method_of_moments.py:method_of_moments`) |
+| `prior` | Gaussian priors | `priors` (`method_of_moments.py:method_of_moments`) |
+
+**Complexity.** Time: $O(N_{\text{iter}} \cdot (C_{\text{mom}} + FK))$, where $N_{\text{iter}}$ is the number of least-squares iterations (at most $200 \cdot d_{\text{free}}$), $C_{\text{mom}}$ is the cost of one model-moment evaluation via [15], and $FK$ is the cost of computing the residual. The initial grid search costs $O(d_{\text{free}} \cdot |G_{\text{grid}}| \cdot C_{\text{mom}})$ where $|G_{\text{grid}}| = 20$ is the grid size. The Cholesky factorization and pseudoinverse cost $O((FK)^3)$ and $O((FK)^2 d_{\text{free}})$ respectively. Space: $O((FK)^2)$ for the moment covariance matrix and $O(d_{\text{free}})$ for the parameter vector.
+
+**Correctness.** By @thm-21-consistency, the estimator is consistent under identification and finite moments. The two-step GMM procedure achieves efficiency: the first step provides a consistent (but possibly inefficient) estimate, and the second step uses the estimated optimal weighting $\mathbf{W} = \hat{\boldsymbol{\Sigma}}^{-1}$ to minimize asymptotic variance. The delta method standard errors (@eq-21-efficient-cov) provide valid confidence intervals asymptotically.
+
+## Numerical Considerations
+
+**Condition number pruning.** When `weighted=True` and `nr_moments` is not specified, the function `_select_nr_moments` starts from a maximum number of moments and decreases until the moment covariance matrix has condition number below $10^3$. This prevents ill-conditioning from high-order moments that have extreme variance, which would make the Cholesky factorization unstable and the weighted residuals unreliable.
+
+**Fallback chain for weighting.** The weight transform computation (`_compute_weight_transform`) implements a three-level fallback: (1) full Cholesky of $\boldsymbol{\Sigma}$ (if condition number $< 10^{10}$ and all diagonal entries positive), (2) diagonal weighting $T_{ii} = 1/\sqrt{\Sigma_{ii}}$ (if all variances are positive and finite), (3) identity (unweighted). This ensures the algorithm never fails due to a degenerate covariance matrix.
+
+**Positivity constraint.** The Trust Region Reflective solver enforces $\theta_j > \varepsilon$ with $\varepsilon = 10^{-10}$ via bound constraints. This avoids numerical issues with zero or negative rates while being effectively unconstrained for practical parameter values.
+
+**Standard error floor.** After the delta method, any standard error that is zero, negative, or non-finite for a free parameter is replaced by $0.5 \cdot \max(|\hat{\theta}_j|, 10^{-4})$. This ensures that priors always have a reasonable spread.
+
+**Multivariate data.** The implementation accepts `SparseObservations` for multivariate data with potentially different numbers of observations per feature. The moment covariance is block-diagonal (features are independent), with each block estimated from the valid observations of that feature.
+
+## Implementation Notes
+
+**Source code mapping:**
+
+| Algorithm | File | Function | Lines |
+|-----------|------|----------|-------|
+| Algorithm 33 (entry) | `src/phasic/method_of_moments.py` | `method_of_moments` | L205--L590 |
+| Weight transform | `src/phasic/method_of_moments.py` | `_compute_weight_transform` | L56--L88 |
+| Nr moments selection | `src/phasic/method_of_moments.py` | `_select_nr_moments` | L91--L119 |
+| Moment covariance | `src/phasic/method_of_moments.py` | `_estimate_moment_covariance` | L122--L149 |
+| Initial guess grid | `src/phasic/method_of_moments.py` | `_initial_guess_grid` | L168--L202 |
+| Theta reconstruction | `src/phasic/method_of_moments.py` | `_reconstruct_theta` | L152--L165 |
+
+**Deviations from pseudocode:**
+
+- The pseudocode shows the Jacobian $\mathbf{J}$ computed as a separate step. The implementation obtains it as `result.jac` from `scipy.optimize.least_squares`, which computes the Jacobian by finite differences as part of the Trust Region Reflective algorithm.
+- The model moments function `moments_fn` is constructed differently depending on whether rewards are 1D, 2D, or absent. The pseudocode abstracts this as a single `ModelMoments` call.
+- The `MoMResult` dataclass also stores `sample_moments`, `model_moments`, and `weighted` flag for diagnostic purposes, not shown in the pseudocode.
+- Fixed parameters are handled via `_reconstruct_theta`, which inserts fixed values into the full parameter vector at each residual evaluation. The solver only optimizes over free parameters.
+
+## Symbol Index
+
+| Symbol | Name | First appearance |
+|--------|------|-----------------|
+| $\hat{\boldsymbol{\theta}}_n$ | MoM estimator | @thm-21-consistency |
+| $d_{\text{free}}$ | Number of free parameters | Algorithm 33 |
+| $F$ | Number of features | @def-21-sample-model-moments |
+| $\mathbf{G}$ | Generalized inverse mapping | @thm-21-consistency |
+| $\hat{\mathbf{m}}$ | Sample moment vector | @def-21-sample-model-moments |
+| $\hat{m}_{f,k}$ | Sample $k$-th moment for feature $f$ | @def-21-sample-model-moments |
+| $\mathbf{J}$ | Jacobian of moment function | @thm-21-consistency |
+| $\mathbf{J}_w$ | Weighted Jacobian $\mathbf{T}\mathbf{J}$ | @thm-21-consistency |
+| $K$ | Number of moments matched | @def-21-sample-model-moments |
+| $\mathbf{L}$ | Cholesky factor of $\boldsymbol{\Sigma}$ | @def-21-optimal-weighting |
+| $\boldsymbol{\mu}(\boldsymbol{\theta})$ | Model moment vector | @def-21-sample-model-moments |
+| $\mu_{f,k}(\boldsymbol{\theta})$ | Model $k$-th moment for feature $f$ | @def-21-sample-model-moments |
+| $n_f$ | Number of observations for feature $f$ | @def-21-sample-model-moments |
+| $\boldsymbol{\Sigma}$ | Moment covariance matrix | @def-21-optimal-weighting |
+| $\boldsymbol{\Sigma}_f$ | Moment covariance block for feature $f$ | @def-21-optimal-weighting |
+| $\mathbf{T}$ | Weight transform matrix | @def-21-moment-objective |
+| $\mathbf{W}$ | Weight matrix $\mathbf{T}^\top \mathbf{T}$ | @def-21-moment-objective |

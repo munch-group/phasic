@@ -13,6 +13,10 @@ website:
       - api/StateVector.qmd
       section: Graph Construction
     - contents:
+      - api/HexGrid.qmd
+      - api/HexCell.qmd
+      section: Spatial Grids
+    - contents:
       - api/PTDAlgorithmsError.qmd
       - api/PTDConfigError.qmd
       - api/PTDBackendError.qmd

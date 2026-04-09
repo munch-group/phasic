@@ -5,7 +5,6 @@
 **Repository:** https://github.com/munch-group/phasic
 **Contact:** Kasper Munch (kaspermunch@birc.au.dk)
 
----
 
 ## Overview
 
@@ -25,8 +24,6 @@ Traditional matrix-based methods become computationally infeasible for systems w
 - **Queuing theory**: Service time modeling, system reliability
 - **Survival analysis**: Time-to-event modeling
 - **Bayesian inference**: Efficient likelihood computation for MCMC/SVGD
-
----
 
 ## Development
 
@@ -77,8 +74,6 @@ Supports:
 - `jax.grad`: Automatic differentiation (via custom VJP)
 - `jax.vmap`: Batching over parameters
 - `jax.pmap`: Multi-device parallelization
-
----
 
 ## Python API Patterns
 
@@ -384,8 +379,6 @@ grid_values = grid.map_to_grid(graph, indexer.cell, values)
 
 Key methods: `grid.neighbors(r, c)`, `grid.coords_to_rowcol(x, y)`, `grid.valid_cells()`, `grid.properties()`.
 
----
-
 ## Important Implementation Details
 
 ### Graph Elimination (Algorithm 3)
@@ -462,8 +455,6 @@ def compute_pmf_fallback(structure_json, theta, times, discrete, granularity):
 - 37 vertices: <5 min ✓ (actual: ~2s)
 - 67 vertices: <30 min ✓ (actual: ~5s)
 
----
-
 ## Phase 4: Exact Phase-Type Likelihood ✅ COMPLETE
 
 **Status**: ✅ Implemented October 2025
@@ -499,8 +490,6 @@ results = svgd.fit()
 - 5-10× slower than exponential approximation
 - Still meets Phase 3 targets with margin
 - 67-vertex model: ~50s for 1000 evaluations (target: <2 min)
-
----
 
 ## Phase 5 Week 3: Forward Algorithm PDF Gradients ✅ COMPLETE
 
@@ -591,8 +580,6 @@ pdf = concrete_graph.pdf(time=1.0, granularity=100)
 - JAX FFI integration for full autodiff (Week 4)
 - Extend to reward-transformed graphs (Week 5)
 - Benchmark on larger models (100+ vertices)
-
----
 
 ## Quick Reference
 
@@ -718,8 +705,6 @@ pip install -e .[jax]
 pixi install
 pixi run test
 ```
-
----
 
 *Last updated: 2026-04-08*
 - When creating a markdown file summarizing changes made, please prompt to add changed and new files to git, commit them with a message from the markdown file, but do not add the markdown file itself. Prompt only once and then do git add, commit, and push without prompting further.

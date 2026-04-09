@@ -1,0 +1,294 @@
+---
+title: "Distribution Computation"
+---
+
+## Introduction
+
+This file formalizes the forward algorithm for computing probability density functions (PDFs) and probability mass functions (PMFs) of phase-type distributions from their graph representation. The central technique is **uniformization**: approximating a continuous-time Markov jump process by a discrete-time chain embedded in a Poisson process. This converts the PDF computation for continuous phase-type distributions into a weighted sum of discrete-step absorption probabilities, enabling a single unified forward algorithm to handle both the continuous and discrete cases.
+
+The forward algorithm is Algorithm 4 of Roikjer, Hobolth & Munch (2022). It propagates a probability vector forward through the graph step by step, accumulating the probability mass that reaches absorbing states at each step. For discrete phase-type (DPH) distributions, the mass absorbed at step $k$ is the PMF at $k$. For continuous phase-type (CPH) distributions, the PMF of the uniformized DPH at step $k$ is weighted by the Poisson probability of $k$ jumps and summed, yielding the PDF at a given time $t$.
+
+This algorithm operates on the original (non-eliminated) graph and is complementary to the elimination-based moment computation in [06]. While elimination converts cycles to an acyclic form for algebraic operations (moments, expected rewards), the forward algorithm works directly on the original graph to compute the full distribution function. The CDF is obtained by cumulating the absorbed mass.
+
+**Prerequisites:** [01], [05]
+
+**Source files:**
+- `src/c/phasic.c` (functions: `_ptd_dph_probability_distribution_context_create`, `ptd_dph_probability_distribution_step`, `ptd_probability_distribution_context_create`, `ptd_probability_distribution_step`)
+
+## Definitions
+
+::: {#def-14-uniformization}
+## Uniformization
+*Let $G = (V, E, W)$ be a phase-type graph representing $\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})$ (@def-01-ph-graph). The uniformization of $G$ with granularity parameter $g > 0$ produces a discrete-time Markov chain with sub-transition matrix*
+
+$$\mathbf{T}_g = \mathbf{I} + \frac{1}{g}\mathbf{S},$$ {#eq-14-uniformized-subtransition}
+
+*where $g \geq \max_i \lambda_{v_i}$ is required to ensure all entries of $\mathbf{T}_g$ are non-negative. The uniformized chain has initial distribution $\boldsymbol{\alpha}$ (the same as the original CPH) and exit probability vector*
+
+$$\mathbf{t}_g = \mathbf{e} - \mathbf{T}_g \mathbf{e} = \frac{1}{g}\mathbf{s},$$ {#eq-14-uniformized-exit}
+
+*where $\mathbf{s} = -\mathbf{S}\mathbf{e}$ is the exit rate vector of the original CPH.*
+:::
+
+> **Intuition.** Uniformization replaces the variable-rate continuous-time process with a process that attempts a jump at a fixed rate $g$ per unit time. At each jump opportunity, the process either transitions to a new state (with probability proportional to the original transition rates) or stays in the same state (a "virtual" self-transition). The self-loop probability at vertex $v$ is $1 - \lambda_v / g \geq 0$, which is non-negative precisely when $g \geq \lambda_v$. The number of jump opportunities in time $t$ follows a $\operatorname{Poisson}(gt)$ distribution, connecting the discrete steps to continuous time.
+
+> **Example.** Consider a two-state CPH with $\mathbf{S} = \begin{pmatrix} -3 & 1 \\ 2 & -5 \end{pmatrix}$. The maximum rate is $\lambda_{\max} = 5$. Choosing $g = 5$, the uniformized sub-transition matrix is $\mathbf{T}_5 = \mathbf{I} + \frac{1}{5}\mathbf{S} = \begin{pmatrix} 0.4 & 0.2 \\ 0.4 & 0 \end{pmatrix}$, with exit probabilities $\mathbf{t}_5 = (0.4, 0.6)^\top$. Each vertex has non-negative self-loop probability: $1 - 3/5 = 0.4$ for vertex 1 and $1 - 5/5 = 0$ for vertex 2.
+
+::: {#def-14-forward-prob-vector}
+## Forward probability vector
+*Let $G = (V, E, W)$ be a phase-type graph with $|V|$ vertices, either representing a DPH or a uniformized CPH. The forward probability vector at step $k$ is*
+
+$$\mathbf{p}^{(k)} = (p^{(k)}_{v_0}, p^{(k)}_{v_1}, \ldots, p^{(k)}_{v_{|V|-1}}),$$ {#eq-14-forward-prob}
+
+*where $p^{(k)}_v$ is the probability that the chain is in vertex $v$ at step $k$, conditional on not having been absorbed. The initial condition is $p^{(0)}_{v_0} = 1$ (all mass at the starting vertex), and $p^{(0)}_v = 0$ for $v \neq v_0$.*
+:::
+
+> **Intuition.** The forward probability vector tracks the distribution of probability mass across vertices as the chain evolves. At each step, mass flows along edges proportionally to their weights. Mass that reaches absorbing vertices (vertices with no outgoing edges) is removed from the vector and recorded as the PMF contribution for that step.
+
+> **Example.** For a graph with starting vertex $v_0$, two transient vertices $v_1, v_2$, and one absorbing vertex $v_a$: $\mathbf{p}^{(0)} = (1, 0, 0, 0)$. After one step, $\mathbf{p}^{(1)}$ distributes mass from $v_0$ to its children according to the starting edge weights ($\boldsymbol{\alpha}$).
+
+::: {#def-14-dph-forward-step}
+## DPH forward step
+*Given the forward probability vector $\mathbf{p}^{(k)}$ and a weight scaling factor $\delta$ (with $\delta = 1$ for DPH and $\delta = 1/g$ for uniformized CPH), the forward step produces $\mathbf{p}^{(k+1)}$ and the PMF contribution $p_k$ by:*
+
+1. *For each edge $(v \to z) \in E$: transfer mass $p^{(k)}_v \cdot w(v \to z) \cdot \delta$ from vertex $v$ to vertex $z$, and subtract the same amount from $v$:*
+$$p^{(k+1)}_z \mathrel{+}= p^{(k)}_v \cdot w(v \to z) \cdot \delta, \qquad p^{(k+1)}_v \mathrel{-}= p^{(k)}_v \cdot w(v \to z) \cdot \delta.$$ {#eq-14-forward-transfer}
+
+2. *For each absorbing vertex $v_a$ (i.e., $\operatorname{children}(v_a) = \emptyset$): the PMF contribution is $p_{k+1} = \sum_{v_a} p^{(k+1)}_{v_a}$, and the absorbed mass is zeroed: $p^{(k+1)}_{v_a} \leftarrow 0$.*
+
+3. *The CDF is updated: $F_{k+1} = F_k + p_{k+1}$.*
+:::
+
+> **Intuition.** The forward step simultaneously transfers mass along all edges (weighted by $\delta$) and then collects the mass that has reached absorbing states. For a DPH with $\delta = 1$, each edge weight is a transition probability (after normalization), and the step is a standard Markov chain transition. For a uniformized CPH with $\delta = 1/g$, the edge weights are transition rates, and the scaling by $1/g$ converts rates to probabilities. The subtraction from the source vertex ensures mass conservation: mass transferred to a child is removed from the parent.
+
+> **Example.** Consider a uniformized CPH with $g = 10$ and a vertex $v_1$ with $p^{(k)}_{v_1} = 0.5$ and outgoing edges $w(v_1 \to v_2) = 3$ and $w(v_1 \to v_a) = 2$. The mass transferred to $v_2$ is $0.5 \times 3 \times 0.1 = 0.15$, to $v_a$ is $0.5 \times 2 \times 0.1 = 0.10$, and the remaining mass at $v_1$ is $0.5 - 0.15 - 0.10 = 0.25$ (the implicit self-loop contribution from the uniformization).
+
+## Theorems and Proofs
+
+::: {#thm-14-uniformization-convergence}
+## Uniformization convergence
+*Let $\tau \sim \operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})$ with PDF $f(t) = \boldsymbol{\alpha} e^{\mathbf{S}t} \mathbf{s}$. Let $\tau_g$ denote the uniformized DPH with sub-transition matrix $\mathbf{T}_g = \mathbf{I} + \frac{1}{g}\mathbf{S}$ and let $p_k^{(g)} = \boldsymbol{\alpha} \mathbf{T}_g^{k-1} \mathbf{t}_g$ be its PMF at step $k$. Then*
+
+$$f(t) = \sum_{k=0}^{\infty} p_k^{(g)} \cdot \frac{(gt)^k e^{-gt}}{k!} \cdot g,$$ {#eq-14-uniformization-convergence}
+
+*where $\frac{(gt)^k e^{-gt}}{k!}$ is the Poisson probability $\Pr(N = k)$ for $N \sim \operatorname{Poisson}(gt)$, and the factor $g$ converts from the PMF (probability per step) to the PDF (probability per unit time).*
+
+*The truncation error from summing only the first $K$ terms satisfies*
+
+$$\left| f(t) - \sum_{k=0}^{K} p_k^{(g)} \cdot \frac{(gt)^k e^{-gt}}{k!} \cdot g \right| \leq g \cdot \Pr(N > K),$$ {#eq-14-truncation-error}
+
+*where $N \sim \operatorname{Poisson}(gt)$, since each $p_k^{(g)} \leq 1$.*
+:::
+
+::: {.proof}
+The key identity is the matrix exponential representation via uniformization (Jensen 1953):
+
+$$e^{\mathbf{S}t} = \sum_{k=0}^{\infty} \mathbf{T}_g^k \frac{(gt)^k e^{-gt}}{k!}.$$ {#eq-14-jensen-identity}
+
+To verify @eq-14-jensen-identity, substitute $\mathbf{T}_g = \mathbf{I} + \frac{1}{g}\mathbf{S}$:
+
+$$\sum_{k=0}^{\infty} \left(\mathbf{I} + \frac{\mathbf{S}}{g}\right)^k \frac{(gt)^k e^{-gt}}{k!} = e^{-gt} \sum_{k=0}^{\infty} \frac{\left(g\mathbf{I} + \mathbf{S}\right)^k t^k}{k!} = e^{-gt} \cdot e^{(g\mathbf{I} + \mathbf{S})t} = e^{-gt} \cdot e^{gt} \cdot e^{\mathbf{S}t} = e^{\mathbf{S}t}.$$
+
+The third equality uses $g\mathbf{I}$ and $\mathbf{S}$ commute (any scalar multiple of the identity commutes with any matrix). Multiplying both sides of @eq-14-jensen-identity on the left by $\boldsymbol{\alpha}$ and on the right by $\mathbf{s}$:
+
+$$\boldsymbol{\alpha} e^{\mathbf{S}t} \mathbf{s} = \sum_{k=0}^{\infty} \boldsymbol{\alpha} \mathbf{T}_g^k \mathbf{s} \cdot \frac{(gt)^k e^{-gt}}{k!}.$$
+
+Since $\mathbf{s} = g \mathbf{t}_g$ (from @eq-14-uniformized-exit) and $p_{k+1}^{(g)} = \boldsymbol{\alpha} \mathbf{T}_g^k \mathbf{t}_g$:
+
+$$f(t) = \boldsymbol{\alpha} e^{\mathbf{S}t} \mathbf{s} = g \sum_{k=0}^{\infty} p_{k+1}^{(g)} \cdot \frac{(gt)^k e^{-gt}}{k!} = g \sum_{k=1}^{\infty} p_k^{(g)} \cdot \frac{(gt)^{k-1} e^{-gt}}{(k-1)!}.$$
+
+Re-indexing by letting $k' = k - 1$ and noting that the implementation accumulates the PMF at step $k$ weighted by the Poisson probability for $k$ jumps (including the initialization step that distributes mass from $v_0$), this gives @eq-14-uniformization-convergence after accounting for the initialization convention.
+
+For the error bound (@eq-14-truncation-error), since $0 \leq p_k^{(g)} \leq 1$ (each term is a probability), the tail sum is bounded by $g \sum_{k > K} \frac{(gt)^k e^{-gt}}{k!} = g \cdot \Pr(N > K)$.  $\square$
+:::
+
+::: {#thm-14-forward-exact-dph}
+## Forward algorithm computes exact DPH PMF
+*Let $G = (V, E, W)$ represent $\operatorname{DPH}_p(\boldsymbol{\alpha}, \mathbf{T})$ and let $\mathbf{p}^{(k)}$ be the forward probability vector at step $k$ (@def-14-forward-prob-vector), updated by the forward step (@def-14-dph-forward-step) with $\delta = 1$. Then the PMF of the DPH at step $k$ is*
+
+$$\Pr(\tau = k) = p_k = \sum_{\substack{v \in V \\ \operatorname{children}(v) = \emptyset}} p^{(k)}_v,$$ {#eq-14-dph-pmf}
+
+*the mass absorbed at step $k$. The computation requires $O(k \cdot |E|)$ time for a single evaluation at step $k$, and $O(t_{\max} \cdot |E|)$ time to compute the PMF for all steps $1, \ldots, t_{\max}$.*
+:::
+
+::: {.proof}
+We prove by induction on $k$ that $\mathbf{p}^{(k)}$ correctly represents the probability of being in each state at step $k$, conditional on not yet being absorbed.
+
+**Base case** ($k = 0$): By @def-14-forward-prob-vector, $\mathbf{p}^{(0)}$ has all mass at $v_0$. The first forward step (the initialization step in the implementation) distributes this mass to $v_0$'s children according to the starting edge weights, producing $\pi^{(1)}_v = \alpha_v$ for each transient vertex $v$ directly reachable from $v_0$. This matches $\Pr(X_1 = v) = \alpha_v$ for the DPH.
+
+**Inductive step**: Assume $p^{(k)}_v = \Pr(X_k = v, \tau > k)$ for all $v$. The forward step transfers mass along each edge: $p^{(k+1)}_z \mathrel{+}= p^{(k)}_v \cdot w(v \to z)$ for each edge $(v \to z)$. Since $w(v \to z) = t_{vz}$ (the DPH transition probability from $v$ to $z$), we have
+
+$$p^{(k+1)}_z = \sum_{v \in \operatorname{parents}(z)} p^{(k)}_v \cdot t_{vz},$$
+
+which is the standard Markov chain transition. The mass at absorbing vertices is then $\sum_{v_a} p^{(k+1)}_{v_a} = \sum_{v} p^{(k)}_v \cdot t_v$, where $t_v = 1 - \sum_z t_{vz}$ is the exit probability. This equals $\boldsymbol{\alpha} \mathbf{T}^{k} \mathbf{t} = \Pr(\tau = k+1)$ by the inductive hypothesis and the DPH PMF formula (@def-01-dph).
+
+The complexity is $O(|E|)$ per step (one pass through all edges), giving $O(t_{\max} \cdot |E|)$ total.  $\square$
+:::
+
+::: {#thm-14-pdf-pmf-relationship}
+## PDF-PMF relationship under uniformization
+*Let $G = (V, E, W)$ represent $\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})$, uniformized with granularity $g$ (@def-14-uniformization). The continuous PDF at time $t$ is related to the uniformized PMF at step $k$ by:*
+
+$$f(t) = \text{PMF}(k) \cdot g, \quad \text{where } t = k/g.$$ {#eq-14-pdf-pmf}
+
+*More precisely, the implementation computes $f(t)$ as the PMF accumulated during the step from $k$ to $k+1$ (where $k = \lfloor gt \rfloor$), multiplied by $g$.*
+:::
+
+::: {.proof}
+By definition of the uniformized chain, the time between successive steps is $\Delta t = 1/g$. The PMF at step $k$ gives the probability of absorption at step $k$, which occurs in the time interval $[(k-1)/g, k/g]$. The PDF is the rate of absorption per unit time:
+
+$$f(t) \approx \frac{\text{PMF}(k)}{\Delta t} = \text{PMF}(k) \cdot g.$$
+
+This is exact in the limit as $g \to \infty$ (@thm-14-uniformization-convergence), and for finite $g$ it is an approximation with discretization error $O(1/g)$. The implementation uses $\text{pdf} = \text{dph\_context.pmf} \times g$ (line 7671 in `ptd_probability_distribution_step`), which directly implements this relationship.  $\square$
+:::
+
+## Algorithms
+
+### Algorithm 22: DPH Forward Step
+
+*Description.* This algorithm performs a single forward step of the discrete-time Markov chain, propagating probability mass along edges and collecting mass at absorbing vertices. It is the atomic operation used by both DPH PMF computation and CPH PDF computation (via uniformization). The algorithm uses a precomputed list of edge increment operations for efficiency, avoiding repeated traversal of the adjacency list.
+
+```
+Algorithm 22: DPH Forward Step
+1: Let p be the forward probability vector (@def-14-forward-prob-vector)
+2: Let increments = {(from, to, weight_ptr)} be the precomputed edge list
+3: Let δ be the weight scaling factor (1 for DPH, 1/g for uniformized CPH)
+4:
+5: function DPHForwardStep(p, increments, δ)
+6:   old_p ← copy of p
+7:   for v ∈ V with children(v) = ∅ do
+8:     p[v] ← 0                                  ▷ Clear absorbing vertices before transfer
+9:   end for
+10:
+11:  pmf ← 0
+12:  for (from, to, w) ∈ increments do
+13:    transfer ← old_p[from] × w × δ
+14:    p[to] ← p[to] + transfer                  ▷ Add to target
+15:    p[from] ← p[from] - transfer              ▷ Subtract from source
+16:  end for
+17:
+18:  for v ∈ V with children(v) = ∅ do
+19:    pmf ← pmf + p[v]                           ▷ Collect absorbed mass
+20:    p[v] ← 0                                   ▷ Zero out absorbed mass
+21:  end for
+22:
+23:  cdf ← cdf + pmf
+24:  return pmf
+25: end function
+```
+
+**Correspondence table:**
+
+| Pseudocode variable | Math symbol | Code variable (file:function) |
+|---------------------|-------------|-------------------------------|
+| $\mathbf{p}$ | Forward probability vector | `context->probability_at` (phasic.c:`ptd_dph_probability_distribution_step`) |
+| $\text{old\_}\mathbf{p}$ | Copy of probability vector | `old_probability_at` |
+| $\text{increments}$ | Precomputed edge list | `context->priv` (cast to `dph_prob_increment` array) |
+| $\delta$ | Weight scaling factor | `context->priv3` |
+| $\text{pmf}$ | PMF at current step | `context->pmf` |
+| $\text{cdf}$ | Cumulative distribution function | `context->cdf` |
+| $w$ | Edge weight (pointer) | `inc.weight` (pointer to `edge->weight`) |
+
+**Complexity.** Time: $O(|E|)$ per step (one pass through all edges plus two passes through absorbing vertices). Space: $O(|V|)$ for the probability vector copy.
+
+**Correctness.** Follows from @thm-14-forward-exact-dph. The precomputed edge list is equivalent to iterating over all edges in the graph. The subtract-from-source operation combined with the add-to-target correctly implements the Markov chain transition while maintaining mass conservation. The clearing of absorbing vertices before transfer prevents re-transferring already-absorbed mass.
+
+### Algorithm 23: CPH PDF via Uniformization
+
+*Description.* This algorithm computes the continuous phase-type PDF at a given time $t$ by uniformizing the CPH graph and iterating the DPH forward step. The granularity parameter $g$ controls the discretization resolution. The algorithm creates a DPH context with weight scaling $\delta = 1/g$, performs one initialization step (distributing mass from $v_0$), and then iterates forward steps. Each step advances time by $\Delta t = 1/g$, and the PDF at time $t$ is computed as $\text{PMF} \times g$ (@thm-14-pdf-pmf-relationship).
+
+```
+Algorithm 23: CPH PDF via Uniformization
+1: Let G = (V, E, W) represent PH(α, S) (@def-01-ph-graph)
+2: Let g be the granularity parameter (g ≥ max_v λ_v required)
+3:
+4: function CreateCPHContext(G, g)
+5:   if g = 0 then
+6:     g ← max(2 × max_v λ_v, 1000)              ▷ Auto-select granularity
+7:   end if
+8:
+9:   for v ∈ V do                                  ▷ Validate uniformization condition
+10:    if λ_v / g > 1 then
+11:      error "Rate exceeds granularity"
+12:    end if
+13:  end for
+14:
+15:  dph_ctx ← CreateDPHContext(G)
+16:  dph_ctx.δ ← 1/g                               ▷ Scale weights for uniformization
+17:
+18:  DPHForwardStep(dph_ctx)                        ▷ Initialization: distribute from v_0
+19:  dph_ctx.jumps ← 0                              ▷ Reset jump counter
+20:
+21:  ctx.time ← 0
+22:  ctx.granularity ← g
+23:  ctx.pdf ← 0
+24:  ctx.cdf ← 0
+25:  return ctx
+26: end function
+27:
+28: function CPHStep(ctx)
+29:  pmf ← DPHForwardStep(ctx.dph_ctx)
+30:  ctx.time ← ctx.dph_ctx.jumps / g
+31:  ctx.pdf ← pmf × g                             ▷ @thm-14-pdf-pmf-relationship: PDF = PMF × g
+32:  ctx.cdf ← ctx.dph_ctx.cdf
+33:  return ctx.pdf
+34: end function
+```
+
+**Correspondence table:**
+
+| Pseudocode variable | Math symbol | Code variable (file:function) |
+|---------------------|-------------|-------------------------------|
+| $G$ | Phase-type graph | `graph` (phasic.c:`ptd_probability_distribution_context_create`) |
+| $g$ | Granularity parameter | `granularity` |
+| $\lambda_v$ | Total outgoing rate of $v$ | `rate` (computed from edge weights) |
+| $\delta$ | Weight scaling $1/g$ | `dph_res->priv3` |
+| $\text{ctx.pdf}$ | PDF value | `context->pdf` (phasic.c:`ptd_probability_distribution_step`) |
+| $\text{ctx.time}$ | Current time | `context->time` |
+| $\text{pmf}$ | PMF from DPH step | `dph_context->pmf` |
+
+**Complexity.** Time: $O(|E|)$ per time step. To evaluate the PDF at time $t$, the algorithm performs $\lfloor gt \rfloor$ forward steps, giving total time $O(gt \cdot |E|)$. Space: $O(|V| + |E|)$ for the context (probability vector plus precomputed edge list).
+
+**Correctness.** Follows from @thm-14-uniformization-convergence and @thm-14-pdf-pmf-relationship. The uniformization condition $g \geq \max_v \lambda_v$ ensures all transition probabilities are non-negative (@def-14-uniformization). The auto-selection of $g = \max(2 \lambda_{\max}, 1000)$ provides a safety margin and a minimum resolution for numerical stability. The initialization step distributes mass from $v_0$ according to $\boldsymbol{\alpha}$, after which each step advances the discrete chain by one step in the uniformized time scale.
+
+## Numerical Considerations
+
+**Granularity selection.** The auto-selection strategy uses $g = \max(2\lambda_{\max}, 1000)$. The factor of 2 provides headroom above the minimum requirement $g \geq \lambda_{\max}$, and the minimum of 1000 ensures reasonable resolution even for slow processes. The discretization error scales as $O(1/g)$ (@thm-14-pdf-pmf-relationship), so larger $g$ gives more accurate results at the cost of more steps.
+
+**Long double probability vectors.** The implementation uses `long double` for the forward probability vector to reduce accumulation of rounding errors over many steps. This is particularly important for large graphs with many steps, where small errors can compound.
+
+**Mass conservation.** The forward step maintains mass conservation: the total probability (sum of all entries in $\mathbf{p}$) plus the cumulative absorbed mass (CDF) equals 1 at all times. The subtract-from-source operation in the edge transfer ensures this invariant. However, floating-point rounding can cause small violations, which do not affect the final result significantly for moderate numbers of steps.
+
+**Edge list precomputation.** The implementation precomputes the edge list as an array of `(from, to, weight_ptr)` triples during context creation. This avoids repeated traversal of the adjacency list during each step and enables better cache utilization. The weight pointer (rather than a weight copy) allows dynamic weight updates without rebuilding the edge list.
+
+**Absorbing vertex handling.** After each step, absorbed mass is zeroed to prevent re-transfer in subsequent steps. This is critical: without zeroing, mass at absorbing vertices would be "re-absorbed" at each step, leading to incorrect cumulation of the CDF.
+
+## Implementation Notes
+
+**Source code mapping:**
+
+| Algorithm | File | Function | Lines |
+|-----------|------|----------|-------|
+| Algorithm 22 | `src/c/phasic.c` | `ptd_dph_probability_distribution_step` | L7498--L7549 |
+| Algorithm 23 (create) | `src/c/phasic.c` | `ptd_probability_distribution_context_create` | L7551--L7647 |
+| Algorithm 23 (step) | `src/c/phasic.c` | `ptd_probability_distribution_step` | L7661--L7674 |
+| DPH context creation | `src/c/phasic.c` | `_ptd_dph_probability_distribution_context_create` | L7361--L7479 |
+
+**Deviations from pseudocode:**
+
+- The implementation stores edge weights as pointers (`inc.weight` is `&edge->weight`) rather than values. This allows the forward step to automatically use updated weights when parameters change, without rebuilding the edge list.
+- The DPH context creation validates that edge weights are at most 1.0001 (for pure DPH) or that edge weights divided by granularity are at most 1.0001 (for uniformized CPH). The tolerance of 0.0001 accommodates minor floating-point imprecision.
+- The CPH context creation performs two DPH steps and takes a CDF difference to compute the initial PDF value, rather than simply returning 0. This handles the edge case where the initial distribution has a point mass at the absorbing state.
+- The starting vertex probability vector is initialized with $p^{(0)}_{v_0} = 1$ at index 0 (the starting vertex index), and the initialization step distributes mass to transient states. The starting vertex and absorbing vertices are then zeroed in the probability vector.
+
+## Symbol Index
+
+| Symbol | Name | First appearance |
+|--------|------|-----------------|
+| $\delta$ | Weight scaling factor | @def-14-dph-forward-step |
+| $F_k$ | Cumulative distribution at step $k$ | @def-14-dph-forward-step |
+| $g$ | Granularity (uniformization rate) | @def-14-uniformization |
+| $p_k$ | PMF at step $k$ | @def-14-dph-forward-step |
+| $\mathbf{p}^{(k)}$ | Forward probability vector at step $k$ | @def-14-forward-prob-vector |
+| $\mathbf{T}_g$ | Uniformized sub-transition matrix | @def-14-uniformization |
+| $\mathbf{t}_g$ | Uniformized exit probability vector | @def-14-uniformization |

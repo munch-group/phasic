@@ -56,7 +56,8 @@
       "Bash(grep -l \"Graph.*callback\\\\|@_callback\\\\|@with_ipv\" /Users/kmt/phasic/tests/pytest/*.py)",
       "Bash(pdftotext /Users/kmt/phasic/source_docs/roikjer.pdf -)",
       "WebFetch(domain:en.wikipedia.org)",
-      "WebFetch(domain:www2.imm.dtu.dk)"
+      "WebFetch(domain:www2.imm.dtu.dk)",
+      "WebFetch(domain:quarto.org)"
     ],
     "deny": [],
     "ask": []

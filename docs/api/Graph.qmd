@@ -13,6 +13,8 @@ phasic.Graph(arg, ipv=None, graph_cache=False, **kwargs)
 | [cache_trace](#phasic.Graph.cache_trace) | Whether this graph caches the elimination trace. |
 | [hierarchical](#phasic.Graph.hierarchical) | Deprecated: use cache_trace instead. |
 | [trace_valid](#phasic.Graph.trace_valid) | Whether the cached trace is valid (not dirty). |
+| [weight_callback](#phasic.Graph.weight_callback) | Custom callback for computing edge weights from theta and coefficients. |
+| [weight_mode](#phasic.Graph.weight_mode) | Weight computation mode for parameterized edges. |
 
 ## Methods
 
@@ -23,6 +25,7 @@ phasic.Graph(arg, ipv=None, graph_cache=False, **kwargs)
 | [accumulated_visiting_time](#phasic.Graph.accumulated_visiting_time) | Compute expected time spent in each state (continuous only). |
 | [accumulated_visits](#phasic.Graph.accumulated_visits) | Compute expected number of visits to each state (discrete only). |
 | [as_matrices](#phasic.Graph.as_matrices) | Convert the graph to its matrix representation. |
+| [backward_probabilities](#phasic.Graph.backward_probabilities) | Compute P(reach target \| start at v) for each vertex v. |
 | [cdf](#phasic.Graph.cdf) | Compute cumulative distribution function. |
 | [clone](#phasic.Graph.clone) | Create a deep copy of this graph. |
 | [compute_trace](#phasic.Graph.compute_trace) | Compute elimination trace with optional hierarchical caching. |
@@ -39,6 +42,7 @@ phasic.Graph(arg, ipv=None, graph_cache=False, **kwargs)
 | [from_matrices](#phasic.Graph.from_matrices) | Construct a Graph from matrix representation. |
 | [from_serialized](#phasic.Graph.from_serialized) | Reconstruct Graph from serialize() output. |
 | [laplace_transform](#phasic.Graph.laplace_transform) | Create a Laplace-transformed graph. |
+| [mcmc](#phasic.Graph.mcmc) | Run MCMC Metropolis-Hastings inference for Bayesian parameter estimation. |
 | [method_of_moments](#phasic.Graph.method_of_moments) | Find parameter estimates by matching model moments to sample moments. |
 | [moments](#phasic.Graph.moments) | Compute k-th moment of the phase-type distribution. |
 | [moments_from_graph](#phasic.Graph.moments_from_graph) | Convert a parameterized Graph to a JAX-compatible function that computes moments. |
@@ -55,6 +59,8 @@ phasic.Graph(arg, ipv=None, graph_cache=False, **kwargs)
 | [reward_transform](#phasic.Graph.reward_transform) | Apply reward transformation to create a new graph with modified rewards. |
 | [reward_transform_discrete](#phasic.Graph.reward_transform_discrete) | Apply reward transformation for discrete-time distributions. |
 | [sample](#phasic.Graph.sample) | Generate random samples from the phase-type distribution. |
+| [sample_path](#phasic.Graph.sample_path) | Sample complete path(s) through the Markov chain. |
+| [sample_path_conditioned](#phasic.Graph.sample_path_conditioned) | Sample path(s) conditioned on reaching a target terminal state. |
 | [serialize](#phasic.Graph.serialize) | Serialize graph to array representation for efficient computation. |
 | [state_probability](#phasic.Graph.state_probability) | Compute probability of being in each state at a given time. |
 | [stop_probability](#phasic.Graph.stop_probability) | Compute probability of being in each state at a given time. |
@@ -220,6 +226,30 @@ matrices and associated information.
 >>> # Can also use index access like a tuple
 >>> states, sim, ipv, indices = matrices
 ```
+
+### backward_probabilities { #phasic.Graph.backward_probabilities }
+
+```python
+phasic.Graph.backward_probabilities(target_vertices)
+```
+
+Compute P(reach target | start at v) for each vertex v.
+
+For each vertex, computes the probability of eventually reaching
+one of the target terminal states. Uses backward induction over
+the graph structure.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**target_vertices**]{.parameter-name} [:]{.parameter-annotation-sep} [list of int]{.parameter-annotation}</code>
+
+:   Indices of target terminal vertices.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation}</code>
+
+:   Array of length vertices_length() with backward probability for each vertex. Values are between 0 and 1.
 
 ### cdf { #phasic.Graph.cdf }
 
@@ -628,7 +658,7 @@ newly added unvisited vertices.
 
 <code>[**callback**]{.parameter-name} [:]{.parameter-annotation-sep} [[callable](`callable`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
-:   Callback function to use for extending the graph. If None, uses the callback from the original Graph construction. The callback should accept a state array and return: - For non-parameterized: list of (state, weight) tuples - For parameterized: list of (state, base_weight, edge_state) tuples
+:   Callback function to use for extending the graph. If None, uses the callback from the original Graph construction. The callback should accept a state array and return: - For non-parameterized: list of (state, weight) tuples - For parameterized: list of (state, [coefficients]) tuples
 
 <code>[****kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Any](`typing.Any`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
 
@@ -648,7 +678,7 @@ newly added unvisited vertices.
 >>>
 >>> # Manually add new vertex
 >>> special_vertex = graph.find_or_create_vertex([100, 200])
->>> graph.starting_vertex().add_edge_parameterized(special_vertex, 0.0, [1.5])
+>>> graph.starting_vertex().add_edge(special_vertex, [1.5])
 >>>
 >>> # Continue with callback to explore new vertices
 >>> graph.extend()  # Uses original callback
@@ -822,6 +852,126 @@ z-transform instead.
 #### See Also {.doc-section .doc-section-see-also}
 
 absorbing_state_rewards : Get the reward vector for Laplace transform computation
+
+### mcmc { #phasic.Graph.mcmc }
+
+```python
+phasic.Graph.mcmc(
+    observed_data,
+    discrete=None,
+    prior=None,
+    n_samples=10000,
+    n_chains=4,
+    burn_in=1000,
+    thin=1,
+    proposal_scale=None,
+    theta_init=None,
+    theta_dim=None,
+    seed=None,
+    verbose=False,
+    progress=True,
+    jit=None,
+    positive_params=True,
+    param_transform=None,
+    rewards=None,
+    fixed=None,
+)
+```
+
+Run MCMC Metropolis-Hastings inference for Bayesian parameter estimation.
+
+Samples from the posterior distribution p(theta | data) using
+random-walk Metropolis-Hastings with multiple independent chains.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**observed_data**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`) or [SparseObservations](`phasic.svgd.SparseObservations`)]{.parameter-annotation}</code>
+
+:   Observed data. A plain 1-D array for univariate models. For multivariate models use ``SparseObservations``.
+
+<code>[**discrete**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   If True, computes discrete PMF. If False, continuous PDF. If None, inferred from the graph.
+
+<code>[**prior**]{.parameter-name} [:]{.parameter-annotation-sep} [callable or list of Prior objects]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Log prior function. If None, constructs ``DataPrior``.
+
+<code>[**n_samples**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [10000]{.parameter-default}</code>
+
+:   Number of posterior samples per chain (after burn-in).
+
+<code>[**n_chains**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [4]{.parameter-default}</code>
+
+:   Number of independent chains.
+
+<code>[**burn_in**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1000]{.parameter-default}</code>
+
+:   Number of initial samples to discard.
+
+<code>[**thin**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1]{.parameter-default}</code>
+
+:   Keep every thin-th sample.
+
+<code>[**proposal_scale**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) or [array](`array`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Proposal standard deviation. If None, defaults to 0.1.
+
+<code>[**theta_init**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Initial parameter values. Shape (n_chains, theta_dim) or (theta_dim,).
+
+<code>[**theta_dim**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Dimension of parameter vector. Inferred from graph if None.
+
+<code>[**seed**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Random seed.
+
+<code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   Print progress information.
+
+<code>[**progress**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   Display progress bar.
+
+<code>[**jit**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`) or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   JIT-compile log-probability function.
+
+<code>[**positive_params**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   Constrain parameters to positive domain via softplus.
+
+<code>[**param_transform**]{.parameter-name} [:]{.parameter-annotation-sep} [[callable](`callable`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Custom parameter transformation.
+
+<code>[**rewards**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Reward vector/matrix for multivariate distributions.
+
+<code>[**fixed**]{.parameter-name} [:]{.parameter-annotation-sep} [[list](`list`) or [array](`array`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Fixed parameters: [(index, value), ...] or binary mask.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[MCMC](`phasic.mcmc.MCMC`)]{.parameter-annotation}</code>
+
+:   MCMC object with results accessible via get_results() and summary().
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> g = Graph(...)  # parameterized graph
+>>> data = np.random.exponential(0.5, size=200)
+>>> mcmc = g.mcmc(data, n_samples=5000, n_chains=4)
+>>> mcmc.summary()
+>>> print(mcmc.get_results()['theta_mean'])
+```
 
 ### method_of_moments { #phasic.Graph.method_of_moments }
 
@@ -1525,7 +1675,12 @@ graph.pdf(time), graph.dph_pmf(jump), graph.moments(power), etc.
 ### pmf_from_graph_joint_index { #phasic.Graph.pmf_from_graph_joint_index }
 
 ```python
-phasic.Graph.pmf_from_graph_joint_index(graph, theta_dim=None, fixed_mask=None)
+phasic.Graph.pmf_from_graph_joint_index(
+    graph,
+    theta_dim=None,
+    fixed_mask=None,
+    exclude_vertices=None,
+)
 ```
 
 Create a JAX-compatible model for joint index distributions.
@@ -1553,6 +1708,10 @@ times for all states in a single pass through the elimination trace.
 <code>[**fixed_mask**]{.parameter-name} [:]{.parameter-annotation-sep} [[jnp](`jax.numpy`).[ndarray](`jax.numpy.ndarray`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   Binary mask indicating which parameters are fixed (1=fixed, 0=learnable). If provided, gradients for fixed dimensions will be zero in the custom VJP. This is used to skip finite difference computation for fixed parameters.
+
+<code>[**exclude_vertices**]{.parameter-name} [:]{.parameter-annotation-sep} [list of int]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Vertex indices to exclude from the normalization constant. Use this for ascertainment bias correction — e.g., exclude the zero-mutation terminal state when conditioning on observing at least one mutation. The excluded vertices are removed from the denominator, so the model returns P(s \| s not in excluded set).
 
 #### Returns {.doc-section .doc-section-returns}
 
@@ -1777,6 +1936,75 @@ Generate random samples from the phase-type distribution.
 Sampling is done by simulating the underlying Markov chain until
 absorption. For more efficient repeated sampling, first create a
 distribution context using distribution_context().
+
+### sample_path { #phasic.Graph.sample_path }
+
+```python
+phasic.Graph.sample_path(n=1)
+```
+
+Sample complete path(s) through the Markov chain.
+
+Simulates the underlying Markov chain from the starting vertex until
+absorption, recording every vertex visited and the cumulative time
+at which each vertex was entered.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**n**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1]{.parameter-default}</code>
+
+:   Number of paths to sample.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [dict or list of dict]{.parameter-annotation}</code>
+
+:   If n=1, returns a single dict with keys: - 'vertex_indices': np.ndarray of vertex indices visited - 'entry_times': np.ndarray of cumulative entry times  If n>1, returns a list of such dicts.
+
+#### Notes {.doc-section .doc-section-notes}
+
+The first entry is always the starting vertex with entry_time=0.
+The last entry is the absorbing vertex. Sojourn times can be
+computed as the differences between consecutive entry times.
+
+#### Examples {.doc-section .doc-section-examples}
+
+```python
+>>> g = Graph(...)  # build graph
+>>> path = g.sample_path()
+>>> path['vertex_indices']  # array of visited vertex indices
+>>> path['entry_times']     # cumulative times
+>>> sojourn_times = np.diff(path['entry_times'])
+```
+
+### sample_path_conditioned { #phasic.Graph.sample_path_conditioned }
+
+```python
+phasic.Graph.sample_path_conditioned(target_vertices, n=1)
+```
+
+Sample path(s) conditioned on reaching a target terminal state.
+
+Uses guided forward sampling: at each step, the next state is
+chosen proportional to ``edge_weight * h(next_state)`` where
+``h`` is the backward probability of reaching the target. This
+ensures every sampled path ends at one of the target vertices.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**target_vertices**]{.parameter-name} [:]{.parameter-annotation-sep} [list of int]{.parameter-annotation}</code>
+
+:   Indices of target terminal vertices.
+
+<code>[**n**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1]{.parameter-default}</code>
+
+:   Number of paths to sample.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [dict or list of dict]{.parameter-annotation}</code>
+
+:   Same format as sample_path().
 
 ### serialize { #phasic.Graph.serialize }
 
@@ -2081,8 +2309,13 @@ with trace-based computation.
 
 #### Notes {.doc-section .doc-section-notes}
 
-This does NOT invalidate the cached trace since it only changes
+This updates edge weights on the live Graph object (C++ side).
+It does NOT invalidate the cached trace since it only changes
 parameter values, not graph structure.
+
+For the JAX/FFI/SVGD pipeline, use ``graph.weight_mode`` instead.
+That property controls how ``pmf_from_graph()`` and
+``pmf_and_moments_from_graph()`` compute edge weights from theta.
 
 ### variance { #phasic.Graph.variance }
 

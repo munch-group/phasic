@@ -1,0 +1,244 @@
+---
+title: "Symbolic Expressions"
+---
+
+## Introduction
+
+This file formalizes the expression tree abstract data type (ADT) that enables deferred computation in phasic. When a phase-type graph has parameterized edges (@def-01-param-edges), the edge weights are functions of a parameter vector $\boldsymbol{\theta}$. Rather than recomputing the entire graph elimination for each new $\boldsymbol{\theta}$, phasic records the elimination operations as symbolic expression trees that can be evaluated efficiently with any concrete parameter vector. This file defines the expression tree nodes, their evaluation semantics, common subexpression elimination (CSE) via interning, and symbolic differentiation for gradient computation.
+
+The expression system is the foundation for symbolic graph elimination ([10]), the trace system ([11]), and JAX integration ([25]). It is a purely syntactic layer: this file defines expressions over parameters without reference to graphs. The connection to graphs is established in [10].
+
+**Prerequisites:** [01]
+
+**Source files:**
+- `api/c/phasic.h` (types: `ptd_expression`, `enum ptd_expr_type`, `ptd_expr_intern_table`)
+- `src/c/phasic_symbolic.c` (functions: `ptd_expr_evaluate_iterative`, `ptd_expr_derivative`, `ptd_expr_copy_iterative`, `ptd_expr_destroy_iterative`, `edge_weight_to_expr`)
+
+## Definitions
+
+::: {#def-09-expression-tree}
+## Expression tree
+*An expression tree is a rooted tree $\mathcal{E}$ where each node has a type drawn from the set $\{\texttt{Const}, \texttt{Param}, \texttt{Dot}, \texttt{Add}, \texttt{Sub}, \texttt{Mul}, \texttt{Div}, \texttt{Inv}\}$ and carries data according to its type:*
+
+| Node type | Data | Children | Semantics |
+|-----------|------|----------|-----------|
+| $\texttt{Const}(c)$ | $c \in \mathbb{R}$ | none (leaf) | Constant value $c$ |
+| $\texttt{Param}(j)$ | $j \in \{1, \ldots, k\}$ | none (leaf) | Parameter reference $\theta_j$ |
+| $\texttt{Dot}(\mathbf{c}, \mathbf{j})$ | $\mathbf{c} \in \mathbb{R}^m$, $\mathbf{j} \in \{1,\ldots,k\}^m$ | none (leaf) | Sparse dot product $\sum_{i=1}^{m} c_i \, \theta_{j_i}$ |
+| $\texttt{Add}$ | none | left $\mathcal{E}_L$, right $\mathcal{E}_R$ | $\mathcal{E}_L + \mathcal{E}_R$ |
+| $\texttt{Sub}$ | none | left $\mathcal{E}_L$, right $\mathcal{E}_R$ | $\mathcal{E}_L - \mathcal{E}_R$ |
+| $\texttt{Mul}$ | none | left $\mathcal{E}_L$, right $\mathcal{E}_R$ | $\mathcal{E}_L \cdot \mathcal{E}_R$ |
+| $\texttt{Div}$ | none | left $\mathcal{E}_L$, right $\mathcal{E}_R$ | $\mathcal{E}_L / \mathcal{E}_R$ |
+| $\texttt{Inv}$ | none | left $\mathcal{E}_L$ | $1 / \mathcal{E}_L$ |
+:::
+
+> **Intuition.** An expression tree is a standard abstract syntax tree for arithmetic expressions, extended with the $\texttt{Dot}$ node as an optimized representation for linear combinations of parameters (the most common expression in phase-type models). The $\texttt{Inv}$ node represents unary inversion, distinct from $\texttt{Div}$ which is binary.
+
+> **Example.** The expression $2\theta_1 + 3\theta_2$ is represented as a single $\texttt{Dot}$ node: $\texttt{Dot}((2, 3), (1, 2))$. The expression $\theta_1 / (\theta_1 + \theta_2)$ is represented as $\texttt{Div}(\texttt{Param}(1), \texttt{Add}(\texttt{Param}(1), \texttt{Param}(2)))$.
+
+::: {#def-09-expression-evaluation}
+## Expression evaluation
+*Let $\mathcal{E}$ be an expression tree and let $\boldsymbol{\theta} = (\theta_1, \ldots, \theta_k)$ be a parameter vector. The evaluation function $\operatorname{eval}(\mathcal{E}, \boldsymbol{\theta})$ is defined recursively:*
+
+$$\operatorname{eval}(\mathcal{E}, \boldsymbol{\theta}) = \begin{cases}
+c & \text{if } \mathcal{E} = \texttt{Const}(c) \\
+\theta_j & \text{if } \mathcal{E} = \texttt{Param}(j) \\
+\sum_{i=1}^{m} c_i \, \theta_{j_i} & \text{if } \mathcal{E} = \texttt{Dot}(\mathbf{c}, \mathbf{j}) \\
+\operatorname{eval}(\mathcal{E}_L, \boldsymbol{\theta}) + \operatorname{eval}(\mathcal{E}_R, \boldsymbol{\theta}) & \text{if } \mathcal{E} = \texttt{Add}(\mathcal{E}_L, \mathcal{E}_R) \\
+\operatorname{eval}(\mathcal{E}_L, \boldsymbol{\theta}) - \operatorname{eval}(\mathcal{E}_R, \boldsymbol{\theta}) & \text{if } \mathcal{E} = \texttt{Sub}(\mathcal{E}_L, \mathcal{E}_R) \\
+\operatorname{eval}(\mathcal{E}_L, \boldsymbol{\theta}) \cdot \operatorname{eval}(\mathcal{E}_R, \boldsymbol{\theta}) & \text{if } \mathcal{E} = \texttt{Mul}(\mathcal{E}_L, \mathcal{E}_R) \\
+\operatorname{eval}(\mathcal{E}_L, \boldsymbol{\theta}) / \operatorname{eval}(\mathcal{E}_R, \boldsymbol{\theta}) & \text{if } \mathcal{E} = \texttt{Div}(\mathcal{E}_L, \mathcal{E}_R) \\
+1 / \operatorname{eval}(\mathcal{E}_L, \boldsymbol{\theta}) & \text{if } \mathcal{E} = \texttt{Inv}(\mathcal{E}_L)
+\end{cases}$$
+:::
+
+> **Intuition.** Evaluation is a standard post-order tree traversal: evaluate children first, then combine. The implementation uses an iterative (stack-based) traversal to avoid stack overflow on deep expression trees.
+
+::: {#def-09-cse-interning}
+## Common Subexpression Elimination via interning
+*An intern table $\mathcal{I}$ is a hash table mapping expression structure to canonical expression nodes. For each expression $\mathcal{E}$, the interning function $\operatorname{intern}(\mathcal{I}, \mathcal{E})$ returns a canonical representative: if an expression structurally equal to $\mathcal{E}$ already exists in $\mathcal{I}$, its existing node is returned; otherwise, $\mathcal{E}$ is inserted and returned as the new canonical representative.*
+
+*Two expressions $\mathcal{E}_1$ and $\mathcal{E}_2$ are structurally equal if they have the same type, the same data (constants, parameter indices, coefficient vectors), and recursively structurally equal children.*
+
+*The interned constructors $\texttt{Add}_\mathcal{I}$, $\texttt{Mul}_\mathcal{I}$, $\texttt{Div}_\mathcal{I}$, $\texttt{Sub}_\mathcal{I}$, $\texttt{Inv}_\mathcal{I}$ construct the expression node and immediately intern it, ensuring that identical subexpressions share a single node in memory.*
+:::
+
+> **Intuition.** During graph elimination, the same subexpression (e.g., the sum of edge weights at a vertex) appears in multiple contexts. Without CSE, the expression tree grows exponentially with the number of elimination steps. Interning ensures that each unique subexpression is stored once, converting the tree into a DAG (directed acyclic graph of expression nodes) and keeping memory bounded.
+
+> **Example.** If vertex $v$ has edges with weights $\mathcal{E}_1$ and $\mathcal{E}_2$, the total rate is $\mathcal{E}_\lambda = \texttt{Add}_\mathcal{I}(\mathcal{E}_1, \mathcal{E}_2)$. The normalized probability for the first edge is $\texttt{Mul}_\mathcal{I}(\mathcal{E}_1, \texttt{Inv}_\mathcal{I}(\mathcal{E}_\lambda))$. If another vertex also needs $\texttt{Inv}_\mathcal{I}(\mathcal{E}_\lambda)$, the intern table returns the same node rather than creating a duplicate.
+
+::: {#def-09-expression-differentiation}
+## Expression differentiation
+*Let $\mathcal{E}$ be an expression tree. The symbolic derivative of $\mathcal{E}$ with respect to parameter $\theta_j$ is an expression tree $\partial_j \mathcal{E}$ defined recursively:*
+
+$$\partial_j \mathcal{E} = \begin{cases}
+\texttt{Const}(0) & \text{if } \mathcal{E} = \texttt{Const}(c) \\
+\texttt{Const}(\delta_{j,j'}) & \text{if } \mathcal{E} = \texttt{Param}(j') \\
+\texttt{Const}(c_i) & \text{if } \mathcal{E} = \texttt{Dot}(\mathbf{c}, \mathbf{j}) \text{ and } j = j_i \text{ for some } i \\
+\texttt{Const}(0) & \text{if } \mathcal{E} = \texttt{Dot}(\mathbf{c}, \mathbf{j}) \text{ and } j \notin \{j_1, \ldots, j_m\} \\
+\texttt{Add}(\partial_j \mathcal{E}_L, \, \partial_j \mathcal{E}_R) & \text{if } \mathcal{E} = \texttt{Add}(\mathcal{E}_L, \mathcal{E}_R) \\
+\texttt{Sub}(\partial_j \mathcal{E}_L, \, \partial_j \mathcal{E}_R) & \text{if } \mathcal{E} = \texttt{Sub}(\mathcal{E}_L, \mathcal{E}_R) \\
+\texttt{Add}(\texttt{Mul}(\mathcal{E}_L, \partial_j \mathcal{E}_R), \, \texttt{Mul}(\mathcal{E}_R, \partial_j \mathcal{E}_L)) & \text{if } \mathcal{E} = \texttt{Mul}(\mathcal{E}_L, \mathcal{E}_R) \\
+\texttt{Div}(\texttt{Sub}(\texttt{Mul}(\mathcal{E}_R, \partial_j \mathcal{E}_L), \, \texttt{Mul}(\mathcal{E}_L, \partial_j \mathcal{E}_R)), \, \texttt{Mul}(\mathcal{E}_R, \mathcal{E}_R)) & \text{if } \mathcal{E} = \texttt{Div}(\mathcal{E}_L, \mathcal{E}_R) \\
+\texttt{Div}(\texttt{Sub}(\texttt{Const}(0), \partial_j \mathcal{E}_L), \, \texttt{Mul}(\mathcal{E}_L, \mathcal{E}_L)) & \text{if } \mathcal{E} = \texttt{Inv}(\mathcal{E}_L)
+\end{cases}$$
+
+*where $\delta_{j,j'}$ is the Kronecker delta.*
+:::
+
+> **Intuition.** This is standard symbolic differentiation (sum rule, product rule, quotient rule, chain rule) applied to the expression tree ADT. The $\texttt{Dot}$ case is a specialization of the linearity of differentiation. The result is a new expression tree that, when evaluated, yields the partial derivative $\partial f / \partial \theta_j$ where $f = \operatorname{eval}(\mathcal{E}, \boldsymbol{\theta})$.
+
+> **Example.** For $\mathcal{E} = \texttt{Mul}(\texttt{Param}(1), \texttt{Param}(2))$ representing $\theta_1 \cdot \theta_2$, we have $\partial_1 \mathcal{E} = \texttt{Add}(\texttt{Mul}(\texttt{Param}(1), \texttt{Const}(0)), \texttt{Mul}(\texttt{Param}(2), \texttt{Const}(1))) = \texttt{Add}(\texttt{Const}(0), \texttt{Param}(2))$. Evaluating at any $\boldsymbol{\theta}$ gives $\theta_2$, which is the correct derivative.
+
+## Theorems and Proofs
+
+::: {#thm-09-evaluation-correctness}
+## Evaluation correctness
+*Let $\mathcal{E}$ be an expression tree and $\boldsymbol{\theta} \in \mathbb{R}^k$ be a parameter vector such that no division by zero occurs during evaluation. Then $\operatorname{eval}(\mathcal{E}, \boldsymbol{\theta})$ is well-defined and equals the real number obtained by the standard arithmetic interpretation of $\mathcal{E}$.*
+:::
+
+::: {.proof}
+By structural induction on $\mathcal{E}$.
+
+**Base cases.** For $\texttt{Const}(c)$: $\operatorname{eval}(\texttt{Const}(c), \boldsymbol{\theta}) = c$, which is the standard interpretation. For $\texttt{Param}(j)$: $\operatorname{eval}(\texttt{Param}(j), \boldsymbol{\theta}) = \theta_j$, which is the standard interpretation. For $\texttt{Dot}(\mathbf{c}, \mathbf{j})$: $\operatorname{eval}(\texttt{Dot}(\mathbf{c}, \mathbf{j}), \boldsymbol{\theta}) = \sum_{i=1}^m c_i \theta_{j_i}$, which is the standard dot product.
+
+**Inductive cases.** For each binary operation $\texttt{Op} \in \{\texttt{Add}, \texttt{Sub}, \texttt{Mul}, \texttt{Div}\}$: by the induction hypothesis, $\operatorname{eval}(\mathcal{E}_L, \boldsymbol{\theta})$ and $\operatorname{eval}(\mathcal{E}_R, \boldsymbol{\theta})$ equal the standard interpretations of the subtrees. The definition of $\operatorname{eval}$ applies the corresponding arithmetic operation, producing the standard interpretation of the full tree. For $\texttt{Inv}$: by the induction hypothesis, $\operatorname{eval}(\mathcal{E}_L, \boldsymbol{\theta})$ is well-defined and non-zero (by the no-division-by-zero hypothesis), so $1 / \operatorname{eval}(\mathcal{E}_L, \boldsymbol{\theta})$ is well-defined and equals the standard interpretation. $\square$
+:::
+
+::: {#thm-09-differentiation-correctness}
+## Differentiation correctness
+*Let $\mathcal{E}$ be an expression tree and $\boldsymbol{\theta} \in \mathbb{R}^k$ be a parameter vector such that no division by zero occurs. Then for each $j \in \{1, \ldots, k\}$:*
+
+$$\operatorname{eval}(\partial_j \mathcal{E}, \boldsymbol{\theta}) = \frac{\partial}{\partial \theta_j} \operatorname{eval}(\mathcal{E}, \boldsymbol{\theta}).$$
+:::
+
+::: {.proof}
+By structural induction on $\mathcal{E}$.
+
+**Base cases.** For $\texttt{Const}(c)$: $\operatorname{eval}(\partial_j \texttt{Const}(c), \boldsymbol{\theta}) = \operatorname{eval}(\texttt{Const}(0), \boldsymbol{\theta}) = 0 = \frac{\partial c}{\partial \theta_j}$. For $\texttt{Param}(j')$: $\operatorname{eval}(\partial_j \texttt{Param}(j'), \boldsymbol{\theta}) = \delta_{j,j'} = \frac{\partial \theta_{j'}}{\partial \theta_j}$. For $\texttt{Dot}(\mathbf{c}, \mathbf{j})$: $\operatorname{eval}(\partial_j \texttt{Dot}(\mathbf{c}, \mathbf{j}), \boldsymbol{\theta}) = c_i$ if $j = j_i$, or $0$ otherwise. This equals $\frac{\partial}{\partial \theta_j} \sum_{i} c_i \theta_{j_i}$ by linearity of differentiation.
+
+**Inductive cases.** For $\texttt{Add}$: by the induction hypothesis and the sum rule, $\operatorname{eval}(\partial_j \texttt{Add}(\mathcal{E}_L, \mathcal{E}_R), \boldsymbol{\theta}) = \operatorname{eval}(\partial_j \mathcal{E}_L, \boldsymbol{\theta}) + \operatorname{eval}(\partial_j \mathcal{E}_R, \boldsymbol{\theta}) = \frac{\partial}{\partial \theta_j}(\operatorname{eval}(\mathcal{E}_L, \boldsymbol{\theta}) + \operatorname{eval}(\mathcal{E}_R, \boldsymbol{\theta}))$. The $\texttt{Sub}$ case is identical with subtraction.
+
+For $\texttt{Mul}$: let $f = \operatorname{eval}(\mathcal{E}_L, \boldsymbol{\theta})$ and $g = \operatorname{eval}(\mathcal{E}_R, \boldsymbol{\theta})$. By the induction hypothesis, $\operatorname{eval}(\partial_j \mathcal{E}_L, \boldsymbol{\theta}) = f'$ and $\operatorname{eval}(\partial_j \mathcal{E}_R, \boldsymbol{\theta}) = g'$. Then $\operatorname{eval}(\partial_j \texttt{Mul}(\mathcal{E}_L, \mathcal{E}_R), \boldsymbol{\theta}) = f \cdot g' + g \cdot f' = \frac{\partial}{\partial \theta_j}(f \cdot g)$ by the product rule.
+
+For $\texttt{Div}$: by the quotient rule, $\frac{\partial}{\partial \theta_j}(f/g) = (g \cdot f' - f \cdot g') / g^2$, which matches the definition of $\partial_j \texttt{Div}$.
+
+For $\texttt{Inv}$: $\frac{\partial}{\partial \theta_j}(1/f) = -f'/f^2 = (0 - f')/f^2$, which matches the definition of $\partial_j \texttt{Inv}$. $\square$
+:::
+
+::: {#lem-09-cse-preserves-evaluation}
+## CSE preserves evaluation
+*Let $\mathcal{I}$ be an intern table. For any expression $\mathcal{E}$ and parameter vector $\boldsymbol{\theta}$:*
+
+$$\operatorname{eval}(\operatorname{intern}(\mathcal{I}, \mathcal{E}), \boldsymbol{\theta}) = \operatorname{eval}(\mathcal{E}, \boldsymbol{\theta}).$$
+:::
+
+::: {.proof}
+The intern function $\operatorname{intern}(\mathcal{I}, \mathcal{E})$ returns either $\mathcal{E}$ itself (if no structurally equal expression exists in $\mathcal{I}$) or an existing expression $\mathcal{E}'$ that is structurally equal to $\mathcal{E}$. Since structural equality implies identical type, identical data, and recursively structurally equal children, a straightforward structural induction shows that $\operatorname{eval}(\mathcal{E}', \boldsymbol{\theta}) = \operatorname{eval}(\mathcal{E}, \boldsymbol{\theta})$ for all $\boldsymbol{\theta}$. $\square$
+:::
+
+## Algorithms
+
+### Algorithm 15: Expression Evaluation
+
+*Description.* This algorithm evaluates an expression tree with a concrete parameter vector using iterative post-order traversal. The iterative approach avoids stack overflow on deep trees (which can arise from long chains of eliminations). The algorithm uses an explicit stack of (node, visited) pairs.
+
+```
+Algorithm 15: Expression Evaluation (Iterative)
+1: Let E be an expression tree (Definition 9.1)
+2: Let θ = (θ₁, ..., θₖ) be a parameter vector
+
+3: function EvaluateExpression(E, θ)
+4:   S ← empty stack                                 ▷ Stack of (node, visited) pairs
+5:   R ← empty stack                                 ▷ Result stack
+6:   Push(S, (E, false))
+7:
+8:   while S ≠ ∅ do
+9:     (node, visited) ← Pop(S)
+10:    if node.type ∈ {CONST, PARAM, DOT} then       ▷ Leaf nodes
+11:      if node.type = CONST then
+12:        Push(R, node.const_value)
+13:      else if node.type = PARAM then
+14:        Push(R, θ[node.param_index])
+15:      else                                         ▷ DOT
+16:        s ← 0
+17:        for i ← 1 to node.n_terms do
+18:          s ← s + node.coefficients[i] · θ[node.param_indices[i]]
+19:        end for
+20:        Push(R, s)
+21:      end if
+22:    else if visited = false then                    ▷ First visit: push children
+23:      Push(S, (node, true))                        ▷ Re-push with visited = true
+24:      if node.right ≠ null then
+25:        Push(S, (node.right, false))
+26:      end if
+27:      Push(S, (node.left, false))
+28:    else                                            ▷ Second visit: combine results
+29:      if node.type = INV then
+30:        a ← Pop(R)
+31:        Push(R, 1/a)
+32:      else
+33:        b ← Pop(R)                                 ▷ Right operand (pushed first, popped second)
+34:        a ← Pop(R)                                 ▷ Left operand
+35:        if node.type = ADD then Push(R, a + b)
+36:        else if node.type = SUB then Push(R, a - b)
+37:        else if node.type = MUL then Push(R, a · b)
+38:        else if node.type = DIV then Push(R, a / b)
+39:        end if
+40:      end if
+41:    end if
+42:  end while
+43:
+44:  return Pop(R)
+45: end function
+```
+
+**Correspondence table:**
+
+| Pseudocode variable | Math symbol | Code variable (file:function) |
+|---------------------|-------------|-------------------------------|
+| $\mathcal{E}$ | expression tree $\mathcal{E}$ | `expr` (`phasic_symbolic.c:ptd_expr_evaluate_iterative`) |
+| $\boldsymbol{\theta}$ | parameter vector $\boldsymbol{\theta}$ | `params` (`phasic_symbolic.c:ptd_expr_evaluate_iterative`) |
+| $S$ | traversal stack | `stack` (local array in implementation) |
+| $R$ | result stack | `value_stack` (local array in implementation) |
+| `node.type` | $\mathcal{E}.\mathrm{type}$ | `expr->type` (`phasic.h:enum ptd_expr_type`) |
+| `CONST`, `PARAM`, ... | $\texttt{Const}$, $\texttt{Param}$, ... | `PTD_EXPR_CONST`, `PTD_EXPR_PARAM`, ... |
+
+**Complexity.** Time: $O(|\mathcal{E}|)$ where $|\mathcal{E}|$ is the number of nodes in the expression tree. Each node is pushed and popped at most twice. Space: $O(h)$ where $h$ is the height of the expression tree (stack depth).
+
+**Correctness.** Follows from @thm-09-evaluation-correctness. The iterative post-order traversal visits each node after its children have been evaluated, reproducing the recursive evaluation semantics of @def-09-expression-evaluation.
+
+## Implementation Notes
+
+**Source code mapping:**
+
+| Algorithm | File | Function | Notes |
+|-----------|------|----------|-------|
+| Algorithm 15 | `src/c/phasic_symbolic.c` | `ptd_expr_evaluate_iterative` | Iterative evaluation |
+| Expression creation | `api/c/phasic.h`, `src/c/phasic_symbolic.c` | `ptd_expr_const`, `ptd_expr_param`, `ptd_expr_dot`, etc. | Node constructors |
+| CSE (@def-09-cse-interning) | `src/c/phasic_symbolic.c` | `ptd_expr_intern`, `ptd_expr_add_interned`, etc. | Hash-based intern table |
+| Differentiation (@def-09-expression-differentiation) | `src/c/phasic_symbolic.c` | `ptd_expr_derivative` | Recursive symbolic differentiation |
+| Edge-to-expression | `src/c/phasic_symbolic.c` | `edge_weight_to_expr` (static) | Converts parameterized edge to DOT expression |
+
+**Deviations from pseudocode:**
+
+- **Recursive vs. iterative evaluation.** Both `ptd_expr_evaluate` (recursive) and `ptd_expr_evaluate_iterative` (iterative, matching Algorithm 15) exist. The iterative version is preferred for deep trees. The pseudocode presents only the iterative version.
+
+- **Differentiation is recursive.** The `ptd_expr_derivative` function uses recursive descent (matching @def-09-expression-differentiation directly) rather than iterative traversal, since derivative trees are typically much shallower than the original expression trees and are constructed once rather than evaluated repeatedly.
+
+- **Intern table sizing.** The intern table is created with 4096 hash buckets initially. This is a tunable parameter; the table resizes if the load factor exceeds a threshold. The pseudocode does not specify hash table internals.
+
+- **Edge coefficient optimization.** The `edge_weight_to_expr` function optimizes common cases: if all coefficients are zero, it returns $\texttt{Const}(w)$ (the current evaluated weight). If there is a single coefficient equal to 1.0, it returns $\texttt{Param}(j)$ instead of $\texttt{Dot}$. Otherwise, it constructs a sparse $\texttt{Dot}$ node containing only non-zero coefficients.
+
+## Symbol Index
+
+| Symbol | Name | First appearance |
+|--------|------|-----------------|
+| $\mathbf{c}$ | Coefficient vector in $\texttt{Dot}$ node | @def-09-expression-tree |
+| $\delta_{j,j'}$ | Kronecker delta | @def-09-expression-differentiation |
+| $\mathcal{E}$ | Expression tree | @def-09-expression-tree |
+| $\mathcal{E}_L$, $\mathcal{E}_R$ | Left and right children of expression node | @def-09-expression-tree |
+| $\operatorname{eval}$ | Expression evaluation function | @def-09-expression-evaluation |
+| $\mathcal{I}$ | Intern table for CSE | @def-09-cse-interning |
+| $\mathbf{j}$ | Parameter index vector in $\texttt{Dot}$ node | @def-09-expression-tree |
+| $\partial_j \mathcal{E}$ | Symbolic derivative w.r.t. $\theta_j$ | @def-09-expression-differentiation |

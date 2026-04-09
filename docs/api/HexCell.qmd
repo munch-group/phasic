@@ -1,0 +1,50 @@
+# HexCell { #phasic.HexCell }
+
+```python
+phasic.HexCell(row, col, _grid)
+```
+
+Lightweight view of a hex grid cell with neighbor access.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**row**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Row index in the grid.
+
+<code>[**col**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Column index in the grid.
+
+## Attributes {.doc-section .doc-section-attributes}
+
+<code>[**coords**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)\[[float](`float`), [float](`float`)\]]{.parameter-annotation}</code>
+
+:   Real-world (x, y) coordinates of the cell center.
+
+<code>[**is_valid**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation}</code>
+
+:   Whether the cell is inside the boundary.
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [neighbors](#phasic.HexCell.neighbors) | First-order valid neighbors as HexCell objects. |
+| [neighbors_within](#phasic.HexCell.neighbors_within) | All valid neighbors within ``distance`` hex steps. |
+
+### neighbors { #phasic.HexCell.neighbors }
+
+```python
+phasic.HexCell.neighbors()
+```
+
+First-order valid neighbors as HexCell objects.
+
+### neighbors_within { #phasic.HexCell.neighbors_within }
+
+```python
+phasic.HexCell.neighbors_within(distance)
+```
+
+All valid neighbors within ``distance`` hex steps.

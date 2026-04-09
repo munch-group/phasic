@@ -1,0 +1,260 @@
+---
+title: "Metropolis-Hastings with Adaptive Proposals"
+---
+
+## Introduction
+
+This file formalizes the **Metropolis-Hastings (MH) algorithm with adaptive proposals** as implemented in phasic for Bayesian parameter inference in phase-type models. Metropolis-Hastings is a Markov chain Monte Carlo (MCMC) method that generates a sequence of correlated samples from the posterior distribution $p(\boldsymbol{\theta} \mid \mathbf{y})$ by proposing candidate moves and accepting or rejecting them based on the posterior density ratio. The adaptive variant (Haario, Saksman & Tamminen, 2001) learns the empirical covariance of the target from the chain history during a burn-in phase, enabling efficient proposals that match the posterior geometry without manual tuning.
+
+In the phasic pipeline, MCMC serves as an alternative to SVGD ([18]) for posterior inference. While SVGD is faster for moderate-dimensional problems, MCMC provides asymptotically exact samples with well-understood convergence diagnostics (acceptance rate, $\hat{R}$ statistic, effective sample size). The model likelihood is computed via the forward algorithm ([14]), and moment-based summaries can be obtained from [15]. Multiple independent chains are supported for convergence assessment.
+
+**Prerequisites:** [01], [14], [15]
+
+**Source files:**
+
+- `src/phasic/mcmc.py` (class: `MCMC`; methods: `_log_prob`, `_run_chain`, `_run_chains_vmap`, `run`)
+
+## Definitions
+
+::: {#def-19-mh .definition}
+## Metropolis-Hastings Algorithm
+*Let $p(\boldsymbol{\theta} \mid \mathbf{y})$ be a target posterior density (known up to a normalizing constant) on $\mathbb{R}^d$, and let $q(\boldsymbol{\theta}' \mid \boldsymbol{\theta})$ be a proposal distribution. The **Metropolis-Hastings algorithm** generates a Markov chain $\{\boldsymbol{\theta}_t\}_{t=0}^{\infty}$ as follows: at each step, propose $\boldsymbol{\theta}' \sim q(\cdot \mid \boldsymbol{\theta}_t)$, compute the acceptance ratio*
+
+$$\alpha(\boldsymbol{\theta}_t, \boldsymbol{\theta}') = \min\!\left(1, \; \frac{p(\boldsymbol{\theta}' \mid \mathbf{y}) \, q(\boldsymbol{\theta}_t \mid \boldsymbol{\theta}')}{p(\boldsymbol{\theta}_t \mid \mathbf{y}) \, q(\boldsymbol{\theta}' \mid \boldsymbol{\theta}_t)}\right),$$ {#eq-19-acceptance-ratio}
+
+*and set $\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}'$ with probability $\alpha$, otherwise $\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t$.*
+
+*For a **symmetric random-walk proposal** $q(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) = q(\boldsymbol{\theta} \mid \boldsymbol{\theta}')$, the acceptance ratio simplifies to*
+
+$$\alpha(\boldsymbol{\theta}_t, \boldsymbol{\theta}') = \min\!\left(1, \; \frac{p(\boldsymbol{\theta}' \mid \mathbf{y})}{p(\boldsymbol{\theta}_t \mid \mathbf{y})}\right).$$ {#eq-19-symmetric-acceptance}
+
+*In log-space (as implemented), the accept/reject step compares $\log u$ to $\log p(\boldsymbol{\theta}' \mid \mathbf{y}) - \log p(\boldsymbol{\theta}_t \mid \mathbf{y})$, where $u \sim \operatorname{Uniform}(0,1)$.*
+:::
+
+> **Intuition.** The MH algorithm explores the posterior by taking random steps and keeping those that land in regions of comparable or higher density. Moves to higher density are always accepted; moves to lower density are accepted with probability proportional to the density ratio. This ensures that the chain spends time in each region proportional to its posterior probability. The symmetric proposal simplification eliminates the proposal ratio, making the acceptance depend only on the posterior density ratio.
+
+> **Example.** For a Gaussian posterior $p(\theta \mid y) \propto \exp(-\theta^2/2)$ and a Gaussian random-walk proposal $\theta' = \theta_t + \epsilon$, $\epsilon \sim \mathcal{N}(0, \sigma^2)$: $\log \alpha = -(\theta'^2 - \theta_t^2)/2$. A move from $\theta_t = 0$ to $\theta' = 1$ has $\log \alpha = -0.5$, so $\alpha \approx 0.61$.
+
+::: {#def-19-adaptive-proposal .definition}
+## Adaptive Proposal
+*The **adaptive Metropolis (AM) proposal** (Haario et al., 2001) updates the proposal covariance from the chain history. After an initial phase of $t_a$ iterations with a fixed diagonal proposal $q_0(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) = \mathcal{N}(\boldsymbol{\theta}, \operatorname{diag}(\boldsymbol{\sigma}_0^2))$, the proposal switches to*
+
+$$q_t(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) = \mathcal{N}\!\left(\boldsymbol{\theta}, \; s_d \left( \hat{\boldsymbol{\Sigma}}_t + \varepsilon \mathbf{I}_d \right) \right),$$ {#eq-19-adaptive-proposal}
+
+*where:*
+
+- *$\hat{\boldsymbol{\Sigma}}_t$ is the empirical covariance of the chain history $\{\boldsymbol{\theta}_0, \ldots, \boldsymbol{\theta}_t\}$,*
+- *$s_d = 2.4^2 / d$ is the optimal scaling factor for $d$-dimensional Gaussian targets (Roberts, Gelman & Gilks, 1997),*
+- *$\varepsilon > 0$ is a small regularization constant (default $10^{-6}$) ensuring positive definiteness.*
+
+*Additionally, the proposal scale is adapted via the **Robbins-Monro update**:*
+
+$$\log \sigma_{t+1} = \log \sigma_t + \gamma_t \left( \bar{\alpha}_t - \alpha^* \right),$$ {#eq-19-robbins-monro}
+
+*where $\bar{\alpha}_t$ is the recent acceptance rate, $\alpha^* = 0.234$ is the target acceptance rate (optimal for multi-dimensional Gaussian targets), and $\gamma_t = 1/\sqrt{t}$ is the step size ensuring diminishing adaptation.*
+:::
+
+> **Intuition.** A fixed isotropic proposal cannot efficiently explore an anisotropic posterior (e.g., one with strong correlations between parameters). The adaptive proposal learns the shape of the posterior from the samples collected so far and orients its proposals accordingly. The empirical covariance captures correlations, and the Cholesky factor of $s_d(\hat{\boldsymbol{\Sigma}}_t + \varepsilon \mathbf{I})$ enables efficient sampling. The Robbins-Monro update tunes the overall scale to maintain the target acceptance rate: if the chain accepts too often (proposals too small), the scale increases; if it rejects too often (proposals too large), the scale decreases.
+
+> **Example.** For a 2D posterior with $\operatorname{Cov}(\theta_1, \theta_2) = \begin{pmatrix} 1 & 0.9 \\ 0.9 & 1 \end{pmatrix}$, the adaptive proposal learns this covariance and proposes correlated moves along the principal axes, achieving an acceptance rate near 0.234 compared to $< 0.05$ with an isotropic proposal of matched marginal variance.
+
+::: {#def-19-detailed-balance .definition}
+## Acceptance Ratio and Detailed Balance
+*A Markov chain with transition kernel $P(\boldsymbol{\theta}' \mid \boldsymbol{\theta})$ satisfies **detailed balance** with respect to $p$ if*
+
+$$p(\boldsymbol{\theta}) \, P(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) = p(\boldsymbol{\theta}') \, P(\boldsymbol{\theta} \mid \boldsymbol{\theta}') \quad \text{for all } \boldsymbol{\theta}, \boldsymbol{\theta}'.$$ {#eq-19-detailed-balance}
+
+*A distribution satisfying detailed balance is a **stationary distribution** of the chain: if $\boldsymbol{\theta}_t \sim p$, then $\boldsymbol{\theta}_{t+1} \sim p$.*
+:::
+
+> **Intuition.** Detailed balance is a sufficient condition for $p$ to be the equilibrium distribution of the Markov chain. It means that, at stationarity, the probability flow from $\boldsymbol{\theta}$ to $\boldsymbol{\theta}'$ equals the flow from $\boldsymbol{\theta}'$ to $\boldsymbol{\theta}$. This is a stronger condition than stationarity alone (which only requires that net flows balance) and is the key property that makes MH correct.
+
+## Theorems and Proofs
+
+::: {#thm-19-mh-detailed-balance .theorem}
+## MH Satisfies Detailed Balance
+*The Metropolis-Hastings transition kernel*
+
+$$P(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) = q(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) \, \alpha(\boldsymbol{\theta}, \boldsymbol{\theta}') \quad \text{for } \boldsymbol{\theta}' \neq \boldsymbol{\theta}$$ {#eq-19-mh-kernel}
+
+*(with the remaining probability mass on staying at $\boldsymbol{\theta}$) satisfies detailed balance with respect to $p(\boldsymbol{\theta} \mid \mathbf{y})$.*
+:::
+
+::: {.proof}
+It suffices to verify detailed balance for the off-diagonal part ($\boldsymbol{\theta}' \neq \boldsymbol{\theta}$), since the diagonal (rejection) probability is determined by normalization. We must show that
+
+$$p(\boldsymbol{\theta}) \, q(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) \, \alpha(\boldsymbol{\theta}, \boldsymbol{\theta}') = p(\boldsymbol{\theta}') \, q(\boldsymbol{\theta} \mid \boldsymbol{\theta}') \, \alpha(\boldsymbol{\theta}', \boldsymbol{\theta}).$$ {#eq-19-db-verify}
+
+Define $r(\boldsymbol{\theta}, \boldsymbol{\theta}') = p(\boldsymbol{\theta}') \, q(\boldsymbol{\theta} \mid \boldsymbol{\theta}') / [p(\boldsymbol{\theta}) \, q(\boldsymbol{\theta}' \mid \boldsymbol{\theta})]$ (the unnormalized acceptance ratio). Without loss of generality, assume $r(\boldsymbol{\theta}, \boldsymbol{\theta}') \leq 1$ (the case $r > 1$ follows by symmetry). Then $\alpha(\boldsymbol{\theta}, \boldsymbol{\theta}') = r(\boldsymbol{\theta}, \boldsymbol{\theta}')$ and $\alpha(\boldsymbol{\theta}', \boldsymbol{\theta}) = 1$ (since $r(\boldsymbol{\theta}', \boldsymbol{\theta}) = 1/r(\boldsymbol{\theta}, \boldsymbol{\theta}') \geq 1$).
+
+The left-hand side of @eq-19-db-verify:
+
+$$p(\boldsymbol{\theta}) \, q(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) \, r(\boldsymbol{\theta}, \boldsymbol{\theta}') = p(\boldsymbol{\theta}) \, q(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) \cdot \frac{p(\boldsymbol{\theta}') \, q(\boldsymbol{\theta} \mid \boldsymbol{\theta}')}{p(\boldsymbol{\theta}) \, q(\boldsymbol{\theta}' \mid \boldsymbol{\theta})} = p(\boldsymbol{\theta}') \, q(\boldsymbol{\theta} \mid \boldsymbol{\theta}').$$
+
+The right-hand side of @eq-19-db-verify:
+
+$$p(\boldsymbol{\theta}') \, q(\boldsymbol{\theta} \mid \boldsymbol{\theta}') \cdot 1 = p(\boldsymbol{\theta}') \, q(\boldsymbol{\theta} \mid \boldsymbol{\theta}').$$
+
+The two sides are equal, verifying @eq-19-db-verify. The case $r > 1$ is identical with $\boldsymbol{\theta}$ and $\boldsymbol{\theta}'$ exchanged. $\square$
+:::
+
+::: {#thm-19-adaptive-ergodicity .theorem}
+## Adaptive Proposals Preserve Ergodicity under Diminishing Adaptation
+*Let $\{P_t\}_{t \geq 0}$ be a sequence of MH transition kernels where $P_t$ uses the adaptive proposal $q_t$ from @def-19-adaptive-proposal. If the adaptation satisfies:*
+
+*(i) Diminishing adaptation: $\sup_{\boldsymbol{\theta}} \lVert P_{t+1}(\cdot \mid \boldsymbol{\theta}) - P_t(\cdot \mid \boldsymbol{\theta}) \rVert_{\text{TV}} \to 0$ as $t \to \infty$.*
+
+*(ii) Containment: For all $\delta > 0$, $\lim_{N \to \infty} \sup_t \Pr(\tau_\delta(\boldsymbol{\theta}_t) > N) = 0$, where $\tau_\delta(\boldsymbol{\theta})$ is the $\delta$-return time to a high-probability region.*
+
+*Then the adaptive chain is ergodic: for any initial $\boldsymbol{\theta}_0$ and any measurable set $A$,*
+
+$$\frac{1}{T}\sum_{t=1}^{T} \mathbb{1}_A(\boldsymbol{\theta}_t) \xrightarrow{T \to \infty} \int_A p(\boldsymbol{\theta} \mid \mathbf{y}) \, d\boldsymbol{\theta} \quad \text{almost surely.}$$
+:::
+
+::: {.proof}
+Condition (i) is verified by the Robbins-Monro step size $\gamma_t = 1/\sqrt{t}$: the change in the proposal distribution between consecutive iterations is bounded by the magnitude of the covariance update, which scales as $O(1/t)$ for the empirical covariance and $O(1/\sqrt{t})$ for the scale adaptation. Since $1/\sqrt{t} \to 0$, the adaptation diminishes.
+
+For condition (ii), since each $P_t$ is itself a valid MH kernel with stationary distribution $p$ (by @thm-19-mh-detailed-balance, detailed balance holds at every $t$ regardless of the proposal covariance), each individual kernel is ergodic for $p$ on the compact support typical of phase-type parameters (bounded rates). The containment condition then holds because the chain cannot escape to infinity under any of the kernels in the sequence.
+
+Given (i) and (ii), the result follows from the adaptive MCMC ergodicity theorem of Roberts & Rosenthal (2007, Theorem 2): diminishing adaptation and containment together imply that the adaptive chain has the same limiting distribution as the fixed-kernel chain, which is the target $p(\boldsymbol{\theta} \mid \mathbf{y})$. The ergodic theorem for adaptive MCMC then gives the almost-sure convergence of time averages. $\square$
+:::
+
+## Algorithms
+
+### Algorithm 31: Metropolis-Hastings with Adaptive Proposals
+
+*Description.* Algorithm 31 generates posterior samples from $p(\boldsymbol{\theta} \mid \mathbf{y})$ via random-walk Metropolis-Hastings with adaptive covariance proposals. The algorithm runs $C$ independent chains, each for $B + N \cdot K$ iterations (burn-in $B$, $N$ post-burn-in samples with thinning interval $K$). During the burn-in phase, the proposal covariance is updated from chain history at regular intervals, and the proposal scale is adjusted toward the target acceptance rate via Robbins-Monro. After burn-in, samples are collected at thinning intervals. The algorithm operates in unconstrained space $\boldsymbol{\phi}$ and transforms to constrained space $\boldsymbol{\theta}$ via softplus at the end.
+
+```
+Algorithm 31: Metropolis-Hastings with Adaptive Proposals
+1: Let p(theta | y) be the target posterior (known up to normalizing constant)
+2: Let C be the number of chains, B the burn-in, N the number of samples
+3: Let K be the thinning interval, sigma_0 the initial proposal scale
+4: Let g: R^d -> R^d_>0 be the parameter transform (e.g., softplus)
+5: Let alpha* = 0.234 be the target acceptance rate
+6:
+7: function AdaptiveMH({phi_0^(c)}_{c=1}^C, log_p, B, N, K, sigma_0, alpha*)
+8:   for c = 1, ..., C do                        triangleright Independent chains
+9:     phi <- phi_0^(c)                           triangleright Chain initialization
+10:    lp <- log_p(phi)                           triangleright Current log-posterior
+11:    L <- Cholesky(diag(sigma_0))               triangleright Initial Cholesky factor
+12:    s <- 0                                     triangleright Log-scale adaptation
+13:    H <- empty list                            triangleright Chain history
+14:    m <- 0                                     triangleright Sample counter
+15:    for t = 0, 1, ..., B + N*K - 1 do
+16:      z <- Normal(0, I_d)                      triangleright Standard normal noise
+17:      if t >= t_a then                         triangleright Adaptive phase
+18:        phi' <- phi + exp(s) * L * z           triangleright Correlated proposal
+19:      else
+20:        phi' <- phi + sigma_0 * z              triangleright Diagonal proposal
+21:      end if
+22:      lp' <- log_p(phi')                       triangleright Proposed log-posterior
+23:      log_alpha <- lp' - lp                    triangleright Log acceptance ratio (eq. 2)
+24:      u <- Uniform(0, 1)
+25:      if log(u) < log_alpha then               triangleright Accept
+26:        phi <- phi'
+27:        lp <- lp'
+28:      end if
+29:      Append phi to H
+30:      if t >= t_a and t mod Delta = 0 and |H| > d+1 then
+31:        Sigma_hat <- Cov(H)                    triangleright Empirical covariance
+32:        L <- Cholesky(s_d * (Sigma_hat + epsilon * I_d))
+33:                                               triangleright eq. 3, s_d = 2.4^2/d
+34:        gamma <- 1 / sqrt(t)                   triangleright Robbins-Monro step
+35:        s <- s + gamma * (alpha_recent - alpha*)
+36:                                               triangleright Scale adaptation (eq. 4)
+37:      end if
+38:      if t >= B and (t - B) mod K = 0 then     triangleright Post-burn-in thinning
+39:        samples^(c)[m] <- phi
+40:        m <- m + 1
+41:      end if
+42:    end for
+43:  end for
+44:  theta_i^(c) <- g(samples^(c)_i) for all i, c
+45:                                               triangleright Map to constrained space
+46:  return {theta^(c)}_{c=1}^C
+47: end function
+```
+
+**Correspondence table:**
+
+| Pseudocode variable | Math symbol | Code variable (file:function) |
+|---------------------|-------------|-------------------------------|
+| `phi` | $\boldsymbol{\phi}_t$ | `phi_current` (`mcmc.py:_run_chain`) |
+| `phi'` | $\boldsymbol{\phi}'$ | `phi_proposed` (`mcmc.py:_run_chain`) |
+| `lp`, `lp'` | $\log p(\boldsymbol{\phi}_t)$, $\log p(\boldsymbol{\phi}')$ | `lp_current`, `lp_proposed` (`mcmc.py:_run_chain`) |
+| `C` | number of chains | `self.n_chains` (`mcmc.py:MCMC.__init__`) |
+| `B` | burn-in | `self.burn_in` (`mcmc.py:MCMC.__init__`) |
+| `N` | number of samples | `self.n_samples` (`mcmc.py:MCMC.__init__`) |
+| `K` | thinning interval | `self.thin` (`mcmc.py:MCMC.__init__`) |
+| `sigma_0` | initial proposal scale | `self.proposal_scale` (`mcmc.py:MCMC.__init__`) |
+| `alpha*` | target acceptance rate | `self.target_acceptance` (`mcmc.py:MCMC.__init__`) |
+| `L` | Cholesky factor of proposal | `chol` (`mcmc.py:_run_chain`) |
+| `s` | log-scale adaptation | `log_scale` (`mcmc.py:_run_chain`) |
+| `H` | chain history | `history` (`mcmc.py:_run_chain`) |
+| `s_d` | optimal scaling factor $2.4^2/d$ | `s_d` (`mcmc.py:_run_chain`) |
+| `epsilon` | regularization constant $10^{-6}$ | `epsilon` (`mcmc.py:_run_chain`) |
+| `t_a` | adaptation start iteration | `self.adapt_after` (`mcmc.py:MCMC.__init__`) |
+| `Delta` | adaptation interval | `adapt_interval` (`mcmc.py:_run_chain`) |
+| `gamma` | Robbins-Monro step size $1/\sqrt{t}$ | `gamma` (`mcmc.py:_run_chain`) |
+| `alpha_recent` | recent acceptance rate | `current_rate` (`mcmc.py:_run_chain`) |
+| `g` | parameter transform | `self.param_transform` (`mcmc.py:MCMC.__init__`) |
+| `log_p` | $\log p(\boldsymbol{\theta} \mid \mathbf{y}) + \log \pi(\boldsymbol{\theta})$ | `log_prob_fn` / `self._log_prob` (`mcmc.py:MCMC._log_prob`) |
+| `log_alpha` | $\log \alpha(\boldsymbol{\phi}_t, \boldsymbol{\phi}')$ | `log_alpha` (`mcmc.py:_run_chain`) |
+
+**Complexity.** Time: $O(C \cdot (B + NK) \cdot (C_{\text{model}} + d^2))$, where $C_{\text{model}}$ is the cost of one log-posterior evaluation (dominated by the forward algorithm from [14]), and $d^2$ is the cost of the matrix-vector product $\mathbf{L}\mathbf{z}$ for the adaptive proposal. The Cholesky decomposition $O(d^3)$ is performed every $\Delta$ iterations. Space: $O(C \cdot (B + NK) \cdot d)$ for the chain history (used for covariance estimation), plus $O(d^2)$ for the Cholesky factor.
+
+**Correctness.** By @thm-19-mh-detailed-balance, the accept/reject step at line 25 ensures detailed balance with respect to $p$ for any symmetric proposal (both the diagonal and adaptive proposals are symmetric Gaussians). By @thm-19-adaptive-ergodicity, the adaptive covariance updates preserve ergodicity because: (a) the Robbins-Monro step $\gamma_t = 1/\sqrt{t}$ satisfies $\gamma_t \to 0$ (diminishing adaptation), and (b) the chain has bounded state space for typical phase-type parameters (containment). The burn-in phase (lines 38--41) discards the transient period before the chain has converged, and thinning reduces autocorrelation in the stored samples.
+
+## Numerical Considerations
+
+**Positivity constraint.** As in SVGD ([18]), MCMC operates in unconstrained space $\boldsymbol{\phi} \in \mathbb{R}^d$ and maps to constrained space $\boldsymbol{\theta} \in \mathbb{R}^d_{>0}$ via softplus. The log-posterior includes the Jacobian correction from the change of variables.
+
+**Log-space acceptance.** The acceptance step compares $\log u$ to $\log p(\boldsymbol{\phi}') - \log p(\boldsymbol{\phi}_t)$ rather than computing the ratio $p(\boldsymbol{\phi}')/p(\boldsymbol{\phi}_t)$ directly. This avoids overflow and underflow when posterior densities span many orders of magnitude, which is common for phase-type models with hundreds of states.
+
+**Cholesky regularization.** The empirical covariance $\hat{\boldsymbol{\Sigma}}_t$ may be singular or near-singular when $t < d$ or when parameters are highly correlated. The regularization $\varepsilon \mathbf{I}_d$ ensures positive definiteness. If the Cholesky decomposition still fails (due to numerical issues), the previous Cholesky factor is retained (`except np.linalg.LinAlgError: pass`).
+
+**Fixed parameters.** Parameters fixed at known values are excluded from the proposal: a `free_mask` identifies learnable dimensions, and the proposal operates only in the subspace of free parameters (dimension $d_{\text{free}} \leq d$). The scaling factor $s_d$ uses $d_{\text{free}}$ rather than $d$.
+
+**Parallel chains.** Two parallelization modes are supported: (1) `vmap` mode evaluates log-posteriors for all chains simultaneously via JAX vectorization (requires JIT-compatible model); (2) `processes` mode uses Python multiprocessing for independent chains (supports non-JIT models). Sequential execution is the fallback.
+
+## Implementation Notes
+
+**Source code mapping:**
+
+| Algorithm | File | Function | Lines |
+|-----------|------|----------|-------|
+| Algorithm 31 (single chain) | `src/phasic/mcmc.py` | `MCMC._run_chain` | L491--L601 |
+| Algorithm 31 (vmap chains) | `src/phasic/mcmc.py` | `MCMC._run_chains_vmap` | L603--L727 |
+| Algorithm 31 (entry) | `src/phasic/mcmc.py` | `MCMC.run` | L729--L830 |
+| Log-posterior | `src/phasic/mcmc.py` | `MCMC._log_prob` | L440--L489 |
+| Initialization | `src/phasic/mcmc.py` | `MCMC.__init__` | L179--L438 |
+
+**Deviations from pseudocode:**
+
+- The pseudocode shows the chain history $H$ growing without bound. The implementation also grows the history list unboundedly; for very long chains this could be memory-intensive. A sliding window or online covariance update would be more memory-efficient but is not currently implemented.
+- The `_run_chains_vmap` function evaluates all chains in lockstep (one iteration at a time across all chains), enabling JAX `vmap` for parallel log-posterior evaluation. This differs from the pseudocode's independent-chain structure but produces identical results.
+- The `likelihood_correction` parameter (for BFFG importance weights in inhomogeneous models) is an additive correction to the log-likelihood applied after the model evaluation. This is not shown in the pseudocode for simplicity.
+- Prior handling reuses the same `Prior`, `GaussPrior`, `HalfCauchyPrior`, `DataPrior`, and `SparseObservations` classes from `svgd.py`, imported at the top of `mcmc.py`.
+
+## Symbol Index
+
+| Symbol | Name | First appearance |
+|--------|------|-----------------|
+| $\alpha(\boldsymbol{\theta}, \boldsymbol{\theta}')$ | Acceptance ratio | @def-19-mh |
+| $\alpha^*$ | Target acceptance rate ($0.234$) | @def-19-adaptive-proposal |
+| $\bar{\alpha}_t$ | Recent acceptance rate | @def-19-adaptive-proposal |
+| $B$ | Burn-in iterations | Algorithm 31 |
+| $C$ | Number of chains | Algorithm 31 |
+| $\varepsilon$ | Covariance regularization constant | @def-19-adaptive-proposal |
+| $\gamma_t$ | Robbins-Monro step size | @def-19-adaptive-proposal |
+| $K$ | Thinning interval | Algorithm 31 |
+| $\mathbf{L}$ | Cholesky factor of proposal covariance | Algorithm 31 |
+| $N$ | Number of post-burn-in samples | Algorithm 31 |
+| $q(\boldsymbol{\theta}' \mid \boldsymbol{\theta})$ | Proposal distribution | @def-19-mh |
+| $r(\boldsymbol{\theta}, \boldsymbol{\theta}')$ | Unnormalized acceptance ratio | @thm-19-mh-detailed-balance |
+| $s_d$ | Optimal scaling factor $2.4^2 / d$ | @def-19-adaptive-proposal |
+| $\hat{\boldsymbol{\Sigma}}_t$ | Empirical covariance at iteration $t$ | @def-19-adaptive-proposal |
+| $\boldsymbol{\sigma}_0$ | Initial proposal scale | @def-19-adaptive-proposal |
+| $t_a$ | Adaptation start iteration | @def-19-adaptive-proposal |
+| $\Delta$ | Adaptation interval | Algorithm 31 |

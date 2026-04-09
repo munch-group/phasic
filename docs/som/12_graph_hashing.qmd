@@ -1,0 +1,207 @@
+---
+title: "Graph Hashing"
+---
+
+## Introduction
+
+This file formalizes the content-addressable hashing scheme used by phasic to identify graph structures for trace caching. When the trace system ([11]) records an elimination trace for a parameterized graph, the trace is stored on disk indexed by a hash of the graph's structure. On subsequent runs with a structurally identical graph (but possibly different parameter values), the cached trace is loaded directly, avoiding the $O(|V|^3)$ recording cost.
+
+The hashing algorithm must satisfy two properties: (1) structurally identical graphs must produce the same hash (determinism), and (2) structurally different graphs should produce different hashes with overwhelming probability (collision resistance). The algorithm achieves this by combining a modified Weisfeiler-Lehman (WL) vertex refinement --- which captures the local neighborhood structure of each vertex --- with SHA-256 finalization for cryptographic collision resistance.
+
+The hash depends on the graph's topology (which vertices connect to which), edge coefficient vectors (the parameterization pattern), vertex state vectors, and graph metadata (state dimension, parameter dimension, discrete/continuous flag). It is explicitly independent of concrete edge weights, which are determined by the parameter vector $\boldsymbol{\theta}$ and change between evaluations.
+
+**Prerequisites:** [01], [02]
+
+**Source files:**
+- `src/c/phasic_hash.c` (functions: `ptd_graph_content_hash`, `hash_vertex_structure`, `compare_edges`, `ptd_hash_equal`, `ptd_hash_from_hex`)
+- `api/c/phasic_hash.h` (types: `ptd_hash_result`; functions: `ptd_graph_content_hash`, `ptd_hash_equal`, `ptd_hash_destroy`, `ptd_hash_from_hex`)
+
+## Definitions
+
+> **Recall** (@def-01-ph-graph). *A phase-type graph is a weighted directed graph $G = (V, E, W)$ with a starting vertex $v_0$, transient vertices, and absorbing vertices.*
+
+> **Recall** (@def-01-param-edges). *A parameterized edge $(v \to z)$ carries a coefficient vector $\mathbf{c} = (c_1, \ldots, c_k)$ and computes its weight according to a weight mode.*
+
+::: {#def-12-structural-signature}
+## Graph structural signature
+*Let $G = (V, E, W)$ be a phase-type graph with state dimension $d$ and parameter dimension $k$. The structural signature of $G$ is the tuple $\mathcal{S}(G) = (d, k, |V|, \delta, \{\sigma(v), \mathcal{N}(v)\}_{v \in V})$ where:*
+
+- *$d$ is the state dimension,*
+- *$k$ is the parameter dimension,*
+- *$|V|$ is the number of vertices,*
+- *$\delta \in \{0, 1\}^2$ is a flags vector encoding graph properties (parameterized, discrete),*
+- *$\sigma(v) \in \mathbb{Z}^d$ is the state vector of vertex $v$ (@def-02-vertex-array),*
+- *$\mathcal{N}(v) = \{(j, \mathbf{c}_{v \to z}) : (v \to z) \in E, z \text{ has index } j\}$ is the set of (target index, coefficient vector) pairs of outgoing edges, in canonical order.*
+
+*Two graphs $G_1$ and $G_2$ are structurally identical if and only if $\mathcal{S}(G_1) = \mathcal{S}(G_2)$.*
+:::
+
+> **Intuition.** The structural signature captures everything about a graph except the concrete edge weights. Two graphs with the same signature have the same topology, the same vertex states, and the same parameterization pattern. They differ only in the parameter vector $\boldsymbol{\theta}$ used to compute edge weights. This is precisely the equivalence class for which a single elimination trace suffices.
+
+> **Example.** A coalescent model with 5 lineages always produces the same structural signature regardless of the coalescent rate parameter. The state vectors, edge coefficient vectors, and graph topology are determined by the model structure, not by the rate.
+
+::: {#def-12-vertex-content-hash}
+## Vertex content hash
+*Let $v \in V$ be a vertex of a phase-type graph with state vector $\sigma(v) \in \mathbb{Z}^d$ and outgoing edges to targets $z_1, \ldots, z_m$. The vertex content hash is*
+
+$$h(v) = \operatorname{SHA\text{-}256}\!\left(\sigma(v) \,\|\, \bigl(j_{\pi(1)}, \mathbf{c}_{v \to z_{\pi(1)}}\bigr) \,\|\, \cdots \,\|\, \bigl(j_{\pi(m)}, \mathbf{c}_{v \to z_{\pi(m)}}\bigr)\right)$$
+
+*where $\|$ denotes byte-level concatenation, $j_{\pi(l)}$ is the index of target $z_{\pi(l)}$, and $\pi$ is a permutation that sorts the edges in canonical order: first by target vertex index, then by coefficient array length, then lexicographically by coefficient values.*
+
+*The hash value is truncated to 64 bits for fast comparison: $h_{64}(v) = \operatorname{trunc}_{64}(h(v))$.*
+:::
+
+> **Intuition.** This is a modified Weisfeiler-Lehman refinement step applied once. In the classical WL algorithm, each vertex's label is updated by hashing its current label together with the sorted multiset of neighbor labels. Here, each vertex's "label" is its state vector and the identity of its neighbors (by index) together with the edge parameterization coefficients. The sorting ensures that the hash is independent of the order in which edges are stored in memory. Because phasic graphs use vertex indices as canonical identifiers (determined by construction order), a single refinement round suffices --- the index already encodes the full structural identity of each vertex.
+
+> **Example.** For a vertex with state $\sigma(v) = (3,)$ and two outgoing edges to vertices 5 and 7 with coefficients $[1.0, 0.0]$ and $[0.0, 1.0]$ respectively, the hash input is the byte concatenation: $\texttt{bytes}((3,)) \| \texttt{bytes}(5, [1.0, 0.0]) \| \texttt{bytes}(7, [0.0, 1.0])$.
+
+::: {#def-12-graph-content-hash}
+## Graph content hash
+*Let $G = (V, E, W)$ be a phase-type graph with vertices ordered by index $v_0, v_1, \ldots, v_{|V|-1}$. The graph content hash is*
+
+$$H(G) = \operatorname{SHA\text{-}256}\!\left(d \,\|\, k \,\|\, |V| \,\|\, \delta \,\|\, h_{64}(v_0) \,\|\, h_{64}(v_1) \,\|\, \cdots \,\|\, h_{64}(v_{|V|-1})\right)$$
+
+*where $d$, $k$, $|V|$, $\delta$ are the graph metadata and $h_{64}(v_i)$ is the 64-bit vertex content hash from @def-12-vertex-content-hash. The result is a 256-bit hash with three representations:*
+
+- *$H_{\text{full}}(G) \in \{0,1\}^{256}$: the full SHA-256 digest,*
+- *$H_{64}(G) = \operatorname{trunc}_{64}(H_{\text{full}}(G))$: a 64-bit hash for fast comparison,*
+- *$H_{\text{hex}}(G)$: a 64-character hexadecimal string for use as a cache key.*
+:::
+
+> **Intuition.** The graph content hash aggregates all vertex hashes (which encode local structure) with the global metadata into a single fixed-size digest. The two-level hashing (vertex-level SHA-256 to 64 bits, then graph-level SHA-256 to 256 bits) balances collision resistance with computational cost: the vertex hashes are computed independently (and could be parallelized), while the final aggregation produces a cryptographically strong hash suitable for cache keys.
+
+> **Example.** For a 10-vertex coalescent graph, $H_{\text{hex}}(G)$ might be `a3f2e9c8b1d4...` (64 hex characters). This string is used as the filename for the cached trace: `~/.phasic_cache/traces/a3f2e9c8b1d4....json`.
+
+## Theorems and Proofs
+
+::: {#thm-12-determinism}
+## Determinism
+*For any phase-type graph $G$, the graph content hash $H(G)$ is deterministic: it depends only on the structural signature $\mathcal{S}(G)$ and is independent of memory layout, pointer values, and execution order.*
+:::
+
+::: {.proof}
+The hash input at both levels is constructed from data that is part of the structural signature:
+
+1. **Vertex content hash (@def-12-vertex-content-hash):** The inputs are the state vector $\sigma(v)$ (part of the signature), target indices (canonical identifiers), and coefficient vectors (part of the signature). The edge sort order is determined by the comparison function, which uses target index (an integer), coefficient length (an integer), and coefficient values (doubles) in lexicographic order. Since all inputs are deterministic functions of the structural signature, $h(v)$ is deterministic for each $v$.
+
+2. **Graph content hash (@def-12-graph-content-hash):** The inputs are the graph metadata ($d$, $k$, $|V|$, $\delta$) and the sequence of vertex hashes in index order. Since vertex indices are assigned by construction order and are part of the structural signature, the concatenation order is deterministic.
+
+3. **SHA-256** is a deterministic function.
+
+Therefore $H(G)$ depends only on $\mathcal{S}(G)$. $\square$
+:::
+
+::: {#thm-12-collision-resistance}
+## Collision resistance
+*Let $G_1$ and $G_2$ be two phase-type graphs with $\mathcal{S}(G_1) \neq \mathcal{S}(G_2)$. Then $\Pr[H(G_1) = H(G_2)] \leq 2^{-128}$ under the standard random oracle model for SHA-256.*
+:::
+
+::: {.proof}
+If $\mathcal{S}(G_1) \neq \mathcal{S}(G_2)$, the structural signatures differ in at least one component. We consider cases:
+
+**Case 1: Metadata differs** ($d$, $k$, $|V|$, or $\delta$ differ). The graph-level SHA-256 input prefixes differ, so the full inputs to $H$ are distinct. By the collision resistance of SHA-256 (birthday bound $2^{128}$ for 256-bit output), $\Pr[H(G_1) = H(G_2)] \leq 2^{-128}$.
+
+**Case 2: Metadata matches but vertex structure differs.** At least one vertex $v_i$ has different state vector or different neighborhood structure. The vertex content hash $h(v_i)$ receives different input for $G_1$ and $G_2$. With probability at most $2^{-32}$ (birthday bound on 64-bit truncation), $h_{64}(v_i)$ collides. If it does not collide, the graph-level inputs differ and $H$ collides with probability at most $2^{-128}$. By a union bound over at most $|V|$ vertices:
+
+$$\Pr[H(G_1) = H(G_2)] \leq |V| \cdot 2^{-32} + 2^{-128}$$
+
+For any practical graph size ($|V| \ll 2^{32}$), this probability is negligible. Specifically, for $|V| \leq 10^6$, $\Pr \leq 2^{-12} + 2^{-128} < 2^{-11}$, which is far below the collision probability of SHA-256 alone.
+
+**Remark.** The two-level structure introduces a potential weakness at the vertex-level truncation (64-bit hashes). For graphs with $|V| \approx 2^{32}$, the birthday bound on vertex hash collisions approaches 1. In practice, phasic graphs have $|V| < 10^6$, and the 64-bit truncation provides ample collision resistance. For extremely large graphs, the vertex hash could be extended to the full 256 bits at the cost of $4\times$ more data in the graph-level SHA-256 input. $\square$
+:::
+
+## Algorithms
+
+### Algorithm 20: Graph Content Hash
+
+*Description.* This algorithm computes the content-addressable hash of a phase-type graph. It proceeds in two phases: first, compute a 64-bit hash for each vertex by hashing its state vector and sorted edge structure; second, aggregate the vertex hashes with graph metadata into a final 256-bit SHA-256 digest.
+
+```
+Algorithm 20: Graph Content Hash
+1: Let G = (V, E, W) be a phase-type graph with state dimension d and parameter dimension k
+2:
+3: function GraphContentHash(G)
+4:   ▷ Phase 1: Compute per-vertex hashes
+5:   for i ← 0 to |V| - 1 do
+6:     ctx_v ← SHA256Init()
+7:     SHA256Update(ctx_v, bytes(σ(v_i)))           ▷ Hash state vector
+8:     edges ← sorted copy of outgoing edges of v_i  ▷ Sort by (target_idx, coeff_len, coeffs)
+9:     for each edge (v_i → v_j) in edges do
+10:      SHA256Update(ctx_v, bytes(j))               ▷ Hash target index
+11:      SHA256Update(ctx_v, bytes(c_{v_i → v_j}))   ▷ Hash coefficient vector
+12:    end for
+13:    h_64[i] ← trunc_64(SHA256Final(ctx_v))        ▷ 64-bit vertex hash
+14:  end for
+15:
+16:  ▷ Phase 2: Aggregate into graph hash
+17:  ctx_g ← SHA256Init()
+18:  SHA256Update(ctx_g, bytes(d))                    ▷ State dimension
+19:  SHA256Update(ctx_g, bytes(k))                    ▷ Parameter dimension
+20:  SHA256Update(ctx_g, bytes(|V|))                  ▷ Vertex count
+21:  SHA256Update(ctx_g, bytes(δ))                    ▷ Flags (parameterized, discrete)
+22:  for i ← 0 to |V| - 1 do
+23:    SHA256Update(ctx_g, bytes(h_64[i]))            ▷ Per-vertex hash
+24:  end for
+25:  H_full ← SHA256Final(ctx_g)
+26:  H_64 ← trunc_64(H_full)
+27:  H_hex ← hex(H_full)
+28:
+29:  return (H_full, H_64, H_hex)
+30: end function
+```
+
+**Correspondence table:**
+
+| Pseudocode variable | Math symbol | Code variable (file:function) |
+|---------------------|-------------|-------------------------------|
+| $G$ | $G = (V, E, W)$ | `graph` (`phasic_hash.c:ptd_graph_content_hash`) |
+| $d$ | $d$ (state dimension) | `graph->state_length` |
+| $k$ | $k$ (parameter dimension) | `graph->param_length` |
+| $\delta$ | $\delta$ (flags) | `graph_flags` (`phasic_hash.c:ptd_graph_content_hash`) |
+| $\sigma(v_i)$ | $\sigma(v_i)$ (state vector) | `vertex->state` (`phasic_hash.c:hash_vertex_structure`) |
+| edges (sorted) | $\mathcal{N}(v)$ (canonical order) | `sorted_edges` (`phasic_hash.c:hash_vertex_structure`) |
+| $\mathbf{c}_{v_i \to v_j}$ | coefficient vector | `edge->coefficients` |
+| $h_{64}[i]$ | $h_{64}(v_i)$ | `vertex_hash` (`phasic_hash.c:hash_vertex_structure`) |
+| $H_{\text{full}}$ | $H_{\text{full}}(G)$ | `result->hash_full` |
+| $H_{64}$ | $H_{64}(G)$ | `result->hash64` |
+| $H_{\text{hex}}$ | $H_{\text{hex}}(G)$ | `result->hash_hex` |
+| SHA256Init | SHA-256 initialization | `sha256_init` (`phasic_hash.c`) |
+| SHA256Update | SHA-256 data feed | `sha256_update` (`phasic_hash.c`) |
+| SHA256Final | SHA-256 finalization | `sha256_final` (`phasic_hash.c`) |
+
+**Complexity.** Time: $O(|V| \log |V| + |E|)$. The $|V| \log |V|$ term arises from sorting edges at each vertex (total sort cost is $\sum_v |\operatorname{children}(v)| \log |\operatorname{children}(v)| \leq |E| \log |V|$). Each edge is hashed once, contributing $O(|E|)$. The SHA-256 operations are $O(1)$ per block (64 bytes). Space: $O(|V|)$ for the vertex hash array and $O(\max_v |\operatorname{children}(v)|)$ for the sorted edge copy.
+
+**Correctness.** Follows from @thm-12-determinism (determinism) and @thm-12-collision-resistance (collision resistance). The canonical edge ordering ensures that the hash is independent of the internal edge storage order.
+
+## Implementation Notes
+
+**Source code mapping:**
+
+| Algorithm | File | Function | Lines |
+|-----------|------|----------|-------|
+| Algorithm 20 (vertex hash) | `src/c/phasic_hash.c` | `hash_vertex_structure` | L169--L214 |
+| Algorithm 20 (graph hash) | `src/c/phasic_hash.c` | `ptd_graph_content_hash` | L216--L272 |
+| Edge comparison | `src/c/phasic_hash.c` | `compare_edges` | L147--L166 |
+| Hash equality | `src/c/phasic_hash.c` | `ptd_hash_equal` | L274--L287 |
+| Hash from hex | `src/c/phasic_hash.c` | `ptd_hash_from_hex` | L295--L324 |
+
+**Deviations from pseudocode:**
+
+- The implementation includes a self-contained SHA-256 implementation to avoid external dependencies. The standard SHA-256 constants, padding, and compression function follow FIPS 180-4 exactly.
+- The `ptd_hash_equal` function performs a two-stage comparison: first comparing the 64-bit truncated hashes (fast path), then falling back to a full 32-byte `memcmp` if the 64-bit hashes match. This optimizes the common case of non-equal hashes.
+- The `ptd_graph_hash_from_json` function is declared but returns NULL in the current implementation; JSON-based hashing is handled at the Python level instead.
+- Edges with NULL coefficient arrays are treated as having weight-only edges (no parameterization), and only the target index is hashed for such edges.
+
+## Symbol Index
+
+| Symbol | Name | First appearance |
+|--------|------|-----------------|
+| $\delta$ | Graph flags vector | @def-12-structural-signature |
+| $h(v)$ | Vertex content hash (256-bit) | @def-12-vertex-content-hash |
+| $h_{64}(v)$ | Vertex content hash (64-bit truncation) | @def-12-vertex-content-hash |
+| $H(G)$ | Graph content hash | @def-12-graph-content-hash |
+| $H_{64}(G)$ | Graph content hash (64-bit) | @def-12-graph-content-hash |
+| $H_{\text{full}}(G)$ | Graph content hash (256-bit) | @def-12-graph-content-hash |
+| $H_{\text{hex}}(G)$ | Graph content hash (hex string) | @def-12-graph-content-hash |
+| $\mathcal{N}(v)$ | Canonical neighborhood of vertex $v$ | @def-12-structural-signature |
+| $\mathcal{S}(G)$ | Structural signature of graph $G$ | @def-12-structural-signature |

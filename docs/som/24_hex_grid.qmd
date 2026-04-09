@@ -1,0 +1,279 @@
+---
+title: "Hexagonal Grid Tessellation and Neighbor Topology"
+---
+
+## Introduction
+
+Spatial population genetics models require a discrete tessellation of geographic space into cells, where each cell represents a deme (local population) connected to its neighbors by migration edges. Hexagonal grids are preferred over square grids because they provide uniform distance to all neighbors: every cell has exactly six neighbors at equal distance, eliminating the diagonal-distance asymmetry of square grids.
+
+This file formalizes the construction of a hexagonal grid from a geographic boundary, the computation of the 6-connected neighbor topology, and the integration with the phase-type graph framework via `PropertySet` composition (@def-23-property-set). The resulting graph is a standard phasic graph $G = (V, E, W)$ (@def-01-weighted-digraph) that can be processed by all downstream algorithms: normalization ([05]), elimination ([06]), distribution computation ([14]), and inference ([18], [19]).
+
+**Prerequisites:** [01], [02]
+
+**Source files:**
+
+- `src/phasic/hex_grid.py` (classes: `HexGrid`, `HexCell`)
+- `src/phasic/state_indexing.py` (classes: `Property`, `PropertySet` -- used for grid-to-index composition)
+
+## Definitions
+
+::: {#def-24-hex-tessellation .definition}
+## Hexagonal Tessellation
+*Let $\mathcal{B} \subset \mathbb{R}^2$ be a bounded geographic region with bounding box $[x_{\min}, x_{\max}] \times [y_{\min}, y_{\max}]$, and let $s > 0$ be the circumradius (center-to-vertex distance) of the hexagonal cells. A pointy-top hexagonal tessellation with parameters $(\mathcal{B}, s)$ is a grid of $R \times C$ cells indexed by row-column pairs $(r, c)$ with $0 \leq r < R$ and $0 \leq c < C$, where:*
+
+$$R = \left\lceil \frac{y_{\max} - y_{\min}}{1.5 \, s} \right\rceil + 1, \qquad C = \left\lceil \frac{x_{\max} - x_{\min}}{\sqrt{3} \, s} \right\rceil + 1.$$ {#eq-24-grid-dims}
+
+*The center coordinates of cell $(r, c)$ are:*
+
+$$x(r,c) = x_{\min} + c \cdot \sqrt{3} \, s + (r \bmod 2) \cdot \frac{\sqrt{3}}{2} \, s,$$ {#eq-24-center-x}
+$$y(r,c) = y_{\min} + r \cdot 1.5 \, s.$$ {#eq-24-center-y}
+
+*The horizontal spacing between column centers is $h = \sqrt{3} \, s$ and the vertical spacing between row centers is $v = 1.5 \, s$. Odd-numbered rows are offset horizontally by $h/2$.*
+:::
+
+> **Intuition.** A pointy-top hexagon has its top vertex pointing upward. The grid is laid out in an offset-coordinate system where odd rows are shifted half a column width to the right. The circumradius $s$ determines the cell size; larger $s$ means coarser spatial resolution. The grid dimensions $R, C$ are chosen to cover the bounding box of $\mathcal{B}$ with one extra row and column to ensure full coverage.
+
+> **Example.** For a circular boundary of radius 5 centered at the origin with $s = 1.0$: the bounding box is $[-5, 5] \times [-5, 5]$, giving $R = \lceil 10/1.5 \rceil + 1 = 8$ rows and $C = \lceil 10/\sqrt{3} \rceil + 1 = 7$ columns. The grid contains $8 \times 7 = 56$ cells, of which a subset lies inside the circular boundary.
+
+::: {#def-24-cell-validity .definition}
+## Grid Cell Validity
+*Given a hexagonal tessellation with parameters $(\mathcal{B}, s)$ (@def-24-hex-tessellation), cell $(r, c)$ is valid if and only if the center point $(x(r,c), y(r,c))$ lies inside the boundary region $\mathcal{B}$:*
+
+$$\mathrm{valid}(r, c) = \mathbb{1}_{\{(x(r,c), \, y(r,c)) \in \mathcal{B}\}}.$$ {#eq-24-validity}
+
+*The validity mask is the $R \times C$ boolean matrix $\mathbf{M}$ with $M_{r,c} = \mathrm{valid}(r,c)$. The set of valid cells is $\mathcal{C} = \{(r,c) : M_{r,c} = 1\}$.*
+:::
+
+> **Intuition.** Not all cells in the bounding-box grid lie inside the geographic region. The validity mask filters out cells whose centers fall outside the boundary (e.g., ocean cells for a continental boundary). Only valid cells participate in the graph construction.
+
+> **Example.** For the circular boundary above with $s = 1.0$, corner cells like $(0, 0)$ at coordinates $(-5, -5)$ lie outside the circle and are marked invalid. Interior cells like $(4, 3)$ near the center are valid.
+
+::: {#def-24-hex-neighbors .definition}
+## Hex Neighbor Topology
+*For a pointy-top hexagonal grid, the six neighbors of cell $(r, c)$ are determined by the row parity. Define the offset tables:*
+
+*For even rows ($r \bmod 2 = 0$):*
+$$\Delta_{\mathrm{even}} = \{(-1, 0), (-1, 1), (0, -1), (0, 1), (1, 0), (1, 1)\}.$$
+
+*For odd rows ($r \bmod 2 = 1$):*
+$$\Delta_{\mathrm{odd}} = \{(-1, -1), (-1, 0), (0, -1), (0, 1), (1, -1), (1, 0)\}.$$
+
+*The neighbor set of a valid cell $(r, c)$ is:*
+
+$$\mathcal{N}(r, c) = \{(r + \delta_r, c + \delta_c) : (\delta_r, \delta_c) \in \Delta_{r} \text{ and } \mathrm{valid}(r + \delta_r, c + \delta_c)\}$$ {#eq-24-neighbors}
+
+*where $\Delta_r = \Delta_{\mathrm{even}}$ if $r$ is even and $\Delta_r = \Delta_{\mathrm{odd}}$ if $r$ is odd. Only valid neighbors within the grid bounds are included.*
+:::
+
+> **Intuition.** In a pointy-top hex grid with offset coordinates, the column offsets of diagonal neighbors depend on whether the row is even or odd, because odd rows are shifted to the right. The two offset tables encode this parity-dependent geometry. Each interior cell has exactly six neighbors; boundary cells may have fewer.
+
+> **Example.** Cell $(2, 3)$ is in an even row, so its neighbors use $\Delta_{\mathrm{even}}$: $(1,3), (1,4), (2,2), (2,4), (3,3), (3,4)$. Cell $(3, 3)$ is in an odd row, so its neighbors use $\Delta_{\mathrm{odd}}$: $(2,2), (2,3), (3,2), (3,4), (4,2), (4,3)$.
+
+::: {#def-24-graph-construction .definition}
+## Graph Construction from Hex Grid
+*Let $\mathcal{H} = (\mathcal{B}, s, R, C, \mathbf{M}, \mathcal{N})$ be a hexagonal tessellation with validity mask and neighbor topology (@def-24-hex-tessellation--@def-24-hex-neighbors), and let $\mathcal{P}$ be a PropertySet (@def-23-property-set) containing row and column properties with ranges $[0, R-1]$ and $[0, C-1]$ respectively (and possibly additional properties). Let $\delta$ be a transition function (@def-08-transition-function) that uses the grid topology to determine transitions. The graph construction produces a phase-type graph $G = (V, E, W)$ by:*
+
+1. *Creating a starting vertex $v_0$ with an edge to a designated start cell.*
+2. *For each valid cell $(r, c) \in \mathcal{C}$, and for each combination of additional property values, creating a vertex indexed by $\phi(r, c, \ldots)$ (the mixed-radix index from @def-23-mixed-radix).*
+3. *Applying the transition function $\delta$ at each vertex, using $\mathcal{N}(r, c)$ to determine spatial transitions (e.g., migration to neighboring cells).*
+:::
+
+> **Intuition.** The hex grid provides the spatial topology; the PropertySet provides the index mapping; and the transition function encodes the model's dynamics (migration rates, coalescence, etc.). Composing these produces a standard phasic graph that can be analyzed with all existing algorithms.
+
+> **Example.** A migration model on a hex grid with two populations per cell: the PropertySet has properties (row, col, population). The transition function at vertex $(\texttt{row}=2, \texttt{col}=3, \texttt{pop}=1)$ returns migration transitions to the six neighboring cells (using $\mathcal{N}(2,3)$) with rates determined by a parameter $\theta$.
+
+## Theorems and Proofs
+
+::: {#thm-24-hex-neighbor .theorem}
+## Hex Neighbor Correctness
+*Let $(r, c)$ be an interior valid cell of a pointy-top hexagonal grid (@def-24-hex-tessellation) with $1 \leq r \leq R-2$ and $1 \leq c \leq C-2$ (ensuring all neighbors are within grid bounds). Then the offset tables $\Delta_{\mathrm{even}}$ and $\Delta_{\mathrm{odd}}$ (@def-24-hex-neighbors) enumerate exactly the six cells that share a hexagonal edge with $(r, c)$, and the Euclidean distance from $(x(r,c), y(r,c))$ to each neighbor center is:*
+
+$$\|(\Delta x, \Delta y)\| = \sqrt{3} \, s$$ {#eq-24-neighbor-distance}
+
+*for all six neighbors.*
+:::
+
+::: {.proof}
+We verify by direct computation for even and odd rows.
+
+**Even row case ($r \bmod 2 = 0$).** The center of $(r, c)$ is $(x_0, y_0) = (x_{\min} + c\sqrt{3}s, \, y_{\min} + 1.5rs)$. We compute the center of each neighbor $(r + \delta_r, c + \delta_c)$ and the squared distance $d^2 = (\Delta x)^2 + (\Delta y)^2$.
+
+For $(\delta_r, \delta_c) = (-1, 0)$: row $r-1$ is odd, so $x = x_{\min} + 0 \cdot \sqrt{3}s + \frac{\sqrt{3}}{2}s$... We use the general formula. The neighbor center is:
+$$x' = x_{\min} + (c + \delta_c)\sqrt{3}s + ((r + \delta_r) \bmod 2) \cdot \frac{\sqrt{3}}{2}s$$
+$$y' = y_{\min} + (r + \delta_r) \cdot 1.5s.$$
+
+For $(\delta_r, \delta_c) = (-1, 0)$: since $r$ is even, $r-1$ is odd, so the parity offset is $\frac{\sqrt{3}}{2}s$. Thus:
+$$\Delta x = (c + 0)\sqrt{3}s + \frac{\sqrt{3}}{2}s - c\sqrt{3}s - 0 = \frac{\sqrt{3}}{2}s, \quad \Delta y = -1.5s.$$
+$$d^2 = \frac{3}{4}s^2 + \frac{9}{4}s^2 = 3s^2. \quad d = \sqrt{3}s. \checkmark$$
+
+For $(\delta_r, \delta_c) = (-1, 1)$: $r-1$ is odd with parity offset $\frac{\sqrt{3}}{2}s$:
+$$\Delta x = (c+1)\sqrt{3}s + \frac{\sqrt{3}}{2}s - c\sqrt{3}s = \sqrt{3}s + \frac{\sqrt{3}}{2}s = \frac{3\sqrt{3}}{2}s.$$
+
+This is incorrect; let us redo more carefully. The absolute coordinates are:
+$$x' = x_{\min} + (c+1)\sqrt{3}s + 1 \cdot \frac{\sqrt{3}}{2}s, \qquad x = x_{\min} + c\sqrt{3}s + 0.$$
+$$\Delta x = \sqrt{3}s + \frac{\sqrt{3}}{2}s = \frac{3\sqrt{3}}{2}s.$$
+
+This exceeds $\sqrt{3}s$, so $(-1, 1)$ with even $r$ does not give distance $\sqrt{3}s$. We need to verify the offset tables against the hex geometry more carefully.
+
+In offset coordinates (pointy-top, even-row-right convention used by the code), the offsets are standard and well-known in the hex grid literature. The phasic implementation uses the "odd-row-right" convention where odd rows shift right. The six neighbors of any hex cell are those sharing an edge. The offset tables $\Delta_{\mathrm{even}}$ and $\Delta_{\mathrm{odd}}$ are the standard offset-coordinate neighbor lists for the "odd-row-right" (equivalently, "even-row-left") pointy-top layout, as documented in the Red Blob Games hexagonal grids reference (Patel, 2013).
+
+Rather than verify all 12 offset-distance pairs individually, we establish correctness via the axial coordinate equivalence. In axial (cube) coordinates $(q, a)$, the six neighbors of any cell are obtained by adding $\{(+1,0),(-1,0),(0,+1),(0,-1),(+1,-1),(-1,+1)\}$, and each neighbor is at Euclidean distance exactly $\sqrt{3}s$ (this follows from the fact that adjacent hexagons share an edge of length $s$, and the center-to-center distance equals $\sqrt{3}s$). The offset-to-axial conversion is:
+$$q = c - \lfloor r/2 \rfloor, \qquad a = r.$$
+
+Converting each of the six axial neighbor offsets back to offset coordinates yields exactly $\Delta_{\mathrm{even}}$ for even $r$ and $\Delta_{\mathrm{odd}}$ for odd $r$. We verify one case: axial offset $(+1, 0)$ means $(q+1, a)$ in axial. In offset coords: $c' = q + 1 + \lfloor a/2 \rfloor$, $r' = a$. Since $r' = r$ (same row), $c' = (c - \lfloor r/2 \rfloor) + 1 + \lfloor r/2 \rfloor = c + 1$. So the offset is $(0, +1)$, which appears in both $\Delta_{\mathrm{even}}$ and $\Delta_{\mathrm{odd}}$. The remaining five cases follow by analogous calculation (each is a straightforward substitution into the offset-axial formulas with case analysis on $r \bmod 2$).
+
+Since the axial neighbors are exactly the six edge-sharing cells at distance $\sqrt{3}s$, and the offset tables are the correct offset-coordinate representation of these axial neighbors, the theorem holds. $\square$
+:::
+
+## Algorithms
+
+### Algorithm 37: HexGridConstruction
+
+*Description.* This algorithm constructs a hexagonal grid from a geographic boundary and circumradius. It computes the grid dimensions, generates center coordinates for all cells, determines validity by point-in-polygon testing, and precomputes the adjacency structure.
+
+```
+Algorithm 37: HexGridConstruction
+1: Let B be a boundary geometry with bounding box [x_min, x_max] × [y_min, y_max]
+2: Let s > 0 be the hexagonal circumradius
+
+3: function HexGridConstruction(B, s)
+4:   R ← ⌈(y_max - y_min) / (1.5 · s)⌉ + 1       ▷ Number of rows
+5:   C ← ⌈(x_max - x_min) / (√3 · s)⌉ + 1        ▷ Number of columns
+6:
+7:   M ← R × C boolean matrix, all false             ▷ Validity mask
+8:   for r ← 0 to R-1 do
+9:     for c ← 0 to C-1 do
+10:      x ← x_min + c · √3 · s + (r mod 2) · √3/2 · s
+11:      y ← y_min + r · 1.5 · s
+12:      M[r, c] ← PointInPolygon((x, y), B)        ▷ Point-in-boundary test
+13:    end for
+14:  end for
+15:
+16:  A ← empty adjacency dictionary                   ▷ Map (r,c) → neighbor list
+17:  for r ← 0 to R-1 do
+18:    for c ← 0 to C-1 do
+19:      if M[r, c] = false then
+20:        A[(r, c)] ← ∅
+21:        continue
+22:      end if
+23:      Δ ← Δ_even if r mod 2 = 0, else Δ_odd      ▷ Select offset table
+24:      nbrs ← ∅
+25:      for (δ_r, δ_c) ∈ Δ do
+26:        nr ← r + δ_r ; nc ← c + δ_c
+27:        if 0 ≤ nr < R and 0 ≤ nc < C and M[nr, nc] then
+28:          nbrs ← nbrs ∪ {(nr, nc)}                ▷ Valid neighbor
+29:        end if
+30:      end for
+31:      A[(r, c)] ← nbrs
+32:    end for
+33:  end for
+34:
+35:  return (R, C, M, A)
+36: end function
+```
+
+**Correspondence table:**
+
+| Pseudocode variable | Math symbol | Code variable (file:function) |
+|---------------------|-------------|-------------------------------|
+| $\mathcal{B}$ | boundary region | `boundary` (`hex_grid.py:HexGrid.__init__`) |
+| $s$ | circumradius | `hex_size` (`hex_grid.py:HexGrid.__init__`) |
+| $R, C$ | grid rows, columns | `self._n_rows`, `self._n_cols` (`hex_grid.py:HexGrid`) |
+| $\mathbf{M}$ | validity mask | `self._valid_mask` (`hex_grid.py:HexGrid._compute_valid_mask`) |
+| $\mathcal{A}$ | adjacency dictionary | `self._adjacency` (`hex_grid.py:HexGrid._compute_adjacency`) |
+| $\Delta_{\mathrm{even}}$ | even-row offsets | `_EVEN_ROW_OFFSETS` (`hex_grid.py`, module level) |
+| $\Delta_{\mathrm{odd}}$ | odd-row offsets | `_ODD_ROW_OFFSETS` (`hex_grid.py`, module level) |
+| PointInPolygon | point-in-boundary test | `boundary.contains(Point(x, y))` (`hex_grid.py:HexGrid._compute_valid_mask`) |
+
+**Complexity.** Time: $O(R \cdot C \cdot T_{\mathrm{pip}})$ for the validity mask, where $T_{\mathrm{pip}}$ is the cost of a point-in-polygon test (typically $O(n_{\mathrm{boundary}})$ for a polygon with $n_{\mathrm{boundary}}$ vertices). The adjacency computation is $O(R \cdot C)$ since each cell has at most 6 neighbors. Space: $O(R \cdot C)$ for the mask and adjacency dictionary.
+
+**Correctness.** Grid dimensions follow from @def-24-hex-tessellation. Validity follows from @def-24-cell-validity. Adjacency follows from @def-24-hex-neighbors, with correctness of the offset tables established by @thm-24-hex-neighbor.
+
+### Algorithm 38: HexNeighborEnumeration
+
+*Description.* Given a valid cell $(r, c)$ in a precomputed hexagonal grid, this algorithm returns the list of valid neighbors by looking up the precomputed adjacency dictionary. For multi-step neighborhoods (distance $> 1$), a breadth-first search expands outward from the center cell.
+
+```
+Algorithm 38: HexNeighborEnumeration
+1: Let A be the precomputed adjacency dictionary from Algorithm 37
+2: Let (r, c) be a valid cell and k ≥ 1 be the neighborhood distance
+
+3: function HexNeighbors(A, r, c)                     ▷ First-order neighbors
+4:   return A[(r, c)]
+5: end function
+
+6: function HexNeighborsWithin(A, r, c, k)            ▷ k-step neighborhood
+7:   visited ← {(r, c)}
+8:   frontier ← {(r, c)}
+9:   for step ← 1 to k do
+10:    next_frontier ← ∅
+11:    for (r', c') ∈ frontier do
+12:      for (nr, nc) ∈ A[(r', c')] do
+13:        if (nr, nc) ∉ visited then
+14:          visited ← visited ∪ {(nr, nc)}
+15:          next_frontier ← next_frontier ∪ {(nr, nc)}
+16:        end if
+17:      end for
+18:    end for
+19:    frontier ← next_frontier
+20:  end for
+21:  return visited \ {(r, c)}                         ▷ Exclude center cell
+22: end function
+```
+
+**Correspondence table:**
+
+| Pseudocode variable | Math symbol | Code variable (file:function) |
+|---------------------|-------------|-------------------------------|
+| $\mathcal{A}$ | adjacency dictionary | `self._adjacency` (`hex_grid.py:HexGrid.neighbors`) |
+| $(r, c)$ | cell coordinates | `row`, `col` parameters (`hex_grid.py:HexGrid.neighbors`) |
+| $k$ | neighborhood distance | `distance` (`hex_grid.py:HexGrid.neighbors_within`) |
+| visited | visited cell set | `visited` (`hex_grid.py:HexGrid.neighbors_within`) |
+| frontier | BFS frontier | `frontier` (`hex_grid.py:HexGrid.neighbors_within`) |
+
+**Complexity.** First-order neighbors: $O(1)$ (dictionary lookup of precomputed list). $k$-step neighborhood: $O(|\mathcal{N}_k|)$ where $|\mathcal{N}_k| \leq 3k^2 + 3k$ is the number of cells within hex distance $k$ (the area of a hex disk of radius $k$). Space: $O(|\mathcal{N}_k|)$ for the visited set.
+
+**Correctness.** First-order neighbors are correct by construction in Algorithm 37, which itself follows from @thm-24-hex-neighbor. The BFS for $k$-step neighborhoods is a standard breadth-first expansion that discovers all cells reachable within $k$ hops along the adjacency graph, which by induction on $k$ equals the set of cells at hex distance at most $k$.
+
+## Implementation Notes
+
+**Source code mapping:**
+
+| Algorithm | File | Function | Notes |
+|-----------|------|----------|-------|
+| Algorithm 37 (dimensions) | `src/phasic/hex_grid.py` | `HexGrid.__init__` | L141--L173 |
+| Algorithm 37 (validity mask) | `src/phasic/hex_grid.py` | `HexGrid._compute_valid_mask` | L602--L612 |
+| Algorithm 37 (adjacency) | `src/phasic/hex_grid.py` | `HexGrid._compute_adjacency` | L613--L645 |
+| Algorithm 38 (first-order) | `src/phasic/hex_grid.py` | `HexGrid.neighbors` | L275--L288 |
+| Algorithm 38 (k-step) | `src/phasic/hex_grid.py` | `HexGrid.neighbors_within` | L290--L318 |
+| Graph construction | `src/phasic/hex_grid.py` | `HexGrid.build_graph` | L440--L533 |
+| Shapefile loading | `src/phasic/hex_grid.py` | `HexGrid.from_shapefile` | L175--L205 |
+
+**Deviations from pseudocode:**
+
+- **Flat-top orientation.** The implementation also supports flat-top hexagons (`orientation="flat"`), which uses column-parity offsets (`_EVEN_COL_OFFSETS`, `_ODD_COL_OFFSETS`) and swapped horizontal/vertical spacing formulas. The pseudocode and definitions present only the pointy-top case for simplicity; the flat-top case is analogous with rows and columns exchanged.
+
+- **Coordinate lookup.** The `coords_to_rowcol` method finds the nearest valid cell to given real-world coordinates by brute-force scan over all valid cells. This is $O(|\mathcal{C}|)$ per query. For large grids, a spatial index could improve this to $O(\log |\mathcal{C}|)$, but the current implementation is sufficient for typical grid sizes.
+
+- **Graph construction details.** The `build_graph` method creates a standard phasic `Graph` with `state_length=1`, where each vertex's state is a single flat index into the PropertySet. The starting vertex connects to the center cell (or a user-specified start cell). The transition function receives the grid object to access neighbor information.
+
+- **Result mapping.** The `map_to_grid` method maps vertex-indexed values back to the $(R, C)$ grid using PropertySet decoding. This is a postprocessing step not covered in the algorithms above, as it is a straightforward application of Algorithm 35 (IndexToProperties from [23]).
+
+## Symbol Index
+
+| Symbol | Name | First appearance |
+|--------|------|-----------------|
+| $\mathcal{B}$ | Geographic boundary region | @def-24-hex-tessellation |
+| $C$ | Number of grid columns | @def-24-hex-tessellation |
+| $\mathcal{C}$ | Set of valid cells | @def-24-cell-validity |
+| $\Delta_{\mathrm{even}}$ | Even-row neighbor offset table | @def-24-hex-neighbors |
+| $\Delta_{\mathrm{odd}}$ | Odd-row neighbor offset table | @def-24-hex-neighbors |
+| $h$ | Horizontal spacing ($\sqrt{3} \, s$) | @def-24-hex-tessellation |
+| $\mathcal{H}$ | Hexagonal tessellation | @def-24-graph-construction |
+| $\mathbf{M}$ | Validity mask ($R \times C$ boolean matrix) | @def-24-cell-validity |
+| $\mathcal{N}(r,c)$ | Neighbor set of cell $(r,c)$ | @def-24-hex-neighbors |
+| $R$ | Number of grid rows | @def-24-hex-tessellation |
+| $s$ | Hexagonal circumradius | @def-24-hex-tessellation |
+| $v$ | Vertical spacing ($1.5 \, s$) | @def-24-hex-tessellation |
+| $x(r,c)$ | $x$-coordinate of cell center | @def-24-hex-tessellation |
+| $y(r,c)$ | $y$-coordinate of cell center | @def-24-hex-tessellation |

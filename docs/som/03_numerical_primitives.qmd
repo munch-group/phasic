@@ -1,0 +1,253 @@
+---
+title: "Numerical Primitives"
+---
+
+## Introduction
+
+This file documents the numerical building blocks used by phasic's core algorithms to maintain accuracy in floating-point computation. Two primitives are formalized: Kahan compensated summation and log-space weight evaluation. These are not algorithms in the usual sense of solving a graph problem; they are low-level arithmetic routines that are embedded within larger algorithms.
+
+Kahan summation is used in sojourn time computation and PMF gradient computation, where long summation chains in double-precision arithmetic would otherwise lose significant digits. Log-space weight evaluation is used when edge weights are products of parameter-coefficient pairs (the `log` weight mode from @def-01-param-edges), where direct multiplication could overflow or underflow.
+
+**Prerequisites:** [01], [02]
+
+**Source files:**
+- `src/c/phasic.c` (functions: `ptd_expected_sojourn_time_subset`, `compute_pmf_with_gradient`, `ptd_graph_update_weights`)
+
+## Definitions
+
+### Compensated summation
+
+When summing $n$ floating-point numbers in the obvious way ($s \leftarrow s + x_i$), each addition may introduce a rounding error of magnitude up to $\varepsilon |s + x_i|$, where $\varepsilon$ is the machine epsilon. Over $n$ additions, these errors can accumulate to $O(n\varepsilon)$ relative error. Kahan's algorithm tracks a running compensation term that captures the rounding error from each addition and feeds it back into the next step.
+
+::: {#def-03-kahan}
+## Kahan compensated summation
+*A Kahan accumulator is a pair $(S, C)$ where $S$ is the running sum and $C$ is the compensation term, both initialized to zero. Given a sequence of values $x_1, x_2, \ldots, x_n$, the compensated sum is computed by the following recurrence: for $i = 1, \ldots, n$,*
+
+$$y_i = x_i - C,$$ {#eq-03-kahan-compensate}
+$$t_i = S + y_i,$$ {#eq-03-kahan-add}
+$$C \leftarrow (t_i - S) - y_i,$$ {#eq-03-kahan-update-c}
+$$S \leftarrow t_i.$$ {#eq-03-kahan-update-s}
+
+*The result is $S$ after processing all $n$ values.*
+:::
+
+> **Intuition.** In exact arithmetic, @eq-03-kahan-update-c yields $C = 0$ always, because $(t_i - S) - y_i = (S + y_i - S) - y_i = 0$. In floating-point arithmetic, $\operatorname{fl}(S + y_i)$ may differ from $S + y_i$; the discrepancy is exactly what $(t_i - S) - y_i$ computes (to first order in $\varepsilon$). By subtracting $C$ from the next input (@eq-03-kahan-compensate), the lost low-order bits are recovered.
+
+> **Example.** Let $\varepsilon \approx 1.1 \times 10^{-16}$ (IEEE 754 double precision). Summing $10^8$ values of $1.0$: naive summation may accumulate relative error of order $10^8 \varepsilon \approx 10^{-8}$, yielding a result like $10^8 \pm 1$. Kahan summation maintains relative error of order $\varepsilon$, yielding $10^8$ exactly (for this case).
+
+::: {#def-03-kahan-struct}
+## Kahan accumulator struct
+*In the implementation, the Kahan accumulator is a C struct with two fields: `sum` ($= S$) and `compensation` ($= C$). Three operations are defined:*
+
+- *Init: $S \leftarrow 0, \; C \leftarrow 0$.*
+- *Add($x$): execute @eq-03-kahan-compensate--@eq-03-kahan-update-s.*
+- *Result: return $S$.*
+:::
+
+> **Intuition.** The struct encapsulates the two-variable state, making it a drop-in replacement for a plain double accumulator in existing code.
+
+### Log-space weight computation
+
+When the weight mode is `log` (@def-01-param-edges), the edge weight is a product:
+
+$$w(v \to z) = \prod_{j=1}^{k} (c_j \theta_j).$$
+
+Direct computation of this product risks overflow (if the factors are large) or underflow (if the factors are small). Log-space computation avoids both issues.
+
+::: {#def-03-logspace}
+## Log-space weight computation
+*Let $\mathbf{c} = (c_1, \ldots, c_k)$ be the coefficient vector and $\boldsymbol{\theta} = (\theta_1, \ldots, \theta_k)$ be the parameter vector, with $c_j \theta_j > 0$ for all $j$. The log-space weight is*
+
+$$w(v \to z) = \exp\!\left(\sum_{j=1}^{k} \log(c_j \theta_j)\right).$$ {#eq-03-logspace}
+
+*The computation proceeds in two steps:*
+1. *Accumulate: $\ell_{\log} \leftarrow \sum_{j=1}^{k} \log(c_j \theta_j)$.*
+2. *Exponentiate: $w \leftarrow \exp(L)$.*
+:::
+
+> **Intuition.** Working in log-space converts the product into a sum, and the sum of logarithms stays in a moderate range even when the individual factors span many orders of magnitude. The final exponentiation maps back to the original scale. This is the standard technique for computing products in numerical work.
+
+> **Example.** Suppose $k = 3$ with $c_j \theta_j = (10^{100}, 10^{-50}, 10^{-50})$. The product is $10^{100} \cdot 10^{-50} \cdot 10^{-50} = 1$. Direct multiplication would compute $10^{100} \cdot 10^{-50} = 10^{50}$ at an intermediate step, which is fine in this case, but with more extreme values or longer products, intermediate overflow is a real risk. In log-space: $\log(10^{100}) + \log(10^{-50}) + \log(10^{-50}) = 100 \ln 10 - 50 \ln 10 - 50 \ln 10 = 0$, and $\exp(0) = 1$.
+
+::: {#def-03-positivity-guard}
+## Strict positivity guard
+*The log-space weight computation (@def-03-logspace) requires the strict positivity condition $c_j \theta_j > 0$ for all $j = 1, \ldots, k$. If any $c_j \theta_j \leq 0$, the logarithm is undefined (for $c_j \theta_j \leq 0$) or $-\infty$ (for $c_j \theta_j = 0$), and the computation must not proceed. The implementation raises an error if this condition is violated.*
+:::
+
+> **Intuition.** This is a fundamental constraint of the log-space approach. Models using the `log` weight mode must ensure all coefficient-parameter products are strictly positive. This is naturally satisfied in many applications (e.g., population genetics where rates are positive by definition).
+
+## Theorems and Proofs
+
+::: {#thm-03-kahan-error}
+## Kahan summation error bound
+*Let $x_1, \ldots, x_n$ be floating-point numbers and let $\hat{S}_n$ be the result of Kahan compensated summation (@def-03-kahan). Let $S_n = \sum_{i=1}^{n} x_i$ be the exact sum. Then*
+
+$$|\hat{S}_n - S_n| \leq (2\varepsilon + O(\varepsilon^2)) \sum_{i=1}^{n} |x_i|,$$ {#eq-03-kahan-bound}
+
+*where $\varepsilon$ is the unit roundoff (machine epsilon). In contrast, naive left-to-right summation satisfies only $|\hat{S}_n^{\text{naive}} - S_n| \leq n\varepsilon \sum_{i=1}^{n} |x_i| + O(\varepsilon^2)$.*
+:::
+
+::: {.proof}
+We analyze one step of the recurrence. Let $\operatorname{fl}(\cdot)$ denote the result of a floating-point operation. The IEEE 754 model guarantees $\operatorname{fl}(a \oplus b) = (a + b)(1 + \delta)$ with $|\delta| \leq \varepsilon$ for each elementary operation $\oplus \in \{+, -\}$.
+
+At step $i$, the compensation $C$ contains (approximately) the rounding error from the previous addition. Consider the computed values:
+
+- $\hat{y}_i = \operatorname{fl}(x_i - C) = (x_i - C)(1 + \delta_1)$ where $|\delta_1| \leq \varepsilon$.
+- $\hat{t}_i = \operatorname{fl}(S + \hat{y}_i) = (S + \hat{y}_i)(1 + \delta_2)$ where $|\delta_2| \leq \varepsilon$.
+- $\hat{C}' = \operatorname{fl}(\operatorname{fl}(\hat{t}_i - S) - \hat{y}_i)$.
+
+The key insight is that $\hat{t}_i - S$ recovers the high-order part of $\hat{y}_i$ (because $\hat{t}_i = \operatorname{fl}(S + \hat{y}_i)$, and if $|S| \gg |\hat{y}_i|$, then $\hat{t}_i - S$ captures only the portion of $\hat{y}_i$ that "fit" into the sum). Subtracting $\hat{y}_i$ then gives the portion that was lost: $\hat{C}' \approx (\hat{t}_i - S) - \hat{y}_i = -\delta_2(S + \hat{y}_i)$, which is precisely the rounding error from computing $S + \hat{y}_i$.
+
+By feeding $\hat{C}'$ back into the next step (subtracting it from $x_{i+1}$), the error from step $i$ is corrected in step $i+1$, up to a second-order term in $\varepsilon$. Formally, one can show by induction that after $n$ steps, the accumulated error satisfies:
+
+$$|\hat{S}_n - S_n| \leq 2\varepsilon \sum_{i=1}^{n} |x_i| + O(n\varepsilon^2) \sum_{i=1}^{n} |x_i|.$$
+
+For practical values of $n$ (even $n = 10^8$), the $O(n\varepsilon^2) \approx 10^8 \cdot 10^{-32} = 10^{-24}$ term is negligible compared to the $2\varepsilon \approx 2 \times 10^{-16}$ term. The error bound is therefore effectively $O(\varepsilon)$, independent of $n$.
+
+For naive summation, each of the $n$ additions contributes an error of up to $\varepsilon |s + x_i|$, and these errors accumulate without correction, yielding the $O(n\varepsilon)$ bound. $\square$
+:::
+
+::: {#thm-03-logspace-stability}
+## Log-space numerical stability for multiplicative weights
+*Let $c_j \theta_j > 0$ for all $j = 1, \ldots, k$, and let $w = \prod_{j=1}^{k} (c_j \theta_j)$ be the true weight. Let $\hat{w}$ be the result of the log-space computation (@def-03-logspace). Then the relative error satisfies*
+
+$$\left|\frac{\hat{w} - w}{w}\right| \leq \exp(k\varepsilon) - 1 + \varepsilon \approx (k+1)\varepsilon$$ {#eq-03-logspace-bound}
+
+*for small $k\varepsilon$. In particular, the relative error grows linearly with $k$ (the number of factors) and is independent of the magnitudes of the factors.*
+:::
+
+::: {.proof}
+Step 1 (logarithms): Each $\log(c_j \theta_j)$ is computed with relative error at most $\varepsilon$, so $\operatorname{fl}(\log(c_j \theta_j)) = \log(c_j \theta_j)(1 + \delta_j)$ with $|\delta_j| \leq \varepsilon$. This gives an absolute error of $|\delta_j \log(c_j \theta_j)|$ per term.
+
+Step 2 (summation): The sum $\ell_{\log} = \sum_{j=1}^{k} \log(c_j \theta_j)$ is computed by naive left-to-right addition (the implementation does not use Kahan summation for this inner sum, which is acceptable since $k$ is typically small). The accumulated absolute error in $\hat{\ell}_{\log}$ satisfies:
+
+$$|\hat{L} - L| \leq \sum_{j=1}^{k} |\delta_j \log(c_j \theta_j)| + (k-1)\varepsilon \max_i |\hat{L}_i| \leq k\varepsilon (|\log(c_1\theta_1)| + \cdots + |\log(c_k\theta_k)|) + O(k\varepsilon |L|),$$
+
+which simplifies to $|\hat{L} - L| \leq k\varepsilon |L| + O(k\varepsilon)$ when all terms have the same sign.
+
+Step 3 (exponentiation): $\hat{w} = \operatorname{fl}(\exp(\hat{L})) = \exp(\hat{L})(1 + \delta_{\exp})$ with $|\delta_{\exp}| \leq \varepsilon$. Thus:
+
+$$\hat{w} = \exp(L + (\hat{L} - L))(1 + \delta_{\exp}) = w \cdot \exp(\hat{L} - L) \cdot (1 + \delta_{\exp}).$$
+
+The relative error is:
+
+$$\left|\frac{\hat{w}}{w} - 1\right| = |\exp(\hat{L} - L)(1 + \delta_{\exp}) - 1| \leq \exp(|\hat{L} - L|)(1 + \varepsilon) - 1.$$
+
+With $|\hat{L} - L| \leq k\varepsilon |L| + O(k\varepsilon)$ and using $\exp(x) \leq 1 + 2x$ for small $x$, the relative error is bounded by $(k+1)\varepsilon$ to first order.
+
+Crucially, this bound depends only on $k$ and $\varepsilon$, not on the magnitudes of $c_j \theta_j$. Direct multiplication would suffer from intermediate overflow or underflow when factors span many orders of magnitude, a failure mode that log-space computation eliminates entirely. $\square$
+:::
+
+## Algorithms
+
+### Algorithm 4: Kahan Compensated Summation
+
+*Description.* This algorithm computes the sum of a sequence of floating-point numbers with $O(\varepsilon)$ error, independent of the number of terms. It maintains a running sum $S$ and a compensation term $C$ that tracks accumulated rounding errors.
+
+```
+Algorithm 4: Kahan Compensated Summation
+1: Let x_1, ..., x_n be floating-point numbers
+2:
+3: function KahanSum(x_1, ..., x_n)
+4:   S ← 0.0
+5:   C ← 0.0
+6:   for i ← 1 to n do
+7:     y ← x_i - C                      ▷ Compensate for previous rounding error
+8:     t ← S + y                         ▷ S is large, y is small; low-order bits of y may be lost
+9:     C ← (t - S) - y                   ▷ (t - S) recovers high-order part of y; subtracting y gives the lost part
+10:    S ← t
+11:  end for
+12:  return S
+13: end function
+```
+
+**Correspondence table:**
+
+| Pseudocode variable | Math symbol | Code variable (file:function) |
+|---------------------|-------------|-------------------------------|
+| $S$ | $S$ (running sum) | `kahan.sum` (phasic.c: Kahan struct) |
+| $C$ | $C$ (compensation) | `kahan.compensation` (phasic.c: Kahan struct) |
+| $y$ | $y_i$ | local variable `y` |
+| $t$ | $t_i$ | local variable `t` |
+| $x_i$ | $x_i$ | input values |
+
+**Complexity.** Time: $O(n)$. Space: $O(1)$ (two extra variables beyond the input).
+
+**Correctness.** Follows from @thm-03-kahan-error. The error bound is $O(\varepsilon)$ regardless of $n$.
+
+### Algorithm 5: Log-Space Weight Evaluation
+
+*Description.* Given a coefficient vector $\mathbf{c}$ and parameter vector $\boldsymbol{\theta}$, this algorithm computes the multiplicative weight $w = \prod_j (c_j \theta_j)$ in log-space to avoid overflow and underflow.
+
+```
+Algorithm 5: Log-Space Weight Evaluation
+1: Let c = (c_1, ..., c_k) be the coefficient vector and θ = (θ_1, ..., θ_k) be the parameter vector
+2: Require: c_j θ_j > 0 for all j = 1, ..., k
+3:
+4: function LogSpaceWeight(c, θ)
+5:   L ← 0.0
+6:   for j ← 1 to k do
+7:     if c_j · θ_j ≤ 0 then
+8:       error("Non-positive factor in log-space weight")   ▷ Strict positivity guard (@def-03-positivity-guard)
+9:     end if
+10:    L ← L + log(c_j · θ_j)
+11:  end for
+12:  return exp(L)
+13: end function
+```
+
+**Correspondence table:**
+
+| Pseudocode variable | Math symbol | Code variable (file:function) |
+|---------------------|-------------|-------------------------------|
+| $\mathbf{c}$ | $\mathbf{c}$ (coefficient vector) | `edge->coefficients` (phasic.c:`ptd_graph_update_weights`) |
+| $\boldsymbol{\theta}$ | $\boldsymbol{\theta}$ (parameter vector) | `params` array |
+| $\ell_{\log}$ | $\sum_j \log(c_j \theta_j)$ | `log_sum` local variable |
+| $k$ | $k$ (parameter dimension) | `n_params` or loop bound |
+| $w$ | $w(v \to z)$ | `edge->weight` (updated in place) |
+
+**Complexity.** Time: $O(k)$ per edge. Space: $O(1)$.
+
+**Correctness.** Follows from @thm-03-logspace-stability. The relative error is $O(k\varepsilon)$, and the computation is free of intermediate overflow or underflow regardless of the magnitudes of $c_j \theta_j$.
+
+## Numerical Considerations
+
+**Kahan summation scope.** Kahan summation is used in two specific contexts in phasic:
+
+1. **Sojourn time computation** (`ptd_expected_sojourn_time_subset`): The expected sojourn time is a sum over many vertex contributions, where individual terms can span several orders of magnitude. Kahan summation ensures the small contributions are not lost.
+
+2. **PMF gradient computation** (`compute_pmf_with_gradient`): The gradient of the forward algorithm involves long summation chains over time steps. Without compensation, the accumulated error would corrupt the gradient and cause optimization algorithms (SVGD, HMC) to receive incorrect search directions.
+
+**Kahan summation is *not* used** in the standard forward algorithm for PDF/PMF computation. Instead, the forward algorithm uses `long double` (80-bit extended precision on x86, 128-bit on some platforms) for its intermediate accumulators. This provides $\varepsilon \approx 10^{-19}$ rather than $\varepsilon \approx 10^{-16}$, which is sufficient for the forward algorithm's summation chains without the overhead of Kahan's compensation logic.
+
+**Log-space inner summation.** The log-space weight evaluation (Algorithm 5) does *not* use Kahan summation for the accumulation of $\log(c_j \theta_j)$ terms. This is acceptable because $k$ (the number of parameters per edge) is typically small (1-5 in practice), so the naive summation error $O(k\varepsilon)$ is negligible. If a future application required very large $k$, Kahan summation could be added to the inner loop of Algorithm 5 at minimal cost.
+
+**Guard condition for log mode.** The strict positivity guard (@def-03-positivity-guard) is checked at the point of weight computation, not at graph construction time. This means a graph can be constructed with arbitrary coefficients and later fail at weight evaluation if the parameter vector causes some $c_j \theta_j \leq 0$. This is by design: the coefficients are fixed at construction, but the parameters change during inference.
+
+## Implementation Notes
+
+**Source code mapping:**
+
+| Algorithm | File | Function | Notes |
+|-----------|------|----------|-------|
+| Algorithm 4 | `src/c/phasic.c` | Kahan struct and macros | Used in `ptd_expected_sojourn_time_subset`, `compute_pmf_with_gradient` |
+| Algorithm 5 | `src/c/phasic.c` | `ptd_graph_update_weights` (with `use_log=true`) | Log-space branch of weight update |
+
+**Deviations from pseudocode:**
+
+- **Algorithm 4:** The implementation uses a C struct `{ double sum; double compensation; }` with inline functions or macros for `init`, `add`, and `result`. The pseudocode shows the recurrence as a loop; in practice, the `add` operation is called incrementally from within larger algorithms.
+
+- **Algorithm 5:** The implementation is embedded in `ptd_graph_update_weights`, which iterates over all edges in the graph and updates each edge's weight based on the current parameter vector and weight mode. The log-space branch is selected by a boolean flag `use_log`. The pseudocode shows a single edge computation; the actual function processes all edges in a single pass.
+
+- **Forward algorithm accumulation:** The standard forward algorithm (`ptd_graph_pdf`, `ptd_dph_pmf`) uses `long double` for intermediate sums rather than Kahan summation. This is a pragmatic choice: `long double` provides sufficient precision for the forward algorithm's needs without the two-variable overhead of Kahan accumulators, and the code is simpler.
+
+## Symbol Index
+
+| Symbol | Name | First appearance |
+|--------|------|-----------------|
+| $C$ | Kahan compensation term | @def-03-kahan |
+| $\varepsilon$ | Machine epsilon (unit roundoff) | @thm-03-kahan-error |
+| $\ell_{\log}$ | Log-space accumulator | @def-03-logspace |
+| $S$ | Kahan running sum | @def-03-kahan |
+| $t_i$ | Kahan temporary sum | @def-03-kahan |
+| $y_i$ | Kahan compensated input | @def-03-kahan |

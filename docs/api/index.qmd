@@ -11,7 +11,7 @@ The graph interface carrying the main UI.
 
 ## Graph Construction
 
-The state indexing utility for mapping between between the 
+The state indexing utility for mapping between between the
 integer vectors of states and the model properties they represent.
 
 
@@ -22,6 +22,17 @@ integer vectors of states and the model properties they represent.
 | [Property](Property.qmd#phasic.Property) | Defines a single property in a state space. |
 | [PropertyDict](PropertyDict.qmd#phasic.PropertyDict) | Dict subclass that provides attribute access to keys. |
 | [StateVector](StateVector.qmd#phasic.StateVector) | Dict-like interface for multi-PropertySet state with attribute access. |
+
+## Spatial Grids
+
+Hexagonal grid utilities for spatial phase-type models on
+geographic boundaries.
+
+
+| | |
+| --- | --- |
+| [HexGrid](HexGrid.qmd#phasic.HexGrid) | Hexagonal grid within a geographic boundary. |
+| [HexCell](HexCell.qmd#phasic.HexCell) | Lightweight view of a hex grid cell with neighbor access. |
 
 ## Exceptions
 

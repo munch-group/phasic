@@ -1,0 +1,385 @@
+# HexGrid { #phasic.HexGrid }
+
+```python
+phasic.HexGrid(boundary, hex_size, orientation='pointy')
+```
+
+Hexagonal grid within a geographic boundary.
+
+Creates a hex grid sized to cover a boundary geometry. Provides
+``row_property`` and ``col_property`` as regular :class:`Property`
+objects for composition into a :class:`StateIndexer`.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**boundary**]{.parameter-name} [:]{.parameter-annotation-sep} [[BaseGeometry](`shapely.geometry.base.BaseGeometry`)]{.parameter-annotation}</code>
+
+:   Shapely geometry defining the area to cover.
+
+<code>[**hex_size**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation}</code>
+
+:   Circumradius of hexagonal cells (in boundary CRS units).
+
+<code>[**orientation**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'pointy\']{.parameter-default}</code>
+
+:   ``"pointy"`` (pointy-top, default) or ``"flat"`` (flat-top).
+
+## Examples {.doc-section .doc-section-examples}
+
+```python
+>>> from shapely.geometry import Point
+>>> boundary = Point(0, 0).buffer(5)
+>>> grid = HexGrid(boundary, hex_size=1.0)
+>>> grid.n_rows, grid.n_cols
+(8, 7)
+>>> grid.row_property
+Property(name='row', max_value=7, min_value=0, offset=0)
+```
+
+## Attributes
+
+| Name | Description |
+| --- | --- |
+| [boundary](#phasic.HexGrid.boundary) | Shapely boundary geometry. |
+| [col_property](#phasic.HexGrid.col_property) | Column Property for use in a StateIndexer PropertySet. |
+| [hex_size](#phasic.HexGrid.hex_size) | Circumradius of hexagonal cells. |
+| [n_cols](#phasic.HexGrid.n_cols) | Number of columns in the grid. |
+| [n_rows](#phasic.HexGrid.n_rows) | Number of rows in the grid. |
+| [orientation](#phasic.HexGrid.orientation) | Grid orientation: ``"pointy"`` or ``"flat"``. |
+| [row_property](#phasic.HexGrid.row_property) | Row Property for use in a StateIndexer PropertySet. |
+| [valid_mask](#phasic.HexGrid.valid_mask) | Boolean mask of valid cells, shape ``(n_rows, n_cols)``. |
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [all_coords](#phasic.HexGrid.all_coords) | Coordinates for all grid cells. |
+| [build_graph](#phasic.HexGrid.build_graph) | Build a phasic Graph by iterating valid hex cells. |
+| [cell](#phasic.HexGrid.cell) | Get a :class:`HexCell` for the given (row, col). |
+| [center_cell](#phasic.HexGrid.center_cell) | (row, col) of the cell nearest to the boundary centroid. |
+| [coords_to_rowcol](#phasic.HexGrid.coords_to_rowcol) | Find the nearest valid cell to real-world coordinates. |
+| [from_shapefile](#phasic.HexGrid.from_shapefile) | Create hex grid from a shapefile. |
+| [is_valid](#phasic.HexGrid.is_valid) | Whether the cell at (row, col) is inside the boundary. |
+| [map_to_grid](#phasic.HexGrid.map_to_grid) | Map graph vertex values to a ``(n_rows, n_cols)`` grid. |
+| [neighbors](#phasic.HexGrid.neighbors) | First-order valid neighbor ``(row, col)`` pairs. |
+| [neighbors_within](#phasic.HexGrid.neighbors_within) | All valid neighbors within ``distance`` hex steps (BFS). |
+| [properties](#phasic.HexGrid.properties) | Return ``[row_property, col_property]`` for easy composition. |
+| [rowcol_to_coords](#phasic.HexGrid.rowcol_to_coords) | Convert (row, col) to real-world (x, y) coordinates. |
+| [valid_cells](#phasic.HexGrid.valid_cells) | All ``(row, col)`` pairs inside the boundary. |
+
+### all_coords { #phasic.HexGrid.all_coords }
+
+```python
+phasic.HexGrid.all_coords()
+```
+
+Coordinates for all grid cells.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation}</code>
+
+:   Shape ``(n_rows, n_cols, 2)`` array of ``(x, y)`` coordinates.
+
+### build_graph { #phasic.HexGrid.build_graph }
+
+```python
+phasic.HexGrid.build_graph(
+    transition_fn,
+    property_set,
+    start_cell=None,
+    parameterized=False,
+    **graph_kwargs,
+)
+```
+
+Build a phasic Graph by iterating valid hex cells.
+
+The resulting Graph is a standard phasic Graph, fully compatible
+with serialize, FFI, JAX (jit/grad/vmap/pmap), SVGD, etc.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**transition_fn**]{.parameter-name} [:]{.parameter-annotation-sep} [[callable](`callable`)]{.parameter-annotation}</code>
+
+:   Pure function ``(state, grid) -> transitions`` where ``state`` is a numpy array (PropertySet flat index) and ``grid`` is this HexGrid. Returns list of transitions:  - Non-parameterized: ``[(next_state, rate), ...]`` - Parameterized: ``[(next_state, coefficients), ...]``
+
+<code>[**property_set**]{.parameter-name} [:]{.parameter-annotation-sep} [[PropertySet](`phasic.state_indexing.PropertySet`)]{.parameter-annotation}</code>
+
+:   The PropertySet containing ``row``/``col`` properties (and possibly other properties). Used to determine ``state_length``.
+
+<code>[**start_cell**]{.parameter-name} [:]{.parameter-annotation-sep} [tuple of (int, int)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   ``(row, col)`` of starting cell. Defaults to :meth:`center_cell`.
+
+<code>[**parameterized**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   Whether edges are parameterized (default False).
+
+<code>[****graph_kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
+
+:   Passed to ``Graph`` constructor.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[Graph](`phasic.Graph`)]{.parameter-annotation}</code>
+
+:   Standard phasic Graph.
+
+### cell { #phasic.HexGrid.cell }
+
+```python
+phasic.HexGrid.cell(row, col)
+```
+
+Get a :class:`HexCell` for the given (row, col).
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**row**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Grid coordinates.
+
+<code>[**col**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Grid coordinates.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[HexCell](`phasic.hex_grid.HexCell`)]{.parameter-annotation}</code>
+
+:   
+
+### center_cell { #phasic.HexGrid.center_cell }
+
+```python
+phasic.HexGrid.center_cell()
+```
+
+(row, col) of the cell nearest to the boundary centroid.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [tuple of (int, int)]{.parameter-annotation}</code>
+
+:   
+
+### coords_to_rowcol { #phasic.HexGrid.coords_to_rowcol }
+
+```python
+phasic.HexGrid.coords_to_rowcol(x, y)
+```
+
+Find the nearest valid cell to real-world coordinates.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**x**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation}</code>
+
+:   Real-world coordinates.
+
+<code>[**y**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation}</code>
+
+:   Real-world coordinates.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [tuple of (int, int)]{.parameter-annotation}</code>
+
+:   (row, col) of the nearest valid cell.
+
+#### Raises {.doc-section .doc-section-raises}
+
+<code>[:]{.parameter-annotation-sep} [[ValueError](`ValueError`)]{.parameter-annotation}</code>
+
+:   If no valid cells exist in the grid.
+
+### from_shapefile { #phasic.HexGrid.from_shapefile }
+
+```python
+phasic.HexGrid.from_shapefile(path, hex_size, **kwargs)
+```
+
+Create hex grid from a shapefile.
+
+Requires ``geopandas`` (imported lazily).
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**path**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation}</code>
+
+:   Path to shapefile.
+
+<code>[**hex_size**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation}</code>
+
+:   Circumradius of hexagonal cells.
+
+<code>[****kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
+
+:   Passed to :class:`HexGrid` constructor.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[HexGrid](`phasic.hex_grid.HexGrid`)]{.parameter-annotation}</code>
+
+:   
+
+### is_valid { #phasic.HexGrid.is_valid }
+
+```python
+phasic.HexGrid.is_valid(row, col)
+```
+
+Whether the cell at (row, col) is inside the boundary.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**row**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Grid coordinates.
+
+<code>[**col**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Grid coordinates.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation}</code>
+
+:   
+
+### map_to_grid { #phasic.HexGrid.map_to_grid }
+
+```python
+phasic.HexGrid.map_to_grid(graph, property_set, values, prop_filter=None)
+```
+
+Map graph vertex values to a ``(n_rows, n_cols)`` grid.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**graph**]{.parameter-name} [:]{.parameter-annotation-sep} [[Graph](`phasic.Graph`)]{.parameter-annotation}</code>
+
+:   The phasic Graph (vertices carry PropertySet flat indices as state vectors).
+
+<code>[**property_set**]{.parameter-name} [:]{.parameter-annotation-sep} [[PropertySet](`phasic.state_indexing.PropertySet`)]{.parameter-annotation}</code>
+
+:   The PropertySet containing row/col properties.
+
+<code>[**values**]{.parameter-name} [:]{.parameter-annotation-sep} [[np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation}</code>
+
+:   Values indexed by graph vertex index (e.g., from ``graph.state_probability()``).
+
+<code>[**prop_filter**]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Fixed non-grid property values to filter on, e.g., ``{'population': 1}``. If ``None`` and extra properties exist, sums over all combinations.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[np](`numpy`).[ndarray](`numpy.ndarray`)]{.parameter-annotation}</code>
+
+:   Shape ``(n_rows, n_cols)`` array.
+
+### neighbors { #phasic.HexGrid.neighbors }
+
+```python
+phasic.HexGrid.neighbors(row, col)
+```
+
+First-order valid neighbor ``(row, col)`` pairs.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**row**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Grid coordinates of the cell.
+
+<code>[**col**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Grid coordinates of the cell.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [list of (int, int)]{.parameter-annotation}</code>
+
+:   Neighboring cells that are within bounds and inside the boundary.
+
+### neighbors_within { #phasic.HexGrid.neighbors_within }
+
+```python
+phasic.HexGrid.neighbors_within(row, col, distance)
+```
+
+All valid neighbors within ``distance`` hex steps (BFS).
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**row**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Grid coordinates of the center cell.
+
+<code>[**col**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Grid coordinates of the center cell.
+
+<code>[**distance**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Maximum number of hex steps.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [list of (int, int)]{.parameter-annotation}</code>
+
+:   All reachable cells within ``distance`` steps.
+
+### properties { #phasic.HexGrid.properties }
+
+```python
+phasic.HexGrid.properties()
+```
+
+Return ``[row_property, col_property]`` for easy composition.
+
+#### Example {.doc-section .doc-section-example}
+
+>>> indexer = StateIndexer(
+...     lineage=grid.properties() + [Property('allele', max_value=1)]
+... )
+
+### rowcol_to_coords { #phasic.HexGrid.rowcol_to_coords }
+
+```python
+phasic.HexGrid.rowcol_to_coords(row, col)
+```
+
+Convert (row, col) to real-world (x, y) coordinates.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**row**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Grid coordinates.
+
+<code>[**col**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   Grid coordinates.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [tuple of (float, float)]{.parameter-annotation}</code>
+
+:   (x, y) coordinates of the cell center.
+
+### valid_cells { #phasic.HexGrid.valid_cells }
+
+```python
+phasic.HexGrid.valid_cells()
+```
+
+All ``(row, col)`` pairs inside the boundary.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [list of (int, int)]{.parameter-annotation}</code>
+
+:   

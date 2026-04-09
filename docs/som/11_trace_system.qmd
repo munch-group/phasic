@@ -1,0 +1,342 @@
+---
+title: "Trace System"
+---
+
+## Introduction
+
+This file formalizes the trace-based approach to graph elimination, which replaces the symbolic expression tree representation (@def-10-symbolic-graph) with a flat, linear sequence of arithmetic operations. Where symbolic elimination builds tree-structured expressions whose size can grow exponentially with graph depth, trace recording captures the same computation as a sequential instruction stream of bounded length. The key benefit is evaluation cost: replaying a trace with concrete parameters requires $O(N)$ arithmetic operations (where $N$ is the trace length, bounded by $O(|V|^2)$), compared to $O(|V|^2)$ expression tree evaluations that may involve significant pointer-chasing overhead.
+
+The trace system is the computational engine behind SVGD and MCMC inference in phasic. During Bayesian inference, the elimination is recorded once as a trace ($O(|V|^3)$ cost), and each likelihood evaluation replays the trace with a new parameter vector ($O(N)$ cost). For workloads requiring hundreds or thousands of evaluations, the trace system provides 5--10x speedup over the symbolic DAG approach from [10], with lower memory consumption.
+
+The trace system also integrates with the disk cache (using graph content hashes from [12]) to avoid redundant recording across sessions. Traces are serialized to JSON and stored in `~/.phasic_cache/traces/`.
+
+**Prerequisites:** [01], [06], [09], [10]
+
+**Source files:**
+- `src/phasic/trace_elimination.py` (functions: `record_elimination_trace`, `evaluate_trace`, `evaluate_trace_jax`, classes: `OpType`, `Operation`, `EliminationTrace`, `TraceBuilder`)
+- `api/c/phasic.h` (types: `ptd_trace_op_type`, `ptd_trace_operation`, `ptd_elimination_trace`, `ptd_trace_result`; functions: `ptd_record_elimination_trace`, `ptd_evaluate_trace`)
+- `src/c/trace/trace_internal.h` (functions: `add_const_to_trace`, `add_dot_to_trace`, `add_binary_op_to_trace`, `add_inv_to_trace`, `add_sum_to_trace`)
+- `src/c/trace/trace_cache.c` (functions: `load_trace_from_cache`, `save_trace_to_cache`, `get_cache_dir`)
+
+## Definitions
+
+> **Recall** (@def-09-expression-tree). *An expression tree is a rooted tree $\mathcal{E}$ where each node has a type drawn from the set $\{\texttt{Const}, \texttt{Param}, \texttt{Dot}, \texttt{Add}, \texttt{Sub}, \texttt{Mul}, \texttt{Div}, \texttt{Inv}\}$ and carries data according to its type.*
+
+> **Recall** (@def-06-vertex-elimination). *Vertex elimination* of $v \in V$ removes $v$ from $G$ and adds, for each parent $u$ and child $z$, a bypass edge $(u \to z)$ with weight $w'(u \to v) \cdot w'(v \to z)$, merging with existing edges and renormalizing the parent's outgoing probabilities.
+
+::: {#def-11-trace-operation}
+## Trace operation
+*A trace operation is a tuple $\omega = (\tau, d, \mathbf{a})$ where:*
+
+- *$\tau \in \{\texttt{Const}, \texttt{Param}, \texttt{Dot}, \texttt{Add}, \texttt{Mul}, \texttt{Div}, \texttt{Inv}, \texttt{Sum}\}$ is the operation type,*
+- *$d$ is the operation data:*
+  - *For $\texttt{Const}$: a scalar value $c \in \mathbb{R}$,*
+  - *For $\texttt{Param}$: a parameter index $j \in \{0, \ldots, k-1\}$,*
+  - *For $\texttt{Dot}$: a coefficient vector $\mathbf{c} = (c_1, \ldots, c_k) \in \mathbb{R}^k$,*
+  - *For all other types: empty,*
+- *$\mathbf{a} = (a_1, \ldots, a_m)$ is the operand list, a tuple of indices referencing earlier operations in the trace:*
+  - *For $\texttt{Const}$, $\texttt{Param}$, $\texttt{Dot}$: $\mathbf{a} = ()$ (empty),*
+  - *For $\texttt{Add}$, $\texttt{Mul}$, $\texttt{Div}$: $\mathbf{a} = (a_1, a_2)$ where $a_1, a_2 < i$ and $i$ is the index of operation $\omega$ in the trace,*
+  - *For $\texttt{Inv}$: $\mathbf{a} = (a_1)$ where $a_1 < i$,*
+  - *For $\texttt{Sum}$: $\mathbf{a} = (a_1, \ldots, a_m)$ where each $a_j < i$.*
+:::
+
+> **Intuition.** A trace operation is a single instruction in a straight-line program. It either loads a value (constant, parameter, or dot product with the parameter vector) or combines previously computed values via an arithmetic operation. The operand indices create an implicit dependency DAG that is a linearization of the expression tree from @def-09-expression-tree.
+
+> **Example.** The expression $1 / (\theta_1 + 2\theta_2)$ would be recorded as four operations: $\omega_0 = (\texttt{Dot}, (1, 2), ())$ computes $\theta_1 + 2\theta_2$; $\omega_1 = (\texttt{Inv}, \emptyset, (0))$ computes $1/\omega_0$. In the C implementation, the $\texttt{Dot}$ operation stores the coefficient vector $\mathbf{c} = (1, 2)$ and computes $\mathbf{c}^\top \boldsymbol{\theta}$ during evaluation.
+
+::: {#def-11-elimination-trace}
+## Elimination trace
+*An elimination trace for a parameterized phase-type graph $G = (V, E, W)$ with parameter dimension $k$ is a tuple $\mathcal{T} = (\boldsymbol{\omega}, \mathbf{m}_{\text{rate}}, \mathbf{m}_{\text{prob}}, \mathbf{m}_{\text{tgt}}, \Sigma, i_0)$ where:*
+
+- *$\boldsymbol{\omega} = (\omega_0, \omega_1, \ldots, \omega_{N-1})$ is an ordered sequence of $N$ trace operations (@def-11-trace-operation),*
+- *$\mathbf{m}_{\text{rate}} \colon \{0, \ldots, |V|-1\} \to \{0, \ldots, N-1\}$ maps each vertex index to the operation index that computes its inverse rate (vertex scalar),*
+- *$\mathbf{m}_{\text{prob}}[i] = (j_1, j_2, \ldots)$ maps each vertex index $i$ to a list of operation indices computing its outgoing edge probabilities,*
+- *$\mathbf{m}_{\text{tgt}}[i] = (z_1, z_2, \ldots)$ maps each vertex index $i$ to the corresponding list of target vertex indices,*
+- *$\Sigma \in \mathbb{Z}^{|V| \times d}$ is the matrix of vertex state vectors (where $d$ is the state dimension),*
+- *$i_0$ is the index of the starting vertex.*
+:::
+
+> **Intuition.** The trace encodes the complete elimination of a parameterized graph as a straight-line arithmetic program. The operation sequence $\boldsymbol{\omega}$ is the program. The mappings $\mathbf{m}_{\text{rate}}$, $\mathbf{m}_{\text{prob}}$, and $\mathbf{m}_{\text{tgt}}$ identify which program outputs correspond to which graph quantities. The state matrix $\Sigma$ and starting vertex index $i_0$ provide the structural metadata needed to reconstruct the concrete graph from the evaluated trace.
+
+> **Example.** For a three-vertex graph (starting, transient, absorbing) with one parameter, the trace might contain 5 operations (one DOT for the edge weight, one SUM for the total rate, one INV for the vertex scalar, one MUL for the edge probability, and one CONST for the absorbing state rate). The mapping $\mathbf{m}_{\text{rate}}[1] = 2$ indicates that operation $\omega_2$ computes the inverse rate of vertex 1.
+
+::: {#def-11-trace-evaluation}
+## Trace evaluation
+*Let $\mathcal{T} = (\boldsymbol{\omega}, \mathbf{m}_{\text{rate}}, \mathbf{m}_{\text{prob}}, \mathbf{m}_{\text{tgt}}, \Sigma, i_0)$ be an elimination trace with $N$ operations and parameter dimension $k$. Given a concrete parameter vector $\boldsymbol{\theta} \in \mathbb{R}^k$, the trace evaluation produces a value array $\mathbf{y} = (y_0, y_1, \ldots, y_{N-1}) \in \mathbb{R}^N$ by sequential execution:*
+
+*For $i = 0, 1, \ldots, N-1$, let $\omega_i = (\tau_i, d_i, \mathbf{a}_i)$. Then:*
+
+$$y_i = \begin{cases}
+c & \text{if } \tau_i = \texttt{Const} \text{ with data } c, \\
+\theta_j & \text{if } \tau_i = \texttt{Param} \text{ with index } j, \\
+\mathbf{c}^\top \boldsymbol{\theta} & \text{if } \tau_i = \texttt{Dot} \text{ with coefficients } \mathbf{c}, \\
+y_{a_1} + y_{a_2} & \text{if } \tau_i = \texttt{Add}, \\
+y_{a_1} \cdot y_{a_2} & \text{if } \tau_i = \texttt{Mul}, \\
+y_{a_1} / y_{a_2} & \text{if } \tau_i = \texttt{Div}, \\
+1 / y_{a_1} & \text{if } \tau_i = \texttt{Inv}, \\
+\sum_{j=1}^{m} y_{a_j} & \text{if } \tau_i = \texttt{Sum} \text{ with operands } (a_1, \ldots, a_m).
+\end{cases}$$
+
+*The evaluated results are extracted via the mappings: the vertex scalar for vertex $i$ is $y_{\mathbf{m}_{\text{rate}}[i]}$, and the $j$-th edge probability of vertex $i$ is $y_{\mathbf{m}_{\text{prob}}[i][j]}$.*
+:::
+
+> **Intuition.** Trace evaluation is the replay step: it executes the recorded arithmetic program with concrete numbers. Because each operation reads only from earlier entries in the value array $\mathbf{y}$ (by construction of the operand indices), the sequential scan computes all values in a single pass. This is equivalent to a post-order traversal of the expression trees from [09], but without the overhead of tree traversal.
+
+> **Example.** Given the trace from the example in @def-11-elimination-trace and parameter $\theta_1 = 3.0$: the DOT operation computes $\mathbf{c}^\top \boldsymbol{\theta}$; the SUM aggregates edge weights; the INV computes the vertex scalar $1/\lambda_v$; and the MUL converts weights to probabilities. The entire evaluation touches each operation exactly once.
+
+## Theorems and Proofs
+
+::: {#thm-11-trace-correctness}
+## Trace evaluation correctness
+*Let $G = (V, E, W)$ be a parameterized phase-type graph with parameter dimension $k$, and let $\mathcal{T}$ be the elimination trace produced by Algorithm 18 (trace recording). For any $\boldsymbol{\theta} \in \mathbb{R}^k$ such that all vertex total outgoing rates are positive, the trace evaluation (@def-11-trace-evaluation) produces the same vertex scalars and edge probabilities as performing concrete graph elimination (Algorithm 11 in [06]) on the instantiated graph $G(\boldsymbol{\theta})$.*
+:::
+
+::: {.proof}
+We show that the trace evaluation reproduces the computation of concrete elimination step by step.
+
+**Phase 1 (Rate computation).** For each transient vertex $v_i$, Algorithm 18 records the edge weights as DOT or CONST operations, a SUM over all outgoing edge weights, and an INV of the sum. By @def-11-trace-evaluation, evaluating these operations with $\boldsymbol{\theta}$ computes:
+
+$$y_{\mathbf{m}_{\text{rate}}[i]} = \frac{1}{\sum_{z \in \operatorname{children}(v_i)} w(v_i \to z; \boldsymbol{\theta})} = \frac{1}{\lambda_{v_i}(\boldsymbol{\theta})}$$
+
+This matches the vertex scalar computation in normalization (@def-01-vertex-scalar).
+
+**Phase 2 (Probability computation).** For each edge $(v_i \to v_j)$, Algorithm 18 records a MUL of the edge weight by the vertex rate. Evaluating at $\boldsymbol{\theta}$:
+
+$$y_{\mathbf{m}_{\text{prob}}[i][j]} = w(v_i \to v_j; \boldsymbol{\theta}) \cdot y_{\mathbf{m}_{\text{rate}}[i]} = \frac{w(v_i \to v_j; \boldsymbol{\theta})}{\lambda_{v_i}(\boldsymbol{\theta})} = w'(v_i \to v_j; \boldsymbol{\theta})$$
+
+This matches the normalized edge weight in @def-05-continuous-normalization.
+
+**Phase 3 (Elimination loop).** The elimination loop processes vertices in order. For each eliminated vertex $v_i$, each parent $u$, and each child $z$, the trace contains:
+
+- A MUL for the bypass probability: the operation computes $p_{\text{bypass}} = p_{u \to v_i} \cdot p_{v_i \to z}$, referencing the operation indices for $p_{u \to v_i}$ and $p_{v_i \to z}$.
+- An ADD when merging with an existing edge: the operation computes $p_{\text{new}} = p_{\text{old}} + p_{\text{bypass}}$, referencing the old probability and bypass probability.
+- A DIV for renormalization: the operation computes $p / \text{total}$, referencing the new probability and the total (computed by a preceding SUM).
+
+Each of these operations mirrors exactly one step of concrete elimination (@def-06-vertex-elimination). By induction on the number of elimination steps, the final edge probabilities and vertex scalars match those of concrete elimination applied to $G(\boldsymbol{\theta})$. $\square$
+:::
+
+::: {#thm-11-trace-complexity}
+## Trace complexity
+*Let $G = (V, E, W)$ be a parameterized phase-type graph. Then:*
+
+1. *Recording the elimination trace (Algorithm 18) has time complexity $O(|V|^3)$ and space complexity $O(|V|^2)$.*
+2. *The trace length satisfies $N \leq O(|V|^2)$.*
+3. *Evaluating the trace (Algorithm 19) has time complexity $O(N)$, and hence $O(|V|^2)$ in the worst case.*
+:::
+
+::: {.proof}
+(1) Trace recording follows the same elimination order as concrete elimination (Algorithm 11 in [06]), which processes each vertex once. For each eliminated vertex $v_i$, we iterate over all parents and all children, yielding $O(|\operatorname{parents}(v_i)| \cdot |\operatorname{children}(v_i)|)$ bypass edges. Summing over all vertices, this is $O(|V|^3)$ in the worst case (a dense graph). Each bypass operation adds a constant number of trace operations (one MUL, possibly one ADD and one DIV), so the recording cost is $O(|V|^3)$.
+
+(2) During elimination, the number of edges in the graph is bounded by $O(|V|^2)$ (at most one edge between each pair of vertices). Each edge contributes a bounded number of operations to the trace (rate computation, probability computation, bypass, merge, normalize). The initial phase contributes $O(|E|)$ operations for edge weights and $O(|V|)$ for rates. The elimination phase contributes at most $O(|V|^2)$ bypass operations, each generating $O(1)$ trace operations. Thus $N \leq O(|V|^2)$.
+
+(3) Trace evaluation (Algorithm 19) performs one arithmetic operation per trace entry, scanning the value array sequentially. Each operation accesses at most $O(k)$ values (for DOT with $k$ parameters) or $O(1)$ values (for binary operations). For bounded $k$, the total cost is $O(N)$. $\square$
+:::
+
+## Algorithms
+
+### Algorithm 18: Trace Recording
+
+*Description.* This algorithm performs graph elimination while recording all arithmetic operations as a linear trace. The input is a parameterized phase-type graph $G$ with parameter dimension $k$. The algorithm follows the same elimination order as Algorithm 11 in [06] but, instead of computing numeric values, emits trace operations that can later be replayed with any parameter vector.
+
+The algorithm proceeds in four phases: (1) compute vertex rates by summing outgoing edge weights and taking the inverse; (2) convert edge weights to probabilities by multiplying by vertex rates; (3) perform the elimination loop, recording bypass, merge, and normalization operations; (4) clean up removed edges from the output mappings.
+
+```
+Algorithm 18: Trace Recording
+1: Let G = (V, E, W) be a parameterized phase-type graph with parameter dimension k
+2: Let v_0 be the starting vertex, and let V be ordered by SCC topological sort
+3:
+4: function RecordEliminationTrace(G, k)
+5:   T ← empty trace with operations list ω, mappings m_rate, m_prob, m_tgt
+6:
+7:   ▷ Phase 1: Compute vertex rates
+8:   for i ← 0 to |V| - 1 do
+9:     if v_i is absorbing then
+10:      m_rate[i] ← EmitConst(T, 0.0)
+11:    else
+12:      weight_ops ← []
+13:      for each edge (v_i → v_j) ∈ E do
+14:        if edge is parameterized with coefficients c then
+15:          idx ← EmitDot(T, c)                   ▷ w = c^⊤ θ
+16:        else
+17:          idx ← EmitConst(T, w(v_i → v_j))
+18:        end if
+19:        weight_ops ← weight_ops ∪ {idx}
+20:      end for
+21:      sum_idx ← EmitSum(T, weight_ops)
+22:      m_rate[i] ← EmitInv(T, sum_idx)            ▷ rate = 1 / Σ weights
+23:    end if
+24:  end for
+25:
+26:  ▷ Phase 2: Convert edges to probabilities
+27:  for i ← 0 to |V| - 1 do
+28:    for each edge (v_i → v_j) ∈ E do
+29:      w_idx ← operation index for weight of (v_i → v_j)
+30:      p_idx ← EmitMul(T, w_idx, m_rate[i])       ▷ prob = weight × rate
+31:      Append p_idx to m_prob[i]
+32:      Append j to m_tgt[i]
+33:    end for
+34:  end for
+35:
+36:  ▷ Phase 3: Elimination loop
+37:  Build parent lists from m_tgt
+38:  for i ← 0 to |V| - 1 do
+39:    if v_i is absorbing then continue end if
+40:    for each parent u of v_i with u > i do
+41:      Let p_{u→i} be the operation index for edge (u → v_i) in m_prob[u]
+42:      for each child z of v_i do
+43:        if z = u or z = i then continue end if
+44:        bypass ← EmitMul(T, p_{u→i}, p_{i→z})
+45:        if edge (u → z) already exists in m_prob[u] then
+46:          old ← operation index for (u → z)
+47:          new ← EmitAdd(T, old, bypass)
+48:          Update m_prob[u] entry for z to new
+49:        else
+50:          Append bypass to m_prob[u]; append z to m_tgt[u]
+51:        end if
+52:      end for
+53:      Mark edge (u → v_i) as removed in m_prob[u]
+54:      ▷ Renormalize parent's edges
+55:      valid ← {operation indices of non-removed edges of u}
+56:      total ← EmitSum(T, valid)
+57:      for each j ∈ valid do
+58:        m_prob[u][j] ← EmitDiv(T, m_prob[u][j], total)
+59:      end for
+60:    end for
+61:  end for
+62:
+63:  ▷ Phase 4: Clean up removed edges
+64:  Remove all entries marked as removed from m_prob and m_tgt
+65:
+66:  return T = (ω, m_rate, m_prob, m_tgt, Σ, i_0)
+67: end function
+```
+
+**Correspondence table:**
+
+| Pseudocode variable | Math symbol | Code variable (file:function) |
+|---------------------|-------------|-------------------------------|
+| $G$ | $G = (V, E, W)$ | `graph` (`trace_elimination.py:record_elimination_trace`) |
+| $k$ | $k$ (parameter dimension) | `theta_dim` (`trace_elimination.py:record_elimination_trace`) |
+| $T$ | $\mathcal{T}$ | `builder` (`trace_elimination.py:TraceBuilder`) |
+| $\omega$ | $\boldsymbol{\omega}$ | `builder.operations` (`trace_elimination.py:TraceBuilder`) |
+| $\mathbf{m}_{\text{rate}}$ | $\mathbf{m}_{\text{rate}}$ | `vertex_rates` (`trace_elimination.py:record_elimination_trace`) |
+| $\mathbf{m}_{\text{prob}}$ | $\mathbf{m}_{\text{prob}}$ | `edge_probs` (`trace_elimination.py:record_elimination_trace`) |
+| $\mathbf{m}_{\text{tgt}}$ | $\mathbf{m}_{\text{tgt}}$ | `vertex_targets` (`trace_elimination.py:record_elimination_trace`) |
+| EmitConst | $(\texttt{Const}, c, ())$ | `builder.add_const` / `add_const_to_trace` |
+| EmitDot | $(\texttt{Dot}, \mathbf{c}, ())$ | `builder.add_dot` / `add_dot_to_trace` |
+| EmitMul | $(\texttt{Mul}, \emptyset, (a_1, a_2))$ | `builder.add_mul` / `add_binary_op_to_trace` |
+| EmitAdd | $(\texttt{Add}, \emptyset, (a_1, a_2))$ | `builder.add_add` / `add_binary_op_to_trace` |
+| EmitDiv | $(\texttt{Div}, \emptyset, (a_1, a_2))$ | `builder.add_div` / `add_binary_op_to_trace` |
+| EmitInv | $(\texttt{Inv}, \emptyset, (a_1))$ | `builder.add_inv` / `add_inv_to_trace` |
+| EmitSum | $(\texttt{Sum}, \emptyset, (a_1, \ldots, a_m))$ | `builder.add_sum` / `add_sum_to_trace` |
+| $\Sigma$ | $\Sigma$ (state matrix) | `states` (`trace_elimination.py:record_elimination_trace`) |
+| $i_0$ | $i_0$ (starting vertex index) | `starting_vertex_idx` |
+
+**Complexity.** Time: $O(|V|^3)$ (same as concrete elimination). Space: $O(|V|^2)$ for the operation sequence.
+
+**Correctness.** Follows from @thm-11-trace-correctness. Each Emit operation records exactly one arithmetic step of the concrete elimination algorithm (Algorithm 11 in [06]), so replaying the trace reproduces the concrete computation.
+
+### Algorithm 19: Trace Evaluation
+
+*Description.* This algorithm replays a previously recorded elimination trace with a concrete parameter vector. It scans the operation sequence once, computing each operation's value from the parameter vector and previously computed values. The result is a set of vertex scalars and edge probabilities that define the concrete eliminated graph.
+
+```
+Algorithm 19: Trace Evaluation
+1: Let T = (ω, m_rate, m_prob, m_tgt, Σ, i_0) be an elimination trace with N operations
+2: Let θ ∈ ℝ^k be a concrete parameter vector
+3:
+4: function EvaluateTrace(T, θ)
+5:   y ← array of N zeros                          ▷ Value array
+6:   for i ← 0 to N - 1 do
+7:     Let ω_i = (τ_i, d_i, a_i)
+8:     if τ_i = CONST then
+9:       y[i] ← d_i                                ▷ Constant value
+10:    else if τ_i = PARAM then
+11:      y[i] ← θ[d_i]                             ▷ Parameter lookup
+12:    else if τ_i = DOT then
+13:      y[i] ← d_i^⊤ θ                            ▷ Dot product c^⊤ θ
+14:    else if τ_i = ADD then
+15:      y[i] ← y[a_1] + y[a_2]
+16:    else if τ_i = MUL then
+17:      y[i] ← y[a_1] × y[a_2]
+18:    else if τ_i = DIV then
+19:      y[i] ← y[a_1] / y[a_2]
+20:    else if τ_i = INV then
+21:      y[i] ← 1 / y[a_1]
+22:    else if τ_i = SUM then
+23:      y[i] ← Σ_{j} y[a_j]
+24:    end if
+25:  end for
+26:
+27:  ▷ Extract results via mappings
+28:  rates ← array of |V| values where rates[i] = y[m_rate[i]]
+29:  probs ← for each vertex i: [y[m_prob[i][j]] for j in edges of i]
+30:  targets ← m_tgt                                ▷ Structural, not parameter-dependent
+31:
+32:  return (rates, probs, targets, Σ, i_0)
+33: end function
+```
+
+**Correspondence table:**
+
+| Pseudocode variable | Math symbol | Code variable (file:function) |
+|---------------------|-------------|-------------------------------|
+| $\mathcal{T}$ | $\mathcal{T}$ | `trace` (`trace_elimination.py:evaluate_trace`) |
+| $\boldsymbol{\theta}$ | $\boldsymbol{\theta}$ | `params` (`trace_elimination.py:evaluate_trace`) |
+| $\mathbf{y}$ | $\mathbf{y}$ (value array) | `values` (`trace_elimination.py:evaluate_trace`) |
+| $N$ | $N$ (trace length) | `n_ops` / `trace.operations_length` |
+| rates | vertex scalars | `vertex_rates` (result dict key) |
+| probs | edge probabilities | `edge_probs` (result dict key) |
+| targets | target vertex indices | `vertex_targets` (result dict key) |
+
+**Complexity.** Time: $O(N)$ where $N \leq O(|V|^2)$ is the trace length. Each operation performs $O(1)$ work (or $O(k)$ for DOT with $k$ parameters). Space: $O(N)$ for the value array.
+
+**Correctness.** Follows from @thm-11-trace-correctness. The sequential evaluation respects the data dependencies because every operand index $a_j < i$, ensuring that all operand values are computed before they are needed.
+
+## Numerical Considerations
+
+**Division by zero.** The INV and DIV operations can encounter zero denominators when a vertex has zero total outgoing rate (e.g., an absorbing vertex assigned a non-zero rate during a malformed graph construction). The implementation guards against this by assigning rate 0.0 to absorbing vertices before the elimination loop (line 10 of Algorithm 18). For transient vertices, a zero total rate indicates a degenerate parameterization ($\boldsymbol{\theta}$ produces zero weights), which is a user error.
+
+**Constant caching.** The `TraceBuilder` class maintains a hash map from constant values to operation indices (the `_const_cache` in Python, analogous to the CSE intern table from @def-09-cse-interning). This prevents duplicate CONST operations for the same value (e.g., the many 0.0 entries for absorbing vertices), reducing trace length by 10--30% in typical graphs.
+
+**Log-space DOT evaluation.** When `use_log=True`, the DOT operation is interpreted as a product in log-space: $\exp(\sum_j \log(c_j \theta_j))$. This is used for the `'log'` weight mode (@def-01-param-edges). All coefficient-parameter products $c_j \theta_j$ must be strictly positive; the implementation raises an error otherwise.
+
+## Implementation Notes
+
+**Source code mapping:**
+
+| Algorithm | File | Function | Lines |
+|-----------|------|----------|-------|
+| Algorithm 18 | `src/phasic/trace_elimination.py` | `record_elimination_trace` | L360--L898 |
+| Algorithm 18 (C) | `api/c/phasic.h` | `ptd_record_elimination_trace` | L706--L708 |
+| Algorithm 19 | `src/phasic/trace_elimination.py` | `evaluate_trace` | L905--L1040 |
+| Algorithm 19 (C) | `api/c/phasic.h` | `ptd_evaluate_trace` | L723--L727 |
+| Trace operations (C) | `src/c/trace/trace_internal.h` | `add_const_to_trace`, `add_dot_to_trace`, etc. | L123--L207 |
+| Disk cache | `src/c/trace/trace_cache.c` | `load_trace_from_cache`, `save_trace_to_cache` | L81--L193 |
+
+**Deviations from pseudocode:**
+
+- The Python implementation auto-detects `theta_dim` when not provided by probing edges for "garbage" coefficient values (small non-zero values below $10^{-100}$). This heuristic is not part of the formal algorithm but is necessary because the C API does not expose `param_length` reliably on all graph construction paths.
+- The Python implementation handles both regular and parameterized edges in the same loop, using a set of parameterized edge target indices to avoid double-counting edges that appear in both `edges()` and `parameterized_edges()` iterators.
+- The starting vertex ($v_0$) is treated specially: its outgoing edges represent initial probabilities and are always recorded as CONST operations regardless of whether the graph is parameterized.
+- The C implementation (`ptd_trace_operation`) uses a union-like struct with fields for all operation types, while the Python implementation uses a dataclass with optional fields. Both represent the same logical structure.
+- Disk caching is handled at the C level via `trace_cache.c`: traces are serialized to JSON and stored under `~/.phasic_cache/traces/{hash}.json`, where the hash is the graph content hash (see [12]).
+
+## Symbol Index
+
+| Symbol | Name | First appearance |
+|--------|------|-----------------|
+| $\mathbf{a}$ | Operand list (tuple of indices) | @def-11-trace-operation |
+| $d$ | Operation data | @def-11-trace-operation |
+| $i_0$ | Starting vertex index | @def-11-elimination-trace |
+| $\mathbf{m}_{\text{prob}}$ | Edge probability mapping | @def-11-elimination-trace |
+| $\mathbf{m}_{\text{rate}}$ | Vertex rate mapping | @def-11-elimination-trace |
+| $\mathbf{m}_{\text{tgt}}$ | Target vertex mapping | @def-11-elimination-trace |
+| $N$ | Trace length (number of operations) | @def-11-elimination-trace |
+| $\boldsymbol{\omega}$ | Operation sequence | @def-11-elimination-trace |
+| $\omega_i$ | $i$-th trace operation | @def-11-trace-operation |
+| $\Sigma$ | Vertex state matrix | @def-11-elimination-trace |
+| $\mathcal{T}$ | Elimination trace | @def-11-elimination-trace |
+| $\tau$ | Operation type | @def-11-trace-operation |
+| $\mathbf{y}$ | Value array (trace evaluation output) | @def-11-trace-evaluation |
