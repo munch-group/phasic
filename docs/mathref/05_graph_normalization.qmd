@@ -127,12 +127,13 @@ In both chains, the contribution per self-loop cycle is 1 (one step in the origi
 
 ## Algorithms
 
-### Algorithm 8: Continuous Graph Normalization
+::: {#alg-05-continuous-normalization}
+## Continuous Graph Normalization
 
 *Description.* This algorithm normalizes a continuous phase-type graph in place. For each vertex, it computes the total outgoing rate $\lambda_v$, divides each outgoing edge weight by $\lambda_v$, and stores $x_v = 1/\lambda_v$ in the output array. Absorbing vertices (with $\lambda_v = 0$) receive $x_v = 1$.
 
 ```
-Algorithm 8: Continuous Graph Normalization
+Continuous Graph Normalization
 1: Let G = (V, E, W) be a phase-type graph representing PH_p(alpha, S) (@def-01-ph-graph)
 2:
 3: function NormalizeGraph(G)
@@ -169,13 +170,15 @@ Algorithm 8: Continuous Graph Normalization
 **Complexity.** Time: $O(|V| + |E|)$. Each vertex is visited once, and each edge is accessed twice (once for rate summation, once for normalization). Space: $O(|V|)$ for the output array $\mathbf{x}$.
 
 **Correctness.** Follows from @thm-05-continuous-preserves. The algorithm computes $\lambda_v$ and $x_v$ exactly as specified in @def-05-continuous-normalization, and the division $w(v \to z) / \lambda_v$ produces the transition probabilities $q_{vz}$ of the embedded chain (@def-05-embedded-chain).
+:::
 
-### Algorithm 9: Discrete Graph Normalization
+::: {#alg-05-discrete-normalization}
+## Discrete Graph Normalization
 
 *Description.* This algorithm normalizes a discrete phase-type graph by creating auxiliary vertices for self-loop probabilities. For each non-starting, non-absorbing vertex with self-loop probability exceeding a threshold $\epsilon = 10^{-7}$, it creates an auxiliary vertex and the corresponding bounce edges. The vertex scalar array stores 1 for original vertices and 0 for auxiliary vertices.
 
 ```
-Algorithm 9: Discrete Graph Normalization
+Discrete Graph Normalization
 1: Let G = (V, E, W) be a phase-type graph representing DPH_p(alpha, T) (@def-01-dph)
 2: Let epsilon <- 10^{-7}
 3: Let n <- |V|
@@ -222,6 +225,7 @@ Algorithm 9: Discrete Graph Normalization
 **Complexity.** Time: $O(|V| + |E|)$. Each original vertex is visited once, each edge is examined once for rate computation, and at most $|V|$ auxiliary vertices are created (each creation is $O(1)$). Space: $O(|V|)$ for the output array (allocated at $2|V|$ to accommodate auxiliary vertices) plus $O(|V|)$ for the auxiliary vertices and edges added to the graph.
 
 **Correctness.** Follows from @thm-05-discrete-preserves. Each auxiliary vertex $a_i$ with its two edges encodes the self-loop probability $T_{ii}$ as a bounce, and the zero vertex scalar ensures auxiliary visits do not contribute to the absorption time count.
+:::
 
 ## Numerical Considerations
 
@@ -237,8 +241,8 @@ Algorithm 9: Discrete Graph Normalization
 
 | Algorithm | File | Function | Lines |
 |-----------|------|----------|-------|
-| Algorithm 8 | `src/c/phasic.c` | `ptd_normalize_graph` | L2337--L2360 |
-| Algorithm 9 | `src/c/phasic.c` | `ptd_dph_normalize_graph` | L2362--L2391 |
+| @alg-05-continuous-normalization | `src/c/phasic.c` | `ptd_normalize_graph` | L2337--L2360 |
+| @alg-05-discrete-normalization | `src/c/phasic.c` | `ptd_dph_normalize_graph` | L2362--L2391 |
 
 **Deviations from pseudocode:**
 
@@ -246,7 +250,7 @@ Algorithm 9: Discrete Graph Normalization
 
 - **Algorithm 9:** The implementation allocates `old_length * 2` entries for the vertex scalar array, anticipating that up to $|V|$ auxiliary vertices may be created (one per original vertex). This is an upper bound; in practice, fewer auxiliary vertices are needed. The starting vertex is explicitly skipped (`graph->starting_vertex == vertex`), and absorbing vertices are implicitly skipped (`rate == 0`).
 
-- **Algorithm 9 (edge creation):** The `ptd_graph_add_edge` function is called with a coefficient vector of length 1 containing the weight. This means auxiliary vertex edges are stored as parameterized edges with a single coefficient, even though they are structurally constant. This is consistent with the graph's edge storage model but introduces minor overhead for non-parameterized graphs.
+- **@alg-05-discrete-normalization (edge creation):** The `ptd_graph_add_edge` function is called with a coefficient vector of length 1 containing the weight. This means auxiliary vertex edges are stored as parameterized edges with a single coefficient, even though they are structurally constant. This is consistent with the graph's edge storage model but introduces minor overhead for non-parameterized graphs.
 
 **Remark** (SUSPECTED_CODE_ISSUE: Continuous normalization of starting vertex). The continuous normalization algorithm normalizes the starting vertex $v_0$ in the same way as transient vertices. When the initial distribution has a defect ($\alpha_0 > 0$, so $\lambda_{v_0} = \sum_i \alpha_i < 1$), the normalization produces $w'(v_0 \to v_i) = \alpha_i / \lambda_{v_0}$ and $x_{v_0} = 1/\lambda_{v_0}$. Downstream algorithms that expect the starting vertex edges to encode the raw initial probabilities $\alpha_i$ must multiply by $x_{v_0}^{-1}$ to recover them. This is not necessarily a bug (the elimination algorithm may account for it), but it is worth noting that the normalization changes the semantics of the starting vertex edges when there is a defect.
 

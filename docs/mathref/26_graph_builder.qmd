@@ -102,11 +102,11 @@ $$\mathcal{B}.\operatorname{batch\_pmf}(\boldsymbol{\Theta}, \mathbf{t}) = \begi
 
 2. *For any time points $\mathbf{t} \in \mathbb{R}^n_{\geq 0}$ and granularity $g$:*
 $$\mathcal{B}.\operatorname{compute\_pmf}(\boldsymbol{\theta}, \mathbf{t}) = (f(t_1; G(\boldsymbol{\theta})), \ldots, f(t_n; G(\boldsymbol{\theta}))),$$ {#eq-26-pmf-equiv}
-*where $f(t; G(\boldsymbol{\theta}))$ is the PDF computed by Algorithm 23 in [14] on the concrete graph.*
+*where $f(t; G(\boldsymbol{\theta}))$ is the PDF computed by @alg-14-cph-uniformization on the concrete graph.*
 
 3. *For any number of moments $K$:*
 $$\mathcal{B}.\operatorname{compute\_moments}(\boldsymbol{\theta}, K) = (\mathbb{E}[\tau], \mathbb{E}[\tau^2], \ldots, \mathbb{E}[\tau^K]),$$ {#eq-26-moments-equiv}
-*where the moments are computed by Algorithm 25 in [15] on the concrete graph.*
+*where the moments are computed by @alg-15-sojourn-cross-moments on the concrete graph.*
 
 *In particular, the results are independent of the serialization/deserialization path: they depend only on the mathematical content of $G$ and $\boldsymbol{\theta}$.*
 :::
@@ -116,19 +116,20 @@ We verify each claim.
 
 **(1) Graph construction.** The `build` method (lines 118--194 of `graph_builder.cpp`) iterates over the cached `states_` array and creates one vertex per entry, preserving the state vectors from the serialization. It then iterates over `edges_`, `start_edges_`, `param_edges_`, and `start_param_edges_`, adding edges with weights computed by `compute_weight`. For fixed edges, the weight is stored directly. For parameterized edges, `compute_weight` evaluates @eq-26-weight-eval: in linear mode, it computes $\sum_k c_k \theta_k$; in log mode, it computes $\exp(\sum_k \log(c_k \theta_k)) = \prod_k (c_k \theta_k)$. The vertex indices in the serialization correspond to the creation order, and the `build` method creates vertices in the same order, so edge connectivity is preserved.
 
-**(2) PMF computation.** The `compute_pmf` method (lines 309--361) calls `build(theta)` to obtain $G(\boldsymbol{\theta})$, then calls `g.pdf(t_i, granularity)` for each time point (continuous case) or `g.dph_pmf(t_i)` for the discrete case. These are the same C++ methods that implement Algorithm 23 (CPH) and Algorithm 22 (DPH) from [14].
+**(2) PMF computation.** The `compute_pmf` method (lines 309--361) calls `build(theta)` to obtain $G(\boldsymbol{\theta})$, then calls `g.pdf(t_i, granularity)` for each time point (continuous case) or `g.dph_pmf(t_i)` for the discrete case. These are the same C++ methods that implement @alg-14-cph-uniformization (CPH) and @alg-14-dph-forward-step (DPH) from [14].
 
-**(3) Moment computation.** The `compute_moments` method (lines 271--307) calls `build(theta)` and then `compute_moments_impl`, which iteratively calls `g.expected_waiting_time(rewards)` (the C++ implementation of Algorithm 25 from [15]) and applies the factorial scaling $\mathbb{E}[\tau^k] = k! \cdot r_0^{(k)}$ where $r_0^{(k)}$ is the $k$-th iterated expected waiting time at the starting vertex. $\square$
+**(3) Moment computation.** The `compute_moments` method (lines 271--307) calls `build(theta)` and then `compute_moments_impl`, which iteratively calls `g.expected_waiting_time(rewards)` (the C++ implementation of @alg-15-sojourn-cross-moments from [15]) and applies the factorial scaling $\mathbb{E}[\tau^k] = k! \cdot r_0^{(k)}$ where $r_0^{(k)}$ is the $k$-th iterated expected waiting time at the starting vertex. $\square$
 :::
 
 ## Algorithms
 
-### Algorithm 40: GraphBuilder PMF Computation
+::: {#alg-26-graph-builder-pmf}
+## GraphBuilder PMF Computation
 
-*Description.* This algorithm describes the full pipeline from a serialized graph structure and parameter vector to PDF/PMF values. It is the C++ implementation behind the JAX FFI handler (Algorithm 39 in [25]). The key optimization is that JSON parsing and structure caching happen once (at `GraphBuilder` construction), while graph instantiation and forward algorithm execution happen per evaluation. For batch processing, the GraphBuilder is reused across all parameter vectors in the batch.
+*Description.* This algorithm describes the full pipeline from a serialized graph structure and parameter vector to PDF/PMF values. It is the C++ implementation behind the JAX FFI handler (@alg-25-jax-pmf). The key optimization is that JSON parsing and structure caching happen once (at `GraphBuilder` construction), while graph instantiation and forward algorithm execution happen per evaluation. For batch processing, the GraphBuilder is reused across all parameter vectors in the batch.
 
 ```
-Algorithm 40: GraphBuilder PMF Computation
+GraphBuilder PMF Computation
 1: Let J be a JSON string encoding the graph structure (Definition 26.1)
 2: Let theta = (theta_1, ..., theta_d) be the parameter vector
 3: Let t = (t_1, ..., t_n) be evaluation points
@@ -195,9 +196,9 @@ Algorithm 40: GraphBuilder PMF Computation
 64:   y ← empty array of length n
 65:   for i ← 1 to n do
 66:     if discrete then
-67:       y_i ← G.dph_pmf(floor(t_i))        ▷ Algorithm 22 in [14]
+67:       y_i ← G.dph_pmf(floor(t_i))        ▷ DPH Forward Step
 68:     else
-69:       y_i ← G.pdf(t_i, g)                ▷ Algorithm 23 in [14]
+69:       y_i ← G.pdf(t_i, g)                ▷ CPH Uniformization
 70:     end if
 71:   end for
 72:   return y
@@ -208,7 +209,7 @@ Algorithm 40: GraphBuilder PMF Computation
 77:   G ← Build(B, theta)
 78:   rewards ← empty                         ▷ Standard moments (no rewards)
 79:   moments ← empty array of length K
-80:   r ← G.expected_waiting_time(rewards)    ▷ Algorithm 25 in [15]
+80:   r ← G.expected_waiting_time(rewards)    ▷ Sojourn Cross-Moments
 81:   moments[1] ← r[0]                       ▷ E[tau]
 82:   for k ← 2 to K do
 83:     r ← G.expected_waiting_time(r)        ▷ Iterate with previous result
@@ -248,7 +249,8 @@ Algorithm 40: GraphBuilder PMF Computation
 - **ComputeMoments:** Time $O(p + m + K \cdot p^2)$. The $O(K \cdot p^2)$ is for $K$ applications of `expected_waiting_time`, each involving graph elimination on $p$ vertices.
 - **Batch evaluation ($B$ parameter vectors):** Time $O(B \cdot (p + m + n \cdot K_s \cdot m))$ with parallelism across $B$ via OpenMP.
 
-**Correctness.** Follows from @thm-26-equivalence. The `Build` function reconstructs $G(\boldsymbol{\theta})$ from the cached structure with weights evaluated at $\boldsymbol{\theta}$. The `ComputePMF` and `ComputeMoments` functions invoke the same C++ implementations used by Algorithms 22--23 ([14]) and Algorithm 25 ([15]).
+**Correctness.** Follows from @thm-26-equivalence. The `Build` function reconstructs $G(\boldsymbol{\theta})$ from the cached structure with weights evaluated at $\boldsymbol{\theta}$. The `ComputePMF` and `ComputeMoments` functions invoke the same C++ implementations used by @alg-14-dph-forward-step and @alg-14-cph-uniformization ([14]) and @alg-15-sojourn-cross-moments ([15]).
+:::
 
 ## Implementation Notes
 
@@ -256,12 +258,12 @@ Algorithm 40: GraphBuilder PMF Computation
 
 | Algorithm | File | Function | Lines |
 |-----------|------|----------|-------|
-| Algorithm 40 (constructor) | `src/cpp/parameterized/graph_builder.cpp` | `GraphBuilder::parse_structure` | L17--L116 |
-| Algorithm 40 (weight) | `src/cpp/parameterized/graph_builder.cpp` | `GraphBuilder::compute_weight` | L196--L218 |
-| Algorithm 40 (build) | `src/cpp/parameterized/graph_builder.cpp` | `GraphBuilder::build` | L118--L194 |
-| Algorithm 40 (PMF) | `src/cpp/parameterized/graph_builder.cpp` | `GraphBuilder::compute_pmf` | L309--L361 |
-| Algorithm 40 (moments) | `src/cpp/parameterized/graph_builder.cpp` | `GraphBuilder::compute_moments_impl` | L228--L269 |
-| Algorithm 40 (PMF+moments) | `src/cpp/parameterized/graph_builder.cpp` | `GraphBuilder::compute_pmf_and_moments` | L363--L574 |
+| @alg-26-graph-builder-pmf (constructor) | `src/cpp/parameterized/graph_builder.cpp` | `GraphBuilder::parse_structure` | L17--L116 |
+| @alg-26-graph-builder-pmf (weight) | `src/cpp/parameterized/graph_builder.cpp` | `GraphBuilder::compute_weight` | L196--L218 |
+| @alg-26-graph-builder-pmf (build) | `src/cpp/parameterized/graph_builder.cpp` | `GraphBuilder::build` | L118--L194 |
+| @alg-26-graph-builder-pmf (PMF) | `src/cpp/parameterized/graph_builder.cpp` | `GraphBuilder::compute_pmf` | L309--L361 |
+| @alg-26-graph-builder-pmf (moments) | `src/cpp/parameterized/graph_builder.cpp` | `GraphBuilder::compute_moments_impl` | L228--L269 |
+| @alg-26-graph-builder-pmf (PMF+moments) | `src/cpp/parameterized/graph_builder.cpp` | `GraphBuilder::compute_pmf_and_moments` | L363--L574 |
 
 **Deviations from pseudocode:**
 

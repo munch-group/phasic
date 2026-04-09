@@ -44,7 +44,7 @@ This decomposition is the key to scaling phasic's trace system to graphs with hu
 
 ::: {#def-13-scc-local-trace}
 ## SCC-local trace
-*An SCC-local trace for component $C_i$ is an elimination trace $\mathcal{T}_i = (\boldsymbol{\omega}_i, \mathbf{m}_{\text{rate}}^{(i)}, \mathbf{m}_{\text{prob}}^{(i)}, \mathbf{m}_{\text{tgt}}^{(i)}, \Sigma_i, i_0^{(i)})$ recorded by applying Algorithm 18 (from [11]) to the enhanced subgraph $G_i^+$.*
+*An SCC-local trace for component $C_i$ is an elimination trace $\mathcal{T}_i = (\boldsymbol{\omega}_i, \mathbf{m}_{\text{rate}}^{(i)}, \mathbf{m}_{\text{prob}}^{(i)}, \mathbf{m}_{\text{tgt}}^{(i)}, \Sigma_i, i_0^{(i)})$ recorded by applying @alg-11-trace-recording to the enhanced subgraph $G_i^+$.*
 
 *The SCC-local trace is indexed by the content hash $H(G_i^+)$ (@def-12-graph-content-hash) for cache lookup. Two SCCs with the same hash share the same trace.*
 :::
@@ -78,13 +78,13 @@ This decomposition is the key to scaling phasic's trace system to graphs with hu
 
 ::: {#thm-13-stitched-correctness}
 ## Stitched trace correctness
-*Let $G$ be a parameterized phase-type graph with SCC decomposition $C_1, \ldots, C_m$ in topological order. Let $\mathcal{T}_{\text{full}}$ be the trace recorded by applying Algorithm 18 directly to $G$, and let $\mathcal{T}^* = \operatorname{Stitch}(\mathcal{T}_1, \ldots, \mathcal{T}_m)$ be the stitched trace. For any parameter vector $\boldsymbol{\theta}$ such that all vertex rates are positive, evaluating $\mathcal{T}^*$ with $\boldsymbol{\theta}$ produces the same vertex scalars and edge probabilities as evaluating $\mathcal{T}_{\text{full}}$ with $\boldsymbol{\theta}$.*
+*Let $G$ be a parameterized phase-type graph with SCC decomposition $C_1, \ldots, C_m$ in topological order. Let $\mathcal{T}_{\text{full}}$ be the trace recorded by applying @alg-11-trace-recording directly to $G$, and let $\mathcal{T}^* = \operatorname{Stitch}(\mathcal{T}_1, \ldots, \mathcal{T}_m)$ be the stitched trace. For any parameter vector $\boldsymbol{\theta}$ such that all vertex rates are positive, evaluating $\mathcal{T}^*$ with $\boldsymbol{\theta}$ produces the same vertex scalars and edge probabilities as evaluating $\mathcal{T}_{\text{full}}$ with $\boldsymbol{\theta}$.*
 :::
 
 ::: {.proof}
 We establish correctness in three steps.
 
-**Step 1: SCC independence of elimination.** Graph elimination (Algorithm 11 in [06]) processes vertices in an order guided by SCC topological sort. Within each SCC, vertices are eliminated in arbitrary order, but vertices in $C_i$ are eliminated before vertices in $C_j$ when $i < j$ in topological order. Critically, when eliminating a vertex $v \in C_i$, the bypass edges created involve only parents and children of $v$. Since $G^{\text{SCC}}$ is a DAG, no vertex in an earlier SCC $C_j$ ($j < i$) is a child of $v$, so the elimination of $v$ does not modify edges within $C_j$. This means the elimination of vertices within $C_i$ depends only on:
+**Step 1: SCC independence of elimination.** Graph elimination (@alg-06-full-elimination) processes vertices in an order guided by SCC topological sort. Within each SCC, vertices are eliminated in arbitrary order, but vertices in $C_i$ are eliminated before vertices in $C_j$ when $i < j$ in topological order. Critically, when eliminating a vertex $v \in C_i$, the bypass edges created involve only parents and children of $v$. Since $G^{\text{SCC}}$ is a DAG, no vertex in an earlier SCC $C_j$ ($j < i$) is a child of $v$, so the elimination of $v$ does not modify edges within $C_j$. This means the elimination of vertices within $C_i$ depends only on:
 
 - The initial edge weights within $C_i$,
 - The edge weights from upstream vertices (in earlier SCCs) to vertices in $C_i$,
@@ -113,7 +113,7 @@ Combining Steps 1--3, the stitched trace evaluation produces the same results as
 :::
 
 ::: {.proof}
-(1) Each SCC-local trace is recorded by applying Algorithm 18 to $G_i^+$, which has $n_i + b_i$ vertices. By @thm-11-trace-complexity, this costs $O((n_i + b_i)^3)$. Summing over all SCCs gives the total. Since $\sum_i n_i = |V|$ and $b_i \leq |V|$, the worst case (one SCC containing all vertices) is $O(|V|^3)$. When SCCs are small (e.g., $n_i = O(1)$), the total is $O(|V|)$.
+(1) Each SCC-local trace is recorded by applying @alg-11-trace-recording to $G_i^+$, which has $n_i + b_i$ vertices. By @thm-11-trace-complexity, this costs $O((n_i + b_i)^3)$. Summing over all SCCs gives the total. Since $\sum_i n_i = |V|$ and $b_i \leq |V|$, the worst case (one SCC containing all vertices) is $O(|V|^3)$. When SCCs are small (e.g., $n_i = O(1)$), the total is $O(|V|)$.
 
 (2) Hash-based deduplication uses the content hash from [12] to identify structurally identical enhanced subgraphs. Each unique subgraph is recorded once. If $u$ unique structures exist with sizes $(n_j + b_j)$, the recording cost is $\sum_{j=1}^{u} O((n_j + b_j)^3)$.
 
@@ -122,30 +122,31 @@ Combining Steps 1--3, the stitched trace evaluation produces the same results as
 
 ## Algorithms
 
-### Algorithm 21: SCC-Based Trace Decomposition and Stitching
+::: {#alg-13-scc-trace-stitching}
+## SCC-Based Trace Decomposition and Stitching
 
 *Description.* This algorithm records an elimination trace for a large parameterized graph by decomposing it into SCCs, recording a trace for each unique SCC (with caching), and stitching the results together. The algorithm has four stages: (1) decompose the graph into SCCs and compute content hashes; (2) for each unique SCC hash, check the cache and record the trace if missing; (3) stitch the SCC-local traces in topological order; (4) return the merged trace.
 
 ```
-Algorithm 21: SCC-Based Trace Decomposition and Stitching
+SCC-Based Trace Decomposition and Stitching
 1: Let G = (V, E, W) be a parameterized phase-type graph with parameter dimension k
 2:
 3: function HierarchicalTraceRecord(G, k)
 4:   ▷ Stage 1: SCC decomposition
-5:   (C_1, ..., C_m) ← SCCDecomposition(G)          ▷ Algorithm 6 in [04]
-6:   Sort SCCs in topological order                    ▷ Algorithm 7 in [04]
+5:   (C_1, ..., C_m) ← SCCDecomposition(G)          ▷ Tarjan SCC
+6:   Sort SCCs in topological order                    ▷ Topological Sort
 7:
 8:   ▷ Stage 2: Record SCC-local traces (with caching)
 9:   trace_dict ← empty map from hash to trace
 10:  for i ← 1 to m do
 11:    G_i^+ ← BuildEnhancedSubgraph(G, C_i)         ▷ Definition 13.1
-12:    h_i ← GraphContentHash(G_i^+)                  ▷ Algorithm 20 in [12]
+12:    h_i ← GraphContentHash(G_i^+)                  ▷ Graph Hash
 13:    if h_i ∈ disk cache then
 14:      trace_dict[h_i] ← LoadTraceFromCache(h_i)
 15:    else if h_i ∈ trace_dict then
 16:      skip                                          ▷ Duplicate SCC, already recorded
 17:    else
-18:      T_i ← RecordEliminationTrace(G_i^+, k)      ▷ Algorithm 18 in [11]
+18:      T_i ← RecordEliminationTrace(G_i^+, k)      ▷ Trace Recording
 19:      trace_dict[h_i] ← T_i
 20:      SaveTraceToCache(h_i, T_i)
 21:    end if
@@ -214,6 +215,7 @@ Algorithm 21: SCC-Based Trace Decomposition and Stitching
 **Complexity.** Time: $O\!\left(\sum_{j=1}^{u} (n_j + b_j)^3 + \sum_{i=1}^{m} N_i\right)$ where $u$ is the number of unique SCC hashes, $(n_j + b_j)$ is the size of each unique enhanced subgraph, and $N_i$ is the trace length of $\mathcal{T}_i$. Space: $O\!\left(\sum_{i=1}^{m} N_i\right)$ for the stitched trace.
 
 **Correctness.** Follows from @thm-13-stitched-correctness. The SCC decomposition ensures that each component can be eliminated independently (Step 1 of the proof), the SCC-local traces capture the correct local elimination (Step 2), and the stitching with index remapping preserves evaluation semantics (Step 3).
+:::
 
 ## Implementation Notes
 
@@ -221,10 +223,10 @@ Algorithm 21: SCC-Based Trace Decomposition and Stitching
 
 | Algorithm | File | Function | Lines |
 |-----------|------|----------|-------|
-| Algorithm 21 (decomposition) | `src/phasic/hierarchical_trace_cache.py` | `get_scc_graphs` | L102--L154 |
-| Algorithm 21 (SCC trace recording) | `src/phasic/hierarchical_trace_cache.py` | `record_enhanced_scc_traces` | L1565--L1616 |
-| Algorithm 21 (stitching) | `src/phasic/hierarchical_trace_cache.py` | `stitch_scc_traces` | L1619--L2000 |
-| Algorithm 21 (full pipeline) | `src/phasic/hierarchical_trace_cache.py` | `hierarchical_trace_record` (approximate) | L2030--L2195 |
+| @alg-13-scc-trace-stitching (decomposition) | `src/phasic/hierarchical_trace_cache.py` | `get_scc_graphs` | L102--L154 |
+| @alg-13-scc-trace-stitching (SCC trace recording) | `src/phasic/hierarchical_trace_cache.py` | `record_enhanced_scc_traces` | L1565--L1616 |
+| @alg-13-scc-trace-stitching (stitching) | `src/phasic/hierarchical_trace_cache.py` | `stitch_scc_traces` | L1619--L2000 |
+| @alg-13-scc-trace-stitching (full pipeline) | `src/phasic/hierarchical_trace_cache.py` | `hierarchical_trace_record` (approximate) | L2030--L2195 |
 | Enhanced subgraph (first SCC) | `src/phasic/hierarchical_trace_cache.py` | `_build_first_scc_subgraph` | (internal) |
 | Enhanced subgraph (other SCCs) | `src/phasic/hierarchical_trace_cache.py` | `_build_scc_subgraph` | (internal) |
 

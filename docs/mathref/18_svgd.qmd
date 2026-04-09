@@ -147,12 +147,13 @@ By the Cauchy--Schwarz inequality in $\mathcal{H}$, the supremum over $\lVert \b
 
 ## Algorithms
 
-### Algorithm 30: SVGD Optimization
+::: {#alg-18-svgd}
+## SVGD Optimization
 
-*Description.* Algorithm 30 performs Bayesian posterior inference by evolving $n$ particles under the SVGD dynamics. At each iteration, the algorithm: (1) computes the kernel matrix and its gradient using the median heuristic bandwidth; (2) evaluates the log-posterior gradient at each particle; (3) combines these via the SVGD update rule (@def-18-svgd-update); and (4) applies the step size (possibly via an adaptive optimizer such as Adam). The algorithm operates in unconstrained space $\boldsymbol{\phi}$ and maps back to constrained space $\boldsymbol{\theta}$ via a parameter transformation (e.g., softplus for positivity).
+*Description.* @alg-18-svgd performs Bayesian posterior inference by evolving $n$ particles under the SVGD dynamics. At each iteration, the algorithm: (1) computes the kernel matrix and its gradient using the median heuristic bandwidth; (2) evaluates the log-posterior gradient at each particle; (3) combines these via the SVGD update rule (@def-18-svgd-update); and (4) applies the step size (possibly via an adaptive optimizer such as Adam). The algorithm operates in unconstrained space $\boldsymbol{\phi}$ and maps back to constrained space $\boldsymbol{\theta}$ via a parameter transformation (e.g., softplus for positivity).
 
 ```
-Algorithm 30: SVGD Optimization
+SVGD Optimization
 1: Let {phi_i^(0)}_{i=1}^n be initial particles in unconstrained space R^d
 2: Let p(theta | y) be the target posterior with observed data y
 3: Let T be the number of iterations, k the RBF kernel
@@ -202,6 +203,7 @@ Algorithm 30: SVGD Optimization
 **Complexity.** Time: $O(T \cdot (n^2 d + n \cdot C_{\text{model}}))$, where $C_{\text{model}}$ is the cost of one log-posterior gradient evaluation (dominated by the forward algorithm from [14]). The kernel computation is $O(n^2 d)$ per iteration. Space: $O(n^2 + n d)$ for the kernel matrix and particle storage.
 
 **Correctness.** By @thm-18-svgd-kl, each SVGD step follows the steepest descent direction in KL divergence within the RKHS of the kernel $k$. Lines 10--13 compute $\nabla_{\boldsymbol{\phi}} \log p$ (the score function including the Jacobian correction for the parameter transform). Lines 14--16 implement @eq-18-svgd-direction exactly: the `positive_term` is the $\mathbf{K} \nabla \log p$ product (via `jnp.einsum('ij,jk->ik', K, grad_log_p)`) and the `negative_term` is $\sum_j \nabla_{\boldsymbol{\phi}^{(j)}} k$ (via `jnp.sum(grad_K, axis=1)`). The kernel gradient for the RBF kernel is $\nabla_{\boldsymbol{\theta}} k(\boldsymbol{\theta}, \boldsymbol{\theta}') = -k(\boldsymbol{\theta}, \boldsymbol{\theta}') \cdot (\boldsymbol{\theta} - \boldsymbol{\theta}') / h^2$, computed in `_compute_kernel_grad_impl`.
+:::
 
 ## Numerical Considerations
 
@@ -219,11 +221,11 @@ Algorithm 30: SVGD Optimization
 
 | Algorithm | File | Function | Lines |
 |-----------|------|----------|-------|
-| Algorithm 30 (kernel) | `src/phasic/svgd.py` | `SVGDKernel.compute_kernel_grad` | L3152--L3213 |
-| Algorithm 30 (update) | `src/phasic/svgd.py` | `_svgd_update_jitted` | L3217--L3254 |
-| Algorithm 30 (step) | `src/phasic/svgd.py` | `svgd_step` | L3257--L3440 |
-| Algorithm 30 (loop) | `src/phasic/svgd.py` | `run_svgd` | L3447--L3750 |
-| Algorithm 30 (entry) | `src/phasic/svgd.py` | `SVGD.optimize` | L5176--L5440 |
+| @alg-18-svgd (kernel) | `src/phasic/svgd.py` | `SVGDKernel.compute_kernel_grad` | L3152--L3213 |
+| @alg-18-svgd (update) | `src/phasic/svgd.py` | `_svgd_update_jitted` | L3217--L3254 |
+| @alg-18-svgd (step) | `src/phasic/svgd.py` | `svgd_step` | L3257--L3440 |
+| @alg-18-svgd (loop) | `src/phasic/svgd.py` | `run_svgd` | L3447--L3750 |
+| @alg-18-svgd (entry) | `src/phasic/svgd.py` | `SVGD.optimize` | L5176--L5440 |
 | Bandwidth (isotropic) | `src/phasic/svgd.py` | `batch_median_heuristic` | L2481--L2492 |
 | Bandwidth (per-dim) | `src/phasic/svgd.py` | `batch_median_heuristic_per_dim` | L2494--L2525 |
 | RBF kernel (scalar) | `src/phasic/svgd.py` | `rbf_kernel` | L2463--L2466 |
@@ -259,5 +261,5 @@ Algorithm 30: SVGD Optimization
 | $\mathcal{S}$ | Slice indices (sparse obs.) | @def-18-sparse-obs |
 | $\mathbb{S}(q, p)$ | Stein discrepancy | @def-18-stein-operator |
 | $\tau$ | Exponential decay time constant | @def-18-step-size |
-| $T$ | Number of iterations | Algorithm 30 |
+| $T$ | Number of iterations | @alg-18-svgd |
 | $\mathbf{v}$ | Observation values (sparse obs.) | @def-18-sparse-obs |

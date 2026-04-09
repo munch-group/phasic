@@ -6,7 +6,7 @@ title: "PDF Gradients"
 
 This file formalizes the computation of gradients of phase-type distribution PDFs with respect to model parameters. Given a parameterized phase-type graph (@def-01-ph-graph) with parameter vector $\boldsymbol{\theta}$, the gradient $\nabla_{\boldsymbol{\theta}} f(t; \boldsymbol{\theta})$ is needed for gradient-based inference methods such as Stein Variational Gradient Descent (SVGD) and Hamiltonian Monte Carlo (HMC).
 
-The gradient computation extends the uniformization-based forward algorithm (Algorithm 23 in [14]) by propagating gradient information alongside probabilities. At each discrete step, both the forward probability vector $\mathbf{p}^{(k)}$ and its Jacobian $\frac{\partial \mathbf{p}^{(k)}}{\partial \boldsymbol{\theta}}$ are updated. The final PDF gradient combines two terms via the chain rule: (i) the gradient of the absorption probabilities with respect to $\boldsymbol{\theta}$ (propagated through the discrete steps), and (ii) the gradient of the Poisson weights with respect to $\boldsymbol{\theta}$ (arising because the uniformization rate $\lambda$ depends on $\boldsymbol{\theta}$).
+The gradient computation extends the uniformization-based forward algorithm (@alg-14-cph-uniformization) by propagating gradient information alongside probabilities. At each discrete step, both the forward probability vector $\mathbf{p}^{(k)}$ and its Jacobian $\frac{\partial \mathbf{p}^{(k)}}{\partial \boldsymbol{\theta}}$ are updated. The final PDF gradient combines two terms via the chain rule: (i) the gradient of the absorption probabilities with respect to $\boldsymbol{\theta}$ (propagated through the discrete steps), and (ii) the gradient of the Poisson weights with respect to $\boldsymbol{\theta}$ (arising because the uniformization rate $\lambda$ depends on $\boldsymbol{\theta}$).
 
 This approach achieves machine-precision gradients (error $\leq 2.05 \times 10^{-16}$ in tests) without requiring symbolic differentiation or finite differences. The gradient computation costs approximately the same per step as the forward algorithm, with an additional factor of $|\boldsymbol{\theta}|$ for the gradient vector at each vertex.
 
@@ -100,12 +100,13 @@ The implementation computes $\frac{\partial \text{PMF}}{\partial \theta_j}$ via 
 
 ## Algorithms
 
-### Algorithm 26: PDF + Gradient Computation
+::: {#alg-16-pdf-gradient}
+## PDF + Gradient Computation
 
-*Description.* This algorithm computes both the PDF value and its gradient with respect to parameters at a given time point. It extends Algorithm 23 in [14] by maintaining gradient arrays alongside probability arrays. The algorithm proceeds in four phases: (1) compute the uniformization rate $\lambda$ and its gradient $\nabla_{\boldsymbol{\theta}} \lambda$, (2) precompute Poisson probabilities, (3) iterate forward steps with gradient tracking, accumulating PMF and gradient contributions with Kahan summation, and (4) convert from PMF to PDF using the product rule.
+*Description.* This algorithm computes both the PDF value and its gradient with respect to parameters at a given time point. It extends @alg-14-cph-uniformization by maintaining gradient arrays alongside probability arrays. The algorithm proceeds in four phases: (1) compute the uniformization rate $\lambda$ and its gradient $\nabla_{\boldsymbol{\theta}} \lambda$, (2) precompute Poisson probabilities, (3) iterate forward steps with gradient tracking, accumulating PMF and gradient contributions with Kahan summation, and (4) convert from PMF to PDF using the product rule.
 
 ```
-Algorithm 26: PDF + Gradient Computation
+PDF + Gradient Computation
 1: Let G = (V, E, W) be a parameterized phase-type graph (@def-01-ph-graph)
 2: Let θ = (θ_1, ..., θ_d) be the parameter vector
 3: Let t be the time point, g the granularity (0 for auto-selection)
@@ -227,7 +228,8 @@ Algorithm 26: PDF + Gradient Computation
 
 **Complexity.** Time: $O(K \cdot |V| \cdot (|E_{\max}| + d))$ where $K = O(\lambda t)$ is the number of Poisson steps, $|E_{\max}|$ is the maximum out-degree, and $d = |\boldsymbol{\theta}|$ is the number of parameters. For each of the $K$ steps, we iterate over all vertices and their edges, and for each edge we perform $d$ gradient updates. Space: $O(|V| \cdot d)$ for the probability and gradient arrays (two copies for double-buffering), plus $O(K)$ for the Poisson cache.
 
-**Correctness.** The probability propagation (lines 48, 58) is identical to Algorithm 22 in [14] with $\delta = 1/\lambda$ (uniformization). The gradient propagation (lines 49--53, 59--63) correctly applies the product rule to each probability transfer (@def-16-parameterized-forward-step, @eq-16-grad-transfer and @eq-16-self-loop-grad). The PMF accumulation (lines 70--76) combines the two gradient terms from @eq-16-pmf-gradient: the absorption probability gradient (Term 1) and the Poisson weight gradient (Term 2). The final PMF-to-PDF conversion (lines 86--89) implements @eq-16-pdf-grad-formula of @thm-16-gradient-correctness. Kahan summation (Algorithm 4 in [03]) is used for all accumulations to maintain numerical precision over many steps.
+**Correctness.** The probability propagation (lines 48, 58) is identical to @alg-14-dph-forward-step with $\delta = 1/\lambda$ (uniformization). The gradient propagation (lines 49--53, 59--63) correctly applies the product rule to each probability transfer (@def-16-parameterized-forward-step, @eq-16-grad-transfer and @eq-16-self-loop-grad). The PMF accumulation (lines 70--76) combines the two gradient terms from @eq-16-pmf-gradient: the absorption probability gradient (Term 1) and the Poisson weight gradient (Term 2). The final PMF-to-PDF conversion (lines 86--89) implements @eq-16-pdf-grad-formula of @thm-16-gradient-correctness. Kahan summation (@alg-03-kahan-summation) is used for all accumulations to maintain numerical precision over many steps.
+:::
 
 ## Numerical Considerations
 
@@ -249,9 +251,9 @@ Algorithm 26: PDF + Gradient Computation
 
 | Algorithm | File | Function | Lines |
 |-----------|------|----------|-------|
-| Algorithm 26 (Phase 1) | `src/c/phasic.c` | `ptd_graph_pdf_with_gradient` | L7977--L8054 |
-| Algorithm 26 (Phases 2--3) | `src/c/phasic.c` | `compute_pmf_with_gradient` | L7721--L7962 |
-| Algorithm 26 (Phase 4) | `src/c/phasic.c` | `ptd_graph_pdf_with_gradient` | L8086--L8101 |
+| @alg-16-pdf-gradient (Phase 1) | `src/c/phasic.c` | `ptd_graph_pdf_with_gradient` | L7977--L8054 |
+| @alg-16-pdf-gradient (Phases 2--3) | `src/c/phasic.c` | `compute_pmf_with_gradient` | L7721--L7962 |
+| @alg-16-pdf-gradient (Phase 4) | `src/c/phasic.c` | `ptd_graph_pdf_with_gradient` | L8086--L8101 |
 
 **Deviations from pseudocode:**
 
@@ -269,9 +271,9 @@ Algorithm 26: PDF + Gradient Computation
 | $a_k(\boldsymbol{\theta})$ | Absorption probability at step $k$ | @def-16-pdf-gradient |
 | $c_j^{(v,z)}$ | $j$-th coefficient of edge $(v \to z)$ | @def-16-parameterized-forward-step |
 | $d$ | Dimension of parameter vector | @def-16-pdf-gradient |
-| $K$ | Maximum Poisson steps (truncation) | Algorithm 26 |
+| $K$ | Maximum Poisson steps (truncation) | @alg-16-pdf-gradient |
 | $\lambda(\boldsymbol{\theta})$ | Uniformization rate (max exit rate) | @def-16-pdf-gradient |
 | $\lambda_v(\boldsymbol{\theta})$ | Exit rate of vertex $v$ | @def-16-pdf-gradient |
 | $\partial \mathbf{p}^{(k)} / \partial \theta_j$ | Gradient of forward probability vector | @def-16-parameterized-forward-step |
 | $\operatorname{Po}(k; \mu)$ | Poisson probability mass function | @def-16-pdf-gradient |
-| $v_{\max}$ | Vertex achieving maximum exit rate | Algorithm 26 |
+| $v_{\max}$ | Vertex achieving maximum exit rate | @alg-16-pdf-gradient |

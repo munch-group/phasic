@@ -121,7 +121,7 @@ $$\mathbb{E}[\tilde{\tau}] = \boldsymbol{\alpha} \left(\int_0^\infty e^{\mathbf{
 
 $$\tau_j(t) = \int_0^t \Pr(X_s = j) \, ds = \int_0^t [\boldsymbol{\alpha} e^{\mathbf{S}s}]_j \, ds = \left[\boldsymbol{\alpha} \int_0^t e^{\mathbf{S}s} \, ds \right]_j.$$
 
-Phasic computes this via the forward algorithm (Algorithm 23 in [14]) by accumulating the probability mass at each vertex across all discrete steps. With uniformization parameter $g$, the forward probability at step $k$ is $\mathbf{p}^{(k)} = \boldsymbol{\alpha} \mathbf{T}_g^k$ where $\mathbf{T}_g = \mathbf{I} + \mathbf{S}/g$. Each step represents a time interval $\Delta t = 1/g$. The accumulated occupancy after $K$ steps is:
+Phasic computes this via the forward algorithm (@alg-14-cph-uniformization) by accumulating the probability mass at each vertex across all discrete steps. With uniformization parameter $g$, the forward probability at step $k$ is $\mathbf{p}^{(k)} = \boldsymbol{\alpha} \mathbf{T}_g^k$ where $\mathbf{T}_g = \mathbf{I} + \mathbf{S}/g$. Each step represents a time interval $\Delta t = 1/g$. The accumulated occupancy after $K$ steps is:
 
 $$\hat{\tau}_j = \frac{1}{g} \sum_{k=0}^{K} p^{(k)}_j = \frac{1}{g} \sum_{k=0}^{K} [\boldsymbol{\alpha} \mathbf{T}_g^k]_j.$$
 
@@ -191,7 +191,7 @@ The following table maps between Van Loan's matrix formulation and phasic's grap
 
 **Epoch boundary precision.** The cross-epoch rate $\rho_i = \sigma_{1,i} / \tau_{1,i}$ involves division. When both $\sigma_{1,i}$ and $\tau_{1,i}$ are very small (state $i$ is rarely occupied), numerical cancellation can produce inaccurate rates. In practice, states with negligible occupancy contribute negligibly to the total reward, so this does not affect overall accuracy. The implementation does not guard against division by zero; states with $\tau_{1,i} = 0$ are never reached and should not have cross-epoch edges.
 
-**Moment computation via iterated Green matrix.** The $k$-th moment formula $\mathbb{E}[\tau^k] = k! \, \boldsymbol{\alpha} \mathbf{U}^k \mathbf{e}$ involves the $k$-th power of the Green matrix. In phasic, this is computed by $k$ applications of `expected_waiting_time` (Algorithm 25 in [15]), which applies graph elimination at each iteration. Each elimination costs $O(p^2)$ for dense graphs or $O(m)$ for sparse graphs, compared to $O(p^3)$ for computing $\mathbf{U}^k$ via matrix inversion. For $k$ moments of a sparse graph: phasic uses $O(k \cdot m)$ vs. $O(k \cdot p^3)$ for the matrix approach.
+**Moment computation via iterated Green matrix.** The $k$-th moment formula $\mathbb{E}[\tau^k] = k! \, \boldsymbol{\alpha} \mathbf{U}^k \mathbf{e}$ involves the $k$-th power of the Green matrix. In phasic, this is computed by $k$ applications of `expected_waiting_time` (@alg-15-sojourn-cross-moments), which applies graph elimination at each iteration. Each elimination costs $O(p^2)$ for dense graphs or $O(m)$ for sparse graphs, compared to $O(p^3)$ for computing $\mathbf{U}^k$ via matrix inversion. For $k$ moments of a sparse graph: phasic uses $O(k \cdot m)$ vs. $O(k \cdot p^3)$ for the matrix approach.
 
 ## Implementation Notes
 

@@ -58,6 +58,10 @@ crossref:
   cor-prefix: "Corollary"
   prp-prefix: "Proposition"
   eq-prefix: "Equation"
+  custom:
+    - kind: float
+      key: alg
+      reference-prefix: "Algorithm"
   chapters: true
 
 format:

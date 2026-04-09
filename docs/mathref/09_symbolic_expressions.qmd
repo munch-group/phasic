@@ -139,12 +139,13 @@ The intern function $\operatorname{intern}(\mathcal{I}, \mathcal{E})$ returns ei
 
 ## Algorithms
 
-### Algorithm 15: Expression Evaluation
+::: {#alg-09-expression-evaluation}
+## Expression Evaluation
 
 *Description.* This algorithm evaluates an expression tree with a concrete parameter vector using iterative post-order traversal. The iterative approach avoids stack overflow on deep trees (which can arise from long chains of eliminations). The algorithm uses an explicit stack of (node, visited) pairs.
 
 ```
-Algorithm 15: Expression Evaluation (Iterative)
+Expression Evaluation (Iterative)
 1: Let E be an expression tree (Definition 9.1)
 2: Let θ = (θ₁, ..., θₖ) be a parameter vector
 
@@ -207,6 +208,7 @@ Algorithm 15: Expression Evaluation (Iterative)
 **Complexity.** Time: $O(|\mathcal{E}|)$ where $|\mathcal{E}|$ is the number of nodes in the expression tree. Each node is pushed and popped at most twice. Space: $O(h)$ where $h$ is the height of the expression tree (stack depth).
 
 **Correctness.** Follows from @thm-09-evaluation-correctness. The iterative post-order traversal visits each node after its children have been evaluated, reproducing the recursive evaluation semantics of @def-09-expression-evaluation.
+:::
 
 ## Implementation Notes
 
@@ -214,7 +216,7 @@ Algorithm 15: Expression Evaluation (Iterative)
 
 | Algorithm | File | Function | Notes |
 |-----------|------|----------|-------|
-| Algorithm 15 | `src/c/phasic_symbolic.c` | `ptd_expr_evaluate_iterative` | Iterative evaluation |
+| @alg-09-expression-evaluation | `src/c/phasic_symbolic.c` | `ptd_expr_evaluate_iterative` | Iterative evaluation |
 | Expression creation | `api/c/phasic.h`, `src/c/phasic_symbolic.c` | `ptd_expr_const`, `ptd_expr_param`, `ptd_expr_dot`, etc. | Node constructors |
 | CSE (@def-09-cse-interning) | `src/c/phasic_symbolic.c` | `ptd_expr_intern`, `ptd_expr_add_interned`, etc. | Hash-based intern table |
 | Differentiation (@def-09-expression-differentiation) | `src/c/phasic_symbolic.c` | `ptd_expr_derivative` | Recursive symbolic differentiation |
@@ -222,7 +224,7 @@ Algorithm 15: Expression Evaluation (Iterative)
 
 **Deviations from pseudocode:**
 
-- **Recursive vs. iterative evaluation.** Both `ptd_expr_evaluate` (recursive) and `ptd_expr_evaluate_iterative` (iterative, matching Algorithm 15) exist. The iterative version is preferred for deep trees. The pseudocode presents only the iterative version.
+- **Recursive vs. iterative evaluation.** Both `ptd_expr_evaluate` (recursive) and `ptd_expr_evaluate_iterative` (iterative, matching @alg-09-expression-evaluation) exist. The iterative version is preferred for deep trees. The pseudocode presents only the iterative version.
 
 - **Differentiation is recursive.** The `ptd_expr_derivative` function uses recursive descent (matching @def-09-expression-differentiation directly) rather than iterative traversal, since derivative trees are typically much shallower than the original expression trees and are constructed once rather than evaluated repeatedly.
 

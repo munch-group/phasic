@@ -121,12 +121,13 @@ Given (i) and (ii), the result follows from the adaptive MCMC ergodicity theorem
 
 ## Algorithms
 
-### Algorithm 31: Metropolis-Hastings with Adaptive Proposals
+::: {#alg-19-mcmc}
+## Metropolis-Hastings with Adaptive Proposals
 
-*Description.* Algorithm 31 generates posterior samples from $p(\boldsymbol{\theta} \mid \mathbf{y})$ via random-walk Metropolis-Hastings with adaptive covariance proposals. The algorithm runs $C$ independent chains, each for $B + N \cdot K$ iterations (burn-in $B$, $N$ post-burn-in samples with thinning interval $K$). During the burn-in phase, the proposal covariance is updated from chain history at regular intervals, and the proposal scale is adjusted toward the target acceptance rate via Robbins-Monro. After burn-in, samples are collected at thinning intervals. The algorithm operates in unconstrained space $\boldsymbol{\phi}$ and transforms to constrained space $\boldsymbol{\theta}$ via softplus at the end.
+*Description.* @alg-19-mcmc generates posterior samples from $p(\boldsymbol{\theta} \mid \mathbf{y})$ via random-walk Metropolis-Hastings with adaptive covariance proposals. The algorithm runs $C$ independent chains, each for $B + N \cdot K$ iterations (burn-in $B$, $N$ post-burn-in samples with thinning interval $K$). During the burn-in phase, the proposal covariance is updated from chain history at regular intervals, and the proposal scale is adjusted toward the target acceptance rate via Robbins-Monro. After burn-in, samples are collected at thinning intervals. The algorithm operates in unconstrained space $\boldsymbol{\phi}$ and transforms to constrained space $\boldsymbol{\theta}$ via softplus at the end.
 
 ```
-Algorithm 31: Metropolis-Hastings with Adaptive Proposals
+Metropolis-Hastings with Adaptive Proposals
 1: Let p(theta | y) be the target posterior (known up to normalizing constant)
 2: Let C be the number of chains, B the burn-in, N the number of samples
 3: Let K be the thinning interval, sigma_0 the initial proposal scale
@@ -205,6 +206,7 @@ Algorithm 31: Metropolis-Hastings with Adaptive Proposals
 **Complexity.** Time: $O(C \cdot (B + NK) \cdot (C_{\text{model}} + d^2))$, where $C_{\text{model}}$ is the cost of one log-posterior evaluation (dominated by the forward algorithm from [14]), and $d^2$ is the cost of the matrix-vector product $\mathbf{L}\mathbf{z}$ for the adaptive proposal. The Cholesky decomposition $O(d^3)$ is performed every $\Delta$ iterations. Space: $O(C \cdot (B + NK) \cdot d)$ for the chain history (used for covariance estimation), plus $O(d^2)$ for the Cholesky factor.
 
 **Correctness.** By @thm-19-mh-detailed-balance, the accept/reject step at line 25 ensures detailed balance with respect to $p$ for any symmetric proposal (both the diagonal and adaptive proposals are symmetric Gaussians). By @thm-19-adaptive-ergodicity, the adaptive covariance updates preserve ergodicity because: (a) the Robbins-Monro step $\gamma_t = 1/\sqrt{t}$ satisfies $\gamma_t \to 0$ (diminishing adaptation), and (b) the chain has bounded state space for typical phase-type parameters (containment). The burn-in phase (lines 38--41) discards the transient period before the chain has converged, and thinning reduces autocorrelation in the stored samples.
+:::
 
 ## Numerical Considerations
 
@@ -224,9 +226,9 @@ Algorithm 31: Metropolis-Hastings with Adaptive Proposals
 
 | Algorithm | File | Function | Lines |
 |-----------|------|----------|-------|
-| Algorithm 31 (single chain) | `src/phasic/mcmc.py` | `MCMC._run_chain` | L491--L601 |
-| Algorithm 31 (vmap chains) | `src/phasic/mcmc.py` | `MCMC._run_chains_vmap` | L603--L727 |
-| Algorithm 31 (entry) | `src/phasic/mcmc.py` | `MCMC.run` | L729--L830 |
+| @alg-19-mcmc (single chain) | `src/phasic/mcmc.py` | `MCMC._run_chain` | L491--L601 |
+| @alg-19-mcmc (vmap chains) | `src/phasic/mcmc.py` | `MCMC._run_chains_vmap` | L603--L727 |
+| @alg-19-mcmc (entry) | `src/phasic/mcmc.py` | `MCMC.run` | L729--L830 |
 | Log-posterior | `src/phasic/mcmc.py` | `MCMC._log_prob` | L440--L489 |
 | Initialization | `src/phasic/mcmc.py` | `MCMC.__init__` | L179--L438 |
 
@@ -244,17 +246,17 @@ Algorithm 31: Metropolis-Hastings with Adaptive Proposals
 | $\alpha(\boldsymbol{\theta}, \boldsymbol{\theta}')$ | Acceptance ratio | @def-19-mh |
 | $\alpha^*$ | Target acceptance rate ($0.234$) | @def-19-adaptive-proposal |
 | $\bar{\alpha}_t$ | Recent acceptance rate | @def-19-adaptive-proposal |
-| $B$ | Burn-in iterations | Algorithm 31 |
-| $C$ | Number of chains | Algorithm 31 |
+| $B$ | Burn-in iterations | @alg-19-mcmc |
+| $C$ | Number of chains | @alg-19-mcmc |
 | $\varepsilon$ | Covariance regularization constant | @def-19-adaptive-proposal |
 | $\gamma_t$ | Robbins-Monro step size | @def-19-adaptive-proposal |
-| $K$ | Thinning interval | Algorithm 31 |
-| $\mathbf{L}$ | Cholesky factor of proposal covariance | Algorithm 31 |
-| $N$ | Number of post-burn-in samples | Algorithm 31 |
+| $K$ | Thinning interval | @alg-19-mcmc |
+| $\mathbf{L}$ | Cholesky factor of proposal covariance | @alg-19-mcmc |
+| $N$ | Number of post-burn-in samples | @alg-19-mcmc |
 | $q(\boldsymbol{\theta}' \mid \boldsymbol{\theta})$ | Proposal distribution | @def-19-mh |
 | $r(\boldsymbol{\theta}, \boldsymbol{\theta}')$ | Unnormalized acceptance ratio | @thm-19-mh-detailed-balance |
 | $s_d$ | Optimal scaling factor $2.4^2 / d$ | @def-19-adaptive-proposal |
 | $\hat{\boldsymbol{\Sigma}}_t$ | Empirical covariance at iteration $t$ | @def-19-adaptive-proposal |
 | $\boldsymbol{\sigma}_0$ | Initial proposal scale | @def-19-adaptive-proposal |
 | $t_a$ | Adaptation start iteration | @def-19-adaptive-proposal |
-| $\Delta$ | Adaptation interval | Algorithm 31 |
+| $\Delta$ | Adaptation interval | @alg-19-mcmc |

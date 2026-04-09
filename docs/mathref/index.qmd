@@ -16,7 +16,7 @@ This Supplementary Online Material (SOM) provides exhaustive mathematical and al
 
 **Relationship to other documentation:** The SOM formalizes and proves; it does not duplicate API documentation (`docs/pages/`), tutorials, or how-to guides. Implementation Notes sections bridge the SOM to the codebase.
 
-## Dependency DAG
+## Document dependency DAG
 
 ```
 01 Preliminaries
@@ -48,85 +48,50 @@ This Supplementary Online Material (SOM) provides exhaustive mathematical and al
  └── 27 Van Loan Equivalence ← 06, 14, 15
 ```
 
-## File Listing
-
-| File | Title | Batch | Status |
-|------|-------|-------|--------|
-| 00 | Index (this file) | 1, 15 | **Complete** — Algorithm registry (40 algorithms), dependency DAG |
-| 01 | Preliminaries | 1 | **Complete** — 16 definitions, 5 theorems with proofs, 13 equations |
-| 02 | Graph Representation | 2 | **Complete** — 6 definitions, 4 theorems, 3 algorithms |
-| 03 | Numerical Primitives | 2 | **Complete** — 4 definitions, 2 theorems, 2 algorithms |
-| 04 | SCC and Topological Sort | 3 | **Complete** — 4 definitions, 3 theorems, 2 algorithms (6-7) |
-| 05 | Graph Normalization | 3 | **Complete** — 4 definitions, 2 theorems, 2 algorithms (8-9) |
-| 06 | Graph Elimination | 4 | **Complete** — 6 definitions, 4 theorems, 3 algorithms (10-12) |
-| 07 | Reward Transformation | 4 | **Complete** — 3 definitions, 2 theorems, 1 algorithm (13) |
-| 08 | State Space Construction | 5 | **Complete** — 2 definitions, 1 theorem, 1 lemma, 1 algorithm (14) |
-| 09 | Symbolic Expressions | 6 | **Complete** — 4 definitions, 2 theorems, 1 lemma, 1 algorithm (15) |
-| 10 | Symbolic Graph Elimination | 6 | **Complete** — 3 definitions, 2 theorems, 2 algorithms (16-17) |
-| 11 | Trace System | 7 | **Complete** — 3 definitions, 2 theorems, 2 algorithms (18-19) |
-| 12 | Graph Hashing | 7 | **Complete** — 3 definitions, 2 theorems, 1 algorithm (20) |
-| 13 | SCC Trace Stitching | 7 | **Complete** — 3 definitions, 2 theorems, 1 algorithm (21) |
-| 14 | Distribution Computation | 8 | **Complete** — 3 definitions, 3 theorems, 2 algorithms (22-23) |
-| 15 | Moment Computation | 8 | **Complete** — 3 definitions, 2 theorems, 2 algorithms (24-25) |
-| 16 | PDF Gradients | 8 | **Complete** — 2 definitions, 1 theorem, 1 algorithm (26) |
-| 17 | Sampling | 9 | **Complete** — 5 definitions, 2 theorems, 3 algorithms (27-29) |
-| 18 | SVGD | 10 | **Complete** — 7 definitions, 1 theorem, 1 algorithm (30) |
-| 19 | MCMC | 11 | **Complete** — 3 definitions, 2 theorems, 1 algorithm (31) |
-| 20 | BFFG | 12 | **Complete** — 4 definitions, 2 theorems, 1 algorithm (32) |
-| 21 | Method of Moments | 12 | **Complete** — 3 definitions, 1 theorem, 1 algorithm (33) |
-| 22 | Probability Matching | 12 | **Complete** — 3 definitions, 1 theorem, 1 algorithm (34) |
-| 23 | State Indexing | 13 | **Complete** — 4 definitions, 1 theorem, 2 algorithms (35-36) |
-| 24 | Hex Grid | 13 | **Complete** — 4 definitions, 1 theorem, 2 algorithms (37-38) |
-| 25 | JAX Integration | 14 | **Complete** — 3 definitions, 2 theorems, 1 algorithm (39) |
-| 26 | Graph Builder | 14 | **Complete** — 3 definitions, 1 theorem, 1 algorithm (40) |
-| 27 | Van Loan Equivalence | 14 | **Complete** — 3 definitions, 2 theorems |
-
 ## Global Algorithm Registry
 
-Algorithms are numbered with a single global counter across the entire SOM. This table is populated as batches complete.
-
-| Algorithm | Title | File | Source function(s) |
-|-----------|-------|------|--------------------|
-| 1 | AVL Find-or-Insert | [02] | `ptd_avl_tree_find_or_insert` |
-| 2 | Graph Validation | [02] | `ptd_validate_graph` |
-| 3 | Graph Clone | [02] | `ptd_clone_graph` |
-| 4 | Kahan Summation | [03] | `kahan_init`, `kahan_add`, `kahan_result` |
-| 5 | Log-Space Weight Evaluation | [03] | `ptd_graph_update_weights` (log mode) |
-| 6 | Tarjan's SCC Detection | [04] | `ptd_find_strongly_connected_components` |
-| 7 | Topological Sort of Condensation DAG | [04] | `ptd_directed_graph_topological_sort` |
-| 8 | Continuous Graph Normalization | [05] | `ptd_normalize_graph` |
-| 9 | Discrete Graph Normalization | [05] | `ptd_dph_normalize_graph` |
-| 10 | Vertex Elimination (Single Vertex) | [06] | `ptd_graph_ex_absorbation_time_comp_graph` |
-| 11 | Full Graph Elimination | [06] | `ptd_graph_ex_absorbation_time_comp_graph` |
-| 12 | Moment Computation via Elimination Commands | [06] | `ptd_expected_waiting_time` |
-| 13 | Reward Transformation | [07] | `ptd_graph_reward_transform` |
-| 14 | GenerateStateSpace | [08] | `ptd_find_or_create_vertex` |
-| 15 | Expression Evaluation | [09] | `ptd_expr_evaluate` |
-| 16 | Symbolic Graph Elimination | [10] | `phasic_symbolic.c` |
-| 17 | Symbolic Graph Instantiation | [10] | `phasic_symbolic.c` |
-| 18 | Trace Recording | [11] | `record_elimination_trace` |
-| 19 | Trace Evaluation | [11] | `evaluate_trace` |
-| 20 | Graph Content Hash | [12] | `ptd_hash_graph` |
-| 21 | SCC-Based Trace Decomposition and Stitching | [13] | `hierarchical_trace_cache.py` |
-| 22 | DPH Forward Step | [14] | `ptd_dph_probability_distribution_step` |
-| 23 | CPH PDF via Uniformization | [14] | `ptd_probability_distribution_context_create` |
-| 24 | k-th Moment Computation | [15] | `ptd_expected_waiting_time` |
-| 25 | Expected Sojourn Times and Cross-Moments | [15] | `ptd_expected_sojourn_time_subset` |
-| 26 | PDF + Gradient Computation | [16] | `ptd_graph_pdf_with_gradient` |
-| 27 | Unconditioned Path Sampling | [17] | `ptd_random_sample_path` |
-| 28 | Backward Probability Computation | [17] | `ptd_backward_probabilities` |
-| 29 | Conditioned Path Sampling | [17] | `ptd_random_sample_path_conditioned` |
-| 30 | SVGD Optimization | [18] | `SVGD.optimize()` |
-| 31 | Metropolis-Hastings with Adaptive Proposals | [19] | `MCMC.sample()` |
-| 32 | BFFG Log-Probability Estimation | [20] | `bffg_log_prob` |
-| 33 | Method of Moments Estimation | [21] | `method_of_moments` |
-| 34 | Probability Matching Estimation | [22] | `probability_matching` |
-| 35 | IndexToProperties | [23] | `PropertySet.index_to_props` |
-| 36 | PropertiesToIndex | [23] | `PropertySet.props_to_index` |
-| 37 | HexGridConstruction | [24] | `HexGrid.from_shapefile` |
-| 38 | HexNeighborEnumeration | [24] | `HexGrid.neighbors` |
-| 39 | JAX-Compatible PMF Computation | [25] | `compute_pmf_ffi` |
-| 40 | GraphBuilder PMF Computation | [26] | `GraphBuilder.compute_pmf` |
+| Algorithm | Title | Source function(s) |
+|-----------|-------|--------------------|
+| @alg-02-avl-find-or-insert | AVL Find-or-Insert | `ptd_avl_tree_find_or_insert` |
+| @alg-02-graph-validation | Graph Validation | `ptd_validate_graph` |
+| @alg-02-graph-clone | Graph Clone | `ptd_clone_graph` |
+| @alg-03-kahan-summation | Kahan Summation | `kahan_init`, `kahan_add`, `kahan_result` |
+| @alg-03-log-space-weight | Log-Space Weight Evaluation | `ptd_graph_update_weights` (log mode) |
+| @alg-04-tarjan-scc | Tarjan's SCC Detection | `ptd_find_strongly_connected_components` |
+| @alg-04-topological-sort | Topological Sort of Condensation DAG | `ptd_directed_graph_topological_sort` |
+| @alg-05-continuous-normalization | Continuous Graph Normalization | `ptd_normalize_graph` |
+| @alg-05-discrete-normalization | Discrete Graph Normalization | `ptd_dph_normalize_graph` |
+| @alg-06-vertex-elimination | Vertex Elimination (Single Vertex) | `ptd_graph_ex_absorbation_time_comp_graph` |
+| @alg-06-full-elimination | Full Graph Elimination | `ptd_graph_ex_absorbation_time_comp_graph` |
+| @alg-06-moment-commands | Moment Computation via Elimination Commands | `ptd_expected_waiting_time` |
+| @alg-07-reward-transformation | Reward Transformation | `ptd_graph_reward_transform` |
+| @alg-08-generate-state-space | GenerateStateSpace | `ptd_find_or_create_vertex` |
+| @alg-09-expression-evaluation | Expression Evaluation | `ptd_expr_evaluate` |
+| @alg-10-symbolic-elimination | Symbolic Graph Elimination | `phasic_symbolic.c` |
+| @alg-10-symbolic-instantiation | Symbolic Graph Instantiation | `phasic_symbolic.c` |
+| @alg-11-trace-recording | Trace Recording | `record_elimination_trace` |
+| @alg-11-trace-evaluation | Trace Evaluation | `evaluate_trace` |
+| @alg-12-graph-hash | Graph Content Hash | `ptd_hash_graph` |
+| @alg-13-scc-trace-stitching | SCC-Based Trace Decomposition and Stitching | `hierarchical_trace_cache.py` |
+| @alg-14-dph-forward-step | DPH Forward Step | `ptd_dph_probability_distribution_step` |
+| @alg-14-cph-uniformization | CPH PDF via Uniformization | `ptd_probability_distribution_context_create` |
+| @alg-15-kth-moment | k-th Moment Computation | `ptd_expected_waiting_time` |
+| @alg-15-sojourn-cross-moments | Expected Sojourn Times and Cross-Moments | `ptd_expected_sojourn_time_subset` |
+| @alg-16-pdf-gradient | PDF + Gradient Computation | `ptd_graph_pdf_with_gradient` |
+| @alg-17-unconditioned-sampling | Unconditioned Path Sampling | `ptd_random_sample_path` |
+| @alg-17-backward-probability | Backward Probability Computation | `ptd_backward_probabilities` |
+| @alg-17-conditioned-sampling | Conditioned Path Sampling | `ptd_random_sample_path_conditioned` |
+| @alg-18-svgd | SVGD Optimization | `SVGD.optimize()` |
+| @alg-19-mcmc | Metropolis-Hastings with Adaptive Proposals | `MCMC.sample()` |
+| @alg-20-bffg | BFFG Log-Probability Estimation | `bffg_log_prob` |
+| @alg-21-method-of-moments | Method of Moments Estimation | `method_of_moments` |
+| @alg-22-probability-matching | Probability Matching Estimation | `probability_matching` |
+| @alg-23-index-to-properties | IndexToProperties | `PropertySet.index_to_props` |
+| @alg-23-properties-to-index | PropertiesToIndex | `PropertySet.props_to_index` |
+| @alg-24-hex-grid-construction | HexGridConstruction | `HexGrid.from_shapefile` |
+| @alg-24-hex-neighbor-enumeration | HexNeighborEnumeration | `HexGrid.neighbors` |
+| @alg-25-jax-pmf | JAX-Compatible PMF Computation | `compute_pmf_ffi` |
+| @alg-26-graph-builder-pmf | GraphBuilder PMF Computation | `GraphBuilder.compute_pmf` |
 
 ## Global Definition Registry
 

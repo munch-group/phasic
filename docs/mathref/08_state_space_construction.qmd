@@ -83,12 +83,13 @@ Each of the $n$ reachable states triggers exactly one find-or-insert operation (
 
 ## Algorithms
 
-### Algorithm 14: GenerateStateSpace
+::: {#alg-08-generate-state-space}
+## GenerateStateSpace
 
 *Description.* This algorithm implements the iterative state space construction (@def-08-state-space-construction). It performs a breadth-first traversal of the state space, using an AVL tree for $O(\log n)$ state deduplication. The algorithm corresponds to Algorithm 1 in Roikjer, Hobolth & Munch (2022).
 
 ```
-Algorithm 14: GenerateStateSpace
+GenerateStateSpace
 1: Let δ be a state transition function (Definition 8.1)
 2: Let (σ₀₁, w₁), ..., (σ₀ₘ, wₘ) be initial state-weight pairs with Σᵢ wᵢ ≤ 1
 3: Let d be the state dimension
@@ -142,6 +143,7 @@ Algorithm 14: GenerateStateSpace
 **Complexity.** Time: $O(|E| \cdot d \cdot \log |V|)$ where $|E|$ is the total number of edges (transitions), $d$ is the state dimension, and $|V|$ is the number of reachable states. The $d \cdot \log |V|$ factor is the cost of each AVL tree operation (@lem-08-avl-dedup-complexity). Space: $O(|V| \cdot d + |E|)$ for storing the graph and AVL tree.
 
 **Correctness.** Follows from @thm-08-termination-correctness. The BFS ensures all reachable states are visited, the AVL tree ensures each state is represented by exactly one vertex, and the resulting graph satisfies the phase-type graph structure (@def-01-ph-graph).
+:::
 
 ## Implementation Notes
 
@@ -149,9 +151,9 @@ Algorithm 14: GenerateStateSpace
 
 | Algorithm | File | Function | Notes |
 |-----------|------|----------|-------|
-| Algorithm 14 (FindOrCreateVertex) | `src/c/phasic.c` | `ptd_find_or_create_vertex` | L7339-L7353 |
-| Algorithm 14 (AVL operations) | `src/c/phasic.c` | `ptd_avl_tree_find_or_insert`, `ptd_avl_tree_find` | AVL tree implementation |
-| Algorithm 14 (BFS driver) | `src/phasic/__init__.py` | `Graph.__init__` with `callback` | Python-level BFS loop |
+| @alg-08-generate-state-space (FindOrCreateVertex) | `src/c/phasic.c` | `ptd_find_or_create_vertex` | L7339-L7353 |
+| @alg-08-generate-state-space (AVL operations) | `src/c/phasic.c` | `ptd_avl_tree_find_or_insert`, `ptd_avl_tree_find` | AVL tree implementation |
+| @alg-08-generate-state-space (BFS driver) | `src/phasic/__init__.py` | `Graph.__init__` with `callback` | Python-level BFS loop |
 | State encoding | `src/phasic/state_indexing.py` | `StateIndexer`, `Property` | Mixed-radix state encoding |
 
 **Deviations from pseudocode:**

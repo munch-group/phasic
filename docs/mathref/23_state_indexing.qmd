@@ -4,7 +4,7 @@ title: "Mixed-Radix State Indexing"
 
 ## Introduction
 
-Many phase-type models arising in population genetics encode structured states: a lineage may carry several discrete properties (population label, allele count, number of descendants) that together define the Markov chain state. Rather than working with arbitrary state vectors $\sigma \in \mathbb{Z}^d$, it is advantageous to define each property as a bounded integer with known range, and to establish a bijection between the combinatorial product of these ranges and a contiguous linear index. This bijection enables efficient graph construction (Algorithm 14 in [08]) while allowing the user to think in terms of named properties rather than raw indices.
+Many phase-type models arising in population genetics encode structured states: a lineage may carry several discrete properties (population label, allele count, number of descendants) that together define the Markov chain state. Rather than working with arbitrary state vectors $\sigma \in \mathbb{Z}^d$, it is advantageous to define each property as a bounded integer with known range, and to establish a bijection between the combinatorial product of these ranges and a contiguous linear index. This bijection enables efficient graph construction (@alg-08-generate-state-space) while allowing the user to think in terms of named properties rather than raw indices.
 
 This file formalizes the mixed-radix numbering system used by the `StateIndexer`, `Property`, and `PropertySet` classes. The system assigns each property a "digit" in a positional number system where different digits may have different bases (radices). Conversion between the linear index and the property tuple is $O(d)$ in the number of properties, with no table lookups or hash maps required.
 
@@ -99,12 +99,13 @@ where the equality $\sum_{j=0}^{d-1} (\beta(P_j) - 1) \pi_j = \prod_{j=0}^{d-1} 
 
 ## Algorithms
 
-### Algorithm 35: IndexToProperties
+::: {#alg-23-index-to-properties}
+## IndexToProperties
 
 *Description.* Given a linear index $n$ and a property set $\mathcal{P}$, this algorithm computes the inverse mixed-radix mapping $\phi^{-1}(n)$, returning the property values $(v_0, \ldots, v_{d-1})$. It uses the precomputed radix powers $\pi_j$ to extract each digit via integer division and modular reduction.
 
 ```
-Algorithm 35: IndexToProperties
+IndexToProperties
 1: Let P = (P₀, ..., P_{d-1}) be properties with bases β(P_j) and min values a_j
 2: Let π₀ = 1, π_j = ∏_{i=0}^{j-1} β(Pᵢ) be precomputed radix powers
 3: Let n ∈ {0, ..., N(P)-1} be the linear index
@@ -133,13 +134,15 @@ Algorithm 35: IndexToProperties
 **Complexity.** Time: $O(d)$ where $d$ is the number of properties. Space: $O(d)$ for the output vector.
 
 **Correctness.** Follows from @thm-23-bijection. The extraction formula $e_j = \lfloor n / \pi_j \rfloor \bmod \beta(P_j)$ correctly recovers the $j$-th digit of the mixed-radix representation, and adding $a_j$ produces the original property value.
+:::
 
-### Algorithm 36: PropertiesToIndex
+::: {#alg-23-properties-to-index}
+## PropertiesToIndex
 
 *Description.* Given a tuple of property values $(v_0, \ldots, v_{d-1})$ and a property set $\mathcal{P}$, this algorithm computes the forward mixed-radix mapping $\phi(v_0, \ldots, v_{d-1})$. Each value is validated against its property bounds, encoded by subtracting the minimum value, and combined via a dot product with the precomputed radix powers.
 
 ```
-Algorithm 36: PropertiesToIndex
+PropertiesToIndex
 1: Let P = (P₀, ..., P_{d-1}) be properties with bases β(P_j) and min values a_j
 2: Let π₀ = 1, π_j = ∏_{i=0}^{j-1} β(Pᵢ) be precomputed radix powers
 3: Let (v₀, ..., v_{d-1}) be property values with v_j ∈ V(P_j)
@@ -170,6 +173,7 @@ Algorithm 36: PropertiesToIndex
 **Complexity.** Time: $O(d)$ where $d$ is the number of properties. Space: $O(d)$ for the encoded digit array.
 
 **Correctness.** Follows from @thm-23-bijection. The encoding $e_j = v_j - a_j$ maps $\mathcal{V}(P_j)$ bijectively to $\{0, \ldots, \beta(P_j)-1\}$, and the weighted sum $\sum_j e_j \pi_j$ produces the unique linear index in $\{0, \ldots, N-1\}$.
+:::
 
 ## Implementation Notes
 
@@ -177,8 +181,8 @@ Algorithm 36: PropertiesToIndex
 
 | Algorithm | File | Function | Notes |
 |-----------|------|----------|-------|
-| Algorithm 35 | `src/phasic/state_indexing.py` | `PropertySet.index_to_props` | L300--L422 |
-| Algorithm 36 | `src/phasic/state_indexing.py` | `PropertySet.props_to_index` | L428--L577 |
+| @alg-23-index-to-properties | `src/phasic/state_indexing.py` | `PropertySet.index_to_props` | L300--L422 |
+| @alg-23-properties-to-index | `src/phasic/state_indexing.py` | `PropertySet.props_to_index` | L428--L577 |
 | Radix power precomputation | `src/phasic/state_indexing.py` | `PropertySet.__init__` | L288--L289 |
 | Property validation | `src/phasic/state_indexing.py` | `Property.validate_value` | L113--L131 |
 

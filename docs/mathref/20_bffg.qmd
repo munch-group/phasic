@@ -102,12 +102,13 @@ The final expectation equals $P(\mathbf{y} \mid \boldsymbol{\theta}_{\text{targe
 
 ## Algorithms
 
-### Algorithm 32: BFFG Log-Probability Estimation
+::: {#alg-20-bffg}
+## BFFG Log-Probability Estimation
 
-*Description.* Algorithm 32 computes an estimate of the log-probability $\log P(\mathbf{y} \mid \boldsymbol{\theta}_{\text{target}})$ by combining a proposal model evaluation with a stochastic importance weight correction. For each observed data point (locus), the proposal log-probability is obtained via the forward algorithm on the homogeneous proposal graph, and a set of $M$ conditioned paths are sampled from the proposal. Each path's importance log-weight is computed by traversing the path vertices, computing exit rates and transition probabilities under both proposal and target, and summing the log-ratios. The per-locus correction is the logsumexp of the log-weights minus $\log M$. The total log-probability is the sum of per-locus proposal log-probabilities and corrections.
+*Description.* @alg-20-bffg computes an estimate of the log-probability $\log P(\mathbf{y} \mid \boldsymbol{\theta}_{\text{target}})$ by combining a proposal model evaluation with a stochastic importance weight correction. For each observed data point (locus), the proposal log-probability is obtained via the forward algorithm on the homogeneous proposal graph, and a set of $M$ conditioned paths are sampled from the proposal. Each path's importance log-weight is computed by traversing the path vertices, computing exit rates and transition probabilities under both proposal and target, and summing the log-ratios. The per-locus correction is the logsumexp of the log-weights minus $\log M$. The total log-probability is the sum of per-locus proposal log-probabilities and corrections.
 
 ```
-Algorithm 32: BFFG Log-Probability Estimation
+BFFG Log-Probability Estimation
 1: Let G = (V, E) be a parameterized phase-type graph
 2: Let theta_prop be the proposal parameter vector
 3: Let theta_target(t) be the time-varying target parameter function
@@ -166,6 +167,7 @@ Algorithm 32: BFFG Log-Probability Estimation
 **Complexity.** Time: $O(L \cdot (C_{\text{fwd}} + M \cdot K_{\max} \cdot d))$, where $C_{\text{fwd}}$ is the cost of one forward algorithm evaluation ([14]), $K_{\max}$ is the maximum path length, $d$ is the parameter dimension, and the inner loop over edges at each vertex costs $O(|\operatorname{out}(v_k)| \cdot d)$ for computing $\mathbf{c}_e^\top \boldsymbol{\theta}$. The conditioned path sampling costs $O(K_{\max} \cdot |\operatorname{out}(v)|)$ per path. Space: $O(|V| \cdot E_{\max} \cdot d)$ for the precomputed edge coefficient arrays, plus $O(M)$ for the log-weight storage.
 
 **Correctness.** By @thm-20-unbiasedness, each importance weight $w(\omega_m)$ is unbiased ($\mathbb{E}[w] = 1$) when the target is homogeneous. By @thm-20-convergence, the estimator $\hat{L} = M^{-1} \sum_m w_m$ converges almost surely to the true likelihood ratio as $M \to \infty$. For the inhomogeneous case, the importance weight formula (@eq-20-importance-logweight) remains a valid density ratio because it computes the exact ratio of the continuous-time path densities evaluated at the time-specific target parameters. The log-space computation via $\operatorname{logsumexp}$ (line 27) is numerically equivalent to $\log(M^{-1} \sum_m \exp(\log w_m))$.
+:::
 
 ## Numerical Considerations
 
@@ -183,10 +185,10 @@ Algorithm 32: BFFG Log-Probability Estimation
 
 | Algorithm | File | Function | Lines |
 |-----------|------|----------|-------|
-| Algorithm 32 (entry, backward compat) | `src/phasic/bffg.py` | `bffg_log_prob` / `log_prob_fn` | L570--L612 |
-| Algorithm 32 (JIT model) | `src/phasic/bffg.py` | `model` | L396--L427 |
-| Algorithm 32 (JIT correction) | `src/phasic/bffg.py` | `likelihood_correction_jit` | L546--L563 |
-| Algorithm 32 (non-JIT correction) | `src/phasic/bffg.py` | `likelihood_correction` | L431--L456 |
+| @alg-20-bffg (entry, backward compat) | `src/phasic/bffg.py` | `bffg_log_prob` / `log_prob_fn` | L570--L612 |
+| @alg-20-bffg (JIT model) | `src/phasic/bffg.py` | `model` | L396--L427 |
+| @alg-20-bffg (JIT correction) | `src/phasic/bffg.py` | `likelihood_correction_jit` | L546--L563 |
+| @alg-20-bffg (non-JIT correction) | `src/phasic/bffg.py` | `likelihood_correction` | L431--L456 |
 | Importance log-weight (non-JIT) | `src/phasic/bffg.py` | `_full_importance_log_weight` | L353--L392 |
 | Importance log-weight (JIT) | `src/phasic/bffg.py` | `_importance_weight_one_path` | L490--L522 |
 | Path exit rates | `src/phasic/bffg.py` | `path_exit_rates` | L77--L118 |
@@ -213,7 +215,7 @@ Algorithm 32: BFFG Log-Probability Estimation
 | $\hat{\ell}_{\text{correction}}$ | Importance weight correction | @def-20-iw-loglik |
 | $\lambda_{v_k}^{\text{prop}}$ | Exit rate under proposal at vertex $v_k$ | @def-20-exit-rate |
 | $\lambda_{v_k}^{\text{tgt}}$ | Exit rate under target at vertex $v_k$ | @def-20-exit-rate |
-| $L$ | Number of loci (observations) | Algorithm 32 |
+| $L$ | Number of loci (observations) | @alg-20-bffg |
 | $M$ | Number of importance sampling paths | @def-20-iw-loglik |
 | $\omega$ | Path through the graph | @def-20-exit-rate |
 | $p_k^{\text{prop}}$ | Proposal transition probability at step $k$ | @def-20-importance-weight |

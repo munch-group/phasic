@@ -44,7 +44,7 @@ $$h(\boldsymbol{\theta}, \mathbf{t}) = (f(t_1; \boldsymbol{\theta}), f(t_2; \bol
 
 > **Intuition.** A pure callback is a "black box" from JAX's perspective: JAX knows the input and output shapes and dtypes but cannot trace into the function body. This is sufficient for `jit` and `vmap` but not for `grad`, which requires either a custom VJP rule or a traceable implementation. The term "pure" indicates the callback has no side effects and always returns the same output for the same input.
 
-> **Example.** The function `compute_pmf_ffi` wraps the C++ `GraphBuilder::compute_pmf` method. Given a serialized graph structure $J$ (a JSON string), it computes $h(\boldsymbol{\theta}, \mathbf{t})$ by: (i) constructing a `GraphBuilder` from $J$, (ii) calling `build(theta)` to instantiate a concrete graph, and (iii) evaluating the forward algorithm (Algorithm 23 in [14]) at each time point.
+> **Example.** The function `compute_pmf_ffi` wraps the C++ `GraphBuilder::compute_pmf` method. Given a serialized graph structure $J$ (a JSON string), it computes $h(\boldsymbol{\theta}, \mathbf{t})$ by: (i) constructing a `GraphBuilder` from $J$, (ii) calling `build(theta)` to instantiate a concrete graph, and (iii) evaluating the forward algorithm (@alg-14-cph-uniformization) at each time point.
 
 ::: {#def-25-custom-vjp .definition}
 ## Custom VJP for Phase-Type PDF
@@ -90,7 +90,7 @@ $$\texttt{ffi\_call}(J, \texttt{granularity}, \texttt{discrete}; \boldsymbol{\th
 
 ::: {#thm-25-callback-semantics .theorem}
 ## Pure Callback Preserves Semantics
-*Let $G = (V, E, W)$ be a parameterized phase-type graph with serialized structure $J = \operatorname{serialize}(G)$. Let $h_{\mathrm{C++}}(\boldsymbol{\theta}, \mathbf{t})$ denote the C++ implementation of PDF computation via the forward algorithm (Algorithm 23 in [14]), and let $\tilde{h}(\boldsymbol{\theta}, \mathbf{t})$ denote the JAX pure callback wrapper (@def-25-pure-callback). Then*
+*Let $G = (V, E, W)$ be a parameterized phase-type graph with serialized structure $J = \operatorname{serialize}(G)$. Let $h_{\mathrm{C++}}(\boldsymbol{\theta}, \mathbf{t})$ denote the C++ implementation of PDF computation via the forward algorithm (@alg-14-cph-uniformization), and let $\tilde{h}(\boldsymbol{\theta}, \mathbf{t})$ denote the JAX pure callback wrapper (@def-25-pure-callback). Then*
 
 $$\tilde{h}(\boldsymbol{\theta}, \mathbf{t}) = h_{\mathrm{C++}}(\boldsymbol{\theta}, \mathbf{t})$$ {#eq-25-semantic-equiv}
 
@@ -126,12 +126,13 @@ The VJP $\bar{\theta}_j = \sum_i \bar{y}_i \cdot \widehat{\partial f / \partial 
 
 ## Algorithms
 
-### Algorithm 39: JAX-Compatible PMF Computation
+::: {#alg-25-jax-pmf}
+## JAX-Compatible PMF Computation
 
 *Description.* This algorithm describes the end-to-end computation of phase-type PDF/PMF values through the JAX FFI interface. It separates the one-time setup (FFI registration, JSON parsing) from the per-call computation (graph construction, forward algorithm). The algorithm supports three JAX transformations: `jit` (static arguments trigger recompilation), `vmap` (batch dimension added to dynamic arguments, processed in parallel via OpenMP), and `grad` (custom VJP invoked for backward pass).
 
 ```
-Algorithm 39: JAX-Compatible PMF Computation
+JAX-Compatible PMF Computation
 1: Let J be a JSON string encoding graph structure (static)
 2: Let theta = (theta_1, ..., theta_d) be the parameter vector (dynamic)
 3: Let t = (t_1, ..., t_n) be evaluation points (dynamic)
@@ -165,9 +166,9 @@ Algorithm 39: JAX-Compatible PMF Computation
 31:   graph ← builder.build(theta_buf)       ▷ Instantiate with parameters
 32:   for i ← 1 to n do
 33:     if discrete then
-34:       y_i ← graph.dph_pmf(t_i)          ▷ DPH PMF (Algorithm 22 in [14])
+34:       y_i ← graph.dph_pmf(t_i)          ▷ DPH PMF (DPH Forward Step)
 35:     else
-36:       y_i ← graph.pdf(t_i, g)           ▷ CPH PDF (Algorithm 23 in [14])
+36:       y_i ← graph.pdf(t_i, g)           ▷ CPH PDF (CPH Uniformization)
 37:     end if
 38:   end for
 39:   return (y_1, ..., y_n)
@@ -218,6 +219,7 @@ Algorithm 39: JAX-Compatible PMF Computation
 - **JSON parsing:** Time $O(|J|)$ per `GraphBuilder` construction.
 
 **Correctness.** The forward pass computes the exact phase-type PDF/PMF by @thm-25-callback-semantics (semantic preservation). The backward pass computes gradients correct to $O(10^{-9})$ by @thm-25-vjp-accuracy (finite difference accuracy). The `vmap` transformation adds a batch dimension processed by the FFI handler's OpenMP loop, producing identical results to sequential evaluation (floating-point associativity may cause $O(\epsilon_{\mathrm{mach}})$ differences).
+:::
 
 ## Numerical Considerations
 
@@ -233,10 +235,10 @@ Algorithm 39: JAX-Compatible PMF Computation
 
 | Algorithm | File | Function | Lines |
 |-----------|------|----------|-------|
-| Algorithm 39 (FFI path) | `src/phasic/ffi_wrappers.py` | `compute_pmf_ffi` | L496--L573 |
-| Algorithm 39 (registration) | `src/phasic/ffi_wrappers.py` | `_register_ffi_targets` | L158--L298 |
-| Algorithm 39 (VJP) | `src/phasic/__init__.py` | `jax_model_fwd`, `jax_model_bwd` | L3861--L3883 |
-| Algorithm 39 (C++ handler) | `src/cpp/parameterized/graph_builder.cpp` | `GraphBuilder::compute_pmf` | L309--L361 |
+| @alg-25-jax-pmf (FFI path) | `src/phasic/ffi_wrappers.py` | `compute_pmf_ffi` | L496--L573 |
+| @alg-25-jax-pmf (registration) | `src/phasic/ffi_wrappers.py` | `_register_ffi_targets` | L158--L298 |
+| @alg-25-jax-pmf (VJP) | `src/phasic/__init__.py` | `jax_model_fwd`, `jax_model_bwd` | L3861--L3883 |
+| @alg-25-jax-pmf (C++ handler) | `src/cpp/parameterized/graph_builder.cpp` | `GraphBuilder::compute_pmf` | L309--L361 |
 
 **Deviations from pseudocode:**
 

@@ -8,7 +8,7 @@ This file formalizes the central algorithm of phasic: Gaussian elimination on a 
 
 The key insight is that vertex elimination --- removing a vertex by connecting its parents directly to its children --- preserves the expected accumulated reward of the distribution. By performing this operation for every transient vertex in a topologically guided order, the algorithm reduces the graph to one in which only the starting vertex and absorbing vertices remain, with the accumulated reward information encoded in the command sequence. This command sequence can then be replayed with any reward vector to compute moments in $O(|V|^2)$ time, after a one-time $O(|V|^3)$ elimination cost.
 
-The algorithm operates on normalized graphs (@def-05-continuous-normalization) and uses SCC decomposition with topological sorting (Algorithms 6--7 in [04]) to determine the elimination order. The command sequence is the foundation for all downstream moment computation, including reward-transformed moments.
+The algorithm operates on normalized graphs (@def-05-continuous-normalization) and uses SCC decomposition with topological sorting (@alg-04-tarjan-scc and @alg-04-topological-sort) to determine the elimination order. The command sequence is the foundation for all downstream moment computation, including reward-transformed moments.
 
 **Prerequisites:** [01], [02], [04], [05]
 
@@ -48,7 +48,7 @@ $$x_u \leftarrow x_u \cdot \frac{1}{1 - p}.$$ {#eq-06-self-loop}
 
 ::: {#def-06-acyclic-graph}
 ## Acyclic graph representation
-*A phase-type graph $G = (V, E, W')$ is acyclic if the subgraph induced by the transient vertices (excluding the starting and absorbing vertices) contains no directed cycles. The elimination algorithm (Algorithm 11) transforms any normalized phase-type graph into an acyclic graph representation by eliminating all transient vertices that participate in cycles, recording the bypass operations as commands.*
+*A phase-type graph $G = (V, E, W')$ is acyclic if the subgraph induced by the transient vertices (excluding the starting and absorbing vertices) contains no directed cycles. The elimination algorithm (@alg-06-full-elimination) transforms any normalized phase-type graph into an acyclic graph representation by eliminating all transient vertices that participate in cycles, recording the bypass operations as commands.*
 :::
 
 > **Intuition.** An acyclic graph enables recursive (bottom-up) computation of moments: since there are no cycles, each vertex's contribution can be computed exactly once in reverse topological order. The cyclic information is not lost; it is encoded in the vertex scalars via self-loop resolution factors.
@@ -70,8 +70,8 @@ $$x_u \leftarrow x_u \cdot \frac{1}{1 - p}.$$ {#eq-06-self-loop}
 ## Elimination ordering
 *The elimination ordering is a permutation of the transient vertices $v_1, \ldots, v_p$ that determines the sequence in which vertices are eliminated. In phasic, this ordering is determined by:*
 
-1. *Compute the strongly connected components (SCC) of the graph (Algorithm 6 in [04]).*
-2. *Topologically sort the condensation DAG (Algorithm 7 in [04]).*
+1. *Compute the strongly connected components (SCC) of the graph (@alg-04-tarjan-scc).*
+2. *Topologically sort the condensation DAG (@alg-04-topological-sort).*
 3. *Within each SCC, order vertices by their internal index.*
 4. *Transient vertices (with outgoing edges) precede absorbing vertices (with no outgoing edges).*
 
@@ -171,8 +171,8 @@ $$\mathbb{E}_u[\tilde{\tau}]^{\text{resolved}} = \frac{x_u}{1 - p} + \sum_{z \ne
 ## Elimination complexity
 *For a phase-type graph with $|V|$ vertices and $|E|$ edges:*
 
-1. *The one-time elimination cost (Algorithm 11) is $O(|V|^3)$ time and $O(|V|^2)$ space.*
-2. *Each subsequent moment computation using the cached command sequence (Algorithm 12) is $O(N)$ time and $O(|V|)$ space, where $N \leq |V|^2$ is the number of commands.*
+1. *The one-time elimination cost (@alg-06-full-elimination) is $O(|V|^3)$ time and $O(|V|^2)$ space.*
+2. *Each subsequent moment computation using the cached command sequence (@alg-06-moment-commands) is $O(N)$ time and $O(|V|)$ space, where $N \leq |V|^2$ is the number of commands.*
 :::
 
 ::: {.proof}
@@ -183,12 +183,13 @@ $$\mathbb{E}_u[\tilde{\tau}]^{\text{resolved}} = \frac{x_u}{1 - p} + \sum_{z \ne
 
 ## Algorithms
 
-### Algorithm 10: Vertex Elimination (Single Vertex)
+::: {#alg-06-vertex-elimination}
+## Vertex Elimination (Single Vertex)
 
 *Description.* This algorithm eliminates a single transient vertex $v_i$ from a normalized phase-type graph. For each parent of $v_i$ (that has not already been eliminated), it creates bypass edges to all of $v_i$'s children, handles self-loops via geometric series resolution, and renormalizes the parent's outgoing edges. It records each operation as a command in the reward compute sequence.
 
 ```
-Algorithm 10: Vertex Elimination
+Vertex Elimination
 1: Let G = (V, E, W') be a normalized phase-type graph (@def-05-continuous-normalization)
 2: Let x be the vertex scalar array
 3: Let C be the command sequence (initially populated with initialization commands)
@@ -243,18 +244,20 @@ Algorithm 10: Vertex Elimination
 **Complexity.** Time: $O(d_{\text{in}}(v_i) \cdot d_{\text{out}}(v_i))$ per vertex, where $d_{\text{in}}$ and $d_{\text{out}}$ are the in-degree and out-degree. Space: $O(d_{\text{in}} + d_{\text{out}})$ for the edge merge buffer.
 
 **Correctness.** Follows from @thm-06-elimination-preserves-reward and @thm-06-self-loop-preserves-reward. Each bypass edge preserves the probability flow through $v_i$, and self-loop resolution preserves the expected accumulated reward via the geometric series argument.
+:::
 
-### Algorithm 11: Full Graph Elimination
+::: {#alg-06-full-elimination}
+## Full Graph Elimination
 
-*Description.* This algorithm converts a (possibly cyclic) normalized phase-type graph into an acyclic representation by eliminating all transient vertices. It first determines the elimination order using SCC decomposition and topological sort, then eliminates vertices one by one using Algorithm 10, and finally records reverse-order edge accumulation commands for the remaining acyclic graph. The output is the reward compute graph (@def-06-reward-compute-graph).
+*Description.* This algorithm converts a (possibly cyclic) normalized phase-type graph into an acyclic representation by eliminating all transient vertices. It first determines the elimination order using SCC decomposition and topological sort, then eliminates vertices one by one using @alg-06-vertex-elimination, and finally records reverse-order edge accumulation commands for the remaining acyclic graph. The output is the reward compute graph (@def-06-reward-compute-graph).
 
 ```
-Algorithm 11: Full Graph Elimination
+Full Graph Elimination
 1: Let G = (V, E, W) be a phase-type graph representing PH_p(alpha, S) (@def-01-ph-graph)
 2:
 3: function BuildRewardComputeGraph(G)
-4:   scc <- TarjanSCC(G)                                 > Algorithm 6 in [04]
-5:   order <- TopologicalSort(scc)                        > Algorithm 7 in [04]
+4:   scc <- TarjanSCC(G)                                 > Tarjan SCC
+5:   order <- TopologicalSort(scc)                        > Topological Sort
 6:   vertices <- OrderVertices(order)                     > Transient first, then absorbing (@def-06-elimination-ordering)
 7:   C <- empty command sequence
 8:
@@ -274,7 +277,7 @@ Algorithm 11: Full Graph Elimination
 22:
 23:  > Phase 2: Elimination (forward pass)
 24:  for i <- 0 to |V| - 1 do
-25:    EliminateVertex(G, x, C, i)                        > Algorithm 10
+25:    EliminateVertex(G, x, C, i)                        > Vertex Elimination
 26:  end for
 27:
 28:  > Phase 3: Reverse-order edge accumulation
@@ -301,16 +304,18 @@ Algorithm 11: Full Graph Elimination
 | $\lambda_v$ | Total outgoing rate | `rate` |
 | $\text{originalIndex}(v)$ | Original graph index | `original_indices[i]` |
 
-**Complexity.** Time: $O(|V|^3)$ worst case (@thm-06-elimination-complexity). The SCC computation is $O(|V| + |E|)$ (Algorithm 6 in [04]), the topological sort is $O(|V|)$ (Algorithm 7 in [04]), and the elimination dominates at $O(|V|^3)$. Space: $O(|V|^2)$ for the adjacency lists (which can grow due to fill-in) and $O(|V|^2)$ for the command array.
+**Complexity.** Time: $O(|V|^3)$ worst case (@thm-06-elimination-complexity). The SCC computation is $O(|V| + |E|)$ (@alg-04-tarjan-scc), the topological sort is $O(|V|)$ (@alg-04-topological-sort), and the elimination dominates at $O(|V|^3)$. Space: $O(|V|^2)$ for the adjacency lists (which can grow due to fill-in) and $O(|V|^2)$ for the command array.
 
-**Correctness.** Follows from @thm-06-elimination-preserves-reward, @thm-06-self-loop-preserves-reward, and @thm-06-acyclic-absorption. Each vertex elimination preserves expected accumulated reward (@thm-06-elimination-preserves-reward), self-loops are correctly resolved (@thm-06-self-loop-preserves-reward), and the final graph is acyclic with correct absorption probabilities (@thm-06-acyclic-absorption). The reverse-order edge accumulation commands reconstruct the first-step expansion (@eq-06-first-step) for the acyclic graph, enabling moment computation via Algorithm 12.
+**Correctness.** Follows from @thm-06-elimination-preserves-reward, @thm-06-self-loop-preserves-reward, and @thm-06-acyclic-absorption. Each vertex elimination preserves expected accumulated reward (@thm-06-elimination-preserves-reward), self-loops are correctly resolved (@thm-06-self-loop-preserves-reward), and the final graph is acyclic with correct absorption probabilities (@thm-06-acyclic-absorption). The reverse-order edge accumulation commands reconstruct the first-step expansion (@eq-06-first-step) for the acyclic graph, enabling moment computation via @alg-06-moment-commands.
+:::
 
-### Algorithm 12: Moment Computation via Elimination Commands
+::: {#alg-06-moment-commands}
+## Moment Computation via Elimination Commands
 
-*Description.* Given a reward compute graph (the cached command sequence from Algorithm 11) and a reward vector, this algorithm computes the expected accumulated reward at each vertex by replaying the commands. The expected absorption time is recovered as $\text{result}[v_0]$ (the starting vertex entry). By replacing the reward vector with reward-transformed values, higher moments and reward-transformed moments can be computed using the same command sequence.
+*Description.* Given a reward compute graph (the cached command sequence from @alg-06-full-elimination) and a reward vector, this algorithm computes the expected accumulated reward at each vertex by replaying the commands. The expected absorption time is recovered as $\text{result}[v_0]$ (the starting vertex entry). By replacing the reward vector with reward-transformed values, higher moments and reward-transformed moments can be computed using the same command sequence.
 
 ```
-Algorithm 12: Moment Computation via Elimination Commands
+Moment Computation via Elimination Commands
 1: Let C = (c_0, ..., c_{N-1}) be the reward compute graph (@def-06-reward-compute-graph)
 2: Let r be a reward vector of length |V|, or NULL for default rewards (all ones)
 3:
@@ -354,7 +359,8 @@ Algorithm 12: Moment Computation via Elimination Commands
 
 **Complexity.** Time: $O(N)$ where $N \leq |V|^2$ is the number of commands. Each command is a single multiply-accumulate operation. Space: $O(|V|)$ for the result array.
 
-**Correctness.** The command sequence is generated by Algorithm 11 to encode the complete elimination process: initialization (vertex scalars), bypass operations (@thm-06-elimination-preserves-reward), self-loop resolutions (@thm-06-self-loop-preserves-reward), and reverse-order edge accumulation. Replaying the commands with a reward vector $\mathbf{r}$ computes the first-step expansion (@eq-06-first-step) for each vertex, with $x_v$ replaced by $r_v \cdot x_v$ (the reward-weighted vertex scalar). The result at the starting vertex $v_0$ gives $\mathbb{E}[\tilde{\tau}] = \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{r}) \mathbf{e}$, the expected accumulated reward (@def-01-reward-cph).
+**Correctness.** The command sequence is generated by @alg-06-full-elimination to encode the complete elimination process: initialization (vertex scalars), bypass operations (@thm-06-elimination-preserves-reward), self-loop resolutions (@thm-06-self-loop-preserves-reward), and reverse-order edge accumulation. Replaying the commands with a reward vector $\mathbf{r}$ computes the first-step expansion (@eq-06-first-step) for each vertex, with $x_v$ replaced by $r_v \cdot x_v$ (the reward-weighted vertex scalar). The result at the starting vertex $v_0$ gives $\mathbb{E}[\tilde{\tau}] = \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{r}) \mathbf{e}$, the expected accumulated reward (@def-01-reward-cph).
+:::
 
 ## Numerical Considerations
 
@@ -374,24 +380,24 @@ Algorithm 12: Moment Computation via Elimination Commands
 
 | Algorithm | File | Function | Lines |
 |-----------|------|----------|-------|
-| Algorithm 10 | `src/c/phasic.c` | `ptd_graph_ex_absorbation_time_comp_graph` (inner loop) | L4702--L4848 |
-| Algorithm 11 | `src/c/phasic.c` | `ptd_graph_ex_absorbation_time_comp_graph` | L4538--L4901 |
-| Algorithm 12 | `src/c/phasic.c` | `ptd_expected_waiting_time` | L6118--L6265 |
+| @alg-06-vertex-elimination | `src/c/phasic.c` | `ptd_graph_ex_absorbation_time_comp_graph` (inner loop) | L4702--L4848 |
+| @alg-06-full-elimination | `src/c/phasic.c` | `ptd_graph_ex_absorbation_time_comp_graph` | L4538--L4901 |
+| @alg-06-moment-commands | `src/c/phasic.c` | `ptd_expected_waiting_time` | L6118--L6265 |
 | Precomputation cache | `src/c/phasic.c` | `ptd_precompute_reward_compute_graph` | L1768--L1816 |
 
 **Deviations from pseudocode:**
 
-- **Algorithm 10 (edge merge):** The pseudocode shows a high-level sorted merge. The implementation uses `qsort` on edge arrays with pointer-based comparison (`arr_c_cmp`), sentinel dummy vertices (`dummy__ptd_min`, `dummy__ptd_max`), and explicit index tracking via `arr_p_index` and `arr_c_index` cross-references between parent and child arrays. This is a performance optimization that avoids hash table lookups.
+- **@alg-06-vertex-elimination (edge merge):** The pseudocode shows a high-level sorted merge. The implementation uses `qsort` on edge arrays with pointer-based comparison (`arr_c_cmp`), sentinel dummy vertices (`dummy__ptd_min`, `dummy__ptd_max`), and explicit index tracking via `arr_p_index` and `arr_c_index` cross-references between parent and child arrays. This is a performance optimization that avoids hash table lookups.
 
-- **Algorithm 11 (normalization):** The pseudocode shows normalization as part of the initialization phase. In the implementation, normalization is performed inline: the total rate is computed, edges are divided by the rate, and the vertex scalar $1/\lambda_v$ is recorded as the first command. This combines Algorithms 8 (from [05]) and 11 into a single pass.
+- **@alg-06-full-elimination (normalization):** The pseudocode shows normalization as part of the initialization phase. In the implementation, normalization is performed inline: the total rate is computed, edges are divided by the rate, and the vertex scalar $1/\lambda_v$ is recorded as the first command. This combines @alg-05-continuous-normalization and @alg-06-full-elimination into a single pass.
 
-- **Algorithm 11 (skip condition):** The pseudocode eliminates all vertices. The implementation skips parents with index less than $i$ (`if (parent_vertex_index < i) { continue; }`), because those parents have already been eliminated. This is correct because the elimination ordering processes vertices in increasing index order, and eliminated vertices no longer participate in the graph.
+- **@alg-06-full-elimination (skip condition):** The pseudocode eliminates all vertices. The implementation skips parents with index less than $i$ (`if (parent_vertex_index < i) { continue; }`), because those parents have already been eliminated. This is correct because the elimination ordering processes vertices in increasing index order, and eliminated vertices no longer participate in the graph.
 
-- **Algorithm 12 (self-scaling encoding):** When `from == to`, the `add_command` function stores `multiplier - 1` rather than `multiplier`. This transforms the generic operation `result[from] += result[to] * multiplier` into the scaling operation `result[from] *= (1 + (multiplier - 1)) = result[from] * multiplier`. This encoding avoids a branch in the inner loop of `ptd_expected_waiting_time`.
+- **@alg-06-moment-commands (self-scaling encoding):** When `from == to`, the `add_command` function stores `multiplier - 1` rather than `multiplier`. This transforms the generic operation `result[from] += result[to] * multiplier` into the scaling operation `result[from] *= (1 + (multiplier - 1)) = result[from] * multiplier`. This encoding avoids a branch in the inner loop of `ptd_expected_waiting_time`.
 
-- **Algorithm 11 (parameterized variant):** The function `ptd_graph_ex_absorbation_time_comp_graph_parameterized` implements the same algorithm but stores pointers to parameter-dependent values rather than concrete doubles, enabling re-evaluation when parameters change. This variant uses command types (`PP`, `P`, `INV`, `ZERO`, `DIVIDE`, `ONE_MINUS`) to distinguish different arithmetic operations.
+- **@alg-06-full-elimination (parameterized variant):** The function `ptd_graph_ex_absorbation_time_comp_graph_parameterized` implements the same algorithm but stores pointers to parameter-dependent values rather than concrete doubles, enabling re-evaluation when parameters change. This variant uses command types (`PP`, `P`, `INV`, `ZERO`, `DIVIDE`, `ONE_MINUS`) to distinguish different arithmetic operations.
 
-- **Algorithm 12 (MPFR fallback):** When the condition number exceeds the threshold, `ptd_expected_waiting_time` delegates to `ptd_expected_waiting_time_mpfr`, which replays the same command sequence using MPFR arbitrary-precision arithmetic. The MPFR command sequence stores multipliers as string representations in scientific notation to preserve full precision.
+- **@alg-06-moment-commands (MPFR fallback):** When the condition number exceeds the threshold, `ptd_expected_waiting_time` delegates to `ptd_expected_waiting_time_mpfr`, which replays the same command sequence using MPFR arbitrary-precision arithmetic. The MPFR command sequence stores multipliers as string representations in scientific notation to preserve full precision.
 
 ## Symbol Index
 

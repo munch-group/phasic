@@ -144,12 +144,13 @@ This is exact in the limit as $g \to \infty$ (@thm-14-uniformization-convergence
 
 ## Algorithms
 
-### Algorithm 22: DPH Forward Step
+::: {#alg-14-dph-forward-step}
+## DPH Forward Step
 
 *Description.* This algorithm performs a single forward step of the discrete-time Markov chain, propagating probability mass along edges and collecting mass at absorbing vertices. It is the atomic operation used by both DPH PMF computation and CPH PDF computation (via uniformization). The algorithm uses a precomputed list of edge increment operations for efficiency, avoiding repeated traversal of the adjacency list.
 
 ```
-Algorithm 22: DPH Forward Step
+DPH Forward Step
 1: Let p be the forward probability vector (@def-14-forward-prob-vector)
 2: Let increments = {(from, to, weight_ptr)} be the precomputed edge list
 3: Let δ be the weight scaling factor (1 for DPH, 1/g for uniformized CPH)
@@ -192,13 +193,15 @@ Algorithm 22: DPH Forward Step
 **Complexity.** Time: $O(|E|)$ per step (one pass through all edges plus two passes through absorbing vertices). Space: $O(|V|)$ for the probability vector copy.
 
 **Correctness.** Follows from @thm-14-forward-exact-dph. The precomputed edge list is equivalent to iterating over all edges in the graph. The subtract-from-source operation combined with the add-to-target correctly implements the Markov chain transition while maintaining mass conservation. The clearing of absorbing vertices before transfer prevents re-transferring already-absorbed mass.
+:::
 
-### Algorithm 23: CPH PDF via Uniformization
+::: {#alg-14-cph-uniformization}
+## CPH PDF via Uniformization
 
 *Description.* This algorithm computes the continuous phase-type PDF at a given time $t$ by uniformizing the CPH graph and iterating the DPH forward step. The granularity parameter $g$ controls the discretization resolution. The algorithm creates a DPH context with weight scaling $\delta = 1/g$, performs one initialization step (distributing mass from $v_0$), and then iterates forward steps. Each step advances time by $\Delta t = 1/g$, and the PDF at time $t$ is computed as $\text{PMF} \times g$ (@thm-14-pdf-pmf-relationship).
 
 ```
-Algorithm 23: CPH PDF via Uniformization
+CPH PDF via Uniformization
 1: Let G = (V, E, W) represent PH(α, S) (@def-01-ph-graph)
 2: Let g be the granularity parameter (g ≥ max_v λ_v required)
 3:
@@ -250,6 +253,7 @@ Algorithm 23: CPH PDF via Uniformization
 **Complexity.** Time: $O(|E|)$ per time step. To evaluate the PDF at time $t$, the algorithm performs $\lfloor gt \rfloor$ forward steps, giving total time $O(gt \cdot |E|)$. Space: $O(|V| + |E|)$ for the context (probability vector plus precomputed edge list).
 
 **Correctness.** Follows from @thm-14-uniformization-convergence and @thm-14-pdf-pmf-relationship. The uniformization condition $g \geq \max_v \lambda_v$ ensures all transition probabilities are non-negative (@def-14-uniformization). The auto-selection of $g = \max(2 \lambda_{\max}, 1000)$ provides a safety margin and a minimum resolution for numerical stability. The initialization step distributes mass from $v_0$ according to $\boldsymbol{\alpha}$, after which each step advances the discrete chain by one step in the uniformized time scale.
+:::
 
 ## Numerical Considerations
 
@@ -269,9 +273,9 @@ Algorithm 23: CPH PDF via Uniformization
 
 | Algorithm | File | Function | Lines |
 |-----------|------|----------|-------|
-| Algorithm 22 | `src/c/phasic.c` | `ptd_dph_probability_distribution_step` | L7498--L7549 |
-| Algorithm 23 (create) | `src/c/phasic.c` | `ptd_probability_distribution_context_create` | L7551--L7647 |
-| Algorithm 23 (step) | `src/c/phasic.c` | `ptd_probability_distribution_step` | L7661--L7674 |
+| @alg-14-dph-forward-step | `src/c/phasic.c` | `ptd_dph_probability_distribution_step` | L7498--L7549 |
+| @alg-14-cph-uniformization (create) | `src/c/phasic.c` | `ptd_probability_distribution_context_create` | L7551--L7647 |
+| @alg-14-cph-uniformization (step) | `src/c/phasic.c` | `ptd_probability_distribution_step` | L7661--L7674 |
 | DPH context creation | `src/c/phasic.c` | `_ptd_dph_probability_distribution_context_create` | L7361--L7479 |
 
 **Deviations from pseudocode:**

@@ -140,12 +140,13 @@ Crucially, this bound depends only on $k$ and $\varepsilon$, not on the magnitud
 
 ## Algorithms
 
-### Algorithm 4: Kahan Compensated Summation
+::: {#alg-03-kahan-summation}
+## Kahan Compensated Summation
 
 *Description.* This algorithm computes the sum of a sequence of floating-point numbers with $O(\varepsilon)$ error, independent of the number of terms. It maintains a running sum $S$ and a compensation term $C$ that tracks accumulated rounding errors.
 
 ```
-Algorithm 4: Kahan Compensated Summation
+Kahan Compensated Summation
 1: Let x_1, ..., x_n be floating-point numbers
 2:
 3: function KahanSum(x_1, ..., x_n)
@@ -174,13 +175,15 @@ Algorithm 4: Kahan Compensated Summation
 **Complexity.** Time: $O(n)$. Space: $O(1)$ (two extra variables beyond the input).
 
 **Correctness.** Follows from @thm-03-kahan-error. The error bound is $O(\varepsilon)$ regardless of $n$.
+:::
 
-### Algorithm 5: Log-Space Weight Evaluation
+::: {#alg-03-log-space-weight}
+## Log-Space Weight Evaluation
 
 *Description.* Given a coefficient vector $\mathbf{c}$ and parameter vector $\boldsymbol{\theta}$, this algorithm computes the multiplicative weight $w = \prod_j (c_j \theta_j)$ in log-space to avoid overflow and underflow.
 
 ```
-Algorithm 5: Log-Space Weight Evaluation
+Log-Space Weight Evaluation
 1: Let c = (c_1, ..., c_k) be the coefficient vector and θ = (θ_1, ..., θ_k) be the parameter vector
 2: Require: c_j θ_j > 0 for all j = 1, ..., k
 3:
@@ -209,6 +212,7 @@ Algorithm 5: Log-Space Weight Evaluation
 **Complexity.** Time: $O(k)$ per edge. Space: $O(1)$.
 
 **Correctness.** Follows from @thm-03-logspace-stability. The relative error is $O(k\varepsilon)$, and the computation is free of intermediate overflow or underflow regardless of the magnitudes of $c_j \theta_j$.
+:::
 
 ## Numerical Considerations
 
@@ -220,7 +224,7 @@ Algorithm 5: Log-Space Weight Evaluation
 
 **Kahan summation is *not* used** in the standard forward algorithm for PDF/PMF computation. Instead, the forward algorithm uses `long double` (80-bit extended precision on x86, 128-bit on some platforms) for its intermediate accumulators. This provides $\varepsilon \approx 10^{-19}$ rather than $\varepsilon \approx 10^{-16}$, which is sufficient for the forward algorithm's summation chains without the overhead of Kahan's compensation logic.
 
-**Log-space inner summation.** The log-space weight evaluation (Algorithm 5) does *not* use Kahan summation for the accumulation of $\log(c_j \theta_j)$ terms. This is acceptable because $k$ (the number of parameters per edge) is typically small (1-5 in practice), so the naive summation error $O(k\varepsilon)$ is negligible. If a future application required very large $k$, Kahan summation could be added to the inner loop of Algorithm 5 at minimal cost.
+**Log-space inner summation.** The log-space weight evaluation (@alg-03-log-space-weight) does *not* use Kahan summation for the accumulation of $\log(c_j \theta_j)$ terms. This is acceptable because $k$ (the number of parameters per edge) is typically small (1-5 in practice), so the naive summation error $O(k\varepsilon)$ is negligible. If a future application required very large $k$, Kahan summation could be added to the inner loop of @alg-03-log-space-weight at minimal cost.
 
 **Guard condition for log mode.** The strict positivity guard (@def-03-positivity-guard) is checked at the point of weight computation, not at graph construction time. This means a graph can be constructed with arbitrary coefficients and later fail at weight evaluation if the parameter vector causes some $c_j \theta_j \leq 0$. This is by design: the coefficients are fixed at construction, but the parameters change during inference.
 
@@ -230,8 +234,8 @@ Algorithm 5: Log-Space Weight Evaluation
 
 | Algorithm | File | Function | Notes |
 |-----------|------|----------|-------|
-| Algorithm 4 | `src/c/phasic.c` | Kahan struct and macros | Used in `ptd_expected_sojourn_time_subset`, `compute_pmf_with_gradient` |
-| Algorithm 5 | `src/c/phasic.c` | `ptd_graph_update_weights` (with `use_log=true`) | Log-space branch of weight update |
+| @alg-03-kahan-summation | `src/c/phasic.c` | Kahan struct and macros | Used in `ptd_expected_sojourn_time_subset`, `compute_pmf_with_gradient` |
+| @alg-03-log-space-weight | `src/c/phasic.c` | `ptd_graph_update_weights` (with `use_log=true`) | Log-space branch of weight update |
 
 **Deviations from pseudocode:**
 

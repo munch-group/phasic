@@ -90,12 +90,13 @@ Since $\sqrt{n}(\hat{\mathbf{m}} - \boldsymbol{\mu}(\boldsymbol{\theta}^*)) \xri
 
 ## Algorithms
 
-### Algorithm 33: Method of Moments Estimation
+::: {#alg-21-method-of-moments}
+## Method of Moments Estimation
 
-*Description.* Algorithm 33 estimates the parameter vector $\boldsymbol{\theta}$ of a parameterized phase-type model by matching model moments to sample moments. The algorithm proceeds in several stages: (1) compute sample moments from the data, (2) optionally select the number of moments $K$ by condition number analysis, (3) find an initial guess via coordinate-wise grid search on the first moment, (4) solve the unweighted least-squares problem, and (5) optionally re-solve with optimal GMM weighting. Standard errors are computed via the delta method (@thm-21-consistency) and used to construct Gaussian priors.
+*Description.* @alg-21-method-of-moments estimates the parameter vector $\boldsymbol{\theta}$ of a parameterized phase-type model by matching model moments to sample moments. The algorithm proceeds in several stages: (1) compute sample moments from the data, (2) optionally select the number of moments $K$ by condition number analysis, (3) find an initial guess via coordinate-wise grid search on the first moment, (4) solve the unweighted least-squares problem, and (5) optionally re-solve with optimal GMM weighting. Standard errors are computed via the delta method (@thm-21-consistency) and used to construct Gaussian priors.
 
 ```
-Algorithm 33: Method of Moments Estimation
+Method of Moments Estimation
 1: Let G = (V, E) be a parameterized phase-type graph with d parameters
 2: Let x_1, ..., x_n be observed data (possibly multivariate, F features)
 3: Let K be the number of moments (auto-selected if not specified)
@@ -178,6 +179,7 @@ Algorithm 33: Method of Moments Estimation
 **Complexity.** Time: $O(N_{\text{iter}} \cdot (C_{\text{mom}} + FK))$, where $N_{\text{iter}}$ is the number of least-squares iterations (at most $200 \cdot d_{\text{free}}$), $C_{\text{mom}}$ is the cost of one model-moment evaluation via [15], and $FK$ is the cost of computing the residual. The initial grid search costs $O(d_{\text{free}} \cdot |G_{\text{grid}}| \cdot C_{\text{mom}})$ where $|G_{\text{grid}}| = 20$ is the grid size. The Cholesky factorization and pseudoinverse cost $O((FK)^3)$ and $O((FK)^2 d_{\text{free}})$ respectively. Space: $O((FK)^2)$ for the moment covariance matrix and $O(d_{\text{free}})$ for the parameter vector.
 
 **Correctness.** By @thm-21-consistency, the estimator is consistent under identification and finite moments. The two-step GMM procedure achieves efficiency: the first step provides a consistent (but possibly inefficient) estimate, and the second step uses the estimated optimal weighting $\mathbf{W} = \hat{\boldsymbol{\Sigma}}^{-1}$ to minimize asymptotic variance. The delta method standard errors (@eq-21-efficient-cov) provide valid confidence intervals asymptotically.
+:::
 
 ## Numerical Considerations
 
@@ -197,7 +199,7 @@ Algorithm 33: Method of Moments Estimation
 
 | Algorithm | File | Function | Lines |
 |-----------|------|----------|-------|
-| Algorithm 33 (entry) | `src/phasic/method_of_moments.py` | `method_of_moments` | L205--L590 |
+| @alg-21-method-of-moments (entry) | `src/phasic/method_of_moments.py` | `method_of_moments` | L205--L590 |
 | Weight transform | `src/phasic/method_of_moments.py` | `_compute_weight_transform` | L56--L88 |
 | Nr moments selection | `src/phasic/method_of_moments.py` | `_select_nr_moments` | L91--L119 |
 | Moment covariance | `src/phasic/method_of_moments.py` | `_estimate_moment_covariance` | L122--L149 |
@@ -216,7 +218,7 @@ Algorithm 33: Method of Moments Estimation
 | Symbol | Name | First appearance |
 |--------|------|-----------------|
 | $\hat{\boldsymbol{\theta}}_n$ | MoM estimator | @thm-21-consistency |
-| $d_{\text{free}}$ | Number of free parameters | Algorithm 33 |
+| $d_{\text{free}}$ | Number of free parameters | @alg-21-method-of-moments |
 | $F$ | Number of features | @def-21-sample-model-moments |
 | $\mathbf{G}$ | Generalized inverse mapping | @thm-21-consistency |
 | $\hat{\mathbf{m}}$ | Sample moment vector | @def-21-sample-model-moments |

@@ -96,22 +96,23 @@ It remains to connect the preservation of vertex scalars $x_u$ to the preservati
 
 ## Algorithms
 
-### Algorithm 13: Reward Transformation
+::: {#alg-07-reward-transformation}
+## Reward Transformation
 
 *Description.* This algorithm constructs a new phase-type graph representing the reward-transformed distribution. It first normalizes the input graph, then eliminates all zero-reward vertices using bypass edges (the same technique as graph elimination in [06]), and finally constructs a new graph from the remaining vertices with scaled edge weights. The algorithm handles both continuous (CPH) and discrete (DPH) phase-type distributions.
 
 For the continuous case, positive rewards scale the outgoing rates by $1/r_v$. For the discrete case, integer rewards $r_v > 1$ are implemented by inserting a chain of $r_v$ auxiliary vertices that each pass through deterministically, effectively counting $r_v$ steps per visit to the original state.
 
 ```
-Algorithm 13: Reward Transformation
+Reward Transformation
 1: Let G = (V, E, W) be a phase-type graph representing PH_p(alpha, S) (@def-01-ph-graph)
 2: Let r be a reward vector of length |V| with r_v >= 0 for all transient vertices
 3: Let epsilon <- 10^{-6}
 
 4: function RewardTransform(G, r)
 5:   > Step 1: Determine elimination order
-6:   scc <- TarjanSCC(G)                               > Algorithm 6 in [04]
-7:   order <- TopologicalSort(scc)                      > Algorithm 7 in [04]
+6:   scc <- TarjanSCC(G)                               > Tarjan SCC
+7:   order <- TopologicalSort(scc)                      > Topological Sort
 8:   vertices <- OrderVertices(order)                    > Transient first, absorbing last
 
 10:  > Step 2: Assign effective rewards
@@ -148,7 +149,7 @@ Algorithm 13: Reward Transformation
 41:    v <- vertices[i]
 42:    for each parent u in parents(v) do
 43:      p_u_v <- w'(u -> v)
-44:      > Sorted merge of u's and v's edge lists (same as Algorithm 10 in [06])
+44:      > Sorted merge of u's and v's edge lists (same as Vertex Elimination)
 45:      for each child z of v do
 46:        if z = u then                                  > Self-loop: geometric resolution
 47:          p_self <- p_u_v * w'(v -> u)
@@ -203,6 +204,7 @@ Algorithm 13: Reward Transformation
 **Complexity.** Time: $O(|V_0|^3)$ worst case, where $|V_0|$ is the number of zero-reward vertices. The SCC computation and topological sort are $O(|V| + |E|)$. Each zero-reward vertex elimination involves merging edge lists with all parents, at worst $O(|V|^2)$ per vertex. The positive-reward scaling is $O(|E|)$. The new graph construction is $O(|V'| + |E'|)$ where $|V'| = |V| - |V_0|$ and $|E'|$ is the edge count in the transformed graph (which may be larger than $|E|$ due to fill-in from bypass edges). Space: $O(|V|^2)$ for the working edge lists during elimination, plus $O(|V'| + |E'|)$ for the new graph.
 
 **Correctness.** For positive-reward vertices: @thm-07-positive-reward shows that scaling edge weights by $1/r_v$ produces the sub-intensity matrix $\triangle(\mathbf{r})^{-1}\mathbf{S}$. For zero-reward vertices: @thm-07-zero-reward-preserves shows that vertex elimination (using bypass edges as in @def-06-vertex-elimination) preserves the expected accumulated reward. The combined transformation correctly handles mixed reward vectors with both positive and zero entries.
+:::
 
 ## Numerical Considerations
 
@@ -220,9 +222,9 @@ Algorithm 13: Reward Transformation
 
 | Algorithm | File | Function | Lines |
 |-----------|------|----------|-------|
-| Algorithm 13 (core) | `src/c/phasic.c` | `_ptd_graph_reward_transform` | L3550--L4023 |
-| Algorithm 13 (CPH wrapper) | `src/c/phasic.c` | `ptd_graph_reward_transform` | L4025--L4036 |
-| Algorithm 13 (DPH) | `src/c/phasic.c` | `ptd_graph_dph_reward_transform` | L4038--L4232 |
+| @alg-07-reward-transformation (core) | `src/c/phasic.c` | `_ptd_graph_reward_transform` | L3550--L4023 |
+| @alg-07-reward-transformation (CPH wrapper) | `src/c/phasic.c` | `ptd_graph_reward_transform` | L4025--L4036 |
+| @alg-07-reward-transformation (DPH) | `src/c/phasic.c` | `ptd_graph_dph_reward_transform` | L4038--L4232 |
 
 **Deviations from pseudocode:**
 
@@ -230,7 +232,7 @@ Algorithm 13: Reward Transformation
 
 - **Edge weight in new graph:** The pseudocode shows $w_{\text{new}}(v' \to z') = w'(v \to z) / r'[\text{index}(v)]$. The implementation stores $r'[i]$ as $r_v / \lambda_v$ (the reward divided by the original rate), so dividing the normalized probability $w'(v \to z)$ by $r'[i]$ gives $w'(v \to z) \cdot \lambda_v / r_v = w(v \to z) / r_v$, which is the correct transformed rate.
 
-- **Edge list merge:** The same sorted-merge technique with sentinel dummy vertices is used as in Algorithm 10 (see Implementation Notes in [06]). The edge lists are sorted by pointer address, and existing edges to the same target are identified by pointer equality.
+- **Edge list merge:** The same sorted-merge technique with sentinel dummy vertices is used as in @alg-06-vertex-elimination (see Implementation Notes in [06]). The edge lists are sorted by pointer address, and existing edges to the same target are identified by pointer equality.
 
 - **DPH self-loop handling:** When constructing auxiliary vertex chains for discrete rewards $r_v > 1$, the implementation checks whether the last auxiliary vertex should have a self-loop edge. If the original vertex has self-loop probability $p_{ii} > \epsilon$, an edge from the last auxiliary vertex back to the original vertex with weight $1 - \text{rate}$ is added, where rate is the sum of outgoing edge weights. This reproduces the self-loop structure of the original DPH at the end of the auxiliary chain.
 
@@ -242,6 +244,6 @@ Algorithm 13: Reward Transformation
 |--------|------|-----------------|
 | $\epsilon$ | Zero-reward threshold ($10^{-6}$) | @def-07-general-reward |
 | $G'$ | Reward-transformed graph | @def-07-general-reward |
-| $\mathbf{r}'$ | Effective reward vector (after threshold and normalization) | Algorithm 13 |
+| $\mathbf{r}'$ | Effective reward vector (after threshold and normalization) | @alg-07-reward-transformation |
 | $w_{\text{new}}(v \to z)$ | Transformed edge weight | @def-07-positive-reward |
 | $x_v'$ | Transformed vertex scalar ($r_v / \lambda_v$) | @def-07-positive-reward |

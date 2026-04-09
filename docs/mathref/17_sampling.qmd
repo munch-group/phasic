@@ -168,12 +168,13 @@ since $h_{v^{(L)}} = 1$ for $v^{(L)} \in A$. The factor $1/h_{v^{(0)}}$ is exact
 
 ## Algorithms
 
-### Algorithm 27: Unconditioned Path Sampling
+::: {#alg-17-unconditioned-sampling}
+## Unconditioned Path Sampling
 
 *Description.* Given a phase-type graph $G$, this algorithm generates a random path from the starting vertex to an absorbing vertex by simulating the Markov chain. At each transient vertex, it draws a sojourn time from the exponential distribution with rate equal to the total outgoing rate, then selects the next vertex with probability proportional to the edge weights. If a reward vector is provided, the accumulated reward is computed along the path.
 
 ```
-Algorithm 27: Unconditioned Path Sampling
+Unconditioned Path Sampling
 1: Let G = (V, E, W) be a phase-type graph with starting vertex v_0
 2: Let r be an optional reward vector indexed by vertices
 3:
@@ -234,13 +235,15 @@ Algorithm 27: Unconditioned Path Sampling
 **Complexity.** Time: $O(L \cdot d_{\max})$ where $L$ is the path length and $d_{\max}$ is the maximum out-degree. Space: $O(L)$ for storing the path.
 
 **Correctness.** Follows from @thm-17-unconditioned-correctness. The inverse-CDF method for the exponential distribution ($-\log(U)/\lambda$) produces $\operatorname{Exp}(\lambda)$-distributed samples. The cumulative-weight selection implements categorical sampling with probabilities proportional to edge weights.
+:::
 
-### Algorithm 28: Backward Probability Computation
+::: {#alg-17-backward-probability}
+## Backward Probability Computation
 
 *Description.* Given a phase-type graph $G$ and a set of target vertices $A$, this algorithm computes the backward probability vector $\mathbf{h}$ (@def-17-backward-prob) via a single reverse pass over the vertices. Since the backward probability of a vertex depends only on the backward probabilities of its children, processing vertices in reverse index order ensures that all children are processed before their parents, provided the graph's topological structure is compatible with the index ordering. For graphs where the index ordering does not perfectly reflect the topological order, the algorithm still converges because it solves the fixed-point equation (@eq-17-backward-system) through a backward sweep.
 
 ```
-Algorithm 28: Backward Probability Computation
+Backward Probability Computation
 1: Let G = (V, E, W) be a phase-type graph with |V| vertices
 2: Let A ⊆ V be the set of target vertices (given as indices)
 3:
@@ -282,15 +285,17 @@ Algorithm 28: Backward Probability Computation
 **Complexity.** Time: $O(|V| + |E|)$, since each vertex and each edge is visited exactly once. Space: $O(|V|)$ for the backward probability array.
 
 **Correctness.** The algorithm computes the solution to the system of equations (@eq-17-backward-system) in @def-17-backward-prob. The boundary conditions are enforced in lines 6--8 (target vertices) and lines 11--12 (non-target absorbing vertices, which retain $h = 0$). For transient vertices, line 22 directly evaluates @eq-17-backward-system. The reverse-order traversal ensures that for acyclic graphs (or graphs where children have higher indices than parents), all children are processed before their parent. In phase-type graphs arising from phasic's state-space construction ([08]), this property holds because child vertices are created after their parents.
+:::
 
-### Algorithm 29: Conditioned Path Sampling
+::: {#alg-17-conditioned-sampling}
+## Conditioned Path Sampling
 
-*Description.* Given a phase-type graph $G$ and a backward probability vector $\mathbf{h}$ (computed by Algorithm 28), this algorithm generates a random path conditioned on reaching the target set $A$. The key modification compared to Algorithm 27 is that the transition probability at each step is reweighted by the backward probability of the candidate child vertex, implementing the Doob $h$-transform (@thm-17-conditioned-correctness).
+*Description.* Given a phase-type graph $G$ and a backward probability vector $\mathbf{h}$ (computed by @alg-17-backward-probability), this algorithm generates a random path conditioned on reaching the target set $A$. The key modification compared to @alg-17-unconditioned-sampling is that the transition probability at each step is reweighted by the backward probability of the candidate child vertex, implementing the Doob $h$-transform (@thm-17-conditioned-correctness).
 
 ```
-Algorithm 29: Conditioned Path Sampling
+Conditioned Path Sampling
 1: Let G = (V, E, W) be a phase-type graph with starting vertex v_0
-2: Let h be the backward probability vector (from Algorithm 28)
+2: Let h be the backward probability vector (from Backward Probability)
 3:
 4: function SamplePathConditioned(G, h)
 5:   P ← empty sequence
@@ -341,12 +346,13 @@ Algorithm 29: Conditioned Path Sampling
 **Complexity.** Time: $O(L \cdot d_{\max})$ where $L$ is the conditioned path length and $d_{\max}$ is the maximum out-degree. Space: $O(L + |V|)$ for the path and the backward probability vector.
 
 **Correctness.** Follows from @thm-17-conditioned-correctness. The guided transition probability in line 25 implements @eq-17-guided-prob. The termination condition $h[v] < 1$ in line 9 ensures the process stops upon reaching a target vertex (where $h = 1$). The guard $g \leq 0$ in line 19 handles the degenerate case where no target is reachable (which cannot occur if $h_{v_0} > 0$, but provides numerical safety).
+:::
 
 ## Numerical Considerations
 
 **Exponential variate generation.** The implementation uses $-\log(U + \epsilon) / \lambda_v$ with $\epsilon = 10^{-7}$ (see `phasic.c` line 6709) rather than $-\log(U) / \lambda_v$. This prevents overflow when $U = 0$ (which can occur with finite-precision pseudorandom number generators). The bias introduced is negligible: the maximum relative error in the waiting time is $|\log(U + \epsilon) - \log(U)| / |\log(U)| \leq \epsilon / (U |\log(U)|)$, which is small for all but the most extreme tail events.
 
-**Cumulative weight comparison.** The next-state selection compares $\sum w / \lambda_v \geq U'$ (line 22 in Algorithm 27). This is the inverse-CDF method for categorical sampling. The implementation accumulates weights in the order edges are stored, which may introduce a slight bias if floating-point rounding causes the cumulative sum to reach 1 before the last edge. In practice, this effect is negligible for graphs with moderate out-degree.
+**Cumulative weight comparison.** The next-state selection compares $\sum w / \lambda_v \geq U'$ (line 22 in @alg-17-unconditioned-sampling). This is the inverse-CDF method for categorical sampling. The implementation accumulates weights in the order edges are stored, which may introduce a slight bias if floating-point rounding causes the cumulative sum to reach 1 before the last edge. In practice, this effect is negligible for graphs with moderate out-degree.
 
 **DPH rate validation.** For discrete phase-type sampling (`ptd_dph_random_sample`), the implementation validates that the total outgoing rate $\lambda_v \leq 1 + \epsilon$ at each vertex (with $\epsilon = 10^{-4}$), since DPH transition probabilities must sum to at most 1. This guards against accidental use of a CPH graph with the DPH sampling routine.
 
@@ -358,18 +364,18 @@ Algorithm 29: Conditioned Path Sampling
 
 | Algorithm | File | Function | Lines |
 |-----------|------|----------|-------|
-| Algorithm 27 (path sampling) | `src/c/phasic.c` | `ptd_random_sample_path` | L6741--L6804 |
-| Algorithm 27 (sample with reward) | `src/c/phasic.c` | `ptd_random_sample` | L6694--L6739 |
-| Algorithm 27 (DPH variant) | `src/c/phasic.c` | `ptd_dph_random_sample` | L7082--L7149 |
-| Algorithm 28 | `src/c/phasic.c` | `ptd_backward_probabilities` | L6806--L6865 |
-| Algorithm 29 | `src/c/phasic.c` | `ptd_random_sample_path_conditioned` | L6867--L6946 |
-| Algorithm 29 (fixed-buffer variant) | `src/c/phasic.c` | `ptd_random_sample_path_conditioned_fixed` | L6956--L7032 |
+| @alg-17-unconditioned-sampling (path sampling) | `src/c/phasic.c` | `ptd_random_sample_path` | L6741--L6804 |
+| @alg-17-unconditioned-sampling (sample with reward) | `src/c/phasic.c` | `ptd_random_sample` | L6694--L6739 |
+| @alg-17-unconditioned-sampling (DPH variant) | `src/c/phasic.c` | `ptd_dph_random_sample` | L7082--L7149 |
+| @alg-17-backward-probability | `src/c/phasic.c` | `ptd_backward_probabilities` | L6806--L6865 |
+| @alg-17-conditioned-sampling | `src/c/phasic.c` | `ptd_random_sample_path_conditioned` | L6867--L6946 |
+| @alg-17-conditioned-sampling (fixed-buffer variant) | `src/c/phasic.c` | `ptd_random_sample_path_conditioned_fixed` | L6956--L7032 |
 | Path reward decomposition | `src/phasic/bffg.py` | `path_to_rewards` | L22--L74 |
 | Path exit rates | `src/phasic/bffg.py` | `path_exit_rates` | L77--L118 |
 
 **Deviations from pseudocode:**
 
-- **Dynamic array growth.** Algorithm 27 and 29 show paths as abstract sequences. The C implementation uses a dynamically resizing array (initial capacity 16, doubled on overflow) for `vertex_indices` and `entry_times`.
+- **Dynamic array growth.** @alg-17-unconditioned-sampling and 29 show paths as abstract sequences. The C implementation uses a dynamically resizing array (initial capacity 16, doubled on overflow) for `vertex_indices` and `entry_times`.
 
 - **Safety limit.** `ptd_random_sample_path` enforces a maximum step count of $100 \times |V|$ to prevent infinite loops in degenerate graphs. The pseudocode does not include this guard.
 
@@ -393,4 +399,4 @@ Algorithm 29: Conditioned Path Sampling
 | $A$ | Target vertex set | @def-17-backward-prob |
 | $\tilde{q}_{vz}$ | Guided transition probability | @def-17-conditioned-sampling |
 | $\tilde{\tau}(\mathcal{P})$ | Accumulated reward along path | @def-17-path-reward |
-| $g$ | Guided normalizer | Algorithm 29 |
+| $g$ | Guided normalizer | @alg-17-conditioned-sampling |

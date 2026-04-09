@@ -75,7 +75,7 @@ This is the key algorithmic innovation that enables efficient Bayesian inference
 
 $$G_{\mathrm{sym}}(\boldsymbol{\theta}) = \operatorname{Eliminate}(G(\boldsymbol{\theta}))$$
 
-*where $G(\boldsymbol{\theta})$ is the concrete graph obtained by evaluating all parameterized edges with $\boldsymbol{\theta}$, and $\operatorname{Eliminate}$ is the concrete graph elimination (Algorithm 11 in [06]).*
+*where $G(\boldsymbol{\theta})$ is the concrete graph obtained by evaluating all parameterized edges with $\boldsymbol{\theta}$, and $\operatorname{Eliminate}$ is the concrete graph elimination (@alg-06-full-elimination).*
 :::
 
 ::: {.proof}
@@ -104,9 +104,9 @@ By @lem-09-cse-preserves-evaluation, interning does not affect evaluation. There
 ## Complexity of symbolic elimination and instantiation
 *Let $G = (V, E, W)$ be a parameterized phase-type graph with $n = |V|$ vertices.*
 
-*(a) Symbolic graph elimination (Algorithm 16) runs in $O(n^3)$ time and produces $O(n^2)$ symbolic edges.*
+*(a) Symbolic graph elimination (@alg-10-symbolic-elimination) runs in $O(n^3)$ time and produces $O(n^2)$ symbolic edges.*
 
-*(b) Instantiation (Algorithm 17) runs in $O(n^2 \cdot h)$ time per parameter vector, where $h$ is the maximum expression tree height. With CSE, $h$ is bounded by $O(n)$, giving $O(n^3)$ worst-case instantiation time, but in practice $h$ is much smaller.*
+*(b) Instantiation (@alg-10-symbolic-instantiation) runs in $O(n^2 \cdot h)$ time per parameter vector, where $h$ is the maximum expression tree height. With CSE, $h$ is bounded by $O(n)$, giving $O(n^3)$ worst-case instantiation time, but in practice $h$ is much smaller.*
 
 *(c) For $m$ parameter vectors, the total cost is $O(n^3 + m \cdot n^2 \cdot h)$, compared to $O(m \cdot n^3)$ for repeated concrete elimination. The break-even point is $m \approx n / h$ evaluations.*
 :::
@@ -114,19 +114,20 @@ By @lem-09-cse-preserves-evaluation, interning does not affect evaluation. There
 ::: {.proof}
 (a) The elimination loop iterates over all $n$ vertices. For each vertex $v$, it examines all parent-child pairs. In the worst case (dense graph), a vertex has $O(n)$ parents and $O(n)$ children, yielding $O(n^2)$ bypass operations per vertex and $O(n^3)$ total. Each bypass operation constructs a constant number of expression nodes via interned constructors ($O(1)$ amortized hash table operations). The number of symbolic edges after elimination is at most $O(n^2)$ because the acyclic graph has at most $n(n-1)/2$ edges.
 
-(b) Instantiation evaluates one expression per symbolic edge plus one rate expression per vertex. There are $O(n^2)$ edges and $O(n)$ vertices. Each expression evaluation costs $O(h)$ where $h$ is the tree height (Algorithm 15 in [09]). With CSE, the expression DAG has $O(n^2)$ nodes total (bounded by the number of elimination operations), and each node is evaluated at most once if a caching evaluation strategy is used.
+(b) Instantiation evaluates one expression per symbolic edge plus one rate expression per vertex. There are $O(n^2)$ edges and $O(n)$ vertices. Each expression evaluation costs $O(h)$ where $h$ is the tree height (@alg-09-expression-evaluation). With CSE, the expression DAG has $O(n^2)$ nodes total (bounded by the number of elimination operations), and each node is evaluated at most once if a caching evaluation strategy is used.
 
 (c) The combined cost follows directly from (a) and (b). Without symbolic elimination, each parameter vector requires $O(n^3)$ for concrete elimination. With symbolic elimination, the $O(n^3)$ setup is amortized over $m$ evaluations, each costing $O(n^2 \cdot h)$ instead of $O(n^3)$. $\square$
 :::
 
 ## Algorithms
 
-### Algorithm 16: Symbolic Graph Elimination
+::: {#alg-10-symbolic-elimination}
+## Symbolic Graph Elimination
 
 *Description.* This algorithm performs graph elimination symbolically, building expression trees at each edge instead of computing numeric values. It proceeds in five phases: (1) topological ordering via SCC decomposition, (2) symbolic vertex and rate expression creation, (3) edge weight to probability conversion, (4) elimination loop with bypass edges, and (5) result structure assembly.
 
 ```
-Algorithm 16: Symbolic Graph Elimination
+Symbolic Graph Elimination
 1: Let G = (V, E, W) be a parameterized phase-type graph (see @def-01-param-edges)
 2: Let k = param_length(G) be the parameter dimension
 
@@ -134,8 +135,8 @@ Algorithm 16: Symbolic Graph Elimination
 4:   I ← CreateInternTable(4096)                       ▷ CSE intern table (Def. 9.3 in [09])
 5:
 6:   ▷ Phase 1: Topological ordering
-7:   SCC ← FindSCCs(G)                                 ▷ Algorithm 6 in [04]
-8:   order ← TopologicalSort(SCC)                      ▷ Algorithm 7 in [04]
+7:   SCC ← FindSCCs(G)                                 ▷ Tarjan SCC
+8:   order ← TopologicalSort(SCC)                      ▷ Topological Sort
 9:   Reorder V: non-absorbing vertices first (in topological order), then absorbing
 10:
 11:  ▷ Phase 2: Create symbolic vertices with rate expressions
@@ -156,7 +157,7 @@ Algorithm 16: Symbolic Graph Elimination
 26:    end for
 27:  end for
 28:
-29:  ▷ Phase 4: Elimination loop (mirrors Algorithm 11 in [06])
+29:  ▷ Phase 4: Elimination loop (mirrors Full Graph Elimination)
 30:  for i ← 0 to |V| - 1 do
 31:    v ← vertices[i]
 32:    if v is absorbing then continue end if
@@ -210,14 +211,16 @@ Algorithm 16: Symbolic Graph Elimination
 
 **Complexity.** Time: $O(|V|^3)$ for the elimination loop (@thm-10-complexity(a)). Space: $O(|V|^2 \cdot h)$ where $h$ is the average expression tree height; with CSE, the total number of unique expression nodes is $O(|V|^2)$.
 
-**Correctness.** Follows from @thm-10-symbolic-correctness. Each symbolic operation mirrors the corresponding concrete operation in Algorithm 11 in [06], and @thm-09-evaluation-correctness guarantees that evaluating the expression trees reproduces the numeric results.
+**Correctness.** Follows from @thm-10-symbolic-correctness. Each symbolic operation mirrors the corresponding concrete operation in @alg-06-full-elimination, and @thm-09-evaluation-correctness guarantees that evaluating the expression trees reproduces the numeric results.
+:::
 
-### Algorithm 17: Symbolic Graph Instantiation
+::: {#alg-10-symbolic-instantiation}
+## Symbolic Graph Instantiation
 
 *Description.* This algorithm evaluates all expression trees in a symbolic graph with a concrete parameter vector, producing a concrete phase-type graph. It is the fast path that replaces repeated calls to the full elimination algorithm.
 
 ```
-Algorithm 17: Symbolic Graph Instantiation
+Symbolic Graph Instantiation
 1: Let G_sym = (V, E_sym, k) be a symbolic graph (Definition 10.1)
 2: Let θ = (θ₁, ..., θₖ) be a concrete parameter vector
 
@@ -235,7 +238,7 @@ Algorithm 17: Symbolic Graph Instantiation
 14:
 15:  ▷ Evaluate expressions and create edges
 16:  for i ← 0 to |V| - 1 do
-17:    inv_rate ← EvaluateExpression(rate_expr(i), θ)  ▷ Algorithm 15 in [09]
+17:    inv_rate ← EvaluateExpression(rate_expr(i), θ)  ▷ Expression Evaluation
 18:    for each symbolic edge (i → j) ∈ E_sym do
 19:      prob ← EvaluateExpression(prob_expr(i → j), θ)
 20:      weight ← prob / inv_rate                       ▷ Convert probability to rate
@@ -262,6 +265,7 @@ Algorithm 17: Symbolic Graph Instantiation
 **Complexity.** Time: $O(|E_{\mathrm{sym}}| \cdot h + |V|)$ where $|E_{\mathrm{sym}}|$ is the number of symbolic edges and $h$ is the maximum expression tree height. In the worst case $|E_{\mathrm{sym}}| = O(|V|^2)$, giving $O(|V|^2 \cdot h)$. Space: $O(|V| + |E_{\mathrm{sym}}|)$ for the new concrete graph.
 
 **Correctness.** Follows from @thm-10-symbolic-correctness. By @thm-09-evaluation-correctness, each expression evaluation produces the correct numeric value. The probability-to-rate conversion $w = p / (1/\lambda_v) = p \cdot \lambda_v$ recovers the original edge weight from the normalized probability and the rate.
+:::
 
 ## Numerical Considerations
 
@@ -269,7 +273,7 @@ Algorithm 17: Symbolic Graph Instantiation
 
 **Self-loop probability approaching 1.** When the self-loop probability $p(\boldsymbol{\theta}) \to 1$, the scale expression $1/(1-p)$ diverges. This corresponds to an absorbing cycle in the original graph, which again violates the phase-type graph invariants. In practice, well-specified models avoid this regime.
 
-**Expression tree depth.** Without CSE, expression trees can grow exponentially with the number of elimination steps (each elimination can double the tree depth through multiplication). The intern table (@def-09-cse-interning) converts trees to DAGs, bounding the total number of unique nodes by $O(|V|^2)$. However, the evaluation algorithm (Algorithm 15 in [09]) traverses the tree structure, not the DAG, so shared subtrees may be evaluated multiple times. A memoized evaluation strategy would reduce this to $O(|V|^2)$ total operations per instantiation.
+**Expression tree depth.** Without CSE, expression trees can grow exponentially with the number of elimination steps (each elimination can double the tree depth through multiplication). The intern table (@def-09-cse-interning) converts trees to DAGs, bounding the total number of unique nodes by $O(|V|^2)$. However, the evaluation algorithm (@alg-09-expression-evaluation) traverses the tree structure, not the DAG, so shared subtrees may be evaluated multiple times. A memoized evaluation strategy would reduce this to $O(|V|^2)$ total operations per instantiation.
 
 ## Implementation Notes
 
@@ -277,11 +281,11 @@ Algorithm 17: Symbolic Graph Instantiation
 
 | Algorithm | File | Function | Notes |
 |-----------|------|----------|-------|
-| Algorithm 16 (full) | `src/c/phasic_symbolic.c` | `ptd_graph_symbolic_elimination` | L248-L694 |
-| Algorithm 16 (Phase 1: ordering) | `src/c/phasic_symbolic.c` | lines within `ptd_graph_symbolic_elimination` | Uses `ptd_find_strongly_connected_components` and `ptd_scc_graph_topological_sort` |
-| Algorithm 16 (Phase 4: elimination) | `src/c/phasic_symbolic.c` | lines within `ptd_graph_symbolic_elimination` | L412-L563 |
-| Algorithm 17 | `src/c/phasic_symbolic.c` | `ptd_graph_symbolic_instantiate` | L746-L805 |
-| Algorithm 17 (batch) | `src/c/phasic_symbolic.c` | `ptd_graph_symbolic_instantiate_batch` | L810-L825 |
+| @alg-10-symbolic-elimination (full) | `src/c/phasic_symbolic.c` | `ptd_graph_symbolic_elimination` | L248-L694 |
+| @alg-10-symbolic-elimination (Phase 1: ordering) | `src/c/phasic_symbolic.c` | lines within `ptd_graph_symbolic_elimination` | Uses `ptd_find_strongly_connected_components` and `ptd_scc_graph_topological_sort` |
+| @alg-10-symbolic-elimination (Phase 4: elimination) | `src/c/phasic_symbolic.c` | lines within `ptd_graph_symbolic_elimination` | L412-L563 |
+| @alg-10-symbolic-instantiation | `src/c/phasic_symbolic.c` | `ptd_graph_symbolic_instantiate` | L746-L805 |
+| @alg-10-symbolic-instantiation (batch) | `src/c/phasic_symbolic.c` | `ptd_graph_symbolic_instantiate_batch` | L810-L825 |
 | Cleanup | `src/c/phasic_symbolic.c` | `ptd_graph_symbolic_destroy` | L703-L739 |
 | Serialization | `src/c/phasic_symbolic.c` | `ptd_graph_symbolic_to_json`, `ptd_graph_symbolic_from_json` | JSON serialization |
 
@@ -295,7 +299,7 @@ Algorithm 17: Symbolic Graph Instantiation
 
 - **Expression memory management.** The intern table owns the canonical expression nodes during elimination. When building the result structure (Phase 5), expressions are deep-copied via `ptd_expr_copy_iterative` so that the result is independent of the intern table, which is then destroyed. The pseudocode does not address memory management.
 
-- **`ptd_graph_add_edge` in instantiation.** The instantiation function (Algorithm 17) calls `ptd_graph_add_edge` with a scalar weight (after converting probability to rate). This creates edges in constant mode, not parameterized mode, since the instantiated graph is concrete.
+- **`ptd_graph_add_edge` in instantiation.** The instantiation function (@alg-10-symbolic-instantiation) calls `ptd_graph_add_edge` with a scalar weight (after converting probability to rate). This creates edges in constant mode, not parameterized mode, since the instantiated graph is concrete.
 
 ## Symbol Index
 

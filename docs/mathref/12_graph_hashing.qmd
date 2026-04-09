@@ -112,12 +112,13 @@ For any practical graph size ($|V| \ll 2^{32}$), this probability is negligible.
 
 ## Algorithms
 
-### Algorithm 20: Graph Content Hash
+::: {#alg-12-graph-hash}
+## Graph Content Hash
 
 *Description.* This algorithm computes the content-addressable hash of a phase-type graph. It proceeds in two phases: first, compute a 64-bit hash for each vertex by hashing its state vector and sorted edge structure; second, aggregate the vertex hashes with graph metadata into a final 256-bit SHA-256 digest.
 
 ```
-Algorithm 20: Graph Content Hash
+Graph Content Hash
 1: Let G = (V, E, W) be a phase-type graph with state dimension d and parameter dimension k
 2:
 3: function GraphContentHash(G)
@@ -172,6 +173,7 @@ Algorithm 20: Graph Content Hash
 **Complexity.** Time: $O(|V| \log |V| + |E|)$. The $|V| \log |V|$ term arises from sorting edges at each vertex (total sort cost is $\sum_v |\operatorname{children}(v)| \log |\operatorname{children}(v)| \leq |E| \log |V|$). Each edge is hashed once, contributing $O(|E|)$. The SHA-256 operations are $O(1)$ per block (64 bytes). Space: $O(|V|)$ for the vertex hash array and $O(\max_v |\operatorname{children}(v)|)$ for the sorted edge copy.
 
 **Correctness.** Follows from @thm-12-determinism (determinism) and @thm-12-collision-resistance (collision resistance). The canonical edge ordering ensures that the hash is independent of the internal edge storage order.
+:::
 
 ## Implementation Notes
 
@@ -179,8 +181,8 @@ Algorithm 20: Graph Content Hash
 
 | Algorithm | File | Function | Lines |
 |-----------|------|----------|-------|
-| Algorithm 20 (vertex hash) | `src/c/phasic_hash.c` | `hash_vertex_structure` | L169--L214 |
-| Algorithm 20 (graph hash) | `src/c/phasic_hash.c` | `ptd_graph_content_hash` | L216--L272 |
+| @alg-12-graph-hash (vertex hash) | `src/c/phasic_hash.c` | `hash_vertex_structure` | L169--L214 |
+| @alg-12-graph-hash (graph hash) | `src/c/phasic_hash.c` | `ptd_graph_content_hash` | L216--L272 |
 | Edge comparison | `src/c/phasic_hash.c` | `compare_edges` | L147--L166 |
 | Hash equality | `src/c/phasic_hash.c` | `ptd_hash_equal` | L274--L287 |
 | Hash from hex | `src/c/phasic_hash.c` | `ptd_hash_from_hex` | L295--L324 |

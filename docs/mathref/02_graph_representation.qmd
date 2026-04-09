@@ -115,7 +115,7 @@ We use aggregate analysis. After $n$ insertions, the total number of copy operat
 
 ::: {#thm-02-validation}
 ## Validation correctness and complexity
-*Algorithm 2 (Graph Validation) correctly identifies all parallel edges and runs in $O(|V| \cdot \Delta \log \Delta)$ time, where $\Delta = \max_{v \in V} |\mathcal{E}(v)|$ is the maximum out-degree.*
+*@alg-02-graph-validation (Graph Validation) correctly identifies all parallel edges and runs in $O(|V| \cdot \Delta \log \Delta)$ time, where $\Delta = \max_{v \in V} |\mathcal{E}(v)|$ is the maximum out-degree.*
 :::
 
 ::: {.proof}
@@ -130,7 +130,7 @@ Equivalently, since $\sum_v |\mathcal{E}(v)| = |E|$, the total is $O(|E| \log \D
 
 ::: {#thm-02-clone}
 ## Clone correctness and complexity
-*Algorithm 3 (Graph Clone) produces a graph $G'$ satisfying @def-02-clone in $O(|V| \cdot |E|)$ time in the current implementation, or $O(|V| + |E|)$ time with an index-based vertex map.*
+*@alg-02-graph-clone (Graph Clone) produces a graph $G'$ satisfying @def-02-clone in $O(|V| \cdot |E|)$ time in the current implementation, or $O(|V| + |E|)$ time with an index-based vertex map.*
 :::
 
 ::: {.proof}
@@ -143,12 +143,13 @@ If instead the implementation used the vertex map $\mu$ (an array mapping old in
 
 ## Algorithms
 
-### Algorithm 1: AVL Find-or-Insert
+::: {#alg-02-avl-find-or-insert}
+## AVL Find-or-Insert
 
 *Description.* Given a state vector $\sigma \in \mathbb{Z}^d$, this algorithm searches the AVL tree $\mathcal{A}$ for a node with key $\sigma$. If found, it returns the associated vertex. If not found, it creates a new vertex with state vector $\sigma$, inserts a new node into the tree, rebalances as needed, and returns the new vertex.
 
 ```
-Algorithm 1: AVL Find-or-Insert
+AVL Find-or-Insert
 1: Let G = (V, E, W) be a phase-type graph with AVL tree A and state dimension d
 2: Let σ ∈ Z^d be the query state vector
 3:
@@ -195,13 +196,15 @@ Algorithm 1: AVL Find-or-Insert
 **Complexity.** Time: $O(d \log |V|)$ (by @thm-02-avl-ops). Space: $O(d)$ for the new node if insertion occurs.
 
 **Correctness.** Follows from @thm-02-avl-ops. The binary search visits $O(\log |V|)$ nodes by the AVL height bound. The `memcmp` comparison induces a total order on $\mathbb{Z}^d$ (via byte representation), ensuring the BST property is well-defined. Rotations preserve the BST property and restore the AVL invariant.
+:::
 
-### Algorithm 2: Graph Validation
+::: {#alg-02-graph-validation}
+## Graph Validation
 
 *Description.* This algorithm checks a phase-type graph for the presence of parallel (duplicate) edges. For each vertex, it sorts the edge list by target pointer and scans for consecutive duplicates.
 
 ```
-Algorithm 2: Graph Validation
+Graph Validation
 1: Let G = (V, E, W) be a phase-type graph
 2:
 3: function ValidateGraph(G)
@@ -229,13 +232,15 @@ Algorithm 2: Graph Validation
 **Complexity.** Time: $O(|E| \log \Delta)$ where $\Delta$ is the maximum out-degree (by @thm-02-validation). Space: $O(1)$ additional (sorting is in-place).
 
 **Correctness.** Follows from @thm-02-validation.
+:::
 
-### Algorithm 3: Graph Clone
+::: {#alg-02-graph-clone}
+## Graph Clone
 
 *Description.* This algorithm creates a deep copy of a phase-type graph. It proceeds in three phases: (1) create vertices with copied state vectors, (2) clone edges using a vertex map, (3) rebuild the AVL tree. Graph metadata (parameter length, edge mode, DPH flag) is copied during graph creation; cached computation results (elimination traces, reward compute graphs) are not copied.
 
 ```
-Algorithm 3: Graph Clone
+Graph Clone
 1: Let G = (V, E, W) be a phase-type graph with |V| vertices indexed 0, ..., |V|-1
 2:
 3: function CloneGraph(G)
@@ -275,6 +280,7 @@ Algorithm 3: Graph Clone
 **Complexity.** Time: $O(|V| \cdot |E|)$ in current implementation; $O(|V| d \log |V| + |E|)$ with index-based vertex map (by @thm-02-clone). Space: $O(|V| + |E|)$ for the cloned graph.
 
 **Correctness.** Follows from @thm-02-clone. Properties (1)-(6) of @def-02-clone are established by the three phases.
+:::
 
 ## Implementation Notes
 
@@ -282,18 +288,18 @@ Algorithm 3: Graph Clone
 
 | Algorithm | File | Function | Notes |
 |-----------|------|----------|-------|
-| Algorithm 1 | `src/c/phasic.c` | `ptd_avl_find_or_create` | AVL tree find-or-insert |
-| Algorithm 2 | `src/c/phasic.c` | `ptd_validate_graph` | Graph validation |
-| Algorithm 3 | `src/c/phasic.c` | `ptd_clone_graph` | Graph deep clone |
+| @alg-02-avl-find-or-insert | `src/c/phasic.c` | `ptd_avl_find_or_create` | AVL tree find-or-insert |
+| @alg-02-graph-validation | `src/c/phasic.c` | `ptd_validate_graph` | Graph validation |
+| @alg-02-graph-clone | `src/c/phasic.c` | `ptd_clone_graph` | Graph deep clone |
 | — | `src/c/phasic.c` | `ptd_graph_add_edge` | Edge insertion (uses @def-02-edge-list) |
 
 **Deviations from pseudocode:**
 
-- **Algorithm 1 (AVL):** The implementation stores parent pointers in each AVL node, which simplifies the rebalancing walk. The pseudocode abstracts this as `Rebalance(A, n_new)`.
+- **@alg-02-avl-find-or-insert (AVL):** The implementation stores parent pointers in each AVL node, which simplifies the rebalancing walk. The pseudocode abstracts this as `Rebalance(A, n_new)`.
 
-- **Algorithm 2 (Validation):** The sort in the implementation uses `qsort` on the edge array, comparing target vertex pointers as integers. The pseudocode abstracts this as a generic comparison sort.
+- **@alg-02-graph-validation (Validation):** The sort in the implementation uses `qsort` on the edge array, comparing target vertex pointers as integers. The pseudocode abstracts this as a generic comparison sort.
 
-- **Algorithm 3 (Clone):** The pseudocode shows an index-based vertex map $\mu$. See the suspected code issue below regarding the actual implementation.
+- **@alg-02-graph-clone (Clone):** The pseudocode shows an index-based vertex map $\mu$. See the suspected code issue below regarding the actual implementation.
 
 - **Edge insertion (`ptd_graph_add_edge`):** Self-loops are explicitly forbidden: attempting to add an edge $(v \to v)$ raises an error. The coefficient vector length is validated against the graph's parameter dimension. The initial weight is computed as $w = \sum_j c_j \cdot 1 = \sum_j c_j$ (i.e., with an implicit $\boldsymbol{\theta} = \mathbf{e}$).
 

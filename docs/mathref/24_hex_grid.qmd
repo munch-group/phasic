@@ -127,12 +127,13 @@ Since the axial neighbors are exactly the six edge-sharing cells at distance $\s
 
 ## Algorithms
 
-### Algorithm 37: HexGridConstruction
+::: {#alg-24-hex-grid-construction}
+## HexGridConstruction
 
 *Description.* This algorithm constructs a hexagonal grid from a geographic boundary and circumradius. It computes the grid dimensions, generates center coordinates for all cells, determines validity by point-in-polygon testing, and precomputes the adjacency structure.
 
 ```
-Algorithm 37: HexGridConstruction
+HexGridConstruction
 1: Let B be a boundary geometry with bounding box [x_min, x_max] × [y_min, y_max]
 2: Let s > 0 be the hexagonal circumradius
 
@@ -188,14 +189,16 @@ Algorithm 37: HexGridConstruction
 **Complexity.** Time: $O(R \cdot C \cdot T_{\mathrm{pip}})$ for the validity mask, where $T_{\mathrm{pip}}$ is the cost of a point-in-polygon test (typically $O(n_{\mathrm{boundary}})$ for a polygon with $n_{\mathrm{boundary}}$ vertices). The adjacency computation is $O(R \cdot C)$ since each cell has at most 6 neighbors. Space: $O(R \cdot C)$ for the mask and adjacency dictionary.
 
 **Correctness.** Grid dimensions follow from @def-24-hex-tessellation. Validity follows from @def-24-cell-validity. Adjacency follows from @def-24-hex-neighbors, with correctness of the offset tables established by @thm-24-hex-neighbor.
+:::
 
-### Algorithm 38: HexNeighborEnumeration
+::: {#alg-24-hex-neighbor-enumeration}
+## HexNeighborEnumeration
 
 *Description.* Given a valid cell $(r, c)$ in a precomputed hexagonal grid, this algorithm returns the list of valid neighbors by looking up the precomputed adjacency dictionary. For multi-step neighborhoods (distance $> 1$), a breadth-first search expands outward from the center cell.
 
 ```
-Algorithm 38: HexNeighborEnumeration
-1: Let A be the precomputed adjacency dictionary from Algorithm 37
+HexNeighborEnumeration
+1: Let A be the precomputed adjacency dictionary from HexGrid Construction
 2: Let (r, c) be a valid cell and k ≥ 1 be the neighborhood distance
 
 3: function HexNeighbors(A, r, c)                     ▷ First-order neighbors
@@ -233,7 +236,8 @@ Algorithm 38: HexNeighborEnumeration
 
 **Complexity.** First-order neighbors: $O(1)$ (dictionary lookup of precomputed list). $k$-step neighborhood: $O(|\mathcal{N}_k|)$ where $|\mathcal{N}_k| \leq 3k^2 + 3k$ is the number of cells within hex distance $k$ (the area of a hex disk of radius $k$). Space: $O(|\mathcal{N}_k|)$ for the visited set.
 
-**Correctness.** First-order neighbors are correct by construction in Algorithm 37, which itself follows from @thm-24-hex-neighbor. The BFS for $k$-step neighborhoods is a standard breadth-first expansion that discovers all cells reachable within $k$ hops along the adjacency graph, which by induction on $k$ equals the set of cells at hex distance at most $k$.
+**Correctness.** First-order neighbors are correct by construction in @alg-24-hex-grid-construction, which itself follows from @thm-24-hex-neighbor. The BFS for $k$-step neighborhoods is a standard breadth-first expansion that discovers all cells reachable within $k$ hops along the adjacency graph, which by induction on $k$ equals the set of cells at hex distance at most $k$.
+:::
 
 ## Implementation Notes
 
@@ -241,11 +245,11 @@ Algorithm 38: HexNeighborEnumeration
 
 | Algorithm | File | Function | Notes |
 |-----------|------|----------|-------|
-| Algorithm 37 (dimensions) | `src/phasic/hex_grid.py` | `HexGrid.__init__` | L141--L173 |
-| Algorithm 37 (validity mask) | `src/phasic/hex_grid.py` | `HexGrid._compute_valid_mask` | L602--L612 |
-| Algorithm 37 (adjacency) | `src/phasic/hex_grid.py` | `HexGrid._compute_adjacency` | L613--L645 |
-| Algorithm 38 (first-order) | `src/phasic/hex_grid.py` | `HexGrid.neighbors` | L275--L288 |
-| Algorithm 38 (k-step) | `src/phasic/hex_grid.py` | `HexGrid.neighbors_within` | L290--L318 |
+| @alg-24-hex-grid-construction (dimensions) | `src/phasic/hex_grid.py` | `HexGrid.__init__` | L141--L173 |
+| @alg-24-hex-grid-construction (validity mask) | `src/phasic/hex_grid.py` | `HexGrid._compute_valid_mask` | L602--L612 |
+| @alg-24-hex-grid-construction (adjacency) | `src/phasic/hex_grid.py` | `HexGrid._compute_adjacency` | L613--L645 |
+| @alg-24-hex-neighbor-enumeration (first-order) | `src/phasic/hex_grid.py` | `HexGrid.neighbors` | L275--L288 |
+| @alg-24-hex-neighbor-enumeration (k-step) | `src/phasic/hex_grid.py` | `HexGrid.neighbors_within` | L290--L318 |
 | Graph construction | `src/phasic/hex_grid.py` | `HexGrid.build_graph` | L440--L533 |
 | Shapefile loading | `src/phasic/hex_grid.py` | `HexGrid.from_shapefile` | L175--L205 |
 
@@ -257,7 +261,7 @@ Algorithm 38: HexNeighborEnumeration
 
 - **Graph construction details.** The `build_graph` method creates a standard phasic `Graph` with `state_length=1`, where each vertex's state is a single flat index into the PropertySet. The starting vertex connects to the center cell (or a user-specified start cell). The transition function receives the grid object to access neighbor information.
 
-- **Result mapping.** The `map_to_grid` method maps vertex-indexed values back to the $(R, C)$ grid using PropertySet decoding. This is a postprocessing step not covered in the algorithms above, as it is a straightforward application of Algorithm 35 (IndexToProperties from [23]).
+- **Result mapping.** The `map_to_grid` method maps vertex-indexed values back to the $(R, C)$ grid using PropertySet decoding. This is a postprocessing step not covered in the algorithms above, as it is a straightforward application of @alg-23-index-to-properties (IndexToProperties from [23]).
 
 ## Symbol Index
 

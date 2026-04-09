@@ -81,12 +81,13 @@ $$\operatorname{Cov}(\hat{p}_i, \hat{p}_j) = \frac{1}{n} \begin{cases} \hat{p}_i
 
 ## Algorithms
 
-### Algorithm 34: Probability Matching Estimation
+::: {#alg-22-probability-matching}
+## Probability Matching Estimation
 
-*Description.* Algorithm 34 estimates the parameter vector $\boldsymbol{\theta}$ of a joint probability graph by matching model probabilities to empirical probabilities. The algorithm: (1) tabulates observed vertex indices and computes empirical probabilities, (2) constructs a model probability function that evaluates normalized sojourn times via the forward algorithm, (3) finds an initial guess by coordinate-wise grid search matching the most common observation's probability, (4) solves the least-squares problem (@eq-22-prob-objective), and (5) computes standard errors via the delta method using the multinomial covariance from @thm-22-multinomial-cov.
+*Description.* @alg-22-probability-matching estimates the parameter vector $\boldsymbol{\theta}$ of a joint probability graph by matching model probabilities to empirical probabilities. The algorithm: (1) tabulates observed vertex indices and computes empirical probabilities, (2) constructs a model probability function that evaluates normalized sojourn times via the forward algorithm, (3) finds an initial guess by coordinate-wise grid search matching the most common observation's probability, (4) solves the least-squares problem (@eq-22-prob-objective), and (5) computes standard errors via the delta method using the multinomial covariance from @thm-22-multinomial-cov.
 
 ```
-Algorithm 34: Probability Matching Estimation
+Probability Matching Estimation
 1: Let G = (V, E) be a parameterized joint probability graph with d parameters
 2: Let y_1, ..., y_n be observed vertex indices (integers)
 3: Let fixed be a set of (index, value) pairs for fixed parameters
@@ -153,6 +154,7 @@ Algorithm 34: Probability Matching Estimation
 **Complexity.** Time: $O(N_{\text{iter}} \cdot (C_{\text{fwd}} \cdot (K + J) + K))$, where $N_{\text{iter}}$ is the number of least-squares iterations (at most $200 \cdot d_{\text{free}}$), $C_{\text{fwd}}$ is the cost of one forward algorithm evaluation per vertex ([14]), $K$ is the number of distinct observations, and $J$ is the total number of terminal vertices (for normalization). The initial grid search costs $O(d_{\text{free}} \cdot 30 \cdot C_{\text{fwd}} \cdot (K + J))$. The multinomial covariance computation and delta method cost $O(K^2)$ and $O(K^2 \cdot d_{\text{free}})$ respectively. Space: $O(K^2)$ for the multinomial covariance matrix plus $O(J)$ for the terminal vertex array.
 
 **Correctness.** The empirical PMF $\hat{\mathbf{p}}$ is an unbiased and consistent estimator of the true PMF $\mathbf{p}^*$ (@thm-22-multinomial-cov(i)). Under standard regularity conditions on the model (continuous $\mathbf{p}(\boldsymbol{\theta})$ and unique identification), the least-squares estimator $\hat{\boldsymbol{\theta}}$ is consistent for $\boldsymbol{\theta}^*$. The standard errors are obtained via the delta method: $\operatorname{Cov}(\hat{\boldsymbol{\theta}}) \approx \mathbf{G} \boldsymbol{\Sigma}_{\hat{\mathbf{p}}} \mathbf{G}^\top$, where $\mathbf{G} = \mathbf{J}^+$ and $\boldsymbol{\Sigma}_{\hat{\mathbf{p}}}$ is the multinomial covariance from @thm-22-multinomial-cov.
+:::
 
 ## Numerical Considerations
 
@@ -172,7 +174,7 @@ Algorithm 34: Probability Matching Estimation
 
 | Algorithm | File | Function | Lines |
 |-----------|------|----------|-------|
-| Algorithm 34 (entry) | `src/phasic/probability_matching.py` | `probability_matching` | L142--L357 |
+| @alg-22-probability-matching (entry) | `src/phasic/probability_matching.py` | `probability_matching` | L142--L357 |
 | Multinomial covariance | `src/phasic/probability_matching.py` | `_estimate_multinomial_covariance` | L59--L85 |
 | Initial guess grid | `src/phasic/probability_matching.py` | `_initial_guess_grid_probs` | L88--L139 |
 | Theta reconstruction | `src/phasic/method_of_moments.py` | `_reconstruct_theta` | L152--L165 |
@@ -189,12 +191,12 @@ Algorithm 34: Probability Matching Estimation
 
 | Symbol | Name | First appearance |
 |--------|------|-----------------|
-| $d_{\text{free}}$ | Number of free parameters | Algorithm 34 |
+| $d_{\text{free}}$ | Number of free parameters | @alg-22-probability-matching |
 | $\hat{\boldsymbol{\theta}}$ | Probability matching estimator | @def-22-prob-objective |
-| $\mathbf{G}$ | Pseudoinverse of Jacobian $\mathbf{J}^+$ | Algorithm 34 |
+| $\mathbf{G}$ | Pseudoinverse of Jacobian $\mathbf{J}^+$ | @alg-22-probability-matching |
 | $\hat{\mathbf{p}}$ | Empirical PMF vector | @def-22-empirical-model-pmf |
 | $\hat{p}_k$ | Empirical probability of category $k$ | @def-22-empirical-model-pmf |
-| $\mathbf{J}$ | Jacobian of model PMF | Algorithm 34 |
+| $\mathbf{J}$ | Jacobian of model PMF | @alg-22-probability-matching |
 | $K$ | Number of distinct observed categories | @def-22-empirical-model-pmf |
 | $J$ | Total number of terminal vertices | @def-22-empirical-model-pmf |
 | $n$ | Number of observations | @def-22-empirical-model-pmf |

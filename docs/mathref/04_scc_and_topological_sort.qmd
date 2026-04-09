@@ -76,7 +76,7 @@ Phasic implements Tarjan's algorithm (Tarjan, 1972) for SCC detection and Kahn's
 
 ::: {#thm-04-tarjan}
 ## Correctness of Tarjan's algorithm
-*Algorithm 6 correctly identifies all strongly connected components of a phase-type graph $G = (V, E, W)$ in $O(|V| + |E|)$ time.*
+*@alg-04-tarjan-scc correctly identifies all strongly connected components of a phase-type graph $G = (V, E, W)$ in $O(|V| + |E|)$ time.*
 :::
 
 ::: {.proof}
@@ -119,14 +119,15 @@ If the graph contains a cycle, the vertices in the cycle never have their in-deg
 
 ## Algorithms
 
-### Algorithm 6: Tarjan's SCC Detection
+::: {#alg-04-tarjan-scc}
+## Tarjan's SCC Detection
 
 *Description.* Given a phase-type graph $G = (V, E, W)$, this algorithm computes the condensation $G^{\text{SCC}}$ by identifying all strongly connected components using Tarjan's depth-first search algorithm. For each vertex, it maintains a discovery index and a low-link value. Vertices are pushed onto a stack when discovered and popped when an SCC root is identified (i.e., when $\operatorname{low}(v) = \operatorname{idx}(v)$). After all SCCs are identified, the algorithm constructs the condensation edges by scanning each SCC's internal vertices for edges to vertices in other SCCs.
 
 The implementation includes an optimization: if the graph is already acyclic (detected by attempting a topological sort), each vertex is trivially its own SCC, and the condensation is constructed directly without DFS. A post-processing step isolates the starting vertex $v_0$ into its own SCC at index 0, simplifying downstream trace stitching.
 
 ```
-Algorithm 6: Tarjan's SCC Detection
+Tarjan's SCC Detection
 1: Let G = (V, E, W) be a phase-type graph (@def-01-ph-graph)
 2: Let idx_counter <- 0, S <- empty stack
 3: Let idx[v] <- undefined, low[v] <- undefined, on_stack[v] <- false, visited[v] <- false for all v in V
@@ -202,15 +203,17 @@ Algorithm 6: Tarjan's SCC Detection
 **Complexity.** Time: $O(|V| + |E|)$ for SCC detection (by @thm-04-tarjan), plus $O(|E| \log \Delta^{\text{SCC}})$ for condensation edge construction (where $\Delta^{\text{SCC}}$ is the maximum number of distinct target SCCs from any single SCC), due to AVL tree deduplication. The edge sorting adds $O(|E^{\text{SCC}}| \log |E^{\text{SCC}}|)$ per SCC. Total: $O(|V| + |E| \log |V|)$ in the worst case. Space: $O(|V|)$ for the stack, index arrays, and low-link arrays.
 
 **Correctness.** Follows from @thm-04-tarjan (SCC detection) and @thm-04-condensation-dag (the condensation is a DAG). The deduplication of condensation edges via the AVL tree ensures that parallel edges in $G$ between the same pair of SCCs produce exactly one condensation edge.
+:::
 
-### Algorithm 7: Topological Sort of Condensation DAG
+::: {#alg-04-topological-sort}
+## Topological Sort of Condensation DAG
 
 *Description.* Given the condensation $G^{\text{SCC}}$ (which is a DAG by @thm-04-condensation-dag), this algorithm produces a topological ordering of the meta-vertices using Kahn's algorithm. It initializes an in-degree counter for each meta-vertex, enqueues all sources (in-degree 0), and repeatedly dequeues a meta-vertex, appends it to the output, and decrements the in-degree of its successors.
 
 The implementation operates on the generic `ptd_directed_graph` struct. Both `ptd_graph` and `ptd_scc_graph` are layout-compatible with `ptd_directed_graph` (their first three fields -- `vertices_length`, `vertices`, `starting_vertex` -- match), allowing the same function to sort either the original graph (when acyclic) or the condensation.
 
 ```
-Algorithm 7: Topological Sort of Condensation DAG
+Topological Sort of Condensation DAG
 1: Let G^SCC = (V^SCC, E^SCC) be the condensation DAG (@def-04-condensation)
 2: Let n <- |V^SCC|
 3:
@@ -268,6 +271,7 @@ Algorithm 7: Topological Sort of Condensation DAG
 **Complexity.** Time: $O(|V^{\text{SCC}}| + |E^{\text{SCC}}|)$ (by @thm-04-topological-sort). Space: $O(|V^{\text{SCC}}|)$ for the in-degree array, visited array, and output array.
 
 **Correctness.** Follows from @thm-04-topological-sort. The algorithm correctly produces a topological ordering when the input is a DAG, and returns null when the input contains a cycle (detected by $k < n$). The disconnected-source handling (lines 27--33) ensures that vertices with no incoming edges that are not reachable from the starting vertex are still processed; this is a one-time scan triggered only when the queue empties prematurely.
+:::
 
 ## Implementation Notes
 
@@ -275,28 +279,28 @@ Algorithm 7: Topological Sort of Condensation DAG
 
 | Algorithm | File | Function | Lines |
 |-----------|------|----------|-------|
-| Algorithm 6 (SCC core) | `src/c/phasic.c` | `strongconnect2` | L1830--L1895 |
-| Algorithm 6 (main) | `src/c/phasic.c` | `ptd_find_strongly_connected_components` | L2143--L2313 |
-| Algorithm 6 (acyclic fast path) | `src/c/phasic.c` | `ptd_find_strongly_connected_components_acyclic` | L2113--L2141 |
-| Algorithm 6 (starting vertex isolation) | `src/c/phasic.c` | `ptd_isolate_starting_vertex_scc` | L1943--L2111 |
-| Algorithm 7 | `src/c/phasic.c` | `ptd_directed_graph_topological_sort` | L3320--L3390 |
-| Algorithm 7 (SCC wrapper) | `src/c/phasic.c` | `ptd_scc_graph_topological_sort` | L3406--L3408 |
+| @alg-04-tarjan-scc (SCC core) | `src/c/phasic.c` | `strongconnect2` | L1830--L1895 |
+| @alg-04-tarjan-scc (main) | `src/c/phasic.c` | `ptd_find_strongly_connected_components` | L2143--L2313 |
+| @alg-04-tarjan-scc (acyclic fast path) | `src/c/phasic.c` | `ptd_find_strongly_connected_components_acyclic` | L2113--L2141 |
+| @alg-04-tarjan-scc (starting vertex isolation) | `src/c/phasic.c` | `ptd_isolate_starting_vertex_scc` | L1943--L2111 |
+| @alg-04-topological-sort | `src/c/phasic.c` | `ptd_directed_graph_topological_sort` | L3320--L3390 |
+| @alg-04-topological-sort (SCC wrapper) | `src/c/phasic.c` | `ptd_scc_graph_topological_sort` | L3406--L3408 |
 
 **Deviations from pseudocode:**
 
-- **Algorithm 6 (acyclic fast path):** The implementation first checks `ptd_graph_is_acyclic(graph)` (which itself attempts a topological sort of the original graph). If the graph is acyclic, it bypasses Tarjan's DFS entirely and constructs a trivial condensation where each vertex is its own SCC. This is an optimization: acyclic graphs are common in practice (e.g., Erlang distributions), and the trivial condensation avoids the overhead of DFS state allocation.
+- **@alg-04-tarjan-scc (acyclic fast path):** The implementation first checks `ptd_graph_is_acyclic(graph)` (which itself attempts a topological sort of the original graph). If the graph is acyclic, it bypasses Tarjan's DFS entirely and constructs a trivial condensation where each vertex is its own SCC. This is an optimization: acyclic graphs are common in practice (e.g., Erlang distributions), and the trivial condensation avoids the overhead of DFS state allocation.
 
-- **Algorithm 6 (memory over-allocation):** The arrays `scc_indices`, `low_links`, `scc_on_stack`, and `visited` are allocated with capacity `vertices_length * 10` instead of `vertices_length`. This appears to be a safety margin for graphs that grow during processing (e.g., when DPH normalization adds auxiliary vertices before SCC detection). However, the SCC algorithm does not modify the graph, so the factor of 10 is unnecessarily large.
+- **@alg-04-tarjan-scc (memory over-allocation):** The arrays `scc_indices`, `low_links`, `scc_on_stack`, and `visited` are allocated with capacity `vertices_length * 10` instead of `vertices_length`. This appears to be a safety margin for graphs that grow during processing (e.g., when DPH normalization adds auxiliary vertices before SCC detection). However, the SCC algorithm does not modify the graph, so the factor of 10 is unnecessarily large.
 
-- **Algorithm 6 (starting vertex isolation):** After SCC detection, `ptd_isolate_starting_vertex_scc` ensures the starting vertex $v_0$ is alone in SCC 0. If $v_0$ shares an SCC with other vertices, it is extracted into a new singleton SCC. This simplifies trace stitching ([13]) by guaranteeing a fixed structure for the starting SCC. The pseudocode abstracts this as a single call to `IsolateStartingVertex`.
+- **@alg-04-tarjan-scc (starting vertex isolation):** After SCC detection, `ptd_isolate_starting_vertex_scc` ensures the starting vertex $v_0$ is alone in SCC 0. If $v_0$ shares an SCC with other vertices, it is extracted into a new singleton SCC. This simplifies trace stitching ([13]) by guaranteeing a fixed structure for the starting SCC. The pseudocode abstracts this as a single call to `IsolateStartingVertex`.
 
-- **Algorithm 6 (condensation edge deduplication):** The implementation uses an AVL tree (@def-02-avl-tree) to deduplicate target SCCs for each source SCC, then converts the tree to an array via DFS traversal and sorts the resulting edges by target SCC index. The pseudocode abstracts this as "add edge if not present."
+- **@alg-04-tarjan-scc (condensation edge deduplication):** The implementation uses an AVL tree (@def-02-avl-tree) to deduplicate target SCCs for each source SCC, then converts the tree to an array via DFS traversal and sorts the resulting edges by target SCC index. The pseudocode abstracts this as "add edge if not present."
 
-- **Algorithm 6 (empty SCC filtering):** After Tarjan's algorithm, SCCs with zero internal vertices are discarded (lines 2182--2213). This handles a corner case where the algorithm produces empty component entries; in a correct execution this should not occur, but the implementation is defensive.
+- **@alg-04-tarjan-scc (empty SCC filtering):** After Tarjan's algorithm, SCCs with zero internal vertices are discarded (lines 2182--2213). This handles a corner case where the algorithm produces empty component entries; in a correct execution this should not occur, but the implementation is defensive.
 
-- **Algorithm 7 (struct casting):** The topological sort is implemented on the generic `ptd_directed_graph` struct. Both `ptd_graph` and `ptd_scc_graph` are cast to `ptd_directed_graph*` because their memory layouts are compatible in the first three fields (`vertices_length`, `vertices`, `starting_vertex`). Similarly, `ptd_scc_vertex` and `ptd_vertex` are cast to `ptd_directed_vertex`. This relies on C struct layout guarantees for the initial members.
+- **@alg-04-topological-sort (struct casting):** The topological sort is implemented on the generic `ptd_directed_graph` struct. Both `ptd_graph` and `ptd_scc_graph` are cast to `ptd_directed_graph*` because their memory layouts are compatible in the first three fields (`vertices_length`, `vertices`, `starting_vertex`). Similarly, `ptd_scc_vertex` and `ptd_vertex` are cast to `ptd_directed_vertex`. This relies on C struct layout guarantees for the initial members.
 
-- **Algorithm 7 (disconnected source handling):** The implementation includes a `has_pushed_all_others` flag that triggers a one-time scan for unreachable vertices with in-degree 0 when the queue first empties. This handles graphs with disconnected components (which can arise when absorbing vertices have no incoming edges from the main component).
+- **@alg-04-topological-sort (disconnected source handling):** The implementation includes a `has_pushed_all_others` flag that triggers a one-time scan for unreachable vertices with in-degree 0 when the queue first empties. This handles graphs with disconnected components (which can arise when absorbing vertices have no incoming edges from the main component).
 
 **Remark** (SUSPECTED_CODE_ISSUE: SCC array over-allocation). The allocation `calloc(graph->vertices_length * 10, sizeof(size_t))` at line 2158 for `scc_indices` (and similarly for `low_links`, `scc_on_stack`, `visited`) allocates 10 times more memory than needed. The arrays are indexed by `vertex->index`, which ranges from 0 to `vertices_length - 1`. The factor of 10 wastes memory without correctness benefit, since the graph is not modified during SCC detection.
 

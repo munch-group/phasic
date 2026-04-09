@@ -89,19 +89,19 @@ y_{a_1} / y_{a_2} & \text{if } \tau_i = \texttt{Div}, \\
 
 ::: {#thm-11-trace-correctness}
 ## Trace evaluation correctness
-*Let $G = (V, E, W)$ be a parameterized phase-type graph with parameter dimension $k$, and let $\mathcal{T}$ be the elimination trace produced by Algorithm 18 (trace recording). For any $\boldsymbol{\theta} \in \mathbb{R}^k$ such that all vertex total outgoing rates are positive, the trace evaluation (@def-11-trace-evaluation) produces the same vertex scalars and edge probabilities as performing concrete graph elimination (Algorithm 11 in [06]) on the instantiated graph $G(\boldsymbol{\theta})$.*
+*Let $G = (V, E, W)$ be a parameterized phase-type graph with parameter dimension $k$, and let $\mathcal{T}$ be the elimination trace produced by @alg-11-trace-recording (trace recording). For any $\boldsymbol{\theta} \in \mathbb{R}^k$ such that all vertex total outgoing rates are positive, the trace evaluation (@def-11-trace-evaluation) produces the same vertex scalars and edge probabilities as performing concrete graph elimination (@alg-06-full-elimination) on the instantiated graph $G(\boldsymbol{\theta})$.*
 :::
 
 ::: {.proof}
 We show that the trace evaluation reproduces the computation of concrete elimination step by step.
 
-**Phase 1 (Rate computation).** For each transient vertex $v_i$, Algorithm 18 records the edge weights as DOT or CONST operations, a SUM over all outgoing edge weights, and an INV of the sum. By @def-11-trace-evaluation, evaluating these operations with $\boldsymbol{\theta}$ computes:
+**Phase 1 (Rate computation).** For each transient vertex $v_i$, @alg-11-trace-recording records the edge weights as DOT or CONST operations, a SUM over all outgoing edge weights, and an INV of the sum. By @def-11-trace-evaluation, evaluating these operations with $\boldsymbol{\theta}$ computes:
 
 $$y_{\mathbf{m}_{\text{rate}}[i]} = \frac{1}{\sum_{z \in \operatorname{children}(v_i)} w(v_i \to z; \boldsymbol{\theta})} = \frac{1}{\lambda_{v_i}(\boldsymbol{\theta})}$$
 
 This matches the vertex scalar computation in normalization (@def-01-vertex-scalar).
 
-**Phase 2 (Probability computation).** For each edge $(v_i \to v_j)$, Algorithm 18 records a MUL of the edge weight by the vertex rate. Evaluating at $\boldsymbol{\theta}$:
+**Phase 2 (Probability computation).** For each edge $(v_i \to v_j)$, @alg-11-trace-recording records a MUL of the edge weight by the vertex rate. Evaluating at $\boldsymbol{\theta}$:
 
 $$y_{\mathbf{m}_{\text{prob}}[i][j]} = w(v_i \to v_j; \boldsymbol{\theta}) \cdot y_{\mathbf{m}_{\text{rate}}[i]} = \frac{w(v_i \to v_j; \boldsymbol{\theta})}{\lambda_{v_i}(\boldsymbol{\theta})} = w'(v_i \to v_j; \boldsymbol{\theta})$$
 
@@ -120,29 +120,30 @@ Each of these operations mirrors exactly one step of concrete elimination (@def-
 ## Trace complexity
 *Let $G = (V, E, W)$ be a parameterized phase-type graph. Then:*
 
-1. *Recording the elimination trace (Algorithm 18) has time complexity $O(|V|^3)$ and space complexity $O(|V|^2)$.*
+1. *Recording the elimination trace (@alg-11-trace-recording) has time complexity $O(|V|^3)$ and space complexity $O(|V|^2)$.*
 2. *The trace length satisfies $N \leq O(|V|^2)$.*
-3. *Evaluating the trace (Algorithm 19) has time complexity $O(N)$, and hence $O(|V|^2)$ in the worst case.*
+3. *Evaluating the trace (@alg-11-trace-evaluation) has time complexity $O(N)$, and hence $O(|V|^2)$ in the worst case.*
 :::
 
 ::: {.proof}
-(1) Trace recording follows the same elimination order as concrete elimination (Algorithm 11 in [06]), which processes each vertex once. For each eliminated vertex $v_i$, we iterate over all parents and all children, yielding $O(|\operatorname{parents}(v_i)| \cdot |\operatorname{children}(v_i)|)$ bypass edges. Summing over all vertices, this is $O(|V|^3)$ in the worst case (a dense graph). Each bypass operation adds a constant number of trace operations (one MUL, possibly one ADD and one DIV), so the recording cost is $O(|V|^3)$.
+(1) Trace recording follows the same elimination order as concrete elimination (@alg-06-full-elimination), which processes each vertex once. For each eliminated vertex $v_i$, we iterate over all parents and all children, yielding $O(|\operatorname{parents}(v_i)| \cdot |\operatorname{children}(v_i)|)$ bypass edges. Summing over all vertices, this is $O(|V|^3)$ in the worst case (a dense graph). Each bypass operation adds a constant number of trace operations (one MUL, possibly one ADD and one DIV), so the recording cost is $O(|V|^3)$.
 
 (2) During elimination, the number of edges in the graph is bounded by $O(|V|^2)$ (at most one edge between each pair of vertices). Each edge contributes a bounded number of operations to the trace (rate computation, probability computation, bypass, merge, normalize). The initial phase contributes $O(|E|)$ operations for edge weights and $O(|V|)$ for rates. The elimination phase contributes at most $O(|V|^2)$ bypass operations, each generating $O(1)$ trace operations. Thus $N \leq O(|V|^2)$.
 
-(3) Trace evaluation (Algorithm 19) performs one arithmetic operation per trace entry, scanning the value array sequentially. Each operation accesses at most $O(k)$ values (for DOT with $k$ parameters) or $O(1)$ values (for binary operations). For bounded $k$, the total cost is $O(N)$. $\square$
+(3) Trace evaluation (@alg-11-trace-evaluation) performs one arithmetic operation per trace entry, scanning the value array sequentially. Each operation accesses at most $O(k)$ values (for DOT with $k$ parameters) or $O(1)$ values (for binary operations). For bounded $k$, the total cost is $O(N)$. $\square$
 :::
 
 ## Algorithms
 
-### Algorithm 18: Trace Recording
+::: {#alg-11-trace-recording}
+## Trace Recording
 
-*Description.* This algorithm performs graph elimination while recording all arithmetic operations as a linear trace. The input is a parameterized phase-type graph $G$ with parameter dimension $k$. The algorithm follows the same elimination order as Algorithm 11 in [06] but, instead of computing numeric values, emits trace operations that can later be replayed with any parameter vector.
+*Description.* This algorithm performs graph elimination while recording all arithmetic operations as a linear trace. The input is a parameterized phase-type graph $G$ with parameter dimension $k$. The algorithm follows the same elimination order as @alg-06-full-elimination but, instead of computing numeric values, emits trace operations that can later be replayed with any parameter vector.
 
 The algorithm proceeds in four phases: (1) compute vertex rates by summing outgoing edge weights and taking the inverse; (2) convert edge weights to probabilities by multiplying by vertex rates; (3) perform the elimination loop, recording bypass, merge, and normalization operations; (4) clean up removed edges from the output mappings.
 
 ```
-Algorithm 18: Trace Recording
+Trace Recording
 1: Let G = (V, E, W) be a parameterized phase-type graph with parameter dimension k
 2: Let v_0 be the starting vertex, and let V be ordered by SCC topological sort
 3:
@@ -235,14 +236,16 @@ Algorithm 18: Trace Recording
 
 **Complexity.** Time: $O(|V|^3)$ (same as concrete elimination). Space: $O(|V|^2)$ for the operation sequence.
 
-**Correctness.** Follows from @thm-11-trace-correctness. Each Emit operation records exactly one arithmetic step of the concrete elimination algorithm (Algorithm 11 in [06]), so replaying the trace reproduces the concrete computation.
+**Correctness.** Follows from @thm-11-trace-correctness. Each Emit operation records exactly one arithmetic step of the concrete elimination algorithm (@alg-06-full-elimination), so replaying the trace reproduces the concrete computation.
+:::
 
-### Algorithm 19: Trace Evaluation
+::: {#alg-11-trace-evaluation}
+## Trace Evaluation
 
 *Description.* This algorithm replays a previously recorded elimination trace with a concrete parameter vector. It scans the operation sequence once, computing each operation's value from the parameter vector and previously computed values. The result is a set of vertex scalars and edge probabilities that define the concrete eliminated graph.
 
 ```
-Algorithm 19: Trace Evaluation
+Trace Evaluation
 1: Let T = (ω, m_rate, m_prob, m_tgt, Σ, i_0) be an elimination trace with N operations
 2: Let θ ∈ ℝ^k be a concrete parameter vector
 3:
@@ -293,10 +296,11 @@ Algorithm 19: Trace Evaluation
 **Complexity.** Time: $O(N)$ where $N \leq O(|V|^2)$ is the trace length. Each operation performs $O(1)$ work (or $O(k)$ for DOT with $k$ parameters). Space: $O(N)$ for the value array.
 
 **Correctness.** Follows from @thm-11-trace-correctness. The sequential evaluation respects the data dependencies because every operand index $a_j < i$, ensuring that all operand values are computed before they are needed.
+:::
 
 ## Numerical Considerations
 
-**Division by zero.** The INV and DIV operations can encounter zero denominators when a vertex has zero total outgoing rate (e.g., an absorbing vertex assigned a non-zero rate during a malformed graph construction). The implementation guards against this by assigning rate 0.0 to absorbing vertices before the elimination loop (line 10 of Algorithm 18). For transient vertices, a zero total rate indicates a degenerate parameterization ($\boldsymbol{\theta}$ produces zero weights), which is a user error.
+**Division by zero.** The INV and DIV operations can encounter zero denominators when a vertex has zero total outgoing rate (e.g., an absorbing vertex assigned a non-zero rate during a malformed graph construction). The implementation guards against this by assigning rate 0.0 to absorbing vertices before the elimination loop (line 10 of @alg-11-trace-recording). For transient vertices, a zero total rate indicates a degenerate parameterization ($\boldsymbol{\theta}$ produces zero weights), which is a user error.
 
 **Constant caching.** The `TraceBuilder` class maintains a hash map from constant values to operation indices (the `_const_cache` in Python, analogous to the CSE intern table from @def-09-cse-interning). This prevents duplicate CONST operations for the same value (e.g., the many 0.0 entries for absorbing vertices), reducing trace length by 10--30% in typical graphs.
 
@@ -308,10 +312,10 @@ Algorithm 19: Trace Evaluation
 
 | Algorithm | File | Function | Lines |
 |-----------|------|----------|-------|
-| Algorithm 18 | `src/phasic/trace_elimination.py` | `record_elimination_trace` | L360--L898 |
-| Algorithm 18 (C) | `api/c/phasic.h` | `ptd_record_elimination_trace` | L706--L708 |
-| Algorithm 19 | `src/phasic/trace_elimination.py` | `evaluate_trace` | L905--L1040 |
-| Algorithm 19 (C) | `api/c/phasic.h` | `ptd_evaluate_trace` | L723--L727 |
+| @alg-11-trace-recording | `src/phasic/trace_elimination.py` | `record_elimination_trace` | L360--L898 |
+| @alg-11-trace-recording (C) | `api/c/phasic.h` | `ptd_record_elimination_trace` | L706--L708 |
+| @alg-11-trace-evaluation | `src/phasic/trace_elimination.py` | `evaluate_trace` | L905--L1040 |
+| @alg-11-trace-evaluation (C) | `api/c/phasic.h` | `ptd_evaluate_trace` | L723--L727 |
 | Trace operations (C) | `src/c/trace/trace_internal.h` | `add_const_to_trace`, `add_dot_to_trace`, etc. | L123--L207 |
 | Disk cache | `src/c/trace/trace_cache.c` | `load_trace_from_cache`, `save_trace_to_cache` | L81--L193 |
 

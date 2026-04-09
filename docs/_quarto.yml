@@ -2,7 +2,7 @@ project:
   type: website
   output-dir: _build
   post-render: 
-    - quarto render som/  
+    - quarto render mathref/  
   # resources:
   # - objects.txt
   # - objects-test.txt

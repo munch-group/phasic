@@ -6,7 +6,7 @@ title: "Moment Computation"
 
 This file formalizes the computation of all-order moments and cross-moments for phase-type distributions using the elimination command sequence (reward compute graph) from [06]. The key insight is that the same cached sequence of elimination commands (@def-06-reward-compute-graph) can be replayed with different reward vectors to compute moments of any order, expected sojourn times, and cross-moments for multivariate phase-type (MPH) distributions.
 
-The first moment (expected absorption time) is computed by Algorithm 12 in [06] with unit rewards. Higher moments are obtained by an iterated procedure: the $n$-th moment requires $n$ successive replays, where each replay uses a reward vector derived from the previous replay's output. Cross-moments for MPH distributions are computed by two replays with two different reward vectors and then combining the results.
+The first moment (expected absorption time) is computed by @alg-06-moment-commands with unit rewards. Higher moments are obtained by an iterated procedure: the $n$-th moment requires $n$ successive replays, where each replay uses a reward vector derived from the previous replay's output. Cross-moments for MPH distributions are computed by two replays with two different reward vectors and then combining the results.
 
 These moment computations operate on the elimination commands (the acyclic representation) and do not require the original graph. This is a fundamental advantage of the graph-based approach: once the $O(|V|^2)$ elimination commands are computed, each moment evaluation costs only $O(|V|^2)$ (or $O(|V| \cdot k)$ for a subset of $k$ target states), regardless of the complexity of the original graph structure.
 
@@ -25,7 +25,7 @@ These moment computations operate on the elimination commands (the acyclic repre
 
 $$\mathbb{E}[\tilde{\tau}] = \text{ReplayCommands}(C, \mathbf{r})[v_0],$$ {#eq-15-moment-replay}
 
-*where $\text{ReplayCommands}$ is Algorithm 12 in [06] and $v_0$ is the starting vertex. With $\mathbf{r} = \mathbf{e}$ (the all-ones vector), this gives the expected absorption time $\mathbb{E}[\tau]$. With an arbitrary reward vector $\mathbf{r} = (r_1, \ldots, r_p)^\top$, this gives $\mathbb{E}[\tilde{\tau}] = \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{r}) \mathbf{e}$ (@def-01-reward-cph).*
+*where $\text{ReplayCommands}$ is @alg-06-moment-commands and $v_0$ is the starting vertex. With $\mathbf{r} = \mathbf{e}$ (the all-ones vector), this gives the expected absorption time $\mathbb{E}[\tau]$. With an arbitrary reward vector $\mathbf{r} = (r_1, \ldots, r_p)^\top$, this gives $\mathbb{E}[\tilde{\tau}] = \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{r}) \mathbf{e}$ (@def-01-reward-cph).*
 :::
 
 > **Intuition.** The elimination commands encode the structure of the Green matrix $\mathbf{U} = (-\mathbf{S})^{-1}$ in a sparse, sequential form. Replaying them with a reward vector computes the matrix-vector product $\mathbf{U} \triangle(\mathbf{r}) \mathbf{e}$ without explicitly forming $\mathbf{U}$. Changing the reward vector changes which "weighted sojourn time" is computed, without re-running the elimination.
@@ -84,15 +84,15 @@ $$\mathbb{E}[\tilde{\tau}^n] = n! \cdot \mathbf{r}^{(n)}[v_0],$$ {#eq-15-nth-mom
 ::: {.proof}
 We prove @eq-15-iterated-replay by induction on $n$.
 
-**Base case** ($n = 1$): By the correctness of Algorithm 12 (established in [06]), $\mathbf{r}^{(1)} = \text{ReplayCommands}(C, \mathbf{r})$ computes entry-wise $\mathbf{r}^{(1)}_v = \mathbb{E}_v[\tilde{\tau}]$ for each vertex $v$. In matrix notation, this is the vector $\mathbf{U} \triangle(\mathbf{r}) \mathbf{e}$ (evaluated at each starting state). At the starting vertex, $\mathbf{r}^{(1)}[v_0] = \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{r}) \mathbf{e}$, since the starting vertex distributes mass according to $\boldsymbol{\alpha}$.
+**Base case** ($n = 1$): By the correctness of @alg-06-moment-commands (established in [06]), $\mathbf{r}^{(1)} = \text{ReplayCommands}(C, \mathbf{r})$ computes entry-wise $\mathbf{r}^{(1)}_v = \mathbb{E}_v[\tilde{\tau}]$ for each vertex $v$. In matrix notation, this is the vector $\mathbf{U} \triangle(\mathbf{r}) \mathbf{e}$ (evaluated at each starting state). At the starting vertex, $\mathbf{r}^{(1)}[v_0] = \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{r}) \mathbf{e}$, since the starting vertex distributes mass according to $\boldsymbol{\alpha}$.
 
 **Inductive step**: Assume $\mathbf{r}^{(n-1)}$ satisfies $\mathbf{r}^{(n-1)}_v = \mathbf{e}_v^\top (\mathbf{U} \triangle(\mathbf{r}))^{n-1} \mathbf{e}$ for each vertex $v$ (the expected $(n-1)$-th moment starting from $v$). Then
 
 $$\mathbf{r}^{(n)} = \text{ReplayCommands}(C, \mathbf{r}^{(n-1)}).$$
 
-By the correctness of Algorithm 12, this computes $\mathbf{U} \triangle(\mathbf{r}^{(n-1)}) \mathbf{e}$ at each vertex. But $\triangle(\mathbf{r}^{(n-1)})$ is the diagonal matrix with entries $\mathbf{r}^{(n-1)}_v$.
+By the correctness of @alg-06-moment-commands, this computes $\mathbf{U} \triangle(\mathbf{r}^{(n-1)}) \mathbf{e}$ at each vertex. But $\triangle(\mathbf{r}^{(n-1)})$ is the diagonal matrix with entries $\mathbf{r}^{(n-1)}_v$.
 
-We need to show this equals $(\mathbf{U} \triangle(\mathbf{r}))^n \mathbf{e}$. The elimination commands compute, for the reward vector $\tilde{\mathbf{r}}$, the vector $\mathbf{U} \triangle(\tilde{\mathbf{r}}) \mathbf{e}$ at each vertex. Note that Algorithm 12 treats the reward vector as the initial per-vertex values and then propagates them through the elimination structure. When $\tilde{\mathbf{r}} = \mathbf{r}^{(n-1)}$, where each entry of $\mathbf{r}^{(n-1)}$ already encodes $(\mathbf{U} \triangle(\mathbf{r}))^{n-1} \mathbf{e}$ at each vertex, the replay effectively computes:
+We need to show this equals $(\mathbf{U} \triangle(\mathbf{r}))^n \mathbf{e}$. The elimination commands compute, for the reward vector $\tilde{\mathbf{r}}$, the vector $\mathbf{U} \triangle(\tilde{\mathbf{r}}) \mathbf{e}$ at each vertex. Note that @alg-06-moment-commands treats the reward vector as the initial per-vertex values and then propagates them through the elimination structure. When $\tilde{\mathbf{r}} = \mathbf{r}^{(n-1)}$, where each entry of $\mathbf{r}^{(n-1)}$ already encodes $(\mathbf{U} \triangle(\mathbf{r}))^{n-1} \mathbf{e}$ at each vertex, the replay effectively computes:
 
 $$\mathbf{r}^{(n)}_v = \sum_{j} U_{vj} \cdot r^{(n-1)}_j \cdot r_j = \left[\mathbf{U} \triangle(\mathbf{r}) \cdot \mathbf{r}^{(n-1)}\right]_v.$$
 
@@ -138,12 +138,13 @@ where the second equality uses $\triangle(\mathbf{R}_{\cdot i}) \mathbf{h}_j = \
 
 ## Algorithms
 
-### Algorithm 24: $k$-th Moment Computation
+::: {#alg-15-kth-moment}
+## $k$-th Moment Computation
 
-*Description.* This algorithm computes the $k$-th moment of a (possibly reward-transformed) phase-type distribution by iterated replay of the elimination commands. For $k = 1$ it reduces to Algorithm 12 in [06]. The full sojourn time vector is computed for each intermediate replay, as it serves as the reward vector for the next iteration.
+*Description.* This algorithm computes the $k$-th moment of a (possibly reward-transformed) phase-type distribution by iterated replay of the elimination commands. For $k = 1$ it reduces to @alg-06-moment-commands. The full sojourn time vector is computed for each intermediate replay, as it serves as the reward vector for the next iteration.
 
 ```
-Algorithm 24: k-th Moment Computation
+k-th Moment Computation
 1: Let C be the elimination command sequence (@def-06-reward-compute-graph)
 2: Let r be the base reward vector (r = e for plain moments)
 3: Let k be the desired moment order
@@ -152,7 +153,7 @@ Algorithm 24: k-th Moment Computation
 6:   h ← e                                        ▷ Initialize: unit vector
 7:   for i ← 1 to k do
 8:     reward ← r ∘ h                              ▷ Element-wise product with base reward
-9:     h ← ReplayCommands(C, reward)               ▷ Algorithm 12 in [06], full result vector
+9:     h ← ReplayCommands(C, reward)               ▷ Moment Computation, full result vector
 10:  end for
 11:  return k! × h[v_0]
 12: end function
@@ -171,13 +172,15 @@ Algorithm 24: k-th Moment Computation
 **Complexity.** Time: $O(k \cdot N)$ where $N \leq |V|^2$ is the number of elimination commands. Each replay costs $O(N)$, and $k$ replays are needed. Space: $O(|V|)$ for the result vector (reused across iterations).
 
 **Correctness.** Follows from @thm-15-higher-moments. Each replay computes $\mathbf{U} \triangle(\mathbf{r} \circ \mathbf{h}) \mathbf{e}$, and after $k$ iterations the starting vertex entry equals $\boldsymbol{\alpha} (\mathbf{U} \triangle(\mathbf{r}))^k \mathbf{e}$. Multiplying by $k!$ gives the $k$-th moment by @def-01-cph-moments.
+:::
 
-### Algorithm 25: Expected Sojourn Times and Cross-Moments for MPH
+::: {#alg-15-sojourn-cross-moments}
+## Expected Sojourn Times and Cross-Moments for MPH
 
 *Description.* This algorithm computes the expected sojourn time in each state by replaying the elimination commands with $|V|$ indicator reward vectors simultaneously (one per state). For a subset of $k$ target states, only $k$ reward vectors are used. Cross-moments are computed by two rounds of replay following @thm-15-cross-moment.
 
 ```
-Algorithm 25: Expected Sojourn Times
+Expected Sojourn Times
 1: Let C be the elimination command sequence (@def-06-reward-compute-graph)
 2: Let n = |V| be the number of vertices
 3:
@@ -228,13 +231,14 @@ Algorithm 25: Expected Sojourn Times
 
 **Complexity.** For the full sojourn time computation: Time $O(N \cdot |V|)$ where $N \leq |V|^2$, giving $O(|V|^3)$ total. Space $O(|V|^2)$ for the results matrix. For the subset variant: Time $O(N \cdot k)$, Space $O(|V| \cdot k)$. The subset variant is preferred when $k \ll |V|$.
 
-**Correctness.** The full sojourn time computation replays the commands with $|V|$ basis vectors $\mathbf{e}_1, \ldots, \mathbf{e}_{|V|}$ simultaneously. By linearity of the commands and the correctness of Algorithm 12, each column $r$ of the result gives $\text{ReplayCommands}(C, \mathbf{e}_r)$, and the starting vertex row gives $\boldsymbol{\alpha} \mathbf{U} \mathbf{e}_r = z_r$ (the expected sojourn time in state $r$). The subset variant restricts to $k$ selected basis vectors, giving the same result for those indices only.
+**Correctness.** The full sojourn time computation replays the commands with $|V|$ basis vectors $\mathbf{e}_1, \ldots, \mathbf{e}_{|V|}$ simultaneously. By linearity of the commands and the correctness of @alg-06-moment-commands, each column $r$ of the result gives $\text{ReplayCommands}(C, \mathbf{e}_r)$, and the starting vertex row gives $\boldsymbol{\alpha} \mathbf{U} \mathbf{e}_r = z_r$ (the expected sojourn time in state $r$). The subset variant restricts to $k$ selected basis vectors, giving the same result for those indices only.
+:::
 
 ## Numerical Considerations
 
-**Kahan compensated summation.** The full sojourn time computation (`ptd_expected_sojourn_time`) uses Kahan compensated summation (Algorithm 4 in [03]) for the inner accumulation. Each row of the results matrix maintains a separate Kahan compensation array. This is critical because the sojourn time computation involves $O(|V|^2)$ additions per reward vector, and standard summation can lose several digits of precision for large graphs. The subset variant (`ptd_expected_sojourn_time_subset`) does not use Kahan summation, trading precision for speed in the common case where $k$ is small.
+**Kahan compensated summation.** The full sojourn time computation (`ptd_expected_sojourn_time`) uses Kahan compensated summation (@alg-03-kahan-summation) for the inner accumulation. Each row of the results matrix maintains a separate Kahan compensation array. This is critical because the sojourn time computation involves $O(|V|^2)$ additions per reward vector, and standard summation can lose several digits of precision for large graphs. The subset variant (`ptd_expected_sojourn_time_subset`) does not use Kahan summation, trading precision for speed in the common case where $k$ is small.
 
-**Condition number monitoring.** The `ptd_expected_waiting_time` function (Algorithm 12 in [06]) monitors the condition number of the elimination commands by tracking the ratio of maximum to minimum multiplier magnitudes. When this exceeds a configurable threshold (default $10^{12}$), MPFR arbitrary-precision arithmetic is activated if available (see Numerical Considerations in [06]).
+**Condition number monitoring.** The `ptd_expected_waiting_time` function (@alg-06-moment-commands) monitors the condition number of the elimination commands by tracking the ratio of maximum to minimum multiplier magnitudes. When this exceeds a configurable threshold (default $10^{12}$), MPFR arbitrary-precision arithmetic is activated if available (see Numerical Considerations in [06]).
 
 **Zero-times-infinity handling.** Both the full and subset sojourn time algorithms inherit the $0 \times \infty = 0$ convention from Algorithm 12: commands with zero multiplier are skipped, and commands with infinite multiplier acting on zero entries are skipped. This prevents NaN propagation from inescapable cycles and zero-reward vertices.
 
@@ -246,13 +250,13 @@ Algorithm 25: Expected Sojourn Times
 
 | Algorithm | File | Function | Lines |
 |-----------|------|----------|-------|
-| Algorithm 24 ($k=1$) | `src/c/phasic.c` | `ptd_expected_waiting_time` | L6118--L6265 |
-| Algorithm 25 (full) | `src/c/phasic.c` | `ptd_expected_sojourn_time` | L6378--L6521 |
-| Algorithm 25 (subset) | `src/c/phasic.c` | `ptd_expected_sojourn_time_subset` | L6267--L6376 |
+| @alg-15-kth-moment ($k=1$) | `src/c/phasic.c` | `ptd_expected_waiting_time` | L6118--L6265 |
+| @alg-15-sojourn-cross-moments (full) | `src/c/phasic.c` | `ptd_expected_sojourn_time` | L6378--L6521 |
+| @alg-15-sojourn-cross-moments (subset) | `src/c/phasic.c` | `ptd_expected_sojourn_time_subset` | L6267--L6376 |
 
 **Deviations from pseudocode:**
 
-- Algorithm 24 is not implemented as an explicit $k$-loop in C. The single-replay case ($k = 1$) is implemented by `ptd_expected_waiting_time`. Higher moments ($k > 1$) are computed at the Python level by calling `ptd_expected_waiting_time` repeatedly with updated reward vectors, or by using the reward transformation approach (constructing a new graph with `ptd_graph_reward_transform` and computing its expected absorption time).
+- @alg-15-kth-moment is not implemented as an explicit $k$-loop in C. The single-replay case ($k = 1$) is implemented by `ptd_expected_waiting_time`. Higher moments ($k > 1$) are computed at the Python level by calling `ptd_expected_waiting_time` repeatedly with updated reward vectors, or by using the reward transformation approach (constructing a new graph with `ptd_graph_reward_transform` and computing its expected absorption time).
 - The full sojourn time algorithm (`ptd_expected_sojourn_time`) initializes the results matrix as the identity matrix (one-hot vectors), whereas the pseudocode uses "initialized to $\mathbf{I}_n$". This is equivalent but worth noting: the identity initialization means each "reward vector" is a standard basis vector.
 - The subset variant (`ptd_expected_sojourn_time_subset`) validates that all requested indices are within bounds (`< n`), returning NULL on out-of-bounds errors.
 - The full variant uses Kahan compensated summation via a parallel array of `kahan_sum` structs, while the subset variant uses plain double accumulation. This is a deliberate trade-off: the subset variant is intended for fast, moderately-sized computations where the additional memory and time cost of Kahan summation is not justified.
