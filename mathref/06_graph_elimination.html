@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>7&nbsp; Graph Elimination – Phasic — Supplementary Online Material</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./07_reward_transformation.html" rel="next">
+<link href="./05_graph_normalization.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-3d57081916b67e2c1b7e936475d81f56.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./04_scc_and_topological_sort.html">Graph Algorithms</a></li><li class="breadcrumb-item"><a href="./06_graph_elimination.html"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Graph Elimination</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Phasic — Supplementary Online Material</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Index</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Foundations</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01_preliminaries.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Preliminaries</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02_graph_representation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Graph Representation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03_numerical_primitives.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Numerical Primitives</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Graph Algorithms</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04_scc_and_topological_sort.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">SCC and Topological Sort</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05_graph_normalization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Graph Normalization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./06_graph_elimination.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./07_reward_transformation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Reward Transformation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./08_state_space_construction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Symbolic System and Traces</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./09_symbolic_expressions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./10_symbolic_graph_elimination.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./11_trace_system.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./12_graph_hashing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./13_scc_trace_stitching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Distribution and Moments</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./14_distribution_computation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./15_moment_computation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./16_pdf_gradients.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
+ <span class="menu-text">Sampling</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./17_sampling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true">
+ <span class="menu-text">Inference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./18_svgd.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./19_mcmc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./20_bffg.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./21_method_of_moments.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./22_probability_matching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true">
+ <span class="menu-text">Spatial and State Indexing</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./23_state_indexing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./24_hex_grid.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true">
+ <span class="menu-text">Integration</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./25_jax_integration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./26_graph_builder.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./27_van_loan_equivalence.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#definitions" id="toc-definitions" class="nav-link" data-scroll-target="#definitions">Definitions</a></li>
+  <li><a href="#theorems-and-proofs" id="toc-theorems-and-proofs" class="nav-link" data-scroll-target="#theorems-and-proofs">Theorems and Proofs</a></li>
+  <li><a href="#algorithms" id="toc-algorithms" class="nav-link" data-scroll-target="#algorithms">Algorithms</a></li>
+  <li><a href="#numerical-considerations" id="toc-numerical-considerations" class="nav-link" data-scroll-target="#numerical-considerations">Numerical Considerations</a></li>
+  <li><a href="#implementation-notes" id="toc-implementation-notes" class="nav-link" data-scroll-target="#implementation-notes">Implementation Notes</a></li>
+  <li><a href="#symbol-index" id="toc-symbol-index" class="nav-link" data-scroll-target="#symbol-index">Symbol Index</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./04_scc_and_topological_sort.html">Graph Algorithms</a></li><li class="breadcrumb-item"><a href="./06_graph_elimination.html"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Graph Elimination</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Graph Elimination</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="introduction">Introduction</h2>
+<p>This file formalizes the central algorithm of phasic: Gaussian elimination on a phase-type graph (Algorithm 3 in Roikjer, Hobolth &amp; Munch 2022, Section 2.6). Graph elimination converts a (possibly cyclic) normalized phase-type graph into an acyclic representation by systematically removing vertices and adding bypass edges. The resulting acyclic graph, together with a cached sequence of arithmetic commands, enables efficient computation of moments of any order.</p>
+<p>The key insight is that vertex elimination — removing a vertex by connecting its parents directly to its children — preserves the expected accumulated reward of the distribution. By performing this operation for every transient vertex in a topologically guided order, the algorithm reduces the graph to one in which only the starting vertex and absorbing vertices remain, with the accumulated reward information encoded in the command sequence. This command sequence can then be replayed with any reward vector to compute moments in <span class="math inline">O(|V|^2)</span> time, after a one-time <span class="math inline">O(|V|^3)</span> elimination cost.</p>
+<p>The algorithm operates on normalized graphs (<a href="05_graph_normalization.html#def-05-continuous-normalization" class="quarto-xref">Definition&nbsp;<span>6.1</span></a>) and uses SCC decomposition with topological sorting (<a href="04_scc_and_topological_sort.html#alg-04-tarjan-scc" class="quarto-xref">Algorithm&nbsp;<span>5.1</span></a> and <a href="04_scc_and_topological_sort.html#alg-04-topological-sort" class="quarto-xref">Algorithm&nbsp;<span>5.2</span></a>) to determine the elimination order. The command sequence is the foundation for all downstream moment computation, including reward-transformed moments.</p>
+<p><strong>Prerequisites:</strong> [01], [02], [04], [05]</p>
+<p><strong>Source files:</strong> - <code>src/c/phasic.c</code> (functions: <code>ptd_graph_ex_absorbation_time_comp_graph</code>, <code>ptd_expected_waiting_time</code>, <code>ptd_precompute_reward_compute_graph</code>) - <code>api/c/phasic.h</code> (structs: <code>ptd_desc_reward_compute</code>, <code>ptd_reward_increase</code>)</p>
+</section>
+<section id="definitions" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="definitions">Definitions</h2>
+<div id="def-06-vertex-elimination" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 7.1 (Vertex elimination)</strong></span> <em>Let <span class="math inline">G = (V, E, W')</span> be a normalized phase-type graph (<a href="05_graph_normalization.html#def-05-continuous-normalization" class="quarto-xref">Definition&nbsp;<span>6.1</span></a>) with vertex scalars <span class="math inline">\mathbf{x}</span>. The elimination of a transient vertex <span class="math inline">v \in V</span> (where <span class="math inline">v \neq v_0</span> and <span class="math inline">v</span> is not absorbing) produces a modified graph <span class="math inline">G^{(-v)}</span> by the following operations:</em></p>
+<ol type="1">
+<li><p><em>For each parent <span class="math inline">u \in \operatorname{parents}(v)</span> with <span class="math inline">u \neq v</span> and each child <span class="math inline">z \in \operatorname{children}(v)</span> with <span class="math inline">z \neq v</span>:</em></p>
+<ul>
+<li><em>If <span class="math inline">(u \to z) \in E</span>, update: <span class="math inline">w'(u \to z) \leftarrow w'(u \to z) + w'(u \to v) \cdot w'(v \to z)</span>;</em></li>
+<li><em>If <span class="math inline">(u \to z) \notin E</span>, add edge <span class="math inline">(u \to z)</span> with weight <span class="math inline">w'(u \to z) = w'(u \to v) \cdot w'(v \to z)</span>.</em></li>
+</ul></li>
+<li><p><em>Remove all edges <span class="math inline">(u \to v)</span> from parents to <span class="math inline">v</span> and all edges <span class="math inline">(v \to z)</span> from <span class="math inline">v</span> to children.</em></p></li>
+<li><p><em>Renormalize: for each parent <span class="math inline">u</span>, divide all outgoing edge weights by their new sum so that <span class="math inline">\sum_{z \in \operatorname{children}(u)} w'(u \to z) = 1</span>.</em></p></li>
+</ol>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> Vertex elimination is the graph analogue of Gaussian elimination on a matrix. When a vertex <span class="math inline">v</span> is eliminated, every path <span class="math inline">u \to v \to z</span> through <span class="math inline">v</span> is replaced by a direct bypass edge <span class="math inline">u \to z</span> whose weight equals the product of the two original edge weights (transition probabilities). This preserves the probability of reaching <span class="math inline">z</span> from <span class="math inline">u</span> via <span class="math inline">v</span>, which is exactly <span class="math inline">w'(u \to v) \cdot w'(v \to z)</span> by the Markov property. The renormalization in step 3 ensures that the outgoing edges from each remaining parent <span class="math inline">u</span> still form a valid probability distribution.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> Consider three transient vertices <span class="math inline">v_1, v_2, v_3</span> and an absorbing vertex <span class="math inline">v_a</span> with normalized edges: <span class="math inline">w'(v_1 \to v_2) = 0.6</span>, <span class="math inline">w'(v_1 \to v_a) = 0.4</span>, <span class="math inline">w'(v_2 \to v_3) = 0.7</span>, <span class="math inline">w'(v_2 \to v_a) = 0.3</span>. Eliminating <span class="math inline">v_2</span>: the bypass from <span class="math inline">v_1</span> to <span class="math inline">v_3</span> has weight <span class="math inline">0.6 \times 0.7 = 0.42</span>, and the bypass from <span class="math inline">v_1</span> to <span class="math inline">v_a</span> adds <span class="math inline">0.6 \times 0.3 = 0.18</span> to the existing <span class="math inline">0.4</span>, giving <span class="math inline">0.58</span>. After renormalization (sum <span class="math inline">= 0.42 + 0.58 = 1.0</span>), the weights remain unchanged.</p>
+</blockquote>
+<div id="fig-06-elimination-example" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-06-elimination-example-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<embed src="images/graph_elimination_example.pdf" class="img-fluid">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-06-elimination-example-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;7.1: Graph elimination on a four-vertex example. Top row, left to right: the normalized graph with vertices <span class="math inline">A</span>, <span class="math inline">B</span>, <span class="math inline">C</span>, <span class="math inline">D</span> and starting vertex <span class="math inline">S</span>; elimination of the first vertex creates bypass edges (shown in red/orange) and updates vertex scalars (red numbers). Bottom row: successive elimination steps remove remaining transient vertices, adding bypass edges and adjusting scalars via self-loop resolution, until only the starting vertex and absorbing vertices remain.
+</figcaption>
+</figure>
+</div>
+<div id="def-06-self-loop-resolution" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 7.2 (Self-loop resolution)</strong></span> <em>During elimination of vertex <span class="math inline">v</span>, if a parent <span class="math inline">u</span> has a bypass edge to itself (i.e., <span class="math inline">v</span> has an edge to <span class="math inline">u</span> and <span class="math inline">u</span> has an edge to <span class="math inline">v</span>), a self-loop with effective probability <span class="math inline">p = w'(u \to v) \cdot w'(v \to u)</span> is created. Self-loop resolution removes this self-loop by applying the geometric series factor:</em></p>
+<p><span id="eq-06-self-loop"><span class="math display">x_u \leftarrow x_u \cdot \frac{1}{1 - p}. \tag{7.1}</span></span></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> A self-loop with probability <span class="math inline">p</span> at vertex <span class="math inline">u</span> means the chain returns to <span class="math inline">u</span> with probability <span class="math inline">p</span> before exiting. The expected number of visits to <span class="math inline">u</span> (including the initial visit) is the geometric sum <span class="math inline">1 + p + p^2 + \cdots = 1/(1-p)</span>. Multiplying the vertex scalar <span class="math inline">x_u</span> by <span class="math inline">1/(1-p)</span> accounts for this: the expected time spent at <span class="math inline">u</span> during each sojourn (multiple visits before finally leaving) is <span class="math inline">x_u / (1-p)</span> rather than <span class="math inline">x_u</span>.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> Suppose <span class="math inline">u</span> has vertex scalar <span class="math inline">x_u = 0.5</span> and the elimination of <span class="math inline">v</span> creates a self-loop at <span class="math inline">u</span> with probability <span class="math inline">p = 0.3</span>. After resolution: <span class="math inline">x_u \leftarrow 0.5 \cdot 1/(1 - 0.3) = 0.5/0.7 \approx 0.714</span>. The chain now visits <span class="math inline">u</span> an expected <span class="math inline">1/0.7 \approx 1.43</span> times per sojourn, each lasting <span class="math inline">0.5</span> time units, for a total of <span class="math inline">0.714</span>.</p>
+</blockquote>
+<div id="def-06-acyclic-graph" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 7.3 (Acyclic graph representation)</strong></span> <em>A phase-type graph <span class="math inline">G = (V, E, W')</span> is acyclic if the subgraph induced by the transient vertices (excluding the starting and absorbing vertices) contains no directed cycles. The elimination algorithm (<a href="#alg-06-full-elimination" class="quarto-xref">Algorithm&nbsp;<span>7.2</span></a>) transforms any normalized phase-type graph into an acyclic graph representation by eliminating all transient vertices that participate in cycles, recording the bypass operations as commands.</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> An acyclic graph enables recursive (bottom-up) computation of moments: since there are no cycles, each vertex’s contribution can be computed exactly once in reverse topological order. The cyclic information is not lost; it is encoded in the vertex scalars via self-loop resolution factors.</p>
+</blockquote>
+<div id="def-06-elimination-invariants" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 7.4 (Elimination invariants)</strong></span> <em>The graph elimination algorithm maintains three invariants at each step:</em></p>
+<ol type="1">
+<li><p><em>Absorption probabilities: for each remaining vertex <span class="math inline">u</span> and each absorbing vertex <span class="math inline">v_a</span>, the probability of eventually reaching <span class="math inline">v_a</span> from <span class="math inline">u</span> in the modified graph equals the probability in the original graph.</em></p></li>
+<li><p><em>Expected accumulated reward: for each remaining vertex <span class="math inline">u</span>, the expected accumulated reward until absorption (using the modified vertex scalars <span class="math inline">\mathbf{x}</span>) equals the expected accumulated reward in the original graph.</em></p></li>
+<li><p><em>Normalized probabilities: for each remaining transient vertex <span class="math inline">u</span>, the outgoing edge weights sum to 1, i.e., the edges represent valid transition probabilities.</em></p></li>
+</ol>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> Invariant 1 ensures that the structure of absorption is preserved. Invariant 2 ensures that moments can be correctly computed from the modified graph. Invariant 3 ensures that the graph remains a valid representation of a normalized Markov chain at every intermediate step. Together, these invariants guarantee that the final acyclic graph encodes the same phase-type distribution as the original.</p>
+</blockquote>
+<div id="def-06-elimination-ordering" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 7.5 (Elimination ordering)</strong></span> <em>The elimination ordering is a permutation of the transient vertices <span class="math inline">v_1, \ldots, v_p</span> that determines the sequence in which vertices are eliminated. In phasic, this ordering is determined by:</em></p>
+<ol type="1">
+<li><em>Compute the strongly connected components (SCC) of the graph (<a href="04_scc_and_topological_sort.html#alg-04-tarjan-scc" class="quarto-xref">Algorithm&nbsp;<span>5.1</span></a>).</em></li>
+<li><em>Topologically sort the condensation DAG (<a href="04_scc_and_topological_sort.html#alg-04-topological-sort" class="quarto-xref">Algorithm&nbsp;<span>5.2</span></a>).</em></li>
+<li><em>Within each SCC, order vertices by their internal index.</em></li>
+<li><em>Transient vertices (with outgoing edges) precede absorbing vertices (with no outgoing edges).</em></li>
+</ol>
+<p><em>A vertex <span class="math inline">v_i</span> is eliminated only if all parents <span class="math inline">u</span> of <span class="math inline">v_i</span> with <span class="math inline">u</span> preceding <span class="math inline">v_i</span> in the ordering have already been eliminated (i.e., the algorithm skips parents with index less than <span class="math inline">i</span>).</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> The SCC-based ordering ensures that vertices within cycles are processed together, while the topological ordering of SCCs ensures that inter-component dependencies are handled correctly. Within an SCC, the elimination order does not affect correctness (<a href="#thm-06-acyclic-absorption" class="quarto-xref">Theorem&nbsp;<span>7.3</span></a> below) but may affect numerical stability. The condition that only parents with higher indices are considered during bypass ensures that already-eliminated vertices are not revisited.</p>
+</blockquote>
+<div id="def-06-reward-compute-graph" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 7.6 (Reward compute graph)</strong></span> <em>The reward compute graph is a cached sequence of <span class="math inline">N</span> commands <span class="math inline">C = (c_0, c_1, \ldots, c_{N-1})</span>, where each command <span class="math inline">c_j</span> is a triple <span class="math inline">(\text{from}, \text{to}, \text{multiplier})</span> representing the operation:</em></p>
+<p><span id="eq-06-command"><span class="math display">\text{result}[\text{from}] \leftarrow \text{result}[\text{from}] + \text{result}[\text{to}] \times \text{multiplier}. \tag{7.2}</span></span></p>
+<p><em>When <span class="math inline">\text{from} = \text{to}</span>, the command represents a scaling operation <span class="math inline">\text{result}[\text{from}] \leftarrow \text{result}[\text{from}] \times (1 + \text{multiplier})</span>, which is stored as <span class="math inline">\text{multiplier} = m - 1</span> where <span class="math inline">m</span> is the actual scale factor (so the operation becomes <span class="math inline">\text{result}[\text{from}] \leftarrow \text{result}[\text{from}] + \text{result}[\text{from}] \times (m-1) = \text{result}[\text{from}] \times m</span>).</em></p>
+<p><em>The command sequence has two phases:</em></p>
+<ul>
+<li><em>Phase 1 (commands <span class="math inline">0</span> to <span class="math inline">|V|-1</span>): initialization commands that set each vertex’s initial reward value (the vertex scalar <span class="math inline">x_v</span> from normalization).</em></li>
+<li><em>Phase 2 (commands <span class="math inline">|V|</span> onward): elimination commands recording the bypass operations (from <a href="#def-06-vertex-elimination" class="quarto-xref">Definition&nbsp;<span>7.1</span></a>) and self-loop resolutions (from <a href="#def-06-self-loop-resolution" class="quarto-xref">Definition&nbsp;<span>7.2</span></a>), followed by reverse-order edge accumulation commands.</em></li>
+</ul>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> The reward compute graph is a linear program — a flat sequence of multiply-accumulate operations — that replays the elimination in <span class="math inline">O(N)</span> time. The initial phase loads the reward vector (defaulting to vertex scalars for absorption time). The elimination phase propagates rewards upward through the eliminated vertices. The final edge accumulation phase, executed in reverse topological order, sums the contributions of each vertex’s children. By changing the initial reward vector, the same command sequence can compute moments for any reward-transformed distribution.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> For a graph with vertices <span class="math inline">\{v_0, v_1, v_2, v_a\}</span> where <span class="math inline">v_0</span> is starting and <span class="math inline">v_a</span> is absorbing, the command sequence might be: (i) initialize <span class="math inline">\text{result}[0] = 0</span>, <span class="math inline">\text{result}[1] = x_{v_1}</span>, <span class="math inline">\text{result}[2] = x_{v_2}</span>, <span class="math inline">\text{result}[3] = 0</span>; (ii) elimination of <span class="math inline">v_1</span>: <span class="math inline">\text{result}[2] \mathrel{+}= \text{result}[1] \times w'(v_2 \to v_1)</span>; (iii) reverse accumulation: <span class="math inline">\text{result}[0] \mathrel{+}= \text{result}[2] \times w'(v_0 \to v_2)</span>, etc.</p>
+</blockquote>
+</section>
+<section id="theorems-and-proofs" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="theorems-and-proofs">Theorems and Proofs</h2>
+<div id="thm-06-elimination-preserves-reward" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 7.1 (Vertex elimination preserves expected accumulated reward)</strong></span> <em>Let <span class="math inline">G</span> be a normalized phase-type graph with vertex scalars <span class="math inline">\mathbf{x}</span>, and let <span class="math inline">G^{(-v)}</span> be the graph after eliminating transient vertex <span class="math inline">v</span> (<a href="#def-06-vertex-elimination" class="quarto-xref">Definition&nbsp;<span>7.1</span></a>). For every remaining vertex <span class="math inline">u</span>, the expected accumulated reward until absorption starting from <span class="math inline">u</span> is the same in <span class="math inline">G</span> and <span class="math inline">G^{(-v)}</span>.</em></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>Let <span class="math inline">\mathbb{E}_u[\tilde{\tau}]</span> denote the expected accumulated reward starting from vertex <span class="math inline">u</span> in the original graph <span class="math inline">G</span>. By first-step analysis (conditioning on the first transition from <span class="math inline">u</span>):</p>
+<p><span id="eq-06-first-step"><span class="math display">\mathbb{E}_u[\tilde{\tau}] = x_u + \sum_{z \in \operatorname{children}(u)} w'(u \to z) \cdot \mathbb{E}_z[\tilde{\tau}], \tag{7.3}</span></span></p>
+<p>where <span class="math inline">x_u</span> is the expected time spent at <span class="math inline">u</span> before jumping, and the sum accounts for the expected future reward after jumping to each child <span class="math inline">z</span> with probability <span class="math inline">w'(u \to z)</span>. This is the graph analogue of equation (3) in Roikjer et al.&nbsp;(2022).</p>
+<p><strong>Case 1: <span class="math inline">u</span> is not a parent of <span class="math inline">v</span>.</strong> Then the elimination of <span class="math inline">v</span> does not modify <span class="math inline">u</span>’s outgoing edges. The children of <span class="math inline">u</span> in <span class="math inline">G^{(-v)}</span> are the same as in <span class="math inline">G</span>. Each child <span class="math inline">z \neq v</span> retains the same expected reward (by induction, since the elimination of <span class="math inline">v</span> only modifies parents of <span class="math inline">v</span>). Since <span class="math inline">u</span> is not a parent of <span class="math inline">v</span>, <span class="math inline">v \notin \operatorname{children}(u)</span>, and the first-step expansion for <span class="math inline">u</span> is unchanged.</p>
+<p><strong>Case 2: <span class="math inline">u</span> is a parent of <span class="math inline">v</span> and <span class="math inline">v</span> is not a parent of <span class="math inline">u</span>.</strong> Write the first-step expansion for <span class="math inline">u</span> in <span class="math inline">G</span>:</p>
+<p><span class="math display">\mathbb{E}_u[\tilde{\tau}] = x_u + w'(u \to v) \cdot \mathbb{E}_v[\tilde{\tau}] + \sum_{z \neq v} w'(u \to z) \cdot \mathbb{E}_z[\tilde{\tau}].</span></p>
+<p>For <span class="math inline">v</span> itself:</p>
+<p><span class="math display">\mathbb{E}_v[\tilde{\tau}] = x_v + \sum_{z \in \operatorname{children}(v)} w'(v \to z) \cdot \mathbb{E}_z[\tilde{\tau}].</span></p>
+<p>Substituting:</p>
+<p><span class="math display">\mathbb{E}_u[\tilde{\tau}] = x_u + w'(u \to v) \left( x_v + \sum_{z} w'(v \to z) \cdot \mathbb{E}_z[\tilde{\tau}] \right) + \sum_{z \neq v} w'(u \to z) \cdot \mathbb{E}_z[\tilde{\tau}].</span></p>
+<p>After elimination, the bypass edges give <span class="math inline">u</span> new edge weights <span class="math inline">\hat{w}'(u \to z) = w'(u \to z) + w'(u \to v) \cdot w'(v \to z)</span> for each child <span class="math inline">z</span> of <span class="math inline">v</span>, and the vertex scalar acquires an additive term: the initialization command sets <span class="math inline">\text{result}[u] = x_u</span>, and the elimination command adds <span class="math inline">w'(u \to v) \cdot x_v</span> (via <span class="math inline">\text{result}[u] \mathrel{+}= \text{result}[v] \times w'(u \to v)</span> after <span class="math inline">\text{result}[v]</span> has been set to <span class="math inline">x_v</span>). After renormalization of the outgoing probabilities and the corresponding recording of the renormalization factor, the first-step expansion in <span class="math inline">G^{(-v)}</span> yields:</p>
+<p><span class="math display">\mathbb{E}_u[\tilde{\tau}]^{(-v)} = x_u + w'(u \to v) \cdot x_v + \sum_{z} \hat{w}'(u \to z) \cdot \mathbb{E}_z[\tilde{\tau}] = \mathbb{E}_u[\tilde{\tau}].</span></p>
+<p><strong>Case 3: <span class="math inline">u</span> is a parent of <span class="math inline">v</span> and <span class="math inline">v</span> is a parent of <span class="math inline">u</span> (mutual edges).</strong> The bypass creates a self-loop at <span class="math inline">u</span> with probability <span class="math inline">p = w'(u \to v) \cdot w'(v \to u)</span>. By self-loop resolution (<a href="#def-06-self-loop-resolution" class="quarto-xref">Definition&nbsp;<span>7.2</span></a>), <span class="math inline">x_u \leftarrow x_u / (1-p)</span>. The expected reward at <span class="math inline">u</span> accounting for the geometric number of visits is:</p>
+<p><span class="math display">\mathbb{E}_u[\tilde{\tau}]^{(-v)} = \frac{x_u}{1 - p} + \frac{w'(u \to v) \cdot x_v}{1 - p} + \text{(terms for other children)},</span></p>
+<p>where the factor <span class="math inline">1/(1-p)</span> accounts for the expected <span class="math inline">1/(1-p)</span> visits to <span class="math inline">u</span> before finally leaving. An explicit computation (expanding the geometric series) shows this equals <span class="math inline">\mathbb{E}_u[\tilde{\tau}]</span> in the original graph. <span class="math inline">\square</span></p>
+</div>
+<div id="thm-06-self-loop-preserves-reward" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 7.2 (Self-loop resolution preserves expected accumulated reward)</strong></span> <em>Let <span class="math inline">u</span> be a vertex with self-loop probability <span class="math inline">p</span> (arising from the elimination of some vertex <span class="math inline">v</span>). After self-loop resolution — removing the self-loop and scaling <span class="math inline">x_u \leftarrow x_u / (1 - p)</span> — the expected accumulated reward starting from <span class="math inline">u</span> is unchanged.</em></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>With the self-loop, the chain at <span class="math inline">u</span> either exits (with probability <span class="math inline">1 - p</span>) or returns to <span class="math inline">u</span> (with probability <span class="math inline">p</span>). Let <span class="math inline">\mathbb{E}_u^{\text{exit}}</span> denote the expected reward conditional on exiting <span class="math inline">u</span> at the next step. The total expected reward starting from <span class="math inline">u</span> satisfies:</p>
+<p><span class="math display">\mathbb{E}_u[\tilde{\tau}] = x_u + p \cdot \mathbb{E}_u[\tilde{\tau}] + (1 - p) \cdot \mathbb{E}_u^{\text{exit}}.</span></p>
+<p>Solving for <span class="math inline">\mathbb{E}_u[\tilde{\tau}]</span>:</p>
+<p><span id="eq-06-self-loop-proof"><span class="math display">\mathbb{E}_u[\tilde{\tau}] = \frac{x_u}{1 - p} + \mathbb{E}_u^{\text{exit}}. \tag{7.4}</span></span></p>
+<p>After self-loop resolution, <span class="math inline">u</span> has vertex scalar <span class="math inline">x_u' = x_u / (1-p)</span> and no self-loop. The exit probabilities are renormalized: each <span class="math inline">w'(u \to z)</span> for <span class="math inline">z \neq u</span> is divided by <span class="math inline">1 - p</span> (since the self-loop probability <span class="math inline">p</span> is removed and the remaining probabilities must sum to 1). However, the conditional transition probabilities given exit are unchanged: <span class="math inline">w'(u \to z) / (1 - p)</span>, summing to 1. Thus:</p>
+<p><span class="math display">\mathbb{E}_u[\tilde{\tau}]^{\text{resolved}} = \frac{x_u}{1 - p} + \sum_{z \neq u} \frac{w'(u \to z)}{1-p} \cdot \mathbb{E}_z[\tilde{\tau}] = \frac{x_u}{1 - p} + \mathbb{E}_u^{\text{exit}} = \mathbb{E}_u[\tilde{\tau}]. \quad \square</span></p>
+</div>
+<div id="thm-06-acyclic-absorption" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 7.3 (Elimination produces an acyclic graph with correct absorption probabilities)</strong></span> <em>Let <span class="math inline">G</span> be a normalized phase-type graph. After eliminating all transient vertices (in any valid elimination ordering from <a href="#def-06-elimination-ordering" class="quarto-xref">Definition&nbsp;<span>7.5</span></a>), the resulting graph <span class="math inline">G^*</span> is acyclic: it contains only the starting vertex <span class="math inline">v_0</span> and absorbing vertices, connected by direct edges. The absorption probabilities from <span class="math inline">v_0</span> to each absorbing vertex are the same as in the original graph <span class="math inline">G</span>.</em></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span><strong>Acyclicity.</strong> Each elimination step removes one transient vertex and its incident edges from the graph. After all transient vertices are eliminated, the remaining vertices are <span class="math inline">v_0</span> (starting) and the absorbing vertices, none of which have edges to each other except from <span class="math inline">v_0</span>. Since absorbing vertices have no outgoing edges and <span class="math inline">v_0</span> only has edges to absorbing vertices, the graph is trivially acyclic.</p>
+<p><strong>Absorption probabilities.</strong> We proceed by induction on the number of eliminated vertices. The base case (zero eliminations) is trivial. For the inductive step, suppose all absorption probabilities are correct after eliminating <span class="math inline">k</span> vertices. When eliminating vertex <span class="math inline">v_{k+1}</span>, each parent <span class="math inline">u</span> of <span class="math inline">v_{k+1}</span> acquires bypass edges to <span class="math inline">v_{k+1}</span>’s children. The probability of reaching an absorbing vertex <span class="math inline">v_a</span> from <span class="math inline">u</span> via <span class="math inline">v_{k+1}</span> in the original graph is <span class="math inline">w'(u \to v_{k+1}) \cdot \Pr(v_{k+1} \to v_a)</span>, where <span class="math inline">\Pr(v_{k+1} \to v_a)</span> denotes the total absorption probability at <span class="math inline">v_a</span> starting from <span class="math inline">v_{k+1}</span>. By the first-step expansion for <span class="math inline">v_{k+1}</span>, this probability is distributed among <span class="math inline">v_{k+1}</span>’s children. The bypass edges from <span class="math inline">u</span> to <span class="math inline">v_{k+1}</span>’s children, with the subsequent renormalization, preserve exactly this probability flow. Self-loops, when resolved, redistribute the self-returning probability proportionally among the exit transitions, which again preserves the total absorption probability at each absorbing vertex. <span class="math inline">\square</span></p>
+</div>
+<div id="thm-06-elimination-complexity" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 7.4 (Elimination complexity)</strong></span> <em>For a phase-type graph with <span class="math inline">|V|</span> vertices and <span class="math inline">|E|</span> edges:</em></p>
+<ol type="1">
+<li><em>The one-time elimination cost (<a href="#alg-06-full-elimination" class="quarto-xref">Algorithm&nbsp;<span>7.2</span></a>) is <span class="math inline">O(|V|^3)</span> time and <span class="math inline">O(|V|^2)</span> space.</em></li>
+<li><em>Each subsequent moment computation using the cached command sequence (<a href="#alg-06-moment-commands" class="quarto-xref">Algorithm&nbsp;<span>7.3</span></a>) is <span class="math inline">O(N)</span> time and <span class="math inline">O(|V|)</span> space, where <span class="math inline">N \leq |V|^2</span> is the number of commands.</em></li>
+</ol>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span><strong>(1)</strong> The elimination iterates over at most <span class="math inline">|V|</span> vertices. For each eliminated vertex <span class="math inline">v</span>, it considers all parent-child pairs. In the worst case (a dense graph), <span class="math inline">v</span> has <span class="math inline">O(|V|)</span> parents and <span class="math inline">O(|V|)</span> children, giving <span class="math inline">O(|V|^2)</span> bypass operations per vertex. The total is <span class="math inline">O(|V|^3)</span> operations. Each bypass operation involves edge merging using sorted edge lists, which requires <span class="math inline">O(|V|)</span> work per parent (the merge is linear in the number of children). Space: the adjacency lists use <span class="math inline">O(|V|^2)</span> in the worst case (dense fill-in during elimination), and the command array grows to at most <span class="math inline">O(|V|^2)</span> entries.</p>
+<p><strong>(2)</strong> The command sequence has <span class="math inline">|V|</span> initialization commands plus at most <span class="math inline">O(|V|^2)</span> elimination and accumulation commands (bounded by the number of edges in the fully eliminated graph). Each command is a single multiply-accumulate operation on the result array of size <span class="math inline">|V|</span>, giving <span class="math inline">O(N) \leq O(|V|^2)</span> time and <span class="math inline">O(|V|)</span> space. <span class="math inline">\square</span></p>
+</div>
+</section>
+<section id="algorithms" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="algorithms">Algorithms</h2>
+<div id="alg-06-vertex-elimination" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-alg figure">
+<section id="vertex-elimination-single-vertex" class="level4" aria-describedby="alg-06-vertex-elimination-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="7.0.0.1">
+<h4 data-number="7.0.0.1" class="anchored" data-anchor-id="vertex-elimination-single-vertex"><span class="header-section-number">7.0.0.1</span> Vertex Elimination (Single Vertex)</h4>
+<p><em>Description.</em> This algorithm eliminates a single transient vertex <span class="math inline">v_i</span> from a normalized phase-type graph. For each parent of <span class="math inline">v_i</span> (that has not already been eliminated), it creates bypass edges to all of <span class="math inline">v_i</span>’s children, handles self-loops via geometric series resolution, and renormalizes the parent’s outgoing edges. It records each operation as a command in the reward compute sequence.</p>
+<pre><code>Vertex Elimination
+1: Let G = (V, E, W') be a normalized phase-type graph (@def-05-continuous-normalization)
+2: Let x be the vertex scalar array
+3: Let C be the command sequence (initially populated with initialization commands)
+4: Let i be the index of the vertex to eliminate
+
+5: function EliminateVertex(G, x, C, i)
+6:   me &lt;- V[i]
+7:   for each parent u in parents(me) with index(u) &gt;= i do
+8:     p_u_me &lt;- w'(u -&gt; me)                            &gt; Parent-to-me transition probability
+9:     AppendCommand(C, index(u), index(me), p_u_me)   &gt; Record bypass weight
+10:    new_total &lt;- 0
+11:    for each child z of me and each child z' of u do  &gt; Sorted merge of edge lists
+12:      if z = u then                                   &gt; Self-loop case
+13:        p_self &lt;- p_u_me * w'(me -&gt; u)
+14:        x[index(u)] &lt;- x[index(u)] / (1 - p_self)     &gt; Self-loop resolution (@def-06-self-loop-resolution)
+15:        AppendCommand(C, index(u), index(u), 1/(1 - p_self))
+16:        continue
+17:      end if
+18:      if z' = me then                                 &gt; Skip edge to eliminated vertex
+19:        continue
+20:      end if
+21:      if z = z' then                                  &gt; Both have edge to same target
+22:        w'(u -&gt; z) &lt;- w'(u -&gt; z) + p_u_me * w'(me -&gt; z) &gt; Add bypass weight
+23:      else if z &lt; z' then                             &gt; New bypass edge (no existing edge)
+24:        w'(u -&gt; z) &lt;- p_u_me * w'(me -&gt; z)              &gt; Create bypass edge
+25:      else                                            &gt; Existing parent edge, no bypass needed
+26:        retain w'(u -&gt; z')
+27:      end if
+28:      new_total &lt;- new_total + w'(u -&gt; current_target)
+29:    end for
+30:    for each child z of u in updated edge list do      &gt; Renormalize
+31:      w'(u -&gt; z) &lt;- w'(u -&gt; z) / new_total
+32:    end for
+33:  end for
+34: end function</code></pre>
+<p><strong>Correspondence table:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 20%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pseudocode variable</th>
+<th>Math symbol</th>
+<th>Code variable (file:function)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">G</span></td>
+<td><span class="math inline">G = (V, E, W')</span></td>
+<td><code>ptd_graph*</code> (phasic.c:<code>ptd_graph_ex_absorbation_time_comp_graph</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\text{me}</span></td>
+<td><span class="math inline">v_i</span> (vertex being eliminated)</td>
+<td><code>me</code> (vertex pointer)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">u</span></td>
+<td><span class="math inline">u \in \operatorname{parents}(v_i)</span></td>
+<td><code>parent_vertex</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">z</span></td>
+<td><span class="math inline">z \in \operatorname{children}(v_i)</span></td>
+<td><code>me_to_child_v</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">p\_u\_\text{me}</span></td>
+<td><span class="math inline">w'(u \to v_i)</span></td>
+<td><code>parent_weight_to_me</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">p\_\text{self}</span></td>
+<td><span class="math inline">w'(u \to v_i) \cdot w'(v_i \to u)</span></td>
+<td><code>prob</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\text{new\_total}</span></td>
+<td><span class="math inline">\sum_z w'(u \to z)</span> after bypass</td>
+<td><code>new_parent_total_prob</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">C</span></td>
+<td>Command sequence</td>
+<td><code>commands</code> (array of <code>ptd_reward_increase</code>)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathbf{x}</span></td>
+<td>Vertex scalar array</td>
+<td>stored via commands</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Complexity.</strong> Time: <span class="math inline">O(d_{\text{in}}(v_i) \cdot d_{\text{out}}(v_i))</span> per vertex, where <span class="math inline">d_{\text{in}}</span> and <span class="math inline">d_{\text{out}}</span> are the in-degree and out-degree. Space: <span class="math inline">O(d_{\text{in}} + d_{\text{out}})</span> for the edge merge buffer.</p>
+</section>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-06-vertex-elimination-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Algorithm&nbsp;7.1: <strong>Correctness.</strong> Follows from <a href="#thm-06-elimination-preserves-reward" class="quarto-xref">Theorem&nbsp;<span>7.1</span></a> and <a href="#thm-06-self-loop-preserves-reward" class="quarto-xref">Theorem&nbsp;<span>7.2</span></a>. Each bypass edge preserves the probability flow through <span class="math inline">v_i</span>, and self-loop resolution preserves the expected accumulated reward via the geometric series argument.
+</figcaption>
+</figure>
+</div>
+<div id="alg-06-full-elimination" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-alg figure">
+<section id="full-graph-elimination" class="level4" aria-describedby="alg-06-full-elimination-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="7.0.0.2">
+<h4 data-number="7.0.0.2" class="anchored" data-anchor-id="full-graph-elimination"><span class="header-section-number">7.0.0.2</span> Full Graph Elimination</h4>
+<p><em>Description.</em> This algorithm converts a (possibly cyclic) normalized phase-type graph into an acyclic representation by eliminating all transient vertices. It first determines the elimination order using SCC decomposition and topological sort, then eliminates vertices one by one using <a href="#alg-06-vertex-elimination" class="quarto-xref">Algorithm&nbsp;<span>7.1</span></a>, and finally records reverse-order edge accumulation commands for the remaining acyclic graph. The output is the reward compute graph (<a href="#def-06-reward-compute-graph" class="quarto-xref">Definition&nbsp;<span>7.6</span></a>).</p>
+<pre><code>Full Graph Elimination
+1: Let G = (V, E, W) be a phase-type graph representing PH_p(alpha, S) (@def-01-ph-graph)
+2:
+3: function BuildRewardComputeGraph(G)
+4:   scc &lt;- TarjanSCC(G)                                 &gt; Tarjan SCC
+5:   order &lt;- TopologicalSort(scc)                        &gt; Topological Sort
+6:   vertices &lt;- OrderVertices(order)                     &gt; Transient first, then absorbing (@def-06-elimination-ordering)
+7:   C &lt;- empty command sequence
+8:
+9:   &gt; Phase 1: Initialization commands (vertex scalars)
+10:  for i &lt;- 0 to |V| - 1 do
+11:    v &lt;- vertices[i]
+12:    lambda_v &lt;- Sum_{z in children(v)} w(v -&gt; z)
+13:    if v = v_0 or v is absorbing then
+14:      AppendCommand(C, i, i, 0)                        &gt; Zero reward for starting/absorbing
+15:    else
+16:      AppendCommand(C, i, i, 1/lambda_v)                &gt; Vertex scalar x_v = 1/lambda_v
+17:    end if
+18:    for each edge (v -&gt; z) do                           &gt; Normalize in place
+19:      w'(v -&gt; z) &lt;- w(v -&gt; z) / lambda_v
+20:    end for
+21:  end for
+22:
+23:  &gt; Phase 2: Elimination (forward pass)
+24:  for i &lt;- 0 to |V| - 1 do
+25:    EliminateVertex(G, x, C, i)                        &gt; Vertex Elimination
+26:  end for
+27:
+28:  &gt; Phase 3: Reverse-order edge accumulation
+29:  for i &lt;- |V| - 1 downto 0 do
+30:    v &lt;- vertices[i]
+31:    for each child z of v in the eliminated graph do
+32:      AppendCommand(C, originalIndex(v), originalIndex(z), w'(v -&gt; z))
+33:    end for
+34:  end for
+35:
+36:  return C
+37: end function</code></pre>
+<p><strong>Correspondence table:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 20%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pseudocode variable</th>
+<th>Math symbol</th>
+<th>Code variable (file:function)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">G</span></td>
+<td><span class="math inline">G = (V, E, W)</span></td>
+<td><code>graph</code> (phasic.c:<code>ptd_graph_ex_absorbation_time_comp_graph</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\text{scc}</span></td>
+<td>SCC decomposition</td>
+<td><code>scc</code> (<code>ptd_scc_graph*</code>)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\text{order}</span></td>
+<td>Topological ordering</td>
+<td><code>v</code> (result of <code>ptd_scc_graph_topological_sort</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\text{vertices}</span></td>
+<td>Ordered vertex array</td>
+<td><code>vertices</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">C</span></td>
+<td>Reward compute graph</td>
+<td><code>commands</code> (<code>ptd_reward_increase*</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\lambda_v</span></td>
+<td>Total outgoing rate</td>
+<td><code>rate</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\text{originalIndex}(v)</span></td>
+<td>Original graph index</td>
+<td><code>original_indices[i]</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Complexity.</strong> Time: <span class="math inline">O(|V|^3)</span> worst case (<a href="#thm-06-elimination-complexity" class="quarto-xref">Theorem&nbsp;<span>7.4</span></a>). The SCC computation is <span class="math inline">O(|V| + |E|)</span> (<a href="04_scc_and_topological_sort.html#alg-04-tarjan-scc" class="quarto-xref">Algorithm&nbsp;<span>5.1</span></a>), the topological sort is <span class="math inline">O(|V|)</span> (<a href="04_scc_and_topological_sort.html#alg-04-topological-sort" class="quarto-xref">Algorithm&nbsp;<span>5.2</span></a>), and the elimination dominates at <span class="math inline">O(|V|^3)</span>. Space: <span class="math inline">O(|V|^2)</span> for the adjacency lists (which can grow due to fill-in) and <span class="math inline">O(|V|^2)</span> for the command array.</p>
+</section>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-06-full-elimination-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Algorithm&nbsp;7.2: <strong>Correctness.</strong> Follows from <a href="#thm-06-elimination-preserves-reward" class="quarto-xref">Theorem&nbsp;<span>7.1</span></a>, <a href="#thm-06-self-loop-preserves-reward" class="quarto-xref">Theorem&nbsp;<span>7.2</span></a>, and <a href="#thm-06-acyclic-absorption" class="quarto-xref">Theorem&nbsp;<span>7.3</span></a>. Each vertex elimination preserves expected accumulated reward (<a href="#thm-06-elimination-preserves-reward" class="quarto-xref">Theorem&nbsp;<span>7.1</span></a>), self-loops are correctly resolved (<a href="#thm-06-self-loop-preserves-reward" class="quarto-xref">Theorem&nbsp;<span>7.2</span></a>), and the final graph is acyclic with correct absorption probabilities (<a href="#thm-06-acyclic-absorption" class="quarto-xref">Theorem&nbsp;<span>7.3</span></a>). The reverse-order edge accumulation commands reconstruct the first-step expansion (<a href="#eq-06-first-step" class="quarto-xref">Equation&nbsp;<span>7.3</span></a>) for the acyclic graph, enabling moment computation via <a href="#alg-06-moment-commands" class="quarto-xref">Algorithm&nbsp;<span>7.3</span></a>.
+</figcaption>
+</figure>
+</div>
+<div id="alg-06-moment-commands" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-alg figure">
+<section id="moment-computation-via-elimination-commands" class="level4" aria-describedby="alg-06-moment-commands-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="7.0.0.3">
+<h4 data-number="7.0.0.3" class="anchored" data-anchor-id="moment-computation-via-elimination-commands"><span class="header-section-number">7.0.0.3</span> Moment Computation via Elimination Commands</h4>
+<p><em>Description.</em> Given a reward compute graph (the cached command sequence from <a href="#alg-06-full-elimination" class="quarto-xref">Algorithm&nbsp;<span>7.2</span></a>) and a reward vector, this algorithm computes the expected accumulated reward at each vertex by replaying the commands. The expected absorption time is recovered as <span class="math inline">\text{result}[v_0]</span> (the starting vertex entry). By replacing the reward vector with reward-transformed values, higher moments and reward-transformed moments can be computed using the same command sequence.</p>
+<pre><code>Moment Computation via Elimination Commands
+1: Let C = (c_0, ..., c_{N-1}) be the reward compute graph (@def-06-reward-compute-graph)
+2: Let r be a reward vector of length |V|, or NULL for default rewards (all ones)
+3:
+4: function ReplayCommands(C, r)
+5:   result &lt;- array of size |V|
+6:   if r = NULL then
+7:     result[i] &lt;- 1 for all i                          &gt; Default: unit rewards (absorption time)
+8:   else
+9:     result &lt;- copy of r
+10:  end if
+11:
+12:  for j &lt;- 0 to N - 1 do
+13:    cmd &lt;- C[j]
+14:    if cmd.multiplier = 0 then                        &gt; Skip zero multiplier (0 x anything = 0)
+15:      continue
+16:    end if
+17:    if cmd.multiplier = infinity and result[cmd.to] = 0 then &gt; Handle infinity x 0 = 0 (limit)
+18:      continue
+19:    end if
+20:    result[cmd.from] &lt;- result[cmd.from] + result[cmd.to] x cmd.multiplier
+21:    if result[cmd.from] is NaN then                   &gt; Numerical catastrophe detection
+22:      error "NaN detected at vertex cmd.from"
+23:    end if
+24:  end for
+25:
+26:  return result
+27: end function</code></pre>
+<p><strong>Correspondence table:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 20%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pseudocode variable</th>
+<th>Math symbol</th>
+<th>Code variable (file:function)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">C</span></td>
+<td>Command sequence</td>
+<td><code>graph-&gt;reward_compute_graph</code> (phasic.c:<code>ptd_expected_waiting_time</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mathbf{r}</span></td>
+<td>Reward vector</td>
+<td><code>rewards</code> parameter</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\text{result}</span></td>
+<td>Expected reward array</td>
+<td><code>result</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\text{cmd.from}</span></td>
+<td>Source vertex index</td>
+<td><code>command.from</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\text{cmd.to}</span></td>
+<td>Target vertex index</td>
+<td><code>command.to</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\text{cmd.multiplier}</span></td>
+<td>Scale factor <span class="math inline">m - 1</span> or weight</td>
+<td><code>command.multiplier</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">N</span></td>
+<td>Number of commands</td>
+<td><code>graph-&gt;reward_compute_graph-&gt;length</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Complexity.</strong> Time: <span class="math inline">O(N)</span> where <span class="math inline">N \leq |V|^2</span> is the number of commands. Each command is a single multiply-accumulate operation. Space: <span class="math inline">O(|V|)</span> for the result array.</p>
+</section>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-06-moment-commands-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Algorithm&nbsp;7.3: <strong>Correctness.</strong> The command sequence is generated by <a href="#alg-06-full-elimination" class="quarto-xref">Algorithm&nbsp;<span>7.2</span></a> to encode the complete elimination process: initialization (vertex scalars), bypass operations (<a href="#thm-06-elimination-preserves-reward" class="quarto-xref">Theorem&nbsp;<span>7.1</span></a>), self-loop resolutions (<a href="#thm-06-self-loop-preserves-reward" class="quarto-xref">Theorem&nbsp;<span>7.2</span></a>), and reverse-order edge accumulation. Replaying the commands with a reward vector <span class="math inline">\mathbf{r}</span> computes the first-step expansion (<a href="#eq-06-first-step" class="quarto-xref">Equation&nbsp;<span>7.3</span></a>) for each vertex, with <span class="math inline">x_v</span> replaced by <span class="math inline">r_v \cdot x_v</span> (the reward-weighted vertex scalar). The result at the starting vertex <span class="math inline">v_0</span> gives <span class="math inline">\mathbb{E}[\tilde{\tau}] = \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{r}) \mathbf{e}</span>, the expected accumulated reward (<a href="01_preliminaries.html#def-01-reward-cph" class="quarto-xref">Definition&nbsp;<span>2.9</span></a>).
+</figcaption>
+</figure>
+</div>
+</section>
+<section id="numerical-considerations" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="numerical-considerations">Numerical Considerations</h2>
+<p><strong>Condition number monitoring.</strong> The implementation monitors the condition number of the elimination by tracking the ratio of the largest to smallest multiplier magnitudes across all commands. When this ratio exceeds a configurable threshold (default <span class="math inline">10^{12}</span>, controlled by the <code>PHASIC_CONDITION_THRESHOLD</code> environment variable), the system automatically activates MPFR arbitrary-precision arithmetic if available. The MPFR precision is computed as <span class="math inline">\lceil \log_2(\text{condition number}) \rceil + 64</span> bits, clamped to the range <span class="math inline">[128, 1024]</span>.</p>
+<p><strong>Zero-times-infinity handling.</strong> During command replay, two special cases arise: (i) <span class="math inline">\text{multiplier} = 0</span> with <span class="math inline">\text{result}[\text{to}]</span> potentially infinite (from inescapable cycles), and (ii) <span class="math inline">\text{multiplier} = \infty</span> with <span class="math inline">\text{result}[\text{to}] = 0</span> (from zero-reward vertices). Both are handled by the convention <span class="math inline">0 \times \infty = 0</span> (the limit interpretation), implemented as explicit checks before the multiply-accumulate.</p>
+<p><strong>NaN detection.</strong> After each command, the result is checked for NaN. If detected, the computation is aborted with an error, as NaN indicates a numerical catastrophe (typically caused by severe cancellation in ill-conditioned graphs). The error message includes the command index and vertex index for debugging.</p>
+<p><strong>Self-loop probability near 1.</strong> When the self-loop probability <span class="math inline">p</span> approaches 1, the factor <span class="math inline">1/(1-p)</span> becomes very large, amplifying rounding errors. The SCC-based elimination ordering mitigates this by processing vertices within the same SCC together, but extreme cases may still require MPFR precision.</p>
+<p><strong>Sorted edge merge.</strong> The implementation sorts each vertex’s edge list by pointer address and uses a merge-based algorithm (analogous to merge sort’s merge step) to combine the edge lists of the eliminated vertex and each parent. This ensures that existing edges to the same target are correctly identified and updated rather than duplicated, and new bypass edges are inserted in sorted order. The use of sentinel values (dummy minimum and maximum pointers) simplifies boundary handling.</p>
+</section>
+<section id="implementation-notes" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="implementation-notes">Implementation Notes</h2>
+<p><strong>Source code mapping:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 17%">
+<col style="width: 29%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Algorithm</th>
+<th>File</th>
+<th>Function</th>
+<th>Lines</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="#alg-06-vertex-elimination" class="quarto-xref">Algorithm&nbsp;<span>7.1</span></a></td>
+<td><code>src/c/phasic.c</code></td>
+<td><code>ptd_graph_ex_absorbation_time_comp_graph</code> (inner loop)</td>
+<td>L4702–L4848</td>
+</tr>
+<tr class="even">
+<td><a href="#alg-06-full-elimination" class="quarto-xref">Algorithm&nbsp;<span>7.2</span></a></td>
+<td><code>src/c/phasic.c</code></td>
+<td><code>ptd_graph_ex_absorbation_time_comp_graph</code></td>
+<td>L4538–L4901</td>
+</tr>
+<tr class="odd">
+<td><a href="#alg-06-moment-commands" class="quarto-xref">Algorithm&nbsp;<span>7.3</span></a></td>
+<td><code>src/c/phasic.c</code></td>
+<td><code>ptd_expected_waiting_time</code></td>
+<td>L6118–L6265</td>
+</tr>
+<tr class="even">
+<td>Precomputation cache</td>
+<td><code>src/c/phasic.c</code></td>
+<td><code>ptd_precompute_reward_compute_graph</code></td>
+<td>L1768–L1816</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Deviations from pseudocode:</strong></p>
+<ul>
+<li><p><strong><a href="#alg-06-vertex-elimination" class="quarto-xref">Algorithm&nbsp;<span>7.1</span></a> (edge merge):</strong> The pseudocode shows a high-level sorted merge. The implementation uses <code>qsort</code> on edge arrays with pointer-based comparison (<code>arr_c_cmp</code>), sentinel dummy vertices (<code>dummy__ptd_min</code>, <code>dummy__ptd_max</code>), and explicit index tracking via <code>arr_p_index</code> and <code>arr_c_index</code> cross-references between parent and child arrays. This is a performance optimization that avoids hash table lookups.</p></li>
+<li><p><strong><a href="#alg-06-full-elimination" class="quarto-xref">Algorithm&nbsp;<span>7.2</span></a> (normalization):</strong> The pseudocode shows normalization as part of the initialization phase. In the implementation, normalization is performed inline: the total rate is computed, edges are divided by the rate, and the vertex scalar <span class="math inline">1/\lambda_v</span> is recorded as the first command. This combines <a href="05_graph_normalization.html#alg-05-continuous-normalization" class="quarto-xref">Algorithm&nbsp;<span>6.1</span></a> and <a href="#alg-06-full-elimination" class="quarto-xref">Algorithm&nbsp;<span>7.2</span></a> into a single pass.</p></li>
+<li><p><strong><a href="#alg-06-full-elimination" class="quarto-xref">Algorithm&nbsp;<span>7.2</span></a> (skip condition):</strong> The pseudocode eliminates all vertices. The implementation skips parents with index less than <span class="math inline">i</span> (<code>if (parent_vertex_index &lt; i) { continue; }</code>), because those parents have already been eliminated. This is correct because the elimination ordering processes vertices in increasing index order, and eliminated vertices no longer participate in the graph.</p></li>
+<li><p><strong><a href="#alg-06-moment-commands" class="quarto-xref">Algorithm&nbsp;<span>7.3</span></a> (self-scaling encoding):</strong> When <code>from == to</code>, the <code>add_command</code> function stores <code>multiplier - 1</code> rather than <code>multiplier</code>. This transforms the generic operation <code>result[from] += result[to] * multiplier</code> into the scaling operation <code>result[from] *= (1 + (multiplier - 1)) = result[from] * multiplier</code>. This encoding avoids a branch in the inner loop of <code>ptd_expected_waiting_time</code>.</p></li>
+<li><p><strong><a href="#alg-06-full-elimination" class="quarto-xref">Algorithm&nbsp;<span>7.2</span></a> (parameterized variant):</strong> The function <code>ptd_graph_ex_absorbation_time_comp_graph_parameterized</code> implements the same algorithm but stores pointers to parameter-dependent values rather than concrete doubles, enabling re-evaluation when parameters change. This variant uses command types (<code>PP</code>, <code>P</code>, <code>INV</code>, <code>ZERO</code>, <code>DIVIDE</code>, <code>ONE_MINUS</code>) to distinguish different arithmetic operations.</p></li>
+<li><p><strong><a href="#alg-06-moment-commands" class="quarto-xref">Algorithm&nbsp;<span>7.3</span></a> (MPFR fallback):</strong> When the condition number exceeds the threshold, <code>ptd_expected_waiting_time</code> delegates to <code>ptd_expected_waiting_time_mpfr</code>, which replays the same command sequence using MPFR arbitrary-precision arithmetic. The MPFR command sequence stores multipliers as string representations in scientific notation to preserve full precision.</p></li>
+</ul>
+</section>
+<section id="symbol-index" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="symbol-index">Symbol Index</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 19%">
+<col style="width: 54%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Symbol</th>
+<th>Name</th>
+<th>First appearance</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">C</span></td>
+<td>Command sequence (reward compute graph)</td>
+<td><a href="#def-06-reward-compute-graph" class="quarto-xref">Definition&nbsp;<span>7.6</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">c_j</span></td>
+<td>Individual command <span class="math inline">(\text{from}, \text{to}, \text{multiplier})</span></td>
+<td><a href="#def-06-reward-compute-graph" class="quarto-xref">Definition&nbsp;<span>7.6</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">G^{(-v)}</span></td>
+<td>Graph after eliminating vertex <span class="math inline">v</span></td>
+<td><a href="#def-06-vertex-elimination" class="quarto-xref">Definition&nbsp;<span>7.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">G^*</span></td>
+<td>Final acyclic graph after full elimination</td>
+<td><a href="#thm-06-acyclic-absorption" class="quarto-xref">Theorem&nbsp;<span>7.3</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">N</span></td>
+<td>Number of commands in reward compute graph</td>
+<td><a href="#def-06-reward-compute-graph" class="quarto-xref">Definition&nbsp;<span>7.6</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">p</span></td>
+<td>Self-loop probability</td>
+<td><a href="#def-06-self-loop-resolution" class="quarto-xref">Definition&nbsp;<span>7.2</span></a></td>
+</tr>
+</tbody>
+</table>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./05_graph_normalization.html" class="pagination-link" aria-label="Graph Normalization">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Graph Normalization</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./07_reward_transformation.html" class="pagination-link" aria-label="Reward Transformation">
+        <span class="nav-page-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Reward Transformation</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

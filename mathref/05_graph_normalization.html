@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>6&nbsp; Graph Normalization – Phasic — Supplementary Online Material</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./06_graph_elimination.html" rel="next">
+<link href="./04_scc_and_topological_sort.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-3d57081916b67e2c1b7e936475d81f56.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./04_scc_and_topological_sort.html">Graph Algorithms</a></li><li class="breadcrumb-item"><a href="./05_graph_normalization.html"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Graph Normalization</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Phasic — Supplementary Online Material</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Index</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Foundations</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01_preliminaries.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Preliminaries</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02_graph_representation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Graph Representation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03_numerical_primitives.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Numerical Primitives</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Graph Algorithms</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04_scc_and_topological_sort.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">SCC and Topological Sort</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05_graph_normalization.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Graph Normalization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./06_graph_elimination.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./07_reward_transformation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Reward Transformation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./08_state_space_construction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Symbolic System and Traces</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./09_symbolic_expressions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./10_symbolic_graph_elimination.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./11_trace_system.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./12_graph_hashing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./13_scc_trace_stitching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Distribution and Moments</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./14_distribution_computation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./15_moment_computation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./16_pdf_gradients.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
+ <span class="menu-text">Sampling</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./17_sampling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true">
+ <span class="menu-text">Inference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./18_svgd.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./19_mcmc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./20_bffg.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./21_method_of_moments.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./22_probability_matching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true">
+ <span class="menu-text">Spatial and State Indexing</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./23_state_indexing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./24_hex_grid.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true">
+ <span class="menu-text">Integration</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./25_jax_integration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./26_graph_builder.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./27_van_loan_equivalence.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#definitions" id="toc-definitions" class="nav-link" data-scroll-target="#definitions">Definitions</a>
+  <ul class="collapse">
+  <li><a href="#continuous-normalization" id="toc-continuous-normalization" class="nav-link" data-scroll-target="#continuous-normalization">Continuous normalization</a></li>
+  <li><a href="#discrete-normalization" id="toc-discrete-normalization" class="nav-link" data-scroll-target="#discrete-normalization">Discrete normalization</a></li>
+  </ul></li>
+  <li><a href="#theorems-and-proofs" id="toc-theorems-and-proofs" class="nav-link" data-scroll-target="#theorems-and-proofs">Theorems and Proofs</a></li>
+  <li><a href="#algorithms" id="toc-algorithms" class="nav-link" data-scroll-target="#algorithms">Algorithms</a></li>
+  <li><a href="#numerical-considerations" id="toc-numerical-considerations" class="nav-link" data-scroll-target="#numerical-considerations">Numerical Considerations</a></li>
+  <li><a href="#implementation-notes" id="toc-implementation-notes" class="nav-link" data-scroll-target="#implementation-notes">Implementation Notes</a></li>
+  <li><a href="#symbol-index" id="toc-symbol-index" class="nav-link" data-scroll-target="#symbol-index">Symbol Index</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./04_scc_and_topological_sort.html">Graph Algorithms</a></li><li class="breadcrumb-item"><a href="./05_graph_normalization.html"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Graph Normalization</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Graph Normalization</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="introduction">Introduction</h2>
+<p>This file documents the normalization algorithms that prepare phase-type graphs for elimination ([06]) and moment computation. Normalization separates a graph into two components: <strong>transition probabilities</strong> (the normalized edge weights) and <strong>holding time information</strong> (vertex scalars). This separation is what allows the elimination algorithm to manipulate transition structure independently of timing.</p>
+<p>Phasic provides two normalization algorithms, one for continuous phase-type distributions and one for discrete phase-type distributions. The continuous normalizer divides each edge weight by the total outgoing rate of its source vertex, producing transition probabilities and storing the inverse rates as vertex scalars. The discrete normalizer handles the additional complication of self-loop probabilities: since the graph representation forbids self-loops (edges from a vertex to itself), the probability of remaining in the same state must be encoded through auxiliary vertices.</p>
+<p>Both algorithms modify the graph in place and return an array of vertex scalars. Downstream algorithms (elimination, reward transformation, moment computation) operate on the normalized graph and use the vertex scalars to recover the original distribution.</p>
+<p><strong>Prerequisites:</strong> [01], [02], [04]</p>
+<p><strong>Source files:</strong> - <code>src/c/phasic.c</code> (functions: <code>ptd_normalize_graph</code>, <code>ptd_dph_normalize_graph</code>)</p>
+</section>
+<section id="definitions" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="definitions">Definitions</h2>
+<section id="continuous-normalization" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="continuous-normalization">Continuous normalization</h3>
+<div id="def-05-continuous-normalization" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 6.1 (Continuous graph normalization)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> be a phase-type graph representing <span class="math inline">\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})</span> (<a href="01_preliminaries.html#def-01-ph-graph" class="quarto-xref">Definition&nbsp;<span>2.13</span></a>). The continuous normalization of <span class="math inline">G</span> produces:</em></p>
+<ol type="1">
+<li><p><em>A normalized graph <span class="math inline">G' = (V, E, W')</span> where for each edge <span class="math inline">(v \to z) \in E</span>:</em> <span id="eq-05-continuous-norm"><span class="math display">w'(v \to z) = \frac{w(v \to z)}{\lambda_v}, \tag{6.1}</span></span> <em>where <span class="math inline">\lambda_v = \sum_{z \in \operatorname{children}(v)} w(v \to z)</span> is the total outgoing rate of <span class="math inline">v</span>.</em></p></li>
+<li><p><em>A vertex scalar array <span class="math inline">\mathbf{x} = (x_{v_0}, x_{v_1}, \ldots)</span> where:</em> <span id="eq-05-vertex-scalar"><span class="math display">x_v = \begin{cases} 1/\lambda_v &amp; \text{if } \lambda_v &gt; 0, \\ 1 &amp; \text{if } \lambda_v = 0. \end{cases} \tag{6.2}</span></span></p></li>
+</ol>
+<p><em>The normalization is performed in place: after normalization, each edge in <span class="math inline">G</span> stores <span class="math inline">w'(v \to z)</span> and the original rates are recoverable only from <span class="math inline">\mathbf{x}</span>.</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> After normalization, each outgoing edge weight from a transient vertex becomes a transition probability: <span class="math inline">w'(v \to z) = q_{vz}</span>, the probability that the embedded discrete-time chain transitions from <span class="math inline">v</span> to <span class="math inline">z</span> upon leaving <span class="math inline">v</span>. The vertex scalar <span class="math inline">x_v = 1/\lambda_v</span> is the expected holding time at vertex <span class="math inline">v</span> (the mean of the <span class="math inline">\operatorname{Exp}(\lambda_v)</span> holding time). For absorbing vertices (<span class="math inline">\lambda_v = 0</span>), the scalar is set to 1 as a neutral default; absorbing vertices have no outgoing edges, so the normalization is vacuous. This decomposition corresponds to the factorization of a continuous-time Markov chain into its embedded chain and its holding time structure (<a href="01_preliminaries.html#def-01-vertex-scalar" class="quarto-xref">Definition&nbsp;<span>2.16</span></a>).</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> Consider a vertex <span class="math inline">v_1</span> with two outgoing edges: <span class="math inline">w(v_1 \to v_2) = 3</span> and <span class="math inline">w(v_1 \to v_a) = 2</span> (where <span class="math inline">v_a</span> is absorbing). The total outgoing rate is <span class="math inline">\lambda_{v_1} = 5</span>. After normalization: <span class="math inline">w'(v_1 \to v_2) = 3/5 = 0.6</span>, <span class="math inline">w'(v_1 \to v_a) = 2/5 = 0.4</span>, and <span class="math inline">x_{v_1} = 1/5 = 0.2</span>. The process waits <span class="math inline">\operatorname{Exp}(5)</span> time at <span class="math inline">v_1</span>, then transitions to <span class="math inline">v_2</span> with probability 0.6 or absorbs with probability 0.4.</p>
+</blockquote>
+<div id="fig-05-normalization-example" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-05-normalization-example-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<embed src="images/graph_normalization_example.pdf" class="img-fluid">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-05-normalization-example-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;6.1: Continuous graph normalization. Left: a phase-type graph with raw transition rates on edges (e.g., <span class="math inline">A</span> has outgoing rates <span class="math inline">0.12</span>, <span class="math inline">0.20</span>, <span class="math inline">0.25</span>, <span class="math inline">0.08</span>). Right: the normalized graph with transition probabilities in blue and vertex scalars <span class="math inline">x_v = 1/\lambda_v</span> in red (e.g., <span class="math inline">x_A = 5</span> since <span class="math inline">\lambda_A = 0.20</span>). The starting vertex <span class="math inline">S</span> has scalar <span class="math inline">0</span> and the absorbing vertex <span class="math inline">D</span> has scalar <span class="math inline">0</span>.
+</figcaption>
+</figure>
+</div>
+<div id="def-05-embedded-chain" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 6.2 (Embedded discrete-time Markov chain)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> represent <span class="math inline">\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})</span> and let <span class="math inline">G' = (V, E, W')</span> be its continuous normalization (<a href="#def-05-continuous-normalization" class="quarto-xref">Definition&nbsp;<span>6.1</span></a>). The normalized edge weights define the transition probabilities of the embedded discrete-time Markov chain:</em></p>
+<p><span id="eq-05-embedded-transition"><span class="math display">q_{ij} = w'(v_i \to v_j) = \frac{s_{ij}}{\lambda_{v_i}} \quad \text{for } i \neq j, \tag{6.3}</span></span></p>
+<p><em>where <span class="math inline">s_{ij}</span> is the <span class="math inline">(i,j)</span> entry of <span class="math inline">\mathbf{S}</span> and <span class="math inline">\lambda_{v_i} = -s_{ii} = \sum_{j \neq i} s_{ij} + s_i</span> is the total departure rate from state <span class="math inline">i</span>. The absorption probability from state <span class="math inline">i</span> is <span class="math inline">q_{i,p+1} = s_i / \lambda_{v_i}</span>.</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> The embedded chain records which state the process jumps to, ignoring how long it waits before jumping. The continuous phase-type distribution is fully determined by the embedded chain probabilities <span class="math inline">\{q_{ij}\}</span> and the holding rates <span class="math inline">\{\lambda_{v_i}\}</span>. This decomposition is standard in the theory of continuous-time Markov chains (see, e.g., Norris 1997, Chapter 2).</p>
+</blockquote>
+</section>
+<section id="discrete-normalization" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="discrete-normalization">Discrete normalization</h3>
+<div id="def-05-discrete-normalization" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 6.3 (Discrete graph normalization)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> be a phase-type graph representing <span class="math inline">\operatorname{DPH}_p(\boldsymbol{\alpha}, \mathbf{T})</span> (<a href="01_preliminaries.html#def-01-dph" class="quarto-xref">Definition&nbsp;<span>2.7</span></a>). For each non-starting, non-absorbing vertex <span class="math inline">v_i</span> with self-loop probability <span class="math inline">p_{ii} = 1 - \sum_{z \in \operatorname{children}(v_i)} w(v_i \to z) &gt; \epsilon</span> (where <span class="math inline">\epsilon = 10^{-7}</span>), the discrete normalization augments <span class="math inline">G</span> by:</em></p>
+<ol type="1">
+<li><em>Creating an auxiliary vertex <span class="math inline">a_i</span> (<a href="#def-05-auxiliary-vertex" class="quarto-xref">Definition&nbsp;<span>6.4</span></a>);</em></li>
+<li><em>Adding an edge <span class="math inline">(v_i \to a_i)</span> with weight <span class="math inline">p_{ii}</span>;</em></li>
+<li><em>Adding an edge <span class="math inline">(a_i \to v_i)</span> with weight <span class="math inline">1.0</span>.</em></li>
+</ol>
+<p><em>The normalization produces a vertex scalar array <span class="math inline">\mathbf{x}</span> where <span class="math inline">x_v = 1</span> for all original vertices and <span class="math inline">x_{a_i} = 0</span> for all auxiliary vertices. The graph is modified in place.</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> In a discrete-time Markov chain, a state may have a non-zero probability of remaining in the same state at the next step: <span class="math inline">T_{ii} &gt; 0</span>. Since phasic’s graph representation forbids self-loops (see Implementation Notes in [02]), this self-transition probability must be encoded differently. The solution is to introduce an auxiliary vertex <span class="math inline">a_i</span> that acts as a “bounce” state: the chain transitions from <span class="math inline">v_i</span> to <span class="math inline">a_i</span> with probability <span class="math inline">p_{ii}</span>, and from <span class="math inline">a_i</span> back to <span class="math inline">v_i</span> with probability 1. This two-step detour has the same geometric holding time distribution as the self-loop.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> Consider a DPH vertex <span class="math inline">v_1</span> with edges <span class="math inline">w(v_1 \to v_2) = 0.3</span> and <span class="math inline">w(v_1 \to v_a) = 0.2</span>, so the total transition probability is <span class="math inline">0.5</span> and the self-loop probability is <span class="math inline">p_{11} = 1 - 0.5 = 0.5</span>. After normalization, an auxiliary vertex <span class="math inline">a_1</span> is created with edges <span class="math inline">w(v_1 \to a_1) = 0.5</span> and <span class="math inline">w(a_1 \to v_1) = 1.0</span>. The vertex scalars are <span class="math inline">x_{v_1} = 1</span> and <span class="math inline">x_{a_1} = 0</span>. At <span class="math inline">v_1</span>, the chain either transitions out (to <span class="math inline">v_2</span> or <span class="math inline">v_a</span>) with probability 0.5, or bounces through <span class="math inline">a_1</span> and returns, simulating the self-loop.</p>
+</blockquote>
+<div id="def-05-auxiliary-vertex" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 6.4 (Auxiliary vertex)</strong></span> <em>An auxiliary vertex <span class="math inline">a_i</span> created by discrete normalization (<a href="#def-05-discrete-normalization" class="quarto-xref">Definition&nbsp;<span>6.3</span></a>) has the following properties:</em></p>
+<ul>
+<li><em>It has exactly one outgoing edge: <span class="math inline">(a_i \to v_i)</span> with weight <span class="math inline">1.0</span>;</em></li>
+<li><em>It has exactly one incoming edge: <span class="math inline">(v_i \to a_i)</span> with weight <span class="math inline">p_{ii}</span>;</em></li>
+<li><em>It is assigned vertex scalar <span class="math inline">x_{a_i} = 0</span> (zero reward);</em></li>
+<li><em>It has no state vector in the original state space (it is a structural artifact of the encoding).</em></li>
+</ul>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> The zero reward ensures that time spent “bouncing” through the auxiliary vertex does not contribute to accumulated reward or moments. The auxiliary vertex is transparent to the absorption time distribution: the number of steps until absorption in the augmented graph has the same distribution as in the original chain, because the geometric number of bounces through <span class="math inline">a_i</span> before leaving <span class="math inline">v_i</span> reproduces the original self-loop holding time.</p>
+</blockquote>
+</section>
+</section>
+<section id="theorems-and-proofs" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="theorems-and-proofs">Theorems and Proofs</h2>
+<div id="thm-05-continuous-preserves" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 6.1 (Continuous normalization preserves the PH distribution)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> represent <span class="math inline">\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})</span> and let <span class="math inline">(G', \mathbf{x})</span> be the result of continuous normalization (<a href="#def-05-continuous-normalization" class="quarto-xref">Definition&nbsp;<span>6.1</span></a>). Then the normalized graph <span class="math inline">G'</span> with vertex scalars <span class="math inline">\mathbf{x}</span> encodes the same distribution <span class="math inline">\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})</span>. Specifically, the sub-intensity matrix <span class="math inline">\mathbf{S}</span> is exactly recoverable as:</em></p>
+<p><span id="eq-05-recover-offdiag"><span class="math display">s_{ij} = \frac{w'(v_i \to v_j)}{x_{v_i}} = w'(v_i \to v_j) \cdot \lambda_{v_i} \quad \text{for } i \neq j, \tag{6.4}</span></span></p>
+<p><span id="eq-05-recover-diag"><span class="math display">s_{ii} = -\frac{1}{x_{v_i}} = -\lambda_{v_i}. \tag{6.5}</span></span></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>By <a href="#def-05-continuous-normalization" class="quarto-xref">Definition&nbsp;<span>6.1</span></a>, the normalized edge weight is <span class="math inline">w'(v_i \to v_j) = w(v_i \to v_j) / \lambda_{v_i}</span>, and the vertex scalar is <span class="math inline">x_{v_i} = 1/\lambda_{v_i}</span>. For <span class="math inline">i \neq j</span>:</p>
+<p><span class="math display">\frac{w'(v_i \to v_j)}{x_{v_i}} = \frac{w(v_i \to v_j) / \lambda_{v_i}}{1 / \lambda_{v_i}} = w(v_i \to v_j) = s_{ij},</span></p>
+<p>where the last equality follows from the graph-matrix correspondence (<a href="01_preliminaries.html#def-01-graph-matrix" class="quarto-xref">Definition&nbsp;<span>2.14</span></a>). For the diagonal:</p>
+<p><span class="math display">-\frac{1}{x_{v_i}} = -\lambda_{v_i} = s_{ii},</span></p>
+<p>again by <a href="01_preliminaries.html#def-01-graph-matrix" class="quarto-xref">Definition&nbsp;<span>2.14</span></a> (<span class="math inline">s_{ii} = -\lambda_{v_i}</span>). Since both the initial distribution <span class="math inline">\boldsymbol{\alpha}</span> (encoded in the starting vertex edges) and the sub-intensity matrix <span class="math inline">\mathbf{S}</span> are exactly recoverable, the normalized graph with vertex scalars encodes the same <span class="math inline">\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})</span>. <span class="math inline">\square</span></p>
+</div>
+<div id="thm-05-discrete-preserves" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 6.2 (DPH normalization preserves the DPH distribution)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> represent <span class="math inline">\operatorname{DPH}_p(\boldsymbol{\alpha}, \mathbf{T})</span> and let <span class="math inline">(G^+, \mathbf{x})</span> be the result of discrete normalization (<a href="#def-05-discrete-normalization" class="quarto-xref">Definition&nbsp;<span>6.3</span></a>), where <span class="math inline">G^+</span> is the augmented graph with auxiliary vertices. Then the absorption time <span class="math inline">\tau^+</span> in the augmented chain (counting only steps that arrive at original vertices, i.e., steps where <span class="math inline">x_v = 1</span>) has the same distribution as <span class="math inline">\tau \sim \operatorname{DPH}_p(\boldsymbol{\alpha}, \mathbf{T})</span>.</em></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>We show that the reward-weighted absorption time in the augmented chain <span class="math inline">G^+</span> (with vertex scalars <span class="math inline">x_v</span>) has the same distribution as <span class="math inline">\tau</span> in the original chain.</p>
+<p>In the original DPH chain on <span class="math inline">\{v_1, \ldots, v_p, \text{absorb}\}</span>, the transition probabilities from <span class="math inline">v_i</span> are: <span class="math inline">T_{ij}</span> to <span class="math inline">v_j</span> for <span class="math inline">j \neq i</span>, self-loop probability <span class="math inline">T_{ii}</span>, and absorption probability <span class="math inline">t_i = 1 - \sum_j T_{ij}</span>. These sum to 1. The absorption time <span class="math inline">\tau</span> counts every step, including self-loops.</p>
+<p>In the augmented chain <span class="math inline">G^+</span>, each vertex <span class="math inline">v_i</span> with <span class="math inline">T_{ii} &gt; 0</span> has its self-loop replaced by a two-edge bounce: <span class="math inline">w(v_i \to a_i) = T_{ii}</span> and <span class="math inline">w(a_i \to v_i) = 1</span>. The vertex scalars are <span class="math inline">x_{v_i} = 1</span> for original vertices and <span class="math inline">x_{a_i} = 0</span> for auxiliary vertices.</p>
+<p><strong>Step 1: The augmented chain is a valid Markov chain.</strong> At <span class="math inline">v_i</span>, the outgoing edge weights are <span class="math inline">T_{ij}</span> (for <span class="math inline">j \neq i</span>), <span class="math inline">t_i</span> (to absorbing state), and <span class="math inline">T_{ii}</span> (to <span class="math inline">a_i</span>). These sum to <span class="math inline">\sum_{j \neq i} T_{ij} + t_i + T_{ii} = 1</span>. At <span class="math inline">a_i</span>, the single edge to <span class="math inline">v_i</span> has weight 1. So all transition probabilities are valid.</p>
+<p><strong>Step 2: Weighted time equals original step count.</strong> Define the weighted absorption time <span class="math inline">\tilde{\tau} = \sum_{t=0}^{\tau^+} x_{X_t}</span>, where <span class="math inline">\tau^+</span> is the first time the augmented chain reaches an absorbing state. Since <span class="math inline">x_{a_i} = 0</span>, auxiliary visits contribute nothing. Each visit to an original vertex <span class="math inline">v_i</span> contributes <span class="math inline">x_{v_i} = 1</span>.</p>
+<p>In the original chain, starting at <span class="math inline">v_i</span>, one step either: (a) self-loops with probability <span class="math inline">T_{ii}</span>, contributing 1 to <span class="math inline">\tau</span>, or (b) transitions to <span class="math inline">v_j</span> or absorbs with probability <span class="math inline">1 - T_{ii}</span>, contributing 1 to <span class="math inline">\tau</span>.</p>
+<p>In the augmented chain, starting at <span class="math inline">v_i</span>: the visit to <span class="math inline">v_i</span> itself contributes <span class="math inline">x_{v_i} = 1</span> to <span class="math inline">\tilde{\tau}</span>. Then with probability <span class="math inline">T_{ii}</span>, the chain goes to <span class="math inline">a_i</span> (contributing <span class="math inline">x_{a_i} = 0</span>), then deterministically returns to <span class="math inline">v_i</span> (contributing <span class="math inline">x_{v_i} = 1</span> on the next visit). With probability <span class="math inline">1 - T_{ii}</span>, the chain transitions to <span class="math inline">v_j</span> or absorbs.</p>
+<p>In both chains, the contribution per self-loop cycle is 1 (one step in the original; one original-vertex visit in the augmented). The probability of <span class="math inline">k</span> self-loops before leaving <span class="math inline">v_i</span> is <span class="math inline">T_{ii}^k(1-T_{ii})</span> in both chains (geometric distribution). The destination after leaving <span class="math inline">v_i</span> is <span class="math inline">v_j</span> with probability <span class="math inline">T_{ij}/(1-T_{ii})</span> in both chains (since the outgoing non-self-loop edges are identical).</p>
+<p><strong>Step 3: Distribution equivalence.</strong> By Step 2, starting from any original vertex <span class="math inline">v_i</span>, the augmented chain’s weighted time until the next original-vertex transition and the destination vertex have the same joint distribution as in the original chain. Since the initial distribution <span class="math inline">\boldsymbol{\alpha}</span> only assigns mass to original vertices, an inductive argument on the number of transitions gives <span class="math inline">\tilde{\tau} \stackrel{d}{=} \tau</span>. <span class="math inline">\square</span></p>
+</div>
+</section>
+<section id="algorithms" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="algorithms">Algorithms</h2>
+<div id="alg-05-continuous-normalization" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-alg figure">
+<section id="continuous-graph-normalization-1" class="level4" aria-describedby="alg-05-continuous-normalization-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="6.0.0.1">
+<h4 data-number="6.0.0.1" class="anchored" data-anchor-id="continuous-graph-normalization-1"><span class="header-section-number">6.0.0.1</span> Continuous Graph Normalization</h4>
+<p><em>Description.</em> This algorithm normalizes a continuous phase-type graph in place. For each vertex, it computes the total outgoing rate <span class="math inline">\lambda_v</span>, divides each outgoing edge weight by <span class="math inline">\lambda_v</span>, and stores <span class="math inline">x_v = 1/\lambda_v</span> in the output array. Absorbing vertices (with <span class="math inline">\lambda_v = 0</span>) receive <span class="math inline">x_v = 1</span>.</p>
+<pre><code>Continuous Graph Normalization
+1: Let G = (V, E, W) be a phase-type graph representing PH_p(alpha, S) (@def-01-ph-graph)
+2:
+3: function NormalizeGraph(G)
+4:   x &lt;- array of size |V|
+5:   for i &lt;- 0 to |V| - 1 do
+6:     v &lt;- V[i]
+7:     lambda_v &lt;- 0
+8:     for (v -&gt; z) in E(v) do                            &gt; Compute total outgoing rate
+9:       lambda_v &lt;- lambda_v + w(v -&gt; z)
+10:    end for
+11:    if lambda_v = 0 then
+12:      x[i] &lt;- 1                                        &gt; Absorbing vertex: neutral default
+13:    else
+14:      x[i] &lt;- 1 / lambda_v
+15:    end if
+16:    for (v -&gt; z) in E(v) do                              &gt; Normalize edge weights
+17:      w(v -&gt; z) &lt;- w(v -&gt; z) / lambda_v
+18:    end for
+19:  end for
+20:  return x
+21: end function</code></pre>
+<p><strong>Correspondence table:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 20%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pseudocode variable</th>
+<th>Math symbol</th>
+<th>Code variable (file:function)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">G</span></td>
+<td><span class="math inline">G = (V, E, W)</span></td>
+<td><code>ptd_graph*</code> (phasic.c:<code>ptd_normalize_graph</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">v</span></td>
+<td><span class="math inline">v \in V</span></td>
+<td><code>vertex</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\lambda_v</span></td>
+<td><span class="math inline">\lambda_v</span></td>
+<td><code>rate</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mathbf{x}</span></td>
+<td><span class="math inline">\mathbf{x}</span> (vertex scalar array)</td>
+<td><code>res</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">x[i]</span></td>
+<td><span class="math inline">x_v</span></td>
+<td><code>res[i]</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Complexity.</strong> Time: <span class="math inline">O(|V| + |E|)</span>. Each vertex is visited once, and each edge is accessed twice (once for rate summation, once for normalization). Space: <span class="math inline">O(|V|)</span> for the output array <span class="math inline">\mathbf{x}</span>.</p>
+</section>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-05-continuous-normalization-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Algorithm&nbsp;6.1: <strong>Correctness.</strong> Follows from <a href="#thm-05-continuous-preserves" class="quarto-xref">Theorem&nbsp;<span>6.1</span></a>. The algorithm computes <span class="math inline">\lambda_v</span> and <span class="math inline">x_v</span> exactly as specified in <a href="#def-05-continuous-normalization" class="quarto-xref">Definition&nbsp;<span>6.1</span></a>, and the division <span class="math inline">w(v \to z) / \lambda_v</span> produces the transition probabilities <span class="math inline">q_{vz}</span> of the embedded chain (<a href="#def-05-embedded-chain" class="quarto-xref">Definition&nbsp;<span>6.2</span></a>).
+</figcaption>
+</figure>
+</div>
+<div id="alg-05-discrete-normalization" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-alg figure">
+<section id="discrete-graph-normalization-1" class="level4" aria-describedby="alg-05-discrete-normalization-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="6.0.0.2">
+<h4 data-number="6.0.0.2" class="anchored" data-anchor-id="discrete-graph-normalization-1"><span class="header-section-number">6.0.0.2</span> Discrete Graph Normalization</h4>
+<p><em>Description.</em> This algorithm normalizes a discrete phase-type graph by creating auxiliary vertices for self-loop probabilities. For each non-starting, non-absorbing vertex with self-loop probability exceeding a threshold <span class="math inline">\epsilon = 10^{-7}</span>, it creates an auxiliary vertex and the corresponding bounce edges. The vertex scalar array stores 1 for original vertices and 0 for auxiliary vertices.</p>
+<pre><code>Discrete Graph Normalization
+1: Let G = (V, E, W) be a phase-type graph representing DPH_p(alpha, T) (@def-01-dph)
+2: Let epsilon &lt;- 10^{-7}
+3: Let n &lt;- |V|
+4:
+5: function DPHNormalizeGraph(G)
+6:   x &lt;- array of size 2n, initialized to 1              &gt; Over-allocate for auxiliary vertices
+7:   for i &lt;- 0 to n - 1 do
+8:     v &lt;- V[i]
+9:     if v = v_0 then                                    &gt; Skip starting vertex
+10:      continue
+11:    end if
+12:    lambda_v &lt;- 0
+13:    for (v -&gt; z) in E(v) do
+14:      lambda_v &lt;- lambda_v + w(v -&gt; z)
+15:    end for
+16:    if lambda_v = 0 then                                &gt; Absorbing vertex: skip
+17:      continue
+18:    end if
+19:    p_self &lt;- 1 - lambda_v                               &gt; Self-loop probability
+20:    if p_self &gt; epsilon then
+21:      a &lt;- CreateVertex(G)                              &gt; Auxiliary vertex (@def-05-auxiliary-vertex)
+22:      AddEdge(v, a, p_self)                             &gt; Edge from v to auxiliary
+23:      AddEdge(a, v, 1.0)                                &gt; Deterministic return edge
+24:      x[index(a)] &lt;- 0                                  &gt; Zero reward for auxiliary vertex
+25:    end if
+26:  end for
+27:  return x
+28: end function</code></pre>
+<p><strong>Correspondence table:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 20%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pseudocode variable</th>
+<th>Math symbol</th>
+<th>Code variable (file:function)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">G</span></td>
+<td><span class="math inline">G = (V, E, W)</span></td>
+<td><code>ptd_graph*</code> (phasic.c:<code>ptd_dph_normalize_graph</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">v</span></td>
+<td><span class="math inline">v_i \in V</span></td>
+<td><code>vertex</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\lambda_v</span></td>
+<td><span class="math inline">\sum_{z} w(v \to z)</span></td>
+<td><code>rate</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">p_{\text{self}}</span></td>
+<td><span class="math inline">p_{ii} = 1 - \lambda_v</span></td>
+<td><code>1 - rate</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">a</span></td>
+<td><span class="math inline">a_i</span> (auxiliary vertex)</td>
+<td><code>auxiliary_vertex</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mathbf{x}</span></td>
+<td><span class="math inline">\mathbf{x}</span> (vertex scalar array)</td>
+<td><code>res</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\epsilon</span></td>
+<td><span class="math inline">\epsilon</span> (threshold)</td>
+<td><code>0.0000001</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">n</span></td>
+<td><span class="math inline">|V|</span> (original vertex count)</td>
+<td><code>old_length</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Complexity.</strong> Time: <span class="math inline">O(|V| + |E|)</span>. Each original vertex is visited once, each edge is examined once for rate computation, and at most <span class="math inline">|V|</span> auxiliary vertices are created (each creation is <span class="math inline">O(1)</span>). Space: <span class="math inline">O(|V|)</span> for the output array (allocated at <span class="math inline">2|V|</span> to accommodate auxiliary vertices) plus <span class="math inline">O(|V|)</span> for the auxiliary vertices and edges added to the graph.</p>
+</section>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-05-discrete-normalization-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Algorithm&nbsp;6.2: <strong>Correctness.</strong> Follows from <a href="#thm-05-discrete-preserves" class="quarto-xref">Theorem&nbsp;<span>6.2</span></a>. Each auxiliary vertex <span class="math inline">a_i</span> with its two edges encodes the self-loop probability <span class="math inline">T_{ii}</span> as a bounce, and the zero vertex scalar ensures auxiliary visits do not contribute to the absorption time count.
+</figcaption>
+</figure>
+</div>
+</section>
+<section id="numerical-considerations" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="numerical-considerations">Numerical Considerations</h2>
+<p><strong>Division by zero in continuous normalization.</strong> When <span class="math inline">\lambda_v = 0</span> (absorbing vertex), the algorithm sets <span class="math inline">x_v = 1</span> and skips the edge normalization loop (there are no edges to normalize). The check <code>rate == 0</code> uses exact floating-point comparison, which is safe because absorbing vertices have exactly zero outgoing edges, so the sum is exactly 0.0.</p>
+<p><strong>Near-zero self-loop threshold in discrete normalization.</strong> The threshold <span class="math inline">\epsilon = 10^{-7}</span> prevents creating auxiliary vertices for negligible self-loop probabilities. If <span class="math inline">p_{ii} \leq \epsilon</span>, the self-loop probability is treated as zero. This avoids unnecessary graph expansion for vertices where the self-loop probability is due to floating-point rounding rather than a genuine self-transition. The threshold value is hardcoded rather than parameterized.</p>
+<p><strong>Division by <span class="math inline">\lambda_v</span> when <span class="math inline">\lambda_v</span> is small.</strong> In continuous normalization, if <span class="math inline">\lambda_v</span> is very small but positive, the division <span class="math inline">w(v \to z) / \lambda_v</span> can amplify floating-point errors. However, in practice, <span class="math inline">w(v \to z) \leq \lambda_v</span> for all edges (since edge weights are non-negative and <span class="math inline">\lambda_v</span> is their sum), so the normalized weight satisfies <span class="math inline">0 \leq w'(v \to z) \leq 1</span>, and the division is numerically stable.</p>
+</section>
+<section id="implementation-notes" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="implementation-notes">Implementation Notes</h2>
+<p><strong>Source code mapping:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 17%">
+<col style="width: 29%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Algorithm</th>
+<th>File</th>
+<th>Function</th>
+<th>Lines</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="#alg-05-continuous-normalization" class="quarto-xref">Algorithm&nbsp;<span>6.1</span></a></td>
+<td><code>src/c/phasic.c</code></td>
+<td><code>ptd_normalize_graph</code></td>
+<td>L2337–L2360</td>
+</tr>
+<tr class="even">
+<td><a href="#alg-05-discrete-normalization" class="quarto-xref">Algorithm&nbsp;<span>6.2</span></a></td>
+<td><code>src/c/phasic.c</code></td>
+<td><code>ptd_dph_normalize_graph</code></td>
+<td>L2362–L2391</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Deviations from pseudocode:</strong></p>
+<ul>
+<li><p><strong>Algorithm 8:</strong> The implementation does not check for the starting vertex or absorbing vertices explicitly. The <code>rate == 0</code> check handles absorbing vertices, and the starting vertex is normalized like any other vertex (its outgoing edge weights, which encode <span class="math inline">\boldsymbol{\alpha}</span>, are divided by <span class="math inline">\lambda_{v_0}</span>, and <span class="math inline">x_{v_0} = 1/\lambda_{v_0}</span>). This means the starting vertex’s edges become normalized probabilities <span class="math inline">\alpha_i / \sum_j \alpha_j</span>, and the vertex scalar stores <span class="math inline">1/\sum_j \alpha_j</span>. If <span class="math inline">\sum_j \alpha_j = 1</span> (no defect), this is a no-op on the probabilities. If there is a defect (<span class="math inline">\sum_j \alpha_j &lt; 1</span>), the normalization changes the starting vertex edges; downstream algorithms must account for this.</p></li>
+<li><p><strong>Algorithm 9:</strong> The implementation allocates <code>old_length * 2</code> entries for the vertex scalar array, anticipating that up to <span class="math inline">|V|</span> auxiliary vertices may be created (one per original vertex). This is an upper bound; in practice, fewer auxiliary vertices are needed. The starting vertex is explicitly skipped (<code>graph-&gt;starting_vertex == vertex</code>), and absorbing vertices are implicitly skipped (<code>rate == 0</code>).</p></li>
+<li><p><strong><a href="#alg-05-discrete-normalization" class="quarto-xref">Algorithm&nbsp;<span>6.2</span></a> (edge creation):</strong> The <code>ptd_graph_add_edge</code> function is called with a coefficient vector of length 1 containing the weight. This means auxiliary vertex edges are stored as parameterized edges with a single coefficient, even though they are structurally constant. This is consistent with the graph’s edge storage model but introduces minor overhead for non-parameterized graphs.</p></li>
+</ul>
+<p><strong>Remark</strong> (SUSPECTED_CODE_ISSUE: Continuous normalization of starting vertex). The continuous normalization algorithm normalizes the starting vertex <span class="math inline">v_0</span> in the same way as transient vertices. When the initial distribution has a defect (<span class="math inline">\alpha_0 &gt; 0</span>, so <span class="math inline">\lambda_{v_0} = \sum_i \alpha_i &lt; 1</span>), the normalization produces <span class="math inline">w'(v_0 \to v_i) = \alpha_i / \lambda_{v_0}</span> and <span class="math inline">x_{v_0} = 1/\lambda_{v_0}</span>. Downstream algorithms that expect the starting vertex edges to encode the raw initial probabilities <span class="math inline">\alpha_i</span> must multiply by <span class="math inline">x_{v_0}^{-1}</span> to recover them. This is not necessarily a bug (the elimination algorithm may account for it), but it is worth noting that the normalization changes the semantics of the starting vertex edges when there is a defect.</p>
+</section>
+<section id="symbol-index" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="symbol-index">Symbol Index</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 19%">
+<col style="width: 54%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Symbol</th>
+<th>Name</th>
+<th>First appearance</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">a_i</span></td>
+<td>Auxiliary vertex for vertex <span class="math inline">v_i</span></td>
+<td><a href="#def-05-auxiliary-vertex" class="quarto-xref">Definition&nbsp;<span>6.4</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\epsilon</span></td>
+<td>Self-loop probability threshold (<span class="math inline">10^{-7}</span>)</td>
+<td><a href="#def-05-discrete-normalization" class="quarto-xref">Definition&nbsp;<span>6.3</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">p_{ii}</span></td>
+<td>Self-loop probability at vertex <span class="math inline">v_i</span></td>
+<td><a href="#def-05-discrete-normalization" class="quarto-xref">Definition&nbsp;<span>6.3</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">q_{ij}</span></td>
+<td>Embedded chain transition probability</td>
+<td><a href="#def-05-embedded-chain" class="quarto-xref">Definition&nbsp;<span>6.2</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathbf{x}</span></td>
+<td>Vertex scalar array</td>
+<td><a href="#def-05-continuous-normalization" class="quarto-xref">Definition&nbsp;<span>6.1</span></a></td>
+</tr>
+</tbody>
+</table>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./04_scc_and_topological_sort.html" class="pagination-link" aria-label="SCC and Topological Sort">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">SCC and Topological Sort</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./06_graph_elimination.html" class="pagination-link" aria-label="Graph Elimination">
+        <span class="nav-page-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Graph Elimination</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

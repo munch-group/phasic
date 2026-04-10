@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>4&nbsp; Numerical Primitives – Phasic — Supplementary Online Material</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./04_scc_and_topological_sort.html" rel="next">
+<link href="./02_graph_representation.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-3d57081916b67e2c1b7e936475d81f56.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./01_preliminaries.html">Foundations</a></li><li class="breadcrumb-item"><a href="./03_numerical_primitives.html"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Numerical Primitives</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Phasic — Supplementary Online Material</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Index</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Foundations</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01_preliminaries.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Preliminaries</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02_graph_representation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Graph Representation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03_numerical_primitives.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Numerical Primitives</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Graph Algorithms</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04_scc_and_topological_sort.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">SCC and Topological Sort</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05_graph_normalization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Graph Normalization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./06_graph_elimination.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./07_reward_transformation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Reward Transformation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./08_state_space_construction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Symbolic System and Traces</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./09_symbolic_expressions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./10_symbolic_graph_elimination.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./11_trace_system.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./12_graph_hashing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./13_scc_trace_stitching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Distribution and Moments</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./14_distribution_computation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./15_moment_computation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./16_pdf_gradients.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
+ <span class="menu-text">Sampling</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./17_sampling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true">
+ <span class="menu-text">Inference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./18_svgd.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./19_mcmc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./20_bffg.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./21_method_of_moments.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./22_probability_matching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true">
+ <span class="menu-text">Spatial and State Indexing</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./23_state_indexing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./24_hex_grid.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true">
+ <span class="menu-text">Integration</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./25_jax_integration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./26_graph_builder.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./27_van_loan_equivalence.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#definitions" id="toc-definitions" class="nav-link" data-scroll-target="#definitions">Definitions</a>
+  <ul class="collapse">
+  <li><a href="#compensated-summation" id="toc-compensated-summation" class="nav-link" data-scroll-target="#compensated-summation">Compensated summation</a></li>
+  <li><a href="#log-space-weight-computation" id="toc-log-space-weight-computation" class="nav-link" data-scroll-target="#log-space-weight-computation">Log-space weight computation</a></li>
+  </ul></li>
+  <li><a href="#theorems-and-proofs" id="toc-theorems-and-proofs" class="nav-link" data-scroll-target="#theorems-and-proofs">Theorems and Proofs</a></li>
+  <li><a href="#algorithms" id="toc-algorithms" class="nav-link" data-scroll-target="#algorithms">Algorithms</a></li>
+  <li><a href="#numerical-considerations" id="toc-numerical-considerations" class="nav-link" data-scroll-target="#numerical-considerations">Numerical Considerations</a></li>
+  <li><a href="#implementation-notes" id="toc-implementation-notes" class="nav-link" data-scroll-target="#implementation-notes">Implementation Notes</a></li>
+  <li><a href="#symbol-index" id="toc-symbol-index" class="nav-link" data-scroll-target="#symbol-index">Symbol Index</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./01_preliminaries.html">Foundations</a></li><li class="breadcrumb-item"><a href="./03_numerical_primitives.html"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Numerical Primitives</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Numerical Primitives</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="introduction">Introduction</h2>
+<p>This file documents the numerical building blocks used by phasic’s core algorithms to maintain accuracy in floating-point computation. Two primitives are formalized: Kahan compensated summation and log-space weight evaluation. These are not algorithms in the usual sense of solving a graph problem; they are low-level arithmetic routines that are embedded within larger algorithms.</p>
+<p>Kahan summation is used in sojourn time computation and PMF gradient computation, where long summation chains in double-precision arithmetic would otherwise lose significant digits. Log-space weight evaluation is used when edge weights are products of parameter-coefficient pairs (the <code>log</code> weight mode from <a href="01_preliminaries.html#def-01-param-edges" class="quarto-xref">Definition&nbsp;<span>2.15</span></a>), where direct multiplication could overflow or underflow.</p>
+<p><strong>Prerequisites:</strong> [01], [02]</p>
+<p><strong>Source files:</strong> - <code>src/c/phasic.c</code> (functions: <code>ptd_expected_sojourn_time_subset</code>, <code>compute_pmf_with_gradient</code>, <code>ptd_graph_update_weights</code>)</p>
+</section>
+<section id="definitions" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="definitions">Definitions</h2>
+<section id="compensated-summation" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="compensated-summation">Compensated summation</h3>
+<p>When summing <span class="math inline">n</span> floating-point numbers in the obvious way (<span class="math inline">s \leftarrow s + x_i</span>), each addition may introduce a rounding error of magnitude up to <span class="math inline">\varepsilon |s + x_i|</span>, where <span class="math inline">\varepsilon</span> is the machine epsilon. Over <span class="math inline">n</span> additions, these errors can accumulate to <span class="math inline">O(n\varepsilon)</span> relative error. Kahan’s algorithm tracks a running compensation term that captures the rounding error from each addition and feeds it back into the next step.</p>
+<div id="def-03-kahan" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 4.1 (Kahan compensated summation)</strong></span> <em>A Kahan accumulator is a pair <span class="math inline">(S, C)</span> where <span class="math inline">S</span> is the running sum and <span class="math inline">C</span> is the compensation term, both initialized to zero. Given a sequence of values <span class="math inline">x_1, x_2, \ldots, x_n</span>, the compensated sum is computed by the following recurrence: for <span class="math inline">i = 1, \ldots, n</span>,</em></p>
+<p><span id="eq-03-kahan-compensate"><span class="math display">y_i = x_i - C, \tag{4.1}</span></span> <span id="eq-03-kahan-add"><span class="math display">t_i = S + y_i, \tag{4.2}</span></span> <span id="eq-03-kahan-update-c"><span class="math display">C \leftarrow (t_i - S) - y_i, \tag{4.3}</span></span> <span id="eq-03-kahan-update-s"><span class="math display">S \leftarrow t_i. \tag{4.4}</span></span></p>
+<p><em>The result is <span class="math inline">S</span> after processing all <span class="math inline">n</span> values.</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> In exact arithmetic, <a href="#eq-03-kahan-update-c" class="quarto-xref">Equation&nbsp;<span>4.3</span></a> yields <span class="math inline">C = 0</span> always, because <span class="math inline">(t_i - S) - y_i = (S + y_i - S) - y_i = 0</span>. In floating-point arithmetic, <span class="math inline">\operatorname{fl}(S + y_i)</span> may differ from <span class="math inline">S + y_i</span>; the discrepancy is exactly what <span class="math inline">(t_i - S) - y_i</span> computes (to first order in <span class="math inline">\varepsilon</span>). By subtracting <span class="math inline">C</span> from the next input (<a href="#eq-03-kahan-compensate" class="quarto-xref">Equation&nbsp;<span>4.1</span></a>), the lost low-order bits are recovered.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> Let <span class="math inline">\varepsilon \approx 1.1 \times 10^{-16}</span> (IEEE 754 double precision). Summing <span class="math inline">10^8</span> values of <span class="math inline">1.0</span>: naive summation may accumulate relative error of order <span class="math inline">10^8 \varepsilon \approx 10^{-8}</span>, yielding a result like <span class="math inline">10^8 \pm 1</span>. Kahan summation maintains relative error of order <span class="math inline">\varepsilon</span>, yielding <span class="math inline">10^8</span> exactly (for this case).</p>
+</blockquote>
+<div id="def-03-kahan-struct" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 4.2 (Kahan accumulator struct)</strong></span> <em>In the implementation, the Kahan accumulator is a C struct with two fields: <code>sum</code> (<span class="math inline">= S</span>) and <code>compensation</code> (<span class="math inline">= C</span>). Three operations are defined:</em></p>
+<ul>
+<li><em>Init: <span class="math inline">S \leftarrow 0, \; C \leftarrow 0</span>.</em></li>
+<li><em>Add(<span class="math inline">x</span>): execute <a href="#eq-03-kahan-compensate" class="quarto-xref">Equation&nbsp;<span>4.1</span></a>–<a href="#eq-03-kahan-update-s" class="quarto-xref">Equation&nbsp;<span>4.4</span></a>.</em></li>
+<li><em>Result: return <span class="math inline">S</span>.</em></li>
+</ul>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> The struct encapsulates the two-variable state, making it a drop-in replacement for a plain double accumulator in existing code.</p>
+</blockquote>
+</section>
+<section id="log-space-weight-computation" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="log-space-weight-computation">Log-space weight computation</h3>
+<p>When the weight mode is <code>log</code> (<a href="01_preliminaries.html#def-01-param-edges" class="quarto-xref">Definition&nbsp;<span>2.15</span></a>), the edge weight is a product:</p>
+<p><span class="math display">w(v \to z) = \prod_{j=1}^{k} (c_j \theta_j).</span></p>
+<p>Direct computation of this product risks overflow (if the factors are large) or underflow (if the factors are small). Log-space computation avoids both issues.</p>
+<div id="def-03-logspace" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 4.3 (Log-space weight computation)</strong></span> <em>Let <span class="math inline">\mathbf{c} = (c_1, \ldots, c_k)</span> be the coefficient vector and <span class="math inline">\boldsymbol{\theta} = (\theta_1, \ldots, \theta_k)</span> be the parameter vector, with <span class="math inline">c_j \theta_j &gt; 0</span> for all <span class="math inline">j</span>. The log-space weight is</em></p>
+<p><span id="eq-03-logspace"><span class="math display">w(v \to z) = \exp\!\left(\sum_{j=1}^{k} \log(c_j \theta_j)\right). \tag{4.5}</span></span></p>
+<p><em>The computation proceeds in two steps:</em> 1. <em>Accumulate: <span class="math inline">\ell_{\log} \leftarrow \sum_{j=1}^{k} \log(c_j \theta_j)</span>.</em> 2. <em>Exponentiate: <span class="math inline">w \leftarrow \exp(L)</span>.</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> Working in log-space converts the product into a sum, and the sum of logarithms stays in a moderate range even when the individual factors span many orders of magnitude. The final exponentiation maps back to the original scale. This is the standard technique for computing products in numerical work.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> Suppose <span class="math inline">k = 3</span> with <span class="math inline">c_j \theta_j = (10^{100}, 10^{-50}, 10^{-50})</span>. The product is <span class="math inline">10^{100} \cdot 10^{-50} \cdot 10^{-50} = 1</span>. Direct multiplication would compute <span class="math inline">10^{100} \cdot 10^{-50} = 10^{50}</span> at an intermediate step, which is fine in this case, but with more extreme values or longer products, intermediate overflow is a real risk. In log-space: <span class="math inline">\log(10^{100}) + \log(10^{-50}) + \log(10^{-50}) = 100 \ln 10 - 50 \ln 10 - 50 \ln 10 = 0</span>, and <span class="math inline">\exp(0) = 1</span>.</p>
+</blockquote>
+<div id="def-03-positivity-guard" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 4.4 (Strict positivity guard)</strong></span> <em>The log-space weight computation (<a href="#def-03-logspace" class="quarto-xref">Definition&nbsp;<span>4.3</span></a>) requires the strict positivity condition <span class="math inline">c_j \theta_j &gt; 0</span> for all <span class="math inline">j = 1, \ldots, k</span>. If any <span class="math inline">c_j \theta_j \leq 0</span>, the logarithm is undefined (for <span class="math inline">c_j \theta_j \leq 0</span>) or <span class="math inline">-\infty</span> (for <span class="math inline">c_j \theta_j = 0</span>), and the computation must not proceed. The implementation raises an error if this condition is violated.</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> This is a fundamental constraint of the log-space approach. Models using the <code>log</code> weight mode must ensure all coefficient-parameter products are strictly positive. This is naturally satisfied in many applications (e.g., population genetics where rates are positive by definition).</p>
+</blockquote>
+</section>
+</section>
+<section id="theorems-and-proofs" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="theorems-and-proofs">Theorems and Proofs</h2>
+<div id="thm-03-kahan-error" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 4.1 (Kahan summation error bound)</strong></span> <em>Let <span class="math inline">x_1, \ldots, x_n</span> be floating-point numbers and let <span class="math inline">\hat{S}_n</span> be the result of Kahan compensated summation (<a href="#def-03-kahan" class="quarto-xref">Definition&nbsp;<span>4.1</span></a>). Let <span class="math inline">S_n = \sum_{i=1}^{n} x_i</span> be the exact sum. Then</em></p>
+<p><span id="eq-03-kahan-bound"><span class="math display">|\hat{S}_n - S_n| \leq (2\varepsilon + O(\varepsilon^2)) \sum_{i=1}^{n} |x_i|, \tag{4.6}</span></span></p>
+<p><em>where <span class="math inline">\varepsilon</span> is the unit roundoff (machine epsilon). In contrast, naive left-to-right summation satisfies only <span class="math inline">|\hat{S}_n^{\text{naive}} - S_n| \leq n\varepsilon \sum_{i=1}^{n} |x_i| + O(\varepsilon^2)</span>.</em></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>We analyze one step of the recurrence. Let <span class="math inline">\operatorname{fl}(\cdot)</span> denote the result of a floating-point operation. The IEEE 754 model guarantees <span class="math inline">\operatorname{fl}(a \oplus b) = (a + b)(1 + \delta)</span> with <span class="math inline">|\delta| \leq \varepsilon</span> for each elementary operation <span class="math inline">\oplus \in \{+, -\}</span>.</p>
+<p>At step <span class="math inline">i</span>, the compensation <span class="math inline">C</span> contains (approximately) the rounding error from the previous addition. Consider the computed values:</p>
+<ul>
+<li><span class="math inline">\hat{y}_i = \operatorname{fl}(x_i - C) = (x_i - C)(1 + \delta_1)</span> where <span class="math inline">|\delta_1| \leq \varepsilon</span>.</li>
+<li><span class="math inline">\hat{t}_i = \operatorname{fl}(S + \hat{y}_i) = (S + \hat{y}_i)(1 + \delta_2)</span> where <span class="math inline">|\delta_2| \leq \varepsilon</span>.</li>
+<li><span class="math inline">\hat{C}' = \operatorname{fl}(\operatorname{fl}(\hat{t}_i - S) - \hat{y}_i)</span>.</li>
+</ul>
+<p>The key insight is that <span class="math inline">\hat{t}_i - S</span> recovers the high-order part of <span class="math inline">\hat{y}_i</span> (because <span class="math inline">\hat{t}_i = \operatorname{fl}(S + \hat{y}_i)</span>, and if <span class="math inline">|S| \gg |\hat{y}_i|</span>, then <span class="math inline">\hat{t}_i - S</span> captures only the portion of <span class="math inline">\hat{y}_i</span> that “fit” into the sum). Subtracting <span class="math inline">\hat{y}_i</span> then gives the portion that was lost: <span class="math inline">\hat{C}' \approx (\hat{t}_i - S) - \hat{y}_i = -\delta_2(S + \hat{y}_i)</span>, which is precisely the rounding error from computing <span class="math inline">S + \hat{y}_i</span>.</p>
+<p>By feeding <span class="math inline">\hat{C}'</span> back into the next step (subtracting it from <span class="math inline">x_{i+1}</span>), the error from step <span class="math inline">i</span> is corrected in step <span class="math inline">i+1</span>, up to a second-order term in <span class="math inline">\varepsilon</span>. Formally, one can show by induction that after <span class="math inline">n</span> steps, the accumulated error satisfies:</p>
+<p><span class="math display">|\hat{S}_n - S_n| \leq 2\varepsilon \sum_{i=1}^{n} |x_i| + O(n\varepsilon^2) \sum_{i=1}^{n} |x_i|.</span></p>
+<p>For practical values of <span class="math inline">n</span> (even <span class="math inline">n = 10^8</span>), the <span class="math inline">O(n\varepsilon^2) \approx 10^8 \cdot 10^{-32} = 10^{-24}</span> term is negligible compared to the <span class="math inline">2\varepsilon \approx 2 \times 10^{-16}</span> term. The error bound is therefore effectively <span class="math inline">O(\varepsilon)</span>, independent of <span class="math inline">n</span>.</p>
+<p>For naive summation, each of the <span class="math inline">n</span> additions contributes an error of up to <span class="math inline">\varepsilon |s + x_i|</span>, and these errors accumulate without correction, yielding the <span class="math inline">O(n\varepsilon)</span> bound. <span class="math inline">\square</span></p>
+</div>
+<div id="thm-03-logspace-stability" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 4.2 (Log-space numerical stability for multiplicative weights)</strong></span> <em>Let <span class="math inline">c_j \theta_j &gt; 0</span> for all <span class="math inline">j = 1, \ldots, k</span>, and let <span class="math inline">w = \prod_{j=1}^{k} (c_j \theta_j)</span> be the true weight. Let <span class="math inline">\hat{w}</span> be the result of the log-space computation (<a href="#def-03-logspace" class="quarto-xref">Definition&nbsp;<span>4.3</span></a>). Then the relative error satisfies</em></p>
+<p><span id="eq-03-logspace-bound"><span class="math display">\left|\frac{\hat{w} - w}{w}\right| \leq \exp(k\varepsilon) - 1 + \varepsilon \approx (k+1)\varepsilon \tag{4.7}</span></span></p>
+<p><em>for small <span class="math inline">k\varepsilon</span>. In particular, the relative error grows linearly with <span class="math inline">k</span> (the number of factors) and is independent of the magnitudes of the factors.</em></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>Step 1 (logarithms): Each <span class="math inline">\log(c_j \theta_j)</span> is computed with relative error at most <span class="math inline">\varepsilon</span>, so <span class="math inline">\operatorname{fl}(\log(c_j \theta_j)) = \log(c_j \theta_j)(1 + \delta_j)</span> with <span class="math inline">|\delta_j| \leq \varepsilon</span>. This gives an absolute error of <span class="math inline">|\delta_j \log(c_j \theta_j)|</span> per term.</p>
+<p>Step 2 (summation): The sum <span class="math inline">\ell_{\log} = \sum_{j=1}^{k} \log(c_j \theta_j)</span> is computed by naive left-to-right addition (the implementation does not use Kahan summation for this inner sum, which is acceptable since <span class="math inline">k</span> is typically small). The accumulated absolute error in <span class="math inline">\hat{\ell}_{\log}</span> satisfies:</p>
+<p><span class="math display">|\hat{L} - L| \leq \sum_{j=1}^{k} |\delta_j \log(c_j \theta_j)| + (k-1)\varepsilon \max_i |\hat{L}_i| \leq k\varepsilon (|\log(c_1\theta_1)| + \cdots + |\log(c_k\theta_k)|) + O(k\varepsilon |L|),</span></p>
+<p>which simplifies to <span class="math inline">|\hat{L} - L| \leq k\varepsilon |L| + O(k\varepsilon)</span> when all terms have the same sign.</p>
+<p>Step 3 (exponentiation): <span class="math inline">\hat{w} = \operatorname{fl}(\exp(\hat{L})) = \exp(\hat{L})(1 + \delta_{\exp})</span> with <span class="math inline">|\delta_{\exp}| \leq \varepsilon</span>. Thus:</p>
+<p><span class="math display">\hat{w} = \exp(L + (\hat{L} - L))(1 + \delta_{\exp}) = w \cdot \exp(\hat{L} - L) \cdot (1 + \delta_{\exp}).</span></p>
+<p>The relative error is:</p>
+<p><span class="math display">\left|\frac{\hat{w}}{w} - 1\right| = |\exp(\hat{L} - L)(1 + \delta_{\exp}) - 1| \leq \exp(|\hat{L} - L|)(1 + \varepsilon) - 1.</span></p>
+<p>With <span class="math inline">|\hat{L} - L| \leq k\varepsilon |L| + O(k\varepsilon)</span> and using <span class="math inline">\exp(x) \leq 1 + 2x</span> for small <span class="math inline">x</span>, the relative error is bounded by <span class="math inline">(k+1)\varepsilon</span> to first order.</p>
+<p>Crucially, this bound depends only on <span class="math inline">k</span> and <span class="math inline">\varepsilon</span>, not on the magnitudes of <span class="math inline">c_j \theta_j</span>. Direct multiplication would suffer from intermediate overflow or underflow when factors span many orders of magnitude, a failure mode that log-space computation eliminates entirely. <span class="math inline">\square</span></p>
+</div>
+</section>
+<section id="algorithms" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="algorithms">Algorithms</h2>
+<div id="alg-03-kahan-summation" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-alg figure">
+<section id="kahan-compensated-summation-1" class="level4" aria-describedby="alg-03-kahan-summation-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="4.0.0.1">
+<h4 data-number="4.0.0.1" class="anchored" data-anchor-id="kahan-compensated-summation-1"><span class="header-section-number">4.0.0.1</span> Kahan Compensated Summation</h4>
+<p><em>Description.</em> This algorithm computes the sum of a sequence of floating-point numbers with <span class="math inline">O(\varepsilon)</span> error, independent of the number of terms. It maintains a running sum <span class="math inline">S</span> and a compensation term <span class="math inline">C</span> that tracks accumulated rounding errors.</p>
+<pre><code>Kahan Compensated Summation
+1: Let x_1, ..., x_n be floating-point numbers
+2:
+3: function KahanSum(x_1, ..., x_n)
+4:   S ← 0.0
+5:   C ← 0.0
+6:   for i ← 1 to n do
+7:     y ← x_i - C                      ▷ Compensate for previous rounding error
+8:     t ← S + y                         ▷ S is large, y is small; low-order bits of y may be lost
+9:     C ← (t - S) - y                   ▷ (t - S) recovers high-order part of y; subtracting y gives the lost part
+10:    S ← t
+11:  end for
+12:  return S
+13: end function</code></pre>
+<p><strong>Correspondence table:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 20%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pseudocode variable</th>
+<th>Math symbol</th>
+<th>Code variable (file:function)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">S</span></td>
+<td><span class="math inline">S</span> (running sum)</td>
+<td><code>kahan.sum</code> (phasic.c: Kahan struct)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">C</span></td>
+<td><span class="math inline">C</span> (compensation)</td>
+<td><code>kahan.compensation</code> (phasic.c: Kahan struct)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">y</span></td>
+<td><span class="math inline">y_i</span></td>
+<td>local variable <code>y</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">t</span></td>
+<td><span class="math inline">t_i</span></td>
+<td>local variable <code>t</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">x_i</span></td>
+<td><span class="math inline">x_i</span></td>
+<td>input values</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Complexity.</strong> Time: <span class="math inline">O(n)</span>. Space: <span class="math inline">O(1)</span> (two extra variables beyond the input).</p>
+</section>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-03-kahan-summation-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Algorithm&nbsp;4.1: <strong>Correctness.</strong> Follows from <a href="#thm-03-kahan-error" class="quarto-xref">Theorem&nbsp;<span>4.1</span></a>. The error bound is <span class="math inline">O(\varepsilon)</span> regardless of <span class="math inline">n</span>.
+</figcaption>
+</figure>
+</div>
+<div id="alg-03-log-space-weight" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-alg figure">
+<section id="log-space-weight-evaluation" class="level4" aria-describedby="alg-03-log-space-weight-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="4.0.0.2">
+<h4 data-number="4.0.0.2" class="anchored" data-anchor-id="log-space-weight-evaluation"><span class="header-section-number">4.0.0.2</span> Log-Space Weight Evaluation</h4>
+<p><em>Description.</em> Given a coefficient vector <span class="math inline">\mathbf{c}</span> and parameter vector <span class="math inline">\boldsymbol{\theta}</span>, this algorithm computes the multiplicative weight <span class="math inline">w = \prod_j (c_j \theta_j)</span> in log-space to avoid overflow and underflow.</p>
+<pre><code>Log-Space Weight Evaluation
+1: Let c = (c_1, ..., c_k) be the coefficient vector and θ = (θ_1, ..., θ_k) be the parameter vector
+2: Require: c_j θ_j &gt; 0 for all j = 1, ..., k
+3:
+4: function LogSpaceWeight(c, θ)
+5:   L ← 0.0
+6:   for j ← 1 to k do
+7:     if c_j · θ_j ≤ 0 then
+8:       error("Non-positive factor in log-space weight")   ▷ Strict positivity guard (@def-03-positivity-guard)
+9:     end if
+10:    L ← L + log(c_j · θ_j)
+11:  end for
+12:  return exp(L)
+13: end function</code></pre>
+<p><strong>Correspondence table:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 20%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pseudocode variable</th>
+<th>Math symbol</th>
+<th>Code variable (file:function)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\mathbf{c}</span></td>
+<td><span class="math inline">\mathbf{c}</span> (coefficient vector)</td>
+<td><code>edge-&gt;coefficients</code> (phasic.c:<code>ptd_graph_update_weights</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\boldsymbol{\theta}</span></td>
+<td><span class="math inline">\boldsymbol{\theta}</span> (parameter vector)</td>
+<td><code>params</code> array</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\ell_{\log}</span></td>
+<td><span class="math inline">\sum_j \log(c_j \theta_j)</span></td>
+<td><code>log_sum</code> local variable</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">k</span></td>
+<td><span class="math inline">k</span> (parameter dimension)</td>
+<td><code>n_params</code> or loop bound</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">w</span></td>
+<td><span class="math inline">w(v \to z)</span></td>
+<td><code>edge-&gt;weight</code> (updated in place)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Complexity.</strong> Time: <span class="math inline">O(k)</span> per edge. Space: <span class="math inline">O(1)</span>.</p>
+</section>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-03-log-space-weight-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Algorithm&nbsp;4.2: <strong>Correctness.</strong> Follows from <a href="#thm-03-logspace-stability" class="quarto-xref">Theorem&nbsp;<span>4.2</span></a>. The relative error is <span class="math inline">O(k\varepsilon)</span>, and the computation is free of intermediate overflow or underflow regardless of the magnitudes of <span class="math inline">c_j \theta_j</span>.
+</figcaption>
+</figure>
+</div>
+</section>
+<section id="numerical-considerations" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="numerical-considerations">Numerical Considerations</h2>
+<p><strong>Kahan summation scope.</strong> Kahan summation is used in two specific contexts in phasic:</p>
+<ol type="1">
+<li><p><strong>Sojourn time computation</strong> (<code>ptd_expected_sojourn_time_subset</code>): The expected sojourn time is a sum over many vertex contributions, where individual terms can span several orders of magnitude. Kahan summation ensures the small contributions are not lost.</p></li>
+<li><p><strong>PMF gradient computation</strong> (<code>compute_pmf_with_gradient</code>): The gradient of the forward algorithm involves long summation chains over time steps. Without compensation, the accumulated error would corrupt the gradient and cause optimization algorithms (SVGD, HMC) to receive incorrect search directions.</p></li>
+</ol>
+<p><strong>Kahan summation is <em>not</em> used</strong> in the standard forward algorithm for PDF/PMF computation. Instead, the forward algorithm uses <code>long double</code> (80-bit extended precision on x86, 128-bit on some platforms) for its intermediate accumulators. This provides <span class="math inline">\varepsilon \approx 10^{-19}</span> rather than <span class="math inline">\varepsilon \approx 10^{-16}</span>, which is sufficient for the forward algorithm’s summation chains without the overhead of Kahan’s compensation logic.</p>
+<p><strong>Log-space inner summation.</strong> The log-space weight evaluation (<a href="#alg-03-log-space-weight" class="quarto-xref">Algorithm&nbsp;<span>4.2</span></a>) does <em>not</em> use Kahan summation for the accumulation of <span class="math inline">\log(c_j \theta_j)</span> terms. This is acceptable because <span class="math inline">k</span> (the number of parameters per edge) is typically small (1-5 in practice), so the naive summation error <span class="math inline">O(k\varepsilon)</span> is negligible. If a future application required very large <span class="math inline">k</span>, Kahan summation could be added to the inner loop of <a href="#alg-03-log-space-weight" class="quarto-xref">Algorithm&nbsp;<span>4.2</span></a> at minimal cost.</p>
+<p><strong>Guard condition for log mode.</strong> The strict positivity guard (<a href="#def-03-positivity-guard" class="quarto-xref">Definition&nbsp;<span>4.4</span></a>) is checked at the point of weight computation, not at graph construction time. This means a graph can be constructed with arbitrary coefficients and later fail at weight evaluation if the parameter vector causes some <span class="math inline">c_j \theta_j \leq 0</span>. This is by design: the coefficients are fixed at construction, but the parameters change during inference.</p>
+</section>
+<section id="implementation-notes" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="implementation-notes">Implementation Notes</h2>
+<p><strong>Source code mapping:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 17%">
+<col style="width: 29%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Algorithm</th>
+<th>File</th>
+<th>Function</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="#alg-03-kahan-summation" class="quarto-xref">Algorithm&nbsp;<span>4.1</span></a></td>
+<td><code>src/c/phasic.c</code></td>
+<td>Kahan struct and macros</td>
+<td>Used in <code>ptd_expected_sojourn_time_subset</code>, <code>compute_pmf_with_gradient</code></td>
+</tr>
+<tr class="even">
+<td><a href="#alg-03-log-space-weight" class="quarto-xref">Algorithm&nbsp;<span>4.2</span></a></td>
+<td><code>src/c/phasic.c</code></td>
+<td><code>ptd_graph_update_weights</code> (with <code>use_log=true</code>)</td>
+<td>Log-space branch of weight update</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Deviations from pseudocode:</strong></p>
+<ul>
+<li><p><strong>Algorithm 4:</strong> The implementation uses a C struct <code>{ double sum; double compensation; }</code> with inline functions or macros for <code>init</code>, <code>add</code>, and <code>result</code>. The pseudocode shows the recurrence as a loop; in practice, the <code>add</code> operation is called incrementally from within larger algorithms.</p></li>
+<li><p><strong>Algorithm 5:</strong> The implementation is embedded in <code>ptd_graph_update_weights</code>, which iterates over all edges in the graph and updates each edge’s weight based on the current parameter vector and weight mode. The log-space branch is selected by a boolean flag <code>use_log</code>. The pseudocode shows a single edge computation; the actual function processes all edges in a single pass.</p></li>
+<li><p><strong>Forward algorithm accumulation:</strong> The standard forward algorithm (<code>ptd_graph_pdf</code>, <code>ptd_dph_pmf</code>) uses <code>long double</code> for intermediate sums rather than Kahan summation. This is a pragmatic choice: <code>long double</code> provides sufficient precision for the forward algorithm’s needs without the two-variable overhead of Kahan accumulators, and the code is simpler.</p></li>
+</ul>
+</section>
+<section id="symbol-index" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="symbol-index">Symbol Index</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 19%">
+<col style="width: 54%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Symbol</th>
+<th>Name</th>
+<th>First appearance</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">C</span></td>
+<td>Kahan compensation term</td>
+<td><a href="#def-03-kahan" class="quarto-xref">Definition&nbsp;<span>4.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\varepsilon</span></td>
+<td>Machine epsilon (unit roundoff)</td>
+<td><a href="#thm-03-kahan-error" class="quarto-xref">Theorem&nbsp;<span>4.1</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\ell_{\log}</span></td>
+<td>Log-space accumulator</td>
+<td><a href="#def-03-logspace" class="quarto-xref">Definition&nbsp;<span>4.3</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">S</span></td>
+<td>Kahan running sum</td>
+<td><a href="#def-03-kahan" class="quarto-xref">Definition&nbsp;<span>4.1</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">t_i</span></td>
+<td>Kahan temporary sum</td>
+<td><a href="#def-03-kahan" class="quarto-xref">Definition&nbsp;<span>4.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">y_i</span></td>
+<td>Kahan compensated input</td>
+<td><a href="#def-03-kahan" class="quarto-xref">Definition&nbsp;<span>4.1</span></a></td>
+</tr>
+</tbody>
+</table>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./02_graph_representation.html" class="pagination-link" aria-label="Graph Representation">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Graph Representation</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./04_scc_and_topological_sort.html" class="pagination-link" aria-label="SCC and Topological Sort">
+        <span class="nav-page-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">SCC and Topological Sort</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

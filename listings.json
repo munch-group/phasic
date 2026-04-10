@@ -1,11 +1,6 @@
 [
   {
     "listing": "/index.html",
-    "items": [
-      "/pages/vignettes/uranium_decay.html",
-      "/pages/vignettes/telecommunication.html",
-      "/pages/tutorial/introduction.html",
-      "/pages/vignettes/drainage-capacity.html"
-    ]
+    "items": []
   }
 ]

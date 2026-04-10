@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Math and Algorithms</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-342d2e45858bb5501d02373b23ba26fb.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-a46b01d6fc144a45784d8f299ab2dd32.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="../../site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
+<link href="../../site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
+<link href="../../site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script async="" src="https://hypothes.is/embed.js"></script>
+<script>
+  window.document.addEventListener("DOMContentLoaded", function (_event) {
+    document.body.classList.add('hypothesis-enabled');
+  });
+</script>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../../api/_styles-quartodoc.css">
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a href="../../index.html" class="navbar-brand navbar-brand-logo">
+    <img src="../../PHASIC.png" alt="Phasic" class="navbar-logo light-content">
+    <img src="../../PHASIC.png" alt="Phasic" class="navbar-logo dark-content">
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../pages/getting_started.html"> 
+<span class="menu-text">Documentation</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../api/"> 
+<span class="menu-text">Python API reference</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../mathref/index.html"> 
+<span class="menu-text">Mathematical Reference</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/munch-group/phasic/"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#introduction-to-phase-type-distributions" id="toc-introduction-to-phase-type-distributions" class="nav-link active" data-scroll-target="#introduction-to-phase-type-distributions">Introduction to Phase-Type Distributions</a>
+  <ul class="collapse">
+  <li><a href="#what-is-a-phase-type-distribution" id="toc-what-is-a-phase-type-distribution" class="nav-link" data-scroll-target="#what-is-a-phase-type-distribution">What is a Phase-Type Distribution?</a>
+  <ul class="collapse">
+  <li><a href="#continuous-phase-type-distributions" id="toc-continuous-phase-type-distributions" class="nav-link" data-scroll-target="#continuous-phase-type-distributions">Continuous Phase-Type Distributions</a></li>
+  <li><a href="#discrete-phase-type-distributions" id="toc-discrete-phase-type-distributions" class="nav-link" data-scroll-target="#discrete-phase-type-distributions">Discrete Phase-Type Distributions</a></li>
+  </ul></li>
+  <li><a href="#mathematical-formulation" id="toc-mathematical-formulation" class="nav-link" data-scroll-target="#mathematical-formulation">Mathematical Formulation</a>
+  <ul class="collapse">
+  <li><a href="#continuous-phase-type-distributions-1" id="toc-continuous-phase-type-distributions-1" class="nav-link" data-scroll-target="#continuous-phase-type-distributions-1">Continuous Phase-Type Distributions</a></li>
+  <li><a href="#discrete-phase-type-distributions-1" id="toc-discrete-phase-type-distributions-1" class="nav-link" data-scroll-target="#discrete-phase-type-distributions-1">Discrete Phase-Type Distributions</a></li>
+  <li><a href="#reward-transformed-distributions" id="toc-reward-transformed-distributions" class="nav-link" data-scroll-target="#reward-transformed-distributions">Reward-Transformed Distributions</a></li>
+  <li><a href="#multivariate-phase-type-distributions" id="toc-multivariate-phase-type-distributions" class="nav-link" data-scroll-target="#multivariate-phase-type-distributions">Multivariate Phase-Type Distributions</a></li>
+  </ul></li>
+  <li><a href="#graph-based-representation" id="toc-graph-based-representation" class="nav-link" data-scroll-target="#graph-based-representation">Graph-Based Representation</a>
+  <ul class="collapse">
+  <li><a href="#graph-representation" id="toc-graph-representation" class="nav-link" data-scroll-target="#graph-representation">Graph Representation</a></li>
+  <li><a href="#correspondence-matrices-graphs" id="toc-correspondence-matrices-graphs" class="nav-link" data-scroll-target="#correspondence-matrices-graphs">Correspondence: Matrices ↔︎ Graphs</a></li>
+  <li><a href="#advantages-of-graph-representation" id="toc-advantages-of-graph-representation" class="nav-link" data-scroll-target="#advantages-of-graph-representation">Advantages of Graph Representation</a></li>
+  <li><a href="#example-rabbit-island-model" id="toc-example-rabbit-island-model" class="nav-link" data-scroll-target="#example-rabbit-island-model">Example: Rabbit Island Model</a></li>
+  </ul></li>
+  <li><a href="#computational-algorithms" id="toc-computational-algorithms" class="nav-link" data-scroll-target="#computational-algorithms">Computational Algorithms</a>
+  <ul class="collapse">
+  <li><a href="#key-algorithmic-innovations" id="toc-key-algorithmic-innovations" class="nav-link" data-scroll-target="#key-algorithmic-innovations">Key Algorithmic Innovations</a></li>
+  </ul></li>
+  <li><a href="#practical-example" id="toc-practical-example" class="nav-link" data-scroll-target="#practical-example">Practical Example</a></li>
+  <li><a href="#when-to-use-phase-type-distributions" id="toc-when-to-use-phase-type-distributions" class="nav-link" data-scroll-target="#when-to-use-phase-type-distributions">When to Use Phase-Type Distributions</a></li>
+  <li><a href="#further-reading" id="toc-further-reading" class="nav-link" data-scroll-target="#further-reading">Further Reading</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  </ul></li>
+  <li><a href="#abstract" id="toc-abstract" class="nav-link" data-scroll-target="#abstract">Abstract</a></li>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#graph-based-algorithms-for-phase-type-distributions" id="toc-graph-based-algorithms-for-phase-type-distributions" class="nav-link" data-scroll-target="#graph-based-algorithms-for-phase-type-distributions">Graph-based algorithms for phase-type distributions</a>
+  <ul class="collapse">
+  <li><a href="#GPDsect" id="toc-GPDsect" class="nav-link" data-scroll-target="#GPDsect">Graph-representation of a phase-type distribution</a></li>
+  <li><a href="#SSCsect" id="toc-SSCsect" class="nav-link" data-scroll-target="#SSCsect">State space construction</a></li>
+  <li><a href="#reward_transformation" id="toc-reward_transformation" class="nav-link" data-scroll-target="#reward_transformation">Reward transformation of a phase-type graph</a></li>
+  <li><a href="#sec:moments" id="toc-sec:moments" class="nav-link" data-scroll-target="#sec\:moments">Properties of higher-order moments</a></li>
+  <li><a href="#sect:NormGraph" id="toc-sect:NormGraph" class="nav-link" data-scroll-target="#sect\:NormGraph">A graph representation of normalized phase-type distributions</a></li>
+  <li><a href="#sect:acyclic" id="toc-sect:acyclic" class="nav-link" data-scroll-target="#sect\:acyclic">An acyclic graph representation of phase-type distributions</a></li>
+  <li><a href="#sec:higher-order-moments" id="toc-sec:higher-order-moments" class="nav-link" data-scroll-target="#sec\:higher-order-moments">Computing higher-order moments in quadratic time</a></li>
+  <li><a href="#sect:MultDist" id="toc-sect:MultDist" class="nav-link" data-scroll-target="#sect\:MultDist">Multivariate distributions</a></li>
+  <li><a href="#sect:DiscPH" id="toc-sect:DiscPH" class="nav-link" data-scroll-target="#sect\:DiscPH">Discrete phase-type distributions</a></li>
+  <li><a href="#sect:DistDPH" id="toc-sect:DistDPH" class="nav-link" data-scroll-target="#sect\:DistDPH">Distribution function of discrete phase-type distributions</a></li>
+  <li><a href="#sect:DistPH" id="toc-sect:DistPH" class="nav-link" data-scroll-target="#sect\:DistPH">Distribution function for continuous phase-type distributions</a></li>
+  <li><a href="#sec:time-inhom" id="toc-sec:time-inhom" class="nav-link" data-scroll-target="#sec\:time-inhom">Time-inhomogeneous discrete phase-type distributions</a></li>
+  </ul></li>
+  <li><a href="#sect:EmpRun" id="toc-sect:EmpRun" class="nav-link" data-scroll-target="#sect\:EmpRun">Empirical running time</a></li>
+  <li><a href="#sect:PopGenApplication" id="toc-sect:PopGenApplication" class="nav-link" data-scroll-target="#sect\:PopGenApplication">An application in population genetics</a></li>
+  <li><a href="#sect:Discussion" id="toc-sect:Discussion" class="nav-link" data-scroll-target="#sect\:Discussion">Discussion</a></li>
+  <li><a href="#acknowledgements" id="toc-acknowledgements" class="nav-link" data-scroll-target="#acknowledgements">Acknowledgements</a></li>
+  <li><a href="#references-1" id="toc-references-1" class="nav-link" data-scroll-target="#references-1">References</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/munch-group/phasic/edit/main/docs/pages/background/math_and_alg.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/phasic/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/phasic/blob/main/docs/pages/background/math_and_alg.qmd" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Math and Algorithms</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction-to-phase-type-distributions" class="level1">
+<h1>Introduction to Phase-Type Distributions</h1>
+<p>Phase-type distributions are a powerful class of probability distributions that model the time until absorption in continuous or discrete-time Markov chains on a finite state space. They find diverse applications in statistical modeling, including physics, telecommunications, queuing theory, and recently, population genetics.</p>
+<p>This page provides an introduction to phase-type distributions, their mathematical formulation, and the correspondence between traditional matrix representations and the graph-based approach implemented in phasic.</p>
+<section id="what-is-a-phase-type-distribution" class="level2">
+<h2 class="anchored" data-anchor-id="what-is-a-phase-type-distribution">What is a Phase-Type Distribution?</h2>
+<p>A <strong>phase-type distribution</strong> represents the time until a Markov process reaches an absorbing state. The process moves through various “phases” (transient states) before eventually being absorbed.</p>
+<section id="continuous-phase-type-distributions" class="level3">
+<h3 class="anchored" data-anchor-id="continuous-phase-type-distributions">Continuous Phase-Type Distributions</h3>
+<p>In a continuous phase-type distribution, the underlying process is a continuous-time Markov jump process.</p>
+<p><strong>Example</strong>: Consider a system with 3 transient states and 1 absorbing state. The system starts in state 1, transitions between states at exponential rates, and eventually reaches the absorbing state. The time until absorption follows a phase-type distribution.</p>
+<p><strong>Key characteristics:</strong> - Transient states: temporary states the process can visit - Absorbing state: terminal state from which the process cannot escape - Transition rates: exponential rates governing state transitions - Time until absorption: the random variable of interest</p>
+</section>
+<section id="discrete-phase-type-distributions" class="level3">
+<h3 class="anchored" data-anchor-id="discrete-phase-type-distributions">Discrete Phase-Type Distributions</h3>
+<p>A <strong>discrete phase-type distribution</strong> models the number of jumps in a discrete-time Markov chain until reaching the absorbing state.</p>
+<p><strong>Example</strong>: Number of steps in a random walk before hitting a boundary.</p>
+</section>
+</section>
+<section id="mathematical-formulation" class="level2">
+<h2 class="anchored" data-anchor-id="mathematical-formulation">Mathematical Formulation</h2>
+<section id="continuous-phase-type-distributions-1" class="level3">
+<h3 class="anchored" data-anchor-id="continuous-phase-type-distributions-1">Continuous Phase-Type Distributions</h3>
+<p>Let <span class="math inline">\tau</span> be a phase-type distributed random variable with <span class="math inline">p</span> transient states. We write <span class="math inline">\tau \sim PH_p(\boldsymbol{\alpha}, \mathbf{S})</span> where:</p>
+<ul>
+<li><strong><span class="math inline">\boldsymbol{\alpha} = (\alpha_1, \ldots, \alpha_p)</span></strong>: Initial probability vector
+<ul>
+<li><span class="math inline">\alpha_i</span> is the probability of starting in state <span class="math inline">i</span></li>
+<li>Potential defect: <span class="math inline">\alpha_0 = 1 - \sum_{i=1}^p \alpha_i</span> (probability of starting in absorbing state)</li>
+</ul></li>
+<li><strong><span class="math inline">\mathbf{S}</span></strong>: Sub-intensity matrix (rate matrix excluding absorbing states)
+<ul>
+<li>Entry <span class="math inline">s_{ij}</span> is the rate of transition from state <span class="math inline">i</span> to state <span class="math inline">j</span></li>
+<li>Diagonal entries are negative: <span class="math inline">s_{ii} = -\sum_{j \neq i} s_{ij}</span></li>
+</ul></li>
+<li><strong><span class="math inline">\mathbf{U} = (-\mathbf{S})^{-1}</span></strong>: Green matrix
+<ul>
+<li>Entry <span class="math inline">u_{ij}</span> is the expected total time spent in state <span class="math inline">j</span> when starting in state <span class="math inline">i</span></li>
+</ul></li>
+</ul>
+<section id="cumulative-distribution-function-cdf" class="level4">
+<h4 class="anchored" data-anchor-id="cumulative-distribution-function-cdf">Cumulative Distribution Function (CDF)</h4>
+<p>The probability that absorption occurs by time <span class="math inline">t</span>:</p>
+<p><span class="math display">
+F(t) = 1 - \boldsymbol{\alpha} e^{\mathbf{S}t} \mathbf{e}, \quad t \geq 0
+</span></p>
+<p>where <span class="math inline">e^{\mathbf{S}t}</span> is the matrix exponential and <span class="math inline">\mathbf{e}</span> is a vector of ones.</p>
+</section>
+<section id="probability-density-function-pdf" class="level4">
+<h4 class="anchored" data-anchor-id="probability-density-function-pdf">Probability Density Function (PDF)</h4>
+<p>The density function is:</p>
+<p><span class="math display">
+f(t) = \boldsymbol{\alpha} e^{\mathbf{S}t} (-\mathbf{S}) \mathbf{e}, \quad t \geq 0
+</span></p>
+</section>
+<section id="moments" class="level4">
+<h4 class="anchored" data-anchor-id="moments">Moments</h4>
+<p>The expectation (first moment):</p>
+<p><span class="math display">
+\mathbb{E}[\tau] = \boldsymbol{\alpha} \mathbf{U} \mathbf{e}
+</span></p>
+<p>Higher-order moments:</p>
+<p><span class="math display">
+\mathbb{E}[\tau^k] = k! \boldsymbol{\alpha} \mathbf{U}^k \mathbf{e}
+</span></p>
+<p>The variance:</p>
+<p><span class="math display">
+\text{Var}(\tau) = 2\boldsymbol{\alpha} \mathbf{U}^2 \mathbf{e} - (\boldsymbol{\alpha} \mathbf{U} \mathbf{e})^2
+</span></p>
+</section>
+</section>
+<section id="discrete-phase-type-distributions-1" class="level3">
+<h3 class="anchored" data-anchor-id="discrete-phase-type-distributions-1">Discrete Phase-Type Distributions</h3>
+<p>For discrete phase-type distributions with sub-transition matrix <span class="math inline">\mathbf{T}</span> and initial distribution <span class="math inline">\boldsymbol{\pi}</span>:</p>
+<section id="green-matrix" class="level4">
+<h4 class="anchored" data-anchor-id="green-matrix">Green Matrix</h4>
+<p><span class="math display">
+\mathbf{U} = -(\mathbf{T} - \mathbf{I})^{-1}
+</span></p>
+</section>
+<section id="cdf-probability-mass-function" class="level4">
+<h4 class="anchored" data-anchor-id="cdf-probability-mass-function">CDF (Probability Mass Function)</h4>
+<p>The probability of absorption at exactly jump <span class="math inline">t</span>:</p>
+<p><span class="math display">
+F(t) = 1 - \boldsymbol{\pi} \mathbf{T}^t \mathbf{e}
+</span></p>
+</section>
+<section id="moments-1" class="level4">
+<h4 class="anchored" data-anchor-id="moments-1">Moments</h4>
+<p>The expectation:</p>
+<p><span class="math display">
+\mathbb{E}[\tau] = \boldsymbol{\pi} \mathbf{U} \mathbf{e}
+</span></p>
+</section>
+</section>
+<section id="reward-transformed-distributions" class="level3">
+<h3 class="anchored" data-anchor-id="reward-transformed-distributions">Reward-Transformed Distributions</h3>
+<p>Phase-type distributions can be <strong>reward-transformed</strong> by assigning rewards <span class="math inline">r_i &gt; 0</span> to each state <span class="math inline">i</span>. Instead of measuring time until absorption, the distribution represents accumulated reward until absorption.</p>
+<section id="mathematical-interpretation" class="level4">
+<h4 class="anchored" data-anchor-id="mathematical-interpretation">Mathematical Interpretation</h4>
+<p><strong>Intuition</strong>: Rewards scale the “waiting time” in each state. If state <span class="math inline">i</span> has reward <span class="math inline">r_i = 2</span>, then spending time <span class="math inline">t</span> in that state accumulates reward <span class="math inline">2t</span>. This is like earning interest at different rates in different states.</p>
+<p>Given rewards <span class="math inline">\mathbf{r} = (r_1, \ldots, r_p)</span>, the reward-transformed variable is:</p>
+<p><span class="math display">
+Y = \int_0^\tau r(X_t) dt
+</span></p>
+<p>where <span class="math inline">\{X_t\}</span> is the underlying Markov process and <span class="math inline">\tau</span> is the time until absorption.</p>
+<p><strong>Example</strong>: Consider a system where: - State 1 has reward <span class="math inline">r_1 = 1</span> (baseline accumulation rate) - State 2 has reward <span class="math inline">r_2 = 5</span> (accumulates 5× faster) - The process spends time <span class="math inline">t_1</span> in state 1 and <span class="math inline">t_2</span> in state 2</p>
+<p>Then the total accumulated reward is <span class="math inline">Y = 1 \cdot t_1 + 5 \cdot t_2</span>.</p>
+<p>The <span class="math inline">k</span>-th moment of the reward-transformed distribution:</p>
+<p><span class="math display">
+\mathbb{E}[Y^k] = k! \boldsymbol{\alpha} (\mathbf{U} \boldsymbol{\Delta}(\mathbf{r}))^k \mathbf{e}
+</span></p>
+<p>where <span class="math inline">\boldsymbol{\Delta}(\mathbf{r})</span> is a diagonal matrix with rewards on the diagonal.</p>
+</section>
+<section id="graph-interpretation" class="level4">
+<h4 class="anchored" data-anchor-id="graph-interpretation">Graph Interpretation</h4>
+<p>In the graph representation, <strong>rewards are vertex scalars</strong> that modify what we measure:</p>
+<ul>
+<li><strong>Without rewards</strong>: Measure time until absorption (standard phase-type distribution)</li>
+<li><strong>With rewards</strong>: Each vertex <span class="math inline">v</span> has an associated reward <span class="math inline">r_v</span> (a positive scalar)</li>
+<li><strong>Accumulation</strong>: While the process resides in vertex <span class="math inline">v</span>, reward accumulates at rate <span class="math inline">r_v</span> per unit time</li>
+<li><strong>Edge weights unchanged</strong>: Transition rates (edge weights) remain the same; only the “value” of time in each state changes</li>
+</ul>
+<p>Think of rewards as <strong>time multipliers</strong> at each vertex: spending time <span class="math inline">\Delta t</span> in vertex <span class="math inline">v</span> contributes <span class="math inline">r_v \cdot \Delta t</span> to the total accumulated reward.</p>
+<p><strong>Key insight</strong>: Rewards don’t change the transition structure of the graph—they only change what we’re measuring. The same stochastic process gives different distributions depending on the rewards.</p>
+<p><strong>Practical uses</strong>: - <strong>Population genetics</strong>: Counting mutations (reward = mutation rate per lineage) - <strong>Queuing theory</strong>: Accumulated cost (reward = cost per unit time in each state) - <strong>Physics</strong>: Energy or distance (reward = rate of energy/distance change in each state)</p>
+<p><strong>Example</strong>: In a population genetics model: - Each state represents a configuration of genealogical lineages - State with <span class="math inline">k</span> lineages has reward <span class="math inline">r_k = \binom{k}{2}</span> (number of pairs that could coalesce) - The reward-transformed distribution represents total branch length, not just time</p>
+</section>
+</section>
+<section id="multivariate-phase-type-distributions" class="level3">
+<h3 class="anchored" data-anchor-id="multivariate-phase-type-distributions">Multivariate Phase-Type Distributions</h3>
+<p><strong>Multivariate phase-type distributions</strong> assign a vector of rewards to each state, resulting in a vector-valued outcome:</p>
+<p><span class="math display">
+\mathbf{Y} \sim MPH^*(\boldsymbol{\alpha}, \mathbf{S}, \mathbf{R})
+</span></p>
+<p>where <span class="math inline">\mathbf{R}</span> is a matrix of rewards (each row corresponds to a state, each column to a reward dimension).</p>
+<p><strong>Applications</strong>: Modeling multiple correlated quantities accumulated along the same stochastic process.</p>
+<p><strong>Marginal moments</strong>: Computed independently for each dimension.</p>
+<p><strong>Joint moments</strong>: The covariance between dimensions <span class="math inline">i</span> and <span class="math inline">j</span>:</p>
+<p><span class="math display">
+\text{Cov}(Y_i, Y_j) = \boldsymbol{\alpha}\mathbf{U}(\mathbf{R}_{\cdot i})\mathbf{U}(\mathbf{R}_{\cdot j})\mathbf{e} + \boldsymbol{\alpha}\mathbf{U}(\mathbf{R}_{\cdot j})\mathbf{U}(\mathbf{R}_{\cdot i})\mathbf{e} - \boldsymbol{\alpha}\mathbf{U}(\mathbf{R}_{\cdot i})\mathbf{e} \cdot \boldsymbol{\alpha}\mathbf{U}(\mathbf{R}_{\cdot j})\mathbf{e}
+</span></p>
+</section>
+</section>
+<section id="graph-based-representation" class="level2">
+<h2 class="anchored" data-anchor-id="graph-based-representation">Graph-Based Representation</h2>
+<p>Traditional matrix-based formulations become computationally infeasible for systems with thousands of states. However, many real-world systems have <strong>sparse state spaces</strong> where each state connects to only a few others. This sparseness makes a <strong>graph-based representation</strong> more natural and efficient.</p>
+<section id="graph-representation" class="level3">
+<h3 class="anchored" data-anchor-id="graph-representation">Graph Representation</h3>
+<p>A phase-type distribution can be represented as a <strong>weighted directed graph</strong> <span class="math inline">G = (V, E)</span> where:</p>
+<ul>
+<li><strong>Vertices (<span class="math inline">V</span>)</strong>: Represent states in the Markov chain
+<ul>
+<li>Special <strong>starting vertex</strong> <span class="math inline">S</span>: initial state</li>
+<li><strong>Transient vertices</strong>: states the process can visit</li>
+<li><strong>Absorbing vertices</strong>: terminal states (no outgoing edges)</li>
+</ul></li>
+<li><strong>Edges (<span class="math inline">E</span>)</strong>: Represent transitions between states
+<ul>
+<li>An edge <span class="math inline">(v \to z)</span> connects vertex <span class="math inline">v</span> to vertex <span class="math inline">z</span></li>
+<li>Each edge has a <strong>weight</strong> <span class="math inline">w(v \to z)</span> representing the transition rate</li>
+</ul></li>
+<li><strong>Edge weights</strong>:
+<ul>
+<li>For continuous distributions: transition rates (positive real numbers)</li>
+<li>For discrete distributions: transition probabilities (between 0 and 1)</li>
+</ul></li>
+</ul>
+</section>
+<section id="correspondence-matrices-graphs" class="level3">
+<h3 class="anchored" data-anchor-id="correspondence-matrices-graphs">Correspondence: Matrices ↔︎ Graphs</h3>
+<p>The graph representation directly corresponds to the matrix formulation:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 51%">
+<col style="width: 48%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Matrix Concept</th>
+<th>Graph Concept</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>State <span class="math inline">i</span></td>
+<td>Vertex <span class="math inline">v</span></td>
+</tr>
+<tr class="even">
+<td>Initial probability <span class="math inline">\alpha_i</span></td>
+<td>Weight <span class="math inline">w(S \to v_i)</span> from starting vertex</td>
+</tr>
+<tr class="odd">
+<td>Sub-intensity entry <span class="math inline">s_{ij}</span></td>
+<td>Edge weight <span class="math inline">w(v_i \to v_j)</span></td>
+</tr>
+<tr class="even">
+<td>Absorbing state</td>
+<td>Vertex with no outgoing edges</td>
+</tr>
+<tr class="odd">
+<td>Total exit rate from state <span class="math inline">i</span></td>
+<td><span class="math inline">\lambda_v = \sum_{z \in \text{children}(v)} w(v \to z)</span></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong>: The sub-intensity matrix</p>
+<p><span class="math display">
+\mathbf{S} = \begin{pmatrix}
+-5 &amp; 1 &amp; 4 \\
+1 &amp; -8 &amp; 2 \\
+0 &amp; 1 &amp; -3
+\end{pmatrix}
+</span></p>
+<p>corresponds to a graph with: - Vertex A with edges: (A → B, weight=1), (A → C, weight=4) - Vertex B with edges: (B → A, weight=1), (B → C, weight=2) - Vertex C with edges: (C → B, weight=1) - Total exit rates: <span class="math inline">\lambda_A = 5</span>, <span class="math inline">\lambda_B = 8</span>, <span class="math inline">\lambda_C = 3</span></p>
+</section>
+<section id="advantages-of-graph-representation" class="level3">
+<h3 class="anchored" data-anchor-id="advantages-of-graph-representation">Advantages of Graph Representation</h3>
+<ol type="1">
+<li><strong>Memory efficiency</strong>: Store only existing transitions (not full <span class="math inline">p \times p</span> matrix)
+<ul>
+<li>For sparse systems: <span class="math inline">O(|E|)</span> vs <span class="math inline">O(p^2)</span> memory</li>
+</ul></li>
+<li><strong>Computational efficiency</strong>: Operations on edges only
+<ul>
+<li>Many algorithms: <span class="math inline">O(|V|^2)</span> vs <span class="math inline">O(p^3)</span> for matrix operations</li>
+</ul></li>
+<li><strong>Iterative construction</strong>: Build state space incrementally
+<ul>
+<li>Add vertices and edges as needed</li>
+<li>Natural for complex phenomena</li>
+</ul></li>
+<li><strong>Intuitive modeling</strong>: Specify transitions from each state independently
+<ul>
+<li>Markov property: next state depends only on current state</li>
+<li>Easy to encode complex models</li>
+</ul></li>
+<li><strong>Numerical stability</strong>: Avoid matrix inversions and exponentials</li>
+</ol>
+</section>
+<section id="example-rabbit-island-model" class="level3">
+<h3 class="anchored" data-anchor-id="example-rabbit-island-model">Example: Rabbit Island Model</h3>
+<p>Consider rabbits jumping between two islands at rate 1. Islands flood at rates 2 and 4, drowning all rabbits on that island. The absorbing state is when all rabbits have drowned.</p>
+<p><strong>State representation</strong>: Vector <span class="math inline">(n_1, n_2)</span> where <span class="math inline">n_i</span> is the number of rabbits on island <span class="math inline">i</span>.</p>
+<p><strong>Graph construction</strong>: - Start with state <span class="math inline">(2, 0)</span>: 2 rabbits on island 1 - From state <span class="math inline">(i, j)</span>: - If <span class="math inline">i &gt; 0</span>: transition to <span class="math inline">(i-1, j+1)</span> at rate <span class="math inline">i</span> (rabbit jumps left to right) - If <span class="math inline">j &gt; 0</span>: transition to <span class="math inline">(i+1, j-1)</span> at rate <span class="math inline">j</span> (rabbit jumps right to left) - If <span class="math inline">i &gt; 0</span>: transition to <span class="math inline">(0, j)</span> at rate 2 (island 1 floods) - If <span class="math inline">j &gt; 0</span>: transition to <span class="math inline">(i, 0)</span> at rate 4 (island 2 floods) - Absorbing state: <span class="math inline">(0, 0)</span></p>
+<p>This naturally sparse structure makes graphs ideal for representation.</p>
+</section>
+</section>
+<section id="computational-algorithms" class="level2">
+<h2 class="anchored" data-anchor-id="computational-algorithms">Computational Algorithms</h2>
+<p>phasic implements efficient graph-based algorithms for:</p>
+<ol type="1">
+<li><strong>State space construction</strong>: Iterative building of the graph</li>
+<li><strong>Reward transformation</strong>: Modifying distributions by assigning rewards</li>
+<li><strong>Moment computation</strong>: Computing expectations, variances, higher moments</li>
+<li><strong>Distribution functions</strong>: Computing PMF/PDF and CDF</li>
+<li><strong>Multivariate distributions</strong>: Joint and marginal moments</li>
+</ol>
+<section id="key-algorithmic-innovations" class="level3">
+<h3 class="anchored" data-anchor-id="key-algorithmic-innovations">Key Algorithmic Innovations</h3>
+<p>From Røikjer, Hobolth, and Munch (2022):</p>
+<ul>
+<li><strong>Acyclic graph transformation</strong>: Convert cyclic graphs to acyclic form for recursive computation</li>
+<li><strong>Cached operations</strong>: Compute moments in <span class="math inline">O(|V|^2)</span> time after initial <span class="math inline">O(|V|^3)</span> setup</li>
+<li><strong>Discrete approximation</strong>: Approximate continuous distributions with arbitrary precision</li>
+<li><strong>Parallel computation</strong>: Natural parallelization over graph structure</li>
+</ul>
+<p><strong>Performance</strong>: Orders of magnitude faster than matrix-based methods for sparse systems.</p>
+</section>
+</section>
+<section id="practical-example" class="level2">
+<h2 class="anchored" data-anchor-id="practical-example">Practical Example</h2>
+<p>Let’s compute properties of an Erlang distribution (sum of exponential random variables):</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Build Erlang(3) distribution: sum of 3 exponentials with rate 1</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>g <span class="op">=</span> Graph(<span class="dv">1</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>start <span class="op">=</span> g.starting_vertex()</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Create chain: S -&gt; v1 -&gt; v2 -&gt; v3 -&gt; absorbing</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>v1 <span class="op">=</span> g.find_or_create_vertex([<span class="dv">1</span>])</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>v2 <span class="op">=</span> g.find_or_create_vertex([<span class="dv">2</span>])</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>v3 <span class="op">=</span> g.find_or_create_vertex([<span class="dv">3</span>])</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>start.add_edge(v1, <span class="fl">1.0</span>)  <span class="co"># Start in state 1 with probability 1</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>v1.add_edge(v2, <span class="fl">1.0</span>)     <span class="co"># Transition rate 1</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>v2.add_edge(v3, <span class="fl">1.0</span>)     <span class="co"># Transition rate 1</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>v3.add_edge(g.find_or_create_vertex([<span class="dv">4</span>]), <span class="fl">1.0</span>)  <span class="co"># To absorbing state</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute properties</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Expectation: </span><span class="sc">{</span>g<span class="sc">.</span>expectation()<span class="sc">}</span><span class="ss">"</span>)      <span class="co"># Should be 3.0</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Variance: </span><span class="sc">{</span>g<span class="sc">.</span>variance()<span class="sc">}</span><span class="ss">"</span>)            <span class="co"># Should be 3.0</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"PDF at t=2.0: </span><span class="sc">{</span>g<span class="sc">.</span>pdf(<span class="fl">2.0</span>)<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"CDF at t=2.0: </span><span class="sc">{</span>g<span class="sc">.</span>cdf(<span class="fl">2.0</span>)<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="when-to-use-phase-type-distributions" class="level2">
+<h2 class="anchored" data-anchor-id="when-to-use-phase-type-distributions">When to Use Phase-Type Distributions</h2>
+<p>Phase-type distributions are particularly useful when:</p>
+<ol type="1">
+<li><strong>Modeling absorption times</strong>: Time until system reaches terminal state</li>
+<li><strong>Sparse state spaces</strong>: Many states but few transitions per state</li>
+<li><strong>Complex phenomena</strong>: Iterative construction from simple rules</li>
+<li><strong>Multiple quantities</strong>: Multivariate distributions with correlated outcomes</li>
+<li><strong>Large state spaces</strong>: Thousands to millions of states</li>
+</ol>
+<p><strong>Applications</strong>: - Queuing theory (service times) - Reliability theory (time to failure) - Population genetics (coalescent times) - Telecommunications (packet delays) - Survival analysis (time to event)</p>
+</section>
+<section id="further-reading" class="level2">
+<h2 class="anchored" data-anchor-id="further-reading">Further Reading</h2>
+<p>For detailed algorithms and proofs, see:</p>
+<p><strong>Røikjer, T., Hobolth, A., &amp; Munch, K. (2022).</strong> <em>Graph-based algorithms for phase-type distributions.</em> Statistics and Computing, 32:103. <a href="https://doi.org/10.1007/s11222-022-10174-3">https://doi.org/10.1007/s11222-022-10174-3</a></p>
+<p>The paper provides: - Complete algorithmic details - Complexity analysis - Proofs of correctness - Empirical performance comparisons - Applications to population genetics</p>
+</section>
+<section id="references" class="level2">
+<h2 class="anchored" data-anchor-id="references">References</h2>
+<ul>
+<li>Neuts, M.F. (1981). <em>Matrix-Geometric Solutions in Stochastic Models.</em> Johns Hopkins University Press.</li>
+<li>Bladt, M., &amp; Nielsen, B.F. (2017). <em>Matrix-Exponential Distributions in Applied Probability.</em> Springer.</li>
+<li>Hobolth, A., Siri-Jegousse, A., &amp; Bladt, M. (2019). Phase-type distributions in population genetics. <em>Theoretical Population Biology</em>, 127:16-32.</li>
+<li>Duff, I.S., Erisman, A.M., &amp; Reid, J.K. (2017). <em>Direct Methods for Sparse Matrices.</em> Oxford University Press.</li>
+<li>Bobbio, A., Horváth, A., &amp; Telek, M. (2004). The scale factor: a new degree of freedom in phase-type approximation. <em>Performance Evaluation</em>, 56(1-4):121-144.</li>
+</ul>
+<p><em>This documentation is based on the graph-based algorithms implemented in phasic and described in Røikjer et al.&nbsp;(2022).</em></p>
+<p><strong>Statements and Declarations:</strong><br>
+The authors received no support from any organization for the submitted work and have no relevant financial or non-financial interests to disclose.</p>
+</section>
+</section>
+<section id="abstract" class="level1 unnumbered">
+<h1 class="unnumbered">Abstract</h1>
+<p>Phase-type distributions model the time until absorption in continuous or discrete-time Markov chains on finite state spaces. Multivariate phase-type distributions model rewards accumulated at visited states, enabling diverse applications. Traditional matrix-based computations become infeasible even for moderately sized state spaces. Since phase-type state spaces are often large but sparse, with few transitions per state, graph-based representations are more natural and efficient than matrix-based ones. We develop graph-based algorithms for analyzing phase-type distributions, including state space construction, reward transformation, moments calculation, marginal distribution functions of multivariate distributions, and state probability vectors for both time-homogeneous and time-inhomogeneous Markov chains. We implement these algorithms in <code>phasic</code>, a numerically stable, memory-efficient open source C library with bindings for C and R. We compare <code>phasic</code> to the fastest matrix-based tools for computing probability distributions (via matrix exponentiation) and moments (via matrix inversion). Our graph-based algorithms produce identical numerical results but run orders of magnitude faster. We demonstrate the advantages of <code>phasic</code> using a classic population genetics problem.</p>
+<p><strong>Key words:</strong> Phase-type distributions, computational statistics, moments, distribution, graph-based algorithms.</p>
+</section>
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<p>Phase-type distributions model the time until absorption in continuous-time Markov jump processes or discrete-time Markov chains on finite state spaces <span class="citation" data-cites="Neuts1981">(<a href="#ref-Neuts1981" role="doc-biblioref">Neuts 1981</a>)</span>. They are widely used in physics, telecommunication, queuing theory <span class="citation" data-cites="aalen1995phase faddy1999analysing he2014 acal2019phase">(<a href="#ref-aalen1995phase" role="doc-biblioref">Aalen 1995</a>; <a href="#ref-faddy1999analysing" role="doc-biblioref">Faddy and McClean 1999</a>; <a href="#ref-he2014" role="doc-biblioref">He 2014</a>; <a href="#ref-acal2019phase" role="doc-biblioref">Acal et al. 2019</a>)</span>, and recently in population genetics to model coalescence processes <span class="citation" data-cites="hobolth2019phase">(<a href="#ref-hobolth2019phase" role="doc-biblioref">Hobolth et al. 2019</a>)</span>. Their solid theoretical foundation <span class="citation" data-cites="he2014 bladt2017matrix">(<a href="#ref-he2014" role="doc-biblioref">He 2014</a>; <a href="#ref-bladt2017matrix" role="doc-biblioref">Bladt and Nielsen 2017</a>)</span> enables elegant matrix-based formulations and proofs, but matrix computations become infeasible for systems with thousands of states. For example, in the basic coalescence model <span class="citation" data-cites="hobolth2021sfs">(<a href="#ref-hobolth2021sfs" role="doc-biblioref">Hobolth et al. 2021</a>)</span>, state space size grows exponentially with the square root of sample size.</p>
+<p>Since most real-world models have sparsely connected states, graph-based representations are more natural and efficient than matrix-based ones. We develop graph-based algorithms for computing moments, probability distributions, state probability vectors, and reward transformations of phase-type distributions. Graph-based approaches offer three key advantages: (1) iterative state space construction simplifies modeling complex phenomena; (2) memory requirements are drastically reduced by avoiding matrix storage; and (3) moments and distributions are computed orders of magnitude faster. Our algorithms operate directly on graph structures and handle both continuous and discrete phase-type distributions. We provide algorithms for iterative state space construction, reward transformation (positive or zero rewards), marginal and joint moments of multivariate distributions, distribution functions, and state probability vectors for time-homogeneous and time-inhomogeneous processes.</p>
+<p>We present the theoretical principles and probabilistic interpretation of our algorithms with brief code examples. The algorithms are implemented in C and exposed as the open-source library <code>phasic</code> with bindings for C and R. Install via:</p>
+<pre><code>library(devtools)
+devtools::install_github("TobiasRoikjer/phasic")</code></pre>
+<p>Full documentation is available at the GitHub website and in R man pages.</p>
+<p>The paper is organized as follows. Section 2.1 presents the graph representation of continuous phase-type distributions. Sections 2.2-2.3 cover state space construction and reward transformation. Section 2.4 shows how to compute moments recursively on acyclic graphs. Sections 2.5-2.6 describe converting cyclic graphs to acyclic form. Section 2.7 shows caching techniques for quadratic-time computation of higher-order moments. Section 2.8 covers multivariate distributions and joint moments. Sections 2.9-2.11 extend the framework to discrete phase-type distributions and their distribution functions, including arbitrary-precision approximations for continuous distributions. Section 2.12 addresses time-inhomogeneous models. Section 3 compares empirical running times to state-of-the-art matrix-based approaches. Section 4 demonstrates the method on an isolation-with-migration model from population genetics.</p>
+</section>
+<section id="graph-based-algorithms-for-phase-type-distributions" class="level1">
+<h1>Graph-based algorithms for phase-type distributions</h1>
+<section id="GPDsect" class="level2">
+<h2 class="anchored" data-anchor-id="GPDsect">Graph-representation of a phase-type distribution</h2>
+<p>Following <span class="citation" data-cites="bladt2017matrix">(<a href="#ref-bladt2017matrix" role="doc-biblioref">Bladt and Nielsen 2017</a>)</span>, we describe a continuous phase-type distribution with <span class="math inline">p</span> transient states, initial distribution <span class="math inline">\alpha_i</span> (<span class="math inline">i=1,\ldots,p</span>), and potential defect <span class="math inline">\alpha_0=1-\sum_{i=1}^p{\alpha_i}</span>. Let <span class="math inline">\mathbf{\alpha}=(\alpha_1,\ldots,\alpha_p)</span> be the initial distribution vector. The sub-intensity matrix (rate matrix excluding absorbing states) is <span class="math inline">\bm{S}</span> and the Green matrix is <span class="math inline">\bm{U}=(-\bm{S})^{-1}</span>. Entry <span class="math inline">(i,j)</span> in the Green matrix, <span class="math inline">\bm{U}_{ij}</span>, is the expected total time spent in state <span class="math inline">j</span> when starting in state <span class="math inline">i</span>. The cumulative distribution function is <span class="math display">F_\tau(t) = 1 - \bm{\alpha}e^{\bm{S}t}\bm{e}, \;\; t\geq 0,</span> where <span class="math inline">e^{\bm{S}t}</span> is the matrix exponential and <span class="math inline">\bm{e}</span> is the vector of ones.</p>
+<p>We represent phase-type distributions as weighted directed graphs, following <span class="citation" data-cites="frydenberg1990chain younes2004solving">(<a href="#ref-frydenberg1990chain" role="doc-biblioref">Frydenberg 1990</a>; <a href="#ref-younes2004solving" role="doc-biblioref">Younes and Simmons 2004</a>)</span>. A directed graph <span class="math inline">G=(V,E)</span> has vertices <span class="math inline">V</span> and edges <span class="math inline">E</span> (ordered pairs of vertices). An edge from <span class="math inline">\texttt{v}\in V</span> to <span class="math inline">\texttt{z}\in V</span> is denoted <span class="math inline">(\texttt{v}\rightarrow \texttt{z})\in E</span>. The edges <span class="math inline">(\texttt{v}\rightarrow \texttt{z})</span> for all <span class="math inline">\texttt{z}\in V</span> are the out-going edges of <code>v</code>, and edges <span class="math inline">(\texttt{u}\rightarrow \texttt{v})</span> for all <span class="math inline">\texttt{u}\in V</span> are the in-going edges of <code>v</code>. For any edge <span class="math inline">(\texttt{u}\rightarrow \texttt{v})</span>, <span class="math inline">\texttt{u}</span> is a <em>parent</em> of <span class="math inline">\texttt{v}</span> and <span class="math inline">\texttt{v}</span> is a <em>child</em> of <span class="math inline">\texttt{u}</span>. We denote the set of children as <span class="math inline">\texttt{children}(\texttt{v})</span> and the set of parents as <span class="math inline">\texttt{parents}(\texttt{v})</span>. In cyclic graphs, a parent may also be a child of the same vertex.</p>
+<p>A <em>weighted</em> directed graph assigns each edge a real-valued weight <span class="math inline">W\colon E\rightarrow \mathbb{R}</span> representing the transition rate. The weight of edge <span class="math inline">(\texttt{v}\rightarrow \texttt{z})\in E</span> is <span class="math inline">w(\texttt{v}\rightarrow \texttt{z})\in \mathbb{R}</span>, and the sum of out-going weights for vertex <span class="math inline">\texttt{v}</span> is <span class="math display">\lambda_\texttt{v}=\sum_{\texttt{z}\in \texttt{children}(\texttt{v})}{w(\texttt{v} \rightarrow \texttt{z})}.</span> For a valid phase-type distribution, all weights must be strictly positive (exponential rates), edges only connect different vertices (no self-loops), at least one vertex has no out-going edges (absorbing state), and all vertices have a path to an absorbing vertex with positive probability.</p>
+<p>We designate a single starting vertex <code>S</code> with edge weights representing the initial distribution: <span class="math inline">w(\texttt{S}\rightarrow \texttt{v}_i)=\alpha_i</span> and <span class="math inline">\lambda_\texttt{S}=1</span>. A defect is modeled by edges from <code>S</code> to absorbing vertices. The starting vertex has zero reward (Section 2.3), so it doesn’t contribute to absorption time.</p>
+<p>The graph is mutable: we can add vertices, add/remove edges, and change weights. We use prime notation for transformations, e.g., <span class="math inline">G\gets G'</span> represents updating <span class="math inline">G</span>.</p>
+</section>
+<section id="SSCsect" class="level2">
+<h2 class="anchored" data-anchor-id="SSCsect">State space construction</h2>
+<p>We construct state spaces iteratively as graphs. This greatly simplifies specifying large, complex state spaces from simple transition rules. The construction algorithm visits each vertex once, independently of other vertices, exploiting the Markov property: out-going transitions and rates depend only on the current state. Algorithm <a href="#alg:generic-state-space-algorithm" data-reference-type="ref" data-reference="alg:generic-state-space-algorithm">[alg:generic-state-space-algorithm]</a> shows the procedure. Figure <a href="#fig:construction" data-reference-type="ref" data-reference="fig:construction">1</a> illustrates state space construction with R code.</p>
+<p>Our algorithm requires an efficient lookup structure mapping states to vertices. We use an AVL tree in <code>phasic</code> to map states (represented as integer vectors) to vertices. Any state representation with an equivalence relation and ordering (<span class="math inline">&lt;</span> relation) works.</p>
+<p>While algorithms are independent of the underlying data structure, asymptotic complexities assume that merging all children of vertex <code>v</code> to all parents takes quadratic time in vertex count. This requires constant-time edge addition and weight updates. In <code>phasic</code>, we store edges in ordered linked lists and merge two lists in linear time by element-wise comparison. For <span class="math inline">O(|V|)</span> parents, we perform <span class="math inline">O(|V|)</span> merges, each in <span class="math inline">O(2|V|)</span> time, yielding quadratic time overall.</p>
+<p>For modeling convenience, <code>phasic</code> supports edge parametrization, allowing weight updates after state space construction. This is useful for exploring different parameter values in the same model (see documentation).</p>
+<p>To integrate <code>phasic</code> into existing workflows, we provide <code>matrix_as_graph</code>, which produces a graph from a sub-intensity matrix and initial probability vector. For example, computing the expectation of the phase-type distribution in Figure <a href="#fig:construction" data-reference-type="ref" data-reference="fig:construction">1</a>:</p>
+<pre><code>SIM &lt;- cbind(c(-5,  1,  0,  0,  0),
+             c( 1, -8,  1,  4,  2),
+             c( 0,  1, -3,  0,  0),
+             c( 0,  0,  0, -3,  1),
+             c( 0,  0,  0,  1, -5))
+IPV &lt;- c(0, 0, 1, 0, 0)
+graph &lt;- matrix_as_graph(IPV, SIM)
+expectation(graph)</code></pre>
+<div id="fig-construction" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-construction-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href=".png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="Figure&nbsp;1: Example of state space construction. Rabbits jump between two islands at rate one. Islands are flooded at rates 2 and 4, drowning all rabbits. Absorbing state: all rabbits drowned. (A) State space with transitions. (B) R code generating the state space. States are two-integer vectors representing rabbit counts on each island. State space is constructed iteratively by adding vertices and edges. Visited states are shown with bold outlines. Absorbing states are unlabeled (vertices without out-going edges). The starting vertex goes to the initial state (two rabbits on left island) with probability one. The graph maintains a record of vertices and their states; find_or_create_vertex only creates vertices for new states. (C) State space after each while loop iteration in panel B. The index variable enumerates visited states (bold outline), while vertices_length(graph) returns the current vertex count. Construction completes when these are equal."><img src=".png" class="img-fluid figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-construction-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: <strong>Example of state space construction.</strong> Rabbits jump between two islands at rate one. Islands are flooded at rates <span class="math inline">2</span> and <span class="math inline">4</span>, drowning all rabbits. Absorbing state: all rabbits drowned. <strong>(A)</strong> State space with transitions. <strong>(B)</strong> R code generating the state space. States are two-integer vectors representing rabbit counts on each island. State space is constructed iteratively by adding vertices and edges. Visited states are shown with bold outlines. Absorbing states are unlabeled (vertices without out-going edges). The starting vertex goes to the initial state (two rabbits on left island) with probability one. The graph maintains a record of vertices and their states; <code>find_or_create_vertex</code> only creates vertices for new states. <strong>(C)</strong> State space after each <code>while</code> loop iteration in panel B. The <code>index</code> variable enumerates visited states (bold outline), while <code>vertices_length(graph)</code> returns the current vertex count. Construction completes when these are equal.
+</figcaption>
+</figure>
+</div>
+<div class="algorithm">
+<div class="algorithmic">
+<p>Let <span class="math inline">V</span> be the vertices, <code>visited</code> be a subset of vertices, and <span class="math inline">E</span> be the edges. Let <span class="math inline">W</span> be the weight function <span class="math inline">E\rightarrow\mathbb{R}</span>. Let <span class="math inline">f</span> be a bijection between states and vertices, and <span class="math inline">f^{-1}</span> be its inverse. Denote the starting vertex as <code>S</code>. User-defined functions: returns states reachable from <code>state</code>. returns the transition rate from <code>state_from</code> to <code>state_to</code>.<br>
+function.</p>
+<div class="line-block"><span class="smallcaps">GenerateStateSpace(Transitions, Rate)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="math inline">V \gets \{\texttt{S}\}</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="math inline">unvisited \gets \{\texttt{S}\}</span><br>
+<span class="math inline">E \gets \emptyset</span> <span class="math inline">W \gets \emptyset</span><br>
+<span class="math inline">\texttt{v} \gets \text{any entry from } unvisited</span> <span class="math inline">unvisited \gets unvisited\setminus \{\texttt{v}\}</span> <span class="math inline">\text{Add new vertex } \texttt{z}</span> <span class="math inline">V \gets V\cup\{\texttt{z}\}</span> <span class="math inline">unvisited \gets unvisited \cup \{\texttt{z}\}</span> <span class="math inline">f \gets f \cup \{state \mapsto \texttt{z}\}</span> <span class="math inline">\texttt{z} \gets f(state)</span> <span class="math inline">E \gets E \cup \{(\texttt{v} \rightarrow \texttt{z})\}</span> <span class="math inline">W \gets W\cup \{(\texttt{v} \rightarrow \texttt{z})\mapsto \Call{Rate}{f^{-1}(\texttt{v}),f^{-1}(\texttt{z})}\}</span> Graph <span class="math inline">(V, E)</span> and weight function <span class="math inline">W</span></div>
+</div>
+<p><span id="alg:generic-state-space-algorithm" data-label="alg:generic-state-space-algorithm"></span></p>
+</div>
+</section>
+<section id="reward_transformation" class="level2">
+<h2 class="anchored" data-anchor-id="reward_transformation">Reward transformation of a phase-type graph</h2>
+<p>We assign zero or positive real-valued rewards to each state. Waiting time in each state is scaled by its reward. The phase-type distribution becomes the accumulated reward until absorption (not time). If all rewards are one, the distribution is unchanged. Let <span class="math inline">\tau \sim {\rm PH}_p(\bm{\alpha},\bm{S})</span> with <span class="math inline">p</span> transient states, and let <span class="math inline">\{X_t\}</span> be the underlying Markov jump process. We are interested in the reward-transformed variable <span class="math display">Y=\int_0^{\tau} r(X_t)dt,</span> where <span class="math inline">\bm{r}=(r(1),\ldots,r(p))</span> is the vector of non-negative rewards. Theorem 3.1.33 in <span class="citation" data-cites="bladt2017matrix">(<a href="#ref-bladt2017matrix" role="doc-biblioref">Bladt and Nielsen 2017</a>)</span> states that <span class="math inline">Y</span> is phase-type distributed and provides matrix formulas for the reward-transformed sub-intensity matrix. We derive the corresponding graph-based construction.</p>
+<p>Consider assigning a positive reward <span class="math inline">r_k&gt;0</span> to state <span class="math inline">k</span> while keeping all other rewards at one (<span class="math inline">r_i=1</span>, <span class="math inline">i\neq k</span>). The reward-transformed sub-intensity matrix is obtained by scaling row <span class="math inline">k</span> by <span class="math inline">1/r_k</span>: <span class="math display">\bm{S}'=\bm{S} \triangle(1/\bm{r}).</span> In the graph, this corresponds to multiplying all out-going edge weights from vertex <span class="math inline">k</span> by <span class="math inline">1/r_k</span>.</p>
+<p>Now consider assigning zero reward <span class="math inline">r_k=0</span> to only state <span class="math inline">k</span> (so <span class="math inline">r_i=1</span>, <span class="math inline">i\neq k</span>). We must remove vertex <span class="math inline">k</span> and update edges and weights accordingly. Before transformation, the embedded Markov chain’s transition matrix has entries <span class="math display">q_{ij}=s_{ij}/\lambda_i, \;\; i \neq j, \;\; {\rm and } \;\; q_{ii}=0,</span> where <span class="math inline">s_{ij}</span> is the rate from <span class="math inline">i</span> to <span class="math inline">j</span> (the weight of edge <span class="math inline">i\rightarrow j</span>) and <span class="math inline">\lambda_i</span> is the sum of out-going weights from <span class="math inline">i</span>. The transition probability from state <span class="math inline">i\neq k</span> to state <span class="math inline">j \neq \{ k, i\}</span> with state <span class="math inline">k</span> removed is <span class="math display">p_{ij}=q_{ij}+q_{ik}q_{kj}.</span> Since waiting time in each state must remain unchanged, the intensity from <span class="math inline">i</span> to <span class="math inline">j</span> must be <span class="math inline">s'_{ij}=\lambda_ip_{ij}</span>. Thus the sub-intensity matrix with state <span class="math inline">k</span> removed has entries <span class="math display">s'_{ij}=\lambda_ip_{ij}=\lambda_i(q_{ij}+q_{ik}q_{kj})
+=s_{ij}+s_{ik}\frac{s_{kj}}{\lambda_k}.</span> In graph operations, if edge <span class="math inline">i\rightarrow j</span> exists (<span class="math inline">s_{ij}&gt;0</span>), add <span class="math inline">s_{ik} s_{kj} / \lambda_k</span> to its weight. If edge <span class="math inline">i\rightarrow j</span> doesn’t exist (<span class="math inline">s_{ij}=0</span>), add it with weight <span class="math inline">s_{ik} s_{kj} / \lambda_k</span>. Algorithm <a href="#alg:reward-trans" data-reference-type="ref" data-reference="alg:reward-trans">[alg:reward-trans]</a> shows the procedure. Figure <a href="#fig:reward_transformation" data-reference-type="ref" data-reference="fig:reward_transformation">2</a> illustrates reward transformation.</p>
+<div id="fig-reward_transformation" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-reward_transformation-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href=".png" class="lightbox" data-gallery="quarto-lightbox-gallery-2" title="Figure&nbsp;2: Reward transformation with zero reward. (A) Original graph. (B) Graph after assigning zero reward to state B and reward one to states A, C, and D (Algorithm [alg:reward-trans]). Red vertices and edges are removed. Green edges are added or updated."><img src=".png" class="img-fluid figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-reward_transformation-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: <strong>Reward transformation with zero reward.</strong> <strong>(A)</strong> Original graph. <strong>(B)</strong> Graph after assigning zero reward to state <code>B</code> and reward one to states <code>A</code>, <code>C</code>, and <code>D</code> (Algorithm <a href="#alg:reward-trans" data-reference-type="ref" data-reference="alg:reward-trans">[alg:reward-trans]</a>). Red vertices and edges are removed. Green edges are added or updated.
+</figcaption>
+</figure>
+</div>
+<div class="algorithm">
+<div class="algorithmic">
+<p>Scale weight <span class="math inline">w(\texttt{v}\rightarrow \texttt{z})</span> by <span class="math inline">1/r(\texttt{v})</span> Increment weight <span class="math inline">w(\texttt{u}\rightarrow \texttt{z})</span> by <span class="math inline">\frac{w(\texttt{v}\rightarrow \texttt{z})}{\lambda_\texttt{v}}w(\texttt{u}\rightarrow \texttt{v})</span> Add edge <span class="math inline">(\texttt{u}\rightarrow \texttt{z})</span> with weight <span class="math inline">\frac{w(\texttt{v}\rightarrow \texttt{z})}{\lambda_\texttt{v}}w(\texttt{u}\rightarrow \texttt{v})</span> Remove edge <span class="math inline">(\texttt{u}\rightarrow \texttt{v})</span></p>
+</div>
+<p><span id="alg:reward-trans" data-label="alg:reward-trans"></span></p>
+</div>
+</section>
+<section id="sec:moments" class="level2">
+<h2 class="anchored" data-anchor-id="sec:moments">Properties of higher-order moments</h2>
+<p>Higher-order moments of reward-transformed phase-type distributions are determined by matrix equations (Theorem 8.1.5, <span class="citation" data-cites="bladt2017matrix">(<a href="#ref-bladt2017matrix" role="doc-biblioref">Bladt and Nielsen 2017</a>)</span>): <span class="math display">\mathbb{E}[\tau^k]=k!\bm{\alpha} (\bm{U}\triangle(\bm{r}))^{k}\bm{e}.</span> The expectation is <span class="math display">\mathbb{E}[\tau] = \bm{\alpha} \bm{U}\triangle(\bm{r})\bm{e},</span> and the second moment is <span class="math display">\mathbb{E}[\tau^2]=2\bm{\alpha}\bm{U}
+\underbrace{\triangle(\bm{r})\bm{U}\triangle(\bm{r})\bm{e}}_{\triangle(\bm{r}')\bm{e}}.</span> By associativity of matrix multiplication, we can compute <span class="math inline">\triangle(\bm{r})\bm{U}\triangle(\bm{r})\bm{e}</span> first, yielding a column vector <span class="math inline">\triangle(\bm{r'})\bm{e}</span>. This shows that the second moment can be computed like the first moment using a different reward vector. By induction, we find new rewards such that <span class="math display">\mathbb{E}[\tau^k]=
+  \bm{\alpha} \big( k!\bm{U}\triangle(\bm{r}') \big)\bm{e}=
+  \mathbb{E}[\tau'],</span> where <span class="math inline">\tau'</span> is a phase-type distribution with the same state space as <span class="math inline">\tau</span> but different rewards. Below, we use this property to construct algorithms for all moments and joint moments.</p>
+</section>
+<section id="sect:NormGraph" class="level2">
+<h2 class="anchored" data-anchor-id="sect:NormGraph">A graph representation of normalized phase-type distributions</h2>
+<p>We can normalize any rewarded phase-type distribution so that intensities at each state sum to one. This is achieved by adjusting rewards so that reward divided by total intensity remains constant after normalization. This makes state intensities become transition probabilities, exposing the embedded Markov process. In this form, the expected accumulated reward at each state is simply the expected number of visits scaled by the reward.</p>
+<p>In the standard graph formulation, both reward and transition rate contribute to edge weights. In our <em>normalized</em> distribution representation, we factorize each edge weight into the exponentially distributed expected waiting time at each parent vertex and the remaining transition probability. We assign each vertex <span class="math inline">\texttt{v}\in V</span> a scalar <span class="math inline">x_\texttt{v} =\lambda^{-1}_{\texttt{v}}</span> representing expected waiting time. Out-going edge weights then represent transition probabilities, summing to one. In the <em>normalized</em> graph, total intensity at each non-absorbing vertex <span class="math inline">\texttt{v}\in V</span> is unchanged and expressed as <span class="math display">\frac{1}{x_\texttt{v}}\sum_{\texttt{z}\in\text{children}(\texttt{v})} w'(\texttt{v}\rightarrow \texttt{z})</span> where <span class="math inline">w'(\texttt{v}\rightarrow \texttt{z})=w(\texttt{v}\rightarrow \texttt{z})/\lambda_\texttt{v}</span>. At the starting vertex, <span class="math inline">x=1</span>; for absorbing vertices, <span class="math inline">x=0</span>.</p>
+<p>Acyclic phase-type distributions are an important special case where the sub-intensity matrix can be reorganized into an upper triangular matrix <span class="citation" data-cites="cumani1982canonical">(<a href="#ref-cumani1982canonical" role="doc-biblioref">Cumani 1982</a>)</span>. In graphs, such distributions have a topological ordering, allowing expectations to be computed by simple recursion. Let <code>v</code> and <code>z</code> be vertices and let <span class="math inline">\mathbb{E}[\tau|\texttt{v}]</span> be the expected accumulated reward until absorption starting at <code>v</code>. For the normalized graph, first-step analysis of Markov chains gives: <span class="math display">\mathbb{E}[\tau|\texttt{v}] = x_\texttt{v} +  \sum_{\texttt{z}\in\text{children}(\texttt{v})}{w(\texttt{v}\rightarrow \texttt{z})\mathbb{E}[\tau|\texttt{z}]}.</span> Since we have a single starting vertex, <span class="math display">\mathbb{E}[\tau]=\mathbb{E}[\tau|\texttt{S}].</span> Topological ordering allows the recursion to be computed via dynamic programming, yielding the <span class="math inline">k</span>-th moment in quadratic time <span class="math inline">O(|V|^2k)</span>. This is impossible for cyclic state spaces, as the recursion never terminates. However, we can transform any cyclic phase-type distribution graph into an acyclic one with the same states.</p>
+</section>
+<section id="sect:acyclic" class="level2">
+<h2 class="anchored" data-anchor-id="sect:acyclic">An acyclic graph representation of phase-type distributions</h2>
+<p>We can manipulate edges <span class="math inline">V</span> and vertex scalars <span class="math inline">x</span> in a cyclic phase-type distribution graph to produce an acyclic graph with the same expected time (or accumulated reward) until absorption. Once constructed, this acyclic graph allows recursive computation of expectation as in the previous section. Algebraically, we find a phase-type distribution such that <span class="math display">\bm{U}\triangle(\bm{r})\bm{e}=\bm{U'}\triangle(\bm{r}')\bm{e}</span> where <span class="math inline">\bm{S}'=(-\bm{U}')^{-1}</span> is an upper-triangular matrix. This matrix can be found by Gaussian elimination of <span class="math inline">-\bm{S}\bm{e}=\triangle(\bm{r})\bm{e}</span>. Gaussian elimination of sparse matrices via graph theory is well-studied <span class="citation" data-cites="Duff2017">(<a href="#ref-Duff2017" role="doc-biblioref">Duff et al. 2017</a>)</span>. In <code>phasic</code>, we apply this technique directly to graphs. We assume the phase-type distribution has been normalized as in Section 2.5.</p>
+<p>We index each vertex arbitrarily to <span class="math inline">\{1,2,\dots, |V|\}</span>, with the starting vertex <code>S</code> at index 1 and absorbing vertices at the largest indices. We visit all vertices in index order. The initial graph is <span class="math inline">G^{(0)}</span>; after visiting vertex <span class="math inline">i</span>, the graph is <span class="math inline">G^{(i)}</span>. The algorithm ensures three invariants after visiting each vertex <span class="math inline">i</span>:</p>
+<ol type="1">
+<li><p>The vertex has no in-going edges from higher-indexed vertices.</p></li>
+<li><p>Expected accumulated rewards until absorption, starting at any vertex, are preserved.</p></li>
+<li><p>Out-going edge weights sum to 1 (0 for absorbing vertices).</p></li>
+</ol>
+<p>In matrix formulation, this means <span class="math display">\bm{U}^{(i+1)}\triangle(\bm{r}^{(i+1)})\bm{e}=
+  \bm{U}^{(i)}\triangle(\bm{r}^{(i)})\bm{e},</span> where <span class="math inline">\bm{U}^{(i)}</span> is the Green matrix for graph <span class="math inline">G^{(i)}</span> and <span class="math inline">\bm{r}^{(i)}</span> are associated rewards. Since vertex <span class="math inline">i</span> has no in-going edges from vertices <span class="math inline">j&gt;i</span>, the graph is acyclic once all vertices are visited. We show in a later section that we only need this relatively expensive computation once to compute any moment or joint moment.</p>
+<p>We first show how to remove an in-going and out-going edge of a vertex without changing expectation. Let <code>v</code> and <code>z</code> be vertices with associated indices. Let <span class="math inline">\mathbb{E}[\tau|\texttt{v}]</span> be the expected accumulated reward until absorption starting at <code>v</code>. The recursion (Section 2.4) applies but doesn’t terminate for cyclic graphs: <span class="math display">\mathbb{E}[\tau|\texttt{v}] = x_\texttt{v} +  \sum_{\texttt{z}\in\text{children}(\texttt{v})}{w(\texttt{v}\rightarrow \texttt{z})\mathbb{E}[\tau|\texttt{z}]}.</span> However, we can expand the recursion by bridging the immediate child: <span class="math display">\mathbb{E}[\tau|\texttt{v}] =
+  x_\texttt{v} +
+  \sum_{\texttt{z}_1\in\text{children}(\texttt{v})}{w(\texttt{v}\rightarrow \texttt{z}_1)\Big( x_{\texttt{z}_1} +  \sum_{\texttt{z}_2\in\text{children}(\texttt{z}_1)}{w(\texttt{z}_1\rightarrow \texttt{z}_2)}\mathbb{E}[\tau|\texttt{z}_2]\Big)}</span> which is equivalent to <span class="math display">\mathbb{E}[\tau|\texttt{v}] =\Big( x_\texttt{v} +\sum_{\texttt{z}_1\in\text{children}(\texttt{v})}{w(\texttt{v}\rightarrow \texttt{z}_1)x_{\texttt{z}_1}}\Big)+  \sum_{\texttt{z}_1\in\text{children}(\texttt{v})}{\Big(  \sum_{\texttt{z}_2\in\text{children}(\texttt{z}_1)}{w(\texttt{v}\rightarrow \texttt{z}_1)w(\texttt{z}_1\rightarrow \texttt{z}_2)}\mathbb{E}[\tau|\texttt{z}_2]\Big)}.</span> This reveals that we can remove edge <span class="math inline">(\texttt{v}\rightarrow \texttt{z}_1)</span> without changing <span class="math inline">\mathbb{E}[\tau|\texttt{v}]</span> by two operations: (1) increase expected waiting time to <span class="math inline">x_\texttt{v} +\sum_{\texttt{z}_1\in\text{children}(\texttt{v})}{w(\texttt{v}\rightarrow \texttt{z}_1)x_{\texttt{z}_1}}</span> and (2) set weights of all edges <span class="math inline">w(\texttt{v}\rightarrow \texttt{z}_2)</span> for all <span class="math inline">\texttt{z}_2\in \text{children}(\texttt{z}_1)</span> to <span class="math inline">w(\texttt{v}\rightarrow\texttt{z}_1)w(\texttt{z}_1\rightarrow \texttt{z}_2)</span>.</p>
+<p>To remove <code>z</code>, we increase the expected waiting time of each parent by the in-going weight multiplied by <span class="math inline">x_\texttt{z}</span>, and add or update edges from each parent to all children of <code>z</code> by the product of edge weights. These operations remove vertex <code>z</code> from a state-path without changing expectation.</p>
+<p>When vertex <span class="math inline">\texttt{v}</span> is also a child of <span class="math inline">\texttt{z}</span>, this creates a self-loop. A self-loop with weight <span class="math inline">w(\texttt{v}\rightarrow \texttt{v})</span> can be removed without changing expectation by increasing <span class="math inline">x_\texttt{v}</span> to <span class="math inline">x_\texttt{v}'=x_\texttt{v}/w(\texttt{v}\rightarrow \texttt{v})</span> and scaling all other out-going edges by <span class="math inline">1/(1-w(\texttt{v}\rightarrow \texttt{v}))</span>.</p>
+<p>By the three invariants, when we visit vertex <span class="math inline">\texttt{v}_i</span> (index <span class="math inline">i</span>), all its children have higher indices because all vertices with indices below <span class="math inline">i</span> have been visited. Not all parents of <span class="math inline">\texttt{v}_i</span> have indices smaller than <span class="math inline">i</span>. However, redirecting edges from higher-indexed parents establishes the three invariants for vertex <span class="math inline">i</span>. The equation for <span class="math inline">\mathbb{E}[\tau|\texttt{v}]</span> shows that expected accumulated reward is unchanged, and by induction, an acyclic graph is produced once all vertices are visited. Algorithm <a href="#alg:expectation" data-reference-type="ref" data-reference="alg:expectation">[alg:expectation]</a> summarizes the procedure, building an acyclic graph in <span class="math inline">O(|V|^3)</span> time. Figure <a href="#fig:acyclic_construction" data-reference-type="ref" data-reference="fig:acyclic_construction">3</a> shows a worked example.</p>
+<p>The algorithm then computes expected accumulated reward recursively using dynamic programming in <span class="math inline">O(|V|^2)</span> time on the acyclic graph. Section 2.7 shows we only need to construct the acyclic graph once. In <code>phasic</code>, we improve empirical running time by indexing vertices by topological ordering when it exists or by ordering of strongly connected components.</p>
+<p>To see the correspondence with Gauss elimination, note how <span class="math inline">-\bm{S}\bm{e}=\triangle(\bm{r})\bm{e}</span> corresponds to the example graph in Figure <a href="#fig:acyclic_construction" data-reference-type="ref" data-reference="fig:acyclic_construction">3</a> when <span class="math display">\bm{S} =
+\begin{bmatrix}
+-1 &amp; 0.6 &amp; 0\\
+0 &amp; -1 &amp; 0.5 \\
+1 &amp;  0 &amp; -1
+\end{bmatrix}</span> and <span class="math inline">\bm{r}=(5, 2, 5)</span>. The system of equations is: <span class="math display">\begin{aligned}
+    T_\texttt{A} &amp;= 5 + 0.6 \cdot T_\texttt{B} \\
+    T_\texttt{B} &amp;= 2 + 0.5 \cdot T_\texttt{C} \\
+    T_\texttt{C} &amp;= 5 + T_\texttt{A}
+\end{aligned}</span> where <span class="math inline">T_\texttt{A} = \mathbb{E}[\tau | \texttt{A} ]</span> is the expectation starting in state <code>A</code>, and similarly for <span class="math inline">T_\texttt{B}</span> and <span class="math inline">T_\texttt{C}</span>. The zero expectation starting at the absorbing state, <span class="math inline">T_\texttt{D}</span>, doesn’t appear. Gauss elimination uses three operations. First, “Swap row positions” — our algorithm maintains proper ordering by visiting vertices in index order. Second, “Add to one row a scalar multiple of another” (substitute one equation in another) — this corresponds to removing an edge to a higher-indexed parent. For example, in Step 1 of Figure <a href="#fig:acyclic_construction" data-reference-type="ref" data-reference="fig:acyclic_construction">3</a>, removing edge <span class="math inline">(\texttt{C} \rightarrow \texttt{A})</span> and updating edges <span class="math inline">(\texttt{C} \rightarrow \texttt{B})</span> and <span class="math inline">(\texttt{C} \rightarrow \texttt{D})</span> corresponds to substituting the first equation into the third. Third, “Multiply a row by a non-zero scalar” (remove multiple instances of a variable) — this corresponds to removing a self-loop. For example, in Step 4 of Figure <a href="#fig:acyclic_construction" data-reference-type="ref" data-reference="fig:acyclic_construction">3</a>, removing self-loop <span class="math inline">(\texttt{C} \rightarrow \texttt{C})</span> and updating edge <span class="math inline">(\texttt{C} \rightarrow \texttt{D})</span> corresponds to isolating <span class="math inline">T_C</span> in <span class="math inline">T_\texttt{C} = 11.2 + 0.3 \cdot T_\texttt{C}</span>. Once all vertices are visited and the graph is acyclic, the system is upper triangular: <span class="math display">\begin{aligned}
+    T_\texttt{A} &amp;= 5 + 0.6 \cdot T_\texttt{B}  \\
+    T_\texttt{B} &amp;= 2 + 0.5 \cdot T_\texttt{C}   \\
+    T_\texttt{C} &amp;= 16,
+\end{aligned}</span> which is solved by back-substitution. On the graph, this corresponds to the recursion in topological order at the end of Algorithm <a href="#alg:expectation" data-reference-type="ref" data-reference="alg:expectation">[alg:expectation]</a>.</p>
+</section>
+<section id="sec:higher-order-moments" class="level2">
+<h2 class="anchored" data-anchor-id="sec:higher-order-moments">Computing higher-order moments in quadratic time</h2>
+<p>In converting to an acyclic graph, scalars <span class="math inline">x</span> associated with vertices are updated in a series of increments. In Algorithm <a href="#alg:expectation" data-reference-type="ref" data-reference="alg:expectation">[alg:expectation]</a>, we save this list of updates rather than applying them directly. The resulting list is at most <span class="math inline">O(|V|^2)</span> long since we visit each vertex at most once and update at most <span class="math inline">|V|</span> parent scalars. We also save the update functions for computing expectation on the acyclic graph via dynamic programming (also <span class="math inline">O(|V|^2)</span>). The two lists compute expectation in <span class="math inline">O(|V|^2)</span> time.</p>
+<p>Converting a cyclic graph to acyclic form requires <span class="math inline">O(|V|^3)</span> operations. However, only <span class="math inline">O(|V|^2)</span> updates of scalars <span class="math inline">x</span> are required, and edge weights of the resulting acyclic graph are independent of expected waiting times at each vertex. This means that once the normalized acyclic graph is constructed and edge weights are known, it can be reconstructed for alternative rewards using only <span class="math inline">O(|V|^2)</span> updates of scalars <span class="math inline">x</span>. Since higher-order moments of phase-type distributions are just expectations with different rewards (Section 2.4), we can compute any number of moments in <span class="math inline">O(|V|^2)</span> time once the acyclic graph is constructed. In <code>phasic</code>, the acyclic graph and update functions are created only the first time a user calls a moment function; subsequent moment computations run in <span class="math inline">O(|V|^2)</span> time.</p>
+</section>
+<section id="sect:MultDist" class="level2">
+<h2 class="anchored" data-anchor-id="sect:MultDist">Multivariate distributions</h2>
+<p>Instead of assigning a single real-valued reward to each state, we can assign a vector of real-valued rewards. The outcome is then a vector of positive real numbers. This multivariate phase-type distribution is defined in Chapter 8 of <span class="citation" data-cites="bladt2017matrix">(<a href="#ref-bladt2017matrix" role="doc-biblioref">Bladt and Nielsen 2017</a>)</span> as <span class="math display">\bm{Y} \sim {\rm MPH}^*(\bm{\alpha},\bm{S}, \bm{R}),</span> where <span class="math inline">\bm{R}</span> is a reward matrix such that each row is the accumulated reward earned at that state. A single column of <span class="math inline">\bm{R}</span> represents a univariate phase-type distribution. Marginal moments of multivariate phase-type distributions can be computed using our graph algorithms and require only a single acyclic graph computation.</p>
+<p>The joint distribution of a multivariate phase-type distribution represents the conditional outcome of marginal distributions. Joint moments are well-defined via matrix formulations (Theorem 8.1.5 <span class="citation" data-cites="bladt2017matrix">(<a href="#ref-bladt2017matrix" role="doc-biblioref">Bladt and Nielsen 2017</a>)</span>). The first cross-moment is <span class="math display">\mathbb{E}[Y_iY_j]=\bm{\alpha}\bm{U}(\bm{R}_{\cdot i})\bm{U}(\bm{R}_{\cdot j})\bm{e}+\bm{\alpha}\bm{U}(\bm{R}_{\cdot j})\bm{U}(\bm{R}_{\cdot i})\bm{e},</span> so the covariance is <span class="math display">\mathbb{C}ov(Y_i,Y_j)=\bm{\alpha}\bm{U}(\bm{R}_{\cdot i})\bm{U}(\bm{R}_{\cdot j})\bm{e}+\bm{\alpha}\bm{U}(\bm{R}_{\cdot j})\bm{U}(\bm{R}_{\cdot i})\bm{e}-\bm{\alpha}\bm{U}(\bm{R}_{\cdot i})\bm{e}\bm{\alpha}\bm{U}(\bm{R}_{\cdot j})\bm{e}.</span> As for all other moments, joint moments can be computed in quadratic time after constructing the acyclic graph. Computing the covariance matrix of <span class="math inline">\ell</span> rewards takes <span class="math inline">O(|V|^3+\ell^2|V|^2)</span> time. The utility functions <code>expectation</code>, <code>variance</code>, <code>covariance</code>, and <code>moments</code> in <code>phasic</code> support multivariate phase-type distributions.</p>
+<div id="fig-acyclic_construction" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-acyclic_construction-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href=".png" class="lightbox" data-gallery="quarto-lightbox-gallery-3" title="Figure&nbsp;3: Acyclic graph construction. Example conversion of a normalized graph to acyclic form using Algorithm [alg:expectation]. Visited vertices are grey. Removed edges are red; new or updated edges are green. Saved parameterized vertex updates: Step 2: x_C \leftarrow x_C + x_A. Step 3: x_C \leftarrow x_C + x_B \cdot 0.6. Step 4: x_C \leftarrow x_C + x_C \cdot (1/(1-0.3) -1)."><img src=".png" class="img-fluid figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-acyclic_construction-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: <strong>Acyclic graph construction.</strong> Example conversion of a normalized graph to acyclic form using Algorithm <a href="#alg:expectation" data-reference-type="ref" data-reference="alg:expectation">[alg:expectation]</a>. Visited vertices are grey. Removed edges are red; new or updated edges are green. Saved parameterized vertex updates: Step 2: <span class="math inline">x_C \leftarrow x_C + x_A</span>. Step 3: <span class="math inline">x_C \leftarrow x_C + x_B \cdot 0.6</span>. Step 4: <span class="math inline">x_C \leftarrow x_C + x_C \cdot (1/(1-0.3) -1)</span>.
+</figcaption>
+</figure>
+</div>
+<div class="algorithm">
+<div class="algorithmic">
+<p>Initialize property <span class="math inline">x_\texttt{v}=r_\texttt{v}</span> for all <span class="math inline">\texttt{v}\in V</span> Uniquely index vertices <span class="math inline">i_\texttt{v}\in \{1,2,\dots, |V|\}</span> matching order in list <span class="math inline">V</span></p>
+<p><span class="math inline">w(\texttt{v}\rightarrow \texttt{z}) \gets w(\texttt{v}\rightarrow \texttt{z})/\lambda_\texttt{v}</span> <span class="math inline">x_\texttt{v} \gets x_\texttt{v} + x_\texttt{v} \cdot ( 1/\lambda_\texttt{v} - 1)</span></p>
+<p>Increment weight <span class="math inline">w(\texttt{u}\rightarrow \texttt{z})</span> by <span class="math inline">w(\texttt{u}\rightarrow \texttt{v})w(\texttt{v}\rightarrow \texttt{z})</span> Add edge <span class="math inline">(\texttt{u}\rightarrow \texttt{z})</span> with weight <span class="math inline">w(\texttt{u}\rightarrow \texttt{v})w(\texttt{v}\rightarrow \texttt{z})</span> <span class="math inline">x_\texttt{u} \gets x_\texttt{u} + x_\texttt{v}\cdot w(\texttt{u}\rightarrow \texttt{v})</span> Remove edge <span class="math inline">(\texttt{u}\rightarrow \texttt{v})</span></p>
+<p><span class="math inline">x_\texttt{u} \gets x_\texttt{u} + x_\texttt{u} \cdot \left ( \frac{1}{1-w(\texttt{u}\rightarrow \texttt{u})} - 1\right)</span> <span class="math inline">w(\texttt{u}\rightarrow \texttt{z}) \gets \frac{w(\texttt{u}\rightarrow \texttt{z})}{1-w(\texttt{u}\rightarrow \texttt{u})}</span> Remove edge <span class="math inline">(\texttt{u}\rightarrow \texttt{u})</span> <span class="math inline">x_\texttt{v} \gets x_\texttt{v}+ w(\texttt{v}\rightarrow \texttt{z}) x_\texttt{z}</span> <span class="math inline">x</span></p>
+</div>
+<p><span id="alg:timeinhom" data-label="alg:timeinhom"></span></p>
+</div>
+</section>
+<section id="sect:DiscPH" class="level2">
+<h2 class="anchored" data-anchor-id="sect:DiscPH">Discrete phase-type distributions</h2>
+<p>A discrete phase-type distribution is the number of jumps in a discrete Markov chain until the absorbing state is entered. States have total transition probability one, traditionally represented by a sub-transition matrix <span class="math inline">\bm{T}</span> of rates between non-absorbing states. The initial probability vector is <span class="math inline">\bm{\pi}</span>. As for continuous phase-type distributions, the expectation is <span class="math inline">\mathbb{E}[\tau] = \bm{\pi}\bm{U}\bm{e}</span>, where the Green matrix is <span class="math inline">\bm{U}=-(\bm{T}-\bm{I})^{-1}</span>.</p>
+<p>Our graph representation for continuous phase-type distributions directly accommodates unrewarded discrete phase-type distributions. We don’t represent self-transitions as self-loops <span class="math inline">(\texttt{v}\rightarrow \texttt{v})</span>, as these aren’t compatible with our graph algorithms. Instead, we represent self-transitions by the missing transition rate <span class="math inline">1-\lambda_\texttt{v}</span>. After normalization, out-going weights sum to one, and each vertex scalar <span class="math inline">x_\texttt{v}</span> equals the geometric expectation of consecutive visits to the state (i.e., the transition to <code>v</code> and immediate self-transitions).</p>
+<p>In the normalized discrete phase-type distribution, sub-transition matrix <span class="math inline">\bm{T}</span> has diagonal zero, so <span class="math inline">\bm{T}-\bm{I}</span> shares properties of the normalized sub-intensity matrix <span class="math inline">\bm{S}</span>: diagonal entries are -1 and row sums for non-absorbing states are zero. Thus we can apply Algorithm <a href="#alg:expectation" data-reference-type="ref" data-reference="alg:expectation">[alg:expectation]</a> to discrete phase-type distributions.</p>
+<p>Rewarded discrete and multivariate discrete phase-type distributions are thoroughly described in <span class="citation" data-cites="navarro2019order">(<a href="#ref-navarro2019order" role="doc-biblioref">Navarro 2019</a>)</span>. We translate the matrix-based reward transformation algorithm from Theorem 5.2 in <span class="citation" data-cites="navarro2019order">(<a href="#ref-navarro2019order" role="doc-biblioref">Navarro 2019</a>)</span> to graph operations. Consider vertex <code>v</code> with reward <span class="math inline">r_\texttt{v}\in \mathbb{N}</span>. To represent this integer reward, we augment the graph with a new sequence of connected auxiliary vertices, <span class="math inline">\texttt{H}_1\rightarrow \texttt{H}_2 \rightarrow \dots \rightarrow \texttt{H}_{r_\texttt{v}-1} \rightarrow \texttt{v}</span>, each connected by edges with weight 1. The last auxiliary vertex has an edge with weight 1 to <code>v</code>, and edge <span class="math inline">(\texttt{v}\rightarrow \texttt{H}_1)</span> has weight equal to the self-transition rate. By redirecting all in-going edges from <code>v</code> to <span class="math inline">\texttt{H}_1</span> instead, we ensure each visit to <code>v</code> results in <span class="math inline">r_\texttt{v}</span> jumps in the unrewarded discrete phase-type distribution. Zero reward transformation uses the algorithm for continuous phase-type distributions.</p>
+<p>Higher-order moments are well-defined for rewarded discrete phase-type distributions (Proposition 5.7 in <span class="citation" data-cites="navarro2019order">(<a href="#ref-navarro2019order" role="doc-biblioref">Navarro 2019</a>)</span>). The first moment is <span class="math display">\mathbb{E}[\tau] = \bm{\pi}\bm{U}\triangle(\bm{r})\bm{e}</span> and the second moment is <span class="math display">\mathbb{E}[\tau^2] =  2\bm{\pi}\bm{U}\triangle(\bm{r})\bm{U}\triangle(\bm{r})\bm{e}-\bm{\pi}\bm{U}\triangle(\bm{r}^2)\bm{e}.</span> We construct multivariate discrete phase-type distributions by associating a vector of zero or positive integers as rewards to each vertex. The moment generating function is well-defined by matrix equations (Section 5.2.4 in <span class="citation" data-cites="navarro2019order">(<a href="#ref-navarro2019order" role="doc-biblioref">Navarro 2019</a>)</span>). For example, the first cross moment is <span class="math display">\mathbb{E}[Y_iY_j] = \bm{\pi} \bm{U}\triangle(\bm{r_i})\bm{U}\triangle(\bm{r_j})\bm{e} + \bm{\pi}\bm{U}\triangle(\bm{r_j})\bm{U}\triangle(\bm{r_i})\bm{e}-\bm{\pi}\bm{U}\triangle(\bm{r_i})\triangle(\bm{r_j})\bm{e}.</span> Although moments of discrete and continuous phase-type distributions are defined differently, terms involving <span class="math inline">\bm{U}</span> still have the form <span class="math inline">\bm{U}\triangle(\bm{r})\bm{e}</span> from the right, which reduces to a single reward vector <span class="math inline">\bm{U}\triangle(\bm{r})\bm{e}=\triangle(\bm{r'})\bm{e} = \bm{r'}</span>. These rewards correspond to row sums of the Green matrix computed for the previous moment, as described for continuous phase-type distributions in Section 2.4. This allows <span class="math inline">O(|V|^2)</span> computation of higher order moments as described for continuous phase-type distributions in Section 2.7.</p>
+</section>
+<section id="sect:DistDPH" class="level2">
+<h2 class="anchored" data-anchor-id="sect:DistDPH">Distribution function of discrete phase-type distributions</h2>
+<p>The probability mass function (PMF) of a discrete phase-type distribution at time <span class="math inline">t</span> is the probability of the Markov chain entering the absorbing state exactly at jump <span class="math inline">t</span>. A defective distribution (initial distribution vector not summing to 1) has non-zero probability at <span class="math inline">t=0</span>. The cumulative distribution function (CDF) at time <span class="math inline">t</span> is the probability that the chain has entered the absorbing vertex at jump <span class="math inline">t</span> or before. In matrix form, the CDF is <span class="math display">F(t)=1-\bm{\pi}\bm{T}^t\bm{e}.</span> We can express the PMF as a recursion in <span class="math inline">t</span> <span class="citation" data-cites="eisele2006recursions">(<a href="#ref-eisele2006recursions" role="doc-biblioref">Eisele 2006</a>)</span>. Using total probability: <span class="math display">\Pr(X_{t+1}=v)=
+  \sum_{\texttt{u} \neq v} \Pr(X_t=u)T_{uv}+
+  \Pr(X_t=v)T_{vv}.</span> In our graph, we represent the probability of being at vertex <span class="math inline">\texttt{v}</span> after <span class="math inline">t</span> jumps as vertex property <span class="math inline">\texttt{v}.p[t]</span> and compute the recursion as the probability that a parent will transition to the vertex in the next jump, or that the vertex will jump to itself: <span class="math display">\texttt{v}.p[t+1] = \sum_{\texttt{u} \in \text{parents}(\texttt{v})}{\texttt{u}.p[t]\cdot w(\texttt{u}\rightarrow \texttt{v})} +
+\texttt{v}.p[t](1-\lambda_\texttt{v})</span> for <span class="math inline">t \geq 0</span>.</p>
+<p>We define the base case at <span class="math inline">t=-1</span>. At the base case, <span class="math inline">\texttt{v}.p</span> is zero for all vertices except the starting vertex <span class="math inline">\texttt{S}</span> where it is one. Using dynamic programming, we find the PMF (and thus CDF) at time <span class="math inline">t</span> by computing the PMF at times <span class="math inline">0,1,\dots,t-1</span>. To compute the CDF at time <span class="math inline">t</span>, we sum over the PMF at times <span class="math inline">0,1,\dots, t</span>. The asymptotic complexity to time <span class="math inline">t</span> is <span class="math inline">O(t|V|^2)</span>. For sparse matrices or relatively few jumps (<span class="math inline">t&lt;&lt;|V|</span>), this algorithm is empirically very fast (Figure <a href="#fig:experiments" data-reference-type="ref" data-reference="fig:experiments">4</a>) and serves as an efficient alternative to matrix formulation. Algorithm <a href="#alg:dph_pmf" data-reference-type="ref" data-reference="alg:dph_pmf">[alg:dph_pmf]</a> shows the CDF computation.</p>
+<p>We note that, although computationally infeasible in most situations, the joint distribution function of multivariate discrete phase-type distributions can also be described by such a recursive algorithm (including time-inhomogeneous multivariate discrete distributions). Instead of defining the probability of visiting a vertex at time <span class="math inline">t</span>, we track both the visited vertex and accumulated reward at time <span class="math inline">t</span>. Consider an <span class="math inline">\ell+1</span>-dimensional table for an <span class="math inline">\ell</span>-dimensional multivariate discrete distribution. The first dimension has <span class="math inline">|V|</span> entries, one per vertex. The other dimensions have entries corresponding to natural numbers from <span class="math inline">0</span> to <span class="math inline">k</span> where <span class="math inline">k</span> is sufficiently large so that for a given distribution function of specified accumulated rewards <span class="math inline">\bm{s}</span>, <span class="math inline">F_{\bm{s}}</span>, then <span class="math inline">k</span> is greater than or equal to any entry in <span class="math inline">\bm{s}</span>. At time <span class="math inline">t</span>, an entry in the table is the probability of being in a specific state with a specific vector of integer rewards accumulated (other dimensions). If we’ve accumulated more than any of the rewards <span class="math inline">\bm{s}</span>, we assign zero probability to the entry before the next time step. Assuming we’ve removed vertices with zero rewards in all dimensions (e.g., using reward transformation), all time steps increase at least one reward entry, and after finitely many steps, all entries are either zero or, for absorbing vertices, the total probability of reaching an absorbing state with less than or equal to rewards <span class="math inline">\bm{s}</span>, which is the definition of the cumulative distribution function for multivariate discrete phase-type distributions.</p>
+<div class="algorithm">
+<div class="algorithmic">
+<p>Initialize the number of jumps to <span class="math inline">t=-1</span> Initialize property <span class="math inline">\texttt{v}.p=0</span> for all vertices <span class="math inline">\texttt{v}\in V</span>, and let <span class="math inline">\texttt{S}.p=1</span>. Let <span class="math inline">\texttt{v}.p</span> be the current probability of being at vertex <span class="math inline">\texttt{v}</span> at time <span class="math inline">t</span> Assume out-going weights sum to a value less than or equal to 1 Let <span class="math inline">\text{cdf}[]</span> be an array of the cumulative distribution function such that entry <span class="math inline">0</span> corresponds to the start at no jumps, <span class="math inline">t=0</span>. Let <span class="math inline">\text{pmf}[]</span> be an array of the probability mass function. Initialize <span class="math inline">\text{cdf}[-1] = 0</span> and <span class="math inline">\text{pmf}[-1]=0</span> <span class="math inline">\texttt{v}.q \gets \texttt{v}.p</span> <span class="math inline">\texttt{z}.p \gets \texttt{z}.p + \texttt{v}.q \cdot w(\texttt{v} \rightarrow \texttt{z})</span> <span class="math inline">\texttt{v}.p \gets \texttt{v}.p - \texttt{v}.q \cdot w(\texttt{v} \rightarrow \texttt{z})</span> <span class="math inline">t \gets t + 1</span> <span class="math inline">\text{cdf}[t] \gets \text{cdf}[t-1]</span> <span class="math inline">\text{cdf}[t] \gets \text{cdf}[t] + \texttt{v}.p</span> <span class="math inline">\texttt{v}.p \gets 0</span> <span class="math inline">\text{pmf}[t] \gets \text{cdf}[t] - \text{cdf}[t - 1]</span><br>
+<span class="math inline">i\gets i+1</span></p>
+</div>
+<p><span id="alg:dph_pmf" data-label="alg:dph_pmf"></span></p>
+</div>
+</section>
+<section id="sect:DistPH" class="level2">
+<h2 class="anchored" data-anchor-id="sect:DistPH">Distribution function for continuous phase-type distributions</h2>
+<p>In the matrix formulation, computing the CDF of continuous phase-type distributions requires matrix exponentiation. However, a continuous phase-type distribution can be approximated with arbitrary precision by a discrete phase-type distribution <span class="citation" data-cites="bobbio2004scale">(<a href="#ref-bobbio2004scale" role="doc-biblioref">Bobbio et al. 2004</a>)</span>. The number of discrete steps occupying each state has geometric expectation approximating the exponential expectation of the continuous distribution. This allows efficient computation of the PDF, CDF, and probability of occupying each state at any time using Algorithm <a href="#alg:dph_pmf" data-reference-type="ref" data-reference="alg:dph_pmf">[alg:dph_pmf]</a>.</p>
+<p>Precision is determined by the number of discrete steps per unit time, controlled by a granularity parameter in <code>phasic</code>. Granularity of 1000 means each time unit of the continuous distribution is divided into 1000 discrete steps. Since our graph representations for discrete and continuous phase-type distributions are identical, and self-loops are represented by remaining transition probability, we simply divide all out-going weights by this granularity (except starting vertex weights). The constraint is that granularity must be at least as large as the largest transition rate so that out-going rates are smaller than one after division. In <code>phasic</code>, granularity can be user-set to control approximation precision, but defaults to at least twice the highest out-going rate and always at least 1024.</p>
+<p>To verify numerical accuracy, we compared to matrix exponentiation for a phase-type distribution with 1000 fully connected states. Transition rates were sampled randomly in <span class="math inline">[0,1]</span>, so each vertex had average total out-going rate 500. With granularity 10,000, average self-loop probability is 0.95. We computed the cumulative distribution function for times <span class="math inline">(0, 0.01, 0.02, \dots, 1.00)</span> using both Algorithm <a href="#alg:dph_pmf" data-reference-type="ref" data-reference="alg:dph_pmf">[alg:dph_pmf]</a> as implemented in <code>phasic</code> and using matrix exponential <span class="math inline">1-\bm{\alpha}e^{\bm{S}t}\bm{e}</span>. Average absolute and maximum differences were 0.00003 and 0.0002, demonstrating stability and negligible numerical difference.</p>
+</section>
+<section id="sec:time-inhom" class="level2">
+<h2 class="anchored" data-anchor-id="sec:time-inhom">Time-inhomogeneous discrete phase-type distributions</h2>
+<p>So far, algorithms have assumed time-homogeneous phase-type distributions (constant rates between states). Time-inhomogeneous phase-type distributions are also well-described using matrix equations <span class="citation" data-cites="albrecher2019inhomogeneous">(<a href="#ref-albrecher2019inhomogeneous" role="doc-biblioref">Albrecher and Bladt 2019</a>)</span>. Although not the focus of this paper, we note that our algorithm for computing distribution functions (Algorithm <a href="#alg:dph_pmf" data-reference-type="ref" data-reference="alg:dph_pmf">[alg:dph_pmf]</a>) can produce the distribution and state probability vector of time-inhomogeneous discrete and continuous phase-type distributions. This is achieved by changing edge weights at each time step (e.g., using <code>graph_update_weights_parameterized</code> in <code>phasic</code>), effectively allowing edge weight or edge existence to be time-dependent. Having computed the probability distribution this way, we can compute all moments of unrewarded time-inhomogeneous distributions by integration. We can also compute the expectation of a rewarded time-inhomogeneous distribution by summing expected visiting time multiplied by reward for each vertex.</p>
+<p>Since Algorithm <a href="#alg:dph_pmf" data-reference-type="ref" data-reference="alg:dph_pmf">[alg:dph_pmf]</a> computes the probability of being at each vertex at any time step, we can compute accumulated waiting time in each state <span class="math inline">\bm{a}(t)</span> at time <span class="math inline">t</span>. This gives an alternative way to compute the expectation of a reward-transformed truncated distribution as the dot product <span class="math inline">\bm{r} \cdot \bm{a}(t)</span>. In models where state space changes at one or a few points in time, this provides efficient means to compute expectation as the sum of expectations of truncated time-homogeneous distributions.</p>
+<p>We can describe a time-inhomogeneous phase-type distribution that is piece-wise time-homogeneous. The <span class="math inline">n</span> constituent time-homogeneous distributions begin at defined times <span class="math inline">\bm{\tau}</span> starting at <span class="math inline">\tau_1 = 0</span>. We assume constituent distributions share the same state space and differ only in transition probabilities. The <span class="math inline">n-1</span> constituent distributions begin at time <span class="math inline">\tau_i</span> and are truncated at time <span class="math inline">\tau_{i+1}</span>, when each state transitions to the corresponding state in the subsequent distribution with probability 1. We call this set of transitions “linking transitions”.</p>
+<p>In this formulation, probabilities of residing in each state at time <span class="math inline">\tau_{i}</span> serve as the initial probability vector for the distribution beginning at <span class="math inline">\tau_{i+1}</span>. The last distribution beginning at time <span class="math inline">\tau_{n}</span> is not truncated.</p>
+<p>Constituent distributions can be represented as graphs <span class="math inline">\{G_{1}, \ldots \}</span> all with state space <span class="math inline">V</span>, but daisy-chaining graphs as outlined above preserves only marginal expectations. However, we can construct a graph for a single time-homogeneous distribution with state space <span class="math inline">\bigcup_{\tau_i \in \{1, \ldots, n\}} \{V^1, V^2, \ldots, V^n\}</span>. We first describe an algorithm for <span class="math inline">n = 2</span>, where <span class="math inline">G^1</span> is truncated and <span class="math inline">G^2</span> is not, then how this algorithm can be used iteratively to construct a single graph for any <span class="math inline">n</span>.</p>
+<p>In combining <span class="math inline">G^1</span>, truncated at time <span class="math inline">\tau_1</span>, with <span class="math inline">G^2</span>, the resulting graph must be time-homogeneous and retain expected waiting times at each vertex of <span class="math inline">G^1</span> and <span class="math inline">G^2</span>. Truncating <span class="math inline">G^1</span> corresponds to adding edges <span class="math inline">\texttt{v}^1_i \rightarrow \texttt{v}^2_i</span> for <span class="math inline">i \in \{1, \ldots, \lvert V \rvert\}</span> with weights 1 that exist only at <span class="math inline">\tau_1</span>. Since only expected waiting time needs to be retained, the added transition can be allowed at any time if the weight is instead <span class="math inline">1/\bm{a}(\tau_1)</span>, where <span class="math inline">\bm{a}(\tau_1)</span> is the accumulated waiting time in each state at time <span class="math inline">\tau_1</span>.</p>
+<p>This algorithm joins state spaces for epochs <span class="math inline">a</span> and <span class="math inline">b</span> at time <span class="math inline">\tau</span>, producing a time-homogeneous graph with states <span class="math inline">a</span> and <span class="math inline">b</span> that retains expected waiting times in each state:</p>
+<ol type="1">
+<li><p>Construct state space of epoch <span class="math inline">a</span> as graph <span class="math inline">G^a</span> using Algorithm <a href="#alg:generic-state-space-algorithm" data-reference-type="ref" data-reference="alg:generic-state-space-algorithm">[alg:generic-state-space-algorithm]</a>.</p></li>
+<li><p>Use Algorithm <a href="#alg:dph_pmf" data-reference-type="ref" data-reference="alg:dph_pmf">[alg:dph_pmf]</a> to compute probabilities of being at each vertex of <span class="math inline">G^a</span> at <span class="math inline">\tau_1</span>, <span class="math inline">s(\tau_1)</span>, and accumulated waiting time in each state up to <span class="math inline">\tau_1</span>, <span class="math inline">\bm{a}(\tau_1)</span>.</p></li>
+<li><p>Connect vertices in <span class="math inline">G^a</span> to their counterparts in epoch <span class="math inline">b</span> by edges with weights <span class="math inline">s(\tau_1) / \bm{a}(\tau_1)</span>.</p></li>
+<li><p>Add remaining edges between added states using Algorithm <a href="#alg:generic-state-space-algorithm" data-reference-type="ref" data-reference="alg:generic-state-space-algorithm">[alg:generic-state-space-algorithm]</a>.</p></li>
+</ol>
+<div class="algorithm">
+<div class="algorithmic">
+<p>Let <span class="math inline">V</span> be the vertices, <code>visited</code> be a subset of vertices, and <span class="math inline">E</span> be the edges. Let <span class="math inline">W</span> be the weight function <span class="math inline">E\rightarrow\mathbb{R}</span>. Let <span class="math inline">f</span> be a bijection between states and vertices, and <span class="math inline">f^{-1}</span> be its inverse. Denote the starting vertex as <code>S</code>. User-defined functions: returns states reachable from <code>state</code>. returns the transition rate from <code>state_from</code> to <code>state_to</code>.<br>
+</p>
+<p><span class="math inline">G^A \gets \Call{GenerateStateSpace}{\textsc{TransitionsA}, \textsc{RateA}}</span> <span class="math inline">\Call{DistributionFunction}{G^A, t}</span> <span class="math inline">\texttt{v} \gets \Call{TransitionsB}{f(state)}</span></p>
+<p><span class="math inline">\text{Add new vertex } \texttt{v}'</span> <span class="math inline">V \gets V\cup\{\texttt{z}\}</span> add edge to v’ with weight v.p/</p>
+<p>G</p>
+<p><br>
+</p>
+<p><span class="math inline">E \gets \emptyset</span> <span class="math inline">W \gets \emptyset</span> <span class="math inline">\texttt{v} \gets \text{any entry from } unvisited</span> <span class="math inline">unvisited \gets unvisited\setminus \{\texttt{v}\}</span> <span class="math inline">\text{Add new vertex } \texttt{z}</span> <span class="math inline">V \gets V\cup\{\texttt{z}\}</span> <span class="math inline">unvisited \gets unvisited \cup \{\texttt{z}\}</span> <span class="math inline">f \gets f \cup \{state \mapsto \texttt{z}\}</span> <span class="math inline">\texttt{z} \gets f(state)</span> <span class="math inline">E \gets E \cup \{(\texttt{v} \rightarrow \texttt{z})\}</span> <span class="math inline">W \gets W\cup \{(\texttt{v} \rightarrow \texttt{z})\mapsto \Call{Rate}{f^{-1}(\texttt{v}),f^{-1}(\texttt{z})}\}</span> Graph <span class="math inline">(V, E)</span> and weight function <span class="math inline">W</span></p>
+<p><br>
+<span class="math inline">V \gets \{\texttt{S}\}</span> <span class="math inline">unvisited \gets \{\texttt{S}\}</span> <span class="math inline">E \gets \emptyset</span> <span class="math inline">W \gets \emptyset</span> <span class="math inline">\texttt{v} \gets \text{any entry from } unvisited</span> <span class="math inline">unvisited \gets unvisited\setminus \{\texttt{v}\}</span> <span class="math inline">\text{Add new vertex } \texttt{z}</span> <span class="math inline">V \gets V\cup\{\texttt{z}\}</span> <span class="math inline">unvisited \gets unvisited \cup \{\texttt{z}\}</span> <span class="math inline">f \gets f \cup \{state \mapsto \texttt{z}\}</span> <span class="math inline">\texttt{z} \gets f(state)</span> <span class="math inline">E \gets E \cup \{(\texttt{v} \rightarrow \texttt{z})\}</span> <span class="math inline">W \gets W\cup \{(\texttt{v} \rightarrow \texttt{z})\mapsto \Call{Rate}{f^{-1}(\texttt{v}),f^{-1}(\texttt{z})}\}</span> Graph <span class="math inline">(V, E)</span> and weight function <span class="math inline">W</span></p>
+</div>
+<p><span id="alg:generic-inhom-state-space-algorithm" data-label="alg:generic-inhom-state-space-algorithm"></span></p>
+</div>
+</section>
+</section>
+<section id="sect:EmpRun" class="level1">
+<h1>Empirical running time</h1>
+<p>We describe empirical running time of state space construction, moment computation, and cumulative distribution computation in the rabbit island model (Figure <a href="#fig:construction" data-reference-type="ref" data-reference="fig:construction">1</a>) and in the coalescent, a standard model in population genetics. The coalescent describes the decreasing number of ancestors to a sample of DNA sequences as time progresses into the past <span class="citation" data-cites="kingman_1982">(<a href="#ref-kingman_1982" role="doc-biblioref">Kingman 1982</a>)</span>. All experiments were run on a MacBook Pro with an i7 processor using a single core.</p>
+<p>Although all <code>phasic</code> library features are exposed as R functions, the similar C API offers an efficient alternative for generating very large state spaces. Figures <a href="#fig:experiments" data-reference-type="ref" data-reference="fig:experiments">4</a>A and <a href="#fig:experiments" data-reference-type="ref" data-reference="fig:experiments">4</a>E show the time to construct the two state spaces for different numbers of rabbits and DNA samples using both R and C APIs. For example, for 1000 rabbits (more than half a million states), we can construct the state space and compute expectation in two minutes (not shown).</p>
+<p>We compare running time of <code>phasic</code> to <code>PhaseTypeR</code> <span class="citation" data-cites="PhaseTypeR">(<a href="#ref-PhaseTypeR" role="doc-biblioref">Rivas-González et al. 2022</a>)</span>, which implements the same functionality using matrix computations. <code>PhaseTypeR</code> uses <code>expm::expm()</code> <span class="citation" data-cites="expm">(<a href="#ref-expm" role="doc-biblioref">Goulet et al. 2021</a>)</span> for exponentiation. We evaluated the exponentiation algorithms in <code>expm</code> and use <code>PadeRBS</code>, which performs well for both models. We further modified <code>PhaseTypeR</code> to use the <code>matrixdist</code> R package, which wraps the C++ Armadillo library, for matrix inversion. To our knowledge, this makes <code>PhaseTypeR</code> the fastest available matrix-based approach. Plots in Figure <a href="#fig:experiments" data-reference-type="ref" data-reference="fig:experiments">4</a> show the time <code>phasic</code> and <code>PhaseTypeR</code> use to compute expectation, 100 higher moments or cross-moments (e.g., a 10×10 covariance matrix), and the CDF for 100 evenly spaced values up to cumulative probability 0.95. Panels B-D and F-H show computation times for the rabbit model and coalescent model.</p>
+<p><img src=".png" class="img-fluid" alt="Empirical running time experiments. (A) and (E): Time (seconds) to construct the rabbit and coalescent models for different numbers of rabbits and DNA samples. Each panel also shows the number of vertices and edges in the constructed graph. (B) and (F): Time to compute expectation. (C) and (G): Time to compute 100 higher moments or cross moments. (D) and (H): Time to compute the CDF for 100 evenly spaced values up to cumulative probability 0.95 using granularity 10000.">{fig-experiments}</p>
+</section>
+<section id="sect:PopGenApplication" class="level1">
+<h1>An application in population genetics</h1>
+<p>To demonstrate <code>phasic</code> capabilities, we present an example from population genetics. <span class="citation" data-cites="kern2017exact">Kern and Hey (<a href="#ref-kern2017exact" role="doc-biblioref">2017</a>)</span> describe and implement a method for computing the joint site frequency spectrum (JSFS) for an isolation-with-migration (IM) model. A site frequency spectrum (SFS) is the number of single-base genetic variants shared by <span class="math inline">1, 2,  \ldots, n-1</span> sequences among <span class="math inline">n</span> sequences sampled from a population. The JSFS tabulates the number of variants shared by <span class="math inline">i</span> sequences in one population and <span class="math inline">j</span> in another. The JSFS matrix can be obtained empirically and is determined by the population sizes of the two populations and the common ancestral population, migration rate between populations, and the time the populations have been separated (Figure <a href="#fig:im-model" data-reference-type="ref" data-reference="fig:im-model">5</a>A).</p>
+<p>A genetic variant appearing in three samples from population one and four from population two arose from a mutation on a genealogical lineage with three descendants in population one and four in population two. Knowing the mutation rate, the JSFS is given by the expected length of branches with different numbers of descendants in each population.</p>
+<p>The structured coalescent models the length of ancestral branches. Formulated as a continuous phase-type distribution, states represent ancestral lineages with particular numbers <span class="math inline">(i,j)</span> of descendants in each population. The initial state represents <span class="math inline">i</span> and <span class="math inline">j</span> present-day individual lineages, each with a single descendant. The absorbing state is where all lineages have found a single common ancestor. Absorption time corresponds to time to the most recent common ancestor (TMRCA).</p>
+<p>The IM model is not time-homogeneous as it changes from two separate populations to a shared ancestral population at time <span class="math inline">T</span>. Using <code>phasic</code>, we can easily model this with one time-homogeneous continuous phase-type distribution truncated at time <span class="math inline">T</span> and another time-homogeneous distribution representing the system after time <span class="math inline">T</span>, as described in Section 2.12.</p>
+<p>Expected length of genealogical branches with <span class="math inline">i</span> and <span class="math inline">j</span> descendants from the two populations is readily computed after appropriately reward transforming the two phase-type distributions. With seven samples from each population, the two state spaces have 123,135 and 2,999 states.</p>
+<p><span class="citation" data-cites="kern2017exact">(<a href="#ref-kern2017exact" role="doc-biblioref">Kern and Hey 2017</a>)</span> computed the JSFS in around 15 minutes using 12 cores. For comparison, state space construction and JSFS computation takes only 35 seconds on a single core using <code>phasic</code> (Figure <a href="#fig:im-model" data-reference-type="ref" data-reference="fig:im-model">5</a>B). This is particularly noteworthy because <code>phasic</code> is a general purpose library not tailored to this specific problem. Code for model construction and JSFS computation is available with <code>phasic</code> on GitHub.</p>
+<p><img src=".png" class="img-fluid" alt="The exact joint site frequency spectrum of an isolation-with-migration model. (A): The isolation-with-migration model. One ancestral population splits in two at time T. Before time T, the two descendant populations are connected only by migration at rates M1 and M2 in each direction. Scaled population sizes are N1, N2, and N3. In the example genealogy, the red branch has two descendants in population one and one in population two. The blue branch has two descendants in population two and none in population one. The insert matrix shows the JSFS entries that the two example branches contribute to. (B): Exact joint site frequency spectrum. Population-scaled parameters are N1=2, N2=1, N3=4, M1=0.005, M2=2, T=3. Each (i,j) cell shows the expected length of branches with i descendants from population one and j descendants from population two.">{fig-im-model}</p>
+</section>
+<section id="sect:Discussion" class="level1">
+<h1>Discussion</h1>
+<p>This paper presents a new open-source library called <code>phasic</code> written in C that implements graph-based algorithms for constructing and reward-transforming continuous and discrete phase-type distributions, and for computing their moments and distribution functions. Moment computation extends to multivariate phase-type distributions. The library has native interfaces in C and R. While some methods build on previously published graph-based matrix manipulation, to our knowledge, this is the first time these graph-based approaches have been applied to phase-type distributions and published as an accessible software package.</p>
+<p>The joint distribution function of multivariate discrete phase-type distributions can be described by such a recursive algorithm as we presented for marginal distribution functions. However, this application requires tracking not just the probability of visiting a vertex but also the rewards accumulated at that point for each vertex. Although computationally infeasible in most situations, such an algorithm would be useful for small state spaces or accumulated rewards and could be an avenue for future work.</p>
+<p>Although <code>phasic</code> provides some support for time-inhomogeneous phase-type distributions, this is achieved by discrete changes to time-homogeneous models. New algorithms are required to provide full support for time-inhomogeneous phase-type distributions in a graph framework.</p>
+<p>We have demonstrated that our graph representation is orders of magnitude faster than matrix-based approaches. Straightforward iterative construction of state spaces enables powerful modeling, and our algorithms allow computation of moments and distributions for huge state spaces. General multivariate phase-type distributions allow marginal expectations and covariance between events to be studied easily. Since <code>phasic</code> includes functions for converting between graph and matrix representations, our library may serve as a plug-in in a multifaceted modeling and inference process. We hope this package will enable users to quickly and accessibly model many complex phenomena in natural sciences, including population genetics.</p>
+</section>
+<section id="acknowledgements" class="level1 unnumbered">
+<h1 class="unnumbered">Acknowledgements</h1>
+<p>We are grateful to two anonymous reviewers. Their useful comments and constructive suggestions helped improve a previous version of the manuscript.</p>
+</section>
+<section id="references-1" class="level1">
+<h1>References</h1>
+<div id="refs" class="references csl-bib-body hanging-indent" role="list">
+<div id="ref-aalen1995phase" class="csl-entry" role="listitem">
+Aalen, Odd O. 1995. <span>“Phase Type Distributions in Survival Analysis.”</span> <em>Scandinavian Journal of Statistics</em>, 447–63.
+</div>
+<div id="ref-acal2019phase" class="csl-entry" role="listitem">
+Acal, Christian, Juan Eloy Ruiz-Castro, Ana M Aguilera, Francisco Jiménez-Molinos, and Juan Bautista Roldán. 2019. <span>“Phase-Type Distributions for Studying Variability in Resistive Memories.”</span> <em>Journal of Computational and Applied Mathematics</em> 345: 23–32.
+</div>
+<div id="ref-albrecher2019inhomogeneous" class="csl-entry" role="listitem">
+Albrecher, Hansjörg, and Mogens Bladt. 2019. <span>“Inhomogeneous Phase-Type Distributions and Heavy Tails.”</span> <em>Journal of Applied Probability</em> 56 (4): 1044–64.
+</div>
+<div id="ref-bladt2017matrix" class="csl-entry" role="listitem">
+Bladt, Mogens, and Bo Friis Nielsen. 2017. <em>Matrix-Exponential Distributions in Applied Probability</em>. Vol. 81. Springer.
+</div>
+<div id="ref-bobbio2004scale" class="csl-entry" role="listitem">
+Bobbio, Andrea, András Horváth, and Miklós Telek. 2004. <span>“The Scale Factor: A New Degree of Freedom in Phase-Type Approximation.”</span> <em>Performance Evaluation</em> 56 (1-4): 121–44.
+</div>
+<div id="ref-cumani1982canonical" class="csl-entry" role="listitem">
+Cumani, Aldo. 1982. <span>“On the Canonical Representation of Homogeneous Markov Processes Modelling Failure-Time Distributions.”</span> <em>Microelectronics Reliability</em> 22 (3): 583–602.
+</div>
+<div id="ref-Duff2017" class="csl-entry" role="listitem">
+Duff, I. S., A. M. Erisman, and J. K. Reid. 2017. <em>Direct Methods for Sparse Matrices</em>. Oxford University Press.
+</div>
+<div id="ref-eisele2006recursions" class="csl-entry" role="listitem">
+Eisele, Karl-Theodor. 2006. <span>“Recursions for Compound Phase Distributions.”</span> <em>Insurance: Mathematics and Economics</em> 38 (1): 149–56.
+</div>
+<div id="ref-faddy1999analysing" class="csl-entry" role="listitem">
+Faddy, MJ, and SI0966 McClean. 1999. <span>“Analysing Data on Lengths of Stay of Hospital Patients Using Phase-Type Distributions.”</span> <em>Applied Stochastic Models in Business and Industry</em> 15 (4): 311–17.
+</div>
+<div id="ref-frydenberg1990chain" class="csl-entry" role="listitem">
+Frydenberg, Morten. 1990. <span>“The Chain Graph <span>M</span>arkov Property.”</span> <em>Scandinavian Journal of Statistics</em>, 333–53.
+</div>
+<div id="ref-expm" class="csl-entry" role="listitem">
+Goulet, Vincent, Christophe Dutang, Martin Maechler, David Firth, Marina Shapira, and Michael Stadelmann. 2021. <em>Expm: Matrix Exponential</em>. <a href="https://cran.r-project.org/package=expm">https://cran.r-project.org/package=expm</a>.
+</div>
+<div id="ref-he2014" class="csl-entry" role="listitem">
+He, Qi-Ming. 2014. <em>Fundamentals of Matrix-Analytical Methods</em>. Springer.
+</div>
+<div id="ref-hobolth2021sfs" class="csl-entry" role="listitem">
+Hobolth, Asger, Mogens Bladt, and Lars N Andersen. 2021. <span>“Multivariate Phase-Type Theory for the Site Frequency Spectrum.”</span> <em>Journal of Mathematical Biology</em>.
+</div>
+<div id="ref-hobolth2019phase" class="csl-entry" role="listitem">
+Hobolth, Asger, Arno Siri-Jegousse, and Mogens Bladt. 2019. <span>“Phase-Type Distributions in Population Genetics.”</span> <em>Theoretical Population Biology</em> 127: 16–32.
+</div>
+<div id="ref-kern2017exact" class="csl-entry" role="listitem">
+Kern, Andrew D, and Jody Hey. 2017. <span>“Exact Calculation of the Joint Allele Frequency Spectrum for Isolation with Migration Models.”</span> <em>Genetics</em> 207 (1): 241–53.
+</div>
+<div id="ref-kingman_1982" class="csl-entry" role="listitem">
+Kingman, J. F. C. 1982. <span>“The Coalescent.”</span> <em>Stochastic Processes and Their Applications</em> 13 (3): 235–48. <a href="https://doi.org/10.1016/0304-4149(82)90011-4">https://doi.org/10.1016/0304-4149(82)90011-4</a>.
+</div>
+<div id="ref-navarro2019order" class="csl-entry" role="listitem">
+Navarro, Azucena Campillo. 2019. <em>Order Statistics and Multivariate Discrete Phase-Type Distributions.</em>
+</div>
+<div id="ref-Neuts1981" class="csl-entry" role="listitem">
+Neuts, Marcel F. 1981. <em>Matrix-Geometric Solutions in Stochastic Models: An Algorithmic Approach</em>. John Hopkins University Press.
+</div>
+<div id="ref-PhaseTypeR" class="csl-entry" role="listitem">
+Rivas-González, Iker, Lars Nørvang Andersen, and Asger Hobolth. 2022. <span>“PhaseTypeR: Phase-Type Distributions in r with Reward Transformations and a View Towards Population Genetics.”</span> <em>BioRxiv</em>, ahead of print. https://doi.org/<a href="doi: https://doi.org/10.1101/2022.06.16.496381">doi: https://doi.org/10.1101/2022.06.16.496381</a>.
+</div>
+<div id="ref-younes2004solving" class="csl-entry" role="listitem">
+Younes, Håkan LS, and Reid G Simmons. 2004. <span>“Solving Generalized Semi-<span>M</span>arkov Decision Processes Using Continuous Phase-Type Distributions.”</span> <em>AAAI</em> 4: 742.
+</div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/munch-group\.github\.io\/phasic\/");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/munch-group/phasic/edit/main/docs/pages/background/math_and_alg.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/phasic/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/phasic/blob/main/docs/pages/background/math_and_alg.qmd" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></div></div></footer><script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","descPosition":"bottom","loop":false,"openEffect":"zoom","selector":".lightbox"});
+(function() {
+  let previousOnload = window.onload;
+  window.onload = () => {
+    if (previousOnload) {
+      previousOnload();
+    }
+    lightboxQuarto.on('slide_before_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      const href = trigger.getAttribute('href');
+      if (href !== null) {
+        const imgEl = window.document.querySelector(`a[href="${href}"] img`);
+        if (imgEl !== null) {
+          const srcAttr = imgEl.getAttribute("src");
+          if (srcAttr && srcAttr.startsWith("data:")) {
+            slideConfig.href = srcAttr;
+          }
+        }
+      } 
+    });
+  
+    lightboxQuarto.on('slide_after_load', (data) => {
+      const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(slideNode);
+      }
+    });
+  
+  };
+  
+})();
+          </script>
+
+
+
+
+</body></html>

@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>22&nbsp; Method of Moments Estimation – Phasic — Supplementary Online Material</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./22_probability_matching.html" rel="next">
+<link href="./20_bffg.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-3d57081916b67e2c1b7e936475d81f56.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./18_svgd.html">Inference</a></li><li class="breadcrumb-item"><a href="./21_method_of_moments.html"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Phasic — Supplementary Online Material</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Index</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Foundations</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01_preliminaries.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Preliminaries</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02_graph_representation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Graph Representation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03_numerical_primitives.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Numerical Primitives</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Graph Algorithms</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04_scc_and_topological_sort.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">SCC and Topological Sort</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05_graph_normalization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Graph Normalization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./06_graph_elimination.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./07_reward_transformation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Reward Transformation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./08_state_space_construction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Symbolic System and Traces</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./09_symbolic_expressions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./10_symbolic_graph_elimination.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./11_trace_system.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./12_graph_hashing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./13_scc_trace_stitching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Distribution and Moments</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./14_distribution_computation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./15_moment_computation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./16_pdf_gradients.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
+ <span class="menu-text">Sampling</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./17_sampling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true">
+ <span class="menu-text">Inference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./18_svgd.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./19_mcmc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./20_bffg.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./21_method_of_moments.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./22_probability_matching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true">
+ <span class="menu-text">Spatial and State Indexing</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./23_state_indexing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./24_hex_grid.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true">
+ <span class="menu-text">Integration</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./25_jax_integration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./26_graph_builder.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./27_van_loan_equivalence.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#definitions" id="toc-definitions" class="nav-link" data-scroll-target="#definitions">Definitions</a></li>
+  <li><a href="#theorems-and-proofs" id="toc-theorems-and-proofs" class="nav-link" data-scroll-target="#theorems-and-proofs">Theorems and Proofs</a></li>
+  <li><a href="#algorithms" id="toc-algorithms" class="nav-link" data-scroll-target="#algorithms">Algorithms</a></li>
+  <li><a href="#numerical-considerations" id="toc-numerical-considerations" class="nav-link" data-scroll-target="#numerical-considerations">Numerical Considerations</a></li>
+  <li><a href="#implementation-notes" id="toc-implementation-notes" class="nav-link" data-scroll-target="#implementation-notes">Implementation Notes</a></li>
+  <li><a href="#symbol-index" id="toc-symbol-index" class="nav-link" data-scroll-target="#symbol-index">Symbol Index</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./18_svgd.html">Inference</a></li><li class="breadcrumb-item"><a href="./21_method_of_moments.html"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="introduction">Introduction</h2>
+<p>This file formalizes the <strong>method of moments (MoM) estimator</strong> for phase-type distribution parameters. Given observed data and a parameterized phase-type model, MoM finds parameter estimates by minimizing the distance between sample moments (computed from data) and model moments (computed from the phase-type distribution as a function of the parameter vector). The resulting estimates serve as informed starting points or prior centers for subsequent Bayesian inference via SVGD ([18]) or MCMC ([19]).</p>
+<p>In the phasic pipeline, MoM operates after model construction ([08]) and moment computation ([15]). The model moments are evaluated via reward-transformed moment formulas, and the estimation is cast as a nonlinear least-squares problem solved by the Trust Region Reflective algorithm. An optional two-step efficient Generalized Method of Moments (GMM) procedure uses the inverse of the estimated moment covariance as an optimal weighting matrix, down-weighting high-variance moments. Standard errors are computed via the delta method for constructing Gaussian priors.</p>
+<p><strong>Prerequisites:</strong> [01], [15]</p>
+<p><strong>Source files:</strong></p>
+<ul>
+<li><code>src/phasic/method_of_moments.py</code> (functions: <code>method_of_moments</code>, <code>_compute_weight_transform</code>, <code>_select_nr_moments</code>, <code>_initial_guess_grid</code>, <code>_estimate_moment_covariance</code>, <code>_reconstruct_theta</code>)</li>
+</ul>
+</section>
+<section id="definitions" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="definitions">Definitions</h2>
+<div id="def-21-sample-model-moments" class="definition theorem">
+<p><span class="theorem-title"><strong>Definition 22.1 (Sample Moments and Model Moments)</strong></span> <em>Let <span class="math inline">x_1, \ldots, x_n</span> be i.i.d. observations from a phase-type distribution <span class="math inline">\operatorname{PH}(\boldsymbol{\alpha}, \mathbf{S}(\boldsymbol{\theta}))</span>. For multivariate observations with <span class="math inline">F</span> features, let <span class="math inline">x_{i,f}</span> denote the <span class="math inline">f</span>-th feature of observation <span class="math inline">i</span>. The <strong>sample moments</strong> are</em></p>
+<p><span id="eq-21-sample-moments"><span class="math display">\hat{m}_{f,k} = \frac{1}{n_f} \sum_{i=1}^{n_f} x_{i,f}^k, \quad k = 1, \ldots, K, \;\; f = 1, \ldots, F, \tag{22.1}</span></span></p>
+<p><em>where <span class="math inline">n_f</span> is the number of valid (non-missing) observations for feature <span class="math inline">f</span> and <span class="math inline">K</span> is the number of moments matched. The <strong>model moments</strong> <span class="math inline">\mu_{f,k}(\boldsymbol{\theta})</span> are the <span class="math inline">k</span>-th moments of the phase-type distribution under parameter <span class="math inline">\boldsymbol{\theta}</span>, computed via the reward-transformed moment formula ([15]):</em></p>
+<p><span id="eq-21-model-moments"><span class="math display">\mu_{f,k}(\boldsymbol{\theta}) = k! \, \boldsymbol{\alpha} \left( (-\mathbf{S}(\boldsymbol{\theta}))^{-1} \triangle(\mathbf{r}_f) \right)^k \mathbf{e}, \tag{22.2}</span></span></p>
+<p><em>where <span class="math inline">\mathbf{r}_f</span> is the reward vector for feature <span class="math inline">f</span>. The sample and model moments are arranged as vectors <span class="math inline">\hat{\mathbf{m}}, \boldsymbol{\mu}(\boldsymbol{\theta}) \in \mathbb{R}^{FK}</span> with the ordering <span class="math inline">(f=1,k=1), (f=1,k=2), \ldots, (f=F,k=K)</span>.</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> Sample moments are empirical averages of powers of the data. Model moments are the corresponding theoretical quantities predicted by the phase-type model for a given parameter vector. When the model is correct, there exists a <span class="math inline">\boldsymbol{\theta}^*</span> such that <span class="math inline">\boldsymbol{\mu}(\boldsymbol{\theta}^*) = \mathbb{E}[\hat{\mathbf{m}}]</span>, and the method of moments seeks this parameter.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> For a univariate model with <span class="math inline">K = 2</span> moments and <span class="math inline">n = 100</span> observations: <span class="math inline">\hat{m}_1 = \bar{x}</span> (sample mean) and <span class="math inline">\hat{m}_2 = n^{-1}\sum x_i^2</span> (sample second moment). If the model is <span class="math inline">\operatorname{Exp}(\theta)</span>, then <span class="math inline">\mu_1(\theta) = 1/\theta</span> and <span class="math inline">\mu_2(\theta) = 2/\theta^2</span>.</p>
+</blockquote>
+<div id="def-21-moment-objective" class="definition theorem">
+<p><span class="theorem-title"><strong>Definition 22.2 (Moment Matching Objective)</strong></span> <em>The <strong>moment matching objective</strong> is the weighted nonlinear least-squares problem</em></p>
+<p><span id="eq-21-moment-objective"><span class="math display">\hat{\boldsymbol{\theta}} = \arg\min_{\boldsymbol{\theta} &gt; 0} \left\lVert \mathbf{T}\left(\boldsymbol{\mu}(\boldsymbol{\theta}) - \hat{\mathbf{m}}\right) \right\rVert_2^2, \tag{22.3}</span></span></p>
+<p><em>where <span class="math inline">\mathbf{T} \in \mathbb{R}^{FK \times FK}</span> is a weight transform matrix. This is equivalent to minimizing the generalized sum of squared residuals <span class="math inline">(\boldsymbol{\mu}(\boldsymbol{\theta}) - \hat{\mathbf{m}})^\top \mathbf{W} (\boldsymbol{\mu}(\boldsymbol{\theta}) - \hat{\mathbf{m}})</span> with weight matrix <span class="math inline">\mathbf{W} = \mathbf{T}^\top \mathbf{T}</span>. The constraint <span class="math inline">\boldsymbol{\theta} &gt; 0</span> ensures positive rates.</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> The weight matrix <span class="math inline">\mathbf{W}</span> accounts for the different scales and variances of the moments. Without weighting (<span class="math inline">\mathbf{T} = \mathbf{I}</span>), high-order moments (which are typically much larger) would dominate the objective. Optimal weighting uses <span class="math inline">\mathbf{W} = \boldsymbol{\Sigma}^{-1}</span>, the inverse of the moment covariance, which normalizes each moment by its sampling variability.</p>
+</blockquote>
+<div id="def-21-optimal-weighting" class="definition theorem">
+<p><span class="theorem-title"><strong>Definition 22.3 (Optimal Weighting via Moment Covariance)</strong></span> <em>The <strong>moment covariance matrix</strong> <span class="math inline">\boldsymbol{\Sigma} \in \mathbb{R}^{FK \times FK}</span> has a block-diagonal structure (features are independent):</em></p>
+<p><span id="eq-21-moment-cov-block"><span class="math display">\boldsymbol{\Sigma} = \operatorname{diag}(\boldsymbol{\Sigma}_1, \ldots, \boldsymbol{\Sigma}_F), \tag{22.4}</span></span></p>
+<p><em>where <span class="math inline">\boldsymbol{\Sigma}_f \in \mathbb{R}^{K \times K}</span> has entries</em></p>
+<p><span id="eq-21-moment-cov-entries"><span class="math display">(\boldsymbol{\Sigma}_f)_{jk} = \frac{1}{n_f} \operatorname{Cov}(X_f^j, X_f^k) = \frac{1}{n_f} \left( \frac{1}{n_f - 1} \sum_{i=1}^{n_f} (x_{i,f}^j - \hat{m}_{f,j})(x_{i,f}^k - \hat{m}_{f,k}) \right). \tag{22.5}</span></span></p>
+<p><em>The <strong>optimal weight transform</strong> <span class="math inline">\mathbf{T}</span> is the inverse of the Cholesky factor of <span class="math inline">\boldsymbol{\Sigma}</span>: if <span class="math inline">\boldsymbol{\Sigma} = \mathbf{L}\mathbf{L}^\top</span>, then <span class="math inline">\mathbf{T} = \mathbf{L}^{-1}</span>, giving <span class="math inline">\mathbf{W} = \mathbf{T}^\top \mathbf{T} = \boldsymbol{\Sigma}^{-1}</span>. A fallback chain is employed: if <span class="math inline">\boldsymbol{\Sigma}</span> is ill-conditioned (condition number <span class="math inline">\geq 10^{10}</span>), diagonal weighting <span class="math inline">T_{ii} = 1/\sqrt{\Sigma_{ii}}</span> is used; if the diagonal also contains non-positive entries, the identity <span class="math inline">\mathbf{T} = \mathbf{I}</span> (unweighted) is used.</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> The Cholesky factorization of <span class="math inline">\boldsymbol{\Sigma}</span> transforms the correlated moment residuals into uncorrelated, unit-variance residuals. This is the standard efficient GMM weighting (Hansen, 1982): it produces the minimum-variance estimator among all GMM estimators using the same moment conditions. The fallback chain ensures robustness when the sample size is small relative to the number of moments.</p>
+</blockquote>
+</section>
+<section id="theorems-and-proofs" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="theorems-and-proofs">Theorems and Proofs</h2>
+<div id="thm-21-consistency" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 22.1 (Consistency of the Method of Moments Estimator)</strong></span> <em>Suppose (i) the moment function <span class="math inline">\boldsymbol{\mu}(\boldsymbol{\theta})</span> is continuous on <span class="math inline">\Theta = \mathbb{R}^d_{&gt;0}</span>, (ii) the true parameter <span class="math inline">\boldsymbol{\theta}^*</span> is the unique solution of <span class="math inline">\boldsymbol{\mu}(\boldsymbol{\theta}) = \mathbb{E}[\hat{\mathbf{m}}]</span> (identification), and (iii) the observations <span class="math inline">x_1, \ldots, x_n</span> are i.i.d. with finite <span class="math inline">2K</span>-th moment. Then the MoM estimator <span class="math inline">\hat{\boldsymbol{\theta}}_n</span> satisfies</em></p>
+<p><span class="math display">\hat{\boldsymbol{\theta}}_n \xrightarrow{n \to \infty} \boldsymbol{\theta}^* \quad \text{in probability.}</span></p>
+<p><em>Furthermore, the asymptotic covariance of <span class="math inline">\hat{\boldsymbol{\theta}}_n</span> is</em></p>
+<p><span id="eq-21-asymptotic-cov"><span class="math display">\sqrt{n}(\hat{\boldsymbol{\theta}}_n - \boldsymbol{\theta}^*) \xrightarrow{d} \mathcal{N}\!\left(\mathbf{0}, \; \mathbf{G} \boldsymbol{\Sigma} \mathbf{G}^\top \right), \tag{22.6}</span></span></p>
+<p><em>where <span class="math inline">\mathbf{G} = (\mathbf{J}^\top \mathbf{W} \mathbf{J})^{-1} \mathbf{J}^\top \mathbf{W}</span> is the generalized inverse mapping, <span class="math inline">\mathbf{J} = \partial \boldsymbol{\mu} / \partial \boldsymbol{\theta}^\top \big|_{\boldsymbol{\theta}^*}</span> is the Jacobian of the moment function, and <span class="math inline">\boldsymbol{\Sigma}</span> is the moment covariance. For the efficient GMM weighting <span class="math inline">\mathbf{W} = \boldsymbol{\Sigma}^{-1}</span>, this simplifies to</em></p>
+<p><span id="eq-21-efficient-cov"><span class="math display">\operatorname{Cov}(\hat{\boldsymbol{\theta}}_n) \approx \frac{1}{n} (\mathbf{J}_w^\top \mathbf{J}_w)^{-1}, \tag{22.7}</span></span></p>
+<p><em>where <span class="math inline">\mathbf{J}_w = \mathbf{T} \mathbf{J}</span> is the weighted Jacobian.</em></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>By the strong law of large numbers and condition (iii), <span class="math inline">\hat{\mathbf{m}} \xrightarrow{\text{a.s.}} \mathbb{E}[\hat{\mathbf{m}}] = \boldsymbol{\mu}(\boldsymbol{\theta}^*)</span>. The objective function <span class="math inline">Q_n(\boldsymbol{\theta}) = \lVert \mathbf{T}(\boldsymbol{\mu}(\boldsymbol{\theta}) - \hat{\mathbf{m}}) \rVert^2</span> converges uniformly on compact subsets to <span class="math inline">Q(\boldsymbol{\theta}) = \lVert \mathbf{T}(\boldsymbol{\mu}(\boldsymbol{\theta}) - \boldsymbol{\mu}(\boldsymbol{\theta}^*)) \rVert^2</span> by continuity of <span class="math inline">\boldsymbol{\mu}</span>. By identification (ii), <span class="math inline">Q(\boldsymbol{\theta})</span> has a unique minimizer at <span class="math inline">\boldsymbol{\theta}^*</span>, so <span class="math inline">\hat{\boldsymbol{\theta}}_n \to \boldsymbol{\theta}^*</span> in probability (standard extremum estimator consistency; see Newey &amp; McFadden, 1994, Theorem 2.1).</p>
+<p>For the asymptotic distribution, linearize <span class="math inline">\boldsymbol{\mu}(\hat{\boldsymbol{\theta}}_n) \approx \boldsymbol{\mu}(\boldsymbol{\theta}^*) + \mathbf{J}(\hat{\boldsymbol{\theta}}_n - \boldsymbol{\theta}^*)</span>. The first-order condition of the weighted least-squares problem gives <span class="math inline">\mathbf{J}_w^\top \mathbf{T}(\boldsymbol{\mu}(\hat{\boldsymbol{\theta}}_n) - \hat{\mathbf{m}}) = \mathbf{0}</span>, which after linearization yields</p>
+<p><span class="math display">\hat{\boldsymbol{\theta}}_n - \boldsymbol{\theta}^* \approx -(\mathbf{J}_w^\top \mathbf{J}_w)^{-1} \mathbf{J}_w^\top \mathbf{T}(\boldsymbol{\mu}(\boldsymbol{\theta}^*) - \hat{\mathbf{m}}).</span></p>
+<p>Since <span class="math inline">\sqrt{n}(\hat{\mathbf{m}} - \boldsymbol{\mu}(\boldsymbol{\theta}^*)) \xrightarrow{d} \mathcal{N}(\mathbf{0}, \boldsymbol{\Sigma})</span> by the central limit theorem, applying the linear transformation gives <a href="#eq-21-asymptotic-cov" class="quarto-xref">Equation&nbsp;<span>22.6</span></a>. When <span class="math inline">\mathbf{W} = \boldsymbol{\Sigma}^{-1}</span> and <span class="math inline">\mathbf{T} = \mathbf{L}^{-1}</span>, the covariance simplifies: <span class="math inline">\mathbf{G} \boldsymbol{\Sigma} \mathbf{G}^\top = (\mathbf{J}_w^\top \mathbf{J}_w)^{-1} \mathbf{J}_w^\top (\mathbf{T} \boldsymbol{\Sigma} \mathbf{T}^\top) \mathbf{J}_w (\mathbf{J}_w^\top \mathbf{J}_w)^{-1} = (\mathbf{J}_w^\top \mathbf{J}_w)^{-1}</span>, since <span class="math inline">\mathbf{T} \boldsymbol{\Sigma} \mathbf{T}^\top = \mathbf{L}^{-1} \mathbf{L} \mathbf{L}^\top \mathbf{L}^{-\top} = \mathbf{I}</span>. Dividing by <span class="math inline">n</span> gives <a href="#eq-21-efficient-cov" class="quarto-xref">Equation&nbsp;<span>22.7</span></a>. <span class="math inline">\square</span></p>
+</div>
+</section>
+<section id="algorithms" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="algorithms">Algorithms</h2>
+<div id="alg-21-method-of-moments" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-alg figure">
+<section id="method-of-moments-estimation" class="level4" aria-describedby="alg-21-method-of-moments-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="22.0.0.1">
+<h4 data-number="22.0.0.1" class="anchored" data-anchor-id="method-of-moments-estimation"><span class="header-section-number">22.0.0.1</span> Method of Moments Estimation</h4>
+<p><em>Description.</em> Estimates the parameter vector <span class="math inline">\boldsymbol{\theta}</span> of a parameterized phase-type model by matching model moments to sample moments. The algorithm proceeds in several stages: (1) compute sample moments from the data, (2) optionally select the number of moments <span class="math inline">K</span> by condition number analysis, (3) find an initial guess via coordinate-wise grid search on the first moment, (4) solve the unweighted least-squares problem, and (5) optionally re-solve with optimal GMM weighting. Standard errors are computed via the delta method (<a href="#thm-21-consistency" class="quarto-xref">Theorem&nbsp;<span>22.1</span></a>) and used to construct Gaussian priors.</p>
+<pre><code>Method of Moments Estimation
+1: Let G = (V, E) be a parameterized phase-type graph with d parameters
+2: Let x_1, ..., x_n be observed data (possibly multivariate, F features)
+3: Let K be the number of moments (auto-selected if not specified)
+4: Let fixed be a set of (index, value) pairs for fixed parameters
+5: Let d_free = d - |fixed| be the number of free parameters
+6:
+7: function MethodOfMoments(G, x, K, fixed, weighted)
+8:   m_hat &lt;- SampleMoments(x, K, F)               triangleright Eq. (1)
+9:   if K = nil then
+10:    if weighted then
+11:      K &lt;- SelectNrMoments(x, F, d_free)         triangleright Condition number pruning
+12:    else
+13:      K &lt;- max(2 * d_free, 4) / F                triangleright Heuristic overdetermination
+14:    end if
+15:  end if
+16:  Sigma &lt;- EstimateMomentCovariance(x, K, F)     triangleright Eq. (5)
+17:  mu(theta) &lt;- ModelMoments(G, theta, K, F)      triangleright Eq. (2) via [15]
+18:
+19:  x0 &lt;- InitialGuessGrid(mu, m_hat[1], d_free, fixed)
+20:                                                  triangleright Grid search on first moment
+21:  r(theta_free) &lt;- mu(Reconstruct(theta_free, fixed)) - m_hat
+22:                                                  triangleright Residual function
+23:
+24:  theta_1 &lt;- LeastSquares(r, x0, bounds=(epsilon, inf))
+25:                                                  triangleright Step 1: unweighted
+26:
+27:  if weighted then
+28:    T, method &lt;- ComputeWeightTransform(Sigma)    triangleright Definition 21.3
+29:    if T != nil then
+30:      r_w(theta_free) &lt;- T * r(theta_free)        triangleright Weighted residual
+31:      theta_hat &lt;- LeastSquares(r_w, theta_1, bounds=(epsilon, inf))
+32:                                                  triangleright Step 2: GMM
+33:    else
+34:      theta_hat &lt;- theta_1
+35:    end if
+36:  else
+37:    theta_hat &lt;- theta_1
+38:  end if
+39:
+40:  J &lt;- Jacobian(r, theta_hat)                     triangleright Finite differences
+41:  if weighted and T != nil then
+42:    Cov_theta &lt;- pinv(J_w^T J_w)                  triangleright Eq. (7)
+43:  else
+44:    G_mat &lt;- pinv(J)
+45:    Cov_theta &lt;- G_mat * Sigma * G_mat^T          triangleright Eq. (6)
+46:  end if
+47:  se &lt;- sqrt(diag(Cov_theta))
+48:  prior_i &lt;- GaussPrior(theta_hat_i, c * se_i) for free i
+49:                                                  triangleright c = std_multiplier
+50:  return (theta_hat, se, prior)
+51: end function</code></pre>
+<p><strong>Correspondence table:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 20%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pseudocode variable</th>
+<th>Math symbol</th>
+<th>Code variable (file:function)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>G</code></td>
+<td><span class="math inline">G = (V, E)</span></td>
+<td><code>graph</code> (<code>method_of_moments.py:method_of_moments</code>)</td>
+</tr>
+<tr class="even">
+<td><code>x</code></td>
+<td><span class="math inline">x_1, \ldots, x_n</span></td>
+<td><code>observed_data</code> (<code>method_of_moments.py:method_of_moments</code>)</td>
+</tr>
+<tr class="odd">
+<td><code>K</code></td>
+<td><span class="math inline">K</span> (number of moments)</td>
+<td><code>nr_moments</code> (<code>method_of_moments.py:method_of_moments</code>)</td>
+</tr>
+<tr class="even">
+<td><code>F</code></td>
+<td><span class="math inline">F</span> (number of features)</td>
+<td><code>n_features</code> (<code>method_of_moments.py:method_of_moments</code>)</td>
+</tr>
+<tr class="odd">
+<td><code>d</code></td>
+<td><span class="math inline">d</span> (parameter dimension)</td>
+<td><code>theta_dim</code> (<code>method_of_moments.py:method_of_moments</code>)</td>
+</tr>
+<tr class="even">
+<td><code>d_free</code></td>
+<td><span class="math inline">d_{\text{free}}</span></td>
+<td><code>n_free</code> (<code>method_of_moments.py:method_of_moments</code>)</td>
+</tr>
+<tr class="odd">
+<td><code>m_hat</code></td>
+<td><span class="math inline">\hat{\mathbf{m}}</span></td>
+<td><code>target_moments</code> (<code>method_of_moments.py:method_of_moments</code>)</td>
+</tr>
+<tr class="even">
+<td><code>Sigma</code></td>
+<td><span class="math inline">\boldsymbol{\Sigma}</span></td>
+<td><code>moment_cov</code> (<code>method_of_moments.py:method_of_moments</code>)</td>
+</tr>
+<tr class="odd">
+<td><code>mu</code></td>
+<td><span class="math inline">\boldsymbol{\mu}(\boldsymbol{\theta})</span></td>
+<td><code>moments_fn</code> (<code>method_of_moments.py:method_of_moments</code>)</td>
+</tr>
+<tr class="even">
+<td><code>T</code></td>
+<td><span class="math inline">\mathbf{T}</span> (weight transform)</td>
+<td><code>T</code> (<code>method_of_moments.py:_compute_weight_transform</code>)</td>
+</tr>
+<tr class="odd">
+<td><code>x0</code></td>
+<td>initial guess</td>
+<td><code>x0</code> (<code>method_of_moments.py:method_of_moments</code>)</td>
+</tr>
+<tr class="even">
+<td><code>r</code></td>
+<td>residual function</td>
+<td><code>residual_fn</code> (<code>method_of_moments.py:method_of_moments</code>)</td>
+</tr>
+<tr class="odd">
+<td><code>r_w</code></td>
+<td>weighted residual</td>
+<td><code>weighted_residual_fn</code> (<code>method_of_moments.py:method_of_moments</code>)</td>
+</tr>
+<tr class="even">
+<td><code>theta_1</code></td>
+<td>step-1 estimate</td>
+<td><code>result.x</code> (first call) (<code>method_of_moments.py:method_of_moments</code>)</td>
+</tr>
+<tr class="odd">
+<td><code>theta_hat</code></td>
+<td><span class="math inline">\hat{\boldsymbol{\theta}}</span></td>
+<td><code>theta_full_opt</code> (<code>method_of_moments.py:method_of_moments</code>)</td>
+</tr>
+<tr class="even">
+<td><code>J</code></td>
+<td><span class="math inline">\mathbf{J}</span> (Jacobian)</td>
+<td><code>result.jac</code> (<code>method_of_moments.py:method_of_moments</code>)</td>
+</tr>
+<tr class="odd">
+<td><code>J_w</code></td>
+<td><span class="math inline">\mathbf{J}_w = \mathbf{T}\mathbf{J}</span></td>
+<td><code>J_w = result.jac</code> (weighted) (<code>method_of_moments.py:method_of_moments</code>)</td>
+</tr>
+<tr class="even">
+<td><code>Cov_theta</code></td>
+<td><span class="math inline">\operatorname{Cov}(\hat{\boldsymbol{\theta}})</span></td>
+<td><code>cov_theta</code> (<code>method_of_moments.py:method_of_moments</code>)</td>
+</tr>
+<tr class="odd">
+<td><code>se</code></td>
+<td>standard errors</td>
+<td><code>std_free</code> / <code>std_full</code> (<code>method_of_moments.py:method_of_moments</code>)</td>
+</tr>
+<tr class="even">
+<td><code>c</code></td>
+<td>std multiplier</td>
+<td><code>std_multiplier</code> (<code>method_of_moments.py:method_of_moments</code>)</td>
+</tr>
+<tr class="odd">
+<td><code>prior</code></td>
+<td>Gaussian priors</td>
+<td><code>priors</code> (<code>method_of_moments.py:method_of_moments</code>)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Complexity.</strong> Time: <span class="math inline">O(N_{\text{iter}} \cdot (C_{\text{mom}} + FK))</span>, where <span class="math inline">N_{\text{iter}}</span> is the number of least-squares iterations (at most <span class="math inline">200 \cdot d_{\text{free}}</span>), <span class="math inline">C_{\text{mom}}</span> is the cost of one model-moment evaluation via [15], and <span class="math inline">FK</span> is the cost of computing the residual. The initial grid search costs <span class="math inline">O(d_{\text{free}} \cdot |G_{\text{grid}}| \cdot C_{\text{mom}})</span> where <span class="math inline">|G_{\text{grid}}| = 20</span> is the grid size. The Cholesky factorization and pseudoinverse cost <span class="math inline">O((FK)^3)</span> and <span class="math inline">O((FK)^2 d_{\text{free}})</span> respectively. Space: <span class="math inline">O((FK)^2)</span> for the moment covariance matrix and <span class="math inline">O(d_{\text{free}})</span> for the parameter vector.</p>
+</section>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-21-method-of-moments-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Algorithm&nbsp;22.1: <strong>Correctness.</strong> By <a href="#thm-21-consistency" class="quarto-xref">Theorem&nbsp;<span>22.1</span></a>, the estimator is consistent under identification and finite moments. The two-step GMM procedure achieves efficiency: the first step provides a consistent (but possibly inefficient) estimate, and the second step uses the estimated optimal weighting <span class="math inline">\mathbf{W} = \hat{\boldsymbol{\Sigma}}^{-1}</span> to minimize asymptotic variance. The delta method standard errors (<a href="#eq-21-efficient-cov" class="quarto-xref">Equation&nbsp;<span>22.7</span></a>) provide valid confidence intervals asymptotically.
+</figcaption>
+</figure>
+</div>
+</section>
+<section id="numerical-considerations" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="numerical-considerations">Numerical Considerations</h2>
+<p><strong>Condition number pruning.</strong> When <code>weighted=True</code> and <code>nr_moments</code> is not specified, the function <code>_select_nr_moments</code> starts from a maximum number of moments and decreases until the moment covariance matrix has condition number below <span class="math inline">10^3</span>. This prevents ill-conditioning from high-order moments that have extreme variance, which would make the Cholesky factorization unstable and the weighted residuals unreliable.</p>
+<p><strong>Fallback chain for weighting.</strong> The weight transform computation (<code>_compute_weight_transform</code>) implements a three-level fallback: (1) full Cholesky of <span class="math inline">\boldsymbol{\Sigma}</span> (if condition number <span class="math inline">&lt; 10^{10}</span> and all diagonal entries positive), (2) diagonal weighting <span class="math inline">T_{ii} = 1/\sqrt{\Sigma_{ii}}</span> (if all variances are positive and finite), (3) identity (unweighted). This ensures the algorithm never fails due to a degenerate covariance matrix.</p>
+<p><strong>Positivity constraint.</strong> The Trust Region Reflective solver enforces <span class="math inline">\theta_j &gt; \varepsilon</span> with <span class="math inline">\varepsilon = 10^{-10}</span> via bound constraints. This avoids numerical issues with zero or negative rates while being effectively unconstrained for practical parameter values.</p>
+<p><strong>Standard error floor.</strong> After the delta method, any standard error that is zero, negative, or non-finite for a free parameter is replaced by <span class="math inline">0.5 \cdot \max(|\hat{\theta}_j|, 10^{-4})</span>. This ensures that priors always have a reasonable spread.</p>
+<p><strong>Multivariate data.</strong> The implementation accepts <code>SparseObservations</code> for multivariate data with potentially different numbers of observations per feature. The moment covariance is block-diagonal (features are independent), with each block estimated from the valid observations of that feature.</p>
+</section>
+<section id="implementation-notes" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="implementation-notes">Implementation Notes</h2>
+<p><strong>Source code mapping:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 17%">
+<col style="width: 29%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Algorithm</th>
+<th>File</th>
+<th>Function</th>
+<th>Lines</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="#alg-21-method-of-moments" class="quarto-xref">Algorithm&nbsp;<span>22.1</span></a> (entry)</td>
+<td><code>src/phasic/method_of_moments.py</code></td>
+<td><code>method_of_moments</code></td>
+<td>L205–L590</td>
+</tr>
+<tr class="even">
+<td>Weight transform</td>
+<td><code>src/phasic/method_of_moments.py</code></td>
+<td><code>_compute_weight_transform</code></td>
+<td>L56–L88</td>
+</tr>
+<tr class="odd">
+<td>Nr moments selection</td>
+<td><code>src/phasic/method_of_moments.py</code></td>
+<td><code>_select_nr_moments</code></td>
+<td>L91–L119</td>
+</tr>
+<tr class="even">
+<td>Moment covariance</td>
+<td><code>src/phasic/method_of_moments.py</code></td>
+<td><code>_estimate_moment_covariance</code></td>
+<td>L122–L149</td>
+</tr>
+<tr class="odd">
+<td>Initial guess grid</td>
+<td><code>src/phasic/method_of_moments.py</code></td>
+<td><code>_initial_guess_grid</code></td>
+<td>L168–L202</td>
+</tr>
+<tr class="even">
+<td>Theta reconstruction</td>
+<td><code>src/phasic/method_of_moments.py</code></td>
+<td><code>_reconstruct_theta</code></td>
+<td>L152–L165</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Deviations from pseudocode:</strong></p>
+<ul>
+<li>The pseudocode shows the Jacobian <span class="math inline">\mathbf{J}</span> computed as a separate step. The implementation obtains it as <code>result.jac</code> from <code>scipy.optimize.least_squares</code>, which computes the Jacobian by finite differences as part of the Trust Region Reflective algorithm.</li>
+<li>The model moments function <code>moments_fn</code> is constructed differently depending on whether rewards are 1D, 2D, or absent. The pseudocode abstracts this as a single <code>ModelMoments</code> call.</li>
+<li>The <code>MoMResult</code> dataclass also stores <code>sample_moments</code>, <code>model_moments</code>, and <code>weighted</code> flag for diagnostic purposes, not shown in the pseudocode.</li>
+<li>Fixed parameters are handled via <code>_reconstruct_theta</code>, which inserts fixed values into the full parameter vector at each residual evaluation. The solver only optimizes over free parameters.</li>
+</ul>
+</section>
+<section id="symbol-index" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="symbol-index">Symbol Index</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 19%">
+<col style="width: 54%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Symbol</th>
+<th>Name</th>
+<th>First appearance</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\hat{\boldsymbol{\theta}}_n</span></td>
+<td>MoM estimator</td>
+<td><a href="#thm-21-consistency" class="quarto-xref">Theorem&nbsp;<span>22.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">d_{\text{free}}</span></td>
+<td>Number of free parameters</td>
+<td><a href="#alg-21-method-of-moments" class="quarto-xref">Algorithm&nbsp;<span>22.1</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">F</span></td>
+<td>Number of features</td>
+<td><a href="#def-21-sample-model-moments" class="quarto-xref">Definition&nbsp;<span>22.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mathbf{G}</span></td>
+<td>Generalized inverse mapping</td>
+<td><a href="#thm-21-consistency" class="quarto-xref">Theorem&nbsp;<span>22.1</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\hat{\mathbf{m}}</span></td>
+<td>Sample moment vector</td>
+<td><a href="#def-21-sample-model-moments" class="quarto-xref">Definition&nbsp;<span>22.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\hat{m}_{f,k}</span></td>
+<td>Sample <span class="math inline">k</span>-th moment for feature <span class="math inline">f</span></td>
+<td><a href="#def-21-sample-model-moments" class="quarto-xref">Definition&nbsp;<span>22.1</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathbf{J}</span></td>
+<td>Jacobian of moment function</td>
+<td><a href="#thm-21-consistency" class="quarto-xref">Theorem&nbsp;<span>22.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mathbf{J}_w</span></td>
+<td>Weighted Jacobian <span class="math inline">\mathbf{T}\mathbf{J}</span></td>
+<td><a href="#thm-21-consistency" class="quarto-xref">Theorem&nbsp;<span>22.1</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">K</span></td>
+<td>Number of moments matched</td>
+<td><a href="#def-21-sample-model-moments" class="quarto-xref">Definition&nbsp;<span>22.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mathbf{L}</span></td>
+<td>Cholesky factor of <span class="math inline">\boldsymbol{\Sigma}</span></td>
+<td><a href="#def-21-optimal-weighting" class="quarto-xref">Definition&nbsp;<span>22.3</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\boldsymbol{\mu}(\boldsymbol{\theta})</span></td>
+<td>Model moment vector</td>
+<td><a href="#def-21-sample-model-moments" class="quarto-xref">Definition&nbsp;<span>22.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mu_{f,k}(\boldsymbol{\theta})</span></td>
+<td>Model <span class="math inline">k</span>-th moment for feature <span class="math inline">f</span></td>
+<td><a href="#def-21-sample-model-moments" class="quarto-xref">Definition&nbsp;<span>22.1</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">n_f</span></td>
+<td>Number of observations for feature <span class="math inline">f</span></td>
+<td><a href="#def-21-sample-model-moments" class="quarto-xref">Definition&nbsp;<span>22.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\boldsymbol{\Sigma}</span></td>
+<td>Moment covariance matrix</td>
+<td><a href="#def-21-optimal-weighting" class="quarto-xref">Definition&nbsp;<span>22.3</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\boldsymbol{\Sigma}_f</span></td>
+<td>Moment covariance block for feature <span class="math inline">f</span></td>
+<td><a href="#def-21-optimal-weighting" class="quarto-xref">Definition&nbsp;<span>22.3</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mathbf{T}</span></td>
+<td>Weight transform matrix</td>
+<td><a href="#def-21-moment-objective" class="quarto-xref">Definition&nbsp;<span>22.2</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathbf{W}</span></td>
+<td>Weight matrix <span class="math inline">\mathbf{T}^\top \mathbf{T}</span></td>
+<td><a href="#def-21-moment-objective" class="quarto-xref">Definition&nbsp;<span>22.2</span></a></td>
+</tr>
+</tbody>
+</table>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./20_bffg.html" class="pagination-link" aria-label="Backward Filtering Forward Guiding">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./22_probability_matching.html" class="pagination-link" aria-label="Probability Matching Estimation">
+        <span class="nav-page-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

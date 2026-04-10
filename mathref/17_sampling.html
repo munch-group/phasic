@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>18&nbsp; Sampling – Phasic — Supplementary Online Material</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./18_svgd.html" rel="next">
+<link href="./16_pdf_gradients.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-3d57081916b67e2c1b7e936475d81f56.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./17_sampling.html">Sampling</a></li><li class="breadcrumb-item"><a href="./17_sampling.html"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Sampling</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Phasic — Supplementary Online Material</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Index</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Foundations</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01_preliminaries.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Preliminaries</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02_graph_representation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Graph Representation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03_numerical_primitives.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Numerical Primitives</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Graph Algorithms</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04_scc_and_topological_sort.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">SCC and Topological Sort</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05_graph_normalization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Graph Normalization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./06_graph_elimination.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./07_reward_transformation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Reward Transformation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./08_state_space_construction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Symbolic System and Traces</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./09_symbolic_expressions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./10_symbolic_graph_elimination.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./11_trace_system.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./12_graph_hashing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./13_scc_trace_stitching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Distribution and Moments</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./14_distribution_computation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./15_moment_computation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./16_pdf_gradients.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
+ <span class="menu-text">Sampling</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./17_sampling.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true">
+ <span class="menu-text">Inference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./18_svgd.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./19_mcmc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./20_bffg.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./21_method_of_moments.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./22_probability_matching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true">
+ <span class="menu-text">Spatial and State Indexing</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./23_state_indexing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./24_hex_grid.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true">
+ <span class="menu-text">Integration</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./25_jax_integration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./26_graph_builder.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./27_van_loan_equivalence.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#definitions" id="toc-definitions" class="nav-link" data-scroll-target="#definitions">Definitions</a>
+  <ul class="collapse">
+  <li><a href="#random-paths" id="toc-random-paths" class="nav-link" data-scroll-target="#random-paths">Random paths</a></li>
+  <li><a href="#unconditioned-sampling" id="toc-unconditioned-sampling" class="nav-link" data-scroll-target="#unconditioned-sampling">Unconditioned sampling</a></li>
+  <li><a href="#backward-probabilities" id="toc-backward-probabilities" class="nav-link" data-scroll-target="#backward-probabilities">Backward probabilities</a></li>
+  <li><a href="#conditioned-sampling" id="toc-conditioned-sampling" class="nav-link" data-scroll-target="#conditioned-sampling">Conditioned sampling</a></li>
+  <li><a href="#path-reward-decomposition" id="toc-path-reward-decomposition" class="nav-link" data-scroll-target="#path-reward-decomposition">Path reward decomposition</a></li>
+  </ul></li>
+  <li><a href="#theorems-and-proofs" id="toc-theorems-and-proofs" class="nav-link" data-scroll-target="#theorems-and-proofs">Theorems and Proofs</a></li>
+  <li><a href="#algorithms" id="toc-algorithms" class="nav-link" data-scroll-target="#algorithms">Algorithms</a></li>
+  <li><a href="#numerical-considerations" id="toc-numerical-considerations" class="nav-link" data-scroll-target="#numerical-considerations">Numerical Considerations</a></li>
+  <li><a href="#implementation-notes" id="toc-implementation-notes" class="nav-link" data-scroll-target="#implementation-notes">Implementation Notes</a></li>
+  <li><a href="#symbol-index" id="toc-symbol-index" class="nav-link" data-scroll-target="#symbol-index">Symbol Index</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./17_sampling.html">Sampling</a></li><li class="breadcrumb-item"><a href="./17_sampling.html"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Sampling</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Sampling</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="introduction">Introduction</h2>
+<p>This file formalizes the algorithms for sampling random paths from phase-type distributions represented as directed graphs. Sampling serves three purposes in phasic: (i) Monte Carlo estimation of functionals (expected rewards, moments, distributions) as a complement to the exact forward algorithm of [14]; (ii) generation of training data for inference methods such as BFFG (documented in a later file); and (iii) simulation studies for model validation.</p>
+<p>The sampling problem comes in two flavours. <strong>Unconditioned sampling</strong> generates paths by following the Markov chain’s transition probabilities with exponential (CPH) or geometric (DPH) holding times, producing paths whose absorption time has the correct phase-type distribution. <strong>Conditioned sampling</strong> generates paths that are guaranteed to reach a specified set of absorbing states, using backward probabilities to bias the transition selection at each step. The backward probabilities are computed via a single reverse pass over the vertex set.</p>
+<p>Given a sampled path, the <strong>path reward decomposition</strong> computes the accumulated reward along the path, providing a per-path breakdown of the reward-transformed absorption time defined in [01]. This decomposition is the foundation for importance-weighted likelihood estimation.</p>
+<p><strong>Prerequisites:</strong> [01], [05], [14]</p>
+<p><strong>Source files:</strong> - <code>src/c/phasic.c</code> (functions: <code>ptd_random_sample</code>, <code>ptd_random_sample_path</code>, <code>ptd_dph_random_sample</code>, <code>ptd_backward_probabilities</code>, <code>ptd_random_sample_path_conditioned</code>, <code>ptd_random_sample_path_conditioned_fixed</code>) - <code>src/phasic/bffg.py</code> (functions: <code>path_to_rewards</code>, <code>path_exit_rates</code>)</p>
+</section>
+<section id="definitions" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="definitions">Definitions</h2>
+<section id="random-paths" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="random-paths">Random paths</h3>
+<p>A sampled path records the sequence of states visited by the Markov chain together with the cumulative entry times, providing a complete trajectory from the initial state to absorption.</p>
+<div id="def-17-random-path" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 18.1 (Random path)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> be a phase-type graph with starting vertex <span class="math inline">v_0</span> and let <span class="math inline">\{X_t\}</span> denote the associated Markov process. A random path is a finite sequence</em></p>
+<p><span id="eq-17-random-path"><span class="math display">\mathcal{P} = \bigl((v^{(0)}, t^{(0)}),\; (v^{(1)}, t^{(1)}),\; \ldots,\; (v^{(L)}, t^{(L)})\bigr), \tag{18.1}</span></span></p>
+<p><em>where <span class="math inline">v^{(0)} = v_0</span>, <span class="math inline">t^{(0)} = 0</span>, and for <span class="math inline">k = 1, \ldots, L</span>: <span class="math inline">v^{(k)} \in \operatorname{children}(v^{(k-1)})</span> and <span class="math inline">t^{(k)} \geq t^{(k-1)}</span>. The terminal vertex <span class="math inline">v^{(L)}</span> is absorbing (<span class="math inline">\operatorname{children}(v^{(L)}) = \emptyset</span>). The integer <span class="math inline">L</span> is the path length. The sojourn time at step <span class="math inline">k</span> is <span class="math inline">\Delta t^{(k)} = t^{(k+1)} - t^{(k)}</span> for <span class="math inline">k = 0, \ldots, L-1</span>.</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> A random path is a complete realization of the Markov chain from its initial state to absorption. Each entry records which vertex was visited and when it was entered. The starting vertex <span class="math inline">v_0</span> has zero sojourn time because it represents the initial distribution mechanism, not a physical state (<a href="01_preliminaries.html#def-01-ph-graph" class="quarto-xref">Definition&nbsp;<span>2.13</span></a>).</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> In a two-state CPH with <span class="math inline">v_0 \to v_1</span> (rate 1) and <span class="math inline">v_1 \to v_a</span> (rate 2), a typical path might be <span class="math inline">\mathcal{P} = ((v_0, 0),\, (v_1, 0),\, (v_a, 0.37))</span>. The sojourn time at <span class="math inline">v_1</span> is <span class="math inline">\Delta t^{(1)} = 0.37</span>, drawn from <span class="math inline">\operatorname{Exp}(2)</span>. The sojourn time at <span class="math inline">v_0</span> is <span class="math inline">\Delta t^{(0)} = 0</span> by convention.</p>
+</blockquote>
+</section>
+<section id="unconditioned-sampling" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="unconditioned-sampling">Unconditioned sampling</h3>
+<div id="def-17-unconditioned-sampling" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 18.2 (Unconditioned path sampling)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> be a phase-type graph. The unconditioned sampling procedure generates a random path <span class="math inline">\mathcal{P}</span> as follows. Starting at <span class="math inline">v^{(0)} = v_0</span> with <span class="math inline">t^{(0)} = 0</span>, repeat until <span class="math inline">v^{(k)}</span> is absorbing:</em></p>
+<ol type="1">
+<li><p><em>Compute the total outgoing rate <span class="math inline">\lambda_{v^{(k)}} = \sum_{z \in \operatorname{children}(v^{(k)})} w(v^{(k)} \to z)</span>.</em></p></li>
+<li><p><em>Sample the sojourn time:</em></p>
+<ul>
+<li><em>CPH: <span class="math inline">\Delta t^{(k)} \sim \operatorname{Exp}(\lambda_{v^{(k)}})</span>, i.e., <span class="math inline">\Delta t^{(k)} = -\log(U) / \lambda_{v^{(k)}}</span> where <span class="math inline">U \sim \operatorname{Uniform}(0,1)</span>.</em></li>
+<li><em>DPH: <span class="math inline">\Delta t^{(k)} = 1</span> (deterministic unit increment). At each step, with probability <span class="math inline">1 - \lambda_{v^{(k)}}</span> the process self-loops (the chain stays in the current state without advancing to a child); with probability <span class="math inline">\lambda_{v^{(k)}}</span> a transition to a child occurs.</em></li>
+</ul></li>
+<li><p><em>If <span class="math inline">v^{(k)} = v_0</span>, set <span class="math inline">\Delta t^{(k)} = 0</span> (the starting vertex has no holding time).</em></p></li>
+<li><p><em>Select the next vertex <span class="math inline">v^{(k+1)}</span> with probability <span class="math inline">w(v^{(k)} \to z) / \lambda_{v^{(k)}}</span> for each <span class="math inline">z \in \operatorname{children}(v^{(k)})</span>.</em></p></li>
+<li><p><em>Set <span class="math inline">t^{(k+1)} = t^{(k)} + \Delta t^{(k)}</span>.</em></p></li>
+</ol>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> This is the standard simulation algorithm for a continuous-time Markov chain: wait an exponential time at each state, then jump to the next state with probability proportional to the transition rate. For DPH, the holding time is deterministic and the self-loop probability (not represented as an explicit edge in the graph) accounts for the chain remaining in the same state.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> Consider a graph with <span class="math inline">v_0 \to v_1</span> (weight 1), <span class="math inline">v_1 \to v_2</span> (weight 3), and <span class="math inline">v_1 \to v_a</span> (weight 2). At <span class="math inline">v_1</span>, <span class="math inline">\lambda_{v_1} = 5</span>. The sojourn time is <span class="math inline">\operatorname{Exp}(5)</span>-distributed (mean 0.2). The chain transitions to <span class="math inline">v_2</span> with probability 3/5 or absorbs at <span class="math inline">v_a</span> with probability 2/5.</p>
+</blockquote>
+</section>
+<section id="backward-probabilities" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="backward-probabilities">Backward probabilities</h3>
+<div id="def-17-backward-prob" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 18.3 (Backward probability vector)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> be a phase-type graph and let <span class="math inline">A \subseteq V</span> be a non-empty set of target vertices (typically a subset of absorbing vertices). The backward probability vector <span class="math inline">\mathbf{h} = (h_1, \ldots, h_{|V|})</span> is defined by</em></p>
+<p><span id="eq-17-backward-prob"><span class="math display">h_v = \Pr\bigl(\text{the process eventually reaches some } a \in A \mid X_0 = v\bigr). \tag{18.2}</span></span></p>
+<p><em>Equivalently, <span class="math inline">h_v</span> satisfies the system of linear equations:</em></p>
+<p><span id="eq-17-backward-system"><span class="math display">h_v = \begin{cases} 1 &amp; \text{if } v \in A, \\ 0 &amp; \text{if } v \text{ is absorbing and } v \notin A, \\ \displaystyle\sum_{z \in \operatorname{children}(v)} \frac{w(v \to z)}{\lambda_v} \, h_z &amp; \text{if } v \text{ is transient}, \end{cases} \tag{18.3}</span></span></p>
+<p><em>where <span class="math inline">\lambda_v = \sum_{z \in \operatorname{children}(v)} w(v \to z)</span> is the total outgoing rate of <span class="math inline">v</span>.</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> The backward probability <span class="math inline">h_v</span> is the probability that a process starting at vertex <span class="math inline">v</span> will eventually be absorbed into one of the target vertices in <span class="math inline">A</span>. It is computed by a one-step analysis: from <span class="math inline">v</span>, the process transitions to child <span class="math inline">z</span> with probability <span class="math inline">w(v \to z)/\lambda_v</span>, and from <span class="math inline">z</span> the probability of reaching <span class="math inline">A</span> is <span class="math inline">h_z</span>. The boundary conditions state that target vertices have probability 1 (they are already in <span class="math inline">A</span>) and non-target absorbing vertices have probability 0 (the process is absorbed elsewhere).</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> Consider a graph with <span class="math inline">v_1 \to v_a</span> (weight 2) and <span class="math inline">v_1 \to v_b</span> (weight 3), where both <span class="math inline">v_a</span> and <span class="math inline">v_b</span> are absorbing. If <span class="math inline">A = \{v_a\}</span>, then <span class="math inline">h_{v_a} = 1</span>, <span class="math inline">h_{v_b} = 0</span>, and <span class="math inline">h_{v_1} = (2/5) \cdot 1 + (3/5) \cdot 0 = 0.4</span>.</p>
+</blockquote>
+</section>
+<section id="conditioned-sampling" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="conditioned-sampling">Conditioned sampling</h3>
+<div id="def-17-conditioned-sampling" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 18.4 (Conditioned path sampling)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> be a phase-type graph, <span class="math inline">A \subseteq V</span> a set of target vertices, and <span class="math inline">\mathbf{h}</span> the backward probability vector for <span class="math inline">A</span> (<a href="#def-17-backward-prob" class="quarto-xref">Definition&nbsp;<span>18.3</span></a>). The conditioned sampling procedure generates a random path <span class="math inline">\mathcal{P}</span> that reaches <span class="math inline">A</span> with probability 1, by modifying the transition probabilities at each step. Starting at <span class="math inline">v^{(0)} = v_0</span>, repeat until <span class="math inline">v^{(k)} \in A</span> or <span class="math inline">v^{(k)}</span> is absorbing:</em></p>
+<ol type="1">
+<li><p><em>Compute the total outgoing rate <span class="math inline">\lambda_{v^{(k)}}</span> and the sojourn time as in <a href="#def-17-unconditioned-sampling" class="quarto-xref">Definition&nbsp;<span>18.2</span></a>.</em></p></li>
+<li><p><em>Select the next vertex <span class="math inline">v^{(k+1)}</span> with the guided probability</em></p></li>
+</ol>
+<p><span id="eq-17-guided-prob"><span class="math display">\Pr\bigl(v^{(k+1)} = z \mid v^{(k)}\bigr) = \frac{w(v^{(k)} \to z) \cdot h_z}{\displaystyle\sum_{z' \in \operatorname{children}(v^{(k)})} w(v^{(k)} \to z') \cdot h_{z'}}, \tag{18.4}</span></span></p>
+<p><em>for each <span class="math inline">z \in \operatorname{children}(v^{(k)})</span>.</em></p>
+<ol start="3" type="1">
+<li><em>Set <span class="math inline">t^{(k+1)} = t^{(k)} + \Delta t^{(k)}</span>.</em></li>
+</ol>
+<p><em>The process terminates when <span class="math inline">v^{(k)} \in A</span> (i.e., <span class="math inline">h_{v^{(k)}} = 1</span>) or when <span class="math inline">v^{(k)}</span> has no outgoing edges.</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> At each step, the unconditioned transition probability <span class="math inline">w(v \to z)/\lambda_v</span> is reweighted by the backward probability <span class="math inline">h_z</span> of the target vertex. This biases the chain toward vertices that lead to the target set <span class="math inline">A</span> and away from vertices that lead to non-target absorbing states. The denominator ensures the guided probabilities sum to 1. This is a form of Doob’s <span class="math inline">h</span>-transform applied to the Markov chain.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> In the example from <a href="#def-17-backward-prob" class="quarto-xref">Definition&nbsp;<span>18.3</span></a> with <span class="math inline">A = \{v_a\}</span>: the unconditioned probabilities from <span class="math inline">v_1</span> are <span class="math inline">(2/5, 3/5)</span> for <span class="math inline">(v_a, v_b)</span>. The guided probabilities are proportional to <span class="math inline">(2 \cdot 1, 3 \cdot 0) = (2, 0)</span>, so the process transitions to <span class="math inline">v_a</span> with probability 1. Every conditioned path from <span class="math inline">v_1</span> reaches <span class="math inline">v_a</span>.</p>
+</blockquote>
+</section>
+<section id="path-reward-decomposition" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="path-reward-decomposition">Path reward decomposition</h3>
+<div id="def-17-path-reward" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 18.5 (Path reward decomposition)</strong></span> <em>Let <span class="math inline">\mathcal{P} = ((v^{(0)}, t^{(0)}), \ldots, (v^{(L)}, t^{(L)}))</span> be a random path (<a href="#def-17-random-path" class="quarto-xref">Definition&nbsp;<span>18.1</span></a>) and let <span class="math inline">\mathbf{r} = (r_1, \ldots, r_p)^\top</span> be a reward vector assigning non-negative rewards to vertices (Section 3.3 of the notation standard). The accumulated reward along <span class="math inline">\mathcal{P}</span> is</em></p>
+<p><span id="eq-17-path-reward"><span class="math display">\tilde{\tau}(\mathcal{P}) = \sum_{k=0}^{L-1} r_{v^{(k)}} \cdot \Delta t^{(k)}, \tag{18.5}</span></span></p>
+<p><em>where <span class="math inline">\Delta t^{(k)} = t^{(k+1)} - t^{(k)}</span> is the sojourn time at step <span class="math inline">k</span>. For a reward matrix <span class="math inline">\mathbf{R}</span> with columns <span class="math inline">\mathbf{r}_1, \ldots, \mathbf{r}_m</span> (multivariate case, Section 3.4 of the notation standard), the accumulated reward for marginal <span class="math inline">j</span> is</em></p>
+<p><span id="eq-17-path-reward-multivariate"><span class="math display">\tilde{\tau}_j(\mathcal{P}) = \sum_{k=0}^{L-1} R_{v^{(k)},j} \cdot \Delta t^{(k)}. \tag{18.6}</span></span></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> The path reward decomposition is the per-path realization of the reward-transformed random variable <span class="math inline">\tilde{\tau} = \int_0^\tau r(X_t) \, dt</span> from <a href="01_preliminaries.html#def-01-reward-cph" class="quarto-xref">Definition&nbsp;<span>2.9</span></a>. While the integral definition is over continuous time, the path decomposition computes the same quantity as a sum over sojourn times weighted by rewards. For an unconditioned sample, <span class="math inline">\mathbb{E}[\tilde{\tau}(\mathcal{P})]</span> equals <span class="math inline">\mathbb{E}[\tilde{\tau}]</span>.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> Consider a path <span class="math inline">\mathcal{P} = ((v_0, 0), (v_1, 0), (v_2, 0.3), (v_a, 0.8))</span> with rewards <span class="math inline">r_{v_0} = 0</span>, <span class="math inline">r_{v_1} = 2</span>, <span class="math inline">r_{v_2} = 1</span>. The sojourn times are <span class="math inline">\Delta t^{(0)} = 0</span>, <span class="math inline">\Delta t^{(1)} = 0.3</span>, <span class="math inline">\Delta t^{(2)} = 0.5</span>. The accumulated reward is <span class="math inline">0 \cdot 0 + 2 \cdot 0.3 + 1 \cdot 0.5 = 1.1</span>.</p>
+</blockquote>
+</section>
+</section>
+<section id="theorems-and-proofs" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="theorems-and-proofs">Theorems and Proofs</h2>
+<div id="thm-17-unconditioned-correctness" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 18.1 (Correctness of unconditioned sampling)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> be a phase-type graph representing <span class="math inline">\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})</span> and let <span class="math inline">\mathcal{P}</span> be a path generated by the unconditioned sampling procedure (<a href="#def-17-unconditioned-sampling" class="quarto-xref">Definition&nbsp;<span>18.2</span></a>). Then the total absorption time <span class="math inline">\tau(\mathcal{P}) = t^{(L)}</span> has distribution <span class="math inline">\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})</span>, and for any reward vector <span class="math inline">\mathbf{r}</span>, the accumulated reward <span class="math inline">\tilde{\tau}(\mathcal{P})</span> has the reward-transformed distribution <span class="math inline">\operatorname{PH}(\boldsymbol{\alpha}, \triangle(\mathbf{r})^{-1}\mathbf{S})</span> (when all rewards are strictly positive).</em></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>We verify that the sampling procedure faithfully simulates the Markov jump process <span class="math inline">\{X_t\}_{t \geq 0}</span> with intensity matrix <span class="math inline">\mathbf{S}</span>.</p>
+<p><strong>Step 1 (Initial state).</strong> The path begins at <span class="math inline">v_0</span> with zero sojourn time. From <span class="math inline">v_0</span>, the next vertex <span class="math inline">v^{(1)}</span> is chosen with probability <span class="math inline">w(v_0 \to v_i) / \lambda_{v_0} = \alpha_i / 1 = \alpha_i</span> (since <span class="math inline">\lambda_{v_0} = \sum_i \alpha_i = 1</span> for a proper distribution). This matches the initial distribution <span class="math inline">\boldsymbol{\alpha}</span>.</p>
+<p><strong>Step 2 (Holding times).</strong> At each transient vertex <span class="math inline">v^{(k)} = v_i</span> (with <span class="math inline">i \geq 1</span>), the sojourn time is drawn from <span class="math inline">\operatorname{Exp}(\lambda_{v_i})</span>. Since <span class="math inline">\lambda_{v_i} = \sum_{z \in \operatorname{children}(v_i)} w(v_i \to z) = \sum_{j \neq i} s_{ij} + s_i = -s_{ii}</span>, this matches the holding time distribution of the continuous-time Markov jump process at state <span class="math inline">i</span> (<a href="01_preliminaries.html#def-01-cph" class="quarto-xref">Definition&nbsp;<span>2.2</span></a>).</p>
+<p><strong>Step 3 (Transition probabilities).</strong> Upon leaving vertex <span class="math inline">v_i</span>, the next vertex <span class="math inline">v_j</span> is chosen with probability <span class="math inline">w(v_i \to v_j) / \lambda_{v_i} = s_{ij} / (-s_{ii}) = q_{ij}</span>, which is the embedded chain transition probability (<a href="05_graph_normalization.html#def-05-embedded-chain" class="quarto-xref">Definition&nbsp;<span>6.2</span></a>).</p>
+<p><strong>Step 4 (Absorption).</strong> The process stops when it reaches a vertex with no outgoing edges, which corresponds to the absorbing state <span class="math inline">p+1</span>.</p>
+<p>Since the procedure simulates the holding times, transition probabilities, and initial distribution exactly, the path <span class="math inline">\mathcal{P}</span> is a faithful realization of <span class="math inline">\{X_t\}</span>. By <a href="01_preliminaries.html#def-01-cph" class="quarto-xref">Definition&nbsp;<span>2.2</span></a>, <span class="math inline">\tau(\mathcal{P}) \sim \operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})</span>. The reward identity follows from <a href="#def-17-path-reward" class="quarto-xref">Definition&nbsp;<span>18.5</span></a> and the reward transformation theorem (<a href="01_preliminaries.html#def-01-reward-cph" class="quarto-xref">Definition&nbsp;<span>2.9</span></a>): <span class="math inline">\tilde{\tau}(\mathcal{P}) = \sum_k r_{v^{(k)}} \Delta t^{(k)} = \int_0^\tau r(X_t) \, dt</span>, which has distribution <span class="math inline">\operatorname{PH}(\boldsymbol{\alpha}, \triangle(\mathbf{r})^{-1}\mathbf{S})</span> when all <span class="math inline">r_i &gt; 0</span>. <span class="math inline">\square</span></p>
+</div>
+<div id="thm-17-conditioned-correctness" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 18.2 (Correctness of conditioned sampling)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> be a phase-type graph, <span class="math inline">A \subseteq V</span> a set of target vertices, <span class="math inline">\mathbf{h}</span> the backward probability vector (<a href="#def-17-backward-prob" class="quarto-xref">Definition&nbsp;<span>18.3</span></a>), and <span class="math inline">\mathcal{P}</span> a path generated by the conditioned sampling procedure (<a href="#def-17-conditioned-sampling" class="quarto-xref">Definition&nbsp;<span>18.4</span></a>). Then:</em></p>
+<ol type="1">
+<li><em>The path <span class="math inline">\mathcal{P}</span> terminates in <span class="math inline">A</span> with probability 1 (provided <span class="math inline">h_{v_0} &gt; 0</span>).</em></li>
+<li><em>The sequence of vertices in <span class="math inline">\mathcal{P}</span> has the same distribution as the unconditioned Markov chain conditioned on absorption into <span class="math inline">A</span>.</em></li>
+</ol>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span><strong>Part 1 (Termination in <span class="math inline">A</span>).</strong> We show that the guided probability (<a href="#eq-17-guided-prob" class="quarto-xref">Equation&nbsp;<span>18.4</span></a>) is well-defined and that the process reaches <span class="math inline">A</span> almost surely.</p>
+<p>At each transient vertex <span class="math inline">v^{(k)}</span> with <span class="math inline">h_{v^{(k)}} &gt; 0</span>, the denominator in <a href="#eq-17-guided-prob" class="quarto-xref">Equation&nbsp;<span>18.4</span></a> satisfies <span class="math display">\sum_{z \in \operatorname{children}(v^{(k)})} w(v^{(k)} \to z) \cdot h_z = \lambda_{v^{(k)}} \cdot \sum_{z} \frac{w(v^{(k)} \to z)}{\lambda_{v^{(k)}}} \cdot h_z = \lambda_{v^{(k)}} \cdot h_{v^{(k)}} &gt; 0,</span> where the second equality uses the defining <a href="#eq-17-backward-system" class="quarto-xref">Equation&nbsp;<span>18.3</span></a> of the backward probabilities. Since the denominator is positive, the guided probabilities are well-defined. Moreover, since the guided probability assigns zero weight to children <span class="math inline">z</span> with <span class="math inline">h_z = 0</span> (which cannot reach <span class="math inline">A</span>), every step moves along a path that leads to <span class="math inline">A</span>. By finiteness of <span class="math inline">|V|</span>, the path must eventually reach a vertex in <span class="math inline">A</span> or an absorbing vertex. Since all absorbing vertices not in <span class="math inline">A</span> have <span class="math inline">h = 0</span> and are never selected, the path terminates in <span class="math inline">A</span>.</p>
+<p><strong>Part 2 (Correct conditional distribution).</strong> We show that the guided chain is Doob’s <span class="math inline">h</span>-transform of the original chain with respect to the harmonic function <span class="math inline">\mathbf{h}</span>.</p>
+<p>Let <span class="math inline">q_{vz} = w(v \to z)/\lambda_v</span> denote the unconditioned transition probability. The guided transition probability (<a href="#eq-17-guided-prob" class="quarto-xref">Equation&nbsp;<span>18.4</span></a>) can be written as <span id="eq-17-h-transform"><span class="math display">\tilde{q}_{vz} = \frac{q_{vz} \cdot h_z}{h_v}, \tag{18.7}</span></span> since <span class="math inline">\sum_{z} q_{vz} \cdot h_z = h_v</span> by <a href="#eq-17-backward-system" class="quarto-xref">Equation&nbsp;<span>18.3</span></a>. This is precisely the Doob <span class="math inline">h</span>-transform of the transition kernel <span class="math inline">q</span> with respect to the function <span class="math inline">h</span> (see, e.g., Doob 1957; Rogers &amp; Williams 2000, Chapter III).</p>
+<p>The <span class="math inline">h</span>-transform is the standard construction for conditioning a Markov chain to reach a set <span class="math inline">A</span>: the transformed chain has the same law as the original chain conditioned on <span class="math inline">\{</span>absorption into <span class="math inline">A\}</span>. Formally, for any finite path <span class="math inline">(v^{(0)}, v^{(1)}, \ldots, v^{(L)})</span> ending in <span class="math inline">A</span>:</p>
+<p><span class="math display">\prod_{k=0}^{L-1} \tilde{q}_{v^{(k)} v^{(k+1)}} = \prod_{k=0}^{L-1} \frac{q_{v^{(k)} v^{(k+1)}} \cdot h_{v^{(k+1)}}}{h_{v^{(k)}}} = \frac{h_{v^{(L)}}}{h_{v^{(0)}}} \prod_{k=0}^{L-1} q_{v^{(k)} v^{(k+1)}} = \frac{1}{h_{v^{(0)}}} \prod_{k=0}^{L-1} q_{v^{(k)} v^{(k+1)}},</span></p>
+<p>since <span class="math inline">h_{v^{(L)}} = 1</span> for <span class="math inline">v^{(L)} \in A</span>. The factor <span class="math inline">1/h_{v^{(0)}}</span> is exactly the normalizing constant <span class="math inline">1/\Pr(\text{absorption into } A \mid X_0 = v^{(0)})</span>. Therefore the guided path probability equals the unconditioned path probability divided by the probability of the conditioning event, which is the defining property of the conditional distribution. <span class="math inline">\square</span></p>
+</div>
+</section>
+<section id="algorithms" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="algorithms">Algorithms</h2>
+<div id="alg-17-unconditioned-sampling" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-alg figure">
+<section id="unconditioned-path-sampling-1" class="level4" aria-describedby="alg-17-unconditioned-sampling-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="18.0.0.1">
+<h4 data-number="18.0.0.1" class="anchored" data-anchor-id="unconditioned-path-sampling-1"><span class="header-section-number">18.0.0.1</span> Unconditioned Path Sampling</h4>
+<p><em>Description.</em> Given a phase-type graph <span class="math inline">G</span>, this algorithm generates a random path from the starting vertex to an absorbing vertex by simulating the Markov chain. At each transient vertex, it draws a sojourn time from the exponential distribution with rate equal to the total outgoing rate, then selects the next vertex with probability proportional to the edge weights. If a reward vector is provided, the accumulated reward is computed along the path.</p>
+<pre><code>Unconditioned Path Sampling
+1: Let G = (V, E, W) be a phase-type graph with starting vertex v_0
+2: Let r be an optional reward vector indexed by vertices
+3:
+4: function SamplePath(G)
+5:   P ← empty sequence                            ▷ Path to build
+6:   v ← v_0
+7:   t ← 0
+8:   Append (v, t) to P
+9:   while children(v) ≠ ∅ do
+10:    λ_v ← Σ_{z ∈ children(v)} w(v → z)          ▷ Total outgoing rate
+11:    U ← Uniform(0, 1)
+12:    if v = v_0 then
+13:      Δt ← 0                                     ▷ Starting vertex: no holding time
+14:    else
+15:      Δt ← −log(U) / λ_v                         ▷ Exponential holding time
+16:    end if
+17:    t ← t + Δt
+18:    U' ← Uniform(0, 1)                            ▷ Draw for next-state selection
+19:    cumulative ← 0
+20:    for each edge (v → z) ∈ E do
+21:      cumulative ← cumulative + w(v → z) / λ_v
+22:      if cumulative ≥ U' then
+23:        v ← z                                     ▷ Transition to child z
+24:        break
+25:      end if
+26:    end for
+27:    Append (v, t) to P
+28:  end while
+29:  return P
+30: end function
+31:
+32: function SampleWithReward(G, r)
+33:   P ← SamplePath(G)
+34:   τ̃ ← 0
+35:   for k = 0, …, L−1 do
+36:     τ̃ ← τ̃ + r_{v^(k)} · (t^(k+1) − t^(k))     ▷ Reward-weighted sojourn
+37:   end for
+38:   return τ̃
+39: end function</code></pre>
+<p><strong>Correspondence table:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 20%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pseudocode variable</th>
+<th>Math symbol</th>
+<th>Code variable (file:function)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">G</span></td>
+<td><span class="math inline">G = (V, E, W)</span></td>
+<td><code>graph</code> (<code>phasic.c:ptd_random_sample_path</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">v</span></td>
+<td><span class="math inline">v^{(k)}</span></td>
+<td><code>vertex</code> (<code>phasic.c:ptd_random_sample_path</code>)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">t</span></td>
+<td><span class="math inline">t^{(k)}</span></td>
+<td><code>cumulative_time</code> (<code>phasic.c:ptd_random_sample_path</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\lambda_v</span></td>
+<td><span class="math inline">\lambda_{v^{(k)}}</span></td>
+<td><code>rate</code> (<code>phasic.c:ptd_random_sample_path</code>)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">U</span></td>
+<td><span class="math inline">U \sim \operatorname{Uniform}(0,1)</span></td>
+<td><code>draw_wait</code> (<code>phasic.c:ptd_random_sample_path</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\Delta t</span></td>
+<td><span class="math inline">\Delta t^{(k)}</span></td>
+<td><code>waiting_time</code> (<code>phasic.c:ptd_random_sample_path</code>)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">U'</span></td>
+<td><span class="math inline">U' \sim \operatorname{Uniform}(0,1)</span></td>
+<td><code>draw_direction</code> (<code>phasic.c:ptd_random_sample_path</code>)</td>
+</tr>
+<tr class="even">
+<td>cumulative</td>
+<td><span class="math inline">\sum w(v \to z)/\lambda_v</span></td>
+<td><code>weight_sum / rate</code> (<code>phasic.c:ptd_random_sample_path</code>)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathcal{P}</span></td>
+<td><span class="math inline">\mathcal{P}</span></td>
+<td><code>path</code> struct (<code>phasic.c:ptd_random_sample_path</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">r</span></td>
+<td><span class="math inline">\mathbf{r}</span></td>
+<td><code>rewards</code> (<code>phasic.c:ptd_random_sample</code>, <code>bffg.py:path_to_rewards</code>)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\tilde{\tau}</span></td>
+<td><span class="math inline">\tilde{\tau}(\mathcal{P})</span></td>
+<td><code>outcome</code> (<code>phasic.c:ptd_random_sample</code>), return value of <code>path_to_rewards</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Complexity.</strong> Time: <span class="math inline">O(L \cdot d_{\max})</span> where <span class="math inline">L</span> is the path length and <span class="math inline">d_{\max}</span> is the maximum out-degree. Space: <span class="math inline">O(L)</span> for storing the path.</p>
+</section>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-17-unconditioned-sampling-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Algorithm&nbsp;18.1: <strong>Correctness.</strong> Follows from <a href="#thm-17-unconditioned-correctness" class="quarto-xref">Theorem&nbsp;<span>18.1</span></a>. The inverse-CDF method for the exponential distribution (<span class="math inline">-\log(U)/\lambda</span>) produces <span class="math inline">\operatorname{Exp}(\lambda)</span>-distributed samples. The cumulative-weight selection implements categorical sampling with probabilities proportional to edge weights.
+</figcaption>
+</figure>
+</div>
+<div id="alg-17-backward-probability" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-alg figure">
+<section id="backward-probability-computation" class="level4" aria-describedby="alg-17-backward-probability-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="18.0.0.2">
+<h4 data-number="18.0.0.2" class="anchored" data-anchor-id="backward-probability-computation"><span class="header-section-number">18.0.0.2</span> Backward Probability Computation</h4>
+<p><em>Description.</em> Given a phase-type graph <span class="math inline">G</span> and a set of target vertices <span class="math inline">A</span>, this algorithm computes the backward probability vector <span class="math inline">\mathbf{h}</span> (<a href="#def-17-backward-prob" class="quarto-xref">Definition&nbsp;<span>18.3</span></a>) via a single reverse pass over the vertices. Since the backward probability of a vertex depends only on the backward probabilities of its children, processing vertices in reverse index order ensures that all children are processed before their parents, provided the graph’s topological structure is compatible with the index ordering. For graphs where the index ordering does not perfectly reflect the topological order, the algorithm still converges because it solves the fixed-point equation (<a href="#eq-17-backward-system" class="quarto-xref">Equation&nbsp;<span>18.3</span></a>) through a backward sweep.</p>
+<pre><code>Backward Probability Computation
+1: Let G = (V, E, W) be a phase-type graph with |V| vertices
+2: Let A ⊆ V be the set of target vertices (given as indices)
+3:
+4: function BackwardProbabilities(G, A)
+5:   h ← array of |V| zeros
+6:   for each a ∈ A do
+7:     h[a] ← 1                                    ▷ Target vertices have probability 1
+8:   end for
+9:   for idx = |V|−1, |V|−2, …, 0 do               ▷ Reverse pass over vertices
+10:    v ← V[idx]
+11:    if children(v) = ∅ then
+12:      continue                                    ▷ Absorbing vertex: keep h as initialized
+13:    end if
+14:    if idx ∈ A then
+15:      continue                                    ▷ Target vertex: keep h = 1
+16:    end if
+17:    λ_v ← Σ_{z ∈ children(v)} w(v → z)
+18:    if λ_v ≤ 0 then
+19:      h[idx] ← 0
+20:      continue
+21:    end if
+22:    h[idx] ← Σ_{z ∈ children(v)} (w(v → z) / λ_v) · h[z]  ▷ @eq-17-backward-system
+23:  end for
+24:  return h
+25: end function</code></pre>
+<p><strong>Correspondence table:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 20%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pseudocode variable</th>
+<th>Math symbol</th>
+<th>Code variable (file:function)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">G</span></td>
+<td><span class="math inline">G = (V, E, W)</span></td>
+<td><code>graph</code> (<code>phasic.c:ptd_backward_probabilities</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">A</span></td>
+<td><span class="math inline">A</span></td>
+<td><code>target_vertices</code>, <code>n_targets</code> (<code>phasic.c:ptd_backward_probabilities</code>)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">h</span></td>
+<td><span class="math inline">\mathbf{h}</span></td>
+<td><code>h</code> (<code>phasic.c:ptd_backward_probabilities</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\lambda_v</span></td>
+<td><span class="math inline">\lambda_v</span></td>
+<td><code>total_weight</code> (<code>phasic.c:ptd_backward_probabilities</code>)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">w(v \to z)/\lambda_v</span></td>
+<td><span class="math inline">q_{vz}</span></td>
+<td><code>trans_prob</code> (<code>phasic.c:ptd_backward_probabilities</code>)</td>
+</tr>
+<tr class="even">
+<td>idx</td>
+<td>vertex index</td>
+<td><code>idx</code> (<code>phasic.c:ptd_backward_probabilities</code>)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Complexity.</strong> Time: <span class="math inline">O(|V| + |E|)</span>, since each vertex and each edge is visited exactly once. Space: <span class="math inline">O(|V|)</span> for the backward probability array.</p>
+</section>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-17-backward-probability-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Algorithm&nbsp;18.2: <strong>Correctness.</strong> The algorithm computes the solution to the system of equations (<a href="#eq-17-backward-system" class="quarto-xref">Equation&nbsp;<span>18.3</span></a>) in <a href="#def-17-backward-prob" class="quarto-xref">Definition&nbsp;<span>18.3</span></a>. The boundary conditions are enforced in lines 6–8 (target vertices) and lines 11–12 (non-target absorbing vertices, which retain <span class="math inline">h = 0</span>). For transient vertices, line 22 directly evaluates <a href="#eq-17-backward-system" class="quarto-xref">Equation&nbsp;<span>18.3</span></a>. The reverse-order traversal ensures that for acyclic graphs (or graphs where children have higher indices than parents), all children are processed before their parent. In phase-type graphs arising from phasic’s state-space construction ([08]), this property holds because child vertices are created after their parents.
+</figcaption>
+</figure>
+</div>
+<div id="alg-17-conditioned-sampling" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-alg figure">
+<section id="conditioned-path-sampling-1" class="level4" aria-describedby="alg-17-conditioned-sampling-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="18.0.0.3">
+<h4 data-number="18.0.0.3" class="anchored" data-anchor-id="conditioned-path-sampling-1"><span class="header-section-number">18.0.0.3</span> Conditioned Path Sampling</h4>
+<p><em>Description.</em> Given a phase-type graph <span class="math inline">G</span> and a backward probability vector <span class="math inline">\mathbf{h}</span> (computed by <a href="#alg-17-backward-probability" class="quarto-xref">Algorithm&nbsp;<span>18.2</span></a>), this algorithm generates a random path conditioned on reaching the target set <span class="math inline">A</span>. The key modification compared to <a href="#alg-17-unconditioned-sampling" class="quarto-xref">Algorithm&nbsp;<span>18.1</span></a> is that the transition probability at each step is reweighted by the backward probability of the candidate child vertex, implementing the Doob <span class="math inline">h</span>-transform (<a href="#thm-17-conditioned-correctness" class="quarto-xref">Theorem&nbsp;<span>18.2</span></a>).</p>
+<pre><code>Conditioned Path Sampling
+1: Let G = (V, E, W) be a phase-type graph with starting vertex v_0
+2: Let h be the backward probability vector (from Backward Probability)
+3:
+4: function SamplePathConditioned(G, h)
+5:   P ← empty sequence
+6:   v ← v_0
+7:   t ← 0
+8:   Append (v, t) to P
+9:   while children(v) ≠ ∅ and h[v] &lt; 1 do          ▷ Stop at target vertices
+10:    λ_v ← Σ_{z ∈ children(v)} w(v → z)
+11:    U ← Uniform(0, 1)
+12:    if v = v_0 then
+13:      Δt ← 0
+14:    else
+15:      Δt ← −log(U) / λ_v
+16:    end if
+17:    t ← t + Δt
+18:    g ← Σ_{z ∈ children(v)} w(v → z) · h[z]       ▷ Guided normalizer
+19:    if g ≤ 0 then
+20:      break                                        ▷ No reachable target
+21:    end if
+22:    U' ← Uniform(0, 1)
+23:    cumulative ← 0
+24:    for each edge (v → z) ∈ E do
+25:      cumulative ← cumulative + w(v → z) · h[z] / g  ▷ Guided probability
+26:      if cumulative ≥ U' then
+27:        v ← z
+28:        break
+29:      end if
+30:    end for
+31:    Append (v, t) to P
+32:  end while
+33:  return P
+34: end function</code></pre>
+<p><strong>Correspondence table:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 20%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pseudocode variable</th>
+<th>Math symbol</th>
+<th>Code variable (file:function)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">G</span></td>
+<td><span class="math inline">G = (V, E, W)</span></td>
+<td><code>graph</code> (<code>phasic.c:ptd_random_sample_path_conditioned</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">h</span></td>
+<td><span class="math inline">\mathbf{h}</span></td>
+<td><code>backward_probs</code> (<code>phasic.c:ptd_random_sample_path_conditioned</code>)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">v</span></td>
+<td><span class="math inline">v^{(k)}</span></td>
+<td><code>vertex</code> (<code>phasic.c:ptd_random_sample_path_conditioned</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">t</span></td>
+<td><span class="math inline">t^{(k)}</span></td>
+<td><code>cumulative_time</code> (<code>phasic.c:ptd_random_sample_path_conditioned</code>)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\lambda_v</span></td>
+<td><span class="math inline">\lambda_{v^{(k)}}</span></td>
+<td><code>rate</code> (<code>phasic.c:ptd_random_sample_path_conditioned</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">g</span></td>
+<td><span class="math inline">\sum_z w(v \to z) \cdot h_z</span></td>
+<td><code>guided_total</code> (<code>phasic.c:ptd_random_sample_path_conditioned</code>)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">w(v \to z) \cdot h_z / g</span></td>
+<td><span class="math inline">\tilde{q}_{vz}</span> (<a href="#eq-17-guided-prob" class="quarto-xref">Equation&nbsp;<span>18.4</span></a>)</td>
+<td><code>guided_weight / guided_total</code> (<code>phasic.c:ptd_random_sample_path_conditioned</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mathcal{P}</span></td>
+<td><span class="math inline">\mathcal{P}</span></td>
+<td><code>path</code> struct (<code>phasic.c:ptd_random_sample_path_conditioned</code>)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Complexity.</strong> Time: <span class="math inline">O(L \cdot d_{\max})</span> where <span class="math inline">L</span> is the conditioned path length and <span class="math inline">d_{\max}</span> is the maximum out-degree. Space: <span class="math inline">O(L + |V|)</span> for the path and the backward probability vector.</p>
+</section>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-17-conditioned-sampling-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Algorithm&nbsp;18.3: <strong>Correctness.</strong> Follows from <a href="#thm-17-conditioned-correctness" class="quarto-xref">Theorem&nbsp;<span>18.2</span></a>. The guided transition probability in line 25 implements <a href="#eq-17-guided-prob" class="quarto-xref">Equation&nbsp;<span>18.4</span></a>. The termination condition <span class="math inline">h[v] &lt; 1</span> in line 9 ensures the process stops upon reaching a target vertex (where <span class="math inline">h = 1</span>). The guard <span class="math inline">g \leq 0</span> in line 19 handles the degenerate case where no target is reachable (which cannot occur if <span class="math inline">h_{v_0} &gt; 0</span>, but provides numerical safety).
+</figcaption>
+</figure>
+</div>
+</section>
+<section id="numerical-considerations" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="numerical-considerations">Numerical Considerations</h2>
+<p><strong>Exponential variate generation.</strong> The implementation uses <span class="math inline">-\log(U + \epsilon) / \lambda_v</span> with <span class="math inline">\epsilon = 10^{-7}</span> (see <code>phasic.c</code> line 6709) rather than <span class="math inline">-\log(U) / \lambda_v</span>. This prevents overflow when <span class="math inline">U = 0</span> (which can occur with finite-precision pseudorandom number generators). The bias introduced is negligible: the maximum relative error in the waiting time is <span class="math inline">|\log(U + \epsilon) - \log(U)| / |\log(U)| \leq \epsilon / (U |\log(U)|)</span>, which is small for all but the most extreme tail events.</p>
+<p><strong>Cumulative weight comparison.</strong> The next-state selection compares <span class="math inline">\sum w / \lambda_v \geq U'</span> (line 22 in <a href="#alg-17-unconditioned-sampling" class="quarto-xref">Algorithm&nbsp;<span>18.1</span></a>). This is the inverse-CDF method for categorical sampling. The implementation accumulates weights in the order edges are stored, which may introduce a slight bias if floating-point rounding causes the cumulative sum to reach 1 before the last edge. In practice, this effect is negligible for graphs with moderate out-degree.</p>
+<p><strong>DPH rate validation.</strong> For discrete phase-type sampling (<code>ptd_dph_random_sample</code>), the implementation validates that the total outgoing rate <span class="math inline">\lambda_v \leq 1 + \epsilon</span> at each vertex (with <span class="math inline">\epsilon = 10^{-4}</span>), since DPH transition probabilities must sum to at most 1. This guards against accidental use of a CPH graph with the DPH sampling routine.</p>
+<p><strong>Thread safety.</strong> The standard <code>ptd_random_sample_path_conditioned</code> uses the global <code>rand()</code> function, which is not thread-safe. The variant <code>ptd_random_sample_path_conditioned_fixed</code> accepts a seed parameter and uses <code>rand_r()</code> for thread-safe generation with reproducible sequences.</p>
+</section>
+<section id="implementation-notes" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="implementation-notes">Implementation Notes</h2>
+<p><strong>Source code mapping:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 17%">
+<col style="width: 29%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Algorithm</th>
+<th>File</th>
+<th>Function</th>
+<th>Lines</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="#alg-17-unconditioned-sampling" class="quarto-xref">Algorithm&nbsp;<span>18.1</span></a> (path sampling)</td>
+<td><code>src/c/phasic.c</code></td>
+<td><code>ptd_random_sample_path</code></td>
+<td>L6741–L6804</td>
+</tr>
+<tr class="even">
+<td><a href="#alg-17-unconditioned-sampling" class="quarto-xref">Algorithm&nbsp;<span>18.1</span></a> (sample with reward)</td>
+<td><code>src/c/phasic.c</code></td>
+<td><code>ptd_random_sample</code></td>
+<td>L6694–L6739</td>
+</tr>
+<tr class="odd">
+<td><a href="#alg-17-unconditioned-sampling" class="quarto-xref">Algorithm&nbsp;<span>18.1</span></a> (DPH variant)</td>
+<td><code>src/c/phasic.c</code></td>
+<td><code>ptd_dph_random_sample</code></td>
+<td>L7082–L7149</td>
+</tr>
+<tr class="even">
+<td><a href="#alg-17-backward-probability" class="quarto-xref">Algorithm&nbsp;<span>18.2</span></a></td>
+<td><code>src/c/phasic.c</code></td>
+<td><code>ptd_backward_probabilities</code></td>
+<td>L6806–L6865</td>
+</tr>
+<tr class="odd">
+<td><a href="#alg-17-conditioned-sampling" class="quarto-xref">Algorithm&nbsp;<span>18.3</span></a></td>
+<td><code>src/c/phasic.c</code></td>
+<td><code>ptd_random_sample_path_conditioned</code></td>
+<td>L6867–L6946</td>
+</tr>
+<tr class="even">
+<td><a href="#alg-17-conditioned-sampling" class="quarto-xref">Algorithm&nbsp;<span>18.3</span></a> (fixed-buffer variant)</td>
+<td><code>src/c/phasic.c</code></td>
+<td><code>ptd_random_sample_path_conditioned_fixed</code></td>
+<td>L6956–L7032</td>
+</tr>
+<tr class="odd">
+<td>Path reward decomposition</td>
+<td><code>src/phasic/bffg.py</code></td>
+<td><code>path_to_rewards</code></td>
+<td>L22–L74</td>
+</tr>
+<tr class="even">
+<td>Path exit rates</td>
+<td><code>src/phasic/bffg.py</code></td>
+<td><code>path_exit_rates</code></td>
+<td>L77–L118</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Deviations from pseudocode:</strong></p>
+<ul>
+<li><p><strong>Dynamic array growth.</strong> <a href="#alg-17-unconditioned-sampling" class="quarto-xref">Algorithm&nbsp;<span>18.1</span></a> and 29 show paths as abstract sequences. The C implementation uses a dynamically resizing array (initial capacity 16, doubled on overflow) for <code>vertex_indices</code> and <code>entry_times</code>.</p></li>
+<li><p><strong>Safety limit.</strong> <code>ptd_random_sample_path</code> enforces a maximum step count of <span class="math inline">100 \times |V|</span> to prevent infinite loops in degenerate graphs. The pseudocode does not include this guard.</p></li>
+<li><p><strong>Two sampling functions.</strong> The pseudocode separates <code>SamplePath</code> (returning the full path) and <code>SampleWithReward</code> (returning only the accumulated reward). In the C implementation, <code>ptd_random_sample</code> computes only the reward (without storing the full path), while <code>ptd_random_sample_path</code> stores the full path (without computing rewards). The reward decomposition of a stored path is handled by <code>path_to_rewards</code> in Python.</p></li>
+<li><p><strong>Multivariate sampling.</strong> <code>ptd_mph_random_sample</code> and <code>ptd_mdph_random_sample</code> extend the single-reward case to reward matrices with <span class="math inline">m</span> columns, computing all <span class="math inline">m</span> marginal rewards in a single pass. These are not shown separately in the pseudocode but follow the same structure with the inner loop replaced by a vector accumulation.</p></li>
+<li><p><strong>Fixed-buffer variant.</strong> <code>ptd_random_sample_path_conditioned_fixed</code> pre-allocates a fixed-size output buffer and uses <code>rand_r()</code> for thread-safe generation. Unused entries are padded with sentinel values (<span class="math inline">-1</span> for vertex indices, <span class="math inline">0</span> for times).</p></li>
+</ul>
+</section>
+<section id="symbol-index" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="symbol-index">Symbol Index</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 19%">
+<col style="width: 54%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Symbol</th>
+<th>Name</th>
+<th>First appearance</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\mathcal{P}</span></td>
+<td>Random path</td>
+<td><a href="#def-17-random-path" class="quarto-xref">Definition&nbsp;<span>18.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">v^{(k)}</span></td>
+<td><span class="math inline">k</span>-th vertex in path</td>
+<td><a href="#def-17-random-path" class="quarto-xref">Definition&nbsp;<span>18.1</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">t^{(k)}</span></td>
+<td>Entry time at step <span class="math inline">k</span></td>
+<td><a href="#def-17-random-path" class="quarto-xref">Definition&nbsp;<span>18.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">L</span></td>
+<td>Path length</td>
+<td><a href="#def-17-random-path" class="quarto-xref">Definition&nbsp;<span>18.1</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\Delta t^{(k)}</span></td>
+<td>Sojourn time at step <span class="math inline">k</span></td>
+<td><a href="#def-17-random-path" class="quarto-xref">Definition&nbsp;<span>18.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mathbf{h}</span></td>
+<td>Backward probability vector</td>
+<td><a href="#def-17-backward-prob" class="quarto-xref">Definition&nbsp;<span>18.3</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">h_v</span></td>
+<td>Backward probability at vertex <span class="math inline">v</span></td>
+<td><a href="#def-17-backward-prob" class="quarto-xref">Definition&nbsp;<span>18.3</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">A</span></td>
+<td>Target vertex set</td>
+<td><a href="#def-17-backward-prob" class="quarto-xref">Definition&nbsp;<span>18.3</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\tilde{q}_{vz}</span></td>
+<td>Guided transition probability</td>
+<td><a href="#def-17-conditioned-sampling" class="quarto-xref">Definition&nbsp;<span>18.4</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\tilde{\tau}(\mathcal{P})</span></td>
+<td>Accumulated reward along path</td>
+<td><a href="#def-17-path-reward" class="quarto-xref">Definition&nbsp;<span>18.5</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">g</span></td>
+<td>Guided normalizer</td>
+<td><a href="#alg-17-conditioned-sampling" class="quarto-xref">Algorithm&nbsp;<span>18.3</span></a></td>
+</tr>
+</tbody>
+</table>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./16_pdf_gradients.html" class="pagination-link" aria-label="PDF Gradients">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./18_svgd.html" class="pagination-link" aria-label="Stein Variational Gradient Descent">
+        <span class="nav-page-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

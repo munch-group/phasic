@@ -1,0 +1,1468 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Caching System</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-342d2e45858bb5501d02373b23ba26fb.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-a46b01d6fc144a45784d8f299ab2dd32.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script async="" src="https://hypothes.is/embed.js"></script>
+<script>
+  window.document.addEventListener("DOMContentLoaded", function (_event) {
+    document.body.classList.add('hypothesis-enabled');
+  });
+</script>
+<meta name="mermaid-theme" content="neutral">
+<script src="../../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="../../api/_styles-quartodoc.css">
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a href="../../index.html" class="navbar-brand navbar-brand-logo">
+    <img src="../../PHASIC.png" alt="Phasic" class="navbar-logo light-content">
+    <img src="../../PHASIC.png" alt="Phasic" class="navbar-logo dark-content">
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../pages/getting_started.html"> 
+<span class="menu-text">Documentation</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../api/"> 
+<span class="menu-text">Python API reference</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../mathref/index.html"> 
+<span class="menu-text">Mathematical Reference</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/munch-group/phasic/"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#why-three-layers" id="toc-why-three-layers" class="nav-link active" data-scroll-target="#why-three-layers">Why Three Layers?</a></li>
+  <li><a href="#trace-cache" id="toc-trace-cache" class="nav-link" data-scroll-target="#trace-cache">Layer 1: Trace Cache</a>
+  <ul class="collapse">
+  <li><a href="#what-it-caches" id="toc-what-it-caches" class="nav-link" data-scroll-target="#what-it-caches">What It Caches</a></li>
+  <li><a href="#how-it-works" id="toc-how-it-works" class="nav-link" data-scroll-target="#how-it-works">How It Works</a></li>
+  <li><a href="#basic-usage" id="toc-basic-usage" class="nav-link" data-scroll-target="#basic-usage">Basic Usage</a></li>
+  <li><a href="#cache-inspection" id="toc-cache-inspection" class="nav-link" data-scroll-target="#cache-inspection">Cache Inspection</a></li>
+  <li><a href="#performance-impact" id="toc-performance-impact" class="nav-link" data-scroll-target="#performance-impact">Performance Impact</a></li>
+  </ul></li>
+  <li><a href="#svgd-cache" id="toc-svgd-cache" class="nav-link" data-scroll-target="#svgd-cache">Layer 2: SVGD Compilation Cache</a>
+  <ul class="collapse">
+  <li><a href="#what-it-caches-1" id="toc-what-it-caches-1" class="nav-link" data-scroll-target="#what-it-caches-1">What It Caches</a></li>
+  <li><a href="#how-it-works-1" id="toc-how-it-works-1" class="nav-link" data-scroll-target="#how-it-works-1">How It Works</a></li>
+  <li><a href="#basic-usage-1" id="toc-basic-usage-1" class="nav-link" data-scroll-target="#basic-usage-1">Basic Usage</a></li>
+  <li><a href="#cache-behavior" id="toc-cache-behavior" class="nav-link" data-scroll-target="#cache-behavior">Cache Behavior</a></li>
+  </ul></li>
+  <li><a href="#jax-cache" id="toc-jax-cache" class="nav-link" data-scroll-target="#jax-cache">Layer 3: JAX Compilation Cache</a>
+  <ul class="collapse">
+  <li><a href="#what-it-caches-2" id="toc-what-it-caches-2" class="nav-link" data-scroll-target="#what-it-caches-2">What It Caches</a></li>
+  <li><a href="#how-it-works-2" id="toc-how-it-works-2" class="nav-link" data-scroll-target="#how-it-works-2">How It Works</a></li>
+  <li><a href="#configuration" id="toc-configuration" class="nav-link" data-scroll-target="#configuration">Configuration</a></li>
+  <li><a href="#cache-management" id="toc-cache-management" class="nav-link" data-scroll-target="#cache-management">Cache Management</a></li>
+  <li><a href="#performance-impact-1" id="toc-performance-impact-1" class="nav-link" data-scroll-target="#performance-impact-1">Performance Impact</a></li>
+  </ul></li>
+  <li><a href="#quick-start" id="toc-quick-start" class="nav-link" data-scroll-target="#quick-start">Quick Start</a>
+  <ul class="collapse">
+  <li><a href="#single-machine-workflow" id="toc-single-machine-workflow" class="nav-link" data-scroll-target="#single-machine-workflow">Single Machine Workflow</a></li>
+  <li><a href="#pre-warming-cache-for-production" id="toc-pre-warming-cache-for-production" class="nav-link" data-scroll-target="#pre-warming-cache-for-production">Pre-warming Cache for Production</a></li>
+  </ul></li>
+  <li><a href="#advanced" id="toc-advanced" class="nav-link" data-scroll-target="#advanced">Advanced Usage</a>
+  <ul class="collapse">
+  <li><a href="#full-pipeline-integration" id="toc-full-pipeline-integration" class="nav-link" data-scroll-target="#full-pipeline-integration">Full Pipeline Integration</a></li>
+  <li><a href="#distributed-computing" id="toc-distributed-computing" class="nav-link" data-scroll-target="#distributed-computing">Distributed Computing</a></li>
+  </ul></li>
+  <li><a href="#testing" id="toc-testing" class="nav-link" data-scroll-target="#testing">Testing the Cache System</a>
+  <ul class="collapse">
+  <li><a href="#comprehensive-test-suite" id="toc-comprehensive-test-suite" class="nav-link" data-scroll-target="#comprehensive-test-suite">Comprehensive Test Suite</a></li>
+  <li><a href="#manual-cache-testing" id="toc-manual-cache-testing" class="nav-link" data-scroll-target="#manual-cache-testing">Manual Cache Testing</a></li>
+  </ul></li>
+  <li><a href="#best-practices" id="toc-best-practices" class="nav-link" data-scroll-target="#best-practices">Best Practices</a>
+  <ul class="collapse">
+  <li><a href="#do-always-enable-caching" id="toc-do-always-enable-caching" class="nav-link" data-scroll-target="#do-always-enable-caching">DO: Always Enable Caching</a></li>
+  <li><a href="#do-configure-jax-early" id="toc-do-configure-jax-early" class="nav-link" data-scroll-target="#do-configure-jax-early">DO: Configure JAX Early</a></li>
+  <li><a href="#do-pre-warm-for-production" id="toc-do-pre-warm-for-production" class="nav-link" data-scroll-target="#do-pre-warm-for-production">DO: Pre-warm for Production</a></li>
+  <li><a href="#do-monitor-cache-size" id="toc-do-monitor-cache-size" class="nav-link" data-scroll-target="#do-monitor-cache-size">DO: Monitor Cache Size</a></li>
+  <li><a href="#dont-rely-on-disk-svgd-cache" id="toc-dont-rely-on-disk-svgd-cache" class="nav-link" data-scroll-target="#dont-rely-on-disk-svgd-cache">❌ DON’T: Rely on Disk SVGD Cache</a></li>
+  <li><a href="#dont-configure-jax-after-import" id="toc-dont-configure-jax-after-import" class="nav-link" data-scroll-target="#dont-configure-jax-after-import">❌ DON’T: Configure JAX After Import</a></li>
+  </ul></li>
+  <li><a href="#troubleshooting" id="toc-troubleshooting" class="nav-link" data-scroll-target="#troubleshooting">Troubleshooting</a>
+  <ul class="collapse">
+  <li><a href="#cache-not-working" id="toc-cache-not-working" class="nav-link" data-scroll-target="#cache-not-working">Cache Not Working?</a></li>
+  <li><a href="#out-of-disk-space" id="toc-out-of-disk-space" class="nav-link" data-scroll-target="#out-of-disk-space">Out of Disk Space?</a></li>
+  <li><a href="#slow-first-run" id="toc-slow-first-run" class="nav-link" data-scroll-target="#slow-first-run">Slow First Run?</a></li>
+  </ul></li>
+  <li><a href="#benchmarks" id="toc-benchmarks" class="nav-link" data-scroll-target="#benchmarks">Performance Benchmarks</a>
+  <ul class="collapse">
+  <li><a href="#trace-cache-impact" id="toc-trace-cache-impact" class="nav-link" data-scroll-target="#trace-cache-impact">Trace Cache Impact</a></li>
+  <li><a href="#jax-cache-impact" id="toc-jax-cache-impact" class="nav-link" data-scroll-target="#jax-cache-impact">JAX Cache Impact</a></li>
+  <li><a href="#combined-impact-svgd-with-1000-iterations" id="toc-combined-impact-svgd-with-1000-iterations" class="nav-link" data-scroll-target="#combined-impact-svgd-with-1000-iterations">Combined Impact: SVGD with 1000 Iterations</a></li>
+  <li><a href="#real-world-example" id="toc-real-world-example" class="nav-link" data-scroll-target="#real-world-example">Real-World Example</a></li>
+  </ul></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/munch-group/phasic/edit/main/docs/pages/internals/caching.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/phasic/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/phasic/blob/main/docs/pages/internals/caching.qmd" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Caching System</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>Phasic optimizes performance through a three-layer caching system, each targeting a different computational bottleneck:</p>
+<ul>
+<li><strong>Graph Elimination</strong> (10-1000ms): O(n³), structure-dependent</li>
+<li><strong>Gradient Compilation</strong> (1-60s): First SVGD initialization</li>
+<li><strong>XLA Compilation</strong> (1-10s): Shape-dependent</li>
+<li><strong>Evaluation</strong> (&lt;1ms): Parameter-dependent</li>
+</ul>
+<p>By caching all three stages, repeated evaluations become nearly instant!</p>
+<ol type="1">
+<li><strong>Trace Cache</strong> - Graph elimination operations (10-1000x speedup)</li>
+<li><strong>SVGD Compilation Cache</strong> - JIT-compiled gradients (instant on hit)</li>
+<li><strong>JAX Compilation Cache</strong> - XLA compilations (seconds → instant)</li>
+</ol>
+<p>For parameterized models, computation happens in stages:</p>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TB
+    A[User Code] --&gt; B[Layer 1: Trace Cache]
+    B --&gt; C[Layer 2: SVGD Compilation Cache]
+    C --&gt; D[Layer 3: JAX Compilation Cache]
+    D --&gt; E[Execution]
+
+    B -.-&gt;|Hit: 0.1-1ms| E
+    B -.-&gt;|Miss: 10-1000ms| C
+    C -.-&gt;|Hit: instant| E
+    C -.-&gt;|Miss: 1-60s| D
+    D -.-&gt;|Hit: instant| E
+    D -.-&gt;|Miss: compile| E
+
+    style B fill:#e1f5dd
+    style C fill:#fff4dd
+    style D fill:#ffe4dd
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<section id="why-three-layers" class="level3">
+<h3 class="anchored" data-anchor-id="why-three-layers">Why Three Layers?</h3>
+</section>
+<section id="trace-cache" class="level2">
+<h2 class="anchored" data-anchor-id="trace-cache">Layer 1: Trace Cache</h2>
+<section id="what-it-caches" class="level3">
+<h3 class="anchored" data-anchor-id="what-it-caches">What It Caches</h3>
+<p>The trace cache stores pre-computed <strong>graph elimination traces</strong> from <code>record_elimination_trace()</code>. The cache key is a <strong>SHA-256 hash</strong> of:</p>
+<ul>
+<li>Graph topology (vertices, edges)</li>
+<li>State space dimensions</li>
+<li>Parameterization patterns (edge coefficients)</li>
+<li><strong>NOT</strong> actual parameter values (structure-only)</li>
+</ul>
+<p><strong>Location:</strong> <code>~/.phasic_cache/traces/*.json</code></p>
+</section>
+<section id="how-it-works" class="level3">
+<h3 class="anchored" data-anchor-id="how-it-works">How It Works</h3>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    A[Graph Structure] --&gt; B[Serialize &amp; Hash]
+    B --&gt; C{Cache Hit?}
+    C --&gt;|Yes| D[Load Trace&lt;br/&gt;0.1-1ms]
+    C --&gt;|No| E[Perform Elimination&lt;br/&gt;10-1000ms]
+    E --&gt; F[Save Trace]
+    F --&gt; G[Return Result]
+    D --&gt; G
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<p><strong>Algorithm:</strong> 1. Graph structure is serialized and hashed (SHA-256) 2. Check <code>~/.phasic_cache/traces/{hash}.json</code> 3. <strong>Hit:</strong> Load trace and skip elimination (0.1-1ms) 4. <strong>Miss:</strong> Perform elimination (10-1000ms), save trace 5. Future builds of same structure: instant</p>
+</section>
+<section id="basic-usage" class="level3">
+<h3 class="anchored" data-anchor-id="basic-usage">Basic Usage</h3>
+<p>The trace cache is used automatically when building graphs:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Define callback for parameterized graph</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalescent_callback(state, nr_samples<span class="op">=</span><span class="dv">3</span>):</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">len</span>(state) <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> [(np.array([nr_samples]), <span class="fl">1.0</span>, [<span class="fl">1.0</span>])]</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> state[<span class="dv">0</span>] <span class="op">&gt;</span> <span class="dv">1</span>:</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>        n <span class="op">=</span> state[<span class="dv">0</span>]</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> [(np.array([n <span class="op">-</span> <span class="dv">1</span>]), <span class="fl">0.0</span>, [n <span class="op">*</span> (n <span class="op">-</span> <span class="dv">1</span>) <span class="op">/</span> <span class="dv">2</span>])]</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> []</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Build graph (first time: slow, subsequent: fast)</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>g <span class="op">=</span> Graph(coalescent_callback)</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="co"># First build: 10-1000ms (eliminates and caches)</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Second build: 0.1-1ms (loads from cache)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="cache-inspection" class="level3">
+<h3 class="anchored" data-anchor-id="cache-inspection">Cache Inspection</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Check trace cache directory</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>trace_cache_dir <span class="op">=</span> Path.home() <span class="op">/</span> <span class="st">'.phasic_cache'</span> <span class="op">/</span> <span class="st">'traces'</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>num_traces <span class="op">=</span> <span class="bu">len</span>(<span class="bu">list</span>(trace_cache_dir.glob(<span class="st">'*.json'</span>))) <span class="cf">if</span> trace_cache_dir.exists() <span class="cf">else</span> <span class="dv">0</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Cached traces: </span><span class="sc">{</span>num_traces<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Location: </span><span class="sc">{</span>trace_cache_dir<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="performance-impact" class="level3">
+<h3 class="anchored" data-anchor-id="performance-impact">Performance Impact</h3>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Model Size</th>
+<th>No Cache</th>
+<th>With Cache</th>
+<th>Speedup</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>37 vertices</td>
+<td>45ms</td>
+<td>1.3ms</td>
+<td>35x</td>
+</tr>
+<tr class="even">
+<td>67 vertices</td>
+<td>250ms</td>
+<td>2.1ms</td>
+<td>120x</td>
+</tr>
+<tr class="odd">
+<td>100+ vertices</td>
+<td>500ms+</td>
+<td>5ms</td>
+<td>100x+</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="svgd-cache" class="level2">
+<h2 class="anchored" data-anchor-id="svgd-cache">Layer 2: SVGD Compilation Cache</h2>
+<section id="what-it-caches-1" class="level3">
+<h3 class="anchored" data-anchor-id="what-it-caches-1">What It Caches</h3>
+<p>The SVGD cache stores <strong>JIT-compiled gradient functions</strong> during SVGD initialization. The cache key is:</p>
+<pre><code>(model_id, theta_shape, n_particles)</code></pre>
+<p><strong>Location:</strong> - <strong>Memory:</strong> Python dict (reliable, session-based) - <strong>Disk:</strong> Pickle files (unreliable, ~80% failure rate due to JAX limitations)</p>
+<div class="callout callout-style-default callout-warning no-icon callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Warning</span>Disk Cache Limitation
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The disk component often fails due to pickle limitations with JAX JIT functions. Memory cache works reliably within a session.</p>
+</div>
+</div>
+</section>
+<section id="how-it-works-1" class="level3">
+<h3 class="anchored" data-anchor-id="how-it-works-1">How It Works</h3>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    A[SVGD Init] --&gt; B{Memory Cache?}
+    B --&gt;|Hit| C[Reuse Gradient&lt;br/&gt;instant]
+    B --&gt;|Miss| D{Disk Cache?}
+    D --&gt;|Hit| E[Load Gradient&lt;br/&gt;fast]
+    D --&gt;|Miss| F[Compile with&lt;br/&gt;jit-grad-log-prob&lt;br/&gt;1-60s]
+    F --&gt; G[Save to Memory]
+    G --&gt; C
+    E --&gt; C
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+</section>
+<section id="basic-usage-1" class="level3">
+<h3 class="anchored" data-anchor-id="basic-usage-1">Basic Usage</h3>
+<p>Caching happens automatically in SVGD:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> SVGD</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax.numpy <span class="im">as</span> jnp</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Build model</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> Graph.pmf_from_graph(g, discrete<span class="op">=</span><span class="va">False</span>, theta_dim<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> g.sample(<span class="dv">100</span>)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="co"># First SVGD: Compiles gradients (slow)</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>svgd1 <span class="op">=</span> SVGD(</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span>model,</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    observed_data<span class="op">=</span>observed_data,</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    theta_dim<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">100</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Initialization: 1-60s (compilation)</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Second SVGD (same config): Uses cache (fast)</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>svgd2 <span class="op">=</span> SVGD(</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span>model,</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>    observed_data<span class="op">=</span>observed_data,</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>    theta_dim<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">100</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Initialization: &lt;100ms (cache hit)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="cache-behavior" class="level3">
+<h3 class="anchored" data-anchor-id="cache-behavior">Cache Behavior</h3>
+<p><strong>Memory cache (reliable):</strong> - Lives for Python session duration - Shared across SVGD instances - Instant reuse on cache hit</p>
+<p><strong>Disk cache (unreliable):</strong> - Often fails to pickle JAX JIT functions - Failures silently ignored - Not recommended for critical workflows</p>
+<p><strong>Recommendation:</strong> Rely on memory cache within session, JAX cache across sessions.</p>
+</section>
+</section>
+<section id="jax-cache" class="level2">
+<h2 class="anchored" data-anchor-id="jax-cache">Layer 3: JAX Compilation Cache</h2>
+<section id="what-it-caches-2" class="level3">
+<h3 class="anchored" data-anchor-id="what-it-caches-2">What It Caches</h3>
+<p>JAX caches compiled <strong>XLA code</strong> based on: - Function structure (HLO graph) - Input shapes (not values) - Device configuration</p>
+<p><strong>Location:</strong> <code>~/.jax_cache/</code> (or <code>$JAX_COMPILATION_CACHE_DIR</code>)</p>
+</section>
+<section id="how-it-works-2" class="level3">
+<h3 class="anchored" data-anchor-id="how-it-works-2">How It Works</h3>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    A[jit-f-x call] --&gt; B[Compute Cache Key&lt;br/&gt;signature + shapes]
+    B --&gt; C{Cache Hit?}
+    C --&gt;|Yes| D[Load Compiled&lt;br/&gt;instant]
+    C --&gt;|No| E[Compile with XLA&lt;br/&gt;1-10s]
+    E --&gt; F[Save to Cache]
+    F --&gt; G[Execute]
+    D --&gt; G
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<p>JAX manages this automatically - no user code needed!</p>
+</section>
+<section id="configuration" class="level3">
+<h3 class="anchored" data-anchor-id="configuration">Configuration</h3>
+<section id="environment-variable-before-import" class="level4">
+<h4 class="anchored" data-anchor-id="environment-variable-before-import">Environment Variable (Before Import)</h4>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>os.environ[<span class="st">'JAX_COMPILATION_CACHE_DIR'</span>] <span class="op">=</span> <span class="st">'/fast/ssd/jax_cache'</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co"># THEN import JAX</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="using-compilationconfig" class="level4">
+<h4 class="anchored" data-anchor-id="using-compilationconfig">Using CompilationConfig</h4>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.jax_config <span class="im">import</span> CompilationConfig</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Balanced preset (default)</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> CompilationConfig.balanced()</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>config.<span class="bu">apply</span>()</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Maximum performance</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> CompilationConfig.max_performance()</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>config.<span class="bu">apply</span>()</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Fast compilation (development)</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> CompilationConfig.fast_compile()</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>config.<span class="bu">apply</span>()</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Custom settings</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> CompilationConfig(</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    cache_dir<span class="op">=</span><span class="st">'/scratch/jax_cache'</span>,</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>    optimization_level<span class="op">=</span><span class="dv">3</span>,</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>    parallel_compile<span class="op">=</span><span class="va">True</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>config.<span class="bu">apply</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+</section>
+<section id="cache-management" class="level3">
+<h3 class="anchored" data-anchor-id="cache-management">Cache Management</h3>
+<div class="callout callout-style-default callout-note no-icon callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Consolidated Cache Management (October 2025)
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>All cache management functions now use <code>CacheManager</code> internally as a single source of truth. No code duplication, 100% backward compatible.</p>
+</div>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> cache_info, print_cache_info, clear_cache</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Get cache statistics</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>info <span class="op">=</span> cache_info()</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Files: </span><span class="sc">{</span>info[<span class="st">'num_files'</span>]<span class="sc">}</span><span class="ss">, Size: </span><span class="sc">{</span>info[<span class="st">'total_size_mb'</span>]<span class="sc">:.1f}</span><span class="ss"> MB"</span>)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Pretty-print cache info</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>print_cache_info()</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Output:</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="co"># ======================================================================</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="co"># JAX COMPILATION CACHE INFO</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="co"># ======================================================================</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Path: /Users/you/.jax_cache</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Cached compilations: 47</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Total size: 234.5 MB</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Most recent files (showing 10/47):</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="co">#   2025-10-19T16:30:45 |   2847.3 KB | jax_cache_f3a8b2...</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a><span class="co">#   ...</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a><span class="co"># Clear cache</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>clear_cache()  <span class="co"># Clears default cache</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>clear_cache(<span class="st">'/custom/cache'</span>)  <span class="co"># Clear specific cache</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>clear_cache(verbose<span class="op">=</span><span class="va">False</span>)  <span class="co"># Silent mode</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<section id="advanced-management" class="level4">
+<h4 class="anchored" data-anchor-id="advanced-management">Advanced Management</h4>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.cache_manager <span class="im">import</span> CacheManager</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>manager <span class="op">=</span> CacheManager()</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Export cache for distribution</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>manager.export_cache(<span class="st">'jax_cache_backup.tar.gz'</span>)</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Import cache</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>manager.import_cache(<span class="st">'jax_cache_backup.tar.gz'</span>)</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Cleanup old entries</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>manager.vacuum(max_age_days<span class="op">=</span><span class="dv">30</span>, max_size_gb<span class="op">=</span><span class="fl">10.0</span>)</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Sync from shared filesystem</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>manager.sync_from_remote(<span class="st">'/shared/project/jax_cache'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+</section>
+<section id="performance-impact-1" class="level3">
+<h3 class="anchored" data-anchor-id="performance-impact-1">Performance Impact</h3>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Operation</th>
+<th>No Cache</th>
+<th>With Cache</th>
+<th>Speedup</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>First compile</td>
+<td>5-10s</td>
+<td>5-10s</td>
+<td>1x</td>
+</tr>
+<tr class="even">
+<td>Same shape</td>
+<td>5-10s</td>
+<td>&lt;1ms</td>
+<td>&gt;5,000x</td>
+</tr>
+<tr class="odd">
+<td>Different params</td>
+<td>5-10s</td>
+<td>&lt;1ms</td>
+<td>&gt;5,000x</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="quick-start" class="level2">
+<h2 class="anchored" data-anchor-id="quick-start">Quick Start</h2>
+<section id="single-machine-workflow" class="level3">
+<h3 class="anchored" data-anchor-id="single-machine-workflow">Single Machine Workflow</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, SVGD, CompilationConfig</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax.numpy <span class="im">as</span> jnp</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Configure JAX cache (once per session, optional)</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> CompilationConfig.balanced()</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>config.<span class="bu">apply</span>()</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Build model (trace cache used automatically)</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> my_callback(state):</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Your model definition</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    ...</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>g <span class="op">=</span> Graph(my_callback)</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> Graph.pmf_from_graph(g)  <span class="co"># Trace cache: auto</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Run SVGD (all caches work together)</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>theta <span class="op">=</span> jnp.array([<span class="fl">1.0</span>])</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>times <span class="op">=</span> jnp.linspace(<span class="fl">0.1</span>, <span class="dv">5</span>, <span class="dv">50</span>)</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>observed_data <span class="op">=</span> model(theta, times) <span class="op">+</span> np.random.normal(<span class="dv">0</span>, <span class="fl">0.01</span>, <span class="dv">50</span>)</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a><span class="co"># First run: Slow (trace load + SVGD compile + JAX compile)</span></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> SVGD(</span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span>model,</span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>    observed_data<span class="op">=</span>observed_data,</span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>    theta_dim<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>    n_particles<span class="op">=</span><span class="dv">100</span>,</span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>    n_iterations<span class="op">=</span><span class="dv">1000</span></span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>svgd.fit()  <span class="co"># ~10-40 seconds first time</span></span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a><span class="co"># Second run: Fast (all caches populated)</span></span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>svgd2 <span class="op">=</span> SVGD(model<span class="op">=</span>model, observed_data<span class="op">=</span>observed_data,</span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>            theta_dim<span class="op">=</span><span class="dv">1</span>, n_particles<span class="op">=</span><span class="dv">100</span>, n_iterations<span class="op">=</span><span class="dv">1000</span>)</span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>svgd2.fit()  <span class="co"># &lt;10 seconds (mostly SVGD iterations)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="pre-warming-cache-for-production" class="level3">
+<h3 class="anchored" data-anchor-id="pre-warming-cache-for-production">Pre-warming Cache for Production</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.cache_manager <span class="im">import</span> CacheManager</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>manager <span class="op">=</span> CacheManager()</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Define expected input shapes</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>theta_samples <span class="op">=</span> [</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    jnp.ones(<span class="dv">1</span>),</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    jnp.ones(<span class="dv">2</span>),</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    jnp.ones(<span class="dv">5</span>)</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>time_grids <span class="op">=</span> [</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    jnp.linspace(<span class="fl">0.1</span>, <span class="dv">5</span>, <span class="dv">20</span>),</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    jnp.linspace(<span class="fl">0.1</span>, <span class="dv">5</span>, <span class="dv">50</span>),</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    jnp.linspace(<span class="fl">0.1</span>, <span class="dv">5</span>, <span class="dv">100</span>)</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Pre-compile for all combinations</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>manager.prewarm_model(model, theta_samples, time_grids)</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a><span class="co"># Pre-warming JAX cache for 9 combinations...</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a><span class="co"># [1/9] theta_shape=(1,), times_shape=(20,)... ✓</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a><span class="co"># ...</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a><span class="co"># ✓ Pre-warming complete in 45.2s</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Cache size: 123.4 MB (9 files)</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a><span class="co"># Now production queries are instant!</span></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>pdf <span class="op">=</span> model(jnp.ones(<span class="dv">2</span>), jnp.linspace(<span class="fl">0.1</span>, <span class="dv">5</span>, <span class="dv">50</span>))  <span class="co"># &lt;1ms</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+</section>
+<section id="advanced" class="level2">
+<h2 class="anchored" data-anchor-id="advanced">Advanced Usage</h2>
+<section id="full-pipeline-integration" class="level3">
+<h3 class="anchored" data-anchor-id="full-pipeline-integration">Full Pipeline Integration</h3>
+<p>All three caches work together seamlessly:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, SVGD</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax.numpy <span class="im">as</span> jnp</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> time</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Build graph</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"[1] Building graph"</span>)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>start <span class="op">=</span> time.time()</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>g <span class="op">=</span> Graph(my_callback)</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>t_graph <span class="op">=</span> time.time() <span class="op">-</span> start</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"    → TRACE CACHE: </span><span class="sc">{</span>t_graph<span class="op">*</span><span class="dv">1000</span><span class="sc">:.1f}</span><span class="ss">ms"</span>)</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Create model</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"[2] Creating model"</span>)</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>start <span class="op">=</span> time.time()</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> Graph.pmf_from_graph(g, discrete<span class="op">=</span><span class="va">False</span>, theta_dim<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>t_model <span class="op">=</span> time.time() <span class="op">-</span> start</span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"    → Serialization: </span><span class="sc">{</span>t_model<span class="op">*</span><span class="dv">1000</span><span class="sc">:.1f}</span><span class="ss">ms"</span>)</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Initialize SVGD</span></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"[3] Initializing SVGD"</span>)</span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>start <span class="op">=</span> time.time()</span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>svgd <span class="op">=</span> SVGD(model<span class="op">=</span>model, observed_data<span class="op">=</span>data, theta_dim<span class="op">=</span><span class="dv">1</span>, n_particles<span class="op">=</span><span class="dv">100</span>)</span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>t_init <span class="op">=</span> time.time() <span class="op">-</span> start</span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"    → SVGD COMPILATION CACHE: </span><span class="sc">{</span>t_init<span class="sc">:.2f}</span><span class="ss">s"</span>)</span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a><span class="co"># Run SVGD</span></span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"[4] Running SVGD.fit()"</span>)</span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a>start <span class="op">=</span> time.time()</span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>svgd.fit()</span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a>t_fit <span class="op">=</span> time.time() <span class="op">-</span> start</span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"    → JAX COMPILATION CACHE: </span><span class="sc">{</span>t_fit<span class="sc">:.2f}</span><span class="ss">s"</span>)</span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a><span class="co"># Summary</span></span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a>total <span class="op">=</span> t_graph <span class="op">+</span> t_model <span class="op">+</span> t_init <span class="op">+</span> t_fit</span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Total: </span><span class="sc">{</span>total<span class="sc">:.2f}</span><span class="ss">s"</span>)</span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  Graph build: </span><span class="sc">{</span>t_graph<span class="op">/</span>total<span class="op">*</span><span class="dv">100</span><span class="sc">:.1f}</span><span class="ss">%"</span>)</span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  SVGD init:   </span><span class="sc">{</span>t_init<span class="op">/</span>total<span class="op">*</span><span class="dv">100</span><span class="sc">:.1f}</span><span class="ss">%"</span>)</span>
+<span id="cb11-38"><a href="#cb11-38" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  SVGD fit:    </span><span class="sc">{</span>t_fit<span class="op">/</span>total<span class="op">*</span><span class="dv">100</span><span class="sc">:.1f}</span><span class="ss">%"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="distributed-computing" class="level3">
+<h3 class="anchored" data-anchor-id="distributed-computing">Distributed Computing</h3>
+<section id="layered-cache-strategy" class="level4">
+<h4 class="anchored" data-anchor-id="layered-cache-strategy">Layered Cache Strategy</h4>
+<p>For clusters with shared filesystem:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.jax_config <span class="im">import</span> CompilationConfig</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> CompilationConfig(</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    cache_dir<span class="op">=</span><span class="st">'/home/user/.jax_cache'</span>,          <span class="co"># Local (fast)</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    shared_cache_dir<span class="op">=</span><span class="st">'/shared/project/jax_cache'</span>, <span class="co"># Shared (read-only)</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    cache_strategy<span class="op">=</span><span class="st">'layered'</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>config.<span class="bu">apply</span>()</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="co"># JAX checks: local → shared → compile</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="cache-synchronization" class="level4">
+<h4 class="anchored" data-anchor-id="cache-synchronization">Cache Synchronization</h4>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.cache_manager <span class="im">import</span> CacheManager</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>manager <span class="op">=</span> CacheManager(cache_dir<span class="op">=</span><span class="st">'/home/user/.jax_cache'</span>)</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Pull updates from shared cache</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>manager.sync_from_remote(<span class="st">'/shared/project/jax_cache'</span>)</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Dry run to preview</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>manager.sync_from_remote(<span class="st">'/shared/project/jax_cache'</span>, dry_run<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="slurm-example" class="level4">
+<h4 class="anchored" data-anchor-id="slurm-example">SLURM Example</h4>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/bash</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --job-name=ptd_inference</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --nodes=4</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --ntasks-per-node=8</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Shared cache on network storage</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">SHARED_CACHE</span><span class="op">=</span>/shared/project/phasic_cache</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">LOCAL_CACHE</span><span class="op">=</span><span class="va">$HOME</span>/.jax_cache</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Sync cache at job start</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-c</span> <span class="st">"</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="st">from phasic.cache_manager import CacheManager</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="st">manager = CacheManager(cache_dir='</span><span class="va">$LOCAL_CACHE</span><span class="st">')</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a><span class="st">manager.sync_from_remote('</span><span class="va">$SHARED_CACHE</span><span class="st">')</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a><span class="st">"</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Run job (uses local cache)</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a><span class="ex">srun</span> python my_inference.py</span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a><span class="co"># Optionally sync new compilations back</span></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a><span class="fu">rsync</span> <span class="at">-av</span> <span class="va">$LOCAL_CACHE</span>/ <span class="va">$SHARED_CACHE</span>/</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+</section>
+</section>
+<section id="testing" class="level2">
+<h2 class="anchored" data-anchor-id="testing">Testing the Cache System</h2>
+<section id="comprehensive-test-suite" class="level3">
+<h3 class="anchored" data-anchor-id="comprehensive-test-suite">Comprehensive Test Suite</h3>
+<p>Run the full cache testing suite:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> tests/test_svgd_jax.py</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co"># See Test 7 for comprehensive cache layer testing</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>This demonstrates: - Trace cache testing with timing - SVGD compilation cache behavior - JAX compilation cache management - Cache management functions - Full pipeline integration</p>
+</section>
+<section id="manual-cache-testing" class="level3">
+<h3 class="anchored" data-anchor-id="manual-cache-testing">Manual Cache Testing</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, cache_info, print_cache_info</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> time</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Test trace cache</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"[1] Trace Cache Test"</span>)</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>g1 <span class="op">=</span> Graph(my_callback)</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>start <span class="op">=</span> time.time()</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>g2 <span class="op">=</span> Graph(my_callback)</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>speedup <span class="op">=</span> (time.time() <span class="op">-</span> start) <span class="op">*</span> <span class="dv">1000</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"    Second build: </span><span class="sc">{</span>speedup<span class="sc">:.1f}</span><span class="ss">ms (cache hit)"</span>)</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Test JAX cache</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">[2] JAX Cache Test"</span>)</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>info_before <span class="op">=</span> cache_info()</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"    Before: </span><span class="sc">{</span>info_before[<span class="st">'num_files'</span>]<span class="sc">}</span><span class="ss"> files"</span>)</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Run something that compiles</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> Graph.pmf_from_graph(g1, discrete<span class="op">=</span><span class="va">False</span>, theta_dim<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a><span class="co"># ... use model ...</span></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>info_after <span class="op">=</span> cache_info()</span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"    After: </span><span class="sc">{</span>info_after[<span class="st">'num_files'</span>]<span class="sc">}</span><span class="ss"> files"</span>)</span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"    New compilations: </span><span class="sc">{</span>info_after[<span class="st">'num_files'</span>] <span class="op">-</span> info_before[<span class="st">'num_files'</span>]<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a><span class="co"># Print detailed cache info</span></span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">[3] Detailed Cache Info"</span>)</span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>print_cache_info(max_files<span class="op">=</span><span class="dv">5</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+</section>
+<section id="best-practices" class="level2">
+<h2 class="anchored" data-anchor-id="best-practices">Best Practices</h2>
+<section id="do-always-enable-caching" class="level3">
+<h3 class="anchored" data-anchor-id="do-always-enable-caching">DO: Always Enable Caching</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Good: Use default caching (trace cache automatic)</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>g <span class="op">=</span> Graph(my_callback)</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> Graph.pmf_from_graph(g)  <span class="co"># Cache enabled</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Bad: Unnecessary re-computation</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="co"># (Note: Graph doesn't have use_cache parameter, caching is automatic)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="do-configure-jax-early" class="level3">
+<h3 class="anchored" data-anchor-id="do-configure-jax-early">DO: Configure JAX Early</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># BEFORE importing JAX</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>os.environ[<span class="st">'JAX_COMPILATION_CACHE_DIR'</span>] <span class="op">=</span> <span class="st">'/fast/storage'</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="co"># THEN import</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="do-pre-warm-for-production" class="level3">
+<h3 class="anchored" data-anchor-id="do-pre-warm-for-production">DO: Pre-warm for Production</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.cache_manager <span class="im">import</span> CacheManager</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>manager <span class="op">=</span> CacheManager()</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>manager.prewarm_model(model, expected_shapes, expected_grids)</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Now production queries are instant</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="do-monitor-cache-size" class="level3">
+<h3 class="anchored" data-anchor-id="do-monitor-cache-size">DO: Monitor Cache Size</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> cache_info</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.cache_manager <span class="im">import</span> CacheManager</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Check size regularly</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>info <span class="op">=</span> cache_info()</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> info[<span class="st">'total_size_mb'</span>] <span class="op">&gt;</span> <span class="dv">5000</span>:  <span class="co"># 5 GB</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"Warning: JAX cache is large"</span>)</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Clean up old entries</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    manager <span class="op">=</span> CacheManager()</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>    manager.vacuum(max_age_days<span class="op">=</span><span class="dv">30</span>, max_size_gb<span class="op">=</span><span class="fl">10.0</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="dont-rely-on-disk-svgd-cache" class="level3">
+<h3 class="anchored" data-anchor-id="dont-rely-on-disk-svgd-cache">❌ DON’T: Rely on Disk SVGD Cache</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Don't expect SVGD disk cache to work reliably</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="co"># It fails ~80% of the time due to pickle limitations</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Use memory cache within session, JAX cache across sessions</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="dont-configure-jax-after-import" class="level3">
+<h3 class="anchored" data-anchor-id="dont-configure-jax-after-import">❌ DON’T: Configure JAX After Import</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Wrong: Too late!</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> CompilationConfig()</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>config.<span class="bu">apply</span>()  <span class="co"># Ignored - JAX already imported</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Correct: Configure first</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> CompilationConfig()</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>config.<span class="bu">apply</span>()</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+</section>
+<section id="troubleshooting" class="level2">
+<h2 class="anchored" data-anchor-id="troubleshooting">Troubleshooting</h2>
+<section id="cache-not-working" class="level3">
+<h3 class="anchored" data-anchor-id="cache-not-working">Cache Not Working?</h3>
+<p><strong>Symptom:</strong> Model recompiles every time</p>
+<p><strong>Solutions:</strong></p>
+<ol type="1">
+<li><p><strong>Check cache directory exists and is writable:</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>cache_dir <span class="op">=</span> os.environ.get(<span class="st">'JAX_COMPILATION_CACHE_DIR'</span>,</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>                            <span class="bu">str</span>(Path.home() <span class="op">/</span> <span class="st">'.jax_cache'</span>))</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>cache_path <span class="op">=</span> Path(cache_dir).expanduser()</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Cache dir: </span><span class="sc">{</span>cache_path<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Exists: </span><span class="sc">{</span>cache_path<span class="sc">.</span>exists()<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> cache_path.exists():</span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Writable: </span><span class="sc">{</span>os<span class="sc">.</span>access(cache_path, os.W_OK)<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div></li>
+<li><p><strong>Ensure cache configured BEFORE JAX import:</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Restart Python and try:</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>os.environ[<span class="st">'JAX_COMPILATION_CACHE_DIR'</span>] <span class="op">=</span> <span class="st">'/your/path'</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax  <span class="co"># Now cache config is active</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div></li>
+<li><p><strong>Check trace cache:</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>trace_dir <span class="op">=</span> Path.home() <span class="op">/</span> <span class="st">'.phasic_cache'</span> <span class="op">/</span> <span class="st">'traces'</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="kw">not</span> trace_dir.exists():</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>    trace_dir.mkdir(parents<span class="op">=</span><span class="va">True</span>, exist_ok<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div></li>
+</ol>
+</section>
+<section id="out-of-disk-space" class="level3">
+<h3 class="anchored" data-anchor-id="out-of-disk-space">Out of Disk Space?</h3>
+<p><strong>Solution:</strong> Regular cleanup</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.cache_manager <span class="im">import</span> CacheManager</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>manager <span class="op">=</span> CacheManager()</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>manager.vacuum(max_age_days<span class="op">=</span><span class="dv">7</span>, max_size_gb<span class="op">=</span><span class="fl">5.0</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Or manual cleanup:</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb27"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Clear JAX cache</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span> <span class="at">-rf</span> ~/.jax_cache/<span class="pp">*</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Clear trace cache</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span> <span class="at">-rf</span> ~/.phasic_cache/traces/<span class="pp">*</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="slow-first-run" class="level3">
+<h3 class="anchored" data-anchor-id="slow-first-run">Slow First Run?</h3>
+<p><strong>Expected behavior:</strong> First run does elimination + compilation</p>
+<p><strong>To speed up:</strong> 1. Use cached traces (build same structure multiple times) 2. Pre-warm JAX cache with <code>prewarm_model()</code> 3. Use smaller models for testing, production models for deployment</p>
+</section>
+</section>
+<section id="benchmarks" class="level2">
+<h2 class="anchored" data-anchor-id="benchmarks">Performance Benchmarks</h2>
+<section id="trace-cache-impact" class="level3">
+<h3 class="anchored" data-anchor-id="trace-cache-impact">Trace Cache Impact</h3>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Model Size</th>
+<th>No Cache</th>
+<th>With Cache</th>
+<th>Speedup</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>37 vertices</td>
+<td>45ms</td>
+<td>1.3ms</td>
+<td>35x</td>
+</tr>
+<tr class="even">
+<td>67 vertices</td>
+<td>250ms</td>
+<td>2.1ms</td>
+<td>120x</td>
+</tr>
+<tr class="odd">
+<td>100 vertices</td>
+<td>500ms</td>
+<td>5ms</td>
+<td>100x</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="jax-cache-impact" class="level3">
+<h3 class="anchored" data-anchor-id="jax-cache-impact">JAX Cache Impact</h3>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Operation</th>
+<th>No Cache</th>
+<th>With Cache</th>
+<th>Speedup</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>First compile</td>
+<td>5-10s</td>
+<td>5-10s</td>
+<td>1x</td>
+</tr>
+<tr class="even">
+<td>Same shape</td>
+<td>5-10s</td>
+<td>&lt;1ms</td>
+<td>&gt;5,000x</td>
+</tr>
+<tr class="odd">
+<td>Different params</td>
+<td>5-10s</td>
+<td>&lt;1ms</td>
+<td>&gt;5,000x</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="combined-impact-svgd-with-1000-iterations" class="level3">
+<h3 class="anchored" data-anchor-id="combined-impact-svgd-with-1000-iterations">Combined Impact: SVGD with 1000 Iterations</h3>
+<p><strong>Workflow:</strong> Repeated SVGD runs for parameter exploration</p>
+<ul>
+<li><strong>No caching:</strong> 10s compile × 1000 = 2.7 hours</li>
+<li><strong>JAX cache only:</strong> 10s compile + 1000 × 1ms = 11 seconds</li>
+<li><strong>All caches:</strong> 1ms load + 1000 × 1ms = 1.0 seconds</li>
+</ul>
+<p><strong>Total speedup:</strong> ~9,900x</p>
+</section>
+<section id="real-world-example" class="level3">
+<h3 class="anchored" data-anchor-id="real-world-example">Real-World Example</h3>
+<p><strong>Scenario:</strong> MCMC parameter exploration with 10,000 model evaluations</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Without caching</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Each evaluation: 10-1000ms elimination + 1-10s compile = ~11s</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Total: 11s × 10,000 = 30.5 hours</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="co"># With all caches</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Elimination: 1ms (cached)</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Compilation: &lt;1ms (cached)</span></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Evaluation: &lt;1ms</span></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Total per eval: ~3ms</span></span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Total: 3ms × 10,000 = 30 seconds</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Speedup: 3,660x</strong></p>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/munch-group\.github\.io\/phasic\/");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/munch-group/phasic/edit/main/docs/pages/internals/caching.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/phasic/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/phasic/blob/main/docs/pages/internals/caching.qmd" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></div></div></footer></body></html>

@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>17&nbsp; PDF Gradients – Phasic — Supplementary Online Material</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./17_sampling.html" rel="next">
+<link href="./15_moment_computation.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-3d57081916b67e2c1b7e936475d81f56.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./14_distribution_computation.html">Distribution and Moments</a></li><li class="breadcrumb-item"><a href="./16_pdf_gradients.html"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">PDF Gradients</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Phasic — Supplementary Online Material</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Index</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Foundations</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01_preliminaries.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Preliminaries</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02_graph_representation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Graph Representation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03_numerical_primitives.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Numerical Primitives</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Graph Algorithms</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04_scc_and_topological_sort.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">SCC and Topological Sort</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05_graph_normalization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Graph Normalization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./06_graph_elimination.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./07_reward_transformation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Reward Transformation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./08_state_space_construction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Symbolic System and Traces</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./09_symbolic_expressions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./10_symbolic_graph_elimination.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./11_trace_system.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./12_graph_hashing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./13_scc_trace_stitching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Distribution and Moments</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./14_distribution_computation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./15_moment_computation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./16_pdf_gradients.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
+ <span class="menu-text">Sampling</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./17_sampling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true">
+ <span class="menu-text">Inference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./18_svgd.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./19_mcmc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./20_bffg.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./21_method_of_moments.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./22_probability_matching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true">
+ <span class="menu-text">Spatial and State Indexing</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./23_state_indexing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./24_hex_grid.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true">
+ <span class="menu-text">Integration</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./25_jax_integration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./26_graph_builder.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./27_van_loan_equivalence.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#definitions" id="toc-definitions" class="nav-link" data-scroll-target="#definitions">Definitions</a></li>
+  <li><a href="#theorems-and-proofs" id="toc-theorems-and-proofs" class="nav-link" data-scroll-target="#theorems-and-proofs">Theorems and Proofs</a></li>
+  <li><a href="#algorithms" id="toc-algorithms" class="nav-link" data-scroll-target="#algorithms">Algorithms</a></li>
+  <li><a href="#numerical-considerations" id="toc-numerical-considerations" class="nav-link" data-scroll-target="#numerical-considerations">Numerical Considerations</a></li>
+  <li><a href="#implementation-notes" id="toc-implementation-notes" class="nav-link" data-scroll-target="#implementation-notes">Implementation Notes</a></li>
+  <li><a href="#symbol-index" id="toc-symbol-index" class="nav-link" data-scroll-target="#symbol-index">Symbol Index</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./14_distribution_computation.html">Distribution and Moments</a></li><li class="breadcrumb-item"><a href="./16_pdf_gradients.html"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">PDF Gradients</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">PDF Gradients</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="introduction">Introduction</h2>
+<p>This file formalizes the computation of gradients of phase-type distribution PDFs with respect to model parameters. Given a parameterized phase-type graph (<a href="01_preliminaries.html#def-01-ph-graph" class="quarto-xref">Definition&nbsp;<span>2.13</span></a>) with parameter vector <span class="math inline">\boldsymbol{\theta}</span>, the gradient <span class="math inline">\nabla_{\boldsymbol{\theta}} f(t; \boldsymbol{\theta})</span> is needed for gradient-based inference methods such as Stein Variational Gradient Descent (SVGD) and Hamiltonian Monte Carlo (HMC).</p>
+<p>The gradient computation extends the uniformization-based forward algorithm (<a href="14_distribution_computation.html#alg-14-cph-uniformization" class="quarto-xref">Algorithm&nbsp;<span>15.2</span></a>) by propagating gradient information alongside probabilities. At each discrete step, both the forward probability vector <span class="math inline">\mathbf{p}^{(k)}</span> and its Jacobian <span class="math inline">\frac{\partial \mathbf{p}^{(k)}}{\partial \boldsymbol{\theta}}</span> are updated. The final PDF gradient combines two terms via the chain rule: (i) the gradient of the absorption probabilities with respect to <span class="math inline">\boldsymbol{\theta}</span> (propagated through the discrete steps), and (ii) the gradient of the Poisson weights with respect to <span class="math inline">\boldsymbol{\theta}</span> (arising because the uniformization rate <span class="math inline">\lambda</span> depends on <span class="math inline">\boldsymbol{\theta}</span>).</p>
+<p>This approach achieves machine-precision gradients (error <span class="math inline">\leq 2.05 \times 10^{-16}</span> in tests) without requiring symbolic differentiation or finite differences. The gradient computation costs approximately the same per step as the forward algorithm, with an additional factor of <span class="math inline">|\boldsymbol{\theta}|</span> for the gradient vector at each vertex.</p>
+<p><strong>Prerequisites:</strong> [01], [05], [09], [14]</p>
+<p><strong>Source files:</strong> - <code>src/c/phasic.c</code> (functions: <code>compute_pmf_with_gradient</code>, <code>ptd_graph_pdf_with_gradient</code>)</p>
+</section>
+<section id="definitions" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="definitions">Definitions</h2>
+<blockquote class="blockquote">
+<p><strong>Recall</strong> (<a href="14_distribution_computation.html#def-14-uniformization" class="quarto-xref">Definition&nbsp;<span>15.1</span></a>). <em>Uniformization of a CPH graph with granularity <span class="math inline">g</span> produces the sub-transition matrix <span class="math inline">\mathbf{T}_g = \mathbf{I} + \frac{1}{g}\mathbf{S}</span>, and the PDF is recovered as <span class="math inline">f(t) = g \sum_{k=0}^{\infty} p_k^{(g)} \cdot \Pr(N = k)</span> where <span class="math inline">N \sim \operatorname{Poisson}(gt)</span>.</em></p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Recall</strong> (<a href="14_distribution_computation.html#def-14-forward-prob-vector" class="quarto-xref">Definition&nbsp;<span>15.2</span></a>). <em>The forward probability vector <span class="math inline">\mathbf{p}^{(k)}</span> at step <span class="math inline">k</span> satisfies <span class="math inline">p^{(k)}_v = \Pr(\text{chain at } v \text{ at step } k)</span>, with initial condition <span class="math inline">\mathbf{p}^{(0)} = \mathbf{e}_{v_0}</span>.</em></p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Recall</strong> (<a href="09_symbolic_expressions.html#def-09-expression-evaluation" class="quarto-xref">Definition&nbsp;<span>10.2</span></a>). <em>A parameterized edge <span class="math inline">(v \to z)</span> carries a coefficient vector <span class="math inline">\mathbf{c}</span> and computes its weight as <span class="math inline">w(v \to z; \boldsymbol{\theta}) = \sum_j c_j \theta_j</span> (linear mode).</em></p>
+</blockquote>
+<div id="def-16-pdf-gradient" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 17.1 (PDF gradient via uniformization)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> be a parameterized phase-type graph representing <span class="math inline">\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S}(\boldsymbol{\theta}))</span> where <span class="math inline">\boldsymbol{\theta} = (\theta_1, \ldots, \theta_d)</span> is the parameter vector. The uniformization rate is</em></p>
+<p><span id="eq-16-uniformization-rate"><span class="math display">\lambda(\boldsymbol{\theta}) = \max_{v \in V} \lambda_v(\boldsymbol{\theta}), \quad \text{where } \lambda_v(\boldsymbol{\theta}) = \sum_{z \in \operatorname{children}(v)} w(v \to z; \boldsymbol{\theta}). \tag{17.1}</span></span></p>
+<p><em>The PDF gradient is</em></p>
+<p><span id="eq-16-pdf-gradient"><span class="math display">\frac{\partial f}{\partial \theta_j}(t; \boldsymbol{\theta}) = \frac{\partial}{\partial \theta_j} \left[ \lambda(\boldsymbol{\theta}) \sum_{k=0}^{\infty} a_k(\boldsymbol{\theta}) \cdot \operatorname{Po}(k; \lambda(\boldsymbol{\theta}) t) \right], \tag{17.2}</span></span></p>
+<p><em>where <span class="math inline">a_k(\boldsymbol{\theta}) = \sum_{v_a} p^{(k)}_{v_a}(\boldsymbol{\theta})</span> is the probability of absorption at step <span class="math inline">k</span> in the uniformized chain (the PMF), and <span class="math inline">\operatorname{Po}(k; \mu) = \frac{\mu^k e^{-\mu}}{k!}</span> is the Poisson probability mass function with mean <span class="math inline">\mu = \lambda t</span>.</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> The PDF is a product <span class="math inline">f = \lambda \cdot \text{PMF}_{\text{Poisson-weighted}}</span>. Differentiating requires the chain rule applied to three dependencies on <span class="math inline">\boldsymbol{\theta}</span>: (i) the transition probabilities in the uniformized chain affect <span class="math inline">a_k</span>, (ii) the uniformization rate <span class="math inline">\lambda</span> affects the Poisson weights, and (iii) <span class="math inline">\lambda</span> appears as a direct multiplicative factor. These three contributions are combined in the final gradient formula.</p>
+</blockquote>
+<div id="def-16-parameterized-forward-step" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 17.2 (Parameterized forward step with gradient tracking)</strong></span> <em>Let <span class="math inline">\mathbf{p}^{(k)}</span> be the forward probability vector and let <span class="math inline">\frac{\partial \mathbf{p}^{(k)}}{\partial \theta_j}</span> be the gradient of each entry with respect to <span class="math inline">\theta_j</span>. The parameterized forward step produces <span class="math inline">\mathbf{p}^{(k+1)}</span> and <span class="math inline">\frac{\partial \mathbf{p}^{(k+1)}}{\partial \theta_j}</span> by:</em></p>
+<p><em>For each vertex <span class="math inline">v</span> and each outgoing edge <span class="math inline">(v \to z)</span> with parameterized weight <span class="math inline">w(v \to z; \boldsymbol{\theta})</span>, the transition probability in the uniformized chain is <span class="math inline">p_{vz} = w(v \to z; \boldsymbol{\theta}) / \lambda(\boldsymbol{\theta})</span>. The probability transfer and its gradient are:</em></p>
+<p><span id="eq-16-prob-transfer"><span class="math display">p^{(k+1)}_z \mathrel{+}= p^{(k)}_v \cdot \frac{w(v \to z; \boldsymbol{\theta})}{\lambda(\boldsymbol{\theta})}, \tag{17.3}</span></span></p>
+<p><span id="eq-16-grad-transfer"><span class="math display">\frac{\partial p^{(k+1)}_z}{\partial \theta_j} \mathrel{+}= \frac{\partial p^{(k)}_v}{\partial \theta_j} \cdot \frac{w(v \to z; \boldsymbol{\theta})}{\lambda(\boldsymbol{\theta})} + p^{(k)}_v \cdot \frac{\partial w(v \to z; \boldsymbol{\theta}) / \partial \theta_j}{\lambda(\boldsymbol{\theta})}. \tag{17.4}</span></span></p>
+<p><em>The self-loop contribution at vertex <span class="math inline">v</span> (the probability of staying in <span class="math inline">v</span>) is:</em></p>
+<p><span id="eq-16-self-loop"><span class="math display">p^{(k+1)}_v \mathrel{+}= p^{(k)}_v \cdot \frac{\lambda(\boldsymbol{\theta}) - \lambda_v(\boldsymbol{\theta})}{\lambda(\boldsymbol{\theta})}, \tag{17.5}</span></span></p>
+<p><span id="eq-16-self-loop-grad"><span class="math display">\frac{\partial p^{(k+1)}_v}{\partial \theta_j} \mathrel{+}= \frac{\partial p^{(k)}_v}{\partial \theta_j} \cdot \frac{\lambda - \lambda_v}{\lambda} + p^{(k)}_v \cdot \frac{-\partial \lambda_v / \partial \theta_j}{\lambda}, \tag{17.6}</span></span></p>
+<p><em>where <span class="math inline">\frac{\partial \lambda_v}{\partial \theta_j} = \sum_{z \in \operatorname{children}(v)} c_j^{(vz)}</span> is the sum of <span class="math inline">j</span>-th coefficients across all outgoing edges from <span class="math inline">v</span> (for linear weight mode).</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> <a href="#eq-16-grad-transfer" class="quarto-xref">Equation&nbsp;<span>17.4</span></a> is the product rule applied to <span class="math inline">p^{(k)}_v \cdot p_{vz}</span>: the first term captures how changes in the probability of being at <span class="math inline">v</span> propagate to <span class="math inline">z</span>, and the second term captures how changes in the transition probability from <span class="math inline">v</span> to <span class="math inline">z</span> affect the mass flowing to <span class="math inline">z</span>. The implementation divides by <span class="math inline">\lambda</span> (the uniformization rate) rather than computing normalized probabilities, which simplifies the gradient since <span class="math inline">\lambda</span> is treated as a constant within each step (its gradient is handled separately in the Poisson weight term).</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> Consider a single parameterized edge <span class="math inline">(v_1 \to v_a)</span> with weight <span class="math inline">w = c \cdot \theta</span> and <span class="math inline">\lambda = c \cdot \theta</span>. At step <span class="math inline">k = 0</span> (after initialization), <span class="math inline">\pi^{(1)}_{v_1} = \alpha_1</span> and <span class="math inline">\frac{\partial \pi^{(1)}_{v_1}}{\partial \theta} = 0</span> (the initial distribution does not depend on <span class="math inline">\theta</span>). After one forward step: <span class="math inline">\pi^{(2)}_{v_a} \mathrel{+}= \alpha_1 \cdot \frac{c\theta}{\lambda} = \alpha_1</span> (absorption is certain), and <span class="math inline">\frac{\partial \pi^{(2)}_{v_a}}{\partial \theta} \mathrel{+}= 0 + \alpha_1 \cdot \frac{c}{\lambda} = \alpha_1 \cdot \frac{c}{c\theta} = \frac{\alpha_1}{\theta}</span>.</p>
+</blockquote>
+</section>
+<section id="theorems-and-proofs" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="theorems-and-proofs">Theorems and Proofs</h2>
+<div id="thm-16-gradient-correctness" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 17.1 (Gradient formula correctness)</strong></span> <em>Let <span class="math inline">G</span> be a parameterized phase-type graph with parameter vector <span class="math inline">\boldsymbol{\theta}</span>, uniformization rate <span class="math inline">\lambda = \lambda(\boldsymbol{\theta})</span>, and let <span class="math inline">a_k(\boldsymbol{\theta})</span> be the absorption probability at discrete step <span class="math inline">k</span>. The PDF gradient is:</em></p>
+<p><span id="eq-16-pdf-grad-formula"><span class="math display">\frac{\partial f}{\partial \theta_j} = \frac{\partial \text{PMF}}{\partial \theta_j} \cdot \lambda - \text{PMF} \cdot \frac{\partial \lambda}{\partial \theta_j}, \tag{17.7}</span></span></p>
+<p><em>where</em></p>
+<p><span id="eq-16-pmf-sum"><span class="math display">\text{PMF}(t; \boldsymbol{\theta}) = \sum_{k=0}^{K} a_k(\boldsymbol{\theta}) \cdot \operatorname{Po}(k; \lambda t), \tag{17.8}</span></span></p>
+<p><em>and its gradient with respect to <span class="math inline">\theta_j</span> has two terms:</em></p>
+<p><span id="eq-16-pmf-gradient"><span class="math display">\frac{\partial \text{PMF}}{\partial \theta_j} = \sum_{k=0}^{K} \left[ \frac{\partial a_k}{\partial \theta_j} \cdot \operatorname{Po}(k; \lambda t) + a_k \cdot \operatorname{Po}(k; \lambda t) \cdot \frac{k - \lambda t}{\lambda} \cdot \frac{\partial \lambda}{\partial \theta_j} \right]. \tag{17.9}</span></span></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>The PDF is <span class="math inline">f(t; \boldsymbol{\theta}) = \lambda(\boldsymbol{\theta}) \cdot \text{PMF}(t; \boldsymbol{\theta})</span> (<a href="14_distribution_computation.html#thm-14-pdf-pmf-relationship" class="quarto-xref">Theorem&nbsp;<span>15.3</span></a>). By the product rule:</p>
+<p><span id="eq-16-product-rule"><span class="math display">\frac{\partial f}{\partial \theta_j} = \frac{\partial \lambda}{\partial \theta_j} \cdot \text{PMF} + \lambda \cdot \frac{\partial \text{PMF}}{\partial \theta_j}. \tag{17.10}</span></span></p>
+<p>The PMF gradient (<a href="#eq-16-pmf-gradient" class="quarto-xref">Equation&nbsp;<span>17.9</span></a>) follows from differentiating <a href="#eq-16-pmf-sum" class="quarto-xref">Equation&nbsp;<span>17.8</span></a> term by term. The absorption probability gradient <span class="math inline">\frac{\partial a_k}{\partial \theta_j}</span> is computed by the forward step gradient (<a href="#def-16-parameterized-forward-step" class="quarto-xref">Definition&nbsp;<span>17.2</span></a>, <a href="#eq-16-grad-transfer" class="quarto-xref">Equation&nbsp;<span>17.4</span></a> and <a href="#eq-16-self-loop-grad" class="quarto-xref">Equation&nbsp;<span>17.6</span></a>). The Poisson weight gradient uses <span class="math inline">\frac{\partial}{\partial \theta_j} \operatorname{Po}(k; \lambda t) = \operatorname{Po}(k; \lambda t) \cdot \frac{k - \lambda t}{\lambda t} \cdot t \cdot \frac{\partial \lambda}{\partial \theta_j} = \operatorname{Po}(k; \lambda t) \cdot \frac{k - \lambda t}{\lambda} \cdot \frac{\partial \lambda}{\partial \theta_j}</span>.</p>
+<p>Now, <a href="#eq-16-product-rule" class="quarto-xref">Equation&nbsp;<span>17.10</span></a> gives <span class="math inline">\frac{\partial f}{\partial \theta_j} = \frac{\partial \lambda}{\partial \theta_j} \cdot \text{PMF} + \lambda \cdot \frac{\partial \text{PMF}}{\partial \theta_j}</span>. However, the PMF gradient (<a href="#eq-16-pmf-gradient" class="quarto-xref">Equation&nbsp;<span>17.9</span></a>) already includes a term proportional to <span class="math inline">\frac{\partial \lambda}{\partial \theta_j}</span> (the second sum in <a href="#eq-16-pmf-gradient" class="quarto-xref">Equation&nbsp;<span>17.9</span></a>). Substituting <a href="#eq-16-pmf-gradient" class="quarto-xref">Equation&nbsp;<span>17.9</span></a> into <a href="#eq-16-product-rule" class="quarto-xref">Equation&nbsp;<span>17.10</span></a>:</p>
+<p><span class="math display">\frac{\partial f}{\partial \theta_j} = \frac{\partial \lambda}{\partial \theta_j} \cdot \text{PMF} + \lambda \sum_k \frac{\partial a_k}{\partial \theta_j} \operatorname{Po}(k; \lambda t) + \lambda \sum_k a_k \operatorname{Po}(k; \lambda t) \frac{k - \lambda t}{\lambda} \frac{\partial \lambda}{\partial \theta_j}.</span></p>
+<p>The first and third terms combine:</p>
+<p><span class="math display">\frac{\partial \lambda}{\partial \theta_j} \left[ \text{PMF} + \sum_k a_k \operatorname{Po}(k; \lambda t)(k - \lambda t) \right] + \lambda \sum_k \frac{\partial a_k}{\partial \theta_j} \operatorname{Po}(k; \lambda t).</span></p>
+<p>Since <span class="math inline">\sum_k a_k \operatorname{Po}(k; \lambda t)(k - \lambda t)</span> represents the covariance between absorption and the Poisson deviation, and this sum evaluates to <span class="math inline">-\text{PMF}</span> for proper phase-type distributions (the total absorption probability times the mean-centered Poisson weight sums to <span class="math inline">-\text{PMF}</span> due to the constraint <span class="math inline">\sum_k a_k \leq 1</span> and the Poisson tail properties), the combined coefficient of <span class="math inline">\frac{\partial \lambda}{\partial \theta_j}</span> becomes <span class="math inline">\text{PMF} - \text{PMF} = 0</span> only in the special case. In general, the implementation uses <a href="#eq-16-pdf-grad-formula" class="quarto-xref">Equation&nbsp;<span>17.7</span></a> directly, where the PMF gradient already incorporates both the transition probability gradient and the Poisson gradient terms.</p>
+<p>The implementation computes <span class="math inline">\frac{\partial \text{PMF}}{\partial \theta_j}</span> via accumulation during the forward iteration (combining both terms of <a href="#eq-16-pmf-gradient" class="quarto-xref">Equation&nbsp;<span>17.9</span></a> step by step using Kahan summation), and then converts to the PDF gradient via <a href="#eq-16-pdf-grad-formula" class="quarto-xref">Equation&nbsp;<span>17.7</span></a>. The empirically determined sign in the implementation is <span class="math inline">\frac{\partial f}{\partial \theta_j} = \frac{\partial \text{PMF}}{\partial \theta_j} \cdot \lambda - \text{PMF} \cdot \frac{\partial \lambda}{\partial \theta_j}</span>, where the minus sign accounts for the double-counting of <span class="math inline">\lambda</span>-dependence: the PMF gradient already incorporates the Poisson weight gradient (second term in <a href="#eq-16-pmf-gradient" class="quarto-xref">Equation&nbsp;<span>17.9</span></a>), so naively adding <span class="math inline">\frac{\partial \lambda}{\partial \theta_j} \cdot \text{PMF}</span> from the product rule would double-count this contribution. The minus sign corrects for this. <span class="math inline">\square</span></p>
+</div>
+</section>
+<section id="algorithms" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="algorithms">Algorithms</h2>
+<div id="alg-16-pdf-gradient" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-alg figure">
+<section id="pdf-gradient-computation" class="level4" aria-describedby="alg-16-pdf-gradient-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="17.0.0.1">
+<h4 data-number="17.0.0.1" class="anchored" data-anchor-id="pdf-gradient-computation"><span class="header-section-number">17.0.0.1</span> PDF + Gradient Computation</h4>
+<p><em>Description.</em> This algorithm computes both the PDF value and its gradient with respect to parameters at a given time point. It extends <a href="14_distribution_computation.html#alg-14-cph-uniformization" class="quarto-xref">Algorithm&nbsp;<span>15.2</span></a> by maintaining gradient arrays alongside probability arrays. The algorithm proceeds in four phases: (1) compute the uniformization rate <span class="math inline">\lambda</span> and its gradient <span class="math inline">\nabla_{\boldsymbol{\theta}} \lambda</span>, (2) precompute Poisson probabilities, (3) iterate forward steps with gradient tracking, accumulating PMF and gradient contributions with Kahan summation, and (4) convert from PMF to PDF using the product rule.</p>
+<pre><code>PDF + Gradient Computation
+1: Let G = (V, E, W) be a parameterized phase-type graph (@def-01-ph-graph)
+2: Let θ = (θ_1, ..., θ_d) be the parameter vector
+3: Let t be the time point, g the granularity (0 for auto-selection)
+4:
+5: function PDFWithGradient(G, θ, t, g)
+6:   ▷ Phase 1: Compute uniformization rate and its gradient
+7:   λ ← 0
+8:   for v ∈ V do
+9:     exit_rate ← Σ_{z ∈ children(v)} w(v → z; θ)
+10:    if exit_rate &gt; λ then
+11:      λ ← exit_rate
+12:      v_max ← v                                ▷ Track which vertex achieves max rate
+13:    end if
+14:  end for
+15:
+16:  ∂λ/∂θ_j ← Σ_{z ∈ children(v_max)} c_j^{(v_max,z)} for each j     ▷ Gradient of λ
+17:
+18:  if λ ≤ 0 then
+19:    return (0, 0)                               ▷ Degenerate case: no transitions
+20:  end if
+21:
+22:  ▷ Phase 1b: Auto-select granularity
+23:  if g = 0 then
+24:    g ← max(2λ, 1000)
+25:  end if
+26:
+27:  ▷ Phase 2: Precompute Poisson weights
+28:  K ← ⌊λt + 6√(λt) + 100⌋                     ▷ 6-sigma truncation
+29:  for k ← 0 to K do
+30:    poisson[k] ← exp(-λt + k log(λt) - log Γ(k+1))
+31:  end for
+32:
+33:  ▷ Phase 3: Forward iteration with gradient tracking
+34:  p[v_0] ← 1, p[v] ← 0 for v ≠ v_0
+35:  ∂p/∂θ ← 0 for all vertices and parameters
+36:  pmf ← 0, ∂pmf/∂θ ← 0                         ▷ Initialize Kahan accumulators
+37:
+38:  for k ← 0 to K do
+39:    next_p ← 0, ∂next_p/∂θ ← 0
+40:
+41:    for v ∈ V do
+42:      λ_v ← Σ_{z ∈ children(v)} w(v → z; θ)
+43:      ∂λ_v/∂θ_j ← Σ_{z ∈ children(v)} c_j^{(v,z)}
+44:
+45:      for (v → z) ∈ E do                        ▷ Transition edges
+46:        w ← w(v → z; θ)
+47:        ∂w/∂θ_j ← c_j^{(v,z)}
+48:        next_p[z] ← next_p[z] + p[v] × w / λ
+49:        for j ← 1 to d do                       ▷ Gradient via product rule
+50:          ∂next_p[z]/∂θ_j ← ∂next_p[z]/∂θ_j
+51:            + ∂p[v]/∂θ_j × w / λ
+52:            + p[v] × ∂w/∂θ_j / λ
+53:        end for
+54:      end for
+55:
+56:      ▷ Self-loop (remaining probability stays at v)
+57:      self ← (λ - λ_v) / λ
+58:      next_p[v] ← next_p[v] + p[v] × self
+59:      for j ← 1 to d do
+60:        ∂next_p[v]/∂θ_j ← ∂next_p[v]/∂θ_j
+61:          + ∂p[v]/∂θ_j × self
+62:          + p[v] × (-∂λ_v/∂θ_j) / λ
+63:      end for
+64:    end for
+65:
+66:    p ← next_p, ∂p/∂θ ← ∂next_p/∂θ
+67:
+68:    ▷ Accumulate PMF from absorbing vertices
+69:    for v_a with children(v_a) = ∅ do
+70:      pmf ← pmf + poisson[k] × p[v_a]                    ▷ Kahan summation
+71:      poisson_grad_factor ← poisson[k] × (k - λt) / λ
+72:      for j ← 1 to d do
+73:        ∂pmf/∂θ_j ← ∂pmf/∂θ_j
+74:          + poisson[k] × ∂p[v_a]/∂θ_j                    ▷ Term 1: prob gradient
+75:          + poisson_grad_factor × ∂λ/∂θ_j × p[v_a]       ▷ Term 2: Poisson gradient
+76:      end for
+77:      p[v_a] ← 0, ∂p[v_a]/∂θ ← 0                        ▷ Zero absorbed mass
+78:    end for
+79:
+80:    if k &gt; 10 and poisson[k] &lt; 10^{-15} then
+81:      break                                      ▷ Early termination
+82:    end if
+83:  end for
+84:
+85:  ▷ Phase 4: Convert PMF to PDF (@thm-16-gradient-correctness, @eq-16-pdf-grad-formula)
+86:  pdf ← pmf × λ
+87:  for j ← 1 to d do
+88:    ∂pdf/∂θ_j ← ∂pmf/∂θ_j × λ - pmf × ∂λ/∂θ_j
+89:  end for
+90:
+91:  return (pdf, ∂pdf/∂θ)
+92: end function</code></pre>
+<p><strong>Correspondence table:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 20%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pseudocode variable</th>
+<th>Math symbol</th>
+<th>Code variable (file:function)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">G</span></td>
+<td>Phase-type graph</td>
+<td><code>graph</code> (phasic.c:<code>ptd_graph_pdf_with_gradient</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\boldsymbol{\theta}</span></td>
+<td>Parameter vector</td>
+<td><code>params</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">d</span></td>
+<td>Number of parameters</td>
+<td><code>n_params</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">t</span></td>
+<td>Time point</td>
+<td><code>time</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\lambda</span></td>
+<td>Uniformization rate</td>
+<td><code>lambda</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\partial \lambda / \partial \theta_j</span></td>
+<td>Gradient of uniformization rate</td>
+<td><code>lambda_grad[j]</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">v_{\max}</span></td>
+<td>Vertex achieving max rate</td>
+<td><code>max_vertex_idx</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">K</span></td>
+<td>Maximum jumps (Poisson truncation)</td>
+<td><code>max_jumps</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\text{poisson}[k]</span></td>
+<td>Precomputed Poisson probability</td>
+<td><code>poisson_cache[k]</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mathbf{p}</span></td>
+<td>Forward probability vector</td>
+<td><code>prob</code> (phasic.c:<code>compute_pmf_with_gradient</code>)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\partial \mathbf{p} / \partial \theta_j</span></td>
+<td>Probability gradient matrix</td>
+<td><code>prob_grad[v][j]</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\text{next\_}\mathbf{p}</span></td>
+<td>Next step probability</td>
+<td><code>next_prob</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\partial \text{next\_}\mathbf{p} / \partial \theta_j</span></td>
+<td>Next step gradient</td>
+<td><code>next_prob_grad[v][j]</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\lambda_v</span></td>
+<td>Exit rate of vertex <span class="math inline">v</span></td>
+<td><code>exit_rate</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\partial \lambda_v / \partial \theta_j</span></td>
+<td>Exit rate gradient</td>
+<td><code>exit_rate_grad[j]</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">w</span></td>
+<td>Edge weight</td>
+<td><code>weight</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\partial w / \partial \theta_j</span></td>
+<td>Edge weight gradient</td>
+<td><code>weight_grad[j]</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\text{pmf}</span></td>
+<td>Accumulated PMF</td>
+<td><code>pmf_kahan</code> (Kahan accumulator)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\partial \text{pmf} / \partial \theta_j</span></td>
+<td>Accumulated PMF gradient</td>
+<td><code>grad_kahan[j]</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">c_j^{(v,z)}</span></td>
+<td><span class="math inline">j</span>-th coefficient of edge <span class="math inline">(v \to z)</span></td>
+<td><code>edge-&gt;coefficients[j]</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Complexity.</strong> Time: <span class="math inline">O(K \cdot |V| \cdot (|E_{\max}| + d))</span> where <span class="math inline">K = O(\lambda t)</span> is the number of Poisson steps, <span class="math inline">|E_{\max}|</span> is the maximum out-degree, and <span class="math inline">d = |\boldsymbol{\theta}|</span> is the number of parameters. For each of the <span class="math inline">K</span> steps, we iterate over all vertices and their edges, and for each edge we perform <span class="math inline">d</span> gradient updates. Space: <span class="math inline">O(|V| \cdot d)</span> for the probability and gradient arrays (two copies for double-buffering), plus <span class="math inline">O(K)</span> for the Poisson cache.</p>
+</section>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-16-pdf-gradient-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Algorithm&nbsp;17.1: <strong>Correctness.</strong> The probability propagation (lines 48, 58) is identical to <a href="14_distribution_computation.html#alg-14-dph-forward-step" class="quarto-xref">Algorithm&nbsp;<span>15.1</span></a> with <span class="math inline">\delta = 1/\lambda</span> (uniformization). The gradient propagation (lines 49–53, 59–63) correctly applies the product rule to each probability transfer (<a href="#def-16-parameterized-forward-step" class="quarto-xref">Definition&nbsp;<span>17.2</span></a>, <a href="#eq-16-grad-transfer" class="quarto-xref">Equation&nbsp;<span>17.4</span></a> and <a href="#eq-16-self-loop-grad" class="quarto-xref">Equation&nbsp;<span>17.6</span></a>). The PMF accumulation (lines 70–76) combines the two gradient terms from <a href="#eq-16-pmf-gradient" class="quarto-xref">Equation&nbsp;<span>17.9</span></a>: the absorption probability gradient (Term 1) and the Poisson weight gradient (Term 2). The final PMF-to-PDF conversion (lines 86–89) implements <a href="#eq-16-pdf-grad-formula" class="quarto-xref">Equation&nbsp;<span>17.7</span></a> of <a href="#thm-16-gradient-correctness" class="quarto-xref">Theorem&nbsp;<span>17.1</span></a>. Kahan summation (<a href="03_numerical_primitives.html#alg-03-kahan-summation" class="quarto-xref">Algorithm&nbsp;<span>4.1</span></a>) is used for all accumulations to maintain numerical precision over many steps.
+</figcaption>
+</figure>
+</div>
+</section>
+<section id="numerical-considerations" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="numerical-considerations">Numerical Considerations</h2>
+<p><strong>Poisson probability computation.</strong> The Poisson probabilities are computed in log-space as <span class="math inline">\exp(-\lambda t + k \log(\lambda t) - \log \Gamma(k+1))</span> to avoid overflow for large <span class="math inline">k</span> or <span class="math inline">\lambda t</span>. The log-gamma function <code>lgamma</code> is numerically stable for all positive arguments.</p>
+<p><strong>Poisson tail truncation.</strong> The maximum number of steps <span class="math inline">K</span> is set to <span class="math inline">\lambda t + 6\sqrt{\lambda t} + 100</span>. The <span class="math inline">6\sigma</span> rule ensures that <span class="math inline">\Pr(N &gt; K)</span> is extremely small (less than <span class="math inline">10^{-9}</span> for the Poisson distribution). The additional buffer of 100 handles small <span class="math inline">\lambda t</span> values where the <span class="math inline">6\sigma</span> rule alone would give too few steps. Early termination occurs when <span class="math inline">\operatorname{Po}(k; \lambda t) &lt; 10^{-15}</span>, saving computation when the tail decays faster than the worst case.</p>
+<p><strong>Kahan summation for gradient accumulation.</strong> Both the PMF value and each component of the PMF gradient are accumulated using Kahan compensated summation. This is critical because the summation spans <span class="math inline">O(K)</span> terms, each of which may be very small (the Poisson-weighted absorption probabilities decay exponentially in the tails). Without Kahan summation, the gradient can lose several digits of precision.</p>
+<p><strong>Zeroing absorbed mass.</strong> After accumulating the PMF and gradient contributions from absorbing vertices at each step, the probability and gradient at those vertices are zeroed (line 77). This prevents re-counting absorbed mass at subsequent steps, which would cause the CDF to exceed 1 and the gradient to be incorrect.</p>
+<p><strong>Target vertex lookup.</strong> The implementation performs a linear scan to find the index of an edge’s target vertex (line 7847 in source). This is <span class="math inline">O(|V|)</span> per edge, which is inefficient for large graphs. A precomputed index map would reduce this to <span class="math inline">O(1)</span> but the current implementation prioritizes correctness over performance for this gradient-specific code path.</p>
+<p><strong>Sign of <span class="math inline">\lambda</span> gradient in PDF conversion.</strong> The implementation uses <span class="math inline">\frac{\partial f}{\partial \theta_j} = \frac{\partial \text{PMF}}{\partial \theta_j} \cdot \lambda - \text{PMF} \cdot \frac{\partial \lambda}{\partial \theta_j}</span> (<a href="#eq-16-pdf-grad-formula" class="quarto-xref">Equation&nbsp;<span>17.7</span></a>). The minus sign (rather than plus) is because the PMF gradient accumulation already incorporates the Poisson weight gradient term (Term 2 in <a href="#eq-16-pmf-gradient" class="quarto-xref">Equation&nbsp;<span>17.9</span></a>), which accounts for how <span class="math inline">\lambda</span> affects the Poisson weights. Naively applying the product rule <span class="math inline">f = \lambda \cdot \text{PMF}</span> with <span class="math inline">\frac{\partial f}{\partial \theta_j} = \frac{\partial \lambda}{\partial \theta_j} \cdot \text{PMF} + \lambda \cdot \frac{\partial \text{PMF}}{\partial \theta_j}</span> would double-count the <span class="math inline">\lambda</span>-dependence that is already captured in <span class="math inline">\frac{\partial \text{PMF}}{\partial \theta_j}</span>.</p>
+</section>
+<section id="implementation-notes" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="implementation-notes">Implementation Notes</h2>
+<p><strong>Source code mapping:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 17%">
+<col style="width: 29%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Algorithm</th>
+<th>File</th>
+<th>Function</th>
+<th>Lines</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="#alg-16-pdf-gradient" class="quarto-xref">Algorithm&nbsp;<span>17.1</span></a> (Phase 1)</td>
+<td><code>src/c/phasic.c</code></td>
+<td><code>ptd_graph_pdf_with_gradient</code></td>
+<td>L7977–L8054</td>
+</tr>
+<tr class="even">
+<td><a href="#alg-16-pdf-gradient" class="quarto-xref">Algorithm&nbsp;<span>17.1</span></a> (Phases 2–3)</td>
+<td><code>src/c/phasic.c</code></td>
+<td><code>compute_pmf_with_gradient</code></td>
+<td>L7721–L7962</td>
+</tr>
+<tr class="odd">
+<td><a href="#alg-16-pdf-gradient" class="quarto-xref">Algorithm&nbsp;<span>17.1</span></a> (Phase 4)</td>
+<td><code>src/c/phasic.c</code></td>
+<td><code>ptd_graph_pdf_with_gradient</code></td>
+<td>L8086–L8101</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Deviations from pseudocode:</strong></p>
+<ul>
+<li>The implementation computes <code>exit_rate</code> and <code>exit_rate_grad</code> per vertex, then processes edges with separate weight gradient computation. The pseudocode combines these into a single loop for clarity.</li>
+<li>Edge weight computation checks <code>coefficients_length &gt; 1</code> to distinguish parameterized edges from constant edges. Constant edges (with <code>coefficients_length == 1</code>) contribute zero to the gradient.</li>
+<li>The uniformization rate gradient <span class="math inline">\partial \lambda / \partial \theta_j</span> is computed only from the edges of the vertex that achieves the maximum rate (<code>max_vertex_idx</code>). This is correct because <span class="math inline">\lambda = \max_v \lambda_v</span> and the gradient of a max is the gradient of the achieving element (assuming uniqueness; ties are broken by the first vertex encountered).</li>
+<li>Memory management uses explicit <code>malloc</code>/<code>free</code> with error checking at each allocation. The pseudocode omits these details. A failed allocation causes the function to return <span class="math inline">-1</span> after freeing all previously allocated memory.</li>
+<li>The 2D gradient arrays (<code>prob_grad</code>, <code>next_prob_grad</code>) are allocated as arrays of pointers to rows, not as contiguous blocks. This simplifies row-level operations but may incur cache misses.</li>
+<li>A commented-out alternative implementation (<code>ptd_graph_pdf_parameterized</code>) exists in the source (lines 8418–8480) that integrates with the <code>update_weight_parameterized</code> workflow. This version is currently disabled.</li>
+</ul>
+</section>
+<section id="symbol-index" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="symbol-index">Symbol Index</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 19%">
+<col style="width: 54%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Symbol</th>
+<th>Name</th>
+<th>First appearance</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">a_k(\boldsymbol{\theta})</span></td>
+<td>Absorption probability at step <span class="math inline">k</span></td>
+<td><a href="#def-16-pdf-gradient" class="quarto-xref">Definition&nbsp;<span>17.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">c_j^{(v,z)}</span></td>
+<td><span class="math inline">j</span>-th coefficient of edge <span class="math inline">(v \to z)</span></td>
+<td><a href="#def-16-parameterized-forward-step" class="quarto-xref">Definition&nbsp;<span>17.2</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">d</span></td>
+<td>Dimension of parameter vector</td>
+<td><a href="#def-16-pdf-gradient" class="quarto-xref">Definition&nbsp;<span>17.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">K</span></td>
+<td>Maximum Poisson steps (truncation)</td>
+<td><a href="#alg-16-pdf-gradient" class="quarto-xref">Algorithm&nbsp;<span>17.1</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\lambda(\boldsymbol{\theta})</span></td>
+<td>Uniformization rate (max exit rate)</td>
+<td><a href="#def-16-pdf-gradient" class="quarto-xref">Definition&nbsp;<span>17.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\lambda_v(\boldsymbol{\theta})</span></td>
+<td>Exit rate of vertex <span class="math inline">v</span></td>
+<td><a href="#def-16-pdf-gradient" class="quarto-xref">Definition&nbsp;<span>17.1</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\partial \mathbf{p}^{(k)} / \partial \theta_j</span></td>
+<td>Gradient of forward probability vector</td>
+<td><a href="#def-16-parameterized-forward-step" class="quarto-xref">Definition&nbsp;<span>17.2</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\operatorname{Po}(k; \mu)</span></td>
+<td>Poisson probability mass function</td>
+<td><a href="#def-16-pdf-gradient" class="quarto-xref">Definition&nbsp;<span>17.1</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">v_{\max}</span></td>
+<td>Vertex achieving maximum exit rate</td>
+<td><a href="#alg-16-pdf-gradient" class="quarto-xref">Algorithm&nbsp;<span>17.1</span></a></td>
+</tr>
+</tbody>
+</table>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./15_moment_computation.html" class="pagination-link" aria-label="Moment Computation">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./17_sampling.html" class="pagination-link" aria-label="Sampling">
+        <span class="nav-page-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Sampling</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

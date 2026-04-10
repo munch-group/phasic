@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>3&nbsp; Graph Representation – Phasic — Supplementary Online Material</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./03_numerical_primitives.html" rel="next">
+<link href="./01_preliminaries.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-3d57081916b67e2c1b7e936475d81f56.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./01_preliminaries.html">Foundations</a></li><li class="breadcrumb-item"><a href="./02_graph_representation.html"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Graph Representation</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Phasic — Supplementary Online Material</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Index</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Foundations</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01_preliminaries.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Preliminaries</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02_graph_representation.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Graph Representation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03_numerical_primitives.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Numerical Primitives</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Graph Algorithms</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04_scc_and_topological_sort.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">SCC and Topological Sort</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05_graph_normalization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Graph Normalization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./06_graph_elimination.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./07_reward_transformation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Reward Transformation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./08_state_space_construction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Symbolic System and Traces</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./09_symbolic_expressions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./10_symbolic_graph_elimination.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./11_trace_system.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./12_graph_hashing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./13_scc_trace_stitching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Distribution and Moments</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./14_distribution_computation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./15_moment_computation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./16_pdf_gradients.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
+ <span class="menu-text">Sampling</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./17_sampling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true">
+ <span class="menu-text">Inference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./18_svgd.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./19_mcmc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./20_bffg.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./21_method_of_moments.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./22_probability_matching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true">
+ <span class="menu-text">Spatial and State Indexing</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./23_state_indexing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./24_hex_grid.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true">
+ <span class="menu-text">Integration</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./25_jax_integration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./26_graph_builder.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./27_van_loan_equivalence.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#definitions" id="toc-definitions" class="nav-link" data-scroll-target="#definitions">Definitions</a>
+  <ul class="collapse">
+  <li><a href="#dynamic-edge-storage" id="toc-dynamic-edge-storage" class="nav-link" data-scroll-target="#dynamic-edge-storage">Dynamic edge storage</a></li>
+  <li><a href="#avl-tree-for-state-deduplication" id="toc-avl-tree-for-state-deduplication" class="nav-link" data-scroll-target="#avl-tree-for-state-deduplication">AVL tree for state deduplication</a></li>
+  <li><a href="#graph-validation" id="toc-graph-validation" class="nav-link" data-scroll-target="#graph-validation">Graph validation</a></li>
+  <li><a href="#graph-cloning" id="toc-graph-cloning" class="nav-link" data-scroll-target="#graph-cloning">Graph cloning</a></li>
+  </ul></li>
+  <li><a href="#theorems-and-proofs" id="toc-theorems-and-proofs" class="nav-link" data-scroll-target="#theorems-and-proofs">Theorems and Proofs</a></li>
+  <li><a href="#algorithms" id="toc-algorithms" class="nav-link" data-scroll-target="#algorithms">Algorithms</a></li>
+  <li><a href="#implementation-notes" id="toc-implementation-notes" class="nav-link" data-scroll-target="#implementation-notes">Implementation Notes</a></li>
+  <li><a href="#symbol-index" id="toc-symbol-index" class="nav-link" data-scroll-target="#symbol-index">Symbol Index</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./01_preliminaries.html">Foundations</a></li><li class="breadcrumb-item"><a href="./02_graph_representation.html"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Graph Representation</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Graph Representation</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="introduction">Introduction</h2>
+<p>This file documents the concrete data structures and algorithms that implement the abstract weighted directed graph defined in [01]. While <a href="01_preliminaries.html#def-01-weighted-digraph" class="quarto-xref">Definition&nbsp;<span>2.12</span></a> specifies <em>what</em> a graph is (vertices, edges, weights), this file specifies <em>how</em> phasic stores and manipulates graphs in memory: dynamic edge lists for efficient construction, an AVL tree for state deduplication during graph building, validation of structural invariants, and deep cloning of graph objects.</p>
+<p>These data structures are the foundation of every computational algorithm in phasic. State space construction (file [08]) builds graphs using the AVL tree and edge insertion operations defined here. Normalization ([05]), elimination ([06]), and all subsequent algorithms operate on graphs stored in the representation formalized below.</p>
+<p><strong>Prerequisites:</strong> [01]</p>
+<p><strong>Source files:</strong> - <code>src/c/phasic.c</code> (functions: <code>ptd_graph_add_edge</code>, <code>ptd_avl_find_or_create</code>, <code>ptd_validate_graph</code>, <code>ptd_clone_graph</code>) - <code>api/c/phasic.h</code> (structs: <code>ptd_graph</code>, <code>ptd_vertex</code>, <code>ptd_edge</code>, <code>ptd_avl_node</code>)</p>
+</section>
+<section id="definitions" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="definitions">Definitions</h2>
+<section id="dynamic-edge-storage" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="dynamic-edge-storage">Dynamic edge storage</h3>
+<p>In a dense matrix representation, the adjacency structure occupies <span class="math inline">O(|V|^2)</span> space regardless of the number of edges. For sparse phase-type graphs, phasic stores edges in per-vertex dynamic arrays.</p>
+<div id="def-02-edge-list" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 3.1 (Dynamic edge list)</strong></span> <em>Let <span class="math inline">v \in V</span> be a vertex in a phase-type graph <span class="math inline">G = (V, E, W)</span> (<a href="01_preliminaries.html#def-01-weighted-digraph" class="quarto-xref">Definition&nbsp;<span>2.12</span></a>). The dynamic edge list of <span class="math inline">v</span> is a resizable array <span class="math inline">\mathcal{E}(v)</span> that stores all outgoing edges <span class="math inline">(v \to z) \in E</span>. The array has a logical size <span class="math inline">|\mathcal{E}(v)|</span> (the number of edges currently stored) and a capacity <span class="math inline">\operatorname{cap}(\mathcal{E}(v))</span> (the number of slots allocated). New edges are appended at the end. When <span class="math inline">|\mathcal{E}(v)| = \operatorname{cap}(\mathcal{E}(v))</span>, the capacity is doubled before the insertion proceeds. Initially, <span class="math inline">\operatorname{cap}(\mathcal{E}(v)) = 0</span> and storage is allocated on first insertion.</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> Each vertex owns a contiguous block of memory holding its outgoing edges. The doubling strategy ensures that although individual insertions may trigger a reallocation (copying all existing edges), the average cost per insertion is constant. Edges are not sorted during normal operation; the order reflects the order in which they were added.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> A vertex <span class="math inline">v</span> with three children <span class="math inline">z_1, z_2, z_3</span> has <span class="math inline">|\mathcal{E}(v)| = 3</span>. If the current capacity is 4, adding a fourth edge requires no reallocation. Adding a fifth edge triggers a reallocation to capacity 8.</p>
+</blockquote>
+<div id="def-02-vertex-array" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 3.2 (Vertex array)</strong></span> <em>The graph <span class="math inline">G</span> stores all vertices in a dynamic array <span class="math inline">\mathcal{V}(G)</span> with the same doubling growth strategy as <a href="#def-02-edge-list" class="quarto-xref">Definition&nbsp;<span>3.1</span></a>. The starting vertex <span class="math inline">v_0</span> (<a href="01_preliminaries.html#def-01-ph-graph" class="quarto-xref">Definition&nbsp;<span>2.13</span></a>) is always at index 0. Each vertex carries a state vector <span class="math inline">\sigma(v) \in \mathbb{Z}^d</span>, where <span class="math inline">d</span> is the state dimension of the graph.</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> The state vector <span class="math inline">\sigma(v)</span> is the label that distinguishes vertices during graph construction. For example, in a coalescent model with <span class="math inline">d = 1</span>, the state vector records the number of lineages. The vertex array provides <span class="math inline">O(1)</span> access by index, which is used extensively by elimination and moment algorithms.</p>
+</blockquote>
+</section>
+<section id="avl-tree-for-state-deduplication" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="avl-tree-for-state-deduplication">AVL tree for state deduplication</h3>
+<p>During graph construction, the same state may be encountered multiple times (e.g., different coalescent events may lead to the same number of remaining lineages). An AVL tree ensures each distinct state vector maps to exactly one vertex.</p>
+<div id="def-02-avl-tree" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 3.3 (AVL tree for state deduplication)</strong></span> <em>Let <span class="math inline">d</span> be the state dimension. An AVL tree <span class="math inline">\mathcal{A}</span> is a balanced binary search tree whose keys are state vectors <span class="math inline">\sigma \in \mathbb{Z}^d</span> and whose values are pointers to vertices in <span class="math inline">\mathcal{V}(G)</span>. The key comparison is lexicographic on the byte representation: for state vectors <span class="math inline">\sigma = (\sigma_1, \ldots, \sigma_d)</span> and <span class="math inline">\sigma' = (\sigma'_1, \ldots, \sigma'_d)</span>, the comparison is performed by <code>memcmp</code> on the <span class="math inline">d \cdot \operatorname{sizeof}(\texttt{int})</span> bytes. The tree maintains the AVL balance invariant: for every node <span class="math inline">n</span>, the heights of its left and right subtrees differ by at most 1. Balance is restored after insertions by the four standard rotations (left, right, left-right, right-left).</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> The AVL tree is a lookup table: given a state vector, it returns either the existing vertex with that state or creates a new one. The balanced-tree structure ensures that lookups and insertions take <span class="math inline">O(\log |V|)</span> comparisons, and each comparison costs <span class="math inline">O(d)</span> for the byte-level comparison of state vectors.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> In a coalescent model with state dimension <span class="math inline">d = 1</span>, the tree keys are single integers (the number of lineages). When the state space construction encounters state <span class="math inline">(3)</span>, the AVL tree either finds the existing vertex for 3 lineages or creates a new one. The tree with states <span class="math inline">\{1, 2, 3, 4, 5\}</span> might have 3 at the root, with 1 and 2 in the left subtree and 4 and 5 in the right.</p>
+</blockquote>
+<div id="def-02-avl-balance" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 3.4 (AVL balance factor)</strong></span> <em>For a node <span class="math inline">n</span> in the AVL tree <span class="math inline">\mathcal{A}</span>, the balance factor is <span class="math inline">\beta(n) = h(n_R) - h(n_L)</span>, where <span class="math inline">h(n_L)</span> and <span class="math inline">h(n_R)</span> are the heights of the left and right subtrees respectively, with the convention <span class="math inline">h(\texttt{null}) = -1</span>. The AVL invariant requires <span class="math inline">\beta(n) \in \{-1, 0, 1\}</span> for all nodes <span class="math inline">n</span>.</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> The balance factor determines which rotation to apply after an insertion. A balance factor of <span class="math inline">\pm 2</span> at some node triggers a rotation that restores the invariant.</p>
+</blockquote>
+</section>
+<section id="graph-validation" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="graph-validation">Graph validation</h3>
+<p>After construction, a graph may be validated to detect structural errors. Phasic checks a specific invariant: the absence of parallel (duplicate) edges.</p>
+<div id="def-02-validation" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 3.5 (Graph validation invariants)</strong></span> <em>A phase-type graph <span class="math inline">G = (V, E, W)</span> satisfies the validation invariants if and only if for every vertex <span class="math inline">v \in V</span> and every pair of edges <span class="math inline">(v \to z_1), (v \to z_2) \in \mathcal{E}(v)</span> with the same target (<span class="math inline">z_1 = z_2</span>), the two edges are the same edge (i.e., no vertex has two distinct edges to the same target).</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> Parallel edges would make the weight function <span class="math inline">W</span> ambiguous: <span class="math inline">w(v \to z)</span> must be a single value. The graph construction functions prevent parallel edges at insertion time; validation provides a post-hoc check.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> If vertex <span class="math inline">v</span> has edges to <span class="math inline">z_1</span> and <span class="math inline">z_2</span> with <span class="math inline">z_1 \neq z_2</span>, the graph is valid (with respect to this invariant). If <span class="math inline">v</span> has two edges both targeting <span class="math inline">z_1</span>, validation fails.</p>
+</blockquote>
+<p><strong>Remark.</strong> The validation algorithm does <em>not</em> check: non-negative weights (enforced by the weight computation modes in <a href="01_preliminaries.html#def-01-param-edges" class="quarto-xref">Definition&nbsp;<span>2.15</span></a>), connectivity, or the absence of self-loops (self-loops are forbidden by the edge insertion function, not by validation).</p>
+</section>
+<section id="graph-cloning" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="graph-cloning">Graph cloning</h3>
+<p>Some algorithms (e.g., reward transformation) modify the graph in place. To preserve the original, a deep clone is required.</p>
+<div id="def-02-clone" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 3.6 (Graph clone)</strong></span> <em>A clone of a phase-type graph <span class="math inline">G = (V, E, W)</span> is a new graph <span class="math inline">G' = (V', E', W')</span> satisfying:</em></p>
+<ol type="1">
+<li><em>There is a bijection <span class="math inline">\mu : V \to V'</span> (the vertex map) such that <span class="math inline">\sigma(\mu(v)) = \sigma(v)</span> for all <span class="math inline">v \in V</span> (state vectors are copied).</em></li>
+<li><em><span class="math inline">(v \to z) \in E</span> if and only if <span class="math inline">(\mu(v) \to \mu(z)) \in E'</span>, and <span class="math inline">w'(\mu(v) \to \mu(z)) = w(v \to z)</span> (edges and weights are preserved).</em></li>
+<li><em>The starting vertex of <span class="math inline">G'</span> is <span class="math inline">\mu(v_0)</span>.</em></li>
+<li><em>If edges carry coefficient vectors <span class="math inline">\mathbf{c}</span>, these are deep-copied: modifying a coefficient in <span class="math inline">G'</span> does not affect <span class="math inline">G</span>.</em></li>
+<li><em>The AVL tree of <span class="math inline">G'</span> is rebuilt to reference the new vertices <span class="math inline">V'</span>.</em></li>
+<li><em>Cached computation results (e.g., from elimination) are not copied.</em></li>
+</ol>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> Cloning produces an independent copy: any modification to <span class="math inline">G'</span> leaves <span class="math inline">G</span> unchanged, and vice versa. The omission of cached results is deliberate — cached results reference the original vertices and would be invalidated by any modification to <span class="math inline">G'</span>.</p>
+</blockquote>
+</section>
+</section>
+<section id="theorems-and-proofs" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="theorems-and-proofs">Theorems and Proofs</h2>
+<div id="thm-02-avl-ops" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 3.1 (AVL tree operations)</strong></span> <em>Let <span class="math inline">\mathcal{A}</span> be an AVL tree containing <span class="math inline">|V|</span> nodes with state vectors of dimension <span class="math inline">d</span>. The operations FindOrInsert and Find each require <span class="math inline">O(d \log |V|)</span> time.</em></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>The AVL balance invariant ensures that the height of the tree is at most <span class="math inline">1.4404 \log_2(|V| + 2) - 0.3277</span> (the Fibonacci bound on AVL tree height; see Adelson-Velsky &amp; Landis, 1962). Thus the number of nodes visited during a search or insertion is <span class="math inline">O(\log |V|)</span>. At each node, the key comparison performs a <code>memcmp</code> on <span class="math inline">d \cdot \operatorname{sizeof}(\texttt{int})</span> bytes, which takes <span class="math inline">O(d)</span> time. The total comparison cost is therefore <span class="math inline">O(d \log |V|)</span>.</p>
+<p>For FindOrInsert, if the key is not found, a new node is created in <span class="math inline">O(d)</span> time (copying the state vector) and inserted as a leaf. The subsequent rebalancing traverses at most <span class="math inline">O(\log |V|)</span> ancestors, performing at most two rotations, each in <span class="math inline">O(1)</span> time. The total insertion cost is <span class="math inline">O(d \log |V|)</span>.</p>
+<p>For Find (lookup without insertion), the cost is exactly the search cost: <span class="math inline">O(d \log |V|)</span>. <span class="math inline">\square</span></p>
+</div>
+<div id="thm-02-amortized-insert" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 3.2 (Amortized O(1) edge insertion)</strong></span> <em>Let <span class="math inline">\mathcal{E}(v)</span> be a dynamic edge list with doubling growth strategy (<a href="#def-02-edge-list" class="quarto-xref">Definition&nbsp;<span>3.1</span></a>). Starting from an empty list, the amortized cost of inserting <span class="math inline">n</span> edges is <span class="math inline">O(1)</span> per insertion.</em></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>We use aggregate analysis. After <span class="math inline">n</span> insertions, the total number of copy operations due to reallocations is at most <span class="math inline">\sum_{i=0}^{\lfloor \log_2 n \rfloor} 2^i \leq 2n - 1</span>. This is because reallocations occur when the capacity doubles from <span class="math inline">2^i</span> to <span class="math inline">2^{i+1}</span>, copying <span class="math inline">2^i</span> existing edges. The geometric series sums to less than <span class="math inline">2n</span>. Adding the <span class="math inline">n</span> direct insertions (each <span class="math inline">O(1)</span> without reallocation), the total work is at most <span class="math inline">3n</span>. The amortized cost per insertion is therefore <span class="math inline">3n / n = O(1)</span>. <span class="math inline">\square</span></p>
+</div>
+<div id="thm-02-validation" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 3.3 (Validation correctness and complexity)</strong></span> <em><a href="#alg-02-graph-validation" class="quarto-xref">Algorithm&nbsp;<span>3.2</span></a> (Graph Validation) correctly identifies all parallel edges and runs in <span class="math inline">O(|V| \cdot \Delta \log \Delta)</span> time, where <span class="math inline">\Delta = \max_{v \in V} |\mathcal{E}(v)|</span> is the maximum out-degree.</em></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>For each vertex <span class="math inline">v</span>, the algorithm sorts <span class="math inline">\mathcal{E}(v)</span> by target vertex pointer, then performs a linear scan comparing adjacent entries. Two edges <span class="math inline">(v \to z_1)</span> and <span class="math inline">(v \to z_2)</span> with <span class="math inline">z_1 = z_2</span> are parallel if and only if they are adjacent after sorting by target. The sort ensures all edges with the same target are consecutive, so the linear scan detects every parallel pair.</p>
+<p>The sort of <span class="math inline">\mathcal{E}(v)</span> takes <span class="math inline">O(|\mathcal{E}(v)| \log |\mathcal{E}(v)|)</span> time, and the linear scan takes <span class="math inline">O(|\mathcal{E}(v)|)</span> time. Summing over all vertices:</p>
+<p><span class="math display">\sum_{v \in V} O(|\mathcal{E}(v)| \log |\mathcal{E}(v)|) \leq \sum_{v \in V} O(\Delta \log \Delta) = O(|V| \cdot \Delta \log \Delta).</span></p>
+<p>Equivalently, since <span class="math inline">\sum_v |\mathcal{E}(v)| = |E|</span>, the total is <span class="math inline">O(|E| \log \Delta)</span>. <span class="math inline">\square</span></p>
+</div>
+<div id="thm-02-clone" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 3.4 (Clone correctness and complexity)</strong></span> <em><a href="#alg-02-graph-clone" class="quarto-xref">Algorithm&nbsp;<span>3.3</span></a> (Graph Clone) produces a graph <span class="math inline">G'</span> satisfying <a href="#def-02-clone" class="quarto-xref">Definition&nbsp;<span>3.6</span></a> in <span class="math inline">O(|V| \cdot |E|)</span> time in the current implementation, or <span class="math inline">O(|V| + |E|)</span> time with an index-based vertex map.</em></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>Correctness: Phase 1 creates <span class="math inline">|V'| = |V|</span> vertices with copied state vectors, establishing the bijection <span class="math inline">\mu</span>. Phase 2 iterates over all edges in <span class="math inline">G</span> and creates corresponding edges in <span class="math inline">G'</span> with the same weight and deep-copied coefficients, so <span class="math inline">E'</span> is in bijection with <span class="math inline">E</span> and weights are preserved. Phase 3 rebuilds the AVL tree for <span class="math inline">G'</span> by inserting all vertices of <span class="math inline">V'</span>, which takes <span class="math inline">O(|V| d \log |V|)</span> time.</p>
+<p>Complexity: Phase 1 is <span class="math inline">O(|V| d)</span> for copying state vectors. Phase 2 iterates over all <span class="math inline">|E|</span> edges. For each edge <span class="math inline">(v_i \to v_j) \in E</span>, the implementation performs a linear scan of <span class="math inline">\mathcal{V}(G')</span> to find <span class="math inline">\mu(v_j)</span>, taking <span class="math inline">O(|V|)</span> per edge. The total for Phase 2 is thus <span class="math inline">O(|V| \cdot |E|)</span>. Phase 3 is <span class="math inline">O(|V| d \log |V|)</span>. The bottleneck is Phase 2.</p>
+<p>If instead the implementation used the vertex map <span class="math inline">\mu</span> (an array mapping old indices to new vertices, computed in Phase 1), each edge target lookup would be <span class="math inline">O(1)</span>, reducing Phase 2 to <span class="math inline">O(|E|)</span> and the total to <span class="math inline">O(|V| d \log |V| + |E|)</span>. See the Implementation Notes for the suspected code issue. <span class="math inline">\square</span></p>
+</div>
+</section>
+<section id="algorithms" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="algorithms">Algorithms</h2>
+<div id="alg-02-avl-find-or-insert" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-alg figure">
+<section id="avl-find-or-insert" class="level4" aria-describedby="alg-02-avl-find-or-insert-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="3.0.0.1">
+<h4 data-number="3.0.0.1" class="anchored" data-anchor-id="avl-find-or-insert"><span class="header-section-number">3.0.0.1</span> AVL Find-or-Insert</h4>
+<p><em>Description.</em> Given a state vector <span class="math inline">\sigma \in \mathbb{Z}^d</span>, this algorithm searches the AVL tree <span class="math inline">\mathcal{A}</span> for a node with key <span class="math inline">\sigma</span>. If found, it returns the associated vertex. If not found, it creates a new vertex with state vector <span class="math inline">\sigma</span>, inserts a new node into the tree, rebalances as needed, and returns the new vertex.</p>
+<pre><code>AVL Find-or-Insert
+1: Let G = (V, E, W) be a phase-type graph with AVL tree A and state dimension d
+2: Let σ ∈ Z^d be the query state vector
+3:
+4: function FindOrInsert(A, σ, G)
+5:   n ← root(A)
+6:   parent ← null
+7:   while n ≠ null do
+8:     cmp ← memcmp(σ, key(n), d · sizeof(int))    ▷ Lexicographic byte comparison
+9:     if cmp = 0 then
+10:      return vertex(n)                             ▷ State already exists
+11:    else if cmp &lt; 0 then
+12:      parent ← n
+13:      n ← left(n)
+14:    else
+15:      parent ← n
+16:      n ← right(n)
+17:    end if
+18:  end while
+19:  v ← CreateVertex(G, copy(σ))                    ▷ New vertex with copied state vector
+20:  n_new ← CreateNode(σ, v)
+21:  if parent = null then
+22:    root(A) ← n_new
+23:  else if cmp &lt; 0 then
+24:    left(parent) ← n_new
+25:  else
+26:    right(parent) ← n_new
+27:  end if
+28:  Rebalance(A, n_new)                              ▷ Walk up to root, fix balance factors, rotate if needed
+29:  return v
+30: end function</code></pre>
+<p><strong>Correspondence table:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 20%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pseudocode variable</th>
+<th>Math symbol</th>
+<th>Code variable (file:function)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">A</span></td>
+<td><span class="math inline">\mathcal{A}</span></td>
+<td><code>ptd_avl_tree</code> (phasic.c:<code>ptd_avl_find_or_create</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\sigma</span></td>
+<td><span class="math inline">\sigma(v)</span></td>
+<td><code>state</code> parameter (phasic.c:<code>ptd_avl_find_or_create</code>)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">n</span></td>
+<td>—</td>
+<td><code>current</code> node pointer</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">cmp</span></td>
+<td>—</td>
+<td>result of <code>memcmp</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">v</span></td>
+<td><span class="math inline">v \in V</span></td>
+<td><code>ptd_vertex</code> pointer</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">d</span></td>
+<td><span class="math inline">d</span> (state dimension)</td>
+<td><code>graph-&gt;state_length</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Complexity.</strong> Time: <span class="math inline">O(d \log |V|)</span> (by <a href="#thm-02-avl-ops" class="quarto-xref">Theorem&nbsp;<span>3.1</span></a>). Space: <span class="math inline">O(d)</span> for the new node if insertion occurs.</p>
+</section>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-02-avl-find-or-insert-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Algorithm&nbsp;3.1: <strong>Correctness.</strong> Follows from <a href="#thm-02-avl-ops" class="quarto-xref">Theorem&nbsp;<span>3.1</span></a>. The binary search visits <span class="math inline">O(\log |V|)</span> nodes by the AVL height bound. The <code>memcmp</code> comparison induces a total order on <span class="math inline">\mathbb{Z}^d</span> (via byte representation), ensuring the BST property is well-defined. Rotations preserve the BST property and restore the AVL invariant.
+</figcaption>
+</figure>
+</div>
+<div id="alg-02-graph-validation" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-alg figure">
+<section id="graph-validation-1" class="level4" aria-describedby="alg-02-graph-validation-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="3.0.0.2">
+<h4 data-number="3.0.0.2" class="anchored" data-anchor-id="graph-validation-1"><span class="header-section-number">3.0.0.2</span> Graph Validation</h4>
+<p><em>Description.</em> This algorithm checks a phase-type graph for the presence of parallel (duplicate) edges. For each vertex, it sorts the edge list by target pointer and scans for consecutive duplicates.</p>
+<pre><code>Graph Validation
+1: Let G = (V, E, W) be a phase-type graph
+2:
+3: function ValidateGraph(G)
+4:   for v ∈ V do
+5:     Sort E(v) by target vertex pointer               ▷ O(|E(v)| log |E(v)|) comparison sort
+6:     for i ← 1 to |E(v)| - 1 do
+7:       if target(E(v)[i]) = target(E(v)[i-1]) then
+8:         return false                                  ▷ Parallel edge detected
+9:       end if
+10:    end for
+11:  end for
+12:  return true
+13: end function</code></pre>
+<p><strong>Correspondence table:</strong></p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Pseudocode variable</th>
+<th>Math symbol</th>
+<th>Code variable (file:function)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">G</span></td>
+<td><span class="math inline">G = (V, E, W)</span></td>
+<td><code>ptd_graph*</code> (phasic.c:<code>ptd_validate_graph</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">v</span></td>
+<td><span class="math inline">v \in V</span></td>
+<td>vertex loop variable</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathcal{E}(v)</span></td>
+<td><span class="math inline">\mathcal{E}(v)</span></td>
+<td><code>vertex-&gt;edges</code> array</td>
+</tr>
+<tr class="even">
+<td>target</td>
+<td>—</td>
+<td><code>edge-&gt;to</code> pointer</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Complexity.</strong> Time: <span class="math inline">O(|E| \log \Delta)</span> where <span class="math inline">\Delta</span> is the maximum out-degree (by <a href="#thm-02-validation" class="quarto-xref">Theorem&nbsp;<span>3.3</span></a>). Space: <span class="math inline">O(1)</span> additional (sorting is in-place).</p>
+</section>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-02-graph-validation-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Algorithm&nbsp;3.2: <strong>Correctness.</strong> Follows from <a href="#thm-02-validation" class="quarto-xref">Theorem&nbsp;<span>3.3</span></a>.
+</figcaption>
+</figure>
+</div>
+<div id="alg-02-graph-clone" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-alg figure">
+<section id="graph-clone-1" class="level4" aria-describedby="alg-02-graph-clone-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="3.0.0.3">
+<h4 data-number="3.0.0.3" class="anchored" data-anchor-id="graph-clone-1"><span class="header-section-number">3.0.0.3</span> Graph Clone</h4>
+<p><em>Description.</em> This algorithm creates a deep copy of a phase-type graph. It proceeds in three phases: (1) create vertices with copied state vectors, (2) clone edges using a vertex map, (3) rebuild the AVL tree. Graph metadata (parameter length, edge mode, DPH flag) is copied during graph creation; cached computation results (elimination traces, reward compute graphs) are not copied.</p>
+<pre><code>Graph Clone
+1: Let G = (V, E, W) be a phase-type graph with |V| vertices indexed 0, ..., |V|-1
+2:
+3: function CloneGraph(G)
+4:   G' ← CreateEmptyGraph(state_dimension(G))
+5:                                                       ▷ Phase 1: Clone vertices
+6:   for i ← 0 to |V| - 1 do
+7:     v ← V[i]
+8:     v' ← CreateVertex(G', copy(σ(v)))                ▷ Deep copy of state vector
+9:     μ[i] ← v'                                        ▷ Record vertex map
+10:  end for
+11:                                                      ▷ Phase 2: Clone edges
+12:  for i ← 0 to |V| - 1 do
+13:    v ← V[i]
+14:    for (v → z) ∈ E(v) do
+15:      j ← index(z)                                   ▷ Find index of target vertex
+16:      AddEdge(μ[i], μ[j], w(v → z), copy(c(v → z)))  ▷ Deep copy weight and coefficients
+17:    end for
+18:  end for
+19:                                                      ▷ Phase 3: Rebuild AVL tree
+20:  for i ← 0 to |V'| - 1 do
+21:    InsertIntoAVL(A', σ(V'[i]), V'[i])
+22:  end for
+23:  return G'
+24: end function</code></pre>
+<p><strong>Correspondence table:</strong></p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Pseudocode variable</th>
+<th>Math symbol</th>
+<th>Code variable (file:function)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">G</span></td>
+<td><span class="math inline">G = (V, E, W)</span></td>
+<td><code>ptd_graph*</code> (phasic.c:<code>ptd_clone_graph</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">G'</span></td>
+<td><span class="math inline">G' = (V', E', W')</span></td>
+<td>cloned <code>ptd_graph*</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mu</span></td>
+<td><span class="math inline">\mu : V \to V'</span></td>
+<td>vertex map array</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\sigma(v)</span></td>
+<td><span class="math inline">\sigma(v)</span></td>
+<td><code>vertex-&gt;state</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathbf{c}(v \to z)</span></td>
+<td><span class="math inline">\mathbf{c}</span></td>
+<td><code>edge-&gt;coefficients</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Complexity.</strong> Time: <span class="math inline">O(|V| \cdot |E|)</span> in current implementation; <span class="math inline">O(|V| d \log |V| + |E|)</span> with index-based vertex map (by <a href="#thm-02-clone" class="quarto-xref">Theorem&nbsp;<span>3.4</span></a>). Space: <span class="math inline">O(|V| + |E|)</span> for the cloned graph.</p>
+</section>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-02-graph-clone-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Algorithm&nbsp;3.3: <strong>Correctness.</strong> Follows from <a href="#thm-02-clone" class="quarto-xref">Theorem&nbsp;<span>3.4</span></a>. Properties (1)-(6) of <a href="#def-02-clone" class="quarto-xref">Definition&nbsp;<span>3.6</span></a> are established by the three phases.
+</figcaption>
+</figure>
+</div>
+</section>
+<section id="implementation-notes" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="implementation-notes">Implementation Notes</h2>
+<p><strong>Source code mapping:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 17%">
+<col style="width: 29%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Algorithm</th>
+<th>File</th>
+<th>Function</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="#alg-02-avl-find-or-insert" class="quarto-xref">Algorithm&nbsp;<span>3.1</span></a></td>
+<td><code>src/c/phasic.c</code></td>
+<td><code>ptd_avl_find_or_create</code></td>
+<td>AVL tree find-or-insert</td>
+</tr>
+<tr class="even">
+<td><a href="#alg-02-graph-validation" class="quarto-xref">Algorithm&nbsp;<span>3.2</span></a></td>
+<td><code>src/c/phasic.c</code></td>
+<td><code>ptd_validate_graph</code></td>
+<td>Graph validation</td>
+</tr>
+<tr class="odd">
+<td><a href="#alg-02-graph-clone" class="quarto-xref">Algorithm&nbsp;<span>3.3</span></a></td>
+<td><code>src/c/phasic.c</code></td>
+<td><code>ptd_clone_graph</code></td>
+<td>Graph deep clone</td>
+</tr>
+<tr class="even">
+<td>—</td>
+<td><code>src/c/phasic.c</code></td>
+<td><code>ptd_graph_add_edge</code></td>
+<td>Edge insertion (uses <a href="#def-02-edge-list" class="quarto-xref">Definition&nbsp;<span>3.1</span></a>)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Deviations from pseudocode:</strong></p>
+<ul>
+<li><p><strong><a href="#alg-02-avl-find-or-insert" class="quarto-xref">Algorithm&nbsp;<span>3.1</span></a> (AVL):</strong> The implementation stores parent pointers in each AVL node, which simplifies the rebalancing walk. The pseudocode abstracts this as <code>Rebalance(A, n_new)</code>.</p></li>
+<li><p><strong><a href="#alg-02-graph-validation" class="quarto-xref">Algorithm&nbsp;<span>3.2</span></a> (Validation):</strong> The sort in the implementation uses <code>qsort</code> on the edge array, comparing target vertex pointers as integers. The pseudocode abstracts this as a generic comparison sort.</p></li>
+<li><p><strong><a href="#alg-02-graph-clone" class="quarto-xref">Algorithm&nbsp;<span>3.3</span></a> (Clone):</strong> The pseudocode shows an index-based vertex map <span class="math inline">\mu</span>. See the suspected code issue below regarding the actual implementation.</p></li>
+<li><p><strong>Edge insertion (<code>ptd_graph_add_edge</code>):</strong> Self-loops are explicitly forbidden: attempting to add an edge <span class="math inline">(v \to v)</span> raises an error. The coefficient vector length is validated against the graph’s parameter dimension. The initial weight is computed as <span class="math inline">w = \sum_j c_j \cdot 1 = \sum_j c_j</span> (i.e., with an implicit <span class="math inline">\boldsymbol{\theta} = \mathbf{e}</span>).</p></li>
+</ul>
+<p><strong>Remark</strong> (Suspected code issue: <code>ptd_avl_tree_max_depth</code>). The function <code>ptd_avl_tree_max_depth</code> contains a bug: both the left-subtree and right-subtree recursive calls recurse into the left child. Specifically, the line computing the right subtree depth calls <code>ptd_avl_tree_max_depth(node-&gt;left)</code> instead of <code>ptd_avl_tree_max_depth(node-&gt;right)</code>. This causes the function to return an incorrect tree height when the right subtree is deeper than the left. The bug does not affect AVL tree correctness (insertions and lookups do not use <code>max_depth</code>), but any code relying on the reported tree height will get incorrect results.</p>
+<p><strong>Remark</strong> (Suspected code issue: <code>ptd_clone_graph</code> target lookup). In Phase 2 of the clone algorithm, the implementation performs a linear scan of the cloned vertex array to find the target vertex <span class="math inline">\mu(v_j)</span> for each edge, rather than using the index-based vertex map computed in Phase 1. This results in <span class="math inline">O(|V|)</span> time per edge lookup instead of <span class="math inline">O(1)</span>, making the overall clone complexity <span class="math inline">O(|V| \cdot |E|)</span> rather than the achievable <span class="math inline">O(|V| d \log |V| + |E|)</span>. The vertex map array is available from Phase 1 and could be used to resolve targets in constant time.</p>
+</section>
+<section id="symbol-index" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="symbol-index">Symbol Index</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 19%">
+<col style="width: 54%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Symbol</th>
+<th>Name</th>
+<th>First appearance</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\mathcal{A}</span></td>
+<td>AVL tree for state deduplication</td>
+<td><a href="#def-02-avl-tree" class="quarto-xref">Definition&nbsp;<span>3.3</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\beta(n)</span></td>
+<td>AVL balance factor</td>
+<td><a href="#def-02-avl-balance" class="quarto-xref">Definition&nbsp;<span>3.4</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\operatorname{cap}(\mathcal{E}(v))</span></td>
+<td>Capacity of dynamic edge list</td>
+<td><a href="#def-02-edge-list" class="quarto-xref">Definition&nbsp;<span>3.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">d</span></td>
+<td>State dimension</td>
+<td><a href="#def-02-vertex-array" class="quarto-xref">Definition&nbsp;<span>3.2</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\Delta</span></td>
+<td>Maximum out-degree</td>
+<td><a href="#thm-02-validation" class="quarto-xref">Theorem&nbsp;<span>3.3</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mathcal{E}(v)</span></td>
+<td>Dynamic edge list of vertex <span class="math inline">v</span></td>
+<td><a href="#def-02-edge-list" class="quarto-xref">Definition&nbsp;<span>3.1</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mu</span></td>
+<td>Vertex map (clone bijection)</td>
+<td><a href="#def-02-clone" class="quarto-xref">Definition&nbsp;<span>3.6</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\sigma(v)</span></td>
+<td>State vector of vertex <span class="math inline">v</span></td>
+<td><a href="#def-02-vertex-array" class="quarto-xref">Definition&nbsp;<span>3.2</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathcal{V}(G)</span></td>
+<td>Vertex array of graph <span class="math inline">G</span></td>
+<td><a href="#def-02-vertex-array" class="quarto-xref">Definition&nbsp;<span>3.2</span></a></td>
+</tr>
+</tbody>
+</table>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./01_preliminaries.html" class="pagination-link" aria-label="Preliminaries">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Preliminaries</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./03_numerical_primitives.html" class="pagination-link" aria-label="Numerical Primitives">
+        <span class="nav-page-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Numerical Primitives</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>13&nbsp; Graph Hashing – Phasic — Supplementary Online Material</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./13_scc_trace_stitching.html" rel="next">
+<link href="./11_trace_system.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-3d57081916b67e2c1b7e936475d81f56.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./09_symbolic_expressions.html">Symbolic System and Traces</a></li><li class="breadcrumb-item"><a href="./12_graph_hashing.html"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Graph Hashing</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Phasic — Supplementary Online Material</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Index</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Foundations</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01_preliminaries.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Preliminaries</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02_graph_representation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Graph Representation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03_numerical_primitives.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Numerical Primitives</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Graph Algorithms</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04_scc_and_topological_sort.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">SCC and Topological Sort</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05_graph_normalization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Graph Normalization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./06_graph_elimination.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./07_reward_transformation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Reward Transformation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./08_state_space_construction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Symbolic System and Traces</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./09_symbolic_expressions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./10_symbolic_graph_elimination.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./11_trace_system.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./12_graph_hashing.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./13_scc_trace_stitching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Distribution and Moments</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./14_distribution_computation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./15_moment_computation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./16_pdf_gradients.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
+ <span class="menu-text">Sampling</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./17_sampling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true">
+ <span class="menu-text">Inference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./18_svgd.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./19_mcmc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./20_bffg.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./21_method_of_moments.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./22_probability_matching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true">
+ <span class="menu-text">Spatial and State Indexing</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./23_state_indexing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./24_hex_grid.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true">
+ <span class="menu-text">Integration</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./25_jax_integration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./26_graph_builder.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./27_van_loan_equivalence.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#definitions" id="toc-definitions" class="nav-link" data-scroll-target="#definitions">Definitions</a></li>
+  <li><a href="#theorems-and-proofs" id="toc-theorems-and-proofs" class="nav-link" data-scroll-target="#theorems-and-proofs">Theorems and Proofs</a></li>
+  <li><a href="#algorithms" id="toc-algorithms" class="nav-link" data-scroll-target="#algorithms">Algorithms</a></li>
+  <li><a href="#implementation-notes" id="toc-implementation-notes" class="nav-link" data-scroll-target="#implementation-notes">Implementation Notes</a></li>
+  <li><a href="#symbol-index" id="toc-symbol-index" class="nav-link" data-scroll-target="#symbol-index">Symbol Index</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./09_symbolic_expressions.html">Symbolic System and Traces</a></li><li class="breadcrumb-item"><a href="./12_graph_hashing.html"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Graph Hashing</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Graph Hashing</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="introduction">Introduction</h2>
+<p>This file formalizes the content-addressable hashing scheme used by phasic to identify graph structures for trace caching. When the trace system ([11]) records an elimination trace for a parameterized graph, the trace is stored on disk indexed by a hash of the graph’s structure. On subsequent runs with a structurally identical graph (but possibly different parameter values), the cached trace is loaded directly, avoiding the <span class="math inline">O(|V|^3)</span> recording cost.</p>
+<p>The hashing algorithm must satisfy two properties: (1) structurally identical graphs must produce the same hash (determinism), and (2) structurally different graphs should produce different hashes with overwhelming probability (collision resistance). The algorithm achieves this by combining a modified Weisfeiler-Lehman (WL) vertex refinement — which captures the local neighborhood structure of each vertex — with SHA-256 finalization for cryptographic collision resistance.</p>
+<p>The hash depends on the graph’s topology (which vertices connect to which), edge coefficient vectors (the parameterization pattern), vertex state vectors, and graph metadata (state dimension, parameter dimension, discrete/continuous flag). It is explicitly independent of concrete edge weights, which are determined by the parameter vector <span class="math inline">\boldsymbol{\theta}</span> and change between evaluations.</p>
+<p><strong>Prerequisites:</strong> [01], [02]</p>
+<p><strong>Source files:</strong> - <code>src/c/phasic_hash.c</code> (functions: <code>ptd_graph_content_hash</code>, <code>hash_vertex_structure</code>, <code>compare_edges</code>, <code>ptd_hash_equal</code>, <code>ptd_hash_from_hex</code>) - <code>api/c/phasic_hash.h</code> (types: <code>ptd_hash_result</code>; functions: <code>ptd_graph_content_hash</code>, <code>ptd_hash_equal</code>, <code>ptd_hash_destroy</code>, <code>ptd_hash_from_hex</code>)</p>
+</section>
+<section id="definitions" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="definitions">Definitions</h2>
+<blockquote class="blockquote">
+<p><strong>Recall</strong> (<a href="01_preliminaries.html#def-01-ph-graph" class="quarto-xref">Definition&nbsp;<span>2.13</span></a>). <em>A phase-type graph is a weighted directed graph <span class="math inline">G = (V, E, W)</span> with a starting vertex <span class="math inline">v_0</span>, transient vertices, and absorbing vertices.</em></p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Recall</strong> (<a href="01_preliminaries.html#def-01-param-edges" class="quarto-xref">Definition&nbsp;<span>2.15</span></a>). <em>A parameterized edge <span class="math inline">(v \to z)</span> carries a coefficient vector <span class="math inline">\mathbf{c} = (c_1, \ldots, c_k)</span> and computes its weight according to a weight mode.</em></p>
+</blockquote>
+<div id="def-12-structural-signature" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 13.1 (Graph structural signature)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> be a phase-type graph with state dimension <span class="math inline">d</span> and parameter dimension <span class="math inline">k</span>. The structural signature of <span class="math inline">G</span> is the tuple <span class="math inline">\mathcal{S}(G) = (d, k, |V|, \delta, \{\sigma(v), \mathcal{N}(v)\}_{v \in V})</span> where:</em></p>
+<ul>
+<li><em><span class="math inline">d</span> is the state dimension,</em></li>
+<li><em><span class="math inline">k</span> is the parameter dimension,</em></li>
+<li><em><span class="math inline">|V|</span> is the number of vertices,</em></li>
+<li><em><span class="math inline">\delta \in \{0, 1\}^2</span> is a flags vector encoding graph properties (parameterized, discrete),</em></li>
+<li><em><span class="math inline">\sigma(v) \in \mathbb{Z}^d</span> is the state vector of vertex <span class="math inline">v</span> (<a href="02_graph_representation.html#def-02-vertex-array" class="quarto-xref">Definition&nbsp;<span>3.2</span></a>),</em></li>
+<li><em><span class="math inline">\mathcal{N}(v) = \{(j, \mathbf{c}_{v \to z}) : (v \to z) \in E, z \text{ has index } j\}</span> is the set of (target index, coefficient vector) pairs of outgoing edges, in canonical order.</em></li>
+</ul>
+<p><em>Two graphs <span class="math inline">G_1</span> and <span class="math inline">G_2</span> are structurally identical if and only if <span class="math inline">\mathcal{S}(G_1) = \mathcal{S}(G_2)</span>.</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> The structural signature captures everything about a graph except the concrete edge weights. Two graphs with the same signature have the same topology, the same vertex states, and the same parameterization pattern. They differ only in the parameter vector <span class="math inline">\boldsymbol{\theta}</span> used to compute edge weights. This is precisely the equivalence class for which a single elimination trace suffices.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> A coalescent model with 5 lineages always produces the same structural signature regardless of the coalescent rate parameter. The state vectors, edge coefficient vectors, and graph topology are determined by the model structure, not by the rate.</p>
+</blockquote>
+<div id="def-12-vertex-content-hash" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 13.2 (Vertex content hash)</strong></span> <em>Let <span class="math inline">v \in V</span> be a vertex of a phase-type graph with state vector <span class="math inline">\sigma(v) \in \mathbb{Z}^d</span> and outgoing edges to targets <span class="math inline">z_1, \ldots, z_m</span>. The vertex content hash is</em></p>
+<p><span class="math display">h(v) = \operatorname{SHA\text{-}256}\!\left(\sigma(v) \,\|\, \bigl(j_{\pi(1)}, \mathbf{c}_{v \to z_{\pi(1)}}\bigr) \,\|\, \cdots \,\|\, \bigl(j_{\pi(m)}, \mathbf{c}_{v \to z_{\pi(m)}}\bigr)\right)</span></p>
+<p><em>where <span class="math inline">\|</span> denotes byte-level concatenation, <span class="math inline">j_{\pi(l)}</span> is the index of target <span class="math inline">z_{\pi(l)}</span>, and <span class="math inline">\pi</span> is a permutation that sorts the edges in canonical order: first by target vertex index, then by coefficient array length, then lexicographically by coefficient values.</em></p>
+<p><em>The hash value is truncated to 64 bits for fast comparison: <span class="math inline">h_{64}(v) = \operatorname{trunc}_{64}(h(v))</span>.</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> This is a modified Weisfeiler-Lehman refinement step applied once. In the classical WL algorithm, each vertex’s label is updated by hashing its current label together with the sorted multiset of neighbor labels. Here, each vertex’s “label” is its state vector and the identity of its neighbors (by index) together with the edge parameterization coefficients. The sorting ensures that the hash is independent of the order in which edges are stored in memory. Because phasic graphs use vertex indices as canonical identifiers (determined by construction order), a single refinement round suffices — the index already encodes the full structural identity of each vertex.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> For a vertex with state <span class="math inline">\sigma(v) = (3,)</span> and two outgoing edges to vertices 5 and 7 with coefficients <span class="math inline">[1.0, 0.0]</span> and <span class="math inline">[0.0, 1.0]</span> respectively, the hash input is the byte concatenation: <span class="math inline">\texttt{bytes}((3,)) \| \texttt{bytes}(5, [1.0, 0.0]) \| \texttt{bytes}(7, [0.0, 1.0])</span>.</p>
+</blockquote>
+<div id="def-12-graph-content-hash" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 13.3 (Graph content hash)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> be a phase-type graph with vertices ordered by index <span class="math inline">v_0, v_1, \ldots, v_{|V|-1}</span>. The graph content hash is</em></p>
+<p><span class="math display">H(G) = \operatorname{SHA\text{-}256}\!\left(d \,\|\, k \,\|\, |V| \,\|\, \delta \,\|\, h_{64}(v_0) \,\|\, h_{64}(v_1) \,\|\, \cdots \,\|\, h_{64}(v_{|V|-1})\right)</span></p>
+<p><em>where <span class="math inline">d</span>, <span class="math inline">k</span>, <span class="math inline">|V|</span>, <span class="math inline">\delta</span> are the graph metadata and <span class="math inline">h_{64}(v_i)</span> is the 64-bit vertex content hash from <a href="#def-12-vertex-content-hash" class="quarto-xref">Definition&nbsp;<span>13.2</span></a>. The result is a 256-bit hash with three representations:</em></p>
+<ul>
+<li><em><span class="math inline">H_{\text{full}}(G) \in \{0,1\}^{256}</span>: the full SHA-256 digest,</em></li>
+<li><em><span class="math inline">H_{64}(G) = \operatorname{trunc}_{64}(H_{\text{full}}(G))</span>: a 64-bit hash for fast comparison,</em></li>
+<li><em><span class="math inline">H_{\text{hex}}(G)</span>: a 64-character hexadecimal string for use as a cache key.</em></li>
+</ul>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> The graph content hash aggregates all vertex hashes (which encode local structure) with the global metadata into a single fixed-size digest. The two-level hashing (vertex-level SHA-256 to 64 bits, then graph-level SHA-256 to 256 bits) balances collision resistance with computational cost: the vertex hashes are computed independently (and could be parallelized), while the final aggregation produces a cryptographically strong hash suitable for cache keys.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> For a 10-vertex coalescent graph, <span class="math inline">H_{\text{hex}}(G)</span> might be <code>a3f2e9c8b1d4...</code> (64 hex characters). This string is used as the filename for the cached trace: <code>~/.phasic_cache/traces/a3f2e9c8b1d4....json</code>.</p>
+</blockquote>
+</section>
+<section id="theorems-and-proofs" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="theorems-and-proofs">Theorems and Proofs</h2>
+<div id="thm-12-determinism" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 13.1 (Determinism)</strong></span> <em>For any phase-type graph <span class="math inline">G</span>, the graph content hash <span class="math inline">H(G)</span> is deterministic: it depends only on the structural signature <span class="math inline">\mathcal{S}(G)</span> and is independent of memory layout, pointer values, and execution order.</em></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>The hash input at both levels is constructed from data that is part of the structural signature:</p>
+<ol type="1">
+<li><p><strong>Vertex content hash (<a href="#def-12-vertex-content-hash" class="quarto-xref">Definition&nbsp;<span>13.2</span></a>):</strong> The inputs are the state vector <span class="math inline">\sigma(v)</span> (part of the signature), target indices (canonical identifiers), and coefficient vectors (part of the signature). The edge sort order is determined by the comparison function, which uses target index (an integer), coefficient length (an integer), and coefficient values (doubles) in lexicographic order. Since all inputs are deterministic functions of the structural signature, <span class="math inline">h(v)</span> is deterministic for each <span class="math inline">v</span>.</p></li>
+<li><p><strong>Graph content hash (<a href="#def-12-graph-content-hash" class="quarto-xref">Definition&nbsp;<span>13.3</span></a>):</strong> The inputs are the graph metadata (<span class="math inline">d</span>, <span class="math inline">k</span>, <span class="math inline">|V|</span>, <span class="math inline">\delta</span>) and the sequence of vertex hashes in index order. Since vertex indices are assigned by construction order and are part of the structural signature, the concatenation order is deterministic.</p></li>
+<li><p><strong>SHA-256</strong> is a deterministic function.</p></li>
+</ol>
+<p>Therefore <span class="math inline">H(G)</span> depends only on <span class="math inline">\mathcal{S}(G)</span>. <span class="math inline">\square</span></p>
+</div>
+<div id="thm-12-collision-resistance" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 13.2 (Collision resistance)</strong></span> <em>Let <span class="math inline">G_1</span> and <span class="math inline">G_2</span> be two phase-type graphs with <span class="math inline">\mathcal{S}(G_1) \neq \mathcal{S}(G_2)</span>. Then <span class="math inline">\Pr[H(G_1) = H(G_2)] \leq 2^{-128}</span> under the standard random oracle model for SHA-256.</em></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>If <span class="math inline">\mathcal{S}(G_1) \neq \mathcal{S}(G_2)</span>, the structural signatures differ in at least one component. We consider cases:</p>
+<p><strong>Case 1: Metadata differs</strong> (<span class="math inline">d</span>, <span class="math inline">k</span>, <span class="math inline">|V|</span>, or <span class="math inline">\delta</span> differ). The graph-level SHA-256 input prefixes differ, so the full inputs to <span class="math inline">H</span> are distinct. By the collision resistance of SHA-256 (birthday bound <span class="math inline">2^{128}</span> for 256-bit output), <span class="math inline">\Pr[H(G_1) = H(G_2)] \leq 2^{-128}</span>.</p>
+<p><strong>Case 2: Metadata matches but vertex structure differs.</strong> At least one vertex <span class="math inline">v_i</span> has different state vector or different neighborhood structure. The vertex content hash <span class="math inline">h(v_i)</span> receives different input for <span class="math inline">G_1</span> and <span class="math inline">G_2</span>. With probability at most <span class="math inline">2^{-32}</span> (birthday bound on 64-bit truncation), <span class="math inline">h_{64}(v_i)</span> collides. If it does not collide, the graph-level inputs differ and <span class="math inline">H</span> collides with probability at most <span class="math inline">2^{-128}</span>. By a union bound over at most <span class="math inline">|V|</span> vertices:</p>
+<p><span class="math display">\Pr[H(G_1) = H(G_2)] \leq |V| \cdot 2^{-32} + 2^{-128}</span></p>
+<p>For any practical graph size (<span class="math inline">|V| \ll 2^{32}</span>), this probability is negligible. Specifically, for <span class="math inline">|V| \leq 10^6</span>, <span class="math inline">\Pr \leq 2^{-12} + 2^{-128} &lt; 2^{-11}</span>, which is far below the collision probability of SHA-256 alone.</p>
+<p><strong>Remark.</strong> The two-level structure introduces a potential weakness at the vertex-level truncation (64-bit hashes). For graphs with <span class="math inline">|V| \approx 2^{32}</span>, the birthday bound on vertex hash collisions approaches 1. In practice, phasic graphs have <span class="math inline">|V| &lt; 10^6</span>, and the 64-bit truncation provides ample collision resistance. For extremely large graphs, the vertex hash could be extended to the full 256 bits at the cost of <span class="math inline">4\times</span> more data in the graph-level SHA-256 input. <span class="math inline">\square</span></p>
+</div>
+</section>
+<section id="algorithms" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="algorithms">Algorithms</h2>
+<div id="alg-12-graph-hash" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-alg figure">
+<section id="graph-content-hash-1" class="level4" aria-describedby="alg-12-graph-hash-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="13.0.0.1">
+<h4 data-number="13.0.0.1" class="anchored" data-anchor-id="graph-content-hash-1"><span class="header-section-number">13.0.0.1</span> Graph Content Hash</h4>
+<p><em>Description.</em> This algorithm computes the content-addressable hash of a phase-type graph. It proceeds in two phases: first, compute a 64-bit hash for each vertex by hashing its state vector and sorted edge structure; second, aggregate the vertex hashes with graph metadata into a final 256-bit SHA-256 digest.</p>
+<pre><code>Graph Content Hash
+1: Let G = (V, E, W) be a phase-type graph with state dimension d and parameter dimension k
+2:
+3: function GraphContentHash(G)
+4:   ▷ Phase 1: Compute per-vertex hashes
+5:   for i ← 0 to |V| - 1 do
+6:     ctx_v ← SHA256Init()
+7:     SHA256Update(ctx_v, bytes(σ(v_i)))           ▷ Hash state vector
+8:     edges ← sorted copy of outgoing edges of v_i  ▷ Sort by (target_idx, coeff_len, coeffs)
+9:     for each edge (v_i → v_j) in edges do
+10:      SHA256Update(ctx_v, bytes(j))               ▷ Hash target index
+11:      SHA256Update(ctx_v, bytes(c_{v_i → v_j}))   ▷ Hash coefficient vector
+12:    end for
+13:    h_64[i] ← trunc_64(SHA256Final(ctx_v))        ▷ 64-bit vertex hash
+14:  end for
+15:
+16:  ▷ Phase 2: Aggregate into graph hash
+17:  ctx_g ← SHA256Init()
+18:  SHA256Update(ctx_g, bytes(d))                    ▷ State dimension
+19:  SHA256Update(ctx_g, bytes(k))                    ▷ Parameter dimension
+20:  SHA256Update(ctx_g, bytes(|V|))                  ▷ Vertex count
+21:  SHA256Update(ctx_g, bytes(δ))                    ▷ Flags (parameterized, discrete)
+22:  for i ← 0 to |V| - 1 do
+23:    SHA256Update(ctx_g, bytes(h_64[i]))            ▷ Per-vertex hash
+24:  end for
+25:  H_full ← SHA256Final(ctx_g)
+26:  H_64 ← trunc_64(H_full)
+27:  H_hex ← hex(H_full)
+28:
+29:  return (H_full, H_64, H_hex)
+30: end function</code></pre>
+<p><strong>Correspondence table:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 20%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pseudocode variable</th>
+<th>Math symbol</th>
+<th>Code variable (file:function)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">G</span></td>
+<td><span class="math inline">G = (V, E, W)</span></td>
+<td><code>graph</code> (<code>phasic_hash.c:ptd_graph_content_hash</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">d</span></td>
+<td><span class="math inline">d</span> (state dimension)</td>
+<td><code>graph-&gt;state_length</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">k</span></td>
+<td><span class="math inline">k</span> (parameter dimension)</td>
+<td><code>graph-&gt;param_length</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\delta</span></td>
+<td><span class="math inline">\delta</span> (flags)</td>
+<td><code>graph_flags</code> (<code>phasic_hash.c:ptd_graph_content_hash</code>)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\sigma(v_i)</span></td>
+<td><span class="math inline">\sigma(v_i)</span> (state vector)</td>
+<td><code>vertex-&gt;state</code> (<code>phasic_hash.c:hash_vertex_structure</code>)</td>
+</tr>
+<tr class="even">
+<td>edges (sorted)</td>
+<td><span class="math inline">\mathcal{N}(v)</span> (canonical order)</td>
+<td><code>sorted_edges</code> (<code>phasic_hash.c:hash_vertex_structure</code>)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathbf{c}_{v_i \to v_j}</span></td>
+<td>coefficient vector</td>
+<td><code>edge-&gt;coefficients</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">h_{64}[i]</span></td>
+<td><span class="math inline">h_{64}(v_i)</span></td>
+<td><code>vertex_hash</code> (<code>phasic_hash.c:hash_vertex_structure</code>)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">H_{\text{full}}</span></td>
+<td><span class="math inline">H_{\text{full}}(G)</span></td>
+<td><code>result-&gt;hash_full</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">H_{64}</span></td>
+<td><span class="math inline">H_{64}(G)</span></td>
+<td><code>result-&gt;hash64</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">H_{\text{hex}}</span></td>
+<td><span class="math inline">H_{\text{hex}}(G)</span></td>
+<td><code>result-&gt;hash_hex</code></td>
+</tr>
+<tr class="even">
+<td>SHA256Init</td>
+<td>SHA-256 initialization</td>
+<td><code>sha256_init</code> (<code>phasic_hash.c</code>)</td>
+</tr>
+<tr class="odd">
+<td>SHA256Update</td>
+<td>SHA-256 data feed</td>
+<td><code>sha256_update</code> (<code>phasic_hash.c</code>)</td>
+</tr>
+<tr class="even">
+<td>SHA256Final</td>
+<td>SHA-256 finalization</td>
+<td><code>sha256_final</code> (<code>phasic_hash.c</code>)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Complexity.</strong> Time: <span class="math inline">O(|V| \log |V| + |E|)</span>. The <span class="math inline">|V| \log |V|</span> term arises from sorting edges at each vertex (total sort cost is <span class="math inline">\sum_v |\operatorname{children}(v)| \log |\operatorname{children}(v)| \leq |E| \log |V|</span>). Each edge is hashed once, contributing <span class="math inline">O(|E|)</span>. The SHA-256 operations are <span class="math inline">O(1)</span> per block (64 bytes). Space: <span class="math inline">O(|V|)</span> for the vertex hash array and <span class="math inline">O(\max_v |\operatorname{children}(v)|)</span> for the sorted edge copy.</p>
+</section>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-12-graph-hash-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Algorithm&nbsp;13.1: <strong>Correctness.</strong> Follows from <a href="#thm-12-determinism" class="quarto-xref">Theorem&nbsp;<span>13.1</span></a> (determinism) and <a href="#thm-12-collision-resistance" class="quarto-xref">Theorem&nbsp;<span>13.2</span></a> (collision resistance). The canonical edge ordering ensures that the hash is independent of the internal edge storage order.
+</figcaption>
+</figure>
+</div>
+</section>
+<section id="implementation-notes" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="implementation-notes">Implementation Notes</h2>
+<p><strong>Source code mapping:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 17%">
+<col style="width: 29%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Algorithm</th>
+<th>File</th>
+<th>Function</th>
+<th>Lines</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="#alg-12-graph-hash" class="quarto-xref">Algorithm&nbsp;<span>13.1</span></a> (vertex hash)</td>
+<td><code>src/c/phasic_hash.c</code></td>
+<td><code>hash_vertex_structure</code></td>
+<td>L169–L214</td>
+</tr>
+<tr class="even">
+<td><a href="#alg-12-graph-hash" class="quarto-xref">Algorithm&nbsp;<span>13.1</span></a> (graph hash)</td>
+<td><code>src/c/phasic_hash.c</code></td>
+<td><code>ptd_graph_content_hash</code></td>
+<td>L216–L272</td>
+</tr>
+<tr class="odd">
+<td>Edge comparison</td>
+<td><code>src/c/phasic_hash.c</code></td>
+<td><code>compare_edges</code></td>
+<td>L147–L166</td>
+</tr>
+<tr class="even">
+<td>Hash equality</td>
+<td><code>src/c/phasic_hash.c</code></td>
+<td><code>ptd_hash_equal</code></td>
+<td>L274–L287</td>
+</tr>
+<tr class="odd">
+<td>Hash from hex</td>
+<td><code>src/c/phasic_hash.c</code></td>
+<td><code>ptd_hash_from_hex</code></td>
+<td>L295–L324</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Deviations from pseudocode:</strong></p>
+<ul>
+<li>The implementation includes a self-contained SHA-256 implementation to avoid external dependencies. The standard SHA-256 constants, padding, and compression function follow FIPS 180-4 exactly.</li>
+<li>The <code>ptd_hash_equal</code> function performs a two-stage comparison: first comparing the 64-bit truncated hashes (fast path), then falling back to a full 32-byte <code>memcmp</code> if the 64-bit hashes match. This optimizes the common case of non-equal hashes.</li>
+<li>The <code>ptd_graph_hash_from_json</code> function is declared but returns NULL in the current implementation; JSON-based hashing is handled at the Python level instead.</li>
+<li>Edges with NULL coefficient arrays are treated as having weight-only edges (no parameterization), and only the target index is hashed for such edges.</li>
+</ul>
+</section>
+<section id="symbol-index" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="symbol-index">Symbol Index</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 19%">
+<col style="width: 54%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Symbol</th>
+<th>Name</th>
+<th>First appearance</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\delta</span></td>
+<td>Graph flags vector</td>
+<td><a href="#def-12-structural-signature" class="quarto-xref">Definition&nbsp;<span>13.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">h(v)</span></td>
+<td>Vertex content hash (256-bit)</td>
+<td><a href="#def-12-vertex-content-hash" class="quarto-xref">Definition&nbsp;<span>13.2</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">h_{64}(v)</span></td>
+<td>Vertex content hash (64-bit truncation)</td>
+<td><a href="#def-12-vertex-content-hash" class="quarto-xref">Definition&nbsp;<span>13.2</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">H(G)</span></td>
+<td>Graph content hash</td>
+<td><a href="#def-12-graph-content-hash" class="quarto-xref">Definition&nbsp;<span>13.3</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">H_{64}(G)</span></td>
+<td>Graph content hash (64-bit)</td>
+<td><a href="#def-12-graph-content-hash" class="quarto-xref">Definition&nbsp;<span>13.3</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">H_{\text{full}}(G)</span></td>
+<td>Graph content hash (256-bit)</td>
+<td><a href="#def-12-graph-content-hash" class="quarto-xref">Definition&nbsp;<span>13.3</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">H_{\text{hex}}(G)</span></td>
+<td>Graph content hash (hex string)</td>
+<td><a href="#def-12-graph-content-hash" class="quarto-xref">Definition&nbsp;<span>13.3</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mathcal{N}(v)</span></td>
+<td>Canonical neighborhood of vertex <span class="math inline">v</span></td>
+<td><a href="#def-12-structural-signature" class="quarto-xref">Definition&nbsp;<span>13.1</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathcal{S}(G)</span></td>
+<td>Structural signature of graph <span class="math inline">G</span></td>
+<td><a href="#def-12-structural-signature" class="quarto-xref">Definition&nbsp;<span>13.1</span></a></td>
+</tr>
+</tbody>
+</table>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./11_trace_system.html" class="pagination-link" aria-label="Trace System">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Trace System</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./13_scc_trace_stitching.html" class="pagination-link" aria-label="SCC-Based Trace Decomposition and Stitching">
+        <span class="nav-page-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

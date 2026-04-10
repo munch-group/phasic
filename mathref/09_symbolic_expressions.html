@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>10&nbsp; Symbolic Expressions – Phasic — Supplementary Online Material</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./10_symbolic_graph_elimination.html" rel="next">
+<link href="./08_state_space_construction.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-3d57081916b67e2c1b7e936475d81f56.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./09_symbolic_expressions.html">Symbolic System and Traces</a></li><li class="breadcrumb-item"><a href="./09_symbolic_expressions.html"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Phasic — Supplementary Online Material</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Index</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Foundations</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01_preliminaries.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Preliminaries</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02_graph_representation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Graph Representation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03_numerical_primitives.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Numerical Primitives</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Graph Algorithms</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04_scc_and_topological_sort.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">SCC and Topological Sort</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05_graph_normalization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Graph Normalization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./06_graph_elimination.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./07_reward_transformation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Reward Transformation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./08_state_space_construction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Symbolic System and Traces</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./09_symbolic_expressions.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./10_symbolic_graph_elimination.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./11_trace_system.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./12_graph_hashing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./13_scc_trace_stitching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Distribution and Moments</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./14_distribution_computation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./15_moment_computation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./16_pdf_gradients.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
+ <span class="menu-text">Sampling</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./17_sampling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true">
+ <span class="menu-text">Inference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./18_svgd.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./19_mcmc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./20_bffg.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./21_method_of_moments.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./22_probability_matching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true">
+ <span class="menu-text">Spatial and State Indexing</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./23_state_indexing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./24_hex_grid.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true">
+ <span class="menu-text">Integration</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./25_jax_integration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./26_graph_builder.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./27_van_loan_equivalence.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#definitions" id="toc-definitions" class="nav-link" data-scroll-target="#definitions">Definitions</a></li>
+  <li><a href="#theorems-and-proofs" id="toc-theorems-and-proofs" class="nav-link" data-scroll-target="#theorems-and-proofs">Theorems and Proofs</a></li>
+  <li><a href="#algorithms" id="toc-algorithms" class="nav-link" data-scroll-target="#algorithms">Algorithms</a></li>
+  <li><a href="#implementation-notes" id="toc-implementation-notes" class="nav-link" data-scroll-target="#implementation-notes">Implementation Notes</a></li>
+  <li><a href="#symbol-index" id="toc-symbol-index" class="nav-link" data-scroll-target="#symbol-index">Symbol Index</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./09_symbolic_expressions.html">Symbolic System and Traces</a></li><li class="breadcrumb-item"><a href="./09_symbolic_expressions.html"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="introduction">Introduction</h2>
+<p>This file formalizes the expression tree abstract data type (ADT) that enables deferred computation in phasic. When a phase-type graph has parameterized edges (<a href="01_preliminaries.html#def-01-param-edges" class="quarto-xref">Definition&nbsp;<span>2.15</span></a>), the edge weights are functions of a parameter vector <span class="math inline">\boldsymbol{\theta}</span>. Rather than recomputing the entire graph elimination for each new <span class="math inline">\boldsymbol{\theta}</span>, phasic records the elimination operations as symbolic expression trees that can be evaluated efficiently with any concrete parameter vector. This file defines the expression tree nodes, their evaluation semantics, common subexpression elimination (CSE) via interning, and symbolic differentiation for gradient computation.</p>
+<p>The expression system is the foundation for symbolic graph elimination ([10]), the trace system ([11]), and JAX integration ([25]). It is a purely syntactic layer: this file defines expressions over parameters without reference to graphs. The connection to graphs is established in [10].</p>
+<p><strong>Prerequisites:</strong> [01]</p>
+<p><strong>Source files:</strong> - <code>api/c/phasic.h</code> (types: <code>ptd_expression</code>, <code>enum ptd_expr_type</code>, <code>ptd_expr_intern_table</code>) - <code>src/c/phasic_symbolic.c</code> (functions: <code>ptd_expr_evaluate_iterative</code>, <code>ptd_expr_derivative</code>, <code>ptd_expr_copy_iterative</code>, <code>ptd_expr_destroy_iterative</code>, <code>edge_weight_to_expr</code>)</p>
+</section>
+<section id="definitions" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="definitions">Definitions</h2>
+<div id="def-09-expression-tree" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 10.1 (Expression tree)</strong></span> <em>An expression tree is a rooted tree <span class="math inline">\mathcal{E}</span> where each node has a type drawn from the set <span class="math inline">\{\texttt{Const}, \texttt{Param}, \texttt{Dot}, \texttt{Add}, \texttt{Sub}, \texttt{Mul}, \texttt{Div}, \texttt{Inv}\}</span> and carries data according to its type:</em></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 28%">
+<col style="width: 15%">
+<col style="width: 26%">
+<col style="width: 28%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Node type</th>
+<th>Data</th>
+<th>Children</th>
+<th>Semantics</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\texttt{Const}(c)</span></td>
+<td><span class="math inline">c \in \mathbb{R}</span></td>
+<td>none (leaf)</td>
+<td>Constant value <span class="math inline">c</span></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\texttt{Param}(j)</span></td>
+<td><span class="math inline">j \in \{1, \ldots, k\}</span></td>
+<td>none (leaf)</td>
+<td>Parameter reference <span class="math inline">\theta_j</span></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\texttt{Dot}(\mathbf{c}, \mathbf{j})</span></td>
+<td><span class="math inline">\mathbf{c} \in \mathbb{R}^m</span>, <span class="math inline">\mathbf{j} \in \{1,\ldots,k\}^m</span></td>
+<td>none (leaf)</td>
+<td>Sparse dot product <span class="math inline">\sum_{i=1}^{m} c_i \, \theta_{j_i}</span></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\texttt{Add}</span></td>
+<td>none</td>
+<td>left <span class="math inline">\mathcal{E}_L</span>, right <span class="math inline">\mathcal{E}_R</span></td>
+<td><span class="math inline">\mathcal{E}_L + \mathcal{E}_R</span></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\texttt{Sub}</span></td>
+<td>none</td>
+<td>left <span class="math inline">\mathcal{E}_L</span>, right <span class="math inline">\mathcal{E}_R</span></td>
+<td><span class="math inline">\mathcal{E}_L - \mathcal{E}_R</span></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\texttt{Mul}</span></td>
+<td>none</td>
+<td>left <span class="math inline">\mathcal{E}_L</span>, right <span class="math inline">\mathcal{E}_R</span></td>
+<td><span class="math inline">\mathcal{E}_L \cdot \mathcal{E}_R</span></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\texttt{Div}</span></td>
+<td>none</td>
+<td>left <span class="math inline">\mathcal{E}_L</span>, right <span class="math inline">\mathcal{E}_R</span></td>
+<td><span class="math inline">\mathcal{E}_L / \mathcal{E}_R</span></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\texttt{Inv}</span></td>
+<td>none</td>
+<td>left <span class="math inline">\mathcal{E}_L</span></td>
+<td><span class="math inline">1 / \mathcal{E}_L</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> An expression tree is a standard abstract syntax tree for arithmetic expressions, extended with the <span class="math inline">\texttt{Dot}</span> node as an optimized representation for linear combinations of parameters (the most common expression in phase-type models). The <span class="math inline">\texttt{Inv}</span> node represents unary inversion, distinct from <span class="math inline">\texttt{Div}</span> which is binary.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> The expression <span class="math inline">2\theta_1 + 3\theta_2</span> is represented as a single <span class="math inline">\texttt{Dot}</span> node: <span class="math inline">\texttt{Dot}((2, 3), (1, 2))</span>. The expression <span class="math inline">\theta_1 / (\theta_1 + \theta_2)</span> is represented as <span class="math inline">\texttt{Div}(\texttt{Param}(1), \texttt{Add}(\texttt{Param}(1), \texttt{Param}(2)))</span>.</p>
+</blockquote>
+<div id="def-09-expression-evaluation" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 10.2 (Expression evaluation)</strong></span> <em>Let <span class="math inline">\mathcal{E}</span> be an expression tree and let <span class="math inline">\boldsymbol{\theta} = (\theta_1, \ldots, \theta_k)</span> be a parameter vector. The evaluation function <span class="math inline">\operatorname{eval}(\mathcal{E}, \boldsymbol{\theta})</span> is defined recursively:</em></p>
+<p><span class="math display">\operatorname{eval}(\mathcal{E}, \boldsymbol{\theta}) = \begin{cases}
+c &amp; \text{if } \mathcal{E} = \texttt{Const}(c) \\
+\theta_j &amp; \text{if } \mathcal{E} = \texttt{Param}(j) \\
+\sum_{i=1}^{m} c_i \, \theta_{j_i} &amp; \text{if } \mathcal{E} = \texttt{Dot}(\mathbf{c}, \mathbf{j}) \\
+\operatorname{eval}(\mathcal{E}_L, \boldsymbol{\theta}) + \operatorname{eval}(\mathcal{E}_R, \boldsymbol{\theta}) &amp; \text{if } \mathcal{E} = \texttt{Add}(\mathcal{E}_L, \mathcal{E}_R) \\
+\operatorname{eval}(\mathcal{E}_L, \boldsymbol{\theta}) - \operatorname{eval}(\mathcal{E}_R, \boldsymbol{\theta}) &amp; \text{if } \mathcal{E} = \texttt{Sub}(\mathcal{E}_L, \mathcal{E}_R) \\
+\operatorname{eval}(\mathcal{E}_L, \boldsymbol{\theta}) \cdot \operatorname{eval}(\mathcal{E}_R, \boldsymbol{\theta}) &amp; \text{if } \mathcal{E} = \texttt{Mul}(\mathcal{E}_L, \mathcal{E}_R) \\
+\operatorname{eval}(\mathcal{E}_L, \boldsymbol{\theta}) / \operatorname{eval}(\mathcal{E}_R, \boldsymbol{\theta}) &amp; \text{if } \mathcal{E} = \texttt{Div}(\mathcal{E}_L, \mathcal{E}_R) \\
+1 / \operatorname{eval}(\mathcal{E}_L, \boldsymbol{\theta}) &amp; \text{if } \mathcal{E} = \texttt{Inv}(\mathcal{E}_L)
+\end{cases}</span></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> Evaluation is a standard post-order tree traversal: evaluate children first, then combine. The implementation uses an iterative (stack-based) traversal to avoid stack overflow on deep expression trees.</p>
+</blockquote>
+<div id="def-09-cse-interning" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 10.3 (Common Subexpression Elimination via interning)</strong></span> <em>An intern table <span class="math inline">\mathcal{I}</span> is a hash table mapping expression structure to canonical expression nodes. For each expression <span class="math inline">\mathcal{E}</span>, the interning function <span class="math inline">\operatorname{intern}(\mathcal{I}, \mathcal{E})</span> returns a canonical representative: if an expression structurally equal to <span class="math inline">\mathcal{E}</span> already exists in <span class="math inline">\mathcal{I}</span>, its existing node is returned; otherwise, <span class="math inline">\mathcal{E}</span> is inserted and returned as the new canonical representative.</em></p>
+<p><em>Two expressions <span class="math inline">\mathcal{E}_1</span> and <span class="math inline">\mathcal{E}_2</span> are structurally equal if they have the same type, the same data (constants, parameter indices, coefficient vectors), and recursively structurally equal children.</em></p>
+<p><em>The interned constructors <span class="math inline">\texttt{Add}_\mathcal{I}</span>, <span class="math inline">\texttt{Mul}_\mathcal{I}</span>, <span class="math inline">\texttt{Div}_\mathcal{I}</span>, <span class="math inline">\texttt{Sub}_\mathcal{I}</span>, <span class="math inline">\texttt{Inv}_\mathcal{I}</span> construct the expression node and immediately intern it, ensuring that identical subexpressions share a single node in memory.</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> During graph elimination, the same subexpression (e.g., the sum of edge weights at a vertex) appears in multiple contexts. Without CSE, the expression tree grows exponentially with the number of elimination steps. Interning ensures that each unique subexpression is stored once, converting the tree into a DAG (directed acyclic graph of expression nodes) and keeping memory bounded.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> If vertex <span class="math inline">v</span> has edges with weights <span class="math inline">\mathcal{E}_1</span> and <span class="math inline">\mathcal{E}_2</span>, the total rate is <span class="math inline">\mathcal{E}_\lambda = \texttt{Add}_\mathcal{I}(\mathcal{E}_1, \mathcal{E}_2)</span>. The normalized probability for the first edge is <span class="math inline">\texttt{Mul}_\mathcal{I}(\mathcal{E}_1, \texttt{Inv}_\mathcal{I}(\mathcal{E}_\lambda))</span>. If another vertex also needs <span class="math inline">\texttt{Inv}_\mathcal{I}(\mathcal{E}_\lambda)</span>, the intern table returns the same node rather than creating a duplicate.</p>
+</blockquote>
+<div id="def-09-expression-differentiation" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 10.4 (Expression differentiation)</strong></span> <em>Let <span class="math inline">\mathcal{E}</span> be an expression tree. The symbolic derivative of <span class="math inline">\mathcal{E}</span> with respect to parameter <span class="math inline">\theta_j</span> is an expression tree <span class="math inline">\partial_j \mathcal{E}</span> defined recursively:</em></p>
+<p><span class="math display">\partial_j \mathcal{E} = \begin{cases}
+\texttt{Const}(0) &amp; \text{if } \mathcal{E} = \texttt{Const}(c) \\
+\texttt{Const}(\delta_{j,j'}) &amp; \text{if } \mathcal{E} = \texttt{Param}(j') \\
+\texttt{Const}(c_i) &amp; \text{if } \mathcal{E} = \texttt{Dot}(\mathbf{c}, \mathbf{j}) \text{ and } j = j_i \text{ for some } i \\
+\texttt{Const}(0) &amp; \text{if } \mathcal{E} = \texttt{Dot}(\mathbf{c}, \mathbf{j}) \text{ and } j \notin \{j_1, \ldots, j_m\} \\
+\texttt{Add}(\partial_j \mathcal{E}_L, \, \partial_j \mathcal{E}_R) &amp; \text{if } \mathcal{E} = \texttt{Add}(\mathcal{E}_L, \mathcal{E}_R) \\
+\texttt{Sub}(\partial_j \mathcal{E}_L, \, \partial_j \mathcal{E}_R) &amp; \text{if } \mathcal{E} = \texttt{Sub}(\mathcal{E}_L, \mathcal{E}_R) \\
+\texttt{Add}(\texttt{Mul}(\mathcal{E}_L, \partial_j \mathcal{E}_R), \, \texttt{Mul}(\mathcal{E}_R, \partial_j \mathcal{E}_L)) &amp; \text{if } \mathcal{E} = \texttt{Mul}(\mathcal{E}_L, \mathcal{E}_R) \\
+\texttt{Div}(\texttt{Sub}(\texttt{Mul}(\mathcal{E}_R, \partial_j \mathcal{E}_L), \, \texttt{Mul}(\mathcal{E}_L, \partial_j \mathcal{E}_R)), \, \texttt{Mul}(\mathcal{E}_R, \mathcal{E}_R)) &amp; \text{if } \mathcal{E} = \texttt{Div}(\mathcal{E}_L, \mathcal{E}_R) \\
+\texttt{Div}(\texttt{Sub}(\texttt{Const}(0), \partial_j \mathcal{E}_L), \, \texttt{Mul}(\mathcal{E}_L, \mathcal{E}_L)) &amp; \text{if } \mathcal{E} = \texttt{Inv}(\mathcal{E}_L)
+\end{cases}</span></p>
+<p><em>where <span class="math inline">\delta_{j,j'}</span> is the Kronecker delta.</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> This is standard symbolic differentiation (sum rule, product rule, quotient rule, chain rule) applied to the expression tree ADT. The <span class="math inline">\texttt{Dot}</span> case is a specialization of the linearity of differentiation. The result is a new expression tree that, when evaluated, yields the partial derivative <span class="math inline">\partial f / \partial \theta_j</span> where <span class="math inline">f = \operatorname{eval}(\mathcal{E}, \boldsymbol{\theta})</span>.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> For <span class="math inline">\mathcal{E} = \texttt{Mul}(\texttt{Param}(1), \texttt{Param}(2))</span> representing <span class="math inline">\theta_1 \cdot \theta_2</span>, we have <span class="math inline">\partial_1 \mathcal{E} = \texttt{Add}(\texttt{Mul}(\texttt{Param}(1), \texttt{Const}(0)), \texttt{Mul}(\texttt{Param}(2), \texttt{Const}(1))) = \texttt{Add}(\texttt{Const}(0), \texttt{Param}(2))</span>. Evaluating at any <span class="math inline">\boldsymbol{\theta}</span> gives <span class="math inline">\theta_2</span>, which is the correct derivative.</p>
+</blockquote>
+</section>
+<section id="theorems-and-proofs" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="theorems-and-proofs">Theorems and Proofs</h2>
+<div id="thm-09-evaluation-correctness" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 10.1 (Evaluation correctness)</strong></span> <em>Let <span class="math inline">\mathcal{E}</span> be an expression tree and <span class="math inline">\boldsymbol{\theta} \in \mathbb{R}^k</span> be a parameter vector such that no division by zero occurs during evaluation. Then <span class="math inline">\operatorname{eval}(\mathcal{E}, \boldsymbol{\theta})</span> is well-defined and equals the real number obtained by the standard arithmetic interpretation of <span class="math inline">\mathcal{E}</span>.</em></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>By structural induction on <span class="math inline">\mathcal{E}</span>.</p>
+<p><strong>Base cases.</strong> For <span class="math inline">\texttt{Const}(c)</span>: <span class="math inline">\operatorname{eval}(\texttt{Const}(c), \boldsymbol{\theta}) = c</span>, which is the standard interpretation. For <span class="math inline">\texttt{Param}(j)</span>: <span class="math inline">\operatorname{eval}(\texttt{Param}(j), \boldsymbol{\theta}) = \theta_j</span>, which is the standard interpretation. For <span class="math inline">\texttt{Dot}(\mathbf{c}, \mathbf{j})</span>: <span class="math inline">\operatorname{eval}(\texttt{Dot}(\mathbf{c}, \mathbf{j}), \boldsymbol{\theta}) = \sum_{i=1}^m c_i \theta_{j_i}</span>, which is the standard dot product.</p>
+<p><strong>Inductive cases.</strong> For each binary operation <span class="math inline">\texttt{Op} \in \{\texttt{Add}, \texttt{Sub}, \texttt{Mul}, \texttt{Div}\}</span>: by the induction hypothesis, <span class="math inline">\operatorname{eval}(\mathcal{E}_L, \boldsymbol{\theta})</span> and <span class="math inline">\operatorname{eval}(\mathcal{E}_R, \boldsymbol{\theta})</span> equal the standard interpretations of the subtrees. The definition of <span class="math inline">\operatorname{eval}</span> applies the corresponding arithmetic operation, producing the standard interpretation of the full tree. For <span class="math inline">\texttt{Inv}</span>: by the induction hypothesis, <span class="math inline">\operatorname{eval}(\mathcal{E}_L, \boldsymbol{\theta})</span> is well-defined and non-zero (by the no-division-by-zero hypothesis), so <span class="math inline">1 / \operatorname{eval}(\mathcal{E}_L, \boldsymbol{\theta})</span> is well-defined and equals the standard interpretation. <span class="math inline">\square</span></p>
+</div>
+<div id="thm-09-differentiation-correctness" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 10.2 (Differentiation correctness)</strong></span> <em>Let <span class="math inline">\mathcal{E}</span> be an expression tree and <span class="math inline">\boldsymbol{\theta} \in \mathbb{R}^k</span> be a parameter vector such that no division by zero occurs. Then for each <span class="math inline">j \in \{1, \ldots, k\}</span>:</em></p>
+<p><span class="math display">\operatorname{eval}(\partial_j \mathcal{E}, \boldsymbol{\theta}) = \frac{\partial}{\partial \theta_j} \operatorname{eval}(\mathcal{E}, \boldsymbol{\theta}).</span></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>By structural induction on <span class="math inline">\mathcal{E}</span>.</p>
+<p><strong>Base cases.</strong> For <span class="math inline">\texttt{Const}(c)</span>: <span class="math inline">\operatorname{eval}(\partial_j \texttt{Const}(c), \boldsymbol{\theta}) = \operatorname{eval}(\texttt{Const}(0), \boldsymbol{\theta}) = 0 = \frac{\partial c}{\partial \theta_j}</span>. For <span class="math inline">\texttt{Param}(j')</span>: <span class="math inline">\operatorname{eval}(\partial_j \texttt{Param}(j'), \boldsymbol{\theta}) = \delta_{j,j'} = \frac{\partial \theta_{j'}}{\partial \theta_j}</span>. For <span class="math inline">\texttt{Dot}(\mathbf{c}, \mathbf{j})</span>: <span class="math inline">\operatorname{eval}(\partial_j \texttt{Dot}(\mathbf{c}, \mathbf{j}), \boldsymbol{\theta}) = c_i</span> if <span class="math inline">j = j_i</span>, or <span class="math inline">0</span> otherwise. This equals <span class="math inline">\frac{\partial}{\partial \theta_j} \sum_{i} c_i \theta_{j_i}</span> by linearity of differentiation.</p>
+<p><strong>Inductive cases.</strong> For <span class="math inline">\texttt{Add}</span>: by the induction hypothesis and the sum rule, <span class="math inline">\operatorname{eval}(\partial_j \texttt{Add}(\mathcal{E}_L, \mathcal{E}_R), \boldsymbol{\theta}) = \operatorname{eval}(\partial_j \mathcal{E}_L, \boldsymbol{\theta}) + \operatorname{eval}(\partial_j \mathcal{E}_R, \boldsymbol{\theta}) = \frac{\partial}{\partial \theta_j}(\operatorname{eval}(\mathcal{E}_L, \boldsymbol{\theta}) + \operatorname{eval}(\mathcal{E}_R, \boldsymbol{\theta}))</span>. The <span class="math inline">\texttt{Sub}</span> case is identical with subtraction.</p>
+<p>For <span class="math inline">\texttt{Mul}</span>: let <span class="math inline">f = \operatorname{eval}(\mathcal{E}_L, \boldsymbol{\theta})</span> and <span class="math inline">g = \operatorname{eval}(\mathcal{E}_R, \boldsymbol{\theta})</span>. By the induction hypothesis, <span class="math inline">\operatorname{eval}(\partial_j \mathcal{E}_L, \boldsymbol{\theta}) = f'</span> and <span class="math inline">\operatorname{eval}(\partial_j \mathcal{E}_R, \boldsymbol{\theta}) = g'</span>. Then <span class="math inline">\operatorname{eval}(\partial_j \texttt{Mul}(\mathcal{E}_L, \mathcal{E}_R), \boldsymbol{\theta}) = f \cdot g' + g \cdot f' = \frac{\partial}{\partial \theta_j}(f \cdot g)</span> by the product rule.</p>
+<p>For <span class="math inline">\texttt{Div}</span>: by the quotient rule, <span class="math inline">\frac{\partial}{\partial \theta_j}(f/g) = (g \cdot f' - f \cdot g') / g^2</span>, which matches the definition of <span class="math inline">\partial_j \texttt{Div}</span>.</p>
+<p>For <span class="math inline">\texttt{Inv}</span>: <span class="math inline">\frac{\partial}{\partial \theta_j}(1/f) = -f'/f^2 = (0 - f')/f^2</span>, which matches the definition of <span class="math inline">\partial_j \texttt{Inv}</span>. <span class="math inline">\square</span></p>
+</div>
+<div id="lem-09-cse-preserves-evaluation" class="theorem lemma">
+<p><span class="theorem-title"><strong>Lemma 10.1 (CSE preserves evaluation)</strong></span> <em>Let <span class="math inline">\mathcal{I}</span> be an intern table. For any expression <span class="math inline">\mathcal{E}</span> and parameter vector <span class="math inline">\boldsymbol{\theta}</span>:</em></p>
+<p><span class="math display">\operatorname{eval}(\operatorname{intern}(\mathcal{I}, \mathcal{E}), \boldsymbol{\theta}) = \operatorname{eval}(\mathcal{E}, \boldsymbol{\theta}).</span></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>The intern function <span class="math inline">\operatorname{intern}(\mathcal{I}, \mathcal{E})</span> returns either <span class="math inline">\mathcal{E}</span> itself (if no structurally equal expression exists in <span class="math inline">\mathcal{I}</span>) or an existing expression <span class="math inline">\mathcal{E}'</span> that is structurally equal to <span class="math inline">\mathcal{E}</span>. Since structural equality implies identical type, identical data, and recursively structurally equal children, a straightforward structural induction shows that <span class="math inline">\operatorname{eval}(\mathcal{E}', \boldsymbol{\theta}) = \operatorname{eval}(\mathcal{E}, \boldsymbol{\theta})</span> for all <span class="math inline">\boldsymbol{\theta}</span>. <span class="math inline">\square</span></p>
+</div>
+</section>
+<section id="algorithms" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="algorithms">Algorithms</h2>
+<div id="alg-09-expression-evaluation" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-alg figure">
+<section id="expression-evaluation-1" class="level4" aria-describedby="alg-09-expression-evaluation-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="10.0.0.1">
+<h4 data-number="10.0.0.1" class="anchored" data-anchor-id="expression-evaluation-1"><span class="header-section-number">10.0.0.1</span> Expression Evaluation</h4>
+<p><em>Description.</em> This algorithm evaluates an expression tree with a concrete parameter vector using iterative post-order traversal. The iterative approach avoids stack overflow on deep trees (which can arise from long chains of eliminations). The algorithm uses an explicit stack of (node, visited) pairs.</p>
+<pre><code>Expression Evaluation (Iterative)
+1: Let E be an expression tree (Definition 9.1)
+2: Let θ = (θ₁, ..., θₖ) be a parameter vector
+
+3: function EvaluateExpression(E, θ)
+4:   S ← empty stack                                 ▷ Stack of (node, visited) pairs
+5:   R ← empty stack                                 ▷ Result stack
+6:   Push(S, (E, false))
+7:
+8:   while S ≠ ∅ do
+9:     (node, visited) ← Pop(S)
+10:    if node.type ∈ {CONST, PARAM, DOT} then       ▷ Leaf nodes
+11:      if node.type = CONST then
+12:        Push(R, node.const_value)
+13:      else if node.type = PARAM then
+14:        Push(R, θ[node.param_index])
+15:      else                                         ▷ DOT
+16:        s ← 0
+17:        for i ← 1 to node.n_terms do
+18:          s ← s + node.coefficients[i] · θ[node.param_indices[i]]
+19:        end for
+20:        Push(R, s)
+21:      end if
+22:    else if visited = false then                    ▷ First visit: push children
+23:      Push(S, (node, true))                        ▷ Re-push with visited = true
+24:      if node.right ≠ null then
+25:        Push(S, (node.right, false))
+26:      end if
+27:      Push(S, (node.left, false))
+28:    else                                            ▷ Second visit: combine results
+29:      if node.type = INV then
+30:        a ← Pop(R)
+31:        Push(R, 1/a)
+32:      else
+33:        b ← Pop(R)                                 ▷ Right operand (pushed first, popped second)
+34:        a ← Pop(R)                                 ▷ Left operand
+35:        if node.type = ADD then Push(R, a + b)
+36:        else if node.type = SUB then Push(R, a - b)
+37:        else if node.type = MUL then Push(R, a · b)
+38:        else if node.type = DIV then Push(R, a / b)
+39:        end if
+40:      end if
+41:    end if
+42:  end while
+43:
+44:  return Pop(R)
+45: end function</code></pre>
+<p><strong>Correspondence table:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 20%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pseudocode variable</th>
+<th>Math symbol</th>
+<th>Code variable (file:function)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\mathcal{E}</span></td>
+<td>expression tree <span class="math inline">\mathcal{E}</span></td>
+<td><code>expr</code> (<code>phasic_symbolic.c:ptd_expr_evaluate_iterative</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\boldsymbol{\theta}</span></td>
+<td>parameter vector <span class="math inline">\boldsymbol{\theta}</span></td>
+<td><code>params</code> (<code>phasic_symbolic.c:ptd_expr_evaluate_iterative</code>)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">S</span></td>
+<td>traversal stack</td>
+<td><code>stack</code> (local array in implementation)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">R</span></td>
+<td>result stack</td>
+<td><code>value_stack</code> (local array in implementation)</td>
+</tr>
+<tr class="odd">
+<td><code>node.type</code></td>
+<td><span class="math inline">\mathcal{E}.\mathrm{type}</span></td>
+<td><code>expr-&gt;type</code> (<code>phasic.h:enum ptd_expr_type</code>)</td>
+</tr>
+<tr class="even">
+<td><code>CONST</code>, <code>PARAM</code>, …</td>
+<td><span class="math inline">\texttt{Const}</span>, <span class="math inline">\texttt{Param}</span>, …</td>
+<td><code>PTD_EXPR_CONST</code>, <code>PTD_EXPR_PARAM</code>, …</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Complexity.</strong> Time: <span class="math inline">O(|\mathcal{E}|)</span> where <span class="math inline">|\mathcal{E}|</span> is the number of nodes in the expression tree. Each node is pushed and popped at most twice. Space: <span class="math inline">O(h)</span> where <span class="math inline">h</span> is the height of the expression tree (stack depth).</p>
+</section>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-09-expression-evaluation-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Algorithm&nbsp;10.1: <strong>Correctness.</strong> Follows from <a href="#thm-09-evaluation-correctness" class="quarto-xref">Theorem&nbsp;<span>10.1</span></a>. The iterative post-order traversal visits each node after its children have been evaluated, reproducing the recursive evaluation semantics of <a href="#def-09-expression-evaluation" class="quarto-xref">Definition&nbsp;<span>10.2</span></a>.
+</figcaption>
+</figure>
+</div>
+</section>
+<section id="implementation-notes" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="implementation-notes">Implementation Notes</h2>
+<p><strong>Source code mapping:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 17%">
+<col style="width: 29%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Algorithm</th>
+<th>File</th>
+<th>Function</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="#alg-09-expression-evaluation" class="quarto-xref">Algorithm&nbsp;<span>10.1</span></a></td>
+<td><code>src/c/phasic_symbolic.c</code></td>
+<td><code>ptd_expr_evaluate_iterative</code></td>
+<td>Iterative evaluation</td>
+</tr>
+<tr class="even">
+<td>Expression creation</td>
+<td><code>api/c/phasic.h</code>, <code>src/c/phasic_symbolic.c</code></td>
+<td><code>ptd_expr_const</code>, <code>ptd_expr_param</code>, <code>ptd_expr_dot</code>, etc.</td>
+<td>Node constructors</td>
+</tr>
+<tr class="odd">
+<td>CSE (<a href="#def-09-cse-interning" class="quarto-xref">Definition&nbsp;<span>10.3</span></a>)</td>
+<td><code>src/c/phasic_symbolic.c</code></td>
+<td><code>ptd_expr_intern</code>, <code>ptd_expr_add_interned</code>, etc.</td>
+<td>Hash-based intern table</td>
+</tr>
+<tr class="even">
+<td>Differentiation (<a href="#def-09-expression-differentiation" class="quarto-xref">Definition&nbsp;<span>10.4</span></a>)</td>
+<td><code>src/c/phasic_symbolic.c</code></td>
+<td><code>ptd_expr_derivative</code></td>
+<td>Recursive symbolic differentiation</td>
+</tr>
+<tr class="odd">
+<td>Edge-to-expression</td>
+<td><code>src/c/phasic_symbolic.c</code></td>
+<td><code>edge_weight_to_expr</code> (static)</td>
+<td>Converts parameterized edge to DOT expression</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Deviations from pseudocode:</strong></p>
+<ul>
+<li><p><strong>Recursive vs.&nbsp;iterative evaluation.</strong> Both <code>ptd_expr_evaluate</code> (recursive) and <code>ptd_expr_evaluate_iterative</code> (iterative, matching <a href="#alg-09-expression-evaluation" class="quarto-xref">Algorithm&nbsp;<span>10.1</span></a>) exist. The iterative version is preferred for deep trees. The pseudocode presents only the iterative version.</p></li>
+<li><p><strong>Differentiation is recursive.</strong> The <code>ptd_expr_derivative</code> function uses recursive descent (matching <a href="#def-09-expression-differentiation" class="quarto-xref">Definition&nbsp;<span>10.4</span></a> directly) rather than iterative traversal, since derivative trees are typically much shallower than the original expression trees and are constructed once rather than evaluated repeatedly.</p></li>
+<li><p><strong>Intern table sizing.</strong> The intern table is created with 4096 hash buckets initially. This is a tunable parameter; the table resizes if the load factor exceeds a threshold. The pseudocode does not specify hash table internals.</p></li>
+<li><p><strong>Edge coefficient optimization.</strong> The <code>edge_weight_to_expr</code> function optimizes common cases: if all coefficients are zero, it returns <span class="math inline">\texttt{Const}(w)</span> (the current evaluated weight). If there is a single coefficient equal to 1.0, it returns <span class="math inline">\texttt{Param}(j)</span> instead of <span class="math inline">\texttt{Dot}</span>. Otherwise, it constructs a sparse <span class="math inline">\texttt{Dot}</span> node containing only non-zero coefficients.</p></li>
+</ul>
+</section>
+<section id="symbol-index" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="symbol-index">Symbol Index</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 19%">
+<col style="width: 54%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Symbol</th>
+<th>Name</th>
+<th>First appearance</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\mathbf{c}</span></td>
+<td>Coefficient vector in <span class="math inline">\texttt{Dot}</span> node</td>
+<td><a href="#def-09-expression-tree" class="quarto-xref">Definition&nbsp;<span>10.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\delta_{j,j'}</span></td>
+<td>Kronecker delta</td>
+<td><a href="#def-09-expression-differentiation" class="quarto-xref">Definition&nbsp;<span>10.4</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathcal{E}</span></td>
+<td>Expression tree</td>
+<td><a href="#def-09-expression-tree" class="quarto-xref">Definition&nbsp;<span>10.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mathcal{E}_L</span>, <span class="math inline">\mathcal{E}_R</span></td>
+<td>Left and right children of expression node</td>
+<td><a href="#def-09-expression-tree" class="quarto-xref">Definition&nbsp;<span>10.1</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\operatorname{eval}</span></td>
+<td>Expression evaluation function</td>
+<td><a href="#def-09-expression-evaluation" class="quarto-xref">Definition&nbsp;<span>10.2</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mathcal{I}</span></td>
+<td>Intern table for CSE</td>
+<td><a href="#def-09-cse-interning" class="quarto-xref">Definition&nbsp;<span>10.3</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathbf{j}</span></td>
+<td>Parameter index vector in <span class="math inline">\texttt{Dot}</span> node</td>
+<td><a href="#def-09-expression-tree" class="quarto-xref">Definition&nbsp;<span>10.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\partial_j \mathcal{E}</span></td>
+<td>Symbolic derivative w.r.t. <span class="math inline">\theta_j</span></td>
+<td><a href="#def-09-expression-differentiation" class="quarto-xref">Definition&nbsp;<span>10.4</span></a></td>
+</tr>
+</tbody>
+</table>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./08_state_space_construction.html" class="pagination-link" aria-label="State Space Construction">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">State Space Construction</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./10_symbolic_graph_elimination.html" class="pagination-link" aria-label="Symbolic Graph Elimination">
+        <span class="nav-page-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

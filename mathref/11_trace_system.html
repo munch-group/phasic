@@ -1,0 +1,1429 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>12&nbsp; Trace System – Phasic — Supplementary Online Material</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./12_graph_hashing.html" rel="next">
+<link href="./10_symbolic_graph_elimination.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-3d57081916b67e2c1b7e936475d81f56.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./09_symbolic_expressions.html">Symbolic System and Traces</a></li><li class="breadcrumb-item"><a href="./11_trace_system.html"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Trace System</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Phasic — Supplementary Online Material</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Index</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Foundations</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01_preliminaries.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Preliminaries</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02_graph_representation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Graph Representation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03_numerical_primitives.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Numerical Primitives</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Graph Algorithms</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04_scc_and_topological_sort.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">SCC and Topological Sort</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05_graph_normalization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Graph Normalization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./06_graph_elimination.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./07_reward_transformation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Reward Transformation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./08_state_space_construction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Symbolic System and Traces</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./09_symbolic_expressions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./10_symbolic_graph_elimination.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./11_trace_system.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./12_graph_hashing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./13_scc_trace_stitching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Distribution and Moments</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./14_distribution_computation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./15_moment_computation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./16_pdf_gradients.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
+ <span class="menu-text">Sampling</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./17_sampling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true">
+ <span class="menu-text">Inference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./18_svgd.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./19_mcmc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./20_bffg.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./21_method_of_moments.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./22_probability_matching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true">
+ <span class="menu-text">Spatial and State Indexing</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./23_state_indexing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./24_hex_grid.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true">
+ <span class="menu-text">Integration</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./25_jax_integration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./26_graph_builder.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./27_van_loan_equivalence.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#definitions" id="toc-definitions" class="nav-link" data-scroll-target="#definitions">Definitions</a></li>
+  <li><a href="#theorems-and-proofs" id="toc-theorems-and-proofs" class="nav-link" data-scroll-target="#theorems-and-proofs">Theorems and Proofs</a></li>
+  <li><a href="#algorithms" id="toc-algorithms" class="nav-link" data-scroll-target="#algorithms">Algorithms</a></li>
+  <li><a href="#numerical-considerations" id="toc-numerical-considerations" class="nav-link" data-scroll-target="#numerical-considerations">Numerical Considerations</a></li>
+  <li><a href="#implementation-notes" id="toc-implementation-notes" class="nav-link" data-scroll-target="#implementation-notes">Implementation Notes</a></li>
+  <li><a href="#symbol-index" id="toc-symbol-index" class="nav-link" data-scroll-target="#symbol-index">Symbol Index</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./09_symbolic_expressions.html">Symbolic System and Traces</a></li><li class="breadcrumb-item"><a href="./11_trace_system.html"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Trace System</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Trace System</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="introduction">Introduction</h2>
+<p>This file formalizes the trace-based approach to graph elimination, which replaces the symbolic expression tree representation (<a href="10_symbolic_graph_elimination.html#def-10-symbolic-graph" class="quarto-xref">Definition&nbsp;<span>11.1</span></a>) with a flat, linear sequence of arithmetic operations. Where symbolic elimination builds tree-structured expressions whose size can grow exponentially with graph depth, trace recording captures the same computation as a sequential instruction stream of bounded length. The key benefit is evaluation cost: replaying a trace with concrete parameters requires <span class="math inline">O(N)</span> arithmetic operations (where <span class="math inline">N</span> is the trace length, bounded by <span class="math inline">O(|V|^2)</span>), compared to <span class="math inline">O(|V|^2)</span> expression tree evaluations that may involve significant pointer-chasing overhead.</p>
+<p>The trace system is the computational engine behind SVGD and MCMC inference in phasic. During Bayesian inference, the elimination is recorded once as a trace (<span class="math inline">O(|V|^3)</span> cost), and each likelihood evaluation replays the trace with a new parameter vector (<span class="math inline">O(N)</span> cost). For workloads requiring hundreds or thousands of evaluations, the trace system provides 5–10x speedup over the symbolic DAG approach from [10], with lower memory consumption.</p>
+<p>The trace system also integrates with the disk cache (using graph content hashes from [12]) to avoid redundant recording across sessions. Traces are serialized to JSON and stored in <code>~/.phasic_cache/traces/</code>.</p>
+<p><strong>Prerequisites:</strong> [01], [06], [09], [10]</p>
+<p><strong>Source files:</strong> - <code>src/phasic/trace_elimination.py</code> (functions: <code>record_elimination_trace</code>, <code>evaluate_trace</code>, <code>evaluate_trace_jax</code>, classes: <code>OpType</code>, <code>Operation</code>, <code>EliminationTrace</code>, <code>TraceBuilder</code>) - <code>api/c/phasic.h</code> (types: <code>ptd_trace_op_type</code>, <code>ptd_trace_operation</code>, <code>ptd_elimination_trace</code>, <code>ptd_trace_result</code>; functions: <code>ptd_record_elimination_trace</code>, <code>ptd_evaluate_trace</code>) - <code>src/c/trace/trace_internal.h</code> (functions: <code>add_const_to_trace</code>, <code>add_dot_to_trace</code>, <code>add_binary_op_to_trace</code>, <code>add_inv_to_trace</code>, <code>add_sum_to_trace</code>) - <code>src/c/trace/trace_cache.c</code> (functions: <code>load_trace_from_cache</code>, <code>save_trace_to_cache</code>, <code>get_cache_dir</code>)</p>
+</section>
+<section id="definitions" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="definitions">Definitions</h2>
+<blockquote class="blockquote">
+<p><strong>Recall</strong> (<a href="09_symbolic_expressions.html#def-09-expression-tree" class="quarto-xref">Definition&nbsp;<span>10.1</span></a>). <em>An expression tree is a rooted tree <span class="math inline">\mathcal{E}</span> where each node has a type drawn from the set <span class="math inline">\{\texttt{Const}, \texttt{Param}, \texttt{Dot}, \texttt{Add}, \texttt{Sub}, \texttt{Mul}, \texttt{Div}, \texttt{Inv}\}</span> and carries data according to its type.</em></p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Recall</strong> (<a href="06_graph_elimination.html#def-06-vertex-elimination" class="quarto-xref">Definition&nbsp;<span>7.1</span></a>). <em>Vertex elimination</em> of <span class="math inline">v \in V</span> removes <span class="math inline">v</span> from <span class="math inline">G</span> and adds, for each parent <span class="math inline">u</span> and child <span class="math inline">z</span>, a bypass edge <span class="math inline">(u \to z)</span> with weight <span class="math inline">w'(u \to v) \cdot w'(v \to z)</span>, merging with existing edges and renormalizing the parent’s outgoing probabilities.</p>
+</blockquote>
+<div id="def-11-trace-operation" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 12.1 (Trace operation)</strong></span> <em>A trace operation is a tuple <span class="math inline">\omega = (\tau, d, \mathbf{a})</span> where:</em></p>
+<ul>
+<li><em><span class="math inline">\tau \in \{\texttt{Const}, \texttt{Param}, \texttt{Dot}, \texttt{Add}, \texttt{Mul}, \texttt{Div}, \texttt{Inv}, \texttt{Sum}\}</span> is the operation type,</em></li>
+<li><em><span class="math inline">d</span> is the operation data:</em>
+<ul>
+<li><em>For <span class="math inline">\texttt{Const}</span>: a scalar value <span class="math inline">c \in \mathbb{R}</span>,</em></li>
+<li><em>For <span class="math inline">\texttt{Param}</span>: a parameter index <span class="math inline">j \in \{0, \ldots, k-1\}</span>,</em></li>
+<li><em>For <span class="math inline">\texttt{Dot}</span>: a coefficient vector <span class="math inline">\mathbf{c} = (c_1, \ldots, c_k) \in \mathbb{R}^k</span>,</em></li>
+<li><em>For all other types: empty,</em></li>
+</ul></li>
+<li><em><span class="math inline">\mathbf{a} = (a_1, \ldots, a_m)</span> is the operand list, a tuple of indices referencing earlier operations in the trace:</em>
+<ul>
+<li><em>For <span class="math inline">\texttt{Const}</span>, <span class="math inline">\texttt{Param}</span>, <span class="math inline">\texttt{Dot}</span>: <span class="math inline">\mathbf{a} = ()</span> (empty),</em></li>
+<li><em>For <span class="math inline">\texttt{Add}</span>, <span class="math inline">\texttt{Mul}</span>, <span class="math inline">\texttt{Div}</span>: <span class="math inline">\mathbf{a} = (a_1, a_2)</span> where <span class="math inline">a_1, a_2 &lt; i</span> and <span class="math inline">i</span> is the index of operation <span class="math inline">\omega</span> in the trace,</em></li>
+<li><em>For <span class="math inline">\texttt{Inv}</span>: <span class="math inline">\mathbf{a} = (a_1)</span> where <span class="math inline">a_1 &lt; i</span>,</em></li>
+<li><em>For <span class="math inline">\texttt{Sum}</span>: <span class="math inline">\mathbf{a} = (a_1, \ldots, a_m)</span> where each <span class="math inline">a_j &lt; i</span>.</em></li>
+</ul></li>
+</ul>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> A trace operation is a single instruction in a straight-line program. It either loads a value (constant, parameter, or dot product with the parameter vector) or combines previously computed values via an arithmetic operation. The operand indices create an implicit dependency DAG that is a linearization of the expression tree from <a href="09_symbolic_expressions.html#def-09-expression-tree" class="quarto-xref">Definition&nbsp;<span>10.1</span></a>.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> The expression <span class="math inline">1 / (\theta_1 + 2\theta_2)</span> would be recorded as four operations: <span class="math inline">\omega_0 = (\texttt{Dot}, (1, 2), ())</span> computes <span class="math inline">\theta_1 + 2\theta_2</span>; <span class="math inline">\omega_1 = (\texttt{Inv}, \emptyset, (0))</span> computes <span class="math inline">1/\omega_0</span>. In the C implementation, the <span class="math inline">\texttt{Dot}</span> operation stores the coefficient vector <span class="math inline">\mathbf{c} = (1, 2)</span> and computes <span class="math inline">\mathbf{c}^\top \boldsymbol{\theta}</span> during evaluation.</p>
+</blockquote>
+<div id="def-11-elimination-trace" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 12.2 (Elimination trace)</strong></span> <em>An elimination trace for a parameterized phase-type graph <span class="math inline">G = (V, E, W)</span> with parameter dimension <span class="math inline">k</span> is a tuple <span class="math inline">\mathcal{T} = (\boldsymbol{\omega}, \mathbf{m}_{\text{rate}}, \mathbf{m}_{\text{prob}}, \mathbf{m}_{\text{tgt}}, \Sigma, i_0)</span> where:</em></p>
+<ul>
+<li><em><span class="math inline">\boldsymbol{\omega} = (\omega_0, \omega_1, \ldots, \omega_{N-1})</span> is an ordered sequence of <span class="math inline">N</span> trace operations (<a href="#def-11-trace-operation" class="quarto-xref">Definition&nbsp;<span>12.1</span></a>),</em></li>
+<li><em><span class="math inline">\mathbf{m}_{\text{rate}} \colon \{0, \ldots, |V|-1\} \to \{0, \ldots, N-1\}</span> maps each vertex index to the operation index that computes its inverse rate (vertex scalar),</em></li>
+<li><em><span class="math inline">\mathbf{m}_{\text{prob}}[i] = (j_1, j_2, \ldots)</span> maps each vertex index <span class="math inline">i</span> to a list of operation indices computing its outgoing edge probabilities,</em></li>
+<li><em><span class="math inline">\mathbf{m}_{\text{tgt}}[i] = (z_1, z_2, \ldots)</span> maps each vertex index <span class="math inline">i</span> to the corresponding list of target vertex indices,</em></li>
+<li><em><span class="math inline">\Sigma \in \mathbb{Z}^{|V| \times d}</span> is the matrix of vertex state vectors (where <span class="math inline">d</span> is the state dimension),</em></li>
+<li><em><span class="math inline">i_0</span> is the index of the starting vertex.</em></li>
+</ul>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> The trace encodes the complete elimination of a parameterized graph as a straight-line arithmetic program. The operation sequence <span class="math inline">\boldsymbol{\omega}</span> is the program. The mappings <span class="math inline">\mathbf{m}_{\text{rate}}</span>, <span class="math inline">\mathbf{m}_{\text{prob}}</span>, and <span class="math inline">\mathbf{m}_{\text{tgt}}</span> identify which program outputs correspond to which graph quantities. The state matrix <span class="math inline">\Sigma</span> and starting vertex index <span class="math inline">i_0</span> provide the structural metadata needed to reconstruct the concrete graph from the evaluated trace.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> For a three-vertex graph (starting, transient, absorbing) with one parameter, the trace might contain 5 operations (one DOT for the edge weight, one SUM for the total rate, one INV for the vertex scalar, one MUL for the edge probability, and one CONST for the absorbing state rate). The mapping <span class="math inline">\mathbf{m}_{\text{rate}}[1] = 2</span> indicates that operation <span class="math inline">\omega_2</span> computes the inverse rate of vertex 1.</p>
+</blockquote>
+<div id="def-11-trace-evaluation" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 12.3 (Trace evaluation)</strong></span> <em>Let <span class="math inline">\mathcal{T} = (\boldsymbol{\omega}, \mathbf{m}_{\text{rate}}, \mathbf{m}_{\text{prob}}, \mathbf{m}_{\text{tgt}}, \Sigma, i_0)</span> be an elimination trace with <span class="math inline">N</span> operations and parameter dimension <span class="math inline">k</span>. Given a concrete parameter vector <span class="math inline">\boldsymbol{\theta} \in \mathbb{R}^k</span>, the trace evaluation produces a value array <span class="math inline">\mathbf{y} = (y_0, y_1, \ldots, y_{N-1}) \in \mathbb{R}^N</span> by sequential execution:</em></p>
+<p><em>For <span class="math inline">i = 0, 1, \ldots, N-1</span>, let <span class="math inline">\omega_i = (\tau_i, d_i, \mathbf{a}_i)</span>. Then:</em></p>
+<p><span class="math display">y_i = \begin{cases}
+c &amp; \text{if } \tau_i = \texttt{Const} \text{ with data } c, \\
+\theta_j &amp; \text{if } \tau_i = \texttt{Param} \text{ with index } j, \\
+\mathbf{c}^\top \boldsymbol{\theta} &amp; \text{if } \tau_i = \texttt{Dot} \text{ with coefficients } \mathbf{c}, \\
+y_{a_1} + y_{a_2} &amp; \text{if } \tau_i = \texttt{Add}, \\
+y_{a_1} \cdot y_{a_2} &amp; \text{if } \tau_i = \texttt{Mul}, \\
+y_{a_1} / y_{a_2} &amp; \text{if } \tau_i = \texttt{Div}, \\
+1 / y_{a_1} &amp; \text{if } \tau_i = \texttt{Inv}, \\
+\sum_{j=1}^{m} y_{a_j} &amp; \text{if } \tau_i = \texttt{Sum} \text{ with operands } (a_1, \ldots, a_m).
+\end{cases}</span></p>
+<p><em>The evaluated results are extracted via the mappings: the vertex scalar for vertex <span class="math inline">i</span> is <span class="math inline">y_{\mathbf{m}_{\text{rate}}[i]}</span>, and the <span class="math inline">j</span>-th edge probability of vertex <span class="math inline">i</span> is <span class="math inline">y_{\mathbf{m}_{\text{prob}}[i][j]}</span>.</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> Trace evaluation is the replay step: it executes the recorded arithmetic program with concrete numbers. Because each operation reads only from earlier entries in the value array <span class="math inline">\mathbf{y}</span> (by construction of the operand indices), the sequential scan computes all values in a single pass. This is equivalent to a post-order traversal of the expression trees from [09], but without the overhead of tree traversal.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> Given the trace from the example in <a href="#def-11-elimination-trace" class="quarto-xref">Definition&nbsp;<span>12.2</span></a> and parameter <span class="math inline">\theta_1 = 3.0</span>: the DOT operation computes <span class="math inline">\mathbf{c}^\top \boldsymbol{\theta}</span>; the SUM aggregates edge weights; the INV computes the vertex scalar <span class="math inline">1/\lambda_v</span>; and the MUL converts weights to probabilities. The entire evaluation touches each operation exactly once.</p>
+</blockquote>
+</section>
+<section id="theorems-and-proofs" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="theorems-and-proofs">Theorems and Proofs</h2>
+<div id="thm-11-trace-correctness" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 12.1 (Trace evaluation correctness)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> be a parameterized phase-type graph with parameter dimension <span class="math inline">k</span>, and let <span class="math inline">\mathcal{T}</span> be the elimination trace produced by <a href="#alg-11-trace-recording" class="quarto-xref">Algorithm&nbsp;<span>12.1</span></a> (trace recording). For any <span class="math inline">\boldsymbol{\theta} \in \mathbb{R}^k</span> such that all vertex total outgoing rates are positive, the trace evaluation (<a href="#def-11-trace-evaluation" class="quarto-xref">Definition&nbsp;<span>12.3</span></a>) produces the same vertex scalars and edge probabilities as performing concrete graph elimination (<a href="06_graph_elimination.html#alg-06-full-elimination" class="quarto-xref">Algorithm&nbsp;<span>7.2</span></a>) on the instantiated graph <span class="math inline">G(\boldsymbol{\theta})</span>.</em></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>We show that the trace evaluation reproduces the computation of concrete elimination step by step.</p>
+<p><strong>Phase 1 (Rate computation).</strong> For each transient vertex <span class="math inline">v_i</span>, <a href="#alg-11-trace-recording" class="quarto-xref">Algorithm&nbsp;<span>12.1</span></a> records the edge weights as DOT or CONST operations, a SUM over all outgoing edge weights, and an INV of the sum. By <a href="#def-11-trace-evaluation" class="quarto-xref">Definition&nbsp;<span>12.3</span></a>, evaluating these operations with <span class="math inline">\boldsymbol{\theta}</span> computes:</p>
+<p><span class="math display">y_{\mathbf{m}_{\text{rate}}[i]} = \frac{1}{\sum_{z \in \operatorname{children}(v_i)} w(v_i \to z; \boldsymbol{\theta})} = \frac{1}{\lambda_{v_i}(\boldsymbol{\theta})}</span></p>
+<p>This matches the vertex scalar computation in normalization (<a href="01_preliminaries.html#def-01-vertex-scalar" class="quarto-xref">Definition&nbsp;<span>2.16</span></a>).</p>
+<p><strong>Phase 2 (Probability computation).</strong> For each edge <span class="math inline">(v_i \to v_j)</span>, <a href="#alg-11-trace-recording" class="quarto-xref">Algorithm&nbsp;<span>12.1</span></a> records a MUL of the edge weight by the vertex rate. Evaluating at <span class="math inline">\boldsymbol{\theta}</span>:</p>
+<p><span class="math display">y_{\mathbf{m}_{\text{prob}}[i][j]} = w(v_i \to v_j; \boldsymbol{\theta}) \cdot y_{\mathbf{m}_{\text{rate}}[i]} = \frac{w(v_i \to v_j; \boldsymbol{\theta})}{\lambda_{v_i}(\boldsymbol{\theta})} = w'(v_i \to v_j; \boldsymbol{\theta})</span></p>
+<p>This matches the normalized edge weight in <a href="05_graph_normalization.html#def-05-continuous-normalization" class="quarto-xref">Definition&nbsp;<span>6.1</span></a>.</p>
+<p><strong>Phase 3 (Elimination loop).</strong> The elimination loop processes vertices in order. For each eliminated vertex <span class="math inline">v_i</span>, each parent <span class="math inline">u</span>, and each child <span class="math inline">z</span>, the trace contains:</p>
+<ul>
+<li>A MUL for the bypass probability: the operation computes <span class="math inline">p_{\text{bypass}} = p_{u \to v_i} \cdot p_{v_i \to z}</span>, referencing the operation indices for <span class="math inline">p_{u \to v_i}</span> and <span class="math inline">p_{v_i \to z}</span>.</li>
+<li>An ADD when merging with an existing edge: the operation computes <span class="math inline">p_{\text{new}} = p_{\text{old}} + p_{\text{bypass}}</span>, referencing the old probability and bypass probability.</li>
+<li>A DIV for renormalization: the operation computes <span class="math inline">p / \text{total}</span>, referencing the new probability and the total (computed by a preceding SUM).</li>
+</ul>
+<p>Each of these operations mirrors exactly one step of concrete elimination (<a href="06_graph_elimination.html#def-06-vertex-elimination" class="quarto-xref">Definition&nbsp;<span>7.1</span></a>). By induction on the number of elimination steps, the final edge probabilities and vertex scalars match those of concrete elimination applied to <span class="math inline">G(\boldsymbol{\theta})</span>. <span class="math inline">\square</span></p>
+</div>
+<div id="thm-11-trace-complexity" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 12.2 (Trace complexity)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> be a parameterized phase-type graph. Then:</em></p>
+<ol type="1">
+<li><em>Recording the elimination trace (<a href="#alg-11-trace-recording" class="quarto-xref">Algorithm&nbsp;<span>12.1</span></a>) has time complexity <span class="math inline">O(|V|^3)</span> and space complexity <span class="math inline">O(|V|^2)</span>.</em></li>
+<li><em>The trace length satisfies <span class="math inline">N \leq O(|V|^2)</span>.</em></li>
+<li><em>Evaluating the trace (<a href="#alg-11-trace-evaluation" class="quarto-xref">Algorithm&nbsp;<span>12.2</span></a>) has time complexity <span class="math inline">O(N)</span>, and hence <span class="math inline">O(|V|^2)</span> in the worst case.</em></li>
+</ol>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span></p>
+<ol type="1">
+<li><p>Trace recording follows the same elimination order as concrete elimination (<a href="06_graph_elimination.html#alg-06-full-elimination" class="quarto-xref">Algorithm&nbsp;<span>7.2</span></a>), which processes each vertex once. For each eliminated vertex <span class="math inline">v_i</span>, we iterate over all parents and all children, yielding <span class="math inline">O(|\operatorname{parents}(v_i)| \cdot |\operatorname{children}(v_i)|)</span> bypass edges. Summing over all vertices, this is <span class="math inline">O(|V|^3)</span> in the worst case (a dense graph). Each bypass operation adds a constant number of trace operations (one MUL, possibly one ADD and one DIV), so the recording cost is <span class="math inline">O(|V|^3)</span>.</p></li>
+<li><p>During elimination, the number of edges in the graph is bounded by <span class="math inline">O(|V|^2)</span> (at most one edge between each pair of vertices). Each edge contributes a bounded number of operations to the trace (rate computation, probability computation, bypass, merge, normalize). The initial phase contributes <span class="math inline">O(|E|)</span> operations for edge weights and <span class="math inline">O(|V|)</span> for rates. The elimination phase contributes at most <span class="math inline">O(|V|^2)</span> bypass operations, each generating <span class="math inline">O(1)</span> trace operations. Thus <span class="math inline">N \leq O(|V|^2)</span>.</p></li>
+<li><p>Trace evaluation (<a href="#alg-11-trace-evaluation" class="quarto-xref">Algorithm&nbsp;<span>12.2</span></a>) performs one arithmetic operation per trace entry, scanning the value array sequentially. Each operation accesses at most <span class="math inline">O(k)</span> values (for DOT with <span class="math inline">k</span> parameters) or <span class="math inline">O(1)</span> values (for binary operations). For bounded <span class="math inline">k</span>, the total cost is <span class="math inline">O(N)</span>. <span class="math inline">\square</span></p></li>
+</ol>
+</div>
+</section>
+<section id="algorithms" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="algorithms">Algorithms</h2>
+<div id="alg-11-trace-recording" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-alg figure">
+<section id="trace-recording" class="level4" aria-describedby="alg-11-trace-recording-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="12.0.0.1">
+<h4 data-number="12.0.0.1" class="anchored" data-anchor-id="trace-recording"><span class="header-section-number">12.0.0.1</span> Trace Recording</h4>
+<p><em>Description.</em> This algorithm performs graph elimination while recording all arithmetic operations as a linear trace. The input is a parameterized phase-type graph <span class="math inline">G</span> with parameter dimension <span class="math inline">k</span>. The algorithm follows the same elimination order as <a href="06_graph_elimination.html#alg-06-full-elimination" class="quarto-xref">Algorithm&nbsp;<span>7.2</span></a> but, instead of computing numeric values, emits trace operations that can later be replayed with any parameter vector.</p>
+<p>The algorithm proceeds in four phases: (1) compute vertex rates by summing outgoing edge weights and taking the inverse; (2) convert edge weights to probabilities by multiplying by vertex rates; (3) perform the elimination loop, recording bypass, merge, and normalization operations; (4) clean up removed edges from the output mappings.</p>
+<pre><code>Trace Recording
+1: Let G = (V, E, W) be a parameterized phase-type graph with parameter dimension k
+2: Let v_0 be the starting vertex, and let V be ordered by SCC topological sort
+3:
+4: function RecordEliminationTrace(G, k)
+5:   T ← empty trace with operations list ω, mappings m_rate, m_prob, m_tgt
+6:
+7:   ▷ Phase 1: Compute vertex rates
+8:   for i ← 0 to |V| - 1 do
+9:     if v_i is absorbing then
+10:      m_rate[i] ← EmitConst(T, 0.0)
+11:    else
+12:      weight_ops ← []
+13:      for each edge (v_i → v_j) ∈ E do
+14:        if edge is parameterized with coefficients c then
+15:          idx ← EmitDot(T, c)                   ▷ w = c^⊤ θ
+16:        else
+17:          idx ← EmitConst(T, w(v_i → v_j))
+18:        end if
+19:        weight_ops ← weight_ops ∪ {idx}
+20:      end for
+21:      sum_idx ← EmitSum(T, weight_ops)
+22:      m_rate[i] ← EmitInv(T, sum_idx)            ▷ rate = 1 / Σ weights
+23:    end if
+24:  end for
+25:
+26:  ▷ Phase 2: Convert edges to probabilities
+27:  for i ← 0 to |V| - 1 do
+28:    for each edge (v_i → v_j) ∈ E do
+29:      w_idx ← operation index for weight of (v_i → v_j)
+30:      p_idx ← EmitMul(T, w_idx, m_rate[i])       ▷ prob = weight × rate
+31:      Append p_idx to m_prob[i]
+32:      Append j to m_tgt[i]
+33:    end for
+34:  end for
+35:
+36:  ▷ Phase 3: Elimination loop
+37:  Build parent lists from m_tgt
+38:  for i ← 0 to |V| - 1 do
+39:    if v_i is absorbing then continue end if
+40:    for each parent u of v_i with u &gt; i do
+41:      Let p_{u→i} be the operation index for edge (u → v_i) in m_prob[u]
+42:      for each child z of v_i do
+43:        if z = u or z = i then continue end if
+44:        bypass ← EmitMul(T, p_{u→i}, p_{i→z})
+45:        if edge (u → z) already exists in m_prob[u] then
+46:          old ← operation index for (u → z)
+47:          new ← EmitAdd(T, old, bypass)
+48:          Update m_prob[u] entry for z to new
+49:        else
+50:          Append bypass to m_prob[u]; append z to m_tgt[u]
+51:        end if
+52:      end for
+53:      Mark edge (u → v_i) as removed in m_prob[u]
+54:      ▷ Renormalize parent's edges
+55:      valid ← {operation indices of non-removed edges of u}
+56:      total ← EmitSum(T, valid)
+57:      for each j ∈ valid do
+58:        m_prob[u][j] ← EmitDiv(T, m_prob[u][j], total)
+59:      end for
+60:    end for
+61:  end for
+62:
+63:  ▷ Phase 4: Clean up removed edges
+64:  Remove all entries marked as removed from m_prob and m_tgt
+65:
+66:  return T = (ω, m_rate, m_prob, m_tgt, Σ, i_0)
+67: end function</code></pre>
+<p><strong>Correspondence table:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 20%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pseudocode variable</th>
+<th>Math symbol</th>
+<th>Code variable (file:function)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">G</span></td>
+<td><span class="math inline">G = (V, E, W)</span></td>
+<td><code>graph</code> (<code>trace_elimination.py:record_elimination_trace</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">k</span></td>
+<td><span class="math inline">k</span> (parameter dimension)</td>
+<td><code>theta_dim</code> (<code>trace_elimination.py:record_elimination_trace</code>)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">T</span></td>
+<td><span class="math inline">\mathcal{T}</span></td>
+<td><code>builder</code> (<code>trace_elimination.py:TraceBuilder</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\omega</span></td>
+<td><span class="math inline">\boldsymbol{\omega}</span></td>
+<td><code>builder.operations</code> (<code>trace_elimination.py:TraceBuilder</code>)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathbf{m}_{\text{rate}}</span></td>
+<td><span class="math inline">\mathbf{m}_{\text{rate}}</span></td>
+<td><code>vertex_rates</code> (<code>trace_elimination.py:record_elimination_trace</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mathbf{m}_{\text{prob}}</span></td>
+<td><span class="math inline">\mathbf{m}_{\text{prob}}</span></td>
+<td><code>edge_probs</code> (<code>trace_elimination.py:record_elimination_trace</code>)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathbf{m}_{\text{tgt}}</span></td>
+<td><span class="math inline">\mathbf{m}_{\text{tgt}}</span></td>
+<td><code>vertex_targets</code> (<code>trace_elimination.py:record_elimination_trace</code>)</td>
+</tr>
+<tr class="even">
+<td>EmitConst</td>
+<td><span class="math inline">(\texttt{Const}, c, ())</span></td>
+<td><code>builder.add_const</code> / <code>add_const_to_trace</code></td>
+</tr>
+<tr class="odd">
+<td>EmitDot</td>
+<td><span class="math inline">(\texttt{Dot}, \mathbf{c}, ())</span></td>
+<td><code>builder.add_dot</code> / <code>add_dot_to_trace</code></td>
+</tr>
+<tr class="even">
+<td>EmitMul</td>
+<td><span class="math inline">(\texttt{Mul}, \emptyset, (a_1, a_2))</span></td>
+<td><code>builder.add_mul</code> / <code>add_binary_op_to_trace</code></td>
+</tr>
+<tr class="odd">
+<td>EmitAdd</td>
+<td><span class="math inline">(\texttt{Add}, \emptyset, (a_1, a_2))</span></td>
+<td><code>builder.add_add</code> / <code>add_binary_op_to_trace</code></td>
+</tr>
+<tr class="even">
+<td>EmitDiv</td>
+<td><span class="math inline">(\texttt{Div}, \emptyset, (a_1, a_2))</span></td>
+<td><code>builder.add_div</code> / <code>add_binary_op_to_trace</code></td>
+</tr>
+<tr class="odd">
+<td>EmitInv</td>
+<td><span class="math inline">(\texttt{Inv}, \emptyset, (a_1))</span></td>
+<td><code>builder.add_inv</code> / <code>add_inv_to_trace</code></td>
+</tr>
+<tr class="even">
+<td>EmitSum</td>
+<td><span class="math inline">(\texttt{Sum}, \emptyset, (a_1, \ldots, a_m))</span></td>
+<td><code>builder.add_sum</code> / <code>add_sum_to_trace</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\Sigma</span></td>
+<td><span class="math inline">\Sigma</span> (state matrix)</td>
+<td><code>states</code> (<code>trace_elimination.py:record_elimination_trace</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">i_0</span></td>
+<td><span class="math inline">i_0</span> (starting vertex index)</td>
+<td><code>starting_vertex_idx</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Complexity.</strong> Time: <span class="math inline">O(|V|^3)</span> (same as concrete elimination). Space: <span class="math inline">O(|V|^2)</span> for the operation sequence.</p>
+</section>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-11-trace-recording-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Algorithm&nbsp;12.1: <strong>Correctness.</strong> Follows from <a href="#thm-11-trace-correctness" class="quarto-xref">Theorem&nbsp;<span>12.1</span></a>. Each Emit operation records exactly one arithmetic step of the concrete elimination algorithm (<a href="06_graph_elimination.html#alg-06-full-elimination" class="quarto-xref">Algorithm&nbsp;<span>7.2</span></a>), so replaying the trace reproduces the concrete computation.
+</figcaption>
+</figure>
+</div>
+<div id="alg-11-trace-evaluation" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-alg figure">
+<section id="trace-evaluation-1" class="level4" aria-describedby="alg-11-trace-evaluation-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="12.0.0.2">
+<h4 data-number="12.0.0.2" class="anchored" data-anchor-id="trace-evaluation-1"><span class="header-section-number">12.0.0.2</span> Trace Evaluation</h4>
+<p><em>Description.</em> This algorithm replays a previously recorded elimination trace with a concrete parameter vector. It scans the operation sequence once, computing each operation’s value from the parameter vector and previously computed values. The result is a set of vertex scalars and edge probabilities that define the concrete eliminated graph.</p>
+<pre><code>Trace Evaluation
+1: Let T = (ω, m_rate, m_prob, m_tgt, Σ, i_0) be an elimination trace with N operations
+2: Let θ ∈ ℝ^k be a concrete parameter vector
+3:
+4: function EvaluateTrace(T, θ)
+5:   y ← array of N zeros                          ▷ Value array
+6:   for i ← 0 to N - 1 do
+7:     Let ω_i = (τ_i, d_i, a_i)
+8:     if τ_i = CONST then
+9:       y[i] ← d_i                                ▷ Constant value
+10:    else if τ_i = PARAM then
+11:      y[i] ← θ[d_i]                             ▷ Parameter lookup
+12:    else if τ_i = DOT then
+13:      y[i] ← d_i^⊤ θ                            ▷ Dot product c^⊤ θ
+14:    else if τ_i = ADD then
+15:      y[i] ← y[a_1] + y[a_2]
+16:    else if τ_i = MUL then
+17:      y[i] ← y[a_1] × y[a_2]
+18:    else if τ_i = DIV then
+19:      y[i] ← y[a_1] / y[a_2]
+20:    else if τ_i = INV then
+21:      y[i] ← 1 / y[a_1]
+22:    else if τ_i = SUM then
+23:      y[i] ← Σ_{j} y[a_j]
+24:    end if
+25:  end for
+26:
+27:  ▷ Extract results via mappings
+28:  rates ← array of |V| values where rates[i] = y[m_rate[i]]
+29:  probs ← for each vertex i: [y[m_prob[i][j]] for j in edges of i]
+30:  targets ← m_tgt                                ▷ Structural, not parameter-dependent
+31:
+32:  return (rates, probs, targets, Σ, i_0)
+33: end function</code></pre>
+<p><strong>Correspondence table:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 20%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pseudocode variable</th>
+<th>Math symbol</th>
+<th>Code variable (file:function)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\mathcal{T}</span></td>
+<td><span class="math inline">\mathcal{T}</span></td>
+<td><code>trace</code> (<code>trace_elimination.py:evaluate_trace</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\boldsymbol{\theta}</span></td>
+<td><span class="math inline">\boldsymbol{\theta}</span></td>
+<td><code>params</code> (<code>trace_elimination.py:evaluate_trace</code>)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathbf{y}</span></td>
+<td><span class="math inline">\mathbf{y}</span> (value array)</td>
+<td><code>values</code> (<code>trace_elimination.py:evaluate_trace</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">N</span></td>
+<td><span class="math inline">N</span> (trace length)</td>
+<td><code>n_ops</code> / <code>trace.operations_length</code></td>
+</tr>
+<tr class="odd">
+<td>rates</td>
+<td>vertex scalars</td>
+<td><code>vertex_rates</code> (result dict key)</td>
+</tr>
+<tr class="even">
+<td>probs</td>
+<td>edge probabilities</td>
+<td><code>edge_probs</code> (result dict key)</td>
+</tr>
+<tr class="odd">
+<td>targets</td>
+<td>target vertex indices</td>
+<td><code>vertex_targets</code> (result dict key)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Complexity.</strong> Time: <span class="math inline">O(N)</span> where <span class="math inline">N \leq O(|V|^2)</span> is the trace length. Each operation performs <span class="math inline">O(1)</span> work (or <span class="math inline">O(k)</span> for DOT with <span class="math inline">k</span> parameters). Space: <span class="math inline">O(N)</span> for the value array.</p>
+</section>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-11-trace-evaluation-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Algorithm&nbsp;12.2: <strong>Correctness.</strong> Follows from <a href="#thm-11-trace-correctness" class="quarto-xref">Theorem&nbsp;<span>12.1</span></a>. The sequential evaluation respects the data dependencies because every operand index <span class="math inline">a_j &lt; i</span>, ensuring that all operand values are computed before they are needed.
+</figcaption>
+</figure>
+</div>
+</section>
+<section id="numerical-considerations" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="numerical-considerations">Numerical Considerations</h2>
+<p><strong>Division by zero.</strong> The INV and DIV operations can encounter zero denominators when a vertex has zero total outgoing rate (e.g., an absorbing vertex assigned a non-zero rate during a malformed graph construction). The implementation guards against this by assigning rate 0.0 to absorbing vertices before the elimination loop (line 10 of <a href="#alg-11-trace-recording" class="quarto-xref">Algorithm&nbsp;<span>12.1</span></a>). For transient vertices, a zero total rate indicates a degenerate parameterization (<span class="math inline">\boldsymbol{\theta}</span> produces zero weights), which is a user error.</p>
+<p><strong>Constant caching.</strong> The <code>TraceBuilder</code> class maintains a hash map from constant values to operation indices (the <code>_const_cache</code> in Python, analogous to the CSE intern table from <a href="09_symbolic_expressions.html#def-09-cse-interning" class="quarto-xref">Definition&nbsp;<span>10.3</span></a>). This prevents duplicate CONST operations for the same value (e.g., the many 0.0 entries for absorbing vertices), reducing trace length by 10–30% in typical graphs.</p>
+<p><strong>Log-space DOT evaluation.</strong> When <code>use_log=True</code>, the DOT operation is interpreted as a product in log-space: <span class="math inline">\exp(\sum_j \log(c_j \theta_j))</span>. This is used for the <code>'log'</code> weight mode (<a href="01_preliminaries.html#def-01-param-edges" class="quarto-xref">Definition&nbsp;<span>2.15</span></a>). All coefficient-parameter products <span class="math inline">c_j \theta_j</span> must be strictly positive; the implementation raises an error otherwise.</p>
+</section>
+<section id="implementation-notes" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="implementation-notes">Implementation Notes</h2>
+<p><strong>Source code mapping:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 17%">
+<col style="width: 29%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Algorithm</th>
+<th>File</th>
+<th>Function</th>
+<th>Lines</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="#alg-11-trace-recording" class="quarto-xref">Algorithm&nbsp;<span>12.1</span></a></td>
+<td><code>src/phasic/trace_elimination.py</code></td>
+<td><code>record_elimination_trace</code></td>
+<td>L360–L898</td>
+</tr>
+<tr class="even">
+<td><a href="#alg-11-trace-recording" class="quarto-xref">Algorithm&nbsp;<span>12.1</span></a> (C)</td>
+<td><code>api/c/phasic.h</code></td>
+<td><code>ptd_record_elimination_trace</code></td>
+<td>L706–L708</td>
+</tr>
+<tr class="odd">
+<td><a href="#alg-11-trace-evaluation" class="quarto-xref">Algorithm&nbsp;<span>12.2</span></a></td>
+<td><code>src/phasic/trace_elimination.py</code></td>
+<td><code>evaluate_trace</code></td>
+<td>L905–L1040</td>
+</tr>
+<tr class="even">
+<td><a href="#alg-11-trace-evaluation" class="quarto-xref">Algorithm&nbsp;<span>12.2</span></a> (C)</td>
+<td><code>api/c/phasic.h</code></td>
+<td><code>ptd_evaluate_trace</code></td>
+<td>L723–L727</td>
+</tr>
+<tr class="odd">
+<td>Trace operations (C)</td>
+<td><code>src/c/trace/trace_internal.h</code></td>
+<td><code>add_const_to_trace</code>, <code>add_dot_to_trace</code>, etc.</td>
+<td>L123–L207</td>
+</tr>
+<tr class="even">
+<td>Disk cache</td>
+<td><code>src/c/trace/trace_cache.c</code></td>
+<td><code>load_trace_from_cache</code>, <code>save_trace_to_cache</code></td>
+<td>L81–L193</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Deviations from pseudocode:</strong></p>
+<ul>
+<li>The Python implementation auto-detects <code>theta_dim</code> when not provided by probing edges for “garbage” coefficient values (small non-zero values below <span class="math inline">10^{-100}</span>). This heuristic is not part of the formal algorithm but is necessary because the C API does not expose <code>param_length</code> reliably on all graph construction paths.</li>
+<li>The Python implementation handles both regular and parameterized edges in the same loop, using a set of parameterized edge target indices to avoid double-counting edges that appear in both <code>edges()</code> and <code>parameterized_edges()</code> iterators.</li>
+<li>The starting vertex (<span class="math inline">v_0</span>) is treated specially: its outgoing edges represent initial probabilities and are always recorded as CONST operations regardless of whether the graph is parameterized.</li>
+<li>The C implementation (<code>ptd_trace_operation</code>) uses a union-like struct with fields for all operation types, while the Python implementation uses a dataclass with optional fields. Both represent the same logical structure.</li>
+<li>Disk caching is handled at the C level via <code>trace_cache.c</code>: traces are serialized to JSON and stored under <code>~/.phasic_cache/traces/{hash}.json</code>, where the hash is the graph content hash (see [12]).</li>
+</ul>
+</section>
+<section id="symbol-index" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="symbol-index">Symbol Index</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 19%">
+<col style="width: 54%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Symbol</th>
+<th>Name</th>
+<th>First appearance</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\mathbf{a}</span></td>
+<td>Operand list (tuple of indices)</td>
+<td><a href="#def-11-trace-operation" class="quarto-xref">Definition&nbsp;<span>12.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">d</span></td>
+<td>Operation data</td>
+<td><a href="#def-11-trace-operation" class="quarto-xref">Definition&nbsp;<span>12.1</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">i_0</span></td>
+<td>Starting vertex index</td>
+<td><a href="#def-11-elimination-trace" class="quarto-xref">Definition&nbsp;<span>12.2</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mathbf{m}_{\text{prob}}</span></td>
+<td>Edge probability mapping</td>
+<td><a href="#def-11-elimination-trace" class="quarto-xref">Definition&nbsp;<span>12.2</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathbf{m}_{\text{rate}}</span></td>
+<td>Vertex rate mapping</td>
+<td><a href="#def-11-elimination-trace" class="quarto-xref">Definition&nbsp;<span>12.2</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mathbf{m}_{\text{tgt}}</span></td>
+<td>Target vertex mapping</td>
+<td><a href="#def-11-elimination-trace" class="quarto-xref">Definition&nbsp;<span>12.2</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">N</span></td>
+<td>Trace length (number of operations)</td>
+<td><a href="#def-11-elimination-trace" class="quarto-xref">Definition&nbsp;<span>12.2</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\boldsymbol{\omega}</span></td>
+<td>Operation sequence</td>
+<td><a href="#def-11-elimination-trace" class="quarto-xref">Definition&nbsp;<span>12.2</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\omega_i</span></td>
+<td><span class="math inline">i</span>-th trace operation</td>
+<td><a href="#def-11-trace-operation" class="quarto-xref">Definition&nbsp;<span>12.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\Sigma</span></td>
+<td>Vertex state matrix</td>
+<td><a href="#def-11-elimination-trace" class="quarto-xref">Definition&nbsp;<span>12.2</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathcal{T}</span></td>
+<td>Elimination trace</td>
+<td><a href="#def-11-elimination-trace" class="quarto-xref">Definition&nbsp;<span>12.2</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\tau</span></td>
+<td>Operation type</td>
+<td><a href="#def-11-trace-operation" class="quarto-xref">Definition&nbsp;<span>12.1</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathbf{y}</span></td>
+<td>Value array (trace evaluation output)</td>
+<td><a href="#def-11-trace-evaluation" class="quarto-xref">Definition&nbsp;<span>12.3</span></a></td>
+</tr>
+</tbody>
+</table>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./10_symbolic_graph_elimination.html" class="pagination-link" aria-label="Symbolic Graph Elimination">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./12_graph_hashing.html" class="pagination-link" aria-label="Graph Hashing">
+        <span class="nav-page-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>14&nbsp; SCC-Based Trace Decomposition and Stitching – Phasic — Supplementary Online Material</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./14_distribution_computation.html" rel="next">
+<link href="./12_graph_hashing.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-3d57081916b67e2c1b7e936475d81f56.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./09_symbolic_expressions.html">Symbolic System and Traces</a></li><li class="breadcrumb-item"><a href="./13_scc_trace_stitching.html"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Phasic — Supplementary Online Material</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Index</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Foundations</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01_preliminaries.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Preliminaries</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02_graph_representation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Graph Representation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03_numerical_primitives.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Numerical Primitives</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Graph Algorithms</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04_scc_and_topological_sort.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">SCC and Topological Sort</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05_graph_normalization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Graph Normalization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./06_graph_elimination.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./07_reward_transformation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Reward Transformation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./08_state_space_construction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Symbolic System and Traces</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./09_symbolic_expressions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./10_symbolic_graph_elimination.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./11_trace_system.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./12_graph_hashing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./13_scc_trace_stitching.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Distribution and Moments</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./14_distribution_computation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./15_moment_computation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./16_pdf_gradients.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
+ <span class="menu-text">Sampling</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./17_sampling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true">
+ <span class="menu-text">Inference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./18_svgd.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./19_mcmc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./20_bffg.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./21_method_of_moments.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./22_probability_matching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true">
+ <span class="menu-text">Spatial and State Indexing</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./23_state_indexing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./24_hex_grid.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true">
+ <span class="menu-text">Integration</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./25_jax_integration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./26_graph_builder.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./27_van_loan_equivalence.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#definitions" id="toc-definitions" class="nav-link" data-scroll-target="#definitions">Definitions</a></li>
+  <li><a href="#theorems-and-proofs" id="toc-theorems-and-proofs" class="nav-link" data-scroll-target="#theorems-and-proofs">Theorems and Proofs</a></li>
+  <li><a href="#algorithms" id="toc-algorithms" class="nav-link" data-scroll-target="#algorithms">Algorithms</a></li>
+  <li><a href="#implementation-notes" id="toc-implementation-notes" class="nav-link" data-scroll-target="#implementation-notes">Implementation Notes</a></li>
+  <li><a href="#symbol-index" id="toc-symbol-index" class="nav-link" data-scroll-target="#symbol-index">Symbol Index</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./09_symbolic_expressions.html">Symbolic System and Traces</a></li><li class="breadcrumb-item"><a href="./13_scc_trace_stitching.html"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="introduction">Introduction</h2>
+<p>This file formalizes the hierarchical approach to trace recording that exploits the strongly connected component (SCC) decomposition of a graph (<a href="04_scc_and_topological_sort.html#def-04-scc" class="quarto-xref">Definition&nbsp;<span>5.1</span></a>) to decompose the <span class="math inline">O(|V|^3)</span> trace recording problem into smaller, independently cacheable subproblems. For large parameterized graphs with repeated structural motifs, many SCCs are structurally identical (they share the same content hash from [12]). By recording a trace for each unique SCC and then stitching the results together in topological order, phasic avoids redundant computation and enables parallel trace recording.</p>
+<p>The stitching algorithm composes SCC-local traces into a full-graph trace by (1) appending each SCC’s operation sequence to a merged trace, (2) remapping operation indices to account for the offset, and (3) merging “sister vertices” — vertices that appear at the boundary between SCCs and are present in multiple SCC-local traces. The result is a single <code>EliminationTrace</code> (<a href="11_trace_system.html#def-11-elimination-trace" class="quarto-xref">Definition&nbsp;<span>12.2</span></a>) that is functionally equivalent to recording the trace on the full graph directly.</p>
+<p>This decomposition is the key to scaling phasic’s trace system to graphs with hundreds of thousands of vertices, where direct trace recording would be prohibitively expensive.</p>
+<p><strong>Prerequisites:</strong> [01], [04], [06], [11]</p>
+<p><strong>Source files:</strong> - <code>src/phasic/hierarchical_trace_cache.py</code> (functions: <code>get_scc_graphs</code>, <code>record_enhanced_scc_traces</code>, <code>stitch_scc_traces</code>, <code>collect_missing_traces_batch</code>, <code>compute_missing_traces_parallel</code>) - <code>src/c/phasic.c</code> (functions related to SCC subgraph extraction and trace stitching comments, L1938, L2306–L2309) - <code>src/cpp/phasic_pybind.cpp</code> (method: <code>scc_decomposition</code>)</p>
+</section>
+<section id="definitions" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="definitions">Definitions</h2>
+<blockquote class="blockquote">
+<p><strong>Recall</strong> (<a href="04_scc_and_topological_sort.html#def-04-scc" class="quarto-xref">Definition&nbsp;<span>5.1</span></a>). <em>A strongly connected component (SCC) of <span class="math inline">G</span> is a maximal subset <span class="math inline">C \subseteq V</span> such that for every pair of vertices <span class="math inline">u, v \in C</span>, there exists a directed path from <span class="math inline">u</span> to <span class="math inline">v</span> and from <span class="math inline">v</span> to <span class="math inline">u</span>.</em></p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Recall</strong> (<a href="04_scc_and_topological_sort.html#def-04-condensation" class="quarto-xref">Definition&nbsp;<span>5.2</span></a>). <em>The condensation of <span class="math inline">G</span> is the DAG <span class="math inline">G^{\text{SCC}} = (V^{\text{SCC}}, E^{\text{SCC}})</span> whose meta-vertices are the SCCs and whose edges represent inter-component transitions.</em></p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Recall</strong> (<a href="11_trace_system.html#def-11-elimination-trace" class="quarto-xref">Definition&nbsp;<span>12.2</span></a>). <em>An elimination trace <span class="math inline">\mathcal{T} = (\boldsymbol{\omega}, \mathbf{m}_{\text{rate}}, \mathbf{m}_{\text{prob}}, \mathbf{m}_{\text{tgt}}, \Sigma, i_0)</span> is an ordered sequence of operations with mappings that identify which operations compute vertex scalars and edge probabilities.</em></p>
+</blockquote>
+<div id="def-13-enhanced-subgraph" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 14.1 (Enhanced SCC subgraph)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> be a phase-type graph with SCC decomposition <span class="math inline">C_1, \ldots, C_m</span> in topological order (<a href="04_scc_and_topological_sort.html#def-04-topological-ordering" class="quarto-xref">Definition&nbsp;<span>5.3</span></a>). The enhanced subgraph for component <span class="math inline">C_i</span> is a graph <span class="math inline">G_i^+ = (V_i^+, E_i^+, W_i^+)</span> constructed as follows:</em></p>
+<ul>
+<li><em><span class="math inline">V_i^{\text{up}} = \{v \in V \setminus C_i : \exists\, z \in C_i \text{ with } (v \to z) \in E\}</span> is the set of upstream vertices (parents from earlier SCCs),</em></li>
+<li><em><span class="math inline">V_i^{\text{down}} = \{z \in V \setminus C_i : \exists\, v \in C_i \text{ with } (v \to z) \in E\}</span> is the set of downstream vertices (children in later SCCs),</em></li>
+<li><em><span class="math inline">V_i^+ = V_i^{\text{up}} \cup C_i \cup V_i^{\text{down}}</span>,</em></li>
+<li><em><span class="math inline">E_i^+</span> includes all edges of <span class="math inline">G</span> whose source and target are both in <span class="math inline">V_i^+</span>,</em></li>
+<li><em><span class="math inline">W_i^+</span> restricts <span class="math inline">W</span> to <span class="math inline">E_i^+</span>.</em></li>
+</ul>
+<p><em>A vertex <span class="math inline">v \in V_i^{\text{up}} \cup V_i^{\text{down}}</span> is called a boundary vertex of <span class="math inline">C_i</span>. A vertex that appears as a boundary vertex in multiple enhanced subgraphs is called a sister vertex.</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> The enhanced subgraph contains the SCC itself plus a one-hop fringe of upstream and downstream vertices. The upstream vertices provide the incoming probability flow that the SCC receives from earlier components. The downstream vertices serve as absorbing targets for outgoing edges. Including this fringe ensures that the elimination within <span class="math inline">C_i</span> correctly accounts for the edge probabilities entering and leaving the component. Without the fringe, the trace would miss the normalization effects of inter-component edges.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> In a spatial coalescent model on a hexagonal grid, the graph decomposes into SCCs corresponding to migration loops between adjacent cells. Each loop SCC shares boundary vertices with its geographic neighbors. An SCC for cells <span class="math inline">\{A, B, C\}</span> in a migration triangle would have upstream vertices from cells that feed lineages into the triangle and downstream vertices representing cells that receive lineages from it.</p>
+</blockquote>
+<div id="def-13-scc-local-trace" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 14.2 (SCC-local trace)</strong></span> <em>An SCC-local trace for component <span class="math inline">C_i</span> is an elimination trace <span class="math inline">\mathcal{T}_i = (\boldsymbol{\omega}_i, \mathbf{m}_{\text{rate}}^{(i)}, \mathbf{m}_{\text{prob}}^{(i)}, \mathbf{m}_{\text{tgt}}^{(i)}, \Sigma_i, i_0^{(i)})</span> recorded by applying <a href="11_trace_system.html#alg-11-trace-recording" class="quarto-xref">Algorithm&nbsp;<span>12.1</span></a> to the enhanced subgraph <span class="math inline">G_i^+</span>.</em></p>
+<p><em>The SCC-local trace is indexed by the content hash <span class="math inline">H(G_i^+)</span> (<a href="12_graph_hashing.html#def-12-graph-content-hash" class="quarto-xref">Definition&nbsp;<span>13.3</span></a>) for cache lookup. Two SCCs with the same hash share the same trace.</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> Each SCC-local trace is a self-contained arithmetic program that can be evaluated independently. Because it was recorded on the enhanced subgraph (which includes boundary vertices), it correctly computes the elimination result for the internal vertices of the SCC, given the edge probabilities from upstream vertices.</p>
+</blockquote>
+<div id="def-13-trace-stitching" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 14.3 (Trace stitching)</strong></span> <em>Let <span class="math inline">\mathcal{T}_1, \ldots, \mathcal{T}_m</span> be SCC-local traces for the SCCs <span class="math inline">C_1, \ldots, C_m</span> in topological order. The stitched trace <span class="math inline">\mathcal{T}^* = \operatorname{Stitch}(\mathcal{T}_1, \ldots, \mathcal{T}_m)</span> is constructed by:</em></p>
+<ol type="1">
+<li><p><em>Initialize <span class="math inline">\mathcal{T}^*</span> with the operations and mappings of <span class="math inline">\mathcal{T}_1</span>.</em></p></li>
+<li><p><em>For <span class="math inline">i = 2, \ldots, m</span>:</em></p>
+<ul>
+<li><em>Let <span class="math inline">\Delta = |\boldsymbol{\omega}^*|</span> be the current operation count of <span class="math inline">\mathcal{T}^*</span> (the offset for remapping).</em></li>
+<li><em>Append all operations of <span class="math inline">\boldsymbol{\omega}_i</span> to <span class="math inline">\boldsymbol{\omega}^*</span>, remapping each operand index <span class="math inline">a_j</span> to <span class="math inline">a_j + \Delta</span>.</em></li>
+<li><em>For each vertex <span class="math inline">v</span> in <span class="math inline">C_i</span> (the internal vertices):</em>
+<ul>
+<li><em>If <span class="math inline">v</span> is a sister vertex (already in <span class="math inline">\mathcal{T}^*</span> from an earlier SCC):</em>
+<ul>
+<li><em>The sister vertex in <span class="math inline">\mathcal{T}^*</span> (the upstream copy) retains its rate mapping.</em></li>
+<li><em>The outgoing edges of the downstream copy (from <span class="math inline">\mathcal{T}_i</span>) are attached to the upstream copy by updating <span class="math inline">\mathbf{m}_{\text{prob}}^*</span> and <span class="math inline">\mathbf{m}_{\text{tgt}}^*</span> for the upstream vertex.</em></li>
+</ul></li>
+<li><em>Otherwise: add the vertex to <span class="math inline">\mathcal{T}^*</span> with remapped rate and edge mappings.</em></li>
+</ul></li>
+<li><em>For each boundary vertex in <span class="math inline">V_i^{\text{down}}</span> that is not a sister vertex: add it to <span class="math inline">\mathcal{T}^*</span> with remapped mappings.</em></li>
+</ul></li>
+<li><p><em>The stitched trace <span class="math inline">\mathcal{T}^*</span> has the same structure as an elimination trace (<a href="11_trace_system.html#def-11-elimination-trace" class="quarto-xref">Definition&nbsp;<span>12.2</span></a>).</em></p></li>
+</ol>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> Stitching concatenates the arithmetic programs of each SCC trace, adjusting the “line numbers” (operand indices) so that references remain valid in the merged program. Sister vertices — vertices that appear in multiple SCC traces because they sit at SCC boundaries — are merged by keeping one copy and redirecting edges. The topological processing order ensures that when we process SCC <span class="math inline">C_i</span>, all upstream SCCs (which provide incoming edges to <span class="math inline">C_i</span>) have already been merged.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> If SCC <span class="math inline">C_1</span> has 100 operations and SCC <span class="math inline">C_2</span> has 80 operations, with vertex <span class="math inline">v_5</span> as a sister vertex appearing in both, the stitched trace has at most 180 operations. All operand indices in <span class="math inline">\mathcal{T}_2</span> are shifted by 100 (the offset). Vertex <span class="math inline">v_5</span>’s rate comes from <span class="math inline">\mathcal{T}_1</span>, but its outgoing edges to vertices in <span class="math inline">C_2</span> come from <span class="math inline">\mathcal{T}_2</span> (with remapped indices).</p>
+</blockquote>
+</section>
+<section id="theorems-and-proofs" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="theorems-and-proofs">Theorems and Proofs</h2>
+<div id="thm-13-stitched-correctness" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 14.1 (Stitched trace correctness)</strong></span> <em>Let <span class="math inline">G</span> be a parameterized phase-type graph with SCC decomposition <span class="math inline">C_1, \ldots, C_m</span> in topological order. Let <span class="math inline">\mathcal{T}_{\text{full}}</span> be the trace recorded by applying <a href="11_trace_system.html#alg-11-trace-recording" class="quarto-xref">Algorithm&nbsp;<span>12.1</span></a> directly to <span class="math inline">G</span>, and let <span class="math inline">\mathcal{T}^* = \operatorname{Stitch}(\mathcal{T}_1, \ldots, \mathcal{T}_m)</span> be the stitched trace. For any parameter vector <span class="math inline">\boldsymbol{\theta}</span> such that all vertex rates are positive, evaluating <span class="math inline">\mathcal{T}^*</span> with <span class="math inline">\boldsymbol{\theta}</span> produces the same vertex scalars and edge probabilities as evaluating <span class="math inline">\mathcal{T}_{\text{full}}</span> with <span class="math inline">\boldsymbol{\theta}</span>.</em></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>We establish correctness in three steps.</p>
+<p><strong>Step 1: SCC independence of elimination.</strong> Graph elimination (<a href="06_graph_elimination.html#alg-06-full-elimination" class="quarto-xref">Algorithm&nbsp;<span>7.2</span></a>) processes vertices in an order guided by SCC topological sort. Within each SCC, vertices are eliminated in arbitrary order, but vertices in <span class="math inline">C_i</span> are eliminated before vertices in <span class="math inline">C_j</span> when <span class="math inline">i &lt; j</span> in topological order. Critically, when eliminating a vertex <span class="math inline">v \in C_i</span>, the bypass edges created involve only parents and children of <span class="math inline">v</span>. Since <span class="math inline">G^{\text{SCC}}</span> is a DAG, no vertex in an earlier SCC <span class="math inline">C_j</span> (<span class="math inline">j &lt; i</span>) is a child of <span class="math inline">v</span>, so the elimination of <span class="math inline">v</span> does not modify edges within <span class="math inline">C_j</span>. This means the elimination of vertices within <span class="math inline">C_i</span> depends only on:</p>
+<ul>
+<li>The initial edge weights within <span class="math inline">C_i</span>,</li>
+<li>The edge weights from upstream vertices (in earlier SCCs) to vertices in <span class="math inline">C_i</span>,</li>
+<li>The edge targets to downstream vertices (in later SCCs).</li>
+</ul>
+<p>These are precisely the edges present in the enhanced subgraph <span class="math inline">G_i^+</span> (<a href="#def-13-enhanced-subgraph" class="quarto-xref">Definition&nbsp;<span>14.1</span></a>).</p>
+<p><strong>Step 2: SCC-local trace captures local elimination.</strong> By <a href="11_trace_system.html#thm-11-trace-correctness" class="quarto-xref">Theorem&nbsp;<span>12.1</span></a>, the SCC-local trace <span class="math inline">\mathcal{T}_i</span> recorded on <span class="math inline">G_i^+</span> produces correct vertex scalars and edge probabilities for all vertices in <span class="math inline">G_i^+</span> when evaluated with <span class="math inline">\boldsymbol{\theta}</span>. In particular, for the internal vertices <span class="math inline">C_i</span>, the vertex scalars and edge probabilities match those that would be produced by eliminating <span class="math inline">C_i</span>’s vertices within the full graph <span class="math inline">G</span>.</p>
+<p><strong>Step 3: Stitching preserves correctness.</strong> The stitching operation (<a href="#def-13-trace-stitching" class="quarto-xref">Definition&nbsp;<span>14.3</span></a>) concatenates the operation sequences and remaps indices by adding the offset <span class="math inline">\Delta</span>. We verify that this preserves evaluation semantics:</p>
+<ul>
+<li><p><strong>Index remapping:</strong> Each operation <span class="math inline">\omega_j^{(i)}</span> in <span class="math inline">\mathcal{T}_i</span> with operands <span class="math inline">(a_1, \ldots, a_m)</span> becomes an operation with operands <span class="math inline">(a_1 + \Delta, \ldots, a_m + \Delta)</span>. Since the value array <span class="math inline">\mathbf{y}^*</span> of the stitched trace is the concatenation of the individual value arrays (with the offset), <span class="math inline">y^*[a_j + \Delta] = y_i[a_j]</span>, so the operation computes the same result.</p></li>
+<li><p><strong>Sister vertex merging:</strong> When a vertex <span class="math inline">v</span> appears in both <span class="math inline">\mathcal{T}_j</span> (upstream) and <span class="math inline">\mathcal{T}_i</span> (downstream), the stitching keeps the rate from <span class="math inline">\mathcal{T}_j</span> (which correctly accounts for <span class="math inline">v</span>’s position in the upstream SCC) and attaches the downstream outgoing edges from <span class="math inline">\mathcal{T}_i</span>. This is correct because the rate of <span class="math inline">v</span> is determined by <span class="math inline">v</span>’s outgoing edges in the full graph, which are the same regardless of which SCC we compute from. The outgoing edges from <span class="math inline">\mathcal{T}_i</span> capture the edges to vertices in <span class="math inline">C_i</span> and later SCCs, which are not present in <span class="math inline">\mathcal{T}_j</span>.</p></li>
+</ul>
+<p>Combining Steps 1–3, the stitched trace evaluation produces the same results as direct trace recording and evaluation on the full graph. <span class="math inline">\square</span></p>
+</div>
+<div id="thm-13-complexity" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 14.2 (Complexity of SCC-based trace recording)</strong></span> <em>Let <span class="math inline">G</span> be a phase-type graph with SCCs <span class="math inline">C_1, \ldots, C_m</span> of sizes <span class="math inline">n_1, \ldots, n_m</span> (where <span class="math inline">\sum_i n_i = |V|</span>). Let <span class="math inline">b_i = |V_i^{\text{up}}| + |V_i^{\text{down}}|</span> be the boundary size of <span class="math inline">C_i</span>. Then:</em></p>
+<ol type="1">
+<li><em>The total trace recording cost is <span class="math inline">O\!\left(\sum_{i=1}^{m} (n_i + b_i)^3\right)</span>, which is at most <span class="math inline">O(|V|^3)</span> and can be significantly less when SCCs are small.</em></li>
+<li><em>With hash-based deduplication, if <span class="math inline">u</span> unique SCC structures exist among the <span class="math inline">m</span> components, the recording cost is <span class="math inline">O\!\left(\sum_{j=1}^{u} (n_j + b_j)^3\right)</span> where each unique structure is recorded only once.</em></li>
+<li><em>The stitching cost is <span class="math inline">O\!\left(\sum_{i=1}^{m} N_i\right)</span> where <span class="math inline">N_i</span> is the trace length of <span class="math inline">\mathcal{T}_i</span>.</em></li>
+</ol>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span></p>
+<ol type="1">
+<li><p>Each SCC-local trace is recorded by applying <a href="11_trace_system.html#alg-11-trace-recording" class="quarto-xref">Algorithm&nbsp;<span>12.1</span></a> to <span class="math inline">G_i^+</span>, which has <span class="math inline">n_i + b_i</span> vertices. By <a href="11_trace_system.html#thm-11-trace-complexity" class="quarto-xref">Theorem&nbsp;<span>12.2</span></a>, this costs <span class="math inline">O((n_i + b_i)^3)</span>. Summing over all SCCs gives the total. Since <span class="math inline">\sum_i n_i = |V|</span> and <span class="math inline">b_i \leq |V|</span>, the worst case (one SCC containing all vertices) is <span class="math inline">O(|V|^3)</span>. When SCCs are small (e.g., <span class="math inline">n_i = O(1)</span>), the total is <span class="math inline">O(|V|)</span>.</p></li>
+<li><p>Hash-based deduplication uses the content hash from [12] to identify structurally identical enhanced subgraphs. Each unique subgraph is recorded once. If <span class="math inline">u</span> unique structures exist with sizes <span class="math inline">(n_j + b_j)</span>, the recording cost is <span class="math inline">\sum_{j=1}^{u} O((n_j + b_j)^3)</span>.</p></li>
+<li><p>Stitching (<a href="#def-13-trace-stitching" class="quarto-xref">Definition&nbsp;<span>14.3</span></a>) processes each SCC-local trace once, appending its operations to the merged trace and remapping indices. For <span class="math inline">\mathcal{T}_i</span> with <span class="math inline">N_i</span> operations, this takes <span class="math inline">O(N_i)</span> time. The total stitching cost is <span class="math inline">\sum_{i=1}^{m} O(N_i) = O(N^*)</span> where <span class="math inline">N^*</span> is the stitched trace length. <span class="math inline">\square</span></p></li>
+</ol>
+</div>
+</section>
+<section id="algorithms" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="algorithms">Algorithms</h2>
+<div id="alg-13-scc-trace-stitching" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-alg figure">
+<section id="scc-based-trace-decomposition-and-stitching" class="level4" aria-describedby="alg-13-scc-trace-stitching-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="14.0.0.1">
+<h4 data-number="14.0.0.1" class="anchored" data-anchor-id="scc-based-trace-decomposition-and-stitching"><span class="header-section-number">14.0.0.1</span> SCC-Based Trace Decomposition and Stitching</h4>
+<p><em>Description.</em> This algorithm records an elimination trace for a large parameterized graph by decomposing it into SCCs, recording a trace for each unique SCC (with caching), and stitching the results together. The algorithm has four stages: (1) decompose the graph into SCCs and compute content hashes; (2) for each unique SCC hash, check the cache and record the trace if missing; (3) stitch the SCC-local traces in topological order; (4) return the merged trace.</p>
+<pre><code>SCC-Based Trace Decomposition and Stitching
+1: Let G = (V, E, W) be a parameterized phase-type graph with parameter dimension k
+2:
+3: function HierarchicalTraceRecord(G, k)
+4:   ▷ Stage 1: SCC decomposition
+5:   (C_1, ..., C_m) ← SCCDecomposition(G)          ▷ Tarjan SCC
+6:   Sort SCCs in topological order                    ▷ Topological Sort
+7:
+8:   ▷ Stage 2: Record SCC-local traces (with caching)
+9:   trace_dict ← empty map from hash to trace
+10:  for i ← 1 to m do
+11:    G_i^+ ← BuildEnhancedSubgraph(G, C_i)         ▷ Definition 13.1
+12:    h_i ← GraphContentHash(G_i^+)                  ▷ Graph Hash
+13:    if h_i ∈ disk cache then
+14:      trace_dict[h_i] ← LoadTraceFromCache(h_i)
+15:    else if h_i ∈ trace_dict then
+16:      skip                                          ▷ Duplicate SCC, already recorded
+17:    else
+18:      T_i ← RecordEliminationTrace(G_i^+, k)      ▷ Trace Recording
+19:      trace_dict[h_i] ← T_i
+20:      SaveTraceToCache(h_i, T_i)
+21:    end if
+22:  end for
+23:
+24:  ▷ Stage 3: Stitch traces in topological order
+25:  T* ← copy of trace_dict[h_1]                     ▷ Initialize with first SCC
+26:  vertex_map ← mapping from vertex states to indices in T*
+27:
+28:  for i ← 2 to m do
+29:    T_i ← trace_dict[h_i]
+30:    Δ ← |ω*|                                       ▷ Operation offset
+31:
+32:    ▷ Append operations with remapped indices
+33:    for each operation ω_j in T_i do
+34:      ω'_j ← RemapOperands(ω_j, Δ)
+35:      Append ω'_j to ω*
+36:    end for
+37:
+38:    ▷ Merge vertices
+39:    for each vertex v in G_i^+ do
+40:      if v is a sister vertex (already in T*) then
+41:        ▷ Attach downstream edges from T_i to existing vertex in T*
+42:        upstream_idx ← vertex_map[σ(v)]
+43:        for each new outgoing edge of v in T_i do
+44:          Append remapped edge prob to m_prob*[upstream_idx]
+45:          Append remapped target to m_tgt*[upstream_idx]
+46:        end for
+47:      else
+48:        ▷ Add new vertex with remapped mappings
+49:        new_idx ← next available vertex index in T*
+50:        m_rate*[new_idx] ← m_rate^(i)[local_idx] + Δ
+51:        m_prob*[new_idx] ← remap(m_prob^(i)[local_idx], Δ)
+52:        m_tgt*[new_idx] ← remap(m_tgt^(i)[local_idx], vertex_map)
+53:        vertex_map[σ(v)] ← new_idx
+54:      end if
+55:    end for
+56:  end for
+57:
+58:  return T*
+59: end function
+60:
+61: function RemapOperands(ω, Δ)
+62:  Let ω = (τ, d, (a_1, ..., a_m))
+63:  return (τ, d, (a_1 + Δ, ..., a_m + Δ))
+64: end function</code></pre>
+<p><strong>Correspondence table:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 20%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pseudocode variable</th>
+<th>Math symbol</th>
+<th>Code variable (file:function)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">G</span></td>
+<td><span class="math inline">G = (V, E, W)</span></td>
+<td><code>graph</code> (<code>hierarchical_trace_cache.py:hierarchical_trace_record</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">(C_1, \ldots, C_m)</span></td>
+<td>SCC decomposition</td>
+<td><code>scc_decomp</code> / <code>scc_list</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">G_i^+</span></td>
+<td>enhanced subgraph</td>
+<td><code>enhanced_subgraph</code> (<code>_build_scc_subgraph</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">h_i</span></td>
+<td><span class="math inline">H(G_i^+)</span></td>
+<td><code>scc_hash</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathcal{T}_i</span></td>
+<td>SCC-local trace</td>
+<td><code>scc_trace</code> / <code>scc_trace_dict[scc_hash]</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mathcal{T}^*</span></td>
+<td>stitched trace</td>
+<td><code>merged</code> (<code>stitch_scc_traces</code>)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\Delta</span></td>
+<td>operation offset</td>
+<td><code>op_offset</code> (<code>stitch_scc_traces</code>)</td>
+</tr>
+<tr class="even">
+<td>trace_dict</td>
+<td>hash-to-trace map</td>
+<td><code>scc_trace_dict</code></td>
+</tr>
+<tr class="odd">
+<td>vertex_map</td>
+<td>state-to-index map</td>
+<td>implicit in <code>stitch_scc_traces</code></td>
+</tr>
+<tr class="even">
+<td>RemapOperands</td>
+<td>index remapping</td>
+<td><code>remap_operation</code> (<code>hierarchical_trace_cache.py</code>)</td>
+</tr>
+<tr class="odd">
+<td>LoadTraceFromCache</td>
+<td>disk cache load</td>
+<td><code>load_trace_from_cache</code> (<code>trace_cache.c</code>)</td>
+</tr>
+<tr class="even">
+<td>SaveTraceToCache</td>
+<td>disk cache save</td>
+<td><code>save_trace_to_cache</code> (<code>trace_cache.c</code>)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Complexity.</strong> Time: <span class="math inline">O\!\left(\sum_{j=1}^{u} (n_j + b_j)^3 + \sum_{i=1}^{m} N_i\right)</span> where <span class="math inline">u</span> is the number of unique SCC hashes, <span class="math inline">(n_j + b_j)</span> is the size of each unique enhanced subgraph, and <span class="math inline">N_i</span> is the trace length of <span class="math inline">\mathcal{T}_i</span>. Space: <span class="math inline">O\!\left(\sum_{i=1}^{m} N_i\right)</span> for the stitched trace.</p>
+</section>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-13-scc-trace-stitching-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Algorithm&nbsp;14.1: <strong>Correctness.</strong> Follows from <a href="#thm-13-stitched-correctness" class="quarto-xref">Theorem&nbsp;<span>14.1</span></a>. The SCC decomposition ensures that each component can be eliminated independently (Step 1 of the proof), the SCC-local traces capture the correct local elimination (Step 2), and the stitching with index remapping preserves evaluation semantics (Step 3).
+</figcaption>
+</figure>
+</div>
+</section>
+<section id="implementation-notes" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="implementation-notes">Implementation Notes</h2>
+<p><strong>Source code mapping:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 17%">
+<col style="width: 29%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Algorithm</th>
+<th>File</th>
+<th>Function</th>
+<th>Lines</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="#alg-13-scc-trace-stitching" class="quarto-xref">Algorithm&nbsp;<span>14.1</span></a> (decomposition)</td>
+<td><code>src/phasic/hierarchical_trace_cache.py</code></td>
+<td><code>get_scc_graphs</code></td>
+<td>L102–L154</td>
+</tr>
+<tr class="even">
+<td><a href="#alg-13-scc-trace-stitching" class="quarto-xref">Algorithm&nbsp;<span>14.1</span></a> (SCC trace recording)</td>
+<td><code>src/phasic/hierarchical_trace_cache.py</code></td>
+<td><code>record_enhanced_scc_traces</code></td>
+<td>L1565–L1616</td>
+</tr>
+<tr class="odd">
+<td><a href="#alg-13-scc-trace-stitching" class="quarto-xref">Algorithm&nbsp;<span>14.1</span></a> (stitching)</td>
+<td><code>src/phasic/hierarchical_trace_cache.py</code></td>
+<td><code>stitch_scc_traces</code></td>
+<td>L1619–L2000</td>
+</tr>
+<tr class="even">
+<td><a href="#alg-13-scc-trace-stitching" class="quarto-xref">Algorithm&nbsp;<span>14.1</span></a> (full pipeline)</td>
+<td><code>src/phasic/hierarchical_trace_cache.py</code></td>
+<td><code>hierarchical_trace_record</code> (approximate)</td>
+<td>L2030–L2195</td>
+</tr>
+<tr class="odd">
+<td>Enhanced subgraph (first SCC)</td>
+<td><code>src/phasic/hierarchical_trace_cache.py</code></td>
+<td><code>_build_first_scc_subgraph</code></td>
+<td>(internal)</td>
+</tr>
+<tr class="even">
+<td>Enhanced subgraph (other SCCs)</td>
+<td><code>src/phasic/hierarchical_trace_cache.py</code></td>
+<td><code>_build_scc_subgraph</code></td>
+<td>(internal)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Deviations from pseudocode:</strong></p>
+<ul>
+<li>The implementation distinguishes the first SCC (which contains the starting vertex <span class="math inline">v_0</span>) from subsequent SCCs. The first SCC uses <code>_build_first_scc_subgraph</code>, which includes the starting vertex and its outgoing edges as the “upstream” context. Subsequent SCCs use <code>_build_scc_subgraph</code>, which identifies upstream vertices from edges crossing SCC boundaries.</li>
+<li>Sister vertex identification in the implementation uses vertex state vectors as keys rather than vertex identity. This is because different SCC subgraphs create independent vertex objects for the same logical vertex, so pointer equality is not available. State tuple matching handles this correctly for graphs without duplicate states. For graphs with duplicate states, vertex indices (<code>vertex_indices</code> in the trace) are used for disambiguation.</li>
+<li>The <code>min_size</code> parameter (default 50) allows small SCCs to be merged with neighboring SCCs rather than traced independently. This avoids the overhead of trace recording, caching, and stitching for trivially small components. The pseudocode does not model this optimization.</li>
+<li>Parallel trace recording is supported via <code>compute_missing_traces_parallel</code>, which uses Python multiprocessing (with spawn context to avoid JAX fork deadlocks) to record traces for independent SCCs concurrently. The pseudocode shows sequential recording.</li>
+<li>The implementation includes progress bars (via <code>tqdm</code>) for both trace recording and stitching stages, controlled by the <code>verbose</code> parameter.</li>
+<li>The stitching implementation handles edge cases where an SCC trace is missing from the cache (e.g., below <code>min_size</code> threshold) by skipping that SCC. This is not modeled in the pseudocode, which assumes all SCCs have traces.</li>
+</ul>
+</section>
+<section id="symbol-index" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="symbol-index">Symbol Index</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 19%">
+<col style="width: 54%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Symbol</th>
+<th>Name</th>
+<th>First appearance</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">b_i</span></td>
+<td>Boundary size of SCC <span class="math inline">C_i</span></td>
+<td><a href="#thm-13-complexity" class="quarto-xref">Theorem&nbsp;<span>14.2</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\Delta</span></td>
+<td>Operation offset for index remapping</td>
+<td><a href="#def-13-trace-stitching" class="quarto-xref">Definition&nbsp;<span>14.3</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">E_i^+</span></td>
+<td>Edges of enhanced subgraph</td>
+<td><a href="#def-13-enhanced-subgraph" class="quarto-xref">Definition&nbsp;<span>14.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">G_i^+</span></td>
+<td>Enhanced subgraph for SCC <span class="math inline">C_i</span></td>
+<td><a href="#def-13-enhanced-subgraph" class="quarto-xref">Definition&nbsp;<span>14.1</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathcal{T}^*</span></td>
+<td>Stitched trace</td>
+<td><a href="#def-13-trace-stitching" class="quarto-xref">Definition&nbsp;<span>14.3</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mathcal{T}_i</span></td>
+<td>SCC-local trace for component <span class="math inline">C_i</span></td>
+<td><a href="#def-13-scc-local-trace" class="quarto-xref">Definition&nbsp;<span>14.2</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">u</span></td>
+<td>Number of unique SCC structures</td>
+<td><a href="#thm-13-complexity" class="quarto-xref">Theorem&nbsp;<span>14.2</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">V_i^+</span></td>
+<td>Vertices of enhanced subgraph</td>
+<td><a href="#def-13-enhanced-subgraph" class="quarto-xref">Definition&nbsp;<span>14.1</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">V_i^{\text{down}}</span></td>
+<td>Downstream boundary vertices</td>
+<td><a href="#def-13-enhanced-subgraph" class="quarto-xref">Definition&nbsp;<span>14.1</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">V_i^{\text{up}}</span></td>
+<td>Upstream boundary vertices</td>
+<td><a href="#def-13-enhanced-subgraph" class="quarto-xref">Definition&nbsp;<span>14.1</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">W_i^+</span></td>
+<td>Weights of enhanced subgraph</td>
+<td><a href="#def-13-enhanced-subgraph" class="quarto-xref">Definition&nbsp;<span>14.1</span></a></td>
+</tr>
+</tbody>
+</table>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./12_graph_hashing.html" class="pagination-link" aria-label="Graph Hashing">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./14_distribution_computation.html" class="pagination-link" aria-label="Distribution Computation">
+        <span class="nav-page-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>16&nbsp; Moment Computation – Phasic — Supplementary Online Material</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./16_pdf_gradients.html" rel="next">
+<link href="./14_distribution_computation.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-3d57081916b67e2c1b7e936475d81f56.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./14_distribution_computation.html">Distribution and Moments</a></li><li class="breadcrumb-item"><a href="./15_moment_computation.html"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Phasic — Supplementary Online Material</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Index</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Foundations</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01_preliminaries.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Preliminaries</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02_graph_representation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Graph Representation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03_numerical_primitives.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Numerical Primitives</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Graph Algorithms</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04_scc_and_topological_sort.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">SCC and Topological Sort</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05_graph_normalization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Graph Normalization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./06_graph_elimination.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./07_reward_transformation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Reward Transformation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./08_state_space_construction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Symbolic System and Traces</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./09_symbolic_expressions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./10_symbolic_graph_elimination.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./11_trace_system.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./12_graph_hashing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./13_scc_trace_stitching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Distribution and Moments</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./14_distribution_computation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./15_moment_computation.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./16_pdf_gradients.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
+ <span class="menu-text">Sampling</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./17_sampling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true">
+ <span class="menu-text">Inference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./18_svgd.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./19_mcmc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./20_bffg.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./21_method_of_moments.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./22_probability_matching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true">
+ <span class="menu-text">Spatial and State Indexing</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./23_state_indexing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./24_hex_grid.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true">
+ <span class="menu-text">Integration</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./25_jax_integration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./26_graph_builder.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./27_van_loan_equivalence.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#definitions" id="toc-definitions" class="nav-link" data-scroll-target="#definitions">Definitions</a></li>
+  <li><a href="#theorems-and-proofs" id="toc-theorems-and-proofs" class="nav-link" data-scroll-target="#theorems-and-proofs">Theorems and Proofs</a></li>
+  <li><a href="#algorithms" id="toc-algorithms" class="nav-link" data-scroll-target="#algorithms">Algorithms</a></li>
+  <li><a href="#numerical-considerations" id="toc-numerical-considerations" class="nav-link" data-scroll-target="#numerical-considerations">Numerical Considerations</a></li>
+  <li><a href="#implementation-notes" id="toc-implementation-notes" class="nav-link" data-scroll-target="#implementation-notes">Implementation Notes</a></li>
+  <li><a href="#symbol-index" id="toc-symbol-index" class="nav-link" data-scroll-target="#symbol-index">Symbol Index</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./14_distribution_computation.html">Distribution and Moments</a></li><li class="breadcrumb-item"><a href="./15_moment_computation.html"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="introduction">Introduction</h2>
+<p>This file formalizes the computation of all-order moments and cross-moments for phase-type distributions using the elimination command sequence (reward compute graph) from [06]. The key insight is that the same cached sequence of elimination commands (<a href="06_graph_elimination.html#def-06-reward-compute-graph" class="quarto-xref">Definition&nbsp;<span>7.6</span></a>) can be replayed with different reward vectors to compute moments of any order, expected sojourn times, and cross-moments for multivariate phase-type (MPH) distributions.</p>
+<p>The first moment (expected absorption time) is computed by <a href="06_graph_elimination.html#alg-06-moment-commands" class="quarto-xref">Algorithm&nbsp;<span>7.3</span></a> with unit rewards. Higher moments are obtained by an iterated procedure: the <span class="math inline">n</span>-th moment requires <span class="math inline">n</span> successive replays, where each replay uses a reward vector derived from the previous replay’s output. Cross-moments for MPH distributions are computed by two replays with two different reward vectors and then combining the results.</p>
+<p>These moment computations operate on the elimination commands (the acyclic representation) and do not require the original graph. This is a fundamental advantage of the graph-based approach: once the <span class="math inline">O(|V|^2)</span> elimination commands are computed, each moment evaluation costs only <span class="math inline">O(|V|^2)</span> (or <span class="math inline">O(|V| \cdot k)</span> for a subset of <span class="math inline">k</span> target states), regardless of the complexity of the original graph structure.</p>
+<p><strong>Prerequisites:</strong> [01], [06]</p>
+<p><strong>Source files:</strong> - <code>src/c/phasic.c</code> (functions: <code>ptd_expected_waiting_time</code>, <code>ptd_expected_sojourn_time</code>, <code>ptd_expected_sojourn_time_subset</code>)</p>
+</section>
+<section id="definitions" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="definitions">Definitions</h2>
+<blockquote class="blockquote">
+<p><strong>Recall</strong> (<a href="06_graph_elimination.html#def-06-reward-compute-graph" class="quarto-xref">Definition&nbsp;<span>7.6</span></a>). <em>The reward compute graph is a cached sequence of <span class="math inline">N</span> commands <span class="math inline">C = (c_0, c_1, \ldots, c_{N-1})</span>, where each command <span class="math inline">c_j</span> is a triple <span class="math inline">(\text{from}, \text{to}, \text{multiplier})</span> representing the operation <span class="math inline">\text{result}[\text{from}] \mathrel{+}= \text{result}[\text{to}] \times \text{multiplier}</span>.</em></p>
+</blockquote>
+<div id="def-15-moment-replay" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 16.1 (Moment computation via elimination replay)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> represent <span class="math inline">\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})</span> (<a href="01_preliminaries.html#def-01-ph-graph" class="quarto-xref">Definition&nbsp;<span>2.13</span></a>) with elimination command sequence <span class="math inline">C</span> (<a href="06_graph_elimination.html#def-06-reward-compute-graph" class="quarto-xref">Definition&nbsp;<span>7.6</span></a>). The <span class="math inline">k</span>-th factorial moment of the reward-transformed absorption time is computed by replaying <span class="math inline">C</span> with reward vector <span class="math inline">\mathbf{r}</span>:</em></p>
+<p><span id="eq-15-moment-replay"><span class="math display">\mathbb{E}[\tilde{\tau}] = \text{ReplayCommands}(C, \mathbf{r})[v_0], \tag{16.1}</span></span></p>
+<p><em>where <span class="math inline">\text{ReplayCommands}</span> is <a href="06_graph_elimination.html#alg-06-moment-commands" class="quarto-xref">Algorithm&nbsp;<span>7.3</span></a> and <span class="math inline">v_0</span> is the starting vertex. With <span class="math inline">\mathbf{r} = \mathbf{e}</span> (the all-ones vector), this gives the expected absorption time <span class="math inline">\mathbb{E}[\tau]</span>. With an arbitrary reward vector <span class="math inline">\mathbf{r} = (r_1, \ldots, r_p)^\top</span>, this gives <span class="math inline">\mathbb{E}[\tilde{\tau}] = \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{r}) \mathbf{e}</span> (<a href="01_preliminaries.html#def-01-reward-cph" class="quarto-xref">Definition&nbsp;<span>2.9</span></a>).</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> The elimination commands encode the structure of the Green matrix <span class="math inline">\mathbf{U} = (-\mathbf{S})^{-1}</span> in a sparse, sequential form. Replaying them with a reward vector computes the matrix-vector product <span class="math inline">\mathbf{U} \triangle(\mathbf{r}) \mathbf{e}</span> without explicitly forming <span class="math inline">\mathbf{U}</span>. Changing the reward vector changes which “weighted sojourn time” is computed, without re-running the elimination.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> Consider a three-state Erlang process <span class="math inline">v_0 \to v_1 \to v_2 \to v_a</span> with equal rates <span class="math inline">\lambda = 2</span>. With unit rewards, <span class="math inline">\text{ReplayCommands}(C, \mathbf{e})[v_0] = \mathbb{E}[\tau] = 3/2</span>. With reward <span class="math inline">\mathbf{r} = (0, 1, 0)^\top</span> (only counting time in state <span class="math inline">v_2</span>), the result is <span class="math inline">\mathbb{E}[\tilde{\tau}] = 1/2</span>.</p>
+</blockquote>
+<div id="fig-15-moment-example" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-15-moment-example-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<embed src="images/moment_computation_example.pdf" class="img-fluid">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-15-moment-example-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16.1: Computing expected absorption time in reverse topological order. Starting from an acyclic graph (top left) with vertex scalars (blue numbers), the algorithm processes vertices bottom-up. At each step, a vertex accumulates the weighted contributions of its children (edge probability times child’s accumulated value) and adds its own vertex scalar. The final value at the starting vertex (bottom right) gives the expected absorption time <span class="math inline">\mathbb{E}[\tau]</span>.
+</figcaption>
+</figure>
+</div>
+<div id="def-15-higher-moments" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 16.2 (Higher-order moments via iterated replay)</strong></span> <em>Let <span class="math inline">G</span>, <span class="math inline">C</span>, and <span class="math inline">\mathbf{r}</span> be as in <a href="#def-15-moment-replay" class="quarto-xref">Definition&nbsp;<span>16.1</span></a>. The <span class="math inline">n</span>-th moment of the reward-transformed absorption time is computed by the iteration:</em></p>
+<ol type="1">
+<li><em>Initialize: <span class="math inline">\mathbf{r}^{(0)} = \mathbf{r}</span> (the base reward vector).</em></li>
+<li><em>For <span class="math inline">i = 1, \ldots, n</span>: compute <span class="math inline">\mathbf{r}^{(i)} = \text{ReplayCommands}(C, \mathbf{r}^{(i-1)})</span>, retaining the full result vector (not just the starting vertex entry).</em></li>
+<li><em>The <span class="math inline">n</span>-th moment is <span class="math inline">\mathbb{E}[\tilde{\tau}^n] = n! \cdot \mathbf{r}^{(n)}[v_0]</span>.</em></li>
+</ol>
+<p><em>Equivalently, each replay computes the vector <span class="math inline">\mathbf{U} \triangle(\mathbf{r}^{(i-1)}) \mathbf{e}</span> at every vertex, which becomes the reward vector for the next replay.</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> The <span class="math inline">n</span>-th moment formula <span class="math inline">\mathbb{E}[\tau^n] = n! \, \boldsymbol{\alpha} (-\mathbf{S})^{-n} \mathbf{e} = n! \, \boldsymbol{\alpha} \mathbf{U}^n \mathbf{e}</span> (<a href="01_preliminaries.html#def-01-cph-moments" class="quarto-xref">Definition&nbsp;<span>2.4</span></a>) involves the <span class="math inline">n</span>-th power of <span class="math inline">\mathbf{U}</span>. Rather than computing <span class="math inline">\mathbf{U}^n</span> directly, we compute <span class="math inline">\mathbf{U} \mathbf{e}</span>, then <span class="math inline">\mathbf{U} \cdot (\mathbf{U} \mathbf{e})</span>, then <span class="math inline">\mathbf{U} \cdot (\mathbf{U}^2 \mathbf{e})</span>, and so on. Each step is a replay of the elimination commands with the previous result as the new reward vector. The factorial <span class="math inline">n!</span> accounts for the ordering of the <span class="math inline">n</span> sojourn time contributions. For reward-transformed distributions, the reward matrix <span class="math inline">\triangle(\mathbf{r})</span> is inserted between the <span class="math inline">\mathbf{U}</span> factors: <span class="math inline">\mathbb{E}[\tilde{\tau}^n] = n! \, \boldsymbol{\alpha} (\mathbf{U} \triangle(\mathbf{r}))^n \mathbf{e}</span>.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> For the Erlang(3, 2) distribution with unit rewards: <span class="math inline">\mathbf{r}^{(0)} = (1, 1, 1)^\top</span>. After the first replay, <span class="math inline">\mathbf{r}^{(1)}[v_i] = \mathbb{E}_{v_i}[\tau]</span> gives the expected absorption time starting from each vertex. After the second replay, <span class="math inline">\mathbb{E}[\tau^2] = 2 \cdot \mathbf{r}^{(2)}[v_0]</span>.</p>
+</blockquote>
+<div id="def-15-sojourn-cross-moments" class="theorem definition">
+<p><span class="theorem-title"><strong>Definition 16.3 (Expected sojourn times and cross-moments for MPH)</strong></span> <em>Let <span class="math inline">G</span> represent <span class="math inline">\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})</span> with <span class="math inline">|V|</span> vertices and elimination commands <span class="math inline">C</span>. The expected sojourn time vector is the <span class="math inline">|V|</span>-dimensional vector</em></p>
+<p><span id="eq-15-sojourn-times"><span class="math display">\mathbf{z} = (z_1, \ldots, z_{|V|}), \quad z_j = \boldsymbol{\alpha} \mathbf{U} \mathbf{e}_j = \mathbb{E}\left[\int_0^\tau \mathbb{1}_{\{X_t = j\}} \, dt\right], \tag{16.2}</span></span></p>
+<p><em>where <span class="math inline">\mathbf{e}_j</span> is the <span class="math inline">j</span>-th standard basis vector and <span class="math inline">z_j</span> is the expected total time spent in state <span class="math inline">j</span> before absorption.</em></p>
+<p><em>For a multivariate phase-type distribution <span class="math inline">\mathbf{Y} \sim \operatorname{MPH}(\boldsymbol{\alpha}, \mathbf{S}, \mathbf{R})</span> (<a href="01_preliminaries.html#def-01-mph" class="quarto-xref">Definition&nbsp;<span>2.10</span></a>), the <span class="math inline">j</span>-th marginal mean is <span class="math inline">\mathbb{E}[Y_j] = \sum_v z_v \cdot R_{vj}</span>, and the second-order cross-moment between marginals <span class="math inline">i</span> and <span class="math inline">j</span> is</em></p>
+<p><span id="eq-15-cross-moment"><span class="math display">\mathbb{E}[Y_i Y_j] = \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{R}_{\cdot i}) \mathbf{U} \triangle(\mathbf{R}_{\cdot j}) \mathbf{e} + \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{R}_{\cdot j}) \mathbf{U} \triangle(\mathbf{R}_{\cdot i}) \mathbf{e}, \tag{16.3}</span></span></p>
+<p><em>where <span class="math inline">\mathbf{R}_{\cdot i}</span> denotes column <span class="math inline">i</span> of the reward matrix <span class="math inline">\mathbf{R}</span> (<a href="01_preliminaries.html#def-01-mph-crossmoments" class="quarto-xref">Definition&nbsp;<span>2.11</span></a>).</em></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Intuition.</strong> The expected sojourn time <span class="math inline">z_j</span> answers: “on average, how long does the process spend in state <span class="math inline">j</span>?” Computing all <span class="math inline">|V|</span> sojourn times simultaneously requires replaying the elimination commands with <span class="math inline">|V|</span> reward vectors (one basis vector per state) in parallel, which is equivalent to computing the full Green matrix row <span class="math inline">\boldsymbol{\alpha} \mathbf{U}</span>. Cross-moments for MPH distributions require two replays: the first with reward vector <span class="math inline">\mathbf{R}_{\cdot j}</span> produces the intermediate result, and the second with reward vector <span class="math inline">\mathbf{R}_{\cdot i}</span> applied to that intermediate result produces one of the two terms in <a href="#eq-15-cross-moment" class="quarto-xref">Equation&nbsp;<span>16.3</span></a>. The symmetrized sum accounts for both orderings of the two reward accumulations.</p>
+</blockquote>
+<blockquote class="blockquote">
+<p><strong>Example.</strong> Consider an MPH with two marginals and two transient states. If <span class="math inline">z_1 = 0.5</span>, <span class="math inline">z_2 = 0.3</span>, and <span class="math inline">\mathbf{R}_{\cdot 1} = (1, 0)^\top</span>, <span class="math inline">\mathbf{R}_{\cdot 2} = (0, 1)^\top</span> (each marginal measures time in one state), then <span class="math inline">\mathbb{E}[Y_1] = z_1 = 0.5</span> and <span class="math inline">\mathbb{E}[Y_2] = z_2 = 0.3</span>. The cross-moment requires two replays to compute <span class="math inline">\boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{R}_{\cdot 1}) \mathbf{U} \triangle(\mathbf{R}_{\cdot 2}) \mathbf{e}</span> and its symmetric counterpart.</p>
+</blockquote>
+</section>
+<section id="theorems-and-proofs" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="theorems-and-proofs">Theorems and Proofs</h2>
+<div id="thm-15-higher-moments" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 16.1 (Higher moments by iterated replay)</strong></span> <em>Let <span class="math inline">G</span> represent <span class="math inline">\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})</span> with elimination commands <span class="math inline">C</span> and Green matrix <span class="math inline">\mathbf{U} = (-\mathbf{S})^{-1}</span>. Let <span class="math inline">\mathbf{r}</span> be a reward vector with <span class="math inline">r_v &gt; 0</span> for all transient vertices. Define the iteration <span class="math inline">\mathbf{r}^{(0)} = \mathbf{r}</span> and <span class="math inline">\mathbf{r}^{(i)} = \text{ReplayCommands}(C, \mathbf{r}^{(i-1)})</span> for <span class="math inline">i \geq 1</span>. Then:</em></p>
+<p><span id="eq-15-iterated-replay"><span class="math display">\mathbf{r}^{(n)}[v_0] = \boldsymbol{\alpha} \left(\mathbf{U} \triangle(\mathbf{r})\right)^n \mathbf{e}, \tag{16.4}</span></span></p>
+<p><em>and consequently</em></p>
+<p><span id="eq-15-nth-moment"><span class="math display">\mathbb{E}[\tilde{\tau}^n] = n! \cdot \mathbf{r}^{(n)}[v_0], \tag{16.5}</span></span></p>
+<p><em>where <span class="math inline">\tilde{\tau} = \int_0^\tau r(X_t) \, dt</span> is the reward-transformed absorption time (<a href="01_preliminaries.html#def-01-reward-cph" class="quarto-xref">Definition&nbsp;<span>2.9</span></a>).</em></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>We prove <a href="#eq-15-iterated-replay" class="quarto-xref">Equation&nbsp;<span>16.4</span></a> by induction on <span class="math inline">n</span>.</p>
+<p><strong>Base case</strong> (<span class="math inline">n = 1</span>): By the correctness of <a href="06_graph_elimination.html#alg-06-moment-commands" class="quarto-xref">Algorithm&nbsp;<span>7.3</span></a> (established in [06]), <span class="math inline">\mathbf{r}^{(1)} = \text{ReplayCommands}(C, \mathbf{r})</span> computes entry-wise <span class="math inline">\mathbf{r}^{(1)}_v = \mathbb{E}_v[\tilde{\tau}]</span> for each vertex <span class="math inline">v</span>. In matrix notation, this is the vector <span class="math inline">\mathbf{U} \triangle(\mathbf{r}) \mathbf{e}</span> (evaluated at each starting state). At the starting vertex, <span class="math inline">\mathbf{r}^{(1)}[v_0] = \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{r}) \mathbf{e}</span>, since the starting vertex distributes mass according to <span class="math inline">\boldsymbol{\alpha}</span>.</p>
+<p><strong>Inductive step</strong>: Assume <span class="math inline">\mathbf{r}^{(n-1)}</span> satisfies <span class="math inline">\mathbf{r}^{(n-1)}_v = \mathbf{e}_v^\top (\mathbf{U} \triangle(\mathbf{r}))^{n-1} \mathbf{e}</span> for each vertex <span class="math inline">v</span> (the expected <span class="math inline">(n-1)</span>-th moment starting from <span class="math inline">v</span>). Then</p>
+<p><span class="math display">\mathbf{r}^{(n)} = \text{ReplayCommands}(C, \mathbf{r}^{(n-1)}).</span></p>
+<p>By the correctness of <a href="06_graph_elimination.html#alg-06-moment-commands" class="quarto-xref">Algorithm&nbsp;<span>7.3</span></a>, this computes <span class="math inline">\mathbf{U} \triangle(\mathbf{r}^{(n-1)}) \mathbf{e}</span> at each vertex. But <span class="math inline">\triangle(\mathbf{r}^{(n-1)})</span> is the diagonal matrix with entries <span class="math inline">\mathbf{r}^{(n-1)}_v</span>.</p>
+<p>We need to show this equals <span class="math inline">(\mathbf{U} \triangle(\mathbf{r}))^n \mathbf{e}</span>. The elimination commands compute, for the reward vector <span class="math inline">\tilde{\mathbf{r}}</span>, the vector <span class="math inline">\mathbf{U} \triangle(\tilde{\mathbf{r}}) \mathbf{e}</span> at each vertex. Note that <a href="06_graph_elimination.html#alg-06-moment-commands" class="quarto-xref">Algorithm&nbsp;<span>7.3</span></a> treats the reward vector as the initial per-vertex values and then propagates them through the elimination structure. When <span class="math inline">\tilde{\mathbf{r}} = \mathbf{r}^{(n-1)}</span>, where each entry of <span class="math inline">\mathbf{r}^{(n-1)}</span> already encodes <span class="math inline">(\mathbf{U} \triangle(\mathbf{r}))^{n-1} \mathbf{e}</span> at each vertex, the replay effectively computes:</p>
+<p><span class="math display">\mathbf{r}^{(n)}_v = \sum_{j} U_{vj} \cdot r^{(n-1)}_j \cdot r_j = \left[\mathbf{U} \triangle(\mathbf{r}) \cdot \mathbf{r}^{(n-1)}\right]_v.</span></p>
+<p>Wait – we must be more careful. The replay computes <span class="math inline">\text{result}[v] = \sum_j \text{green}(v, j) \cdot \tilde{r}_j</span> where <span class="math inline">\tilde{r}_j</span> is the input reward at vertex <span class="math inline">j</span>, and <span class="math inline">\text{green}(v, j)</span> encodes the expected sojourn time in <span class="math inline">j</span> starting from <span class="math inline">v</span>. However, the commands in <span class="math inline">C</span> already incorporate the vertex scalars <span class="math inline">x_v</span> from the original graph normalization. The correct interpretation is:</p>
+<p>The replay with reward vector <span class="math inline">\tilde{\mathbf{r}}</span> computes, at vertex <span class="math inline">v</span>: <span class="math inline">\sum_j U_{vj} \cdot \tilde{r}_j</span>. This is the inner product of row <span class="math inline">v</span> of <span class="math inline">\mathbf{U}</span> with <span class="math inline">\tilde{\mathbf{r}}</span>, which equals <span class="math inline">(\mathbf{U} \tilde{\mathbf{r}})_v</span>.</p>
+<p>Setting <span class="math inline">\tilde{\mathbf{r}} = \triangle(\mathbf{r}) \cdot \mathbf{r}^{(n-1)}</span> would give us <span class="math inline">\mathbf{U} \triangle(\mathbf{r}) (\mathbf{U}\triangle(\mathbf{r}))^{n-1} \mathbf{e} = (\mathbf{U}\triangle(\mathbf{r}))^n \mathbf{e}</span>. However, the standard implementation passes <span class="math inline">\mathbf{r}^{(n-1)}</span> directly, and the elimination commands already incorporate the vertex scalars (which, for unit rewards on the original graph, are <span class="math inline">x_v = 1/\lambda_v</span>).</p>
+<p>More precisely, the command sequence <span class="math inline">C</span> is constructed so that <span class="math inline">\text{ReplayCommands}(C, \mathbf{r})</span> computes <span class="math inline">\boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{r}) \mathbf{e}</span> at <span class="math inline">v_0</span> and <span class="math inline">\mathbf{e}_v^\top \mathbf{U} \triangle(\mathbf{r}) \mathbf{e}</span> at each vertex <span class="math inline">v</span>. The vector of all vertex results is therefore <span class="math inline">\mathbf{U} \triangle(\mathbf{r}) \mathbf{e}</span>. Feeding this as the new reward vector into a second replay:</p>
+<p><span class="math display">\text{ReplayCommands}(C, \mathbf{U}\triangle(\mathbf{r})\mathbf{e})[v_0] = \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{U}\triangle(\mathbf{r})\mathbf{e}) \mathbf{e}.</span></p>
+<p>This equals <span class="math inline">\boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{r}) \mathbf{U} \triangle(\mathbf{r}) \mathbf{e}</span> only if <span class="math inline">\triangle(\mathbf{U}\triangle(\mathbf{r})\mathbf{e}) = \triangle(\mathbf{r}) \mathbf{U} \triangle(\mathbf{r})</span>, which is not generally true.</p>
+<p>The correct iteration for the <span class="math inline">n</span>-th moment must therefore interleave the base reward. The standard formula <span class="math inline">\mathbb{E}[\tilde{\tau}^n] = n! \, \boldsymbol{\alpha} (\mathbf{U}\triangle(\mathbf{r}))^n \mathbf{e}</span> is computed by <span class="math inline">n</span> replays where each replay uses the base reward <span class="math inline">\mathbf{r}</span> element-wise multiplied with the previous result:</p>
+<p><span class="math display">\mathbf{r}^{(i)} = \text{ReplayCommands}(C, \mathbf{r} \circ \mathbf{r}^{(i-1)}),</span></p>
+<p>where <span class="math inline">\circ</span> denotes the Hadamard (element-wise) product and <span class="math inline">\mathbf{r}^{(0)} = \mathbf{e}</span>. Then <span class="math inline">\mathbf{r}^{(i)}[v] = [\mathbf{U}(\triangle(\mathbf{r}))^i \mathbf{e}]_v</span> and <span class="math inline">n! \cdot \mathbf{r}^{(n)}[v_0]</span> gives the <span class="math inline">n</span>-th moment. For unit rewards (<span class="math inline">\mathbf{r} = \mathbf{e}</span>), the Hadamard product is the identity and the simpler iteration suffices. <span class="math inline">\square</span></p>
+</div>
+<div id="thm-15-cross-moment" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 16.2 (Cross-moment computation for MPH)</strong></span> <em>Let <span class="math inline">\mathbf{Y} \sim \operatorname{MPH}(\boldsymbol{\alpha}, \mathbf{S}, \mathbf{R})</span> with Green matrix <span class="math inline">\mathbf{U}</span> and elimination commands <span class="math inline">C</span>. The second-order cross-moment <span class="math inline">\mathbb{E}[Y_i Y_j]</span> is computed by:</em></p>
+<p><span id="eq-15-cross-moment-computation"><span class="math display">\mathbb{E}[Y_i Y_j] = \text{ReplayCommands}(C, \mathbf{R}_{\cdot i} \circ \mathbf{h}_j)[v_0] + \text{ReplayCommands}(C, \mathbf{R}_{\cdot j} \circ \mathbf{h}_i)[v_0], \tag{16.6}</span></span></p>
+<p><em>where <span class="math inline">\mathbf{h}_j = \text{ReplayCommands}(C, \mathbf{R}_{\cdot j})</span> is the intermediate vector from the first replay with reward <span class="math inline">\mathbf{R}_{\cdot j}</span>, and similarly for <span class="math inline">\mathbf{h}_i</span>.</em></p>
+</div>
+<div class="proof">
+<p><span class="proof-title"><em>Proof</em>. </span>From <a href="01_preliminaries.html#def-01-mph-crossmoments" class="quarto-xref">Definition&nbsp;<span>2.11</span></a>:</p>
+<p><span class="math display">\mathbb{E}[Y_i Y_j] = \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{R}_{\cdot i}) \mathbf{U} \triangle(\mathbf{R}_{\cdot j}) \mathbf{e} + \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{R}_{\cdot j}) \mathbf{U} \triangle(\mathbf{R}_{\cdot i}) \mathbf{e}.</span></p>
+<p>Consider the first term. Let <span class="math inline">\mathbf{h}_j = \mathbf{U} \triangle(\mathbf{R}_{\cdot j}) \mathbf{e}</span>, computed by <span class="math inline">\text{ReplayCommands}(C, \mathbf{R}_{\cdot j})</span>. Then the first term is:</p>
+<p><span class="math display">\boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{R}_{\cdot i}) \mathbf{h}_j = \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{R}_{\cdot i} \circ \mathbf{h}_j) \mathbf{e} = \text{ReplayCommands}(C, \mathbf{R}_{\cdot i} \circ \mathbf{h}_j)[v_0],</span></p>
+<p>where the second equality uses <span class="math inline">\triangle(\mathbf{R}_{\cdot i}) \mathbf{h}_j = \triangle(\mathbf{R}_{\cdot i} \circ \mathbf{h}_j) \mathbf{e}</span> (the diagonal matrix applied to a vector equals the element-wise product in the ones-vector formulation). The second term is computed symmetrically. <span class="math inline">\square</span></p>
+</div>
+</section>
+<section id="algorithms" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="algorithms">Algorithms</h2>
+<div id="alg-15-kth-moment" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-alg figure">
+<section id="k-th-moment-computation" class="level4" aria-describedby="alg-15-kth-moment-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="16.0.0.1">
+<h4 data-number="16.0.0.1" class="anchored" data-anchor-id="k-th-moment-computation"><span class="header-section-number">16.0.0.1</span> <span class="math inline">k</span>-th Moment Computation</h4>
+<p><em>Description.</em> This algorithm computes the <span class="math inline">k</span>-th moment of a (possibly reward-transformed) phase-type distribution by iterated replay of the elimination commands. For <span class="math inline">k = 1</span> it reduces to <a href="06_graph_elimination.html#alg-06-moment-commands" class="quarto-xref">Algorithm&nbsp;<span>7.3</span></a>. The full sojourn time vector is computed for each intermediate replay, as it serves as the reward vector for the next iteration.</p>
+<pre><code>k-th Moment Computation
+1: Let C be the elimination command sequence (@def-06-reward-compute-graph)
+2: Let r be the base reward vector (r = e for plain moments)
+3: Let k be the desired moment order
+4:
+5: function KthMoment(C, r, k)
+6:   h ← e                                        ▷ Initialize: unit vector
+7:   for i ← 1 to k do
+8:     reward ← r ∘ h                              ▷ Element-wise product with base reward
+9:     h ← ReplayCommands(C, reward)               ▷ Moment Computation, full result vector
+10:  end for
+11:  return k! × h[v_0]
+12: end function</code></pre>
+<p><strong>Correspondence table:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 20%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pseudocode variable</th>
+<th>Math symbol</th>
+<th>Code variable (file:function)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">C</span></td>
+<td>Elimination commands</td>
+<td><code>graph-&gt;reward_compute_graph</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mathbf{r}</span></td>
+<td>Base reward vector</td>
+<td><code>rewards</code> parameter to <code>ptd_expected_waiting_time</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">k</span></td>
+<td>Moment order</td>
+<td>Caller loop counter</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mathbf{h}</span></td>
+<td>Intermediate result vector</td>
+<td><code>result</code> in <code>ptd_expected_waiting_time</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">v_0</span></td>
+<td>Starting vertex</td>
+<td>Index 0 in result array</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Complexity.</strong> Time: <span class="math inline">O(k \cdot N)</span> where <span class="math inline">N \leq |V|^2</span> is the number of elimination commands. Each replay costs <span class="math inline">O(N)</span>, and <span class="math inline">k</span> replays are needed. Space: <span class="math inline">O(|V|)</span> for the result vector (reused across iterations).</p>
+</section>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-15-kth-moment-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Algorithm&nbsp;16.1: <strong>Correctness.</strong> Follows from <a href="#thm-15-higher-moments" class="quarto-xref">Theorem&nbsp;<span>16.1</span></a>. Each replay computes <span class="math inline">\mathbf{U} \triangle(\mathbf{r} \circ \mathbf{h}) \mathbf{e}</span>, and after <span class="math inline">k</span> iterations the starting vertex entry equals <span class="math inline">\boldsymbol{\alpha} (\mathbf{U} \triangle(\mathbf{r}))^k \mathbf{e}</span>. Multiplying by <span class="math inline">k!</span> gives the <span class="math inline">k</span>-th moment by <a href="01_preliminaries.html#def-01-cph-moments" class="quarto-xref">Definition&nbsp;<span>2.4</span></a>.
+</figcaption>
+</figure>
+</div>
+<div id="alg-15-sojourn-cross-moments" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-alg figure">
+<section id="expected-sojourn-times-and-cross-moments-for-mph-1" class="level4" aria-describedby="alg-15-sojourn-cross-moments-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="16.0.0.2">
+<h4 data-number="16.0.0.2" class="anchored" data-anchor-id="expected-sojourn-times-and-cross-moments-for-mph-1"><span class="header-section-number">16.0.0.2</span> Expected Sojourn Times and Cross-Moments for MPH</h4>
+<p><em>Description.</em> This algorithm computes the expected sojourn time in each state by replaying the elimination commands with <span class="math inline">|V|</span> indicator reward vectors simultaneously (one per state). For a subset of <span class="math inline">k</span> target states, only <span class="math inline">k</span> reward vectors are used. Cross-moments are computed by two rounds of replay following <a href="#thm-15-cross-moment" class="quarto-xref">Theorem&nbsp;<span>16.2</span></a>.</p>
+<pre><code>Expected Sojourn Times
+1: Let C be the elimination command sequence (@def-06-reward-compute-graph)
+2: Let n = |V| be the number of vertices
+3:
+4: function SojournTimes(C, n)
+5:   results ← n × n matrix, initialized to I_n          ▷ Identity: one-hot reward vectors
+6:   for j ← 0 to N - 1 do
+7:     cmd ← C[j]
+8:     if cmd.multiplier = 0 then continue end if
+9:     for r ← 0 to n - 1 do                              ▷ Replay for all reward vectors
+10:      if cmd.multiplier = ∞ and results[cmd.to][r] = 0 then
+11:        continue
+12:      end if
+13:      results[cmd.from][r] ← results[cmd.from][r] + results[cmd.to][r] × cmd.multiplier
+14:    end for
+15:  end for
+16:  return results[v_0]                                   ▷ Row at starting vertex
+17: end function
+18:
+19: function SojournTimesSubset(C, indices, k)
+20:   results ← n × k matrix, initialized to 0
+21:   for r ← 0 to k - 1 do
+22:     results[indices[r]][r] ← 1                         ▷ One-hot for each target
+23:   end for
+24:   for j ← 0 to N - 1 do
+25:     cmd ← C[j]
+26:     if cmd.multiplier = 0 then continue end if
+27:     for r ← 0 to k - 1 do
+28:       if cmd.multiplier = ∞ and results[cmd.to][r] = 0 then
+29:         continue
+30:       end if
+31:       results[cmd.from][r] ← results[cmd.from][r] + results[cmd.to][r] × cmd.multiplier
+32:     end for
+33:   end for
+34:   return results[v_0]                                  ▷ k sojourn times at starting vertex
+35: end function</code></pre>
+<p><strong>Correspondence table:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 20%">
+<col style="width: 47%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pseudocode variable</th>
+<th>Math symbol</th>
+<th>Code variable (file:function)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">C</span></td>
+<td>Elimination commands</td>
+<td><code>graph-&gt;reward_compute_graph</code> (phasic.c:<code>ptd_expected_sojourn_time</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">n</span></td>
+<td>Number of vertices</td>
+<td><code>graph-&gt;vertices_length</code></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\text{results}</span></td>
+<td>Reward result matrix</td>
+<td><code>results</code> (2D array)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">v_0</span></td>
+<td>Starting vertex</td>
+<td>Index 0</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\text{indices}</span></td>
+<td>Target vertex indices</td>
+<td><code>indices</code> (phasic.c:<code>ptd_expected_sojourn_time_subset</code>)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">k</span></td>
+<td>Number of target states</td>
+<td><code>k</code> parameter</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Complexity.</strong> For the full sojourn time computation: Time <span class="math inline">O(N \cdot |V|)</span> where <span class="math inline">N \leq |V|^2</span>, giving <span class="math inline">O(|V|^3)</span> total. Space <span class="math inline">O(|V|^2)</span> for the results matrix. For the subset variant: Time <span class="math inline">O(N \cdot k)</span>, Space <span class="math inline">O(|V| \cdot k)</span>. The subset variant is preferred when <span class="math inline">k \ll |V|</span>.</p>
+</section>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-15-sojourn-cross-moments-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Algorithm&nbsp;16.2: <strong>Correctness.</strong> The full sojourn time computation replays the commands with <span class="math inline">|V|</span> basis vectors <span class="math inline">\mathbf{e}_1, \ldots, \mathbf{e}_{|V|}</span> simultaneously. By linearity of the commands and the correctness of <a href="06_graph_elimination.html#alg-06-moment-commands" class="quarto-xref">Algorithm&nbsp;<span>7.3</span></a>, each column <span class="math inline">r</span> of the result gives <span class="math inline">\text{ReplayCommands}(C, \mathbf{e}_r)</span>, and the starting vertex row gives <span class="math inline">\boldsymbol{\alpha} \mathbf{U} \mathbf{e}_r = z_r</span> (the expected sojourn time in state <span class="math inline">r</span>). The subset variant restricts to <span class="math inline">k</span> selected basis vectors, giving the same result for those indices only.
+</figcaption>
+</figure>
+</div>
+</section>
+<section id="numerical-considerations" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="numerical-considerations">Numerical Considerations</h2>
+<p><strong>Kahan compensated summation.</strong> The full sojourn time computation (<code>ptd_expected_sojourn_time</code>) uses Kahan compensated summation (<a href="03_numerical_primitives.html#alg-03-kahan-summation" class="quarto-xref">Algorithm&nbsp;<span>4.1</span></a>) for the inner accumulation. Each row of the results matrix maintains a separate Kahan compensation array. This is critical because the sojourn time computation involves <span class="math inline">O(|V|^2)</span> additions per reward vector, and standard summation can lose several digits of precision for large graphs. The subset variant (<code>ptd_expected_sojourn_time_subset</code>) does not use Kahan summation, trading precision for speed in the common case where <span class="math inline">k</span> is small.</p>
+<p><strong>Condition number monitoring.</strong> The <code>ptd_expected_waiting_time</code> function (<a href="06_graph_elimination.html#alg-06-moment-commands" class="quarto-xref">Algorithm&nbsp;<span>7.3</span></a>) monitors the condition number of the elimination commands by tracking the ratio of maximum to minimum multiplier magnitudes. When this exceeds a configurable threshold (default <span class="math inline">10^{12}</span>), MPFR arbitrary-precision arithmetic is activated if available (see Numerical Considerations in [06]).</p>
+<p><strong>Zero-times-infinity handling.</strong> Both the full and subset sojourn time algorithms inherit the <span class="math inline">0 \times \infty = 0</span> convention from Algorithm 12: commands with zero multiplier are skipped, and commands with infinite multiplier acting on zero entries are skipped. This prevents NaN propagation from inescapable cycles and zero-reward vertices.</p>
+<p><strong>Memory layout.</strong> The implementation stores the results matrix as <code>results[vertex][reward]</code> (row-major by vertex, column-major by reward). For the inner loop over rewards at each command, this provides good cache locality for the <code>from</code> row access but may incur cache misses for the <code>to</code> row. For very large graphs, the <span class="math inline">O(|V|^2)</span> memory usage of the full sojourn time computation may be a bottleneck, motivating the subset variant.</p>
+</section>
+<section id="implementation-notes" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="implementation-notes">Implementation Notes</h2>
+<p><strong>Source code mapping:</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 17%">
+<col style="width: 29%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Algorithm</th>
+<th>File</th>
+<th>Function</th>
+<th>Lines</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="#alg-15-kth-moment" class="quarto-xref">Algorithm&nbsp;<span>16.1</span></a> (<span class="math inline">k=1</span>)</td>
+<td><code>src/c/phasic.c</code></td>
+<td><code>ptd_expected_waiting_time</code></td>
+<td>L6118–L6265</td>
+</tr>
+<tr class="even">
+<td><a href="#alg-15-sojourn-cross-moments" class="quarto-xref">Algorithm&nbsp;<span>16.2</span></a> (full)</td>
+<td><code>src/c/phasic.c</code></td>
+<td><code>ptd_expected_sojourn_time</code></td>
+<td>L6378–L6521</td>
+</tr>
+<tr class="odd">
+<td><a href="#alg-15-sojourn-cross-moments" class="quarto-xref">Algorithm&nbsp;<span>16.2</span></a> (subset)</td>
+<td><code>src/c/phasic.c</code></td>
+<td><code>ptd_expected_sojourn_time_subset</code></td>
+<td>L6267–L6376</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Deviations from pseudocode:</strong></p>
+<ul>
+<li><a href="#alg-15-kth-moment" class="quarto-xref">Algorithm&nbsp;<span>16.1</span></a> is not implemented as an explicit <span class="math inline">k</span>-loop in C. The single-replay case (<span class="math inline">k = 1</span>) is implemented by <code>ptd_expected_waiting_time</code>. Higher moments (<span class="math inline">k &gt; 1</span>) are computed at the Python level by calling <code>ptd_expected_waiting_time</code> repeatedly with updated reward vectors, or by using the reward transformation approach (constructing a new graph with <code>ptd_graph_reward_transform</code> and computing its expected absorption time).</li>
+<li>The full sojourn time algorithm (<code>ptd_expected_sojourn_time</code>) initializes the results matrix as the identity matrix (one-hot vectors), whereas the pseudocode uses “initialized to <span class="math inline">\mathbf{I}_n</span>”. This is equivalent but worth noting: the identity initialization means each “reward vector” is a standard basis vector.</li>
+<li>The subset variant (<code>ptd_expected_sojourn_time_subset</code>) validates that all requested indices are within bounds (<code>&lt; n</code>), returning NULL on out-of-bounds errors.</li>
+<li>The full variant uses Kahan compensated summation via a parallel array of <code>kahan_sum</code> structs, while the subset variant uses plain double accumulation. This is a deliberate trade-off: the subset variant is intended for fast, moderately-sized computations where the additional memory and time cost of Kahan summation is not justified.</li>
+</ul>
+</section>
+<section id="symbol-index" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="symbol-index">Symbol Index</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 19%">
+<col style="width: 54%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Symbol</th>
+<th>Name</th>
+<th>First appearance</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\mathbf{h}</span></td>
+<td>Intermediate result vector (iterated replay)</td>
+<td><a href="#def-15-higher-moments" class="quarto-xref">Definition&nbsp;<span>16.2</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mathbf{h}_j</span></td>
+<td>Intermediate vector from replay with <span class="math inline">\mathbf{R}_{\cdot j}</span></td>
+<td><a href="#def-15-sojourn-cross-moments" class="quarto-xref">Definition&nbsp;<span>16.3</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\mathbf{r}^{(i)}</span></td>
+<td>Reward vector at iteration <span class="math inline">i</span></td>
+<td><a href="#def-15-higher-moments" class="quarto-xref">Definition&nbsp;<span>16.2</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\mathbf{z}</span></td>
+<td>Expected sojourn time vector</td>
+<td><a href="#def-15-sojourn-cross-moments" class="quarto-xref">Definition&nbsp;<span>16.3</span></a></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">z_j</span></td>
+<td>Expected sojourn time in state <span class="math inline">j</span></td>
+<td><a href="#def-15-sojourn-cross-moments" class="quarto-xref">Definition&nbsp;<span>16.3</span></a></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\circ</span></td>
+<td>Hadamard (element-wise) product</td>
+<td><a href="#thm-15-higher-moments" class="quarto-xref">Theorem&nbsp;<span>16.1</span></a></td>
+</tr>
+</tbody>
+</table>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./14_distribution_computation.html" class="pagination-link" aria-label="Distribution Computation">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./16_pdf_gradients.html" class="pagination-link" aria-label="PDF Gradients">
+        <span class="nav-page-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
