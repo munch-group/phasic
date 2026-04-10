@@ -34,6 +34,8 @@ $$\mathbb{E}[\tilde{\tau}] = \text{ReplayCommands}(C, \mathbf{r})[v_0],$$ {#eq-1
 
 > **Example.** Consider a three-state Erlang process $v_0 \to v_1 \to v_2 \to v_a$ with equal rates $\lambda = 2$. With unit rewards, $\text{ReplayCommands}(C, \mathbf{e})[v_0] = \mathbb{E}[\tau] = 3/2$. With reward $\mathbf{r} = (0, 1, 0)^\top$ (only counting time in state $v_2$), the result is $\mathbb{E}[\tilde{\tau}] = 1/2$.
 
+![Computing expected absorption time in reverse topological order. Starting from an acyclic graph (top left) with vertex scalars (blue numbers), the algorithm processes vertices bottom-up. At each step, a vertex accumulates the weighted contributions of its children (edge probability times child's accumulated value) and adds its own vertex scalar. The final value at the starting vertex (bottom right) gives the expected absorption time $\mathbb{E}[\tau]$.](images/moment_computation_example.pdf){#fig-15-moment-example}
+
 ::: {#def-15-higher-moments}
 
 #### Higher-order moments via iterated replay

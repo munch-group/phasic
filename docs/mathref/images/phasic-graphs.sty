@@ -1,0 +1,71 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{phasic-graphs}[2026/04/10 Phasic graph diagram styles]
+
+\RequirePackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc}
+
+% === Node styles ===
+% Base vertex: circle, black outline, white fill
+\tikzset{
+  vertex/.style={
+    circle, draw=black, line width=0.8pt,
+    minimum size=8mm, inner sep=0pt, fill=white
+  },
+  % Gray-filled vertex (processed / has computed value)
+  vertex-gray/.style={vertex, fill=gray!25},
+  % Hollow vertex (white fill, default)
+  vertex-hollow/.style={vertex, fill=white},
+  % Vertex currently being processed (blue dashed outline)
+  vertex-processing/.style={vertex, draw=blue, dashed, line width=1.2pt},
+  % Eliminated vertex (open circle, no fill)
+  vertex-eliminated/.style={vertex, draw=black!40, fill=white},
+}
+
+% === Text label styles ===
+\tikzset{
+  % Vertex name label (above or beside vertex)
+  vlabel/.style={black, font=\small, inner sep=1pt},
+  % Vertex scalar (inside vertex, red)
+  scalar/.style={red!80!black, font=\small},
+  % Accumulated value (inside vertex, blue)
+  accum/.style={blue!80!black, font=\small},
+  % Edge weight label (near edge, blue)
+  weight/.style={blue!80!black, font=\scriptsize, inner sep=1pt},
+  % Edge weight label (black, for special edges like S->A)
+  weight-black/.style={black, font=\scriptsize, inner sep=1pt},
+}
+
+% === Edge styles ===
+\tikzset{
+  % Standard directed edge
+  edge/.style={-{Stealth[length=5pt, width=4pt]}, line width=0.8pt},
+  % New bypass edge (created during elimination)
+  newedge/.style={edge, red!70!black},
+  % Highlighted edge (current step)
+  highedge/.style={edge, green!50!black, line width=1pt},
+  % Removed edge (during elimination)
+  removededge/.style={edge, red!50!black, dashed, line width=0.6pt},
+}
+
+% === Panel transition arrows ===
+\tikzset{
+  % Horizontal arrow between panels
+  panelarrow/.style={
+    -{Stealth[length=8pt, width=6pt]},
+    line width=1.8pt, gray!60!black
+  },
+  % Vertical arrow between rows
+  panelarrow-down/.style={
+    -{Stealth[length=8pt, width=6pt]},
+    line width=1.8pt, gray!60!black
+  },
+}
+
+% === Convenience commands ===
+
+% Draw a vertex with label above and optional scalar inside
+% #1 = node name, #2 = position, #3 = label text, #4 = label position, #5 = style, #6 = inner text
+\newcommand{\graphvertex}[6]{%
+  \node[#5] (#1) at (#2) {#6};
+  \node[vlabel, #4] at (#1.north) {#3};
+}

@@ -39,6 +39,8 @@ $$x_v = \begin{cases} 1/\lambda_v & \text{if } \lambda_v > 0, \\ 1 & \text{if } 
 
 > **Example.** Consider a vertex $v_1$ with two outgoing edges: $w(v_1 \to v_2) = 3$ and $w(v_1 \to v_a) = 2$ (where $v_a$ is absorbing). The total outgoing rate is $\lambda_{v_1} = 5$. After normalization: $w'(v_1 \to v_2) = 3/5 = 0.6$, $w'(v_1 \to v_a) = 2/5 = 0.4$, and $x_{v_1} = 1/5 = 0.2$. The process waits $\operatorname{Exp}(5)$ time at $v_1$, then transitions to $v_2$ with probability 0.6 or absorbs with probability 0.4.
 
+![Continuous graph normalization. Left: a phase-type graph with raw transition rates on edges (e.g., $A$ has outgoing rates $0.12$, $0.20$, $0.25$, $0.08$). Right: the normalized graph with transition probabilities in blue and vertex scalars $x_v = 1/\lambda_v$ in red (e.g., $x_A = 5$ since $\lambda_A = 0.20$). The starting vertex $S$ has scalar $0$ and the absorbing vertex $D$ has scalar $0$.](images/graph_normalization_example.pdf){#fig-05-normalization-example}
+
 ::: {#def-05-embedded-chain}
 
 #### Embedded discrete-time Markov chain
