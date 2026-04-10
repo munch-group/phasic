@@ -92,7 +92,6 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/gh-2.83.0-h76a2195_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/giflib-5.2.2-hd590300_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/git-2.51.2-pl5321h28be001_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/git-filter-repo-2.47.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/gitdb-4.0.12-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/gitpython-3.1.45-pyhff2d567_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/gitui-0.27.0-h53e704d_0.conda
@@ -520,7 +519,6 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/gh-2.83.0-h4e0460a_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/giflib-5.2.2-h93a5062_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/git-2.51.2-pl5321h729e19d_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/git-filter-repo-2.47.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/gitdb-4.0.12-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/gitpython-3.1.45-pyhff2d567_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/gitui-0.27.0-h6d77b79_0.conda
@@ -2526,19 +2524,6 @@ packages:
   purls: []
   size: 11846450
   timestamp: 1761752945162
-- conda: https://conda.anaconda.org/conda-forge/noarch/git-filter-repo-2.47.0-pyhcf101f3_0.conda
-  sha256: 63c5873a18742c4fece3428abe4156f0a74a497ff688cd3470489a6e53e62c4c
-  md5: 5b264c5524cdbbc7663a83145a66895d
-  depends:
-  - git >=2.26.0
-  - python >=3.10
-  - python
-  license: MIT
-  license_family: MIT
-  purls:
-  - pkg:pypi/git-filter-repo?source=hash-mapping
-  size: 78437
-  timestamp: 1765799455107
 - conda: https://conda.anaconda.org/conda-forge/noarch/gitdb-4.0.12-pyhd8ed1ab_0.conda
   sha256: dbbec21a369872c8ebe23cb9a3b9d63638479ee30face165aa0fccc96e93eec3
   md5: 7c14f3706e099f8fcd47af2d494616cc
