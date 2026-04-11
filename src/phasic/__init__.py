@@ -5627,10 +5627,14 @@ extern "C" {{
             eps = 1e-7
 
             # Finite differences for gradient
+            # Clamp lower perturbation to stay positive (theta comes from
+            # softplus which can be as small as 1e-9, smaller than eps)
+            min_theta = 1e-9
             theta_bar = []
             for i in range(n_params):
                 theta_plus = theta.at[i].add(eps)
-                theta_minus = theta.at[i].add(-eps)
+                theta_minus = theta.at[i].set(jnp.maximum(theta[i] - eps, min_theta))
+                actual_diff = theta_plus[i] - theta_minus[i]
 
                 # Call underlying computation, not model
                 pmf_plus, moments_plus = _compute_pure(theta_plus, times, rewards)
@@ -5639,9 +5643,9 @@ extern "C" {{
                 # Combine gradients from both PMF and moments
                 # Use nansum to handle NaN values in PMF (from missing observations)
                 # NaN in PMF means the observation was missing, so it shouldn't contribute to gradient
-                pmf_diff = (pmf_plus - pmf_minus) / (2 * eps)
+                pmf_diff = (pmf_plus - pmf_minus) / actual_diff
                 grad_pmf_i = jnp.nansum(g_pmf * pmf_diff)
-                grad_moments_i = jnp.sum(g_moments * (moments_plus - moments_minus) / (2 * eps))
+                grad_moments_i = jnp.sum(g_moments * (moments_plus - moments_minus) / actual_diff)
                 grad_i = grad_pmf_i + grad_moments_i
 
                 theta_bar.append(grad_i)
