@@ -4,9 +4,9 @@ title: "Distribution Computation"
 
 ## Introduction {.unnumbered}
 
-This file formalizes the forward algorithm for computing probability density functions (PDFs) and probability mass functions (PMFs) of phase-type distributions from their graph representation. The central technique is **uniformization**: approximating a continuous-time Markov jump process by a discrete-time chain embedded in a Poisson process. This converts the PDF computation for continuous phase-type distributions into a weighted sum of discrete-step absorption probabilities, enabling a single unified forward algorithm to handle both the continuous and discrete cases.
+This file formalizes the forward algorithm for computing probability density functions (PDFs) and probability mass functions (PMFs) of phase-type distributions [@neuts1981] from their graph representation. The central technique is **uniformization**: approximating a continuous-time Markov jump process by a discrete-time chain embedded in a Poisson process. This converts the PDF computation for continuous phase-type distributions into a weighted sum of discrete-step absorption probabilities, enabling a single unified forward algorithm to handle both the continuous and discrete cases.
 
-The forward algorithm is Algorithm 4 of Roikjer, Hobolth & Munch (2022). It propagates a probability vector forward through the graph step by step, accumulating the probability mass that reaches absorbing states at each step. For discrete phase-type (DPH) distributions, the mass absorbed at step $k$ is the PMF at $k$. For continuous phase-type (CPH) distributions, the PMF of the uniformized DPH at step $k$ is weighted by the Poisson probability of $k$ jumps and summed, yielding the PDF at a given time $t$.
+The forward algorithm is Algorithm 4 of @roikjer2022. It propagates a probability vector forward through the graph step by step, accumulating the probability mass that reaches absorbing states at each step. For discrete phase-type (DPH) distributions, the mass absorbed at step $k$ is the PMF at $k$. For continuous phase-type (CPH) distributions, the PMF of the uniformized DPH at step $k$ is weighted by the Poisson probability of $k$ jumps and summed, yielding the PDF at a given time $t$.
 
 This algorithm operates on the original (non-eliminated) graph and is complementary to the elimination-based moment computation in [06]. While elimination converts cycles to an acyclic form for algebraic operations (moments, expected rewards), the forward algorithm works directly on the original graph to compute the full distribution function. The CDF is obtained by cumulating the absorbed mass.
 
@@ -32,9 +32,15 @@ $$\mathbf{t}_g = \mathbf{e} - \mathbf{T}_g \mathbf{e} = \frac{1}{g}\mathbf{s},$$
 *where $\mathbf{s} = -\mathbf{S}\mathbf{e}$ is the exit rate vector of the original CPH.*
 :::
 
-> **Intuition.** Uniformization replaces the variable-rate continuous-time process with a process that attempts a jump at a fixed rate $g$ per unit time. At each jump opportunity, the process either transitions to a new state (with probability proportional to the original transition rates) or stays in the same state (a "virtual" self-transition). The self-loop probability at vertex $v$ is $1 - \lambda_v / g \geq 0$, which is non-negative precisely when $g \geq \lambda_v$. The number of jump opportunities in time $t$ follows a $\operatorname{Poisson}(gt)$ distribution, connecting the discrete steps to continuous time.
+<details>
+<summary>Intuition</summary>
+Uniformization replaces the variable-rate continuous-time process with a process that attempts a jump at a fixed rate $g$ per unit time. At each jump opportunity, the process either transitions to a new state (with probability proportional to the original transition rates) or stays in the same state (a "virtual" self-transition). The self-loop probability at vertex $v$ is $1 - \lambda_v / g \geq 0$, which is non-negative precisely when $g \geq \lambda_v$. The number of jump opportunities in time $t$ follows a $\operatorname{Poisson}(gt)$ distribution, connecting the discrete steps to continuous time.
+</details>
 
-> **Example.** Consider a two-state CPH with $\mathbf{S} = \begin{pmatrix} -3 & 1 \\ 2 & -5 \end{pmatrix}$. The maximum rate is $\lambda_{\max} = 5$. Choosing $g = 5$, the uniformized sub-transition matrix is $\mathbf{T}_5 = \mathbf{I} + \frac{1}{5}\mathbf{S} = \begin{pmatrix} 0.4 & 0.2 \\ 0.4 & 0 \end{pmatrix}$, with exit probabilities $\mathbf{t}_5 = (0.4, 0.6)^\top$. Each vertex has non-negative self-loop probability: $1 - 3/5 = 0.4$ for vertex 1 and $1 - 5/5 = 0$ for vertex 2.
+<details>
+<summary>Example</summary>
+Consider a two-state CPH with $\mathbf{S} = \begin{pmatrix} -3 & 1 \\ 2 & -5 \end{pmatrix}$. The maximum rate is $\lambda_{\max} = 5$. Choosing $g = 5$, the uniformized sub-transition matrix is $\mathbf{T}_5 = \mathbf{I} + \frac{1}{5}\mathbf{S} = \begin{pmatrix} 0.4 & 0.2 \\ 0.4 & 0 \end{pmatrix}$, with exit probabilities $\mathbf{t}_5 = (0.4, 0.6)^\top$. Each vertex has non-negative self-loop probability: $1 - 3/5 = 0.4$ for vertex 1 and $1 - 5/5 = 0$ for vertex 2.
+</details>
 
 ::: {#def-14-forward-prob-vector}
 
@@ -47,9 +53,15 @@ $$\mathbf{p}^{(k)} = (p^{(k)}_{v_0}, p^{(k)}_{v_1}, \ldots, p^{(k)}_{v_{|V|-1}})
 *where $p^{(k)}_v$ is the probability that the chain is in vertex $v$ at step $k$, conditional on not having been absorbed. The initial condition is $p^{(0)}_{v_0} = 1$ (all mass at the starting vertex), and $p^{(0)}_v = 0$ for $v \neq v_0$.*
 :::
 
-> **Intuition.** The forward probability vector tracks the distribution of probability mass across vertices as the chain evolves. At each step, mass flows along edges proportionally to their weights. Mass that reaches absorbing vertices (vertices with no outgoing edges) is removed from the vector and recorded as the PMF contribution for that step.
+<details>
+<summary>Intuition</summary>
+The forward probability vector tracks the distribution of probability mass across vertices as the chain evolves. At each step, mass flows along edges proportionally to their weights. Mass that reaches absorbing vertices (vertices with no outgoing edges) is removed from the vector and recorded as the PMF contribution for that step.
+</details>
 
-> **Example.** For a graph with starting vertex $v_0$, two transient vertices $v_1, v_2$, and one absorbing vertex $v_a$: $\mathbf{p}^{(0)} = (1, 0, 0, 0)$. After one step, $\mathbf{p}^{(1)}$ distributes mass from $v_0$ to its children according to the starting edge weights ($\boldsymbol{\alpha}$).
+<details>
+<summary>Example</summary>
+For a graph with starting vertex $v_0$, two transient vertices $v_1, v_2$, and one absorbing vertex $v_a$: $\mathbf{p}^{(0)} = (1, 0, 0, 0)$. After one step, $\mathbf{p}^{(1)}$ distributes mass from $v_0$ to its children according to the starting edge weights ($\boldsymbol{\alpha}$).
+</details>
 
 ::: {#def-14-dph-forward-step}
 
@@ -65,9 +77,15 @@ $$p^{(k+1)}_z \mathrel{+}= p^{(k)}_v \cdot w(v \to z) \cdot \delta, \qquad p^{(k
 3. *The CDF is updated: $F_{k+1} = F_k + p_{k+1}$.*
 :::
 
-> **Intuition.** The forward step simultaneously transfers mass along all edges (weighted by $\delta$) and then collects the mass that has reached absorbing states. For a DPH with $\delta = 1$, each edge weight is a transition probability (after normalization), and the step is a standard Markov chain transition. For a uniformized CPH with $\delta = 1/g$, the edge weights are transition rates, and the scaling by $1/g$ converts rates to probabilities. The subtraction from the source vertex ensures mass conservation: mass transferred to a child is removed from the parent.
+<details>
+<summary>Intuition</summary>
+The forward step simultaneously transfers mass along all edges (weighted by $\delta$) and then collects the mass that has reached absorbing states. For a DPH with $\delta = 1$, each edge weight is a transition probability (after normalization), and the step is a standard Markov chain transition. For a uniformized CPH with $\delta = 1/g$, the edge weights are transition rates, and the scaling by $1/g$ converts rates to probabilities. The subtraction from the source vertex ensures mass conservation: mass transferred to a child is removed from the parent.
+</details>
 
-> **Example.** Consider a uniformized CPH with $g = 10$ and a vertex $v_1$ with $p^{(k)}_{v_1} = 0.5$ and outgoing edges $w(v_1 \to v_2) = 3$ and $w(v_1 \to v_a) = 2$. The mass transferred to $v_2$ is $0.5 \times 3 \times 0.1 = 0.15$, to $v_a$ is $0.5 \times 2 \times 0.1 = 0.10$, and the remaining mass at $v_1$ is $0.5 - 0.15 - 0.10 = 0.25$ (the implicit self-loop contribution from the uniformization).
+<details>
+<summary>Example</summary>
+Consider a uniformized CPH with $g = 10$ and a vertex $v_1$ with $p^{(k)}_{v_1} = 0.5$ and outgoing edges $w(v_1 \to v_2) = 3$ and $w(v_1 \to v_a) = 2$. The mass transferred to $v_2$ is $0.5 \times 3 \times 0.1 = 0.15$, to $v_a$ is $0.5 \times 2 \times 0.1 = 0.10$, and the remaining mass at $v_1$ is $0.5 - 0.15 - 0.10 = 0.25$ (the implicit self-loop contribution from the uniformization).
+</details>
 
 ## Theorems and Proofs {.unnumbered}
 
@@ -89,7 +107,7 @@ $$\left| f(t) - \sum_{k=0}^{K} p_k^{(g)} \cdot \frac{(gt)^k e^{-gt}}{k!} \cdot g
 :::
 
 ::: {.proof}
-The key identity is the matrix exponential representation via uniformization (Jensen 1953):
+The key identity is the matrix exponential representation via uniformization [@jensen1953]:
 
 $$e^{\mathbf{S}t} = \sum_{k=0}^{\infty} \mathbf{T}_g^k \frac{(gt)^k e^{-gt}}{k!}.$$ {#eq-14-jensen-identity}
 

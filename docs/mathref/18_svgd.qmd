@@ -4,7 +4,7 @@ title: "Stein Variational Gradient Descent"
 
 ## Introduction {.unnumbered}
 
-This file formalizes **Stein Variational Gradient Descent (SVGD)**, a deterministic particle-based method for approximate Bayesian inference. Given a target posterior distribution $p(\boldsymbol{\theta} \mid \mathbf{y})$ over the parameter vector $\boldsymbol{\theta} \in \mathbb{R}^d$ of a phase-type model and observed data $\mathbf{y}$, SVGD maintains a finite set of $n$ particles $\{\boldsymbol{\theta}^{(i)}\}_{i=1}^{n}$ and iteratively transports them toward the posterior by following the direction that maximally decreases the KL divergence from the particle distribution to the target. The key insight is that this optimal direction can be computed in closed form using a reproducing kernel Hilbert space (RKHS), requiring only evaluations of $\nabla_{\boldsymbol{\theta}} \log p(\boldsymbol{\theta} \mid \mathbf{y})$ at the particle locations and kernel evaluations between particles.
+This file formalizes **Stein Variational Gradient Descent** [SVGD; @liu2016svgd], a deterministic particle-based method for approximate Bayesian inference. Given a target posterior distribution $p(\boldsymbol{\theta} \mid \mathbf{y})$ over the parameter vector $\boldsymbol{\theta} \in \mathbb{R}^d$ of a phase-type model and observed data $\mathbf{y}$, SVGD maintains a finite set of $n$ particles $\{\boldsymbol{\theta}^{(i)}\}_{i=1}^{n}$ and iteratively transports them toward the posterior by following the direction that maximally decreases the KL divergence from the particle distribution to the target. The key insight is that this optimal direction can be computed in closed form using a reproducing kernel Hilbert space (RKHS), requiring only evaluations of $\nabla_{\boldsymbol{\theta}} \log p(\boldsymbol{\theta} \mid \mathbf{y})$ at the particle locations and kernel evaluations between particles.
 
 In the phasic pipeline, SVGD serves as the primary inference engine for estimating posterior distributions of phase-type model parameters. The model likelihood is computed via the forward algorithm ([14]) and, optionally, moment-based regularization uses the moment computation machinery from [15]. SVGD replaces traditional MCMC sampling with a deterministic optimization that converges faster for moderate-dimensional problems ($d \leq 50$) typical of phase-type models.
 
@@ -29,9 +29,15 @@ $$\mathcal{A}_p \boldsymbol{\phi}(\boldsymbol{\theta}) = \nabla_{\boldsymbol{\th
 $$\mathbb{S}(q, p) = \sup_{\boldsymbol{\phi} \in \mathcal{F}} \left( \mathbb{E}_q [\mathcal{A}_p \boldsymbol{\phi}(\boldsymbol{\theta})] \right)^2.$$ {#eq-18-stein-discrepancy}
 :::
 
-> **Intuition.** The Stein operator measures how much a test function $\boldsymbol{\phi}$ distinguishes $q$ from $p$. By Stein's identity, $\mathbb{E}_p[\mathcal{A}_p \boldsymbol{\phi}(\boldsymbol{\theta})] = 0$ for all suitable $\boldsymbol{\phi}$ (under mild boundary conditions). Therefore $\mathbb{E}_q[\mathcal{A}_p \boldsymbol{\phi}]$ is nonzero precisely when $q \neq p$, and the supremum over $\mathcal{F}$ quantifies the discrepancy. The Stein discrepancy depends on $p$ only through $\nabla \log p$, so the normalizing constant of $p$ is not needed.
+<details>
+<summary>Intuition</summary>
+The Stein operator [@stein1972] measures how much a test function $\boldsymbol{\phi}$ distinguishes $q$ from $p$. By Stein's identity, $\mathbb{E}_p[\mathcal{A}_p \boldsymbol{\phi}(\boldsymbol{\theta})] = 0$ for all suitable $\boldsymbol{\phi}$ (under mild boundary conditions). Therefore $\mathbb{E}_q[\mathcal{A}_p \boldsymbol{\phi}]$ is nonzero precisely when $q \neq p$, and the supremum over $\mathcal{F}$ quantifies the discrepancy. The Stein discrepancy depends on $p$ only through $\nabla \log p$, so the normalizing constant of $p$ is not needed.
+</details>
 
-> **Example.** For a univariate Gaussian target $p(\theta) \propto \exp(-\theta^2 / 2)$, we have $\nabla \log p(\theta) = -\theta$. The Stein operator applied to $\phi(\theta) = 1$ gives $\mathcal{A}_p \phi(\theta) = -\theta$, and $\mathbb{E}_q[-\theta] = -\mathbb{E}_q[\theta]$, which is zero only when $q$ has mean zero.
+<details>
+<summary>Example</summary>
+For a univariate Gaussian target $p(\theta) \propto \exp(-\theta^2 / 2)$, we have $\nabla \log p(\theta) = -\theta$. The Stein operator applied to $\phi(\theta) = 1$ gives $\mathcal{A}_p \phi(\theta) = -\theta$, and $\mathbb{E}_q[-\theta] = -\mathbb{E}_q[\theta]$, which is zero only when $q$ has mean zero.
+</details>
 
 ::: {#def-18-rbf-kernel .definition}
 
@@ -41,7 +47,7 @@ $$\mathbb{S}(q, p) = \sup_{\boldsymbol{\phi} \in \mathcal{F}} \left( \mathbb{E}_
 
 $$k(\boldsymbol{\theta}, \boldsymbol{\theta}') = \exp\!\left( -\frac{\lVert \boldsymbol{\theta} - \boldsymbol{\theta}' \rVert^2}{2h^2} \right),$$ {#eq-18-rbf-kernel}
 
-*where $h > 0$ is the bandwidth parameter. The **isotropic median heuristic** sets*
+*where $h > 0$ is the bandwidth parameter. The **isotropic median heuristic** [@liu2016svgd] sets*
 
 $$h = \frac{\operatorname{median}\{\lVert \boldsymbol{\theta}^{(i)} - \boldsymbol{\theta}^{(j)} \rVert : i < j\}}{\sqrt{\log(n + 1)}},$$ {#eq-18-median-heuristic}
 
@@ -52,24 +58,36 @@ $$h_l = \sqrt{\frac{\operatorname{median}\{(\theta^{(i)}_l - \theta^{(j)}_l)^2 :
 *with the anisotropic kernel $k(\boldsymbol{\theta}, \boldsymbol{\theta}') = \exp\!\left( -\sum_{l=1}^{d} \frac{(\theta_l - \theta'_l)^2}{2h_l^2} \right)$.*
 :::
 
-> **Intuition.** The bandwidth $h$ controls the interaction range between particles. The median heuristic adapts $h$ to the current particle spread: when particles are concentrated, $h$ shrinks to provide fine-grained repulsion; when particles are dispersed, $h$ grows to maintain long-range interactions. The division by $\sqrt{\log(n+1)}$ ensures $h$ decreases as the number of particles increases, consistent with kernel density estimation theory. The per-dimension variant allows the kernel to adapt independently to each parameter's scale, which is essential when parameters have different magnitudes (e.g., a rate parameter of order 1 versus a population size of order $10^3$).
+<details>
+<summary>Intuition</summary>
+The bandwidth $h$ controls the interaction range between particles. The median heuristic adapts $h$ to the current particle spread: when particles are concentrated, $h$ shrinks to provide fine-grained repulsion; when particles are dispersed, $h$ grows to maintain long-range interactions. The division by $\sqrt{\log(n+1)}$ ensures $h$ decreases as the number of particles increases, consistent with kernel density estimation theory. The per-dimension variant allows the kernel to adapt independently to each parameter's scale, which is essential when parameters have different magnitudes (e.g., a rate parameter of order 1 versus a population size of order $10^3$).
+</details>
 
-> **Example.** For $n = 100$ particles in $\mathbb{R}^2$, if the median pairwise distance is 0.5, then $h = 0.5 / \sqrt{\log 101} \approx 0.233$.
+<details>
+<summary>Example</summary>
+For $n = 100$ particles in $\mathbb{R}^2$, if the median pairwise distance is 0.5, then $h = 0.5 / \sqrt{\log 101} \approx 0.233$.
+</details>
 
 ::: {#def-18-svgd-update .definition}
 
 #### SVGD Update Rule
 
-*Given $n$ particles $\{\boldsymbol{\theta}^{(i)}\}_{i=1}^{n}$, a kernel $k$, and the target log-density $\log p$, the **SVGD perturbation direction** for particle $i$ is*
+*Given $n$ particles $\{\boldsymbol{\theta}^{(i)}\}_{i=1}^{n}$, a kernel $k$, and the target log-density $\log p$, the **SVGD perturbation direction** [@liu2016svgd] for particle $i$ is*
 
 $$\hat{\boldsymbol{\phi}}^*(\boldsymbol{\theta}^{(i)}) = \frac{1}{n} \sum_{j=1}^{n} \Big[ k(\boldsymbol{\theta}^{(j)}, \boldsymbol{\theta}^{(i)}) \, \nabla_{\boldsymbol{\theta}^{(j)}} \log p(\boldsymbol{\theta}^{(j)}) + \nabla_{\boldsymbol{\theta}^{(j)}} k(\boldsymbol{\theta}^{(j)}, \boldsymbol{\theta}^{(i)}) \Big].$$ {#eq-18-svgd-direction}
 
 *The particle update is $\boldsymbol{\theta}^{(i)} \leftarrow \boldsymbol{\theta}^{(i)} + \epsilon \, \hat{\boldsymbol{\phi}}^*(\boldsymbol{\theta}^{(i)})$, where $\epsilon > 0$ is the step size.*
 :::
 
-> **Intuition.** The update has two terms. The first term $k(\boldsymbol{\theta}^{(j)}, \boldsymbol{\theta}^{(i)}) \nabla \log p(\boldsymbol{\theta}^{(j)})$ drives particle $i$ toward high-probability regions, weighted by the kernel similarity to particle $j$ (nearby particles exert more influence). The second term $\nabla_{\boldsymbol{\theta}^{(j)}} k(\boldsymbol{\theta}^{(j)}, \boldsymbol{\theta}^{(i)})$ acts as a repulsive force that prevents particles from collapsing to a single mode. The balance between these terms yields a particle system that approximates the full posterior, not just its mode.
+<details>
+<summary>Intuition</summary>
+The update has two terms. The first term $k(\boldsymbol{\theta}^{(j)}, \boldsymbol{\theta}^{(i)}) \nabla \log p(\boldsymbol{\theta}^{(j)})$ drives particle $i$ toward high-probability regions, weighted by the kernel similarity to particle $j$ (nearby particles exert more influence). The second term $\nabla_{\boldsymbol{\theta}^{(j)}} k(\boldsymbol{\theta}^{(j)}, \boldsymbol{\theta}^{(i)})$ acts as a repulsive force that prevents particles from collapsing to a single mode. The balance between these terms yields a particle system that approximates the full posterior, not just its mode.
+</details>
 
-> **Example.** With a single particle ($n = 1$), the repulsive term vanishes (since $\nabla_{\boldsymbol{\theta}} k(\boldsymbol{\theta}, \boldsymbol{\theta}) = \mathbf{0}$), and SVGD reduces to gradient ascent on $\log p$, recovering maximum a posteriori (MAP) estimation.
+<details>
+<summary>Example</summary>
+With a single particle ($n = 1$), the repulsive term vanishes (since $\nabla_{\boldsymbol{\theta}} k(\boldsymbol{\theta}, \boldsymbol{\theta}) = \mathbf{0}$), and SVGD reduces to gradient ascent on $\log p$, recovering maximum a posteriori (MAP) estimation.
+</details>
 
 ::: {#def-18-particle-system .definition}
 
@@ -85,7 +103,10 @@ $$\hat{\boldsymbol{\phi}}^*(\boldsymbol{\theta}^{(i)}) = \frac{1}{n} \sum_{j=1}^
 *The particle positions at iteration $t$ are denoted $\{\boldsymbol{\theta}^{(i)}_t\}_{i=1}^{n}$, with $\boldsymbol{\theta}^{(i)}_0$ drawn from an initial distribution $q_0$ (typically prior samples or a perturbed point estimate). The empirical measure $\hat{q}_t = \frac{1}{n} \sum_{i=1}^{n} \delta_{\boldsymbol{\theta}^{(i)}_t}$ approximates the posterior as $t \to \infty$.*
 :::
 
-> **Intuition.** The particle system represents the posterior nonparametrically: each particle is one plausible parameter vector, and the density of particles in a region reflects the posterior probability of that region. Unlike MCMC, all particles evolve simultaneously and interact through the kernel, enabling cooperative exploration of the parameter space.
+<details>
+<summary>Intuition</summary>
+The particle system represents the posterior nonparametrically: each particle is one plausible parameter vector, and the density of particles in a region reflects the posterior probability of that region. Unlike MCMC, all particles evolve simultaneously and interact through the kernel, enabling cooperative exploration of the parameter space.
+</details>
 
 ::: {#def-18-step-size .definition}
 
@@ -99,7 +120,10 @@ $$\hat{\boldsymbol{\phi}}^*(\boldsymbol{\theta}^{(i)}) = \frac{1}{n} \sum_{j=1}^
 4. *Warmup with decay: $\epsilon_t = \epsilon_{\text{peak}} \cdot t / t_w$ for $t \leq t_w$ (linear ramp), followed by exponential decay $\epsilon_t = \epsilon_{\text{peak}} \, e^{-(t - t_w)/\tau} + \epsilon_{\text{last}}(1 - e^{-(t - t_w)/\tau})$ for $t > t_w$.*
 :::
 
-> **Intuition.** Constant step sizes are simplest but may require manual tuning. Exponential decay starts with large exploratory steps and refines as convergence approaches. The adaptive schedule monitors particle spread as a proxy for how well the particles cover the posterior: if they are too spread, the step size decreases to prevent divergence; if too concentrated, it increases to encourage exploration. Warmup is particularly useful with Adam optimization, where moment estimates are unreliable in early iterations.
+<details>
+<summary>Intuition</summary>
+Constant step sizes are simplest but may require manual tuning. Exponential decay starts with large exploratory steps and refines as convergence approaches. The adaptive schedule monitors particle spread as a proxy for how well the particles cover the posterior: if they are too spread, the step size decreases to prevent divergence; if too concentrated, it increases to encourage exploration. Warmup is particularly useful with Adam optimization, where moment estimates are unreliable in early iterations.
+</details>
 
 ::: {#def-18-prior .definition}
 
@@ -114,7 +138,10 @@ $$\hat{\boldsymbol{\phi}}^*(\boldsymbol{\theta}^{(i)}) = \frac{1}{n} \sum_{j=1}^
 *When parameters are constrained to be positive via the softplus transformation $\theta_l = \log(1 + e^{\phi_l})$, the prior is evaluated in the constrained space $\boldsymbol{\theta}$ with a Jacobian correction: $\log \pi(\boldsymbol{\phi}) = \log \pi(\boldsymbol{\theta}(\boldsymbol{\phi})) + \sum_{l=1}^{d} \log \sigma(\phi_l)$, where $\sigma(\phi_l) = 1/(1 + e^{-\phi_l})$ is the sigmoid function.*
 :::
 
-> **Intuition.** The Gaussian prior encodes a belief that each parameter is near some value with known uncertainty. The half-Cauchy prior has heavier tails and is standard for scale parameters that could be much larger than expected. The data-driven prior automates prior specification by extracting information from the data using method-of-moments, which is especially useful when no strong domain knowledge is available. The Jacobian correction ensures that the change of variables from constrained ($\boldsymbol{\theta}$) to unconstrained ($\boldsymbol{\phi}$) space preserves the correct probability density.
+<details>
+<summary>Intuition</summary>
+The Gaussian prior encodes a belief that each parameter is near some value with known uncertainty. The half-Cauchy prior has heavier tails and is a standard choice for scale parameters [@gelman2006] that could be much larger than expected. The data-driven prior automates prior specification by extracting information from the data using method-of-moments, which is especially useful when no strong domain knowledge is available. The Jacobian correction ensures that the change of variables from constrained ($\boldsymbol{\theta}$) to unconstrained ($\boldsymbol{\phi}$) space preserves the correct probability density.
+</details>
 
 ::: {#def-18-sparse-obs .definition}
 
@@ -132,15 +159,21 @@ $$\hat{\boldsymbol{\phi}}^*(\boldsymbol{\theta}^{(i)}) = \frac{1}{n} \sum_{j=1}^
 $$\ell(\boldsymbol{\theta}; \mathbf{v}, \mathbf{f}) = \sum_{j=0}^{m-1} \sum_{k=s_j}^{e_j - 1} \log f_j(v_k \mid \boldsymbol{\theta}).$$ {#eq-18-sparse-loglik}
 :::
 
-> **Intuition.** In multivariate phase-type models, different marginal distributions may have different numbers of observations (e.g., some features are observed more frequently than others). The dense representation pads missing observations with NaN, which propagates through JAX gradient computations and causes numerical issues. The sparse format stores only valid observations grouped by feature, with pre-computed index slices enabling efficient JIT-compatible access without boolean indexing.
+<details>
+<summary>Intuition</summary>
+In multivariate phase-type models, different marginal distributions may have different numbers of observations (e.g., some features are observed more frequently than others). The dense representation pads missing observations with NaN, which propagates through JAX gradient computations and causes numerical issues. The sparse format stores only valid observations grouped by feature, with pre-computed index slices enabling efficient JIT-compatible access without boolean indexing.
+</details>
 
-> **Example.** For 3 features with 10, 5, and 8 observations respectively, $N = 23$, $\mathbf{v}$ contains all 23 values sorted by feature, $\mathbf{f} = (0, \ldots, 0, 1, \ldots, 1, 2, \ldots, 2)$, and $\mathcal{S} = \{(0, 10), (10, 15), (15, 23)\}$.
+<details>
+<summary>Example</summary>
+For 3 features with 10, 5, and 8 observations respectively, $N = 23$, $\mathbf{v}$ contains all 23 values sorted by feature, $\mathbf{f} = (0, \ldots, 0, 1, \ldots, 1, 2, \ldots, 2)$, and $\mathcal{S} = \{(0, 10), (10, 15), (15, 23)\}$.
+</details>
 
 ## Theorems and Proofs {.unnumbered}
 
 ::: {#thm-18-svgd-kl .theorem}
 
-#### SVGD Update Decreases KL Divergence
+#### SVGD Update Decreases KL Divergence [@liu2016svgd]
 
 *Let $q$ be a distribution on $\mathbb{R}^d$, $p$ the target distribution, and $\mathcal{H}$ the RKHS of a positive-definite kernel $k$. Define the perturbation $\boldsymbol{\phi}^* = \arg\max_{\boldsymbol{\phi} \in \mathcal{H}^d, \, \lVert \boldsymbol{\phi} \rVert_{\mathcal{H}} \leq 1} \{-\frac{d}{d\epsilon}\operatorname{KL}(q_{[\epsilon \boldsymbol{\phi}]} \| p) \big|_{\epsilon=0}\}$, where $q_{[\epsilon \boldsymbol{\phi}]}$ is the distribution of $\boldsymbol{\theta} + \epsilon \boldsymbol{\phi}(\boldsymbol{\theta})$ when $\boldsymbol{\theta} \sim q$. Then:*
 
@@ -167,7 +200,7 @@ By the Cauchy--Schwarz inequality in $\mathcal{H}$, the supremum over $\lVert \b
 
 #### SVGD Optimization
 
-*Description.* Performs Bayesian posterior inference by evolving $n$ particles under the SVGD dynamics. At each iteration, the algorithm: (1) computes the kernel matrix and its gradient using the median heuristic bandwidth; (2) evaluates the log-posterior gradient at each particle; (3) combines these via the SVGD update rule (@def-18-svgd-update); and (4) applies the step size (possibly via an adaptive optimizer such as Adam). The algorithm operates in unconstrained space $\boldsymbol{\phi}$ and maps back to constrained space $\boldsymbol{\theta}$ via a parameter transformation (e.g., softplus for positivity).
+*Description.* Performs Bayesian posterior inference by evolving $n$ particles under the SVGD dynamics. At each iteration, the algorithm: (1) computes the kernel matrix and its gradient using the median heuristic bandwidth; (2) evaluates the log-posterior gradient at each particle; (3) combines these via the SVGD update rule (@def-18-svgd-update); and (4) applies the step size (possibly via an adaptive optimizer such as Adam [@kingma2015adam]). The algorithm operates in unconstrained space $\boldsymbol{\phi}$ and maps back to constrained space $\boldsymbol{\theta}$ via a parameter transformation (e.g., softplus for positivity).
 
 ```
 SVGD Optimization
@@ -256,7 +289,7 @@ SVGD Optimization
 - The pseudocode shows explicit loops over particles; the implementation vectorizes via `jnp.einsum` and `jnp.sum` for the SVGD update, and via `jax.vmap` or `jax.pmap` for the gradient computation across particles.
 - Fixed parameters are handled by projecting particles to a learnable subspace before the SVGD step and expanding back to the full space afterward (not shown in pseudocode for clarity).
 - The optional preconditioner normalizes particles before kernel computation and transforms gradients back, making the kernel isotropic in preconditioned space. This is not shown in the pseudocode.
-- When an optimizer (e.g., Adam) is used, line 20 applies the optimizer's adaptive update (maintaining first and second moment estimates) rather than a simple $\boldsymbol{\phi} + \epsilon \boldsymbol{\psi}$ step.
+- When an optimizer [e.g., Adam; @kingma2015adam] is used, line 20 applies the optimizer's adaptive update (maintaining first and second moment estimates) rather than a simple $\boldsymbol{\phi} + \epsilon \boldsymbol{\psi}$ step.
 
 ## Symbol Index {.unnumbered}
 

@@ -4,7 +4,7 @@ title: "Trace System"
 
 ## Introduction {.unnumbered}
 
-This file formalizes the trace-based approach to graph elimination, which replaces the symbolic expression tree representation (@def-10-symbolic-graph) with a flat, linear sequence of arithmetic operations. Where symbolic elimination builds tree-structured expressions whose size can grow exponentially with graph depth, trace recording captures the same computation as a sequential instruction stream of bounded length. The key benefit is evaluation cost: replaying a trace with concrete parameters requires $O(N)$ arithmetic operations (where $N$ is the trace length, bounded by $O(|V|^2)$), compared to $O(|V|^2)$ expression tree evaluations that may involve significant pointer-chasing overhead.
+This file formalizes the trace-based approach to graph elimination, which replaces the symbolic expression tree representation (@def-10-symbolic-graph) with a flat, linear sequence of arithmetic operations --- analogous to the evaluation trace (or "tape") used in automatic differentiation [@griewank2008]. Where symbolic elimination builds tree-structured expressions whose size can grow exponentially with graph depth, trace recording captures the same computation as a sequential instruction stream of bounded length. The key benefit is evaluation cost: replaying a trace with concrete parameters requires $O(N)$ arithmetic operations (where $N$ is the trace length, bounded by $O(|V|^2)$), compared to $O(|V|^2)$ expression tree evaluations that may involve significant pointer-chasing overhead.
 
 The trace system is the computational engine behind SVGD and MCMC inference in phasic. During Bayesian inference, the elimination is recorded once as a trace ($O(|V|^3)$ cost), and each likelihood evaluation replays the trace with a new parameter vector ($O(N)$ cost). For workloads requiring hundreds or thousands of evaluations, the trace system provides 5--10x speedup over the symbolic DAG approach from [10], with lower memory consumption.
 
@@ -43,9 +43,15 @@ The trace system also integrates with the disk cache (using graph content hashes
   - *For $\texttt{Sum}$: $\mathbf{a} = (a_1, \ldots, a_m)$ where each $a_j < i$.*
 :::
 
-> **Intuition.** A trace operation is a single instruction in a straight-line program. It either loads a value (constant, parameter, or dot product with the parameter vector) or combines previously computed values via an arithmetic operation. The operand indices create an implicit dependency DAG that is a linearization of the expression tree from @def-09-expression-tree.
+<details>
+<summary>Intuition</summary>
+A trace operation is a single instruction in a straight-line program. It either loads a value (constant, parameter, or dot product with the parameter vector) or combines previously computed values via an arithmetic operation. The operand indices create an implicit dependency DAG that is a linearization of the expression tree from @def-09-expression-tree.
+</details>
 
-> **Example.** The expression $1 / (\theta_1 + 2\theta_2)$ would be recorded as four operations: $\omega_0 = (\texttt{Dot}, (1, 2), ())$ computes $\theta_1 + 2\theta_2$; $\omega_1 = (\texttt{Inv}, \emptyset, (0))$ computes $1/\omega_0$. In the C implementation, the $\texttt{Dot}$ operation stores the coefficient vector $\mathbf{c} = (1, 2)$ and computes $\mathbf{c}^\top \boldsymbol{\theta}$ during evaluation.
+<details>
+<summary>Example</summary>
+The expression $1 / (\theta_1 + 2\theta_2)$ would be recorded as four operations: $\omega_0 = (\texttt{Dot}, (1, 2), ())$ computes $\theta_1 + 2\theta_2$; $\omega_1 = (\texttt{Inv}, \emptyset, (0))$ computes $1/\omega_0$. In the C implementation, the $\texttt{Dot}$ operation stores the coefficient vector $\mathbf{c} = (1, 2)$ and computes $\mathbf{c}^\top \boldsymbol{\theta}$ during evaluation.
+</details>
 
 ::: {#def-11-elimination-trace}
 
@@ -61,9 +67,15 @@ The trace system also integrates with the disk cache (using graph content hashes
 - *$i_0$ is the index of the starting vertex.*
 :::
 
-> **Intuition.** The trace encodes the complete elimination of a parameterized graph as a straight-line arithmetic program. The operation sequence $\boldsymbol{\omega}$ is the program. The mappings $\mathbf{m}_{\text{rate}}$, $\mathbf{m}_{\text{prob}}$, and $\mathbf{m}_{\text{tgt}}$ identify which program outputs correspond to which graph quantities. The state matrix $\Sigma$ and starting vertex index $i_0$ provide the structural metadata needed to reconstruct the concrete graph from the evaluated trace.
+<details>
+<summary>Intuition</summary>
+The trace encodes the complete elimination of a parameterized graph as a straight-line arithmetic program. The operation sequence $\boldsymbol{\omega}$ is the program. The mappings $\mathbf{m}_{\text{rate}}$, $\mathbf{m}_{\text{prob}}$, and $\mathbf{m}_{\text{tgt}}$ identify which program outputs correspond to which graph quantities. The state matrix $\Sigma$ and starting vertex index $i_0$ provide the structural metadata needed to reconstruct the concrete graph from the evaluated trace.
+</details>
 
-> **Example.** For a three-vertex graph (starting, transient, absorbing) with one parameter, the trace might contain 5 operations (one DOT for the edge weight, one SUM for the total rate, one INV for the vertex scalar, one MUL for the edge probability, and one CONST for the absorbing state rate). The mapping $\mathbf{m}_{\text{rate}}[1] = 2$ indicates that operation $\omega_2$ computes the inverse rate of vertex 1.
+<details>
+<summary>Example</summary>
+For a three-vertex graph (starting, transient, absorbing) with one parameter, the trace might contain 5 operations (one DOT for the edge weight, one SUM for the total rate, one INV for the vertex scalar, one MUL for the edge probability, and one CONST for the absorbing state rate). The mapping $\mathbf{m}_{\text{rate}}[1] = 2$ indicates that operation $\omega_2$ computes the inverse rate of vertex 1.
+</details>
 
 ::: {#def-11-trace-evaluation}
 
@@ -87,9 +99,15 @@ y_{a_1} / y_{a_2} & \text{if } \tau_i = \texttt{Div}, \\
 *The evaluated results are extracted via the mappings: the vertex scalar for vertex $i$ is $y_{\mathbf{m}_{\text{rate}}[i]}$, and the $j$-th edge probability of vertex $i$ is $y_{\mathbf{m}_{\text{prob}}[i][j]}$.*
 :::
 
-> **Intuition.** Trace evaluation is the replay step: it executes the recorded arithmetic program with concrete numbers. Because each operation reads only from earlier entries in the value array $\mathbf{y}$ (by construction of the operand indices), the sequential scan computes all values in a single pass. This is equivalent to a post-order traversal of the expression trees from [09], but without the overhead of tree traversal.
+<details>
+<summary>Intuition</summary>
+Trace evaluation is the replay step: it executes the recorded arithmetic program with concrete numbers. Because each operation reads only from earlier entries in the value array $\mathbf{y}$ (by construction of the operand indices), the sequential scan computes all values in a single pass. This is equivalent to a post-order traversal of the expression trees from [09], but without the overhead of tree traversal.
+</details>
 
-> **Example.** Given the trace from the example in @def-11-elimination-trace and parameter $\theta_1 = 3.0$: the DOT operation computes $\mathbf{c}^\top \boldsymbol{\theta}$; the SUM aggregates edge weights; the INV computes the vertex scalar $1/\lambda_v$; and the MUL converts weights to probabilities. The entire evaluation touches each operation exactly once.
+<details>
+<summary>Example</summary>
+Given the trace from the example in @def-11-elimination-trace and parameter $\theta_1 = 3.0$: the DOT operation computes $\mathbf{c}^\top \boldsymbol{\theta}$; the SUM aggregates edge weights; the INV computes the vertex scalar $1/\lambda_v$; and the MUL converts weights to probabilities. The entire evaluation touches each operation exactly once.
+</details>
 
 ## Theorems and Proofs {.unnumbered}
 

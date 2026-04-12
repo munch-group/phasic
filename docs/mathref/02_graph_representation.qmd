@@ -27,9 +27,15 @@ In a dense matrix representation, the adjacency structure occupies $O(|V|^2)$ sp
 *Let $v \in V$ be a vertex in a phase-type graph $G = (V, E, W)$ (@def-01-weighted-digraph). The dynamic edge list of $v$ is a resizable array $\mathcal{E}(v)$ that stores all outgoing edges $(v \to z) \in E$. The array has a logical size $|\mathcal{E}(v)|$ (the number of edges currently stored) and a capacity $\operatorname{cap}(\mathcal{E}(v))$ (the number of slots allocated). New edges are appended at the end. When $|\mathcal{E}(v)| = \operatorname{cap}(\mathcal{E}(v))$, the capacity is doubled before the insertion proceeds. Initially, $\operatorname{cap}(\mathcal{E}(v)) = 0$ and storage is allocated on first insertion.*
 :::
 
-> **Intuition.** Each vertex owns a contiguous block of memory holding its outgoing edges. The doubling strategy ensures that although individual insertions may trigger a reallocation (copying all existing edges), the average cost per insertion is constant. Edges are not sorted during normal operation; the order reflects the order in which they were added.
+<details>
+<summary>Intuition</summary>
+Each vertex owns a contiguous block of memory holding its outgoing edges. The doubling strategy ensures that although individual insertions may trigger a reallocation (copying all existing edges), the average cost per insertion is constant. Edges are not sorted during normal operation; the order reflects the order in which they were added.
+</details>
 
-> **Example.** A vertex $v$ with three children $z_1, z_2, z_3$ has $|\mathcal{E}(v)| = 3$. If the current capacity is 4, adding a fourth edge requires no reallocation. Adding a fifth edge triggers a reallocation to capacity 8.
+<details>
+<summary>Example</summary>
+A vertex $v$ with three children $z_1, z_2, z_3$ has $|\mathcal{E}(v)| = 3$. If the current capacity is 4, adding a fourth edge requires no reallocation. Adding a fifth edge triggers a reallocation to capacity 8.
+</details>
 
 ::: {#def-02-vertex-array}
 
@@ -38,7 +44,10 @@ In a dense matrix representation, the adjacency structure occupies $O(|V|^2)$ sp
 *The graph $G$ stores all vertices in a dynamic array $\mathcal{V}(G)$ with the same doubling growth strategy as @def-02-edge-list. The starting vertex $v_0$ (@def-01-ph-graph) is always at index 0. Each vertex carries a state vector $\sigma(v) \in \mathbb{Z}^d$, where $d$ is the state dimension of the graph.*
 :::
 
-> **Intuition.** The state vector $\sigma(v)$ is the label that distinguishes vertices during graph construction. For example, in a coalescent model with $d = 1$, the state vector records the number of lineages. The vertex array provides $O(1)$ access by index, which is used extensively by elimination and moment algorithms.
+<details>
+<summary>Intuition</summary>
+The state vector $\sigma(v)$ is the label that distinguishes vertices during graph construction. For example, in a coalescent model with $d = 1$, the state vector records the number of lineages. The vertex array provides $O(1)$ access by index, which is used extensively by elimination and moment algorithms.
+</details>
 
 ### AVL tree for state deduplication {.unnumbered}
 
@@ -51,9 +60,15 @@ During graph construction, the same state may be encountered multiple times (e.g
 *Let $d$ be the state dimension. An AVL tree $\mathcal{A}$ is a balanced binary search tree whose keys are state vectors $\sigma \in \mathbb{Z}^d$ and whose values are pointers to vertices in $\mathcal{V}(G)$. The key comparison is lexicographic on the byte representation: for state vectors $\sigma = (\sigma_1, \ldots, \sigma_d)$ and $\sigma' = (\sigma'_1, \ldots, \sigma'_d)$, the comparison is performed by `memcmp` on the $d \cdot \operatorname{sizeof}(\texttt{int})$ bytes. The tree maintains the AVL balance invariant: for every node $n$, the heights of its left and right subtrees differ by at most 1. Balance is restored after insertions by the four standard rotations (left, right, left-right, right-left).*
 :::
 
-> **Intuition.** The AVL tree is a lookup table: given a state vector, it returns either the existing vertex with that state or creates a new one. The balanced-tree structure ensures that lookups and insertions take $O(\log |V|)$ comparisons, and each comparison costs $O(d)$ for the byte-level comparison of state vectors.
+<details>
+<summary>Intuition</summary>
+The AVL tree is a lookup table: given a state vector, it returns either the existing vertex with that state or creates a new one. The balanced-tree structure ensures that lookups and insertions take $O(\log |V|)$ comparisons, and each comparison costs $O(d)$ for the byte-level comparison of state vectors.
+</details>
 
-> **Example.** In a coalescent model with state dimension $d = 1$, the tree keys are single integers (the number of lineages). When the state space construction encounters state $(3)$, the AVL tree either finds the existing vertex for 3 lineages or creates a new one. The tree with states $\{1, 2, 3, 4, 5\}$ might have 3 at the root, with 1 and 2 in the left subtree and 4 and 5 in the right.
+<details>
+<summary>Example</summary>
+In a coalescent model with state dimension $d = 1$, the tree keys are single integers (the number of lineages). When the state space construction encounters state $(3)$, the AVL tree either finds the existing vertex for 3 lineages or creates a new one. The tree with states $\{1, 2, 3, 4, 5\}$ might have 3 at the root, with 1 and 2 in the left subtree and 4 and 5 in the right.
+</details>
 
 ::: {#def-02-avl-balance}
 
@@ -62,7 +77,10 @@ During graph construction, the same state may be encountered multiple times (e.g
 *For a node $n$ in the AVL tree $\mathcal{A}$, the balance factor is $\beta(n) = h(n_R) - h(n_L)$, where $h(n_L)$ and $h(n_R)$ are the heights of the left and right subtrees respectively, with the convention $h(\texttt{null}) = -1$. The AVL invariant requires $\beta(n) \in \{-1, 0, 1\}$ for all nodes $n$.*
 :::
 
-> **Intuition.** The balance factor determines which rotation to apply after an insertion. A balance factor of $\pm 2$ at some node triggers a rotation that restores the invariant.
+<details>
+<summary>Intuition</summary>
+The balance factor determines which rotation to apply after an insertion. A balance factor of $\pm 2$ at some node triggers a rotation that restores the invariant.
+</details>
 
 ### Graph validation {.unnumbered}
 
@@ -75,11 +93,20 @@ After construction, a graph may be validated to detect structural errors. Phasic
 *A phase-type graph $G = (V, E, W)$ satisfies the validation invariants if and only if for every vertex $v \in V$ and every pair of edges $(v \to z_1), (v \to z_2) \in \mathcal{E}(v)$ with the same target ($z_1 = z_2$), the two edges are the same edge (i.e., no vertex has two distinct edges to the same target).*
 :::
 
-> **Intuition.** Parallel edges would make the weight function $W$ ambiguous: $w(v \to z)$ must be a single value. The graph construction functions prevent parallel edges at insertion time; validation provides a post-hoc check.
+<details>
+<summary>Intuition</summary>
+Parallel edges would make the weight function $W$ ambiguous: $w(v \to z)$ must be a single value. The graph construction functions prevent parallel edges at insertion time; validation provides a post-hoc check.
+</details>
 
-> **Example.** If vertex $v$ has edges to $z_1$ and $z_2$ with $z_1 \neq z_2$, the graph is valid (with respect to this invariant). If $v$ has two edges both targeting $z_1$, validation fails.
+<details>
+<summary>Example</summary>
+If vertex $v$ has edges to $z_1$ and $z_2$ with $z_1 \neq z_2$, the graph is valid (with respect to this invariant). If $v$ has two edges both targeting $z_1$, validation fails.
+</details>
 
-**Remark.** The validation algorithm does *not* check: non-negative weights (enforced by the weight computation modes in @def-01-param-edges), connectivity, or the absence of self-loops (self-loops are forbidden by the edge insertion function, not by validation).
+<details>
+<summary>Remark</summary>
+The validation algorithm does *not* check: non-negative weights (enforced by the weight computation modes in @def-01-param-edges), connectivity, or the absence of self-loops (self-loops are forbidden by the edge insertion function, not by validation).
+</details>
 
 ### Graph cloning {.unnumbered}
 
@@ -99,7 +126,10 @@ Some algorithms (e.g., reward transformation) modify the graph in place. To pres
 6. *Cached computation results (e.g., from elimination) are not copied.*
 :::
 
-> **Intuition.** Cloning produces an independent copy: any modification to $G'$ leaves $G$ unchanged, and vice versa. The omission of cached results is deliberate — cached results reference the original vertices and would be invalidated by any modification to $G'$.
+<details>
+<summary>Intuition</summary>
+Cloning produces an independent copy: any modification to $G'$ leaves $G$ unchanged, and vice versa. The omission of cached results is deliberate — cached results reference the original vertices and would be invalidated by any modification to $G'$.
+</details>
 
 ## Theorems and Proofs {.unnumbered}
 
@@ -111,7 +141,7 @@ Some algorithms (e.g., reward transformation) modify the graph in place. To pres
 :::
 
 ::: {.proof}
-The AVL balance invariant ensures that the height of the tree is at most $1.4404 \log_2(|V| + 2) - 0.3277$ (the Fibonacci bound on AVL tree height; see Adelson-Velsky & Landis, 1962). Thus the number of nodes visited during a search or insertion is $O(\log |V|)$. At each node, the key comparison performs a `memcmp` on $d \cdot \operatorname{sizeof}(\texttt{int})$ bytes, which takes $O(d)$ time. The total comparison cost is therefore $O(d \log |V|)$.
+The AVL balance invariant ensures that the height of the tree is at most $1.4404 \log_2(|V| + 2) - 0.3277$ (the Fibonacci bound on AVL tree height; see @adelsonvelsky1962). Thus the number of nodes visited during a search or insertion is $O(\log |V|)$. At each node, the key comparison performs a `memcmp` on $d \cdot \operatorname{sizeof}(\texttt{int})$ bytes, which takes $O(d)$ time. The total comparison cost is therefore $O(d \log |V|)$.
 
 For FindOrInsert, if the key is not found, a new node is created in $O(d)$ time (copying the state vector) and inserted as a leaf. The subsequent rebalancing traverses at most $O(\log |V|)$ ancestors, performing at most two rotations, each in $O(1)$ time. The total insertion cost is $O(d \log |V|)$.
 
@@ -122,7 +152,7 @@ For Find (lookup without insertion), the cost is exactly the search cost: $O(d \
 
 #### Amortized O(1) edge insertion
 
-*Let $\mathcal{E}(v)$ be a dynamic edge list with doubling growth strategy (@def-02-edge-list). Starting from an empty list, the amortized cost of inserting $n$ edges is $O(1)$ per insertion.*
+*Let $\mathcal{E}(v)$ be a dynamic edge list with doubling growth strategy (@def-02-edge-list). Starting from an empty list, the amortized cost of inserting $n$ edges is $O(1)$ per insertion [@cormen2009].*
 :::
 
 ::: {.proof}

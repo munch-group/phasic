@@ -42,23 +42,29 @@ The `GraphBuilder` addresses this by parsing the JSON representation once, cachi
 *The serialization separates structural information (topology, coefficients) from parameter values ($\boldsymbol{\theta}$), enabling the structure to be fixed while $\boldsymbol{\theta}$ varies.*
 :::
 
-> **Intuition.** The serialization is a snapshot of the graph's "skeleton": it records which vertices exist, how they are connected, and what coefficients each parameterized edge carries, but does not commit to specific parameter values. This is analogous to a compiled computation graph in machine learning frameworks, where the graph structure is fixed at compile time and only the input data varies at runtime.
+<details>
+<summary>Intuition</summary>
+The serialization is a snapshot of the graph's "skeleton": it records which vertices exist, how they are connected, and what coefficients each parameterized edge carries, but does not commit to specific parameter values. This is analogous to a compiled computation graph in machine learning frameworks, where the graph structure is fixed at compile time and only the input data varies at runtime.
+</details>
 
-> **Example.** A two-state coalescent model with parameter $\theta$ (inverse population size) serializes as:
-> ```json
-> {
->   "states": [[2], [1]],
->   "edges": [],
->   "start_edges": [[0, 1.0]],
->   "param_edges": [[0, 1, 1.0]],
->   "start_param_edges": [],
->   "param_length": 1,
->   "state_length": 1,
->   "n_vertices": 2,
->   "weight_mode": "linear"
-> }
-> ```
-> The single parameterized edge from vertex 0 to vertex 1 has coefficient $c_1 = 1.0$, so $w = 1.0 \cdot \theta_1 = \theta_1$.
+<details>
+<summary>Example</summary>
+A two-state coalescent model with parameter $\theta$ (inverse population size) serializes as:
+```json
+{
+  "states": [[2], [1]],
+  "edges": [],
+  "start_edges": [[0, 1.0]],
+  "param_edges": [[0, 1, 1.0]],
+  "start_param_edges": [],
+  "param_length": 1,
+  "state_length": 1,
+  "n_vertices": 2,
+  "weight_mode": "linear"
+}
+```
+The single parameterized edge from vertex 0 to vertex 1 has coefficient $c_1 = 1.0$, so $w = 1.0 \cdot \theta_1 = \theta_1$.
+</details>
 
 ::: {#def-26-graph-builder .definition}
 
@@ -79,9 +85,15 @@ w & \text{if } (v_i \to v_j) \text{ is a fixed edge with weight } w, \\
 *The GraphBuilder additionally provides composite operations $\mathcal{B}.\operatorname{compute\_pmf}(\boldsymbol{\theta}, \mathbf{t})$ and $\mathcal{B}.\operatorname{compute\_moments}(\boldsymbol{\theta}, K)$ that combine graph construction with evaluation in a single call, avoiding the overhead of exposing the intermediate graph to Python.*
 :::
 
-> **Intuition.** The GraphBuilder is a factory that stamps out concrete graphs from a template. The JSON parsing (which involves string processing, memory allocation, and validation) happens once at construction; each subsequent `build` call only performs the lightweight operations of creating vertices, adding edges with computed weights, and returning the graph. For a graph with $p$ vertices and $m$ edges, parsing costs $O(|J|)$ while building costs $O(p + m)$.
+<details>
+<summary>Intuition</summary>
+The GraphBuilder is a factory that stamps out concrete graphs from a template. The JSON parsing (which involves string processing, memory allocation, and validation) happens once at construction; each subsequent `build` call only performs the lightweight operations of creating vertices, adding edges with computed weights, and returning the graph. For a graph with $p$ vertices and $m$ edges, parsing costs $O(|J|)$ while building costs $O(p + m)$.
+</details>
 
-> **Example.** In SVGD with 100 particles and 1000 iterations, the GraphBuilder is constructed once from the serialized graph. Each of the $100 \times 1000 = 100{,}000$ evaluations calls `build(theta)` + `pdf(t, g)`, reusing the cached vertex states and edge connectivity. Without caching, each evaluation would re-parse the JSON string.
+<details>
+<summary>Example</summary>
+In SVGD with 100 particles and 1000 iterations, the GraphBuilder is constructed once from the serialized graph. Each of the $100 \times 1000 = 100{,}000$ evaluations calls `build(theta)` + `pdf(t, g)`, reusing the cached vertex states and edge connectivity. Without caching, each evaluation would re-parse the JSON string.
+</details>
 
 ::: {#def-26-batch-eval .definition}
 
@@ -94,9 +106,15 @@ $$\mathcal{B}.\operatorname{batch\_pmf}(\boldsymbol{\Theta}, \mathbf{t}) = \begi
 *where $\boldsymbol{\Theta} = (\boldsymbol{\theta}^{(1)}, \ldots, \boldsymbol{\theta}^{(B)})^\top \in \mathbb{R}^{B \times d}$ is the parameter matrix. In the JAX FFI implementation, batch evaluation is triggered by `jax.vmap`, which adds a batch dimension to the theta buffer. The FFI handler processes each batch element independently, optionally in parallel via OpenMP threads.*
 :::
 
-> **Intuition.** Batch evaluation is the workhorse of particle-based inference. In SVGD, each particle carries its own $\boldsymbol{\theta}^{(b)}$, and the log-likelihood and its gradient must be computed for all particles at each iteration. Batch evaluation via `vmap` + OpenMP parallelizes this across CPU cores, with each core running a separate `GraphBuilder::build` + forward algorithm sequence. Since each build creates an independent graph, there is no synchronization overhead.
+<details>
+<summary>Intuition</summary>
+Batch evaluation is the workhorse of particle-based inference. In SVGD, each particle carries its own $\boldsymbol{\theta}^{(b)}$, and the log-likelihood and its gradient must be computed for all particles at each iteration. Batch evaluation via `vmap` + OpenMP parallelizes this across CPU cores, with each core running a separate `GraphBuilder::build` + forward algorithm sequence. Since each build creates an independent graph, there is no synchronization overhead.
+</details>
 
-> **Example.** With 100 SVGD particles on an 8-core machine, `jax.vmap(compute_pmf_ffi)` dispatches 100 evaluations to the FFI handler, which processes them in batches of 8 (one per OpenMP thread), achieving approximately $8\times$ speedup over sequential evaluation.
+<details>
+<summary>Example</summary>
+With 100 SVGD particles on an 8-core machine, `jax.vmap(compute_pmf_ffi)` dispatches 100 evaluations to the FFI handler, which processes them in batches of 8 (one per OpenMP thread), achieving approximately $8\times$ speedup over sequential evaluation.
+</details>
 
 ## Theorems and Proofs {.unnumbered}
 

@@ -4,7 +4,7 @@ title: "Backward Filtering Forward Guiding"
 
 ## Introduction {.unnumbered}
 
-This file formalizes **Backward Filtering Forward Guiding (BFFG)**, an importance-weighting framework for inference with phase-type distributions under inhomogeneous (time-varying) parameters. The core problem is computing the likelihood $p(\mathbf{y} \mid \boldsymbol{\theta}_{\text{target}})$ when the target parameter vector varies over time, making direct forward-algorithm computation intractable. BFFG addresses this by sampling paths under a tractable homogeneous proposal model (with fixed parameters $\boldsymbol{\theta}_{\text{prop}}$) and reweighting those paths to account for the target model. The importance weights are derived from the ratio of path densities under the target and proposal continuous-time Markov chains.
+This file formalizes **Backward Filtering Forward Guiding** [BFFG; @schauer2017], an importance-weighting framework for inference with phase-type distributions under inhomogeneous (time-varying) parameters. The core problem is computing the likelihood $p(\mathbf{y} \mid \boldsymbol{\theta}_{\text{target}})$ when the target parameter vector varies over time, making direct forward-algorithm computation intractable. BFFG addresses this by sampling paths under a tractable homogeneous proposal model (with fixed parameters $\boldsymbol{\theta}_{\text{prop}}$) and reweighting those paths to account for the target model. The importance weights are derived from the ratio of path densities under the target and proposal continuous-time Markov chains.
 
 In the phasic pipeline, BFFG enables Bayesian inference for models where transition rates depend on time (e.g., population-size changes affecting coalescent rates). The proposal model is evaluated via the fast forward algorithm and trace cache ([14], [11]), while the importance weight correction is computed from sampled paths ([17]). The combined log-probability feeds into MCMC ([19]) or SVGD ([18]) for posterior inference.
 
@@ -23,9 +23,15 @@ In the phasic pipeline, BFFG enables Bayesian inference for models where transit
 *Let $G = (V, E)$ be a parameterized phase-type graph with parameter vector $\boldsymbol{\theta} \in \mathbb{R}^d_{>0}$ and coefficient vectors $\mathbf{c}_e \in \mathbb{R}^d$ on each edge $e \in E$. The **proposal distribution** is the phase-type distribution $\operatorname{PH}(\boldsymbol{\alpha}, \mathbf{S}(\boldsymbol{\theta}_{\text{prop}}))$ with fixed parameter vector $\boldsymbol{\theta}_{\text{prop}}$, where each edge weight is $w(e) = \mathbf{c}_e^\top \boldsymbol{\theta}_{\text{prop}}$. The **target distribution** is determined by a time-varying parameter function $\boldsymbol{\theta}_{\text{target}}: \mathbb{R}_{\geq 0} \to \mathbb{R}^d_{>0}$, so that at time $t$ the edge weight under the target is $w_{\text{target}}(e, t) = \mathbf{c}_e^\top \boldsymbol{\theta}_{\text{target}}(t)$.*
 :::
 
-> **Intuition.** The proposal model is a standard homogeneous phase-type distribution that can be efficiently evaluated using the forward algorithm. The target model has time-varying rates, which prevents direct use of the forward algorithm (since $\mathbf{S}$ changes over time). By sampling paths from the proposal and reweighting, we avoid the need to solve the time-inhomogeneous Kolmogorov equations directly.
+<details>
+<summary>Intuition</summary>
+The proposal model is a standard homogeneous phase-type distribution that can be efficiently evaluated using the forward algorithm. The target model has time-varying rates, which prevents direct use of the forward algorithm (since $\mathbf{S}$ changes over time). By sampling paths from the proposal and reweighting, we avoid the need to solve the time-inhomogeneous Kolmogorov equations directly.
+</details>
 
-> **Example.** In a coalescent model with 5 lineages, the coalescent rate at state $n$ is $\binom{n}{2} \theta^{-1}$ where $\theta$ is the effective population size. The proposal uses a fixed $\theta_{\text{prop}}$, while the target has $\theta_{\text{target}}(t)$ varying (e.g., an exponential growth model). Each edge coefficient encodes $\binom{n}{2}$, and the parameter $\theta^{-1}$ gives the rate scaling.
+<details>
+<summary>Example</summary>
+In a coalescent model with 5 lineages, the coalescent rate at state $n$ is $\binom{n}{2} \theta^{-1}$ where $\theta$ is the effective population size. The proposal uses a fixed $\theta_{\text{prop}}$, while the target has $\theta_{\text{target}}(t)$ varying (e.g., an exponential growth model). Each edge coefficient encodes $\binom{n}{2}$, and the parameter $\theta^{-1}$ gives the rate scaling.
+</details>
 
 ::: {#def-20-exit-rate .definition}
 
@@ -42,7 +48,10 @@ $$\lambda_{v_k}(\boldsymbol{\theta}) = \sum_{j=1}^{d} \theta_j \sum_{e \in \oper
 *where $c_{e,j}$ is the $j$-th coefficient of edge $e$.*
 :::
 
-> **Intuition.** The exit rate from a vertex is the total rate at which the process leaves that state. For parameterized graphs, this rate is a linear function of the parameters, and the per-parameter decomposition (@eq-20-exit-rate-decomp) allows efficient computation of exit rates under different parameter vectors without re-traversing the graph structure.
+<details>
+<summary>Intuition</summary>
+The exit rate from a vertex is the total rate at which the process leaves that state. For parameterized graphs, this rate is a linear function of the parameters, and the per-parameter decomposition (@eq-20-exit-rate-decomp) allows efficient computation of exit rates under different parameter vectors without re-traversing the graph structure.
+</details>
 
 ::: {#def-20-importance-weight .definition}
 
@@ -55,9 +64,15 @@ $$\log w(\omega) = \sum_{k=1}^{K} \left[ \log \lambda_{v_k}^{\text{tgt}} - \log 
 *where $\lambda_{v_k}^{\text{tgt}} = \lambda_{v_k}(\boldsymbol{\theta}_{\text{target}}(t_k))$ and $\lambda_{v_k}^{\text{prop}} = \lambda_{v_k}(\boldsymbol{\theta}_{\text{prop}})$ are the exit rates, and $p_k^{\text{tgt}} = w_{\text{target}}(e_k, t_k) / \lambda_{v_k}^{\text{tgt}}$, $p_k^{\text{prop}} = w_{\text{prop}}(e_k) / \lambda_{v_k}^{\text{prop}}$ are the transition probabilities of the taken edge under target and proposal respectively.*
 :::
 
-> **Intuition.** In a continuous-time Markov chain, the density contribution from visiting vertex $v_k$ for time $s_k$ and then taking edge $e_k$ is $\lambda_{v_k} \exp(-\lambda_{v_k} s_k) \cdot p_k$. The importance weight is the ratio of this quantity under the target and proposal. Taking logarithms decomposes the ratio into an exit-rate log-ratio, a sojourn-time correction (the rate difference times the sojourn time), and a transition probability log-ratio. The first two terms come from the exponential sojourn time density; the third from the embedded chain transition probability.
+<details>
+<summary>Intuition</summary>
+In a continuous-time Markov chain, the density contribution from visiting vertex $v_k$ for time $s_k$ and then taking edge $e_k$ is $\lambda_{v_k} \exp(-\lambda_{v_k} s_k) \cdot p_k$. The importance weight is the ratio of this quantity under the target and proposal. Taking logarithms decomposes the ratio into an exit-rate log-ratio, a sojourn-time correction (the rate difference times the sojourn time), and a transition probability log-ratio. The first two terms come from the exponential sojourn time density; the third from the embedded chain transition probability.
+</details>
 
-> **Example.** If at vertex $v_k$ the proposal has exit rate $\lambda^{\text{prop}} = 3.0$ and the target has $\lambda^{\text{tgt}} = 4.5$, with sojourn time $s_k = 0.2$, and the taken edge has proposal probability $p^{\text{prop}} = 0.5$ and target probability $p^{\text{tgt}} = 0.6$, the contribution to the log-weight is $\log(4.5) - \log(3.0) - (4.5 - 3.0)(0.2) + \log(0.6) - \log(0.5) \approx 0.405 - 0.300 + 0.182 = 0.287$.
+<details>
+<summary>Example</summary>
+If at vertex $v_k$ the proposal has exit rate $\lambda^{\text{prop}} = 3.0$ and the target has $\lambda^{\text{tgt}} = 4.5$, with sojourn time $s_k = 0.2$, and the taken edge has proposal probability $p^{\text{prop}} = 0.5$ and target probability $p^{\text{tgt}} = 0.6$, the contribution to the log-weight is $\log(4.5) - \log(3.0) - (4.5 - 3.0)(0.2) + \log(0.6) - \log(0.5) \approx 0.405 - 0.300 + 0.182 = 0.287$.
+</details>
 
 ::: {#def-20-iw-loglik .definition}
 
@@ -72,7 +87,10 @@ $$\hat{\ell} = -\log M + \operatorname{logsumexp}(\ell_1 + \log w_1, \; \ldots, 
 $$\hat{\ell}_{\text{correction}} = -\log M + \operatorname{logsumexp}(\log w_1, \ldots, \log w_M).$$ {#eq-20-iw-correction}
 :::
 
-> **Intuition.** This is the standard self-normalized importance sampling estimator in log-space. The $\operatorname{logsumexp}$ function provides numerical stability by factoring out the maximum log-weight before exponentiating. Each path contributes its data likelihood weighted by how much more (or less) likely that path is under the target than under the proposal. The $-\log M$ term normalizes by the number of samples.
+<details>
+<summary>Intuition</summary>
+This is the standard self-normalized importance sampling estimator in log-space. The $\operatorname{logsumexp}$ function provides numerical stability by factoring out the maximum log-weight before exponentiating. Each path contributes its data likelihood weighted by how much more (or less) likely that path is under the target than under the proposal. The $-\log M$ term normalizes by the number of samples.
+</details>
 
 ## Theorems and Proofs {.unnumbered}
 

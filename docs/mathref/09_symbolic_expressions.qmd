@@ -34,9 +34,15 @@ The expression system is the foundation for symbolic graph elimination ([10]), t
 | $\texttt{Inv}$ | none | left $\mathcal{E}_L$ | $1 / \mathcal{E}_L$ |
 :::
 
-> **Intuition.** An expression tree is a standard abstract syntax tree for arithmetic expressions, extended with the $\texttt{Dot}$ node as an optimized representation for linear combinations of parameters (the most common expression in phase-type models). The $\texttt{Inv}$ node represents unary inversion, distinct from $\texttt{Div}$ which is binary.
+<details>
+<summary>Intuition</summary>
+An expression tree is a standard abstract syntax tree for arithmetic expressions, extended with the $\texttt{Dot}$ node as an optimized representation for linear combinations of parameters (the most common expression in phase-type models). The $\texttt{Inv}$ node represents unary inversion, distinct from $\texttt{Div}$ which is binary.
+</details>
 
-> **Example.** The expression $2\theta_1 + 3\theta_2$ is represented as a single $\texttt{Dot}$ node: $\texttt{Dot}((2, 3), (1, 2))$. The expression $\theta_1 / (\theta_1 + \theta_2)$ is represented as $\texttt{Div}(\texttt{Param}(1), \texttt{Add}(\texttt{Param}(1), \texttt{Param}(2)))$.
+<details>
+<summary>Example</summary>
+The expression $2\theta_1 + 3\theta_2$ is represented as a single $\texttt{Dot}$ node: $\texttt{Dot}((2, 3), (1, 2))$. The expression $\theta_1 / (\theta_1 + \theta_2)$ is represented as $\texttt{Div}(\texttt{Param}(1), \texttt{Add}(\texttt{Param}(1), \texttt{Param}(2)))$.
+</details>
 
 ::: {#def-09-expression-evaluation}
 
@@ -56,7 +62,10 @@ c & \text{if } \mathcal{E} = \texttt{Const}(c) \\
 \end{cases}$$
 :::
 
-> **Intuition.** Evaluation is a standard post-order tree traversal: evaluate children first, then combine. The implementation uses an iterative (stack-based) traversal to avoid stack overflow on deep expression trees.
+<details>
+<summary>Intuition</summary>
+Evaluation is a standard post-order tree traversal: evaluate children first, then combine. The implementation uses an iterative (stack-based) traversal to avoid stack overflow on deep expression trees.
+</details>
 
 ::: {#def-09-cse-interning}
 
@@ -69,9 +78,15 @@ c & \text{if } \mathcal{E} = \texttt{Const}(c) \\
 *The interned constructors $\texttt{Add}_\mathcal{I}$, $\texttt{Mul}_\mathcal{I}$, $\texttt{Div}_\mathcal{I}$, $\texttt{Sub}_\mathcal{I}$, $\texttt{Inv}_\mathcal{I}$ construct the expression node and immediately intern it, ensuring that identical subexpressions share a single node in memory.*
 :::
 
-> **Intuition.** During graph elimination, the same subexpression (e.g., the sum of edge weights at a vertex) appears in multiple contexts. Without CSE, the expression tree grows exponentially with the number of elimination steps. Interning ensures that each unique subexpression is stored once, converting the tree into a DAG (directed acyclic graph of expression nodes) and keeping memory bounded.
+<details>
+<summary>Intuition</summary>
+During graph elimination, the same subexpression (e.g., the sum of edge weights at a vertex) appears in multiple contexts. Without CSE, the expression tree grows exponentially with the number of elimination steps. Interning ensures that each unique subexpression is stored once, converting the tree into a DAG (directed acyclic graph of expression nodes) and keeping memory bounded.
+</details>
 
-> **Example.** If vertex $v$ has edges with weights $\mathcal{E}_1$ and $\mathcal{E}_2$, the total rate is $\mathcal{E}_\lambda = \texttt{Add}_\mathcal{I}(\mathcal{E}_1, \mathcal{E}_2)$. The normalized probability for the first edge is $\texttt{Mul}_\mathcal{I}(\mathcal{E}_1, \texttt{Inv}_\mathcal{I}(\mathcal{E}_\lambda))$. If another vertex also needs $\texttt{Inv}_\mathcal{I}(\mathcal{E}_\lambda)$, the intern table returns the same node rather than creating a duplicate.
+<details>
+<summary>Example</summary>
+If vertex $v$ has edges with weights $\mathcal{E}_1$ and $\mathcal{E}_2$, the total rate is $\mathcal{E}_\lambda = \texttt{Add}_\mathcal{I}(\mathcal{E}_1, \mathcal{E}_2)$. The normalized probability for the first edge is $\texttt{Mul}_\mathcal{I}(\mathcal{E}_1, \texttt{Inv}_\mathcal{I}(\mathcal{E}_\lambda))$. If another vertex also needs $\texttt{Inv}_\mathcal{I}(\mathcal{E}_\lambda)$, the intern table returns the same node rather than creating a duplicate.
+</details>
 
 ::: {#def-09-expression-differentiation}
 
@@ -94,9 +109,15 @@ $$\partial_j \mathcal{E} = \begin{cases}
 *where $\delta_{j,j'}$ is the Kronecker delta.*
 :::
 
-> **Intuition.** This is standard symbolic differentiation (sum rule, product rule, quotient rule, chain rule) applied to the expression tree ADT. The $\texttt{Dot}$ case is a specialization of the linearity of differentiation. The result is a new expression tree that, when evaluated, yields the partial derivative $\partial f / \partial \theta_j$ where $f = \operatorname{eval}(\mathcal{E}, \boldsymbol{\theta})$.
+<details>
+<summary>Intuition</summary>
+This is standard symbolic differentiation (sum rule, product rule, quotient rule, chain rule) applied to the expression tree ADT. The $\texttt{Dot}$ case is a specialization of the linearity of differentiation. The result is a new expression tree that, when evaluated, yields the partial derivative $\partial f / \partial \theta_j$ where $f = \operatorname{eval}(\mathcal{E}, \boldsymbol{\theta})$.
+</details>
 
-> **Example.** For $\mathcal{E} = \texttt{Mul}(\texttt{Param}(1), \texttt{Param}(2))$ representing $\theta_1 \cdot \theta_2$, we have $\partial_1 \mathcal{E} = \texttt{Add}(\texttt{Mul}(\texttt{Param}(1), \texttt{Const}(0)), \texttt{Mul}(\texttt{Param}(2), \texttt{Const}(1))) = \texttt{Add}(\texttt{Const}(0), \texttt{Param}(2))$. Evaluating at any $\boldsymbol{\theta}$ gives $\theta_2$, which is the correct derivative.
+<details>
+<summary>Example</summary>
+For $\mathcal{E} = \texttt{Mul}(\texttt{Param}(1), \texttt{Param}(2))$ representing $\theta_1 \cdot \theta_2$, we have $\partial_1 \mathcal{E} = \texttt{Add}(\texttt{Mul}(\texttt{Param}(1), \texttt{Const}(0)), \texttt{Mul}(\texttt{Param}(2), \texttt{Const}(1))) = \texttt{Add}(\texttt{Const}(0), \texttt{Param}(2))$. Evaluating at any $\boldsymbol{\theta}$ gives $\theta_2$, which is the correct derivative.
+</details>
 
 ## Theorems and Proofs {.unnumbered}
 

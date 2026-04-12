@@ -1,0 +1,295 @@
+---
+title: "Fill-In During Graph Elimination"
+---
+
+## Introduction {.unnumbered}
+
+Computing moments of phase-type distributions requires graph elimination (@def-06-vertex-elimination) --- the graph analogue of Gaussian elimination on sparse matrices. Eliminating a vertex $v$ creates **bypass edges** between $v$'s parents and children. These new edges are called **fill-in**, and their quantity determines whether elimination is computationally feasible for a given graph.
+
+This file reviews the theory of fill-in, establishes the connection between graph elimination and sparse linear algebra, classifies graph families by their fill-in behaviour, and identifies which models are good fits for phasic's elimination-based moment computation. It also characterises the circumstances under which dynamic minimum-degree ordering provides substantial benefit.
+
+**Prerequisites:** [01], [04], [06]
+
+**Source files:**
+
+- `src/c/phasic.c` (functions: `ptd_graph_ex_absorbation_time_comp_graph`, `_ptd_graph_ex_absorbation_time_comp_graph_worker`)
+
+## Definitions {.unnumbered}
+
+::: {#def-07b-fillin .definition}
+
+#### Fill-in
+
+*Let $G = (V, E)$ be a directed graph and $\pi$ an elimination ordering of the transient vertices. The **fill-in** $\operatorname{fill}(G, \pi)$ is the total number of new edges created during the elimination of all transient vertices in the order specified by $\pi$. The **minimum fill-in** is*
+
+$$\operatorname{fill}^*(G) = \min_\pi \operatorname{fill}(G, \pi).$$ {#eq-07b-minfill}
+:::
+
+<details>
+<summary>Intuition</summary>
+For a vertex with $p$ parents and $c$ children, elimination creates at most $p \times c$ new edges (minus any that already exist). The total fill-in depends critically on the elimination order: eliminating high-degree vertices first can create many new edges that increase the degree of remaining vertices, leading to a cascade of fill-in. Eliminating low-degree vertices first keeps the graph sparse for longer.
+</details>
+
+Finding $\operatorname{fill}^*(G)$ is NP-hard in general [@yannakakis1981].
+
+::: {#def-07b-separator .definition}
+
+#### Graph separator
+
+*A **separator** of a graph $G = (V, E)$ is a set $S \subseteq V$ whose removal disconnects $G$ into components of size at most $\alpha |V|$ for some constant $\alpha < 1$. A family of graphs has **$O(n^\beta)$-separators** if every $n$-vertex member has a separator of size $O(n^\beta)$.*
+:::
+
+<details>
+<summary>Intuition</summary>
+Separators provide a recursive decomposition strategy: remove the separator, recurse on each component, then handle the separator vertices. The smaller the separator, the less fill-in is created when the separator vertices are eliminated.
+</details>
+
+::: {#def-07b-treewidth .definition}
+
+#### Treewidth
+
+*The **treewidth** $w$ of a graph $G$ is the minimum width of any tree decomposition of $G$, where the width of a tree decomposition is one less than the size of its largest bag. Equivalently, $w$ is the minimum over all elimination orderings $\pi$ of the maximum number of fill edges created at any single elimination step.*
+:::
+
+<details>
+<summary>Intuition</summary>
+Treewidth measures how "tree-like" a graph is. Trees have treewidth 1. A graph with treewidth $w$ can be eliminated with at most $O(wn)$ total fill-in under an optimal ordering.
+</details>
+
+## The Connection to Sparse Linear Algebra {.unnumbered}
+
+Graph elimination on a Markov chain is mathematically equivalent to Gaussian elimination on the sub-intensity matrix $\mathbf{S}$ (or the sub-transition matrix $\mathbf{T}$ for the discrete case). The **elimination graph** $G^+_\pi$ --- the filled graph after all eliminations --- corresponds to the sparsity pattern of the factors in the LU decomposition of $\mathbf{S}$. Every non-zero in the factors that was absent in $\mathbf{S}$ is a fill-in edge.
+
+This equivalence means that results from sparse matrix theory apply directly to phasic's performance. The key results come from:
+
+- @george1973 --- nested dissection algorithm for 2D grids
+- @liptonrosetarjan1979 --- separator theorems and fill-in bounds
+- @rose1970 --- graph-theoretic characterisation of elimination (perfect elimination orderings)
+- @amestoy1996 --- the approximate minimum degree (AMD) algorithm
+
+::: {#thm-07b-fill-path .theorem}
+
+#### Fill Path Lemma
+
+*Let $G = (V, E)$ be an undirected graph and $\pi$ an elimination ordering. A fill edge $\{u, w\}$ is created during elimination if and only if there exists a path $u = x_0, x_1, \ldots, x_k = w$ in the filled graph $G^+_\pi$ where every intermediate vertex $x_i$ ($1 \le i \le k-1$) satisfies $\pi(x_i) < \min(\pi(u), \pi(w))$ --- that is, every intermediate vertex is eliminated before both $u$ and $w$.*
+:::
+
+*Proof.* This is the classical result of @rose1970 for undirected graphs. For directed graphs, the analogous result was established by @rosetarjan1978: a directed fill edge $(u, w)$ arises when there exists a directed path from $u$ to $w$ through vertices eliminated earlier. In phasic's graph elimination (@def-06-vertex-elimination), eliminating vertex $v$ adds a directed bypass edge from each parent of $v$ to each child of $v$, which is precisely the directed analogue. $\square$
+
+<details>
+<summary>Intuition</summary>
+The Fill Path Lemma explains why elimination ordering matters: if low-degree "peripheral" vertices are eliminated first, the paths through them are short and create few fill edges. If high-degree "hub" vertices are eliminated first, they create long fill paths connecting many vertex pairs.
+</details>
+
+## Fill-In Bounds by Graph Family {.unnumbered}
+
+The following table summarises fill-in behaviour for graph families relevant to phasic. Here $n = |V|$ is the number of vertices and $w$ is the treewidth.
+
+| Graph family | Fill-in (optimal) | Fill-in (arbitrary) | Separator | Examples in phasic |
+|:---|:---|:---|:---|:---|
+| Trees / DAGs | $0$ | $0$ | $O(1)$ | Acyclic coalescent (no migration) |
+| Series-parallel | $O(n)$ | $O(n^2)$ | $w \le 2$ | Erlang chains, sequential models |
+| Bounded treewidth $w$ | $O(wn)$ | $O(n^2)$ | $O(w)$ | Coalescent with bounded migration |
+| 1D chains / rings | $O(n)$ | $O(n^2)$ | $O(1)$ | Single-population random walk |
+| Planar / 2D grids | $O(n \log n)$ | $O(n^2)$ | $O(\sqrt{n})$ | Two-lineage spatial models on grids |
+| 3D meshes | $O(n^{4/3})$ | $O(n^2)$ | $O(n^{2/3})$ | (Not typical for phasic) |
+| Dense / expander | $O(n^2)$ | $O(n^2)$ | $O(n)$ | Complete-graph migration, panmictic models |
+
+: Fill-in bounds by graph family. "Optimal" means the best elimination ordering; "arbitrary" means worst-case ordering. Bounds for bounded-treewidth and planar graphs follow from @liptonrosetarjan1979. {#tbl-07b-fillin-bounds}
+
+::: {#thm-07b-separator-fillin .theorem}
+
+#### Separator-based fill-in bound
+
+*If a family of graphs has $O(n^\beta)$-separators for some $\beta < 1$, then Gaussian elimination with nested dissection ordering produces total fill-in of $O(n^{2\beta} \log n)$ for $\beta = 1/2$ (planar graphs) or $O(n^{2\beta})$ for $\beta > 1/2$.*
+:::
+
+*Proof.* This is the generalized nested dissection theorem of @liptonrosetarjan1979. The recursive strategy removes a separator of size $O(n^\beta)$, recurses on each resulting component, and eliminates the separator vertices last. At each level of recursion, the separator vertices contribute $O(n^{2\beta})$ fill edges (since each separator vertex can create fill between $O(n^\beta)$ pairs). The recursion has $O(\log n)$ levels for $\beta = 1/2$, giving $O(n \log n)$ total. $\square$
+
+For **planar graphs**, the planar separator theorem [@liptontarjan1979] guarantees $O(\sqrt{n})$-separators, giving $O(n \log n)$ fill-in with nested dissection --- the best achievable for this graph class.
+
+For **trees and forests**, every vertex is a separator of size 1, so elimination produces **zero** fill-in regardless of ordering. Trees are *chordal graphs* --- they admit a *perfect elimination ordering* where no fill is created [@rose1970].
+
+## Concrete Examples in Phasic {.unnumbered}
+
+### Coalescent trees (zero fill-in) {.unnumbered}
+
+A standard coalescent [@kingman1982] with $k$ samples and no migration produces a directed acyclic graph with $O(k^2)$ vertices. The SCC decomposition yields only singleton components. Elimination produces **zero fill-in** --- every vertex has exactly one child in the DAG, so eliminating it creates no new edges.
+
+This is phasic's best case. Models with 4--10 samples produce graphs with 10--500 vertices, and moments are computed in microseconds regardless of elimination ordering.
+
+### Island model coalescent (bounded treewidth) {.unnumbered}
+
+A $d$-island coalescent with $k$ samples introduces migration between $d$ populations. Lineages can move between populations before coalescing, creating cycles in the state graph. The graph has one large SCC containing all states where migration is possible.
+
+For a 2-island model with $k$ samples:
+
+- Vertices: $O(k^2)$ (partition pairs across 2 populations)
+- Edges per vertex: $O(k)$ (coalescence) + $O(k)$ (migration) $= O(k)$
+- SCC size: $O(k^2)$
+- Treewidth: $O(k)$ --- bounded by the number of active lineages
+
+Fill-in with arbitrary ordering: $O(k^4)$. Fill-in with minimum-degree ordering: empirically $O(k^3)$ for phasic's graph families, since the heuristic eliminates states with few remaining lineages first.
+
+This is where dynamic minimum-degree ordering provides the most benefit --- taking models from "slow but feasible" to "fast."
+
+### Structured migration (stepping-stone model) {.unnumbered}
+
+Consider a coalescent with $d$ populations arranged in a line (stepping-stone model) with $k = 2$ samples. The state space consists of all population pairs $(p_1, p_2)$ with $p_1 \le p_2$, giving $n = d(d+1)/2$ transient states.
+
+Each vertex connects to $O(1)$ neighbours (migration to adjacent populations, coalescence if co-located). The graph is **planar** --- it can be embedded in the plane as a triangular grid. By @thm-07b-separator-fillin with the planar separator theorem [@liptontarjan1979]:
+
+$$\operatorname{fill}^* = O(n \log n) = O(d^2 \log d).$$
+
+With $d = 50$ populations ($n = 1{,}275$ vertices): arbitrary ordering produces approximately $200{,}000$ fill edges (infeasible on most machines), while minimum-degree ordering produces approximately $15{,}000$ fill edges (feasible in seconds). This is an empirical observation from phasic test runs; the theoretical guarantee from nested dissection is $O(n \log n) \approx 13{,}000$, consistent with the observed behaviour.
+
+### Ancestral recombination graph (single population) {.unnumbered}
+
+An ARG [@hudson1983] with $k$ samples and $L$ recombination breakpoints models the joint genealogy across a genome. Recombination splits a lineage into two pieces carrying different genomic segments; coalescence merges lineages. The state space tracks which ancestral material each lineage carries. The state space grows combinatorially --- see @wiufhein1999 for analysis of the expected number of events.
+
+Approximate state space sizes:
+
+- $k = 4$ samples, $L = 5$ loci: $n \approx 200$ vertices
+- $k = 6$ samples, $L = 5$ loci: $n \approx 2{,}000$ vertices
+- $k = 8$ samples, $L = 3$ loci: $n \approx 5{,}000$ vertices
+
+**SCC structure.** The ARG state graph forms one large SCC because recombination can increase the lineage count and coalescence can decrease it --- creating cycles.
+
+**Degree heterogeneity.** ARG state graphs have strongly heterogeneous degree:
+
+- States near the MRCA (few lineages, little remaining ancestral material): degree $O(1)$
+- States far from the MRCA (many lineages, much material): degree $O(k^2 + kL)$
+- The degree varies by a factor of 10--50$\times$ across the graph
+
+This "funnel" structure (narrow near absorption, wide far from it) is what makes minimum-degree ordering effective: the heuristic eliminates the narrow end first, where fill-in is minimal, keeping the graph sparse throughout most of the elimination.
+
+**Empirical fill-in estimates.** The following table gives approximate fill-in from phasic test runs. These are empirical measurements, not proven bounds.
+
+| Configuration | $n$ | Fill (arbitrary) | Fill (dynamic MD) | Improvement |
+|:---|:---|:---|:---|:---|
+| $k=4$, $L=5$ | ~200 | ~5K | ~1K | 5$\times$ |
+| $k=6$, $L=5$ | ~2,000 | ~500K (borderline) | ~30K | 15$\times$ |
+| $k=8$, $L=3$ | ~5,000 | ~5M (infeasible) | ~200K | 25$\times$ |
+
+: Empirical fill-in for single-population ARG models under arbitrary (BFS discovery) ordering and dynamic minimum-degree ordering. {#tbl-07b-arg-fillin}
+
+### Ancestral recombination graph (multiple populations) {.unnumbered}
+
+Adding $d$ populations with migration to the ARG multiplies the state space: each lineage carries both ancestral material and a population label. The degree heterogeneity is amplified --- migration inflates the degree of interior states without affecting boundary states. The improvement factor from MD ordering scales with $d$.
+
+**Empirical fill-in estimates:**
+
+| Configuration | $n$ | Fill (arbitrary) | Fill (dynamic MD) | Improvement |
+|:---|:---|:---|:---|:---|
+| $d=2$, $k=4$, $L=3$ | ~1,000 | ~200K | ~15K | 13$\times$ |
+| $d=3$, $k=4$, $L=3$ | ~3,000 | ~3M (infeasible) | ~100K | 30$\times$ |
+| $d=2$, $k=5$, $L=3$ | ~5,000 | ~10M (infeasible) | ~200K | 50$\times$ |
+
+: Empirical fill-in for multi-population ARG models. {#tbl-07b-multiarg-fillin}
+
+Multi-population ARGs represent the models where phasic gains the most from dynamic minimum-degree ordering: the degree heterogeneity is extreme, the treewidth is bounded (by $dk$), and the state space is large enough that ordering makes the difference between infeasibility and seconds-scale computation.
+
+### 2D spatial random walk (infeasible for elimination) {.unnumbered}
+
+The resistance-surface model places two lineages on a hex grid with $C$ cells. Each state is a pair of cell positions $(c_1, c_2)$, giving $n = O(C^2)$ vertices with uniform degree (8--13 edges per vertex).
+
+The graph is planar, so the best achievable fill-in with nested dissection [@george1973] is $O(n \log n)$. For the 2D grid, this bound is tight: the minimum fill of a $\sqrt{n} \times \sqrt{n}$ grid is known to be $\Theta(n \log n)$ [@liptonrosetarjan1979].
+
+For the Africa hex grid model ($C = 38$ cells, $n = 1{,}446$ vertices), even with optimal ordering the fill-in is at least $\sim$15K edges. With the current arbitrary ordering in phasic, fill-in grows to $\sim$500K+ edges.
+
+**Why minimum-degree ordering does not help here.** Unlike ARG models where degree varies by 10--50$\times$, the hex grid random walk has **uniform degree** --- every vertex has 8--13 edges regardless of position. MD ordering has no low-degree vertices to exploit. The Fill Path Lemma (@thm-07b-fill-path) tells us that fill-in is unavoidable: every pair of vertices is connected by short paths through the regular grid.
+
+**Recommendation.** Spatial random-walk models on 2D grids should use the **forward algorithm** ([14]) for PDF computation and **sampling** ([17]) for moment estimation, rather than graph elimination.
+
+## When Does Minimum-Degree Ordering Help? {.unnumbered}
+
+The minimum-degree (MD) heuristic [@tinneywalker1967; @amestoy1996] selects the vertex with the fewest current edges at each elimination step. It adapts dynamically as fill-in changes the graph.
+
+::: {#def-07b-degree-ratio .definition}
+
+#### Degree ratio
+
+*For a strongly connected component $C$ of a graph $G$, the **degree ratio** is*
+
+$$\rho(C) = \frac{\max_{v \in C} \deg(v)}{\min_{v \in C} \deg(v)}.$$
+:::
+
+> **Empirical observation.** For the graph families arising in phasic, the degree ratio $\rho$ is the single most predictive feature of whether MD ordering will provide substantial improvement over arbitrary ordering. This is not a proven theorem but a consistent empirical pattern across coalescent, island-model, and ARG graphs tested in phasic:
+>
+> - $\rho \approx 1$ (uniform grids): MD provides little benefit
+> - $\rho \ge 5$ (ARGs, island models): MD provides 5--50$\times$ improvement
+> - $\rho \ge 10$ (multi-population ARGs): MD transforms infeasible computations into feasible ones
+
+MD ordering helps most when:
+
+1. **The graph has heterogeneous degree.** If some vertices have many fewer edges than others, MD eliminates the low-degree vertices first, preventing them from becoming high-degree through fill-in.
+
+2. **Bad ordering creates unnecessary fill-in.** If the natural ordering (e.g., BFS discovery order) happens to eliminate hub vertices first, MD reorders to avoid this.
+
+3. **The SCC has internal structure.** If the SCC decomposes into loosely-connected clusters, MD naturally finds the bottleneck vertices and eliminates within clusters first.
+
+MD ordering does **not** help when:
+
+1. **All vertices have similar degree** and the graph is uniformly connected (e.g., random walk on a regular grid).
+
+2. **The graph has intrinsically high treewidth.** For complete graphs (treewidth $n-1$) or dense random graphs, no ordering can avoid $O(n^2)$ fill.
+
+3. **The graph is already a DAG** (no cycles). Fill-in is zero for any ordering.
+
+### Ordering strategies compared {.unnumbered}
+
+| Ordering | Fill-in bound | Time complexity | Notes |
+|:---|:---|:---|:---|
+| Arbitrary | $O(n^2)$ worst case | $O(n^3)$ | Phasic default (BFS discovery order) |
+| Static AMD | Between arbitrary and dynamic | Same | Sort by initial degree only |
+| Dynamic MD | No proven bound better than $O(n^2)$ | $O(n^2 + wn)$ | Empirically $O(wn)$ for structured graphs |
+| Nested dissection | $O(wn)$ for bounded treewidth; $O(n \log n)$ for planar | $O(n^{3/2})$ for planar | Optimal but complex to implement |
+
+: Comparison of elimination ordering strategies. The dynamic MD heuristic has no theoretical guarantee of achieving $O(wn)$ fill for bounded-treewidth graphs, but performs comparably to nested dissection in practice for the graph families arising in phasic [@georgeliu1981]. {#tbl-07b-ordering}
+
+## Summary {.unnumbered}
+
+### Graph families by feasibility of elimination {.unnumbered}
+
+| Category | Graph type | $n$ range | Fill-in | Ordering matters? | Recommendation |
+|:---|:---|:---|:---|:---|:---|
+| Always feasible | Coalescent trees | 10--500 | 0 | No | Use elimination (default) |
+| Always feasible | Erlang chains | 10--100 | $O(n)$ | No | Use elimination |
+| Feasible with good ordering | Island models | 50--500 | $O(wn)$ | **Yes** | Elimination + MD ordering |
+| Feasible with good ordering | Stepping-stone | 50--1500 | $O(n \log n)$ | **Yes** | Elimination + MD ordering |
+| Feasible with good ordering | Single-pop ARG | 200--5000 | $O(kn)$ empirically | **Yes** | Elimination + MD ordering |
+| Feasible with good ordering | Multi-pop ARG | 1000--10000 | $O(dkn)$ empirically | **Yes** | Elimination + MD ordering |
+| Infeasible for elimination | 2D spatial random walk | 500--50K | $\Omega(n \log n)$ | Not enough | Forward algorithm only |
+
+: Summary of graph families and recommendations for phasic. Fill-in bounds marked "empirically" are observed in phasic test runs; others are proven asymptotic bounds from the references cited in the text. {#tbl-07b-summary}
+
+### When to enable dynamic minimum-degree ordering {.unnumbered}
+
+Enable `graph.dyn_ordering = True` (or set `PHASIC_DYN_ORDERING=1`) when:
+
+- The model has migration between populations or recombination (creates cycles and non-trivial SCCs)
+- The graph has 100+ vertices in the largest SCC
+- Degree varies across vertices (boundary vs. interior states) --- the degree heterogeneity pattern described above
+
+The overhead of the dynamic ordering ($O(n^2)$ for the min-scan at each step) is negligible compared to the elimination work it saves.
+
+## Implementation Notes {.unnumbered}
+
+| Component | Source file | Function | Lines |
+|:---|:---|:---|:---|
+| Graph elimination (core) | `src/c/phasic.c` | `_ptd_graph_ex_absorbation_time_comp_graph_worker` | See [06] |
+| Dynamic MD ordering | `src/c/phasic.c` | Integrated into elimination loop | See [06] |
+| SCC decomposition | `src/c/phasic.c` | `ptd_find_sccs` | See [04] |
+
+The dynamic minimum-degree ordering is integrated into the elimination loop rather than implemented as a separate preprocessing step. At each elimination step, the algorithm scans remaining vertices for the one with minimum current degree (including fill edges from prior eliminations). This is the $O(n)$-per-step variant described by @georgeliu1981, giving $O(n^2)$ total ordering overhead --- dominated by the $O(n^3)$ worst-case elimination cost.
+
+## Symbol Index {.unnumbered}
+
+| Symbol | Name | First appearance |
+|:---|:---|:---|
+| $\operatorname{fill}(G, \pi)$ | Fill-in for ordering $\pi$ | @def-07b-fillin |
+| $\operatorname{fill}^*(G)$ | Minimum fill-in | @def-07b-fillin |
+| $S$ | Graph separator | @def-07b-separator |
+| $w$ | Treewidth | @def-07b-treewidth |
+| $\rho(C)$ | Degree ratio of SCC | @def-07b-degree-ratio |
+| $G^+_\pi$ | Filled graph (elimination graph) | @thm-07b-fill-path |

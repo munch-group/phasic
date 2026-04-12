@@ -4,7 +4,7 @@ title: "PDF Gradients"
 
 ## Introduction {.unnumbered}
 
-This file formalizes the computation of gradients of phase-type distribution PDFs with respect to model parameters. Given a parameterized phase-type graph (@def-01-ph-graph) with parameter vector $\boldsymbol{\theta}$, the gradient $\nabla_{\boldsymbol{\theta}} f(t; \boldsymbol{\theta})$ is needed for gradient-based inference methods such as Stein Variational Gradient Descent (SVGD) and Hamiltonian Monte Carlo (HMC).
+This file formalizes the computation of gradients of phase-type distribution PDFs with respect to model parameters. Given a parameterized phase-type graph (@def-01-ph-graph) with parameter vector $\boldsymbol{\theta}$, the gradient $\nabla_{\boldsymbol{\theta}} f(t; \boldsymbol{\theta})$ is needed for gradient-based inference methods such as Stein Variational Gradient Descent [SVGD; @liu2016svgd] and Hamiltonian Monte Carlo [HMC; @neal2011].
 
 The gradient computation extends the uniformization-based forward algorithm (@alg-14-cph-uniformization) by propagating gradient information alongside probabilities. At each discrete step, both the forward probability vector $\mathbf{p}^{(k)}$ and its Jacobian $\frac{\partial \mathbf{p}^{(k)}}{\partial \boldsymbol{\theta}}$ are updated. The final PDF gradient combines two terms via the chain rule: (i) the gradient of the absorption probabilities with respect to $\boldsymbol{\theta}$ (propagated through the discrete steps), and (ii) the gradient of the Poisson weights with respect to $\boldsymbol{\theta}$ (arising because the uniformization rate $\lambda$ depends on $\boldsymbol{\theta}$).
 
@@ -38,7 +38,10 @@ $$\frac{\partial f}{\partial \theta_j}(t; \boldsymbol{\theta}) = \frac{\partial}
 *where $a_k(\boldsymbol{\theta}) = \sum_{v_a} p^{(k)}_{v_a}(\boldsymbol{\theta})$ is the probability of absorption at step $k$ in the uniformized chain (the PMF), and $\operatorname{Po}(k; \mu) = \frac{\mu^k e^{-\mu}}{k!}$ is the Poisson probability mass function with mean $\mu = \lambda t$.*
 :::
 
-> **Intuition.** The PDF is a product $f = \lambda \cdot \text{PMF}_{\text{Poisson-weighted}}$. Differentiating requires the chain rule applied to three dependencies on $\boldsymbol{\theta}$: (i) the transition probabilities in the uniformized chain affect $a_k$, (ii) the uniformization rate $\lambda$ affects the Poisson weights, and (iii) $\lambda$ appears as a direct multiplicative factor. These three contributions are combined in the final gradient formula.
+<details>
+<summary>Intuition</summary>
+The PDF is a product $f = \lambda \cdot \text{PMF}_{\text{Poisson-weighted}}$. Differentiating requires the chain rule applied to three dependencies on $\boldsymbol{\theta}$: (i) the transition probabilities in the uniformized chain affect $a_k$, (ii) the uniformization rate $\lambda$ affects the Poisson weights, and (iii) $\lambda$ appears as a direct multiplicative factor. These three contributions are combined in the final gradient formula.
+</details>
 
 ::: {#def-16-parameterized-forward-step}
 
@@ -61,9 +64,15 @@ $$\frac{\partial p^{(k+1)}_v}{\partial \theta_j} \mathrel{+}= \frac{\partial p^{
 *where $\frac{\partial \lambda_v}{\partial \theta_j} = \sum_{z \in \operatorname{children}(v)} c_j^{(vz)}$ is the sum of $j$-th coefficients across all outgoing edges from $v$ (for linear weight mode).*
 :::
 
-> **Intuition.** @eq-16-grad-transfer is the product rule applied to $p^{(k)}_v \cdot p_{vz}$: the first term captures how changes in the probability of being at $v$ propagate to $z$, and the second term captures how changes in the transition probability from $v$ to $z$ affect the mass flowing to $z$. The implementation divides by $\lambda$ (the uniformization rate) rather than computing normalized probabilities, which simplifies the gradient since $\lambda$ is treated as a constant within each step (its gradient is handled separately in the Poisson weight term).
+<details>
+<summary>Intuition</summary>
+@eq-16-grad-transfer is the product rule applied to $p^{(k)}_v \cdot p_{vz}$: the first term captures how changes in the probability of being at $v$ propagate to $z$, and the second term captures how changes in the transition probability from $v$ to $z$ affect the mass flowing to $z$. The implementation divides by $\lambda$ (the uniformization rate) rather than computing normalized probabilities, which simplifies the gradient since $\lambda$ is treated as a constant within each step (its gradient is handled separately in the Poisson weight term).
+</details>
 
-> **Example.** Consider a single parameterized edge $(v_1 \to v_a)$ with weight $w = c \cdot \theta$ and $\lambda = c \cdot \theta$. At step $k = 0$ (after initialization), $\pi^{(1)}_{v_1} = \alpha_1$ and $\frac{\partial \pi^{(1)}_{v_1}}{\partial \theta} = 0$ (the initial distribution does not depend on $\theta$). After one forward step: $\pi^{(2)}_{v_a} \mathrel{+}= \alpha_1 \cdot \frac{c\theta}{\lambda} = \alpha_1$ (absorption is certain), and $\frac{\partial \pi^{(2)}_{v_a}}{\partial \theta} \mathrel{+}= 0 + \alpha_1 \cdot \frac{c}{\lambda} = \alpha_1 \cdot \frac{c}{c\theta} = \frac{\alpha_1}{\theta}$.
+<details>
+<summary>Example</summary>
+Consider a single parameterized edge $(v_1 \to v_a)$ with weight $w = c \cdot \theta$ and $\lambda = c \cdot \theta$. At step $k = 0$ (after initialization), $\pi^{(1)}_{v_1} = \alpha_1$ and $\frac{\partial \pi^{(1)}_{v_1}}{\partial \theta} = 0$ (the initial distribution does not depend on $\theta$). After one forward step: $\pi^{(2)}_{v_a} \mathrel{+}= \alpha_1 \cdot \frac{c\theta}{\lambda} = \alpha_1$ (absorption is certain), and $\frac{\partial \pi^{(2)}_{v_a}}{\partial \theta} \mathrel{+}= 0 + \alpha_1 \cdot \frac{c}{\lambda} = \alpha_1 \cdot \frac{c}{c\theta} = \frac{\alpha_1}{\theta}$.
+</details>
 
 ## Theorems and Proofs {.unnumbered}
 
@@ -244,7 +253,7 @@ PDF + Gradient Computation
 
 **Poisson tail truncation.** The maximum number of steps $K$ is set to $\lambda t + 6\sqrt{\lambda t} + 100$. The $6\sigma$ rule ensures that $\Pr(N > K)$ is extremely small (less than $10^{-9}$ for the Poisson distribution). The additional buffer of 100 handles small $\lambda t$ values where the $6\sigma$ rule alone would give too few steps. Early termination occurs when $\operatorname{Po}(k; \lambda t) < 10^{-15}$, saving computation when the tail decays faster than the worst case.
 
-**Kahan summation for gradient accumulation.** Both the PMF value and each component of the PMF gradient are accumulated using Kahan compensated summation. This is critical because the summation spans $O(K)$ terms, each of which may be very small (the Poisson-weighted absorption probabilities decay exponentially in the tails). Without Kahan summation, the gradient can lose several digits of precision.
+**Kahan summation for gradient accumulation.** Both the PMF value and each component of the PMF gradient are accumulated using Kahan compensated summation [@kahan1965]. This is critical because the summation spans $O(K)$ terms, each of which may be very small (the Poisson-weighted absorption probabilities decay exponentially in the tails). Without Kahan summation, the gradient can lose several digits of precision.
 
 **Zeroing absorbed mass.** After accumulating the PMF and gradient contributions from absorbing vertices at each step, the probability and gradient at those vertices are zeroed (line 77). This prevents re-counting absorbed mass at subsequent steps, which would cause the CDF to exceed 1 and the gradient to be incorrect.
 

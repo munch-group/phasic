@@ -8,7 +8,7 @@ This file documents the two structural graph algorithms that precede every major
 
 Phase-type graphs may contain cycles. For example, a two-state continuous-time Markov chain where states 1 and 2 communicate bidirectionally produces a cycle $v_1 \to v_2 \to v_1$ in the graph representation. Gaussian elimination on the graph (formalized in [06]) requires a processing order in which every vertex is eliminated before its dependencies are revisited. SCC detection identifies maximal groups of mutually reachable vertices, and the topological sort of the resulting condensation DAG provides a valid elimination order.
 
-Phasic implements Tarjan's algorithm (Tarjan, 1972) for SCC detection and Kahn's algorithm (Kahn, 1962) for topological sorting. Both are classic algorithms with well-known correctness proofs; the contribution of this file is their precise formalization in the context of phase-type graphs and their mapping to the phasic codebase.
+Phasic implements Tarjan's algorithm [@tarjan1972] for SCC detection and Kahn's algorithm [@kahn1962] for topological sorting. Both are classic algorithms with well-known correctness proofs; the contribution of this file is their precise formalization in the context of phase-type graphs and their mapping to the phasic codebase.
 
 **Prerequisites:** [01], [02]
 
@@ -27,9 +27,15 @@ Phasic implements Tarjan's algorithm (Tarjan, 1972) for SCC detection and Kahn's
 *Let $G = (V, E, W)$ be a phase-type graph (@def-01-ph-graph). A strongly connected component (SCC) of $G$ is a maximal subset $C \subseteq V$ such that for every pair of vertices $u, v \in C$, there exists a directed path from $u$ to $v$ and a directed path from $v$ to $u$ in $G$. The set of all SCCs partitions $V$: every vertex belongs to exactly one SCC.*
 :::
 
-> **Intuition.** An SCC is a maximal group of vertices that can all reach each other via directed paths. In the context of phase-type distributions, an SCC with more than one vertex corresponds to a set of communicating states -- the Markov chain can cycle among these states indefinitely before eventually leaving. A singleton SCC (a single vertex not on any cycle) corresponds to a transient state that the chain passes through at most a bounded number of times per visit.
+<details>
+<summary>Intuition</summary>
+An SCC is a maximal group of vertices that can all reach each other via directed paths. In the context of phase-type distributions, an SCC with more than one vertex corresponds to a set of communicating states -- the Markov chain can cycle among these states indefinitely before eventually leaving. A singleton SCC (a single vertex not on any cycle) corresponds to a transient state that the chain passes through at most a bounded number of times per visit.
+</details>
 
-> **Example.** Consider a phase-type graph with vertices $\{v_0, v_1, v_2, v_3, v_a\}$ where $v_0$ is the starting vertex, $v_a$ is absorbing, and edges include $v_1 \to v_2$, $v_2 \to v_1$, $v_1 \to v_3$, $v_3 \to v_a$. The SCCs are $\{v_0\}$, $\{v_1, v_2\}$, $\{v_3\}$, and $\{v_a\}$. The set $\{v_1, v_2\}$ is strongly connected because $v_1$ can reach $v_2$ and $v_2$ can reach $v_1$. It is maximal because adding any other vertex would break the mutual reachability property.
+<details>
+<summary>Example</summary>
+Consider a phase-type graph with vertices $\{v_0, v_1, v_2, v_3, v_a\}$ where $v_0$ is the starting vertex, $v_a$ is absorbing, and edges include $v_1 \to v_2$, $v_2 \to v_1$, $v_1 \to v_3$, $v_3 \to v_a$. The SCCs are $\{v_0\}$, $\{v_1, v_2\}$, $\{v_3\}$, and $\{v_a\}$. The set $\{v_1, v_2\}$ is strongly connected because $v_1$ can reach $v_2$ and $v_2$ can reach $v_1$. It is maximal because adding any other vertex would break the mutual reachability property.
+</details>
 
 ### Condensation DAG {.unnumbered}
 
@@ -51,9 +57,15 @@ Phasic implements Tarjan's algorithm (Tarjan, 1972) for SCC detection and Kahn's
 *The condensation inherits a starting meta-vertex $C_0^{\text{SCC}}$: the SCC containing the starting vertex $v_0$.*
 :::
 
-> **Intuition.** The condensation collapses each SCC into a single node. The resulting graph is always a DAG (@thm-04-condensation-dag below). This DAG structure is what makes topological sorting possible, and the topological order of the condensation provides the elimination order for phasic's graph algorithms.
+<details>
+<summary>Intuition</summary>
+The condensation collapses each SCC into a single node. The resulting graph is always a DAG (@thm-04-condensation-dag below). This DAG structure is what makes topological sorting possible, and the topological order of the condensation provides the elimination order for phasic's graph algorithms.
+</details>
 
-> **Example.** For the graph in the example above, the condensation has four meta-vertices: $\{v_0\}$, $\{v_1, v_2\}$, $\{v_3\}$, $\{v_a\}$, with edges $\{v_0\} \to \{v_1, v_2\}$, $\{v_1, v_2\} \to \{v_3\}$, $\{v_3\} \to \{v_a\}$.
+<details>
+<summary>Example</summary>
+For the graph in the example above, the condensation has four meta-vertices: $\{v_0\}$, $\{v_1, v_2\}$, $\{v_3\}$, $\{v_a\}$, with edges $\{v_0\} \to \{v_1, v_2\}$, $\{v_1, v_2\} \to \{v_3\}$, $\{v_3\} \to \{v_a\}$.
+</details>
 
 ::: {#def-04-topological-ordering}
 
@@ -62,9 +74,15 @@ Phasic implements Tarjan's algorithm (Tarjan, 1972) for SCC detection and Kahn's
 *Let $G^{\text{SCC}} = (V^{\text{SCC}}, E^{\text{SCC}})$ be the condensation DAG of a phase-type graph. A topological ordering of $G^{\text{SCC}}$ is a linear ordering $C_{\pi(1)}, C_{\pi(2)}, \ldots, C_{\pi(m)}$ of the meta-vertices such that for every edge $(C_{\pi(i)} \to C_{\pi(j)}) \in E^{\text{SCC}}$, we have $i < j$.*
 :::
 
-> **Intuition.** A topological ordering processes each SCC before any SCC that depends on it. In phasic, the elimination algorithm ([06]) processes vertices in the order determined by the topological sort of the condensation: vertices within each SCC are eliminated together, and SCCs are processed in topological order so that when an SCC is processed, all SCCs it depends on (i.e., its successors in the condensation DAG) have already been processed.
+<details>
+<summary>Intuition</summary>
+A topological ordering processes each SCC before any SCC that depends on it. In phasic, the elimination algorithm ([06]) processes vertices in the order determined by the topological sort of the condensation: vertices within each SCC are eliminated together, and SCCs are processed in topological order so that when an SCC is processed, all SCCs it depends on (i.e., its successors in the condensation DAG) have already been processed.
+</details>
 
-> **Example.** For the condensation above, one valid topological ordering is $\{v_a\}, \{v_3\}, \{v_1, v_2\}, \{v_0\}$. This is also the reverse of the reachability order from $v_0$: absorbing states are processed first, and the starting vertex last.
+<details>
+<summary>Example</summary>
+For the condensation above, one valid topological ordering is $\{v_a\}, \{v_3\}, \{v_1, v_2\}, \{v_0\}$. This is also the reverse of the reachability order from $v_0$: absorbing states are processed first, and the starting vertex last.
+</details>
 
 ::: {#def-04-dfs-discovery}
 
@@ -78,7 +96,10 @@ Phasic implements Tarjan's algorithm (Tarjan, 1972) for SCC detection and Kahn's
 *Formally, after the DFS completes, $\operatorname{low}(v) = \min(\{\operatorname{idx}(v)\} \cup \{\operatorname{low}(z) : (v \to z) \in E, z \text{ is a tree child of } v\} \cup \{\operatorname{idx}(z) : (v \to z) \in E, z \text{ is on the stack}\})$.*
 :::
 
-> **Intuition.** The low-link value tracks the "earliest" vertex (by discovery time) that $v$ can reach by going forward in the DFS tree and then taking one back edge. If $\operatorname{low}(v) = \operatorname{idx}(v)$, then $v$ is the root of its SCC: no vertex in the subtree rooted at $v$ can reach back to a vertex discovered before $v$.
+<details>
+<summary>Intuition</summary>
+The low-link value tracks the "earliest" vertex (by discovery time) that $v$ can reach by going forward in the DFS tree and then taking one back edge. If $\operatorname{low}(v) = \operatorname{idx}(v)$, then $v$ is the root of its SCC: no vertex in the subtree rooted at $v$ can reach back to a vertex discovered before $v$.
+</details>
 
 ## Theorems and Proofs {.unnumbered}
 

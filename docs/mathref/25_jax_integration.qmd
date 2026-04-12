@@ -4,11 +4,11 @@ title: "JAX Integration"
 
 ## Introduction {.unnumbered}
 
-This file formalizes the integration of phasic's C++ graph algorithms with the JAX automatic differentiation framework. The core challenge is that phasic's distribution computations (PDF, PMF, moments) are implemented in C++ for performance, but JAX requires all operations in a computation graph to be JAX-traceable for transformations such as `jit` (compilation), `grad` (differentiation), `vmap` (batching), and `pmap` (parallelization). The solution uses two complementary mechanisms:
+This file formalizes the integration of phasic's C++ graph algorithms with the JAX automatic differentiation framework [@bradbury2018jax]. The core challenge is that phasic's distribution computations (PDF, PMF, moments) are implemented in C++ for performance, but JAX requires all operations in a computation graph to be JAX-traceable for transformations such as `jit` (compilation), `grad` (differentiation), `vmap` (batching), and `pmap` (parallelization). The solution uses two complementary mechanisms:
 
 1. **JAX Foreign Function Interface (FFI):** C++ computations are registered as XLA custom calls, enabling zero-copy data transfer and OpenMP-parallelized batching. The graph structure (topology and coefficients) is passed as a static string attribute, while the parameter vector $\boldsymbol{\theta}$ and evaluation points $\mathbf{t}$ are passed as dynamic XLA buffers that JAX can trace and batch.
 
-2. **Custom Vector-Jacobian Products (VJPs):** Since C++ functions are opaque to JAX's autodiff, gradient computation is enabled by registering custom VJP rules. The forward pass calls the C++ implementation; the backward pass computes $\nabla_{\boldsymbol{\theta}} f$ via finite differences through the same C++ code path, or (for the C-level forward algorithm) via the exact gradient computation formalized in [16].
+2. **Custom Vector-Jacobian Products (VJPs):** Since C++ functions are opaque to JAX's autodiff [@baydin2018], gradient computation is enabled by registering custom VJP rules. The forward pass calls the C++ implementation; the backward pass computes $\nabla_{\boldsymbol{\theta}} f$ via finite differences through the same C++ code path, or (for the C-level forward algorithm) via the exact gradient computation formalized in [16].
 
 These mechanisms allow phasic models to participate in JAX-based inference workflows (SVGD [18], MCMC [19]) while retaining the performance of C++ graph algorithms.
 
@@ -44,9 +44,15 @@ $$h(\boldsymbol{\theta}, \mathbf{t}) = (f(t_1; \boldsymbol{\theta}), f(t_2; \bol
 *The callback converts JAX arrays to NumPy arrays at the boundary, calls the C++ implementation, and converts results back to JAX arrays.*
 :::
 
-> **Intuition.** A pure callback is a "black box" from JAX's perspective: JAX knows the input and output shapes and dtypes but cannot trace into the function body. This is sufficient for `jit` and `vmap` but not for `grad`, which requires either a custom VJP rule or a traceable implementation. The term "pure" indicates the callback has no side effects and always returns the same output for the same input.
+<details>
+<summary>Intuition</summary>
+A pure callback is a "black box" from JAX's perspective: JAX knows the input and output shapes and dtypes but cannot trace into the function body. This is sufficient for `jit` and `vmap` but not for `grad`, which requires either a custom VJP rule or a traceable implementation. The term "pure" indicates the callback has no side effects and always returns the same output for the same input.
+</details>
 
-> **Example.** The function `compute_pmf_ffi` wraps the C++ `GraphBuilder::compute_pmf` method. Given a serialized graph structure $J$ (a JSON string), it computes $h(\boldsymbol{\theta}, \mathbf{t})$ by: (i) constructing a `GraphBuilder` from $J$, (ii) calling `build(theta)` to instantiate a concrete graph, and (iii) evaluating the forward algorithm (@alg-14-cph-uniformization) at each time point.
+<details>
+<summary>Example</summary>
+The function `compute_pmf_ffi` wraps the C++ `GraphBuilder::compute_pmf` method. Given a serialized graph structure $J$ (a JSON string), it computes $h(\boldsymbol{\theta}, \mathbf{t})$ by: (i) constructing a `GraphBuilder` from $J$, (ii) calling `build(theta)` to instantiate a concrete graph, and (iii) evaluating the forward algorithm (@alg-14-cph-uniformization) at each time point.
+</details>
 
 ::: {#def-25-custom-vjp .definition}
 
@@ -60,16 +66,22 @@ $$h(\boldsymbol{\theta}, \mathbf{t}) = (f(t_1; \boldsymbol{\theta}), f(t_2; \bol
 
 $$\bar{\theta}_j = \bar{\mathbf{y}}^\top \frac{\partial h}{\partial \theta_j}(\boldsymbol{\theta}, \mathbf{t}) = \sum_{i=1}^{n} \bar{y}_i \frac{\partial f(t_i; \boldsymbol{\theta})}{\partial \theta_j}, \quad j = 1, \ldots, d.$$ {#eq-25-vjp}
 
-*The partial derivatives $\frac{\partial f(t_i; \boldsymbol{\theta})}{\partial \theta_j}$ are computed via central finite differences:*
+*The partial derivatives $\frac{\partial f(t_i; \boldsymbol{\theta})}{\partial \theta_j}$ are computed via central finite differences [@nocedal2006]:*
 
 $$\frac{\partial f(t_i; \boldsymbol{\theta})}{\partial \theta_j} \approx \frac{h(\boldsymbol{\theta} + \epsilon \mathbf{e}_j, \mathbf{t})_i - h(\boldsymbol{\theta} - \epsilon \mathbf{e}_j, \mathbf{t})_i}{2\epsilon},$$ {#eq-25-finite-diff}
 
 *with step size $\epsilon = 10^{-7}$. The gradient with respect to $\mathbf{t}$ is set to zero (time points are not differentiated).*
 :::
 
-> **Intuition.** The VJP computes how a scalar loss $L = L(h(\boldsymbol{\theta}, \mathbf{t}))$ changes with each parameter $\theta_j$, given the chain rule factor $\bar{\mathbf{y}} = \nabla_{\mathbf{y}} L$. Finite differences require $2d$ evaluations of the full C++ forward algorithm (two per parameter), making the cost $O(d)$ times the cost of a single forward pass. For models with few parameters (typical: $d \leq 10$) this is efficient; for high-dimensional $\boldsymbol{\theta}$, the exact C gradient from [16] is preferred.
+<details>
+<summary>Intuition</summary>
+The VJP computes how a scalar loss $L = L(h(\boldsymbol{\theta}, \mathbf{t}))$ changes with each parameter $\theta_j$, given the chain rule factor $\bar{\mathbf{y}} = \nabla_{\mathbf{y}} L$. Finite differences require $2d$ evaluations of the full C++ forward algorithm (two per parameter), making the cost $O(d)$ times the cost of a single forward pass. For models with few parameters (typical: $d \leq 10$) this is efficient; for high-dimensional $\boldsymbol{\theta}$, the exact C gradient from [16] is preferred.
+</details>
 
-> **Example.** For SVGD with a two-parameter coalescent model ($d = 2$), the backward pass evaluates the C++ forward algorithm 4 times (two perturbations per parameter). With a 67-vertex graph and 100 time points, this takes approximately 20 ms, well within SVGD iteration budgets.
+<details>
+<summary>Example</summary>
+For SVGD with a two-parameter coalescent model ($d = 2$), the backward pass evaluates the C++ forward algorithm 4 times (two perturbations per parameter). With a 67-vertex graph and 100 time points, this takes approximately 20 ms, well within SVGD iteration budgets.
+</details>
 
 ::: {#def-25-static-dynamic .definition}
 
@@ -88,9 +100,15 @@ $$\texttt{ffi\_call}(J, \texttt{granularity}, \texttt{discrete}; \boldsymbol{\th
 *where arguments before the semicolon are static (attributes) and arguments after are dynamic (buffers).*
 :::
 
-> **Intuition.** The static/dynamic distinction reflects the separation of structure from parameters that is central to phasic's design. The graph topology and edge coefficients (encoded in $J$) change rarely (once per model), while the parameter vector $\boldsymbol{\theta}$ changes at every SVGD or MCMC iteration. By marking $J$ as static, JAX compiles specialized code for each graph structure, and the C++ `GraphBuilder` can cache the parsed JSON across calls.
+<details>
+<summary>Intuition</summary>
+The static/dynamic distinction reflects the separation of structure from parameters that is central to phasic's design. The graph topology and edge coefficients (encoded in $J$) change rarely (once per model), while the parameter vector $\boldsymbol{\theta}$ changes at every SVGD or MCMC iteration. By marking $J$ as static, JAX compiles specialized code for each graph structure, and the C++ `GraphBuilder` can cache the parsed JSON across calls.
+</details>
 
-> **Example.** In `jax.jit(compute_pmf_ffi, static_argnums=(0, 3, 4))`, argument 0 (`structure_json`), 3 (`discrete`), and 4 (`granularity`) are static. The JIT-compiled function accepts different $\boldsymbol{\theta}$ and $\mathbf{t}$ values without recompilation.
+<details>
+<summary>Example</summary>
+In `jax.jit(compute_pmf_ffi, static_argnums=(0, 3, 4))`, argument 0 (`structure_json`), 3 (`discrete`), and 4 (`granularity`) are static. The JIT-compiled function accepts different $\boldsymbol{\theta}$ and $\mathbf{t}$ values without recompilation.
+</details>
 
 ## Theorems and Proofs {.unnumbered}
 

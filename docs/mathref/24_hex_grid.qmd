@@ -33,9 +33,15 @@ $$y(r,c) = y_{\min} + r \cdot 1.5 \, s.$$ {#eq-24-center-y}
 *The horizontal spacing between column centers is $h = \sqrt{3} \, s$ and the vertical spacing between row centers is $v = 1.5 \, s$. Odd-numbered rows are offset horizontally by $h/2$.*
 :::
 
-> **Intuition.** A pointy-top hexagon has its top vertex pointing upward. The grid is laid out in an offset-coordinate system where odd rows are shifted half a column width to the right. The circumradius $s$ determines the cell size; larger $s$ means coarser spatial resolution. The grid dimensions $R, C$ are chosen to cover the bounding box of $\mathcal{B}$ with one extra row and column to ensure full coverage.
+<details>
+<summary>Intuition</summary>
+A pointy-top hexagon has its top vertex pointing upward. The grid is laid out in an offset-coordinate system where odd rows are shifted half a column width to the right. The circumradius $s$ determines the cell size; larger $s$ means coarser spatial resolution. The grid dimensions $R, C$ are chosen to cover the bounding box of $\mathcal{B}$ with one extra row and column to ensure full coverage.
+</details>
 
-> **Example.** For a circular boundary of radius 5 centered at the origin with $s = 1.0$: the bounding box is $[-5, 5] \times [-5, 5]$, giving $R = \lceil 10/1.5 \rceil + 1 = 8$ rows and $C = \lceil 10/\sqrt{3} \rceil + 1 = 7$ columns. The grid contains $8 \times 7 = 56$ cells, of which a subset lies inside the circular boundary.
+<details>
+<summary>Example</summary>
+For a circular boundary of radius 5 centered at the origin with $s = 1.0$: the bounding box is $[-5, 5] \times [-5, 5]$, giving $R = \lceil 10/1.5 \rceil + 1 = 8$ rows and $C = \lceil 10/\sqrt{3} \rceil + 1 = 7$ columns. The grid contains $8 \times 7 = 56$ cells, of which a subset lies inside the circular boundary.
+</details>
 
 ::: {#def-24-cell-validity .definition}
 
@@ -48,9 +54,15 @@ $$\mathrm{valid}(r, c) = \mathbb{1}_{\{(x(r,c), \, y(r,c)) \in \mathcal{B}\}}.$$
 *The validity mask is the $R \times C$ boolean matrix $\mathbf{M}$ with $M_{r,c} = \mathrm{valid}(r,c)$. The set of valid cells is $\mathcal{C} = \{(r,c) : M_{r,c} = 1\}$.*
 :::
 
-> **Intuition.** Not all cells in the bounding-box grid lie inside the geographic region. The validity mask filters out cells whose centers fall outside the boundary (e.g., ocean cells for a continental boundary). Only valid cells participate in the graph construction.
+<details>
+<summary>Intuition</summary>
+Not all cells in the bounding-box grid lie inside the geographic region. The validity mask filters out cells whose centers fall outside the boundary (e.g., ocean cells for a continental boundary). Only valid cells participate in the graph construction.
+</details>
 
-> **Example.** For the circular boundary above with $s = 1.0$, corner cells like $(0, 0)$ at coordinates $(-5, -5)$ lie outside the circle and are marked invalid. Interior cells like $(4, 3)$ near the center are valid.
+<details>
+<summary>Example</summary>
+For the circular boundary above with $s = 1.0$, corner cells like $(0, 0)$ at coordinates $(-5, -5)$ lie outside the circle and are marked invalid. Interior cells like $(4, 3)$ near the center are valid.
+</details>
 
 ::: {#def-24-hex-neighbors .definition}
 
@@ -71,9 +83,15 @@ $$\mathcal{N}(r, c) = \{(r + \delta_r, c + \delta_c) : (\delta_r, \delta_c) \in 
 *where $\Delta_r = \Delta_{\mathrm{even}}$ if $r$ is even and $\Delta_r = \Delta_{\mathrm{odd}}$ if $r$ is odd. Only valid neighbors within the grid bounds are included.*
 :::
 
-> **Intuition.** In a pointy-top hex grid with offset coordinates, the column offsets of diagonal neighbors depend on whether the row is even or odd, because odd rows are shifted to the right. The two offset tables encode this parity-dependent geometry. Each interior cell has exactly six neighbors; boundary cells may have fewer.
+<details>
+<summary>Intuition</summary>
+In a pointy-top hex grid with offset coordinates, the column offsets of diagonal neighbors depend on whether the row is even or odd, because odd rows are shifted to the right. The two offset tables encode this parity-dependent geometry. Each interior cell has exactly six neighbors; boundary cells may have fewer.
+</details>
 
-> **Example.** Cell $(2, 3)$ is in an even row, so its neighbors use $\Delta_{\mathrm{even}}$: $(1,3), (1,4), (2,2), (2,4), (3,3), (3,4)$. Cell $(3, 3)$ is in an odd row, so its neighbors use $\Delta_{\mathrm{odd}}$: $(2,2), (2,3), (3,2), (3,4), (4,2), (4,3)$.
+<details>
+<summary>Example</summary>
+Cell $(2, 3)$ is in an even row, so its neighbors use $\Delta_{\mathrm{even}}$: $(1,3), (1,4), (2,2), (2,4), (3,3), (3,4)$. Cell $(3, 3)$ is in an odd row, so its neighbors use $\Delta_{\mathrm{odd}}$: $(2,2), (2,3), (3,2), (3,4), (4,2), (4,3)$.
+</details>
 
 ::: {#def-24-graph-construction .definition}
 
@@ -86,9 +104,15 @@ $$\mathcal{N}(r, c) = \{(r + \delta_r, c + \delta_c) : (\delta_r, \delta_c) \in 
 3. *Applying the transition function $\delta$ at each vertex, using $\mathcal{N}(r, c)$ to determine spatial transitions (e.g., migration to neighboring cells).*
 :::
 
-> **Intuition.** The hex grid provides the spatial topology; the PropertySet provides the index mapping; and the transition function encodes the model's dynamics (migration rates, coalescence, etc.). Composing these produces a standard phasic graph that can be analyzed with all existing algorithms.
+<details>
+<summary>Intuition</summary>
+The hex grid provides the spatial topology; the PropertySet provides the index mapping; and the transition function encodes the model's dynamics (migration rates, coalescence, etc.). Composing these produces a standard phasic graph that can be analyzed with all existing algorithms.
+</details>
 
-> **Example.** A migration model on a hex grid with two populations per cell: the PropertySet has properties (row, col, population). The transition function at vertex $(\texttt{row}=2, \texttt{col}=3, \texttt{pop}=1)$ returns migration transitions to the six neighboring cells (using $\mathcal{N}(2,3)$) with rates determined by a parameter $\theta$.
+<details>
+<summary>Example</summary>
+A migration model on a hex grid with two populations per cell: the PropertySet has properties (row, col, population). The transition function at vertex $(\texttt{row}=2, \texttt{col}=3, \texttt{pop}=1)$ returns migration transitions to the six neighboring cells (using $\mathcal{N}(2,3)$) with rates determined by a parameter $\theta$.
+</details>
 
 ## Theorems and Proofs {.unnumbered}
 
@@ -125,7 +149,7 @@ $$\Delta x = \sqrt{3}s + \frac{\sqrt{3}}{2}s = \frac{3\sqrt{3}}{2}s.$$
 
 This exceeds $\sqrt{3}s$, so $(-1, 1)$ with even $r$ does not give distance $\sqrt{3}s$. We need to verify the offset tables against the hex geometry more carefully.
 
-In offset coordinates (pointy-top, even-row-right convention used by the code), the offsets are standard and well-known in the hex grid literature. The phasic implementation uses the "odd-row-right" convention where odd rows shift right. The six neighbors of any hex cell are those sharing an edge. The offset tables $\Delta_{\mathrm{even}}$ and $\Delta_{\mathrm{odd}}$ are the standard offset-coordinate neighbor lists for the "odd-row-right" (equivalently, "even-row-left") pointy-top layout, as documented in the Red Blob Games hexagonal grids reference (Patel, 2013).
+In offset coordinates (pointy-top, even-row-right convention used by the code), the offsets are standard and well-known in the hex grid literature. The phasic implementation uses the "odd-row-right" convention where odd rows shift right. The six neighbors of any hex cell are those sharing an edge. The offset tables $\Delta_{\mathrm{even}}$ and $\Delta_{\mathrm{odd}}$ are the standard offset-coordinate neighbor lists for the "odd-row-right" (equivalently, "even-row-left") pointy-top layout, as documented by @patel2013.
 
 Rather than verify all 12 offset-distance pairs individually, we establish correctness via the axial coordinate equivalence. In axial (cube) coordinates $(q, a)$, the six neighbors of any cell are obtained by adding $\{(+1,0),(-1,0),(0,+1),(0,-1),(+1,-1),(-1,+1)\}$, and each neighbor is at Euclidean distance exactly $\sqrt{3}s$ (this follows from the fact that adjacent hexagons share an edge of length $s$, and the center-to-center distance equals $\sqrt{3}s$). The offset-to-axial conversion is:
 $$q = c - \lfloor r/2 \rfloor, \qquad a = r.$$

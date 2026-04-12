@@ -4,9 +4,9 @@ title: "Van Loan Equivalence"
 
 ## Introduction {.unnumbered}
 
-This file formalizes the mathematical equivalence between Van Loan's block matrix method for computing integrals involving matrix exponentials and phasic's graph-based algorithms for phase-type distributions. Van Loan's method (Van Loan, 1978) computes integrals of the form $\int_0^t e^{\mathbf{A}s} \mathbf{B} \, ds$ by exponentiating a single augmented block matrix. Phasic's graph algorithms compute the same quantities---accumulated occupancy times, survival probabilities, and reward-accumulated moments---through the forward algorithm and graph elimination on sparse graph structures.
+This file formalizes the mathematical equivalence between Van Loan's block matrix method for computing integrals involving matrix exponentials and phasic's graph-based algorithms for phase-type distributions. The method of @vanloan1978 computes integrals of the form $\int_0^t e^{\mathbf{A}s} \mathbf{B} \, ds$ by exponentiating a single augmented block matrix. Phasic's graph algorithms compute the same quantities---accumulated occupancy times, survival probabilities, and reward-accumulated moments---through the forward algorithm and graph elimination on sparse graph structures.
 
-The equivalence has practical significance: it establishes that phasic can serve as a general-purpose engine for Van Loan integration on large, sparse Markov systems where traditional matrix methods are computationally infeasible. In particular, epoch-wise (time-inhomogeneous) models with piecewise-constant rates, which arise in population genetics (coalescent models with demographic history), are handled by sequential graph construction with cross-epoch transition edges. The cross-epoch formula involves survival probabilities and accumulated occupancy times that correspond precisely to the blocks of the Van Loan matrix exponential product.
+The equivalence has practical significance: it establishes that phasic can serve as a general-purpose engine for Van Loan integration on large, sparse Markov systems where traditional matrix methods are computationally infeasible. In particular, epoch-wise (time-inhomogeneous) models with piecewise-constant rates, which arise in population genetics [coalescent models with demographic history; @kingman1982], are handled by sequential graph construction with cross-epoch transition edges. The cross-epoch formula involves survival probabilities and accumulated occupancy times that correspond precisely to the blocks of the Van Loan matrix exponential product.
 
 This file formalizes and proves the results presented informally in `docs/pages/topics/van_loen_graph_equivalence.md`.
 
@@ -21,7 +21,7 @@ This file formalizes and proves the results presented informally in `docs/pages/
 
 > **Recall** (@def-01-cph). *A continuous phase-type distribution $\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})$ has PDF $f_\tau(t) = \boldsymbol{\alpha} e^{\mathbf{S}t} \mathbf{s}$ where $\mathbf{s} = -\mathbf{S}\mathbf{e}$.*
 
-> **Recall** (@def-14-uniformization). *Uniformization of a CPH graph with granularity $g$ produces a discrete-time chain with sub-transition matrix $\mathbf{T}_g = \mathbf{I} + \frac{1}{g}\mathbf{S}$.*
+> **Recall** (@def-14-uniformization). *Uniformization [@jensen1953] of a CPH graph with granularity $g$ produces a discrete-time chain with sub-transition matrix $\mathbf{T}_g = \mathbf{I} + \frac{1}{g}\mathbf{S}$.*
 
 > **Recall** (@def-15-moment-replay). *The $k$-th moment $\mathbb{E}[\tau^k] = k! \, \boldsymbol{\alpha} (-\mathbf{S})^{-k} \mathbf{e}$ is computed via iterated expected waiting time on the graph.*
 
@@ -52,9 +52,15 @@ $$\mathbf{M}_1(t) = \int_0^t e^{\mathbf{S}s} \triangle(\mathbf{r}_1) e^{\mathbf{
 *For unit rewards ($\triangle(\mathbf{r}_1) = \mathbf{I}$), $\mathbf{M}_1(t) = \int_0^t e^{\mathbf{S}s} \, ds \cdot e^{\mathbf{S}(t-s)}$, and the expected accumulated occupancy time starting from distribution $\boldsymbol{\alpha}$ is $\boldsymbol{\alpha} \int_0^t e^{\mathbf{S}s} \, ds$.*
 :::
 
-> **Intuition.** Van Loan's key insight is that the integral of a matrix exponential times another matrix can be computed by exponentiating a larger block matrix. The off-diagonal blocks of the result "accumulate" the integral during the matrix exponential computation, much like augmented systems in solving linear ODEs. For phase-type distributions, this provides accumulated occupancy times (how long the process spends in each state) and reward-weighted integrals.
+<details>
+<summary>Intuition</summary>
+Van Loan's key insight is that the integral of a matrix exponential times another matrix can be computed by exponentiating a larger block matrix. The off-diagonal blocks of the result "accumulate" the integral during the matrix exponential computation, much like augmented systems in solving linear ODEs. For phase-type distributions, this provides accumulated occupancy times (how long the process spends in each state) and reward-weighted integrals.
+</details>
 
-> **Example.** For a single exponential distribution with rate $\lambda$ ($\mathbf{S} = (-\lambda)$, $p = 1$) and unit reward, the Van Loan block matrix is $\mathbf{V}_1 = \begin{pmatrix} -\lambda & 1 \\ 0 & -\lambda \end{pmatrix}$. Its exponential is $e^{\mathbf{V}_1 t} = \begin{pmatrix} e^{-\lambda t} & t e^{-\lambda t} \\ 0 & e^{-\lambda t} \end{pmatrix}$. The $(1,2)$ entry is $t e^{-\lambda t} = \int_0^t e^{-\lambda s} \, ds \cdot e^{-\lambda(t-s)}|_{s=t} = \frac{1 - e^{-\lambda t}}{\lambda} \cdot e^{-\lambda \cdot 0}$... In fact, the direct computation gives $\int_0^t e^{-\lambda s} ds = (1 - e^{-\lambda t})/\lambda$, while the block exponential gives $te^{-\lambda t}$. These differ because $\mathbf{M}_1(t) = \int_0^t e^{\mathbf{S}s} \triangle(\mathbf{r}) e^{\mathbf{S}(t-s)} ds$, which for $p = 1$ is $\int_0^t e^{-\lambda s} \cdot 1 \cdot e^{-\lambda(t-s)} ds = t e^{-\lambda t}$. The occupancy integral $\boldsymbol{\alpha} \int_0^t e^{\mathbf{S}s} ds = (1 - e^{-\lambda t})/\lambda$ is recovered from the $(1,2)$ entry of $e^{\mathbf{V}_1 t}$ via the relation $\boldsymbol{\alpha} \mathbf{M}_1(t) \mathbf{e} = \boldsymbol{\alpha} \int_0^t e^{\mathbf{S}s} ds \cdot e^{\mathbf{S}(t-s)} \mathbf{e}$. In phasic, the function `accumulated_visiting_time(t)` computes $\boldsymbol{\alpha} \int_0^t e^{\mathbf{S}s} ds$ directly.
+<details>
+<summary>Example</summary>
+For a single exponential distribution with rate $\lambda$ ($\mathbf{S} = (-\lambda)$, $p = 1$) and unit reward, the Van Loan block matrix is $\mathbf{V}_1 = \begin{pmatrix} -\lambda & 1 \\ 0 & -\lambda \end{pmatrix}$. Its exponential is $e^{\mathbf{V}_1 t} = \begin{pmatrix} e^{-\lambda t} & t e^{-\lambda t} \\ 0 & e^{-\lambda t} \end{pmatrix}$. The $(1,2)$ entry is $t e^{-\lambda t} = \int_0^t e^{-\lambda s} \, ds \cdot e^{-\lambda(t-s)}|_{s=t} = \frac{1 - e^{-\lambda t}}{\lambda} \cdot e^{-\lambda \cdot 0}$... In fact, the direct computation gives $\int_0^t e^{-\lambda s} ds = (1 - e^{-\lambda t})/\lambda$, while the block exponential gives $te^{-\lambda t}$. These differ because $\mathbf{M}_1(t) = \int_0^t e^{\mathbf{S}s} \triangle(\mathbf{r}) e^{\mathbf{S}(t-s)} ds$, which for $p = 1$ is $\int_0^t e^{-\lambda s} \cdot 1 \cdot e^{-\lambda(t-s)} ds = t e^{-\lambda t}$. The occupancy integral $\boldsymbol{\alpha} \int_0^t e^{\mathbf{S}s} ds = (1 - e^{-\lambda t})/\lambda$ is recovered from the $(1,2)$ entry of $e^{\mathbf{V}_1 t}$ via the relation $\boldsymbol{\alpha} \mathbf{M}_1(t) \mathbf{e} = \boldsymbol{\alpha} \int_0^t e^{\mathbf{S}s} ds \cdot e^{\mathbf{S}(t-s)} \mathbf{e}$. In phasic, the function `accumulated_visiting_time(t)` computes $\boldsymbol{\alpha} \int_0^t e^{\mathbf{S}s} ds$ directly.
+</details>
 
 ::: {#def-27-epoch .definition}
 
@@ -77,9 +83,15 @@ $$\boldsymbol{\sigma}_i = \boldsymbol{\alpha} \prod_{j=1}^{i} e^{\mathbf{S}_j \D
 *where $\sigma_{i,k}$ is the probability of being in state $k$ at time $t_i$ without having been absorbed.*
 :::
 
-> **Intuition.** Epoch-wise models capture time-inhomogeneous processes (such as coalescent models with changing population sizes) by a piecewise-constant approximation. Within each epoch, the process is a standard CTMC; at epoch boundaries, the state distribution is carried forward as the initial distribution for the next epoch. This is a product integral: the overall evolution is the ordered product of per-epoch matrix exponentials.
+<details>
+<summary>Intuition</summary>
+Epoch-wise models capture time-inhomogeneous processes (such as coalescent models with changing population sizes) by a piecewise-constant approximation. Within each epoch, the process is a standard CTMC; at epoch boundaries, the state distribution is carried forward as the initial distribution for the next epoch. This is a product integral: the overall evolution is the ordered product of per-epoch matrix exponentials.
+</details>
 
-> **Example.** A coalescent model for 5 samples with two population sizes: $N_e = 1000$ during $[0, 100)$ and $N_e = 5000$ during $[100, \infty)$. The state space is $\{5, 4, 3, 2, 1\}$ (number of lineages). Epoch 1 has rates $\binom{k}{2}/1000$ and epoch 2 has rates $\binom{k}{2}/5000$.
+<details>
+<summary>Example</summary>
+A coalescent model [@kingman1982] for 5 samples with two population sizes: $N_e = 1000$ during $[0, 100)$ and $N_e = 5000$ during $[100, \infty)$. The state space is $\{5, 4, 3, 2, 1\}$ (number of lineages). Epoch 1 has rates $\binom{k}{2}/1000$ and epoch 2 has rates $\binom{k}{2}/5000$.
+</details>
 
 ::: {#def-27-cross-epoch .definition}
 
@@ -101,9 +113,15 @@ $$\mathbf{Q}_1 \mathbf{Q}_2 = \begin{pmatrix} \mathbf{P}_1 & \mathbf{M}_1 \\ \ma
 - *The epoch transition rate $\rho_i = \sigma_{1,i} / \tau_{1,i}$: the rate at which probability mass in state $i$ transitions from epoch 1 to epoch 2.*
 :::
 
-> **Intuition.** The cross-epoch product formula is the matrix analogue of the law of total expectation: the total expected reward decomposes into "reward accumulated before the epoch boundary" and "reward accumulated after." The graph-based approach implements this decomposition by computing survival probabilities and accumulated occupancy times at epoch boundaries, then constructing transition edges that correctly weight the probability flow into subsequent epochs.
+<details>
+<summary>Intuition</summary>
+The cross-epoch product formula is the matrix analogue of the law of total expectation: the total expected reward decomposes into "reward accumulated before the epoch boundary" and "reward accumulated after." The graph-based approach implements this decomposition by computing survival probabilities and accumulated occupancy times at epoch boundaries, then constructing transition edges that correctly weight the probability flow into subsequent epochs.
+</details>
 
-> **Example.** For a two-state model with $\boldsymbol{\alpha} = (1, 0)$, if `stop_probability` at the end of epoch 1 gives $\boldsymbol{\sigma}_1 = (0.3, 0.5)$ and `accumulated_visiting_time` gives $\boldsymbol{\tau}_1 = (0.6, 0.4)$, the epoch transition rates are $\rho_1 = 0.3/0.6 = 0.5$ and $\rho_2 = 0.5/0.4 = 1.25$. These rates are added as edges from epoch-1 states to epoch-2 states.
+<details>
+<summary>Example</summary>
+For a two-state model with $\boldsymbol{\alpha} = (1, 0)$, if `stop_probability` at the end of epoch 1 gives $\boldsymbol{\sigma}_1 = (0.3, 0.5)$ and `accumulated_visiting_time` gives $\boldsymbol{\tau}_1 = (0.6, 0.4)$, the epoch transition rates are $\rho_1 = 0.3/0.6 = 0.5$ and $\rho_2 = 0.5/0.4 = 1.25$. These rates are added as edges from epoch-1 states to epoch-2 states.
+</details>
 
 ## Theorems and Proofs {.unnumbered}
 

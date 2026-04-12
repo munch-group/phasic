@@ -23,16 +23,22 @@ These moment computations operate on the elimination commands (the acyclic repre
 
 #### Moment computation via elimination replay
 
-*Let $G = (V, E, W)$ represent $\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})$ (@def-01-ph-graph) with elimination command sequence $C$ (@def-06-reward-compute-graph). The $k$-th factorial moment of the reward-transformed absorption time is computed by replaying $C$ with reward vector $\mathbf{r}$:*
+*Let $G = (V, E, W)$ represent $\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})$ (@def-01-ph-graph) with elimination command sequence $C$ (@def-06-reward-compute-graph). The $k$-th factorial moment of the reward-transformed absorption time [@neuts1981; @bladt2017] is computed by replaying $C$ with reward vector $\mathbf{r}$:*
 
 $$\mathbb{E}[\tilde{\tau}] = \text{ReplayCommands}(C, \mathbf{r})[v_0],$$ {#eq-15-moment-replay}
 
 *where $\text{ReplayCommands}$ is @alg-06-moment-commands and $v_0$ is the starting vertex. With $\mathbf{r} = \mathbf{e}$ (the all-ones vector), this gives the expected absorption time $\mathbb{E}[\tau]$. With an arbitrary reward vector $\mathbf{r} = (r_1, \ldots, r_p)^\top$, this gives $\mathbb{E}[\tilde{\tau}] = \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{r}) \mathbf{e}$ (@def-01-reward-cph).*
 :::
 
-> **Intuition.** The elimination commands encode the structure of the Green matrix $\mathbf{U} = (-\mathbf{S})^{-1}$ in a sparse, sequential form. Replaying them with a reward vector computes the matrix-vector product $\mathbf{U} \triangle(\mathbf{r}) \mathbf{e}$ without explicitly forming $\mathbf{U}$. Changing the reward vector changes which "weighted sojourn time" is computed, without re-running the elimination.
+<details>
+<summary>Intuition</summary>
+The elimination commands encode the structure of the Green matrix $\mathbf{U} = (-\mathbf{S})^{-1}$ [@neuts1981] in a sparse, sequential form. Replaying them with a reward vector computes the matrix-vector product $\mathbf{U} \triangle(\mathbf{r}) \mathbf{e}$ without explicitly forming $\mathbf{U}$. Changing the reward vector changes which "weighted sojourn time" is computed, without re-running the elimination.
+</details>
 
-> **Example.** Consider a three-state Erlang process $v_0 \to v_1 \to v_2 \to v_a$ with equal rates $\lambda = 2$. With unit rewards, $\text{ReplayCommands}(C, \mathbf{e})[v_0] = \mathbb{E}[\tau] = 3/2$. With reward $\mathbf{r} = (0, 1, 0)^\top$ (only counting time in state $v_2$), the result is $\mathbb{E}[\tilde{\tau}] = 1/2$.
+<details>
+<summary>Example</summary>
+Consider a three-state Erlang process $v_0 \to v_1 \to v_2 \to v_a$ with equal rates $\lambda = 2$. With unit rewards, $\text{ReplayCommands}(C, \mathbf{e})[v_0] = \mathbb{E}[\tau] = 3/2$. With reward $\mathbf{r} = (0, 1, 0)^\top$ (only counting time in state $v_2$), the result is $\mathbb{E}[\tilde{\tau}] = 1/2$.
+</details>
 
 ![Computing expected absorption time in reverse topological order. Starting from an acyclic graph (top left) with vertex scalars (blue numbers), the algorithm processes vertices bottom-up. At each step, a vertex accumulates the weighted contributions of its children (edge probability times child's accumulated value) and adds its own vertex scalar. The final value at the starting vertex (bottom right) gives the expected absorption time $\mathbb{E}[\tau]$.](images/moment_computation_example.pdf){#fig-15-moment-example}
 
@@ -49,9 +55,15 @@ $$\mathbb{E}[\tilde{\tau}] = \text{ReplayCommands}(C, \mathbf{r})[v_0],$$ {#eq-1
 *Equivalently, each replay computes the vector $\mathbf{U} \triangle(\mathbf{r}^{(i-1)}) \mathbf{e}$ at every vertex, which becomes the reward vector for the next replay.*
 :::
 
-> **Intuition.** The $n$-th moment formula $\mathbb{E}[\tau^n] = n! \, \boldsymbol{\alpha} (-\mathbf{S})^{-n} \mathbf{e} = n! \, \boldsymbol{\alpha} \mathbf{U}^n \mathbf{e}$ (@def-01-cph-moments) involves the $n$-th power of $\mathbf{U}$. Rather than computing $\mathbf{U}^n$ directly, we compute $\mathbf{U} \mathbf{e}$, then $\mathbf{U} \cdot (\mathbf{U} \mathbf{e})$, then $\mathbf{U} \cdot (\mathbf{U}^2 \mathbf{e})$, and so on. Each step is a replay of the elimination commands with the previous result as the new reward vector. The factorial $n!$ accounts for the ordering of the $n$ sojourn time contributions. For reward-transformed distributions, the reward matrix $\triangle(\mathbf{r})$ is inserted between the $\mathbf{U}$ factors: $\mathbb{E}[\tilde{\tau}^n] = n! \, \boldsymbol{\alpha} (\mathbf{U} \triangle(\mathbf{r}))^n \mathbf{e}$.
+<details>
+<summary>Intuition</summary>
+The $n$-th moment formula $\mathbb{E}[\tau^n] = n! \, \boldsymbol{\alpha} (-\mathbf{S})^{-n} \mathbf{e} = n! \, \boldsymbol{\alpha} \mathbf{U}^n \mathbf{e}$ (@def-01-cph-moments) involves the $n$-th power of $\mathbf{U}$. Rather than computing $\mathbf{U}^n$ directly, we compute $\mathbf{U} \mathbf{e}$, then $\mathbf{U} \cdot (\mathbf{U} \mathbf{e})$, then $\mathbf{U} \cdot (\mathbf{U}^2 \mathbf{e})$, and so on. Each step is a replay of the elimination commands with the previous result as the new reward vector. The factorial $n!$ accounts for the ordering of the $n$ sojourn time contributions. For reward-transformed distributions, the reward matrix $\triangle(\mathbf{r})$ is inserted between the $\mathbf{U}$ factors: $\mathbb{E}[\tilde{\tau}^n] = n! \, \boldsymbol{\alpha} (\mathbf{U} \triangle(\mathbf{r}))^n \mathbf{e}$.
+</details>
 
-> **Example.** For the Erlang(3, 2) distribution with unit rewards: $\mathbf{r}^{(0)} = (1, 1, 1)^\top$. After the first replay, $\mathbf{r}^{(1)}[v_i] = \mathbb{E}_{v_i}[\tau]$ gives the expected absorption time starting from each vertex. After the second replay, $\mathbb{E}[\tau^2] = 2 \cdot \mathbf{r}^{(2)}[v_0]$.
+<details>
+<summary>Example</summary>
+For the Erlang(3, 2) distribution with unit rewards: $\mathbf{r}^{(0)} = (1, 1, 1)^\top$. After the first replay, $\mathbf{r}^{(1)}[v_i] = \mathbb{E}_{v_i}[\tau]$ gives the expected absorption time starting from each vertex. After the second replay, $\mathbb{E}[\tau^2] = 2 \cdot \mathbf{r}^{(2)}[v_0]$.
+</details>
 
 ::: {#def-15-sojourn-cross-moments}
 
@@ -63,16 +75,22 @@ $$\mathbf{z} = (z_1, \ldots, z_{|V|}), \quad z_j = \boldsymbol{\alpha} \mathbf{U
 
 *where $\mathbf{e}_j$ is the $j$-th standard basis vector and $z_j$ is the expected total time spent in state $j$ before absorption.*
 
-*For a multivariate phase-type distribution $\mathbf{Y} \sim \operatorname{MPH}(\boldsymbol{\alpha}, \mathbf{S}, \mathbf{R})$ (@def-01-mph), the $j$-th marginal mean is $\mathbb{E}[Y_j] = \sum_v z_v \cdot R_{vj}$, and the second-order cross-moment between marginals $i$ and $j$ is*
+*For a multivariate phase-type distribution $\mathbf{Y} \sim \operatorname{MPH}(\boldsymbol{\alpha}, \mathbf{S}, \mathbf{R})$ (@def-01-mph) [@kulkarni1989; @hobolth2024], the $j$-th marginal mean is $\mathbb{E}[Y_j] = \sum_v z_v \cdot R_{vj}$, and the second-order cross-moment between marginals $i$ and $j$ is*
 
 $$\mathbb{E}[Y_i Y_j] = \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{R}_{\cdot i}) \mathbf{U} \triangle(\mathbf{R}_{\cdot j}) \mathbf{e} + \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{R}_{\cdot j}) \mathbf{U} \triangle(\mathbf{R}_{\cdot i}) \mathbf{e},$$ {#eq-15-cross-moment}
 
 *where $\mathbf{R}_{\cdot i}$ denotes column $i$ of the reward matrix $\mathbf{R}$ (@def-01-mph-crossmoments).*
 :::
 
-> **Intuition.** The expected sojourn time $z_j$ answers: "on average, how long does the process spend in state $j$?" Computing all $|V|$ sojourn times simultaneously requires replaying the elimination commands with $|V|$ reward vectors (one basis vector per state) in parallel, which is equivalent to computing the full Green matrix row $\boldsymbol{\alpha} \mathbf{U}$. Cross-moments for MPH distributions require two replays: the first with reward vector $\mathbf{R}_{\cdot j}$ produces the intermediate result, and the second with reward vector $\mathbf{R}_{\cdot i}$ applied to that intermediate result produces one of the two terms in @eq-15-cross-moment. The symmetrized sum accounts for both orderings of the two reward accumulations.
+<details>
+<summary>Intuition</summary>
+The expected sojourn time $z_j$ answers: "on average, how long does the process spend in state $j$?" Computing all $|V|$ sojourn times simultaneously requires replaying the elimination commands with $|V|$ reward vectors (one basis vector per state) in parallel, which is equivalent to computing the full Green matrix row $\boldsymbol{\alpha} \mathbf{U}$. Cross-moments for MPH distributions require two replays: the first with reward vector $\mathbf{R}_{\cdot j}$ produces the intermediate result, and the second with reward vector $\mathbf{R}_{\cdot i}$ applied to that intermediate result produces one of the two terms in @eq-15-cross-moment. The symmetrized sum accounts for both orderings of the two reward accumulations.
+</details>
 
-> **Example.** Consider an MPH with two marginals and two transient states. If $z_1 = 0.5$, $z_2 = 0.3$, and $\mathbf{R}_{\cdot 1} = (1, 0)^\top$, $\mathbf{R}_{\cdot 2} = (0, 1)^\top$ (each marginal measures time in one state), then $\mathbb{E}[Y_1] = z_1 = 0.5$ and $\mathbb{E}[Y_2] = z_2 = 0.3$. The cross-moment requires two replays to compute $\boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{R}_{\cdot 1}) \mathbf{U} \triangle(\mathbf{R}_{\cdot 2}) \mathbf{e}$ and its symmetric counterpart.
+<details>
+<summary>Example</summary>
+Consider an MPH with two marginals and two transient states. If $z_1 = 0.5$, $z_2 = 0.3$, and $\mathbf{R}_{\cdot 1} = (1, 0)^\top$, $\mathbf{R}_{\cdot 2} = (0, 1)^\top$ (each marginal measures time in one state), then $\mathbb{E}[Y_1] = z_1 = 0.5$ and $\mathbb{E}[Y_2] = z_2 = 0.3$. The cross-moment requires two replays to compute $\boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{R}_{\cdot 1}) \mathbf{U} \triangle(\mathbf{R}_{\cdot 2}) \mathbf{e}$ and its symmetric counterpart.
+</details>
 
 ## Theorems and Proofs {.unnumbered}
 

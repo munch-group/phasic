@@ -6,7 +6,7 @@ title: "Graph Hashing"
 
 This file formalizes the content-addressable hashing scheme used by phasic to identify graph structures for trace caching. When the trace system ([11]) records an elimination trace for a parameterized graph, the trace is stored on disk indexed by a hash of the graph's structure. On subsequent runs with a structurally identical graph (but possibly different parameter values), the cached trace is loaded directly, avoiding the $O(|V|^3)$ recording cost.
 
-The hashing algorithm must satisfy two properties: (1) structurally identical graphs must produce the same hash (determinism), and (2) structurally different graphs should produce different hashes with overwhelming probability (collision resistance). The algorithm achieves this by combining a modified Weisfeiler-Lehman (WL) vertex refinement --- which captures the local neighborhood structure of each vertex --- with SHA-256 finalization for cryptographic collision resistance.
+The hashing algorithm must satisfy two properties: (1) structurally identical graphs must produce the same hash (determinism), and (2) structurally different graphs should produce different hashes with overwhelming probability (collision resistance). The algorithm achieves this by combining a modified Weisfeiler-Lehman (WL) vertex refinement [@weisfeiler1968] --- which captures the local neighborhood structure of each vertex --- with SHA-256 [@fips180] finalization for cryptographic collision resistance.
 
 The hash depends on the graph's topology (which vertices connect to which), edge coefficient vectors (the parameterization pattern), vertex state vectors, and graph metadata (state dimension, parameter dimension, discrete/continuous flag). It is explicitly independent of concrete edge weights, which are determined by the parameter vector $\boldsymbol{\theta}$ and change between evaluations.
 
@@ -38,9 +38,15 @@ The hash depends on the graph's topology (which vertices connect to which), edge
 *Two graphs $G_1$ and $G_2$ are structurally identical if and only if $\mathcal{S}(G_1) = \mathcal{S}(G_2)$.*
 :::
 
-> **Intuition.** The structural signature captures everything about a graph except the concrete edge weights. Two graphs with the same signature have the same topology, the same vertex states, and the same parameterization pattern. They differ only in the parameter vector $\boldsymbol{\theta}$ used to compute edge weights. This is precisely the equivalence class for which a single elimination trace suffices.
+<details>
+<summary>Intuition</summary>
+The structural signature captures everything about a graph except the concrete edge weights. Two graphs with the same signature have the same topology, the same vertex states, and the same parameterization pattern. They differ only in the parameter vector $\boldsymbol{\theta}$ used to compute edge weights. This is precisely the equivalence class for which a single elimination trace suffices.
+</details>
 
-> **Example.** A coalescent model with 5 lineages always produces the same structural signature regardless of the coalescent rate parameter. The state vectors, edge coefficient vectors, and graph topology are determined by the model structure, not by the rate.
+<details>
+<summary>Example</summary>
+A coalescent model with 5 lineages always produces the same structural signature regardless of the coalescent rate parameter. The state vectors, edge coefficient vectors, and graph topology are determined by the model structure, not by the rate.
+</details>
 
 ::: {#def-12-vertex-content-hash}
 
@@ -55,9 +61,15 @@ $$h(v) = \operatorname{SHA\text{-}256}\!\left(\sigma(v) \,\|\, \bigl(j_{\pi(1)},
 *The hash value is truncated to 64 bits for fast comparison: $h_{64}(v) = \operatorname{trunc}_{64}(h(v))$.*
 :::
 
-> **Intuition.** This is a modified Weisfeiler-Lehman refinement step applied once. In the classical WL algorithm, each vertex's label is updated by hashing its current label together with the sorted multiset of neighbor labels. Here, each vertex's "label" is its state vector and the identity of its neighbors (by index) together with the edge parameterization coefficients. The sorting ensures that the hash is independent of the order in which edges are stored in memory. Because phasic graphs use vertex indices as canonical identifiers (determined by construction order), a single refinement round suffices --- the index already encodes the full structural identity of each vertex.
+<details>
+<summary>Intuition</summary>
+This is a modified Weisfeiler-Lehman refinement step applied once. In the classical WL algorithm, each vertex's label is updated by hashing its current label together with the sorted multiset of neighbor labels. Here, each vertex's "label" is its state vector and the identity of its neighbors (by index) together with the edge parameterization coefficients. The sorting ensures that the hash is independent of the order in which edges are stored in memory. Because phasic graphs use vertex indices as canonical identifiers (determined by construction order), a single refinement round suffices --- the index already encodes the full structural identity of each vertex.
+</details>
 
-> **Example.** For a vertex with state $\sigma(v) = (3,)$ and two outgoing edges to vertices 5 and 7 with coefficients $[1.0, 0.0]$ and $[0.0, 1.0]$ respectively, the hash input is the byte concatenation: $\texttt{bytes}((3,)) \| \texttt{bytes}(5, [1.0, 0.0]) \| \texttt{bytes}(7, [0.0, 1.0])$.
+<details>
+<summary>Example</summary>
+For a vertex with state $\sigma(v) = (3,)$ and two outgoing edges to vertices 5 and 7 with coefficients $[1.0, 0.0]$ and $[0.0, 1.0]$ respectively, the hash input is the byte concatenation: $\texttt{bytes}((3,)) \| \texttt{bytes}(5, [1.0, 0.0]) \| \texttt{bytes}(7, [0.0, 1.0])$.
+</details>
 
 ::: {#def-12-graph-content-hash}
 
@@ -74,9 +86,15 @@ $$H(G) = \operatorname{SHA\text{-}256}\!\left(d \,\|\, k \,\|\, |V| \,\|\, \delt
 - *$H_{\text{hex}}(G)$: a 64-character hexadecimal string for use as a cache key.*
 :::
 
-> **Intuition.** The graph content hash aggregates all vertex hashes (which encode local structure) with the global metadata into a single fixed-size digest. The two-level hashing (vertex-level SHA-256 to 64 bits, then graph-level SHA-256 to 256 bits) balances collision resistance with computational cost: the vertex hashes are computed independently (and could be parallelized), while the final aggregation produces a cryptographically strong hash suitable for cache keys.
+<details>
+<summary>Intuition</summary>
+The graph content hash aggregates all vertex hashes (which encode local structure) with the global metadata into a single fixed-size digest. The two-level hashing (vertex-level SHA-256 to 64 bits, then graph-level SHA-256 to 256 bits) balances collision resistance with computational cost: the vertex hashes are computed independently (and could be parallelized), while the final aggregation produces a cryptographically strong hash suitable for cache keys.
+</details>
 
-> **Example.** For a 10-vertex coalescent graph, $H_{\text{hex}}(G)$ might be `a3f2e9c8b1d4...` (64 hex characters). This string is used as the filename for the cached trace: `~/.phasic_cache/traces/a3f2e9c8b1d4....json`.
+<details>
+<summary>Example</summary>
+For a 10-vertex coalescent graph, $H_{\text{hex}}(G)$ might be `a3f2e9c8b1d4...` (64 hex characters). This string is used as the filename for the cached trace: `~/.phasic_cache/traces/a3f2e9c8b1d4....json`.
+</details>
 
 ## Theorems and Proofs {.unnumbered}
 

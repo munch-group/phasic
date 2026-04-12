@@ -4,7 +4,7 @@ title: "Graph Elimination"
 
 ## Introduction {.unnumbered}
 
-This file formalizes the central algorithm of phasic: Gaussian elimination on a phase-type graph (Algorithm 3 in Roikjer, Hobolth & Munch 2022, Section 2.6). Graph elimination converts a (possibly cyclic) normalized phase-type graph into an acyclic representation by systematically removing vertices and adding bypass edges. The resulting acyclic graph, together with a cached sequence of arithmetic commands, enables efficient computation of moments of any order.
+This file formalizes the central algorithm of phasic: Gaussian elimination on a phase-type graph (Algorithm 3 in @roikjer2022 [Section 2.6]). Graph elimination converts a (possibly cyclic) normalized phase-type graph into an acyclic representation by systematically removing vertices and adding bypass edges. The resulting acyclic graph, together with a cached sequence of arithmetic commands, enables efficient computation of moments of any order.
 
 The key insight is that vertex elimination --- removing a vertex by connecting its parents directly to its children --- preserves the expected accumulated reward of the distribution. By performing this operation for every transient vertex in a topologically guided order, the algorithm reduces the graph to one in which only the starting vertex and absorbing vertices remain, with the accumulated reward information encoded in the command sequence. This command sequence can then be replayed with any reward vector to compute moments in $O(|V|^2)$ time, after a one-time $O(|V|^3)$ elimination cost.
 
@@ -33,9 +33,15 @@ The algorithm operates on normalized graphs (@def-05-continuous-normalization) a
 3. *Renormalize: for each parent $u$, divide all outgoing edge weights by their new sum so that $\sum_{z \in \operatorname{children}(u)} w'(u \to z) = 1$.*
 :::
 
-> **Intuition.** Vertex elimination is the graph analogue of Gaussian elimination on a matrix. When a vertex $v$ is eliminated, every path $u \to v \to z$ through $v$ is replaced by a direct bypass edge $u \to z$ whose weight equals the product of the two original edge weights (transition probabilities). This preserves the probability of reaching $z$ from $u$ via $v$, which is exactly $w'(u \to v) \cdot w'(v \to z)$ by the Markov property. The renormalization in step 3 ensures that the outgoing edges from each remaining parent $u$ still form a valid probability distribution.
+<details>
+<summary>Intuition</summary>
+Vertex elimination is the graph analogue of Gaussian elimination on a matrix. When a vertex $v$ is eliminated, every path $u \to v \to z$ through $v$ is replaced by a direct bypass edge $u \to z$ whose weight equals the product of the two original edge weights (transition probabilities). This preserves the probability of reaching $z$ from $u$ via $v$, which is exactly $w'(u \to v) \cdot w'(v \to z)$ by the Markov property. The renormalization in step 3 ensures that the outgoing edges from each remaining parent $u$ still form a valid probability distribution.
+</details>
 
-> **Example.** Consider three transient vertices $v_1, v_2, v_3$ and an absorbing vertex $v_a$ with normalized edges: $w'(v_1 \to v_2) = 0.6$, $w'(v_1 \to v_a) = 0.4$, $w'(v_2 \to v_3) = 0.7$, $w'(v_2 \to v_a) = 0.3$. Eliminating $v_2$: the bypass from $v_1$ to $v_3$ has weight $0.6 \times 0.7 = 0.42$, and the bypass from $v_1$ to $v_a$ adds $0.6 \times 0.3 = 0.18$ to the existing $0.4$, giving $0.58$. After renormalization (sum $= 0.42 + 0.58 = 1.0$), the weights remain unchanged.
+<details>
+<summary>Example</summary>
+Consider three transient vertices $v_1, v_2, v_3$ and an absorbing vertex $v_a$ with normalized edges: $w'(v_1 \to v_2) = 0.6$, $w'(v_1 \to v_a) = 0.4$, $w'(v_2 \to v_3) = 0.7$, $w'(v_2 \to v_a) = 0.3$. Eliminating $v_2$: the bypass from $v_1$ to $v_3$ has weight $0.6 \times 0.7 = 0.42$, and the bypass from $v_1$ to $v_a$ adds $0.6 \times 0.3 = 0.18$ to the existing $0.4$, giving $0.58$. After renormalization (sum $= 0.42 + 0.58 = 1.0$), the weights remain unchanged.
+</details>
 
 ![Graph elimination on a four-vertex example. Top row, left to right: the normalized graph with vertices $A$, $B$, $C$, $D$ and starting vertex $S$; elimination of the first vertex creates bypass edges (shown in red/orange) and updates vertex scalars (red numbers). Bottom row: successive elimination steps remove remaining transient vertices, adding bypass edges and adjusting scalars via self-loop resolution, until only the starting vertex and absorbing vertices remain.](images/graph_elimination_example.pdf){#fig-06-elimination-example}
 
@@ -48,9 +54,15 @@ The algorithm operates on normalized graphs (@def-05-continuous-normalization) a
 $$x_u \leftarrow x_u \cdot \frac{1}{1 - p}.$$ {#eq-06-self-loop}
 :::
 
-> **Intuition.** A self-loop with probability $p$ at vertex $u$ means the chain returns to $u$ with probability $p$ before exiting. The expected number of visits to $u$ (including the initial visit) is the geometric sum $1 + p + p^2 + \cdots = 1/(1-p)$. Multiplying the vertex scalar $x_u$ by $1/(1-p)$ accounts for this: the expected time spent at $u$ during each sojourn (multiple visits before finally leaving) is $x_u / (1-p)$ rather than $x_u$.
+<details>
+<summary>Intuition</summary>
+A self-loop with probability $p$ at vertex $u$ means the chain returns to $u$ with probability $p$ before exiting. The expected number of visits to $u$ (including the initial visit) is the geometric sum $1 + p + p^2 + \cdots = 1/(1-p)$. Multiplying the vertex scalar $x_u$ by $1/(1-p)$ accounts for this: the expected time spent at $u$ during each sojourn (multiple visits before finally leaving) is $x_u / (1-p)$ rather than $x_u$.
+</details>
 
-> **Example.** Suppose $u$ has vertex scalar $x_u = 0.5$ and the elimination of $v$ creates a self-loop at $u$ with probability $p = 0.3$. After resolution: $x_u \leftarrow 0.5 \cdot 1/(1 - 0.3) = 0.5/0.7 \approx 0.714$. The chain now visits $u$ an expected $1/0.7 \approx 1.43$ times per sojourn, each lasting $0.5$ time units, for a total of $0.714$.
+<details>
+<summary>Example</summary>
+Suppose $u$ has vertex scalar $x_u = 0.5$ and the elimination of $v$ creates a self-loop at $u$ with probability $p = 0.3$. After resolution: $x_u \leftarrow 0.5 \cdot 1/(1 - 0.3) = 0.5/0.7 \approx 0.714$. The chain now visits $u$ an expected $1/0.7 \approx 1.43$ times per sojourn, each lasting $0.5$ time units, for a total of $0.714$.
+</details>
 
 ::: {#def-06-acyclic-graph}
 
@@ -59,7 +71,10 @@ $$x_u \leftarrow x_u \cdot \frac{1}{1 - p}.$$ {#eq-06-self-loop}
 *A phase-type graph $G = (V, E, W')$ is acyclic if the subgraph induced by the transient vertices (excluding the starting and absorbing vertices) contains no directed cycles. The elimination algorithm (@alg-06-full-elimination) transforms any normalized phase-type graph into an acyclic graph representation by eliminating all transient vertices that participate in cycles, recording the bypass operations as commands.*
 :::
 
-> **Intuition.** An acyclic graph enables recursive (bottom-up) computation of moments: since there are no cycles, each vertex's contribution can be computed exactly once in reverse topological order. The cyclic information is not lost; it is encoded in the vertex scalars via self-loop resolution factors.
+<details>
+<summary>Intuition</summary>
+An acyclic graph enables recursive (bottom-up) computation of moments: since there are no cycles, each vertex's contribution can be computed exactly once in reverse topological order. The cyclic information is not lost; it is encoded in the vertex scalars via self-loop resolution factors.
+</details>
 
 ::: {#def-06-elimination-invariants}
 
@@ -74,7 +89,10 @@ $$x_u \leftarrow x_u \cdot \frac{1}{1 - p}.$$ {#eq-06-self-loop}
 3. *Normalized probabilities: for each remaining transient vertex $u$, the outgoing edge weights sum to 1, i.e., the edges represent valid transition probabilities.*
 :::
 
-> **Intuition.** Invariant 1 ensures that the structure of absorption is preserved. Invariant 2 ensures that moments can be correctly computed from the modified graph. Invariant 3 ensures that the graph remains a valid representation of a normalized Markov chain at every intermediate step. Together, these invariants guarantee that the final acyclic graph encodes the same phase-type distribution as the original.
+<details>
+<summary>Intuition</summary>
+Invariant 1 ensures that the structure of absorption is preserved. Invariant 2 ensures that moments can be correctly computed from the modified graph. Invariant 3 ensures that the graph remains a valid representation of a normalized Markov chain at every intermediate step. Together, these invariants guarantee that the final acyclic graph encodes the same phase-type distribution as the original.
+</details>
 
 ::: {#def-06-elimination-ordering}
 
@@ -90,7 +108,10 @@ $$x_u \leftarrow x_u \cdot \frac{1}{1 - p}.$$ {#eq-06-self-loop}
 *A vertex $v_i$ is eliminated only if all parents $u$ of $v_i$ with $u$ preceding $v_i$ in the ordering have already been eliminated (i.e., the algorithm skips parents with index less than $i$).*
 :::
 
-> **Intuition.** The SCC-based ordering ensures that vertices within cycles are processed together, while the topological ordering of SCCs ensures that inter-component dependencies are handled correctly. Within an SCC, the elimination order does not affect correctness (@thm-06-acyclic-absorption below) but may affect numerical stability. The condition that only parents with higher indices are considered during bypass ensures that already-eliminated vertices are not revisited.
+<details>
+<summary>Intuition</summary>
+The SCC-based ordering ensures that vertices within cycles are processed together, while the topological ordering of SCCs ensures that inter-component dependencies are handled correctly. Within an SCC, the elimination order does not affect correctness (@thm-06-acyclic-absorption below) but may affect numerical stability. The condition that only parents with higher indices are considered during bypass ensures that already-eliminated vertices are not revisited.
+</details>
 
 ::: {#def-06-reward-compute-graph}
 
@@ -108,9 +129,15 @@ $$\text{result}[\text{from}] \leftarrow \text{result}[\text{from}] + \text{resul
 - *Phase 2 (commands $|V|$ onward): elimination commands recording the bypass operations (from @def-06-vertex-elimination) and self-loop resolutions (from @def-06-self-loop-resolution), followed by reverse-order edge accumulation commands.*
 :::
 
-> **Intuition.** The reward compute graph is a linear program --- a flat sequence of multiply-accumulate operations --- that replays the elimination in $O(N)$ time. The initial phase loads the reward vector (defaulting to vertex scalars for absorption time). The elimination phase propagates rewards upward through the eliminated vertices. The final edge accumulation phase, executed in reverse topological order, sums the contributions of each vertex's children. By changing the initial reward vector, the same command sequence can compute moments for any reward-transformed distribution.
+<details>
+<summary>Intuition</summary>
+The reward compute graph is a linear program --- a flat sequence of multiply-accumulate operations --- that replays the elimination in $O(N)$ time. The initial phase loads the reward vector (defaulting to vertex scalars for absorption time). The elimination phase propagates rewards upward through the eliminated vertices. The final edge accumulation phase, executed in reverse topological order, sums the contributions of each vertex's children. By changing the initial reward vector, the same command sequence can compute moments for any reward-transformed distribution.
+</details>
 
-> **Example.** For a graph with vertices $\{v_0, v_1, v_2, v_a\}$ where $v_0$ is starting and $v_a$ is absorbing, the command sequence might be: (i) initialize $\text{result}[0] = 0$, $\text{result}[1] = x_{v_1}$, $\text{result}[2] = x_{v_2}$, $\text{result}[3] = 0$; (ii) elimination of $v_1$: $\text{result}[2] \mathrel{+}= \text{result}[1] \times w'(v_2 \to v_1)$; (iii) reverse accumulation: $\text{result}[0] \mathrel{+}= \text{result}[2] \times w'(v_0 \to v_2)$, etc.
+<details>
+<summary>Example</summary>
+For a graph with vertices $\{v_0, v_1, v_2, v_a\}$ where $v_0$ is starting and $v_a$ is absorbing, the command sequence might be: (i) initialize $\text{result}[0] = 0$, $\text{result}[1] = x_{v_1}$, $\text{result}[2] = x_{v_2}$, $\text{result}[3] = 0$; (ii) elimination of $v_1$: $\text{result}[2] \mathrel{+}= \text{result}[1] \times w'(v_2 \to v_1)$; (iii) reverse accumulation: $\text{result}[0] \mathrel{+}= \text{result}[2] \times w'(v_0 \to v_2)$, etc.
+</details>
 
 ## Theorems and Proofs {.unnumbered}
 
@@ -126,7 +153,7 @@ Let $\mathbb{E}_u[\tilde{\tau}]$ denote the expected accumulated reward starting
 
 $$\mathbb{E}_u[\tilde{\tau}] = x_u + \sum_{z \in \operatorname{children}(u)} w'(u \to z) \cdot \mathbb{E}_z[\tilde{\tau}],$$ {#eq-06-first-step}
 
-where $x_u$ is the expected time spent at $u$ before jumping, and the sum accounts for the expected future reward after jumping to each child $z$ with probability $w'(u \to z)$. This is the graph analogue of equation (3) in Roikjer et al. (2022).
+where $x_u$ is the expected time spent at $u$ before jumping, and the sum accounts for the expected future reward after jumping to each child $z$ with probability $w'(u \to z)$. This is the graph analogue of equation (3) in @roikjer2022.
 
 **Case 1: $u$ is not a parent of $v$.** Then the elimination of $v$ does not modify $u$'s outgoing edges. The children of $u$ in $G^{(-v)}$ are the same as in $G$. Each child $z \neq v$ retains the same expected reward (by induction, since the elimination of $v$ only modifies parents of $v$). Since $u$ is not a parent of $v$, $v \notin \operatorname{children}(u)$, and the first-step expansion for $u$ is unchanged.
 

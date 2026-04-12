@@ -8,7 +8,7 @@ This file formalizes the hierarchical approach to trace recording that exploits 
 
 The stitching algorithm composes SCC-local traces into a full-graph trace by (1) appending each SCC's operation sequence to a merged trace, (2) remapping operation indices to account for the offset, and (3) merging "sister vertices" --- vertices that appear at the boundary between SCCs and are present in multiple SCC-local traces. The result is a single `EliminationTrace` (@def-11-elimination-trace) that is functionally equivalent to recording the trace on the full graph directly.
 
-This decomposition is the key to scaling phasic's trace system to graphs with hundreds of thousands of vertices, where direct trace recording would be prohibitively expensive.
+This decomposition is the key to scaling the trace system of phasic [@roikjer2022] to graphs with hundreds of thousands of vertices, where direct trace recording would be prohibitively expensive.
 
 **Prerequisites:** [01], [04], [06], [11]
 
@@ -40,9 +40,15 @@ This decomposition is the key to scaling phasic's trace system to graphs with hu
 *A vertex $v \in V_i^{\text{up}} \cup V_i^{\text{down}}$ is called a boundary vertex of $C_i$. A vertex that appears as a boundary vertex in multiple enhanced subgraphs is called a sister vertex.*
 :::
 
-> **Intuition.** The enhanced subgraph contains the SCC itself plus a one-hop fringe of upstream and downstream vertices. The upstream vertices provide the incoming probability flow that the SCC receives from earlier components. The downstream vertices serve as absorbing targets for outgoing edges. Including this fringe ensures that the elimination within $C_i$ correctly accounts for the edge probabilities entering and leaving the component. Without the fringe, the trace would miss the normalization effects of inter-component edges.
+<details>
+<summary>Intuition</summary>
+The enhanced subgraph contains the SCC itself plus a one-hop fringe of upstream and downstream vertices. The upstream vertices provide the incoming probability flow that the SCC receives from earlier components. The downstream vertices serve as absorbing targets for outgoing edges. Including this fringe ensures that the elimination within $C_i$ correctly accounts for the edge probabilities entering and leaving the component. Without the fringe, the trace would miss the normalization effects of inter-component edges.
+</details>
 
-> **Example.** In a spatial coalescent model on a hexagonal grid, the graph decomposes into SCCs corresponding to migration loops between adjacent cells. Each loop SCC shares boundary vertices with its geographic neighbors. An SCC for cells $\{A, B, C\}$ in a migration triangle would have upstream vertices from cells that feed lineages into the triangle and downstream vertices representing cells that receive lineages from it.
+<details>
+<summary>Example</summary>
+In a spatial coalescent model on a hexagonal grid, the graph decomposes into SCCs corresponding to migration loops between adjacent cells. Each loop SCC shares boundary vertices with its geographic neighbors. An SCC for cells $\{A, B, C\}$ in a migration triangle would have upstream vertices from cells that feed lineages into the triangle and downstream vertices representing cells that receive lineages from it.
+</details>
 
 ::: {#def-13-scc-local-trace}
 
@@ -53,7 +59,10 @@ This decomposition is the key to scaling phasic's trace system to graphs with hu
 *The SCC-local trace is indexed by the content hash $H(G_i^+)$ (@def-12-graph-content-hash) for cache lookup. Two SCCs with the same hash share the same trace.*
 :::
 
-> **Intuition.** Each SCC-local trace is a self-contained arithmetic program that can be evaluated independently. Because it was recorded on the enhanced subgraph (which includes boundary vertices), it correctly computes the elimination result for the internal vertices of the SCC, given the edge probabilities from upstream vertices.
+<details>
+<summary>Intuition</summary>
+Each SCC-local trace is a self-contained arithmetic program that can be evaluated independently. Because it was recorded on the enhanced subgraph (which includes boundary vertices), it correctly computes the elimination result for the internal vertices of the SCC, given the edge probabilities from upstream vertices.
+</details>
 
 ::: {#def-13-trace-stitching}
 
@@ -76,9 +85,15 @@ This decomposition is the key to scaling phasic's trace system to graphs with hu
 3. *The stitched trace $\mathcal{T}^*$ has the same structure as an elimination trace (@def-11-elimination-trace).*
 :::
 
-> **Intuition.** Stitching concatenates the arithmetic programs of each SCC trace, adjusting the "line numbers" (operand indices) so that references remain valid in the merged program. Sister vertices --- vertices that appear in multiple SCC traces because they sit at SCC boundaries --- are merged by keeping one copy and redirecting edges. The topological processing order ensures that when we process SCC $C_i$, all upstream SCCs (which provide incoming edges to $C_i$) have already been merged.
+<details>
+<summary>Intuition</summary>
+Stitching concatenates the arithmetic programs of each SCC trace, adjusting the "line numbers" (operand indices) so that references remain valid in the merged program. Sister vertices --- vertices that appear in multiple SCC traces because they sit at SCC boundaries --- are merged by keeping one copy and redirecting edges. The topological processing order ensures that when we process SCC $C_i$, all upstream SCCs (which provide incoming edges to $C_i$) have already been merged.
+</details>
 
-> **Example.** If SCC $C_1$ has 100 operations and SCC $C_2$ has 80 operations, with vertex $v_5$ as a sister vertex appearing in both, the stitched trace has at most 180 operations. All operand indices in $\mathcal{T}_2$ are shifted by 100 (the offset). Vertex $v_5$'s rate comes from $\mathcal{T}_1$, but its outgoing edges to vertices in $C_2$ come from $\mathcal{T}_2$ (with remapped indices).
+<details>
+<summary>Example</summary>
+If SCC $C_1$ has 100 operations and SCC $C_2$ has 80 operations, with vertex $v_5$ as a sister vertex appearing in both, the stitched trace has at most 180 operations. All operand indices in $\mathcal{T}_2$ are shifted by 100 (the offset). Vertex $v_5$'s rate comes from $\mathcal{T}_1$, but its outgoing edges to vertices in $C_2$ come from $\mathcal{T}_2$ (with remapped indices).
+</details>
 
 ## Theorems and Proofs {.unnumbered}
 
@@ -144,7 +159,7 @@ SCC-Based Trace Decomposition and Stitching
 2:
 3: function HierarchicalTraceRecord(G, k)
 4:   ▷ Stage 1: SCC decomposition
-5:   (C_1, ..., C_m) ← SCCDecomposition(G)          ▷ Tarjan SCC
+5:   (C_1, ..., C_m) ← SCCDecomposition(G)          ▷ Tarjan SCC [@tarjan1972]
 6:   Sort SCCs in topological order                    ▷ Topological Sort
 7:
 8:   ▷ Stage 2: Record SCC-local traces (with caching)

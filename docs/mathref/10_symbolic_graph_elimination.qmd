@@ -6,7 +6,7 @@ title: "Symbolic Graph Elimination"
 
 This file formalizes the symbolic graph elimination algorithm, which performs vertex elimination (@def-06-vertex-elimination) on a parameterized graph while recording the elimination operations as symbolic expression trees (@def-09-expression-tree) rather than computing numeric values. The result is a symbolic acyclic graph whose edge weights are expression trees that can be instantiated with any concrete parameter vector in $O(|V|^2)$ time, avoiding the $O(|V|^3)$ cost of repeating the full elimination.
 
-This is the key algorithmic innovation that enables efficient Bayesian inference with phasic: during SVGD or MCMC, the elimination is performed once symbolically, and each likelihood evaluation requires only the cheap instantiation step. The symbolic system builds on the expression tree ADT from [09] and the vertex elimination procedure from [06].
+This is the key algorithmic innovation that enables efficient Bayesian inference with phasic [@roikjer2022]: during SVGD or MCMC, the elimination is performed once symbolically, and each likelihood evaluation requires only the cheap instantiation step. The symbolic system builds on the expression tree ADT from [09] and the vertex elimination procedure from [06].
 
 **Prerequisites:** [01], [06], [09]
 
@@ -32,9 +32,15 @@ This is the key algorithmic innovation that enables efficient Bayesian inference
 *The symbolic graph is acyclic: the subgraph induced by the transient vertices contains no directed cycles.*
 :::
 
-> **Intuition.** A symbolic graph is the result of performing graph elimination symbolically. Where a concrete graph stores numeric edge weights, a symbolic graph stores expression trees that evaluate to those weights given a parameter vector. The graph structure (which vertices connect to which) is fixed; only the edge weights vary with $\boldsymbol{\theta}$.
+<details>
+<summary>Intuition</summary>
+A symbolic graph is the result of performing graph elimination symbolically. Where a concrete graph stores numeric edge weights, a symbolic graph stores expression trees that evaluate to those weights given a parameter vector. The graph structure (which vertices connect to which) is fixed; only the edge weights vary with $\boldsymbol{\theta}$.
+</details>
 
-> **Example.** For a two-state coalescent parameterized by rate $\theta_1$, the symbolic graph after elimination might have an edge from $v_0$ to the absorbing vertex with probability expression $\texttt{Const}(1.0)$ and a rate expression $\texttt{Inv}(\texttt{Param}(1))$ (representing expected waiting time $1/\theta_1$).
+<details>
+<summary>Example</summary>
+For a two-state coalescent parameterized by rate $\theta_1$, the symbolic graph after elimination might have an edge from $v_0$ to the absorbing vertex with probability expression $\texttt{Const}(1.0)$ and a rate expression $\texttt{Inv}(\texttt{Param}(1))$ (representing expected waiting time $1/\theta_1$).
+</details>
 
 ::: {#def-10-symbolic-vertex-elimination}
 
@@ -57,7 +63,10 @@ This is the key algorithmic innovation that enables efficient Bayesian inference
 *All constructors use the intern table $\mathcal{I}$ (@def-09-cse-interning) for common subexpression elimination.*
 :::
 
-> **Intuition.** This is exactly vertex elimination (@def-06-vertex-elimination), but every arithmetic operation on edge weights is replaced by the corresponding expression tree constructor. Where concrete elimination computes $p_{\mathrm{bypass}} = p_{u \to v} \cdot p_{v \to z}$, symbolic elimination constructs $\texttt{Mul}_\mathcal{I}(\mathcal{E}_{u \to v}, \mathcal{E}_{v \to z})$. The interned constructors ensure that identical subexpressions are shared.
+<details>
+<summary>Intuition</summary>
+This is exactly vertex elimination (@def-06-vertex-elimination), but every arithmetic operation on edge weights is replaced by the corresponding expression tree constructor. Where concrete elimination computes $p_{\mathrm{bypass}} = p_{u \to v} \cdot p_{v \to z}$, symbolic elimination constructs $\texttt{Mul}_\mathcal{I}(\mathcal{E}_{u \to v}, \mathcal{E}_{v \to z})$. The interned constructors ensure that identical subexpressions are shared.
+</details>
 
 ::: {#def-10-symbolic-instantiation}
 
@@ -69,9 +78,15 @@ This is the key algorithmic innovation that enables efficient Bayesian inference
 2. *For each symbolic edge $(v \to z) \in E_{\mathrm{sym}}$: evaluating the probability expression $p = \operatorname{eval}(\mathcal{E}_{v \to z}, \boldsymbol{\theta})$ (@def-09-expression-evaluation), evaluating the inverse rate $r = \operatorname{eval}(\mathcal{E}_v^{\mathrm{rate}}, \boldsymbol{\theta})$, and setting the concrete edge weight $w(v \to z) = p / r$ (converting probability back to rate).*
 :::
 
-> **Intuition.** Instantiation replays the result of elimination with concrete numbers. Since the expression trees encode all the bypass, merge, and normalization operations that occurred during elimination, evaluating them produces the same edge weights that concrete elimination would have produced. The cost is $O(|E_{\mathrm{sym}}|)$ expression evaluations instead of $O(|V|^3)$ elimination operations.
+<details>
+<summary>Intuition</summary>
+Instantiation replays the result of elimination with concrete numbers. Since the expression trees encode all the bypass, merge, and normalization operations that occurred during elimination, evaluating them produces the same edge weights that concrete elimination would have produced. The cost is $O(|E_{\mathrm{sym}}|)$ expression evaluations instead of $O(|V|^3)$ elimination operations.
+</details>
 
-> **Example.** For a coalescent model with parameter $\theta_1 = 2.0$: the symbolic graph's rate expression $\texttt{Inv}(\texttt{Param}(1))$ evaluates to $1/2 = 0.5$, and probability expressions evaluate to concrete transition probabilities. The resulting concrete graph can be passed to the forward algorithm for PDF computation.
+<details>
+<summary>Example</summary>
+For a coalescent model with parameter $\theta_1 = 2.0$: the symbolic graph's rate expression $\texttt{Inv}(\texttt{Param}(1))$ evaluates to $1/2 = 0.5$, and probability expressions evaluate to concrete transition probabilities. The resulting concrete graph can be passed to the forward algorithm for PDF computation.
+</details>
 
 ## Theorems and Proofs {.unnumbered}
 
@@ -146,7 +161,7 @@ Symbolic Graph Elimination
 4:   I ← CreateInternTable(4096)                       ▷ CSE intern table (Def. 9.3 in [09])
 5:
 6:   ▷ Phase 1: Topological ordering
-7:   SCC ← FindSCCs(G)                                 ▷ Tarjan SCC
+7:   SCC ← FindSCCs(G)                                 ▷ Tarjan SCC [@tarjan1972]
 8:   order ← TopologicalSort(SCC)                      ▷ Topological Sort
 9:   Reorder V: non-absorbing vertices first (in topological order), then absorbing
 10:

@@ -23,7 +23,7 @@ When summing $n$ floating-point numbers in the obvious way ($s \leftarrow s + x_
 
 #### Kahan compensated summation
 
-*A Kahan accumulator is a pair $(S, C)$ where $S$ is the running sum and $C$ is the compensation term, both initialized to zero. Given a sequence of values $x_1, x_2, \ldots, x_n$, the compensated sum is computed by the following recurrence: for $i = 1, \ldots, n$,*
+*A Kahan accumulator [@kahan1965] is a pair $(S, C)$ where $S$ is the running sum and $C$ is the compensation term, both initialized to zero. Given a sequence of values $x_1, x_2, \ldots, x_n$, the compensated sum is computed by the following recurrence: for $i = 1, \ldots, n$,*
 
 $$y_i = x_i - C,$$ {#eq-03-kahan-compensate}
 $$t_i = S + y_i,$$ {#eq-03-kahan-add}
@@ -33,9 +33,15 @@ $$S \leftarrow t_i.$$ {#eq-03-kahan-update-s}
 *The result is $S$ after processing all $n$ values.*
 :::
 
-> **Intuition.** In exact arithmetic, @eq-03-kahan-update-c yields $C = 0$ always, because $(t_i - S) - y_i = (S + y_i - S) - y_i = 0$. In floating-point arithmetic, $\operatorname{fl}(S + y_i)$ may differ from $S + y_i$; the discrepancy is exactly what $(t_i - S) - y_i$ computes (to first order in $\varepsilon$). By subtracting $C$ from the next input (@eq-03-kahan-compensate), the lost low-order bits are recovered.
+<details>
+<summary>Intuition</summary>
+In exact arithmetic, @eq-03-kahan-update-c yields $C = 0$ always, because $(t_i - S) - y_i = (S + y_i - S) - y_i = 0$. In floating-point arithmetic, $\operatorname{fl}(S + y_i)$ may differ from $S + y_i$; the discrepancy is exactly what $(t_i - S) - y_i$ computes (to first order in $\varepsilon$). By subtracting $C$ from the next input (@eq-03-kahan-compensate), the lost low-order bits are recovered.
+</details>
 
-> **Example.** Let $\varepsilon \approx 1.1 \times 10^{-16}$ (IEEE 754 double precision). Summing $10^8$ values of $1.0$: naive summation may accumulate relative error of order $10^8 \varepsilon \approx 10^{-8}$, yielding a result like $10^8 \pm 1$. Kahan summation maintains relative error of order $\varepsilon$, yielding $10^8$ exactly (for this case).
+<details>
+<summary>Example</summary>
+Let $\varepsilon \approx 1.1 \times 10^{-16}$ (IEEE 754 double precision). Summing $10^8$ values of $1.0$: naive summation may accumulate relative error of order $10^8 \varepsilon \approx 10^{-8}$, yielding a result like $10^8 \pm 1$. Kahan summation maintains relative error of order $\varepsilon$, yielding $10^8$ exactly (for this case).
+</details>
 
 ::: {#def-03-kahan-struct}
 
@@ -48,7 +54,10 @@ $$S \leftarrow t_i.$$ {#eq-03-kahan-update-s}
 - *Result: return $S$.*
 :::
 
-> **Intuition.** The struct encapsulates the two-variable state, making it a drop-in replacement for a plain double accumulator in existing code.
+<details>
+<summary>Intuition</summary>
+The struct encapsulates the two-variable state, making it a drop-in replacement for a plain double accumulator in existing code.
+</details>
 
 ### Log-space weight computation {.unnumbered}
 
@@ -56,7 +65,7 @@ When the weight mode is `log` (@def-01-param-edges), the edge weight is a produc
 
 $$w(v \to z) = \prod_{j=1}^{k} (c_j \theta_j).$$
 
-Direct computation of this product risks overflow (if the factors are large) or underflow (if the factors are small). Log-space computation avoids both issues.
+Direct computation of this product risks overflow (if the factors are large) or underflow (if the factors are small). Log-space computation avoids both issues [@higham2002].
 
 ::: {#def-03-logspace}
 
@@ -71,9 +80,15 @@ $$w(v \to z) = \exp\!\left(\sum_{j=1}^{k} \log(c_j \theta_j)\right).$$ {#eq-03-l
 2. *Exponentiate: $w \leftarrow \exp(L)$.*
 :::
 
-> **Intuition.** Working in log-space converts the product into a sum, and the sum of logarithms stays in a moderate range even when the individual factors span many orders of magnitude. The final exponentiation maps back to the original scale. This is the standard technique for computing products in numerical work.
+<details>
+<summary>Intuition</summary>
+Working in log-space converts the product into a sum, and the sum of logarithms stays in a moderate range even when the individual factors span many orders of magnitude. The final exponentiation maps back to the original scale. This is the standard technique for computing products in numerical work.
+</details>
 
-> **Example.** Suppose $k = 3$ with $c_j \theta_j = (10^{100}, 10^{-50}, 10^{-50})$. The product is $10^{100} \cdot 10^{-50} \cdot 10^{-50} = 1$. Direct multiplication would compute $10^{100} \cdot 10^{-50} = 10^{50}$ at an intermediate step, which is fine in this case, but with more extreme values or longer products, intermediate overflow is a real risk. In log-space: $\log(10^{100}) + \log(10^{-50}) + \log(10^{-50}) = 100 \ln 10 - 50 \ln 10 - 50 \ln 10 = 0$, and $\exp(0) = 1$.
+<details>
+<summary>Example</summary>
+Suppose $k = 3$ with $c_j \theta_j = (10^{100}, 10^{-50}, 10^{-50})$. The product is $10^{100} \cdot 10^{-50} \cdot 10^{-50} = 1$. Direct multiplication would compute $10^{100} \cdot 10^{-50} = 10^{50}$ at an intermediate step, which is fine in this case, but with more extreme values or longer products, intermediate overflow is a real risk. In log-space: $\log(10^{100}) + \log(10^{-50}) + \log(10^{-50}) = 100 \ln 10 - 50 \ln 10 - 50 \ln 10 = 0$, and $\exp(0) = 1$.
+</details>
 
 ::: {#def-03-positivity-guard}
 
@@ -82,7 +97,10 @@ $$w(v \to z) = \exp\!\left(\sum_{j=1}^{k} \log(c_j \theta_j)\right).$$ {#eq-03-l
 *The log-space weight computation (@def-03-logspace) requires the strict positivity condition $c_j \theta_j > 0$ for all $j = 1, \ldots, k$. If any $c_j \theta_j \leq 0$, the logarithm is undefined (for $c_j \theta_j \leq 0$) or $-\infty$ (for $c_j \theta_j = 0$), and the computation must not proceed. The implementation raises an error if this condition is violated.*
 :::
 
-> **Intuition.** This is a fundamental constraint of the log-space approach. Models using the `log` weight mode must ensure all coefficient-parameter products are strictly positive. This is naturally satisfied in many applications (e.g., population genetics where rates are positive by definition).
+<details>
+<summary>Intuition</summary>
+This is a fundamental constraint of the log-space approach. Models using the `log` weight mode must ensure all coefficient-parameter products are strictly positive. This is naturally satisfied in many applications (e.g., population genetics where rates are positive by definition).
+</details>
 
 ## Theorems and Proofs {.unnumbered}
 
@@ -94,7 +112,7 @@ $$w(v \to z) = \exp\!\left(\sum_{j=1}^{k} \log(c_j \theta_j)\right).$$ {#eq-03-l
 
 $$|\hat{S}_n - S_n| \leq (2\varepsilon + O(\varepsilon^2)) \sum_{i=1}^{n} |x_i|,$$ {#eq-03-kahan-bound}
 
-*where $\varepsilon$ is the unit roundoff (machine epsilon). In contrast, naive left-to-right summation satisfies only $|\hat{S}_n^{\text{naive}} - S_n| \leq n\varepsilon \sum_{i=1}^{n} |x_i| + O(\varepsilon^2)$.*
+*where $\varepsilon$ is the unit roundoff (machine epsilon) [@higham2002]. In contrast, naive left-to-right summation satisfies only $|\hat{S}_n^{\text{naive}} - S_n| \leq n\varepsilon \sum_{i=1}^{n} |x_i| + O(\varepsilon^2)$.*
 :::
 
 ::: {.proof}

@@ -6,7 +6,7 @@ title: "Probability Matching Estimation"
 
 This file formalizes **probability matching estimation** for phase-type models with discrete joint probability structure. Unlike moment matching ([21]), which operates on continuous observations and their moments, probability matching targets models where observations are categorical (vertex indices in a joint probability graph) and the model produces a probability table over terminal vertices. The estimator minimizes the distance between the empirical probability distribution (from observed frequency counts) and the model probability distribution (from normalized expected sojourn times), providing parameter estimates and priors for subsequent Bayesian inference.
 
-In the phasic pipeline, probability matching applies to joint probability graphs constructed via `Graph.joint_prob_graph()`, where each observation corresponds to a terminal vertex index (e.g., a mutation count tuple in population genetics). The model probabilities are computed via the forward algorithm ([14]) and normalized over all terminal vertices. The estimation is cast as a nonlinear least-squares problem with multinomial covariance for standard error estimation via the delta method.
+In the phasic pipeline, probability matching applies to joint probability graphs constructed via `Graph.joint_prob_graph()`, where each observation corresponds to a terminal vertex index (e.g., a mutation count tuple in population genetics). The model probabilities are computed via the forward algorithm ([14]) and normalized over all terminal vertices. The estimation is cast as a nonlinear least-squares problem with multinomial covariance for standard error estimation via the delta method [@vandervaart1998].
 
 **Prerequisites:** [01], [14]
 
@@ -31,9 +31,15 @@ $$p_k(\boldsymbol{\theta}) = \frac{x_{v_{t_{i_k}}}(\boldsymbol{\theta})}{\sum_{j
 *where $x_v(\boldsymbol{\theta})$ is the expected sojourn time at vertex $v$ under parameter $\boldsymbol{\theta}$, computed via the forward algorithm ([14]).*
 :::
 
-> **Intuition.** The empirical PMF is simply the observed relative frequency of each vertex index in the data. The model PMF is the theoretical probability of each vertex under the phase-type model, obtained by normalizing the expected sojourn times (which are proportional to absorption probabilities in the joint probability graph construction). Probability matching finds the parameter that makes these two distributions as close as possible.
+<details>
+<summary>Intuition</summary>
+The empirical PMF is simply the observed relative frequency of each vertex index in the data. The model PMF is the theoretical probability of each vertex under the phase-type model, obtained by normalizing the expected sojourn times (which are proportional to absorption probabilities in the joint probability graph construction). Probability matching finds the parameter that makes these two distributions as close as possible.
+</details>
 
-> **Example.** In a coalescent model with mutations, terminal vertices represent site frequency spectrum (SFS) categories. If $n = 1000$ loci are observed with counts $(n_1, n_2, n_3) = (500, 350, 150)$ for singletons, doubletons, and tripletons, then $\hat{\mathbf{p}} = (0.5, 0.35, 0.15)$. The model predicts $\mathbf{p}(\theta) = (0.52, 0.30, 0.18)$ for some $\theta$, and probability matching adjusts $\theta$ to reduce this discrepancy.
+<details>
+<summary>Example</summary>
+In a coalescent model with mutations, terminal vertices represent site frequency spectrum (SFS) categories. If $n = 1000$ loci are observed with counts $(n_1, n_2, n_3) = (500, 350, 150)$ for singletons, doubletons, and tripletons, then $\hat{\mathbf{p}} = (0.5, 0.35, 0.15)$. The model predicts $\mathbf{p}(\theta) = (0.52, 0.30, 0.18)$ for some $\theta$, and probability matching adjusts $\theta$ to reduce this discrepancy.
+</details>
 
 ::: {#def-22-prob-objective .definition}
 
@@ -46,7 +52,10 @@ $$\hat{\boldsymbol{\theta}} = \arg\min_{\boldsymbol{\theta} > 0} \sum_{k=1}^{K} 
 *The constraint $\boldsymbol{\theta} > 0$ ensures positive rates. This is equivalent to minimizing $\lVert \mathbf{p}(\boldsymbol{\theta}) - \hat{\mathbf{p}} \rVert_2^2$, where $\mathbf{p}(\boldsymbol{\theta}) = (p_1(\boldsymbol{\theta}), \ldots, p_K(\boldsymbol{\theta}))^\top$ and $\hat{\mathbf{p}} = (\hat{p}_1, \ldots, \hat{p}_K)^\top$.*
 :::
 
-> **Intuition.** The objective measures the squared Euclidean distance between the model and empirical probability vectors. Unlike maximum likelihood (which uses the multinomial log-likelihood), least-squares probability matching is computationally simpler and provides a natural residual structure for standard error estimation. The two approaches are asymptotically equivalent for well-specified models.
+<details>
+<summary>Intuition</summary>
+The objective measures the squared Euclidean distance between the model and empirical probability vectors. Unlike maximum likelihood (which uses the multinomial log-likelihood), least-squares probability matching is computationally simpler and provides a natural residual structure for standard error estimation. The two approaches are asymptotically equivalent for well-specified models.
+</details>
 
 ::: {#def-22-multinomial-cov .definition}
 
@@ -59,10 +68,16 @@ $$\operatorname{Cov}(\hat{p}_i, \hat{p}_j) = \frac{1}{n} \begin{cases} \hat{p}_i
 *In matrix form, $\boldsymbol{\Sigma}_{\hat{\mathbf{p}}} = n^{-1}(\operatorname{diag}(\hat{\mathbf{p}}) - \hat{\mathbf{p}} \hat{\mathbf{p}}^\top)$.*
 :::
 
-> **Intuition.** The multinomial covariance captures the sampling variability of the empirical proportions. Diagonal entries are the variance of each proportion (largest when $\hat{p}_k \approx 0.5$, smallest when $\hat{p}_k$ is near 0 or 1). Off-diagonal entries are negative: if one proportion is above its expectation, others must be below (since proportions sum to 1). The $1/n$ factor reflects that variability decreases with sample size. This covariance is used in the delta method to propagate uncertainty from $\hat{\mathbf{p}}$ to $\hat{\boldsymbol{\theta}}$.
+<details>
+<summary>Intuition</summary>
+The multinomial covariance captures the sampling variability of the empirical proportions. Diagonal entries are the variance of each proportion (largest when $\hat{p}_k \approx 0.5$, smallest when $\hat{p}_k$ is near 0 or 1). Off-diagonal entries are negative: if one proportion is above its expectation, others must be below (since proportions sum to 1). The $1/n$ factor reflects that variability decreases with sample size. This covariance is used in the delta method to propagate uncertainty from $\hat{\mathbf{p}}$ to $\hat{\boldsymbol{\theta}}$.
+</details>
 
-> **Example.** For $K = 3$ categories with $\hat{\mathbf{p}} = (0.5, 0.35, 0.15)$ and $n = 100$:
-> $$\boldsymbol{\Sigma}_{\hat{\mathbf{p}}} = \frac{1}{100}\begin{pmatrix} 0.25 & -0.175 & -0.075 \\ -0.175 & 0.2275 & -0.0525 \\ -0.075 & -0.0525 & 0.1275 \end{pmatrix}.$$
+<details>
+<summary>Example</summary>
+For $K = 3$ categories with $\hat{\mathbf{p}} = (0.5, 0.35, 0.15)$ and $n = 100$:
+$$\boldsymbol{\Sigma}_{\hat{\mathbf{p}}} = \frac{1}{100}\begin{pmatrix} 0.25 & -0.175 & -0.075 \\ -0.175 & 0.2275 & -0.0525 \\ -0.075 & -0.0525 & 0.1275 \end{pmatrix}.$$
+</details>
 
 ## Theorems and Proofs {.unnumbered}
 

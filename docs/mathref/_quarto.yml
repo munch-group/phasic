@@ -2,6 +2,8 @@ project:
   type: book
   output-dir: ../_build/mathref
 
+bibliography: references.bib
+
 book:
   title: "Phasic — Supplementary Online Material"
   subtitle: "Exhaustive Mathematical and Algorithmic Documentation"
@@ -18,6 +20,7 @@ book:
         - 05_graph_normalization.qmd
         - 06_graph_elimination.qmd
         - 07_reward_transformation.qmd
+        - 07b_fill_in_complexity.qmd
         - 08_state_space_construction.qmd
     - part: "Symbolic System and Traces"
       chapters:
@@ -50,6 +53,7 @@ book:
         - 25_jax_integration.qmd
         - 26_graph_builder.qmd
         - 27_van_loan_equivalence.qmd
+    - 28_references.qmd
 
 crossref:
   thm-prefix: "Theorem"

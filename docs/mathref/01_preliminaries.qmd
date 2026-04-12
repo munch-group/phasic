@@ -6,7 +6,7 @@ title: "Preliminaries"
 
 This file establishes the foundational mathematical definitions and results that every subsequent SOM file depends upon. It defines continuous and discrete phase-type distributions, their moments and transforms, reward-transformed and multivariate extensions, and the weighted directed graph representation used throughout phasic. No algorithms or pseudocode appear here; those begin in later files (graph elimination, reward transformation, and beyond).
 
-The definitions follow Bladt & Nielsen (2017) for the matrix-analytic foundations, Hobolth, Rivas-Gonzalez, Bladt & Futschik (2024) for multivariate cross-moments, and Roikjer, Hobolth & Munch (2022) for the graph representation. All notation conforms to `docs/notation_standard.md`.
+The definitions follow @bladt2017 for the matrix-analytic foundations, @hobolth2024 for multivariate cross-moments, and @roikjer2022 for the graph representation. All notation conforms to `docs/notation_standard.md`.
 
 **Prerequisites:** None.
 
@@ -27,9 +27,15 @@ Phase-type distributions arise as absorption times in Markov processes on finite
 *A continuous-time Markov jump process on the finite state space $\{1, 2, \ldots, p, p+1\}$ is a stochastic process $\{X_t\}_{t \geq 0}$ characterized by a $(p+1) \times (p+1)$ intensity matrix $\boldsymbol{\Lambda}$ and an initial distribution. The process satisfies: (i) given $X_t = i$, the holding time in state $i$ is exponentially distributed with rate $-\Lambda_{ii}$; (ii) upon leaving state $i$, the process jumps to state $j \neq i$ with probability $\Lambda_{ij} / (-\Lambda_{ii})$; (iii) the process is time-homogeneous and satisfies the Markov property.*
 :::
 
-> **Intuition.** The process lives in one of finitely many states. It waits an exponential time in each state, then jumps to another state with probabilities determined by the intensity matrix. The special state $p+1$ will serve as the absorbing state.
+<details>
+<summary>Intuition</summary>
+The process lives in one of finitely many states. It waits an exponential time in each state, then jumps to another state with probabilities determined by the intensity matrix. The special state $p+1$ will serve as the absorbing state.
+</details>
 
-> **Example.** A two-state process with states $\{1, 2\}$ where state $2$ is absorbing. The intensity matrix is $\boldsymbol{\Lambda} = \begin{pmatrix} -\lambda & \lambda \\ 0 & 0 \end{pmatrix}$. Starting in state 1, the process waits an $\operatorname{Exp}(\lambda)$ time and then enters state 2 permanently.
+<details>
+<summary>Example</summary>
+A two-state process with states $\{1, 2\}$ where state $2$ is absorbing. The intensity matrix is $\boldsymbol{\Lambda} = \begin{pmatrix} -\lambda & \lambda \\ 0 & 0 \end{pmatrix}$. Starting in state 1, the process waits an $\operatorname{Exp}(\lambda)$ time and then enters state 2 permanently.
+</details>
 
 ::: {#def-01-cph}
 
@@ -37,12 +43,18 @@ Phase-type distributions arise as absorption times in Markov processes on finite
 
 *Let $\{X_t\}_{t \geq 0}$ be a continuous-time Markov jump process on $\{1, 2, \ldots, p, p+1\}$, where states $1, \ldots, p$ are transient and state $p+1$ is absorbing. Let $\boldsymbol{\alpha} = (\alpha_1, \ldots, \alpha_p)$ be the row vector of initial probabilities on the transient states, so that $\alpha_i = \Pr(X_0 = i)$ for $i = 1, \ldots, p$. Define the defect $\alpha_0 = 1 - \sum_{i=1}^{p} \alpha_i \geq 0$, representing the probability of starting in the absorbing state. Let $\mathbf{S}$ be the $p \times p$ sub-intensity matrix governing transitions among transient states: off-diagonal entries $s_{ij} \geq 0$ for $i \neq j$, diagonal entries $s_{ii} < 0$, and row sums non-positive. Define the exit rate vector $\mathbf{s} = -\mathbf{S}\mathbf{e}$, where $\mathbf{e}$ is the column vector of ones. The absorption time*
 $$\tau = \inf\{t \geq 0 : X_t = p+1\}$$
-*is said to follow a continuous phase-type distribution of order $p$, written $\tau \sim \operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})$.*
+*is said to follow a continuous phase-type distribution of order $p$, written $\tau \sim \operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})$ [@neuts1981].*
 :::
 
-> **Intuition.** The sub-intensity matrix $\mathbf{S}$ captures all dynamics among the transient states. The exit rate vector $\mathbf{s}$ captures absorption: the $i$-th entry $s_i = -\sum_{j=1}^{p} s_{ij} \geq 0$ is the rate at which state $i$ transitions to the absorbing state. When $\alpha_0 > 0$, the distribution has a point mass at $\tau = 0$.
+<details>
+<summary>Intuition</summary>
+The sub-intensity matrix $\mathbf{S}$ captures all dynamics among the transient states. The exit rate vector $\mathbf{s}$ captures absorption: the $i$-th entry $s_i = -\sum_{j=1}^{p} s_{ij} \geq 0$ is the rate at which state $i$ transitions to the absorbing state. When $\alpha_0 > 0$, the distribution has a point mass at $\tau = 0$.
+</details>
 
-> **Example.** An Erlang distribution $\operatorname{Erlang}(k, \lambda)$ is $\operatorname{PH}_k(\boldsymbol{\alpha}, \mathbf{S})$ with $\boldsymbol{\alpha} = (1, 0, \ldots, 0)$ and $\mathbf{S}$ a $k \times k$ bi-diagonal matrix with $s_{ii} = -\lambda$ and $s_{i,i+1} = \lambda$ for $i = 1, \ldots, k-1$.
+<details>
+<summary>Example</summary>
+An Erlang distribution $\operatorname{Erlang}(k, \lambda)$ is $\operatorname{PH}_k(\boldsymbol{\alpha}, \mathbf{S})$ with $\boldsymbol{\alpha} = (1, 0, \ldots, 0)$ and $\mathbf{S}$ a $k \times k$ bi-diagonal matrix with $s_{ii} = -\lambda$ and $s_{i,i+1} = \lambda$ for $i = 1, \ldots, k-1$.
+</details>
 
 ::: {#def-01-cph-pdf}
 
@@ -56,10 +68,13 @@ $$F_\tau(t) = 1 - \boldsymbol{\alpha} e^{\mathbf{S}t} \mathbf{e}, \quad t \geq 0
 
 $$\bar{F}_\tau(t) = \boldsymbol{\alpha} e^{\mathbf{S}t} \mathbf{e}, \quad t \geq 0.$$ {#eq-01-cph-survival}
 
-*When $\alpha_0 > 0$, the distribution has a point mass $\Pr(\tau = 0) = \alpha_0$ at the origin.*
+*When $\alpha_0 > 0$, the distribution has a point mass $\Pr(\tau = 0) = \alpha_0$ at the origin [@neuts1981; @bladt2017].*
 :::
 
-> **Intuition.** The matrix exponential $e^{\mathbf{S}t}$ propagates the initial distribution forward in time over the transient states. The entry $(e^{\mathbf{S}t})_{ij}$ gives the probability of being in transient state $j$ at time $t$ given start in state $i$ (conditional on not yet being absorbed). Multiplying by $\mathbf{s}$ extracts the instantaneous absorption rate.
+<details>
+<summary>Intuition</summary>
+The matrix exponential $e^{\mathbf{S}t}$ propagates the initial distribution forward in time over the transient states. The entry $(e^{\mathbf{S}t})_{ij}$ gives the probability of being in transient state $j$ at time $t$ given start in state $i$ (conditional on not yet being absorbed). Multiplying by $\mathbf{s}$ extracts the instantaneous absorption rate.
+</details>
 
 ::: {#def-01-cph-moments}
 
@@ -70,9 +85,15 @@ $$\bar{F}_\tau(t) = \boldsymbol{\alpha} e^{\mathbf{S}t} \mathbf{e}, \quad t \geq
 $$\mathbb{E}[\tau^n] = n! \, \boldsymbol{\alpha} (-\mathbf{S})^{-n} \mathbf{e} = n! \, \boldsymbol{\alpha} \mathbf{U}^n \mathbf{e}.$$ {#eq-01-cph-moments}
 :::
 
-> **Intuition.** The Green matrix entry $U_{ij}$ equals $\mathbb{E}[Z_j \mid X_0 = i]$, the expected total time spent in transient state $j$ before absorption, given start in state $i$. The first moment $\mathbb{E}[\tau] = \boldsymbol{\alpha} \mathbf{U} \mathbf{e}$ is the expected total time across all transient states, weighted by the initial distribution.
+<details>
+<summary>Intuition</summary>
+The Green matrix entry $U_{ij}$ equals $\mathbb{E}[Z_j \mid X_0 = i]$, the expected total time spent in transient state $j$ before absorption, given start in state $i$. The first moment $\mathbb{E}[\tau] = \boldsymbol{\alpha} \mathbf{U} \mathbf{e}$ is the expected total time across all transient states, weighted by the initial distribution.
+</details>
 
-> **Example.** For $\operatorname{Exp}(\lambda)$: $\mathbf{S} = (-\lambda)$, $\mathbf{U} = (1/\lambda)$, $\boldsymbol{\alpha} = (1)$. Then $\mathbb{E}[\tau] = 1 \cdot (1/\lambda) \cdot 1 = 1/\lambda$ and $\mathbb{E}[\tau^2] = 2/\lambda^2$.
+<details>
+<summary>Example</summary>
+For $\operatorname{Exp}(\lambda)$: $\mathbf{S} = (-\lambda)$, $\mathbf{U} = (1/\lambda)$, $\boldsymbol{\alpha} = (1)$. Then $\mathbb{E}[\tau] = 1 \cdot (1/\lambda) \cdot 1 = 1/\lambda$ and $\mathbb{E}[\tau^2] = 2/\lambda^2$.
+</details>
 
 ::: {#def-01-cph-laplace}
 
@@ -83,7 +104,10 @@ $$\mathbb{E}[\tau^n] = n! \, \boldsymbol{\alpha} (-\mathbf{S})^{-n} \mathbf{e} =
 $$\mathcal{L}_\tau(u) = \mathbb{E}[e^{-u\tau}] = \boldsymbol{\alpha}(u\mathbf{I} - \mathbf{S})^{-1} \mathbf{s}, \quad u \geq 0.$$ {#eq-01-cph-laplace}
 :::
 
-> **Intuition.** The Laplace transform encodes the entire distribution in the frequency domain. It is the generating function for the moments: $(-1)^n \frac{d^n}{du^n} \mathcal{L}_\tau(u) \big|_{u=0} = \mathbb{E}[\tau^n]$. The matrix $(u\mathbf{I} - \mathbf{S})^{-1}$ is the resolvent of $\mathbf{S}$.
+<details>
+<summary>Intuition</summary>
+The Laplace transform encodes the entire distribution in the frequency domain. It is the generating function for the moments: $(-1)^n \frac{d^n}{du^n} \mathcal{L}_\tau(u) \big|_{u=0} = \mathbb{E}[\tau^n]$. The matrix $(u\mathbf{I} - \mathbf{S})^{-1}$ is the resolvent of $\mathbf{S}$.
+</details>
 
 ### Discrete-time foundations {.unnumbered}
 
@@ -96,7 +120,10 @@ The discrete-time analogue replaces exponential holding times with geometric hol
 *A discrete-time Markov chain on the finite state space $\{1, 2, \ldots, p, p+1\}$ is a stochastic process $\{X_t\}_{t \in \mathbb{N}_0}$ satisfying the Markov property, characterized by a $(p+1) \times (p+1)$ transition matrix and an initial distribution.*
 :::
 
-> **Intuition.** At each discrete time step, the chain transitions from its current state to a new state (possibly the same state) according to fixed transition probabilities.
+<details>
+<summary>Intuition</summary>
+At each discrete time step, the chain transitions from its current state to a new state (possibly the same state) according to fixed transition probabilities.
+</details>
 
 ::: {#def-01-dph}
 
@@ -104,12 +131,18 @@ The discrete-time analogue replaces exponential holding times with geometric hol
 
 *Let $\{X_t\}_{t \in \mathbb{N}_0}$ be a discrete-time Markov chain on $\{1, 2, \ldots, p, p+1\}$ with transient states $1, \ldots, p$ and absorbing state $p+1$. Let $\boldsymbol{\alpha} = (\alpha_1, \ldots, \alpha_p)$ be the initial distribution on transient states, let $\mathbf{T}$ be the $p \times p$ sub-transition matrix with entries $t_{ij} \geq 0$ and row sums at most 1, and let $\mathbf{t} = \mathbf{e} - \mathbf{T}\mathbf{e}$ be the exit probability vector. The number of steps until absorption*
 $$\tau = \inf\{t \geq 1 : X_t = p+1\}$$
-*follows a discrete phase-type distribution, written $\tau \sim \operatorname{DPH}_p(\boldsymbol{\alpha}, \mathbf{T})$.*
+*follows a discrete phase-type distribution, written $\tau \sim \operatorname{DPH}_p(\boldsymbol{\alpha}, \mathbf{T})$ [@neuts1981].*
 :::
 
-> **Intuition.** The sub-transition matrix $\mathbf{T}$ plays the role of $\mathbf{S}$ in the continuous case, but entries are probabilities rather than rates. The exit probability $t_i = 1 - \sum_j T_{ij}$ is the probability of absorbing from state $i$ at the next step.
+<details>
+<summary>Intuition</summary>
+The sub-transition matrix $\mathbf{T}$ plays the role of $\mathbf{S}$ in the continuous case, but entries are probabilities rather than rates. The exit probability $t_i = 1 - \sum_j T_{ij}$ is the probability of absorbing from state $i$ at the next step.
+</details>
 
-> **Example.** A geometric distribution $\operatorname{Geo}(1-q)$ (number of trials until the first success) is $\operatorname{DPH}_1((1), (q))$ with $\mathbf{T} = (q)$ and $\mathbf{t} = (1-q)$.
+<details>
+<summary>Example</summary>
+A geometric distribution $\operatorname{Geo}(1-q)$ (number of trials until the first success) is $\operatorname{DPH}_1((1), (q))$ with $\mathbf{T} = (q)$ and $\mathbf{t} = (1-q)$.
+</details>
 
 ::: {#def-01-dph-pmf}
 
@@ -126,7 +159,10 @@ $$\mathbb{E}[\tau] = \boldsymbol{\alpha}(\mathbf{I} - \mathbf{T})^{-1}\mathbf{e}
 *More generally, the $n$-th factorial moment is $\mathbb{E}[\tau(\tau-1)\cdots(\tau-n+1)] = n! \, \boldsymbol{\alpha} (\mathbf{I} - \mathbf{T})^{-n} \mathbf{T}^{n-1} \mathbf{e}$.*
 :::
 
-> **Intuition.** The PMF follows the same logic as the continuous PDF: $\mathbf{T}^{k-1}$ propagates the initial distribution through $k-1$ steps among transient states, then $\mathbf{t}$ extracts the absorption probability. The matrix $(\mathbf{I} - \mathbf{T})^{-1}$ is the discrete analogue of the Green matrix $\mathbf{U}$.
+<details>
+<summary>Intuition</summary>
+The PMF follows the same logic as the continuous PDF: $\mathbf{T}^{k-1}$ propagates the initial distribution through $k-1$ steps among transient states, then $\mathbf{t}$ extracts the absorption probability. The matrix $(\mathbf{I} - \mathbf{T})^{-1}$ is the discrete analogue of the Green matrix $\mathbf{U}$.
+</details>
 
 ### Reward transformations {.unnumbered}
 
@@ -140,7 +176,7 @@ Reward-transformed phase-type distributions generalize the basic PH family by as
 
 $$\tilde{\tau} = \int_0^{\tau} r(X_t) \, dt,$$ {#eq-01-reward-variable}
 
-*where $r(X_t) = r_i$ when $X_t = i$. If all rewards are strictly positive ($r_i > 0$ for all $i$), then $\tilde{\tau}$ is itself phase-type distributed:*
+*where $r(X_t) = r_i$ when $X_t = i$. If all rewards are strictly positive ($r_i > 0$ for all $i$), then $\tilde{\tau}$ is itself phase-type distributed [@bladt2017]:*
 
 $$\tilde{\tau} \sim \operatorname{PH}_p(\boldsymbol{\alpha}, \triangle(\mathbf{r})^{-1}\mathbf{S}).$$ {#eq-01-reward-ph}
 
@@ -149,9 +185,15 @@ $$\tilde{\tau} \sim \operatorname{PH}_p(\boldsymbol{\alpha}, \triangle(\mathbf{r
 $$\mathbb{E}[\tilde{\tau}^n] = n! \, \boldsymbol{\alpha} \left( (-\mathbf{S})^{-1} \triangle(\mathbf{r}) \right)^n \mathbf{e} = n! \, \boldsymbol{\alpha} \left( \mathbf{U} \triangle(\mathbf{r}) \right)^n \mathbf{e}.$$ {#eq-01-reward-moments}
 :::
 
-> **Intuition.** A reward of $r_i$ assigned to state $i$ means that while the process occupies state $i$, reward accumulates at rate $r_i$ per unit time. The total accumulated reward until absorption generalizes the absorption time (which corresponds to all rewards equal to 1). The closure property (@eq-01-reward-ph) is fundamental: the class of phase-type distributions is closed under positive reward transformation. The transformed sub-intensity matrix $\triangle(\mathbf{r})^{-1}\mathbf{S}$ rescales the rates in each state by the inverse of the reward.
+<details>
+<summary>Intuition</summary>
+A reward of $r_i$ assigned to state $i$ means that while the process occupies state $i$, reward accumulates at rate $r_i$ per unit time. The total accumulated reward until absorption generalizes the absorption time (which corresponds to all rewards equal to 1). The closure property (@eq-01-reward-ph) is fundamental: the class of phase-type distributions is closed under positive reward transformation. The transformed sub-intensity matrix $\triangle(\mathbf{r})^{-1}\mathbf{S}$ rescales the rates in each state by the inverse of the reward.
+</details>
 
-> **Example.** Let $\tau \sim \operatorname{Exp}(\lambda)$ (a single transient state with rate $\lambda$) and $r_1 = c > 0$. Then $\tilde{\tau} = c \cdot \tau \sim \operatorname{Exp}(\lambda/c)$, which is $\operatorname{PH}_1((1), (-\lambda/c))$. This is the standard scaling property of the exponential distribution.
+<details>
+<summary>Example</summary>
+Let $\tau \sim \operatorname{Exp}(\lambda)$ (a single transient state with rate $\lambda$) and $r_1 = c > 0$. Then $\tilde{\tau} = c \cdot \tau \sim \operatorname{Exp}(\lambda/c)$, which is $\operatorname{PH}_1((1), (-\lambda/c))$. This is the standard scaling property of the exponential distribution.
+</details>
 
 ### Multivariate phase-type distributions {.unnumbered}
 
@@ -165,12 +207,18 @@ When multiple reward vectors are applied simultaneously, the resulting collectio
 
 $$Y_j = \int_0^{\tau} R_{X_t, j} \, dt, \quad j = 1, \ldots, m,$$ {#eq-01-mph-marginal}
 
-*follows a multivariate phase-type distribution, written $\mathbf{Y} \sim \operatorname{MPH}(\boldsymbol{\alpha}, \mathbf{S}, \mathbf{R})$.*
+*follows a multivariate phase-type distribution, written $\mathbf{Y} \sim \operatorname{MPH}(\boldsymbol{\alpha}, \mathbf{S}, \mathbf{R})$ [@kulkarni1989; @bladt2017].*
 :::
 
-> **Intuition.** Each marginal $Y_j$ is a reward-transformed variable corresponding to column $j$ of $\mathbf{R}$. The marginals share the same underlying Markov chain and hence are dependent. The joint distribution captures the correlation structure induced by the shared chain.
+<details>
+<summary>Intuition</summary>
+Each marginal $Y_j$ is a reward-transformed variable corresponding to column $j$ of $\mathbf{R}$. The marginals share the same underlying Markov chain and hence are dependent. The joint distribution captures the correlation structure induced by the shared chain.
+</details>
 
-> **Example.** In population genetics, one might track both the total branch length ($r_i = 1$ for all $i$) and the branch length subtending a particular clade ($r_i = 1$ for states where the clade is present, $r_i = 0$ otherwise). The two accumulated quantities form a bivariate phase-type distribution.
+<details>
+<summary>Example</summary>
+In population genetics, one might track both the total branch length ($r_i = 1$ for all $i$) and the branch length subtending a particular clade ($r_i = 1$ for states where the clade is present, $r_i = 0$ otherwise). The two accumulated quantities form a bivariate phase-type distribution.
+</details>
 
 ::: {#def-01-mph-crossmoments}
 
@@ -181,7 +229,10 @@ $$Y_j = \int_0^{\tau} R_{X_t, j} \, dt, \quad j = 1, \ldots, m,$$ {#eq-01-mph-ma
 $$\mathbb{E}[Y_i Y_j] = \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{R}_{\cdot i}) \mathbf{U} \triangle(\mathbf{R}_{\cdot j}) \mathbf{e} + \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{R}_{\cdot j}) \mathbf{U} \triangle(\mathbf{R}_{\cdot i}) \mathbf{e}.$$ {#eq-01-mph-crossmoment}
 :::
 
-> **Intuition.** The cross-moment decomposes into two terms corresponding to the two orderings of reward accumulation: first accumulating $\mathbf{R}_{\cdot i}$ then $\mathbf{R}_{\cdot j}$, and vice versa. This symmetry arises from a first-step analysis of the occupation measures. The formula reduces to $\mathbb{E}[Y_i^2] = 2 \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{R}_{\cdot i}) \mathbf{U} \triangle(\mathbf{R}_{\cdot i}) \mathbf{e}$ when $i = j$, consistent with the second moment formula (@eq-01-reward-moments with $n = 2$).
+<details>
+<summary>Intuition</summary>
+The cross-moment decomposes into two terms corresponding to the two orderings of reward accumulation: first accumulating $\mathbf{R}_{\cdot i}$ then $\mathbf{R}_{\cdot j}$, and vice versa. This symmetry arises from a first-step analysis of the occupation measures. The formula reduces to $\mathbb{E}[Y_i^2] = 2 \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{R}_{\cdot i}) \mathbf{U} \triangle(\mathbf{R}_{\cdot i}) \mathbf{e}$ when $i = j$, consistent with the second moment formula (@eq-01-reward-moments with $n = 2$).
+</details>
 
 ### Graph representation {.unnumbered}
 
@@ -194,7 +245,10 @@ The graph representation is the central data structure of phasic. It encodes pha
 *A weighted directed graph is a triple $G = (V, E, W)$ where $V$ is a finite set of vertices, $E \subseteq V \times V$ is a set of directed edges, and $W \colon E \to \mathbb{R}$ is a weight function. We write $(v \to z) \in E$ for a directed edge from $v$ to $z$ and $w(v \to z)$ for its weight. The children and parents of $v$ are $\operatorname{children}(v) = \{z \in V : (v \to z) \in E\}$ and $\operatorname{parents}(v) = \{u \in V : (u \to v) \in E\}$. The total outgoing rate of $v$ is $\lambda_v = \sum_{z \in \operatorname{children}(v)} w(v \to z)$.*
 :::
 
-> **Intuition.** The graph is a sparse representation of the generator (for CPH) or transition matrix (for DPH). Only edges with non-zero weight are stored, which is why the representation is efficient for sparse Markov chains.
+<details>
+<summary>Intuition</summary>
+The graph is a sparse representation of the generator (for CPH) or transition matrix (for DPH). Only edges with non-zero weight are stored, which is why the representation is efficient for sparse Markov chains.
+</details>
 
 ::: {#def-01-ph-graph}
 
@@ -209,9 +263,15 @@ The graph representation is the central data structure of phasic. It encodes pha
 *The starting vertex $v_0$ is assigned reward zero. Each transient vertex $v_i$ may be assigned a non-negative reward $r_{v_i} \geq 0$.*
 :::
 
-> **Intuition.** The starting vertex $v_0$ acts as a "dispatcher" that distributes probability mass to the transient states according to $\boldsymbol{\alpha}$. It is not itself a transient state of the Markov chain. Absorbing vertices are sinks with no outgoing edges; once probability mass reaches them, it is permanently captured.
+<details>
+<summary>Intuition</summary>
+The starting vertex $v_0$ acts as a "dispatcher" that distributes probability mass to the transient states according to $\boldsymbol{\alpha}$. It is not itself a transient state of the Markov chain. Absorbing vertices are sinks with no outgoing edges; once probability mass reaches them, it is permanently captured.
+</details>
 
-> **Example.** An $\operatorname{Exp}(\lambda)$ distribution is represented by three vertices: $v_0$ (starting), $v_1$ (transient), and $v_a$ (absorbing), with edges $w(v_0 \to v_1) = 1$ and $w(v_1 \to v_a) = \lambda$.
+<details>
+<summary>Example</summary>
+An $\operatorname{Exp}(\lambda)$ distribution is represented by three vertices: $v_0$ (starting), $v_1$ (transient), and $v_a$ (absorbing), with edges $w(v_0 \to v_1) = 1$ and $w(v_1 \to v_a) = \lambda$.
+</details>
 
 ::: {#def-01-graph-matrix}
 
@@ -226,7 +286,10 @@ The graph representation is the central data structure of phasic. It encodes pha
 *Conversely, given $\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})$, construct $G$ by creating $v_0$, vertices $v_1, \ldots, v_p$, absorbing vertices as needed, and edges with the weights above.*
 :::
 
-> **Intuition.** This correspondence is the foundation of phasic: every matrix computation on $(\boldsymbol{\alpha}, \mathbf{S})$ has a graph counterpart on $G$. The diagonal entries of $\mathbf{S}$ are not stored as self-loops; instead, they are implicitly determined by the total outgoing rate $\lambda_{v_i} = \sum_{j \neq i} s_{ij} + s_i$, where $s_i$ is the exit rate to the absorbing state.
+<details>
+<summary>Intuition</summary>
+This correspondence is the foundation of phasic: every matrix computation on $(\boldsymbol{\alpha}, \mathbf{S})$ has a graph counterpart on $G$. The diagonal entries of $\mathbf{S}$ are not stored as self-loops; instead, they are implicitly determined by the total outgoing rate $\lambda_{v_i} = \sum_{j \neq i} s_{ij} + s_i$, where $s_i$ is the exit rate to the absorbing state.
+</details>
 
 ### Parameterized graphs {.unnumbered}
 
@@ -247,7 +310,10 @@ In many applications, edge weights depend on unknown parameters. Parameterized e
 *In linear mode, the weight is an affine combination of the parameters (affine because the coefficients $c_j$ can encode constant terms). In log mode, the weight is a product computed in log-space for numerical stability: $\log w = \sum_j \log(c_j \theta_j)$. In callback mode, the weight is the output of an arbitrary function $\phi$.*
 :::
 
-> **Intuition.** Parameterized edges allow phasic to represent families of phase-type distributions indexed by $\boldsymbol{\theta}$. This is essential for inference: given observed data, one seeks the parameter vector $\boldsymbol{\theta}$ that best explains the data under the model encoded by the parameterized graph. The three weight modes cover additive rate models (linear), multiplicative factor models (log), and fully general nonlinear models (callback).
+<details>
+<summary>Intuition</summary>
+Parameterized edges allow phasic to represent families of phase-type distributions indexed by $\boldsymbol{\theta}$. This is essential for inference: given observed data, one seeks the parameter vector $\boldsymbol{\theta}$ that best explains the data under the model encoded by the parameterized graph. The three weight modes cover additive rate models (linear), multiplicative factor models (log), and fully general nonlinear models (callback).
+</details>
 
 ::: {#def-01-vertex-scalar}
 
@@ -260,7 +326,10 @@ $$x_v = \frac{1}{\lambda_v},$$ {#eq-01-vertex-scalar}
 *where $\lambda_v = \sum_{z \in \operatorname{children}(v)} w(v \to z)$ is the total outgoing rate. A normalized graph is a graph in which each edge weight $w(v \to z)$ has been replaced by the transition probability $w'(v \to z) = w(v \to z) / \lambda_v$. After normalization, $\lambda_v = 1$ for all transient vertices, and $x_v$ stores the original total outgoing rate as the expected waiting time.*
 :::
 
-> **Intuition.** For a continuous phase-type distribution, $x_v = 1/\lambda_v$ is the expected time spent during each visit to state $v$ (the mean of the exponential holding time). Normalization separates the graph into two components: the embedded discrete-time Markov chain (the normalized edge weights, which are transition probabilities) and the holding time structure (the vertex scalars). This separation is exploited by graph elimination and moment computation algorithms in later files.
+<details>
+<summary>Intuition</summary>
+For a continuous phase-type distribution, $x_v = 1/\lambda_v$ is the expected time spent during each visit to state $v$ (the mean of the exponential holding time). Normalization separates the graph into two components: the embedded discrete-time Markov chain (the normalized edge weights, which are transition probabilities) and the holding time structure (the vertex scalars). This separation is exploited by graph elimination and moment computation algorithms in later files.
+</details>
 
 ## Theorems and Proofs {.unnumbered}
 
@@ -351,7 +420,7 @@ $$\mathbb{E}[Y_i Y_j] = \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{R}_{\cd
 :::
 
 ::: {.proof}
-We follow the first-step analysis approach of Hobolth et al. (2024). Write $Y_i = \int_0^\tau R_{X_t, i} \, dt$ and $Y_j = \int_0^\tau R_{X_t, j} \, dt$. Then
+We follow the first-step analysis approach of @hobolth2024. Write $Y_i = \int_0^\tau R_{X_t, i} \, dt$ and $Y_j = \int_0^\tau R_{X_t, j} \, dt$. Then
 
 $$Y_i Y_j = \int_0^\tau \int_0^\tau R_{X_s, i} \, R_{X_t, j} \, ds \, dt.$$
 
@@ -405,7 +474,7 @@ The initial distribution satisfies $\alpha_i = w(v_0 \to v_i) \geq 0$ and $\sum_
 
 **Deviations from formalization:**
 
-- The notation standard defines the reward matrix $\mathbf{R}$ as $p \times m$ (columns are marginals), consistent with Bladt & Nielsen (2017). The Python API (as of v0.22.22) uses the transposed convention with shape $(m, p)$ (rows are marginals) for more intuitive indexing. The mathematical formulas in this file follow the $p \times m$ convention.
+- The notation standard defines the reward matrix $\mathbf{R}$ as $p \times m$ (columns are marginals), consistent with @bladt2017. The Python API (as of v0.22.22) uses the transposed convention with shape $(m, p)$ (rows are marginals) for more intuitive indexing. The mathematical formulas in this file follow the $p \times m$ convention.
 
 **Remark** (Suspected code issue: `ptd_defect`). The function `ptd_defect` in `src/c/phasic.c` (line 1295) is a stub that unconditionally returns 0.0, regardless of the actual initial distribution. This means the defect $\alpha_0 = 1 - \boldsymbol{\alpha}\mathbf{e}$ is never correctly computed by this function. Code that relies on `ptd_defect` will silently treat all distributions as defect-free ($\alpha_0 = 0$). This does not affect PDF/PMF computation (which uses $\boldsymbol{\alpha}$ directly) but would affect any code path that needs to handle point masses at the origin.
 

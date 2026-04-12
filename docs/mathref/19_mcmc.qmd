@@ -4,9 +4,9 @@ title: "Metropolis-Hastings with Adaptive Proposals"
 
 ## Introduction {.unnumbered}
 
-This file formalizes the **Metropolis-Hastings (MH) algorithm with adaptive proposals** as implemented in phasic for Bayesian parameter inference in phase-type models. Metropolis-Hastings is a Markov chain Monte Carlo (MCMC) method that generates a sequence of correlated samples from the posterior distribution $p(\boldsymbol{\theta} \mid \mathbf{y})$ by proposing candidate moves and accepting or rejecting them based on the posterior density ratio. The adaptive variant (Haario, Saksman & Tamminen, 2001) learns the empirical covariance of the target from the chain history during a burn-in phase, enabling efficient proposals that match the posterior geometry without manual tuning.
+This file formalizes the **Metropolis-Hastings (MH) algorithm with adaptive proposals** as implemented in phasic for Bayesian parameter inference in phase-type models. Metropolis-Hastings [@metropolis1953; @hastings1970] is a Markov chain Monte Carlo (MCMC) method that generates a sequence of correlated samples from the posterior distribution $p(\boldsymbol{\theta} \mid \mathbf{y})$ by proposing candidate moves and accepting or rejecting them based on the posterior density ratio. The adaptive variant [@haario2001] learns the empirical covariance of the target from the chain history during a burn-in phase, enabling efficient proposals that match the posterior geometry without manual tuning.
 
-In the phasic pipeline, MCMC serves as an alternative to SVGD ([18]) for posterior inference. While SVGD is faster for moderate-dimensional problems, MCMC provides asymptotically exact samples with well-understood convergence diagnostics (acceptance rate, $\hat{R}$ statistic, effective sample size). The model likelihood is computed via the forward algorithm ([14]), and moment-based summaries can be obtained from [15]. Multiple independent chains are supported for convergence assessment.
+In the phasic pipeline, MCMC serves as an alternative to SVGD ([18]) for posterior inference. While SVGD is faster for moderate-dimensional problems, MCMC provides asymptotically exact samples with well-understood convergence diagnostics (acceptance rate, $\hat{R}$ statistic [@gelman1992], effective sample size). The model likelihood is computed via the forward algorithm ([14]), and moment-based summaries can be obtained from [15]. Multiple independent chains are supported for convergence assessment.
 
 **Prerequisites:** [01], [14], [15]
 
@@ -33,34 +33,46 @@ $$\alpha(\boldsymbol{\theta}_t, \boldsymbol{\theta}') = \min\!\left(1, \; \frac{
 *In log-space (as implemented), the accept/reject step compares $\log u$ to $\log p(\boldsymbol{\theta}' \mid \mathbf{y}) - \log p(\boldsymbol{\theta}_t \mid \mathbf{y})$, where $u \sim \operatorname{Uniform}(0,1)$.*
 :::
 
-> **Intuition.** The MH algorithm explores the posterior by taking random steps and keeping those that land in regions of comparable or higher density. Moves to higher density are always accepted; moves to lower density are accepted with probability proportional to the density ratio. This ensures that the chain spends time in each region proportional to its posterior probability. The symmetric proposal simplification eliminates the proposal ratio, making the acceptance depend only on the posterior density ratio.
+<details>
+<summary>Intuition</summary>
+The MH algorithm explores the posterior by taking random steps and keeping those that land in regions of comparable or higher density. Moves to higher density are always accepted; moves to lower density are accepted with probability proportional to the density ratio. This ensures that the chain spends time in each region proportional to its posterior probability. The symmetric proposal simplification eliminates the proposal ratio, making the acceptance depend only on the posterior density ratio.
+</details>
 
-> **Example.** For a Gaussian posterior $p(\theta \mid y) \propto \exp(-\theta^2/2)$ and a Gaussian random-walk proposal $\theta' = \theta_t + \epsilon$, $\epsilon \sim \mathcal{N}(0, \sigma^2)$: $\log \alpha = -(\theta'^2 - \theta_t^2)/2$. A move from $\theta_t = 0$ to $\theta' = 1$ has $\log \alpha = -0.5$, so $\alpha \approx 0.61$.
+<details>
+<summary>Example</summary>
+For a Gaussian posterior $p(\theta \mid y) \propto \exp(-\theta^2/2)$ and a Gaussian random-walk proposal $\theta' = \theta_t + \epsilon$, $\epsilon \sim \mathcal{N}(0, \sigma^2)$: $\log \alpha = -(\theta'^2 - \theta_t^2)/2$. A move from $\theta_t = 0$ to $\theta' = 1$ has $\log \alpha = -0.5$, so $\alpha \approx 0.61$.
+</details>
 
 ::: {#def-19-adaptive-proposal .definition}
 
 #### Adaptive Proposal
 
-*The **adaptive Metropolis (AM) proposal** (Haario et al., 2001) updates the proposal covariance from the chain history. After an initial phase of $t_a$ iterations with a fixed diagonal proposal $q_0(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) = \mathcal{N}(\boldsymbol{\theta}, \operatorname{diag}(\boldsymbol{\sigma}_0^2))$, the proposal switches to*
+*The **adaptive Metropolis (AM) proposal** [@haario2001] updates the proposal covariance from the chain history. After an initial phase of $t_a$ iterations with a fixed diagonal proposal $q_0(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) = \mathcal{N}(\boldsymbol{\theta}, \operatorname{diag}(\boldsymbol{\sigma}_0^2))$, the proposal switches to*
 
 $$q_t(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) = \mathcal{N}\!\left(\boldsymbol{\theta}, \; s_d \left( \hat{\boldsymbol{\Sigma}}_t + \varepsilon \mathbf{I}_d \right) \right),$$ {#eq-19-adaptive-proposal}
 
 *where:*
 
 - *$\hat{\boldsymbol{\Sigma}}_t$ is the empirical covariance of the chain history $\{\boldsymbol{\theta}_0, \ldots, \boldsymbol{\theta}_t\}$,*
-- *$s_d = 2.4^2 / d$ is the optimal scaling factor for $d$-dimensional Gaussian targets (Roberts, Gelman & Gilks, 1997),*
+- *$s_d = 2.4^2 / d$ is the optimal scaling factor for $d$-dimensional Gaussian targets [@roberts1997],*
 - *$\varepsilon > 0$ is a small regularization constant (default $10^{-6}$) ensuring positive definiteness.*
 
-*Additionally, the proposal scale is adapted via the **Robbins-Monro update**:*
+*Additionally, the proposal scale is adapted via the **Robbins-Monro update** [@robbins1951]:*
 
 $$\log \sigma_{t+1} = \log \sigma_t + \gamma_t \left( \bar{\alpha}_t - \alpha^* \right),$$ {#eq-19-robbins-monro}
 
 *where $\bar{\alpha}_t$ is the recent acceptance rate, $\alpha^* = 0.234$ is the target acceptance rate (optimal for multi-dimensional Gaussian targets), and $\gamma_t = 1/\sqrt{t}$ is the step size ensuring diminishing adaptation.*
 :::
 
-> **Intuition.** A fixed isotropic proposal cannot efficiently explore an anisotropic posterior (e.g., one with strong correlations between parameters). The adaptive proposal learns the shape of the posterior from the samples collected so far and orients its proposals accordingly. The empirical covariance captures correlations, and the Cholesky factor of $s_d(\hat{\boldsymbol{\Sigma}}_t + \varepsilon \mathbf{I})$ enables efficient sampling. The Robbins-Monro update tunes the overall scale to maintain the target acceptance rate: if the chain accepts too often (proposals too small), the scale increases; if it rejects too often (proposals too large), the scale decreases.
+<details>
+<summary>Intuition</summary>
+A fixed isotropic proposal cannot efficiently explore an anisotropic posterior (e.g., one with strong correlations between parameters). The adaptive proposal learns the shape of the posterior from the samples collected so far and orients its proposals accordingly. The empirical covariance captures correlations, and the Cholesky factor of $s_d(\hat{\boldsymbol{\Sigma}}_t + \varepsilon \mathbf{I})$ enables efficient sampling. The Robbins-Monro update tunes the overall scale to maintain the target acceptance rate: if the chain accepts too often (proposals too small), the scale increases; if it rejects too often (proposals too large), the scale decreases.
+</details>
 
-> **Example.** For a 2D posterior with $\operatorname{Cov}(\theta_1, \theta_2) = \begin{pmatrix} 1 & 0.9 \\ 0.9 & 1 \end{pmatrix}$, the adaptive proposal learns this covariance and proposes correlated moves along the principal axes, achieving an acceptance rate near 0.234 compared to $< 0.05$ with an isotropic proposal of matched marginal variance.
+<details>
+<summary>Example</summary>
+For a 2D posterior with $\operatorname{Cov}(\theta_1, \theta_2) = \begin{pmatrix} 1 & 0.9 \\ 0.9 & 1 \end{pmatrix}$, the adaptive proposal learns this covariance and proposes correlated moves along the principal axes, achieving an acceptance rate near 0.234 compared to $< 0.05$ with an isotropic proposal of matched marginal variance.
+</details>
 
 ::: {#def-19-detailed-balance .definition}
 
@@ -73,7 +85,10 @@ $$p(\boldsymbol{\theta}) \, P(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) = p
 *A distribution satisfying detailed balance is a **stationary distribution** of the chain: if $\boldsymbol{\theta}_t \sim p$, then $\boldsymbol{\theta}_{t+1} \sim p$.*
 :::
 
-> **Intuition.** Detailed balance is a sufficient condition for $p$ to be the equilibrium distribution of the Markov chain. It means that, at stationarity, the probability flow from $\boldsymbol{\theta}$ to $\boldsymbol{\theta}'$ equals the flow from $\boldsymbol{\theta}'$ to $\boldsymbol{\theta}$. This is a stronger condition than stationarity alone (which only requires that net flows balance) and is the key property that makes MH correct.
+<details>
+<summary>Intuition</summary>
+Detailed balance is a sufficient condition for $p$ to be the equilibrium distribution of the Markov chain. It means that, at stationarity, the probability flow from $\boldsymbol{\theta}$ to $\boldsymbol{\theta}'$ equals the flow from $\boldsymbol{\theta}'$ to $\boldsymbol{\theta}$. This is a stronger condition than stationarity alone (which only requires that net flows balance) and is the key property that makes MH correct.
+</details>
 
 ## Theorems and Proofs {.unnumbered}
 
@@ -126,7 +141,7 @@ Condition (i) is verified by the Robbins-Monro step size $\gamma_t = 1/\sqrt{t}$
 
 For condition (ii), since each $P_t$ is itself a valid MH kernel with stationary distribution $p$ (by @thm-19-mh-detailed-balance, detailed balance holds at every $t$ regardless of the proposal covariance), each individual kernel is ergodic for $p$ on the compact support typical of phase-type parameters (bounded rates). The containment condition then holds because the chain cannot escape to infinity under any of the kernels in the sequence.
 
-Given (i) and (ii), the result follows from the adaptive MCMC ergodicity theorem of Roberts & Rosenthal (2007, Theorem 2): diminishing adaptation and containment together imply that the adaptive chain has the same limiting distribution as the fixed-kernel chain, which is the target $p(\boldsymbol{\theta} \mid \mathbf{y})$. The ergodic theorem for adaptive MCMC then gives the almost-sure convergence of time averages. $\square$
+Given (i) and (ii), the result follows from the adaptive MCMC ergodicity theorem of @roberts2007 [Theorem 2]: diminishing adaptation and containment together imply that the adaptive chain has the same limiting distribution as the fixed-kernel chain, which is the target $p(\boldsymbol{\theta} \mid \mathbf{y})$. The ergodic theorem for adaptive MCMC then gives the almost-sure convergence of time averages. $\square$
 :::
 
 ## Algorithms {.unnumbered}

@@ -33,9 +33,15 @@ $$\mathcal{P} = \bigl((v^{(0)}, t^{(0)}),\; (v^{(1)}, t^{(1)}),\; \ldots,\; (v^{
 *where $v^{(0)} = v_0$, $t^{(0)} = 0$, and for $k = 1, \ldots, L$: $v^{(k)} \in \operatorname{children}(v^{(k-1)})$ and $t^{(k)} \geq t^{(k-1)}$. The terminal vertex $v^{(L)}$ is absorbing ($\operatorname{children}(v^{(L)}) = \emptyset$). The integer $L$ is the path length. The sojourn time at step $k$ is $\Delta t^{(k)} = t^{(k+1)} - t^{(k)}$ for $k = 0, \ldots, L-1$.*
 :::
 
-> **Intuition.** A random path is a complete realization of the Markov chain from its initial state to absorption. Each entry records which vertex was visited and when it was entered. The starting vertex $v_0$ has zero sojourn time because it represents the initial distribution mechanism, not a physical state (@def-01-ph-graph).
+<details>
+<summary>Intuition</summary>
+A random path is a complete realization of the Markov chain from its initial state to absorption. Each entry records which vertex was visited and when it was entered. The starting vertex $v_0$ has zero sojourn time because it represents the initial distribution mechanism, not a physical state (@def-01-ph-graph).
+</details>
 
-> **Example.** In a two-state CPH with $v_0 \to v_1$ (rate 1) and $v_1 \to v_a$ (rate 2), a typical path might be $\mathcal{P} = ((v_0, 0),\, (v_1, 0),\, (v_a, 0.37))$. The sojourn time at $v_1$ is $\Delta t^{(1)} = 0.37$, drawn from $\operatorname{Exp}(2)$. The sojourn time at $v_0$ is $\Delta t^{(0)} = 0$ by convention.
+<details>
+<summary>Example</summary>
+In a two-state CPH with $v_0 \to v_1$ (rate 1) and $v_1 \to v_a$ (rate 2), a typical path might be $\mathcal{P} = ((v_0, 0),\, (v_1, 0),\, (v_a, 0.37))$. The sojourn time at $v_1$ is $\Delta t^{(1)} = 0.37$, drawn from $\operatorname{Exp}(2)$. The sojourn time at $v_0$ is $\Delta t^{(0)} = 0$ by convention.
+</details>
 
 ### Unconditioned sampling {.unnumbered}
 
@@ -58,9 +64,15 @@ $$\mathcal{P} = \bigl((v^{(0)}, t^{(0)}),\; (v^{(1)}, t^{(1)}),\; \ldots,\; (v^{
 5. *Set $t^{(k+1)} = t^{(k)} + \Delta t^{(k)}$.*
 :::
 
-> **Intuition.** This is the standard simulation algorithm for a continuous-time Markov chain: wait an exponential time at each state, then jump to the next state with probability proportional to the transition rate. For DPH, the holding time is deterministic and the self-loop probability (not represented as an explicit edge in the graph) accounts for the chain remaining in the same state.
+<details>
+<summary>Intuition</summary>
+This is the standard simulation algorithm for a continuous-time Markov chain [@gillespie1977; @norris1997]: wait an exponential time at each state, then jump to the next state with probability proportional to the transition rate. For DPH, the holding time is deterministic and the self-loop probability (not represented as an explicit edge in the graph) accounts for the chain remaining in the same state.
+</details>
 
-> **Example.** Consider a graph with $v_0 \to v_1$ (weight 1), $v_1 \to v_2$ (weight 3), and $v_1 \to v_a$ (weight 2). At $v_1$, $\lambda_{v_1} = 5$. The sojourn time is $\operatorname{Exp}(5)$-distributed (mean 0.2). The chain transitions to $v_2$ with probability 3/5 or absorbs at $v_a$ with probability 2/5.
+<details>
+<summary>Example</summary>
+Consider a graph with $v_0 \to v_1$ (weight 1), $v_1 \to v_2$ (weight 3), and $v_1 \to v_a$ (weight 2). At $v_1$, $\lambda_{v_1} = 5$. The sojourn time is $\operatorname{Exp}(5)$-distributed (mean 0.2). The chain transitions to $v_2$ with probability 3/5 or absorbs at $v_a$ with probability 2/5.
+</details>
 
 ### Backward probabilities {.unnumbered}
 
@@ -79,9 +91,15 @@ $$h_v = \begin{cases} 1 & \text{if } v \in A, \\ 0 & \text{if } v \text{ is abso
 *where $\lambda_v = \sum_{z \in \operatorname{children}(v)} w(v \to z)$ is the total outgoing rate of $v$.*
 :::
 
-> **Intuition.** The backward probability $h_v$ is the probability that a process starting at vertex $v$ will eventually be absorbed into one of the target vertices in $A$. It is computed by a one-step analysis: from $v$, the process transitions to child $z$ with probability $w(v \to z)/\lambda_v$, and from $z$ the probability of reaching $A$ is $h_z$. The boundary conditions state that target vertices have probability 1 (they are already in $A$) and non-target absorbing vertices have probability 0 (the process is absorbed elsewhere).
+<details>
+<summary>Intuition</summary>
+The backward probability $h_v$ is the probability that a process starting at vertex $v$ will eventually be absorbed into one of the target vertices in $A$. It is computed by a one-step analysis: from $v$, the process transitions to child $z$ with probability $w(v \to z)/\lambda_v$, and from $z$ the probability of reaching $A$ is $h_z$. The boundary conditions state that target vertices have probability 1 (they are already in $A$) and non-target absorbing vertices have probability 0 (the process is absorbed elsewhere).
+</details>
 
-> **Example.** Consider a graph with $v_1 \to v_a$ (weight 2) and $v_1 \to v_b$ (weight 3), where both $v_a$ and $v_b$ are absorbing. If $A = \{v_a\}$, then $h_{v_a} = 1$, $h_{v_b} = 0$, and $h_{v_1} = (2/5) \cdot 1 + (3/5) \cdot 0 = 0.4$.
+<details>
+<summary>Example</summary>
+Consider a graph with $v_1 \to v_a$ (weight 2) and $v_1 \to v_b$ (weight 3), where both $v_a$ and $v_b$ are absorbing. If $A = \{v_a\}$, then $h_{v_a} = 1$, $h_{v_b} = 0$, and $h_{v_1} = (2/5) \cdot 1 + (3/5) \cdot 0 = 0.4$.
+</details>
 
 ### Conditioned sampling {.unnumbered}
 
@@ -104,9 +122,15 @@ $$\Pr\bigl(v^{(k+1)} = z \mid v^{(k)}\bigr) = \frac{w(v^{(k)} \to z) \cdot h_z}{
 *The process terminates when $v^{(k)} \in A$ (i.e., $h_{v^{(k)}} = 1$) or when $v^{(k)}$ has no outgoing edges.*
 :::
 
-> **Intuition.** At each step, the unconditioned transition probability $w(v \to z)/\lambda_v$ is reweighted by the backward probability $h_z$ of the target vertex. This biases the chain toward vertices that lead to the target set $A$ and away from vertices that lead to non-target absorbing states. The denominator ensures the guided probabilities sum to 1. This is a form of Doob's $h$-transform applied to the Markov chain.
+<details>
+<summary>Intuition</summary>
+At each step, the unconditioned transition probability $w(v \to z)/\lambda_v$ is reweighted by the backward probability $h_z$ of the target vertex. This biases the chain toward vertices that lead to the target set $A$ and away from vertices that lead to non-target absorbing states. The denominator ensures the guided probabilities sum to 1. This is a form of Doob's $h$-transform [@doob1957] applied to the Markov chain.
+</details>
 
-> **Example.** In the example from @def-17-backward-prob with $A = \{v_a\}$: the unconditioned probabilities from $v_1$ are $(2/5, 3/5)$ for $(v_a, v_b)$. The guided probabilities are proportional to $(2 \cdot 1, 3 \cdot 0) = (2, 0)$, so the process transitions to $v_a$ with probability 1. Every conditioned path from $v_1$ reaches $v_a$.
+<details>
+<summary>Example</summary>
+In the example from @def-17-backward-prob with $A = \{v_a\}$: the unconditioned probabilities from $v_1$ are $(2/5, 3/5)$ for $(v_a, v_b)$. The guided probabilities are proportional to $(2 \cdot 1, 3 \cdot 0) = (2, 0)$, so the process transitions to $v_a$ with probability 1. Every conditioned path from $v_1$ reaches $v_a$.
+</details>
 
 ### Path reward decomposition {.unnumbered}
 
@@ -123,9 +147,15 @@ $$\tilde{\tau}(\mathcal{P}) = \sum_{k=0}^{L-1} r_{v^{(k)}} \cdot \Delta t^{(k)},
 $$\tilde{\tau}_j(\mathcal{P}) = \sum_{k=0}^{L-1} R_{v^{(k)},j} \cdot \Delta t^{(k)}.$$ {#eq-17-path-reward-multivariate}
 :::
 
-> **Intuition.** The path reward decomposition is the per-path realization of the reward-transformed random variable $\tilde{\tau} = \int_0^\tau r(X_t) \, dt$ from @def-01-reward-cph. While the integral definition is over continuous time, the path decomposition computes the same quantity as a sum over sojourn times weighted by rewards. For an unconditioned sample, $\mathbb{E}[\tilde{\tau}(\mathcal{P})]$ equals $\mathbb{E}[\tilde{\tau}]$.
+<details>
+<summary>Intuition</summary>
+The path reward decomposition is the per-path realization of the reward-transformed random variable $\tilde{\tau} = \int_0^\tau r(X_t) \, dt$ from @def-01-reward-cph. While the integral definition is over continuous time, the path decomposition computes the same quantity as a sum over sojourn times weighted by rewards. For an unconditioned sample, $\mathbb{E}[\tilde{\tau}(\mathcal{P})]$ equals $\mathbb{E}[\tilde{\tau}]$.
+</details>
 
-> **Example.** Consider a path $\mathcal{P} = ((v_0, 0), (v_1, 0), (v_2, 0.3), (v_a, 0.8))$ with rewards $r_{v_0} = 0$, $r_{v_1} = 2$, $r_{v_2} = 1$. The sojourn times are $\Delta t^{(0)} = 0$, $\Delta t^{(1)} = 0.3$, $\Delta t^{(2)} = 0.5$. The accumulated reward is $0 \cdot 0 + 2 \cdot 0.3 + 1 \cdot 0.5 = 1.1$.
+<details>
+<summary>Example</summary>
+Consider a path $\mathcal{P} = ((v_0, 0), (v_1, 0), (v_2, 0.3), (v_a, 0.8))$ with rewards $r_{v_0} = 0$, $r_{v_1} = 2$, $r_{v_2} = 1$. The sojourn times are $\Delta t^{(0)} = 0$, $\Delta t^{(1)} = 0.3$, $\Delta t^{(2)} = 0.5$. The accumulated reward is $0 \cdot 0 + 2 \cdot 0.3 + 1 \cdot 0.5 = 1.1$.
+</details>
 
 ## Theorems and Proofs {.unnumbered}
 
@@ -171,7 +201,7 @@ where the second equality uses the defining @eq-17-backward-system of the backwa
 
 Let $q_{vz} = w(v \to z)/\lambda_v$ denote the unconditioned transition probability. The guided transition probability (@eq-17-guided-prob) can be written as
 $$\tilde{q}_{vz} = \frac{q_{vz} \cdot h_z}{h_v},$$ {#eq-17-h-transform}
-since $\sum_{z} q_{vz} \cdot h_z = h_v$ by @eq-17-backward-system. This is precisely the Doob $h$-transform of the transition kernel $q$ with respect to the function $h$ (see, e.g., Doob 1957; Rogers & Williams 2000, Chapter III).
+since $\sum_{z} q_{vz} \cdot h_z = h_v$ by @eq-17-backward-system. This is precisely the Doob $h$-transform of the transition kernel $q$ with respect to the function $h$ [see, e.g., @doob1957; @rogers2000, Chapter III].
 
 The $h$-transform is the standard construction for conditioning a Markov chain to reach a set $A$: the transformed chain has the same law as the original chain conditioned on $\{$absorption into $A\}$. Formally, for any finite path $(v^{(0)}, v^{(1)}, \ldots, v^{(L)})$ ending in $A$:
 
