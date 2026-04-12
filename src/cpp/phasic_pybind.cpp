@@ -1107,6 +1107,35 @@ str
           True if this is marked as a discrete phase-type distribution
       )delim")
 
+    .def("set_dyn_ordering",
+      [](phasic::Graph &g, bool value) {
+          g.c_graph()->use_dyn_ordering = value;
+      }, py::arg("value"),
+      R"delim(
+      Enable or disable dynamic minimum-degree elimination ordering.
+
+      When enabled, graph elimination uses dynamic minimum-degree ordering
+      within each SCC, which can dramatically reduce fill-in for graphs with
+      heterogeneous vertex degree (e.g., ARG models, island models).
+
+      Parameters
+      ----------
+      value : bool
+          True to enable dynamic ordering, False for default (discovery) ordering
+      )delim")
+
+    .def("get_dyn_ordering",
+      [](phasic::Graph &g) {
+          return g.c_graph()->use_dyn_ordering;
+      }, R"delim(
+      Get whether dynamic minimum-degree elimination ordering is enabled.
+
+      Returns
+      -------
+      bool
+          True if dynamic ordering is enabled
+      )delim")
+
     .def("set_param_length",
       [](phasic::Graph& self, size_t param_length) {
           self.set_param_length(param_length);

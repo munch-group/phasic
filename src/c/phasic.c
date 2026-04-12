@@ -1790,14 +1790,9 @@ int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
     }
 
     if (graph->reward_compute_graph == NULL) {
-        static int use_dyn = -1;
-        if (use_dyn == -1) {
-            use_dyn = (getenv("PHASIC_DYN_ORDERING") != NULL);
-        }
-
         if (graph->parameterized) {
             if (graph->parameterized_reward_compute_graph == NULL) {
-                if (use_dyn) {
+                if (graph->use_dyn_ordering) {
                     graph->parameterized_reward_compute_graph =
                             ptd_graph_ex_absorbation_time_comp_graph_parameterized_dyn(graph);
                 } else {
@@ -1816,7 +1811,7 @@ int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
                             graph->parameterized_reward_compute_graph
                     );
         } else {
-            if (use_dyn) {
+            if (graph->use_dyn_ordering) {
                 graph->reward_compute_graph = ptd_graph_ex_absorbation_time_comp_graph_dyn(graph);
             } else {
                 graph->reward_compute_graph = ptd_graph_ex_absorbation_time_comp_graph(graph);
@@ -2655,6 +2650,7 @@ struct ptd_graph *ptd_graph_create(size_t state_length) {
     graph->reward_compute_graph_mpfr = NULL;
     graph->starting_vertex = ptd_vertex_create(graph);
     graph->was_dph = false;
+    graph->use_dyn_ordering = (getenv("PHASIC_DYN_ORDERING") != NULL);
     graph->elimination_trace = NULL;
     graph->current_params = NULL;
 

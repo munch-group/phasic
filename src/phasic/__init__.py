@@ -1996,6 +1996,24 @@ class Graph(_Graph):
         return self._cache_trace
 
     @property
+    def dyn_ordering(self) -> bool:
+        """Whether dynamic minimum-degree elimination ordering is enabled.
+
+        When True, graph elimination uses dynamic minimum-degree ordering
+        within each SCC, which can dramatically reduce fill-in for graphs
+        with heterogeneous vertex degree (e.g., ARG models, island models
+        with many populations).
+
+        Can also be enabled globally via the PHASIC_DYN_ORDERING=1 environment
+        variable (sets the default for new graphs).
+        """
+        return super().get_dyn_ordering()
+
+    @dyn_ordering.setter
+    def dyn_ordering(self, value: bool):
+        super().set_dyn_ordering(value)
+
+    @property
     def hierarchical(self) -> bool:
         """Deprecated: use cache_trace instead."""
         import warnings
