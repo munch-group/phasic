@@ -1765,6 +1765,10 @@ struct ptd_avl_node *ptd_avl_tree_find(const struct ptd_avl_tree *avl_tree, cons
     }
 }
 
+// Forward declarations for dynamic ordering variants
+struct ptd_desc_reward_compute *ptd_graph_ex_absorbation_time_comp_graph_dyn(struct ptd_graph *graph);
+struct ptd_desc_reward_compute_parameterized *ptd_graph_ex_absorbation_time_comp_graph_parameterized_dyn(struct ptd_graph *graph);
+
 int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
     if (graph->was_dph) {
         // Note: was_dph remains true - it's a permanent flag indicating this is a discrete graph
@@ -1787,10 +1791,14 @@ int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
 
     if (graph->reward_compute_graph == NULL) {
         if (graph->parameterized) {
-            // Always use traditional path - handles vertex ordering correctly
             if (graph->parameterized_reward_compute_graph == NULL) {
-                graph->parameterized_reward_compute_graph =
-                        ptd_graph_ex_absorbation_time_comp_graph_parameterized(graph);
+                if (graph->use_dyn_ordering) {
+                    graph->parameterized_reward_compute_graph =
+                            ptd_graph_ex_absorbation_time_comp_graph_parameterized_dyn(graph);
+                } else {
+                    graph->parameterized_reward_compute_graph =
+                            ptd_graph_ex_absorbation_time_comp_graph_parameterized(graph);
+                }
             }
 
             if (graph->reward_compute_graph != NULL) {
@@ -1803,8 +1811,11 @@ int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
                             graph->parameterized_reward_compute_graph
                     );
         } else {
-            // DEBUG_PRINT("INFO: building reward compute graph...\n");
-            graph->reward_compute_graph = ptd_graph_ex_absorbation_time_comp_graph(graph);
+            if (graph->use_dyn_ordering) {
+                graph->reward_compute_graph = ptd_graph_ex_absorbation_time_comp_graph_dyn(graph);
+            } else {
+                graph->reward_compute_graph = ptd_graph_ex_absorbation_time_comp_graph(graph);
+            }
 
             if (graph->reward_compute_graph == NULL) {
                 return -1;
@@ -2639,6 +2650,7 @@ struct ptd_graph *ptd_graph_create(size_t state_length) {
     graph->reward_compute_graph_mpfr = NULL;
     graph->starting_vertex = ptd_vertex_create(graph);
     graph->was_dph = false;
+    graph->use_dyn_ordering = (getenv("PHASIC_DYN_ORDERING") != NULL);
     graph->elimination_trace = NULL;
     graph->current_params = NULL;
 
@@ -4900,6 +4912,400 @@ struct ptd_desc_reward_compute *ptd_graph_ex_absorbation_time_comp_graph(struct 
     return res;
 }
 
+// Dynamic minimum-degree ordering variant.
+// Within each SCC, eliminates the vertex with fewest current edges first.
+// Topological ordering across SCCs is preserved.
+struct ptd_desc_reward_compute *ptd_graph_ex_absorbation_time_comp_graph_dyn(struct ptd_graph *graph) {
+    if (ptd_validate_graph(graph)) {
+        return NULL;
+    }
+
+    struct ptd_vertex *dummy__ptd_min = (struct ptd_vertex *) 1, *dummy__ptd_max = 0;
+
+    struct ptd_vertex **vertices = (struct ptd_vertex **) calloc(graph->vertices_length, sizeof(*vertices));
+    size_t *original_indices = (size_t *) calloc(graph->vertices_length, sizeof(*original_indices));
+
+    struct ptd_reward_increase *commands = NULL;
+    size_t command_index = 0;
+    size_t vertices_length = graph->vertices_length;
+
+    struct ptd_scc_graph *scc = ptd_find_strongly_connected_components(graph);
+    struct ptd_scc_vertex **v = ptd_scc_graph_topological_sort(scc);
+
+    size_t idx = 0;
+    size_t *scc_id = (size_t *) calloc(graph->vertices_length, sizeof(*scc_id));
+    size_t n_sccs = scc->vertices_length;
+
+    for (size_t sii = 0; sii < scc->vertices_length; ++sii) {
+        for (size_t j = 0; j < v[sii]->internal_vertices_length; ++j) {
+            if (v[sii]->internal_vertices[j]->edges_length == 0) {
+                continue;
+            }
+
+            original_indices[idx] = v[sii]->internal_vertices[j]->index;
+            v[sii]->internal_vertices[j]->index = idx;
+            vertices[idx] = v[sii]->internal_vertices[j];
+            scc_id[idx] = sii;
+            idx++;
+        }
+    }
+
+    for (size_t sii = 0; sii < scc->vertices_length; ++sii) {
+        for (size_t j = 0; j < v[sii]->internal_vertices_length; ++j) {
+            if (v[sii]->internal_vertices[j]->edges_length != 0) {
+                continue;
+            }
+
+            original_indices[idx] = v[sii]->internal_vertices[j]->index;
+            v[sii]->internal_vertices[j]->index = idx;
+            vertices[idx] = v[sii]->internal_vertices[j];
+            scc_id[idx] = sii;
+            idx++;
+        }
+    }
+
+    struct arr_p **vertex_parents;
+    size_t *vertex_parents_length;
+    struct arr_c **vertex_edges;
+    size_t *vertex_edges_length;
+
+    for (size_t i = 0; i < vertices_length; ++i) {
+        struct ptd_vertex *vertex = vertices[i];
+
+        if (vertex >= dummy__ptd_max) {
+            dummy__ptd_max = vertex + 1;
+        }
+
+        if (vertex <= dummy__ptd_min) {
+            dummy__ptd_min = vertex - 1;
+        }
+
+        double rate = 0;
+
+        for (size_t j = 0; j < vertex->edges_length; ++j) {
+            rate += vertex->edges[j]->weight;
+        }
+
+        if (graph->starting_vertex == vertex || vertex->edges_length == 0) {
+            commands = add_command(
+                    commands,
+                    original_indices[i],
+                    original_indices[i],
+                    0,
+                    command_index++
+            );
+        } else {
+            commands = add_command(
+                    commands,
+                    original_indices[i],
+                    original_indices[i],
+                    1 / rate,
+                    command_index++
+            );
+        }
+    }
+
+    vertex_parents = (struct arr_p **) calloc(vertices_length, sizeof(*vertex_parents));
+    vertex_parents_length = (size_t *) calloc(vertices_length, sizeof(*vertex_parents_length));
+    size_t *vertex_parents_alloc_length = (size_t *) calloc(vertices_length, sizeof(*vertex_parents_alloc_length));
+    vertex_edges = (struct arr_c **) calloc(vertices_length, sizeof(*vertex_edges));
+    vertex_edges_length = (size_t *) calloc(vertices_length, sizeof(*vertex_edges_length));
+    size_t *vertex_edges_alloc_length = (size_t *) calloc(vertices_length, sizeof(*vertex_edges_alloc_length));
+
+    for (size_t i = 0; i < vertices_length; ++i) {
+        vertex_edges_alloc_length[i] = 64;
+        struct ptd_vertex *vertex = vertices[i];
+
+        while (vertex->edges_length + 2 >= vertex_edges_alloc_length[i]) {
+            vertex_edges_alloc_length[i] *= 2;
+        }
+
+        for (size_t j = 0; j < vertex->edges_length; ++j) {
+            vertex_parents_length[vertex->edges[j]->to->index]++;
+        }
+
+        vertex_edges[i] = (struct arr_c *) calloc(vertex_edges_alloc_length[i], sizeof(*(vertex_edges[i])));
+        vertex_edges_length[i] = vertex->edges_length + 2;
+    }
+
+    for (size_t i = 0; i < vertices_length; ++i) {
+        vertex_parents_alloc_length[i] = 64;
+
+        while (vertex_parents_length[i] >= vertex_parents_alloc_length[i]) {
+            vertex_parents_alloc_length[i] *= 2;
+        }
+
+        vertex_parents[i] = (struct arr_p *) calloc(vertex_parents_alloc_length[i], sizeof(*(vertex_parents[i])));
+        vertex_parents_length[i] = 0;
+    }
+
+    for (size_t i = 0; i < vertices_length; ++i) {
+        struct ptd_vertex *vertex = vertices[i];
+
+        vertex_edges[i][0].to = dummy__ptd_min;
+        vertex_edges[i][0].prob = 0;
+        vertex_edges[i][0].arr_p_index = (unsigned int) ((int) -1);
+
+        double rate = 0;
+
+        for (size_t j = 0; j < vertex->edges_length; ++j) {
+            rate += vertex->edges[j]->weight;
+        }
+
+        for (size_t j = 0; j < vertex->edges_length; ++j) {
+            vertex_edges[i][j + 1].to = vertex->edges[j]->to;
+            vertex_edges[i][j + 1].prob = vertex->edges[j]->weight / rate;
+        }
+
+        vertex_edges[i][vertex->edges_length + 1].prob = 0;
+        vertex_edges[i][vertex->edges_length + 1].to = dummy__ptd_max;
+        vertex_edges[i][vertex->edges_length + 1].arr_p_index = (unsigned int) ((int) -1);
+
+        qsort(vertex_edges[i], vertex_edges_length[i], sizeof(*(vertex_edges[i])), arr_c_cmp);
+    }
+
+
+    for (size_t i = 0; i < vertices_length; ++i) {
+        struct ptd_vertex *vertex = vertices[i];
+
+        for (size_t j = 1; j < vertex_edges_length[i] - 1; ++j) {
+            struct arr_c *child = &(vertex_edges[i][j]);
+            size_t k = child->to->index;
+            child->arr_p_index = vertex_parents_length[k];
+            vertex_parents[k][vertex_parents_length[k]].p = vertex;
+            vertex_parents[k][vertex_parents_length[k]].arr_c_index = j;
+            vertex_parents_length[k]++;
+        }
+    }
+
+    struct arr_c *old_edges_buffer =
+            (struct arr_c *) calloc(vertices_length + 2, sizeof(*old_edges_buffer));
+
+    // Dynamic ordering state
+    bool *eliminated = (bool *) calloc(vertices_length, sizeof(bool));
+    size_t *elimination_order = (size_t *) calloc(vertices_length, sizeof(size_t));
+    size_t n_eliminated = 0;
+
+    // Process SCCs in topological order; within each SCC use dynamic min-degree
+    for (size_t current_scc = 0; current_scc < n_sccs; ++current_scc) {
+    while (1) {
+        // Find uneliminated vertex in current SCC with minimum current degree
+        size_t i = SIZE_MAX;
+        size_t min_degree = SIZE_MAX;
+        for (size_t k = 0; k < vertices_length; ++k) {
+            if (!eliminated[k] && scc_id[k] == current_scc &&
+                vertex_edges_length[k] < min_degree) {
+                min_degree = vertex_edges_length[k];
+                i = k;
+            }
+        }
+        if (i == SIZE_MAX) break;
+        eliminated[i] = true;
+        elimination_order[n_eliminated++] = i;
+
+        struct ptd_vertex *me = vertices[i];
+        struct arr_c *my_children = vertex_edges[i];
+        size_t my_parents_length = vertex_parents_length[i];
+        size_t my_edges_length = vertex_edges_length[i];
+
+
+        for (size_t p = 0; p < my_parents_length; ++p) {
+            struct arr_p me_to_parent = vertex_parents[i][p];
+            struct ptd_vertex *parent_vertex = me_to_parent.p;
+
+            size_t parent_vertex_index = parent_vertex->index;
+            struct arr_c parent_to_me = vertex_edges[parent_vertex_index][me_to_parent.arr_c_index];
+
+            size_t parent_edges_length = vertex_edges_length[parent_vertex_index];
+
+            if (eliminated[parent_vertex_index]) {
+                continue;
+            }
+
+            bool should_resize = false;
+            size_t new_parent_edges_alloc_length = my_edges_length + parent_edges_length;
+
+            while (new_parent_edges_alloc_length >= vertex_edges_alloc_length[parent_vertex_index]) {
+                vertex_edges_alloc_length[parent_vertex_index] *= 2;
+                should_resize = true;
+            }
+
+            if (should_resize) {
+                vertex_edges[parent_vertex_index] = (struct arr_c *) realloc(
+                        vertex_edges[parent_vertex_index],
+                        vertex_edges_alloc_length[parent_vertex_index] * sizeof(*(vertex_edges[parent_vertex_index]))
+                );
+            }
+
+            vertex_edges_length[parent_vertex_index] = 0;
+
+            double parent_weight_to_me = parent_to_me.prob;
+            double new_parent_total_prob = 0;
+
+            if (memcpy(
+                    old_edges_buffer, vertex_edges[parent_vertex_index],
+                    sizeof(struct arr_c) * parent_edges_length
+            ) != old_edges_buffer) {
+                return NULL;
+            }
+
+            struct arr_c *new_parent_children = vertex_edges[parent_vertex_index];
+
+            commands = add_command(
+                    commands,
+                    original_indices[parent_vertex_index],
+                    original_indices[i],
+                    parent_weight_to_me,
+                    command_index++
+            );
+
+            size_t child_index = 0;
+            size_t parent_child_index = 0;
+
+            while (child_index < my_edges_length || parent_child_index < parent_edges_length) {
+                struct arr_c me_to_child = my_children[child_index];
+                struct ptd_vertex *me_to_child_v = me_to_child.to;
+                struct arr_c parent_to_child = old_edges_buffer[parent_child_index];
+                struct ptd_vertex *parent_to_child_v = parent_to_child.to;
+                double me_to_child_p = me_to_child.prob;
+
+                if (me_to_child_v == parent_vertex) {
+                    double prob = parent_weight_to_me * me_to_child_p;
+                    commands = add_command(
+                            commands,
+                            original_indices[parent_vertex->index],
+                            original_indices[parent_vertex->index],
+                            1 / (1 - prob),
+                            command_index++
+                    );
+
+                    child_index++;
+                    continue;
+                }
+
+                if (parent_to_child_v == me) {
+                    parent_child_index++;
+                    continue;
+                }
+
+                if (me_to_child_v == parent_to_child_v) {
+                    new_parent_children[vertex_edges_length[parent_vertex_index]].to = parent_to_child_v;
+                    new_parent_children[vertex_edges_length[parent_vertex_index]].prob =
+                            parent_to_child.prob + me_to_child_p * parent_weight_to_me;
+                    new_parent_children[vertex_edges_length[parent_vertex_index]].arr_p_index = parent_to_child.arr_p_index;
+                    if (parent_to_child_v != dummy__ptd_min && parent_to_child_v != dummy__ptd_max) {
+                        size_t current_parent_index = parent_to_child.arr_p_index;
+                        vertex_parents[parent_to_child_v->index][current_parent_index].arr_c_index = vertex_edges_length[parent_vertex_index];
+
+                    }
+                    new_parent_total_prob += new_parent_children[vertex_edges_length[parent_vertex_index]].prob;
+                    vertex_edges_length[parent_vertex_index]++;
+
+                    child_index++;
+                    parent_child_index++;
+                } else if (me_to_child_v < parent_to_child_v) {
+                    size_t child_parents_length = vertex_parents_length[me_to_child_v->index];
+
+                    if (child_parents_length >= vertex_parents_alloc_length[me_to_child_v->index]) {
+                        vertex_parents_alloc_length[me_to_child_v->index] *= 2;
+                        vertex_parents[me_to_child_v->index] = (struct arr_p *) realloc(
+                                vertex_parents[me_to_child_v->index],
+                                vertex_parents_alloc_length[me_to_child_v->index] *
+                                sizeof(*(vertex_parents[me_to_child_v->index]))
+                        );
+                    }
+
+                    vertex_parents[me_to_child_v->index][child_parents_length].arr_c_index = vertex_edges_length[parent_vertex_index];
+                    vertex_parents[me_to_child_v->index][child_parents_length].p = parent_vertex;
+
+                    new_parent_children[vertex_edges_length[parent_vertex_index]].to = me_to_child_v;
+                    new_parent_children[vertex_edges_length[parent_vertex_index]].prob =
+                            me_to_child_p * parent_weight_to_me;
+                    new_parent_children[vertex_edges_length[parent_vertex_index]].arr_p_index = child_parents_length;
+                    new_parent_total_prob += me_to_child_p * parent_weight_to_me;
+
+                    vertex_edges_length[parent_vertex_index]++;
+                    vertex_parents_length[me_to_child_v->index]++;
+
+                    child_index++;
+                } else {
+                    new_parent_children[vertex_edges_length[parent_vertex_index]] = parent_to_child;
+                    vertex_parents[parent_to_child_v->index][parent_to_child.arr_p_index].arr_c_index = vertex_edges_length[parent_vertex_index];
+                    new_parent_total_prob += parent_to_child.prob;
+                    vertex_edges_length[parent_vertex_index]++;
+
+                    parent_child_index++;
+                }
+            }
+
+
+            // Make sure parent has rate of 1
+            for (size_t j = 0; j < vertex_edges_length[parent_vertex_index]; ++j) {
+                new_parent_children[j].prob /= new_parent_total_prob;
+            }
+
+            vertex_edges_length[parent_vertex_index] = vertex_edges_length[parent_vertex_index];
+        }
+    } // end while(1) — dynamic min-degree within current SCC
+    } // end for(current_scc) — topological SCC order
+
+    // Back-substitution in reverse elimination order
+    for (size_t ii = 0; ii < n_eliminated; ++ii) {
+        size_t i = elimination_order[n_eliminated - ii - 1];
+        struct ptd_vertex *vertex = vertices[i];
+
+
+        for (size_t j = 1; j < vertex_edges_length[i] - 1; ++j) {
+            struct arr_c child = vertex_edges[i][j];
+            commands = add_command(
+                    commands,
+                    original_indices[vertex->index],
+                    original_indices[child.to->index],
+                    child.prob,
+                    command_index++
+            );
+        }
+    }
+
+    for (size_t i = 0; i < vertices_length; ++i) {
+        graph->vertices[i]->index = i;
+    }
+
+    for (size_t i = 0; i < vertices_length; ++i) {
+        free(vertex_edges[i]);
+        free(vertex_parents[i]);
+    }
+
+    free(vertex_parents_length);
+    free(vertex_parents_alloc_length);
+    free(vertex_parents);
+    free(vertex_edges);
+    free(vertex_edges_length);
+    free(vertex_edges_alloc_length);
+    free(original_indices);
+    free(vertices);
+    free(old_edges_buffer);
+    free(eliminated);
+    free(elimination_order);
+    free(scc_id);
+    free(v);
+    ptd_scc_graph_destroy(scc);
+
+    commands = add_command(
+            commands,
+            0,
+            0,
+            NAN,
+            command_index
+    );
+
+    struct ptd_desc_reward_compute *res = (struct ptd_desc_reward_compute *) malloc(sizeof(*res));
+    res->length = command_index;
+    res->commands = commands;
+
+    return res;
+}
+
 #ifdef HAVE_MPFR
 static struct ptd_desc_reward_compute_mpfr *ptd_graph_ex_absorbation_time_comp_graph_mpfr(
     struct ptd_graph *graph,
@@ -5850,6 +6256,543 @@ struct ptd_desc_reward_compute_parameterized *ptd_graph_ex_absorbation_time_comp
     free(vertices);
     free(edges);
     free(parents);
+    free(v);
+    ptd_scc_graph_destroy(scc);
+    ll_c2_free(0);
+    ll_p2_free(0);
+    ll_c2_alloc_init_free(1);
+    ll_p2_alloc_init_free(1);
+
+    commands = add_command_param(
+            commands,
+            0,
+            0,
+            NULL,
+            command_index
+    );
+
+    struct ptd_desc_reward_compute_parameterized *res = (struct ptd_desc_reward_compute_parameterized *) malloc(
+            sizeof(*res)
+    );
+    res->length = command_index;
+    res->commands = commands;
+    res->mem = current_mem_ll;
+    res->memr = rates;
+
+    return res;
+}
+
+// Dynamic minimum-degree ordering variant of the parameterized elimination.
+// Within each SCC, eliminates the vertex with fewest current edges first.
+struct ptd_desc_reward_compute_parameterized *ptd_graph_ex_absorbation_time_comp_graph_parameterized_dyn(
+        struct ptd_graph *graph
+) {
+    struct ptd_vertex *dummy__ptd_min = 0, *dummy__ptd_max = 0;
+
+    struct ll_of_a *current_mem_ll = NULL;
+    current_mem_ll = add_mem(current_mem_ll, 0);
+    double *SIMPLE_ZERO = current_mem_ll->current_mem_position;
+
+    struct ll_c2 **edges;
+    struct ll_p2 **parents;
+
+    struct ptd_vertex **vertices = (struct ptd_vertex **) calloc(graph->vertices_length, sizeof(*vertices));
+    size_t *original_indices = (size_t *) calloc(graph->vertices_length, sizeof(*original_indices));
+    edges = (struct ll_c2 **) calloc(graph->vertices_length, sizeof(*edges));
+    parents = (struct ll_p2 **) calloc(graph->vertices_length, sizeof(*parents));
+    ll_c2_alloc_init(1);
+    ll_p2_alloc_init(1);
+    struct ptd_comp_graph_parameterized *commands = NULL;
+    size_t command_index = 0;
+    size_t vertices_length = graph->vertices_length;
+
+
+    struct ptd_scc_graph *scc = ptd_find_strongly_connected_components(graph);
+    struct ptd_scc_vertex **v = ptd_scc_graph_topological_sort(scc);
+    size_t idx = 0;
+    size_t *scc_id = (size_t *) calloc(graph->vertices_length, sizeof(*scc_id));
+    size_t n_sccs = scc->vertices_length;
+
+    for (size_t sii = 0; sii < scc->vertices_length; ++sii) {
+        for (size_t j = 0; j < v[sii]->internal_vertices_length; ++j) {
+            if (v[sii]->internal_vertices[j]->edges_length == 0) {
+                continue;
+            }
+
+            original_indices[idx] = v[sii]->internal_vertices[j]->index;
+            v[sii]->internal_vertices[j]->index = idx;
+            vertices[idx] = v[sii]->internal_vertices[j];
+            scc_id[idx] = sii;
+            idx++;
+        }
+    }
+
+    for (size_t sii = 0; sii < scc->vertices_length; ++sii) {
+        for (size_t j = 0; j < v[sii]->internal_vertices_length; ++j) {
+            if (v[sii]->internal_vertices[j]->edges_length != 0) {
+                continue;
+            }
+
+            original_indices[idx] = v[sii]->internal_vertices[j]->index;
+            v[sii]->internal_vertices[j]->index = idx;
+            vertices[idx] = v[sii]->internal_vertices[j];
+            scc_id[idx] = sii;
+            idx++;
+        }
+    }
+
+    double **rates = (double **) calloc(graph->vertices_length, sizeof(*rates));
+
+    // Track degree for dynamic ordering
+    size_t *degree = (size_t *) calloc(vertices_length, sizeof(size_t));
+
+    for (size_t i = 0; i < vertices_length; ++i) {
+        struct ptd_vertex *vertex = vertices[i];
+
+        if (vertex >= dummy__ptd_max) {
+            dummy__ptd_max = vertex + 1;
+        }
+
+        if (vertex <= dummy__ptd_min) {
+            dummy__ptd_min = vertex - 1;
+        }
+
+        current_mem_ll = add_mem(current_mem_ll, 0);
+        rates[i] = current_mem_ll->current_mem_position;
+        commands = add_command_param_zero(
+                commands,
+                rates[i],
+                command_index++
+        );
+
+        for (size_t j = 0; j < vertex->edges_length; ++j) {
+            commands = add_command_param_p(
+                    commands,
+                    rates[i],
+                    &(vertex->edges[j]->weight),
+                    1,
+                    command_index++
+            );
+        }
+
+        commands = add_command_param_inverse(
+                commands,
+                rates[i],
+                command_index++
+        );
+
+        if (graph->starting_vertex == vertex || vertex->edges_length == 0) {
+            commands = add_command_param(
+                    commands,
+                    original_indices[i],
+                    original_indices[i],
+                    SIMPLE_ZERO,
+                    command_index++
+            );
+        } else {
+            commands = add_command_param(
+                    commands,
+                    original_indices[i],
+                    original_indices[i],
+                    rates[i],
+                    command_index++
+            );
+        }
+
+        // Initialize degree from edge count (+ 2 for dummy sentinels)
+        degree[i] = vertex->edges_length + 2;
+    }
+
+    for (size_t i = 0; i < vertices_length; ++i) {
+        struct ptd_vertex *vertex = vertices[i];
+
+        struct ll_c2 *dummy_first = ll_c2_alloc(0);
+        dummy_first->next = NULL;
+        dummy_first->prev = NULL;
+        dummy_first->weight = 0;
+        dummy_first->c = dummy__ptd_min;
+        dummy_first->ll_p = NULL;
+        edges[i] = dummy_first;
+
+        struct ll_c2 *last = dummy_first;
+
+        for (size_t j = 0; j < vertex->edges_length; ++j) {
+            struct ll_p2 *n = ll_p2_alloc(0);
+
+            n->next = parents[vertex->edges[j]->to->index];
+            n->p = vertex;
+            n->prev = NULL;
+
+            if (parents[vertex->edges[j]->to->index] != NULL) {
+                parents[vertex->edges[j]->to->index]->prev = n;
+            }
+
+            parents[vertex->edges[j]->to->index] = n;
+
+            struct ll_c2 *nc = ll_c2_alloc(0);
+            nc->next = NULL;
+
+            nc->prev = last;
+            last->next = nc;
+
+            current_mem_ll = add_mem(current_mem_ll, 0);
+
+            commands = add_command_param_zero(
+                    commands,
+                    current_mem_ll->current_mem_position,
+                    command_index++
+            );
+
+            commands = add_command_param_pp(
+                    commands,
+                    current_mem_ll->current_mem_position,
+                    &(vertex->edges[j]->weight),
+                    rates[i],
+                    command_index++
+            );
+
+            nc->weight = current_mem_ll->current_mem_position;
+
+            nc->c = vertex->edges[j]->to;
+            nc->ll_p = n;
+            n->ll_c = nc;
+            last = nc;
+        }
+
+        struct ll_c2 *dummy_last = ll_c2_alloc(0);
+        dummy_last->next = NULL;
+        dummy_last->prev = last;
+        dummy_last->weight = 0;
+        dummy_last->c = dummy__ptd_max;
+        dummy_last->ll_p = NULL;
+        last->next = dummy_last;
+    }
+
+    // Dynamic ordering state
+    bool *eliminated = (bool *) calloc(vertices_length, sizeof(bool));
+    size_t *elimination_order = (size_t *) calloc(vertices_length, sizeof(size_t));
+    size_t n_eliminated = 0;
+
+    // Pre-eliminate absorbing vertices and starting vertex
+    for (size_t k = 0; k < vertices_length; ++k) {
+        if (vertices[k]->edges_length == 0 || vertices[k] == graph->starting_vertex) {
+            eliminated[k] = true;
+            elimination_order[n_eliminated++] = k;
+        }
+    }
+
+    // Process SCCs in topological order; within each SCC use dynamic min-degree
+    for (size_t current_scc = 0; current_scc < n_sccs; ++current_scc) {
+    while (1) {
+        // Find uneliminated vertex in current SCC with minimum current degree
+        size_t i = SIZE_MAX;
+        size_t min_deg = SIZE_MAX;
+        for (size_t k = 0; k < vertices_length; ++k) {
+            if (!eliminated[k] && scc_id[k] == current_scc &&
+                degree[k] < min_deg) {
+                min_deg = degree[k];
+                i = k;
+            }
+        }
+        if (i == SIZE_MAX) break;
+        eliminated[i] = true;
+        elimination_order[n_eliminated++] = i;
+
+        struct ptd_vertex *vertex = vertices[i];
+
+        struct ll_p2 *parent = parents[i];
+
+        struct ll_c2 *c = edges[i];
+        size_t n_edges = 0;
+
+        while (c != NULL) {
+            n_edges += 1;
+            c = c->next;
+        }
+
+        struct ll_c2 *children_arr = (struct ll_c2 *) calloc(n_edges, sizeof(*children_arr));
+        c = edges[i];
+        size_t l = 0;
+
+        while (c != NULL) {
+            children_arr[l] = *c;
+            l++;
+            c = c->next;
+        }
+
+        while (parent != NULL) {
+            if (eliminated[parent->p->index]) {
+                parent = parent->next;
+                continue;
+            }
+
+            l = 0;
+            struct ll_c2 *parent_child = edges[parent->p->index];
+            double *parent_weight_to_me = parent->ll_c->weight;
+
+            commands = add_command_param(
+                    commands,
+                    original_indices[parent->p->index],
+                    original_indices[i],
+                    parent_weight_to_me,
+                    command_index++
+            );
+
+            while (children_arr[l].c != dummy__ptd_max) {
+                double *prob = children_arr[l].weight;
+                struct ptd_vertex *child_vertex = children_arr[l].c;
+                struct ptd_vertex *parent_vertex = parent->p;
+                struct ptd_vertex *parent_child_vertex = parent_child->c;
+
+                if (child_vertex == parent_vertex) {
+                    current_mem_ll = add_mem(current_mem_ll, 0);
+                    double *p = current_mem_ll->current_mem_position;
+
+                    commands = add_command_param_zero(
+                            commands,
+                            p,
+                            command_index++
+                    );
+
+                    commands = add_command_param_pp(
+                            commands,
+                            p,
+                            parent_weight_to_me,
+                            prob,
+                            command_index++
+                    );
+
+                    commands = add_command_param_one__ptd_minus(
+                            commands,
+                            p,
+                            command_index++
+                    );
+
+                    commands = add_command_param_inverse(
+                            commands,
+                            p,
+                            command_index++
+                    );
+
+                    commands = add_command_param(
+                            commands,
+                            original_indices[parent_vertex->index],
+                            original_indices[parent_vertex->index],
+                            p,
+                            command_index++
+                    );
+
+                    l++;
+                    continue;
+                }
+
+                if (parent_child_vertex == vertex) {
+                    parent_child = parent_child->next;
+                    continue;
+                }
+
+                if (child_vertex == parent_child_vertex) {
+                    if (child_vertex != dummy__ptd_min) {
+                        current_mem_ll = add_mem(current_mem_ll, 0);
+                        double *p = current_mem_ll->current_mem_position;
+
+                        commands = add_command_param_zero(
+                                commands,
+                                p,
+                                command_index++
+                        );
+
+                        commands = add_command_param_pp(
+                                commands,
+                                p,
+                                parent_weight_to_me,
+                                prob,
+                                command_index++
+                        );
+
+                        commands = add_command_param_p(
+                                commands,
+                                parent_child->weight,
+                                p,
+                                1,
+                                command_index++
+                        );
+                    }
+
+                    l++;
+                    parent_child = parent_child->next;
+                } else if (child_vertex < parent_child_vertex) {
+                    current_mem_ll = add_mem(current_mem_ll, 0);
+                    double *p = current_mem_ll->current_mem_position;
+                    commands = add_command_param_zero(
+                            commands,
+                            p,
+                            command_index++
+                    );
+
+                    commands = add_command_param_pp(
+                            commands,
+                            p,
+                            parent_weight_to_me,
+                            prob,
+                            command_index++
+                    );
+
+                    struct ll_c2 *to = ll_c2_alloc(0);
+                    to->c = child_vertex;
+
+                    current_mem_ll = add_mem(current_mem_ll, 0);
+                    commands = add_command_param_zero(
+                            commands,
+                            current_mem_ll->current_mem_position,
+                            command_index++
+                    );
+                    to->weight = current_mem_ll->current_mem_position;
+
+                    commands = add_command_param_p(
+                            commands,
+                            to->weight,
+                            p,
+                            1,
+                            command_index++
+                    );
+                    to->next = parent_child;
+                    to->prev = parent_child->prev;
+
+
+                    struct ll_p2 *ll_p = ll_p2_alloc(0);
+                    ll_p->next = parents[child_vertex->index];
+                    parents[child_vertex->index]->prev = ll_p;
+                    parents[child_vertex->index] = ll_p;
+                    ll_p->prev = NULL;
+                    ll_p->p = parent_vertex;
+
+                    ll_p->ll_c = to;
+                    to->ll_p = ll_p;
+
+                    to->next = parent_child;
+                    to->prev = parent_child->prev;
+                    parent_child->prev->next = to;
+                    parent_child->prev = to;
+
+                    // New edge added to parent — update parent's degree
+                    degree[parent_vertex->index]++;
+
+                    l++;
+                } else {
+                    parent_child = parent_child->next;
+                }
+            }
+
+            struct ll_c2 *edge_to_me = parent->ll_c;
+            edge_to_me->prev->next = edge_to_me->next;
+            edge_to_me->next->prev = edge_to_me->prev;
+
+            // Edge removed from parent — update parent's degree
+            degree[parent->p->index]--;
+
+            // Make sure parent has rate of 1
+            current_mem_ll = add_mem(current_mem_ll, 0);
+            double *rate = current_mem_ll->current_mem_position;
+            commands = add_command_param_zero(
+                    commands,
+                    rate,
+                    command_index++
+            );
+
+            parent_child = edges[parent->p->index]->next;
+
+            while (parent_child->c != dummy__ptd_max) {
+                commands = add_command_param_p(
+                        commands,
+                        rate,
+                        parent_child->weight,
+                        1,
+                        command_index++
+                );
+
+                parent_child = parent_child->next;
+            }
+
+            parent_child = edges[parent->p->index]->next;
+
+            while (parent_child->c != dummy__ptd_max) {
+                commands = add_command_param_p_divide(
+                        commands,
+                        parent_child->weight,
+                        rate,
+                        command_index++
+                );
+
+                parent_child = parent_child->next;
+            }
+
+            parent_child = edges[parent->p->index]->next;
+
+            while (parent_child->c != dummy__ptd_max) {
+                parent_child = parent_child->next;
+            }
+
+            parent = parent->next;
+        }
+
+        struct ll_c2 *child = edges[i]->next;
+
+        while (child->c != dummy__ptd_max) {
+            if (child->ll_p->prev != NULL) {
+                if (child->ll_p->next != NULL) {
+                    child->ll_p->next->prev = child->ll_p->prev;
+                    child->ll_p->prev->next = child->ll_p->next;
+                } else {
+                    child->ll_p->prev->next = NULL;
+                }
+            } else {
+                if (child->ll_p->next != NULL) {
+                    child->ll_p->next->prev = NULL;
+                }
+
+                parents[child->c->index] = child->ll_p->next;
+            }
+
+            child = child->next;
+        }
+
+        free(children_arr);
+    } // end while(1) — dynamic min-degree within current SCC
+    } // end for(current_scc) — topological SCC order
+
+    // Back-substitution in reverse elimination order
+    for (size_t ii = 0; ii < n_eliminated; ++ii) {
+        size_t i = elimination_order[n_eliminated - ii - 1];
+        struct ptd_vertex *vertex = vertices[i];
+
+        struct ll_c2 *child = edges[vertex->index]->next;
+
+        while (child->c != dummy__ptd_max) {
+            commands = add_command_param(
+                    commands,
+                    original_indices[vertex->index],
+                    original_indices[child->c->index],
+                    child->weight,
+                    command_index++
+            );
+            child = child->next;
+        }
+    }
+
+    for (size_t i = 0; i < vertices_length; ++i) {
+        graph->vertices[i]->index = i;
+    }
+
+
+    free(original_indices);
+    free(vertices);
+    free(edges);
+    free(parents);
+    free(eliminated);
+    free(elimination_order);
+    free(degree);
+    free(scc_id);
     free(v);
     ptd_scc_graph_destroy(scc);
     ll_c2_free(0);

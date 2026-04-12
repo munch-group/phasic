@@ -127,6 +127,9 @@ struct ptd_graph {
     struct ptd_desc_reward_compute_mpfr *reward_compute_graph_mpfr;  // MPFR version (cached)
     bool was_dph;
 
+    /* Elimination ordering strategy */
+    bool use_dyn_ordering;  // If true, use dynamic minimum-degree ordering within SCCs
+
     /* Trace-based elimination (NULL until first parameter update) */
     struct ptd_elimination_trace *elimination_trace;
     double *current_params;  // Current parameter values (NULL until first update)
