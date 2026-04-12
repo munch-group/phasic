@@ -683,17 +683,7 @@ window.Quarto = {
 <h2 class="anchored" data-anchor-id="simulating-data">Simulating data</h2>
 <p>We apply the true parameters to simulate coalescence times between the West and East Africa lineage pair.</p>
 <div id="cell-19" class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Apply true theta via callback and sample</span></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>graph.update_weights(true_theta, callback<span class="op">=</span>resistance_weight)</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>E_true <span class="op">=</span> graph.expectation()</span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Expected coalescence time (with barrier): </span><span class="sc">{</span>E_true<span class="sc">:.1f}</span><span class="ss">'</span>)</span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare with no barrier</span></span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>graph.update_weights(np.zeros(K), callback<span class="op">=</span>resistance_weight)</span>
-<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>E_no_barrier <span class="op">=</span> graph.expectation()</span>
-<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Expected coalescence time (no barrier): </span><span class="sc">{</span>E_no_barrier<span class="sc">:.1f}</span><span class="ss">'</span>)</span>
-<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Barrier increases coalescence time by </span><span class="sc">{</span>E_true <span class="op">/</span> E_no_barrier<span class="sc">:.1f}</span><span class="ss">x'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Apply true theta via callback and samplegraph.update_weights(true_theta, callback=resistance_weight)# Estimate expected coalescence time from samples (avoids expensive graph elimination)E_true = np.mean(graph.sample(10000))print(f'Expected coalescence time (with barrier): {E_true:.1f}')# Compare with no barriergraph.update_weights(np.zeros(K), callback=resistance_weight)E_no_barrier = np.mean(graph.sample(10000))print(f'Expected coalescence time (no barrier): {E_no_barrier:.1f}')print(f'Barrier increases coalescence time by {E_true / E_no_barrier:.1f}x')</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="cell-20" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>graph.update_weights(true_theta, callback<span class="op">=</span>resistance_weight)</span>
