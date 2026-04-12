@@ -23,7 +23,26 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
@@ -223,8 +242,14 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./07b_fill_in_complexity.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Fill-In During Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./08_state_space_construction.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
   </div>
 </li>
       </ul>
@@ -241,31 +266,31 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./09_symbolic_expressions.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./10_symbolic_graph_elimination.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./11_trace_system.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./12_graph_hashing.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./13_scc_trace_stitching.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
   </div>
 </li>
       </ul>
@@ -282,19 +307,19 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./14_distribution_computation.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./15_moment_computation.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./16_pdf_gradients.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
   </div>
 </li>
       </ul>
@@ -311,7 +336,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./17_sampling.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
   </div>
 </li>
       </ul>
@@ -328,31 +353,31 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./18_svgd.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./19_mcmc.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./20_bffg.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./21_method_of_moments.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./22_probability_matching.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
   </div>
 </li>
       </ul>
@@ -369,13 +394,13 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./23_state_indexing.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./24_hex_grid.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
   </div>
 </li>
       </ul>
@@ -392,23 +417,29 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./25_jax_integration.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./26_graph_builder.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./27_van_loan_equivalence.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
   </div>
 </li>
       </ul>
   </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./28_references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">References</span></span></a>
+  </div>
+</li>
     </ul>
     </div>
 </nav>
@@ -458,7 +489,7 @@ window.Quarto = {
 <h2 class="unnumbered anchored" data-anchor-id="introduction">Introduction</h2>
 <p>This file documents the two structural graph algorithms that precede every major computation in phasic: <strong>strongly connected component (SCC) detection</strong> and <strong>topological sorting</strong>. Together, these algorithms decompose a phase-type graph into a directed acyclic structure that determines the order in which vertices are processed during normalization ([05]), elimination ([06]), reward transformation ([07]), and moment computation ([15]).</p>
 <p>Phase-type graphs may contain cycles. For example, a two-state continuous-time Markov chain where states 1 and 2 communicate bidirectionally produces a cycle <span class="math inline">v_1 \to v_2 \to v_1</span> in the graph representation. Gaussian elimination on the graph (formalized in [06]) requires a processing order in which every vertex is eliminated before its dependencies are revisited. SCC detection identifies maximal groups of mutually reachable vertices, and the topological sort of the resulting condensation DAG provides a valid elimination order.</p>
-<p>Phasic implements Tarjan’s algorithm (Tarjan, 1972) for SCC detection and Kahn’s algorithm (Kahn, 1962) for topological sorting. Both are classic algorithms with well-known correctness proofs; the contribution of this file is their precise formalization in the context of phase-type graphs and their mapping to the phasic codebase.</p>
+<p>Phasic implements Tarjan’s algorithm <span class="citation" data-cites="tarjan1972">(<a href="28_references.html#ref-tarjan1972" role="doc-biblioref">Tarjan 1972</a>)</span> for SCC detection and Kahn’s algorithm <span class="citation" data-cites="kahn1962">(<a href="28_references.html#ref-kahn1962" role="doc-biblioref">Kahn 1962</a>)</span> for topological sorting. Both are classic algorithms with well-known correctness proofs; the contribution of this file is their precise formalization in the context of phase-type graphs and their mapping to the phasic codebase.</p>
 <p><strong>Prerequisites:</strong> [01], [02]</p>
 <p><strong>Source files:</strong> - <code>src/c/phasic.c</code> (functions: <code>strongconnect2</code>, <code>ptd_find_strongly_connected_components</code>, <code>ptd_find_strongly_connected_components_acyclic</code>, <code>ptd_directed_graph_topological_sort</code>, <code>ptd_scc_graph_topological_sort</code>, <code>ptd_graph_is_acyclic</code>, <code>ptd_isolate_starting_vertex_scc</code>) - <code>api/c/phasic.h</code> (structs: <code>ptd_scc_graph</code>, <code>ptd_scc_vertex</code>, <code>ptd_scc_edge</code>, <code>ptd_directed_graph</code>, <code>ptd_directed_vertex</code>, <code>ptd_directed_edge</code>)</p>
 </section>
@@ -469,12 +500,18 @@ window.Quarto = {
 <div id="def-04-scc" class="theorem definition">
 <p><span class="theorem-title"><strong>Definition 5.1 (Strongly connected component)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> be a phase-type graph (<a href="01_preliminaries.html#def-01-ph-graph" class="quarto-xref">Definition&nbsp;<span>2.13</span></a>). A strongly connected component (SCC) of <span class="math inline">G</span> is a maximal subset <span class="math inline">C \subseteq V</span> such that for every pair of vertices <span class="math inline">u, v \in C</span>, there exists a directed path from <span class="math inline">u</span> to <span class="math inline">v</span> and a directed path from <span class="math inline">v</span> to <span class="math inline">u</span> in <span class="math inline">G</span>. The set of all SCCs partitions <span class="math inline">V</span>: every vertex belongs to exactly one SCC.</em></p>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> An SCC is a maximal group of vertices that can all reach each other via directed paths. In the context of phase-type distributions, an SCC with more than one vertex corresponds to a set of communicating states – the Markov chain can cycle among these states indefinitely before eventually leaving. A singleton SCC (a single vertex not on any cycle) corresponds to a transient state that the chain passes through at most a bounded number of times per visit.</p>
-</blockquote>
-<blockquote class="blockquote">
-<p><strong>Example.</strong> Consider a phase-type graph with vertices <span class="math inline">\{v_0, v_1, v_2, v_3, v_a\}</span> where <span class="math inline">v_0</span> is the starting vertex, <span class="math inline">v_a</span> is absorbing, and edges include <span class="math inline">v_1 \to v_2</span>, <span class="math inline">v_2 \to v_1</span>, <span class="math inline">v_1 \to v_3</span>, <span class="math inline">v_3 \to v_a</span>. The SCCs are <span class="math inline">\{v_0\}</span>, <span class="math inline">\{v_1, v_2\}</span>, <span class="math inline">\{v_3\}</span>, and <span class="math inline">\{v_a\}</span>. The set <span class="math inline">\{v_1, v_2\}</span> is strongly connected because <span class="math inline">v_1</span> can reach <span class="math inline">v_2</span> and <span class="math inline">v_2</span> can reach <span class="math inline">v_1</span>. It is maximal because adding any other vertex would break the mutual reachability property.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+An SCC is a maximal group of vertices that can all reach each other via directed paths. In the context of phase-type distributions, an SCC with more than one vertex corresponds to a set of communicating states – the Markov chain can cycle among these states indefinitely before eventually leaving. A singleton SCC (a single vertex not on any cycle) corresponds to a transient state that the chain passes through at most a bounded number of times per visit.
+</details>
+<details>
+<summary>
+Example
+</summary>
+Consider a phase-type graph with vertices <span class="math inline">\{v_0, v_1, v_2, v_3, v_a\}</span> where <span class="math inline">v_0</span> is the starting vertex, <span class="math inline">v_a</span> is absorbing, and edges include <span class="math inline">v_1 \to v_2</span>, <span class="math inline">v_2 \to v_1</span>, <span class="math inline">v_1 \to v_3</span>, <span class="math inline">v_3 \to v_a</span>. The SCCs are <span class="math inline">\{v_0\}</span>, <span class="math inline">\{v_1, v_2\}</span>, <span class="math inline">\{v_3\}</span>, and <span class="math inline">\{v_a\}</span>. The set <span class="math inline">\{v_1, v_2\}</span> is strongly connected because <span class="math inline">v_1</span> can reach <span class="math inline">v_2</span> and <span class="math inline">v_2</span> can reach <span class="math inline">v_1</span>. It is maximal because adding any other vertex would break the mutual reachability property.
+</details>
 </section>
 <section id="condensation-dag" class="level3 unnumbered">
 <h3 class="unnumbered anchored" data-anchor-id="condensation-dag">Condensation DAG</h3>
@@ -492,21 +529,33 @@ window.Quarto = {
 </ul>
 <p><em>The condensation inherits a starting meta-vertex <span class="math inline">C_0^{\text{SCC}}</span>: the SCC containing the starting vertex <span class="math inline">v_0</span>.</em></p>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> The condensation collapses each SCC into a single node. The resulting graph is always a DAG (<a href="#thm-04-condensation-dag" class="quarto-xref">Theorem&nbsp;<span>5.2</span></a> below). This DAG structure is what makes topological sorting possible, and the topological order of the condensation provides the elimination order for phasic’s graph algorithms.</p>
-</blockquote>
-<blockquote class="blockquote">
-<p><strong>Example.</strong> For the graph in the example above, the condensation has four meta-vertices: <span class="math inline">\{v_0\}</span>, <span class="math inline">\{v_1, v_2\}</span>, <span class="math inline">\{v_3\}</span>, <span class="math inline">\{v_a\}</span>, with edges <span class="math inline">\{v_0\} \to \{v_1, v_2\}</span>, <span class="math inline">\{v_1, v_2\} \to \{v_3\}</span>, <span class="math inline">\{v_3\} \to \{v_a\}</span>.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+The condensation collapses each SCC into a single node. The resulting graph is always a DAG (<a href="#thm-04-condensation-dag" class="quarto-xref">Theorem&nbsp;<span>5.2</span></a> below). This DAG structure is what makes topological sorting possible, and the topological order of the condensation provides the elimination order for phasic’s graph algorithms.
+</details>
+<details>
+<summary>
+Example
+</summary>
+For the graph in the example above, the condensation has four meta-vertices: <span class="math inline">\{v_0\}</span>, <span class="math inline">\{v_1, v_2\}</span>, <span class="math inline">\{v_3\}</span>, <span class="math inline">\{v_a\}</span>, with edges <span class="math inline">\{v_0\} \to \{v_1, v_2\}</span>, <span class="math inline">\{v_1, v_2\} \to \{v_3\}</span>, <span class="math inline">\{v_3\} \to \{v_a\}</span>.
+</details>
 <div id="def-04-topological-ordering" class="theorem definition">
 <p><span class="theorem-title"><strong>Definition 5.3 (Topological ordering)</strong></span> <em>Let <span class="math inline">G^{\text{SCC}} = (V^{\text{SCC}}, E^{\text{SCC}})</span> be the condensation DAG of a phase-type graph. A topological ordering of <span class="math inline">G^{\text{SCC}}</span> is a linear ordering <span class="math inline">C_{\pi(1)}, C_{\pi(2)}, \ldots, C_{\pi(m)}</span> of the meta-vertices such that for every edge <span class="math inline">(C_{\pi(i)} \to C_{\pi(j)}) \in E^{\text{SCC}}</span>, we have <span class="math inline">i &lt; j</span>.</em></p>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> A topological ordering processes each SCC before any SCC that depends on it. In phasic, the elimination algorithm ([06]) processes vertices in the order determined by the topological sort of the condensation: vertices within each SCC are eliminated together, and SCCs are processed in topological order so that when an SCC is processed, all SCCs it depends on (i.e., its successors in the condensation DAG) have already been processed.</p>
-</blockquote>
-<blockquote class="blockquote">
-<p><strong>Example.</strong> For the condensation above, one valid topological ordering is <span class="math inline">\{v_a\}, \{v_3\}, \{v_1, v_2\}, \{v_0\}</span>. This is also the reverse of the reachability order from <span class="math inline">v_0</span>: absorbing states are processed first, and the starting vertex last.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+A topological ordering processes each SCC before any SCC that depends on it. In phasic, the elimination algorithm ([06]) processes vertices in the order determined by the topological sort of the condensation: vertices within each SCC are eliminated together, and SCCs are processed in topological order so that when an SCC is processed, all SCCs it depends on (i.e., its successors in the condensation DAG) have already been processed.
+</details>
+<details>
+<summary>
+Example
+</summary>
+For the condensation above, one valid topological ordering is <span class="math inline">\{v_a\}, \{v_3\}, \{v_1, v_2\}, \{v_0\}</span>. This is also the reverse of the reachability order from <span class="math inline">v_0</span>: absorbing states are processed first, and the starting vertex last.
+</details>
 <div id="def-04-dfs-discovery" class="theorem definition">
 <p><span class="theorem-title"><strong>Definition 5.4 (DFS discovery time and low-link)</strong></span> <em>In a depth-first search (DFS) of graph <span class="math inline">G = (V, E, W)</span>, define for each vertex <span class="math inline">v \in V</span>:</em></p>
 <ul>
@@ -515,9 +564,12 @@ window.Quarto = {
 </ul>
 <p><em>Formally, after the DFS completes, <span class="math inline">\operatorname{low}(v) = \min(\{\operatorname{idx}(v)\} \cup \{\operatorname{low}(z) : (v \to z) \in E, z \text{ is a tree child of } v\} \cup \{\operatorname{idx}(z) : (v \to z) \in E, z \text{ is on the stack}\})</span>.</em></p>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> The low-link value tracks the “earliest” vertex (by discovery time) that <span class="math inline">v</span> can reach by going forward in the DFS tree and then taking one back edge. If <span class="math inline">\operatorname{low}(v) = \operatorname{idx}(v)</span>, then <span class="math inline">v</span> is the root of its SCC: no vertex in the subtree rooted at <span class="math inline">v</span> can reach back to a vertex discovered before <span class="math inline">v</span>.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+The low-link value tracks the “earliest” vertex (by discovery time) that <span class="math inline">v</span> can reach by going forward in the DFS tree and then taking one back edge. If <span class="math inline">\operatorname{low}(v) = \operatorname{idx}(v)</span>, then <span class="math inline">v</span> is the root of its SCC: no vertex in the subtree rooted at <span class="math inline">v</span> can reach back to a vertex discovered before <span class="math inline">v</span>.
+</details>
 </section>
 </section>
 <section id="theorems-and-proofs" class="level2 unnumbered">
@@ -927,6 +979,14 @@ Algorithm&nbsp;5.2: <strong>Correctness.</strong> Follows from <a href="#thm-04-
 </table>
 
 
+<div id="refs" class="references csl-bib-body hanging-indent" role="list" style="display: none">
+<div id="ref-kahn1962" class="csl-entry" role="listitem">
+Kahn, Arthur B. 1962. <span>“Topological Sorting of Large Networks.”</span> <em>Communications of the ACM</em> 5 (11): 558–62. <a href="https://doi.org/10.1145/368996.369025">https://doi.org/10.1145/368996.369025</a>.
+</div>
+<div id="ref-tarjan1972" class="csl-entry" role="listitem">
+Tarjan, Robert. 1972. <span>“Depth-First Search and Linear Graph Algorithms.”</span> <em>SIAM Journal on Computing</em> 1 (2): 146–60. <a href="https://doi.org/10.1137/0201010">https://doi.org/10.1137/0201010</a>.
+</div>
+</div>
 </section>
 
 </main> <!-- /main -->

@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>10&nbsp; State Space Construction – Phasic — Supplementary Online Material</title>
+<title>30&nbsp; References – Phasic — Supplementary Online Material</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -52,8 +52,7 @@ div.csl-indent {
 <script src="site_libs/quarto-search/fuse.min.js"></script>
 <script src="site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="./">
-<link href="./09_symbolic_expressions.html" rel="next">
-<link href="./07b_fill_in_complexity.html" rel="prev">
+<link href="./27_van_loan_equivalence.html" rel="prev">
 <script src="site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
@@ -92,49 +91,6 @@ div.csl-indent {
   }
 }</script>
 
-  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
-  <script>document.addEventListener("DOMContentLoaded", function () {
- var mathElements = document.getElementsByClassName("math");
- var macros = [];
- for (var i = 0; i < mathElements.length; i++) {
-  var texText = mathElements[i].firstChild;
-  if (mathElements[i].tagName == "SPAN") {
-   katex.render(texText.data, mathElements[i], {
-    displayMode: mathElements[i].classList.contains('display'),
-    throwOnError: false,
-    macros: macros,
-    fleqn: false
-   });
-}}});
-  </script>
-  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
-
-<script type="text/javascript">
-const typesetMath = (el) => {
-  if (window.MathJax) {
-    // MathJax Typeset
-    window.MathJax.typeset([el]);
-  } else if (window.katex) {
-    // KaTeX Render
-    var mathElements = el.getElementsByClassName("math");
-    var macros = [];
-    for (var i = 0; i < mathElements.length; i++) {
-      var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
-        window.katex.render(texText.data, mathElements[i], {
-          displayMode: mathElements[i].classList.contains('display'),
-          throwOnError: false,
-          macros: macros,
-          fleqn: false
-        });
-      }
-    }
-  }
-}
-window.Quarto = {
-  typesetMath
-};
-</script>
 
 </head>
 
@@ -147,7 +103,7 @@ window.Quarto = {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./04_scc_and_topological_sort.html">Graph Algorithms</a></li><li class="breadcrumb-item"><a href="./08_state_space_construction.html"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">State Space Construction</span></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./28_references.html"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">References</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -248,7 +204,7 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./08_state_space_construction.html" class="sidebar-item-text sidebar-link active">
+  <a href="./08_state_space_construction.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
   </div>
 </li>
@@ -436,7 +392,7 @@ window.Quarto = {
   </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./28_references.html" class="sidebar-item-text sidebar-link">
+  <a href="./28_references.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">References</span></span></a>
   </div>
 </li>
@@ -445,26 +401,15 @@ window.Quarto = {
 </nav>
 <div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        <nav id="TOC" role="doc-toc" class="toc-active">
-    <h2 id="toc-title">Table of contents</h2>
-   
-  <ul>
-  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
-  <li><a href="#definitions" id="toc-definitions" class="nav-link" data-scroll-target="#definitions">Definitions</a></li>
-  <li><a href="#theorems-and-proofs" id="toc-theorems-and-proofs" class="nav-link" data-scroll-target="#theorems-and-proofs">Theorems and Proofs</a></li>
-  <li><a href="#algorithms" id="toc-algorithms" class="nav-link" data-scroll-target="#algorithms">Algorithms</a></li>
-  <li><a href="#implementation-notes" id="toc-implementation-notes" class="nav-link" data-scroll-target="#implementation-notes">Implementation Notes</a></li>
-  <li><a href="#symbol-index" id="toc-symbol-index" class="nav-link" data-scroll-target="#symbol-index">Symbol Index</a></li>
-  </ul>
-</nav>
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+        
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./04_scc_and_topological_sort.html">Graph Algorithms</a></li><li class="breadcrumb-item"><a href="./08_state_space_construction.html"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">State Space Construction</span></a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">State Space Construction</span></h1>
+<h1 class="title"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">References</span></h1>
 </div>
 
 
@@ -481,313 +426,274 @@ window.Quarto = {
 </header>
 
 
-<section id="introduction" class="level2 unnumbered">
-<h2 class="unnumbered anchored" data-anchor-id="introduction">Introduction</h2>
-<p>This file formalizes the iterative state space construction algorithm that builds a phase-type graph from a user-provided transition function. The construction corresponds to Algorithm 1 in <span class="citation" data-cites="roikjer2022">Røikjer et al. (<a href="28_references.html#ref-roikjer2022" role="doc-biblioref">2022</a>)</span> and is the primary entry point for model specification in phasic: the user defines a callback that, given a state, returns the set of transitions (next states and edge weights), and the algorithm explores the reachable state space by breadth-first search, deduplicating states via an AVL tree.</p>
-<p>State space construction is the first stage of the phasic pipeline. The resulting graph <span class="math inline">G = (V, E, W)</span> is subsequently normalized ([05]), eliminated ([06]), and used for distribution computation ([14]) or reward transformation ([07]). When edges carry coefficient vectors rather than scalar weights, the graph is parameterized (<a href="01_preliminaries.html#def-01-param-edges" class="quarto-xref">Definition&nbsp;<span>2.15</span></a>) and can be processed symbolically ([09], [10]).</p>
-<p><strong>Prerequisites:</strong> [01], [02]</p>
-<p><strong>Source files:</strong> - <code>src/c/phasic.c</code> (functions: <code>ptd_find_or_create_vertex</code>) - <code>src/phasic/__init__.py</code> (class: <code>Graph</code>, constructor with <code>callback</code> parameter) - <code>src/phasic/state_indexing.py</code> (class: <code>StateIndexer</code>, <code>Property</code> – state encoding reference)</p>
-</section>
-<section id="definitions" class="level2 unnumbered">
-<h2 class="unnumbered anchored" data-anchor-id="definitions">Definitions</h2>
-<div id="def-08-transition-function" class="theorem definition">
-<p><span class="theorem-title"><strong>Definition 10.1 (State transition function)</strong></span> <em>Let <span class="math inline">d \in \mathbb{N}</span> be the state dimension and let <span class="math inline">\Sigma = \mathbb{Z}^d</span> be the state space. A state transition function is a mapping</em></p>
-<p><span class="math display">\delta \colon \Sigma \to \mathcal{P}_{\mathrm{fin}}(\Sigma \times \mathbb{R}_{&gt;0})</span></p>
-<p><em>that assigns to each state <span class="math inline">\sigma \in \Sigma</span> a finite (possibly empty) set of pairs <span class="math inline">(\sigma', w)</span> where <span class="math inline">\sigma'</span> is a successor state and <span class="math inline">w &gt; 0</span> is the transition weight. The set <span class="math inline">\delta(\sigma) = \emptyset</span> indicates that <span class="math inline">\sigma</span> is absorbing.</em></p>
-<p><em>In the parameterized case, the transition function instead returns coefficient vectors:</em></p>
-<p><span class="math display">\delta_{\boldsymbol{\theta}} \colon \Sigma \to \mathcal{P}_{\mathrm{fin}}(\Sigma \times \mathbb{R}^k)</span></p>
-<p><em>where each pair <span class="math inline">(\sigma', \mathbf{c})</span> specifies a successor state and a coefficient vector <span class="math inline">\mathbf{c} = (c_1, \ldots, c_k)</span> that determines the edge weight via a weight mode (<a href="01_preliminaries.html#def-01-param-edges" class="quarto-xref">Definition&nbsp;<span>2.15</span></a>).</em></p>
+<div id="refs" class="references csl-bib-body hanging-indent" role="list">
+<div id="ref-adelsonvelsky1962" class="csl-entry" role="listitem">
+Adelson-Velsky, Georgy M., and Evgenii M. Landis. 1962. <span>“An
+Algorithm for the Organization of Information.”</span> <em>Soviet
+Mathematics Doklady</em> 3: 1259–63.
 </div>
-<details>
-<summary>
-Intuition
-</summary>
-The transition function <span class="math inline">\delta</span> encodes the rules of a continuous-time Markov chain: given the current state, it specifies all possible transitions and their rates. In population genetics, <span class="math inline">\sigma</span> might encode lineage counts across populations, and <span class="math inline">\delta</span> returns coalescence and migration events with their respective rates. The function is provided by the user as a Python callback.
-</details>
-<details>
-<summary>
-Example
-</summary>
-For the Kingman coalescent <span class="citation" data-cites="kingman1982">(<a href="28_references.html#ref-kingman1982" role="doc-biblioref">Kingman 1982</a>)</span> with <span class="math inline">n</span> lineages, the state is a single integer <span class="math inline">\sigma = (n)</span>, and <span class="math inline">\delta((n)) = \{((n-1), \binom{n}{2})\}</span> for <span class="math inline">n \geq 2</span>, and <span class="math inline">\delta((1)) = \emptyset</span> (absorbing). The rate <span class="math inline">\binom{n}{2}</span> is the coalescent rate when <span class="math inline">n</span> lineages remain.
-</details>
-<div id="def-08-state-space-construction" class="theorem definition">
-<p><span class="theorem-title"><strong>Definition 10.2 (Iterative state space construction)</strong></span> <em>Let <span class="math inline">\delta</span> be a state transition function (<a href="#def-08-transition-function" class="quarto-xref">Definition&nbsp;<span>10.1</span></a>), let <span class="math inline">\sigma_0 \in \Sigma</span> be an initial state, and let <span class="math inline">\boldsymbol{\alpha}_0 = (\sigma_{0,1}, w_1), \ldots, (\sigma_{0,m}, w_m)</span> be an initial probability vector specifying the starting distribution over initial states with <span class="math inline">\sum_{i=1}^m w_i \leq 1</span>. The iterative state space construction produces a phase-type graph <span class="math inline">G = (V, E, W)</span> (<a href="01_preliminaries.html#def-01-ph-graph" class="quarto-xref">Definition&nbsp;<span>2.13</span></a>) by:</em></p>
-<ol type="1">
-<li><em>Creating a starting vertex <span class="math inline">v_0</span> with edges <span class="math inline">w(v_0 \to v_{\sigma_{0,i}}) = w_i</span> for each initial state <span class="math inline">\sigma_{0,i}</span>.</em></li>
-<li><em>Maintaining a queue <span class="math inline">Q</span> of unvisited states, initialized with <span class="math inline">\{\sigma_{0,1}, \ldots, \sigma_{0,m}\}</span>.</em></li>
-<li><em>Maintaining an AVL tree <span class="math inline">\mathcal{A}</span> (<a href="02_graph_representation.html#def-02-avl-tree" class="quarto-xref">Definition&nbsp;<span>3.3</span></a>) mapping state vectors to vertices for <span class="math inline">O(\log |V|)</span> deduplication.</em></li>
-<li><em>Iteratively: dequeue a state <span class="math inline">\sigma</span>, compute <span class="math inline">\delta(\sigma)</span>, and for each <span class="math inline">(\sigma', w) \in \delta(\sigma)</span>: look up <span class="math inline">\sigma'</span> in <span class="math inline">\mathcal{A}</span>; if absent, create a new vertex, insert it into <span class="math inline">\mathcal{A}</span>, and enqueue <span class="math inline">\sigma'</span>; add edge <span class="math inline">(v_\sigma \to v_{\sigma'})</span> with weight <span class="math inline">w</span>.</em></li>
-<li><em>Terminating when <span class="math inline">Q = \emptyset</span>.</em></li>
-</ol>
+<div id="ref-amestoy1996" class="csl-entry" role="listitem">
+Amestoy, Patrick R., Timothy A. Davis, and Iain S. Duff. 1996. <span>“An
+Approximate Minimum Degree Ordering Algorithm.”</span> <em>SIAM Journal
+on Matrix Analysis and Applications</em> 17 (4): 886–905. <a href="https://doi.org/10.1137/S0895479894278952">https://doi.org/10.1137/S0895479894278952</a>.
 </div>
-<details>
-<summary>
-Intuition
-</summary>
-This is a breadth-first exploration of the state space starting from the initial states. The AVL tree ensures that each distinct state is represented by exactly one vertex, even if it is reachable via multiple paths. The construction terminates when all reachable states have been visited.
-</details>
-<details>
-<summary>
-Example
-</summary>
-For the coalescent with <span class="math inline">n = 4</span>: the initial state is <span class="math inline">(4)</span>. The BFS discovers <span class="math inline">(3)</span> from <span class="math inline">(4)</span>, then <span class="math inline">(2)</span> from <span class="math inline">(3)</span>, then <span class="math inline">(1)</span> from <span class="math inline">(2)</span>. State <span class="math inline">(1)</span> is absorbing (<span class="math inline">\delta((1)) = \emptyset</span>), so the construction terminates with <span class="math inline">|V| = 5</span> (one starting vertex plus four state vertices).
-</details>
-</section>
-<section id="theorems-and-proofs" class="level2 unnumbered">
-<h2 class="unnumbered anchored" data-anchor-id="theorems-and-proofs">Theorems and Proofs</h2>
-<div id="thm-08-termination-correctness" class="theorem">
-<p><span class="theorem-title"><strong>Theorem 10.1 (Termination and correctness of state space construction)</strong></span> <em>Let <span class="math inline">\delta</span> be a state transition function (<a href="#def-08-transition-function" class="quarto-xref">Definition&nbsp;<span>10.1</span></a>) such that the set of states reachable from the initial states <span class="math inline">\{\sigma_{0,1}, \ldots, \sigma_{0,m}\}</span> under repeated application of <span class="math inline">\delta</span> is finite with cardinality <span class="math inline">n</span>. Then the iterative state space construction (<a href="#def-08-state-space-construction" class="quarto-xref">Definition&nbsp;<span>10.2</span></a>):</em></p>
-<p><em>(a) Terminates after at most <span class="math inline">n</span> dequeue operations.</em></p>
-<p><em>(b) Produces a phase-type graph <span class="math inline">G = (V, E, W)</span> satisfying <a href="01_preliminaries.html#def-01-ph-graph" class="quarto-xref">Definition&nbsp;<span>2.13</span></a> with <span class="math inline">|V| = n + 1</span> (including the starting vertex).</em></p>
-<p><em>(c) The graph-matrix correspondence (<a href="01_preliminaries.html#def-01-graph-matrix" class="quarto-xref">Definition&nbsp;<span>2.14</span></a>) yields a valid sub-intensity matrix <span class="math inline">\mathbf{S}</span> (or sub-transition matrix <span class="math inline">\mathbf{T}</span> for DPH) representing the Markov chain defined by <span class="math inline">\delta</span>.</em></p>
+<div id="ref-baydin2018" class="csl-entry" role="listitem">
+Baydin, Atilim Gunes, Barak A. Pearlmutter, Alexey Andreyevich Radul,
+and Jeffrey Mark Siskind. 2018. <span>“Automatic Differentiation in
+Machine Learning: A Survey.”</span> <em>Journal of Machine Learning
+Research</em> 18 (153): 1–43.
 </div>
-<div class="proof">
-<p><span class="proof-title"><em>Proof</em>. </span></p>
-<ol type="a">
-<li><p>Each state is enqueued at most once because the AVL tree lookup in step 4 prevents reinsertion of a state already in <span class="math inline">\mathcal{A}</span>. Since the reachable state space has cardinality <span class="math inline">n</span>, at most <span class="math inline">n</span> states are enqueued and dequeued.</p></li>
-<li><p>The starting vertex <span class="math inline">v_0</span> is created in step 1 with edges encoding the initial distribution, satisfying the starting vertex conditions of <a href="01_preliminaries.html#def-01-ph-graph" class="quarto-xref">Definition&nbsp;<span>2.13</span></a>. Each reachable state <span class="math inline">\sigma</span> corresponds to exactly one vertex <span class="math inline">v_\sigma</span> (uniqueness enforced by the AVL tree). A vertex <span class="math inline">v_\sigma</span> is absorbing (no outgoing edges) if and only if <span class="math inline">\delta(\sigma) = \emptyset</span>. All edges have positive weights (since <span class="math inline">\delta</span> returns <span class="math inline">w &gt; 0</span>). The total vertex count is <span class="math inline">n</span> reachable states plus one starting vertex.</p></li>
-<li><p>By the graph-matrix correspondence (<a href="01_preliminaries.html#def-01-graph-matrix" class="quarto-xref">Definition&nbsp;<span>2.14</span></a>), the off-diagonal entry <span class="math inline">s_{ij}</span> of <span class="math inline">\mathbf{S}</span> equals <span class="math inline">w(v_i \to v_j)</span>, which equals the weight returned by <span class="math inline">\delta</span> for the transition from state <span class="math inline">i</span> to state <span class="math inline">j</span>. The diagonal entry <span class="math inline">s_{ii} = -\lambda_{v_i} = -\sum_j w(v_i \to v_j)</span> is the negative total outgoing rate. Since all off-diagonal entries are non-negative and row sums are non-positive (by construction), <span class="math inline">\mathbf{S}</span> is a valid sub-intensity matrix. For DPH, the same argument applies with <span class="math inline">\mathbf{T}</span> where row sums are at most 1 (ensured by the user’s transition function). <span class="math inline">\square</span></p></li>
-</ol>
+<div id="ref-bladt2017" class="csl-entry" role="listitem">
+Bladt, Mogens, and Bo Friis Nielsen. 2017. <em>Matrix-Exponential
+Distributions in Applied Probability</em>. Vol. 81. Probability Theory
+and Stochastic Modelling. Springer. <a href="https://doi.org/10.1007/978-1-4939-7049-0">https://doi.org/10.1007/978-1-4939-7049-0</a>.
 </div>
-<div id="lem-08-avl-dedup-complexity" class="theorem lemma">
-<p><span class="theorem-title"><strong>Lemma 10.1 (AVL tree deduplication complexity)</strong></span> <em>The state space construction performs <span class="math inline">O(n)</span> AVL tree operations (find-or-insert), each costing <span class="math inline">O(d \log n)</span> where <span class="math inline">d</span> is the state dimension (for lexicographic key comparison). The total deduplication cost is <span class="math inline">O(n \cdot d \cdot \log n)</span>.</em></p>
+<div id="ref-bradbury2018jax" class="csl-entry" role="listitem">
+Bradbury, James, Roy Frostig, Peter Hawkins, et al. 2018.
+<em><span>JAX</span>: Composable Transformations of
+<span>Python</span>+<span>NumPy</span> Programs</em>. V. 0.3.13.
+Released. <a href="http://github.com/jax-ml/jax">http://github.com/jax-ml/jax</a>.
 </div>
-<div class="proof">
-<p><span class="proof-title"><em>Proof</em>. </span>Each of the <span class="math inline">n</span> reachable states triggers exactly one find-or-insert operation (when first encountered) and at most <span class="math inline">|\delta(\sigma)|</span> find operations (when checking successors). By <a href="02_graph_representation.html#thm-02-avl-ops" class="quarto-xref">Theorem&nbsp;<span>3.1</span></a>, each AVL find-or-insert operation costs <span class="math inline">O(d \log n)</span> where the <span class="math inline">d</span> factor accounts for the lexicographic comparison of <span class="math inline">d</span>-dimensional integer keys. The total number of find operations is bounded by <span class="math inline">|E|</span>, the number of edges. <span class="math inline">\square</span></p>
+<div id="ref-cormen2009" class="csl-entry" role="listitem">
+Cormen, Thomas H., Charles E. Leiserson, Ronald L. Rivest, and Clifford
+Stein. 2009. <em>Introduction to Algorithms</em>. 3rd ed. MIT Press.
 </div>
-</section>
-<section id="algorithms" class="level2 unnumbered">
-<h2 class="unnumbered anchored" data-anchor-id="algorithms">Algorithms</h2>
-<div id="alg-08-generate-state-space" class="quarto-float quarto-figure quarto-figure-center anchored">
-<figure class="quarto-float quarto-float-alg figure">
-<section id="generatestatespace" class="level4" aria-describedby="alg-08-generate-state-space-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="10.0.0.1">
-<h4 data-number="10.0.0.1" class="anchored" data-anchor-id="generatestatespace"><span class="header-section-number">10.0.0.1</span> GenerateStateSpace</h4>
-<p><em>Description.</em> This algorithm implements the iterative state space construction (<a href="#def-08-state-space-construction" class="quarto-xref">Definition&nbsp;<span>10.2</span></a>). It performs a breadth-first traversal of the state space, using an AVL tree for <span class="math inline">O(\log n)</span> state deduplication. The algorithm corresponds to Algorithm 1 in <span class="citation" data-cites="roikjer2022">Røikjer et al. (<a href="28_references.html#ref-roikjer2022" role="doc-biblioref">2022</a>)</span>.</p>
-<pre><code>GenerateStateSpace
-1: Let δ be a state transition function (Definition 8.1)
-2: Let (σ₀₁, w₁), ..., (σ₀ₘ, wₘ) be initial state-weight pairs with Σᵢ wᵢ ≤ 1
-3: Let d be the state dimension
-
-4: function GenerateStateSpace(δ, {(σ₀ᵢ, wᵢ)}, d)
-5:   G ← new phase-type graph with state dimension d
-6:   A ← new AVL tree with key length d               ▷ For state deduplication
-7:   Q ← empty queue                                   ▷ BFS frontier
-8:
-9:   for i ← 1 to m do                                 ▷ Process initial states
-10:    v ← FindOrCreateVertex(G, A, σ₀ᵢ)
-11:    AddEdge(v₀, v, wᵢ)                              ▷ v₀ is the starting vertex of G
-12:    Enqueue(Q, σ₀ᵢ)
-13:  end for
-14:
-15:  while Q ≠ ∅ do
-16:    σ ← Dequeue(Q)
-17:    v ← AvlFind(A, σ)                               ▷ Look up vertex for state σ
-18:    for each (σ', w) ∈ δ(σ) do                       ▷ Apply transition function
-19:      node ← AvlFindOrInsert(A, σ')
-20:      if node is newly inserted then
-21:        v' ← CreateVertex(G, σ')
-22:        node.entry ← v'
-23:        Enqueue(Q, σ')                               ▷ New state discovered
-24:      else
-25:        v' ← node.entry                              ▷ State already visited
-26:      end if
-27:      AddEdge(v, v', w)
-28:    end for
-29:  end while
-30:
-31:  return G
-32: end function</code></pre>
-<p><strong>Correspondence table:</strong></p>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 32%">
-<col style="width: 20%">
-<col style="width: 47%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Pseudocode variable</th>
-<th>Math symbol</th>
-<th>Code variable (file:function)</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><span class="math inline">G</span></td>
-<td><span class="math inline">G = (V, E, W)</span></td>
-<td><code>graph</code> (<code>phasic.c:ptd_graph_create</code>)</td>
-</tr>
-<tr class="even">
-<td><span class="math inline">\mathcal{A}</span></td>
-<td>AVL tree <span class="math inline">\mathcal{A}</span></td>
-<td><code>avl_tree</code> (<code>phasic.c:ptd_avl_tree_create</code>)</td>
-</tr>
-<tr class="odd">
-<td><span class="math inline">Q</span></td>
-<td>BFS queue</td>
-<td>iteration over unvisited vertices (Python <code>__init__.py:Graph</code>)</td>
-</tr>
-<tr class="even">
-<td><span class="math inline">\delta</span></td>
-<td>transition function <span class="math inline">\delta</span></td>
-<td><code>callback</code> (Python callback parameter)</td>
-</tr>
-<tr class="odd">
-<td><span class="math inline">\sigma</span></td>
-<td>state vector <span class="math inline">\sigma \in \mathbb{Z}^d</span></td>
-<td><code>child_state</code> (<code>phasic.c:ptd_find_or_create_vertex</code>)</td>
-</tr>
-<tr class="even">
-<td><span class="math inline">v_0</span></td>
-<td>starting vertex <span class="math inline">v_0</span></td>
-<td><code>graph-&gt;starting_vertex</code> (<code>phasic.c</code>)</td>
-</tr>
-<tr class="odd">
-<td><span class="math inline">v, v'</span></td>
-<td>vertices <span class="math inline">v, v' \in V</span></td>
-<td><code>vertex</code>, <code>child</code> (<code>phasic.c:ptd_find_or_create_vertex</code>)</td>
-</tr>
-<tr class="even">
-<td><span class="math inline">d</span></td>
-<td>state dimension</td>
-<td><code>graph-&gt;state_length</code> (<code>phasic.c</code>)</td>
-</tr>
-<tr class="odd">
-<td>FindOrCreateVertex</td>
-<td>AVL lookup + vertex creation</td>
-<td><code>ptd_find_or_create_vertex</code> (<code>phasic.c</code>)</td>
-</tr>
-<tr class="even">
-<td>AvlFindOrInsert</td>
-<td>AVL find-or-insert</td>
-<td><code>ptd_avl_tree_find_or_insert</code> (<code>phasic.c</code>)</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Complexity.</strong> Time: <span class="math inline">O(|E| \cdot d \cdot \log |V|)</span> where <span class="math inline">|E|</span> is the total number of edges (transitions), <span class="math inline">d</span> is the state dimension, and <span class="math inline">|V|</span> is the number of reachable states. The <span class="math inline">d \cdot \log |V|</span> factor is the cost of each AVL tree operation (<a href="#lem-08-avl-dedup-complexity" class="quarto-xref">Lemma&nbsp;<span>10.1</span></a>). Space: <span class="math inline">O(|V| \cdot d + |E|)</span> for storing the graph and AVL tree.</p>
-</section>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-08-generate-state-space-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Algorithm&nbsp;10.1: <strong>Correctness.</strong> Follows from <a href="#thm-08-termination-correctness" class="quarto-xref">Theorem&nbsp;<span>10.1</span></a>. The BFS ensures all reachable states are visited, the AVL tree ensures each state is represented by exactly one vertex, and the resulting graph satisfies the phase-type graph structure (<a href="01_preliminaries.html#def-01-ph-graph" class="quarto-xref">Definition&nbsp;<span>2.13</span></a>).
-</figcaption>
-</figure>
+<div id="ref-doob1957" class="csl-entry" role="listitem">
+Doob, Joseph L. 1957. <span>“Conditional <span>Brownian</span> Motion
+and the Boundary Limits of Harmonic Functions.”</span> <em>Bulletin de
+La Soci<span>é</span>t<span>é</span> Math<span>é</span>matique de
+France</em> 85: 431–58. <a href="https://doi.org/10.24033/bsmf.1494">https://doi.org/10.24033/bsmf.1494</a>.
 </div>
-</section>
-<section id="implementation-notes" class="level2 unnumbered">
-<h2 class="unnumbered anchored" data-anchor-id="implementation-notes">Implementation Notes</h2>
-<p><strong>Source code mapping:</strong></p>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 32%">
-<col style="width: 17%">
-<col style="width: 29%">
-<col style="width: 20%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Algorithm</th>
-<th>File</th>
-<th>Function</th>
-<th>Notes</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><a href="#alg-08-generate-state-space" class="quarto-xref">Algorithm&nbsp;<span>10.1</span></a> (FindOrCreateVertex)</td>
-<td><code>src/c/phasic.c</code></td>
-<td><code>ptd_find_or_create_vertex</code></td>
-<td>L7339-L7353</td>
-</tr>
-<tr class="even">
-<td><a href="#alg-08-generate-state-space" class="quarto-xref">Algorithm&nbsp;<span>10.1</span></a> (AVL operations)</td>
-<td><code>src/c/phasic.c</code></td>
-<td><code>ptd_avl_tree_find_or_insert</code>, <code>ptd_avl_tree_find</code></td>
-<td>AVL tree implementation</td>
-</tr>
-<tr class="odd">
-<td><a href="#alg-08-generate-state-space" class="quarto-xref">Algorithm&nbsp;<span>10.1</span></a> (BFS driver)</td>
-<td><code>src/phasic/__init__.py</code></td>
-<td><code>Graph.__init__</code> with <code>callback</code></td>
-<td>Python-level BFS loop</td>
-</tr>
-<tr class="even">
-<td>State encoding</td>
-<td><code>src/phasic/state_indexing.py</code></td>
-<td><code>StateIndexer</code>, <code>Property</code></td>
-<td>Mixed-radix state encoding</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Deviations from pseudocode:</strong></p>
-<ul>
-<li><p><strong>BFS driver location.</strong> The pseudocode presents a monolithic algorithm, but the implementation splits responsibility: the BFS loop and callback invocation are in the Python <code>Graph</code> constructor, while the C function <code>ptd_find_or_create_vertex</code> handles the AVL lookup and vertex creation for each individual state. The Python layer calls into C for each discovered state.</p></li>
-<li><p><strong>State encoding.</strong> The pseudocode uses abstract state vectors <span class="math inline">\sigma \in \mathbb{Z}^d</span>. In practice, states are encoded as integer arrays of length <code>state_length</code>. The <code>StateIndexer</code> class provides a mixed-radix encoding system that maps structured state descriptions (e.g., lineage counts per population) to flat integer arrays, but this encoding is transparent to the construction algorithm.</p></li>
-<li><p><strong>Parameterized edges.</strong> When <code>parameterized=True</code>, the callback returns coefficient vectors <span class="math inline">\mathbf{c}</span> instead of scalar weights <span class="math inline">w</span>. The <code>ptd_graph_add_edge</code> function stores the coefficient array on the edge, and the edge mode is locked to <code>PTD_EDGE_MODE_PARAMETERIZED</code> after the first non-IPV edge is added.</p></li>
-</ul>
-</section>
-<section id="symbol-index" class="level2 unnumbered">
-<h2 class="unnumbered anchored" data-anchor-id="symbol-index">Symbol Index</h2>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 25%">
-<col style="width: 19%">
-<col style="width: 54%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Symbol</th>
-<th>Name</th>
-<th>First appearance</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><span class="math inline">\mathcal{A}</span></td>
-<td>AVL tree for state deduplication</td>
-<td><a href="#def-08-state-space-construction" class="quarto-xref">Definition&nbsp;<span>10.2</span></a></td>
-</tr>
-<tr class="even">
-<td><span class="math inline">d</span></td>
-<td>State dimension</td>
-<td><a href="#def-08-transition-function" class="quarto-xref">Definition&nbsp;<span>10.1</span></a></td>
-</tr>
-<tr class="odd">
-<td><span class="math inline">\delta</span></td>
-<td>State transition function</td>
-<td><a href="#def-08-transition-function" class="quarto-xref">Definition&nbsp;<span>10.1</span></a></td>
-</tr>
-<tr class="even">
-<td><span class="math inline">\delta_{\boldsymbol{\theta}}</span></td>
-<td>Parameterized state transition function</td>
-<td><a href="#def-08-transition-function" class="quarto-xref">Definition&nbsp;<span>10.1</span></a></td>
-</tr>
-<tr class="odd">
-<td><span class="math inline">Q</span></td>
-<td>BFS queue of unvisited states</td>
-<td><a href="#def-08-state-space-construction" class="quarto-xref">Definition&nbsp;<span>10.2</span></a></td>
-</tr>
-<tr class="even">
-<td><span class="math inline">\Sigma</span></td>
-<td>State space (<span class="math inline">\mathbb{Z}^d</span>)</td>
-<td><a href="#def-08-transition-function" class="quarto-xref">Definition&nbsp;<span>10.1</span></a></td>
-</tr>
-<tr class="odd">
-<td><span class="math inline">\sigma, \sigma'</span></td>
-<td>State vectors</td>
-<td><a href="#def-08-transition-function" class="quarto-xref">Definition&nbsp;<span>10.1</span></a></td>
-</tr>
-</tbody>
-</table>
-
-
-<div id="refs" class="references csl-bib-body hanging-indent" role="list" style="display: none">
+<div id="ref-gelman2006" class="csl-entry" role="listitem">
+Gelman, Andrew. 2006. <span>“Prior Distributions for Variance Parameters
+in Hierarchical Models.”</span> <em>Bayesian Analysis</em> 1 (3):
+515–34. <a href="https://doi.org/10.1214/06-BA117A">https://doi.org/10.1214/06-BA117A</a>.
+</div>
+<div id="ref-gelman1992" class="csl-entry" role="listitem">
+Gelman, Andrew, and Donald B. Rubin. 1992. <span>“Inference from
+Iterative Simulation Using Multiple Sequences.”</span> <em>Statistical
+Science</em> 7 (4): 457–72. <a href="https://doi.org/10.1214/ss/1177011136">https://doi.org/10.1214/ss/1177011136</a>.
+</div>
+<div id="ref-george1973" class="csl-entry" role="listitem">
+George, Alan. 1973. <span>“Nested Dissection of a Regular Finite Element
+Mesh.”</span> <em>SIAM Journal on Numerical Analysis</em> 10 (2):
+345–63. <a href="https://doi.org/10.1137/0710032">https://doi.org/10.1137/0710032</a>.
+</div>
+<div id="ref-georgeliu1981" class="csl-entry" role="listitem">
+George, Alan, and Joseph W. H. Liu. 1981. <em>Computer Solution of Large
+Sparse Positive Definite Systems</em>. Prentice-Hall.
+</div>
+<div id="ref-gillespie1977" class="csl-entry" role="listitem">
+Gillespie, Daniel T. 1977. <span>“Exact Stochastic Simulation of Coupled
+Chemical Reactions.”</span> <em>Journal of Physical Chemistry</em> 81
+(25): 2340–61. <a href="https://doi.org/10.1021/j100540a008">https://doi.org/10.1021/j100540a008</a>.
+</div>
+<div id="ref-griewank2008" class="csl-entry" role="listitem">
+Griewank, Andreas, and Andrea Walther. 2008. <em>Evaluating Derivatives:
+Principles and Techniques of Algorithmic Differentiation</em>. 2nd ed.
+SIAM. <a href="https://doi.org/10.1137/1.9780898717761">https://doi.org/10.1137/1.9780898717761</a>.
+</div>
+<div id="ref-haario2001" class="csl-entry" role="listitem">
+Haario, Heikki, Eero Saksman, and Johanna Tamminen. 2001. <span>“An
+Adaptive <span>Metropolis</span> Algorithm.”</span> <em>Bernoulli</em> 7
+(2): 223–42. <a href="https://doi.org/10.2307/3318737">https://doi.org/10.2307/3318737</a>.
+</div>
+<div id="ref-hansen1982" class="csl-entry" role="listitem">
+Hansen, Lars Peter. 1982. <span>“Large Sample Properties of Generalized
+Method of Moments Estimators.”</span> <em>Econometrica</em> 50 (4):
+1029–54. <a href="https://doi.org/10.2307/1912775">https://doi.org/10.2307/1912775</a>.
+</div>
+<div id="ref-hastings1970" class="csl-entry" role="listitem">
+Hastings, W. Keith. 1970. <span>“<span>Monte Carlo</span> Sampling
+Methods Using <span>Markov</span> Chains and Their Applications.”</span>
+<em>Biometrika</em> 57 (1): 97–109. <a href="https://doi.org/10.1093/biomet/57.1.97">https://doi.org/10.1093/biomet/57.1.97</a>.
+</div>
+<div id="ref-higham2002" class="csl-entry" role="listitem">
+Higham, Nicholas J. 2002. <em>Accuracy and Stability of Numerical
+Algorithms</em>. 2nd ed. SIAM. <a href="https://doi.org/10.1137/1.9780898718027">https://doi.org/10.1137/1.9780898718027</a>.
+</div>
+<div id="ref-hobolth2024" class="csl-entry" role="listitem">
+Hobolth, Asger, Iker Rivas-González, Mogens Bladt, and Andreas Futschik.
+2024. <span>“Phase-Type Distributions in Mathematical Population
+Genetics: An Emerging Framework.”</span> <em>Theoretical Population
+Biology</em> 157: 14–32. <a href="https://doi.org/10.1016/j.tpb.2024.03.001">https://doi.org/10.1016/j.tpb.2024.03.001</a>.
+</div>
+<div id="ref-hudson1983" class="csl-entry" role="listitem">
+Hudson, Richard R. 1983. <span>“Properties of a Neutral Allele Model
+with Intragenic Recombination.”</span> <em>Theoretical Population
+Biology</em> 23 (2): 183–201. <a href="https://doi.org/10.1016/0040-5809(83)90013-8">https://doi.org/10.1016/0040-5809(83)90013-8</a>.
+</div>
+<div id="ref-jensen1953" class="csl-entry" role="listitem">
+Jensen, Arne. 1953. <span>“Markoff Chains as an Aid in the Study of
+<span>Markoff</span> Processes.”</span> <em>Skandinavisk
+Aktuarietidskrift</em> 36: 87–91. <a href="https://doi.org/10.1080/03461238.1953.10419459">https://doi.org/10.1080/03461238.1953.10419459</a>.
+</div>
+<div id="ref-kahan1965" class="csl-entry" role="listitem">
+Kahan, William. 1965. <span>“Pracniques: Further Remarks on Reducing
+Truncation Errors.”</span> <em>Communications of the ACM</em> 8 (1): 40.
+<a href="https://doi.org/10.1145/363707.363723">https://doi.org/10.1145/363707.363723</a>.
+</div>
+<div id="ref-kahn1962" class="csl-entry" role="listitem">
+Kahn, Arthur B. 1962. <span>“Topological Sorting of Large
+Networks.”</span> <em>Communications of the ACM</em> 5 (11): 558–62. <a href="https://doi.org/10.1145/368996.369025">https://doi.org/10.1145/368996.369025</a>.
+</div>
+<div id="ref-kingma2015adam" class="csl-entry" role="listitem">
+Kingma, Diederik P., and Jimmy Ba. 2015. <span>“Adam: A Method for
+Stochastic Optimization.”</span> <em>Proceedings of the 3rd
+International Conference on Learning Representations (ICLR)</em>.
+</div>
 <div id="ref-kingman1982" class="csl-entry" role="listitem">
-Kingman, John F. C. 1982. <span>“The Coalescent.”</span> <em>Stochastic Processes and Their Applications</em> 13 (3): 235–48. <a href="https://doi.org/10.1016/0304-4149(82)90011-4">https://doi.org/10.1016/0304-4149(82)90011-4</a>.
+Kingman, John F. C. 1982. <span>“The Coalescent.”</span> <em>Stochastic
+Processes and Their Applications</em> 13 (3): 235–48. <a href="https://doi.org/10.1016/0304-4149(82)90011-4">https://doi.org/10.1016/0304-4149(82)90011-4</a>.
+</div>
+<div id="ref-kulkarni1989" class="csl-entry" role="listitem">
+Kulkarni, Vidyadhar G. 1989. <span>“A New Class of Multivariate Phase
+Type Distributions.”</span> <em>Operations Research</em> 37 (1): 151–58.
+<a href="https://doi.org/10.1287/opre.37.1.151">https://doi.org/10.1287/opre.37.1.151</a>.
+</div>
+<div id="ref-liptonrosetarjan1979" class="csl-entry" role="listitem">
+Lipton, Richard J., Donald J. Rose, and Robert Endre Tarjan. 1979.
+<span>“Generalized Nested Dissection.”</span> <em>SIAM Journal on
+Numerical Analysis</em> 16 (2): 346–58. <a href="https://doi.org/10.1137/0716027">https://doi.org/10.1137/0716027</a>.
+</div>
+<div id="ref-liptontarjan1979" class="csl-entry" role="listitem">
+Lipton, Richard J., and Robert Endre Tarjan. 1979. <span>“A Separator
+Theorem for Planar Graphs.”</span> <em>SIAM Journal on Applied
+Mathematics</em> 36 (2): 177–89. <a href="https://doi.org/10.1137/0136016">https://doi.org/10.1137/0136016</a>.
+</div>
+<div id="ref-liu2016svgd" class="csl-entry" role="listitem">
+Liu, Qiang, and Dilin Wang. 2016. <span>“Stein Variational Gradient
+Descent: A General Purpose <span>Bayesian</span> Inference
+Algorithm.”</span> <em>Advances in Neural Information Processing
+Systems</em> 29: 2378–86.
+</div>
+<div id="ref-metropolis1953" class="csl-entry" role="listitem">
+Metropolis, Nicholas, Arianna W. Rosenbluth, Marshall N. Rosenbluth,
+Augusta H. Teller, and Edward Teller. 1953. <span>“Equation of State
+Calculations by Fast Computing Machines.”</span> <em>Journal of Chemical
+Physics</em> 21 (6): 1087–92. <a href="https://doi.org/10.1063/1.1699114">https://doi.org/10.1063/1.1699114</a>.
+</div>
+<div id="ref-fips180" class="csl-entry" role="listitem">
+National Institute of Standards and Technology. 2015. <em>Secure Hash
+Standard (<span>SHS</span>)</em>. FIPS PUB 180-4. U.S. Department of
+Commerce. <a href="https://doi.org/10.6028/NIST.FIPS.180-4">https://doi.org/10.6028/NIST.FIPS.180-4</a>.
+</div>
+<div id="ref-neal2011" class="csl-entry" role="listitem">
+Neal, Radford M. 2011. <span>“<span>MCMC</span> Using
+<span>Hamiltonian</span> Dynamics.”</span> Chap. 5 in <em>Handbook of
+<span>Markov</span> Chain <span>Monte Carlo</span></em>, edited by Steve
+Brooks, Andrew Gelman, Galin L. Jones, and Xiao-Li Meng. Chapman;
+Hall/CRC.
+</div>
+<div id="ref-neuts1981" class="csl-entry" role="listitem">
+Neuts, Marcel F. 1981. <em>Matrix-Geometric Solutions in Stochastic
+Models: An Algorithmic Approach</em>. Johns Hopkins University Press.
+</div>
+<div id="ref-newey1994" class="csl-entry" role="listitem">
+Newey, Whitney K., and Daniel McFadden. 1994. <span>“Large Sample
+Estimation and Hypothesis Testing.”</span> In <em>Handbook of
+Econometrics</em>, edited by Robert F. Engle and Daniel McFadden, vol.
+4. Elsevier. <a href="https://doi.org/10.1016/S1573-4412(05)80005-4">https://doi.org/10.1016/S1573-4412(05)80005-4</a>.
+</div>
+<div id="ref-nocedal2006" class="csl-entry" role="listitem">
+Nocedal, Jorge, and Stephen J. Wright. 2006. <em>Numerical
+Optimization</em>. 2nd ed. Springer Series in Operations Research.
+Springer. <a href="https://doi.org/10.1007/978-0-387-40065-5">https://doi.org/10.1007/978-0-387-40065-5</a>.
+</div>
+<div id="ref-norris1997" class="csl-entry" role="listitem">
+Norris, James R. 1997. <em>Markov Chains</em>. Cambridge Series in
+Statistical and Probabilistic Mathematics. Cambridge University Press.
+<a href="https://doi.org/10.1017/CBO9780511810633">https://doi.org/10.1017/CBO9780511810633</a>.
+</div>
+<div id="ref-patel2013" class="csl-entry" role="listitem">
+Patel, Amit. 2013. <em>Hexagonal Grids</em>. Red Blob Games. <a href="https://www.redblobgames.com/grids/hexagons/">https://www.redblobgames.com/grids/hexagons/</a>.
+</div>
+<div id="ref-robbins1951" class="csl-entry" role="listitem">
+Robbins, Herbert, and Sutton Monro. 1951. <span>“A Stochastic
+Approximation Method.”</span> <em>Annals of Mathematical Statistics</em>
+22 (3): 400–407. <a href="https://doi.org/10.1214/aoms/1177729586">https://doi.org/10.1214/aoms/1177729586</a>.
+</div>
+<div id="ref-roberts1997" class="csl-entry" role="listitem">
+Roberts, Gareth O., Andrew Gelman, and Walter R. Gilks. 1997.
+<span>“Weak Convergence and Optimal Scaling of Random Walk
+<span>Metropolis</span> Algorithms.”</span> <em>Annals of Applied
+Probability</em> 7 (1): 110–20. <a href="https://doi.org/10.1214/aoap/1034625254">https://doi.org/10.1214/aoap/1034625254</a>.
+</div>
+<div id="ref-roberts2007" class="csl-entry" role="listitem">
+Roberts, Gareth O., and Jeffrey S. Rosenthal. 2007. <span>“Coupling and
+Ergodicity of Adaptive <span>Markov</span> Chain <span>Monte
+Carlo</span> Algorithms.”</span> <em>Journal of Applied Probability</em>
+44 (2): 458–75. <a href="https://doi.org/10.1239/jap/1183667414">https://doi.org/10.1239/jap/1183667414</a>.
+</div>
+<div id="ref-rogers2000" class="csl-entry" role="listitem">
+Rogers, L. C. G., and David Williams. 2000. <em>Diffusions,
+<span>Markov</span> Processes and Martingales</em>. 2nd ed. 1:
+Foundations. Cambridge University Press. <a href="https://doi.org/10.1017/CBO9781107590120">https://doi.org/10.1017/CBO9781107590120</a>.
 </div>
 <div id="ref-roikjer2022" class="csl-entry" role="listitem">
-Røikjer, Thomas, Asger Hobolth, and Kasper Munch. 2022. <span>“Graph-Based Algorithms for Phase-Type Distributions.”</span> <em>Statistics and Computing</em> 32 (6): 85. <a href="https://doi.org/10.1007/s11222-022-10155-6">https://doi.org/10.1007/s11222-022-10155-6</a>.
+Røikjer, Thomas, Asger Hobolth, and Kasper Munch. 2022.
+<span>“Graph-Based Algorithms for Phase-Type Distributions.”</span>
+<em>Statistics and Computing</em> 32 (6): 85. <a href="https://doi.org/10.1007/s11222-022-10155-6">https://doi.org/10.1007/s11222-022-10155-6</a>.
+</div>
+<div id="ref-rose1970" class="csl-entry" role="listitem">
+Rose, Donald J. 1970. <span>“Triangulated Graphs and the Elimination
+Process.”</span> <em>Journal of Mathematical Analysis and
+Applications</em> 32: 597–609. <a href="https://doi.org/10.1016/0022-247X(70)90282-9">https://doi.org/10.1016/0022-247X(70)90282-9</a>.
+</div>
+<div id="ref-rosetarjan1978" class="csl-entry" role="listitem">
+Rose, Donald J., and Robert Endre Tarjan. 1978. <span>“Algorithmic
+Aspects of Vertex Elimination on Directed Graphs.”</span> <em>SIAM
+Journal on Applied Mathematics</em> 34 (1): 176–97. <a href="https://doi.org/10.1137/0134014">https://doi.org/10.1137/0134014</a>.
+</div>
+<div id="ref-schauer2017" class="csl-entry" role="listitem">
+Schauer, Moritz, Frank van der Meulen, and Harry van Zanten. 2017.
+<span>“Guided Proposals for Simulating Multi-Dimensional Diffusion
+Bridges.”</span> <em>Bernoulli</em> 23 (4A): 2917–50. <a href="https://doi.org/10.3150/16-BEJ833">https://doi.org/10.3150/16-BEJ833</a>.
+</div>
+<div id="ref-stein1972" class="csl-entry" role="listitem">
+Stein, Charles. 1972. <span>“A Bound for the Error in the Normal
+Approximation to the Distribution of a Sum of Dependent Random
+Variables.”</span> <em>Proceedings of the Sixth Berkeley Symposium on
+Mathematical Statistics and Probability</em> 2: 583–602.
+</div>
+<div id="ref-tarjan1972" class="csl-entry" role="listitem">
+Tarjan, Robert. 1972. <span>“Depth-First Search and Linear Graph
+Algorithms.”</span> <em>SIAM Journal on Computing</em> 1 (2): 146–60. <a href="https://doi.org/10.1137/0201010">https://doi.org/10.1137/0201010</a>.
+</div>
+<div id="ref-tinneywalker1967" class="csl-entry" role="listitem">
+Tinney, William F., and John W. Walker. 1967. <span>“Direct Solutions of
+Sparse Network Equations by Optimally Ordered Triangular
+Factorization.”</span> <em>Proceedings of the IEEE</em> 55 (11): 1801–9.
+<a href="https://doi.org/10.1109/PROC.1967.6011">https://doi.org/10.1109/PROC.1967.6011</a>.
+</div>
+<div id="ref-vandervaart1998" class="csl-entry" role="listitem">
+<span class="nocase">van der Vaart, Aad W.</span> 1998. <em>Asymptotic
+Statistics</em>. Cambridge Series in Statistical and Probabilistic
+Mathematics. Cambridge University Press. <a href="https://doi.org/10.1017/CBO9780511802256">https://doi.org/10.1017/CBO9780511802256</a>.
+</div>
+<div id="ref-vanloan1978" class="csl-entry" role="listitem">
+Van Loan, Charles F. 1978. <span>“Computing Integrals Involving the
+Matrix Exponential.”</span> <em>IEEE Transactions on Automatic
+Control</em> 23 (3): 395–404. <a href="https://doi.org/10.1109/TAC.1978.1101743">https://doi.org/10.1109/TAC.1978.1101743</a>.
+</div>
+<div id="ref-weisfeiler1968" class="csl-entry" role="listitem">
+Weisfeiler, Boris, and Andrei Leman. 1968. <span>“A Reduction of a Graph
+to a Canonical Form and an Algebra Arising During This
+Reduction.”</span> <em>Nauchno-Technicheskaya Informatsia</em> 2 (9):
+12–16.
+</div>
+<div id="ref-wiufhein1999" class="csl-entry" role="listitem">
+Wiuf, Carsten, and Jotun Hein. 1999. <span>“Recombination as a Point
+Process Along Sequences.”</span> <em>Genetics</em> 153 (2): 999–1012. <a href="https://doi.org/10.1093/genetics/153.2.999">https://doi.org/10.1093/genetics/153.2.999</a>.
+</div>
+<div id="ref-yannakakis1981" class="csl-entry" role="listitem">
+Yannakakis, Mihalis. 1981. <span>“Computing the Minimum Fill-in Is
+<span>NP</span>-Complete.”</span> <em>SIAM Journal on Algebraic Discrete
+Methods</em> 2 (1): 77–79. <a href="https://doi.org/10.1137/0602010">https://doi.org/10.1137/0602010</a>.
 </div>
 </div>
-</section>
+
+
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
@@ -1192,14 +1098,11 @@ Røikjer, Thomas, Asger Hobolth, and Kasper Munch. 2022. <span>“Graph-Based Al
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="./07b_fill_in_complexity.html" class="pagination-link" aria-label="Fill-In During Graph Elimination">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Fill-In During Graph Elimination</span></span>
+      <a href="./27_van_loan_equivalence.html" class="pagination-link" aria-label="Van Loan Equivalence">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="./09_symbolic_expressions.html" class="pagination-link" aria-label="Symbolic Expressions">
-        <span class="nav-page-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span> <i class="bi bi-arrow-right-short"></i>
-      </a>
   </div>
 </nav>
 </div> <!-- /content -->

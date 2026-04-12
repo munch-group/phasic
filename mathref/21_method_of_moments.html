@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>22&nbsp; Method of Moments Estimation – Phasic — Supplementary Online Material</title>
+<title>23&nbsp; Method of Moments Estimation – Phasic — Supplementary Online Material</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -23,7 +23,26 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
@@ -128,7 +147,7 @@ window.Quarto = {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./18_svgd.html">Inference</a></li><li class="breadcrumb-item"><a href="./21_method_of_moments.html"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./18_svgd.html">Inference</a></li><li class="breadcrumb-item"><a href="./21_method_of_moments.html"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -223,8 +242,14 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./07b_fill_in_complexity.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Fill-In During Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./08_state_space_construction.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
   </div>
 </li>
       </ul>
@@ -241,31 +266,31 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./09_symbolic_expressions.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./10_symbolic_graph_elimination.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./11_trace_system.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./12_graph_hashing.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./13_scc_trace_stitching.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
   </div>
 </li>
       </ul>
@@ -282,19 +307,19 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./14_distribution_computation.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./15_moment_computation.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./16_pdf_gradients.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
   </div>
 </li>
       </ul>
@@ -311,7 +336,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./17_sampling.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
   </div>
 </li>
       </ul>
@@ -328,31 +353,31 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./18_svgd.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./19_mcmc.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./20_bffg.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./21_method_of_moments.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./22_probability_matching.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
   </div>
 </li>
       </ul>
@@ -369,13 +394,13 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./23_state_indexing.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./24_hex_grid.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
   </div>
 </li>
       </ul>
@@ -392,23 +417,29 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./25_jax_integration.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./26_graph_builder.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./27_van_loan_equivalence.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
   </div>
 </li>
       </ul>
   </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./28_references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">References</span></span></a>
+  </div>
+</li>
     </ul>
     </div>
 </nav>
@@ -432,9 +463,9 @@ window.Quarto = {
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./18_svgd.html">Inference</a></li><li class="breadcrumb-item"><a href="./21_method_of_moments.html"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./18_svgd.html">Inference</a></li><li class="breadcrumb-item"><a href="./21_method_of_moments.html"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></h1>
+<h1 class="title"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></h1>
 </div>
 
 
@@ -454,7 +485,7 @@ window.Quarto = {
 <section id="introduction" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="introduction">Introduction</h2>
 <p>This file formalizes the <strong>method of moments (MoM) estimator</strong> for phase-type distribution parameters. Given observed data and a parameterized phase-type model, MoM finds parameter estimates by minimizing the distance between sample moments (computed from data) and model moments (computed from the phase-type distribution as a function of the parameter vector). The resulting estimates serve as informed starting points or prior centers for subsequent Bayesian inference via SVGD ([18]) or MCMC ([19]).</p>
-<p>In the phasic pipeline, MoM operates after model construction ([08]) and moment computation ([15]). The model moments are evaluated via reward-transformed moment formulas, and the estimation is cast as a nonlinear least-squares problem solved by the Trust Region Reflective algorithm. An optional two-step efficient Generalized Method of Moments (GMM) procedure uses the inverse of the estimated moment covariance as an optimal weighting matrix, down-weighting high-variance moments. Standard errors are computed via the delta method for constructing Gaussian priors.</p>
+<p>In the phasic pipeline, MoM operates after model construction ([08]) and moment computation ([15]). The model moments are evaluated via reward-transformed moment formulas, and the estimation is cast as a nonlinear least-squares problem solved by the Trust Region Reflective algorithm. An optional two-step efficient Generalized Method of Moments (GMM) procedure uses the inverse of the estimated moment covariance as an optimal weighting matrix, down-weighting high-variance moments. Standard errors are computed via the delta method <span class="citation" data-cites="vandervaart1998">(<a href="28_references.html#ref-vandervaart1998" role="doc-biblioref"><span class="nocase">van der Vaart</span> 1998</a>)</span> for constructing Gaussian priors.</p>
 <p><strong>Prerequisites:</strong> [01], [15]</p>
 <p><strong>Source files:</strong></p>
 <ul>
@@ -464,62 +495,74 @@ window.Quarto = {
 <section id="definitions" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="definitions">Definitions</h2>
 <div id="def-21-sample-model-moments" class="definition theorem">
-<p><span class="theorem-title"><strong>Definition 22.1 (Sample Moments and Model Moments)</strong></span> <em>Let <span class="math inline">x_1, \ldots, x_n</span> be i.i.d. observations from a phase-type distribution <span class="math inline">\operatorname{PH}(\boldsymbol{\alpha}, \mathbf{S}(\boldsymbol{\theta}))</span>. For multivariate observations with <span class="math inline">F</span> features, let <span class="math inline">x_{i,f}</span> denote the <span class="math inline">f</span>-th feature of observation <span class="math inline">i</span>. The <strong>sample moments</strong> are</em></p>
-<p><span id="eq-21-sample-moments"><span class="math display">\hat{m}_{f,k} = \frac{1}{n_f} \sum_{i=1}^{n_f} x_{i,f}^k, \quad k = 1, \ldots, K, \;\; f = 1, \ldots, F, \tag{22.1}</span></span></p>
+<p><span class="theorem-title"><strong>Definition 23.1 (Sample Moments and Model Moments)</strong></span> <em>Let <span class="math inline">x_1, \ldots, x_n</span> be i.i.d. observations from a phase-type distribution <span class="math inline">\operatorname{PH}(\boldsymbol{\alpha}, \mathbf{S}(\boldsymbol{\theta}))</span>. For multivariate observations with <span class="math inline">F</span> features, let <span class="math inline">x_{i,f}</span> denote the <span class="math inline">f</span>-th feature of observation <span class="math inline">i</span>. The <strong>sample moments</strong> are</em></p>
+<p><span id="eq-21-sample-moments"><span class="math display">\hat{m}_{f,k} = \frac{1}{n_f} \sum_{i=1}^{n_f} x_{i,f}^k, \quad k = 1, \ldots, K, \;\; f = 1, \ldots, F, \tag{23.1}</span></span></p>
 <p><em>where <span class="math inline">n_f</span> is the number of valid (non-missing) observations for feature <span class="math inline">f</span> and <span class="math inline">K</span> is the number of moments matched. The <strong>model moments</strong> <span class="math inline">\mu_{f,k}(\boldsymbol{\theta})</span> are the <span class="math inline">k</span>-th moments of the phase-type distribution under parameter <span class="math inline">\boldsymbol{\theta}</span>, computed via the reward-transformed moment formula ([15]):</em></p>
-<p><span id="eq-21-model-moments"><span class="math display">\mu_{f,k}(\boldsymbol{\theta}) = k! \, \boldsymbol{\alpha} \left( (-\mathbf{S}(\boldsymbol{\theta}))^{-1} \triangle(\mathbf{r}_f) \right)^k \mathbf{e}, \tag{22.2}</span></span></p>
+<p><span id="eq-21-model-moments"><span class="math display">\mu_{f,k}(\boldsymbol{\theta}) = k! \, \boldsymbol{\alpha} \left( (-\mathbf{S}(\boldsymbol{\theta}))^{-1} \triangle(\mathbf{r}_f) \right)^k \mathbf{e}, \tag{23.2}</span></span></p>
 <p><em>where <span class="math inline">\mathbf{r}_f</span> is the reward vector for feature <span class="math inline">f</span>. The sample and model moments are arranged as vectors <span class="math inline">\hat{\mathbf{m}}, \boldsymbol{\mu}(\boldsymbol{\theta}) \in \mathbb{R}^{FK}</span> with the ordering <span class="math inline">(f=1,k=1), (f=1,k=2), \ldots, (f=F,k=K)</span>.</em></p>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> Sample moments are empirical averages of powers of the data. Model moments are the corresponding theoretical quantities predicted by the phase-type model for a given parameter vector. When the model is correct, there exists a <span class="math inline">\boldsymbol{\theta}^*</span> such that <span class="math inline">\boldsymbol{\mu}(\boldsymbol{\theta}^*) = \mathbb{E}[\hat{\mathbf{m}}]</span>, and the method of moments seeks this parameter.</p>
-</blockquote>
-<blockquote class="blockquote">
-<p><strong>Example.</strong> For a univariate model with <span class="math inline">K = 2</span> moments and <span class="math inline">n = 100</span> observations: <span class="math inline">\hat{m}_1 = \bar{x}</span> (sample mean) and <span class="math inline">\hat{m}_2 = n^{-1}\sum x_i^2</span> (sample second moment). If the model is <span class="math inline">\operatorname{Exp}(\theta)</span>, then <span class="math inline">\mu_1(\theta) = 1/\theta</span> and <span class="math inline">\mu_2(\theta) = 2/\theta^2</span>.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+Sample moments are empirical averages of powers of the data. Model moments are the corresponding theoretical quantities predicted by the phase-type model for a given parameter vector. When the model is correct, there exists a <span class="math inline">\boldsymbol{\theta}^*</span> such that <span class="math inline">\boldsymbol{\mu}(\boldsymbol{\theta}^*) = \mathbb{E}[\hat{\mathbf{m}}]</span>, and the method of moments seeks this parameter.
+</details>
+<details>
+<summary>
+Example
+</summary>
+For a univariate model with <span class="math inline">K = 2</span> moments and <span class="math inline">n = 100</span> observations: <span class="math inline">\hat{m}_1 = \bar{x}</span> (sample mean) and <span class="math inline">\hat{m}_2 = n^{-1}\sum x_i^2</span> (sample second moment). If the model is <span class="math inline">\operatorname{Exp}(\theta)</span>, then <span class="math inline">\mu_1(\theta) = 1/\theta</span> and <span class="math inline">\mu_2(\theta) = 2/\theta^2</span>.
+</details>
 <div id="def-21-moment-objective" class="definition theorem">
-<p><span class="theorem-title"><strong>Definition 22.2 (Moment Matching Objective)</strong></span> <em>The <strong>moment matching objective</strong> is the weighted nonlinear least-squares problem</em></p>
-<p><span id="eq-21-moment-objective"><span class="math display">\hat{\boldsymbol{\theta}} = \arg\min_{\boldsymbol{\theta} &gt; 0} \left\lVert \mathbf{T}\left(\boldsymbol{\mu}(\boldsymbol{\theta}) - \hat{\mathbf{m}}\right) \right\rVert_2^2, \tag{22.3}</span></span></p>
+<p><span class="theorem-title"><strong>Definition 23.2 (Moment Matching Objective)</strong></span> <em>The <strong>moment matching objective</strong> is the weighted nonlinear least-squares problem</em></p>
+<p><span id="eq-21-moment-objective"><span class="math display">\hat{\boldsymbol{\theta}} = \arg\min_{\boldsymbol{\theta} &gt; 0} \left\lVert \mathbf{T}\left(\boldsymbol{\mu}(\boldsymbol{\theta}) - \hat{\mathbf{m}}\right) \right\rVert_2^2, \tag{23.3}</span></span></p>
 <p><em>where <span class="math inline">\mathbf{T} \in \mathbb{R}^{FK \times FK}</span> is a weight transform matrix. This is equivalent to minimizing the generalized sum of squared residuals <span class="math inline">(\boldsymbol{\mu}(\boldsymbol{\theta}) - \hat{\mathbf{m}})^\top \mathbf{W} (\boldsymbol{\mu}(\boldsymbol{\theta}) - \hat{\mathbf{m}})</span> with weight matrix <span class="math inline">\mathbf{W} = \mathbf{T}^\top \mathbf{T}</span>. The constraint <span class="math inline">\boldsymbol{\theta} &gt; 0</span> ensures positive rates.</em></p>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> The weight matrix <span class="math inline">\mathbf{W}</span> accounts for the different scales and variances of the moments. Without weighting (<span class="math inline">\mathbf{T} = \mathbf{I}</span>), high-order moments (which are typically much larger) would dominate the objective. Optimal weighting uses <span class="math inline">\mathbf{W} = \boldsymbol{\Sigma}^{-1}</span>, the inverse of the moment covariance, which normalizes each moment by its sampling variability.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+The weight matrix <span class="math inline">\mathbf{W}</span> accounts for the different scales and variances of the moments. Without weighting (<span class="math inline">\mathbf{T} = \mathbf{I}</span>), high-order moments (which are typically much larger) would dominate the objective. Optimal weighting uses <span class="math inline">\mathbf{W} = \boldsymbol{\Sigma}^{-1}</span>, the inverse of the moment covariance, which normalizes each moment by its sampling variability.
+</details>
 <div id="def-21-optimal-weighting" class="definition theorem">
-<p><span class="theorem-title"><strong>Definition 22.3 (Optimal Weighting via Moment Covariance)</strong></span> <em>The <strong>moment covariance matrix</strong> <span class="math inline">\boldsymbol{\Sigma} \in \mathbb{R}^{FK \times FK}</span> has a block-diagonal structure (features are independent):</em></p>
-<p><span id="eq-21-moment-cov-block"><span class="math display">\boldsymbol{\Sigma} = \operatorname{diag}(\boldsymbol{\Sigma}_1, \ldots, \boldsymbol{\Sigma}_F), \tag{22.4}</span></span></p>
+<p><span class="theorem-title"><strong>Definition 23.3 (Optimal Weighting via Moment Covariance)</strong></span> <em>The <strong>moment covariance matrix</strong> <span class="math inline">\boldsymbol{\Sigma} \in \mathbb{R}^{FK \times FK}</span> has a block-diagonal structure (features are independent):</em></p>
+<p><span id="eq-21-moment-cov-block"><span class="math display">\boldsymbol{\Sigma} = \operatorname{diag}(\boldsymbol{\Sigma}_1, \ldots, \boldsymbol{\Sigma}_F), \tag{23.4}</span></span></p>
 <p><em>where <span class="math inline">\boldsymbol{\Sigma}_f \in \mathbb{R}^{K \times K}</span> has entries</em></p>
-<p><span id="eq-21-moment-cov-entries"><span class="math display">(\boldsymbol{\Sigma}_f)_{jk} = \frac{1}{n_f} \operatorname{Cov}(X_f^j, X_f^k) = \frac{1}{n_f} \left( \frac{1}{n_f - 1} \sum_{i=1}^{n_f} (x_{i,f}^j - \hat{m}_{f,j})(x_{i,f}^k - \hat{m}_{f,k}) \right). \tag{22.5}</span></span></p>
+<p><span id="eq-21-moment-cov-entries"><span class="math display">(\boldsymbol{\Sigma}_f)_{jk} = \frac{1}{n_f} \operatorname{Cov}(X_f^j, X_f^k) = \frac{1}{n_f} \left( \frac{1}{n_f - 1} \sum_{i=1}^{n_f} (x_{i,f}^j - \hat{m}_{f,j})(x_{i,f}^k - \hat{m}_{f,k}) \right). \tag{23.5}</span></span></p>
 <p><em>The <strong>optimal weight transform</strong> <span class="math inline">\mathbf{T}</span> is the inverse of the Cholesky factor of <span class="math inline">\boldsymbol{\Sigma}</span>: if <span class="math inline">\boldsymbol{\Sigma} = \mathbf{L}\mathbf{L}^\top</span>, then <span class="math inline">\mathbf{T} = \mathbf{L}^{-1}</span>, giving <span class="math inline">\mathbf{W} = \mathbf{T}^\top \mathbf{T} = \boldsymbol{\Sigma}^{-1}</span>. A fallback chain is employed: if <span class="math inline">\boldsymbol{\Sigma}</span> is ill-conditioned (condition number <span class="math inline">\geq 10^{10}</span>), diagonal weighting <span class="math inline">T_{ii} = 1/\sqrt{\Sigma_{ii}}</span> is used; if the diagonal also contains non-positive entries, the identity <span class="math inline">\mathbf{T} = \mathbf{I}</span> (unweighted) is used.</em></p>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> The Cholesky factorization of <span class="math inline">\boldsymbol{\Sigma}</span> transforms the correlated moment residuals into uncorrelated, unit-variance residuals. This is the standard efficient GMM weighting (Hansen, 1982): it produces the minimum-variance estimator among all GMM estimators using the same moment conditions. The fallback chain ensures robustness when the sample size is small relative to the number of moments.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+The Cholesky factorization of <span class="math inline">\boldsymbol{\Sigma}</span> transforms the correlated moment residuals into uncorrelated, unit-variance residuals. This is the standard efficient GMM weighting <span class="citation" data-cites="hansen1982">(<a href="28_references.html#ref-hansen1982" role="doc-biblioref">Hansen 1982</a>)</span>: it produces the minimum-variance estimator among all GMM estimators using the same moment conditions. The fallback chain ensures robustness when the sample size is small relative to the number of moments.
+</details>
 </section>
 <section id="theorems-and-proofs" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="theorems-and-proofs">Theorems and Proofs</h2>
 <div id="thm-21-consistency" class="theorem">
-<p><span class="theorem-title"><strong>Theorem 22.1 (Consistency of the Method of Moments Estimator)</strong></span> <em>Suppose (i) the moment function <span class="math inline">\boldsymbol{\mu}(\boldsymbol{\theta})</span> is continuous on <span class="math inline">\Theta = \mathbb{R}^d_{&gt;0}</span>, (ii) the true parameter <span class="math inline">\boldsymbol{\theta}^*</span> is the unique solution of <span class="math inline">\boldsymbol{\mu}(\boldsymbol{\theta}) = \mathbb{E}[\hat{\mathbf{m}}]</span> (identification), and (iii) the observations <span class="math inline">x_1, \ldots, x_n</span> are i.i.d. with finite <span class="math inline">2K</span>-th moment. Then the MoM estimator <span class="math inline">\hat{\boldsymbol{\theta}}_n</span> satisfies</em></p>
+<p><span class="theorem-title"><strong>Theorem 23.1 (Consistency of the Method of Moments Estimator)</strong></span> <em>Suppose (i) the moment function <span class="math inline">\boldsymbol{\mu}(\boldsymbol{\theta})</span> is continuous on <span class="math inline">\Theta = \mathbb{R}^d_{&gt;0}</span>, (ii) the true parameter <span class="math inline">\boldsymbol{\theta}^*</span> is the unique solution of <span class="math inline">\boldsymbol{\mu}(\boldsymbol{\theta}) = \mathbb{E}[\hat{\mathbf{m}}]</span> (identification), and (iii) the observations <span class="math inline">x_1, \ldots, x_n</span> are i.i.d. with finite <span class="math inline">2K</span>-th moment. Then the MoM estimator <span class="math inline">\hat{\boldsymbol{\theta}}_n</span> satisfies</em></p>
 <p><span class="math display">\hat{\boldsymbol{\theta}}_n \xrightarrow{n \to \infty} \boldsymbol{\theta}^* \quad \text{in probability.}</span></p>
 <p><em>Furthermore, the asymptotic covariance of <span class="math inline">\hat{\boldsymbol{\theta}}_n</span> is</em></p>
-<p><span id="eq-21-asymptotic-cov"><span class="math display">\sqrt{n}(\hat{\boldsymbol{\theta}}_n - \boldsymbol{\theta}^*) \xrightarrow{d} \mathcal{N}\!\left(\mathbf{0}, \; \mathbf{G} \boldsymbol{\Sigma} \mathbf{G}^\top \right), \tag{22.6}</span></span></p>
+<p><span id="eq-21-asymptotic-cov"><span class="math display">\sqrt{n}(\hat{\boldsymbol{\theta}}_n - \boldsymbol{\theta}^*) \xrightarrow{d} \mathcal{N}\!\left(\mathbf{0}, \; \mathbf{G} \boldsymbol{\Sigma} \mathbf{G}^\top \right), \tag{23.6}</span></span></p>
 <p><em>where <span class="math inline">\mathbf{G} = (\mathbf{J}^\top \mathbf{W} \mathbf{J})^{-1} \mathbf{J}^\top \mathbf{W}</span> is the generalized inverse mapping, <span class="math inline">\mathbf{J} = \partial \boldsymbol{\mu} / \partial \boldsymbol{\theta}^\top \big|_{\boldsymbol{\theta}^*}</span> is the Jacobian of the moment function, and <span class="math inline">\boldsymbol{\Sigma}</span> is the moment covariance. For the efficient GMM weighting <span class="math inline">\mathbf{W} = \boldsymbol{\Sigma}^{-1}</span>, this simplifies to</em></p>
-<p><span id="eq-21-efficient-cov"><span class="math display">\operatorname{Cov}(\hat{\boldsymbol{\theta}}_n) \approx \frac{1}{n} (\mathbf{J}_w^\top \mathbf{J}_w)^{-1}, \tag{22.7}</span></span></p>
+<p><span id="eq-21-efficient-cov"><span class="math display">\operatorname{Cov}(\hat{\boldsymbol{\theta}}_n) \approx \frac{1}{n} (\mathbf{J}_w^\top \mathbf{J}_w)^{-1}, \tag{23.7}</span></span></p>
 <p><em>where <span class="math inline">\mathbf{J}_w = \mathbf{T} \mathbf{J}</span> is the weighted Jacobian.</em></p>
 </div>
 <div class="proof">
-<p><span class="proof-title"><em>Proof</em>. </span>By the strong law of large numbers and condition (iii), <span class="math inline">\hat{\mathbf{m}} \xrightarrow{\text{a.s.}} \mathbb{E}[\hat{\mathbf{m}}] = \boldsymbol{\mu}(\boldsymbol{\theta}^*)</span>. The objective function <span class="math inline">Q_n(\boldsymbol{\theta}) = \lVert \mathbf{T}(\boldsymbol{\mu}(\boldsymbol{\theta}) - \hat{\mathbf{m}}) \rVert^2</span> converges uniformly on compact subsets to <span class="math inline">Q(\boldsymbol{\theta}) = \lVert \mathbf{T}(\boldsymbol{\mu}(\boldsymbol{\theta}) - \boldsymbol{\mu}(\boldsymbol{\theta}^*)) \rVert^2</span> by continuity of <span class="math inline">\boldsymbol{\mu}</span>. By identification (ii), <span class="math inline">Q(\boldsymbol{\theta})</span> has a unique minimizer at <span class="math inline">\boldsymbol{\theta}^*</span>, so <span class="math inline">\hat{\boldsymbol{\theta}}_n \to \boldsymbol{\theta}^*</span> in probability (standard extremum estimator consistency; see Newey &amp; McFadden, 1994, Theorem 2.1).</p>
+<p><span class="proof-title"><em>Proof</em>. </span>By the strong law of large numbers and condition (iii), <span class="math inline">\hat{\mathbf{m}} \xrightarrow{\text{a.s.}} \mathbb{E}[\hat{\mathbf{m}}] = \boldsymbol{\mu}(\boldsymbol{\theta}^*)</span>. The objective function <span class="math inline">Q_n(\boldsymbol{\theta}) = \lVert \mathbf{T}(\boldsymbol{\mu}(\boldsymbol{\theta}) - \hat{\mathbf{m}}) \rVert^2</span> converges uniformly on compact subsets to <span class="math inline">Q(\boldsymbol{\theta}) = \lVert \mathbf{T}(\boldsymbol{\mu}(\boldsymbol{\theta}) - \boldsymbol{\mu}(\boldsymbol{\theta}^*)) \rVert^2</span> by continuity of <span class="math inline">\boldsymbol{\mu}</span>. By identification (ii), <span class="math inline">Q(\boldsymbol{\theta})</span> has a unique minimizer at <span class="math inline">\boldsymbol{\theta}^*</span>, so <span class="math inline">\hat{\boldsymbol{\theta}}_n \to \boldsymbol{\theta}^*</span> in probability [standard extremum estimator consistency; see <span class="citation" data-cites="newey1994">Newey and McFadden (<a href="28_references.html#ref-newey1994" role="doc-biblioref">1994</a>)</span>, Theorem 2.1].</p>
 <p>For the asymptotic distribution, linearize <span class="math inline">\boldsymbol{\mu}(\hat{\boldsymbol{\theta}}_n) \approx \boldsymbol{\mu}(\boldsymbol{\theta}^*) + \mathbf{J}(\hat{\boldsymbol{\theta}}_n - \boldsymbol{\theta}^*)</span>. The first-order condition of the weighted least-squares problem gives <span class="math inline">\mathbf{J}_w^\top \mathbf{T}(\boldsymbol{\mu}(\hat{\boldsymbol{\theta}}_n) - \hat{\mathbf{m}}) = \mathbf{0}</span>, which after linearization yields</p>
 <p><span class="math display">\hat{\boldsymbol{\theta}}_n - \boldsymbol{\theta}^* \approx -(\mathbf{J}_w^\top \mathbf{J}_w)^{-1} \mathbf{J}_w^\top \mathbf{T}(\boldsymbol{\mu}(\boldsymbol{\theta}^*) - \hat{\mathbf{m}}).</span></p>
-<p>Since <span class="math inline">\sqrt{n}(\hat{\mathbf{m}} - \boldsymbol{\mu}(\boldsymbol{\theta}^*)) \xrightarrow{d} \mathcal{N}(\mathbf{0}, \boldsymbol{\Sigma})</span> by the central limit theorem, applying the linear transformation gives <a href="#eq-21-asymptotic-cov" class="quarto-xref">Equation&nbsp;<span>22.6</span></a>. When <span class="math inline">\mathbf{W} = \boldsymbol{\Sigma}^{-1}</span> and <span class="math inline">\mathbf{T} = \mathbf{L}^{-1}</span>, the covariance simplifies: <span class="math inline">\mathbf{G} \boldsymbol{\Sigma} \mathbf{G}^\top = (\mathbf{J}_w^\top \mathbf{J}_w)^{-1} \mathbf{J}_w^\top (\mathbf{T} \boldsymbol{\Sigma} \mathbf{T}^\top) \mathbf{J}_w (\mathbf{J}_w^\top \mathbf{J}_w)^{-1} = (\mathbf{J}_w^\top \mathbf{J}_w)^{-1}</span>, since <span class="math inline">\mathbf{T} \boldsymbol{\Sigma} \mathbf{T}^\top = \mathbf{L}^{-1} \mathbf{L} \mathbf{L}^\top \mathbf{L}^{-\top} = \mathbf{I}</span>. Dividing by <span class="math inline">n</span> gives <a href="#eq-21-efficient-cov" class="quarto-xref">Equation&nbsp;<span>22.7</span></a>. <span class="math inline">\square</span></p>
+<p>Since <span class="math inline">\sqrt{n}(\hat{\mathbf{m}} - \boldsymbol{\mu}(\boldsymbol{\theta}^*)) \xrightarrow{d} \mathcal{N}(\mathbf{0}, \boldsymbol{\Sigma})</span> by the central limit theorem, applying the linear transformation gives <a href="#eq-21-asymptotic-cov" class="quarto-xref">Equation&nbsp;<span>23.6</span></a>. When <span class="math inline">\mathbf{W} = \boldsymbol{\Sigma}^{-1}</span> and <span class="math inline">\mathbf{T} = \mathbf{L}^{-1}</span>, the covariance simplifies: <span class="math inline">\mathbf{G} \boldsymbol{\Sigma} \mathbf{G}^\top = (\mathbf{J}_w^\top \mathbf{J}_w)^{-1} \mathbf{J}_w^\top (\mathbf{T} \boldsymbol{\Sigma} \mathbf{T}^\top) \mathbf{J}_w (\mathbf{J}_w^\top \mathbf{J}_w)^{-1} = (\mathbf{J}_w^\top \mathbf{J}_w)^{-1}</span>, since <span class="math inline">\mathbf{T} \boldsymbol{\Sigma} \mathbf{T}^\top = \mathbf{L}^{-1} \mathbf{L} \mathbf{L}^\top \mathbf{L}^{-\top} = \mathbf{I}</span>. Dividing by <span class="math inline">n</span> gives <a href="#eq-21-efficient-cov" class="quarto-xref">Equation&nbsp;<span>23.7</span></a>. <span class="math inline">\square</span></p>
 </div>
 </section>
 <section id="algorithms" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="algorithms">Algorithms</h2>
 <div id="alg-21-method-of-moments" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-alg figure">
-<section id="method-of-moments-estimation" class="level4" aria-describedby="alg-21-method-of-moments-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="22.0.0.1">
-<h4 data-number="22.0.0.1" class="anchored" data-anchor-id="method-of-moments-estimation"><span class="header-section-number">22.0.0.1</span> Method of Moments Estimation</h4>
-<p><em>Description.</em> Estimates the parameter vector <span class="math inline">\boldsymbol{\theta}</span> of a parameterized phase-type model by matching model moments to sample moments. The algorithm proceeds in several stages: (1) compute sample moments from the data, (2) optionally select the number of moments <span class="math inline">K</span> by condition number analysis, (3) find an initial guess via coordinate-wise grid search on the first moment, (4) solve the unweighted least-squares problem, and (5) optionally re-solve with optimal GMM weighting. Standard errors are computed via the delta method (<a href="#thm-21-consistency" class="quarto-xref">Theorem&nbsp;<span>22.1</span></a>) and used to construct Gaussian priors.</p>
+<section id="method-of-moments-estimation" class="level4" aria-describedby="alg-21-method-of-moments-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="23.0.0.1">
+<h4 data-number="23.0.0.1" class="anchored" data-anchor-id="method-of-moments-estimation"><span class="header-section-number">23.0.0.1</span> Method of Moments Estimation</h4>
+<p><em>Description.</em> Estimates the parameter vector <span class="math inline">\boldsymbol{\theta}</span> of a parameterized phase-type model by matching model moments to sample moments. The algorithm proceeds in several stages: (1) compute sample moments from the data, (2) optionally select the number of moments <span class="math inline">K</span> by condition number analysis, (3) find an initial guess via coordinate-wise grid search on the first moment, (4) solve the unweighted least-squares problem, and (5) optionally re-solve with optimal GMM weighting. Standard errors are computed via the delta method (<a href="#thm-21-consistency" class="quarto-xref">Theorem&nbsp;<span>23.1</span></a>) and used to construct Gaussian priors.</p>
 <pre><code>Method of Moments Estimation
 1: Let G = (V, E) be a parameterized phase-type graph with d parameters
 2: Let x_1, ..., x_n be observed data (possibly multivariate, F features)
@@ -697,7 +740,7 @@ window.Quarto = {
 <p><strong>Complexity.</strong> Time: <span class="math inline">O(N_{\text{iter}} \cdot (C_{\text{mom}} + FK))</span>, where <span class="math inline">N_{\text{iter}}</span> is the number of least-squares iterations (at most <span class="math inline">200 \cdot d_{\text{free}}</span>), <span class="math inline">C_{\text{mom}}</span> is the cost of one model-moment evaluation via [15], and <span class="math inline">FK</span> is the cost of computing the residual. The initial grid search costs <span class="math inline">O(d_{\text{free}} \cdot |G_{\text{grid}}| \cdot C_{\text{mom}})</span> where <span class="math inline">|G_{\text{grid}}| = 20</span> is the grid size. The Cholesky factorization and pseudoinverse cost <span class="math inline">O((FK)^3)</span> and <span class="math inline">O((FK)^2 d_{\text{free}})</span> respectively. Space: <span class="math inline">O((FK)^2)</span> for the moment covariance matrix and <span class="math inline">O(d_{\text{free}})</span> for the parameter vector.</p>
 </section>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-21-method-of-moments-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Algorithm&nbsp;22.1: <strong>Correctness.</strong> By <a href="#thm-21-consistency" class="quarto-xref">Theorem&nbsp;<span>22.1</span></a>, the estimator is consistent under identification and finite moments. The two-step GMM procedure achieves efficiency: the first step provides a consistent (but possibly inefficient) estimate, and the second step uses the estimated optimal weighting <span class="math inline">\mathbf{W} = \hat{\boldsymbol{\Sigma}}^{-1}</span> to minimize asymptotic variance. The delta method standard errors (<a href="#eq-21-efficient-cov" class="quarto-xref">Equation&nbsp;<span>22.7</span></a>) provide valid confidence intervals asymptotically.
+Algorithm&nbsp;23.1: <strong>Correctness.</strong> By <a href="#thm-21-consistency" class="quarto-xref">Theorem&nbsp;<span>23.1</span></a>, the estimator is consistent under identification and finite moments. The two-step GMM procedure achieves efficiency: the first step provides a consistent (but possibly inefficient) estimate, and the second step uses the estimated optimal weighting <span class="math inline">\mathbf{W} = \hat{\boldsymbol{\Sigma}}^{-1}</span> to minimize asymptotic variance. The delta method standard errors (<a href="#eq-21-efficient-cov" class="quarto-xref">Equation&nbsp;<span>23.7</span></a>) provide valid confidence intervals asymptotically.
 </figcaption>
 </figure>
 </div>
@@ -730,7 +773,7 @@ Algorithm&nbsp;22.1: <strong>Correctness.</strong> By <a href="#thm-21-consisten
 </thead>
 <tbody>
 <tr class="odd">
-<td><a href="#alg-21-method-of-moments" class="quarto-xref">Algorithm&nbsp;<span>22.1</span></a> (entry)</td>
+<td><a href="#alg-21-method-of-moments" class="quarto-xref">Algorithm&nbsp;<span>23.1</span></a> (entry)</td>
 <td><code>src/phasic/method_of_moments.py</code></td>
 <td><code>method_of_moments</code></td>
 <td>L205–L590</td>
@@ -794,92 +837,103 @@ Algorithm&nbsp;22.1: <strong>Correctness.</strong> By <a href="#thm-21-consisten
 <tr class="odd">
 <td><span class="math inline">\hat{\boldsymbol{\theta}}_n</span></td>
 <td>MoM estimator</td>
-<td><a href="#thm-21-consistency" class="quarto-xref">Theorem&nbsp;<span>22.1</span></a></td>
+<td><a href="#thm-21-consistency" class="quarto-xref">Theorem&nbsp;<span>23.1</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">d_{\text{free}}</span></td>
 <td>Number of free parameters</td>
-<td><a href="#alg-21-method-of-moments" class="quarto-xref">Algorithm&nbsp;<span>22.1</span></a></td>
+<td><a href="#alg-21-method-of-moments" class="quarto-xref">Algorithm&nbsp;<span>23.1</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">F</span></td>
 <td>Number of features</td>
-<td><a href="#def-21-sample-model-moments" class="quarto-xref">Definition&nbsp;<span>22.1</span></a></td>
+<td><a href="#def-21-sample-model-moments" class="quarto-xref">Definition&nbsp;<span>23.1</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">\mathbf{G}</span></td>
 <td>Generalized inverse mapping</td>
-<td><a href="#thm-21-consistency" class="quarto-xref">Theorem&nbsp;<span>22.1</span></a></td>
+<td><a href="#thm-21-consistency" class="quarto-xref">Theorem&nbsp;<span>23.1</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">\hat{\mathbf{m}}</span></td>
 <td>Sample moment vector</td>
-<td><a href="#def-21-sample-model-moments" class="quarto-xref">Definition&nbsp;<span>22.1</span></a></td>
+<td><a href="#def-21-sample-model-moments" class="quarto-xref">Definition&nbsp;<span>23.1</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">\hat{m}_{f,k}</span></td>
 <td>Sample <span class="math inline">k</span>-th moment for feature <span class="math inline">f</span></td>
-<td><a href="#def-21-sample-model-moments" class="quarto-xref">Definition&nbsp;<span>22.1</span></a></td>
+<td><a href="#def-21-sample-model-moments" class="quarto-xref">Definition&nbsp;<span>23.1</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">\mathbf{J}</span></td>
 <td>Jacobian of moment function</td>
-<td><a href="#thm-21-consistency" class="quarto-xref">Theorem&nbsp;<span>22.1</span></a></td>
+<td><a href="#thm-21-consistency" class="quarto-xref">Theorem&nbsp;<span>23.1</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">\mathbf{J}_w</span></td>
 <td>Weighted Jacobian <span class="math inline">\mathbf{T}\mathbf{J}</span></td>
-<td><a href="#thm-21-consistency" class="quarto-xref">Theorem&nbsp;<span>22.1</span></a></td>
+<td><a href="#thm-21-consistency" class="quarto-xref">Theorem&nbsp;<span>23.1</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">K</span></td>
 <td>Number of moments matched</td>
-<td><a href="#def-21-sample-model-moments" class="quarto-xref">Definition&nbsp;<span>22.1</span></a></td>
+<td><a href="#def-21-sample-model-moments" class="quarto-xref">Definition&nbsp;<span>23.1</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">\mathbf{L}</span></td>
 <td>Cholesky factor of <span class="math inline">\boldsymbol{\Sigma}</span></td>
-<td><a href="#def-21-optimal-weighting" class="quarto-xref">Definition&nbsp;<span>22.3</span></a></td>
+<td><a href="#def-21-optimal-weighting" class="quarto-xref">Definition&nbsp;<span>23.3</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">\boldsymbol{\mu}(\boldsymbol{\theta})</span></td>
 <td>Model moment vector</td>
-<td><a href="#def-21-sample-model-moments" class="quarto-xref">Definition&nbsp;<span>22.1</span></a></td>
+<td><a href="#def-21-sample-model-moments" class="quarto-xref">Definition&nbsp;<span>23.1</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">\mu_{f,k}(\boldsymbol{\theta})</span></td>
 <td>Model <span class="math inline">k</span>-th moment for feature <span class="math inline">f</span></td>
-<td><a href="#def-21-sample-model-moments" class="quarto-xref">Definition&nbsp;<span>22.1</span></a></td>
+<td><a href="#def-21-sample-model-moments" class="quarto-xref">Definition&nbsp;<span>23.1</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">n_f</span></td>
 <td>Number of observations for feature <span class="math inline">f</span></td>
-<td><a href="#def-21-sample-model-moments" class="quarto-xref">Definition&nbsp;<span>22.1</span></a></td>
+<td><a href="#def-21-sample-model-moments" class="quarto-xref">Definition&nbsp;<span>23.1</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">\boldsymbol{\Sigma}</span></td>
 <td>Moment covariance matrix</td>
-<td><a href="#def-21-optimal-weighting" class="quarto-xref">Definition&nbsp;<span>22.3</span></a></td>
+<td><a href="#def-21-optimal-weighting" class="quarto-xref">Definition&nbsp;<span>23.3</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">\boldsymbol{\Sigma}_f</span></td>
 <td>Moment covariance block for feature <span class="math inline">f</span></td>
-<td><a href="#def-21-optimal-weighting" class="quarto-xref">Definition&nbsp;<span>22.3</span></a></td>
+<td><a href="#def-21-optimal-weighting" class="quarto-xref">Definition&nbsp;<span>23.3</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">\mathbf{T}</span></td>
 <td>Weight transform matrix</td>
-<td><a href="#def-21-moment-objective" class="quarto-xref">Definition&nbsp;<span>22.2</span></a></td>
+<td><a href="#def-21-moment-objective" class="quarto-xref">Definition&nbsp;<span>23.2</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">\mathbf{W}</span></td>
 <td>Weight matrix <span class="math inline">\mathbf{T}^\top \mathbf{T}</span></td>
-<td><a href="#def-21-moment-objective" class="quarto-xref">Definition&nbsp;<span>22.2</span></a></td>
+<td><a href="#def-21-moment-objective" class="quarto-xref">Definition&nbsp;<span>23.2</span></a></td>
 </tr>
 </tbody>
 </table>
 
 
+<div id="refs" class="references csl-bib-body hanging-indent" role="list" style="display: none">
+<div id="ref-hansen1982" class="csl-entry" role="listitem">
+Hansen, Lars Peter. 1982. <span>“Large Sample Properties of Generalized Method of Moments Estimators.”</span> <em>Econometrica</em> 50 (4): 1029–54. <a href="https://doi.org/10.2307/1912775">https://doi.org/10.2307/1912775</a>.
+</div>
+<div id="ref-newey1994" class="csl-entry" role="listitem">
+Newey, Whitney K., and Daniel McFadden. 1994. <span>“Large Sample Estimation and Hypothesis Testing.”</span> In <em>Handbook of Econometrics</em>, edited by Robert F. Engle and Daniel McFadden, vol. 4. Elsevier. <a href="https://doi.org/10.1016/S1573-4412(05)80005-4">https://doi.org/10.1016/S1573-4412(05)80005-4</a>.
+</div>
+<div id="ref-vandervaart1998" class="csl-entry" role="listitem">
+<span class="nocase">van der Vaart, Aad W.</span> 1998. <em>Asymptotic Statistics</em>. Cambridge Series in Statistical and Probabilistic Mathematics. Cambridge University Press. <a href="https://doi.org/10.1017/CBO9780511802256">https://doi.org/10.1017/CBO9780511802256</a>.
+</div>
+</div>
 </section>
 
 </main> <!-- /main -->
@@ -1286,12 +1340,12 @@ Algorithm&nbsp;22.1: <strong>Correctness.</strong> By <a href="#thm-21-consisten
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
       <a href="./20_bffg.html" class="pagination-link" aria-label="Backward Filtering Forward Guiding">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span>
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
       <a href="./22_probability_matching.html" class="pagination-link" aria-label="Probability Matching Estimation">
-        <span class="nav-page-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span> <i class="bi bi-arrow-right-short"></i>
+        <span class="nav-page-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

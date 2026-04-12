@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>20&nbsp; Metropolis-Hastings with Adaptive Proposals – Phasic — Supplementary Online Material</title>
+<title>21&nbsp; Metropolis-Hastings with Adaptive Proposals – Phasic — Supplementary Online Material</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -23,7 +23,26 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
@@ -128,7 +147,7 @@ window.Quarto = {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./18_svgd.html">Inference</a></li><li class="breadcrumb-item"><a href="./19_mcmc.html"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./18_svgd.html">Inference</a></li><li class="breadcrumb-item"><a href="./19_mcmc.html"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -223,8 +242,14 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./07b_fill_in_complexity.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Fill-In During Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./08_state_space_construction.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
   </div>
 </li>
       </ul>
@@ -241,31 +266,31 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./09_symbolic_expressions.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./10_symbolic_graph_elimination.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./11_trace_system.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./12_graph_hashing.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./13_scc_trace_stitching.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
   </div>
 </li>
       </ul>
@@ -282,19 +307,19 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./14_distribution_computation.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./15_moment_computation.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./16_pdf_gradients.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
   </div>
 </li>
       </ul>
@@ -311,7 +336,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./17_sampling.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
   </div>
 </li>
       </ul>
@@ -328,31 +353,31 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./18_svgd.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./19_mcmc.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./20_bffg.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./21_method_of_moments.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./22_probability_matching.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
   </div>
 </li>
       </ul>
@@ -369,13 +394,13 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./23_state_indexing.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./24_hex_grid.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
   </div>
 </li>
       </ul>
@@ -392,23 +417,29 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./25_jax_integration.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./26_graph_builder.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./27_van_loan_equivalence.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
   </div>
 </li>
       </ul>
   </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./28_references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">References</span></span></a>
+  </div>
+</li>
     </ul>
     </div>
 </nav>
@@ -432,9 +463,9 @@ window.Quarto = {
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./18_svgd.html">Inference</a></li><li class="breadcrumb-item"><a href="./19_mcmc.html"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./18_svgd.html">Inference</a></li><li class="breadcrumb-item"><a href="./19_mcmc.html"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></h1>
+<h1 class="title"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></h1>
 </div>
 
 
@@ -453,8 +484,8 @@ window.Quarto = {
 
 <section id="introduction" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="introduction">Introduction</h2>
-<p>This file formalizes the <strong>Metropolis-Hastings (MH) algorithm with adaptive proposals</strong> as implemented in phasic for Bayesian parameter inference in phase-type models. Metropolis-Hastings is a Markov chain Monte Carlo (MCMC) method that generates a sequence of correlated samples from the posterior distribution <span class="math inline">p(\boldsymbol{\theta} \mid \mathbf{y})</span> by proposing candidate moves and accepting or rejecting them based on the posterior density ratio. The adaptive variant (Haario, Saksman &amp; Tamminen, 2001) learns the empirical covariance of the target from the chain history during a burn-in phase, enabling efficient proposals that match the posterior geometry without manual tuning.</p>
-<p>In the phasic pipeline, MCMC serves as an alternative to SVGD ([18]) for posterior inference. While SVGD is faster for moderate-dimensional problems, MCMC provides asymptotically exact samples with well-understood convergence diagnostics (acceptance rate, <span class="math inline">\hat{R}</span> statistic, effective sample size). The model likelihood is computed via the forward algorithm ([14]), and moment-based summaries can be obtained from [15]. Multiple independent chains are supported for convergence assessment.</p>
+<p>This file formalizes the <strong>Metropolis-Hastings (MH) algorithm with adaptive proposals</strong> as implemented in phasic for Bayesian parameter inference in phase-type models. Metropolis-Hastings <span class="citation" data-cites="metropolis1953 hastings1970">(<a href="28_references.html#ref-metropolis1953" role="doc-biblioref">Metropolis et al. 1953</a>; <a href="28_references.html#ref-hastings1970" role="doc-biblioref">Hastings 1970</a>)</span> is a Markov chain Monte Carlo (MCMC) method that generates a sequence of correlated samples from the posterior distribution <span class="math inline">p(\boldsymbol{\theta} \mid \mathbf{y})</span> by proposing candidate moves and accepting or rejecting them based on the posterior density ratio. The adaptive variant <span class="citation" data-cites="haario2001">(<a href="28_references.html#ref-haario2001" role="doc-biblioref">Haario et al. 2001</a>)</span> learns the empirical covariance of the target from the chain history during a burn-in phase, enabling efficient proposals that match the posterior geometry without manual tuning.</p>
+<p>In the phasic pipeline, MCMC serves as an alternative to SVGD ([18]) for posterior inference. While SVGD is faster for moderate-dimensional problems, MCMC provides asymptotically exact samples with well-understood convergence diagnostics (acceptance rate, <span class="math inline">\hat{R}</span> statistic <span class="citation" data-cites="gelman1992">(<a href="28_references.html#ref-gelman1992" role="doc-biblioref">Gelman and Rubin 1992</a>)</span>, effective sample size). The model likelihood is computed via the forward algorithm ([14]), and moment-based summaries can be obtained from [15]. Multiple independent chains are supported for convergence assessment.</p>
 <p><strong>Prerequisites:</strong> [01], [14], [15]</p>
 <p><strong>Source files:</strong></p>
 <ul>
@@ -464,66 +495,81 @@ window.Quarto = {
 <section id="definitions" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="definitions">Definitions</h2>
 <div id="def-19-mh" class="definition theorem">
-<p><span class="theorem-title"><strong>Definition 20.1 (Metropolis-Hastings Algorithm)</strong></span> <em>Let <span class="math inline">p(\boldsymbol{\theta} \mid \mathbf{y})</span> be a target posterior density (known up to a normalizing constant) on <span class="math inline">\mathbb{R}^d</span>, and let <span class="math inline">q(\boldsymbol{\theta}' \mid \boldsymbol{\theta})</span> be a proposal distribution. The <strong>Metropolis-Hastings algorithm</strong> generates a Markov chain <span class="math inline">\{\boldsymbol{\theta}_t\}_{t=0}^{\infty}</span> as follows: at each step, propose <span class="math inline">\boldsymbol{\theta}' \sim q(\cdot \mid \boldsymbol{\theta}_t)</span>, compute the acceptance ratio</em></p>
-<p><span id="eq-19-acceptance-ratio"><span class="math display">\alpha(\boldsymbol{\theta}_t, \boldsymbol{\theta}') = \min\!\left(1, \; \frac{p(\boldsymbol{\theta}' \mid \mathbf{y}) \, q(\boldsymbol{\theta}_t \mid \boldsymbol{\theta}')}{p(\boldsymbol{\theta}_t \mid \mathbf{y}) \, q(\boldsymbol{\theta}' \mid \boldsymbol{\theta}_t)}\right), \tag{20.1}</span></span></p>
+<p><span class="theorem-title"><strong>Definition 21.1 (Metropolis-Hastings Algorithm)</strong></span> <em>Let <span class="math inline">p(\boldsymbol{\theta} \mid \mathbf{y})</span> be a target posterior density (known up to a normalizing constant) on <span class="math inline">\mathbb{R}^d</span>, and let <span class="math inline">q(\boldsymbol{\theta}' \mid \boldsymbol{\theta})</span> be a proposal distribution. The <strong>Metropolis-Hastings algorithm</strong> generates a Markov chain <span class="math inline">\{\boldsymbol{\theta}_t\}_{t=0}^{\infty}</span> as follows: at each step, propose <span class="math inline">\boldsymbol{\theta}' \sim q(\cdot \mid \boldsymbol{\theta}_t)</span>, compute the acceptance ratio</em></p>
+<p><span id="eq-19-acceptance-ratio"><span class="math display">\alpha(\boldsymbol{\theta}_t, \boldsymbol{\theta}') = \min\!\left(1, \; \frac{p(\boldsymbol{\theta}' \mid \mathbf{y}) \, q(\boldsymbol{\theta}_t \mid \boldsymbol{\theta}')}{p(\boldsymbol{\theta}_t \mid \mathbf{y}) \, q(\boldsymbol{\theta}' \mid \boldsymbol{\theta}_t)}\right), \tag{21.1}</span></span></p>
 <p><em>and set <span class="math inline">\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}'</span> with probability <span class="math inline">\alpha</span>, otherwise <span class="math inline">\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t</span>.</em></p>
 <p><em>For a <strong>symmetric random-walk proposal</strong> <span class="math inline">q(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) = q(\boldsymbol{\theta} \mid \boldsymbol{\theta}')</span>, the acceptance ratio simplifies to</em></p>
-<p><span id="eq-19-symmetric-acceptance"><span class="math display">\alpha(\boldsymbol{\theta}_t, \boldsymbol{\theta}') = \min\!\left(1, \; \frac{p(\boldsymbol{\theta}' \mid \mathbf{y})}{p(\boldsymbol{\theta}_t \mid \mathbf{y})}\right). \tag{20.2}</span></span></p>
+<p><span id="eq-19-symmetric-acceptance"><span class="math display">\alpha(\boldsymbol{\theta}_t, \boldsymbol{\theta}') = \min\!\left(1, \; \frac{p(\boldsymbol{\theta}' \mid \mathbf{y})}{p(\boldsymbol{\theta}_t \mid \mathbf{y})}\right). \tag{21.2}</span></span></p>
 <p><em>In log-space (as implemented), the accept/reject step compares <span class="math inline">\log u</span> to <span class="math inline">\log p(\boldsymbol{\theta}' \mid \mathbf{y}) - \log p(\boldsymbol{\theta}_t \mid \mathbf{y})</span>, where <span class="math inline">u \sim \operatorname{Uniform}(0,1)</span>.</em></p>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> The MH algorithm explores the posterior by taking random steps and keeping those that land in regions of comparable or higher density. Moves to higher density are always accepted; moves to lower density are accepted with probability proportional to the density ratio. This ensures that the chain spends time in each region proportional to its posterior probability. The symmetric proposal simplification eliminates the proposal ratio, making the acceptance depend only on the posterior density ratio.</p>
-</blockquote>
-<blockquote class="blockquote">
-<p><strong>Example.</strong> For a Gaussian posterior <span class="math inline">p(\theta \mid y) \propto \exp(-\theta^2/2)</span> and a Gaussian random-walk proposal <span class="math inline">\theta' = \theta_t + \epsilon</span>, <span class="math inline">\epsilon \sim \mathcal{N}(0, \sigma^2)</span>: <span class="math inline">\log \alpha = -(\theta'^2 - \theta_t^2)/2</span>. A move from <span class="math inline">\theta_t = 0</span> to <span class="math inline">\theta' = 1</span> has <span class="math inline">\log \alpha = -0.5</span>, so <span class="math inline">\alpha \approx 0.61</span>.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+The MH algorithm explores the posterior by taking random steps and keeping those that land in regions of comparable or higher density. Moves to higher density are always accepted; moves to lower density are accepted with probability proportional to the density ratio. This ensures that the chain spends time in each region proportional to its posterior probability. The symmetric proposal simplification eliminates the proposal ratio, making the acceptance depend only on the posterior density ratio.
+</details>
+<details>
+<summary>
+Example
+</summary>
+For a Gaussian posterior <span class="math inline">p(\theta \mid y) \propto \exp(-\theta^2/2)</span> and a Gaussian random-walk proposal <span class="math inline">\theta' = \theta_t + \epsilon</span>, <span class="math inline">\epsilon \sim \mathcal{N}(0, \sigma^2)</span>: <span class="math inline">\log \alpha = -(\theta'^2 - \theta_t^2)/2</span>. A move from <span class="math inline">\theta_t = 0</span> to <span class="math inline">\theta' = 1</span> has <span class="math inline">\log \alpha = -0.5</span>, so <span class="math inline">\alpha \approx 0.61</span>.
+</details>
 <div id="def-19-adaptive-proposal" class="definition theorem">
-<p><span class="theorem-title"><strong>Definition 20.2 (Adaptive Proposal)</strong></span> <em>The <strong>adaptive Metropolis (AM) proposal</strong> (Haario et al., 2001) updates the proposal covariance from the chain history. After an initial phase of <span class="math inline">t_a</span> iterations with a fixed diagonal proposal <span class="math inline">q_0(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) = \mathcal{N}(\boldsymbol{\theta}, \operatorname{diag}(\boldsymbol{\sigma}_0^2))</span>, the proposal switches to</em></p>
-<p><span id="eq-19-adaptive-proposal"><span class="math display">q_t(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) = \mathcal{N}\!\left(\boldsymbol{\theta}, \; s_d \left( \hat{\boldsymbol{\Sigma}}_t + \varepsilon \mathbf{I}_d \right) \right), \tag{20.3}</span></span></p>
+<p><span class="theorem-title"><strong>Definition 21.2 (Adaptive Proposal)</strong></span> <em>The <strong>adaptive Metropolis (AM) proposal</strong> <span class="citation" data-cites="haario2001">(<a href="28_references.html#ref-haario2001" role="doc-biblioref">Haario et al. 2001</a>)</span> updates the proposal covariance from the chain history. After an initial phase of <span class="math inline">t_a</span> iterations with a fixed diagonal proposal <span class="math inline">q_0(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) = \mathcal{N}(\boldsymbol{\theta}, \operatorname{diag}(\boldsymbol{\sigma}_0^2))</span>, the proposal switches to</em></p>
+<p><span id="eq-19-adaptive-proposal"><span class="math display">q_t(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) = \mathcal{N}\!\left(\boldsymbol{\theta}, \; s_d \left( \hat{\boldsymbol{\Sigma}}_t + \varepsilon \mathbf{I}_d \right) \right), \tag{21.3}</span></span></p>
 <p><em>where:</em></p>
 <ul>
 <li><em><span class="math inline">\hat{\boldsymbol{\Sigma}}_t</span> is the empirical covariance of the chain history <span class="math inline">\{\boldsymbol{\theta}_0, \ldots, \boldsymbol{\theta}_t\}</span>,</em></li>
-<li><em><span class="math inline">s_d = 2.4^2 / d</span> is the optimal scaling factor for <span class="math inline">d</span>-dimensional Gaussian targets (Roberts, Gelman &amp; Gilks, 1997),</em></li>
+<li><em><span class="math inline">s_d = 2.4^2 / d</span> is the optimal scaling factor for <span class="math inline">d</span>-dimensional Gaussian targets <span class="citation" data-cites="roberts1997">(<a href="28_references.html#ref-roberts1997" role="doc-biblioref">Roberts et al. 1997</a>)</span>,</em></li>
 <li><em><span class="math inline">\varepsilon &gt; 0</span> is a small regularization constant (default <span class="math inline">10^{-6}</span>) ensuring positive definiteness.</em></li>
 </ul>
-<p><em>Additionally, the proposal scale is adapted via the <strong>Robbins-Monro update</strong>:</em></p>
-<p><span id="eq-19-robbins-monro"><span class="math display">\log \sigma_{t+1} = \log \sigma_t + \gamma_t \left( \bar{\alpha}_t - \alpha^* \right), \tag{20.4}</span></span></p>
+<p><em>Additionally, the proposal scale is adapted via the <strong>Robbins-Monro update</strong> <span class="citation" data-cites="robbins1951">(<a href="28_references.html#ref-robbins1951" role="doc-biblioref">Robbins and Monro 1951</a>)</span>:</em></p>
+<p><span id="eq-19-robbins-monro"><span class="math display">\log \sigma_{t+1} = \log \sigma_t + \gamma_t \left( \bar{\alpha}_t - \alpha^* \right), \tag{21.4}</span></span></p>
 <p><em>where <span class="math inline">\bar{\alpha}_t</span> is the recent acceptance rate, <span class="math inline">\alpha^* = 0.234</span> is the target acceptance rate (optimal for multi-dimensional Gaussian targets), and <span class="math inline">\gamma_t = 1/\sqrt{t}</span> is the step size ensuring diminishing adaptation.</em></p>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> A fixed isotropic proposal cannot efficiently explore an anisotropic posterior (e.g., one with strong correlations between parameters). The adaptive proposal learns the shape of the posterior from the samples collected so far and orients its proposals accordingly. The empirical covariance captures correlations, and the Cholesky factor of <span class="math inline">s_d(\hat{\boldsymbol{\Sigma}}_t + \varepsilon \mathbf{I})</span> enables efficient sampling. The Robbins-Monro update tunes the overall scale to maintain the target acceptance rate: if the chain accepts too often (proposals too small), the scale increases; if it rejects too often (proposals too large), the scale decreases.</p>
-</blockquote>
-<blockquote class="blockquote">
-<p><strong>Example.</strong> For a 2D posterior with <span class="math inline">\operatorname{Cov}(\theta_1, \theta_2) = \begin{pmatrix} 1 &amp; 0.9 \\ 0.9 &amp; 1 \end{pmatrix}</span>, the adaptive proposal learns this covariance and proposes correlated moves along the principal axes, achieving an acceptance rate near 0.234 compared to <span class="math inline">&lt; 0.05</span> with an isotropic proposal of matched marginal variance.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+A fixed isotropic proposal cannot efficiently explore an anisotropic posterior (e.g., one with strong correlations between parameters). The adaptive proposal learns the shape of the posterior from the samples collected so far and orients its proposals accordingly. The empirical covariance captures correlations, and the Cholesky factor of <span class="math inline">s_d(\hat{\boldsymbol{\Sigma}}_t + \varepsilon \mathbf{I})</span> enables efficient sampling. The Robbins-Monro update tunes the overall scale to maintain the target acceptance rate: if the chain accepts too often (proposals too small), the scale increases; if it rejects too often (proposals too large), the scale decreases.
+</details>
+<details>
+<summary>
+Example
+</summary>
+For a 2D posterior with <span class="math inline">\operatorname{Cov}(\theta_1, \theta_2) = \begin{pmatrix} 1 &amp; 0.9 \\ 0.9 &amp; 1 \end{pmatrix}</span>, the adaptive proposal learns this covariance and proposes correlated moves along the principal axes, achieving an acceptance rate near 0.234 compared to <span class="math inline">&lt; 0.05</span> with an isotropic proposal of matched marginal variance.
+</details>
 <div id="def-19-detailed-balance" class="definition theorem">
-<p><span class="theorem-title"><strong>Definition 20.3 (Acceptance Ratio and Detailed Balance)</strong></span> <em>A Markov chain with transition kernel <span class="math inline">P(\boldsymbol{\theta}' \mid \boldsymbol{\theta})</span> satisfies <strong>detailed balance</strong> with respect to <span class="math inline">p</span> if</em></p>
-<p><span id="eq-19-detailed-balance"><span class="math display">p(\boldsymbol{\theta}) \, P(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) = p(\boldsymbol{\theta}') \, P(\boldsymbol{\theta} \mid \boldsymbol{\theta}') \quad \text{for all } \boldsymbol{\theta}, \boldsymbol{\theta}'. \tag{20.5}</span></span></p>
+<p><span class="theorem-title"><strong>Definition 21.3 (Acceptance Ratio and Detailed Balance)</strong></span> <em>A Markov chain with transition kernel <span class="math inline">P(\boldsymbol{\theta}' \mid \boldsymbol{\theta})</span> satisfies <strong>detailed balance</strong> with respect to <span class="math inline">p</span> if</em></p>
+<p><span id="eq-19-detailed-balance"><span class="math display">p(\boldsymbol{\theta}) \, P(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) = p(\boldsymbol{\theta}') \, P(\boldsymbol{\theta} \mid \boldsymbol{\theta}') \quad \text{for all } \boldsymbol{\theta}, \boldsymbol{\theta}'. \tag{21.5}</span></span></p>
 <p><em>A distribution satisfying detailed balance is a <strong>stationary distribution</strong> of the chain: if <span class="math inline">\boldsymbol{\theta}_t \sim p</span>, then <span class="math inline">\boldsymbol{\theta}_{t+1} \sim p</span>.</em></p>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> Detailed balance is a sufficient condition for <span class="math inline">p</span> to be the equilibrium distribution of the Markov chain. It means that, at stationarity, the probability flow from <span class="math inline">\boldsymbol{\theta}</span> to <span class="math inline">\boldsymbol{\theta}'</span> equals the flow from <span class="math inline">\boldsymbol{\theta}'</span> to <span class="math inline">\boldsymbol{\theta}</span>. This is a stronger condition than stationarity alone (which only requires that net flows balance) and is the key property that makes MH correct.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+Detailed balance is a sufficient condition for <span class="math inline">p</span> to be the equilibrium distribution of the Markov chain. It means that, at stationarity, the probability flow from <span class="math inline">\boldsymbol{\theta}</span> to <span class="math inline">\boldsymbol{\theta}'</span> equals the flow from <span class="math inline">\boldsymbol{\theta}'</span> to <span class="math inline">\boldsymbol{\theta}</span>. This is a stronger condition than stationarity alone (which only requires that net flows balance) and is the key property that makes MH correct.
+</details>
 </section>
 <section id="theorems-and-proofs" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="theorems-and-proofs">Theorems and Proofs</h2>
 <div id="thm-19-mh-detailed-balance" class="theorem">
-<p><span class="theorem-title"><strong>Theorem 20.1 (MH Satisfies Detailed Balance)</strong></span> <em>The Metropolis-Hastings transition kernel</em></p>
-<p><span id="eq-19-mh-kernel"><span class="math display">P(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) = q(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) \, \alpha(\boldsymbol{\theta}, \boldsymbol{\theta}') \quad \text{for } \boldsymbol{\theta}' \neq \boldsymbol{\theta} \tag{20.6}</span></span></p>
+<p><span class="theorem-title"><strong>Theorem 21.1 (MH Satisfies Detailed Balance)</strong></span> <em>The Metropolis-Hastings transition kernel</em></p>
+<p><span id="eq-19-mh-kernel"><span class="math display">P(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) = q(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) \, \alpha(\boldsymbol{\theta}, \boldsymbol{\theta}') \quad \text{for } \boldsymbol{\theta}' \neq \boldsymbol{\theta} \tag{21.6}</span></span></p>
 <p><em>(with the remaining probability mass on staying at <span class="math inline">\boldsymbol{\theta}</span>) satisfies detailed balance with respect to <span class="math inline">p(\boldsymbol{\theta} \mid \mathbf{y})</span>.</em></p>
 </div>
 <div class="proof">
 <p><span class="proof-title"><em>Proof</em>. </span>It suffices to verify detailed balance for the off-diagonal part (<span class="math inline">\boldsymbol{\theta}' \neq \boldsymbol{\theta}</span>), since the diagonal (rejection) probability is determined by normalization. We must show that</p>
-<p><span id="eq-19-db-verify"><span class="math display">p(\boldsymbol{\theta}) \, q(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) \, \alpha(\boldsymbol{\theta}, \boldsymbol{\theta}') = p(\boldsymbol{\theta}') \, q(\boldsymbol{\theta} \mid \boldsymbol{\theta}') \, \alpha(\boldsymbol{\theta}', \boldsymbol{\theta}). \tag{20.7}</span></span></p>
+<p><span id="eq-19-db-verify"><span class="math display">p(\boldsymbol{\theta}) \, q(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) \, \alpha(\boldsymbol{\theta}, \boldsymbol{\theta}') = p(\boldsymbol{\theta}') \, q(\boldsymbol{\theta} \mid \boldsymbol{\theta}') \, \alpha(\boldsymbol{\theta}', \boldsymbol{\theta}). \tag{21.7}</span></span></p>
 <p>Define <span class="math inline">r(\boldsymbol{\theta}, \boldsymbol{\theta}') = p(\boldsymbol{\theta}') \, q(\boldsymbol{\theta} \mid \boldsymbol{\theta}') / [p(\boldsymbol{\theta}) \, q(\boldsymbol{\theta}' \mid \boldsymbol{\theta})]</span> (the unnormalized acceptance ratio). Without loss of generality, assume <span class="math inline">r(\boldsymbol{\theta}, \boldsymbol{\theta}') \leq 1</span> (the case <span class="math inline">r &gt; 1</span> follows by symmetry). Then <span class="math inline">\alpha(\boldsymbol{\theta}, \boldsymbol{\theta}') = r(\boldsymbol{\theta}, \boldsymbol{\theta}')</span> and <span class="math inline">\alpha(\boldsymbol{\theta}', \boldsymbol{\theta}) = 1</span> (since <span class="math inline">r(\boldsymbol{\theta}', \boldsymbol{\theta}) = 1/r(\boldsymbol{\theta}, \boldsymbol{\theta}') \geq 1</span>).</p>
-<p>The left-hand side of <a href="#eq-19-db-verify" class="quarto-xref">Equation&nbsp;<span>20.7</span></a>:</p>
+<p>The left-hand side of <a href="#eq-19-db-verify" class="quarto-xref">Equation&nbsp;<span>21.7</span></a>:</p>
 <p><span class="math display">p(\boldsymbol{\theta}) \, q(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) \, r(\boldsymbol{\theta}, \boldsymbol{\theta}') = p(\boldsymbol{\theta}) \, q(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) \cdot \frac{p(\boldsymbol{\theta}') \, q(\boldsymbol{\theta} \mid \boldsymbol{\theta}')}{p(\boldsymbol{\theta}) \, q(\boldsymbol{\theta}' \mid \boldsymbol{\theta})} = p(\boldsymbol{\theta}') \, q(\boldsymbol{\theta} \mid \boldsymbol{\theta}').</span></p>
-<p>The right-hand side of <a href="#eq-19-db-verify" class="quarto-xref">Equation&nbsp;<span>20.7</span></a>:</p>
+<p>The right-hand side of <a href="#eq-19-db-verify" class="quarto-xref">Equation&nbsp;<span>21.7</span></a>:</p>
 <p><span class="math display">p(\boldsymbol{\theta}') \, q(\boldsymbol{\theta} \mid \boldsymbol{\theta}') \cdot 1 = p(\boldsymbol{\theta}') \, q(\boldsymbol{\theta} \mid \boldsymbol{\theta}').</span></p>
-<p>The two sides are equal, verifying <a href="#eq-19-db-verify" class="quarto-xref">Equation&nbsp;<span>20.7</span></a>. The case <span class="math inline">r &gt; 1</span> is identical with <span class="math inline">\boldsymbol{\theta}</span> and <span class="math inline">\boldsymbol{\theta}'</span> exchanged. <span class="math inline">\square</span></p>
+<p>The two sides are equal, verifying <a href="#eq-19-db-verify" class="quarto-xref">Equation&nbsp;<span>21.7</span></a>. The case <span class="math inline">r &gt; 1</span> is identical with <span class="math inline">\boldsymbol{\theta}</span> and <span class="math inline">\boldsymbol{\theta}'</span> exchanged. <span class="math inline">\square</span></p>
 </div>
 <div id="thm-19-adaptive-ergodicity" class="theorem">
-<p><span class="theorem-title"><strong>Theorem 20.2 (Adaptive Proposals Preserve Ergodicity under Diminishing Adaptation)</strong></span> <em>Let <span class="math inline">\{P_t\}_{t \geq 0}</span> be a sequence of MH transition kernels where <span class="math inline">P_t</span> uses the adaptive proposal <span class="math inline">q_t</span> from <a href="#def-19-adaptive-proposal" class="quarto-xref">Definition&nbsp;<span>20.2</span></a>. If the adaptation satisfies:</em></p>
+<p><span class="theorem-title"><strong>Theorem 21.2 (Adaptive Proposals Preserve Ergodicity under Diminishing Adaptation)</strong></span> <em>Let <span class="math inline">\{P_t\}_{t \geq 0}</span> be a sequence of MH transition kernels where <span class="math inline">P_t</span> uses the adaptive proposal <span class="math inline">q_t</span> from <a href="#def-19-adaptive-proposal" class="quarto-xref">Definition&nbsp;<span>21.2</span></a>. If the adaptation satisfies:</em></p>
 <p><em>(i) Diminishing adaptation: <span class="math inline">\sup_{\boldsymbol{\theta}} \lVert P_{t+1}(\cdot \mid \boldsymbol{\theta}) - P_t(\cdot \mid \boldsymbol{\theta}) \rVert_{\text{TV}} \to 0</span> as <span class="math inline">t \to \infty</span>.</em></p>
 <p><em>(ii) Containment: For all <span class="math inline">\delta &gt; 0</span>, <span class="math inline">\lim_{N \to \infty} \sup_t \Pr(\tau_\delta(\boldsymbol{\theta}_t) &gt; N) = 0</span>, where <span class="math inline">\tau_\delta(\boldsymbol{\theta})</span> is the <span class="math inline">\delta</span>-return time to a high-probability region.</em></p>
 <p><em>Then the adaptive chain is ergodic: for any initial <span class="math inline">\boldsymbol{\theta}_0</span> and any measurable set <span class="math inline">A</span>,</em></p>
@@ -531,16 +577,16 @@ window.Quarto = {
 </div>
 <div class="proof">
 <p><span class="proof-title"><em>Proof</em>. </span>Condition (i) is verified by the Robbins-Monro step size <span class="math inline">\gamma_t = 1/\sqrt{t}</span>: the change in the proposal distribution between consecutive iterations is bounded by the magnitude of the covariance update, which scales as <span class="math inline">O(1/t)</span> for the empirical covariance and <span class="math inline">O(1/\sqrt{t})</span> for the scale adaptation. Since <span class="math inline">1/\sqrt{t} \to 0</span>, the adaptation diminishes.</p>
-<p>For condition (ii), since each <span class="math inline">P_t</span> is itself a valid MH kernel with stationary distribution <span class="math inline">p</span> (by <a href="#thm-19-mh-detailed-balance" class="quarto-xref">Theorem&nbsp;<span>20.1</span></a>, detailed balance holds at every <span class="math inline">t</span> regardless of the proposal covariance), each individual kernel is ergodic for <span class="math inline">p</span> on the compact support typical of phase-type parameters (bounded rates). The containment condition then holds because the chain cannot escape to infinity under any of the kernels in the sequence.</p>
-<p>Given (i) and (ii), the result follows from the adaptive MCMC ergodicity theorem of Roberts &amp; Rosenthal (2007, Theorem 2): diminishing adaptation and containment together imply that the adaptive chain has the same limiting distribution as the fixed-kernel chain, which is the target <span class="math inline">p(\boldsymbol{\theta} \mid \mathbf{y})</span>. The ergodic theorem for adaptive MCMC then gives the almost-sure convergence of time averages. <span class="math inline">\square</span></p>
+<p>For condition (ii), since each <span class="math inline">P_t</span> is itself a valid MH kernel with stationary distribution <span class="math inline">p</span> (by <a href="#thm-19-mh-detailed-balance" class="quarto-xref">Theorem&nbsp;<span>21.1</span></a>, detailed balance holds at every <span class="math inline">t</span> regardless of the proposal covariance), each individual kernel is ergodic for <span class="math inline">p</span> on the compact support typical of phase-type parameters (bounded rates). The containment condition then holds because the chain cannot escape to infinity under any of the kernels in the sequence.</p>
+<p>Given (i) and (ii), the result follows from the adaptive MCMC ergodicity theorem of <span class="citation" data-cites="roberts2007">Roberts and Rosenthal (<a href="28_references.html#ref-roberts2007" role="doc-biblioref">2007</a>, Theorem 2)</span>: diminishing adaptation and containment together imply that the adaptive chain has the same limiting distribution as the fixed-kernel chain, which is the target <span class="math inline">p(\boldsymbol{\theta} \mid \mathbf{y})</span>. The ergodic theorem for adaptive MCMC then gives the almost-sure convergence of time averages. <span class="math inline">\square</span></p>
 </div>
 </section>
 <section id="algorithms" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="algorithms">Algorithms</h2>
 <div id="alg-19-mcmc" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-alg figure">
-<section id="metropolis-hastings-with-adaptive-proposals" class="level4" aria-describedby="alg-19-mcmc-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="20.0.0.1">
-<h4 data-number="20.0.0.1" class="anchored" data-anchor-id="metropolis-hastings-with-adaptive-proposals"><span class="header-section-number">20.0.0.1</span> Metropolis-Hastings with Adaptive Proposals</h4>
+<section id="metropolis-hastings-with-adaptive-proposals" class="level4" aria-describedby="alg-19-mcmc-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="21.0.0.1">
+<h4 data-number="21.0.0.1" class="anchored" data-anchor-id="metropolis-hastings-with-adaptive-proposals"><span class="header-section-number">21.0.0.1</span> Metropolis-Hastings with Adaptive Proposals</h4>
 <p><em>Description.</em> Generates posterior samples from <span class="math inline">p(\boldsymbol{\theta} \mid \mathbf{y})</span> via random-walk Metropolis-Hastings with adaptive covariance proposals. The algorithm runs <span class="math inline">C</span> independent chains, each for <span class="math inline">B + N \cdot K</span> iterations (burn-in <span class="math inline">B</span>, <span class="math inline">N</span> post-burn-in samples with thinning interval <span class="math inline">K</span>). During the burn-in phase, the proposal covariance is updated from chain history at regular intervals, and the proposal scale is adjusted toward the target acceptance rate via Robbins-Monro. After burn-in, samples are collected at thinning intervals. The algorithm operates in unconstrained space <span class="math inline">\boldsymbol{\phi}</span> and transforms to constrained space <span class="math inline">\boldsymbol{\theta}</span> via softplus at the end.</p>
 <pre><code>Metropolis-Hastings with Adaptive Proposals
 1: Let p(theta | y) be the target posterior (known up to normalizing constant)
@@ -715,7 +761,7 @@ window.Quarto = {
 <p><strong>Complexity.</strong> Time: <span class="math inline">O(C \cdot (B + NK) \cdot (C_{\text{model}} + d^2))</span>, where <span class="math inline">C_{\text{model}}</span> is the cost of one log-posterior evaluation (dominated by the forward algorithm from [14]), and <span class="math inline">d^2</span> is the cost of the matrix-vector product <span class="math inline">\mathbf{L}\mathbf{z}</span> for the adaptive proposal. The Cholesky decomposition <span class="math inline">O(d^3)</span> is performed every <span class="math inline">\Delta</span> iterations. Space: <span class="math inline">O(C \cdot (B + NK) \cdot d)</span> for the chain history (used for covariance estimation), plus <span class="math inline">O(d^2)</span> for the Cholesky factor.</p>
 </section>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-19-mcmc-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Algorithm&nbsp;20.1: <strong>Correctness.</strong> By <a href="#thm-19-mh-detailed-balance" class="quarto-xref">Theorem&nbsp;<span>20.1</span></a>, the accept/reject step at line 25 ensures detailed balance with respect to <span class="math inline">p</span> for any symmetric proposal (both the diagonal and adaptive proposals are symmetric Gaussians). By <a href="#thm-19-adaptive-ergodicity" class="quarto-xref">Theorem&nbsp;<span>20.2</span></a>, the adaptive covariance updates preserve ergodicity because: (a) the Robbins-Monro step <span class="math inline">\gamma_t = 1/\sqrt{t}</span> satisfies <span class="math inline">\gamma_t \to 0</span> (diminishing adaptation), and (b) the chain has bounded state space for typical phase-type parameters (containment). The burn-in phase (lines 38–41) discards the transient period before the chain has converged, and thinning reduces autocorrelation in the stored samples.
+Algorithm&nbsp;21.1: <strong>Correctness.</strong> By <a href="#thm-19-mh-detailed-balance" class="quarto-xref">Theorem&nbsp;<span>21.1</span></a>, the accept/reject step at line 25 ensures detailed balance with respect to <span class="math inline">p</span> for any symmetric proposal (both the diagonal and adaptive proposals are symmetric Gaussians). By <a href="#thm-19-adaptive-ergodicity" class="quarto-xref">Theorem&nbsp;<span>21.2</span></a>, the adaptive covariance updates preserve ergodicity because: (a) the Robbins-Monro step <span class="math inline">\gamma_t = 1/\sqrt{t}</span> satisfies <span class="math inline">\gamma_t \to 0</span> (diminishing adaptation), and (b) the chain has bounded state space for typical phase-type parameters (containment). The burn-in phase (lines 38–41) discards the transient period before the chain has converged, and thinning reduces autocorrelation in the stored samples.
 </figcaption>
 </figure>
 </div>
@@ -748,19 +794,19 @@ Algorithm&nbsp;20.1: <strong>Correctness.</strong> By <a href="#thm-19-mh-detail
 </thead>
 <tbody>
 <tr class="odd">
-<td><a href="#alg-19-mcmc" class="quarto-xref">Algorithm&nbsp;<span>20.1</span></a> (single chain)</td>
+<td><a href="#alg-19-mcmc" class="quarto-xref">Algorithm&nbsp;<span>21.1</span></a> (single chain)</td>
 <td><code>src/phasic/mcmc.py</code></td>
 <td><code>MCMC._run_chain</code></td>
 <td>L491–L601</td>
 </tr>
 <tr class="even">
-<td><a href="#alg-19-mcmc" class="quarto-xref">Algorithm&nbsp;<span>20.1</span></a> (vmap chains)</td>
+<td><a href="#alg-19-mcmc" class="quarto-xref">Algorithm&nbsp;<span>21.1</span></a> (vmap chains)</td>
 <td><code>src/phasic/mcmc.py</code></td>
 <td><code>MCMC._run_chains_vmap</code></td>
 <td>L603–L727</td>
 </tr>
 <tr class="odd">
-<td><a href="#alg-19-mcmc" class="quarto-xref">Algorithm&nbsp;<span>20.1</span></a> (entry)</td>
+<td><a href="#alg-19-mcmc" class="quarto-xref">Algorithm&nbsp;<span>21.1</span></a> (entry)</td>
 <td><code>src/phasic/mcmc.py</code></td>
 <td><code>MCMC.run</code></td>
 <td>L729–L830</td>
@@ -806,92 +852,115 @@ Algorithm&nbsp;20.1: <strong>Correctness.</strong> By <a href="#thm-19-mh-detail
 <tr class="odd">
 <td><span class="math inline">\alpha(\boldsymbol{\theta}, \boldsymbol{\theta}')</span></td>
 <td>Acceptance ratio</td>
-<td><a href="#def-19-mh" class="quarto-xref">Definition&nbsp;<span>20.1</span></a></td>
+<td><a href="#def-19-mh" class="quarto-xref">Definition&nbsp;<span>21.1</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">\alpha^*</span></td>
 <td>Target acceptance rate (<span class="math inline">0.234</span>)</td>
-<td><a href="#def-19-adaptive-proposal" class="quarto-xref">Definition&nbsp;<span>20.2</span></a></td>
+<td><a href="#def-19-adaptive-proposal" class="quarto-xref">Definition&nbsp;<span>21.2</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">\bar{\alpha}_t</span></td>
 <td>Recent acceptance rate</td>
-<td><a href="#def-19-adaptive-proposal" class="quarto-xref">Definition&nbsp;<span>20.2</span></a></td>
+<td><a href="#def-19-adaptive-proposal" class="quarto-xref">Definition&nbsp;<span>21.2</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">B</span></td>
 <td>Burn-in iterations</td>
-<td><a href="#alg-19-mcmc" class="quarto-xref">Algorithm&nbsp;<span>20.1</span></a></td>
+<td><a href="#alg-19-mcmc" class="quarto-xref">Algorithm&nbsp;<span>21.1</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">C</span></td>
 <td>Number of chains</td>
-<td><a href="#alg-19-mcmc" class="quarto-xref">Algorithm&nbsp;<span>20.1</span></a></td>
+<td><a href="#alg-19-mcmc" class="quarto-xref">Algorithm&nbsp;<span>21.1</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">\varepsilon</span></td>
 <td>Covariance regularization constant</td>
-<td><a href="#def-19-adaptive-proposal" class="quarto-xref">Definition&nbsp;<span>20.2</span></a></td>
+<td><a href="#def-19-adaptive-proposal" class="quarto-xref">Definition&nbsp;<span>21.2</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">\gamma_t</span></td>
 <td>Robbins-Monro step size</td>
-<td><a href="#def-19-adaptive-proposal" class="quarto-xref">Definition&nbsp;<span>20.2</span></a></td>
+<td><a href="#def-19-adaptive-proposal" class="quarto-xref">Definition&nbsp;<span>21.2</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">K</span></td>
 <td>Thinning interval</td>
-<td><a href="#alg-19-mcmc" class="quarto-xref">Algorithm&nbsp;<span>20.1</span></a></td>
+<td><a href="#alg-19-mcmc" class="quarto-xref">Algorithm&nbsp;<span>21.1</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">\mathbf{L}</span></td>
 <td>Cholesky factor of proposal covariance</td>
-<td><a href="#alg-19-mcmc" class="quarto-xref">Algorithm&nbsp;<span>20.1</span></a></td>
+<td><a href="#alg-19-mcmc" class="quarto-xref">Algorithm&nbsp;<span>21.1</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">N</span></td>
 <td>Number of post-burn-in samples</td>
-<td><a href="#alg-19-mcmc" class="quarto-xref">Algorithm&nbsp;<span>20.1</span></a></td>
+<td><a href="#alg-19-mcmc" class="quarto-xref">Algorithm&nbsp;<span>21.1</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">q(\boldsymbol{\theta}' \mid \boldsymbol{\theta})</span></td>
 <td>Proposal distribution</td>
-<td><a href="#def-19-mh" class="quarto-xref">Definition&nbsp;<span>20.1</span></a></td>
+<td><a href="#def-19-mh" class="quarto-xref">Definition&nbsp;<span>21.1</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">r(\boldsymbol{\theta}, \boldsymbol{\theta}')</span></td>
 <td>Unnormalized acceptance ratio</td>
-<td><a href="#thm-19-mh-detailed-balance" class="quarto-xref">Theorem&nbsp;<span>20.1</span></a></td>
+<td><a href="#thm-19-mh-detailed-balance" class="quarto-xref">Theorem&nbsp;<span>21.1</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">s_d</span></td>
 <td>Optimal scaling factor <span class="math inline">2.4^2 / d</span></td>
-<td><a href="#def-19-adaptive-proposal" class="quarto-xref">Definition&nbsp;<span>20.2</span></a></td>
+<td><a href="#def-19-adaptive-proposal" class="quarto-xref">Definition&nbsp;<span>21.2</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">\hat{\boldsymbol{\Sigma}}_t</span></td>
 <td>Empirical covariance at iteration <span class="math inline">t</span></td>
-<td><a href="#def-19-adaptive-proposal" class="quarto-xref">Definition&nbsp;<span>20.2</span></a></td>
+<td><a href="#def-19-adaptive-proposal" class="quarto-xref">Definition&nbsp;<span>21.2</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">\boldsymbol{\sigma}_0</span></td>
 <td>Initial proposal scale</td>
-<td><a href="#def-19-adaptive-proposal" class="quarto-xref">Definition&nbsp;<span>20.2</span></a></td>
+<td><a href="#def-19-adaptive-proposal" class="quarto-xref">Definition&nbsp;<span>21.2</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">t_a</span></td>
 <td>Adaptation start iteration</td>
-<td><a href="#def-19-adaptive-proposal" class="quarto-xref">Definition&nbsp;<span>20.2</span></a></td>
+<td><a href="#def-19-adaptive-proposal" class="quarto-xref">Definition&nbsp;<span>21.2</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">\Delta</span></td>
 <td>Adaptation interval</td>
-<td><a href="#alg-19-mcmc" class="quarto-xref">Algorithm&nbsp;<span>20.1</span></a></td>
+<td><a href="#alg-19-mcmc" class="quarto-xref">Algorithm&nbsp;<span>21.1</span></a></td>
 </tr>
 </tbody>
 </table>
 
 
+<div id="refs" class="references csl-bib-body hanging-indent" role="list" style="display: none">
+<div id="ref-gelman1992" class="csl-entry" role="listitem">
+Gelman, Andrew, and Donald B. Rubin. 1992. <span>“Inference from Iterative Simulation Using Multiple Sequences.”</span> <em>Statistical Science</em> 7 (4): 457–72. <a href="https://doi.org/10.1214/ss/1177011136">https://doi.org/10.1214/ss/1177011136</a>.
+</div>
+<div id="ref-haario2001" class="csl-entry" role="listitem">
+Haario, Heikki, Eero Saksman, and Johanna Tamminen. 2001. <span>“An Adaptive <span>Metropolis</span> Algorithm.”</span> <em>Bernoulli</em> 7 (2): 223–42. <a href="https://doi.org/10.2307/3318737">https://doi.org/10.2307/3318737</a>.
+</div>
+<div id="ref-hastings1970" class="csl-entry" role="listitem">
+Hastings, W. Keith. 1970. <span>“<span>Monte Carlo</span> Sampling Methods Using <span>Markov</span> Chains and Their Applications.”</span> <em>Biometrika</em> 57 (1): 97–109. <a href="https://doi.org/10.1093/biomet/57.1.97">https://doi.org/10.1093/biomet/57.1.97</a>.
+</div>
+<div id="ref-metropolis1953" class="csl-entry" role="listitem">
+Metropolis, Nicholas, Arianna W. Rosenbluth, Marshall N. Rosenbluth, Augusta H. Teller, and Edward Teller. 1953. <span>“Equation of State Calculations by Fast Computing Machines.”</span> <em>Journal of Chemical Physics</em> 21 (6): 1087–92. <a href="https://doi.org/10.1063/1.1699114">https://doi.org/10.1063/1.1699114</a>.
+</div>
+<div id="ref-robbins1951" class="csl-entry" role="listitem">
+Robbins, Herbert, and Sutton Monro. 1951. <span>“A Stochastic Approximation Method.”</span> <em>Annals of Mathematical Statistics</em> 22 (3): 400–407. <a href="https://doi.org/10.1214/aoms/1177729586">https://doi.org/10.1214/aoms/1177729586</a>.
+</div>
+<div id="ref-roberts1997" class="csl-entry" role="listitem">
+Roberts, Gareth O., Andrew Gelman, and Walter R. Gilks. 1997. <span>“Weak Convergence and Optimal Scaling of Random Walk <span>Metropolis</span> Algorithms.”</span> <em>Annals of Applied Probability</em> 7 (1): 110–20. <a href="https://doi.org/10.1214/aoap/1034625254">https://doi.org/10.1214/aoap/1034625254</a>.
+</div>
+<div id="ref-roberts2007" class="csl-entry" role="listitem">
+Roberts, Gareth O., and Jeffrey S. Rosenthal. 2007. <span>“Coupling and Ergodicity of Adaptive <span>Markov</span> Chain <span>Monte Carlo</span> Algorithms.”</span> <em>Journal of Applied Probability</em> 44 (2): 458–75. <a href="https://doi.org/10.1239/jap/1183667414">https://doi.org/10.1239/jap/1183667414</a>.
+</div>
+</div>
 </section>
 
 </main> <!-- /main -->
@@ -1298,12 +1367,12 @@ Algorithm&nbsp;20.1: <strong>Correctness.</strong> By <a href="#thm-19-mh-detail
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
       <a href="./18_svgd.html" class="pagination-link" aria-label="Stein Variational Gradient Descent">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span>
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
       <a href="./20_bffg.html" class="pagination-link" aria-label="Backward Filtering Forward Guiding">
-        <span class="nav-page-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span> <i class="bi bi-arrow-right-short"></i>
+        <span class="nav-page-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

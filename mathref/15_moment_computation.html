@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>16&nbsp; Moment Computation – Phasic — Supplementary Online Material</title>
+<title>17&nbsp; Moment Computation – Phasic — Supplementary Online Material</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -23,7 +23,26 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
@@ -128,7 +147,7 @@ window.Quarto = {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./14_distribution_computation.html">Distribution and Moments</a></li><li class="breadcrumb-item"><a href="./15_moment_computation.html"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./14_distribution_computation.html">Distribution and Moments</a></li><li class="breadcrumb-item"><a href="./15_moment_computation.html"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Moment Computation</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -223,8 +242,14 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./07b_fill_in_complexity.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Fill-In During Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./08_state_space_construction.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
   </div>
 </li>
       </ul>
@@ -241,31 +266,31 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./09_symbolic_expressions.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./10_symbolic_graph_elimination.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./11_trace_system.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./12_graph_hashing.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./13_scc_trace_stitching.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
   </div>
 </li>
       </ul>
@@ -282,19 +307,19 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./14_distribution_computation.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./15_moment_computation.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./16_pdf_gradients.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
   </div>
 </li>
       </ul>
@@ -311,7 +336,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./17_sampling.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
   </div>
 </li>
       </ul>
@@ -328,31 +353,31 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./18_svgd.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./19_mcmc.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./20_bffg.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./21_method_of_moments.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./22_probability_matching.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
   </div>
 </li>
       </ul>
@@ -369,13 +394,13 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./23_state_indexing.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./24_hex_grid.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
   </div>
 </li>
       </ul>
@@ -392,23 +417,29 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./25_jax_integration.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./26_graph_builder.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./27_van_loan_equivalence.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
   </div>
 </li>
       </ul>
   </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./28_references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">References</span></span></a>
+  </div>
+</li>
     </ul>
     </div>
 </nav>
@@ -432,9 +463,9 @@ window.Quarto = {
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./14_distribution_computation.html">Distribution and Moments</a></li><li class="breadcrumb-item"><a href="./15_moment_computation.html"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./14_distribution_computation.html">Distribution and Moments</a></li><li class="breadcrumb-item"><a href="./15_moment_computation.html"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Moment Computation</span></a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></h1>
+<h1 class="title"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Moment Computation</span></h1>
 </div>
 
 
@@ -465,28 +496,34 @@ window.Quarto = {
 <p><strong>Recall</strong> (<a href="06_graph_elimination.html#def-06-reward-compute-graph" class="quarto-xref">Definition&nbsp;<span>7.6</span></a>). <em>The reward compute graph is a cached sequence of <span class="math inline">N</span> commands <span class="math inline">C = (c_0, c_1, \ldots, c_{N-1})</span>, where each command <span class="math inline">c_j</span> is a triple <span class="math inline">(\text{from}, \text{to}, \text{multiplier})</span> representing the operation <span class="math inline">\text{result}[\text{from}] \mathrel{+}= \text{result}[\text{to}] \times \text{multiplier}</span>.</em></p>
 </blockquote>
 <div id="def-15-moment-replay" class="theorem definition">
-<p><span class="theorem-title"><strong>Definition 16.1 (Moment computation via elimination replay)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> represent <span class="math inline">\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})</span> (<a href="01_preliminaries.html#def-01-ph-graph" class="quarto-xref">Definition&nbsp;<span>2.13</span></a>) with elimination command sequence <span class="math inline">C</span> (<a href="06_graph_elimination.html#def-06-reward-compute-graph" class="quarto-xref">Definition&nbsp;<span>7.6</span></a>). The <span class="math inline">k</span>-th factorial moment of the reward-transformed absorption time is computed by replaying <span class="math inline">C</span> with reward vector <span class="math inline">\mathbf{r}</span>:</em></p>
-<p><span id="eq-15-moment-replay"><span class="math display">\mathbb{E}[\tilde{\tau}] = \text{ReplayCommands}(C, \mathbf{r})[v_0], \tag{16.1}</span></span></p>
+<p><span class="theorem-title"><strong>Definition 17.1 (Moment computation via elimination replay)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> represent <span class="math inline">\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})</span> (<a href="01_preliminaries.html#def-01-ph-graph" class="quarto-xref">Definition&nbsp;<span>2.13</span></a>) with elimination command sequence <span class="math inline">C</span> (<a href="06_graph_elimination.html#def-06-reward-compute-graph" class="quarto-xref">Definition&nbsp;<span>7.6</span></a>). The <span class="math inline">k</span>-th factorial moment of the reward-transformed absorption time <span class="citation" data-cites="neuts1981 bladt2017">(<a href="28_references.html#ref-neuts1981" role="doc-biblioref">Neuts 1981</a>; <a href="28_references.html#ref-bladt2017" role="doc-biblioref">Bladt and Nielsen 2017</a>)</span> is computed by replaying <span class="math inline">C</span> with reward vector <span class="math inline">\mathbf{r}</span>:</em></p>
+<p><span id="eq-15-moment-replay"><span class="math display">\mathbb{E}[\tilde{\tau}] = \text{ReplayCommands}(C, \mathbf{r})[v_0], \tag{17.1}</span></span></p>
 <p><em>where <span class="math inline">\text{ReplayCommands}</span> is <a href="06_graph_elimination.html#alg-06-moment-commands" class="quarto-xref">Algorithm&nbsp;<span>7.3</span></a> and <span class="math inline">v_0</span> is the starting vertex. With <span class="math inline">\mathbf{r} = \mathbf{e}</span> (the all-ones vector), this gives the expected absorption time <span class="math inline">\mathbb{E}[\tau]</span>. With an arbitrary reward vector <span class="math inline">\mathbf{r} = (r_1, \ldots, r_p)^\top</span>, this gives <span class="math inline">\mathbb{E}[\tilde{\tau}] = \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{r}) \mathbf{e}</span> (<a href="01_preliminaries.html#def-01-reward-cph" class="quarto-xref">Definition&nbsp;<span>2.9</span></a>).</em></p>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> The elimination commands encode the structure of the Green matrix <span class="math inline">\mathbf{U} = (-\mathbf{S})^{-1}</span> in a sparse, sequential form. Replaying them with a reward vector computes the matrix-vector product <span class="math inline">\mathbf{U} \triangle(\mathbf{r}) \mathbf{e}</span> without explicitly forming <span class="math inline">\mathbf{U}</span>. Changing the reward vector changes which “weighted sojourn time” is computed, without re-running the elimination.</p>
-</blockquote>
-<blockquote class="blockquote">
-<p><strong>Example.</strong> Consider a three-state Erlang process <span class="math inline">v_0 \to v_1 \to v_2 \to v_a</span> with equal rates <span class="math inline">\lambda = 2</span>. With unit rewards, <span class="math inline">\text{ReplayCommands}(C, \mathbf{e})[v_0] = \mathbb{E}[\tau] = 3/2</span>. With reward <span class="math inline">\mathbf{r} = (0, 1, 0)^\top</span> (only counting time in state <span class="math inline">v_2</span>), the result is <span class="math inline">\mathbb{E}[\tilde{\tau}] = 1/2</span>.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+The elimination commands encode the structure of the Green matrix <span class="math inline">\mathbf{U} = (-\mathbf{S})^{-1}</span> <span class="citation" data-cites="neuts1981">(<a href="28_references.html#ref-neuts1981" role="doc-biblioref">Neuts 1981</a>)</span> in a sparse, sequential form. Replaying them with a reward vector computes the matrix-vector product <span class="math inline">\mathbf{U} \triangle(\mathbf{r}) \mathbf{e}</span> without explicitly forming <span class="math inline">\mathbf{U}</span>. Changing the reward vector changes which “weighted sojourn time” is computed, without re-running the elimination.
+</details>
+<details>
+<summary>
+Example
+</summary>
+Consider a three-state Erlang process <span class="math inline">v_0 \to v_1 \to v_2 \to v_a</span> with equal rates <span class="math inline">\lambda = 2</span>. With unit rewards, <span class="math inline">\text{ReplayCommands}(C, \mathbf{e})[v_0] = \mathbb{E}[\tau] = 3/2</span>. With reward <span class="math inline">\mathbf{r} = (0, 1, 0)^\top</span> (only counting time in state <span class="math inline">v_2</span>), the result is <span class="math inline">\mathbb{E}[\tilde{\tau}] = 1/2</span>.
+</details>
 <div id="fig-15-moment-example" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-15-moment-example-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <embed src="images/moment_computation_example.pdf" class="img-fluid">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-15-moment-example-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;16.1: Computing expected absorption time in reverse topological order. Starting from an acyclic graph (top left) with vertex scalars (blue numbers), the algorithm processes vertices bottom-up. At each step, a vertex accumulates the weighted contributions of its children (edge probability times child’s accumulated value) and adds its own vertex scalar. The final value at the starting vertex (bottom right) gives the expected absorption time <span class="math inline">\mathbb{E}[\tau]</span>.
+Figure&nbsp;17.1: Computing expected absorption time in reverse topological order. Starting from an acyclic graph (top left) with vertex scalars (blue numbers), the algorithm processes vertices bottom-up. At each step, a vertex accumulates the weighted contributions of its children (edge probability times child’s accumulated value) and adds its own vertex scalar. The final value at the starting vertex (bottom right) gives the expected absorption time <span class="math inline">\mathbb{E}[\tau]</span>.
 </figcaption>
 </figure>
 </div>
 <div id="def-15-higher-moments" class="theorem definition">
-<p><span class="theorem-title"><strong>Definition 16.2 (Higher-order moments via iterated replay)</strong></span> <em>Let <span class="math inline">G</span>, <span class="math inline">C</span>, and <span class="math inline">\mathbf{r}</span> be as in <a href="#def-15-moment-replay" class="quarto-xref">Definition&nbsp;<span>16.1</span></a>. The <span class="math inline">n</span>-th moment of the reward-transformed absorption time is computed by the iteration:</em></p>
+<p><span class="theorem-title"><strong>Definition 17.2 (Higher-order moments via iterated replay)</strong></span> <em>Let <span class="math inline">G</span>, <span class="math inline">C</span>, and <span class="math inline">\mathbf{r}</span> be as in <a href="#def-15-moment-replay" class="quarto-xref">Definition&nbsp;<span>17.1</span></a>. The <span class="math inline">n</span>-th moment of the reward-transformed absorption time is computed by the iteration:</em></p>
 <ol type="1">
 <li><em>Initialize: <span class="math inline">\mathbf{r}^{(0)} = \mathbf{r}</span> (the base reward vector).</em></li>
 <li><em>For <span class="math inline">i = 1, \ldots, n</span>: compute <span class="math inline">\mathbf{r}^{(i)} = \text{ReplayCommands}(C, \mathbf{r}^{(i-1)})</span>, retaining the full result vector (not just the starting vertex entry).</em></li>
@@ -494,38 +531,50 @@ Figure&nbsp;16.1: Computing expected absorption time in reverse topological orde
 </ol>
 <p><em>Equivalently, each replay computes the vector <span class="math inline">\mathbf{U} \triangle(\mathbf{r}^{(i-1)}) \mathbf{e}</span> at every vertex, which becomes the reward vector for the next replay.</em></p>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> The <span class="math inline">n</span>-th moment formula <span class="math inline">\mathbb{E}[\tau^n] = n! \, \boldsymbol{\alpha} (-\mathbf{S})^{-n} \mathbf{e} = n! \, \boldsymbol{\alpha} \mathbf{U}^n \mathbf{e}</span> (<a href="01_preliminaries.html#def-01-cph-moments" class="quarto-xref">Definition&nbsp;<span>2.4</span></a>) involves the <span class="math inline">n</span>-th power of <span class="math inline">\mathbf{U}</span>. Rather than computing <span class="math inline">\mathbf{U}^n</span> directly, we compute <span class="math inline">\mathbf{U} \mathbf{e}</span>, then <span class="math inline">\mathbf{U} \cdot (\mathbf{U} \mathbf{e})</span>, then <span class="math inline">\mathbf{U} \cdot (\mathbf{U}^2 \mathbf{e})</span>, and so on. Each step is a replay of the elimination commands with the previous result as the new reward vector. The factorial <span class="math inline">n!</span> accounts for the ordering of the <span class="math inline">n</span> sojourn time contributions. For reward-transformed distributions, the reward matrix <span class="math inline">\triangle(\mathbf{r})</span> is inserted between the <span class="math inline">\mathbf{U}</span> factors: <span class="math inline">\mathbb{E}[\tilde{\tau}^n] = n! \, \boldsymbol{\alpha} (\mathbf{U} \triangle(\mathbf{r}))^n \mathbf{e}</span>.</p>
-</blockquote>
-<blockquote class="blockquote">
-<p><strong>Example.</strong> For the Erlang(3, 2) distribution with unit rewards: <span class="math inline">\mathbf{r}^{(0)} = (1, 1, 1)^\top</span>. After the first replay, <span class="math inline">\mathbf{r}^{(1)}[v_i] = \mathbb{E}_{v_i}[\tau]</span> gives the expected absorption time starting from each vertex. After the second replay, <span class="math inline">\mathbb{E}[\tau^2] = 2 \cdot \mathbf{r}^{(2)}[v_0]</span>.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+The <span class="math inline">n</span>-th moment formula <span class="math inline">\mathbb{E}[\tau^n] = n! \, \boldsymbol{\alpha} (-\mathbf{S})^{-n} \mathbf{e} = n! \, \boldsymbol{\alpha} \mathbf{U}^n \mathbf{e}</span> (<a href="01_preliminaries.html#def-01-cph-moments" class="quarto-xref">Definition&nbsp;<span>2.4</span></a>) involves the <span class="math inline">n</span>-th power of <span class="math inline">\mathbf{U}</span>. Rather than computing <span class="math inline">\mathbf{U}^n</span> directly, we compute <span class="math inline">\mathbf{U} \mathbf{e}</span>, then <span class="math inline">\mathbf{U} \cdot (\mathbf{U} \mathbf{e})</span>, then <span class="math inline">\mathbf{U} \cdot (\mathbf{U}^2 \mathbf{e})</span>, and so on. Each step is a replay of the elimination commands with the previous result as the new reward vector. The factorial <span class="math inline">n!</span> accounts for the ordering of the <span class="math inline">n</span> sojourn time contributions. For reward-transformed distributions, the reward matrix <span class="math inline">\triangle(\mathbf{r})</span> is inserted between the <span class="math inline">\mathbf{U}</span> factors: <span class="math inline">\mathbb{E}[\tilde{\tau}^n] = n! \, \boldsymbol{\alpha} (\mathbf{U} \triangle(\mathbf{r}))^n \mathbf{e}</span>.
+</details>
+<details>
+<summary>
+Example
+</summary>
+For the Erlang(3, 2) distribution with unit rewards: <span class="math inline">\mathbf{r}^{(0)} = (1, 1, 1)^\top</span>. After the first replay, <span class="math inline">\mathbf{r}^{(1)}[v_i] = \mathbb{E}_{v_i}[\tau]</span> gives the expected absorption time starting from each vertex. After the second replay, <span class="math inline">\mathbb{E}[\tau^2] = 2 \cdot \mathbf{r}^{(2)}[v_0]</span>.
+</details>
 <div id="def-15-sojourn-cross-moments" class="theorem definition">
-<p><span class="theorem-title"><strong>Definition 16.3 (Expected sojourn times and cross-moments for MPH)</strong></span> <em>Let <span class="math inline">G</span> represent <span class="math inline">\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})</span> with <span class="math inline">|V|</span> vertices and elimination commands <span class="math inline">C</span>. The expected sojourn time vector is the <span class="math inline">|V|</span>-dimensional vector</em></p>
-<p><span id="eq-15-sojourn-times"><span class="math display">\mathbf{z} = (z_1, \ldots, z_{|V|}), \quad z_j = \boldsymbol{\alpha} \mathbf{U} \mathbf{e}_j = \mathbb{E}\left[\int_0^\tau \mathbb{1}_{\{X_t = j\}} \, dt\right], \tag{16.2}</span></span></p>
+<p><span class="theorem-title"><strong>Definition 17.3 (Expected sojourn times and cross-moments for MPH)</strong></span> <em>Let <span class="math inline">G</span> represent <span class="math inline">\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})</span> with <span class="math inline">|V|</span> vertices and elimination commands <span class="math inline">C</span>. The expected sojourn time vector is the <span class="math inline">|V|</span>-dimensional vector</em></p>
+<p><span id="eq-15-sojourn-times"><span class="math display">\mathbf{z} = (z_1, \ldots, z_{|V|}), \quad z_j = \boldsymbol{\alpha} \mathbf{U} \mathbf{e}_j = \mathbb{E}\left[\int_0^\tau \mathbb{1}_{\{X_t = j\}} \, dt\right], \tag{17.2}</span></span></p>
 <p><em>where <span class="math inline">\mathbf{e}_j</span> is the <span class="math inline">j</span>-th standard basis vector and <span class="math inline">z_j</span> is the expected total time spent in state <span class="math inline">j</span> before absorption.</em></p>
-<p><em>For a multivariate phase-type distribution <span class="math inline">\mathbf{Y} \sim \operatorname{MPH}(\boldsymbol{\alpha}, \mathbf{S}, \mathbf{R})</span> (<a href="01_preliminaries.html#def-01-mph" class="quarto-xref">Definition&nbsp;<span>2.10</span></a>), the <span class="math inline">j</span>-th marginal mean is <span class="math inline">\mathbb{E}[Y_j] = \sum_v z_v \cdot R_{vj}</span>, and the second-order cross-moment between marginals <span class="math inline">i</span> and <span class="math inline">j</span> is</em></p>
-<p><span id="eq-15-cross-moment"><span class="math display">\mathbb{E}[Y_i Y_j] = \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{R}_{\cdot i}) \mathbf{U} \triangle(\mathbf{R}_{\cdot j}) \mathbf{e} + \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{R}_{\cdot j}) \mathbf{U} \triangle(\mathbf{R}_{\cdot i}) \mathbf{e}, \tag{16.3}</span></span></p>
+<p><em>For a multivariate phase-type distribution <span class="math inline">\mathbf{Y} \sim \operatorname{MPH}(\boldsymbol{\alpha}, \mathbf{S}, \mathbf{R})</span> (<a href="01_preliminaries.html#def-01-mph" class="quarto-xref">Definition&nbsp;<span>2.10</span></a>) <span class="citation" data-cites="kulkarni1989 hobolth2024">(<a href="28_references.html#ref-kulkarni1989" role="doc-biblioref">Kulkarni 1989</a>; <a href="28_references.html#ref-hobolth2024" role="doc-biblioref">Hobolth et al. 2024</a>)</span>, the <span class="math inline">j</span>-th marginal mean is <span class="math inline">\mathbb{E}[Y_j] = \sum_v z_v \cdot R_{vj}</span>, and the second-order cross-moment between marginals <span class="math inline">i</span> and <span class="math inline">j</span> is</em></p>
+<p><span id="eq-15-cross-moment"><span class="math display">\mathbb{E}[Y_i Y_j] = \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{R}_{\cdot i}) \mathbf{U} \triangle(\mathbf{R}_{\cdot j}) \mathbf{e} + \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{R}_{\cdot j}) \mathbf{U} \triangle(\mathbf{R}_{\cdot i}) \mathbf{e}, \tag{17.3}</span></span></p>
 <p><em>where <span class="math inline">\mathbf{R}_{\cdot i}</span> denotes column <span class="math inline">i</span> of the reward matrix <span class="math inline">\mathbf{R}</span> (<a href="01_preliminaries.html#def-01-mph-crossmoments" class="quarto-xref">Definition&nbsp;<span>2.11</span></a>).</em></p>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> The expected sojourn time <span class="math inline">z_j</span> answers: “on average, how long does the process spend in state <span class="math inline">j</span>?” Computing all <span class="math inline">|V|</span> sojourn times simultaneously requires replaying the elimination commands with <span class="math inline">|V|</span> reward vectors (one basis vector per state) in parallel, which is equivalent to computing the full Green matrix row <span class="math inline">\boldsymbol{\alpha} \mathbf{U}</span>. Cross-moments for MPH distributions require two replays: the first with reward vector <span class="math inline">\mathbf{R}_{\cdot j}</span> produces the intermediate result, and the second with reward vector <span class="math inline">\mathbf{R}_{\cdot i}</span> applied to that intermediate result produces one of the two terms in <a href="#eq-15-cross-moment" class="quarto-xref">Equation&nbsp;<span>16.3</span></a>. The symmetrized sum accounts for both orderings of the two reward accumulations.</p>
-</blockquote>
-<blockquote class="blockquote">
-<p><strong>Example.</strong> Consider an MPH with two marginals and two transient states. If <span class="math inline">z_1 = 0.5</span>, <span class="math inline">z_2 = 0.3</span>, and <span class="math inline">\mathbf{R}_{\cdot 1} = (1, 0)^\top</span>, <span class="math inline">\mathbf{R}_{\cdot 2} = (0, 1)^\top</span> (each marginal measures time in one state), then <span class="math inline">\mathbb{E}[Y_1] = z_1 = 0.5</span> and <span class="math inline">\mathbb{E}[Y_2] = z_2 = 0.3</span>. The cross-moment requires two replays to compute <span class="math inline">\boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{R}_{\cdot 1}) \mathbf{U} \triangle(\mathbf{R}_{\cdot 2}) \mathbf{e}</span> and its symmetric counterpart.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+The expected sojourn time <span class="math inline">z_j</span> answers: “on average, how long does the process spend in state <span class="math inline">j</span>?” Computing all <span class="math inline">|V|</span> sojourn times simultaneously requires replaying the elimination commands with <span class="math inline">|V|</span> reward vectors (one basis vector per state) in parallel, which is equivalent to computing the full Green matrix row <span class="math inline">\boldsymbol{\alpha} \mathbf{U}</span>. Cross-moments for MPH distributions require two replays: the first with reward vector <span class="math inline">\mathbf{R}_{\cdot j}</span> produces the intermediate result, and the second with reward vector <span class="math inline">\mathbf{R}_{\cdot i}</span> applied to that intermediate result produces one of the two terms in <a href="#eq-15-cross-moment" class="quarto-xref">Equation&nbsp;<span>17.3</span></a>. The symmetrized sum accounts for both orderings of the two reward accumulations.
+</details>
+<details>
+<summary>
+Example
+</summary>
+Consider an MPH with two marginals and two transient states. If <span class="math inline">z_1 = 0.5</span>, <span class="math inline">z_2 = 0.3</span>, and <span class="math inline">\mathbf{R}_{\cdot 1} = (1, 0)^\top</span>, <span class="math inline">\mathbf{R}_{\cdot 2} = (0, 1)^\top</span> (each marginal measures time in one state), then <span class="math inline">\mathbb{E}[Y_1] = z_1 = 0.5</span> and <span class="math inline">\mathbb{E}[Y_2] = z_2 = 0.3</span>. The cross-moment requires two replays to compute <span class="math inline">\boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{R}_{\cdot 1}) \mathbf{U} \triangle(\mathbf{R}_{\cdot 2}) \mathbf{e}</span> and its symmetric counterpart.
+</details>
 </section>
 <section id="theorems-and-proofs" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="theorems-and-proofs">Theorems and Proofs</h2>
 <div id="thm-15-higher-moments" class="theorem">
-<p><span class="theorem-title"><strong>Theorem 16.1 (Higher moments by iterated replay)</strong></span> <em>Let <span class="math inline">G</span> represent <span class="math inline">\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})</span> with elimination commands <span class="math inline">C</span> and Green matrix <span class="math inline">\mathbf{U} = (-\mathbf{S})^{-1}</span>. Let <span class="math inline">\mathbf{r}</span> be a reward vector with <span class="math inline">r_v &gt; 0</span> for all transient vertices. Define the iteration <span class="math inline">\mathbf{r}^{(0)} = \mathbf{r}</span> and <span class="math inline">\mathbf{r}^{(i)} = \text{ReplayCommands}(C, \mathbf{r}^{(i-1)})</span> for <span class="math inline">i \geq 1</span>. Then:</em></p>
-<p><span id="eq-15-iterated-replay"><span class="math display">\mathbf{r}^{(n)}[v_0] = \boldsymbol{\alpha} \left(\mathbf{U} \triangle(\mathbf{r})\right)^n \mathbf{e}, \tag{16.4}</span></span></p>
+<p><span class="theorem-title"><strong>Theorem 17.1 (Higher moments by iterated replay)</strong></span> <em>Let <span class="math inline">G</span> represent <span class="math inline">\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})</span> with elimination commands <span class="math inline">C</span> and Green matrix <span class="math inline">\mathbf{U} = (-\mathbf{S})^{-1}</span>. Let <span class="math inline">\mathbf{r}</span> be a reward vector with <span class="math inline">r_v &gt; 0</span> for all transient vertices. Define the iteration <span class="math inline">\mathbf{r}^{(0)} = \mathbf{r}</span> and <span class="math inline">\mathbf{r}^{(i)} = \text{ReplayCommands}(C, \mathbf{r}^{(i-1)})</span> for <span class="math inline">i \geq 1</span>. Then:</em></p>
+<p><span id="eq-15-iterated-replay"><span class="math display">\mathbf{r}^{(n)}[v_0] = \boldsymbol{\alpha} \left(\mathbf{U} \triangle(\mathbf{r})\right)^n \mathbf{e}, \tag{17.4}</span></span></p>
 <p><em>and consequently</em></p>
-<p><span id="eq-15-nth-moment"><span class="math display">\mathbb{E}[\tilde{\tau}^n] = n! \cdot \mathbf{r}^{(n)}[v_0], \tag{16.5}</span></span></p>
+<p><span id="eq-15-nth-moment"><span class="math display">\mathbb{E}[\tilde{\tau}^n] = n! \cdot \mathbf{r}^{(n)}[v_0], \tag{17.5}</span></span></p>
 <p><em>where <span class="math inline">\tilde{\tau} = \int_0^\tau r(X_t) \, dt</span> is the reward-transformed absorption time (<a href="01_preliminaries.html#def-01-reward-cph" class="quarto-xref">Definition&nbsp;<span>2.9</span></a>).</em></p>
 </div>
 <div class="proof">
-<p><span class="proof-title"><em>Proof</em>. </span>We prove <a href="#eq-15-iterated-replay" class="quarto-xref">Equation&nbsp;<span>16.4</span></a> by induction on <span class="math inline">n</span>.</p>
+<p><span class="proof-title"><em>Proof</em>. </span>We prove <a href="#eq-15-iterated-replay" class="quarto-xref">Equation&nbsp;<span>17.4</span></a> by induction on <span class="math inline">n</span>.</p>
 <p><strong>Base case</strong> (<span class="math inline">n = 1</span>): By the correctness of <a href="06_graph_elimination.html#alg-06-moment-commands" class="quarto-xref">Algorithm&nbsp;<span>7.3</span></a> (established in [06]), <span class="math inline">\mathbf{r}^{(1)} = \text{ReplayCommands}(C, \mathbf{r})</span> computes entry-wise <span class="math inline">\mathbf{r}^{(1)}_v = \mathbb{E}_v[\tilde{\tau}]</span> for each vertex <span class="math inline">v</span>. In matrix notation, this is the vector <span class="math inline">\mathbf{U} \triangle(\mathbf{r}) \mathbf{e}</span> (evaluated at each starting state). At the starting vertex, <span class="math inline">\mathbf{r}^{(1)}[v_0] = \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{r}) \mathbf{e}</span>, since the starting vertex distributes mass according to <span class="math inline">\boldsymbol{\alpha}</span>.</p>
 <p><strong>Inductive step</strong>: Assume <span class="math inline">\mathbf{r}^{(n-1)}</span> satisfies <span class="math inline">\mathbf{r}^{(n-1)}_v = \mathbf{e}_v^\top (\mathbf{U} \triangle(\mathbf{r}))^{n-1} \mathbf{e}</span> for each vertex <span class="math inline">v</span> (the expected <span class="math inline">(n-1)</span>-th moment starting from <span class="math inline">v</span>). Then</p>
 <p><span class="math display">\mathbf{r}^{(n)} = \text{ReplayCommands}(C, \mathbf{r}^{(n-1)}).</span></p>
@@ -543,8 +592,8 @@ Figure&nbsp;16.1: Computing expected absorption time in reverse topological orde
 <p>where <span class="math inline">\circ</span> denotes the Hadamard (element-wise) product and <span class="math inline">\mathbf{r}^{(0)} = \mathbf{e}</span>. Then <span class="math inline">\mathbf{r}^{(i)}[v] = [\mathbf{U}(\triangle(\mathbf{r}))^i \mathbf{e}]_v</span> and <span class="math inline">n! \cdot \mathbf{r}^{(n)}[v_0]</span> gives the <span class="math inline">n</span>-th moment. For unit rewards (<span class="math inline">\mathbf{r} = \mathbf{e}</span>), the Hadamard product is the identity and the simpler iteration suffices. <span class="math inline">\square</span></p>
 </div>
 <div id="thm-15-cross-moment" class="theorem">
-<p><span class="theorem-title"><strong>Theorem 16.2 (Cross-moment computation for MPH)</strong></span> <em>Let <span class="math inline">\mathbf{Y} \sim \operatorname{MPH}(\boldsymbol{\alpha}, \mathbf{S}, \mathbf{R})</span> with Green matrix <span class="math inline">\mathbf{U}</span> and elimination commands <span class="math inline">C</span>. The second-order cross-moment <span class="math inline">\mathbb{E}[Y_i Y_j]</span> is computed by:</em></p>
-<p><span id="eq-15-cross-moment-computation"><span class="math display">\mathbb{E}[Y_i Y_j] = \text{ReplayCommands}(C, \mathbf{R}_{\cdot i} \circ \mathbf{h}_j)[v_0] + \text{ReplayCommands}(C, \mathbf{R}_{\cdot j} \circ \mathbf{h}_i)[v_0], \tag{16.6}</span></span></p>
+<p><span class="theorem-title"><strong>Theorem 17.2 (Cross-moment computation for MPH)</strong></span> <em>Let <span class="math inline">\mathbf{Y} \sim \operatorname{MPH}(\boldsymbol{\alpha}, \mathbf{S}, \mathbf{R})</span> with Green matrix <span class="math inline">\mathbf{U}</span> and elimination commands <span class="math inline">C</span>. The second-order cross-moment <span class="math inline">\mathbb{E}[Y_i Y_j]</span> is computed by:</em></p>
+<p><span id="eq-15-cross-moment-computation"><span class="math display">\mathbb{E}[Y_i Y_j] = \text{ReplayCommands}(C, \mathbf{R}_{\cdot i} \circ \mathbf{h}_j)[v_0] + \text{ReplayCommands}(C, \mathbf{R}_{\cdot j} \circ \mathbf{h}_i)[v_0], \tag{17.6}</span></span></p>
 <p><em>where <span class="math inline">\mathbf{h}_j = \text{ReplayCommands}(C, \mathbf{R}_{\cdot j})</span> is the intermediate vector from the first replay with reward <span class="math inline">\mathbf{R}_{\cdot j}</span>, and similarly for <span class="math inline">\mathbf{h}_i</span>.</em></p>
 </div>
 <div class="proof">
@@ -559,8 +608,8 @@ Figure&nbsp;16.1: Computing expected absorption time in reverse topological orde
 <h2 class="unnumbered anchored" data-anchor-id="algorithms">Algorithms</h2>
 <div id="alg-15-kth-moment" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-alg figure">
-<section id="k-th-moment-computation" class="level4" aria-describedby="alg-15-kth-moment-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="16.0.0.1">
-<h4 data-number="16.0.0.1" class="anchored" data-anchor-id="k-th-moment-computation"><span class="header-section-number">16.0.0.1</span> <span class="math inline">k</span>-th Moment Computation</h4>
+<section id="k-th-moment-computation" class="level4" aria-describedby="alg-15-kth-moment-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="17.0.0.1">
+<h4 data-number="17.0.0.1" class="anchored" data-anchor-id="k-th-moment-computation"><span class="header-section-number">17.0.0.1</span> <span class="math inline">k</span>-th Moment Computation</h4>
 <p><em>Description.</em> This algorithm computes the <span class="math inline">k</span>-th moment of a (possibly reward-transformed) phase-type distribution by iterated replay of the elimination commands. For <span class="math inline">k = 1</span> it reduces to <a href="06_graph_elimination.html#alg-06-moment-commands" class="quarto-xref">Algorithm&nbsp;<span>7.3</span></a>. The full sojourn time vector is computed for each intermediate replay, as it serves as the reward vector for the next iteration.</p>
 <pre><code>k-th Moment Computation
 1: Let C be the elimination command sequence (@def-06-reward-compute-graph)
@@ -620,15 +669,15 @@ Figure&nbsp;16.1: Computing expected absorption time in reverse topological orde
 <p><strong>Complexity.</strong> Time: <span class="math inline">O(k \cdot N)</span> where <span class="math inline">N \leq |V|^2</span> is the number of elimination commands. Each replay costs <span class="math inline">O(N)</span>, and <span class="math inline">k</span> replays are needed. Space: <span class="math inline">O(|V|)</span> for the result vector (reused across iterations).</p>
 </section>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-15-kth-moment-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Algorithm&nbsp;16.1: <strong>Correctness.</strong> Follows from <a href="#thm-15-higher-moments" class="quarto-xref">Theorem&nbsp;<span>16.1</span></a>. Each replay computes <span class="math inline">\mathbf{U} \triangle(\mathbf{r} \circ \mathbf{h}) \mathbf{e}</span>, and after <span class="math inline">k</span> iterations the starting vertex entry equals <span class="math inline">\boldsymbol{\alpha} (\mathbf{U} \triangle(\mathbf{r}))^k \mathbf{e}</span>. Multiplying by <span class="math inline">k!</span> gives the <span class="math inline">k</span>-th moment by <a href="01_preliminaries.html#def-01-cph-moments" class="quarto-xref">Definition&nbsp;<span>2.4</span></a>.
+Algorithm&nbsp;17.1: <strong>Correctness.</strong> Follows from <a href="#thm-15-higher-moments" class="quarto-xref">Theorem&nbsp;<span>17.1</span></a>. Each replay computes <span class="math inline">\mathbf{U} \triangle(\mathbf{r} \circ \mathbf{h}) \mathbf{e}</span>, and after <span class="math inline">k</span> iterations the starting vertex entry equals <span class="math inline">\boldsymbol{\alpha} (\mathbf{U} \triangle(\mathbf{r}))^k \mathbf{e}</span>. Multiplying by <span class="math inline">k!</span> gives the <span class="math inline">k</span>-th moment by <a href="01_preliminaries.html#def-01-cph-moments" class="quarto-xref">Definition&nbsp;<span>2.4</span></a>.
 </figcaption>
 </figure>
 </div>
 <div id="alg-15-sojourn-cross-moments" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-alg figure">
-<section id="expected-sojourn-times-and-cross-moments-for-mph-1" class="level4" aria-describedby="alg-15-sojourn-cross-moments-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="16.0.0.2">
-<h4 data-number="16.0.0.2" class="anchored" data-anchor-id="expected-sojourn-times-and-cross-moments-for-mph-1"><span class="header-section-number">16.0.0.2</span> Expected Sojourn Times and Cross-Moments for MPH</h4>
-<p><em>Description.</em> This algorithm computes the expected sojourn time in each state by replaying the elimination commands with <span class="math inline">|V|</span> indicator reward vectors simultaneously (one per state). For a subset of <span class="math inline">k</span> target states, only <span class="math inline">k</span> reward vectors are used. Cross-moments are computed by two rounds of replay following <a href="#thm-15-cross-moment" class="quarto-xref">Theorem&nbsp;<span>16.2</span></a>.</p>
+<section id="expected-sojourn-times-and-cross-moments-for-mph-1" class="level4" aria-describedby="alg-15-sojourn-cross-moments-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="17.0.0.2">
+<h4 data-number="17.0.0.2" class="anchored" data-anchor-id="expected-sojourn-times-and-cross-moments-for-mph-1"><span class="header-section-number">17.0.0.2</span> Expected Sojourn Times and Cross-Moments for MPH</h4>
+<p><em>Description.</em> This algorithm computes the expected sojourn time in each state by replaying the elimination commands with <span class="math inline">|V|</span> indicator reward vectors simultaneously (one per state). For a subset of <span class="math inline">k</span> target states, only <span class="math inline">k</span> reward vectors are used. Cross-moments are computed by two rounds of replay following <a href="#thm-15-cross-moment" class="quarto-xref">Theorem&nbsp;<span>17.2</span></a>.</p>
 <pre><code>Expected Sojourn Times
 1: Let C be the elimination command sequence (@def-06-reward-compute-graph)
 2: Let n = |V| be the number of vertices
@@ -715,7 +764,7 @@ Algorithm&nbsp;16.1: <strong>Correctness.</strong> Follows from <a href="#thm-15
 <p><strong>Complexity.</strong> For the full sojourn time computation: Time <span class="math inline">O(N \cdot |V|)</span> where <span class="math inline">N \leq |V|^2</span>, giving <span class="math inline">O(|V|^3)</span> total. Space <span class="math inline">O(|V|^2)</span> for the results matrix. For the subset variant: Time <span class="math inline">O(N \cdot k)</span>, Space <span class="math inline">O(|V| \cdot k)</span>. The subset variant is preferred when <span class="math inline">k \ll |V|</span>.</p>
 </section>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-15-sojourn-cross-moments-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Algorithm&nbsp;16.2: <strong>Correctness.</strong> The full sojourn time computation replays the commands with <span class="math inline">|V|</span> basis vectors <span class="math inline">\mathbf{e}_1, \ldots, \mathbf{e}_{|V|}</span> simultaneously. By linearity of the commands and the correctness of <a href="06_graph_elimination.html#alg-06-moment-commands" class="quarto-xref">Algorithm&nbsp;<span>7.3</span></a>, each column <span class="math inline">r</span> of the result gives <span class="math inline">\text{ReplayCommands}(C, \mathbf{e}_r)</span>, and the starting vertex row gives <span class="math inline">\boldsymbol{\alpha} \mathbf{U} \mathbf{e}_r = z_r</span> (the expected sojourn time in state <span class="math inline">r</span>). The subset variant restricts to <span class="math inline">k</span> selected basis vectors, giving the same result for those indices only.
+Algorithm&nbsp;17.2: <strong>Correctness.</strong> The full sojourn time computation replays the commands with <span class="math inline">|V|</span> basis vectors <span class="math inline">\mathbf{e}_1, \ldots, \mathbf{e}_{|V|}</span> simultaneously. By linearity of the commands and the correctness of <a href="06_graph_elimination.html#alg-06-moment-commands" class="quarto-xref">Algorithm&nbsp;<span>7.3</span></a>, each column <span class="math inline">r</span> of the result gives <span class="math inline">\text{ReplayCommands}(C, \mathbf{e}_r)</span>, and the starting vertex row gives <span class="math inline">\boldsymbol{\alpha} \mathbf{U} \mathbf{e}_r = z_r</span> (the expected sojourn time in state <span class="math inline">r</span>). The subset variant restricts to <span class="math inline">k</span> selected basis vectors, giving the same result for those indices only.
 </figcaption>
 </figure>
 </div>
@@ -747,19 +796,19 @@ Algorithm&nbsp;16.2: <strong>Correctness.</strong> The full sojourn time computa
 </thead>
 <tbody>
 <tr class="odd">
-<td><a href="#alg-15-kth-moment" class="quarto-xref">Algorithm&nbsp;<span>16.1</span></a> (<span class="math inline">k=1</span>)</td>
+<td><a href="#alg-15-kth-moment" class="quarto-xref">Algorithm&nbsp;<span>17.1</span></a> (<span class="math inline">k=1</span>)</td>
 <td><code>src/c/phasic.c</code></td>
 <td><code>ptd_expected_waiting_time</code></td>
 <td>L6118–L6265</td>
 </tr>
 <tr class="even">
-<td><a href="#alg-15-sojourn-cross-moments" class="quarto-xref">Algorithm&nbsp;<span>16.2</span></a> (full)</td>
+<td><a href="#alg-15-sojourn-cross-moments" class="quarto-xref">Algorithm&nbsp;<span>17.2</span></a> (full)</td>
 <td><code>src/c/phasic.c</code></td>
 <td><code>ptd_expected_sojourn_time</code></td>
 <td>L6378–L6521</td>
 </tr>
 <tr class="odd">
-<td><a href="#alg-15-sojourn-cross-moments" class="quarto-xref">Algorithm&nbsp;<span>16.2</span></a> (subset)</td>
+<td><a href="#alg-15-sojourn-cross-moments" class="quarto-xref">Algorithm&nbsp;<span>17.2</span></a> (subset)</td>
 <td><code>src/c/phasic.c</code></td>
 <td><code>ptd_expected_sojourn_time_subset</code></td>
 <td>L6267–L6376</td>
@@ -768,7 +817,7 @@ Algorithm&nbsp;16.2: <strong>Correctness.</strong> The full sojourn time computa
 </table>
 <p><strong>Deviations from pseudocode:</strong></p>
 <ul>
-<li><a href="#alg-15-kth-moment" class="quarto-xref">Algorithm&nbsp;<span>16.1</span></a> is not implemented as an explicit <span class="math inline">k</span>-loop in C. The single-replay case (<span class="math inline">k = 1</span>) is implemented by <code>ptd_expected_waiting_time</code>. Higher moments (<span class="math inline">k &gt; 1</span>) are computed at the Python level by calling <code>ptd_expected_waiting_time</code> repeatedly with updated reward vectors, or by using the reward transformation approach (constructing a new graph with <code>ptd_graph_reward_transform</code> and computing its expected absorption time).</li>
+<li><a href="#alg-15-kth-moment" class="quarto-xref">Algorithm&nbsp;<span>17.1</span></a> is not implemented as an explicit <span class="math inline">k</span>-loop in C. The single-replay case (<span class="math inline">k = 1</span>) is implemented by <code>ptd_expected_waiting_time</code>. Higher moments (<span class="math inline">k &gt; 1</span>) are computed at the Python level by calling <code>ptd_expected_waiting_time</code> repeatedly with updated reward vectors, or by using the reward transformation approach (constructing a new graph with <code>ptd_graph_reward_transform</code> and computing its expected absorption time).</li>
 <li>The full sojourn time algorithm (<code>ptd_expected_sojourn_time</code>) initializes the results matrix as the identity matrix (one-hot vectors), whereas the pseudocode uses “initialized to <span class="math inline">\mathbf{I}_n</span>”. This is equivalent but worth noting: the identity initialization means each “reward vector” is a standard basis vector.</li>
 <li>The subset variant (<code>ptd_expected_sojourn_time_subset</code>) validates that all requested indices are within bounds (<code>&lt; n</code>), returning NULL on out-of-bounds errors.</li>
 <li>The full variant uses Kahan compensated summation via a parallel array of <code>kahan_sum</code> structs, while the subset variant uses plain double accumulation. This is a deliberate trade-off: the subset variant is intended for fast, moderately-sized computations where the additional memory and time cost of Kahan summation is not justified.</li>
@@ -793,37 +842,51 @@ Algorithm&nbsp;16.2: <strong>Correctness.</strong> The full sojourn time computa
 <tr class="odd">
 <td><span class="math inline">\mathbf{h}</span></td>
 <td>Intermediate result vector (iterated replay)</td>
-<td><a href="#def-15-higher-moments" class="quarto-xref">Definition&nbsp;<span>16.2</span></a></td>
+<td><a href="#def-15-higher-moments" class="quarto-xref">Definition&nbsp;<span>17.2</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">\mathbf{h}_j</span></td>
 <td>Intermediate vector from replay with <span class="math inline">\mathbf{R}_{\cdot j}</span></td>
-<td><a href="#def-15-sojourn-cross-moments" class="quarto-xref">Definition&nbsp;<span>16.3</span></a></td>
+<td><a href="#def-15-sojourn-cross-moments" class="quarto-xref">Definition&nbsp;<span>17.3</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">\mathbf{r}^{(i)}</span></td>
 <td>Reward vector at iteration <span class="math inline">i</span></td>
-<td><a href="#def-15-higher-moments" class="quarto-xref">Definition&nbsp;<span>16.2</span></a></td>
+<td><a href="#def-15-higher-moments" class="quarto-xref">Definition&nbsp;<span>17.2</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">\mathbf{z}</span></td>
 <td>Expected sojourn time vector</td>
-<td><a href="#def-15-sojourn-cross-moments" class="quarto-xref">Definition&nbsp;<span>16.3</span></a></td>
+<td><a href="#def-15-sojourn-cross-moments" class="quarto-xref">Definition&nbsp;<span>17.3</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">z_j</span></td>
 <td>Expected sojourn time in state <span class="math inline">j</span></td>
-<td><a href="#def-15-sojourn-cross-moments" class="quarto-xref">Definition&nbsp;<span>16.3</span></a></td>
+<td><a href="#def-15-sojourn-cross-moments" class="quarto-xref">Definition&nbsp;<span>17.3</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">\circ</span></td>
 <td>Hadamard (element-wise) product</td>
-<td><a href="#thm-15-higher-moments" class="quarto-xref">Theorem&nbsp;<span>16.1</span></a></td>
+<td><a href="#thm-15-higher-moments" class="quarto-xref">Theorem&nbsp;<span>17.1</span></a></td>
 </tr>
 </tbody>
 </table>
 
 
+<div id="refs" class="references csl-bib-body hanging-indent" role="list" style="display: none">
+<div id="ref-bladt2017" class="csl-entry" role="listitem">
+Bladt, Mogens, and Bo Friis Nielsen. 2017. <em>Matrix-Exponential Distributions in Applied Probability</em>. Vol. 81. Probability Theory and Stochastic Modelling. Springer. <a href="https://doi.org/10.1007/978-1-4939-7049-0">https://doi.org/10.1007/978-1-4939-7049-0</a>.
+</div>
+<div id="ref-hobolth2024" class="csl-entry" role="listitem">
+Hobolth, Asger, Iker Rivas-González, Mogens Bladt, and Andreas Futschik. 2024. <span>“Phase-Type Distributions in Mathematical Population Genetics: An Emerging Framework.”</span> <em>Theoretical Population Biology</em> 157: 14–32. <a href="https://doi.org/10.1016/j.tpb.2024.03.001">https://doi.org/10.1016/j.tpb.2024.03.001</a>.
+</div>
+<div id="ref-kulkarni1989" class="csl-entry" role="listitem">
+Kulkarni, Vidyadhar G. 1989. <span>“A New Class of Multivariate Phase Type Distributions.”</span> <em>Operations Research</em> 37 (1): 151–58. <a href="https://doi.org/10.1287/opre.37.1.151">https://doi.org/10.1287/opre.37.1.151</a>.
+</div>
+<div id="ref-neuts1981" class="csl-entry" role="listitem">
+Neuts, Marcel F. 1981. <em>Matrix-Geometric Solutions in Stochastic Models: An Algorithmic Approach</em>. Johns Hopkins University Press.
+</div>
+</div>
 </section>
 
 </main> <!-- /main -->
@@ -1230,12 +1293,12 @@ Algorithm&nbsp;16.2: <strong>Correctness.</strong> The full sojourn time computa
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
       <a href="./14_distribution_computation.html" class="pagination-link" aria-label="Distribution Computation">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span>
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
       <a href="./16_pdf_gradients.html" class="pagination-link" aria-label="PDF Gradients">
-        <span class="nav-page-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span> <i class="bi bi-arrow-right-short"></i>
+        <span class="nav-page-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

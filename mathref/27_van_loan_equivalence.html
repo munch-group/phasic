@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>28&nbsp; Van Loan Equivalence – Phasic — Supplementary Online Material</title>
+<title>29&nbsp; Van Loan Equivalence – Phasic — Supplementary Online Material</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -23,7 +23,26 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
@@ -33,6 +52,7 @@ ul.task-list li input[type="checkbox"] {
 <script src="site_libs/quarto-search/fuse.min.js"></script>
 <script src="site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="./">
+<link href="./28_references.html" rel="next">
 <link href="./26_graph_builder.html" rel="prev">
 <script src="site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
@@ -127,7 +147,7 @@ window.Quarto = {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./25_jax_integration.html">Integration</a></li><li class="breadcrumb-item"><a href="./27_van_loan_equivalence.html"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./25_jax_integration.html">Integration</a></li><li class="breadcrumb-item"><a href="./27_van_loan_equivalence.html"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -222,8 +242,14 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./07b_fill_in_complexity.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Fill-In During Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./08_state_space_construction.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
   </div>
 </li>
       </ul>
@@ -240,31 +266,31 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./09_symbolic_expressions.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./10_symbolic_graph_elimination.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./11_trace_system.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./12_graph_hashing.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./13_scc_trace_stitching.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
   </div>
 </li>
       </ul>
@@ -281,19 +307,19 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./14_distribution_computation.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./15_moment_computation.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./16_pdf_gradients.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
   </div>
 </li>
       </ul>
@@ -310,7 +336,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./17_sampling.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
   </div>
 </li>
       </ul>
@@ -327,31 +353,31 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./18_svgd.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./19_mcmc.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./20_bffg.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./21_method_of_moments.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./22_probability_matching.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
   </div>
 </li>
       </ul>
@@ -368,13 +394,13 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./23_state_indexing.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./24_hex_grid.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
   </div>
 </li>
       </ul>
@@ -391,23 +417,29 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./25_jax_integration.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./26_graph_builder.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./27_van_loan_equivalence.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
   </div>
 </li>
       </ul>
   </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./28_references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">References</span></span></a>
+  </div>
+</li>
     </ul>
     </div>
 </nav>
@@ -431,9 +463,9 @@ window.Quarto = {
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./25_jax_integration.html">Integration</a></li><li class="breadcrumb-item"><a href="./27_van_loan_equivalence.html"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./25_jax_integration.html">Integration</a></li><li class="breadcrumb-item"><a href="./27_van_loan_equivalence.html"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></h1>
+<h1 class="title"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></h1>
 </div>
 
 
@@ -452,8 +484,8 @@ window.Quarto = {
 
 <section id="introduction" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="introduction">Introduction</h2>
-<p>This file formalizes the mathematical equivalence between Van Loan’s block matrix method for computing integrals involving matrix exponentials and phasic’s graph-based algorithms for phase-type distributions. Van Loan’s method (Van Loan, 1978) computes integrals of the form <span class="math inline">\int_0^t e^{\mathbf{A}s} \mathbf{B} \, ds</span> by exponentiating a single augmented block matrix. Phasic’s graph algorithms compute the same quantities—accumulated occupancy times, survival probabilities, and reward-accumulated moments—through the forward algorithm and graph elimination on sparse graph structures.</p>
-<p>The equivalence has practical significance: it establishes that phasic can serve as a general-purpose engine for Van Loan integration on large, sparse Markov systems where traditional matrix methods are computationally infeasible. In particular, epoch-wise (time-inhomogeneous) models with piecewise-constant rates, which arise in population genetics (coalescent models with demographic history), are handled by sequential graph construction with cross-epoch transition edges. The cross-epoch formula involves survival probabilities and accumulated occupancy times that correspond precisely to the blocks of the Van Loan matrix exponential product.</p>
+<p>This file formalizes the mathematical equivalence between Van Loan’s block matrix method for computing integrals involving matrix exponentials and phasic’s graph-based algorithms for phase-type distributions. The method of <span class="citation" data-cites="vanloan1978">Van Loan (<a href="28_references.html#ref-vanloan1978" role="doc-biblioref">1978</a>)</span> computes integrals of the form <span class="math inline">\int_0^t e^{\mathbf{A}s} \mathbf{B} \, ds</span> by exponentiating a single augmented block matrix. Phasic’s graph algorithms compute the same quantities—accumulated occupancy times, survival probabilities, and reward-accumulated moments—through the forward algorithm and graph elimination on sparse graph structures.</p>
+<p>The equivalence has practical significance: it establishes that phasic can serve as a general-purpose engine for Van Loan integration on large, sparse Markov systems where traditional matrix methods are computationally infeasible. In particular, epoch-wise (time-inhomogeneous) models with piecewise-constant rates, which arise in population genetics [coalescent models with demographic history; <span class="citation" data-cites="kingman1982">Kingman (<a href="28_references.html#ref-kingman1982" role="doc-biblioref">1982</a>)</span>], are handled by sequential graph construction with cross-epoch transition edges. The cross-epoch formula involves survival probabilities and accumulated occupancy times that correspond precisely to the blocks of the Van Loan matrix exponential product.</p>
 <p>This file formalizes and proves the results presented informally in <code>docs/pages/topics/van_loen_graph_equivalence.md</code>.</p>
 <p><strong>Prerequisites:</strong> [01], [06], [14], [15]</p>
 <p><strong>Source files:</strong></p>
@@ -468,57 +500,69 @@ window.Quarto = {
 <p><strong>Recall</strong> (<a href="01_preliminaries.html#def-01-cph" class="quarto-xref">Definition&nbsp;<span>2.2</span></a>). <em>A continuous phase-type distribution <span class="math inline">\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})</span> has PDF <span class="math inline">f_\tau(t) = \boldsymbol{\alpha} e^{\mathbf{S}t} \mathbf{s}</span> where <span class="math inline">\mathbf{s} = -\mathbf{S}\mathbf{e}</span>.</em></p>
 </blockquote>
 <blockquote class="blockquote">
-<p><strong>Recall</strong> (<a href="14_distribution_computation.html#def-14-uniformization" class="quarto-xref">Definition&nbsp;<span>15.1</span></a>). <em>Uniformization of a CPH graph with granularity <span class="math inline">g</span> produces a discrete-time chain with sub-transition matrix <span class="math inline">\mathbf{T}_g = \mathbf{I} + \frac{1}{g}\mathbf{S}</span>.</em></p>
+<p><strong>Recall</strong> (<a href="14_distribution_computation.html#def-14-uniformization" class="quarto-xref">Definition&nbsp;<span>16.1</span></a>). <em>Uniformization <span class="citation" data-cites="jensen1953">(<a href="28_references.html#ref-jensen1953" role="doc-biblioref">Jensen 1953</a>)</span> of a CPH graph with granularity <span class="math inline">g</span> produces a discrete-time chain with sub-transition matrix <span class="math inline">\mathbf{T}_g = \mathbf{I} + \frac{1}{g}\mathbf{S}</span>.</em></p>
 </blockquote>
 <blockquote class="blockquote">
-<p><strong>Recall</strong> (<a href="15_moment_computation.html#def-15-moment-replay" class="quarto-xref">Definition&nbsp;<span>16.1</span></a>). <em>The <span class="math inline">k</span>-th moment <span class="math inline">\mathbb{E}[\tau^k] = k! \, \boldsymbol{\alpha} (-\mathbf{S})^{-k} \mathbf{e}</span> is computed via iterated expected waiting time on the graph.</em></p>
+<p><strong>Recall</strong> (<a href="15_moment_computation.html#def-15-moment-replay" class="quarto-xref">Definition&nbsp;<span>17.1</span></a>). <em>The <span class="math inline">k</span>-th moment <span class="math inline">\mathbb{E}[\tau^k] = k! \, \boldsymbol{\alpha} (-\mathbf{S})^{-k} \mathbf{e}</span> is computed via iterated expected waiting time on the graph.</em></p>
 </blockquote>
 <blockquote class="blockquote">
 <p><strong>Recall</strong> (<a href="06_graph_elimination.html#def-06-vertex-elimination" class="quarto-xref">Definition&nbsp;<span>7.1</span></a>). <em>Graph elimination converts a cyclic graph to an acyclic graph by Gaussian elimination on the graph structure, enabling algebraic computation of moments and expected rewards.</em></p>
 </blockquote>
 <div id="def-27-van-loan" class="definition theorem">
-<p><span class="theorem-title"><strong>Definition 28.1 (Van Loan Block Matrix Method)</strong></span> <em>Let <span class="math inline">\mathbf{S}</span> be a <span class="math inline">p \times p</span> sub-intensity matrix and <span class="math inline">\mathbf{R}_1, \ldots, \mathbf{R}_k</span> be <span class="math inline">p \times p</span> diagonal reward matrices (<a href="01_preliminaries.html#def-01-reward-cph" class="quarto-xref">Definition&nbsp;<span>2.9</span></a>). The Van Loan block matrix of order <span class="math inline">k</span> is the <span class="math inline">(k+1)p \times (k+1)p</span> matrix:</em></p>
+<p><span class="theorem-title"><strong>Definition 29.1 (Van Loan Block Matrix Method)</strong></span> <em>Let <span class="math inline">\mathbf{S}</span> be a <span class="math inline">p \times p</span> sub-intensity matrix and <span class="math inline">\mathbf{R}_1, \ldots, \mathbf{R}_k</span> be <span class="math inline">p \times p</span> diagonal reward matrices (<a href="01_preliminaries.html#def-01-reward-cph" class="quarto-xref">Definition&nbsp;<span>2.9</span></a>). The Van Loan block matrix of order <span class="math inline">k</span> is the <span class="math inline">(k+1)p \times (k+1)p</span> matrix:</em></p>
 <p><span id="eq-27-van-loan-matrix"><span class="math display">\mathbf{V}_k = \begin{pmatrix}
 \mathbf{S} &amp; \triangle(\mathbf{r}_1) &amp; \mathbf{0} &amp; \cdots &amp; \mathbf{0} \\
 \mathbf{0} &amp; \mathbf{S} &amp; \triangle(\mathbf{r}_2) &amp; \cdots &amp; \mathbf{0} \\
 \vdots &amp; &amp; \ddots &amp; \ddots &amp; \vdots \\
 \mathbf{0} &amp; \cdots &amp; \mathbf{0} &amp; \mathbf{S} &amp; \triangle(\mathbf{r}_k) \\
 \mathbf{0} &amp; \cdots &amp; \mathbf{0} &amp; \mathbf{0} &amp; \mathbf{S}
-\end{pmatrix}, \tag{28.1}</span></span></p>
+\end{pmatrix}, \tag{29.1}</span></span></p>
 <p><em>where <span class="math inline">\triangle(\mathbf{r}_j)</span> denotes the diagonal matrix with reward vector <span class="math inline">\mathbf{r}_j</span> on the diagonal. The matrix exponential <span class="math inline">e^{\mathbf{V}_k t}</span> has the block structure:</em></p>
-<p><span id="eq-27-block-exponential"><span class="math display">[e^{\mathbf{V}_k t}]_{1, k+1} = \mathbf{M}_k(t), \tag{28.2}</span></span></p>
+<p><span id="eq-27-block-exponential"><span class="math display">[e^{\mathbf{V}_k t}]_{1, k+1} = \mathbf{M}_k(t), \tag{29.2}</span></span></p>
 <p><em>where <span class="math inline">\mathbf{M}_k(t)</span> is the <span class="math inline">k</span>-th order reward-accumulated integral:</em></p>
-<p><span id="eq-27-reward-integral"><span class="math display">\mathbf{M}_1(t) = \int_0^t e^{\mathbf{S}s} \triangle(\mathbf{r}_1) e^{\mathbf{S}(t-s)} \, ds. \tag{28.3}</span></span></p>
+<p><span id="eq-27-reward-integral"><span class="math display">\mathbf{M}_1(t) = \int_0^t e^{\mathbf{S}s} \triangle(\mathbf{r}_1) e^{\mathbf{S}(t-s)} \, ds. \tag{29.3}</span></span></p>
 <p><em>For unit rewards (<span class="math inline">\triangle(\mathbf{r}_1) = \mathbf{I}</span>), <span class="math inline">\mathbf{M}_1(t) = \int_0^t e^{\mathbf{S}s} \, ds \cdot e^{\mathbf{S}(t-s)}</span>, and the expected accumulated occupancy time starting from distribution <span class="math inline">\boldsymbol{\alpha}</span> is <span class="math inline">\boldsymbol{\alpha} \int_0^t e^{\mathbf{S}s} \, ds</span>.</em></p>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> Van Loan’s key insight is that the integral of a matrix exponential times another matrix can be computed by exponentiating a larger block matrix. The off-diagonal blocks of the result “accumulate” the integral during the matrix exponential computation, much like augmented systems in solving linear ODEs. For phase-type distributions, this provides accumulated occupancy times (how long the process spends in each state) and reward-weighted integrals.</p>
-</blockquote>
-<blockquote class="blockquote">
-<p><strong>Example.</strong> For a single exponential distribution with rate <span class="math inline">\lambda</span> (<span class="math inline">\mathbf{S} = (-\lambda)</span>, <span class="math inline">p = 1</span>) and unit reward, the Van Loan block matrix is <span class="math inline">\mathbf{V}_1 = \begin{pmatrix} -\lambda &amp; 1 \\ 0 &amp; -\lambda \end{pmatrix}</span>. Its exponential is <span class="math inline">e^{\mathbf{V}_1 t} = \begin{pmatrix} e^{-\lambda t} &amp; t e^{-\lambda t} \\ 0 &amp; e^{-\lambda t} \end{pmatrix}</span>. The <span class="math inline">(1,2)</span> entry is <span class="math inline">t e^{-\lambda t} = \int_0^t e^{-\lambda s} \, ds \cdot e^{-\lambda(t-s)}|_{s=t} = \frac{1 - e^{-\lambda t}}{\lambda} \cdot e^{-\lambda \cdot 0}</span>… In fact, the direct computation gives <span class="math inline">\int_0^t e^{-\lambda s} ds = (1 - e^{-\lambda t})/\lambda</span>, while the block exponential gives <span class="math inline">te^{-\lambda t}</span>. These differ because <span class="math inline">\mathbf{M}_1(t) = \int_0^t e^{\mathbf{S}s} \triangle(\mathbf{r}) e^{\mathbf{S}(t-s)} ds</span>, which for <span class="math inline">p = 1</span> is <span class="math inline">\int_0^t e^{-\lambda s} \cdot 1 \cdot e^{-\lambda(t-s)} ds = t e^{-\lambda t}</span>. The occupancy integral <span class="math inline">\boldsymbol{\alpha} \int_0^t e^{\mathbf{S}s} ds = (1 - e^{-\lambda t})/\lambda</span> is recovered from the <span class="math inline">(1,2)</span> entry of <span class="math inline">e^{\mathbf{V}_1 t}</span> via the relation <span class="math inline">\boldsymbol{\alpha} \mathbf{M}_1(t) \mathbf{e} = \boldsymbol{\alpha} \int_0^t e^{\mathbf{S}s} ds \cdot e^{\mathbf{S}(t-s)} \mathbf{e}</span>. In phasic, the function <code>accumulated_visiting_time(t)</code> computes <span class="math inline">\boldsymbol{\alpha} \int_0^t e^{\mathbf{S}s} ds</span> directly.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+Van Loan’s key insight is that the integral of a matrix exponential times another matrix can be computed by exponentiating a larger block matrix. The off-diagonal blocks of the result “accumulate” the integral during the matrix exponential computation, much like augmented systems in solving linear ODEs. For phase-type distributions, this provides accumulated occupancy times (how long the process spends in each state) and reward-weighted integrals.
+</details>
+<details>
+<summary>
+Example
+</summary>
+For a single exponential distribution with rate <span class="math inline">\lambda</span> (<span class="math inline">\mathbf{S} = (-\lambda)</span>, <span class="math inline">p = 1</span>) and unit reward, the Van Loan block matrix is <span class="math inline">\mathbf{V}_1 = \begin{pmatrix} -\lambda &amp; 1 \\ 0 &amp; -\lambda \end{pmatrix}</span>. Its exponential is <span class="math inline">e^{\mathbf{V}_1 t} = \begin{pmatrix} e^{-\lambda t} &amp; t e^{-\lambda t} \\ 0 &amp; e^{-\lambda t} \end{pmatrix}</span>. The <span class="math inline">(1,2)</span> entry is <span class="math inline">t e^{-\lambda t} = \int_0^t e^{-\lambda s} \, ds \cdot e^{-\lambda(t-s)}|_{s=t} = \frac{1 - e^{-\lambda t}}{\lambda} \cdot e^{-\lambda \cdot 0}</span>… In fact, the direct computation gives <span class="math inline">\int_0^t e^{-\lambda s} ds = (1 - e^{-\lambda t})/\lambda</span>, while the block exponential gives <span class="math inline">te^{-\lambda t}</span>. These differ because <span class="math inline">\mathbf{M}_1(t) = \int_0^t e^{\mathbf{S}s} \triangle(\mathbf{r}) e^{\mathbf{S}(t-s)} ds</span>, which for <span class="math inline">p = 1</span> is <span class="math inline">\int_0^t e^{-\lambda s} \cdot 1 \cdot e^{-\lambda(t-s)} ds = t e^{-\lambda t}</span>. The occupancy integral <span class="math inline">\boldsymbol{\alpha} \int_0^t e^{\mathbf{S}s} ds = (1 - e^{-\lambda t})/\lambda</span> is recovered from the <span class="math inline">(1,2)</span> entry of <span class="math inline">e^{\mathbf{V}_1 t}</span> via the relation <span class="math inline">\boldsymbol{\alpha} \mathbf{M}_1(t) \mathbf{e} = \boldsymbol{\alpha} \int_0^t e^{\mathbf{S}s} ds \cdot e^{\mathbf{S}(t-s)} \mathbf{e}</span>. In phasic, the function <code>accumulated_visiting_time(t)</code> computes <span class="math inline">\boldsymbol{\alpha} \int_0^t e^{\mathbf{S}s} ds</span> directly.
+</details>
 <div id="def-27-epoch" class="definition theorem">
-<p><span class="theorem-title"><strong>Definition 28.2 (Epoch-Wise Phase-Type Model)</strong></span> <em>An epoch-wise phase-type model consists of:</em></p>
+<p><span class="theorem-title"><strong>Definition 29.2 (Epoch-Wise Phase-Type Model)</strong></span> <em>An epoch-wise phase-type model consists of:</em></p>
 <ol type="1">
 <li><em>A sequence of epochs <span class="math inline">[t_0, t_1), [t_1, t_2), \ldots, [t_{\ell-1}, t_\ell)</span> with <span class="math inline">0 = t_0 &lt; t_1 &lt; \cdots &lt; t_\ell \leq \infty</span>.</em></li>
 <li><em>A sub-intensity matrix <span class="math inline">\mathbf{S}_i</span> for each epoch <span class="math inline">i</span>, so that the process evolves according to <span class="math inline">\mathbf{S}_i</span> during <span class="math inline">[t_{i-1}, t_i)</span>.</em></li>
 <li><em>A common state space <span class="math inline">\{1, \ldots, p\}</span> across all epochs (states may become inactive by having zero rates).</em></li>
 </ol>
 <p><em>The transition probability matrix across epoch <span class="math inline">i</span> is <span class="math inline">\mathbf{P}_i = e^{\mathbf{S}_i \Delta t_i}</span> where <span class="math inline">\Delta t_i = t_i - t_{i-1}</span>. The overall transition probability from time <span class="math inline">0</span> to time <span class="math inline">t_\ell</span> is:</em></p>
-<p><span id="eq-27-epoch-product"><span class="math display">\mathbf{P}(0, t_\ell) = \prod_{i=1}^{\ell} e^{\mathbf{S}_i \Delta t_i}. \tag{28.4}</span></span></p>
+<p><span id="eq-27-epoch-product"><span class="math display">\mathbf{P}(0, t_\ell) = \prod_{i=1}^{\ell} e^{\mathbf{S}_i \Delta t_i}. \tag{29.4}</span></span></p>
 <p><em>The survival probability vector at the end of epoch <span class="math inline">i</span> is:</em></p>
-<p><span id="eq-27-survival"><span class="math display">\boldsymbol{\sigma}_i = \boldsymbol{\alpha} \prod_{j=1}^{i} e^{\mathbf{S}_j \Delta t_j} = \boldsymbol{\alpha} \mathbf{P}(0, t_i), \tag{28.5}</span></span></p>
+<p><span id="eq-27-survival"><span class="math display">\boldsymbol{\sigma}_i = \boldsymbol{\alpha} \prod_{j=1}^{i} e^{\mathbf{S}_j \Delta t_j} = \boldsymbol{\alpha} \mathbf{P}(0, t_i), \tag{29.5}</span></span></p>
 <p><em>where <span class="math inline">\sigma_{i,k}</span> is the probability of being in state <span class="math inline">k</span> at time <span class="math inline">t_i</span> without having been absorbed.</em></p>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> Epoch-wise models capture time-inhomogeneous processes (such as coalescent models with changing population sizes) by a piecewise-constant approximation. Within each epoch, the process is a standard CTMC; at epoch boundaries, the state distribution is carried forward as the initial distribution for the next epoch. This is a product integral: the overall evolution is the ordered product of per-epoch matrix exponentials.</p>
-</blockquote>
-<blockquote class="blockquote">
-<p><strong>Example.</strong> A coalescent model for 5 samples with two population sizes: <span class="math inline">N_e = 1000</span> during <span class="math inline">[0, 100)</span> and <span class="math inline">N_e = 5000</span> during <span class="math inline">[100, \infty)</span>. The state space is <span class="math inline">\{5, 4, 3, 2, 1\}</span> (number of lineages). Epoch 1 has rates <span class="math inline">\binom{k}{2}/1000</span> and epoch 2 has rates <span class="math inline">\binom{k}{2}/5000</span>.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+Epoch-wise models capture time-inhomogeneous processes (such as coalescent models with changing population sizes) by a piecewise-constant approximation. Within each epoch, the process is a standard CTMC; at epoch boundaries, the state distribution is carried forward as the initial distribution for the next epoch. This is a product integral: the overall evolution is the ordered product of per-epoch matrix exponentials.
+</details>
+<details>
+<summary>
+Example
+</summary>
+A coalescent model <span class="citation" data-cites="kingman1982">(<a href="28_references.html#ref-kingman1982" role="doc-biblioref">Kingman 1982</a>)</span> for 5 samples with two population sizes: <span class="math inline">N_e = 1000</span> during <span class="math inline">[0, 100)</span> and <span class="math inline">N_e = 5000</span> during <span class="math inline">[100, \infty)</span>. The state space is <span class="math inline">\{5, 4, 3, 2, 1\}</span> (number of lineages). Epoch 1 has rates <span class="math inline">\binom{k}{2}/1000</span> and epoch 2 has rates <span class="math inline">\binom{k}{2}/5000</span>.
+</details>
 <div id="def-27-cross-epoch" class="definition theorem">
-<p><span class="theorem-title"><strong>Definition 28.3 (Cross-Epoch Reward Accumulation)</strong></span> <em>Consider two consecutive epochs with sub-intensity matrices <span class="math inline">\mathbf{S}_1</span> (for <span class="math inline">[0, t_1)</span>) and <span class="math inline">\mathbf{S}_2</span> (for <span class="math inline">[t_1, t_2)</span>), and reward vectors <span class="math inline">\mathbf{r}_1, \mathbf{r}_2</span>. The cross-epoch Van Loan product is:</em></p>
-<p><span id="eq-27-cross-epoch"><span class="math display">\mathbf{Q}_1 \mathbf{Q}_2 = \begin{pmatrix} \mathbf{P}_1 &amp; \mathbf{M}_1 \\ \mathbf{0} &amp; \mathbf{P}_1 \end{pmatrix} \begin{pmatrix} \mathbf{P}_2 &amp; \mathbf{M}_2 \\ \mathbf{0} &amp; \mathbf{P}_2 \end{pmatrix} = \begin{pmatrix} \mathbf{P}_1 \mathbf{P}_2 &amp; \mathbf{P}_1 \mathbf{M}_2 + \mathbf{M}_1 \mathbf{P}_2 \\ \mathbf{0} &amp; \mathbf{P}_1 \mathbf{P}_2 \end{pmatrix}, \tag{28.6}</span></span></p>
+<p><span class="theorem-title"><strong>Definition 29.3 (Cross-Epoch Reward Accumulation)</strong></span> <em>Consider two consecutive epochs with sub-intensity matrices <span class="math inline">\mathbf{S}_1</span> (for <span class="math inline">[0, t_1)</span>) and <span class="math inline">\mathbf{S}_2</span> (for <span class="math inline">[t_1, t_2)</span>), and reward vectors <span class="math inline">\mathbf{r}_1, \mathbf{r}_2</span>. The cross-epoch Van Loan product is:</em></p>
+<p><span id="eq-27-cross-epoch"><span class="math display">\mathbf{Q}_1 \mathbf{Q}_2 = \begin{pmatrix} \mathbf{P}_1 &amp; \mathbf{M}_1 \\ \mathbf{0} &amp; \mathbf{P}_1 \end{pmatrix} \begin{pmatrix} \mathbf{P}_2 &amp; \mathbf{M}_2 \\ \mathbf{0} &amp; \mathbf{P}_2 \end{pmatrix} = \begin{pmatrix} \mathbf{P}_1 \mathbf{P}_2 &amp; \mathbf{P}_1 \mathbf{M}_2 + \mathbf{M}_1 \mathbf{P}_2 \\ \mathbf{0} &amp; \mathbf{P}_1 \mathbf{P}_2 \end{pmatrix}, \tag{29.6}</span></span></p>
 <p><em>where <span class="math inline">\mathbf{Q}_i = e^{\mathbf{V}_i \Delta t_i}</span> is the block matrix exponential for epoch <span class="math inline">i</span>. The upper-right block <span class="math inline">\mathbf{P}_1 \mathbf{M}_2 + \mathbf{M}_1 \mathbf{P}_2</span> decomposes the total accumulated reward into:</em></p>
 <ul>
 <li><em><span class="math inline">\mathbf{P}_1 \mathbf{M}_2</span>: survive epoch 1 (probability <span class="math inline">\mathbf{P}_1</span>), then accumulate reward in epoch 2 (<span class="math inline">\mathbf{M}_2</span>).</em></li>
@@ -531,51 +575,57 @@ window.Quarto = {
 <li><em>The epoch transition rate <span class="math inline">\rho_i = \sigma_{1,i} / \tau_{1,i}</span>: the rate at which probability mass in state <span class="math inline">i</span> transitions from epoch 1 to epoch 2.</em></li>
 </ul>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> The cross-epoch product formula is the matrix analogue of the law of total expectation: the total expected reward decomposes into “reward accumulated before the epoch boundary” and “reward accumulated after.” The graph-based approach implements this decomposition by computing survival probabilities and accumulated occupancy times at epoch boundaries, then constructing transition edges that correctly weight the probability flow into subsequent epochs.</p>
-</blockquote>
-<blockquote class="blockquote">
-<p><strong>Example.</strong> For a two-state model with <span class="math inline">\boldsymbol{\alpha} = (1, 0)</span>, if <code>stop_probability</code> at the end of epoch 1 gives <span class="math inline">\boldsymbol{\sigma}_1 = (0.3, 0.5)</span> and <code>accumulated_visiting_time</code> gives <span class="math inline">\boldsymbol{\tau}_1 = (0.6, 0.4)</span>, the epoch transition rates are <span class="math inline">\rho_1 = 0.3/0.6 = 0.5</span> and <span class="math inline">\rho_2 = 0.5/0.4 = 1.25</span>. These rates are added as edges from epoch-1 states to epoch-2 states.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+The cross-epoch product formula is the matrix analogue of the law of total expectation: the total expected reward decomposes into “reward accumulated before the epoch boundary” and “reward accumulated after.” The graph-based approach implements this decomposition by computing survival probabilities and accumulated occupancy times at epoch boundaries, then constructing transition edges that correctly weight the probability flow into subsequent epochs.
+</details>
+<details>
+<summary>
+Example
+</summary>
+For a two-state model with <span class="math inline">\boldsymbol{\alpha} = (1, 0)</span>, if <code>stop_probability</code> at the end of epoch 1 gives <span class="math inline">\boldsymbol{\sigma}_1 = (0.3, 0.5)</span> and <code>accumulated_visiting_time</code> gives <span class="math inline">\boldsymbol{\tau}_1 = (0.6, 0.4)</span>, the epoch transition rates are <span class="math inline">\rho_1 = 0.3/0.6 = 0.5</span> and <span class="math inline">\rho_2 = 0.5/0.4 = 1.25</span>. These rates are added as edges from epoch-1 states to epoch-2 states.
+</details>
 </section>
 <section id="theorems-and-proofs" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="theorems-and-proofs">Theorems and Proofs</h2>
 <div id="thm-27-van-loan-equiv" class="theorem">
-<p><span class="theorem-title"><strong>Theorem 28.1 (Van Loan Equivalence)</strong></span> <em>Let <span class="math inline">\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})</span> be a continuous phase-type distribution with graph <span class="math inline">G = (V, E, W)</span>. For time <span class="math inline">t &gt; 0</span>:</em></p>
+<p><span class="theorem-title"><strong>Theorem 29.1 (Van Loan Equivalence)</strong></span> <em>Let <span class="math inline">\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})</span> be a continuous phase-type distribution with graph <span class="math inline">G = (V, E, W)</span>. For time <span class="math inline">t &gt; 0</span>:</em></p>
 <ol type="1">
-<li><p><em>The accumulated occupancy vector computed by phasic’s forward algorithm equals the Van Loan integral:</em> <span id="eq-27-avt-equiv"><span class="math display">\operatorname{accumulated\_visiting\_time}(G, t) = \boldsymbol{\alpha} \int_0^t e^{\mathbf{S}s} \, ds. \tag{28.7}</span></span></p></li>
-<li><p><em>The survival probability vector equals the diagonal block of the Van Loan exponential:</em> <span id="eq-27-stop-equiv"><span class="math display">\operatorname{stop\_probability}(G, t) = \boldsymbol{\alpha} e^{\mathbf{S}t}. \tag{28.8}</span></span></p></li>
-<li><p><em>For reward vector <span class="math inline">\mathbf{r}</span> and the reward-transformed distribution (<a href="01_preliminaries.html#def-01-reward-cph" class="quarto-xref">Definition&nbsp;<span>2.9</span></a>):</em> <span id="eq-27-reward-equiv"><span class="math display">\mathbb{E}[\tilde{\tau}] = \boldsymbol{\alpha} \left(\int_0^\infty e^{\mathbf{S}s} \, ds \right) \triangle(\mathbf{r}) \mathbf{e} = \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{r}) \mathbf{e}, \tag{28.9}</span></span> <em>where <span class="math inline">\mathbf{U} = (-\mathbf{S})^{-1}</span> is the Green matrix. This is the <span class="math inline">(1, 2)</span> block of <span class="math inline">\lim_{t \to \infty} e^{\mathbf{V}_1 t}</span> with <span class="math inline">\triangle(\mathbf{r})</span> as the off-diagonal block, left-multiplied by <span class="math inline">\boldsymbol{\alpha}</span> and right-multiplied by <span class="math inline">\mathbf{e}</span>.</em></p></li>
+<li><p><em>The accumulated occupancy vector computed by phasic’s forward algorithm equals the Van Loan integral:</em> <span id="eq-27-avt-equiv"><span class="math display">\operatorname{accumulated\_visiting\_time}(G, t) = \boldsymbol{\alpha} \int_0^t e^{\mathbf{S}s} \, ds. \tag{29.7}</span></span></p></li>
+<li><p><em>The survival probability vector equals the diagonal block of the Van Loan exponential:</em> <span id="eq-27-stop-equiv"><span class="math display">\operatorname{stop\_probability}(G, t) = \boldsymbol{\alpha} e^{\mathbf{S}t}. \tag{29.8}</span></span></p></li>
+<li><p><em>For reward vector <span class="math inline">\mathbf{r}</span> and the reward-transformed distribution (<a href="01_preliminaries.html#def-01-reward-cph" class="quarto-xref">Definition&nbsp;<span>2.9</span></a>):</em> <span id="eq-27-reward-equiv"><span class="math display">\mathbb{E}[\tilde{\tau}] = \boldsymbol{\alpha} \left(\int_0^\infty e^{\mathbf{S}s} \, ds \right) \triangle(\mathbf{r}) \mathbf{e} = \boldsymbol{\alpha} \mathbf{U} \triangle(\mathbf{r}) \mathbf{e}, \tag{29.9}</span></span> <em>where <span class="math inline">\mathbf{U} = (-\mathbf{S})^{-1}</span> is the Green matrix. This is the <span class="math inline">(1, 2)</span> block of <span class="math inline">\lim_{t \to \infty} e^{\mathbf{V}_1 t}</span> with <span class="math inline">\triangle(\mathbf{r})</span> as the off-diagonal block, left-multiplied by <span class="math inline">\boldsymbol{\alpha}</span> and right-multiplied by <span class="math inline">\mathbf{e}</span>.</em></p></li>
 </ol>
 </div>
 <div class="proof">
 <p><span class="proof-title"><em>Proof</em>. </span><strong>(1)</strong> The accumulated occupancy at vertex <span class="math inline">v_j</span> up to time <span class="math inline">t</span> is:</p>
 <p><span class="math display">\tau_j(t) = \int_0^t \Pr(X_s = j) \, ds = \int_0^t [\boldsymbol{\alpha} e^{\mathbf{S}s}]_j \, ds = \left[\boldsymbol{\alpha} \int_0^t e^{\mathbf{S}s} \, ds \right]_j.</span></p>
-<p>Phasic computes this via the forward algorithm (<a href="14_distribution_computation.html#alg-14-cph-uniformization" class="quarto-xref">Algorithm&nbsp;<span>15.2</span></a>) by accumulating the probability mass at each vertex across all discrete steps. With uniformization parameter <span class="math inline">g</span>, the forward probability at step <span class="math inline">k</span> is <span class="math inline">\mathbf{p}^{(k)} = \boldsymbol{\alpha} \mathbf{T}_g^k</span> where <span class="math inline">\mathbf{T}_g = \mathbf{I} + \mathbf{S}/g</span>. Each step represents a time interval <span class="math inline">\Delta t = 1/g</span>. The accumulated occupancy after <span class="math inline">K</span> steps is:</p>
+<p>Phasic computes this via the forward algorithm (<a href="14_distribution_computation.html#alg-14-cph-uniformization" class="quarto-xref">Algorithm&nbsp;<span>16.2</span></a>) by accumulating the probability mass at each vertex across all discrete steps. With uniformization parameter <span class="math inline">g</span>, the forward probability at step <span class="math inline">k</span> is <span class="math inline">\mathbf{p}^{(k)} = \boldsymbol{\alpha} \mathbf{T}_g^k</span> where <span class="math inline">\mathbf{T}_g = \mathbf{I} + \mathbf{S}/g</span>. Each step represents a time interval <span class="math inline">\Delta t = 1/g</span>. The accumulated occupancy after <span class="math inline">K</span> steps is:</p>
 <p><span class="math display">\hat{\tau}_j = \frac{1}{g} \sum_{k=0}^{K} p^{(k)}_j = \frac{1}{g} \sum_{k=0}^{K} [\boldsymbol{\alpha} \mathbf{T}_g^k]_j.</span></p>
 <p>As <span class="math inline">K \to \infty</span> with <span class="math inline">K/g \to t</span>, the Poisson weighting of the uniformized chain gives:</p>
 <p><span class="math display">\tau_j(t) = \sum_{k=0}^{\infty} \frac{1}{g} [\boldsymbol{\alpha} \mathbf{T}_g^k]_j \cdot \operatorname{Po}(k; gt) \to [\boldsymbol{\alpha} \int_0^t e^{\mathbf{S}s} \, ds]_j</span></p>
-<p>by the uniformization theorem (<a href="14_distribution_computation.html#thm-14-uniformization-convergence" class="quarto-xref">Theorem&nbsp;<span>15.1</span></a>). This is precisely the <span class="math inline">j</span>-th component of the Van Loan integral (<a href="#eq-27-reward-integral" class="quarto-xref">Equation&nbsp;<span>28.3</span></a> of <a href="#def-27-van-loan" class="quarto-xref">Definition&nbsp;<span>28.1</span></a> with <span class="math inline">\triangle(\mathbf{r}) = \mathbf{I}</span>).</p>
+<p>by the uniformization theorem (<a href="14_distribution_computation.html#thm-14-uniformization-convergence" class="quarto-xref">Theorem&nbsp;<span>16.1</span></a>). This is precisely the <span class="math inline">j</span>-th component of the Van Loan integral (<a href="#eq-27-reward-integral" class="quarto-xref">Equation&nbsp;<span>29.3</span></a> of <a href="#def-27-van-loan" class="quarto-xref">Definition&nbsp;<span>29.1</span></a> with <span class="math inline">\triangle(\mathbf{r}) = \mathbf{I}</span>).</p>
 <p><strong>(2)</strong> The survival probability at vertex <span class="math inline">v_j</span> at time <span class="math inline">t</span> is <span class="math inline">\Pr(X_t = j) = [\boldsymbol{\alpha} e^{\mathbf{S}t}]_j</span>, which is the <span class="math inline">j</span>-th entry of <span class="math inline">\boldsymbol{\alpha} \mathbf{P}(t)</span> where <span class="math inline">\mathbf{P}(t) = e^{\mathbf{S}t}</span>. This is the <span class="math inline">(1,1)</span> block of <span class="math inline">e^{\mathbf{V}_1 t}</span>, left-multiplied by <span class="math inline">\boldsymbol{\alpha}</span>.</p>
-<p><strong>(3)</strong> Taking <span class="math inline">t \to \infty</span> in <a href="#eq-27-avt-equiv" class="quarto-xref">Equation&nbsp;<span>28.7</span></a> and using <span class="math inline">\int_0^\infty e^{\mathbf{S}s} ds = -\mathbf{S}^{-1} = \mathbf{U}</span> (which converges because <span class="math inline">\mathbf{S}</span> has all eigenvalues with strictly negative real parts for proper phase-type distributions), we get the expected occupancy <span class="math inline">\boldsymbol{\alpha} \mathbf{U}</span>. Multiplying by the diagonal reward matrix and summing gives <a href="#eq-27-reward-equiv" class="quarto-xref">Equation&nbsp;<span>28.9</span></a>. <span class="math inline">\square</span></p>
+<p><strong>(3)</strong> Taking <span class="math inline">t \to \infty</span> in <a href="#eq-27-avt-equiv" class="quarto-xref">Equation&nbsp;<span>29.7</span></a> and using <span class="math inline">\int_0^\infty e^{\mathbf{S}s} ds = -\mathbf{S}^{-1} = \mathbf{U}</span> (which converges because <span class="math inline">\mathbf{S}</span> has all eigenvalues with strictly negative real parts for proper phase-type distributions), we get the expected occupancy <span class="math inline">\boldsymbol{\alpha} \mathbf{U}</span>. Multiplying by the diagonal reward matrix and summing gives <a href="#eq-27-reward-equiv" class="quarto-xref">Equation&nbsp;<span>29.9</span></a>. <span class="math inline">\square</span></p>
 </div>
 <div id="thm-27-epoch-construction" class="theorem">
-<p><span class="theorem-title"><strong>Theorem 28.2 (Graph-Based Epoch Construction Equals Van Loan Product)</strong></span> <em>Let <span class="math inline">\mathbf{S}_1, \mathbf{S}_2</span> be sub-intensity matrices for epochs <span class="math inline">[0, t_1)</span> and <span class="math inline">[t_1, \infty)</span> respectively, with initial distribution <span class="math inline">\boldsymbol{\alpha}</span>. Let <span class="math inline">G_1, G_2</span> be the corresponding phase-type graphs. The phasic epoch construction—computing stop probabilities and accumulated occupancy for epoch 1, adding cross-epoch edges with rates <span class="math inline">\rho_i = \sigma_{1,i} / \tau_{1,i}</span>, and extending the graph with epoch 2—produces the same expected reward as the Van Loan product formula:</em></p>
-<p><span id="eq-27-total-reward"><span class="math display">\mathbb{E}[\text{total reward}] = \boldsymbol{\alpha} \mathbf{M}_1^{(\infty)} \mathbf{r}_1 + \boldsymbol{\alpha} \mathbf{P}_1 \mathbf{U}_2 \mathbf{r}_2, \tag{28.10}</span></span></p>
+<p><span class="theorem-title"><strong>Theorem 29.2 (Graph-Based Epoch Construction Equals Van Loan Product)</strong></span> <em>Let <span class="math inline">\mathbf{S}_1, \mathbf{S}_2</span> be sub-intensity matrices for epochs <span class="math inline">[0, t_1)</span> and <span class="math inline">[t_1, \infty)</span> respectively, with initial distribution <span class="math inline">\boldsymbol{\alpha}</span>. Let <span class="math inline">G_1, G_2</span> be the corresponding phase-type graphs. The phasic epoch construction—computing stop probabilities and accumulated occupancy for epoch 1, adding cross-epoch edges with rates <span class="math inline">\rho_i = \sigma_{1,i} / \tau_{1,i}</span>, and extending the graph with epoch 2—produces the same expected reward as the Van Loan product formula:</em></p>
+<p><span id="eq-27-total-reward"><span class="math display">\mathbb{E}[\text{total reward}] = \boldsymbol{\alpha} \mathbf{M}_1^{(\infty)} \mathbf{r}_1 + \boldsymbol{\alpha} \mathbf{P}_1 \mathbf{U}_2 \mathbf{r}_2, \tag{29.10}</span></span></p>
 <p><em>where <span class="math inline">\mathbf{M}_1^{(\infty)} = \int_0^{t_1} e^{\mathbf{S}_1 s} ds</span>, <span class="math inline">\mathbf{P}_1 = e^{\mathbf{S}_1 t_1}</span>, and <span class="math inline">\mathbf{U}_2 = (-\mathbf{S}_2)^{-1}</span>, and <span class="math inline">\mathbf{r}_1, \mathbf{r}_2</span> are reward vectors for epochs 1 and 2 respectively.</em></p>
 </div>
 <div class="proof">
 <p><span class="proof-title"><em>Proof</em>. </span>In the phasic graph construction, the expected reward decomposes into contributions from each epoch.</p>
 <p><strong>Epoch 1 reward.</strong> The expected reward accumulated during epoch 1 is:</p>
 <p><span class="math display">R_1 = \boldsymbol{\alpha} \int_0^{t_1} e^{\mathbf{S}_1 s} ds \cdot \triangle(\mathbf{r}_1) \mathbf{e} = \boldsymbol{\alpha} \mathbf{M}_1^{(\infty)} \mathbf{r}_1.</span></p>
-<p>This is computed directly by phasic’s <code>accumulated_visiting_time</code> (<a href="#thm-27-van-loan-equiv" class="quarto-xref">Theorem&nbsp;<span>28.1</span></a>, part 1), multiplied by the reward vector.</p>
+<p>This is computed directly by phasic’s <code>accumulated_visiting_time</code> (<a href="#thm-27-van-loan-equiv" class="quarto-xref">Theorem&nbsp;<span>29.1</span></a>, part 1), multiplied by the reward vector.</p>
 <p><strong>Epoch 2 reward.</strong> In the extended graph, the cross-epoch edges from epoch-1 state <span class="math inline">i</span> to epoch-2 state <span class="math inline">i</span> have rate <span class="math inline">\rho_i = \sigma_{1,i} / \tau_{1,i}</span> where <span class="math inline">\sigma_{1,i} = [\boldsymbol{\alpha} e^{\mathbf{S}_1 t_1}]_i</span> and <span class="math inline">\tau_{1,i} = [\boldsymbol{\alpha} \int_0^{t_1} e^{\mathbf{S}_1 s} ds]_i</span>. In the extended graph, the accumulated occupancy in epoch-1 state <span class="math inline">i</span> is <span class="math inline">\tau_{1,i}</span>. The rate of flow from epoch-1 state <span class="math inline">i</span> to epoch-2 state <span class="math inline">i</span> is <span class="math inline">\tau_{1,i} \cdot \rho_i = \tau_{1,i} \cdot \sigma_{1,i} / \tau_{1,i} = \sigma_{1,i}</span>. This means the initial distribution entering epoch 2 is <span class="math inline">\boldsymbol{\sigma}_1 = \boldsymbol{\alpha} e^{\mathbf{S}_1 t_1} = \boldsymbol{\alpha} \mathbf{P}_1</span>.</p>
 <p>The expected reward in epoch 2, starting from distribution <span class="math inline">\boldsymbol{\sigma}_1</span>, is:</p>
 <p><span class="math display">R_2 = \boldsymbol{\sigma}_1 \int_0^{\infty} e^{\mathbf{S}_2 s} ds \cdot \triangle(\mathbf{r}_2) \mathbf{e} = \boldsymbol{\alpha} \mathbf{P}_1 \mathbf{U}_2 \mathbf{r}_2.</span></p>
 <p>Adding the two contributions: <span class="math inline">\mathbb{E}[\text{total reward}] = R_1 + R_2 = \boldsymbol{\alpha} \mathbf{M}_1^{(\infty)} \mathbf{r}_1 + \boldsymbol{\alpha} \mathbf{P}_1 \mathbf{U}_2 \mathbf{r}_2</span>.</p>
-<p>Now compare with the Van Loan product. The block matrix product (<a href="#eq-27-cross-epoch" class="quarto-xref">Equation&nbsp;<span>28.6</span></a> of <a href="#def-27-cross-epoch" class="quarto-xref">Definition&nbsp;<span>28.3</span></a>) gives the upper-right block as <span class="math inline">\mathbf{P}_1 \mathbf{M}_2^{(\infty)} + \mathbf{M}_1^{(\infty)} \mathbf{P}_2^{(\infty)}</span>. For the final epoch with <span class="math inline">t_2 \to \infty</span>, <span class="math inline">\mathbf{P}_2^{(\infty)} = \lim_{t \to \infty} e^{\mathbf{S}_2 t} = \mathbf{0}</span> (all mass is absorbed), and <span class="math inline">\mathbf{M}_2^{(\infty)} = \mathbf{U}_2</span>. So the upper-right block becomes <span class="math inline">\mathbf{P}_1 \mathbf{U}_2 + \mathbf{M}_1^{(\infty)} \cdot \mathbf{0} = \mathbf{P}_1 \mathbf{U}_2</span>. The total expected reward from the Van Loan approach is:</p>
+<p>Now compare with the Van Loan product. The block matrix product (<a href="#eq-27-cross-epoch" class="quarto-xref">Equation&nbsp;<span>29.6</span></a> of <a href="#def-27-cross-epoch" class="quarto-xref">Definition&nbsp;<span>29.3</span></a>) gives the upper-right block as <span class="math inline">\mathbf{P}_1 \mathbf{M}_2^{(\infty)} + \mathbf{M}_1^{(\infty)} \mathbf{P}_2^{(\infty)}</span>. For the final epoch with <span class="math inline">t_2 \to \infty</span>, <span class="math inline">\mathbf{P}_2^{(\infty)} = \lim_{t \to \infty} e^{\mathbf{S}_2 t} = \mathbf{0}</span> (all mass is absorbed), and <span class="math inline">\mathbf{M}_2^{(\infty)} = \mathbf{U}_2</span>. So the upper-right block becomes <span class="math inline">\mathbf{P}_1 \mathbf{U}_2 + \mathbf{M}_1^{(\infty)} \cdot \mathbf{0} = \mathbf{P}_1 \mathbf{U}_2</span>. The total expected reward from the Van Loan approach is:</p>
 <p><span class="math display">\boldsymbol{\alpha} (\mathbf{M}_1^{(\infty)} \triangle(\mathbf{r}_1) \mathbf{e} + \mathbf{P}_1 \mathbf{U}_2 \triangle(\mathbf{r}_2) \mathbf{e}) = \boldsymbol{\alpha} \mathbf{M}_1^{(\infty)} \mathbf{r}_1 + \boldsymbol{\alpha} \mathbf{P}_1 \mathbf{U}_2 \mathbf{r}_2,</span></p>
-<p>which matches <a href="#eq-27-total-reward" class="quarto-xref">Equation&nbsp;<span>28.10</span></a>. The argument extends to <span class="math inline">\ell &gt; 2</span> epochs by induction: at each epoch boundary, the cross-epoch rate construction correctly propagates the survival probability as the initial distribution for the next epoch. <span class="math inline">\square</span></p>
+<p>which matches <a href="#eq-27-total-reward" class="quarto-xref">Equation&nbsp;<span>29.10</span></a>. The argument extends to <span class="math inline">\ell &gt; 2</span> epochs by induction: at each epoch boundary, the cross-epoch rate construction correctly propagates the survival probability as the initial distribution for the next epoch. <span class="math inline">\square</span></p>
 </div>
 </section>
 <section id="correspondence-table" class="level2 unnumbered">
@@ -647,7 +697,7 @@ window.Quarto = {
 <h2 class="unnumbered anchored" data-anchor-id="numerical-considerations">Numerical Considerations</h2>
 <p><strong>Sparsity advantage.</strong> The Van Loan block matrix <span class="math inline">\mathbf{V}_k</span> has dimension <span class="math inline">(k+1)p</span>, requiring <span class="math inline">O((k+1)^2 p^2)</span> storage and <span class="math inline">O((k+1)^3 p^3)</span> time for the matrix exponential. For a coalescent model with <span class="math inline">n</span> samples, <span class="math inline">p = O(n!)</span> (partition function), making matrix methods infeasible for <span class="math inline">n &gt; 10</span>. The graph approach stores only the <span class="math inline">O(p + m)</span> non-zero transitions (<span class="math inline">m = O(n^2 \cdot p)</span> for coalescent models) and computes the forward algorithm in <span class="math inline">O(K_s \cdot m)</span> time per evaluation point.</p>
 <p><strong>Epoch boundary precision.</strong> The cross-epoch rate <span class="math inline">\rho_i = \sigma_{1,i} / \tau_{1,i}</span> involves division. When both <span class="math inline">\sigma_{1,i}</span> and <span class="math inline">\tau_{1,i}</span> are very small (state <span class="math inline">i</span> is rarely occupied), numerical cancellation can produce inaccurate rates. In practice, states with negligible occupancy contribute negligibly to the total reward, so this does not affect overall accuracy. The implementation does not guard against division by zero; states with <span class="math inline">\tau_{1,i} = 0</span> are never reached and should not have cross-epoch edges.</p>
-<p><strong>Moment computation via iterated Green matrix.</strong> The <span class="math inline">k</span>-th moment formula <span class="math inline">\mathbb{E}[\tau^k] = k! \, \boldsymbol{\alpha} \mathbf{U}^k \mathbf{e}</span> involves the <span class="math inline">k</span>-th power of the Green matrix. In phasic, this is computed by <span class="math inline">k</span> applications of <code>expected_waiting_time</code> (<a href="15_moment_computation.html#alg-15-sojourn-cross-moments" class="quarto-xref">Algorithm&nbsp;<span>16.2</span></a>), which applies graph elimination at each iteration. Each elimination costs <span class="math inline">O(p^2)</span> for dense graphs or <span class="math inline">O(m)</span> for sparse graphs, compared to <span class="math inline">O(p^3)</span> for computing <span class="math inline">\mathbf{U}^k</span> via matrix inversion. For <span class="math inline">k</span> moments of a sparse graph: phasic uses <span class="math inline">O(k \cdot m)</span> vs.&nbsp;<span class="math inline">O(k \cdot p^3)</span> for the matrix approach.</p>
+<p><strong>Moment computation via iterated Green matrix.</strong> The <span class="math inline">k</span>-th moment formula <span class="math inline">\mathbb{E}[\tau^k] = k! \, \boldsymbol{\alpha} \mathbf{U}^k \mathbf{e}</span> involves the <span class="math inline">k</span>-th power of the Green matrix. In phasic, this is computed by <span class="math inline">k</span> applications of <code>expected_waiting_time</code> (<a href="15_moment_computation.html#alg-15-sojourn-cross-moments" class="quarto-xref">Algorithm&nbsp;<span>17.2</span></a>), which applies graph elimination at each iteration. Each elimination costs <span class="math inline">O(p^2)</span> for dense graphs or <span class="math inline">O(m)</span> for sparse graphs, compared to <span class="math inline">O(p^3)</span> for computing <span class="math inline">\mathbf{U}^k</span> via matrix inversion. For <span class="math inline">k</span> moments of a sparse graph: phasic uses <span class="math inline">O(k \cdot m)</span> vs.&nbsp;<span class="math inline">O(k \cdot p^3)</span> for the matrix approach.</p>
 </section>
 <section id="implementation-notes" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="implementation-notes">Implementation Notes</h2>
@@ -709,7 +759,7 @@ window.Quarto = {
 <p><strong>Deviations from formalization:</strong></p>
 <ul>
 <li>The formalization treats the epoch construction as a mathematical operation on matrices. The implementation constructs the extended graph incrementally by adding vertices and edges, which is more memory-efficient but produces the same mathematical result.</li>
-<li>The informal document (<code>van_loen_graph_equivalence.md</code>) presents the proof sketch without explicit reference to uniformization; this formalization connects the forward algorithm (which uses uniformization) to the continuous-time quantities via <a href="14_distribution_computation.html#thm-14-uniformization-convergence" class="quarto-xref">Theorem&nbsp;<span>15.1</span></a>.</li>
+<li>The informal document (<code>van_loen_graph_equivalence.md</code>) presents the proof sketch without explicit reference to uniformization; this formalization connects the forward algorithm (which uses uniformization) to the continuous-time quantities via <a href="14_distribution_computation.html#thm-14-uniformization-convergence" class="quarto-xref">Theorem&nbsp;<span>16.1</span></a>.</li>
 <li>Higher-order moments via nested Van Loan blocks correspond to successive reward transformations in phasic. The implementation uses <code>Graph.reward_transform(rewards)</code> followed by <code>Graph.moments(k)</code>, which applies graph elimination to the reward-transformed graph.</li>
 </ul>
 </section>
@@ -732,52 +782,63 @@ window.Quarto = {
 <tr class="odd">
 <td><span class="math inline">\mathbf{V}_k</span></td>
 <td>Van Loan block matrix of order <span class="math inline">k</span></td>
-<td><a href="#def-27-van-loan" class="quarto-xref">Definition&nbsp;<span>28.1</span></a></td>
+<td><a href="#def-27-van-loan" class="quarto-xref">Definition&nbsp;<span>29.1</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">\mathbf{M}_k(t)</span></td>
 <td><span class="math inline">k</span>-th order reward-accumulated integral</td>
-<td><a href="#def-27-van-loan" class="quarto-xref">Definition&nbsp;<span>28.1</span></a></td>
+<td><a href="#def-27-van-loan" class="quarto-xref">Definition&nbsp;<span>29.1</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">\Delta t_i</span></td>
 <td>Duration of epoch <span class="math inline">i</span> (<span class="math inline">= t_i - t_{i-1}</span>)</td>
-<td><a href="#def-27-epoch" class="quarto-xref">Definition&nbsp;<span>28.2</span></a></td>
+<td><a href="#def-27-epoch" class="quarto-xref">Definition&nbsp;<span>29.2</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">\mathbf{S}_i</span></td>
 <td>Sub-intensity matrix for epoch <span class="math inline">i</span></td>
-<td><a href="#def-27-epoch" class="quarto-xref">Definition&nbsp;<span>28.2</span></a></td>
+<td><a href="#def-27-epoch" class="quarto-xref">Definition&nbsp;<span>29.2</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">\mathbf{P}_i</span></td>
 <td>Transition probability matrix for epoch <span class="math inline">i</span> (<span class="math inline">= e^{\mathbf{S}_i \Delta t_i}</span>)</td>
-<td><a href="#def-27-epoch" class="quarto-xref">Definition&nbsp;<span>28.2</span></a></td>
+<td><a href="#def-27-epoch" class="quarto-xref">Definition&nbsp;<span>29.2</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">\boldsymbol{\sigma}_i</span></td>
 <td>Survival probability vector at end of epoch <span class="math inline">i</span></td>
-<td><a href="#def-27-epoch" class="quarto-xref">Definition&nbsp;<span>28.2</span></a></td>
+<td><a href="#def-27-epoch" class="quarto-xref">Definition&nbsp;<span>29.2</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">\mathbf{Q}_i</span></td>
 <td>Block matrix exponential for epoch <span class="math inline">i</span></td>
-<td><a href="#def-27-cross-epoch" class="quarto-xref">Definition&nbsp;<span>28.3</span></a></td>
+<td><a href="#def-27-cross-epoch" class="quarto-xref">Definition&nbsp;<span>29.3</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">\rho_i</span></td>
 <td>Cross-epoch transition rate for state <span class="math inline">i</span> (<span class="math inline">= \sigma_{1,i} / \tau_{1,i}</span>)</td>
-<td><a href="#def-27-cross-epoch" class="quarto-xref">Definition&nbsp;<span>28.3</span></a></td>
+<td><a href="#def-27-cross-epoch" class="quarto-xref">Definition&nbsp;<span>29.3</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">\mathbf{M}_i^{(\infty)}</span></td>
 <td>Accumulated occupancy integral over epoch <span class="math inline">i</span></td>
-<td><a href="#thm-27-epoch-construction" class="quarto-xref">Theorem&nbsp;<span>28.2</span></a></td>
+<td><a href="#thm-27-epoch-construction" class="quarto-xref">Theorem&nbsp;<span>29.2</span></a></td>
 </tr>
 </tbody>
 </table>
 
 
+<div id="refs" class="references csl-bib-body hanging-indent" role="list" style="display: none">
+<div id="ref-jensen1953" class="csl-entry" role="listitem">
+Jensen, Arne. 1953. <span>“Markoff Chains as an Aid in the Study of <span>Markoff</span> Processes.”</span> <em>Skandinavisk Aktuarietidskrift</em> 36: 87–91. <a href="https://doi.org/10.1080/03461238.1953.10419459">https://doi.org/10.1080/03461238.1953.10419459</a>.
+</div>
+<div id="ref-kingman1982" class="csl-entry" role="listitem">
+Kingman, John F. C. 1982. <span>“The Coalescent.”</span> <em>Stochastic Processes and Their Applications</em> 13 (3): 235–48. <a href="https://doi.org/10.1016/0304-4149(82)90011-4">https://doi.org/10.1016/0304-4149(82)90011-4</a>.
+</div>
+<div id="ref-vanloan1978" class="csl-entry" role="listitem">
+Van Loan, Charles F. 1978. <span>“Computing Integrals Involving the Matrix Exponential.”</span> <em>IEEE Transactions on Automatic Control</em> 23 (3): 395–404. <a href="https://doi.org/10.1109/TAC.1978.1101743">https://doi.org/10.1109/TAC.1978.1101743</a>.
+</div>
+</div>
 </section>
 
 </main> <!-- /main -->
@@ -1184,10 +1245,13 @@ window.Quarto = {
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
       <a href="./26_graph_builder.html" class="pagination-link" aria-label="Graph Builder">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Graph Builder</span></span>
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Graph Builder</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
+      <a href="./28_references.html" class="pagination-link" aria-label="References">
+        <span class="nav-page-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">References</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
   </div>
 </nav>
 </div> <!-- /content -->

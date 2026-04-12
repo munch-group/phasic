@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>25&nbsp; Hexagonal Grid Tessellation and Neighbor Topology – Phasic — Supplementary Online Material</title>
+<title>26&nbsp; Hexagonal Grid Tessellation and Neighbor Topology – Phasic — Supplementary Online Material</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -23,7 +23,26 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
@@ -128,7 +147,7 @@ window.Quarto = {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./23_state_indexing.html">Spatial and State Indexing</a></li><li class="breadcrumb-item"><a href="./24_hex_grid.html"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./23_state_indexing.html">Spatial and State Indexing</a></li><li class="breadcrumb-item"><a href="./24_hex_grid.html"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -223,8 +242,14 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./07b_fill_in_complexity.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Fill-In During Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./08_state_space_construction.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
   </div>
 </li>
       </ul>
@@ -241,31 +266,31 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./09_symbolic_expressions.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./10_symbolic_graph_elimination.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./11_trace_system.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./12_graph_hashing.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./13_scc_trace_stitching.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
   </div>
 </li>
       </ul>
@@ -282,19 +307,19 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./14_distribution_computation.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./15_moment_computation.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./16_pdf_gradients.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
   </div>
 </li>
       </ul>
@@ -311,7 +336,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./17_sampling.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
   </div>
 </li>
       </ul>
@@ -328,31 +353,31 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./18_svgd.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./19_mcmc.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./20_bffg.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./21_method_of_moments.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./22_probability_matching.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
   </div>
 </li>
       </ul>
@@ -369,13 +394,13 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./23_state_indexing.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./24_hex_grid.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
   </div>
 </li>
       </ul>
@@ -392,23 +417,29 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./25_jax_integration.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./26_graph_builder.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./27_van_loan_equivalence.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
   </div>
 </li>
       </ul>
   </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./28_references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">References</span></span></a>
+  </div>
+</li>
     </ul>
     </div>
 </nav>
@@ -431,9 +462,9 @@ window.Quarto = {
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./23_state_indexing.html">Spatial and State Indexing</a></li><li class="breadcrumb-item"><a href="./24_hex_grid.html"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./23_state_indexing.html">Spatial and State Indexing</a></li><li class="breadcrumb-item"><a href="./24_hex_grid.html"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></h1>
+<h1 class="title"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></h1>
 </div>
 
 
@@ -453,7 +484,7 @@ window.Quarto = {
 <section id="introduction" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="introduction">Introduction</h2>
 <p>Spatial population genetics models require a discrete tessellation of geographic space into cells, where each cell represents a deme (local population) connected to its neighbors by migration edges. Hexagonal grids are preferred over square grids because they provide uniform distance to all neighbors: every cell has exactly six neighbors at equal distance, eliminating the diagonal-distance asymmetry of square grids.</p>
-<p>This file formalizes the construction of a hexagonal grid from a geographic boundary, the computation of the 6-connected neighbor topology, and the integration with the phase-type graph framework via <code>PropertySet</code> composition (<a href="23_state_indexing.html#def-23-property-set" class="quarto-xref">Definition&nbsp;<span>24.2</span></a>). The resulting graph is a standard phasic graph <span class="math inline">G = (V, E, W)</span> (<a href="01_preliminaries.html#def-01-weighted-digraph" class="quarto-xref">Definition&nbsp;<span>2.12</span></a>) that can be processed by all downstream algorithms: normalization ([05]), elimination ([06]), distribution computation ([14]), and inference ([18], [19]).</p>
+<p>This file formalizes the construction of a hexagonal grid from a geographic boundary, the computation of the 6-connected neighbor topology, and the integration with the phase-type graph framework via <code>PropertySet</code> composition (<a href="23_state_indexing.html#def-23-property-set" class="quarto-xref">Definition&nbsp;<span>25.2</span></a>). The resulting graph is a standard phasic graph <span class="math inline">G = (V, E, W)</span> (<a href="01_preliminaries.html#def-01-weighted-digraph" class="quarto-xref">Definition&nbsp;<span>2.12</span></a>) that can be processed by all downstream algorithms: normalization ([05]), elimination ([06]), distribution computation ([14]), and inference ([18], [19]).</p>
 <p><strong>Prerequisites:</strong> [01], [02]</p>
 <p><strong>Source files:</strong></p>
 <ul>
@@ -464,63 +495,87 @@ window.Quarto = {
 <section id="definitions" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="definitions">Definitions</h2>
 <div id="def-24-hex-tessellation" class="definition theorem">
-<p><span class="theorem-title"><strong>Definition 25.1 (Hexagonal Tessellation)</strong></span> <em>Let <span class="math inline">\mathcal{B} \subset \mathbb{R}^2</span> be a bounded geographic region with bounding box <span class="math inline">[x_{\min}, x_{\max}] \times [y_{\min}, y_{\max}]</span>, and let <span class="math inline">s &gt; 0</span> be the circumradius (center-to-vertex distance) of the hexagonal cells. A pointy-top hexagonal tessellation with parameters <span class="math inline">(\mathcal{B}, s)</span> is a grid of <span class="math inline">R \times C</span> cells indexed by row-column pairs <span class="math inline">(r, c)</span> with <span class="math inline">0 \leq r &lt; R</span> and <span class="math inline">0 \leq c &lt; C</span>, where:</em></p>
-<p><span id="eq-24-grid-dims"><span class="math display">R = \left\lceil \frac{y_{\max} - y_{\min}}{1.5 \, s} \right\rceil + 1, \qquad C = \left\lceil \frac{x_{\max} - x_{\min}}{\sqrt{3} \, s} \right\rceil + 1. \tag{25.1}</span></span></p>
+<p><span class="theorem-title"><strong>Definition 26.1 (Hexagonal Tessellation)</strong></span> <em>Let <span class="math inline">\mathcal{B} \subset \mathbb{R}^2</span> be a bounded geographic region with bounding box <span class="math inline">[x_{\min}, x_{\max}] \times [y_{\min}, y_{\max}]</span>, and let <span class="math inline">s &gt; 0</span> be the circumradius (center-to-vertex distance) of the hexagonal cells. A pointy-top hexagonal tessellation with parameters <span class="math inline">(\mathcal{B}, s)</span> is a grid of <span class="math inline">R \times C</span> cells indexed by row-column pairs <span class="math inline">(r, c)</span> with <span class="math inline">0 \leq r &lt; R</span> and <span class="math inline">0 \leq c &lt; C</span>, where:</em></p>
+<p><span id="eq-24-grid-dims"><span class="math display">R = \left\lceil \frac{y_{\max} - y_{\min}}{1.5 \, s} \right\rceil + 1, \qquad C = \left\lceil \frac{x_{\max} - x_{\min}}{\sqrt{3} \, s} \right\rceil + 1. \tag{26.1}</span></span></p>
 <p><em>The center coordinates of cell <span class="math inline">(r, c)</span> are:</em></p>
-<p><span id="eq-24-center-x"><span class="math display">x(r,c) = x_{\min} + c \cdot \sqrt{3} \, s + (r \bmod 2) \cdot \frac{\sqrt{3}}{2} \, s, \tag{25.2}</span></span> <span id="eq-24-center-y"><span class="math display">y(r,c) = y_{\min} + r \cdot 1.5 \, s. \tag{25.3}</span></span></p>
+<p><span id="eq-24-center-x"><span class="math display">x(r,c) = x_{\min} + c \cdot \sqrt{3} \, s + (r \bmod 2) \cdot \frac{\sqrt{3}}{2} \, s, \tag{26.2}</span></span> <span id="eq-24-center-y"><span class="math display">y(r,c) = y_{\min} + r \cdot 1.5 \, s. \tag{26.3}</span></span></p>
 <p><em>The horizontal spacing between column centers is <span class="math inline">h = \sqrt{3} \, s</span> and the vertical spacing between row centers is <span class="math inline">v = 1.5 \, s</span>. Odd-numbered rows are offset horizontally by <span class="math inline">h/2</span>.</em></p>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> A pointy-top hexagon has its top vertex pointing upward. The grid is laid out in an offset-coordinate system where odd rows are shifted half a column width to the right. The circumradius <span class="math inline">s</span> determines the cell size; larger <span class="math inline">s</span> means coarser spatial resolution. The grid dimensions <span class="math inline">R, C</span> are chosen to cover the bounding box of <span class="math inline">\mathcal{B}</span> with one extra row and column to ensure full coverage.</p>
-</blockquote>
-<blockquote class="blockquote">
-<p><strong>Example.</strong> For a circular boundary of radius 5 centered at the origin with <span class="math inline">s = 1.0</span>: the bounding box is <span class="math inline">[-5, 5] \times [-5, 5]</span>, giving <span class="math inline">R = \lceil 10/1.5 \rceil + 1 = 8</span> rows and <span class="math inline">C = \lceil 10/\sqrt{3} \rceil + 1 = 7</span> columns. The grid contains <span class="math inline">8 \times 7 = 56</span> cells, of which a subset lies inside the circular boundary.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+A pointy-top hexagon has its top vertex pointing upward. The grid is laid out in an offset-coordinate system where odd rows are shifted half a column width to the right. The circumradius <span class="math inline">s</span> determines the cell size; larger <span class="math inline">s</span> means coarser spatial resolution. The grid dimensions <span class="math inline">R, C</span> are chosen to cover the bounding box of <span class="math inline">\mathcal{B}</span> with one extra row and column to ensure full coverage.
+</details>
+<details>
+<summary>
+Example
+</summary>
+For a circular boundary of radius 5 centered at the origin with <span class="math inline">s = 1.0</span>: the bounding box is <span class="math inline">[-5, 5] \times [-5, 5]</span>, giving <span class="math inline">R = \lceil 10/1.5 \rceil + 1 = 8</span> rows and <span class="math inline">C = \lceil 10/\sqrt{3} \rceil + 1 = 7</span> columns. The grid contains <span class="math inline">8 \times 7 = 56</span> cells, of which a subset lies inside the circular boundary.
+</details>
 <div id="def-24-cell-validity" class="definition theorem">
-<p><span class="theorem-title"><strong>Definition 25.2 (Grid Cell Validity)</strong></span> <em>Given a hexagonal tessellation with parameters <span class="math inline">(\mathcal{B}, s)</span> (<a href="#def-24-hex-tessellation" class="quarto-xref">Definition&nbsp;<span>25.1</span></a>), cell <span class="math inline">(r, c)</span> is valid if and only if the center point <span class="math inline">(x(r,c), y(r,c))</span> lies inside the boundary region <span class="math inline">\mathcal{B}</span>:</em></p>
-<p><span id="eq-24-validity"><span class="math display">\mathrm{valid}(r, c) = \mathbb{1}_{\{(x(r,c), \, y(r,c)) \in \mathcal{B}\}}. \tag{25.4}</span></span></p>
+<p><span class="theorem-title"><strong>Definition 26.2 (Grid Cell Validity)</strong></span> <em>Given a hexagonal tessellation with parameters <span class="math inline">(\mathcal{B}, s)</span> (<a href="#def-24-hex-tessellation" class="quarto-xref">Definition&nbsp;<span>26.1</span></a>), cell <span class="math inline">(r, c)</span> is valid if and only if the center point <span class="math inline">(x(r,c), y(r,c))</span> lies inside the boundary region <span class="math inline">\mathcal{B}</span>:</em></p>
+<p><span id="eq-24-validity"><span class="math display">\mathrm{valid}(r, c) = \mathbb{1}_{\{(x(r,c), \, y(r,c)) \in \mathcal{B}\}}. \tag{26.4}</span></span></p>
 <p><em>The validity mask is the <span class="math inline">R \times C</span> boolean matrix <span class="math inline">\mathbf{M}</span> with <span class="math inline">M_{r,c} = \mathrm{valid}(r,c)</span>. The set of valid cells is <span class="math inline">\mathcal{C} = \{(r,c) : M_{r,c} = 1\}</span>.</em></p>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> Not all cells in the bounding-box grid lie inside the geographic region. The validity mask filters out cells whose centers fall outside the boundary (e.g., ocean cells for a continental boundary). Only valid cells participate in the graph construction.</p>
-</blockquote>
-<blockquote class="blockquote">
-<p><strong>Example.</strong> For the circular boundary above with <span class="math inline">s = 1.0</span>, corner cells like <span class="math inline">(0, 0)</span> at coordinates <span class="math inline">(-5, -5)</span> lie outside the circle and are marked invalid. Interior cells like <span class="math inline">(4, 3)</span> near the center are valid.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+Not all cells in the bounding-box grid lie inside the geographic region. The validity mask filters out cells whose centers fall outside the boundary (e.g., ocean cells for a continental boundary). Only valid cells participate in the graph construction.
+</details>
+<details>
+<summary>
+Example
+</summary>
+For the circular boundary above with <span class="math inline">s = 1.0</span>, corner cells like <span class="math inline">(0, 0)</span> at coordinates <span class="math inline">(-5, -5)</span> lie outside the circle and are marked invalid. Interior cells like <span class="math inline">(4, 3)</span> near the center are valid.
+</details>
 <div id="def-24-hex-neighbors" class="definition theorem">
-<p><span class="theorem-title"><strong>Definition 25.3 (Hex Neighbor Topology)</strong></span> <em>For a pointy-top hexagonal grid, the six neighbors of cell <span class="math inline">(r, c)</span> are determined by the row parity. Define the offset tables:</em></p>
+<p><span class="theorem-title"><strong>Definition 26.3 (Hex Neighbor Topology)</strong></span> <em>For a pointy-top hexagonal grid, the six neighbors of cell <span class="math inline">(r, c)</span> are determined by the row parity. Define the offset tables:</em></p>
 <p><em>For even rows (<span class="math inline">r \bmod 2 = 0</span>):</em> <span class="math display">\Delta_{\mathrm{even}} = \{(-1, 0), (-1, 1), (0, -1), (0, 1), (1, 0), (1, 1)\}.</span></p>
 <p><em>For odd rows (<span class="math inline">r \bmod 2 = 1</span>):</em> <span class="math display">\Delta_{\mathrm{odd}} = \{(-1, -1), (-1, 0), (0, -1), (0, 1), (1, -1), (1, 0)\}.</span></p>
 <p><em>The neighbor set of a valid cell <span class="math inline">(r, c)</span> is:</em></p>
-<p><span id="eq-24-neighbors"><span class="math display">\mathcal{N}(r, c) = \{(r + \delta_r, c + \delta_c) : (\delta_r, \delta_c) \in \Delta_{r} \text{ and } \mathrm{valid}(r + \delta_r, c + \delta_c)\} \tag{25.5}</span></span></p>
+<p><span id="eq-24-neighbors"><span class="math display">\mathcal{N}(r, c) = \{(r + \delta_r, c + \delta_c) : (\delta_r, \delta_c) \in \Delta_{r} \text{ and } \mathrm{valid}(r + \delta_r, c + \delta_c)\} \tag{26.5}</span></span></p>
 <p><em>where <span class="math inline">\Delta_r = \Delta_{\mathrm{even}}</span> if <span class="math inline">r</span> is even and <span class="math inline">\Delta_r = \Delta_{\mathrm{odd}}</span> if <span class="math inline">r</span> is odd. Only valid neighbors within the grid bounds are included.</em></p>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> In a pointy-top hex grid with offset coordinates, the column offsets of diagonal neighbors depend on whether the row is even or odd, because odd rows are shifted to the right. The two offset tables encode this parity-dependent geometry. Each interior cell has exactly six neighbors; boundary cells may have fewer.</p>
-</blockquote>
-<blockquote class="blockquote">
-<p><strong>Example.</strong> Cell <span class="math inline">(2, 3)</span> is in an even row, so its neighbors use <span class="math inline">\Delta_{\mathrm{even}}</span>: <span class="math inline">(1,3), (1,4), (2,2), (2,4), (3,3), (3,4)</span>. Cell <span class="math inline">(3, 3)</span> is in an odd row, so its neighbors use <span class="math inline">\Delta_{\mathrm{odd}}</span>: <span class="math inline">(2,2), (2,3), (3,2), (3,4), (4,2), (4,3)</span>.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+In a pointy-top hex grid with offset coordinates, the column offsets of diagonal neighbors depend on whether the row is even or odd, because odd rows are shifted to the right. The two offset tables encode this parity-dependent geometry. Each interior cell has exactly six neighbors; boundary cells may have fewer.
+</details>
+<details>
+<summary>
+Example
+</summary>
+Cell <span class="math inline">(2, 3)</span> is in an even row, so its neighbors use <span class="math inline">\Delta_{\mathrm{even}}</span>: <span class="math inline">(1,3), (1,4), (2,2), (2,4), (3,3), (3,4)</span>. Cell <span class="math inline">(3, 3)</span> is in an odd row, so its neighbors use <span class="math inline">\Delta_{\mathrm{odd}}</span>: <span class="math inline">(2,2), (2,3), (3,2), (3,4), (4,2), (4,3)</span>.
+</details>
 <div id="def-24-graph-construction" class="definition theorem">
-<p><span class="theorem-title"><strong>Definition 25.4 (Graph Construction from Hex Grid)</strong></span> <em>Let <span class="math inline">\mathcal{H} = (\mathcal{B}, s, R, C, \mathbf{M}, \mathcal{N})</span> be a hexagonal tessellation with validity mask and neighbor topology (<a href="#def-24-hex-tessellation" class="quarto-xref">Definition&nbsp;<span>25.1</span></a>–<a href="#def-24-hex-neighbors" class="quarto-xref">Definition&nbsp;<span>25.3</span></a>), and let <span class="math inline">\mathcal{P}</span> be a PropertySet (<a href="23_state_indexing.html#def-23-property-set" class="quarto-xref">Definition&nbsp;<span>24.2</span></a>) containing row and column properties with ranges <span class="math inline">[0, R-1]</span> and <span class="math inline">[0, C-1]</span> respectively (and possibly additional properties). Let <span class="math inline">\delta</span> be a transition function (<a href="08_state_space_construction.html#def-08-transition-function" class="quarto-xref">Definition&nbsp;<span>9.1</span></a>) that uses the grid topology to determine transitions. The graph construction produces a phase-type graph <span class="math inline">G = (V, E, W)</span> by:</em></p>
+<p><span class="theorem-title"><strong>Definition 26.4 (Graph Construction from Hex Grid)</strong></span> <em>Let <span class="math inline">\mathcal{H} = (\mathcal{B}, s, R, C, \mathbf{M}, \mathcal{N})</span> be a hexagonal tessellation with validity mask and neighbor topology (<a href="#def-24-hex-tessellation" class="quarto-xref">Definition&nbsp;<span>26.1</span></a>–<a href="#def-24-hex-neighbors" class="quarto-xref">Definition&nbsp;<span>26.3</span></a>), and let <span class="math inline">\mathcal{P}</span> be a PropertySet (<a href="23_state_indexing.html#def-23-property-set" class="quarto-xref">Definition&nbsp;<span>25.2</span></a>) containing row and column properties with ranges <span class="math inline">[0, R-1]</span> and <span class="math inline">[0, C-1]</span> respectively (and possibly additional properties). Let <span class="math inline">\delta</span> be a transition function (<a href="08_state_space_construction.html#def-08-transition-function" class="quarto-xref">Definition&nbsp;<span>10.1</span></a>) that uses the grid topology to determine transitions. The graph construction produces a phase-type graph <span class="math inline">G = (V, E, W)</span> by:</em></p>
 <ol type="1">
 <li><em>Creating a starting vertex <span class="math inline">v_0</span> with an edge to a designated start cell.</em></li>
-<li><em>For each valid cell <span class="math inline">(r, c) \in \mathcal{C}</span>, and for each combination of additional property values, creating a vertex indexed by <span class="math inline">\phi(r, c, \ldots)</span> (the mixed-radix index from <a href="23_state_indexing.html#def-23-mixed-radix" class="quarto-xref">Definition&nbsp;<span>24.3</span></a>).</em></li>
+<li><em>For each valid cell <span class="math inline">(r, c) \in \mathcal{C}</span>, and for each combination of additional property values, creating a vertex indexed by <span class="math inline">\phi(r, c, \ldots)</span> (the mixed-radix index from <a href="23_state_indexing.html#def-23-mixed-radix" class="quarto-xref">Definition&nbsp;<span>25.3</span></a>).</em></li>
 <li><em>Applying the transition function <span class="math inline">\delta</span> at each vertex, using <span class="math inline">\mathcal{N}(r, c)</span> to determine spatial transitions (e.g., migration to neighboring cells).</em></li>
 </ol>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> The hex grid provides the spatial topology; the PropertySet provides the index mapping; and the transition function encodes the model’s dynamics (migration rates, coalescence, etc.). Composing these produces a standard phasic graph that can be analyzed with all existing algorithms.</p>
-</blockquote>
-<blockquote class="blockquote">
-<p><strong>Example.</strong> A migration model on a hex grid with two populations per cell: the PropertySet has properties (row, col, population). The transition function at vertex <span class="math inline">(\texttt{row}=2, \texttt{col}=3, \texttt{pop}=1)</span> returns migration transitions to the six neighboring cells (using <span class="math inline">\mathcal{N}(2,3)</span>) with rates determined by a parameter <span class="math inline">\theta</span>.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+The hex grid provides the spatial topology; the PropertySet provides the index mapping; and the transition function encodes the model’s dynamics (migration rates, coalescence, etc.). Composing these produces a standard phasic graph that can be analyzed with all existing algorithms.
+</details>
+<details>
+<summary>
+Example
+</summary>
+A migration model on a hex grid with two populations per cell: the PropertySet has properties (row, col, population). The transition function at vertex <span class="math inline">(\texttt{row}=2, \texttt{col}=3, \texttt{pop}=1)</span> returns migration transitions to the six neighboring cells (using <span class="math inline">\mathcal{N}(2,3)</span>) with rates determined by a parameter <span class="math inline">\theta</span>.
+</details>
 </section>
 <section id="theorems-and-proofs" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="theorems-and-proofs">Theorems and Proofs</h2>
 <div id="thm-24-hex-neighbor" class="theorem">
-<p><span class="theorem-title"><strong>Theorem 25.1 (Hex Neighbor Correctness)</strong></span> <em>Let <span class="math inline">(r, c)</span> be an interior valid cell of a pointy-top hexagonal grid (<a href="#def-24-hex-tessellation" class="quarto-xref">Definition&nbsp;<span>25.1</span></a>) with <span class="math inline">1 \leq r \leq R-2</span> and <span class="math inline">1 \leq c \leq C-2</span> (ensuring all neighbors are within grid bounds). Then the offset tables <span class="math inline">\Delta_{\mathrm{even}}</span> and <span class="math inline">\Delta_{\mathrm{odd}}</span> (<a href="#def-24-hex-neighbors" class="quarto-xref">Definition&nbsp;<span>25.3</span></a>) enumerate exactly the six cells that share a hexagonal edge with <span class="math inline">(r, c)</span>, and the Euclidean distance from <span class="math inline">(x(r,c), y(r,c))</span> to each neighbor center is:</em></p>
-<p><span id="eq-24-neighbor-distance"><span class="math display">\|(\Delta x, \Delta y)\| = \sqrt{3} \, s \tag{25.6}</span></span></p>
+<p><span class="theorem-title"><strong>Theorem 26.1 (Hex Neighbor Correctness)</strong></span> <em>Let <span class="math inline">(r, c)</span> be an interior valid cell of a pointy-top hexagonal grid (<a href="#def-24-hex-tessellation" class="quarto-xref">Definition&nbsp;<span>26.1</span></a>) with <span class="math inline">1 \leq r \leq R-2</span> and <span class="math inline">1 \leq c \leq C-2</span> (ensuring all neighbors are within grid bounds). Then the offset tables <span class="math inline">\Delta_{\mathrm{even}}</span> and <span class="math inline">\Delta_{\mathrm{odd}}</span> (<a href="#def-24-hex-neighbors" class="quarto-xref">Definition&nbsp;<span>26.3</span></a>) enumerate exactly the six cells that share a hexagonal edge with <span class="math inline">(r, c)</span>, and the Euclidean distance from <span class="math inline">(x(r,c), y(r,c))</span> to each neighbor center is:</em></p>
+<p><span id="eq-24-neighbor-distance"><span class="math display">\|(\Delta x, \Delta y)\| = \sqrt{3} \, s \tag{26.6}</span></span></p>
 <p><em>for all six neighbors.</em></p>
 </div>
 <div class="proof">
@@ -531,7 +586,7 @@ window.Quarto = {
 <p>For <span class="math inline">(\delta_r, \delta_c) = (-1, 1)</span>: <span class="math inline">r-1</span> is odd with parity offset <span class="math inline">\frac{\sqrt{3}}{2}s</span>: <span class="math display">\Delta x = (c+1)\sqrt{3}s + \frac{\sqrt{3}}{2}s - c\sqrt{3}s = \sqrt{3}s + \frac{\sqrt{3}}{2}s = \frac{3\sqrt{3}}{2}s.</span></p>
 <p>This is incorrect; let us redo more carefully. The absolute coordinates are: <span class="math display">x' = x_{\min} + (c+1)\sqrt{3}s + 1 \cdot \frac{\sqrt{3}}{2}s, \qquad x = x_{\min} + c\sqrt{3}s + 0.</span> <span class="math display">\Delta x = \sqrt{3}s + \frac{\sqrt{3}}{2}s = \frac{3\sqrt{3}}{2}s.</span></p>
 <p>This exceeds <span class="math inline">\sqrt{3}s</span>, so <span class="math inline">(-1, 1)</span> with even <span class="math inline">r</span> does not give distance <span class="math inline">\sqrt{3}s</span>. We need to verify the offset tables against the hex geometry more carefully.</p>
-<p>In offset coordinates (pointy-top, even-row-right convention used by the code), the offsets are standard and well-known in the hex grid literature. The phasic implementation uses the “odd-row-right” convention where odd rows shift right. The six neighbors of any hex cell are those sharing an edge. The offset tables <span class="math inline">\Delta_{\mathrm{even}}</span> and <span class="math inline">\Delta_{\mathrm{odd}}</span> are the standard offset-coordinate neighbor lists for the “odd-row-right” (equivalently, “even-row-left”) pointy-top layout, as documented in the Red Blob Games hexagonal grids reference (Patel, 2013).</p>
+<p>In offset coordinates (pointy-top, even-row-right convention used by the code), the offsets are standard and well-known in the hex grid literature. The phasic implementation uses the “odd-row-right” convention where odd rows shift right. The six neighbors of any hex cell are those sharing an edge. The offset tables <span class="math inline">\Delta_{\mathrm{even}}</span> and <span class="math inline">\Delta_{\mathrm{odd}}</span> are the standard offset-coordinate neighbor lists for the “odd-row-right” (equivalently, “even-row-left”) pointy-top layout, as documented by <span class="citation" data-cites="patel2013">Patel (<a href="28_references.html#ref-patel2013" role="doc-biblioref">2013</a>)</span>.</p>
 <p>Rather than verify all 12 offset-distance pairs individually, we establish correctness via the axial coordinate equivalence. In axial (cube) coordinates <span class="math inline">(q, a)</span>, the six neighbors of any cell are obtained by adding <span class="math inline">\{(+1,0),(-1,0),(0,+1),(0,-1),(+1,-1),(-1,+1)\}</span>, and each neighbor is at Euclidean distance exactly <span class="math inline">\sqrt{3}s</span> (this follows from the fact that adjacent hexagons share an edge of length <span class="math inline">s</span>, and the center-to-center distance equals <span class="math inline">\sqrt{3}s</span>). The offset-to-axial conversion is: <span class="math display">q = c - \lfloor r/2 \rfloor, \qquad a = r.</span></p>
 <p>Converting each of the six axial neighbor offsets back to offset coordinates yields exactly <span class="math inline">\Delta_{\mathrm{even}}</span> for even <span class="math inline">r</span> and <span class="math inline">\Delta_{\mathrm{odd}}</span> for odd <span class="math inline">r</span>. We verify one case: axial offset <span class="math inline">(+1, 0)</span> means <span class="math inline">(q+1, a)</span> in axial. In offset coords: <span class="math inline">c' = q + 1 + \lfloor a/2 \rfloor</span>, <span class="math inline">r' = a</span>. Since <span class="math inline">r' = r</span> (same row), <span class="math inline">c' = (c - \lfloor r/2 \rfloor) + 1 + \lfloor r/2 \rfloor = c + 1</span>. So the offset is <span class="math inline">(0, +1)</span>, which appears in both <span class="math inline">\Delta_{\mathrm{even}}</span> and <span class="math inline">\Delta_{\mathrm{odd}}</span>. The remaining five cases follow by analogous calculation (each is a straightforward substitution into the offset-axial formulas with case analysis on <span class="math inline">r \bmod 2</span>).</p>
 <p>Since the axial neighbors are exactly the six edge-sharing cells at distance <span class="math inline">\sqrt{3}s</span>, and the offset tables are the correct offset-coordinate representation of these axial neighbors, the theorem holds. <span class="math inline">\square</span></p>
@@ -541,8 +596,8 @@ window.Quarto = {
 <h2 class="unnumbered anchored" data-anchor-id="algorithms">Algorithms</h2>
 <div id="alg-24-hex-grid-construction" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-alg figure">
-<section id="hexgridconstruction" class="level4" aria-describedby="alg-24-hex-grid-construction-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="25.0.0.1">
-<h4 data-number="25.0.0.1" class="anchored" data-anchor-id="hexgridconstruction"><span class="header-section-number">25.0.0.1</span> HexGridConstruction</h4>
+<section id="hexgridconstruction" class="level4" aria-describedby="alg-24-hex-grid-construction-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="26.0.0.1">
+<h4 data-number="26.0.0.1" class="anchored" data-anchor-id="hexgridconstruction"><span class="header-section-number">26.0.0.1</span> HexGridConstruction</h4>
 <p><em>Description.</em> This algorithm constructs a hexagonal grid from a geographic boundary and circumradius. It computes the grid dimensions, generates center coordinates for all cells, determines validity by point-in-polygon testing, and precomputes the adjacency structure.</p>
 <pre><code>HexGridConstruction
 1: Let B be a boundary geometry with bounding box [x_min, x_max] × [y_min, y_max]
@@ -642,14 +697,14 @@ window.Quarto = {
 <p><strong>Complexity.</strong> Time: <span class="math inline">O(R \cdot C \cdot T_{\mathrm{pip}})</span> for the validity mask, where <span class="math inline">T_{\mathrm{pip}}</span> is the cost of a point-in-polygon test (typically <span class="math inline">O(n_{\mathrm{boundary}})</span> for a polygon with <span class="math inline">n_{\mathrm{boundary}}</span> vertices). The adjacency computation is <span class="math inline">O(R \cdot C)</span> since each cell has at most 6 neighbors. Space: <span class="math inline">O(R \cdot C)</span> for the mask and adjacency dictionary.</p>
 </section>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-24-hex-grid-construction-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Algorithm&nbsp;25.1: <strong>Correctness.</strong> Grid dimensions follow from <a href="#def-24-hex-tessellation" class="quarto-xref">Definition&nbsp;<span>25.1</span></a>. Validity follows from <a href="#def-24-cell-validity" class="quarto-xref">Definition&nbsp;<span>25.2</span></a>. Adjacency follows from <a href="#def-24-hex-neighbors" class="quarto-xref">Definition&nbsp;<span>25.3</span></a>, with correctness of the offset tables established by <a href="#thm-24-hex-neighbor" class="quarto-xref">Theorem&nbsp;<span>25.1</span></a>.
+Algorithm&nbsp;26.1: <strong>Correctness.</strong> Grid dimensions follow from <a href="#def-24-hex-tessellation" class="quarto-xref">Definition&nbsp;<span>26.1</span></a>. Validity follows from <a href="#def-24-cell-validity" class="quarto-xref">Definition&nbsp;<span>26.2</span></a>. Adjacency follows from <a href="#def-24-hex-neighbors" class="quarto-xref">Definition&nbsp;<span>26.3</span></a>, with correctness of the offset tables established by <a href="#thm-24-hex-neighbor" class="quarto-xref">Theorem&nbsp;<span>26.1</span></a>.
 </figcaption>
 </figure>
 </div>
 <div id="alg-24-hex-neighbor-enumeration" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-alg figure">
-<section id="hexneighborenumeration" class="level4" aria-describedby="alg-24-hex-neighbor-enumeration-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="25.0.0.2">
-<h4 data-number="25.0.0.2" class="anchored" data-anchor-id="hexneighborenumeration"><span class="header-section-number">25.0.0.2</span> HexNeighborEnumeration</h4>
+<section id="hexneighborenumeration" class="level4" aria-describedby="alg-24-hex-neighbor-enumeration-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="26.0.0.2">
+<h4 data-number="26.0.0.2" class="anchored" data-anchor-id="hexneighborenumeration"><span class="header-section-number">26.0.0.2</span> HexNeighborEnumeration</h4>
 <p><em>Description.</em> Given a valid cell <span class="math inline">(r, c)</span> in a precomputed hexagonal grid, this algorithm returns the list of valid neighbors by looking up the precomputed adjacency dictionary. For multi-step neighborhoods (distance <span class="math inline">&gt; 1</span>), a breadth-first search expands outward from the center cell.</p>
 <pre><code>HexNeighborEnumeration
 1: Let A be the precomputed adjacency dictionary from HexGrid Construction
@@ -721,7 +776,7 @@ Algorithm&nbsp;25.1: <strong>Correctness.</strong> Grid dimensions follow from <
 <p><strong>Complexity.</strong> First-order neighbors: <span class="math inline">O(1)</span> (dictionary lookup of precomputed list). <span class="math inline">k</span>-step neighborhood: <span class="math inline">O(|\mathcal{N}_k|)</span> where <span class="math inline">|\mathcal{N}_k| \leq 3k^2 + 3k</span> is the number of cells within hex distance <span class="math inline">k</span> (the area of a hex disk of radius <span class="math inline">k</span>). Space: <span class="math inline">O(|\mathcal{N}_k|)</span> for the visited set.</p>
 </section>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-24-hex-neighbor-enumeration-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Algorithm&nbsp;25.2: <strong>Correctness.</strong> First-order neighbors are correct by construction in <a href="#alg-24-hex-grid-construction" class="quarto-xref">Algorithm&nbsp;<span>25.1</span></a>, which itself follows from <a href="#thm-24-hex-neighbor" class="quarto-xref">Theorem&nbsp;<span>25.1</span></a>. The BFS for <span class="math inline">k</span>-step neighborhoods is a standard breadth-first expansion that discovers all cells reachable within <span class="math inline">k</span> hops along the adjacency graph, which by induction on <span class="math inline">k</span> equals the set of cells at hex distance at most <span class="math inline">k</span>.
+Algorithm&nbsp;26.2: <strong>Correctness.</strong> First-order neighbors are correct by construction in <a href="#alg-24-hex-grid-construction" class="quarto-xref">Algorithm&nbsp;<span>26.1</span></a>, which itself follows from <a href="#thm-24-hex-neighbor" class="quarto-xref">Theorem&nbsp;<span>26.1</span></a>. The BFS for <span class="math inline">k</span>-step neighborhoods is a standard breadth-first expansion that discovers all cells reachable within <span class="math inline">k</span> hops along the adjacency graph, which by induction on <span class="math inline">k</span> equals the set of cells at hex distance at most <span class="math inline">k</span>.
 </figcaption>
 </figure>
 </div>
@@ -746,31 +801,31 @@ Algorithm&nbsp;25.2: <strong>Correctness.</strong> First-order neighbors are cor
 </thead>
 <tbody>
 <tr class="odd">
-<td><a href="#alg-24-hex-grid-construction" class="quarto-xref">Algorithm&nbsp;<span>25.1</span></a> (dimensions)</td>
+<td><a href="#alg-24-hex-grid-construction" class="quarto-xref">Algorithm&nbsp;<span>26.1</span></a> (dimensions)</td>
 <td><code>src/phasic/hex_grid.py</code></td>
 <td><code>HexGrid.__init__</code></td>
 <td>L141–L173</td>
 </tr>
 <tr class="even">
-<td><a href="#alg-24-hex-grid-construction" class="quarto-xref">Algorithm&nbsp;<span>25.1</span></a> (validity mask)</td>
+<td><a href="#alg-24-hex-grid-construction" class="quarto-xref">Algorithm&nbsp;<span>26.1</span></a> (validity mask)</td>
 <td><code>src/phasic/hex_grid.py</code></td>
 <td><code>HexGrid._compute_valid_mask</code></td>
 <td>L602–L612</td>
 </tr>
 <tr class="odd">
-<td><a href="#alg-24-hex-grid-construction" class="quarto-xref">Algorithm&nbsp;<span>25.1</span></a> (adjacency)</td>
+<td><a href="#alg-24-hex-grid-construction" class="quarto-xref">Algorithm&nbsp;<span>26.1</span></a> (adjacency)</td>
 <td><code>src/phasic/hex_grid.py</code></td>
 <td><code>HexGrid._compute_adjacency</code></td>
 <td>L613–L645</td>
 </tr>
 <tr class="even">
-<td><a href="#alg-24-hex-neighbor-enumeration" class="quarto-xref">Algorithm&nbsp;<span>25.2</span></a> (first-order)</td>
+<td><a href="#alg-24-hex-neighbor-enumeration" class="quarto-xref">Algorithm&nbsp;<span>26.2</span></a> (first-order)</td>
 <td><code>src/phasic/hex_grid.py</code></td>
 <td><code>HexGrid.neighbors</code></td>
 <td>L275–L288</td>
 </tr>
 <tr class="odd">
-<td><a href="#alg-24-hex-neighbor-enumeration" class="quarto-xref">Algorithm&nbsp;<span>25.2</span></a> (k-step)</td>
+<td><a href="#alg-24-hex-neighbor-enumeration" class="quarto-xref">Algorithm&nbsp;<span>26.2</span></a> (k-step)</td>
 <td><code>src/phasic/hex_grid.py</code></td>
 <td><code>HexGrid.neighbors_within</code></td>
 <td>L290–L318</td>
@@ -794,7 +849,7 @@ Algorithm&nbsp;25.2: <strong>Correctness.</strong> First-order neighbors are cor
 <li><p><strong>Flat-top orientation.</strong> The implementation also supports flat-top hexagons (<code>orientation="flat"</code>), which uses column-parity offsets (<code>_EVEN_COL_OFFSETS</code>, <code>_ODD_COL_OFFSETS</code>) and swapped horizontal/vertical spacing formulas. The pseudocode and definitions present only the pointy-top case for simplicity; the flat-top case is analogous with rows and columns exchanged.</p></li>
 <li><p><strong>Coordinate lookup.</strong> The <code>coords_to_rowcol</code> method finds the nearest valid cell to given real-world coordinates by brute-force scan over all valid cells. This is <span class="math inline">O(|\mathcal{C}|)</span> per query. For large grids, a spatial index could improve this to <span class="math inline">O(\log |\mathcal{C}|)</span>, but the current implementation is sufficient for typical grid sizes.</p></li>
 <li><p><strong>Graph construction details.</strong> The <code>build_graph</code> method creates a standard phasic <code>Graph</code> with <code>state_length=1</code>, where each vertex’s state is a single flat index into the PropertySet. The starting vertex connects to the center cell (or a user-specified start cell). The transition function receives the grid object to access neighbor information.</p></li>
-<li><p><strong>Result mapping.</strong> The <code>map_to_grid</code> method maps vertex-indexed values back to the <span class="math inline">(R, C)</span> grid using PropertySet decoding. This is a postprocessing step not covered in the algorithms above, as it is a straightforward application of <a href="23_state_indexing.html#alg-23-index-to-properties" class="quarto-xref">Algorithm&nbsp;<span>24.1</span></a> (IndexToProperties from [23]).</p></li>
+<li><p><strong>Result mapping.</strong> The <code>map_to_grid</code> method maps vertex-indexed values back to the <span class="math inline">(R, C)</span> grid using PropertySet decoding. This is a postprocessing step not covered in the algorithms above, as it is a straightforward application of <a href="23_state_indexing.html#alg-23-index-to-properties" class="quarto-xref">Algorithm&nbsp;<span>25.1</span></a> (IndexToProperties from [23]).</p></li>
 </ul>
 </section>
 <section id="symbol-index" class="level2 unnumbered">
@@ -816,77 +871,82 @@ Algorithm&nbsp;25.2: <strong>Correctness.</strong> First-order neighbors are cor
 <tr class="odd">
 <td><span class="math inline">\mathcal{B}</span></td>
 <td>Geographic boundary region</td>
-<td><a href="#def-24-hex-tessellation" class="quarto-xref">Definition&nbsp;<span>25.1</span></a></td>
+<td><a href="#def-24-hex-tessellation" class="quarto-xref">Definition&nbsp;<span>26.1</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">C</span></td>
 <td>Number of grid columns</td>
-<td><a href="#def-24-hex-tessellation" class="quarto-xref">Definition&nbsp;<span>25.1</span></a></td>
+<td><a href="#def-24-hex-tessellation" class="quarto-xref">Definition&nbsp;<span>26.1</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">\mathcal{C}</span></td>
 <td>Set of valid cells</td>
-<td><a href="#def-24-cell-validity" class="quarto-xref">Definition&nbsp;<span>25.2</span></a></td>
+<td><a href="#def-24-cell-validity" class="quarto-xref">Definition&nbsp;<span>26.2</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">\Delta_{\mathrm{even}}</span></td>
 <td>Even-row neighbor offset table</td>
-<td><a href="#def-24-hex-neighbors" class="quarto-xref">Definition&nbsp;<span>25.3</span></a></td>
+<td><a href="#def-24-hex-neighbors" class="quarto-xref">Definition&nbsp;<span>26.3</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">\Delta_{\mathrm{odd}}</span></td>
 <td>Odd-row neighbor offset table</td>
-<td><a href="#def-24-hex-neighbors" class="quarto-xref">Definition&nbsp;<span>25.3</span></a></td>
+<td><a href="#def-24-hex-neighbors" class="quarto-xref">Definition&nbsp;<span>26.3</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">h</span></td>
 <td>Horizontal spacing (<span class="math inline">\sqrt{3} \, s</span>)</td>
-<td><a href="#def-24-hex-tessellation" class="quarto-xref">Definition&nbsp;<span>25.1</span></a></td>
+<td><a href="#def-24-hex-tessellation" class="quarto-xref">Definition&nbsp;<span>26.1</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">\mathcal{H}</span></td>
 <td>Hexagonal tessellation</td>
-<td><a href="#def-24-graph-construction" class="quarto-xref">Definition&nbsp;<span>25.4</span></a></td>
+<td><a href="#def-24-graph-construction" class="quarto-xref">Definition&nbsp;<span>26.4</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">\mathbf{M}</span></td>
 <td>Validity mask (<span class="math inline">R \times C</span> boolean matrix)</td>
-<td><a href="#def-24-cell-validity" class="quarto-xref">Definition&nbsp;<span>25.2</span></a></td>
+<td><a href="#def-24-cell-validity" class="quarto-xref">Definition&nbsp;<span>26.2</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">\mathcal{N}(r,c)</span></td>
 <td>Neighbor set of cell <span class="math inline">(r,c)</span></td>
-<td><a href="#def-24-hex-neighbors" class="quarto-xref">Definition&nbsp;<span>25.3</span></a></td>
+<td><a href="#def-24-hex-neighbors" class="quarto-xref">Definition&nbsp;<span>26.3</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">R</span></td>
 <td>Number of grid rows</td>
-<td><a href="#def-24-hex-tessellation" class="quarto-xref">Definition&nbsp;<span>25.1</span></a></td>
+<td><a href="#def-24-hex-tessellation" class="quarto-xref">Definition&nbsp;<span>26.1</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">s</span></td>
 <td>Hexagonal circumradius</td>
-<td><a href="#def-24-hex-tessellation" class="quarto-xref">Definition&nbsp;<span>25.1</span></a></td>
+<td><a href="#def-24-hex-tessellation" class="quarto-xref">Definition&nbsp;<span>26.1</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">v</span></td>
 <td>Vertical spacing (<span class="math inline">1.5 \, s</span>)</td>
-<td><a href="#def-24-hex-tessellation" class="quarto-xref">Definition&nbsp;<span>25.1</span></a></td>
+<td><a href="#def-24-hex-tessellation" class="quarto-xref">Definition&nbsp;<span>26.1</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">x(r,c)</span></td>
 <td><span class="math inline">x</span>-coordinate of cell center</td>
-<td><a href="#def-24-hex-tessellation" class="quarto-xref">Definition&nbsp;<span>25.1</span></a></td>
+<td><a href="#def-24-hex-tessellation" class="quarto-xref">Definition&nbsp;<span>26.1</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">y(r,c)</span></td>
 <td><span class="math inline">y</span>-coordinate of cell center</td>
-<td><a href="#def-24-hex-tessellation" class="quarto-xref">Definition&nbsp;<span>25.1</span></a></td>
+<td><a href="#def-24-hex-tessellation" class="quarto-xref">Definition&nbsp;<span>26.1</span></a></td>
 </tr>
 </tbody>
 </table>
 
 
+<div id="refs" class="references csl-bib-body hanging-indent" role="list" style="display: none">
+<div id="ref-patel2013" class="csl-entry" role="listitem">
+Patel, Amit. 2013. <em>Hexagonal Grids</em>. Red Blob Games. <a href="https://www.redblobgames.com/grids/hexagons/">https://www.redblobgames.com/grids/hexagons/</a>.
+</div>
+</div>
 </section>
 
 </main> <!-- /main -->
@@ -1293,12 +1353,12 @@ Algorithm&nbsp;25.2: <strong>Correctness.</strong> First-order neighbors are cor
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
       <a href="./23_state_indexing.html" class="pagination-link" aria-label="Mixed-Radix State Indexing">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span>
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
       <a href="./25_jax_integration.html" class="pagination-link" aria-label="JAX Integration">
-        <span class="nav-page-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">JAX Integration</span></span> <i class="bi bi-arrow-right-short"></i>
+        <span class="nav-page-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">JAX Integration</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

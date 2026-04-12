@@ -23,7 +23,26 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
@@ -223,8 +242,14 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./07b_fill_in_complexity.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Fill-In During Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./08_state_space_construction.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
   </div>
 </li>
       </ul>
@@ -241,31 +266,31 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./09_symbolic_expressions.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./10_symbolic_graph_elimination.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./11_trace_system.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./12_graph_hashing.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./13_scc_trace_stitching.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
   </div>
 </li>
       </ul>
@@ -282,19 +307,19 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./14_distribution_computation.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./15_moment_computation.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./16_pdf_gradients.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
   </div>
 </li>
       </ul>
@@ -311,7 +336,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./17_sampling.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
   </div>
 </li>
       </ul>
@@ -328,31 +353,31 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./18_svgd.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./19_mcmc.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./20_bffg.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./21_method_of_moments.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./22_probability_matching.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
   </div>
 </li>
       </ul>
@@ -369,13 +394,13 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./23_state_indexing.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./24_hex_grid.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
   </div>
 </li>
       </ul>
@@ -392,23 +417,29 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./25_jax_integration.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./26_graph_builder.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./27_van_loan_equivalence.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
   </div>
 </li>
       </ul>
   </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./28_references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">References</span></span></a>
+  </div>
+</li>
     </ul>
     </div>
 </nav>
@@ -468,16 +499,22 @@ window.Quarto = {
 <h3 class="unnumbered anchored" data-anchor-id="compensated-summation">Compensated summation</h3>
 <p>When summing <span class="math inline">n</span> floating-point numbers in the obvious way (<span class="math inline">s \leftarrow s + x_i</span>), each addition may introduce a rounding error of magnitude up to <span class="math inline">\varepsilon |s + x_i|</span>, where <span class="math inline">\varepsilon</span> is the machine epsilon. Over <span class="math inline">n</span> additions, these errors can accumulate to <span class="math inline">O(n\varepsilon)</span> relative error. Kahan’s algorithm tracks a running compensation term that captures the rounding error from each addition and feeds it back into the next step.</p>
 <div id="def-03-kahan" class="theorem definition">
-<p><span class="theorem-title"><strong>Definition 4.1 (Kahan compensated summation)</strong></span> <em>A Kahan accumulator is a pair <span class="math inline">(S, C)</span> where <span class="math inline">S</span> is the running sum and <span class="math inline">C</span> is the compensation term, both initialized to zero. Given a sequence of values <span class="math inline">x_1, x_2, \ldots, x_n</span>, the compensated sum is computed by the following recurrence: for <span class="math inline">i = 1, \ldots, n</span>,</em></p>
+<p><span class="theorem-title"><strong>Definition 4.1 (Kahan compensated summation)</strong></span> <em>A Kahan accumulator <span class="citation" data-cites="kahan1965">(<a href="28_references.html#ref-kahan1965" role="doc-biblioref">Kahan 1965</a>)</span> is a pair <span class="math inline">(S, C)</span> where <span class="math inline">S</span> is the running sum and <span class="math inline">C</span> is the compensation term, both initialized to zero. Given a sequence of values <span class="math inline">x_1, x_2, \ldots, x_n</span>, the compensated sum is computed by the following recurrence: for <span class="math inline">i = 1, \ldots, n</span>,</em></p>
 <p><span id="eq-03-kahan-compensate"><span class="math display">y_i = x_i - C, \tag{4.1}</span></span> <span id="eq-03-kahan-add"><span class="math display">t_i = S + y_i, \tag{4.2}</span></span> <span id="eq-03-kahan-update-c"><span class="math display">C \leftarrow (t_i - S) - y_i, \tag{4.3}</span></span> <span id="eq-03-kahan-update-s"><span class="math display">S \leftarrow t_i. \tag{4.4}</span></span></p>
 <p><em>The result is <span class="math inline">S</span> after processing all <span class="math inline">n</span> values.</em></p>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> In exact arithmetic, <a href="#eq-03-kahan-update-c" class="quarto-xref">Equation&nbsp;<span>4.3</span></a> yields <span class="math inline">C = 0</span> always, because <span class="math inline">(t_i - S) - y_i = (S + y_i - S) - y_i = 0</span>. In floating-point arithmetic, <span class="math inline">\operatorname{fl}(S + y_i)</span> may differ from <span class="math inline">S + y_i</span>; the discrepancy is exactly what <span class="math inline">(t_i - S) - y_i</span> computes (to first order in <span class="math inline">\varepsilon</span>). By subtracting <span class="math inline">C</span> from the next input (<a href="#eq-03-kahan-compensate" class="quarto-xref">Equation&nbsp;<span>4.1</span></a>), the lost low-order bits are recovered.</p>
-</blockquote>
-<blockquote class="blockquote">
-<p><strong>Example.</strong> Let <span class="math inline">\varepsilon \approx 1.1 \times 10^{-16}</span> (IEEE 754 double precision). Summing <span class="math inline">10^8</span> values of <span class="math inline">1.0</span>: naive summation may accumulate relative error of order <span class="math inline">10^8 \varepsilon \approx 10^{-8}</span>, yielding a result like <span class="math inline">10^8 \pm 1</span>. Kahan summation maintains relative error of order <span class="math inline">\varepsilon</span>, yielding <span class="math inline">10^8</span> exactly (for this case).</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+In exact arithmetic, <a href="#eq-03-kahan-update-c" class="quarto-xref">Equation&nbsp;<span>4.3</span></a> yields <span class="math inline">C = 0</span> always, because <span class="math inline">(t_i - S) - y_i = (S + y_i - S) - y_i = 0</span>. In floating-point arithmetic, <span class="math inline">\operatorname{fl}(S + y_i)</span> may differ from <span class="math inline">S + y_i</span>; the discrepancy is exactly what <span class="math inline">(t_i - S) - y_i</span> computes (to first order in <span class="math inline">\varepsilon</span>). By subtracting <span class="math inline">C</span> from the next input (<a href="#eq-03-kahan-compensate" class="quarto-xref">Equation&nbsp;<span>4.1</span></a>), the lost low-order bits are recovered.
+</details>
+<details>
+<summary>
+Example
+</summary>
+Let <span class="math inline">\varepsilon \approx 1.1 \times 10^{-16}</span> (IEEE 754 double precision). Summing <span class="math inline">10^8</span> values of <span class="math inline">1.0</span>: naive summation may accumulate relative error of order <span class="math inline">10^8 \varepsilon \approx 10^{-8}</span>, yielding a result like <span class="math inline">10^8 \pm 1</span>. Kahan summation maintains relative error of order <span class="math inline">\varepsilon</span>, yielding <span class="math inline">10^8</span> exactly (for this case).
+</details>
 <div id="def-03-kahan-struct" class="theorem definition">
 <p><span class="theorem-title"><strong>Definition 4.2 (Kahan accumulator struct)</strong></span> <em>In the implementation, the Kahan accumulator is a C struct with two fields: <code>sum</code> (<span class="math inline">= S</span>) and <code>compensation</code> (<span class="math inline">= C</span>). Three operations are defined:</em></p>
 <ul>
@@ -486,32 +523,44 @@ window.Quarto = {
 <li><em>Result: return <span class="math inline">S</span>.</em></li>
 </ul>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> The struct encapsulates the two-variable state, making it a drop-in replacement for a plain double accumulator in existing code.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+The struct encapsulates the two-variable state, making it a drop-in replacement for a plain double accumulator in existing code.
+</details>
 </section>
 <section id="log-space-weight-computation" class="level3 unnumbered">
 <h3 class="unnumbered anchored" data-anchor-id="log-space-weight-computation">Log-space weight computation</h3>
 <p>When the weight mode is <code>log</code> (<a href="01_preliminaries.html#def-01-param-edges" class="quarto-xref">Definition&nbsp;<span>2.15</span></a>), the edge weight is a product:</p>
 <p><span class="math display">w(v \to z) = \prod_{j=1}^{k} (c_j \theta_j).</span></p>
-<p>Direct computation of this product risks overflow (if the factors are large) or underflow (if the factors are small). Log-space computation avoids both issues.</p>
+<p>Direct computation of this product risks overflow (if the factors are large) or underflow (if the factors are small). Log-space computation avoids both issues <span class="citation" data-cites="higham2002">(<a href="28_references.html#ref-higham2002" role="doc-biblioref">Higham 2002</a>)</span>.</p>
 <div id="def-03-logspace" class="theorem definition">
 <p><span class="theorem-title"><strong>Definition 4.3 (Log-space weight computation)</strong></span> <em>Let <span class="math inline">\mathbf{c} = (c_1, \ldots, c_k)</span> be the coefficient vector and <span class="math inline">\boldsymbol{\theta} = (\theta_1, \ldots, \theta_k)</span> be the parameter vector, with <span class="math inline">c_j \theta_j &gt; 0</span> for all <span class="math inline">j</span>. The log-space weight is</em></p>
 <p><span id="eq-03-logspace"><span class="math display">w(v \to z) = \exp\!\left(\sum_{j=1}^{k} \log(c_j \theta_j)\right). \tag{4.5}</span></span></p>
 <p><em>The computation proceeds in two steps:</em> 1. <em>Accumulate: <span class="math inline">\ell_{\log} \leftarrow \sum_{j=1}^{k} \log(c_j \theta_j)</span>.</em> 2. <em>Exponentiate: <span class="math inline">w \leftarrow \exp(L)</span>.</em></p>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> Working in log-space converts the product into a sum, and the sum of logarithms stays in a moderate range even when the individual factors span many orders of magnitude. The final exponentiation maps back to the original scale. This is the standard technique for computing products in numerical work.</p>
-</blockquote>
-<blockquote class="blockquote">
-<p><strong>Example.</strong> Suppose <span class="math inline">k = 3</span> with <span class="math inline">c_j \theta_j = (10^{100}, 10^{-50}, 10^{-50})</span>. The product is <span class="math inline">10^{100} \cdot 10^{-50} \cdot 10^{-50} = 1</span>. Direct multiplication would compute <span class="math inline">10^{100} \cdot 10^{-50} = 10^{50}</span> at an intermediate step, which is fine in this case, but with more extreme values or longer products, intermediate overflow is a real risk. In log-space: <span class="math inline">\log(10^{100}) + \log(10^{-50}) + \log(10^{-50}) = 100 \ln 10 - 50 \ln 10 - 50 \ln 10 = 0</span>, and <span class="math inline">\exp(0) = 1</span>.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+Working in log-space converts the product into a sum, and the sum of logarithms stays in a moderate range even when the individual factors span many orders of magnitude. The final exponentiation maps back to the original scale. This is the standard technique for computing products in numerical work.
+</details>
+<details>
+<summary>
+Example
+</summary>
+Suppose <span class="math inline">k = 3</span> with <span class="math inline">c_j \theta_j = (10^{100}, 10^{-50}, 10^{-50})</span>. The product is <span class="math inline">10^{100} \cdot 10^{-50} \cdot 10^{-50} = 1</span>. Direct multiplication would compute <span class="math inline">10^{100} \cdot 10^{-50} = 10^{50}</span> at an intermediate step, which is fine in this case, but with more extreme values or longer products, intermediate overflow is a real risk. In log-space: <span class="math inline">\log(10^{100}) + \log(10^{-50}) + \log(10^{-50}) = 100 \ln 10 - 50 \ln 10 - 50 \ln 10 = 0</span>, and <span class="math inline">\exp(0) = 1</span>.
+</details>
 <div id="def-03-positivity-guard" class="theorem definition">
 <p><span class="theorem-title"><strong>Definition 4.4 (Strict positivity guard)</strong></span> <em>The log-space weight computation (<a href="#def-03-logspace" class="quarto-xref">Definition&nbsp;<span>4.3</span></a>) requires the strict positivity condition <span class="math inline">c_j \theta_j &gt; 0</span> for all <span class="math inline">j = 1, \ldots, k</span>. If any <span class="math inline">c_j \theta_j \leq 0</span>, the logarithm is undefined (for <span class="math inline">c_j \theta_j \leq 0</span>) or <span class="math inline">-\infty</span> (for <span class="math inline">c_j \theta_j = 0</span>), and the computation must not proceed. The implementation raises an error if this condition is violated.</em></p>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> This is a fundamental constraint of the log-space approach. Models using the <code>log</code> weight mode must ensure all coefficient-parameter products are strictly positive. This is naturally satisfied in many applications (e.g., population genetics where rates are positive by definition).</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+This is a fundamental constraint of the log-space approach. Models using the <code>log</code> weight mode must ensure all coefficient-parameter products are strictly positive. This is naturally satisfied in many applications (e.g., population genetics where rates are positive by definition).
+</details>
 </section>
 </section>
 <section id="theorems-and-proofs" class="level2 unnumbered">
@@ -519,7 +568,7 @@ window.Quarto = {
 <div id="thm-03-kahan-error" class="theorem">
 <p><span class="theorem-title"><strong>Theorem 4.1 (Kahan summation error bound)</strong></span> <em>Let <span class="math inline">x_1, \ldots, x_n</span> be floating-point numbers and let <span class="math inline">\hat{S}_n</span> be the result of Kahan compensated summation (<a href="#def-03-kahan" class="quarto-xref">Definition&nbsp;<span>4.1</span></a>). Let <span class="math inline">S_n = \sum_{i=1}^{n} x_i</span> be the exact sum. Then</em></p>
 <p><span id="eq-03-kahan-bound"><span class="math display">|\hat{S}_n - S_n| \leq (2\varepsilon + O(\varepsilon^2)) \sum_{i=1}^{n} |x_i|, \tag{4.6}</span></span></p>
-<p><em>where <span class="math inline">\varepsilon</span> is the unit roundoff (machine epsilon). In contrast, naive left-to-right summation satisfies only <span class="math inline">|\hat{S}_n^{\text{naive}} - S_n| \leq n\varepsilon \sum_{i=1}^{n} |x_i| + O(\varepsilon^2)</span>.</em></p>
+<p><em>where <span class="math inline">\varepsilon</span> is the unit roundoff (machine epsilon) <span class="citation" data-cites="higham2002">(<a href="28_references.html#ref-higham2002" role="doc-biblioref">Higham 2002</a>)</span>. In contrast, naive left-to-right summation satisfies only <span class="math inline">|\hat{S}_n^{\text{naive}} - S_n| \leq n\varepsilon \sum_{i=1}^{n} |x_i| + O(\varepsilon^2)</span>.</em></p>
 </div>
 <div class="proof">
 <p><span class="proof-title"><em>Proof</em>. </span>We analyze one step of the recurrence. Let <span class="math inline">\operatorname{fl}(\cdot)</span> denote the result of a floating-point operation. The IEEE 754 model guarantees <span class="math inline">\operatorname{fl}(a \oplus b) = (a + b)(1 + \delta)</span> with <span class="math inline">|\delta| \leq \varepsilon</span> for each elementary operation <span class="math inline">\oplus \in \{+, -\}</span>.</p>
@@ -793,6 +842,14 @@ Algorithm&nbsp;4.2: <strong>Correctness.</strong> Follows from <a href="#thm-03-
 </table>
 
 
+<div id="refs" class="references csl-bib-body hanging-indent" role="list" style="display: none">
+<div id="ref-higham2002" class="csl-entry" role="listitem">
+Higham, Nicholas J. 2002. <em>Accuracy and Stability of Numerical Algorithms</em>. 2nd ed. SIAM. <a href="https://doi.org/10.1137/1.9780898718027">https://doi.org/10.1137/1.9780898718027</a>.
+</div>
+<div id="ref-kahan1965" class="csl-entry" role="listitem">
+Kahan, William. 1965. <span>“Pracniques: Further Remarks on Reducing Truncation Errors.”</span> <em>Communications of the ACM</em> 8 (1): 40. <a href="https://doi.org/10.1145/363707.363723">https://doi.org/10.1145/363707.363723</a>.
+</div>
+</div>
 </section>
 
 </main> <!-- /main -->

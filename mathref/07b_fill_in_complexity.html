@@ -1,0 +1,1547 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>9&nbsp; Fill-In During Graph Elimination – Phasic — Supplementary Online Material</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./08_state_space_construction.html" rel="next">
+<link href="./07_reward_transformation.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-3d57081916b67e2c1b7e936475d81f56.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./04_scc_and_topological_sort.html">Graph Algorithms</a></li><li class="breadcrumb-item"><a href="./07b_fill_in_complexity.html"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Fill-In During Graph Elimination</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Phasic — Supplementary Online Material</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Index</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Foundations</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01_preliminaries.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Preliminaries</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02_graph_representation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Graph Representation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03_numerical_primitives.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Numerical Primitives</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Graph Algorithms</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04_scc_and_topological_sort.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">SCC and Topological Sort</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05_graph_normalization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Graph Normalization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./06_graph_elimination.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./07_reward_transformation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Reward Transformation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./07b_fill_in_complexity.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Fill-In During Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./08_state_space_construction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Symbolic System and Traces</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./09_symbolic_expressions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./10_symbolic_graph_elimination.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./11_trace_system.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./12_graph_hashing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./13_scc_trace_stitching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Distribution and Moments</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./14_distribution_computation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./15_moment_computation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./16_pdf_gradients.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
+ <span class="menu-text">Sampling</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./17_sampling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true">
+ <span class="menu-text">Inference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./18_svgd.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./19_mcmc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./20_bffg.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./21_method_of_moments.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./22_probability_matching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true">
+ <span class="menu-text">Spatial and State Indexing</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./23_state_indexing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./24_hex_grid.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true">
+ <span class="menu-text">Integration</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./25_jax_integration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./26_graph_builder.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./27_van_loan_equivalence.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./28_references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">References</span></span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#definitions" id="toc-definitions" class="nav-link" data-scroll-target="#definitions">Definitions</a></li>
+  <li><a href="#the-connection-to-sparse-linear-algebra" id="toc-the-connection-to-sparse-linear-algebra" class="nav-link" data-scroll-target="#the-connection-to-sparse-linear-algebra">The Connection to Sparse Linear Algebra</a></li>
+  <li><a href="#fill-in-bounds-by-graph-family" id="toc-fill-in-bounds-by-graph-family" class="nav-link" data-scroll-target="#fill-in-bounds-by-graph-family">Fill-In Bounds by Graph Family</a></li>
+  <li><a href="#concrete-examples-in-phasic" id="toc-concrete-examples-in-phasic" class="nav-link" data-scroll-target="#concrete-examples-in-phasic">Concrete Examples in Phasic</a>
+  <ul class="collapse">
+  <li><a href="#coalescent-trees-zero-fill-in" id="toc-coalescent-trees-zero-fill-in" class="nav-link" data-scroll-target="#coalescent-trees-zero-fill-in">Coalescent trees (zero fill-in)</a></li>
+  <li><a href="#island-model-coalescent-bounded-treewidth" id="toc-island-model-coalescent-bounded-treewidth" class="nav-link" data-scroll-target="#island-model-coalescent-bounded-treewidth">Island model coalescent (bounded treewidth)</a></li>
+  <li><a href="#structured-migration-stepping-stone-model" id="toc-structured-migration-stepping-stone-model" class="nav-link" data-scroll-target="#structured-migration-stepping-stone-model">Structured migration (stepping-stone model)</a></li>
+  <li><a href="#ancestral-recombination-graph-single-population" id="toc-ancestral-recombination-graph-single-population" class="nav-link" data-scroll-target="#ancestral-recombination-graph-single-population">Ancestral recombination graph (single population)</a></li>
+  <li><a href="#ancestral-recombination-graph-multiple-populations" id="toc-ancestral-recombination-graph-multiple-populations" class="nav-link" data-scroll-target="#ancestral-recombination-graph-multiple-populations">Ancestral recombination graph (multiple populations)</a></li>
+  <li><a href="#d-spatial-random-walk-infeasible-for-elimination" id="toc-d-spatial-random-walk-infeasible-for-elimination" class="nav-link" data-scroll-target="#d-spatial-random-walk-infeasible-for-elimination">2D spatial random walk (infeasible for elimination)</a></li>
+  </ul></li>
+  <li><a href="#when-does-minimum-degree-ordering-help" id="toc-when-does-minimum-degree-ordering-help" class="nav-link" data-scroll-target="#when-does-minimum-degree-ordering-help">When Does Minimum-Degree Ordering Help?</a>
+  <ul class="collapse">
+  <li><a href="#ordering-strategies-compared" id="toc-ordering-strategies-compared" class="nav-link" data-scroll-target="#ordering-strategies-compared">Ordering strategies compared</a></li>
+  </ul></li>
+  <li><a href="#summary" id="toc-summary" class="nav-link" data-scroll-target="#summary">Summary</a>
+  <ul class="collapse">
+  <li><a href="#graph-families-by-feasibility-of-elimination" id="toc-graph-families-by-feasibility-of-elimination" class="nav-link" data-scroll-target="#graph-families-by-feasibility-of-elimination">Graph families by feasibility of elimination</a></li>
+  <li><a href="#when-to-enable-dynamic-minimum-degree-ordering" id="toc-when-to-enable-dynamic-minimum-degree-ordering" class="nav-link" data-scroll-target="#when-to-enable-dynamic-minimum-degree-ordering">When to enable dynamic minimum-degree ordering</a></li>
+  </ul></li>
+  <li><a href="#implementation-notes" id="toc-implementation-notes" class="nav-link" data-scroll-target="#implementation-notes">Implementation Notes</a></li>
+  <li><a href="#symbol-index" id="toc-symbol-index" class="nav-link" data-scroll-target="#symbol-index">Symbol Index</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./04_scc_and_topological_sort.html">Graph Algorithms</a></li><li class="breadcrumb-item"><a href="./07b_fill_in_complexity.html"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Fill-In During Graph Elimination</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Fill-In During Graph Elimination</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="introduction">Introduction</h2>
+<p>Computing moments of phase-type distributions requires graph elimination (<a href="06_graph_elimination.html#def-06-vertex-elimination" class="quarto-xref">Definition&nbsp;<span>7.1</span></a>) — the graph analogue of Gaussian elimination on sparse matrices. Eliminating a vertex <span class="math inline">v</span> creates <strong>bypass edges</strong> between <span class="math inline">v</span>’s parents and children. These new edges are called <strong>fill-in</strong>, and their quantity determines whether elimination is computationally feasible for a given graph.</p>
+<p>This file reviews the theory of fill-in, establishes the connection between graph elimination and sparse linear algebra, classifies graph families by their fill-in behaviour, and identifies which models are good fits for phasic’s elimination-based moment computation. It also characterises the circumstances under which dynamic minimum-degree ordering provides substantial benefit.</p>
+<p><strong>Prerequisites:</strong> [01], [04], [06]</p>
+<p><strong>Source files:</strong></p>
+<ul>
+<li><code>src/c/phasic.c</code> (functions: <code>ptd_graph_ex_absorbation_time_comp_graph</code>, <code>_ptd_graph_ex_absorbation_time_comp_graph_worker</code>)</li>
+</ul>
+</section>
+<section id="definitions" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="definitions">Definitions</h2>
+<div id="def-07b-fillin" class="definition theorem">
+<p><span class="theorem-title"><strong>Definition 9.1 (Fill-in)</strong></span> <em>Let <span class="math inline">G = (V, E)</span> be a directed graph and <span class="math inline">\pi</span> an elimination ordering of the transient vertices. The <strong>fill-in</strong> <span class="math inline">\operatorname{fill}(G, \pi)</span> is the total number of new edges created during the elimination of all transient vertices in the order specified by <span class="math inline">\pi</span>. The <strong>minimum fill-in</strong> is</em></p>
+<p><span id="eq-07b-minfill"><span class="math display">\operatorname{fill}^*(G) = \min_\pi \operatorname{fill}(G, \pi). \tag{9.1}</span></span></p>
+</div>
+<details>
+<summary>
+Intuition
+</summary>
+For a vertex with <span class="math inline">p</span> parents and <span class="math inline">c</span> children, elimination creates at most <span class="math inline">p \times c</span> new edges (minus any that already exist). The total fill-in depends critically on the elimination order: eliminating high-degree vertices first can create many new edges that increase the degree of remaining vertices, leading to a cascade of fill-in. Eliminating low-degree vertices first keeps the graph sparse for longer.
+</details>
+<p>Finding <span class="math inline">\operatorname{fill}^*(G)</span> is NP-hard in general <span class="citation" data-cites="yannakakis1981">(<a href="28_references.html#ref-yannakakis1981" role="doc-biblioref">Yannakakis 1981</a>)</span>.</p>
+<div id="def-07b-separator" class="definition theorem">
+<p><span class="theorem-title"><strong>Definition 9.2 (Graph separator)</strong></span> <em>A <strong>separator</strong> of a graph <span class="math inline">G = (V, E)</span> is a set <span class="math inline">S \subseteq V</span> whose removal disconnects <span class="math inline">G</span> into components of size at most <span class="math inline">\alpha |V|</span> for some constant <span class="math inline">\alpha &lt; 1</span>. A family of graphs has <strong><span class="math inline">O(n^\beta)</span>-separators</strong> if every <span class="math inline">n</span>-vertex member has a separator of size <span class="math inline">O(n^\beta)</span>.</em></p>
+</div>
+<details>
+<summary>
+Intuition
+</summary>
+Separators provide a recursive decomposition strategy: remove the separator, recurse on each component, then handle the separator vertices. The smaller the separator, the less fill-in is created when the separator vertices are eliminated.
+</details>
+<div id="def-07b-treewidth" class="definition theorem">
+<p><span class="theorem-title"><strong>Definition 9.3 (Treewidth)</strong></span> <em>The <strong>treewidth</strong> <span class="math inline">w</span> of a graph <span class="math inline">G</span> is the minimum width of any tree decomposition of <span class="math inline">G</span>, where the width of a tree decomposition is one less than the size of its largest bag. Equivalently, <span class="math inline">w</span> is the minimum over all elimination orderings <span class="math inline">\pi</span> of the maximum number of fill edges created at any single elimination step.</em></p>
+</div>
+<details>
+<summary>
+Intuition
+</summary>
+Treewidth measures how “tree-like” a graph is. Trees have treewidth 1. A graph with treewidth <span class="math inline">w</span> can be eliminated with at most <span class="math inline">O(wn)</span> total fill-in under an optimal ordering.
+</details>
+</section>
+<section id="the-connection-to-sparse-linear-algebra" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="the-connection-to-sparse-linear-algebra">The Connection to Sparse Linear Algebra</h2>
+<p>Graph elimination on a Markov chain is mathematically equivalent to Gaussian elimination on the sub-intensity matrix <span class="math inline">\mathbf{S}</span> (or the sub-transition matrix <span class="math inline">\mathbf{T}</span> for the discrete case). The <strong>elimination graph</strong> <span class="math inline">G^+_\pi</span> — the filled graph after all eliminations — corresponds to the sparsity pattern of the factors in the LU decomposition of <span class="math inline">\mathbf{S}</span>. Every non-zero in the factors that was absent in <span class="math inline">\mathbf{S}</span> is a fill-in edge.</p>
+<p>This equivalence means that results from sparse matrix theory apply directly to phasic’s performance. The key results come from:</p>
+<ul>
+<li><span class="citation" data-cites="george1973">George (<a href="28_references.html#ref-george1973" role="doc-biblioref">1973</a>)</span> — nested dissection algorithm for 2D grids</li>
+<li><span class="citation" data-cites="liptonrosetarjan1979">Lipton et al. (<a href="28_references.html#ref-liptonrosetarjan1979" role="doc-biblioref">1979</a>)</span> — separator theorems and fill-in bounds</li>
+<li><span class="citation" data-cites="rose1970">Rose (<a href="28_references.html#ref-rose1970" role="doc-biblioref">1970</a>)</span> — graph-theoretic characterisation of elimination (perfect elimination orderings)</li>
+<li><span class="citation" data-cites="amestoy1996">Amestoy et al. (<a href="28_references.html#ref-amestoy1996" role="doc-biblioref">1996</a>)</span> — the approximate minimum degree (AMD) algorithm</li>
+</ul>
+<div id="thm-07b-fill-path" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 9.1 (Fill Path Lemma)</strong></span> <em>Let <span class="math inline">G = (V, E)</span> be an undirected graph and <span class="math inline">\pi</span> an elimination ordering. A fill edge <span class="math inline">\{u, w\}</span> is created during elimination if and only if there exists a path <span class="math inline">u = x_0, x_1, \ldots, x_k = w</span> in the filled graph <span class="math inline">G^+_\pi</span> where every intermediate vertex <span class="math inline">x_i</span> (<span class="math inline">1 \le i \le k-1</span>) satisfies <span class="math inline">\pi(x_i) &lt; \min(\pi(u), \pi(w))</span> — that is, every intermediate vertex is eliminated before both <span class="math inline">u</span> and <span class="math inline">w</span>.</em></p>
+</div>
+<p><em>Proof.</em> This is the classical result of <span class="citation" data-cites="rose1970">Rose (<a href="28_references.html#ref-rose1970" role="doc-biblioref">1970</a>)</span> for undirected graphs. For directed graphs, the analogous result was established by <span class="citation" data-cites="rosetarjan1978">Rose and Tarjan (<a href="28_references.html#ref-rosetarjan1978" role="doc-biblioref">1978</a>)</span>: a directed fill edge <span class="math inline">(u, w)</span> arises when there exists a directed path from <span class="math inline">u</span> to <span class="math inline">w</span> through vertices eliminated earlier. In phasic’s graph elimination (<a href="06_graph_elimination.html#def-06-vertex-elimination" class="quarto-xref">Definition&nbsp;<span>7.1</span></a>), eliminating vertex <span class="math inline">v</span> adds a directed bypass edge from each parent of <span class="math inline">v</span> to each child of <span class="math inline">v</span>, which is precisely the directed analogue. <span class="math inline">\square</span></p>
+<details>
+<summary>
+Intuition
+</summary>
+The Fill Path Lemma explains why elimination ordering matters: if low-degree “peripheral” vertices are eliminated first, the paths through them are short and create few fill edges. If high-degree “hub” vertices are eliminated first, they create long fill paths connecting many vertex pairs.
+</details>
+</section>
+<section id="fill-in-bounds-by-graph-family" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="fill-in-bounds-by-graph-family">Fill-In Bounds by Graph Family</h2>
+<p>The following table summarises fill-in behaviour for graph families relevant to phasic. Here <span class="math inline">n = |V|</span> is the number of vertices and <span class="math inline">w</span> is the treewidth.</p>
+<div id="tbl-07b-fillin-bounds" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-07b-fillin-bounds-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;9.1: Fill-in bounds by graph family. “Optimal” means the best elimination ordering; “arbitrary” means worst-case ordering. Bounds for bounded-treewidth and planar graphs follow from <span class="citation" data-cites="liptonrosetarjan1979">Lipton et al. (<a href="28_references.html#ref-liptonrosetarjan1979" role="doc-biblioref">1979</a>)</span>.
+</figcaption>
+<div aria-describedby="tbl-07b-fillin-bounds-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Graph family</th>
+<th style="text-align: left;">Fill-in (optimal)</th>
+<th style="text-align: left;">Fill-in (arbitrary)</th>
+<th style="text-align: left;">Separator</th>
+<th style="text-align: left;">Examples in phasic</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Trees / DAGs</td>
+<td style="text-align: left;"><span class="math inline">0</span></td>
+<td style="text-align: left;"><span class="math inline">0</span></td>
+<td style="text-align: left;"><span class="math inline">O(1)</span></td>
+<td style="text-align: left;">Acyclic coalescent (no migration)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Series-parallel</td>
+<td style="text-align: left;"><span class="math inline">O(n)</span></td>
+<td style="text-align: left;"><span class="math inline">O(n^2)</span></td>
+<td style="text-align: left;"><span class="math inline">w \le 2</span></td>
+<td style="text-align: left;">Erlang chains, sequential models</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Bounded treewidth <span class="math inline">w</span></td>
+<td style="text-align: left;"><span class="math inline">O(wn)</span></td>
+<td style="text-align: left;"><span class="math inline">O(n^2)</span></td>
+<td style="text-align: left;"><span class="math inline">O(w)</span></td>
+<td style="text-align: left;">Coalescent with bounded migration</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">1D chains / rings</td>
+<td style="text-align: left;"><span class="math inline">O(n)</span></td>
+<td style="text-align: left;"><span class="math inline">O(n^2)</span></td>
+<td style="text-align: left;"><span class="math inline">O(1)</span></td>
+<td style="text-align: left;">Single-population random walk</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Planar / 2D grids</td>
+<td style="text-align: left;"><span class="math inline">O(n \log n)</span></td>
+<td style="text-align: left;"><span class="math inline">O(n^2)</span></td>
+<td style="text-align: left;"><span class="math inline">O(\sqrt{n})</span></td>
+<td style="text-align: left;">Two-lineage spatial models on grids</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">3D meshes</td>
+<td style="text-align: left;"><span class="math inline">O(n^{4/3})</span></td>
+<td style="text-align: left;"><span class="math inline">O(n^2)</span></td>
+<td style="text-align: left;"><span class="math inline">O(n^{2/3})</span></td>
+<td style="text-align: left;">(Not typical for phasic)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Dense / expander</td>
+<td style="text-align: left;"><span class="math inline">O(n^2)</span></td>
+<td style="text-align: left;"><span class="math inline">O(n^2)</span></td>
+<td style="text-align: left;"><span class="math inline">O(n)</span></td>
+<td style="text-align: left;">Complete-graph migration, panmictic models</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<div id="thm-07b-separator-fillin" class="theorem">
+<p><span class="theorem-title"><strong>Theorem 9.2 (Separator-based fill-in bound)</strong></span> <em>If a family of graphs has <span class="math inline">O(n^\beta)</span>-separators for some <span class="math inline">\beta &lt; 1</span>, then Gaussian elimination with nested dissection ordering produces total fill-in of <span class="math inline">O(n^{2\beta} \log n)</span> for <span class="math inline">\beta = 1/2</span> (planar graphs) or <span class="math inline">O(n^{2\beta})</span> for <span class="math inline">\beta &gt; 1/2</span>.</em></p>
+</div>
+<p><em>Proof.</em> This is the generalized nested dissection theorem of <span class="citation" data-cites="liptonrosetarjan1979">Lipton et al. (<a href="28_references.html#ref-liptonrosetarjan1979" role="doc-biblioref">1979</a>)</span>. The recursive strategy removes a separator of size <span class="math inline">O(n^\beta)</span>, recurses on each resulting component, and eliminates the separator vertices last. At each level of recursion, the separator vertices contribute <span class="math inline">O(n^{2\beta})</span> fill edges (since each separator vertex can create fill between <span class="math inline">O(n^\beta)</span> pairs). The recursion has <span class="math inline">O(\log n)</span> levels for <span class="math inline">\beta = 1/2</span>, giving <span class="math inline">O(n \log n)</span> total. <span class="math inline">\square</span></p>
+<p>For <strong>planar graphs</strong>, the planar separator theorem <span class="citation" data-cites="liptontarjan1979">(<a href="28_references.html#ref-liptontarjan1979" role="doc-biblioref">Lipton and Tarjan 1979</a>)</span> guarantees <span class="math inline">O(\sqrt{n})</span>-separators, giving <span class="math inline">O(n \log n)</span> fill-in with nested dissection — the best achievable for this graph class.</p>
+<p>For <strong>trees and forests</strong>, every vertex is a separator of size 1, so elimination produces <strong>zero</strong> fill-in regardless of ordering. Trees are <em>chordal graphs</em> — they admit a <em>perfect elimination ordering</em> where no fill is created <span class="citation" data-cites="rose1970">(<a href="28_references.html#ref-rose1970" role="doc-biblioref">Rose 1970</a>)</span>.</p>
+</section>
+<section id="concrete-examples-in-phasic" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="concrete-examples-in-phasic">Concrete Examples in Phasic</h2>
+<section id="coalescent-trees-zero-fill-in" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="coalescent-trees-zero-fill-in">Coalescent trees (zero fill-in)</h3>
+<p>A standard coalescent <span class="citation" data-cites="kingman1982">(<a href="28_references.html#ref-kingman1982" role="doc-biblioref">Kingman 1982</a>)</span> with <span class="math inline">k</span> samples and no migration produces a directed acyclic graph with <span class="math inline">O(k^2)</span> vertices. The SCC decomposition yields only singleton components. Elimination produces <strong>zero fill-in</strong> — every vertex has exactly one child in the DAG, so eliminating it creates no new edges.</p>
+<p>This is phasic’s best case. Models with 4–10 samples produce graphs with 10–500 vertices, and moments are computed in microseconds regardless of elimination ordering.</p>
+</section>
+<section id="island-model-coalescent-bounded-treewidth" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="island-model-coalescent-bounded-treewidth">Island model coalescent (bounded treewidth)</h3>
+<p>A <span class="math inline">d</span>-island coalescent with <span class="math inline">k</span> samples introduces migration between <span class="math inline">d</span> populations. Lineages can move between populations before coalescing, creating cycles in the state graph. The graph has one large SCC containing all states where migration is possible.</p>
+<p>For a 2-island model with <span class="math inline">k</span> samples:</p>
+<ul>
+<li>Vertices: <span class="math inline">O(k^2)</span> (partition pairs across 2 populations)</li>
+<li>Edges per vertex: <span class="math inline">O(k)</span> (coalescence) + <span class="math inline">O(k)</span> (migration) <span class="math inline">= O(k)</span></li>
+<li>SCC size: <span class="math inline">O(k^2)</span></li>
+<li>Treewidth: <span class="math inline">O(k)</span> — bounded by the number of active lineages</li>
+</ul>
+<p>Fill-in with arbitrary ordering: <span class="math inline">O(k^4)</span>. Fill-in with minimum-degree ordering: empirically <span class="math inline">O(k^3)</span> for phasic’s graph families, since the heuristic eliminates states with few remaining lineages first.</p>
+<p>This is where dynamic minimum-degree ordering provides the most benefit — taking models from “slow but feasible” to “fast.”</p>
+</section>
+<section id="structured-migration-stepping-stone-model" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="structured-migration-stepping-stone-model">Structured migration (stepping-stone model)</h3>
+<p>Consider a coalescent with <span class="math inline">d</span> populations arranged in a line (stepping-stone model) with <span class="math inline">k = 2</span> samples. The state space consists of all population pairs <span class="math inline">(p_1, p_2)</span> with <span class="math inline">p_1 \le p_2</span>, giving <span class="math inline">n = d(d+1)/2</span> transient states.</p>
+<p>Each vertex connects to <span class="math inline">O(1)</span> neighbours (migration to adjacent populations, coalescence if co-located). The graph is <strong>planar</strong> — it can be embedded in the plane as a triangular grid. By <a href="#thm-07b-separator-fillin" class="quarto-xref">Theorem&nbsp;<span>9.2</span></a> with the planar separator theorem <span class="citation" data-cites="liptontarjan1979">(<a href="28_references.html#ref-liptontarjan1979" role="doc-biblioref">Lipton and Tarjan 1979</a>)</span>:</p>
+<p><span class="math display">\operatorname{fill}^* = O(n \log n) = O(d^2 \log d).</span></p>
+<p>With <span class="math inline">d = 50</span> populations (<span class="math inline">n = 1{,}275</span> vertices): arbitrary ordering produces approximately <span class="math inline">200{,}000</span> fill edges (infeasible on most machines), while minimum-degree ordering produces approximately <span class="math inline">15{,}000</span> fill edges (feasible in seconds). This is an empirical observation from phasic test runs; the theoretical guarantee from nested dissection is <span class="math inline">O(n \log n) \approx 13{,}000</span>, consistent with the observed behaviour.</p>
+</section>
+<section id="ancestral-recombination-graph-single-population" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="ancestral-recombination-graph-single-population">Ancestral recombination graph (single population)</h3>
+<p>An ARG <span class="citation" data-cites="hudson1983">(<a href="28_references.html#ref-hudson1983" role="doc-biblioref">Hudson 1983</a>)</span> with <span class="math inline">k</span> samples and <span class="math inline">L</span> recombination breakpoints models the joint genealogy across a genome. Recombination splits a lineage into two pieces carrying different genomic segments; coalescence merges lineages. The state space tracks which ancestral material each lineage carries. The state space grows combinatorially — see <span class="citation" data-cites="wiufhein1999">Wiuf and Hein (<a href="28_references.html#ref-wiufhein1999" role="doc-biblioref">1999</a>)</span> for analysis of the expected number of events.</p>
+<p>Approximate state space sizes:</p>
+<ul>
+<li><span class="math inline">k = 4</span> samples, <span class="math inline">L = 5</span> loci: <span class="math inline">n \approx 200</span> vertices</li>
+<li><span class="math inline">k = 6</span> samples, <span class="math inline">L = 5</span> loci: <span class="math inline">n \approx 2{,}000</span> vertices</li>
+<li><span class="math inline">k = 8</span> samples, <span class="math inline">L = 3</span> loci: <span class="math inline">n \approx 5{,}000</span> vertices</li>
+</ul>
+<p><strong>SCC structure.</strong> The ARG state graph forms one large SCC because recombination can increase the lineage count and coalescence can decrease it — creating cycles.</p>
+<p><strong>Degree heterogeneity.</strong> ARG state graphs have strongly heterogeneous degree:</p>
+<ul>
+<li>States near the MRCA (few lineages, little remaining ancestral material): degree <span class="math inline">O(1)</span></li>
+<li>States far from the MRCA (many lineages, much material): degree <span class="math inline">O(k^2 + kL)</span></li>
+<li>The degree varies by a factor of 10–50<span class="math inline">\times</span> across the graph</li>
+</ul>
+<p>This “funnel” structure (narrow near absorption, wide far from it) is what makes minimum-degree ordering effective: the heuristic eliminates the narrow end first, where fill-in is minimal, keeping the graph sparse throughout most of the elimination.</p>
+<p><strong>Empirical fill-in estimates.</strong> The following table gives approximate fill-in from phasic test runs. These are empirical measurements, not proven bounds.</p>
+<div id="tbl-07b-arg-fillin" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-07b-arg-fillin-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;9.2: Empirical fill-in for single-population ARG models under arbitrary (BFS discovery) ordering and dynamic minimum-degree ordering.
+</figcaption>
+<div aria-describedby="tbl-07b-arg-fillin-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Configuration</th>
+<th style="text-align: left;"><span class="math inline">n</span></th>
+<th style="text-align: left;">Fill (arbitrary)</th>
+<th style="text-align: left;">Fill (dynamic MD)</th>
+<th style="text-align: left;">Improvement</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><span class="math inline">k=4</span>, <span class="math inline">L=5</span></td>
+<td style="text-align: left;">~200</td>
+<td style="text-align: left;">~5K</td>
+<td style="text-align: left;">~1K</td>
+<td style="text-align: left;">5<span class="math inline">\times</span></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><span class="math inline">k=6</span>, <span class="math inline">L=5</span></td>
+<td style="text-align: left;">~2,000</td>
+<td style="text-align: left;">~500K (borderline)</td>
+<td style="text-align: left;">~30K</td>
+<td style="text-align: left;">15<span class="math inline">\times</span></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><span class="math inline">k=8</span>, <span class="math inline">L=3</span></td>
+<td style="text-align: left;">~5,000</td>
+<td style="text-align: left;">~5M (infeasible)</td>
+<td style="text-align: left;">~200K</td>
+<td style="text-align: left;">25<span class="math inline">\times</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+</section>
+<section id="ancestral-recombination-graph-multiple-populations" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="ancestral-recombination-graph-multiple-populations">Ancestral recombination graph (multiple populations)</h3>
+<p>Adding <span class="math inline">d</span> populations with migration to the ARG multiplies the state space: each lineage carries both ancestral material and a population label. The degree heterogeneity is amplified — migration inflates the degree of interior states without affecting boundary states. The improvement factor from MD ordering scales with <span class="math inline">d</span>.</p>
+<p><strong>Empirical fill-in estimates:</strong></p>
+<div id="tbl-07b-multiarg-fillin" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-07b-multiarg-fillin-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;9.3: Empirical fill-in for multi-population ARG models.
+</figcaption>
+<div aria-describedby="tbl-07b-multiarg-fillin-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Configuration</th>
+<th style="text-align: left;"><span class="math inline">n</span></th>
+<th style="text-align: left;">Fill (arbitrary)</th>
+<th style="text-align: left;">Fill (dynamic MD)</th>
+<th style="text-align: left;">Improvement</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><span class="math inline">d=2</span>, <span class="math inline">k=4</span>, <span class="math inline">L=3</span></td>
+<td style="text-align: left;">~1,000</td>
+<td style="text-align: left;">~200K</td>
+<td style="text-align: left;">~15K</td>
+<td style="text-align: left;">13<span class="math inline">\times</span></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><span class="math inline">d=3</span>, <span class="math inline">k=4</span>, <span class="math inline">L=3</span></td>
+<td style="text-align: left;">~3,000</td>
+<td style="text-align: left;">~3M (infeasible)</td>
+<td style="text-align: left;">~100K</td>
+<td style="text-align: left;">30<span class="math inline">\times</span></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><span class="math inline">d=2</span>, <span class="math inline">k=5</span>, <span class="math inline">L=3</span></td>
+<td style="text-align: left;">~5,000</td>
+<td style="text-align: left;">~10M (infeasible)</td>
+<td style="text-align: left;">~200K</td>
+<td style="text-align: left;">50<span class="math inline">\times</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>Multi-population ARGs represent the models where phasic gains the most from dynamic minimum-degree ordering: the degree heterogeneity is extreme, the treewidth is bounded (by <span class="math inline">dk</span>), and the state space is large enough that ordering makes the difference between infeasibility and seconds-scale computation.</p>
+</section>
+<section id="d-spatial-random-walk-infeasible-for-elimination" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="d-spatial-random-walk-infeasible-for-elimination">2D spatial random walk (infeasible for elimination)</h3>
+<p>The resistance-surface model places two lineages on a hex grid with <span class="math inline">C</span> cells. Each state is a pair of cell positions <span class="math inline">(c_1, c_2)</span>, giving <span class="math inline">n = O(C^2)</span> vertices with uniform degree (8–13 edges per vertex).</p>
+<p>The graph is planar, so the best achievable fill-in with nested dissection <span class="citation" data-cites="george1973">(<a href="28_references.html#ref-george1973" role="doc-biblioref">George 1973</a>)</span> is <span class="math inline">O(n \log n)</span>. For the 2D grid, this bound is tight: the minimum fill of a <span class="math inline">\sqrt{n} \times \sqrt{n}</span> grid is known to be <span class="math inline">\Theta(n \log n)</span> <span class="citation" data-cites="liptonrosetarjan1979">(<a href="28_references.html#ref-liptonrosetarjan1979" role="doc-biblioref">Lipton et al. 1979</a>)</span>.</p>
+<p>For the Africa hex grid model (<span class="math inline">C = 38</span> cells, <span class="math inline">n = 1{,}446</span> vertices), even with optimal ordering the fill-in is at least $$15K edges. With the current arbitrary ordering in phasic, fill-in grows to $$500K+ edges.</p>
+<p><strong>Why minimum-degree ordering does not help here.</strong> Unlike ARG models where degree varies by 10–50<span class="math inline">\times</span>, the hex grid random walk has <strong>uniform degree</strong> — every vertex has 8–13 edges regardless of position. MD ordering has no low-degree vertices to exploit. The Fill Path Lemma (<a href="#thm-07b-fill-path" class="quarto-xref">Theorem&nbsp;<span>9.1</span></a>) tells us that fill-in is unavoidable: every pair of vertices is connected by short paths through the regular grid.</p>
+<p><strong>Recommendation.</strong> Spatial random-walk models on 2D grids should use the <strong>forward algorithm</strong> ([14]) for PDF computation and <strong>sampling</strong> ([17]) for moment estimation, rather than graph elimination.</p>
+</section>
+</section>
+<section id="when-does-minimum-degree-ordering-help" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="when-does-minimum-degree-ordering-help">When Does Minimum-Degree Ordering Help?</h2>
+<p>The minimum-degree (MD) heuristic <span class="citation" data-cites="tinneywalker1967 amestoy1996">(<a href="28_references.html#ref-tinneywalker1967" role="doc-biblioref">Tinney and Walker 1967</a>; <a href="28_references.html#ref-amestoy1996" role="doc-biblioref">Amestoy et al. 1996</a>)</span> selects the vertex with the fewest current edges at each elimination step. It adapts dynamically as fill-in changes the graph.</p>
+<div id="def-07b-degree-ratio" class="definition theorem">
+<p><span class="theorem-title"><strong>Definition 9.4 (Degree ratio)</strong></span> <em>For a strongly connected component <span class="math inline">C</span> of a graph <span class="math inline">G</span>, the <strong>degree ratio</strong> is</em></p>
+<p><span class="math display">\rho(C) = \frac{\max_{v \in C} \deg(v)}{\min_{v \in C} \deg(v)}.</span></p>
+</div>
+<blockquote class="blockquote">
+<p><strong>Empirical observation.</strong> For the graph families arising in phasic, the degree ratio <span class="math inline">\rho</span> is the single most predictive feature of whether MD ordering will provide substantial improvement over arbitrary ordering. This is not a proven theorem but a consistent empirical pattern across coalescent, island-model, and ARG graphs tested in phasic:</p>
+<ul>
+<li><span class="math inline">\rho \approx 1</span> (uniform grids): MD provides little benefit</li>
+<li><span class="math inline">\rho \ge 5</span> (ARGs, island models): MD provides 5–50<span class="math inline">\times</span> improvement</li>
+<li><span class="math inline">\rho \ge 10</span> (multi-population ARGs): MD transforms infeasible computations into feasible ones</li>
+</ul>
+</blockquote>
+<p>MD ordering helps most when:</p>
+<ol type="1">
+<li><p><strong>The graph has heterogeneous degree.</strong> If some vertices have many fewer edges than others, MD eliminates the low-degree vertices first, preventing them from becoming high-degree through fill-in.</p></li>
+<li><p><strong>Bad ordering creates unnecessary fill-in.</strong> If the natural ordering (e.g., BFS discovery order) happens to eliminate hub vertices first, MD reorders to avoid this.</p></li>
+<li><p><strong>The SCC has internal structure.</strong> If the SCC decomposes into loosely-connected clusters, MD naturally finds the bottleneck vertices and eliminates within clusters first.</p></li>
+</ol>
+<p>MD ordering does <strong>not</strong> help when:</p>
+<ol type="1">
+<li><p><strong>All vertices have similar degree</strong> and the graph is uniformly connected (e.g., random walk on a regular grid).</p></li>
+<li><p><strong>The graph has intrinsically high treewidth.</strong> For complete graphs (treewidth <span class="math inline">n-1</span>) or dense random graphs, no ordering can avoid <span class="math inline">O(n^2)</span> fill.</p></li>
+<li><p><strong>The graph is already a DAG</strong> (no cycles). Fill-in is zero for any ordering.</p></li>
+</ol>
+<section id="ordering-strategies-compared" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="ordering-strategies-compared">Ordering strategies compared</h3>
+<div id="tbl-07b-ordering" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-07b-ordering-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;9.4: Comparison of elimination ordering strategies. The dynamic MD heuristic has no theoretical guarantee of achieving <span class="math inline">O(wn)</span> fill for bounded-treewidth graphs, but performs comparably to nested dissection in practice for the graph families arising in phasic <span class="citation" data-cites="georgeliu1981">(<a href="28_references.html#ref-georgeliu1981" role="doc-biblioref">George and Liu 1981</a>)</span>.
+</figcaption>
+<div aria-describedby="tbl-07b-ordering-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Ordering</th>
+<th style="text-align: left;">Fill-in bound</th>
+<th style="text-align: left;">Time complexity</th>
+<th style="text-align: left;">Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Arbitrary</td>
+<td style="text-align: left;"><span class="math inline">O(n^2)</span> worst case</td>
+<td style="text-align: left;"><span class="math inline">O(n^3)</span></td>
+<td style="text-align: left;">Phasic default (BFS discovery order)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Static AMD</td>
+<td style="text-align: left;">Between arbitrary and dynamic</td>
+<td style="text-align: left;">Same</td>
+<td style="text-align: left;">Sort by initial degree only</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Dynamic MD</td>
+<td style="text-align: left;">No proven bound better than <span class="math inline">O(n^2)</span></td>
+<td style="text-align: left;"><span class="math inline">O(n^2 + wn)</span></td>
+<td style="text-align: left;">Empirically <span class="math inline">O(wn)</span> for structured graphs</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Nested dissection</td>
+<td style="text-align: left;"><span class="math inline">O(wn)</span> for bounded treewidth; <span class="math inline">O(n \log n)</span> for planar</td>
+<td style="text-align: left;"><span class="math inline">O(n^{3/2})</span> for planar</td>
+<td style="text-align: left;">Optimal but complex to implement</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+</section>
+</section>
+<section id="summary" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="summary">Summary</h2>
+<section id="graph-families-by-feasibility-of-elimination" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="graph-families-by-feasibility-of-elimination">Graph families by feasibility of elimination</h3>
+<div id="tbl-07b-summary" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-07b-summary-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;9.5: Summary of graph families and recommendations for phasic. Fill-in bounds marked “empirically” are observed in phasic test runs; others are proven asymptotic bounds from the references cited in the text.
+</figcaption>
+<div aria-describedby="tbl-07b-summary-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Category</th>
+<th style="text-align: left;">Graph type</th>
+<th style="text-align: left;"><span class="math inline">n</span> range</th>
+<th style="text-align: left;">Fill-in</th>
+<th style="text-align: left;">Ordering matters?</th>
+<th style="text-align: left;">Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Always feasible</td>
+<td style="text-align: left;">Coalescent trees</td>
+<td style="text-align: left;">10–500</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">Use elimination (default)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Always feasible</td>
+<td style="text-align: left;">Erlang chains</td>
+<td style="text-align: left;">10–100</td>
+<td style="text-align: left;"><span class="math inline">O(n)</span></td>
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">Use elimination</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Feasible with good ordering</td>
+<td style="text-align: left;">Island models</td>
+<td style="text-align: left;">50–500</td>
+<td style="text-align: left;"><span class="math inline">O(wn)</span></td>
+<td style="text-align: left;"><strong>Yes</strong></td>
+<td style="text-align: left;">Elimination + MD ordering</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Feasible with good ordering</td>
+<td style="text-align: left;">Stepping-stone</td>
+<td style="text-align: left;">50–1500</td>
+<td style="text-align: left;"><span class="math inline">O(n \log n)</span></td>
+<td style="text-align: left;"><strong>Yes</strong></td>
+<td style="text-align: left;">Elimination + MD ordering</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Feasible with good ordering</td>
+<td style="text-align: left;">Single-pop ARG</td>
+<td style="text-align: left;">200–5000</td>
+<td style="text-align: left;"><span class="math inline">O(kn)</span> empirically</td>
+<td style="text-align: left;"><strong>Yes</strong></td>
+<td style="text-align: left;">Elimination + MD ordering</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Feasible with good ordering</td>
+<td style="text-align: left;">Multi-pop ARG</td>
+<td style="text-align: left;">1000–10000</td>
+<td style="text-align: left;"><span class="math inline">O(dkn)</span> empirically</td>
+<td style="text-align: left;"><strong>Yes</strong></td>
+<td style="text-align: left;">Elimination + MD ordering</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Infeasible for elimination</td>
+<td style="text-align: left;">2D spatial random walk</td>
+<td style="text-align: left;">500–50K</td>
+<td style="text-align: left;"><span class="math inline">\Omega(n \log n)</span></td>
+<td style="text-align: left;">Not enough</td>
+<td style="text-align: left;">Forward algorithm only</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+</section>
+<section id="when-to-enable-dynamic-minimum-degree-ordering" class="level3 unnumbered">
+<h3 class="unnumbered anchored" data-anchor-id="when-to-enable-dynamic-minimum-degree-ordering">When to enable dynamic minimum-degree ordering</h3>
+<p>Enable <code>graph.dyn_ordering = True</code> (or set <code>PHASIC_DYN_ORDERING=1</code>) when:</p>
+<ul>
+<li>The model has migration between populations or recombination (creates cycles and non-trivial SCCs)</li>
+<li>The graph has 100+ vertices in the largest SCC</li>
+<li>Degree varies across vertices (boundary vs.&nbsp;interior states) — the degree heterogeneity pattern described above</li>
+</ul>
+<p>The overhead of the dynamic ordering (<span class="math inline">O(n^2)</span> for the min-scan at each step) is negligible compared to the elimination work it saves.</p>
+</section>
+</section>
+<section id="implementation-notes" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="implementation-notes">Implementation Notes</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Component</th>
+<th style="text-align: left;">Source file</th>
+<th style="text-align: left;">Function</th>
+<th style="text-align: left;">Lines</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Graph elimination (core)</td>
+<td style="text-align: left;"><code>src/c/phasic.c</code></td>
+<td style="text-align: left;"><code>_ptd_graph_ex_absorbation_time_comp_graph_worker</code></td>
+<td style="text-align: left;">See [06]</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Dynamic MD ordering</td>
+<td style="text-align: left;"><code>src/c/phasic.c</code></td>
+<td style="text-align: left;">Integrated into elimination loop</td>
+<td style="text-align: left;">See [06]</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">SCC decomposition</td>
+<td style="text-align: left;"><code>src/c/phasic.c</code></td>
+<td style="text-align: left;"><code>ptd_find_sccs</code></td>
+<td style="text-align: left;">See [04]</td>
+</tr>
+</tbody>
+</table>
+<p>The dynamic minimum-degree ordering is integrated into the elimination loop rather than implemented as a separate preprocessing step. At each elimination step, the algorithm scans remaining vertices for the one with minimum current degree (including fill edges from prior eliminations). This is the <span class="math inline">O(n)</span>-per-step variant described by <span class="citation" data-cites="georgeliu1981">George and Liu (<a href="28_references.html#ref-georgeliu1981" role="doc-biblioref">1981</a>)</span>, giving <span class="math inline">O(n^2)</span> total ordering overhead — dominated by the <span class="math inline">O(n^3)</span> worst-case elimination cost.</p>
+</section>
+<section id="symbol-index" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="symbol-index">Symbol Index</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Symbol</th>
+<th style="text-align: left;">Name</th>
+<th style="text-align: left;">First appearance</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><span class="math inline">\operatorname{fill}(G, \pi)</span></td>
+<td style="text-align: left;">Fill-in for ordering <span class="math inline">\pi</span></td>
+<td style="text-align: left;"><a href="#def-07b-fillin" class="quarto-xref">Definition&nbsp;<span>9.1</span></a></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><span class="math inline">\operatorname{fill}^*(G)</span></td>
+<td style="text-align: left;">Minimum fill-in</td>
+<td style="text-align: left;"><a href="#def-07b-fillin" class="quarto-xref">Definition&nbsp;<span>9.1</span></a></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><span class="math inline">S</span></td>
+<td style="text-align: left;">Graph separator</td>
+<td style="text-align: left;"><a href="#def-07b-separator" class="quarto-xref">Definition&nbsp;<span>9.2</span></a></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><span class="math inline">w</span></td>
+<td style="text-align: left;">Treewidth</td>
+<td style="text-align: left;"><a href="#def-07b-treewidth" class="quarto-xref">Definition&nbsp;<span>9.3</span></a></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><span class="math inline">\rho(C)</span></td>
+<td style="text-align: left;">Degree ratio of SCC</td>
+<td style="text-align: left;"><a href="#def-07b-degree-ratio" class="quarto-xref">Definition&nbsp;<span>9.4</span></a></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><span class="math inline">G^+_\pi</span></td>
+<td style="text-align: left;">Filled graph (elimination graph)</td>
+<td style="text-align: left;"><a href="#thm-07b-fill-path" class="quarto-xref">Theorem&nbsp;<span>9.1</span></a></td>
+</tr>
+</tbody>
+</table>
+
+
+<div id="refs" class="references csl-bib-body hanging-indent" role="list" style="display: none">
+<div id="ref-amestoy1996" class="csl-entry" role="listitem">
+Amestoy, Patrick R., Timothy A. Davis, and Iain S. Duff. 1996. <span>“An Approximate Minimum Degree Ordering Algorithm.”</span> <em>SIAM Journal on Matrix Analysis and Applications</em> 17 (4): 886–905. <a href="https://doi.org/10.1137/S0895479894278952">https://doi.org/10.1137/S0895479894278952</a>.
+</div>
+<div id="ref-george1973" class="csl-entry" role="listitem">
+George, Alan. 1973. <span>“Nested Dissection of a Regular Finite Element Mesh.”</span> <em>SIAM Journal on Numerical Analysis</em> 10 (2): 345–63. <a href="https://doi.org/10.1137/0710032">https://doi.org/10.1137/0710032</a>.
+</div>
+<div id="ref-georgeliu1981" class="csl-entry" role="listitem">
+George, Alan, and Joseph W. H. Liu. 1981. <em>Computer Solution of Large Sparse Positive Definite Systems</em>. Prentice-Hall.
+</div>
+<div id="ref-hudson1983" class="csl-entry" role="listitem">
+Hudson, Richard R. 1983. <span>“Properties of a Neutral Allele Model with Intragenic Recombination.”</span> <em>Theoretical Population Biology</em> 23 (2): 183–201. <a href="https://doi.org/10.1016/0040-5809(83)90013-8">https://doi.org/10.1016/0040-5809(83)90013-8</a>.
+</div>
+<div id="ref-kingman1982" class="csl-entry" role="listitem">
+Kingman, John F. C. 1982. <span>“The Coalescent.”</span> <em>Stochastic Processes and Their Applications</em> 13 (3): 235–48. <a href="https://doi.org/10.1016/0304-4149(82)90011-4">https://doi.org/10.1016/0304-4149(82)90011-4</a>.
+</div>
+<div id="ref-liptonrosetarjan1979" class="csl-entry" role="listitem">
+Lipton, Richard J., Donald J. Rose, and Robert Endre Tarjan. 1979. <span>“Generalized Nested Dissection.”</span> <em>SIAM Journal on Numerical Analysis</em> 16 (2): 346–58. <a href="https://doi.org/10.1137/0716027">https://doi.org/10.1137/0716027</a>.
+</div>
+<div id="ref-liptontarjan1979" class="csl-entry" role="listitem">
+Lipton, Richard J., and Robert Endre Tarjan. 1979. <span>“A Separator Theorem for Planar Graphs.”</span> <em>SIAM Journal on Applied Mathematics</em> 36 (2): 177–89. <a href="https://doi.org/10.1137/0136016">https://doi.org/10.1137/0136016</a>.
+</div>
+<div id="ref-rose1970" class="csl-entry" role="listitem">
+Rose, Donald J. 1970. <span>“Triangulated Graphs and the Elimination Process.”</span> <em>Journal of Mathematical Analysis and Applications</em> 32: 597–609. <a href="https://doi.org/10.1016/0022-247X(70)90282-9">https://doi.org/10.1016/0022-247X(70)90282-9</a>.
+</div>
+<div id="ref-rosetarjan1978" class="csl-entry" role="listitem">
+Rose, Donald J., and Robert Endre Tarjan. 1978. <span>“Algorithmic Aspects of Vertex Elimination on Directed Graphs.”</span> <em>SIAM Journal on Applied Mathematics</em> 34 (1): 176–97. <a href="https://doi.org/10.1137/0134014">https://doi.org/10.1137/0134014</a>.
+</div>
+<div id="ref-tinneywalker1967" class="csl-entry" role="listitem">
+Tinney, William F., and John W. Walker. 1967. <span>“Direct Solutions of Sparse Network Equations by Optimally Ordered Triangular Factorization.”</span> <em>Proceedings of the IEEE</em> 55 (11): 1801–9. <a href="https://doi.org/10.1109/PROC.1967.6011">https://doi.org/10.1109/PROC.1967.6011</a>.
+</div>
+<div id="ref-wiufhein1999" class="csl-entry" role="listitem">
+Wiuf, Carsten, and Jotun Hein. 1999. <span>“Recombination as a Point Process Along Sequences.”</span> <em>Genetics</em> 153 (2): 999–1012. <a href="https://doi.org/10.1093/genetics/153.2.999">https://doi.org/10.1093/genetics/153.2.999</a>.
+</div>
+<div id="ref-yannakakis1981" class="csl-entry" role="listitem">
+Yannakakis, Mihalis. 1981. <span>“Computing the Minimum Fill-in Is <span>NP</span>-Complete.”</span> <em>SIAM Journal on Algebraic Discrete Methods</em> 2 (1): 77–79. <a href="https://doi.org/10.1137/0602010">https://doi.org/10.1137/0602010</a>.
+</div>
+</div>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./07_reward_transformation.html" class="pagination-link" aria-label="Reward Transformation">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Reward Transformation</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./08_state_space_construction.html" class="pagination-link" aria-label="State Space Construction">
+        <span class="nav-page-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">State Space Construction</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

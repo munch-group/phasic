@@ -23,7 +23,26 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
@@ -223,8 +242,14 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./07b_fill_in_complexity.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Fill-In During Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./08_state_space_construction.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
   </div>
 </li>
       </ul>
@@ -241,31 +266,31 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./09_symbolic_expressions.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./10_symbolic_graph_elimination.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./11_trace_system.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./12_graph_hashing.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./13_scc_trace_stitching.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
   </div>
 </li>
       </ul>
@@ -282,19 +307,19 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./14_distribution_computation.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./15_moment_computation.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./16_pdf_gradients.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
   </div>
 </li>
       </ul>
@@ -311,7 +336,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./17_sampling.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
   </div>
 </li>
       </ul>
@@ -328,31 +353,31 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./18_svgd.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./19_mcmc.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./20_bffg.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./21_method_of_moments.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./22_probability_matching.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
   </div>
 </li>
       </ul>
@@ -369,13 +394,13 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./23_state_indexing.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./24_hex_grid.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
   </div>
 </li>
       </ul>
@@ -392,23 +417,29 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./25_jax_integration.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./26_graph_builder.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./27_van_loan_equivalence.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
   </div>
 </li>
       </ul>
   </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./28_references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">References</span></span></a>
+  </div>
+</li>
     </ul>
     </div>
 </nav>
@@ -453,7 +484,7 @@ window.Quarto = {
 
 <section id="introduction" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="introduction">Introduction</h2>
-<p>This file formalizes the central algorithm of phasic: Gaussian elimination on a phase-type graph (Algorithm 3 in Roikjer, Hobolth &amp; Munch 2022, Section 2.6). Graph elimination converts a (possibly cyclic) normalized phase-type graph into an acyclic representation by systematically removing vertices and adding bypass edges. The resulting acyclic graph, together with a cached sequence of arithmetic commands, enables efficient computation of moments of any order.</p>
+<p>This file formalizes the central algorithm of phasic: Gaussian elimination on a phase-type graph (Algorithm 3 in <span class="citation" data-cites="roikjer2022">Røikjer et al. (<a href="28_references.html#ref-roikjer2022" role="doc-biblioref">2022, sec. 2.6</a>)</span>). Graph elimination converts a (possibly cyclic) normalized phase-type graph into an acyclic representation by systematically removing vertices and adding bypass edges. The resulting acyclic graph, together with a cached sequence of arithmetic commands, enables efficient computation of moments of any order.</p>
 <p>The key insight is that vertex elimination — removing a vertex by connecting its parents directly to its children — preserves the expected accumulated reward of the distribution. By performing this operation for every transient vertex in a topologically guided order, the algorithm reduces the graph to one in which only the starting vertex and absorbing vertices remain, with the accumulated reward information encoded in the command sequence. This command sequence can then be replayed with any reward vector to compute moments in <span class="math inline">O(|V|^2)</span> time, after a one-time <span class="math inline">O(|V|^3)</span> elimination cost.</p>
 <p>The algorithm operates on normalized graphs (<a href="05_graph_normalization.html#def-05-continuous-normalization" class="quarto-xref">Definition&nbsp;<span>6.1</span></a>) and uses SCC decomposition with topological sorting (<a href="04_scc_and_topological_sort.html#alg-04-tarjan-scc" class="quarto-xref">Algorithm&nbsp;<span>5.1</span></a> and <a href="04_scc_and_topological_sort.html#alg-04-topological-sort" class="quarto-xref">Algorithm&nbsp;<span>5.2</span></a>) to determine the elimination order. The command sequence is the foundation for all downstream moment computation, including reward-transformed moments.</p>
 <p><strong>Prerequisites:</strong> [01], [02], [04], [05]</p>
@@ -473,12 +504,18 @@ window.Quarto = {
 <li><p><em>Renormalize: for each parent <span class="math inline">u</span>, divide all outgoing edge weights by their new sum so that <span class="math inline">\sum_{z \in \operatorname{children}(u)} w'(u \to z) = 1</span>.</em></p></li>
 </ol>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> Vertex elimination is the graph analogue of Gaussian elimination on a matrix. When a vertex <span class="math inline">v</span> is eliminated, every path <span class="math inline">u \to v \to z</span> through <span class="math inline">v</span> is replaced by a direct bypass edge <span class="math inline">u \to z</span> whose weight equals the product of the two original edge weights (transition probabilities). This preserves the probability of reaching <span class="math inline">z</span> from <span class="math inline">u</span> via <span class="math inline">v</span>, which is exactly <span class="math inline">w'(u \to v) \cdot w'(v \to z)</span> by the Markov property. The renormalization in step 3 ensures that the outgoing edges from each remaining parent <span class="math inline">u</span> still form a valid probability distribution.</p>
-</blockquote>
-<blockquote class="blockquote">
-<p><strong>Example.</strong> Consider three transient vertices <span class="math inline">v_1, v_2, v_3</span> and an absorbing vertex <span class="math inline">v_a</span> with normalized edges: <span class="math inline">w'(v_1 \to v_2) = 0.6</span>, <span class="math inline">w'(v_1 \to v_a) = 0.4</span>, <span class="math inline">w'(v_2 \to v_3) = 0.7</span>, <span class="math inline">w'(v_2 \to v_a) = 0.3</span>. Eliminating <span class="math inline">v_2</span>: the bypass from <span class="math inline">v_1</span> to <span class="math inline">v_3</span> has weight <span class="math inline">0.6 \times 0.7 = 0.42</span>, and the bypass from <span class="math inline">v_1</span> to <span class="math inline">v_a</span> adds <span class="math inline">0.6 \times 0.3 = 0.18</span> to the existing <span class="math inline">0.4</span>, giving <span class="math inline">0.58</span>. After renormalization (sum <span class="math inline">= 0.42 + 0.58 = 1.0</span>), the weights remain unchanged.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+Vertex elimination is the graph analogue of Gaussian elimination on a matrix. When a vertex <span class="math inline">v</span> is eliminated, every path <span class="math inline">u \to v \to z</span> through <span class="math inline">v</span> is replaced by a direct bypass edge <span class="math inline">u \to z</span> whose weight equals the product of the two original edge weights (transition probabilities). This preserves the probability of reaching <span class="math inline">z</span> from <span class="math inline">u</span> via <span class="math inline">v</span>, which is exactly <span class="math inline">w'(u \to v) \cdot w'(v \to z)</span> by the Markov property. The renormalization in step 3 ensures that the outgoing edges from each remaining parent <span class="math inline">u</span> still form a valid probability distribution.
+</details>
+<details>
+<summary>
+Example
+</summary>
+Consider three transient vertices <span class="math inline">v_1, v_2, v_3</span> and an absorbing vertex <span class="math inline">v_a</span> with normalized edges: <span class="math inline">w'(v_1 \to v_2) = 0.6</span>, <span class="math inline">w'(v_1 \to v_a) = 0.4</span>, <span class="math inline">w'(v_2 \to v_3) = 0.7</span>, <span class="math inline">w'(v_2 \to v_a) = 0.3</span>. Eliminating <span class="math inline">v_2</span>: the bypass from <span class="math inline">v_1</span> to <span class="math inline">v_3</span> has weight <span class="math inline">0.6 \times 0.7 = 0.42</span>, and the bypass from <span class="math inline">v_1</span> to <span class="math inline">v_a</span> adds <span class="math inline">0.6 \times 0.3 = 0.18</span> to the existing <span class="math inline">0.4</span>, giving <span class="math inline">0.58</span>. After renormalization (sum <span class="math inline">= 0.42 + 0.58 = 1.0</span>), the weights remain unchanged.
+</details>
 <div id="fig-06-elimination-example" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-06-elimination-example-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -493,18 +530,27 @@ Figure&nbsp;7.1: Graph elimination on a four-vertex example. Top row, left to ri
 <p><span class="theorem-title"><strong>Definition 7.2 (Self-loop resolution)</strong></span> <em>During elimination of vertex <span class="math inline">v</span>, if a parent <span class="math inline">u</span> has a bypass edge to itself (i.e., <span class="math inline">v</span> has an edge to <span class="math inline">u</span> and <span class="math inline">u</span> has an edge to <span class="math inline">v</span>), a self-loop with effective probability <span class="math inline">p = w'(u \to v) \cdot w'(v \to u)</span> is created. Self-loop resolution removes this self-loop by applying the geometric series factor:</em></p>
 <p><span id="eq-06-self-loop"><span class="math display">x_u \leftarrow x_u \cdot \frac{1}{1 - p}. \tag{7.1}</span></span></p>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> A self-loop with probability <span class="math inline">p</span> at vertex <span class="math inline">u</span> means the chain returns to <span class="math inline">u</span> with probability <span class="math inline">p</span> before exiting. The expected number of visits to <span class="math inline">u</span> (including the initial visit) is the geometric sum <span class="math inline">1 + p + p^2 + \cdots = 1/(1-p)</span>. Multiplying the vertex scalar <span class="math inline">x_u</span> by <span class="math inline">1/(1-p)</span> accounts for this: the expected time spent at <span class="math inline">u</span> during each sojourn (multiple visits before finally leaving) is <span class="math inline">x_u / (1-p)</span> rather than <span class="math inline">x_u</span>.</p>
-</blockquote>
-<blockquote class="blockquote">
-<p><strong>Example.</strong> Suppose <span class="math inline">u</span> has vertex scalar <span class="math inline">x_u = 0.5</span> and the elimination of <span class="math inline">v</span> creates a self-loop at <span class="math inline">u</span> with probability <span class="math inline">p = 0.3</span>. After resolution: <span class="math inline">x_u \leftarrow 0.5 \cdot 1/(1 - 0.3) = 0.5/0.7 \approx 0.714</span>. The chain now visits <span class="math inline">u</span> an expected <span class="math inline">1/0.7 \approx 1.43</span> times per sojourn, each lasting <span class="math inline">0.5</span> time units, for a total of <span class="math inline">0.714</span>.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+A self-loop with probability <span class="math inline">p</span> at vertex <span class="math inline">u</span> means the chain returns to <span class="math inline">u</span> with probability <span class="math inline">p</span> before exiting. The expected number of visits to <span class="math inline">u</span> (including the initial visit) is the geometric sum <span class="math inline">1 + p + p^2 + \cdots = 1/(1-p)</span>. Multiplying the vertex scalar <span class="math inline">x_u</span> by <span class="math inline">1/(1-p)</span> accounts for this: the expected time spent at <span class="math inline">u</span> during each sojourn (multiple visits before finally leaving) is <span class="math inline">x_u / (1-p)</span> rather than <span class="math inline">x_u</span>.
+</details>
+<details>
+<summary>
+Example
+</summary>
+Suppose <span class="math inline">u</span> has vertex scalar <span class="math inline">x_u = 0.5</span> and the elimination of <span class="math inline">v</span> creates a self-loop at <span class="math inline">u</span> with probability <span class="math inline">p = 0.3</span>. After resolution: <span class="math inline">x_u \leftarrow 0.5 \cdot 1/(1 - 0.3) = 0.5/0.7 \approx 0.714</span>. The chain now visits <span class="math inline">u</span> an expected <span class="math inline">1/0.7 \approx 1.43</span> times per sojourn, each lasting <span class="math inline">0.5</span> time units, for a total of <span class="math inline">0.714</span>.
+</details>
 <div id="def-06-acyclic-graph" class="theorem definition">
 <p><span class="theorem-title"><strong>Definition 7.3 (Acyclic graph representation)</strong></span> <em>A phase-type graph <span class="math inline">G = (V, E, W')</span> is acyclic if the subgraph induced by the transient vertices (excluding the starting and absorbing vertices) contains no directed cycles. The elimination algorithm (<a href="#alg-06-full-elimination" class="quarto-xref">Algorithm&nbsp;<span>7.2</span></a>) transforms any normalized phase-type graph into an acyclic graph representation by eliminating all transient vertices that participate in cycles, recording the bypass operations as commands.</em></p>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> An acyclic graph enables recursive (bottom-up) computation of moments: since there are no cycles, each vertex’s contribution can be computed exactly once in reverse topological order. The cyclic information is not lost; it is encoded in the vertex scalars via self-loop resolution factors.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+An acyclic graph enables recursive (bottom-up) computation of moments: since there are no cycles, each vertex’s contribution can be computed exactly once in reverse topological order. The cyclic information is not lost; it is encoded in the vertex scalars via self-loop resolution factors.
+</details>
 <div id="def-06-elimination-invariants" class="theorem definition">
 <p><span class="theorem-title"><strong>Definition 7.4 (Elimination invariants)</strong></span> <em>The graph elimination algorithm maintains three invariants at each step:</em></p>
 <ol type="1">
@@ -513,9 +559,12 @@ Figure&nbsp;7.1: Graph elimination on a four-vertex example. Top row, left to ri
 <li><p><em>Normalized probabilities: for each remaining transient vertex <span class="math inline">u</span>, the outgoing edge weights sum to 1, i.e., the edges represent valid transition probabilities.</em></p></li>
 </ol>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> Invariant 1 ensures that the structure of absorption is preserved. Invariant 2 ensures that moments can be correctly computed from the modified graph. Invariant 3 ensures that the graph remains a valid representation of a normalized Markov chain at every intermediate step. Together, these invariants guarantee that the final acyclic graph encodes the same phase-type distribution as the original.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+Invariant 1 ensures that the structure of absorption is preserved. Invariant 2 ensures that moments can be correctly computed from the modified graph. Invariant 3 ensures that the graph remains a valid representation of a normalized Markov chain at every intermediate step. Together, these invariants guarantee that the final acyclic graph encodes the same phase-type distribution as the original.
+</details>
 <div id="def-06-elimination-ordering" class="theorem definition">
 <p><span class="theorem-title"><strong>Definition 7.5 (Elimination ordering)</strong></span> <em>The elimination ordering is a permutation of the transient vertices <span class="math inline">v_1, \ldots, v_p</span> that determines the sequence in which vertices are eliminated. In phasic, this ordering is determined by:</em></p>
 <ol type="1">
@@ -526,9 +575,12 @@ Figure&nbsp;7.1: Graph elimination on a four-vertex example. Top row, left to ri
 </ol>
 <p><em>A vertex <span class="math inline">v_i</span> is eliminated only if all parents <span class="math inline">u</span> of <span class="math inline">v_i</span> with <span class="math inline">u</span> preceding <span class="math inline">v_i</span> in the ordering have already been eliminated (i.e., the algorithm skips parents with index less than <span class="math inline">i</span>).</em></p>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> The SCC-based ordering ensures that vertices within cycles are processed together, while the topological ordering of SCCs ensures that inter-component dependencies are handled correctly. Within an SCC, the elimination order does not affect correctness (<a href="#thm-06-acyclic-absorption" class="quarto-xref">Theorem&nbsp;<span>7.3</span></a> below) but may affect numerical stability. The condition that only parents with higher indices are considered during bypass ensures that already-eliminated vertices are not revisited.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+The SCC-based ordering ensures that vertices within cycles are processed together, while the topological ordering of SCCs ensures that inter-component dependencies are handled correctly. Within an SCC, the elimination order does not affect correctness (<a href="#thm-06-acyclic-absorption" class="quarto-xref">Theorem&nbsp;<span>7.3</span></a> below) but may affect numerical stability. The condition that only parents with higher indices are considered during bypass ensures that already-eliminated vertices are not revisited.
+</details>
 <div id="def-06-reward-compute-graph" class="theorem definition">
 <p><span class="theorem-title"><strong>Definition 7.6 (Reward compute graph)</strong></span> <em>The reward compute graph is a cached sequence of <span class="math inline">N</span> commands <span class="math inline">C = (c_0, c_1, \ldots, c_{N-1})</span>, where each command <span class="math inline">c_j</span> is a triple <span class="math inline">(\text{from}, \text{to}, \text{multiplier})</span> representing the operation:</em></p>
 <p><span id="eq-06-command"><span class="math display">\text{result}[\text{from}] \leftarrow \text{result}[\text{from}] + \text{result}[\text{to}] \times \text{multiplier}. \tag{7.2}</span></span></p>
@@ -539,12 +591,18 @@ Figure&nbsp;7.1: Graph elimination on a four-vertex example. Top row, left to ri
 <li><em>Phase 2 (commands <span class="math inline">|V|</span> onward): elimination commands recording the bypass operations (from <a href="#def-06-vertex-elimination" class="quarto-xref">Definition&nbsp;<span>7.1</span></a>) and self-loop resolutions (from <a href="#def-06-self-loop-resolution" class="quarto-xref">Definition&nbsp;<span>7.2</span></a>), followed by reverse-order edge accumulation commands.</em></li>
 </ul>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> The reward compute graph is a linear program — a flat sequence of multiply-accumulate operations — that replays the elimination in <span class="math inline">O(N)</span> time. The initial phase loads the reward vector (defaulting to vertex scalars for absorption time). The elimination phase propagates rewards upward through the eliminated vertices. The final edge accumulation phase, executed in reverse topological order, sums the contributions of each vertex’s children. By changing the initial reward vector, the same command sequence can compute moments for any reward-transformed distribution.</p>
-</blockquote>
-<blockquote class="blockquote">
-<p><strong>Example.</strong> For a graph with vertices <span class="math inline">\{v_0, v_1, v_2, v_a\}</span> where <span class="math inline">v_0</span> is starting and <span class="math inline">v_a</span> is absorbing, the command sequence might be: (i) initialize <span class="math inline">\text{result}[0] = 0</span>, <span class="math inline">\text{result}[1] = x_{v_1}</span>, <span class="math inline">\text{result}[2] = x_{v_2}</span>, <span class="math inline">\text{result}[3] = 0</span>; (ii) elimination of <span class="math inline">v_1</span>: <span class="math inline">\text{result}[2] \mathrel{+}= \text{result}[1] \times w'(v_2 \to v_1)</span>; (iii) reverse accumulation: <span class="math inline">\text{result}[0] \mathrel{+}= \text{result}[2] \times w'(v_0 \to v_2)</span>, etc.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+The reward compute graph is a linear program — a flat sequence of multiply-accumulate operations — that replays the elimination in <span class="math inline">O(N)</span> time. The initial phase loads the reward vector (defaulting to vertex scalars for absorption time). The elimination phase propagates rewards upward through the eliminated vertices. The final edge accumulation phase, executed in reverse topological order, sums the contributions of each vertex’s children. By changing the initial reward vector, the same command sequence can compute moments for any reward-transformed distribution.
+</details>
+<details>
+<summary>
+Example
+</summary>
+For a graph with vertices <span class="math inline">\{v_0, v_1, v_2, v_a\}</span> where <span class="math inline">v_0</span> is starting and <span class="math inline">v_a</span> is absorbing, the command sequence might be: (i) initialize <span class="math inline">\text{result}[0] = 0</span>, <span class="math inline">\text{result}[1] = x_{v_1}</span>, <span class="math inline">\text{result}[2] = x_{v_2}</span>, <span class="math inline">\text{result}[3] = 0</span>; (ii) elimination of <span class="math inline">v_1</span>: <span class="math inline">\text{result}[2] \mathrel{+}= \text{result}[1] \times w'(v_2 \to v_1)</span>; (iii) reverse accumulation: <span class="math inline">\text{result}[0] \mathrel{+}= \text{result}[2] \times w'(v_0 \to v_2)</span>, etc.
+</details>
 </section>
 <section id="theorems-and-proofs" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="theorems-and-proofs">Theorems and Proofs</h2>
@@ -554,7 +612,7 @@ Figure&nbsp;7.1: Graph elimination on a four-vertex example. Top row, left to ri
 <div class="proof">
 <p><span class="proof-title"><em>Proof</em>. </span>Let <span class="math inline">\mathbb{E}_u[\tilde{\tau}]</span> denote the expected accumulated reward starting from vertex <span class="math inline">u</span> in the original graph <span class="math inline">G</span>. By first-step analysis (conditioning on the first transition from <span class="math inline">u</span>):</p>
 <p><span id="eq-06-first-step"><span class="math display">\mathbb{E}_u[\tilde{\tau}] = x_u + \sum_{z \in \operatorname{children}(u)} w'(u \to z) \cdot \mathbb{E}_z[\tilde{\tau}], \tag{7.3}</span></span></p>
-<p>where <span class="math inline">x_u</span> is the expected time spent at <span class="math inline">u</span> before jumping, and the sum accounts for the expected future reward after jumping to each child <span class="math inline">z</span> with probability <span class="math inline">w'(u \to z)</span>. This is the graph analogue of equation (3) in Roikjer et al.&nbsp;(2022).</p>
+<p>where <span class="math inline">x_u</span> is the expected time spent at <span class="math inline">u</span> before jumping, and the sum accounts for the expected future reward after jumping to each child <span class="math inline">z</span> with probability <span class="math inline">w'(u \to z)</span>. This is the graph analogue of equation (3) in <span class="citation" data-cites="roikjer2022">Røikjer et al. (<a href="28_references.html#ref-roikjer2022" role="doc-biblioref">2022</a>)</span>.</p>
 <p><strong>Case 1: <span class="math inline">u</span> is not a parent of <span class="math inline">v</span>.</strong> Then the elimination of <span class="math inline">v</span> does not modify <span class="math inline">u</span>’s outgoing edges. The children of <span class="math inline">u</span> in <span class="math inline">G^{(-v)}</span> are the same as in <span class="math inline">G</span>. Each child <span class="math inline">z \neq v</span> retains the same expected reward (by induction, since the elimination of <span class="math inline">v</span> only modifies parents of <span class="math inline">v</span>). Since <span class="math inline">u</span> is not a parent of <span class="math inline">v</span>, <span class="math inline">v \notin \operatorname{children}(u)</span>, and the first-step expansion for <span class="math inline">u</span> is unchanged.</p>
 <p><strong>Case 2: <span class="math inline">u</span> is a parent of <span class="math inline">v</span> and <span class="math inline">v</span> is not a parent of <span class="math inline">u</span>.</strong> Write the first-step expansion for <span class="math inline">u</span> in <span class="math inline">G</span>:</p>
 <p><span class="math display">\mathbb{E}_u[\tilde{\tau}] = x_u + w'(u \to v) \cdot \mathbb{E}_v[\tilde{\tau}] + \sum_{z \neq v} w'(u \to z) \cdot \mathbb{E}_z[\tilde{\tau}].</span></p>
@@ -1018,6 +1076,11 @@ Algorithm&nbsp;7.3: <strong>Correctness.</strong> The command sequence is genera
 </table>
 
 
+<div id="refs" class="references csl-bib-body hanging-indent" role="list" style="display: none">
+<div id="ref-roikjer2022" class="csl-entry" role="listitem">
+Røikjer, Thomas, Asger Hobolth, and Kasper Munch. 2022. <span>“Graph-Based Algorithms for Phase-Type Distributions.”</span> <em>Statistics and Computing</em> 32 (6): 85. <a href="https://doi.org/10.1007/s11222-022-10155-6">https://doi.org/10.1007/s11222-022-10155-6</a>.
+</div>
+</div>
 </section>
 
 </main> <!-- /main -->

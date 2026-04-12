@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>15&nbsp; Distribution Computation – Phasic — Supplementary Online Material</title>
+<title>16&nbsp; Distribution Computation – Phasic — Supplementary Online Material</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -23,7 +23,26 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
@@ -128,7 +147,7 @@ window.Quarto = {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./14_distribution_computation.html">Distribution and Moments</a></li><li class="breadcrumb-item"><a href="./14_distribution_computation.html"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Distribution Computation</span></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./14_distribution_computation.html">Distribution and Moments</a></li><li class="breadcrumb-item"><a href="./14_distribution_computation.html"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Distribution Computation</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -223,8 +242,14 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./07b_fill_in_complexity.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Fill-In During Graph Elimination</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./08_state_space_construction.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">State Space Construction</span></span></a>
   </div>
 </li>
       </ul>
@@ -241,31 +266,31 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./09_symbolic_expressions.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Expressions</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./10_symbolic_graph_elimination.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Symbolic Graph Elimination</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./11_trace_system.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Trace System</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./12_graph_hashing.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Graph Hashing</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./13_scc_trace_stitching.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span></a>
   </div>
 </li>
       </ul>
@@ -282,19 +307,19 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./14_distribution_computation.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Distribution Computation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./15_moment_computation.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Moment Computation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./16_pdf_gradients.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">PDF Gradients</span></span></a>
   </div>
 </li>
       </ul>
@@ -311,7 +336,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./17_sampling.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Sampling</span></span></a>
   </div>
 </li>
       </ul>
@@ -328,31 +353,31 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./18_svgd.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Stein Variational Gradient Descent</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./19_mcmc.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Metropolis-Hastings with Adaptive Proposals</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./20_bffg.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Backward Filtering Forward Guiding</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./21_method_of_moments.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Method of Moments Estimation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./22_probability_matching.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Probability Matching Estimation</span></span></a>
   </div>
 </li>
       </ul>
@@ -369,13 +394,13 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./23_state_indexing.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Mixed-Radix State Indexing</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./24_hex_grid.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Hexagonal Grid Tessellation and Neighbor Topology</span></span></a>
   </div>
 </li>
       </ul>
@@ -392,23 +417,29 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./25_jax_integration.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">JAX Integration</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./26_graph_builder.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Graph Builder</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./27_van_loan_equivalence.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Van Loan Equivalence</span></span></a>
   </div>
 </li>
       </ul>
   </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./28_references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">References</span></span></a>
+  </div>
+</li>
     </ul>
     </div>
 </nav>
@@ -432,9 +463,9 @@ window.Quarto = {
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./14_distribution_computation.html">Distribution and Moments</a></li><li class="breadcrumb-item"><a href="./14_distribution_computation.html"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Distribution Computation</span></a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./14_distribution_computation.html">Distribution and Moments</a></li><li class="breadcrumb-item"><a href="./14_distribution_computation.html"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Distribution Computation</span></a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Distribution Computation</span></h1>
+<h1 class="title"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Distribution Computation</span></h1>
 </div>
 
 
@@ -453,8 +484,8 @@ window.Quarto = {
 
 <section id="introduction" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="introduction">Introduction</h2>
-<p>This file formalizes the forward algorithm for computing probability density functions (PDFs) and probability mass functions (PMFs) of phase-type distributions from their graph representation. The central technique is <strong>uniformization</strong>: approximating a continuous-time Markov jump process by a discrete-time chain embedded in a Poisson process. This converts the PDF computation for continuous phase-type distributions into a weighted sum of discrete-step absorption probabilities, enabling a single unified forward algorithm to handle both the continuous and discrete cases.</p>
-<p>The forward algorithm is Algorithm 4 of Roikjer, Hobolth &amp; Munch (2022). It propagates a probability vector forward through the graph step by step, accumulating the probability mass that reaches absorbing states at each step. For discrete phase-type (DPH) distributions, the mass absorbed at step <span class="math inline">k</span> is the PMF at <span class="math inline">k</span>. For continuous phase-type (CPH) distributions, the PMF of the uniformized DPH at step <span class="math inline">k</span> is weighted by the Poisson probability of <span class="math inline">k</span> jumps and summed, yielding the PDF at a given time <span class="math inline">t</span>.</p>
+<p>This file formalizes the forward algorithm for computing probability density functions (PDFs) and probability mass functions (PMFs) of phase-type distributions <span class="citation" data-cites="neuts1981">(<a href="28_references.html#ref-neuts1981" role="doc-biblioref">Neuts 1981</a>)</span> from their graph representation. The central technique is <strong>uniformization</strong>: approximating a continuous-time Markov jump process by a discrete-time chain embedded in a Poisson process. This converts the PDF computation for continuous phase-type distributions into a weighted sum of discrete-step absorption probabilities, enabling a single unified forward algorithm to handle both the continuous and discrete cases.</p>
+<p>The forward algorithm is Algorithm 4 of <span class="citation" data-cites="roikjer2022">Røikjer et al. (<a href="28_references.html#ref-roikjer2022" role="doc-biblioref">2022</a>)</span>. It propagates a probability vector forward through the graph step by step, accumulating the probability mass that reaches absorbing states at each step. For discrete phase-type (DPH) distributions, the mass absorbed at step <span class="math inline">k</span> is the PMF at <span class="math inline">k</span>. For continuous phase-type (CPH) distributions, the PMF of the uniformized DPH at step <span class="math inline">k</span> is weighted by the Poisson probability of <span class="math inline">k</span> jumps and summed, yielding the PDF at a given time <span class="math inline">t</span>.</p>
 <p>This algorithm operates on the original (non-eliminated) graph and is complementary to the elimination-based moment computation in [06]. While elimination converts cycles to an acyclic form for algebraic operations (moments, expected rewards), the forward algorithm works directly on the original graph to compute the full distribution function. The CDF is obtained by cumulating the absorbed mass.</p>
 <p><strong>Prerequisites:</strong> [01], [05]</p>
 <p><strong>Source files:</strong> - <code>src/c/phasic.c</code> (functions: <code>_ptd_dph_probability_distribution_context_create</code>, <code>ptd_dph_probability_distribution_step</code>, <code>ptd_probability_distribution_context_create</code>, <code>ptd_probability_distribution_step</code>)</p>
@@ -462,96 +493,114 @@ window.Quarto = {
 <section id="definitions" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="definitions">Definitions</h2>
 <div id="def-14-uniformization" class="theorem definition">
-<p><span class="theorem-title"><strong>Definition 15.1 (Uniformization)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> be a phase-type graph representing <span class="math inline">\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})</span> (<a href="01_preliminaries.html#def-01-ph-graph" class="quarto-xref">Definition&nbsp;<span>2.13</span></a>). The uniformization of <span class="math inline">G</span> with granularity parameter <span class="math inline">g &gt; 0</span> produces a discrete-time Markov chain with sub-transition matrix</em></p>
-<p><span id="eq-14-uniformized-subtransition"><span class="math display">\mathbf{T}_g = \mathbf{I} + \frac{1}{g}\mathbf{S}, \tag{15.1}</span></span></p>
+<p><span class="theorem-title"><strong>Definition 16.1 (Uniformization)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> be a phase-type graph representing <span class="math inline">\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})</span> (<a href="01_preliminaries.html#def-01-ph-graph" class="quarto-xref">Definition&nbsp;<span>2.13</span></a>). The uniformization of <span class="math inline">G</span> with granularity parameter <span class="math inline">g &gt; 0</span> produces a discrete-time Markov chain with sub-transition matrix</em></p>
+<p><span id="eq-14-uniformized-subtransition"><span class="math display">\mathbf{T}_g = \mathbf{I} + \frac{1}{g}\mathbf{S}, \tag{16.1}</span></span></p>
 <p><em>where <span class="math inline">g \geq \max_i \lambda_{v_i}</span> is required to ensure all entries of <span class="math inline">\mathbf{T}_g</span> are non-negative. The uniformized chain has initial distribution <span class="math inline">\boldsymbol{\alpha}</span> (the same as the original CPH) and exit probability vector</em></p>
-<p><span id="eq-14-uniformized-exit"><span class="math display">\mathbf{t}_g = \mathbf{e} - \mathbf{T}_g \mathbf{e} = \frac{1}{g}\mathbf{s}, \tag{15.2}</span></span></p>
+<p><span id="eq-14-uniformized-exit"><span class="math display">\mathbf{t}_g = \mathbf{e} - \mathbf{T}_g \mathbf{e} = \frac{1}{g}\mathbf{s}, \tag{16.2}</span></span></p>
 <p><em>where <span class="math inline">\mathbf{s} = -\mathbf{S}\mathbf{e}</span> is the exit rate vector of the original CPH.</em></p>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> Uniformization replaces the variable-rate continuous-time process with a process that attempts a jump at a fixed rate <span class="math inline">g</span> per unit time. At each jump opportunity, the process either transitions to a new state (with probability proportional to the original transition rates) or stays in the same state (a “virtual” self-transition). The self-loop probability at vertex <span class="math inline">v</span> is <span class="math inline">1 - \lambda_v / g \geq 0</span>, which is non-negative precisely when <span class="math inline">g \geq \lambda_v</span>. The number of jump opportunities in time <span class="math inline">t</span> follows a <span class="math inline">\operatorname{Poisson}(gt)</span> distribution, connecting the discrete steps to continuous time.</p>
-</blockquote>
-<blockquote class="blockquote">
-<p><strong>Example.</strong> Consider a two-state CPH with <span class="math inline">\mathbf{S} = \begin{pmatrix} -3 &amp; 1 \\ 2 &amp; -5 \end{pmatrix}</span>. The maximum rate is <span class="math inline">\lambda_{\max} = 5</span>. Choosing <span class="math inline">g = 5</span>, the uniformized sub-transition matrix is <span class="math inline">\mathbf{T}_5 = \mathbf{I} + \frac{1}{5}\mathbf{S} = \begin{pmatrix} 0.4 &amp; 0.2 \\ 0.4 &amp; 0 \end{pmatrix}</span>, with exit probabilities <span class="math inline">\mathbf{t}_5 = (0.4, 0.6)^\top</span>. Each vertex has non-negative self-loop probability: <span class="math inline">1 - 3/5 = 0.4</span> for vertex 1 and <span class="math inline">1 - 5/5 = 0</span> for vertex 2.</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+Uniformization replaces the variable-rate continuous-time process with a process that attempts a jump at a fixed rate <span class="math inline">g</span> per unit time. At each jump opportunity, the process either transitions to a new state (with probability proportional to the original transition rates) or stays in the same state (a “virtual” self-transition). The self-loop probability at vertex <span class="math inline">v</span> is <span class="math inline">1 - \lambda_v / g \geq 0</span>, which is non-negative precisely when <span class="math inline">g \geq \lambda_v</span>. The number of jump opportunities in time <span class="math inline">t</span> follows a <span class="math inline">\operatorname{Poisson}(gt)</span> distribution, connecting the discrete steps to continuous time.
+</details>
+<details>
+<summary>
+Example
+</summary>
+Consider a two-state CPH with <span class="math inline">\mathbf{S} = \begin{pmatrix} -3 &amp; 1 \\ 2 &amp; -5 \end{pmatrix}</span>. The maximum rate is <span class="math inline">\lambda_{\max} = 5</span>. Choosing <span class="math inline">g = 5</span>, the uniformized sub-transition matrix is <span class="math inline">\mathbf{T}_5 = \mathbf{I} + \frac{1}{5}\mathbf{S} = \begin{pmatrix} 0.4 &amp; 0.2 \\ 0.4 &amp; 0 \end{pmatrix}</span>, with exit probabilities <span class="math inline">\mathbf{t}_5 = (0.4, 0.6)^\top</span>. Each vertex has non-negative self-loop probability: <span class="math inline">1 - 3/5 = 0.4</span> for vertex 1 and <span class="math inline">1 - 5/5 = 0</span> for vertex 2.
+</details>
 <div id="def-14-forward-prob-vector" class="theorem definition">
-<p><span class="theorem-title"><strong>Definition 15.2 (Forward probability vector)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> be a phase-type graph with <span class="math inline">|V|</span> vertices, either representing a DPH or a uniformized CPH. The forward probability vector at step <span class="math inline">k</span> is</em></p>
-<p><span id="eq-14-forward-prob"><span class="math display">\mathbf{p}^{(k)} = (p^{(k)}_{v_0}, p^{(k)}_{v_1}, \ldots, p^{(k)}_{v_{|V|-1}}), \tag{15.3}</span></span></p>
+<p><span class="theorem-title"><strong>Definition 16.2 (Forward probability vector)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> be a phase-type graph with <span class="math inline">|V|</span> vertices, either representing a DPH or a uniformized CPH. The forward probability vector at step <span class="math inline">k</span> is</em></p>
+<p><span id="eq-14-forward-prob"><span class="math display">\mathbf{p}^{(k)} = (p^{(k)}_{v_0}, p^{(k)}_{v_1}, \ldots, p^{(k)}_{v_{|V|-1}}), \tag{16.3}</span></span></p>
 <p><em>where <span class="math inline">p^{(k)}_v</span> is the probability that the chain is in vertex <span class="math inline">v</span> at step <span class="math inline">k</span>, conditional on not having been absorbed. The initial condition is <span class="math inline">p^{(0)}_{v_0} = 1</span> (all mass at the starting vertex), and <span class="math inline">p^{(0)}_v = 0</span> for <span class="math inline">v \neq v_0</span>.</em></p>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> The forward probability vector tracks the distribution of probability mass across vertices as the chain evolves. At each step, mass flows along edges proportionally to their weights. Mass that reaches absorbing vertices (vertices with no outgoing edges) is removed from the vector and recorded as the PMF contribution for that step.</p>
-</blockquote>
-<blockquote class="blockquote">
-<p><strong>Example.</strong> For a graph with starting vertex <span class="math inline">v_0</span>, two transient vertices <span class="math inline">v_1, v_2</span>, and one absorbing vertex <span class="math inline">v_a</span>: <span class="math inline">\mathbf{p}^{(0)} = (1, 0, 0, 0)</span>. After one step, <span class="math inline">\mathbf{p}^{(1)}</span> distributes mass from <span class="math inline">v_0</span> to its children according to the starting edge weights (<span class="math inline">\boldsymbol{\alpha}</span>).</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+The forward probability vector tracks the distribution of probability mass across vertices as the chain evolves. At each step, mass flows along edges proportionally to their weights. Mass that reaches absorbing vertices (vertices with no outgoing edges) is removed from the vector and recorded as the PMF contribution for that step.
+</details>
+<details>
+<summary>
+Example
+</summary>
+For a graph with starting vertex <span class="math inline">v_0</span>, two transient vertices <span class="math inline">v_1, v_2</span>, and one absorbing vertex <span class="math inline">v_a</span>: <span class="math inline">\mathbf{p}^{(0)} = (1, 0, 0, 0)</span>. After one step, <span class="math inline">\mathbf{p}^{(1)}</span> distributes mass from <span class="math inline">v_0</span> to its children according to the starting edge weights (<span class="math inline">\boldsymbol{\alpha}</span>).
+</details>
 <div id="def-14-dph-forward-step" class="theorem definition">
-<p><span class="theorem-title"><strong>Definition 15.3 (DPH forward step)</strong></span> <em>Given the forward probability vector <span class="math inline">\mathbf{p}^{(k)}</span> and a weight scaling factor <span class="math inline">\delta</span> (with <span class="math inline">\delta = 1</span> for DPH and <span class="math inline">\delta = 1/g</span> for uniformized CPH), the forward step produces <span class="math inline">\mathbf{p}^{(k+1)}</span> and the PMF contribution <span class="math inline">p_k</span> by:</em></p>
+<p><span class="theorem-title"><strong>Definition 16.3 (DPH forward step)</strong></span> <em>Given the forward probability vector <span class="math inline">\mathbf{p}^{(k)}</span> and a weight scaling factor <span class="math inline">\delta</span> (with <span class="math inline">\delta = 1</span> for DPH and <span class="math inline">\delta = 1/g</span> for uniformized CPH), the forward step produces <span class="math inline">\mathbf{p}^{(k+1)}</span> and the PMF contribution <span class="math inline">p_k</span> by:</em></p>
 <ol type="1">
-<li><p><em>For each edge <span class="math inline">(v \to z) \in E</span>: transfer mass <span class="math inline">p^{(k)}_v \cdot w(v \to z) \cdot \delta</span> from vertex <span class="math inline">v</span> to vertex <span class="math inline">z</span>, and subtract the same amount from <span class="math inline">v</span>:</em> <span id="eq-14-forward-transfer"><span class="math display">p^{(k+1)}_z \mathrel{+}= p^{(k)}_v \cdot w(v \to z) \cdot \delta, \qquad p^{(k+1)}_v \mathrel{-}= p^{(k)}_v \cdot w(v \to z) \cdot \delta. \tag{15.4}</span></span></p></li>
+<li><p><em>For each edge <span class="math inline">(v \to z) \in E</span>: transfer mass <span class="math inline">p^{(k)}_v \cdot w(v \to z) \cdot \delta</span> from vertex <span class="math inline">v</span> to vertex <span class="math inline">z</span>, and subtract the same amount from <span class="math inline">v</span>:</em> <span id="eq-14-forward-transfer"><span class="math display">p^{(k+1)}_z \mathrel{+}= p^{(k)}_v \cdot w(v \to z) \cdot \delta, \qquad p^{(k+1)}_v \mathrel{-}= p^{(k)}_v \cdot w(v \to z) \cdot \delta. \tag{16.4}</span></span></p></li>
 <li><p><em>For each absorbing vertex <span class="math inline">v_a</span> (i.e., <span class="math inline">\operatorname{children}(v_a) = \emptyset</span>): the PMF contribution is <span class="math inline">p_{k+1} = \sum_{v_a} p^{(k+1)}_{v_a}</span>, and the absorbed mass is zeroed: <span class="math inline">p^{(k+1)}_{v_a} \leftarrow 0</span>.</em></p></li>
 <li><p><em>The CDF is updated: <span class="math inline">F_{k+1} = F_k + p_{k+1}</span>.</em></p></li>
 </ol>
 </div>
-<blockquote class="blockquote">
-<p><strong>Intuition.</strong> The forward step simultaneously transfers mass along all edges (weighted by <span class="math inline">\delta</span>) and then collects the mass that has reached absorbing states. For a DPH with <span class="math inline">\delta = 1</span>, each edge weight is a transition probability (after normalization), and the step is a standard Markov chain transition. For a uniformized CPH with <span class="math inline">\delta = 1/g</span>, the edge weights are transition rates, and the scaling by <span class="math inline">1/g</span> converts rates to probabilities. The subtraction from the source vertex ensures mass conservation: mass transferred to a child is removed from the parent.</p>
-</blockquote>
-<blockquote class="blockquote">
-<p><strong>Example.</strong> Consider a uniformized CPH with <span class="math inline">g = 10</span> and a vertex <span class="math inline">v_1</span> with <span class="math inline">p^{(k)}_{v_1} = 0.5</span> and outgoing edges <span class="math inline">w(v_1 \to v_2) = 3</span> and <span class="math inline">w(v_1 \to v_a) = 2</span>. The mass transferred to <span class="math inline">v_2</span> is <span class="math inline">0.5 \times 3 \times 0.1 = 0.15</span>, to <span class="math inline">v_a</span> is <span class="math inline">0.5 \times 2 \times 0.1 = 0.10</span>, and the remaining mass at <span class="math inline">v_1</span> is <span class="math inline">0.5 - 0.15 - 0.10 = 0.25</span> (the implicit self-loop contribution from the uniformization).</p>
-</blockquote>
+<details>
+<summary>
+Intuition
+</summary>
+The forward step simultaneously transfers mass along all edges (weighted by <span class="math inline">\delta</span>) and then collects the mass that has reached absorbing states. For a DPH with <span class="math inline">\delta = 1</span>, each edge weight is a transition probability (after normalization), and the step is a standard Markov chain transition. For a uniformized CPH with <span class="math inline">\delta = 1/g</span>, the edge weights are transition rates, and the scaling by <span class="math inline">1/g</span> converts rates to probabilities. The subtraction from the source vertex ensures mass conservation: mass transferred to a child is removed from the parent.
+</details>
+<details>
+<summary>
+Example
+</summary>
+Consider a uniformized CPH with <span class="math inline">g = 10</span> and a vertex <span class="math inline">v_1</span> with <span class="math inline">p^{(k)}_{v_1} = 0.5</span> and outgoing edges <span class="math inline">w(v_1 \to v_2) = 3</span> and <span class="math inline">w(v_1 \to v_a) = 2</span>. The mass transferred to <span class="math inline">v_2</span> is <span class="math inline">0.5 \times 3 \times 0.1 = 0.15</span>, to <span class="math inline">v_a</span> is <span class="math inline">0.5 \times 2 \times 0.1 = 0.10</span>, and the remaining mass at <span class="math inline">v_1</span> is <span class="math inline">0.5 - 0.15 - 0.10 = 0.25</span> (the implicit self-loop contribution from the uniformization).
+</details>
 </section>
 <section id="theorems-and-proofs" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="theorems-and-proofs">Theorems and Proofs</h2>
 <div id="thm-14-uniformization-convergence" class="theorem">
-<p><span class="theorem-title"><strong>Theorem 15.1 (Uniformization convergence)</strong></span> <em>Let <span class="math inline">\tau \sim \operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})</span> with PDF <span class="math inline">f(t) = \boldsymbol{\alpha} e^{\mathbf{S}t} \mathbf{s}</span>. Let <span class="math inline">\tau_g</span> denote the uniformized DPH with sub-transition matrix <span class="math inline">\mathbf{T}_g = \mathbf{I} + \frac{1}{g}\mathbf{S}</span> and let <span class="math inline">p_k^{(g)} = \boldsymbol{\alpha} \mathbf{T}_g^{k-1} \mathbf{t}_g</span> be its PMF at step <span class="math inline">k</span>. Then</em></p>
-<p><span id="eq-14-uniformization-convergence"><span class="math display">f(t) = \sum_{k=0}^{\infty} p_k^{(g)} \cdot \frac{(gt)^k e^{-gt}}{k!} \cdot g, \tag{15.5}</span></span></p>
+<p><span class="theorem-title"><strong>Theorem 16.1 (Uniformization convergence)</strong></span> <em>Let <span class="math inline">\tau \sim \operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})</span> with PDF <span class="math inline">f(t) = \boldsymbol{\alpha} e^{\mathbf{S}t} \mathbf{s}</span>. Let <span class="math inline">\tau_g</span> denote the uniformized DPH with sub-transition matrix <span class="math inline">\mathbf{T}_g = \mathbf{I} + \frac{1}{g}\mathbf{S}</span> and let <span class="math inline">p_k^{(g)} = \boldsymbol{\alpha} \mathbf{T}_g^{k-1} \mathbf{t}_g</span> be its PMF at step <span class="math inline">k</span>. Then</em></p>
+<p><span id="eq-14-uniformization-convergence"><span class="math display">f(t) = \sum_{k=0}^{\infty} p_k^{(g)} \cdot \frac{(gt)^k e^{-gt}}{k!} \cdot g, \tag{16.5}</span></span></p>
 <p><em>where <span class="math inline">\frac{(gt)^k e^{-gt}}{k!}</span> is the Poisson probability <span class="math inline">\Pr(N = k)</span> for <span class="math inline">N \sim \operatorname{Poisson}(gt)</span>, and the factor <span class="math inline">g</span> converts from the PMF (probability per step) to the PDF (probability per unit time).</em></p>
 <p><em>The truncation error from summing only the first <span class="math inline">K</span> terms satisfies</em></p>
-<p><span id="eq-14-truncation-error"><span class="math display">\left| f(t) - \sum_{k=0}^{K} p_k^{(g)} \cdot \frac{(gt)^k e^{-gt}}{k!} \cdot g \right| \leq g \cdot \Pr(N &gt; K), \tag{15.6}</span></span></p>
+<p><span id="eq-14-truncation-error"><span class="math display">\left| f(t) - \sum_{k=0}^{K} p_k^{(g)} \cdot \frac{(gt)^k e^{-gt}}{k!} \cdot g \right| \leq g \cdot \Pr(N &gt; K), \tag{16.6}</span></span></p>
 <p><em>where <span class="math inline">N \sim \operatorname{Poisson}(gt)</span>, since each <span class="math inline">p_k^{(g)} \leq 1</span>.</em></p>
 </div>
 <div class="proof">
-<p><span class="proof-title"><em>Proof</em>. </span>The key identity is the matrix exponential representation via uniformization (Jensen 1953):</p>
-<p><span id="eq-14-jensen-identity"><span class="math display">e^{\mathbf{S}t} = \sum_{k=0}^{\infty} \mathbf{T}_g^k \frac{(gt)^k e^{-gt}}{k!}. \tag{15.7}</span></span></p>
-<p>To verify <a href="#eq-14-jensen-identity" class="quarto-xref">Equation&nbsp;<span>15.7</span></a>, substitute <span class="math inline">\mathbf{T}_g = \mathbf{I} + \frac{1}{g}\mathbf{S}</span>:</p>
+<p><span class="proof-title"><em>Proof</em>. </span>The key identity is the matrix exponential representation via uniformization <span class="citation" data-cites="jensen1953">(<a href="28_references.html#ref-jensen1953" role="doc-biblioref">Jensen 1953</a>)</span>:</p>
+<p><span id="eq-14-jensen-identity"><span class="math display">e^{\mathbf{S}t} = \sum_{k=0}^{\infty} \mathbf{T}_g^k \frac{(gt)^k e^{-gt}}{k!}. \tag{16.7}</span></span></p>
+<p>To verify <a href="#eq-14-jensen-identity" class="quarto-xref">Equation&nbsp;<span>16.7</span></a>, substitute <span class="math inline">\mathbf{T}_g = \mathbf{I} + \frac{1}{g}\mathbf{S}</span>:</p>
 <p><span class="math display">\sum_{k=0}^{\infty} \left(\mathbf{I} + \frac{\mathbf{S}}{g}\right)^k \frac{(gt)^k e^{-gt}}{k!} = e^{-gt} \sum_{k=0}^{\infty} \frac{\left(g\mathbf{I} + \mathbf{S}\right)^k t^k}{k!} = e^{-gt} \cdot e^{(g\mathbf{I} + \mathbf{S})t} = e^{-gt} \cdot e^{gt} \cdot e^{\mathbf{S}t} = e^{\mathbf{S}t}.</span></p>
-<p>The third equality uses <span class="math inline">g\mathbf{I}</span> and <span class="math inline">\mathbf{S}</span> commute (any scalar multiple of the identity commutes with any matrix). Multiplying both sides of <a href="#eq-14-jensen-identity" class="quarto-xref">Equation&nbsp;<span>15.7</span></a> on the left by <span class="math inline">\boldsymbol{\alpha}</span> and on the right by <span class="math inline">\mathbf{s}</span>:</p>
+<p>The third equality uses <span class="math inline">g\mathbf{I}</span> and <span class="math inline">\mathbf{S}</span> commute (any scalar multiple of the identity commutes with any matrix). Multiplying both sides of <a href="#eq-14-jensen-identity" class="quarto-xref">Equation&nbsp;<span>16.7</span></a> on the left by <span class="math inline">\boldsymbol{\alpha}</span> and on the right by <span class="math inline">\mathbf{s}</span>:</p>
 <p><span class="math display">\boldsymbol{\alpha} e^{\mathbf{S}t} \mathbf{s} = \sum_{k=0}^{\infty} \boldsymbol{\alpha} \mathbf{T}_g^k \mathbf{s} \cdot \frac{(gt)^k e^{-gt}}{k!}.</span></p>
-<p>Since <span class="math inline">\mathbf{s} = g \mathbf{t}_g</span> (from <a href="#eq-14-uniformized-exit" class="quarto-xref">Equation&nbsp;<span>15.2</span></a>) and <span class="math inline">p_{k+1}^{(g)} = \boldsymbol{\alpha} \mathbf{T}_g^k \mathbf{t}_g</span>:</p>
+<p>Since <span class="math inline">\mathbf{s} = g \mathbf{t}_g</span> (from <a href="#eq-14-uniformized-exit" class="quarto-xref">Equation&nbsp;<span>16.2</span></a>) and <span class="math inline">p_{k+1}^{(g)} = \boldsymbol{\alpha} \mathbf{T}_g^k \mathbf{t}_g</span>:</p>
 <p><span class="math display">f(t) = \boldsymbol{\alpha} e^{\mathbf{S}t} \mathbf{s} = g \sum_{k=0}^{\infty} p_{k+1}^{(g)} \cdot \frac{(gt)^k e^{-gt}}{k!} = g \sum_{k=1}^{\infty} p_k^{(g)} \cdot \frac{(gt)^{k-1} e^{-gt}}{(k-1)!}.</span></p>
-<p>Re-indexing by letting <span class="math inline">k' = k - 1</span> and noting that the implementation accumulates the PMF at step <span class="math inline">k</span> weighted by the Poisson probability for <span class="math inline">k</span> jumps (including the initialization step that distributes mass from <span class="math inline">v_0</span>), this gives <a href="#eq-14-uniformization-convergence" class="quarto-xref">Equation&nbsp;<span>15.5</span></a> after accounting for the initialization convention.</p>
-<p>For the error bound (<a href="#eq-14-truncation-error" class="quarto-xref">Equation&nbsp;<span>15.6</span></a>), since <span class="math inline">0 \leq p_k^{(g)} \leq 1</span> (each term is a probability), the tail sum is bounded by <span class="math inline">g \sum_{k &gt; K} \frac{(gt)^k e^{-gt}}{k!} = g \cdot \Pr(N &gt; K)</span>. <span class="math inline">\square</span></p>
+<p>Re-indexing by letting <span class="math inline">k' = k - 1</span> and noting that the implementation accumulates the PMF at step <span class="math inline">k</span> weighted by the Poisson probability for <span class="math inline">k</span> jumps (including the initialization step that distributes mass from <span class="math inline">v_0</span>), this gives <a href="#eq-14-uniformization-convergence" class="quarto-xref">Equation&nbsp;<span>16.5</span></a> after accounting for the initialization convention.</p>
+<p>For the error bound (<a href="#eq-14-truncation-error" class="quarto-xref">Equation&nbsp;<span>16.6</span></a>), since <span class="math inline">0 \leq p_k^{(g)} \leq 1</span> (each term is a probability), the tail sum is bounded by <span class="math inline">g \sum_{k &gt; K} \frac{(gt)^k e^{-gt}}{k!} = g \cdot \Pr(N &gt; K)</span>. <span class="math inline">\square</span></p>
 </div>
 <div id="thm-14-forward-exact-dph" class="theorem">
-<p><span class="theorem-title"><strong>Theorem 15.2 (Forward algorithm computes exact DPH PMF)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> represent <span class="math inline">\operatorname{DPH}_p(\boldsymbol{\alpha}, \mathbf{T})</span> and let <span class="math inline">\mathbf{p}^{(k)}</span> be the forward probability vector at step <span class="math inline">k</span> (<a href="#def-14-forward-prob-vector" class="quarto-xref">Definition&nbsp;<span>15.2</span></a>), updated by the forward step (<a href="#def-14-dph-forward-step" class="quarto-xref">Definition&nbsp;<span>15.3</span></a>) with <span class="math inline">\delta = 1</span>. Then the PMF of the DPH at step <span class="math inline">k</span> is</em></p>
-<p><span id="eq-14-dph-pmf"><span class="math display">\Pr(\tau = k) = p_k = \sum_{\substack{v \in V \\ \operatorname{children}(v) = \emptyset}} p^{(k)}_v, \tag{15.8}</span></span></p>
+<p><span class="theorem-title"><strong>Theorem 16.2 (Forward algorithm computes exact DPH PMF)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> represent <span class="math inline">\operatorname{DPH}_p(\boldsymbol{\alpha}, \mathbf{T})</span> and let <span class="math inline">\mathbf{p}^{(k)}</span> be the forward probability vector at step <span class="math inline">k</span> (<a href="#def-14-forward-prob-vector" class="quarto-xref">Definition&nbsp;<span>16.2</span></a>), updated by the forward step (<a href="#def-14-dph-forward-step" class="quarto-xref">Definition&nbsp;<span>16.3</span></a>) with <span class="math inline">\delta = 1</span>. Then the PMF of the DPH at step <span class="math inline">k</span> is</em></p>
+<p><span id="eq-14-dph-pmf"><span class="math display">\Pr(\tau = k) = p_k = \sum_{\substack{v \in V \\ \operatorname{children}(v) = \emptyset}} p^{(k)}_v, \tag{16.8}</span></span></p>
 <p><em>the mass absorbed at step <span class="math inline">k</span>. The computation requires <span class="math inline">O(k \cdot |E|)</span> time for a single evaluation at step <span class="math inline">k</span>, and <span class="math inline">O(t_{\max} \cdot |E|)</span> time to compute the PMF for all steps <span class="math inline">1, \ldots, t_{\max}</span>.</em></p>
 </div>
 <div class="proof">
 <p><span class="proof-title"><em>Proof</em>. </span>We prove by induction on <span class="math inline">k</span> that <span class="math inline">\mathbf{p}^{(k)}</span> correctly represents the probability of being in each state at step <span class="math inline">k</span>, conditional on not yet being absorbed.</p>
-<p><strong>Base case</strong> (<span class="math inline">k = 0</span>): By <a href="#def-14-forward-prob-vector" class="quarto-xref">Definition&nbsp;<span>15.2</span></a>, <span class="math inline">\mathbf{p}^{(0)}</span> has all mass at <span class="math inline">v_0</span>. The first forward step (the initialization step in the implementation) distributes this mass to <span class="math inline">v_0</span>’s children according to the starting edge weights, producing <span class="math inline">\pi^{(1)}_v = \alpha_v</span> for each transient vertex <span class="math inline">v</span> directly reachable from <span class="math inline">v_0</span>. This matches <span class="math inline">\Pr(X_1 = v) = \alpha_v</span> for the DPH.</p>
+<p><strong>Base case</strong> (<span class="math inline">k = 0</span>): By <a href="#def-14-forward-prob-vector" class="quarto-xref">Definition&nbsp;<span>16.2</span></a>, <span class="math inline">\mathbf{p}^{(0)}</span> has all mass at <span class="math inline">v_0</span>. The first forward step (the initialization step in the implementation) distributes this mass to <span class="math inline">v_0</span>’s children according to the starting edge weights, producing <span class="math inline">\pi^{(1)}_v = \alpha_v</span> for each transient vertex <span class="math inline">v</span> directly reachable from <span class="math inline">v_0</span>. This matches <span class="math inline">\Pr(X_1 = v) = \alpha_v</span> for the DPH.</p>
 <p><strong>Inductive step</strong>: Assume <span class="math inline">p^{(k)}_v = \Pr(X_k = v, \tau &gt; k)</span> for all <span class="math inline">v</span>. The forward step transfers mass along each edge: <span class="math inline">p^{(k+1)}_z \mathrel{+}= p^{(k)}_v \cdot w(v \to z)</span> for each edge <span class="math inline">(v \to z)</span>. Since <span class="math inline">w(v \to z) = t_{vz}</span> (the DPH transition probability from <span class="math inline">v</span> to <span class="math inline">z</span>), we have</p>
 <p><span class="math display">p^{(k+1)}_z = \sum_{v \in \operatorname{parents}(z)} p^{(k)}_v \cdot t_{vz},</span></p>
 <p>which is the standard Markov chain transition. The mass at absorbing vertices is then <span class="math inline">\sum_{v_a} p^{(k+1)}_{v_a} = \sum_{v} p^{(k)}_v \cdot t_v</span>, where <span class="math inline">t_v = 1 - \sum_z t_{vz}</span> is the exit probability. This equals <span class="math inline">\boldsymbol{\alpha} \mathbf{T}^{k} \mathbf{t} = \Pr(\tau = k+1)</span> by the inductive hypothesis and the DPH PMF formula (<a href="01_preliminaries.html#def-01-dph" class="quarto-xref">Definition&nbsp;<span>2.7</span></a>).</p>
 <p>The complexity is <span class="math inline">O(|E|)</span> per step (one pass through all edges), giving <span class="math inline">O(t_{\max} \cdot |E|)</span> total. <span class="math inline">\square</span></p>
 </div>
 <div id="thm-14-pdf-pmf-relationship" class="theorem">
-<p><span class="theorem-title"><strong>Theorem 15.3 (PDF-PMF relationship under uniformization)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> represent <span class="math inline">\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})</span>, uniformized with granularity <span class="math inline">g</span> (<a href="#def-14-uniformization" class="quarto-xref">Definition&nbsp;<span>15.1</span></a>). The continuous PDF at time <span class="math inline">t</span> is related to the uniformized PMF at step <span class="math inline">k</span> by:</em></p>
-<p><span id="eq-14-pdf-pmf"><span class="math display">f(t) = \text{PMF}(k) \cdot g, \quad \text{where } t = k/g. \tag{15.9}</span></span></p>
+<p><span class="theorem-title"><strong>Theorem 16.3 (PDF-PMF relationship under uniformization)</strong></span> <em>Let <span class="math inline">G = (V, E, W)</span> represent <span class="math inline">\operatorname{PH}_p(\boldsymbol{\alpha}, \mathbf{S})</span>, uniformized with granularity <span class="math inline">g</span> (<a href="#def-14-uniformization" class="quarto-xref">Definition&nbsp;<span>16.1</span></a>). The continuous PDF at time <span class="math inline">t</span> is related to the uniformized PMF at step <span class="math inline">k</span> by:</em></p>
+<p><span id="eq-14-pdf-pmf"><span class="math display">f(t) = \text{PMF}(k) \cdot g, \quad \text{where } t = k/g. \tag{16.9}</span></span></p>
 <p><em>More precisely, the implementation computes <span class="math inline">f(t)</span> as the PMF accumulated during the step from <span class="math inline">k</span> to <span class="math inline">k+1</span> (where <span class="math inline">k = \lfloor gt \rfloor</span>), multiplied by <span class="math inline">g</span>.</em></p>
 </div>
 <div class="proof">
 <p><span class="proof-title"><em>Proof</em>. </span>By definition of the uniformized chain, the time between successive steps is <span class="math inline">\Delta t = 1/g</span>. The PMF at step <span class="math inline">k</span> gives the probability of absorption at step <span class="math inline">k</span>, which occurs in the time interval <span class="math inline">[(k-1)/g, k/g]</span>. The PDF is the rate of absorption per unit time:</p>
 <p><span class="math display">f(t) \approx \frac{\text{PMF}(k)}{\Delta t} = \text{PMF}(k) \cdot g.</span></p>
-<p>This is exact in the limit as <span class="math inline">g \to \infty</span> (<a href="#thm-14-uniformization-convergence" class="quarto-xref">Theorem&nbsp;<span>15.1</span></a>), and for finite <span class="math inline">g</span> it is an approximation with discretization error <span class="math inline">O(1/g)</span>. The implementation uses <span class="math inline">\text{pdf} = \text{dph\_context.pmf} \times g</span> (line 7671 in <code>ptd_probability_distribution_step</code>), which directly implements this relationship. <span class="math inline">\square</span></p>
+<p>This is exact in the limit as <span class="math inline">g \to \infty</span> (<a href="#thm-14-uniformization-convergence" class="quarto-xref">Theorem&nbsp;<span>16.1</span></a>), and for finite <span class="math inline">g</span> it is an approximation with discretization error <span class="math inline">O(1/g)</span>. The implementation uses <span class="math inline">\text{pdf} = \text{dph\_context.pmf} \times g</span> (line 7671 in <code>ptd_probability_distribution_step</code>), which directly implements this relationship. <span class="math inline">\square</span></p>
 </div>
 </section>
 <section id="algorithms" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="algorithms">Algorithms</h2>
 <div id="alg-14-dph-forward-step" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-alg figure">
-<section id="dph-forward-step-1" class="level4" aria-describedby="alg-14-dph-forward-step-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="15.0.0.1">
-<h4 data-number="15.0.0.1" class="anchored" data-anchor-id="dph-forward-step-1"><span class="header-section-number">15.0.0.1</span> DPH Forward Step</h4>
+<section id="dph-forward-step-1" class="level4" aria-describedby="alg-14-dph-forward-step-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="16.0.0.1">
+<h4 data-number="16.0.0.1" class="anchored" data-anchor-id="dph-forward-step-1"><span class="header-section-number">16.0.0.1</span> DPH Forward Step</h4>
 <p><em>Description.</em> This algorithm performs a single forward step of the discrete-time Markov chain, propagating probability mass along edges and collecting mass at absorbing vertices. It is the atomic operation used by both DPH PMF computation and CPH PDF computation (via uniformization). The algorithm uses a precomputed list of edge increment operations for efficiency, avoiding repeated traversal of the adjacency list.</p>
 <pre><code>DPH Forward Step
 1: Let p be the forward probability vector (@def-14-forward-prob-vector)
@@ -634,15 +683,15 @@ window.Quarto = {
 <p><strong>Complexity.</strong> Time: <span class="math inline">O(|E|)</span> per step (one pass through all edges plus two passes through absorbing vertices). Space: <span class="math inline">O(|V|)</span> for the probability vector copy.</p>
 </section>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-14-dph-forward-step-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Algorithm&nbsp;15.1: <strong>Correctness.</strong> Follows from <a href="#thm-14-forward-exact-dph" class="quarto-xref">Theorem&nbsp;<span>15.2</span></a>. The precomputed edge list is equivalent to iterating over all edges in the graph. The subtract-from-source operation combined with the add-to-target correctly implements the Markov chain transition while maintaining mass conservation. The clearing of absorbing vertices before transfer prevents re-transferring already-absorbed mass.
+Algorithm&nbsp;16.1: <strong>Correctness.</strong> Follows from <a href="#thm-14-forward-exact-dph" class="quarto-xref">Theorem&nbsp;<span>16.2</span></a>. The precomputed edge list is equivalent to iterating over all edges in the graph. The subtract-from-source operation combined with the add-to-target correctly implements the Markov chain transition while maintaining mass conservation. The clearing of absorbing vertices before transfer prevents re-transferring already-absorbed mass.
 </figcaption>
 </figure>
 </div>
 <div id="alg-14-cph-uniformization" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-alg figure">
-<section id="cph-pdf-via-uniformization" class="level4" aria-describedby="alg-14-cph-uniformization-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="15.0.0.2">
-<h4 data-number="15.0.0.2" class="anchored" data-anchor-id="cph-pdf-via-uniformization"><span class="header-section-number">15.0.0.2</span> CPH PDF via Uniformization</h4>
-<p><em>Description.</em> This algorithm computes the continuous phase-type PDF at a given time <span class="math inline">t</span> by uniformizing the CPH graph and iterating the DPH forward step. The granularity parameter <span class="math inline">g</span> controls the discretization resolution. The algorithm creates a DPH context with weight scaling <span class="math inline">\delta = 1/g</span>, performs one initialization step (distributing mass from <span class="math inline">v_0</span>), and then iterates forward steps. Each step advances time by <span class="math inline">\Delta t = 1/g</span>, and the PDF at time <span class="math inline">t</span> is computed as <span class="math inline">\text{PMF} \times g</span> (<a href="#thm-14-pdf-pmf-relationship" class="quarto-xref">Theorem&nbsp;<span>15.3</span></a>).</p>
+<section id="cph-pdf-via-uniformization" class="level4" aria-describedby="alg-14-cph-uniformization-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca" data-number="16.0.0.2">
+<h4 data-number="16.0.0.2" class="anchored" data-anchor-id="cph-pdf-via-uniformization"><span class="header-section-number">16.0.0.2</span> CPH PDF via Uniformization</h4>
+<p><em>Description.</em> This algorithm computes the continuous phase-type PDF at a given time <span class="math inline">t</span> by uniformizing the CPH graph and iterating the DPH forward step. The granularity parameter <span class="math inline">g</span> controls the discretization resolution. The algorithm creates a DPH context with weight scaling <span class="math inline">\delta = 1/g</span>, performs one initialization step (distributing mass from <span class="math inline">v_0</span>), and then iterates forward steps. Each step advances time by <span class="math inline">\Delta t = 1/g</span>, and the PDF at time <span class="math inline">t</span> is computed as <span class="math inline">\text{PMF} \times g</span> (<a href="#thm-14-pdf-pmf-relationship" class="quarto-xref">Theorem&nbsp;<span>16.3</span></a>).</p>
 <pre><code>CPH PDF via Uniformization
 1: Let G = (V, E, W) represent PH(α, S) (@def-01-ph-graph)
 2: Let g be the granularity parameter (g ≥ max_v λ_v required)
@@ -733,14 +782,14 @@ Algorithm&nbsp;15.1: <strong>Correctness.</strong> Follows from <a href="#thm-14
 <p><strong>Complexity.</strong> Time: <span class="math inline">O(|E|)</span> per time step. To evaluate the PDF at time <span class="math inline">t</span>, the algorithm performs <span class="math inline">\lfloor gt \rfloor</span> forward steps, giving total time <span class="math inline">O(gt \cdot |E|)</span>. Space: <span class="math inline">O(|V| + |E|)</span> for the context (probability vector plus precomputed edge list).</p>
 </section>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-alg" id="alg-14-cph-uniformization-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Algorithm&nbsp;15.2: <strong>Correctness.</strong> Follows from <a href="#thm-14-uniformization-convergence" class="quarto-xref">Theorem&nbsp;<span>15.1</span></a> and <a href="#thm-14-pdf-pmf-relationship" class="quarto-xref">Theorem&nbsp;<span>15.3</span></a>. The uniformization condition <span class="math inline">g \geq \max_v \lambda_v</span> ensures all transition probabilities are non-negative (<a href="#def-14-uniformization" class="quarto-xref">Definition&nbsp;<span>15.1</span></a>). The auto-selection of <span class="math inline">g = \max(2 \lambda_{\max}, 1000)</span> provides a safety margin and a minimum resolution for numerical stability. The initialization step distributes mass from <span class="math inline">v_0</span> according to <span class="math inline">\boldsymbol{\alpha}</span>, after which each step advances the discrete chain by one step in the uniformized time scale.
+Algorithm&nbsp;16.2: <strong>Correctness.</strong> Follows from <a href="#thm-14-uniformization-convergence" class="quarto-xref">Theorem&nbsp;<span>16.1</span></a> and <a href="#thm-14-pdf-pmf-relationship" class="quarto-xref">Theorem&nbsp;<span>16.3</span></a>. The uniformization condition <span class="math inline">g \geq \max_v \lambda_v</span> ensures all transition probabilities are non-negative (<a href="#def-14-uniformization" class="quarto-xref">Definition&nbsp;<span>16.1</span></a>). The auto-selection of <span class="math inline">g = \max(2 \lambda_{\max}, 1000)</span> provides a safety margin and a minimum resolution for numerical stability. The initialization step distributes mass from <span class="math inline">v_0</span> according to <span class="math inline">\boldsymbol{\alpha}</span>, after which each step advances the discrete chain by one step in the uniformized time scale.
 </figcaption>
 </figure>
 </div>
 </section>
 <section id="numerical-considerations" class="level2 unnumbered">
 <h2 class="unnumbered anchored" data-anchor-id="numerical-considerations">Numerical Considerations</h2>
-<p><strong>Granularity selection.</strong> The auto-selection strategy uses <span class="math inline">g = \max(2\lambda_{\max}, 1000)</span>. The factor of 2 provides headroom above the minimum requirement <span class="math inline">g \geq \lambda_{\max}</span>, and the minimum of 1000 ensures reasonable resolution even for slow processes. The discretization error scales as <span class="math inline">O(1/g)</span> (<a href="#thm-14-pdf-pmf-relationship" class="quarto-xref">Theorem&nbsp;<span>15.3</span></a>), so larger <span class="math inline">g</span> gives more accurate results at the cost of more steps.</p>
+<p><strong>Granularity selection.</strong> The auto-selection strategy uses <span class="math inline">g = \max(2\lambda_{\max}, 1000)</span>. The factor of 2 provides headroom above the minimum requirement <span class="math inline">g \geq \lambda_{\max}</span>, and the minimum of 1000 ensures reasonable resolution even for slow processes. The discretization error scales as <span class="math inline">O(1/g)</span> (<a href="#thm-14-pdf-pmf-relationship" class="quarto-xref">Theorem&nbsp;<span>16.3</span></a>), so larger <span class="math inline">g</span> gives more accurate results at the cost of more steps.</p>
 <p><strong>Long double probability vectors.</strong> The implementation uses <code>long double</code> for the forward probability vector to reduce accumulation of rounding errors over many steps. This is particularly important for large graphs with many steps, where small errors can compound.</p>
 <p><strong>Mass conservation.</strong> The forward step maintains mass conservation: the total probability (sum of all entries in <span class="math inline">\mathbf{p}</span>) plus the cumulative absorbed mass (CDF) equals 1 at all times. The subtract-from-source operation in the edge transfer ensures this invariant. However, floating-point rounding can cause small violations, which do not affect the final result significantly for moderate numbers of steps.</p>
 <p><strong>Edge list precomputation.</strong> The implementation precomputes the edge list as an array of <code>(from, to, weight_ptr)</code> triples during context creation. This avoids repeated traversal of the adjacency list during each step and enables better cache utilization. The weight pointer (rather than a weight copy) allows dynamic weight updates without rebuilding the edge list.</p>
@@ -766,19 +815,19 @@ Algorithm&nbsp;15.2: <strong>Correctness.</strong> Follows from <a href="#thm-14
 </thead>
 <tbody>
 <tr class="odd">
-<td><a href="#alg-14-dph-forward-step" class="quarto-xref">Algorithm&nbsp;<span>15.1</span></a></td>
+<td><a href="#alg-14-dph-forward-step" class="quarto-xref">Algorithm&nbsp;<span>16.1</span></a></td>
 <td><code>src/c/phasic.c</code></td>
 <td><code>ptd_dph_probability_distribution_step</code></td>
 <td>L7498–L7549</td>
 </tr>
 <tr class="even">
-<td><a href="#alg-14-cph-uniformization" class="quarto-xref">Algorithm&nbsp;<span>15.2</span></a> (create)</td>
+<td><a href="#alg-14-cph-uniformization" class="quarto-xref">Algorithm&nbsp;<span>16.2</span></a> (create)</td>
 <td><code>src/c/phasic.c</code></td>
 <td><code>ptd_probability_distribution_context_create</code></td>
 <td>L7551–L7647</td>
 </tr>
 <tr class="odd">
-<td><a href="#alg-14-cph-uniformization" class="quarto-xref">Algorithm&nbsp;<span>15.2</span></a> (step)</td>
+<td><a href="#alg-14-cph-uniformization" class="quarto-xref">Algorithm&nbsp;<span>16.2</span></a> (step)</td>
 <td><code>src/c/phasic.c</code></td>
 <td><code>ptd_probability_distribution_step</code></td>
 <td>L7661–L7674</td>
@@ -818,42 +867,53 @@ Algorithm&nbsp;15.2: <strong>Correctness.</strong> Follows from <a href="#thm-14
 <tr class="odd">
 <td><span class="math inline">\delta</span></td>
 <td>Weight scaling factor</td>
-<td><a href="#def-14-dph-forward-step" class="quarto-xref">Definition&nbsp;<span>15.3</span></a></td>
+<td><a href="#def-14-dph-forward-step" class="quarto-xref">Definition&nbsp;<span>16.3</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">F_k</span></td>
 <td>Cumulative distribution at step <span class="math inline">k</span></td>
-<td><a href="#def-14-dph-forward-step" class="quarto-xref">Definition&nbsp;<span>15.3</span></a></td>
+<td><a href="#def-14-dph-forward-step" class="quarto-xref">Definition&nbsp;<span>16.3</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">g</span></td>
 <td>Granularity (uniformization rate)</td>
-<td><a href="#def-14-uniformization" class="quarto-xref">Definition&nbsp;<span>15.1</span></a></td>
+<td><a href="#def-14-uniformization" class="quarto-xref">Definition&nbsp;<span>16.1</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">p_k</span></td>
 <td>PMF at step <span class="math inline">k</span></td>
-<td><a href="#def-14-dph-forward-step" class="quarto-xref">Definition&nbsp;<span>15.3</span></a></td>
+<td><a href="#def-14-dph-forward-step" class="quarto-xref">Definition&nbsp;<span>16.3</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">\mathbf{p}^{(k)}</span></td>
 <td>Forward probability vector at step <span class="math inline">k</span></td>
-<td><a href="#def-14-forward-prob-vector" class="quarto-xref">Definition&nbsp;<span>15.2</span></a></td>
+<td><a href="#def-14-forward-prob-vector" class="quarto-xref">Definition&nbsp;<span>16.2</span></a></td>
 </tr>
 <tr class="even">
 <td><span class="math inline">\mathbf{T}_g</span></td>
 <td>Uniformized sub-transition matrix</td>
-<td><a href="#def-14-uniformization" class="quarto-xref">Definition&nbsp;<span>15.1</span></a></td>
+<td><a href="#def-14-uniformization" class="quarto-xref">Definition&nbsp;<span>16.1</span></a></td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">\mathbf{t}_g</span></td>
 <td>Uniformized exit probability vector</td>
-<td><a href="#def-14-uniformization" class="quarto-xref">Definition&nbsp;<span>15.1</span></a></td>
+<td><a href="#def-14-uniformization" class="quarto-xref">Definition&nbsp;<span>16.1</span></a></td>
 </tr>
 </tbody>
 </table>
 
 
+<div id="refs" class="references csl-bib-body hanging-indent" role="list" style="display: none">
+<div id="ref-jensen1953" class="csl-entry" role="listitem">
+Jensen, Arne. 1953. <span>“Markoff Chains as an Aid in the Study of <span>Markoff</span> Processes.”</span> <em>Skandinavisk Aktuarietidskrift</em> 36: 87–91. <a href="https://doi.org/10.1080/03461238.1953.10419459">https://doi.org/10.1080/03461238.1953.10419459</a>.
+</div>
+<div id="ref-neuts1981" class="csl-entry" role="listitem">
+Neuts, Marcel F. 1981. <em>Matrix-Geometric Solutions in Stochastic Models: An Algorithmic Approach</em>. Johns Hopkins University Press.
+</div>
+<div id="ref-roikjer2022" class="csl-entry" role="listitem">
+Røikjer, Thomas, Asger Hobolth, and Kasper Munch. 2022. <span>“Graph-Based Algorithms for Phase-Type Distributions.”</span> <em>Statistics and Computing</em> 32 (6): 85. <a href="https://doi.org/10.1007/s11222-022-10155-6">https://doi.org/10.1007/s11222-022-10155-6</a>.
+</div>
+</div>
 </section>
 
 </main> <!-- /main -->
@@ -1260,12 +1320,12 @@ Algorithm&nbsp;15.2: <strong>Correctness.</strong> Follows from <a href="#thm-14
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
       <a href="./13_scc_trace_stitching.html" class="pagination-link" aria-label="SCC-Based Trace Decomposition and Stitching">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span>
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">SCC-Based Trace Decomposition and Stitching</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
       <a href="./15_moment_computation.html" class="pagination-link" aria-label="Moment Computation">
-        <span class="nav-page-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Moment Computation</span></span> <i class="bi bi-arrow-right-short"></i>
+        <span class="nav-page-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Moment Computation</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>
