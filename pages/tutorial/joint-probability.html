@@ -430,7 +430,7 @@ By carefully constructing the edge weights and using reward transformations, we 
 
 In our rabbit model, we might be interested in the joint distribution of two quantities: the time until the left island is depleted (either by jumping or flooding) and the time until the right island is depleted. These two times are not independent—they are coupled through the rabbits jumping between islands. Let's construct a model that tracks both times simultaneously. 
 -->
-<div id="d2b8d552" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:36:10.603242Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:36:10.603163Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:36:12.504250Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:36:12.503764Z&quot;}}" data-execution_count="1">
+<div id="d2b8d552" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T18:03:21.054665Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T18:03:21.054568Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T18:03:22.977168Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T18:03:22.976600Z&quot;}}" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> (Graph, with_ipv, <span class="co"># ALWAYS import phasic first to set jax backend correctly</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    StateIndexer, Property</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>)</span>
@@ -536,7 +536,7 @@ table {
         
 </div>
 </div>
-<div id="855e0db0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:36:12.505781Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:36:12.505615Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:36:12.509374Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:36:12.508999Z&quot;}}" data-execution_count="2">
+<div id="855e0db0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T18:03:22.978739Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T18:03:22.978553Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T18:03:22.982390Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T18:03:22.981956Z&quot;}}" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>indexer <span class="op">=</span> StateIndexer(</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    lineage<span class="op">=</span>[</span>
@@ -566,7 +566,7 @@ table {
 </div>
 <p>Now lets construct the joint probability graph. In addition to a mutation rate, you must specify an upper bound on the number of discrete rewards you want to account for. You can specify a maximum discrete value of each feature (how many tons of each kind you want to account for) using the <code>reward_limit</code> keyword argument. This takes both a scalar argument for a maximum applied to all features or an array with a maximum for each feature. You can also use the <code>tot_reward_limit</code> keyword argument to specify a maximum on total rewards for each feature combination. Both arguments may be specified to define the upper bound.</p>
 <p>Since we only model a subset of feature combinations, the joint distribution is deficient. The deficit is the total probability of feature combinations beyond the upper bound. You can easily compute this as one minus the sum of joint probabilities.</p>
-<div id="dd98b573" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:36:12.510675Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:36:12.510584Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:36:12.691860Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:36:12.691178Z&quot;}}" data-execution_count="3">
+<div id="dd98b573" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T18:03:22.983729Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T18:03:22.983641Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T18:03:23.146794Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T18:03:23.146324Z&quot;}}" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>graph <span class="op">=</span> Graph(coalescent)</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>graph.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="3">
@@ -577,7 +577,7 @@ table {
 </div>
 </div>
 </div>
-<div id="43b834a5" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:36:12.693419Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:36:12.693298Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:36:12.701029Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:36:12.700735Z&quot;}}" data-execution_count="4">
+<div id="43b834a5" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T18:03:23.148712Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T18:03:23.148590Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T18:03:23.156758Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T18:03:23.156193Z&quot;}}" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>mutation_rate <span class="op">=</span> <span class="fl">0.1</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>joint_prob_graph <span class="op">=</span> graph.joint_prob_graph(indexer, tot_reward_limit<span class="op">=</span><span class="dv">2</span>, mutation_rate<span class="op">=</span>mutation_rate)</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>joint_prob_graph.vertices_length()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -585,7 +585,7 @@ table {
 <pre><code>39</code></pre>
 </div>
 </div>
-<div id="a6a7bc8f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:36:12.702488Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:36:12.702400Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:36:12.834322Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:36:12.833749Z&quot;}}" data-execution_count="5">
+<div id="a6a7bc8f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T18:03:23.157985Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T18:03:23.157886Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T18:03:23.289609Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T18:03:23.289047Z&quot;}}" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>joint_prob_graph.plot(nodesep<span class="op">=</span><span class="fl">0.3</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="5">
 <div>
@@ -596,7 +596,7 @@ table {
 </div>
 </div>
 <p>Compute the joint probabilities:</p>
-<div id="6c9103d6" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:36:12.836138Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:36:12.836008Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:36:12.844020Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:36:12.843525Z&quot;}}" data-execution_count="6">
+<div id="6c9103d6" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T18:03:23.291437Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T18:03:23.291308Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T18:03:23.299847Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T18:03:23.299353Z&quot;}}" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>joint_prob_table <span class="op">=</span> joint_prob_graph.joint_prob_table()</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>joint_prob_table</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="6">
@@ -710,13 +710,13 @@ table {
 </div>
 </div>
 <p>Deficit:</p>
-<div id="0f652d5a" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:36:12.845348Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:36:12.845259Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:36:12.847910Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:36:12.847468Z&quot;}}" data-execution_count="7">
+<div id="0f652d5a" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T18:03:23.301181Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T18:03:23.301075Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T18:03:23.303732Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T18:03:23.303324Z&quot;}}" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>(<span class="dv">1</span> <span class="op">-</span> joint_prob_table[<span class="st">'prob'</span>].<span class="bu">sum</span>()).item()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="7">
 <pre><code>0.016476095092311294</code></pre>
 </div>
 </div>
-<div id="5334ef02" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:36:12.849267Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:36:12.849159Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:36:13.009654Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:36:13.009199Z&quot;}}" data-execution_count="8">
+<div id="5334ef02" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T18:03:23.305083Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T18:03:23.304961Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T18:03:23.466786Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T18:03:23.466361Z&quot;}}" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>ton_pair <span class="op">=</span> [<span class="st">'descendants_2'</span>, <span class="st">'descendants_3'</span>]</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>plot_df <span class="op">=</span> joint_prob_table[ton_pair <span class="op">+</span> [<span class="st">'prob'</span>]].groupby(ton_pair).<span class="bu">sum</span>().reset_index()   </span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>plot_df <span class="op">=</span> plot_df.pivot(index<span class="op">=</span>ton_pair[<span class="dv">1</span>], columns<span class="op">=</span>ton_pair[<span class="dv">0</span>], values<span class="op">=</span><span class="st">'prob'</span>)</span>
@@ -788,14 +788,14 @@ table {
 </div>
 </div>
 <p>Note that the joint probability graph does not have meaningful moments and pdf. E.g., the expectation is inf because of the infinite loop between the trash states:</p>
-<div id="71a70b26" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:36:13.011034Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:36:13.010939Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:36:13.013333Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:36:13.012848Z&quot;}}" data-execution_count="9">
+<div id="71a70b26" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T18:03:23.468236Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T18:03:23.468129Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T18:03:23.470559Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T18:03:23.470125Z&quot;}}" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>joint_prob_graph.expectation()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="9">
 <pre><code>inf</code></pre>
 </div>
 </div>
 <p>The joint probabilities are extracted as the sojourn times of appropriate transient states connecting only to the absorbing state:</p>
-<div id="cdd7037a" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:36:13.014655Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:36:13.014558Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:36:13.078388Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:36:13.077919Z&quot;}}" data-execution_count="10">
+<div id="cdd7037a" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T18:03:23.472047Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T18:03:23.471934Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T18:03:23.536213Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T18:03:23.535788Z&quot;}}" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>tons <span class="op">=</span> np.arange(<span class="dv">1</span>, nr_samples)</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>marginals <span class="op">=</span> [np.<span class="bu">sum</span>(joint_prob_table[<span class="ss">f'descendants_</span><span class="sc">{</span>t<span class="sc">}</span><span class="ss">'</span>] <span class="op">*</span> joint_prob_table[<span class="st">'prob'</span>]) <span class="cf">for</span> t <span class="kw">in</span> tons]</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>sns.barplot(x<span class="op">=</span>tons, y<span class="op">=</span>marginals)<span class="op">;</span></span>

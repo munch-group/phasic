@@ -2,7 +2,7 @@
   {
     "objectID": "index.html",
     "href": "index.html",
-    "title": "Phasic — Supplementary Online Material",
+    "title": "Mathematical Reference",
     "section": "",
     "text": "Reading Guide\nVersion: 1.0 Date: 2026-04-09 Status: All 27 content files complete. Converted to Quarto book with native cross-references.\nThis Supplementary Online Material (SOM) provides exhaustive mathematical and algorithmic documentation for every algorithm in the phasic library. Each file contains formal definitions, theorems with proofs, algorithm pseudocode with correspondence tables, complexity analysis, and correctness arguments.\nHow to read: Files are numbered 01–27. A file may only reference files with a lower number. The prerequisites listed in each file’s Introduction section give the minimal reading order. For a complete sequential reading, proceed in numerical order.\nNotation: All notation follows docs/notation_standard.md. The Symbol Quick Reference (Section 12 of that document) is the master symbol table.\nRelationship to other documentation: The SOM formalizes and proves; it does not duplicate API documentation (docs/pages/), tutorials, or how-to guides. Implementation Notes sections bridge the SOM to the codebase.",
     "crumbs": [
@@ -12,7 +12,7 @@
   {
     "objectID": "index.html#document-dependency-dag",
     "href": "index.html#document-dependency-dag",
-    "title": "Phasic — Supplementary Online Material",
+    "title": "Mathematical Reference",
     "section": "Document dependency DAG",
     "text": "Document dependency DAG\n01 Preliminaries\n ├── 02 Graph Representation\n │    ├── 03 Numerical Primitives\n │    ├── 04 SCC and Topological Sort\n │    │    ├── 05 Graph Normalization\n │    │    │    ├── 06 Graph Elimination\n │    │    │    │    ├── 07 Reward Transformation\n │    │    │    │    ├── 10 Symbolic Graph Elimination ← 09\n │    │    │    │    ├── 11 Trace System ← 09\n │    │    │    │    │    ├── 12 Graph Hashing\n │    │    │    │    │    └── 13 SCC Trace Stitching ← 04\n │    │    │    │    └── 14 Distribution Computation\n │    │    │    │         ├── 15 Moment Computation\n │    │    │    │         ├── 16 PDF Gradients\n │    │    │    │         └── 17 Sampling\n │    │    │    └── 08 State Space Construction\n │    │    └── 09 Symbolic Expressions\n │    ├── 23 State Indexing\n │    └── 24 Hex Grid\n ├── 18 SVGD ← 14, 15\n ├── 19 MCMC ← 14, 15\n ├── 20 BFFG ← 17\n ├── 21 Method of Moments ← 15\n ├── 22 Probability Matching ← 14\n ├── 25 JAX Integration ← 09, 11, 14\n ├── 26 Graph Builder ← 11, 14, 15\n └── 27 Van Loan Equivalence ← 06, 14, 15",
     "crumbs": [
@@ -22,7 +22,7 @@
   {
     "objectID": "index.html#global-algorithm-registry",
     "href": "index.html#global-algorithm-registry",
-    "title": "Phasic — Supplementary Online Material",
+    "title": "Mathematical Reference",
     "section": "Global Algorithm Registry",
     "text": "Global Algorithm Registry\n\n\n\n\n\n\n\n\nAlgorithm\nTitle\nSource function(s)\n\n\n\n\nAlgorithm 3.1\nAVL Find-or-Insert\nptd_avl_tree_find_or_insert\n\n\nAlgorithm 3.2\nGraph Validation\nptd_validate_graph\n\n\nAlgorithm 3.3\nGraph Clone\nptd_clone_graph\n\n\nAlgorithm 4.1\nKahan Summation\nkahan_init, kahan_add, kahan_result\n\n\nAlgorithm 4.2\nLog-Space Weight Evaluation\nptd_graph_update_weights (log mode)\n\n\nAlgorithm 5.1\nTarjan’s SCC Detection\nptd_find_strongly_connected_components\n\n\nAlgorithm 5.2\nTopological Sort of Condensation DAG\nptd_directed_graph_topological_sort\n\n\nAlgorithm 6.1\nContinuous Graph Normalization\nptd_normalize_graph\n\n\nAlgorithm 6.2\nDiscrete Graph Normalization\nptd_dph_normalize_graph\n\n\nAlgorithm 7.1\nVertex Elimination (Single Vertex)\nptd_graph_ex_absorbation_time_comp_graph\n\n\nAlgorithm 7.2\nFull Graph Elimination\nptd_graph_ex_absorbation_time_comp_graph\n\n\nAlgorithm 7.3\nMoment Computation via Elimination Commands\nptd_expected_waiting_time\n\n\nAlgorithm 8.1\nReward Transformation\nptd_graph_reward_transform\n\n\nAlgorithm 10.1\nGenerateStateSpace\nptd_find_or_create_vertex\n\n\nAlgorithm 11.1\nExpression Evaluation\nptd_expr_evaluate\n\n\nAlgorithm 12.1\nSymbolic Graph Elimination\nphasic_symbolic.c\n\n\nAlgorithm 12.2\nSymbolic Graph Instantiation\nphasic_symbolic.c\n\n\nAlgorithm 13.1\nTrace Recording\nrecord_elimination_trace\n\n\nAlgorithm 13.2\nTrace Evaluation\nevaluate_trace\n\n\nAlgorithm 14.1\nGraph Content Hash\nptd_hash_graph\n\n\nAlgorithm 15.1\nSCC-Based Trace Decomposition and Stitching\nhierarchical_trace_cache.py\n\n\nAlgorithm 16.1\nDPH Forward Step\nptd_dph_probability_distribution_step\n\n\nAlgorithm 16.2\nCPH PDF via Uniformization\nptd_probability_distribution_context_create\n\n\nAlgorithm 17.1\nk-th Moment Computation\nptd_expected_waiting_time\n\n\nAlgorithm 17.2\nExpected Sojourn Times and Cross-Moments\nptd_expected_sojourn_time_subset\n\n\nAlgorithm 18.1\nPDF + Gradient Computation\nptd_graph_pdf_with_gradient\n\n\nAlgorithm 19.1\nUnconditioned Path Sampling\nptd_random_sample_path\n\n\nAlgorithm 19.2\nBackward Probability Computation\nptd_backward_probabilities\n\n\nAlgorithm 19.3\nConditioned Path Sampling\nptd_random_sample_path_conditioned\n\n\nAlgorithm 20.1\nSVGD Optimization\nSVGD.optimize()\n\n\nAlgorithm 21.1\nMetropolis-Hastings with Adaptive Proposals\nMCMC.sample()\n\n\nAlgorithm 22.1\nBFFG Log-Probability Estimation\nbffg_log_prob\n\n\nAlgorithm 23.1\nMethod of Moments Estimation\nmethod_of_moments\n\n\nAlgorithm 24.1\nProbability Matching Estimation\nprobability_matching\n\n\nAlgorithm 25.1\nIndexToProperties\nPropertySet.index_to_props\n\n\nAlgorithm 25.2\nPropertiesToIndex\nPropertySet.props_to_index\n\n\nAlgorithm 26.1\nHexGridConstruction\nHexGrid.from_shapefile\n\n\nAlgorithm 26.2\nHexNeighborEnumeration\nHexGrid.neighbors\n\n\nAlgorithm 27.1\nJAX-Compatible PMF Computation\ncompute_pmf_ffi\n\n\nAlgorithm 28.1\nGraphBuilder PMF Computation\nGraphBuilder.compute_pmf",
     "crumbs": [
@@ -32,7 +32,7 @@
   {
     "objectID": "index.html#global-definition-registry",
     "href": "index.html#global-definition-registry",
-    "title": "Phasic — Supplementary Online Material",
+    "title": "Mathematical Reference",
     "section": "Global Definition Registry",
     "text": "Global Definition Registry\nDefinitions are numbered NN.M (file number, sequential within file). This table is populated as batches complete.\n\n\n\nDefinition\nName\nFile\n\n\n\n\n—\nTo be populated\n—",
     "crumbs": [
@@ -42,7 +42,7 @@
   {
     "objectID": "index.html#coverage-matrix",
     "href": "index.html#coverage-matrix",
-    "title": "Phasic — Supplementary Online Material",
+    "title": "Mathematical Reference",
     "section": "Coverage Matrix",
     "text": "Coverage Matrix\nEvery public function in the phasic codebase must appear in at least one SOM file’s Implementation Notes section. This matrix is populated during the final homogeneity pass (Batch 15, check H2).\n\nsrc/c/phasic.c\n\n\n\nFunction\nSOM file(s)\nStatus\n\n\n\n\n—\nTo be populated\n—\n\n\n\n\n\nsrc/c/phasic_symbolic.c\n\n\n\nFunction\nSOM file(s)\nStatus\n\n\n\n\n—\nTo be populated\n—\n\n\n\n\n\nsrc/c/phasic_hash.c\n\n\n\nFunction\nSOM file(s)\nStatus\n\n\n\n\n—\nTo be populated\n—\n\n\n\n\n\nsrc/phasic/trace_elimination.py\n\n\n\nFunction/Class\nSOM file(s)\nStatus\n\n\n\n\n—\nTo be populated\n—\n\n\n\n\n\nsrc/phasic/svgd.py\n\n\n\nFunction/Class\nSOM file(s)\nStatus\n\n\n\n\n—\nTo be populated\n—\n\n\n\n\n\nsrc/phasic/mcmc.py\n\n\n\nFunction/Class\nSOM file(s)\nStatus\n\n\n\n\n—\nTo be populated\n—\n\n\n\n\n\nsrc/phasic/bffg.py\n\n\n\nFunction/Class\nSOM file(s)\nStatus\n\n\n\n\n—\nTo be populated\n—\n\n\n\n\n\nsrc/phasic/method_of_moments.py\n\n\n\nFunction/Class\nSOM file(s)\nStatus\n\n\n\n\n—\nTo be populated\n—\n\n\n\n\n\nsrc/phasic/probability_matching.py\n\n\n\nFunction/Class\nSOM file(s)\nStatus\n\n\n\n\n—\nTo be populated\n—\n\n\n\n\n\nsrc/phasic/state_indexing.py\n\n\n\nFunction/Class\nSOM file(s)\nStatus\n\n\n\n\n—\nTo be populated\n—\n\n\n\n\n\nsrc/phasic/hex_grid.py\n\n\n\nFunction/Class\nSOM file(s)\nStatus\n\n\n\n\n—\nTo be populated\n—\n\n\n\n\n\nsrc/cpp/parameterized/graph_builder.cpp\n\n\n\nFunction/Class\nSOM file(s)\nStatus\n\n\n\n\n—\nTo be populated\n—",
     "crumbs": [
@@ -52,7 +52,7 @@
   {
     "objectID": "index.html#revision-history",
     "href": "index.html#revision-history",
-    "title": "Phasic — Supplementary Online Material",
+    "title": "Mathematical Reference",
     "section": "Revision History",
     "text": "Revision History\n\n\n\n\n\n\n\n\nVersion\nDate\nChanges\n\n\n\n\n0.1\n2026-04-08\nSkeleton created with file listing, dependency DAG, empty registries\n\n\n1.0\n2026-04-09\nAll 27 content files complete. Global algorithm registry populated (40 algorithms). File listing updated with per-file summaries.",
     "crumbs": [

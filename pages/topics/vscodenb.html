@@ -448,7 +448,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 <p>The <a href="https://munch-group.org/docs/vscodenb">vscodenb</a> is a small library I wrote with utilities for working with notebooks in VS Code. <code>set_vscode_theme</code> makes plots and widgets look better and match the your use of light / dark theme in VS Code.</p>
-<div id="setup" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:33:28.272195Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:33:28.272103Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:33:29.461051Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:33:29.460573Z&quot;}}" data-execution_count="1">
+<div id="setup" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T18:00:35.270289Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T18:00:35.270179Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T18:00:36.634039Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T18:00:36.633513Z&quot;}}" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> time</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -539,7 +539,7 @@ table {
         
 </div>
 </div>
-<div id="25e2e62d" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:33:29.462438Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:33:29.462299Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:33:29.566843Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:33:29.566393Z&quot;}}" data-execution_count="2">
+<div id="25e2e62d" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T18:00:36.635983Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T18:00:36.635818Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T18:00:36.764865Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T18:00:36.764415Z&quot;}}" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>plt.scatter(np.random.random(<span class="dv">10</span>), np.random.random(<span class="dv">10</span>)) <span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
@@ -553,7 +553,7 @@ table {
 <section id="cell-magic" class="level2">
 <h2 class="anchored" data-anchor-id="cell-magic">Cell Magic</h2>
 <p>One of its features is monitoring CPU and memory usage while running notebook cells. This can be useful when working with Phasic if you want to monitor CPU load balancing and memory use. The <code>%%monitor</code> cell magic is the simplest way to monitor CPU usage. Just add it at the top of any cell:</p>
-<div id="magic-basic" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:33:29.568374Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:33:29.568271Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:33:35.236709Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:33:35.236025Z&quot;}}" data-execution_count="3">
+<div id="magic-basic" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T18:00:36.766650Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T18:00:36.766539Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T18:00:42.425043Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T18:00:42.424483Z&quot;}}" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>monitor <span class="op">-</span>p</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># A simple computation</span></span>
@@ -561,51 +561,51 @@ table {
 <span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    result <span class="op">=</span> <span class="bu">sum</span>(<span class="bu">range</span>(<span class="dv">5_000_000</span>))</span>
 <span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    time.sleep(<span class="fl">0.5</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
-<div style="font-family: monospace; font-size: 10px; padding: 10px;"><div style=""><div style="margin-bottom: 6px; font-size: 11px;">macbookpro <span style="font-weight: normal; color: #666;">(38%/38% mem)</span></div><div style="display: flex; gap: 3px; width: 100%; margin-bottom: 3px;">
-                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 0: 34.0% avg">
-                            <div style="width: 34.00909090909091%; height: 100%; background: #666666;"></div>
+<div style="font-family: monospace; font-size: 10px; padding: 10px;"><div style=""><div style="margin-bottom: 6px; font-size: 11px;">macbookpro <span style="font-weight: normal; color: #666;">(45%/46% mem)</span></div><div style="display: flex; gap: 3px; width: 100%; margin-bottom: 3px;">
+                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 0: 17.2% avg">
+                            <div style="width: 17.245454545454546%; height: 100%; background: #666666;"></div>
                         </div>
                         
-                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 1: 33.0% avg">
-                            <div style="width: 32.97272727272727%; height: 100%; background: #666666;"></div>
+                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 1: 16.4% avg">
+                            <div style="width: 16.38181818181818%; height: 100%; background: #666666;"></div>
                         </div>
                         
-                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 2: 17.0% avg">
-                            <div style="width: 17.009090909090908%; height: 100%; background: #666666;"></div>
+                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 2: 67.7% avg">
+                            <div style="width: 67.74545454545455%; height: 100%; background: #666666;"></div>
                         </div>
                         
-                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 3: 24.5% avg">
-                            <div style="width: 24.49090909090909%; height: 100%; background: #666666;"></div>
+                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 3: 41.9% avg">
+                            <div style="width: 41.92727272727272%; height: 100%; background: #666666;"></div>
                         </div>
                         
-                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 4: 3.4% avg">
-                            <div style="width: 3.409090909090909%; height: 100%; background: #666666;"></div>
+                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 4: 54.1% avg">
+                            <div style="width: 54.07272727272727%; height: 100%; background: #666666;"></div>
                         </div>
                         
-                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 5: 2.0% avg">
-                            <div style="width: 1.9727272727272729%; height: 100%; background: #666666;"></div>
+                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 5: 33.5% avg">
+                            <div style="width: 33.49090909090909%; height: 100%; background: #666666;"></div>
                         </div>
                         
-                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 6: 0.7% avg">
-                            <div style="width: 0.7272727272727273%; height: 100%; background: #666666;"></div>
+                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 6: 5.9% avg">
+                            <div style="width: 5.927272727272726%; height: 100%; background: #666666;"></div>
                         </div>
                         
-                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 7: 0.2% avg">
+                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 7: 1.6% avg">
+                            <div style="width: 1.6272727272727272%; height: 100%; background: #666666;"></div>
+                        </div>
+                        
+                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 8: 0.4% avg">
+                            <div style="width: 0.36363636363636365%; height: 100%; background: #666666;"></div>
+                        </div>
+                        
+                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 9: 0.2% avg">
                             <div style="width: 0.18181818181818182%; height: 100%; background: #666666;"></div>
-                        </div>
-                        
-                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 8: 0.2% avg">
-                            <div style="width: 0.18181818181818182%; height: 100%; background: #666666;"></div>
-                        </div>
-                        
-                        <div style="width: calc((100% - 27px) / 10); min-width: 20px; height: 8px; background: rgba(128, 128, 128, 0.2); border-radius: 2px; overflow: hidden;" title="CPU 9: 0.0% avg">
-                            <div style="width: 0.0%; height: 100%; background: #666666;"></div>
                         </div>
                         </div></div></div>
 </div>
 </div>
 <p>You can customize the display width:</p>
-<div id="magic-width" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:33:35.238722Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:33:35.238585Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:33:37.870594Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:33:37.870102Z&quot;}}" data-execution_count="4">
+<div id="magic-width" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T18:00:42.427086Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T18:00:42.426944Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T18:00:45.167014Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T18:00:45.166463Z&quot;}}" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>monitor <span class="op">-</span>w <span class="dv">100</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Running with custom width..."</span>)</span>
@@ -622,7 +622,7 @@ Complete!</code></pre>
 </div>
 </div>
 <p>Increase update frequency for smoother visualization:</p>
-<div id="magic-fast" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:33:37.872145Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:33:37.872032Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:33:40.784411Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:33:40.783930Z&quot;}}" data-execution_count="5">
+<div id="magic-fast" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T18:00:45.168654Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T18:00:45.168532Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T18:00:48.079661Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T18:00:48.079143Z&quot;}}" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>monitor <span class="op">-</span>i <span class="fl">0.25</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Updates 4 times per second</span></span>
@@ -645,7 +645,7 @@ Done with fast updates!</code></pre>
 <p>The context manager gives you explicit control over monitoring. Perfect for Python scripts or when you want programmatic control.</p>
 <section id="basic-context-manager" class="level3">
 <h3 class="anchored" data-anchor-id="basic-context-manager">Basic Context Manager</h3>
-<div id="context-basic" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:33:40.785796Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:33:40.785709Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:33:43.916921Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:33:43.916326Z&quot;}}" data-execution_count="6">
+<div id="context-basic" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T18:00:48.081268Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T18:00:48.081136Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T18:00:51.202670Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T18:00:51.202033Z&quot;}}" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Using context manager..."</span>)</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> vscodenb <span class="im">import</span> CPUMonitor</span>
@@ -670,7 +670,7 @@ Done with fast updates!</code></pre>
 </section>
 <section id="custom-configuration" class="level3">
 <h3 class="anchored" data-anchor-id="custom-configuration">Custom Configuration</h3>
-<div id="context-config" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:33:43.918637Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:33:43.918528Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:33:46.826956Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:33:46.826377Z&quot;}}" data-execution_count="7">
+<div id="context-config" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T18:00:51.204058Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T18:00:51.203941Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T18:00:54.085379Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T18:00:54.084920Z&quot;}}" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Custom configuration..."</span>)</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> CPUMonitor(update_interval<span class="op">=</span><span class="fl">0.3</span>, width<span class="op">=</span><span class="dv">120</span>):</span>
@@ -700,7 +700,7 @@ Both phases complete!</code></pre>
 </section>
 <section id="disable-summary-for-quick-tests" class="level3">
 <h3 class="anchored" data-anchor-id="disable-summary-for-quick-tests">Disable Summary (for quick tests)</h3>
-<div id="context-nosummary-code" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:33:46.828600Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:33:46.828474Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:33:48.985294Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:33:48.984794Z&quot;}}" data-execution_count="8">
+<div id="context-nosummary-code" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T18:00:54.086858Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T18:00:54.086748Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T18:00:56.230604Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T18:00:56.229922Z&quot;}}" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># No summary statistics - just live monitoring</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> CPUMonitor(show_summary<span class="op">=</span><span class="va">False</span>):</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">4</span>):</span>
@@ -722,7 +722,7 @@ Both phases complete!</code></pre>
 <p>Wrap any function with <code>@monitor_cpu</code> to automatically monitor its execution.</p>
 <section id="basic-decorator" class="level3">
 <h3 class="anchored" data-anchor-id="basic-decorator">Basic Decorator</h3>
-<div id="decorator-basic" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:33:48.987162Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:33:48.987058Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:33:52.128332Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:33:52.127853Z&quot;}}" data-execution_count="9">
+<div id="decorator-basic" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T18:00:56.232160Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T18:00:56.232031Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T18:00:59.369378Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T18:00:59.368869Z&quot;}}" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> vscodenb <span class="im">import</span> monitor</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="at">@monitor</span></span>
@@ -758,7 +758,7 @@ Saved to: model.pkl</code></pre>
 </section>
 <section id="decorator-with-custom-settings" class="level3">
 <h3 class="anchored" data-anchor-id="decorator-with-custom-settings">Decorator with Custom Settings</h3>
-<div id="decorator-custom" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:33:52.129815Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:33:52.129716Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:33:54.298315Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:33:54.297771Z&quot;}}" data-execution_count="10">
+<div id="decorator-custom" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T18:00:59.370908Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T18:00:59.370781Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T18:01:01.548584Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T18:01:01.548106Z&quot;}}" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="at">@monitor</span>(update_interval<span class="op">=</span><span class="fl">0.25</span>, show_summary<span class="op">=</span><span class="va">True</span>)</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> process_data(n_iterations):</span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Process data in batches."""</span></span>
@@ -790,7 +790,7 @@ Processed 6 batches</code></pre>
 <p>Let’s monitor some actual computational work!</p>
 <section id="matrix-operations" class="level3">
 <h3 class="anchored" data-anchor-id="matrix-operations">Matrix Operations</h3>
-<div id="real-matrix" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:33:54.299744Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:33:54.299630Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:33:54.907200Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:33:54.906696Z&quot;}}" data-execution_count="11">
+<div id="real-matrix" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T18:01:01.550068Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T18:01:01.549947Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T18:01:02.161313Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T18:01:02.160719Z&quot;}}" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>monitor</span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Performing large matrix operations...</span><span class="ch">\n</span><span class="st">"</span>)</span>
@@ -835,7 +835,7 @@ Complete!
 <h2 class="anchored" data-anchor-id="slurm-usage">SLURM usage</h2>
 <section id="check-current-environment" class="level3">
 <h3 class="anchored" data-anchor-id="check-current-environment">Check Current Environment</h3>
-<div id="slurm-check" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:33:54.908707Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:33:54.908608Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:33:54.923037Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:33:54.922452Z&quot;}}" data-execution_count="12">
+<div id="slurm-check" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T18:01:02.162864Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T18:01:02.162747Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T18:01:02.179178Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T18:01:02.178586Z&quot;}}" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> vscodenb <span class="im">import</span> detect_compute_nodes</span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a></span>
