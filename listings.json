@@ -2,7 +2,10 @@
   {
     "listing": "/index.html",
     "items": [
-      "/pages/tutorial/introduction.html"
+      "/pages/vignettes/uranium_decay.html",
+      "/pages/vignettes/telecommunication.html",
+      "/pages/tutorial/introduction.html",
+      "/pages/vignettes/drainage-capacity.html"
     ]
   }
 ]

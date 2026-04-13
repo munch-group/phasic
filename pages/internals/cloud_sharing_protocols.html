@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Cloud Sharing Protocols and Formats</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-342d2e45858bb5501d02373b23ba26fb.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-a46b01d6fc144a45784d8f299ab2dd32.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script async="" src="https://hypothes.is/embed.js"></script>
+<script>
+  window.document.addEventListener("DOMContentLoaded", function (_event) {
+    document.body.classList.add('hypothesis-enabled');
+  });
+</script>
+
+
+<link rel="stylesheet" href="../../api/_styles-quartodoc.css">
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a href="../../index.html" class="navbar-brand navbar-brand-logo">
+    <img src="../../PHASIC.png" alt="Phasic" class="navbar-logo light-content">
+    <img src="../../PHASIC.png" alt="Phasic" class="navbar-logo dark-content">
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../pages/getting_started.html"> 
+<span class="menu-text">Documentation</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../api/"> 
+<span class="menu-text">Python API reference</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../mathref/index.html"> 
+<span class="menu-text">Mathematical Reference</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/munch-group/phasic/"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#cloud-sharing-protocols-and-formats" id="toc-cloud-sharing-protocols-and-formats" class="nav-link active" data-scroll-target="#cloud-sharing-protocols-and-formats">Cloud Sharing: Protocols and Formats</a>
+  <ul class="collapse">
+  <li><a href="#architecture-overview" id="toc-architecture-overview" class="nav-link" data-scroll-target="#architecture-overview">Architecture overview</a></li>
+  <li><a href="#transport-backend-protocol" id="toc-transport-backend-protocol" class="nav-link" data-scroll-target="#transport-backend-protocol">1. Transport Backend Protocol</a>
+  <ul class="collapse">
+  <li><a href="#required-methods" id="toc-required-methods" class="nav-link" data-scroll-target="#required-methods">Required methods</a></li>
+  <li><a href="#optional-methods" id="toc-optional-methods" class="nav-link" data-scroll-target="#optional-methods">Optional methods</a></li>
+  <li><a href="#implementing-a-custom-backend" id="toc-implementing-a-custom-backend" class="nav-link" data-scroll-target="#implementing-a-custom-backend">Implementing a custom backend</a></li>
+  <li><a href="#the-default-ipfs-backend" id="toc-the-default-ipfs-backend" class="nav-link" data-scroll-target="#the-default-ipfs-backend">The default IPFS backend</a></li>
+  </ul></li>
+  <li><a href="#registry-format-registry.json" id="toc-registry-format-registry.json" class="nav-link" data-scroll-target="#registry-format-registry.json">2. Registry Format (<code>registry.json</code>)</a>
+  <ul class="collapse">
+  <li><a href="#schema" id="toc-schema" class="nav-link" data-scroll-target="#schema">Schema</a></li>
+  <li><a href="#registry-validation" id="toc-registry-validation" class="nav-link" data-scroll-target="#registry-validation">Registry validation</a></li>
+  </ul></li>
+  <li><a href="#trace-serialization-format" id="toc-trace-serialization-format" class="nav-link" data-scroll-target="#trace-serialization-format">3. Trace Serialization Format</a>
+  <ul class="collapse">
+  <li><a href="#required-keys" id="toc-required-keys" class="nav-link" data-scroll-target="#required-keys">Required keys</a></li>
+  <li><a href="#complete-json-schema" id="toc-complete-json-schema" class="nav-link" data-scroll-target="#complete-json-schema">Complete JSON schema</a></li>
+  <li><a href="#operation-types" id="toc-operation-types" class="nav-link" data-scroll-target="#operation-types">Operation types</a></li>
+  </ul></li>
+  <li><a href="#working-example-build-serialize-deserialize" id="toc-working-example-build-serialize-deserialize" class="nav-link" data-scroll-target="#working-example-build-serialize-deserialize">4. Working example: build, serialize, deserialize</a></li>
+  <li><a href="#deserialization-validation" id="toc-deserialization-validation" class="nav-link" data-scroll-target="#deserialization-validation">5. Deserialization validation</a></li>
+  <li><a href="#checksum-verification" id="toc-checksum-verification" class="nav-link" data-scroll-target="#checksum-verification">6. Checksum verification</a></li>
+  <li><a href="#download-workflow" id="toc-download-workflow" class="nav-link" data-scroll-target="#download-workflow">7. Download workflow</a></li>
+  <li><a href="#publish-workflow" id="toc-publish-workflow" class="nav-link" data-scroll-target="#publish-workflow">8. Publish workflow</a>
+  <ul class="collapse">
+  <li><a href="#package-structure-on-ipfs" id="toc-package-structure-on-ipfs" class="nav-link" data-scroll-target="#package-structure-on-ipfs">Package structure on IPFS</a></li>
+  <li><a href="#workflow" id="toc-workflow" class="nav-link" data-scroll-target="#workflow">Workflow</a></li>
+  <li><a href="#adding-to-the-public-registry" id="toc-adding-to-the-public-registry" class="nav-link" data-scroll-target="#adding-to-the-public-registry">Adding to the public registry</a></li>
+  </ul></li>
+  <li><a href="#http-retry-protocol" id="toc-http-retry-protocol" class="nav-link" data-scroll-target="#http-retry-protocol">9. HTTP retry protocol</a></li>
+  <li><a href="#summary" id="toc-summary" class="nav-link" data-scroll-target="#summary">Summary</a>
+  <ul class="collapse">
+  <li><a href="#key-design-decisions" id="toc-key-design-decisions" class="nav-link" data-scroll-target="#key-design-decisions">Key design decisions</a></li>
+  </ul></li>
+  </ul></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.dev/munch-group/phasic/blob/main/docs/pages/internals/cloud_sharing_protocols.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/phasic/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/phasic/blob/main/docs/pages/internals/cloud_sharing_protocols.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Cloud Sharing Protocols and Formats</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="cloud-sharing-protocols-and-formats" class="level1">
+<h1>Cloud Sharing: Protocols and Formats</h1>
+<p>This notebook documents the protocols, data formats, and architecture behind phasic’s cloud-based trace sharing system. The system allows pre-computed elimination traces to be published, discovered, downloaded, and verified using content-addressed storage and a GitHub-hosted registry.</p>
+<section id="architecture-overview" class="level2">
+<h2 class="anchored" data-anchor-id="architecture-overview">Architecture overview</h2>
+<p>The system has three layers:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 26%">
+<col style="width: 42%">
+<col style="width: 30%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Layer</th>
+<th>Component</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Storage</strong></td>
+<td><code>TransportBackend</code> (ABC)</td>
+<td>Content-addressed storage (IPFS, future: S3/GCS/Azure)</td>
+</tr>
+<tr class="even">
+<td><strong>Index</strong></td>
+<td><code>TraceRegistry</code></td>
+<td>GitHub-hosted JSON catalog with metadata, checksums, CIDs</td>
+</tr>
+<tr class="odd">
+<td><strong>Client</strong></td>
+<td><code>get_trace()</code> / <code>TraceRegistry</code></td>
+<td>Download, cache, verify, and deserialize traces</td>
+</tr>
+</tbody>
+</table>
+<p>Data flows like this:</p>
+<pre><code>Publisher                         Consumer
+--------                         --------
+Graph -&gt; record_elimination_trace()
+       -&gt; serialize to JSON
+       -&gt; gzip compress
+       -&gt; sha256 checksum                  get_trace("model_id")
+       -&gt; publish to IPFS (CID)                |
+       -&gt; submit PR to registry       registry.json (GitHub)
+                                          |           |
+                                        CID      checksum
+                                          |           |
+                                    IPFS/gateway  verify
+                                          |           |
+                                    trace.json.gz -&gt; EliminationTrace</code></pre>
+</section>
+<section id="transport-backend-protocol" class="level2">
+<h2 class="anchored" data-anchor-id="transport-backend-protocol">1. Transport Backend Protocol</h2>
+<p>The <code>TransportBackend</code> ABC defines the interface any storage backend must implement. This decouples the registry from any specific storage technology.</p>
+<div id="show-abc" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> inspect</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.trace_repository <span class="im">import</span> TransportBackend</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># The abstract interface</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name, method <span class="kw">in</span> inspect.getmembers(TransportBackend, predicate<span class="op">=</span>inspect.isfunction):</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> name.startswith(<span class="st">'_'</span>):</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>        sig <span class="op">=</span> inspect.signature(method)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">}{</span>sig<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<section id="required-methods" class="level3">
+<h3 class="anchored" data-anchor-id="required-methods">Required methods</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 47%">
+<col style="width: 52%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>name</code> (property)</td>
+<td>Human-readable identifier, e.g.&nbsp;<code>"ipfs"</code>, <code>"s3"</code></td>
+</tr>
+<tr class="even">
+<td><code>get(cid, output_path=None)</code></td>
+<td>Retrieve content by identifier. Returns <code>bytes</code> or writes to file.</td>
+</tr>
+<tr class="odd">
+<td><code>add(path) -&gt; str</code></td>
+<td>Publish local file/directory, returns content identifier.</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="optional-methods" class="level3">
+<h3 class="anchored" data-anchor-id="optional-methods">Optional methods</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 36%">
+<col style="width: 32%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>Default</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>supports_directories</code> (property)</td>
+<td><code>False</code></td>
+<td>Whether backend can retrieve whole directories</td>
+</tr>
+<tr class="even">
+<td><code>get_directory(cid, output_dir)</code></td>
+<td><code>NotImplementedError</code></td>
+<td>Retrieve entire directory tree</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="implementing-a-custom-backend" class="level3">
+<h3 class="anchored" data-anchor-id="implementing-a-custom-backend">Implementing a custom backend</h3>
+<p>Any storage system can be plugged in by subclassing <code>TransportBackend</code>:</p>
+<div id="custom-backend" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.trace_repository <span class="im">import</span> TransportBackend</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> LocalFileBackend(TransportBackend):</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Example: serve traces from a local directory."""</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, root: Path):</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.root <span class="op">=</span> Path(root)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">@property</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> name(<span class="va">self</span>) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">"local"</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> get(<span class="va">self</span>, cid, output_path<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>        source <span class="op">=</span> <span class="va">self</span>.root <span class="op">/</span> cid</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>        content <span class="op">=</span> source.read_bytes()</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> output_path <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span>:</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>            Path(output_path).write_bytes(content)</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="va">None</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> content</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> add(<span class="va">self</span>, path):</span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>        <span class="im">import</span> shutil, hashlib</span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>        data <span class="op">=</span> Path(path).read_bytes()</span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>        cid <span class="op">=</span> hashlib.sha256(data).hexdigest()[:<span class="dv">16</span>]</span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>        dest <span class="op">=</span> <span class="va">self</span>.root <span class="op">/</span> cid</span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>        shutil.copy(path, dest)</span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> cid</span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a><span class="co"># Use it with TraceRegistry:</span></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a><span class="co"># registry = TraceRegistry(backend=LocalFileBackend("/path/to/traces"))</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="the-default-ipfs-backend" class="level3">
+<h3 class="anchored" data-anchor-id="the-default-ipfs-backend">The default IPFS backend</h3>
+<p><code>IPFSBackend</code> implements <code>TransportBackend</code> with a progressive enhancement strategy:</p>
+<ol type="1">
+<li><strong>Try existing daemon</strong> — fastest, uses <code>ipfshttpclient</code> library</li>
+<li><strong>Auto-start daemon</strong> — if IPFS is installed but not running</li>
+<li><strong>HTTP gateways</strong> — falls back to public gateways (ipfs.io, cloudflare, etc.)</li>
+</ol>
+<p>Content identifiers (CIDs) come in two formats:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 36%">
+<col style="width: 32%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Format</th>
+<th>Pattern</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>CIDv0</td>
+<td><code>Qm</code> + 44 base58 chars</td>
+<td><code>QmYwAPJzv5CZsnN625s3Xf2nemtYgPpHdWEz79ojWnPbdG</code></td>
+</tr>
+<tr class="even">
+<td>CIDv1</td>
+<td><code>bafy</code> + base32</td>
+<td><code>bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi</code></td>
+</tr>
+</tbody>
+</table>
+<p>CIDs can include subpaths: <code>QmYwAP.../trace.json.gz</code> to reference files within a directory.</p>
+<div id="cid-validation-demo" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.trace_repository <span class="im">import</span> _validate_cid</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Valid CIDs</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>_validate_cid(<span class="st">"QmYwAPJzv5CZsnN625s3Xf2nemtYgPpHdWEz79ojWnPbdG"</span>)  <span class="co"># CIDv0</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>_validate_cid(<span class="st">"bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi"</span>)  <span class="co"># CIDv1</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>_validate_cid(<span class="st">"QmYwAPJzv5CZsnN625s3Xf2nemtYgPpHdWEz79ojWnPbdG/trace.json.gz"</span>)  <span class="co"># subpath</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"All valid CIDs accepted."</span>)</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Invalid CIDs are rejected</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> traceback</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> bad_cid <span class="kw">in</span> [<span class="st">""</span>, <span class="st">"not-a-cid"</span>, <span class="st">"QmYwAPJzv5CZsnN625s3Xf2nemtYgPpHdWEz79ojWnPbdG/../../../etc/passwd"</span>]:</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>:</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>        _validate_cid(bad_cid)</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> <span class="pp">ValueError</span> <span class="im">as</span> e:</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"Rejected </span><span class="sc">{</span>bad_cid<span class="sc">!r}</span><span class="ss">: </span><span class="sc">{</span>e<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+</section>
+<section id="registry-format-registry.json" class="level2">
+<h2 class="anchored" data-anchor-id="registry-format-registry.json">2. Registry Format (<code>registry.json</code>)</h2>
+<p>The registry is a JSON file hosted on GitHub that maps human-readable trace IDs to IPFS CIDs, checksums, and metadata. It is the index that makes traces discoverable.</p>
+<p><strong>Location</strong>: <code>https://raw.githubusercontent.com/{repo}/master/registry.json</code></p>
+<section id="schema" class="level3">
+<h3 class="anchored" data-anchor-id="schema">Schema</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode json code-with-copy"><code class="sourceCode json"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"version"</span><span class="fu">:</span> <span class="st">"1.0.0"</span><span class="fu">,</span>                    <span class="er">//</span> <span class="er">REQUIRED</span><span class="fu">:</span> <span class="er">registry</span> <span class="er">format</span> <span class="er">version</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">"updated"</span><span class="er">:</span> <span class="st">"2025-10-21T12:00:00Z"</span><span class="fu">,</span>     <span class="er">//</span> <span class="er">last</span> <span class="er">update</span> <span class="er">timestamp</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"traces"</span><span class="fu">:</span> <span class="fu">{</span>                             <span class="er">//</span> <span class="er">REQUIRED</span><span class="fu">:</span> <span class="er">dict</span> <span class="er">of</span> <span class="er">trace_id</span> <span class="er">-&gt;</span> <span class="er">entry</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"coalescent_n5_theta1"</span><span class="er">:</span> <span class="fu">{</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">"cid"</span><span class="fu">:</span> <span class="st">"QmStRuZZ..."</span><span class="fu">,</span>              <span class="er">//</span> <span class="er">IPFS</span> <span class="er">directory</span> <span class="er">CID</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Kingman coalescent, n=5, 1 parameter"</span><span class="fu">,</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>      <span class="dt">"checksum"</span><span class="fu">:</span> <span class="st">"sha256:abcdef01..."</span><span class="fu">,</span>   <span class="er">//</span> <span class="er">SHA-256</span> <span class="er">of</span> <span class="er">trace.json.gz</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">"graph_hash"</span><span class="fu">:</span> <span class="st">"a1b2c3d4..."</span><span class="fu">,</span>        <span class="er">//</span> <span class="er">graph</span> <span class="er">structure</span> <span class="er">hash</span> <span class="er">(for</span> <span class="er">auto-discovery)</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>      <span class="dt">"metadata"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>        <span class="dt">"model_type"</span><span class="fu">:</span> <span class="st">"coalescent"</span><span class="fu">,</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>        <span class="dt">"domain"</span><span class="fu">:</span> <span class="st">"population-genetics"</span><span class="fu">,</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>        <span class="dt">"param_length"</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>        <span class="dt">"vertices"</span><span class="fu">:</span> <span class="dv">5</span><span class="fu">,</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>        <span class="dt">"tags"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"coalescent"</span><span class="ot">,</span> <span class="st">"kingman"</span><span class="ot">]</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>      <span class="dt">"files"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>        <span class="dt">"trace.json.gz"</span><span class="fu">:</span>  <span class="fu">{</span><span class="dt">"cid"</span><span class="fu">:</span> <span class="st">"QmStRuZZ.../trace.json.gz"</span><span class="fu">},</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>        <span class="dt">"metadata.json"</span><span class="fu">:</span>  <span class="fu">{</span><span class="dt">"cid"</span><span class="fu">:</span> <span class="st">"QmStRuZZ.../metadata.json"</span><span class="fu">}</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>      <span class="dt">"license"</span><span class="fu">:</span> <span class="st">"MIT"</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"collections"</span><span class="fu">:</span> <span class="fu">{</span>                        <span class="er">//</span> <span class="er">optional</span> <span class="er">groupings</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"coalescent_basic"</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>      <span class="dt">"description"</span><span class="fu">:</span> <span class="st">"Basic coalescent models"</span><span class="fu">,</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>      <span class="dt">"traces"</span><span class="fu">:</span> <span class="ot">[</span><span class="st">"coalescent_n3_theta1"</span><span class="ot">,</span> <span class="st">"coalescent_n5_theta1"</span><span class="ot">]</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="registry-validation" class="level3">
+<h3 class="anchored" data-anchor-id="registry-validation">Registry validation</h3>
+<p>The registry is validated on load. Required top-level keys are <code>version</code> and <code>traces</code>, and <code>traces</code> must be a dict:</p>
+<div id="registry-validation-demo" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.trace_repository <span class="im">import</span> _validate_registry</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.exceptions <span class="im">import</span> PTDBackendError</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Valid</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>_validate_registry({<span class="st">"version"</span>: <span class="st">"1.0"</span>, <span class="st">"traces"</span>: {}})</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Minimal valid registry accepted."</span>)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Invalid examples</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> bad <span class="kw">in</span> [</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">"not a dict"</span>,</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    {<span class="st">"version"</span>: <span class="st">"1.0"</span>},           <span class="co"># missing 'traces'</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    {<span class="st">"version"</span>: <span class="st">"1.0"</span>, <span class="st">"traces"</span>: <span class="st">"not-a-dict"</span>},</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>]:</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>:</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>        _validate_registry(bad)</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> PTDBackendError <span class="im">as</span> e:</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"Rejected: </span><span class="sc">{</span>e<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+</section>
+<section id="trace-serialization-format" class="level2">
+<h2 class="anchored" data-anchor-id="trace-serialization-format">3. Trace Serialization Format</h2>
+<p>Traces are stored as gzipped JSON files (<code>trace.json.gz</code>). The JSON encodes an <code>EliminationTrace</code> object: the complete record of graph elimination operations that can be replayed with different parameter values.</p>
+<section id="required-keys" class="level3">
+<h3 class="anchored" data-anchor-id="required-keys">Required keys</h3>
+<p>These keys must be present in every serialized trace:</p>
+<div id="show-required-keys" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.trace_repository <span class="im">import</span> _REQUIRED_TRACE_KEYS, TRACE_FORMAT_VERSION</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Trace format version: </span><span class="sc">{</span>TRACE_FORMAT_VERSION<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Required keys (</span><span class="sc">{</span><span class="bu">len</span>(_REQUIRED_TRACE_KEYS)<span class="sc">}</span><span class="ss">):"</span>)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> key <span class="kw">in</span> <span class="bu">sorted</span>(_REQUIRED_TRACE_KEYS):</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"  - </span><span class="sc">{</span>key<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="complete-json-schema" class="level3">
+<h3 class="anchored" data-anchor-id="complete-json-schema">Complete JSON schema</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode json code-with-copy"><code class="sourceCode json"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="er">//</span> <span class="er">---</span> <span class="er">Required</span> <span class="er">---</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"operations"</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">"op_type"</span><span class="fu">:</span> <span class="st">"CONST"</span><span class="fu">,</span>                <span class="er">//</span> <span class="er">OpType</span> <span class="er">enum</span> <span class="er">name</span><span class="fu">:</span> <span class="er">CONST|PARAM|DOT|ADD|MUL|DIV|INV|SUM</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>      <span class="st">"operands"</span><span class="er">:</span> <span class="ot">[]</span><span class="fu">,</span>                     <span class="er">//</span> <span class="er">indices</span> <span class="er">into</span> <span class="er">the</span> <span class="er">operations</span> <span class="er">list</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">"const_value"</span><span class="fu">:</span> <span class="fl">1.0</span><span class="fu">,</span>                 <span class="er">//</span> <span class="er">for</span> <span class="er">CONST</span> <span class="er">ops</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>      <span class="dt">"param_idx"</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span>                  <span class="er">//</span> <span class="er">for</span> <span class="er">PARAM</span> <span class="er">ops</span><span class="fu">:</span> <span class="er">which</span> <span class="er">parameter</span> <span class="er">theta</span><span class="ot">[</span><span class="er">i</span><span class="ot">]</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>      <span class="st">"coefficients"</span><span class="er">:</span> <span class="kw">null</span>                <span class="er">//</span> <span class="er">for</span> <span class="er">DOT</span> <span class="er">ops:</span> <span class="ot">[</span><span class="er">c1</span><span class="ot">,</span> <span class="er">c2</span><span class="ot">,</span> <span class="er">...</span><span class="ot">,</span> <span class="er">cn</span><span class="ot">]</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span><span class="dt">"op_type"</span><span class="fu">:</span> <span class="st">"PARAM"</span><span class="fu">,</span> <span class="dt">"operands"</span><span class="fu">:</span> <span class="ot">[]</span><span class="fu">,</span> <span class="dt">"param_idx"</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span><span class="dt">"op_type"</span><span class="fu">:</span> <span class="st">"DOT"</span><span class="fu">,</span>   <span class="dt">"operands"</span><span class="fu">:</span> <span class="ot">[]</span><span class="fu">,</span> <span class="dt">"coefficients"</span><span class="fu">:</span> <span class="ot">[</span><span class="fl">3.0</span><span class="ot">,</span> <span class="fl">1.5</span><span class="ot">]</span><span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span><span class="dt">"op_type"</span><span class="fu">:</span> <span class="st">"ADD"</span><span class="fu">,</span>   <span class="dt">"operands"</span><span class="fu">:</span> <span class="ot">[</span><span class="dv">1</span><span class="ot">,</span> <span class="dv">2</span><span class="ot">]</span><span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span><span class="dt">"op_type"</span><span class="fu">:</span> <span class="st">"MUL"</span><span class="fu">,</span>   <span class="dt">"operands"</span><span class="fu">:</span> <span class="ot">[</span><span class="dv">0</span><span class="ot">,</span> <span class="dv">3</span><span class="ot">]</span><span class="fu">}</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"vertex_rates"</span><span class="fu">:</span> <span class="ot">[</span><span class="dv">0</span><span class="ot">,</span> <span class="dv">3</span><span class="ot">,</span> <span class="dv">4</span><span class="ot">]</span><span class="fu">,</span>             <span class="er">//</span> <span class="er">operation</span> <span class="er">index</span> <span class="er">for</span> <span class="er">each</span> <span class="er">vertex's</span> <span class="er">rate</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"edge_probs"</span><span class="fu">:</span>   <span class="ot">[[</span><span class="dv">1</span><span class="ot">,</span> <span class="dv">2</span><span class="ot">],</span> <span class="ot">[</span><span class="dv">3</span><span class="ot">],</span> <span class="ot">[]]</span><span class="fu">,</span>     <span class="er">//</span> <span class="er">per-vertex</span> <span class="er">list</span> <span class="er">of</span> <span class="er">op</span> <span class="er">indices</span> <span class="er">for</span> <span class="er">edge</span> <span class="er">weights</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"vertex_targets"</span><span class="fu">:</span> <span class="ot">[[</span><span class="dv">1</span><span class="ot">,</span> <span class="dv">2</span><span class="ot">],</span> <span class="ot">[</span><span class="dv">2</span><span class="ot">],</span> <span class="ot">[]]</span><span class="fu">,</span>   <span class="er">//</span> <span class="er">per-vertex</span> <span class="er">list</span> <span class="er">of</span> <span class="er">target</span> <span class="er">vertex</span> <span class="er">indices</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"states"</span><span class="fu">:</span> <span class="ot">[[</span><span class="dv">0</span><span class="ot">],</span> <span class="ot">[</span><span class="dv">5</span><span class="ot">],</span> <span class="ot">[</span><span class="dv">1</span><span class="ot">]]</span><span class="fu">,</span>             <span class="er">//</span> <span class="er">vertex</span> <span class="er">state</span> <span class="er">vectors</span> <span class="er">(n_vertices</span> <span class="er">x</span> <span class="er">state_length)</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"starting_vertex_idx"</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">,</span>              <span class="er">//</span> <span class="er">index</span> <span class="er">of</span> <span class="er">starting</span> <span class="er">vertex</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"n_vertices"</span><span class="fu">:</span> <span class="dv">3</span><span class="fu">,</span>                       <span class="er">//</span> <span class="er">total</span> <span class="er">number</span> <span class="er">of</span> <span class="er">vertices</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"param_length"</span><span class="fu">:</span> <span class="dv">2</span><span class="fu">,</span>                     <span class="er">//</span> <span class="er">number</span> <span class="er">of</span> <span class="er">free</span> <span class="er">parameters</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"state_length"</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span>                     <span class="er">//</span> <span class="er">dimension</span> <span class="er">of</span> <span class="er">state</span> <span class="er">vectors</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>  <span class="er">//</span> <span class="er">---</span> <span class="er">Optional</span> <span class="er">---</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"vertex_indices"</span><span class="fu">:</span> <span class="ot">[</span><span class="dv">0</span><span class="ot">,</span> <span class="dv">3</span><span class="ot">,</span> <span class="dv">7</span><span class="ot">]</span><span class="fu">,</span>           <span class="er">//</span> <span class="er">original</span> <span class="er">vertex</span> <span class="er">indices</span> <span class="er">from</span> <span class="er">source</span> <span class="er">graph</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"reward_length"</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">,</span>                    <span class="er">//</span> <span class="er">number</span> <span class="er">of</span> <span class="er">reward</span> <span class="er">parameters</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"is_discrete"</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span>                  <span class="er">//</span> <span class="er">continuous</span> <span class="er">(PH)</span> <span class="er">vs</span> <span class="er">discrete</span> <span class="er">(DPH)</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>  <span class="dt">"metadata"</span><span class="fu">:</span> <span class="fu">{</span>                          <span class="er">//</span> <span class="er">arbitrary</span> <span class="er">metadata</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"phase"</span><span class="fu">:</span> <span class="dv">2</span><span class="fu">,</span></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"parameterized"</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>    <span class="dt">"total_operations"</span><span class="fu">:</span> <span class="dv">5</span></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="operation-types" class="level3">
+<h3 class="anchored" data-anchor-id="operation-types">Operation types</h3>
+<p>The <code>op_type</code> field references the <code>OpType</code> enum. Each operation is an instruction in a linear trace that can be replayed to evaluate the eliminated graph:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 27%">
+<col style="width: 31%">
+<col style="width: 41%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>OpType</th>
+<th>Meaning</th>
+<th>Key fields</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>CONST</code></td>
+<td>Literal constant</td>
+<td><code>const_value</code></td>
+</tr>
+<tr class="even">
+<td><code>PARAM</code></td>
+<td>Parameter reference θ[i]</td>
+<td><code>param_idx</code></td>
+</tr>
+<tr class="odd">
+<td><code>DOT</code></td>
+<td>Linear combination c₁θ₁ + c₂θ₂ + …</td>
+<td><code>coefficients</code></td>
+</tr>
+<tr class="even">
+<td><code>ADD</code></td>
+<td>a + b</td>
+<td><code>operands</code> = [idx_a, idx_b]</td>
+</tr>
+<tr class="odd">
+<td><code>MUL</code></td>
+<td>a × b</td>
+<td><code>operands</code> = [idx_a, idx_b]</td>
+</tr>
+<tr class="even">
+<td><code>DIV</code></td>
+<td>a / b</td>
+<td><code>operands</code> = [idx_a, idx_b]</td>
+</tr>
+<tr class="odd">
+<td><code>INV</code></td>
+<td>1 / a</td>
+<td><code>operands</code> = [idx_a]</td>
+</tr>
+<tr class="even">
+<td><code>SUM</code></td>
+<td>Σ(a, b, c, …)</td>
+<td><code>operands</code> = [idx_a, idx_b, …]</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>operands</code> list contains integer indices pointing to earlier operations in the same <code>operations</code> array, forming a DAG evaluated in order.</p>
+</section>
+</section>
+<section id="working-example-build-serialize-deserialize" class="level2">
+<h2 class="anchored" data-anchor-id="working-example-build-serialize-deserialize">4. Working example: build, serialize, deserialize</h2>
+<p>Let’s walk through the full lifecycle: build a graph, record the elimination trace, serialize it to the trace format, and deserialize it back.</p>
+<div id="build-graph" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> npfrom phasic <span class="im">import</span> Graph, with_ipvfrom phasic.trace_elimination <span class="im">import</span> record_elimination_trace<span class="co"># Build a simple coalescent graph for n=3 samples.# The @with_ipv decorator specifies the initial probability vector:# state = [3] means 3 lineages in one population.nr_samples = 3@with_ipv([nr_samples])def coalescent_callback(state):    n = state[0]    if n &lt;= 1:        return []    rate = n * (n - 1) / 2    return [[np.array([n - 1]), [rate]]]graph = Graph(coalescent_callback, theta_dim=1)print(f"Graph: {graph.vertices_length()} vertices")</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="record-trace" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Record the elimination tracetrace = record_elimination_trace(graph, theta_dim=1)print(trace)print(trace.summary())</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="serialize-trace" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> serialize_trace(trace):</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Convert EliminationTrace to a JSON-serializable dict."""</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> to_native(obj):</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">isinstance</span>(obj, np.integer):</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="bu">int</span>(obj)</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">elif</span> <span class="bu">isinstance</span>(obj, np.floating):</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="bu">float</span>(obj)</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">elif</span> <span class="bu">isinstance</span>(obj, np.ndarray):</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> obj.tolist()</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">elif</span> <span class="bu">isinstance</span>(obj, <span class="bu">list</span>):</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> [to_native(x) <span class="cf">for</span> x <span class="kw">in</span> obj]</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">elif</span> <span class="bu">isinstance</span>(obj, <span class="bu">dict</span>):</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> {k: to_native(v) <span class="cf">for</span> k, v <span class="kw">in</span> obj.items()}</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> obj</span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> {</span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>        <span class="st">'operations'</span>: [</span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>            {</span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>                <span class="st">'op_type'</span>: op.op_type.name,</span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>                <span class="st">'operands'</span>: to_native(op.operands),</span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>                <span class="st">'const_value'</span>: to_native(op.const_value),</span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>                <span class="st">'param_idx'</span>: to_native(op.param_idx),</span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>                <span class="st">'coefficients'</span>: to_native(op.coefficients) <span class="cf">if</span> op.coefficients <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span> <span class="cf">else</span> <span class="va">None</span>,</span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>            }</span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> op <span class="kw">in</span> trace.operations</span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a>        ],</span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>        <span class="st">'vertex_rates'</span>: to_native(trace.vertex_rates),</span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a>        <span class="st">'edge_probs'</span>: to_native(trace.edge_probs),</span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a>        <span class="st">'vertex_targets'</span>: to_native(trace.vertex_targets),</span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a>        <span class="st">'states'</span>: to_native(trace.states),</span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a>        <span class="st">'vertex_indices'</span>: to_native(trace.vertex_indices),</span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a>        <span class="st">'starting_vertex_idx'</span>: <span class="bu">int</span>(trace.starting_vertex_idx),</span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a>        <span class="st">'n_vertices'</span>: <span class="bu">int</span>(trace.n_vertices),</span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a>        <span class="st">'param_length'</span>: <span class="bu">int</span>(trace.param_length),</span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true" tabindex="-1"></a>        <span class="st">'state_length'</span>: <span class="bu">int</span>(trace.state_length),</span>
+<span id="cb11-38"><a href="#cb11-38" aria-hidden="true" tabindex="-1"></a>        <span class="st">'reward_length'</span>: <span class="bu">int</span>(trace.reward_length),</span>
+<span id="cb11-39"><a href="#cb11-39" aria-hidden="true" tabindex="-1"></a>        <span class="st">'is_discrete'</span>: <span class="bu">bool</span>(trace.is_discrete),</span>
+<span id="cb11-40"><a href="#cb11-40" aria-hidden="true" tabindex="-1"></a>        <span class="st">'metadata'</span>: to_native(trace.metadata),</span>
+<span id="cb11-41"><a href="#cb11-41" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb11-42"><a href="#cb11-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-43"><a href="#cb11-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-44"><a href="#cb11-44" aria-hidden="true" tabindex="-1"></a>trace_dict <span class="op">=</span> serialize_trace(trace)</span>
+<span id="cb11-45"><a href="#cb11-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-46"><a href="#cb11-46" aria-hidden="true" tabindex="-1"></a><span class="co"># Pretty-print</span></span>
+<span id="cb11-47"><a href="#cb11-47" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(json.dumps(trace_dict, indent<span class="op">=</span><span class="dv">2</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="round-trip" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> gzip</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> hashlib</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tempfile</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulate the on-disk format: gzipped JSON + checksum</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> tempfile.TemporaryDirectory() <span class="im">as</span> tmpdir:</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    trace_file <span class="op">=</span> Path(tmpdir) <span class="op">/</span> <span class="st">"trace.json.gz"</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Write</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> gzip.<span class="bu">open</span>(trace_file, <span class="st">'wt'</span>) <span class="im">as</span> f:</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>        json.dump(trace_dict, f)</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>    raw_size <span class="op">=</span> <span class="bu">len</span>(json.dumps(trace_dict).encode())</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    gz_size <span class="op">=</span> trace_file.stat().st_size</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    checksum <span class="op">=</span> hashlib.sha256(trace_file.read_bytes()).hexdigest()</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Raw JSON:     </span><span class="sc">{</span>raw_size<span class="sc">:,}</span><span class="ss"> bytes"</span>)</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Gzipped:      </span><span class="sc">{</span>gz_size<span class="sc">:,}</span><span class="ss"> bytes (</span><span class="sc">{</span>gz_size<span class="op">/</span>raw_size<span class="sc">:.0%}</span><span class="ss">)"</span>)</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"SHA-256:      sha256:</span><span class="sc">{</span>checksum[:<span class="dv">32</span>]<span class="sc">}</span><span class="ss">..."</span>)</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Read back</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> gzip.<span class="bu">open</span>(trace_file, <span class="st">'rt'</span>) <span class="im">as</span> f:</span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>        loaded <span class="op">=</span> json.load(f)</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Round-trip OK: </span><span class="sc">{</span>loaded<span class="sc">.</span>keys() <span class="op">==</span> trace_dict<span class="sc">.</span>keys()<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="deserialize-trace" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.trace_repository <span class="im">import</span> TraceRegistry</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Use the internal deserialization method</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co"># (In normal use, get_trace() does this automatically)</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>registry <span class="op">=</span> TraceRegistry.<span class="fu">__new__</span>(TraceRegistry)  <span class="co"># skip __init__</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>reconstructed <span class="op">=</span> registry._deserialize_trace(loaded)</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Type:            </span><span class="sc">{</span><span class="bu">type</span>(reconstructed)<span class="sc">.</span><span class="va">__name__</span><span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Vertices:        </span><span class="sc">{</span>reconstructed<span class="sc">.</span>n_vertices<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Parameters:      </span><span class="sc">{</span>reconstructed<span class="sc">.</span>param_length<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Operations:      </span><span class="sc">{</span><span class="bu">len</span>(reconstructed.operations)<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Reward length:   </span><span class="sc">{</span>reconstructed<span class="sc">.</span>reward_length<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Vertex indices:  </span><span class="sc">{</span>reconstructed<span class="sc">.</span>vertex_indices<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"State length:    </span><span class="sc">{</span>reconstructed<span class="sc">.</span>state_length<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="use-reconstructed" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.trace_elimination <span class="im">import</span> instantiate_from_trace</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Instantiate with concrete parameter value</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>theta <span class="op">=</span> np.array([<span class="fl">2.0</span>])  <span class="co"># coalescence rate parameter</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>concrete_graph <span class="op">=</span> instantiate_from_trace(reconstructed, theta)</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute PDF at several time points</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>times <span class="op">=</span> np.array([<span class="fl">0.5</span>, <span class="fl">1.0</span>, <span class="fl">1.5</span>, <span class="fl">2.0</span>, <span class="fl">3.0</span>, <span class="fl">5.0</span>])</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>pdfs <span class="op">=</span> [concrete_graph.pdf(t, granularity<span class="op">=</span><span class="dv">100</span>) <span class="cf">for</span> t <span class="kw">in</span> times]</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"time    pdf(t)"</span>)</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"-"</span> <span class="op">*</span> <span class="dv">20</span>)</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t, p <span class="kw">in</span> <span class="bu">zip</span>(times, pdfs):</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>t<span class="sc">:5.1f}</span><span class="ss">   </span><span class="sc">{</span>p<span class="sc">:.6f}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="deserialization-validation" class="level2">
+<h2 class="anchored" data-anchor-id="deserialization-validation">5. Deserialization validation</h2>
+<p>The deserializer validates integrity before constructing the trace object. This prevents corrupted or malicious data from causing silent failures.</p>
+<div id="validation-demo" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.trace_repository <span class="im">import</span> TraceRegistry, _REQUIRED_TRACE_KEYS</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.exceptions <span class="im">import</span> PTDBackendError</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>registry <span class="op">=</span> TraceRegistry.<span class="fu">__new__</span>(TraceRegistry)</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Missing required keys</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    registry._deserialize_trace({<span class="st">"operations"</span>: []})</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> PTDBackendError <span class="im">as</span> e:</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Missing keys: </span><span class="sc">{</span>e<span class="sc">}</span><span class="ch">\n</span><span class="ss">"</span>)</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Invalid operation type</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>bad_trace <span class="op">=</span> {</span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">"operations"</span>: [{<span class="st">"op_type"</span>: <span class="st">"BOGUS"</span>, <span class="st">"operands"</span>: []}],</span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>    <span class="st">"vertex_rates"</span>: [<span class="dv">0</span>], <span class="st">"edge_probs"</span>: [[]], <span class="st">"vertex_targets"</span>: [[]],</span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>    <span class="st">"states"</span>: [[<span class="dv">0</span>]], <span class="st">"starting_vertex_idx"</span>: <span class="dv">0</span>, <span class="st">"n_vertices"</span>: <span class="dv">1</span>,</span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>    <span class="st">"param_length"</span>: <span class="dv">0</span>, <span class="st">"state_length"</span>: <span class="dv">1</span>,</span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>    registry._deserialize_trace(bad_trace)</span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> PTDBackendError <span class="im">as</span> e:</span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Invalid op_type: </span><span class="sc">{</span>e<span class="sc">}</span><span class="ch">\n</span><span class="ss">"</span>)</span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Negative integer field</span></span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>bad_trace2 <span class="op">=</span> <span class="bu">dict</span>(bad_trace)</span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>bad_trace2[<span class="st">"operations"</span>] <span class="op">=</span> [{<span class="st">"op_type"</span>: <span class="st">"CONST"</span>, <span class="st">"operands"</span>: [], <span class="st">"const_value"</span>: <span class="fl">1.0</span>}]</span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>bad_trace2[<span class="st">"n_vertices"</span>] <span class="op">=</span> <span class="op">-</span><span class="dv">1</span></span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>    registry._deserialize_trace(bad_trace2)</span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> PTDBackendError <span class="im">as</span> e:</span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Negative field: </span><span class="sc">{</span>e<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="checksum-verification" class="level2">
+<h2 class="anchored" data-anchor-id="checksum-verification">6. Checksum verification</h2>
+<p>Downloaded traces are verified against the <code>sha256:</code> checksum stored in the registry. If the checksum does not match, the corrupted file is deleted and an error is raised.</p>
+<div id="checksum-demo" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tempfile, hashlib, gzip, json</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> tempfile.TemporaryDirectory() <span class="im">as</span> tmpdir:</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Create a trace file</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    trace_file <span class="op">=</span> Path(tmpdir) <span class="op">/</span> <span class="st">"trace.json.gz"</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> gzip.<span class="bu">open</span>(trace_file, <span class="st">'wt'</span>) <span class="im">as</span> f:</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>        json.dump(trace_dict, f)</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    correct_checksum <span class="op">=</span> hashlib.sha256(trace_file.read_bytes()).hexdigest()</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    wrong_checksum <span class="op">=</span> <span class="st">"0"</span> <span class="op">*</span> <span class="dv">64</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>    registry <span class="op">=</span> TraceRegistry.<span class="fu">__new__</span>(TraceRegistry)</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Correct checksum passes silently</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>    registry._verify_checksum(trace_file, <span class="ss">f"sha256:</span><span class="sc">{</span>correct_checksum<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Correct checksum: passed"</span>)</span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Wrong checksum raises and deletes the file</span></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># (Re-create the file first since _verify_checksum deletes on mismatch)</span></span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> gzip.<span class="bu">open</span>(trace_file, <span class="st">'wt'</span>) <span class="im">as</span> f:</span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>        json.dump(trace_dict, f)</span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>:</span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>        registry._verify_checksum(trace_file, <span class="ss">f"sha256:</span><span class="sc">{</span>wrong_checksum<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> PTDBackendError <span class="im">as</span> e:</span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"Wrong checksum:   rejected (</span><span class="sc">{</span>e<span class="sc">}</span><span class="ss">)"</span>)</span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"File deleted:     </span><span class="sc">{</span><span class="kw">not</span> trace_file<span class="sc">.</span>exists()<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="download-workflow" class="level2">
+<h2 class="anchored" data-anchor-id="download-workflow">7. Download workflow</h2>
+<p>When a user calls <code>get_trace(trace_id)</code>, the following happens:</p>
+<ol type="1">
+<li><strong>Load registry</strong> — from local cache or fetch from GitHub</li>
+<li><strong>Look up trace_id</strong> — get CID, checksum, and metadata</li>
+<li><strong>Check local cache</strong> — <code>~/.phasic_traces/traces/{trace_id}/trace.json.gz</code></li>
+<li><strong>Download</strong> — <code>backend.get("{cid}/trace.json.gz", output_path=...)</code></li>
+<li><strong>Verify checksum</strong> — compare <code>sha256:</code> from registry entry</li>
+<li><strong>Decompress and deserialize</strong> — gzip decompress, JSON parse, validate, construct <code>EliminationTrace</code></li>
+</ol>
+<pre><code>~/.phasic_traces/
+├── registry.json                  # cached registry from GitHub
+├── traces/
+│   ├── coalescent_n5_theta1/
+│   │   └── trace.json.gz          # cached by trace_id
+│   └── coalescent_n10_theta1/
+│       └── trace.json.gz
+└── by_hash/
+    └── a1b2c3d4.../               # cached by graph structure hash
+        └── trace.json.gz</code></pre>
+<p>The <code>by_hash/</code> directory enables automatic trace discovery: compute a graph’s structure hash and check if a pre-computed trace already exists.</p>
+</section>
+<section id="publish-workflow" class="level2">
+<h2 class="anchored" data-anchor-id="publish-workflow">8. Publish workflow</h2>
+<p>Publishing creates a directory package on IPFS and prints instructions for submitting a PR to the registry.</p>
+<section id="package-structure-on-ipfs" class="level3">
+<h3 class="anchored" data-anchor-id="package-structure-on-ipfs">Package structure on IPFS</h3>
+<pre><code>{trace_id}/
+├── trace.json.gz          # gzipped serialized EliminationTrace
+├── metadata.json           # human-readable metadata
+├── checksum.sha256         # SHA-256 of trace.json.gz
+├── construction_code.py    # (optional) code to rebuild the graph
+└── example.py              # (optional) usage example</code></pre>
+</section>
+<section id="workflow" class="level3">
+<h3 class="anchored" data-anchor-id="workflow">Workflow</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> TraceRegistry</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.trace_elimination <span class="im">import</span> record_elimination_trace</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Build graph and record trace</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>trace <span class="op">=</span> record_elimination_trace(graph, param_length<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Publish</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>registry <span class="op">=</span> TraceRegistry()</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>cid <span class="op">=</span> registry.publish_trace(</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>    trace<span class="op">=</span>serialize_trace(trace),</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>    trace_id<span class="op">=</span><span class="st">"my_coalescent_model"</span>,</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>    metadata<span class="op">=</span>{</span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>        <span class="st">"model_type"</span>: <span class="st">"coalescent"</span>,</span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>        <span class="st">"domain"</span>: <span class="st">"population-genetics"</span>,</span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>        <span class="st">"param_length"</span>: <span class="dv">1</span>,</span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>        <span class="st">"description"</span>: <span class="st">"Kingman coalescent for n=5"</span>,</span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>        <span class="st">"author"</span>: <span class="st">"Name &lt;email&gt;"</span>,</span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>        <span class="st">"license"</span>: <span class="st">"MIT"</span></span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>    construction_code<span class="op">=</span><span class="bu">open</span>(<span class="st">"build_model.py"</span>).read(),  <span class="co"># optional</span></span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>    submit_pr<span class="op">=</span><span class="va">True</span>  <span class="co"># prints PR instructions</span></span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a><span class="co"># Returns: CID of published package</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="adding-to-the-public-registry" class="level3">
+<h3 class="anchored" data-anchor-id="adding-to-the-public-registry">Adding to the public registry</h3>
+<p>After publishing, the user forks the registry repo on GitHub, adds the entry printed by <code>submit_pr=True</code> to <code>registry.json</code>, and submits a pull request. The maintainer pins the CID to IPFS pinning services and merges.</p>
+</section>
+</section>
+<section id="http-retry-protocol" class="level2">
+<h2 class="anchored" data-anchor-id="http-retry-protocol">9. HTTP retry protocol</h2>
+<p>All HTTP requests (registry updates, gateway downloads) use exponential-backoff retry with the <code>_request_with_retry()</code> helper:</p>
+<ul>
+<li><strong>3 attempts</strong> by default</li>
+<li><strong>Retries on</strong>: <code>ConnectionError</code>, HTTP 5xx status codes</li>
+<li><strong>Does not retry</strong>: HTTP 4xx (client errors), non-connection exceptions</li>
+<li><strong>Backoff</strong>: 1s, 2s, 4s (doubles each attempt)</li>
+</ul>
+<div id="retry-demo" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> unittest <span class="im">import</span> mock</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> requests</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.trace_repository <span class="im">import</span> _request_with_retry</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulate: first attempt fails, second succeeds</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>ok_response <span class="op">=</span> mock.Mock()</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>ok_response.status_code <span class="op">=</span> <span class="dv">200</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>ok_response.raise_for_status <span class="op">=</span> mock.Mock()</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>ok_response.content <span class="op">=</span> <span class="st">b"trace data"</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> mock.patch(<span class="st">'requests.get'</span>) <span class="im">as</span> mock_get:</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>    mock_get.side_effect <span class="op">=</span> [</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>        requests.<span class="pp">ConnectionError</span>(<span class="st">"network blip"</span>),</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>        ok_response,</span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>    ]</span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> mock.patch(<span class="st">'time.sleep'</span>):  <span class="co"># skip actual delay</span></span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>        result <span class="op">=</span> _request_with_retry(<span class="st">"https://example.com/trace"</span>, max_retries<span class="op">=</span><span class="dv">3</span>, backoff_base<span class="op">=</span><span class="fl">0.01</span>)</span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Attempts: </span><span class="sc">{</span>mock_get<span class="sc">.</span>call_count<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Result:   </span><span class="sc">{</span>result<span class="sc">.</span>content<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="summary" class="level2">
+<h2 class="anchored" data-anchor-id="summary">Summary</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 28%">
+<col style="width: 50%">
+<col style="width: 21%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Component</th>
+<th>Format / Protocol</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>TransportBackend</code></td>
+<td>Python ABC</td>
+<td>Pluggable storage (IPFS, S3, GCS, local)</td>
+</tr>
+<tr class="even">
+<td><code>registry.json</code></td>
+<td>JSON on GitHub</td>
+<td>Index: trace IDs, CIDs, checksums, metadata</td>
+</tr>
+<tr class="odd">
+<td><code>trace.json.gz</code></td>
+<td>Gzipped JSON</td>
+<td>Serialized <code>EliminationTrace</code></td>
+</tr>
+<tr class="even">
+<td>CID</td>
+<td>IPFS content hash</td>
+<td>Content-addressed identifier (CIDv0/v1)</td>
+</tr>
+<tr class="odd">
+<td>Checksum</td>
+<td><code>sha256:&lt;hex&gt;</code></td>
+<td>Integrity verification</td>
+</tr>
+<tr class="even">
+<td>Operations</td>
+<td><code>OpType</code> enum</td>
+<td>Elimination trace instructions (CONST, PARAM, DOT, ADD, …)</td>
+</tr>
+<tr class="odd">
+<td>Cache</td>
+<td><code>~/.phasic_traces/</code></td>
+<td>Local cache by trace_id and by graph hash</td>
+</tr>
+<tr class="even">
+<td>HTTP retry</td>
+<td>Exponential backoff</td>
+<td>3 retries, 1s/2s/4s backoff, retries on 5xx/ConnectionError</td>
+</tr>
+</tbody>
+</table>
+<section id="key-design-decisions" class="level3">
+<h3 class="anchored" data-anchor-id="key-design-decisions">Key design decisions</h3>
+<ul>
+<li><strong>Content-addressed storage</strong>: CIDs guarantee that downloaded content matches what was published. The checksum adds a second layer of verification.</li>
+<li><strong>Lazy backend initialization</strong>: The <code>TransportBackend</code> is not created until first use, so <code>TraceRegistry(auto_update=False)</code> never contacts IPFS.</li>
+<li><strong>Progressive enhancement</strong>: Works with zero configuration (HTTP gateways), gets faster with IPFS daemon.</li>
+<li><strong>Pluggable backends</strong>: The <code>TransportBackend</code> ABC allows future migration to cloud storage without changing the registry or client APIs.</li>
+<li><strong>Offline-first</strong>: Local cache is checked before any network call.</li>
+</ul>
+
+
+</section>
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/munch-group\.github\.io\/phasic\/");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.dev/munch-group/phasic/blob/main/docs/pages/internals/cloud_sharing_protocols.ipynb" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/munch-group/phasic/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li><li><a href="https://github.com/munch-group/phasic/blob/main/docs/pages/internals/cloud_sharing_protocols.ipynb" class="toc-action"><i class="bi empty"></i>View source</a></li></ul></div></div></div></footer></body></html>
