@@ -79,7 +79,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-342d2e45858bb5501d02373b23ba26fb.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-a46b01d6fc144a45784d8f299ab2dd32.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-7397f97f84758eaef066117bf17141b5.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -488,7 +488,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>This tutorial walks through the full sharing workflow: checking backend status, downloading traces, pinning and unpinning content, inspecting where a trace is loaded from, and retracting faulty models.</p>
 <section id="setup" class="level2">
 <h2 class="anchored" data-anchor-id="setup">Setup</h2>
-<div id="setup-imports" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T11:32:43.654627Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T11:32:43.654544Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T11:32:45.547867Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T11:32:45.547425Z&quot;}}" data-execution_count="1">
+<div id="setup-imports" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:38:21.731289Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:38:21.731194Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:38:23.847562Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:38:23.846948Z&quot;}}" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.trace_repository <span class="im">import</span> (</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    IPFSBackend,</span>
@@ -538,7 +538,7 @@ table {
 <section id="checking-backend-status" class="level2">
 <h2 class="anchored" data-anchor-id="checking-backend-status">Checking backend status</h2>
 <p>Before sharing anything, it helps to know the state of your local IPFS environment. The <code>IPFSBackend.status()</code> method returns a dictionary summarising the connection:</p>
-<div id="backend-status" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T11:32:45.549752Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T11:32:45.549580Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T11:32:45.584266Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T11:32:45.583781Z&quot;}}" data-execution_count="2">
+<div id="backend-status" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:38:23.849327Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:38:23.849138Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:38:23.883079Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:38:23.882670Z&quot;}}" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>backend <span class="op">=</span> IPFSBackend()</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>status <span class="op">=</span> backend.status()</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -577,7 +577,7 @@ HTTP gateways:     4 configured
 <section id="browsing-the-trace-registry" class="level2">
 <h2 class="anchored" data-anchor-id="browsing-the-trace-registry">Browsing the trace registry</h2>
 <p>The <code>TraceRegistry</code> maintains a JSON index of all published traces hosted on GitHub. It is downloaded (and cached locally) the first time you create a registry instance.</p>
-<div id="registry-list" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T11:32:45.585660Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T11:32:45.585563Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T11:32:45.846174Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T11:32:45.845718Z&quot;}}" data-execution_count="3">
+<div id="registry-list" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:38:23.884569Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:38:23.884466Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:38:24.139914Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:38:24.139428Z&quot;}}" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>registry <span class="op">=</span> TraceRegistry()</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co"># List all available traces</span></span>
@@ -594,7 +594,7 @@ HTTP gateways:     4 configured
   coalescent_n5_theta1            Standard Kingman coalescent for n=5 haploid samples with theta parameter</code></pre>
 </div>
 </div>
-<div id="registry-filter" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T11:32:45.847609Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T11:32:45.847512Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T11:32:45.849670Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T11:32:45.849288Z&quot;}}" data-execution_count="4">
+<div id="registry-filter" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:38:24.141409Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:38:24.141300Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:38:24.143511Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:38:24.143156Z&quot;}}" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Filter by domain and model type</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>popgen <span class="op">=</span> registry.list_traces(</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    domain<span class="op">=</span><span class="st">"population-genetics"</span>,</span>
@@ -616,7 +616,7 @@ HTTP gateways:     4 configured
 <section id="downloading-a-trace" class="level2">
 <h2 class="anchored" data-anchor-id="downloading-a-trace">Downloading a trace</h2>
 <p>Use <code>get_trace()</code> to download and deserialise a trace. If the trace is already in your local cache it is loaded instantly.</p>
-<div id="download-trace" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T11:32:45.851042Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T11:32:45.850933Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T11:32:45.852880Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T11:32:45.852441Z&quot;}}" data-execution_count="5">
+<div id="download-trace" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:38:24.144838Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:38:24.144736Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:38:24.146627Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:38:24.146163Z&quot;}}" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Download by ID (cached automatically)</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co"># trace = registry.get_trace("coalescent_n5_theta1")</span></span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co"># print(f"Loaded trace: {trace.n_vertices} vertices, {len(trace.operations)} operations")</span></span>
@@ -634,7 +634,7 @@ HTTP gateways:     4 configured
 <section id="inspecting-the-source-of-a-trace" class="level2">
 <h2 class="anchored" data-anchor-id="inspecting-the-source-of-a-trace">Inspecting the source of a trace</h2>
 <p>When working with shared models, it is useful to know <em>where</em> a trace would be loaded from — local cache, the IPFS daemon, or a public HTTP gateway. The <code>trace_source()</code> method tells you without actually downloading anything.</p>
-<div id="trace-source" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T11:32:45.854298Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T11:32:45.854203Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T11:32:45.861170Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T11:32:45.860732Z&quot;}}" data-execution_count="6">
+<div id="trace-source" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:38:24.148109Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:38:24.148007Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:38:24.155802Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:38:24.155406Z&quot;}}" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Demonstrate trace_source() using a mock registry</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json, tempfile</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
@@ -665,7 +665,7 @@ HTTP gateways:     4 configured
 ========================================
   trace_id       : coalescent_n5
   cid            : QmYwAPJzv5CZsnN625s3Xf2nemtYgPpHdWEz79ojWnPbdG
-  cache_path     : /var/folders/s6/srs8qkh52w1_h32d65z95tth0000gn/T/tmp2oznmzve/traces/coalescent_n5/trace.json.gz
+  cache_path     : /var/folders/s6/srs8qkh52w1_h32d65z95tth0000gn/T/tmpsngobixg/traces/coalescent_n5/trace.json.gz
   cached         : False
   backend        : ipfs
   private_network: False
@@ -731,7 +731,7 @@ HTTP gateways:     4 configured
 <section id="live-demo-requires-ipfs-daemon" class="level3">
 <h3 class="anchored" data-anchor-id="live-demo-requires-ipfs-daemon">Live demo (requires IPFS daemon)</h3>
 <p>The cell below demonstrates the full pin/unpin cycle. It will only succeed if you have the IPFS daemon running. If the daemon is not available the cell prints an explanation instead.</p>
-<div id="pinning-demo" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T11:32:45.862687Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T11:32:45.862591Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T11:32:50.873117Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T11:32:50.872606Z&quot;}}" data-execution_count="7">
+<div id="pinning-demo" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:38:24.157540Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:38:24.157443Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:38:29.170588Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:38:29.170089Z&quot;}}" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.exceptions <span class="im">import</span> PTDBackendError</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>backend <span class="op">=</span> IPFSBackend()</span>
@@ -772,7 +772,7 @@ With a real published trace, pin() and unpin() work instantly.</code></pre>
 <section id="publishing-a-trace" class="level2">
 <h2 class="anchored" data-anchor-id="publishing-a-trace">Publishing a trace</h2>
 <p>To share a trace you have recorded, use <code>publish_trace()</code>. This uploads the trace to IPFS and optionally submits a pull request to the registry repository so that others can discover it.</p>
-<div id="publish-demo" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T11:32:50.874512Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T11:32:50.874407Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T11:32:50.876508Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T11:32:50.876161Z&quot;}}" data-execution_count="8">
+<div id="publish-demo" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:38:29.172582Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:38:29.172451Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:38:29.175008Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:38:29.174576Z&quot;}}" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Example publish workflow (requires IPFS daemon)</span></span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="co"># ------------------------------------------------</span></span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="co">#</span></span>
@@ -816,7 +816,7 @@ With a real published trace, pin() and unpin() work instantly.</code></pre>
 <li>The cached trace file is <strong>deleted</strong> to prevent accidental use</li>
 </ul>
 <p>To retract a trace <strong>globally</strong> (for all users), submit a PR to the registry repository that adds <code>"retracted": true</code> to the trace entry in <code>registry.json</code>.</p>
-<div id="retraction-demo" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T11:32:50.878044Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T11:32:50.877940Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T11:32:50.882652Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T11:32:50.882138Z&quot;}}" data-execution_count="9">
+<div id="retraction-demo" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:38:29.176432Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:38:29.176341Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:38:29.180781Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:38:29.180286Z&quot;}}" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json, tempfile</span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.trace_repository <span class="im">import</span> TraceRegistry</span>
@@ -881,7 +881,7 @@ get_trace() error:
 <section id="cache-management" class="level2">
 <h2 class="anchored" data-anchor-id="cache-management">Cache management</h2>
 <p>Downloaded traces are cached in <code>~/.phasic_cache/</code> by default. You can inspect and clear the cache with <code>clear_cache()</code>.</p>
-<div id="cache-demo" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T11:32:50.883989Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T11:32:50.883889Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T11:32:50.889450Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T11:32:50.889067Z&quot;}}" data-execution_count="10">
+<div id="cache-demo" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:38:29.182016Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:38:29.181934Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:38:29.187216Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:38:29.186751Z&quot;}}" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json, gzip, tempfile</span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
 <span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.trace_repository <span class="im">import</span> TraceRegistry</span>
@@ -922,7 +922,7 @@ Cleared 1 remaining cache entries</code></pre>
 <section id="using-a-custom-transport-backend" class="level2">
 <h2 class="anchored" data-anchor-id="using-a-custom-transport-backend">Using a custom transport backend</h2>
 <p>If IPFS is not suitable for your environment, you can implement your own <code>TransportBackend</code>. For example, an S3 backend:</p>
-<div id="custom-backend" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T11:32:50.890731Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T11:32:50.890654Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T11:32:50.894579Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T11:32:50.894063Z&quot;}}" data-execution_count="11">
+<div id="custom-backend" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-13T16:38:29.188513Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-13T16:38:29.188415Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-13T16:38:29.192009Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-13T16:38:29.191606Z&quot;}}" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic.trace_repository <span class="im">import</span> TransportBackend</span>
 <span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> S3Backend(TransportBackend):</span>
