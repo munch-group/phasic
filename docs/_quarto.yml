@@ -138,7 +138,6 @@ website:
             - pages/tutorial/joint-probability.ipynb
             - pages/tutorial/finite-markov-chains.ipynb
             - pages/tutorial/hex-grid.ipynb
-            - pages/tutorial/resistance-surface.ipynb
             # - pages/tutorial/state-lumping.ipynb
             # - pages/topics/R/partitioning.ipynb
         - section: "Topics"
