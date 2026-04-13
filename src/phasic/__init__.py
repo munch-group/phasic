@@ -2856,42 +2856,63 @@ class Graph(_Graph):
             return super().normalize(*args, **kwargs)
 
     @_invalidates_trace
-    def discretize(self, rate: float | Callable, skip_existing: bool = False, **kwargs: Any) -> NDArray[np.int64]:
-        """
-        Discretizes graph inplace and returns reward matrix for added auxiliary states.
+    def _discretize_inplace(self, rate: float | Callable, skip_existing: bool = False, **kwargs: Any) -> NDArray[np.int64]:
+        """COMPOSABLE_MIGRATION: original in-place discretize, kept for equivalence testing."""
+        # COMPOSABLE_MIGRATION: original implementation
+        # if not callable(rate):
+        #     if not isinstance(rate, (int, float, np.integer, np.floating)):
+        #         raise TypeError(f"rate must be a number or callable, got {type(rate).__name__}")
+        #     if rate <= 0 or rate >= 1:
+        #         raise ValueError(f"rate must be in (0, 1), got {rate}")
+        #
+        # vlength = self.vertices_length()
+        # aux_indices = []
+        #
+        # for vertex in self.vertices():
+        #     if vertex.index() == self.starting_vertex().index() or not vertex.edges():
+        #         continue
+        #
+        #     if skip_existing:
+        #         has_aux, is_aux = False, False
+        #         for edge in vertex.edges():
+        #             if edge.to().state().sum() == 0 and edge.to().edges_length() and edge.to().edges()[0].to().index() == vertex.index():
+        #                 has_aux = True
+        #                 aux_indices.append(edge.to().index())
+        #                 vlength -= 1
+        #                 break
+        #         if vertex.state().sum() == 0:
+        #             is_aux = True
+        #         if has_aux or is_aux:
+        #             continue
+        #
+        #     _rate = rate(vertex.state(), **kwargs) if callable(rate) else rate
+        #     aux_vertex = vertex.add_aux_vertex(_rate)
+        #     aux_vertex.set_aux(True)
+        #     aux_indices.append(aux_vertex.index())
+        #
+        # rewards = np.zeros(vlength+len(aux_indices), dtype=int)
+        # for index in aux_indices:
+        #     rewards[index] = 1
+        #
+        # weight_scaling = self.normalize()
+        #
+        # self.is_discrete = True
+        # self.set_was_dph(True)
+        #
+        # return rewards
 
-        Parameters
-        ----------
-        rate : 
-            float or callable
-        skip_existing : bool, optional
-            If True, skip vertices that already have auxiliary vertices, by default False
-
-        Returns
-        -------
-        :
-            Reward matrix for added auxiliary states
-        """
+        # Functional copy of original for equivalence testing
         if not callable(rate):
             if not isinstance(rate, (int, float, np.integer, np.floating)):
                 raise TypeError(f"rate must be a number or callable, got {type(rate).__name__}")
             if rate <= 0 or rate >= 1:
                 raise ValueError(f"rate must be in (0, 1), got {rate}")
 
-        # if not callable(rate):
-        #     def rate_fn(state):
-        #         rate = rate
-        #         return rate
-        #     rate = rate_fn
-
-        # new_graph = self.copy()
         vlength = self.vertices_length()
-
         aux_indices = []
 
         for vertex in self.vertices():
             if vertex.index() == self.starting_vertex().index() or not vertex.edges():
-                # skip starting and absorbing nodes
                 continue
 
             if skip_existing:
@@ -2900,7 +2921,7 @@ class Graph(_Graph):
                     if edge.to().state().sum() == 0 and edge.to().edges_length() and edge.to().edges()[0].to().index() == vertex.index():
                         has_aux = True
                         aux_indices.append(edge.to().index())
-                        vlength -= 1 # to not count vertex in both aux_indices and vlength
+                        vlength -= 1
                         break
                 if vertex.state().sum() == 0:
                     is_aux = True
@@ -2910,20 +2931,279 @@ class Graph(_Graph):
             _rate = rate(vertex.state(), **kwargs) if callable(rate) else rate
             aux_vertex = vertex.add_aux_vertex(_rate)
             aux_vertex.set_aux(True)
-
             aux_indices.append(aux_vertex.index())
 
         rewards = np.zeros(vlength+len(aux_indices), dtype=int)
         for index in aux_indices:
             rewards[index] = 1
 
-        weight_scaling = self.normalize()
-
+        self.normalize()
         self.is_discrete = True
-        self.set_was_dph(True)  # Enable auto-normalization in C update_weights()
+        self.set_was_dph(True)
 
         return rewards
-    
+
+    def discretize(self, rate: float | Callable, skip_existing: bool = False, **kwargs: Any) -> 'Graph':
+        """
+        Create a discretized copy of this graph.
+
+        Returns a new graph with auxiliary vertices added for each transient state.
+        The original graph is not modified.
+
+        Parameters
+        ----------
+        rate : float or callable
+            Discretization rate. If callable, receives state array and **kwargs,
+            must return a scalar rate (for non-parameterized graphs) or a
+            coefficient vector (for parameterized graphs).
+        skip_existing : bool, optional
+            If True, skip vertices that already have auxiliary vertices.
+
+        Returns
+        -------
+        Graph
+            New discretized graph with ``.rewards`` attribute containing the
+            reward vector (1 for auxiliary vertices, 0 otherwise).
+        """
+        if not callable(rate):
+            if not isinstance(rate, (int, float, np.integer, np.floating)):
+                raise TypeError(f"rate must be a number or callable, got {type(rate).__name__}")
+            if rate <= 0 or rate >= 1:
+                raise ValueError(f"rate must be in (0, 1), got {rate}")
+
+        # For parameterized graphs with scalar rate, widen layout to add a coeff slot
+        if self.parameterized() and not callable(rate):
+            new_graph = self._rebuild_with_wider_layout(extra_coeff_slots=1)
+            _discretize_rate_slot = new_graph.param_length() - 1
+        elif self.parameterized() and callable(rate):
+            # Callable on parameterized graph: caller provides coefficient vector
+            new_graph = self.clone()
+            _discretize_rate_slot = None
+        else:
+            new_graph = self.clone()
+            _discretize_rate_slot = None
+
+        vlength = new_graph.vertices_length()
+        aux_indices = []
+
+        for vertex in new_graph.vertices():
+            if vertex.index() == new_graph.starting_vertex().index() or not vertex.edges():
+                continue
+
+            if skip_existing:
+                has_aux, is_aux = False, False
+                for edge in vertex.edges():
+                    if edge.to().state().sum() == 0 and edge.to().edges_length() and edge.to().edges()[0].to().index() == vertex.index():
+                        has_aux = True
+                        aux_indices.append(edge.to().index())
+                        vlength -= 1
+                        break
+                if vertex.state().sum() == 0:
+                    is_aux = True
+                if has_aux or is_aux:
+                    continue
+
+            _rate = rate(vertex.state(), **kwargs) if callable(rate) else rate
+            # For parameterized graphs, add_aux_vertex needs a coefficient vector
+            if new_graph.parameterized() and _discretize_rate_slot is not None:
+                rate_coeffs = [0.0] * new_graph.param_length()
+                rate_coeffs[_discretize_rate_slot] = _rate
+                aux_vertex = vertex.add_aux_vertex(rate_coeffs)
+            elif new_graph.parameterized():
+                # Callable returned a coefficient vector
+                aux_vertex = vertex.add_aux_vertex(_rate)
+            else:
+                aux_vertex = vertex.add_aux_vertex(_rate)
+            aux_vertex.set_aux(True)
+            aux_indices.append(aux_vertex.index())
+
+        rewards = np.zeros(vlength + len(aux_indices), dtype=int)
+        for index in aux_indices:
+            rewards[index] = 1
+
+        new_graph.normalize()
+
+        new_graph.is_discrete = True
+        new_graph.set_was_dph(True)
+
+        new_graph.rewards = rewards
+        return new_graph
+
+    def add_epoch(self, time: float, callback: Callable | None = None, **kwargs: Any) -> 'Graph':
+        """
+        Add an epoch boundary, returning a new graph with epoch transition edges.
+
+        Computes transition rates from stop_probability(time) / accumulated_occupancy(time)
+        and wires up sister vertices in the next epoch. The new graph has one additional
+        state dimension (epoch index) if this is the first epoch, and one additional
+        coefficient slot (epoch transition rate).
+
+        Parameters
+        ----------
+        time : float
+            Time at which the epoch boundary occurs.
+        callback : callable, optional
+            Callback for building out new-epoch vertices. If None, uses the
+            stored callback from graph construction.
+        **kwargs
+            Additional keyword arguments merged with stored callback kwargs.
+
+        Returns
+        -------
+        Graph
+            New graph with epoch transitions wired up.
+        """
+        if callback is None and self._callback is None:
+            raise RuntimeError(
+                "No callback available. Either construct the graph with a callback "
+                "or provide one to add_epoch()."
+            )
+
+        # Determine if this is the first epoch (need to add state dimension)
+        is_first_epoch = not hasattr(self, '_epoch_state_index')
+        extra_state = 1 if is_first_epoch else 0
+
+        # Determine the base param_length (original callback's coefficient count)
+        if hasattr(self, '_base_param_length'):
+            base_param_length = self._base_param_length
+        else:
+            base_param_length = self.param_length()
+
+        # Each epoch adds: base_param_length slots (for per-epoch dynamics) + 1 slot (epoch transition)
+        extra_coeff = base_param_length + 1
+
+        # Rebuild with wider layout
+        new_graph = self._rebuild_with_wider_layout(
+            extra_state_dims=extra_state,
+            extra_coeff_slots=extra_coeff
+        )
+
+        # Track epoch metadata
+        if is_first_epoch:
+            new_graph._epoch_state_index = self.state_length()  # index of new epoch dim
+            new_graph._n_epochs = 1
+        else:
+            new_graph._epoch_state_index = self._epoch_state_index
+            new_graph._n_epochs = self._n_epochs + 1
+        new_graph._base_param_length = base_param_length
+
+        epoch_idx = new_graph._n_epochs  # current epoch number (0 was original)
+        epoch_state_idx = new_graph._epoch_state_index
+
+        # Compute transition rates on the ORIGINAL graph
+        stop_probs = np.array(self.stop_probability(time))
+        acc_occ = np.array(self.accumulated_occupancy(time))
+
+        with np.errstate(invalid='ignore'):
+            transition_rates = stop_probs / acc_occ
+
+        # Epoch transition coeff slot is the last slot in widened array
+        epoch_trans_coeff_idx = new_graph.param_length() - 1
+        # New epoch's dynamics coeff slots start after the previous param_length
+        new_epoch_dynamics_start = self.param_length()
+
+        # Wire epoch transitions on the new graph
+        n_vertices_before_extend = new_graph.vertices_length()
+
+        for i in range(1, n_vertices_before_extend):
+            vertex = new_graph.vertex_at(i)
+            state = vertex.state()
+
+            # Skip absorbing vertices
+            if vertex.edges_length() == 0:
+                continue
+
+            # Only process vertices in the previous epoch
+            if state[epoch_state_idx] != epoch_idx - 1:
+                continue
+
+            # Skip if transition rate is NaN (unreachable state)
+            if i >= len(transition_rates) or np.isnan(transition_rates[i]):
+                continue
+
+            # Create sister vertex in new epoch
+            sister_state = state.copy()
+            sister_state[epoch_state_idx] = epoch_idx
+            child = new_graph.find_or_create_vertex(sister_state)
+
+            # Add epoch transition edge with rate in the epoch transition slot
+            coeff = np.zeros(new_graph.param_length())
+            coeff[epoch_trans_coeff_idx] = transition_rates[i]
+            vertex.add_edge(child, list(coeff))
+
+        # Prepare callback for extending new-epoch vertices
+        # Use the base callback (before any epoch wrapping), not a previously wrapped callback
+        if callback is not None:
+            use_callback = callback
+        elif hasattr(self, '_base_callback') and self._base_callback is not None:
+            use_callback = self._base_callback
+        else:
+            use_callback = self._callback
+
+        use_kwargs = {}
+        if callback is None:
+            if hasattr(self, '_base_callback_kwargs') and self._base_callback_kwargs:
+                use_kwargs = self._base_callback_kwargs.copy()
+            elif self._callback_kwargs:
+                use_kwargs = self._callback_kwargs.copy()
+        use_kwargs.update(kwargs)
+
+        # Wrap callback to:
+        # 1. Strip epoch dimension from state before passing to original callback
+        # 2. Re-append epoch index to returned states
+        # 3. Route base coefficients to the correct per-epoch slots
+        _new_param_length = new_graph.param_length()
+        _new_epoch_dynamics_start = new_epoch_dynamics_start
+
+        def epoch_callback_wrapper(state, **kw):
+            # Only generate transitions for vertices in the current epoch
+            if state[epoch_state_idx] != epoch_idx:
+                return []
+
+            # Strip epoch dim added by add_epoch before passing to original callback
+            base_state = np.delete(state, epoch_state_idx)
+
+            # Call original callback
+            transitions = use_callback(base_state, **kw)
+
+            # Re-append epoch index and route coefficients to per-epoch slots
+            result = []
+            for transition in transitions:
+                # Handle both 2-tuple (state, coeffs) and 3-tuple (state, weight, coeffs) formats
+                if len(transition) == 2:
+                    child_state, coeffs = transition[0], transition[1]
+                elif len(transition) == 3:
+                    child_state, coeffs = transition[0], transition[2]
+                else:
+                    raise ValueError(f"Unexpected transition format with {len(transition)} elements")
+
+                # Re-insert epoch dimension
+                new_child = np.insert(np.asarray(child_state, dtype=int),
+                                      epoch_state_idx, epoch_idx)
+
+                # Route base coefficients to this epoch's slots
+                if not hasattr(coeffs, '__iter__'):
+                    coeffs = [coeffs]
+                coeffs_list = list(coeffs)
+
+                # Create full-width coefficient vector with zeros
+                padded = [0.0] * _new_param_length
+                # Place base coefficients at the new epoch's dynamics slots
+                for k, c in enumerate(coeffs_list[:base_param_length]):
+                    padded[_new_epoch_dynamics_start + k] = c
+
+                result.append([new_child, padded])
+            return result
+
+        # Extend graph to build out new-epoch vertices
+        new_graph._callback = epoch_callback_wrapper
+        new_graph._callback_kwargs = use_kwargs
+        # Store base callback for chained add_epoch calls
+        new_graph._base_callback = use_callback
+        new_graph._base_callback_kwargs = use_kwargs.copy()
+        new_graph.extend(epoch_callback_wrapper, **use_kwargs)
+
+        return new_graph
 
     def reward_transform(self, rewards:np.ndarray) -> Self:
         """
@@ -3045,7 +3325,16 @@ class Graph(_Graph):
         if self.is_discrete:
             raise ValueError("Laplace transform only available for continuous distributions. "
                            "Use z-transform for discrete distributions.")
-        return Graph(super().laplace_transform(theta))
+        result = Graph(super().laplace_transform(theta))
+        # Copy metadata from source graph
+        result._callback = self._callback
+        result._callback_kwargs = self._callback_kwargs.copy() if self._callback_kwargs else {}
+        result._weight_mode = self._weight_mode
+        result._weight_callback = self._weight_callback
+        result._last_callback_vertices_length = result.vertices_length()
+        # COMPOSABLE_MIGRATION: original implementation
+        # return Graph(super().laplace_transform(theta))
+        return result
 
     def absorbing_state_rewards(self) -> np.ndarray:
         """
@@ -6392,6 +6681,79 @@ extern "C" {{
         cloned._trace_dirty = True
         cloned._last_theta = None
         return cloned
+
+    def _rebuild_with_wider_layout(self, extra_state_dims=0, extra_coeff_slots=0,
+                                    state_fill=0, coeff_fill=0.0) -> 'Graph':
+        """Rebuild graph with wider state vectors and/or coefficient arrays.
+
+        Creates a new graph that is structurally identical to self but with
+        additional state dimensions and/or coefficient slots appended to each
+        vertex state and edge coefficient array respectively.
+
+        Parameters
+        ----------
+        extra_state_dims : int
+            Number of extra dimensions to append to each vertex state vector.
+        extra_coeff_slots : int
+            Number of extra slots to append to each edge coefficient array.
+        state_fill : int
+            Fill value for the new state dimensions (default 0).
+        coeff_fill : float
+            Fill value for the new coefficient slots (default 0.0).
+
+        Returns
+        -------
+        Graph
+            A new graph with wider layout. Python metadata is copied from self.
+        """
+        new_state_length = self.state_length() + extra_state_dims
+        new_param_length = self.param_length() + extra_coeff_slots
+
+        new_graph = Graph(new_state_length)
+
+        # Set param_length BEFORE adding any edges
+        if new_param_length > 0:
+            new_graph.set_param_length(new_param_length)
+
+        pad_state = np.full(extra_state_dims, state_fill, dtype=int) if extra_state_dims > 0 else np.array([], dtype=int)
+        pad_coeff = [coeff_fill] * extra_coeff_slots
+
+        # Map: old vertex index -> new vertex object
+        vertex_map = {}
+
+        # Starting vertex maps to new starting vertex
+        vertex_map[self.starting_vertex().index()] = new_graph.starting_vertex()
+
+        # Create all non-starting vertices first
+        for vertex in self.vertices():
+            idx = vertex.index()
+            if idx == self.starting_vertex().index():
+                continue
+            new_state = np.append(vertex.state(), pad_state).astype(int)
+            new_vertex = new_graph.find_or_create_vertex(new_state)
+            vertex_map[idx] = new_vertex
+
+        # Copy all edges with padded coefficients
+        for vertex in self.vertices():
+            old_idx = vertex.index()
+            new_vertex = vertex_map[old_idx]
+            if self.parameterized():
+                for edge in vertex.parameterized_edges():
+                    coeffs = list(edge.edge_state(self.param_length())) + pad_coeff
+                    new_vertex.add_edge(vertex_map[edge.to().index()], coeffs)
+            else:
+                for edge in vertex.edges():
+                    new_vertex.add_edge(vertex_map[edge.to().index()], edge.weight())
+
+        # Copy Python metadata
+        new_graph._callback = self._callback
+        new_graph._callback_kwargs = self._callback_kwargs.copy() if self._callback_kwargs else {}
+        new_graph._weight_mode = self._weight_mode
+        new_graph._weight_callback = self._weight_callback
+        new_graph.is_discrete = self.is_discrete
+        new_graph._last_callback_vertices_length = new_graph.vertices_length()
+
+        return new_graph
 
     def compute_trace(self, param_length: int | None = None,
                      hierarchical: bool = True,

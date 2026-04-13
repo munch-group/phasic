@@ -57,7 +57,10 @@
       "Bash(pdftotext /Users/kmt/phasic/source_docs/roikjer.pdf -)",
       "WebFetch(domain:en.wikipedia.org)",
       "WebFetch(domain:www2.imm.dtu.dk)",
-      "WebFetch(domain:quarto.org)"
+      "WebFetch(domain:quarto.org)",
+      "Bash(grep -E \"\\\\.py$|\\\\.pyx$|\\\\.pxd$\")",
+      "Bash(grep -rn \"\\\\.copy\\(\\)\" /Users/kmt/phasic/tests/pytest/*.py)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

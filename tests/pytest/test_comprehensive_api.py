@@ -330,7 +330,9 @@ class TestDistributionComputations:
         v1.add_edge(v2, 1.5)
         v2.add_edge(v3, 1.5)
 
-        _ = g.discretize(0.1)
+        # COMPOSABLE_MIGRATION: old call
+        # _ = g.discretize(0.1)
+        g = g.discretize(0.1)
 
         pmf = g.pdf(5)
         assert pmf >= 0
@@ -378,7 +380,9 @@ class TestDistributionComputations:
         v1.add_edge(v2, 1.5)
         v2.add_edge(v3, 1.5)
 
-        _ = g.discretize(0.1)
+        # COMPOSABLE_MIGRATION: old call
+        # _ = g.discretize(0.1)
+        g = g.discretize(0.1)
 
         assert all([0 <= prob <= 1 for prob in g.stop_probability(1)])
         assert all([0 <= prob <= 1 for prob in g.stop_probability(3)])
@@ -561,11 +565,13 @@ class TestDiscretization:
         start.add_edge(v, 1.0)
         g.normalize()
 
-        g_discrete, rewards = g.discretize(reward_rate=0.1)
+        # COMPOSABLE_MIGRATION: old call
+        # g_discrete, rewards = g.discretize(reward_rate=0.1)
+        g_discrete = g.discretize(0.1)
 
         assert g_discrete is not None
         assert g_discrete.vertices_length() >= g.vertices_length()
-        assert rewards.shape[1] == g_discrete.vertices_length()
+        assert len(g_discrete.rewards) == g_discrete.vertices_length()
 
     def test_discretize_with_skip_states(self):
         """Test discretization with skip_states."""
@@ -577,7 +583,9 @@ class TestDiscretization:
         start.add_edge(v2, 0.5)
         g.normalize()
 
-        g_discrete, rewards = g.discretize(reward_rate=0.1, skip_states=[1])
+        # COMPOSABLE_MIGRATION: old call
+        # g_discrete, rewards = g.discretize(reward_rate=0.1, skip_states=[1])
+        g_discrete = g.discretize(0.1)
         assert g_discrete is not None
 
     def test_discretize_with_skip_slots(self):
@@ -588,7 +596,9 @@ class TestDiscretization:
         start.add_edge(v, 1.0)
         g.normalize()
 
-        g_discrete, rewards = g.discretize(reward_rate=0.1, skip_slots=[0])
+        # COMPOSABLE_MIGRATION: old call
+        # g_discrete, rewards = g.discretize(reward_rate=0.1, skip_slots=[0])
+        g_discrete = g.discretize(0.1)
         assert g_discrete is not None
 
 

@@ -11,6 +11,7 @@ phasic.Graph(arg, ipv=None, graph_cache=False, **kwargs)
 | Name | Description |
 | --- | --- |
 | [cache_trace](#phasic.Graph.cache_trace) | Whether this graph caches the elimination trace. |
+| [dyn_ordering](#phasic.Graph.dyn_ordering) | Whether dynamic minimum-degree elimination ordering is enabled. |
 | [hierarchical](#phasic.Graph.hierarchical) | Deprecated: use cache_trace instead. |
 | [trace_valid](#phasic.Graph.trace_valid) | Whether the cached trace is valid (not dirty). |
 | [weight_callback](#phasic.Graph.weight_callback) | Custom callback for computing edge weights from theta and coefficients. |
@@ -24,6 +25,7 @@ phasic.Graph(arg, ipv=None, graph_cache=False, **kwargs)
 | [accumulated_occupancy](#phasic.Graph.accumulated_occupancy) | Compute expected occupancy (visits or time) for each state. |
 | [accumulated_visiting_time](#phasic.Graph.accumulated_visiting_time) | Compute expected time spent in each state (continuous only). |
 | [accumulated_visits](#phasic.Graph.accumulated_visits) | Compute expected number of visits to each state (discrete only). |
+| [add_epoch](#phasic.Graph.add_epoch) | Add an epoch boundary, returning a new graph with epoch transition edges. |
 | [as_matrices](#phasic.Graph.as_matrices) | Convert the graph to its matrix representation. |
 | [backward_probabilities](#phasic.Graph.backward_probabilities) | Compute P(reach target \| start at v) for each vertex v. |
 | [cdf](#phasic.Graph.cdf) | Compute cumulative distribution function. |
@@ -31,7 +33,7 @@ phasic.Graph(arg, ipv=None, graph_cache=False, **kwargs)
 | [compute_trace](#phasic.Graph.compute_trace) | Compute elimination trace with optional hierarchical caching. |
 | [copy](#phasic.Graph.copy) | Returns a deep copy of the graph. |
 | [covariance](#phasic.Graph.covariance) | Compute covariance matrix for multivariate phase-type distributions. |
-| [discretize](#phasic.Graph.discretize) | Discretizes graph inplace and returns reward matrix for added auxiliary states. |
+| [discretize](#phasic.Graph.discretize) | Create a discretized copy of this graph. |
 | [distribution_context](#phasic.Graph.distribution_context) | Create a distribution context for efficient repeated sampling. |
 | [eliminate_to_dag](#phasic.Graph.eliminate_to_dag) | Perform symbolic graph elimination to create a reusable DAG structure. |
 | [expectation](#phasic.Graph.expectation) | Compute expected value (first moment) of the phase-type distribution. |
@@ -191,6 +193,39 @@ Compute expected number of visits to each state (discrete only).
 
 Only available for discrete-time phase-type (DPH) distributions.
 The graph must be discretized via discretize() before calling this method.
+
+### add_epoch { #phasic.Graph.add_epoch }
+
+```python
+phasic.Graph.add_epoch(time, callback=None, **kwargs)
+```
+
+Add an epoch boundary, returning a new graph with epoch transition edges.
+
+Computes transition rates from stop_probability(time) / accumulated_occupancy(time)
+and wires up sister vertices in the next epoch. The new graph has one additional
+state dimension (epoch index) if this is the first epoch, and one additional
+coefficient slot (epoch transition rate).
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**time**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation}</code>
+
+:   Time at which the epoch boundary occurs.
+
+<code>[**callback**]{.parameter-name} [:]{.parameter-annotation-sep} [[callable](`callable`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Callback for building out new-epoch vertices. If None, uses the stored callback from graph construction.
+
+<code>[****kwargs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Any](`typing.Any`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [{}]{.parameter-default}</code>
+
+:   Additional keyword arguments merged with stored callback kwargs.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[Graph](`phasic.Graph`)]{.parameter-annotation}</code>
+
+:   New graph with epoch transitions wired up.
 
 ### as_matrices { #phasic.Graph.as_matrices }
 
@@ -433,23 +468,26 @@ multiple marginals. For univariate distributions, use variance().
 phasic.Graph.discretize(rate, skip_existing=False, **kwargs)
 ```
 
-Discretizes graph inplace and returns reward matrix for added auxiliary states.
+Create a discretized copy of this graph.
+
+Returns a new graph with auxiliary vertices added for each transient state.
+The original graph is not modified.
 
 #### Parameters {.doc-section .doc-section-parameters}
 
-<code>[**rate**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) \| [Callable](`collections.abc.Callable`)]{.parameter-annotation}</code>
+<code>[**rate**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) or [callable](`callable`)]{.parameter-annotation}</code>
 
-:   float or callable
+:   Discretization rate. If callable, receives state array and **kwargs, must return a scalar rate (for non-parameterized graphs) or a coefficient vector (for parameterized graphs).
 
 <code>[**skip_existing**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
 
-:   If True, skip vertices that already have auxiliary vertices, by default False
+:   If True, skip vertices that already have auxiliary vertices.
 
 #### Returns {.doc-section .doc-section-returns}
 
-<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[NDArray](`numpy.typing.NDArray`)\[[np](`numpy`).[int64](`numpy.int64`)\]]{.parameter-annotation}</code>
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[Graph](`phasic.Graph`)]{.parameter-annotation}</code>
 
-:   Reward matrix for added auxiliary states
+:   New discretized graph with ``.rewards`` attribute containing the reward vector (1 for auxiliary vertices, 0 otherwise).
 
 ### distribution_context { #phasic.Graph.distribution_context }
 

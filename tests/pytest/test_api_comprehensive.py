@@ -395,7 +395,9 @@ def test_sample_discrete():
     start.add_edge(v1, 2.0)
     v1.add_edge(v2, 2.0)
     
-    rewards = g.discretize(0.1)
+    # COMPOSABLE_MIGRATION: old call
+    # rewards = g.discretize(0.1)
+    g = g.discretize(0.1)
 
     sample_result = g.sample(10)
     # sample_discrete() may return list or array
@@ -418,14 +420,16 @@ def test_discretize_basic():
     v1.add_edge(v2, 2.0)
     vertices_length_before = g.vertices_length()
 
-    rewards = g.discretize(0.1)
+    # COMPOSABLE_MIGRATION: old call
+    # rewards = g.discretize(0.1)
+    g = g.discretize(0.1)
     assert g.is_discrete == True
 
     vertices_length_after = g.vertices_length()
 
     assert g is not None
     assert vertices_length_after >= vertices_length_before
-    assert rewards.size == vertices_length_after
+    assert g.rewards.size == vertices_length_after
 
 
 # ============================================================================
