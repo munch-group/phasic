@@ -361,12 +361,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  <span class="menu-text">Hex grid spatial models</span></a>
   </div>
 </li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/resistance-surface.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Estimating migration surfaces</span></a>
-  </div>
-</li>
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
@@ -447,7 +441,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 <p>To make it easier to work with complex state spaces phasic sports <code>StateIndexer</code> utility that lets you create the state space from combinations of state properties so you can map between these and the state vector indices. It also provides a flexible way to map between flat the integer indices of the state vector and structured state properties.</p>
-<div id="f1406457" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:25.266589Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:25.266492Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.609525Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.608890Z&quot;}}" data-execution_count="1">
+<div id="f1406457" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:50.127535Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:50.127446Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.027148Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.026635Z&quot;}}" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph, with_ipv, StateIndexer, PropertySet, Property</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
@@ -543,7 +537,7 @@ table {
 <section id="basic-property-and-propertyset" class="level2">
 <h2 class="anchored" data-anchor-id="basic-property-and-propertyset">Basic Property and PropertySet</h2>
 <p>A <code>Property</code> defines a single dimension of state with a name and valid value range.</p>
-<div id="9f17e1bf" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.611505Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.611299Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.613967Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.613399Z&quot;}}" data-execution_count="2">
+<div id="9f17e1bf" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.028717Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.028558Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.031016Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.030605Z&quot;}}" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Simple property: number of descendants (0 to 10)</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>descendants <span class="op">=</span> Property(<span class="st">'descendants'</span>, max_value<span class="op">=</span><span class="dv">10</span>)</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -559,7 +553,7 @@ Valid values: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]</code></pre>
 </div>
 </div>
 <p>Property with offset min_value: population labels 1-3</p>
-<div id="96994836" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.615683Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.615564Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.618220Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.617371Z&quot;}}" data-execution_count="3">
+<div id="96994836" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.032382Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.032278Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.034285Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.033782Z&quot;}}" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>population <span class="op">=</span> Property(<span class="st">'population'</span>, max_value<span class="op">=</span><span class="dv">3</span>, min_value<span class="op">=</span><span class="dv">1</span>)</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Valid range: [</span><span class="sc">{</span>population<span class="sc">.</span>min_value<span class="sc">}</span><span class="ss">, </span><span class="sc">{</span>population<span class="sc">.</span>max_value<span class="sc">}</span><span class="ss">]"</span>)</span>
@@ -572,7 +566,7 @@ Valid values: [1, 2, 3]</code></pre>
 <section id="single-propertyset" class="level3">
 <h3 class="anchored" data-anchor-id="single-propertyset">Single PropertySet</h3>
 <p>A <code>StateIndexer</code> with one <code>PropertySet</code> provides a simple state space. Create indexer with single property:</p>
-<div id="97ccf531" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.620519Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.620352Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.623443Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.622910Z&quot;}}" data-execution_count="4">
+<div id="97ccf531" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.035512Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.035414Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.038057Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.037644Z&quot;}}" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create indexer with single property</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>indexer <span class="op">=</span> StateIndexer(</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    lineage<span class="op">=</span>[Property(<span class="st">'descendants'</span>, max_value<span class="op">=</span><span class="dv">10</span>)]</span>
@@ -589,7 +583,7 @@ PropertySet: PropertySet('lineage', state_length=11, properties=1)</code></pre>
 <section id="conversion-between-index-and-properties" class="level3">
 <h3 class="anchored" data-anchor-id="conversion-between-index-and-properties">Conversion between index and properties</h3>
 <p>Convert between flat indices and property values:</p>
-<div id="1b758ab3" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.625150Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.625054Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.629111Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.628404Z&quot;}}" data-execution_count="5">
+<div id="1b758ab3" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.039337Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.039246Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.042379Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.041822Z&quot;}}" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Index to properties (returns dataclass by default)</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>props <span class="op">=</span> indexer.lineage.i2p(<span class="dv">5</span>)</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Index 5: </span><span class="sc">{</span>props<span class="sc">}</span><span class="ss">"</span>)</span>
@@ -618,7 +612,7 @@ Dataclass: index 5</code></pre>
 <section id="combinatorial-state-space-with-multiple-properties" class="level3">
 <h3 class="anchored" data-anchor-id="combinatorial-state-space-with-multiple-properties">Combinatorial State Space with multiple Properties</h3>
 <p>When you have multiple properties, <code>StateIndexer</code> creates a combinatorial space using mixed-radix encoding.</p>
-<div id="b70fcf1b" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.630969Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.630860Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.637832Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.637290Z&quot;}}" data-execution_count="6">
+<div id="b70fcf1b" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.043910Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.043813Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.049694Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.049282Z&quot;}}" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Two properties: derived allele status (0 or 1) × descendants (0 to 4)</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>indexer2 <span class="op">=</span> StateIndexer(</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    lineage<span class="op">=</span>[</span>
@@ -653,7 +647,7 @@ All states:
 <section id="slots-for-simple-metadata-storage" class="level3">
 <h3 class="anchored" data-anchor-id="slots-for-simple-metadata-storage">Slots for Simple Metadata Storage</h3>
 <p>“Slots” are single-index storage positions for metadata. Unlike <code>PropertySets</code>, they don’t create combinatorial spaces.</p>
-<div id="9a722250" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.639891Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.639726Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.643423Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.642535Z&quot;}}" data-execution_count="7">
+<div id="9a722250" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.051238Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.051153Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.053965Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.053534Z&quot;}}" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>indexer3 <span class="op">=</span> StateIndexer(</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">'epoch'</span>, <span class="st">'frequency'</span>,  <span class="co"># Positional slots</span></span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    lineage<span class="op">=</span>[Property(<span class="st">'descendants'</span>, max_value<span class="op">=</span><span class="dv">10</span>)]</span>
@@ -674,7 +668,7 @@ Total indices: 13</code></pre>
 <section id="index-ranges" class="level3">
 <h3 class="anchored" data-anchor-id="index-ranges">Index Ranges</h3>
 <p>Use <code>index_ranges</code> to see how indices are allocated:</p>
-<div id="2cd4383e" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.645549Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.645364Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.648562Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.647750Z&quot;}}" data-execution_count="8">
+<div id="2cd4383e" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.055349Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.055261Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.057557Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.057170Z&quot;}}" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Index allocation:"</span>)</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name, (start, end) <span class="kw">in</span> indexer3.index_ranges.items():</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> start <span class="op">==</span> end:</span>
@@ -691,7 +685,7 @@ Total indices: 13</code></pre>
 </section>
 <section id="using-slots-with-index_to_props" class="level3">
 <h3 class="anchored" data-anchor-id="using-slots-with-index_to_props">Using Slots with index_to_props</h3>
-<div id="73e15b8e" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.650459Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.650306Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.653386Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.652896Z&quot;}}" data-execution_count="9">
+<div id="73e15b8e" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.058836Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.058746Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.061654Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.061171Z&quot;}}" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Check what index 11 (epoch slot) maps to</span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> indexer3.i2p(<span class="dv">11</span>)</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Index 11:"</span>)</span>
@@ -720,7 +714,7 @@ Index 5:
 <section id="multiple-propertysets" class="level2">
 <h2 class="anchored" data-anchor-id="multiple-propertysets">Multiple PropertySets</h2>
 <p>Organize related properties into separate <code>PropertySets</code> for clarity and modularity.</p>
-<div id="59a2ed2f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.655461Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.655335Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.659827Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.658924Z&quot;}}" data-execution_count="10">
+<div id="59a2ed2f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.062884Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.062788Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.065925Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.065427Z&quot;}}" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Separate lineage properties from metadata</span></span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>indexer4 <span class="op">=</span> StateIndexer(</span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">'epoch'</span>, <span class="st">'frequency'</span>,  <span class="co"># Slots</span></span>
@@ -755,7 +749,7 @@ Index allocation:
 </div>
 </div>
 <p>Access PropertySets directly:</p>
-<div id="0980377d" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.662025Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.661870Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.667453Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.666661Z&quot;}}" data-execution_count="11">
+<div id="0980377d" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.067112Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.067037Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.072093Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.071599Z&quot;}}" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Lineage states:"</span>)</span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">list</span>(indexer4.lineage)[:<span class="dv">5</span>]:  <span class="co"># First 5</span></span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    props <span class="op">=</span> indexer4.lineage.i2p(i)</span>
@@ -783,7 +777,7 @@ Metadata states (first 3):
 <section id="flatten-mode---simplified-access" class="level2">
 <h2 class="anchored" data-anchor-id="flatten-mode---simplified-access">Flatten Mode - Simplified Access</h2>
 <p>When working with a single PropertySet, use <code>flatten=True</code> to skip the wrapper object.</p>
-<div id="1f8c21db" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.669610Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.669395Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.673242Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.672483Z&quot;}}" data-execution_count="12">
+<div id="1f8c21db" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.073327Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.073239Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.076504Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.075998Z&quot;}}" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Without flatten (default)</span></span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> indexer4.i2p(<span class="dv">5</span>)</span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Without flatten: </span><span class="sc">{</span>result<span class="sc">}</span><span class="ss">"</span>)</span>
@@ -802,7 +796,7 @@ With flatten=True: LineageProps(derived=1, descendants=2)
 </div>
 </div>
 <p>When iterating over a PropertySet, <code>flatten=True</code> is usually what you want:</p>
-<div id="dd155431" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.675266Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.675125Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.680108Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.679469Z&quot;}}" data-execution_count="13">
+<div id="dd155431" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.078045Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.077955Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.082202Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.081724Z&quot;}}" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Common pattern: roundtrip within a PropertySet</span></span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Roundtrip demonstration:"</span>)</span>
 <span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">list</span>(indexer4.lineage)[:<span class="dv">5</span>]:</span>
@@ -822,7 +816,7 @@ With flatten=True: LineageProps(derived=1, descendants=2)
 <section id="auto-detection-magic" class="level2">
 <h2 class="anchored" data-anchor-id="auto-detection-magic">Auto-Detection Magic</h2>
 <p>When property names are unique across <code>PropertySets</code>, StateIndexer automatically detects which PropertySet you’re referring to.</p>
-<div id="e94b2947" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.682190Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.682071Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.686326Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.685731Z&quot;}}" data-execution_count="14">
+<div id="e94b2947" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.083413Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.083327Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.086485Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.086112Z&quot;}}" data-execution_count="14">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Properties are unique: 'derived', 'descendants' only in lineage; 'time_bin' only in metadata</span></span>
 <span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>indexer5 <span class="op">=</span> StateIndexer(</span>
 <span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    lineage<span class="op">=</span>[</span>
@@ -853,7 +847,7 @@ Kwargs also work: 5</code></pre>
 <section id="when-auto-detection-fails-helpful-errors" class="level3">
 <h3 class="anchored" data-anchor-id="when-auto-detection-fails-helpful-errors">When Auto-Detection Fails: Helpful Errors</h3>
 <p>If property names are <strong>ambiguous</strong> or <strong>not found</strong>, you get a helpful error message:</p>
-<div id="ce2e443f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.688157Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.688030Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.691461Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.690898Z&quot;}}" data-execution_count="15">
+<div id="ce2e443f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.087994Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.087901Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.090796Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.090340Z&quot;}}" data-execution_count="15">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create indexer with ambiguous property 'count' in both PropertySets</span></span>
 <span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>indexer_ambig <span class="op">=</span> StateIndexer(</span>
 <span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>    lineage<span class="op">=</span>[Property(<span class="st">'count'</span>, max_value<span class="op">=</span><span class="dv">10</span>)],</span>
@@ -875,7 +869,7 @@ Use indexer.pset_name.p2i(props) to specify explicitly.</code></pre>
 </div>
 </div>
 <p>Property not found:</p>
-<div id="63e49fa3" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.693156Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.693061Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.695295Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.694849Z&quot;}}" data-execution_count="16">
+<div id="63e49fa3" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.092035Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.091953Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.094032Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.093652Z&quot;}}" data-execution_count="16">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
 <span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>    idx <span class="op">=</span> indexer5.p2i({<span class="st">'nonexistent'</span>: <span class="dv">5</span>})</span>
 <span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> <span class="pp">ValueError</span> <span class="im">as</span> e:</span>
@@ -894,7 +888,7 @@ Use indexer.pset_name.p2i(props) instead.</code></pre>
 <section id="explicit-propertyset-selection" class="level3">
 <h3 class="anchored" data-anchor-id="explicit-propertyset-selection">Explicit PropertySet Selection</h3>
 <p>When auto-detection doesn’t work (or you want to be explicit), specify the <code>PropertySet</code>:</p>
-<div id="d3966cea" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.697072Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.696972Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.699742Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.699256Z&quot;}}" data-execution_count="17">
+<div id="d3966cea" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.095307Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.095216Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.097502Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.097154Z&quot;}}" data-execution_count="17">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Explicit PropertySet access</span></span>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>idx <span class="op">=</span> indexer_ambig.lineage.p2i({<span class="st">'count'</span>: <span class="dv">5</span>})</span>
 <span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"lineage.count=5: index </span><span class="sc">{</span>idx<span class="sc">}</span><span class="ss">"</span>)</span>
@@ -916,7 +910,7 @@ Explicit 'lineage': index 5</code></pre>
 <section id="advanced-features" class="level2">
 <h2 class="anchored" data-anchor-id="advanced-features">Advanced Features</h2>
 <p>Query all states matching a partial property specification:</p>
-<div id="7ae56704" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.701668Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.701543Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.707143Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.706487Z&quot;}}" data-execution_count="18">
+<div id="7ae56704" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.098724Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.098632Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.103029Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.102595Z&quot;}}" data-execution_count="18">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>indexer6 <span class="op">=</span> StateIndexer(</span>
 <span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>    lineage<span class="op">=</span>[</span>
 <span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>        Property(<span class="st">'derived'</span>, max_value<span class="op">=</span><span class="dv">1</span>),</span>
@@ -940,7 +934,7 @@ Properties:
   9: LineageProps(derived=1, descendants=4)</code></pre>
 </div>
 </div>
-<div id="ea3211dc" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.708875Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.708724Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.712354Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.711724Z&quot;}}" data-execution_count="19">
+<div id="ea3211dc" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.104375Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.104289Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.107160Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.106680Z&quot;}}" data-execution_count="19">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Find all states with descendants=3</span></span>
 <span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>indices <span class="op">=</span> indexer6.lineage.p2i({<span class="st">'descendants'</span>: <span class="dv">3</span>})</span>
 <span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">All states with descendants=3: </span><span class="sc">{</span>indices<span class="sc">}</span><span class="ss">"</span>)</span>
@@ -959,7 +953,7 @@ Properties:
 <section id="vectorized-operations" class="level2">
 <h2 class="anchored" data-anchor-id="vectorized-operations">Vectorized Operations</h2>
 <p>Convert arrays of indices efficiently:</p>
-<div id="65cf9ecb" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.714401Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.714290Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.717469Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.716884Z&quot;}}" data-execution_count="20">
+<div id="65cf9ecb" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.108462Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.108369Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.111043Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.110609Z&quot;}}" data-execution_count="20">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>indices <span class="op">=</span> np.array([<span class="dv">0</span>, <span class="dv">2</span>, <span class="dv">4</span>, <span class="dv">6</span>, <span class="dv">8</span>])</span>
 <span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> indexer6.lineage.i2p(indices)</span>
 <span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -976,7 +970,7 @@ Properties:
 </div>
 </div>
 <p>Get as 2D array:</p>
-<div id="edc671e6" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.719647Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.719500Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.722149Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.721558Z&quot;}}" data-execution_count="21">
+<div id="edc671e6" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.112211Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.112118Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.114258Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.113911Z&quot;}}" data-execution_count="21">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>values <span class="op">=</span> indexer6.lineage.i2p(indices, as_values<span class="op">=</span><span class="va">True</span>)</span>
 <span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">As 2D array:</span><span class="ch">\n</span><span class="sc">{</span>values<span class="sc">}</span><span class="ss">"</span>)</span>
 <span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Shape: </span><span class="sc">{</span>values<span class="sc">.</span>shape<span class="sc">}</span><span class="ss"> (n_indices, n_properties)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -996,7 +990,7 @@ Shape: (5, 2) (n_indices, n_properties)</code></pre>
 <h2 class="anchored" data-anchor-id="best-practices">Best Practices</h2>
 <p>Use descriptive property names:</p>
 <p>Keep property names unique across <code>PropertySets</code></p>
-<div id="80a37de9" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.723907Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.723799Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.727230Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.726456Z&quot;}}" data-execution_count="22">
+<div id="80a37de9" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.115648Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.115514Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.118230Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.117746Z&quot;}}" data-execution_count="22">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Good: enables auto-detection</span></span>
 <span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>indexer_unique <span class="op">=</span> StateIndexer(</span>
 <span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>    lineage<span class="op">=</span>[Property(<span class="st">'descendants'</span>, max_value<span class="op">=</span><span class="dv">10</span>)],</span>
@@ -1011,7 +1005,7 @@ Shape: (5, 2) (n_indices, n_properties)</code></pre>
 </div>
 </div>
 <p>Use <code>flatten=True</code> when iterating a single <code>PropertySet</code>:</p>
-<div id="faeecdc9" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.729038Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.728940Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.735399Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.734556Z&quot;}}" data-execution_count="23">
+<div id="faeecdc9" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.119653Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.119551Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.125557Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.124934Z&quot;}}" data-execution_count="23">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Good: clean and direct</span></span>
 <span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> indexer_unique.lineage:</span>
 <span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>    props <span class="op">=</span> indexer_unique.i2p(i, flatten<span class="op">=</span><span class="va">True</span>)</span>
@@ -1024,7 +1018,7 @@ Shape: (5, 2) (n_indices, n_properties)</code></pre>
 </div>
 </div>
 <p>Use <code>PropertySet</code> methods directly when explicit:</p>
-<div id="4f3a98c8" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.737329Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.737179Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.743056Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.742510Z&quot;}}" data-execution_count="24">
+<div id="4f3a98c8" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.126886Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.126798Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.132363Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.131839Z&quot;}}" data-execution_count="24">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb46"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Good: explicit and clear</span></span>
 <span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> indexer_unique.lineage:</span>
 <span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>    props <span class="op">=</span> indexer_unique.lineage.i2p(i)</span>
@@ -1036,7 +1030,7 @@ Shape: (5, 2) (n_indices, n_properties)</code></pre>
 <pre><code>✓ Explicit PropertySet access</code></pre>
 </div>
 </div>
-<div id="5ff62d7f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.744880Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.744591Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.748026Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.747454Z&quot;}}" data-execution_count="25">
+<div id="5ff62d7f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.133534Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.133448Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.136348Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.135893Z&quot;}}" data-execution_count="25">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb48"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>nr_samples <span class="op">=</span> <span class="dv">4</span></span>
 <span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>indexer <span class="op">=</span> StateIndexer(</span>
 <span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>    n_descendants<span class="op">=</span>[</span>
@@ -1049,20 +1043,20 @@ Shape: (5, 2) (n_indices, n_properties)</code></pre>
 <pre><code>StateIndexer(n_descendants=[locus1:0-4, locus2:0-4])</code></pre>
 </div>
 </div>
-<div id="3b52cb01" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.749484Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.749388Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.751997Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.751285Z&quot;}}" data-execution_count="26">
+<div id="3b52cb01" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.137532Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.137450Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.139760Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.139293Z&quot;}}" data-execution_count="26">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb50"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>indexer.state_length</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="26">
 <pre><code>25</code></pre>
 </div>
 </div>
-<div id="bc636457" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.753549Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.753453Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.756164Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.755663Z&quot;}}" data-execution_count="27">
+<div id="bc636457" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.140950Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.140867Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.143035Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.142537Z&quot;}}" data-execution_count="27">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb52"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>indexer.n_descendants</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="27">
 <pre><code>PropertySet('n_descendants', state_length=25, properties=2)</code></pre>
 </div>
 </div>
 <p>Each index in the state vector maps to a set of property values:</p>
-<div id="a759f6ac" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.757855Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.757749Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.768876Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.768246Z&quot;}}" data-execution_count="28">
+<div id="a759f6ac" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.144311Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.144225Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.154730Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.154236Z&quot;}}" data-execution_count="28">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb54"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'index'</span>, <span class="st">'locus1'</span>, <span class="st">'locus2'</span>, sep<span class="op">=</span><span class="st">'</span><span class="ch">\t</span><span class="st">'</span>)</span>
 <span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a><span class="co"># you can iterate over indices of a property set</span></span>
@@ -1099,20 +1093,20 @@ Shape: (5, 2) (n_indices, n_properties)</code></pre>
 </div>
 </div>
 <p>You can map back from properties to index:</p>
-<div id="d77e0167" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.770965Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.770782Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.774324Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.773403Z&quot;}}" data-execution_count="29">
+<div id="d77e0167" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.156069Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.155976Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.158794Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.158227Z&quot;}}" data-execution_count="29">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb56"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a>props <span class="op">=</span> indexer.n_descendants.index_to_props(<span class="dv">5</span>) </span>
 <span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a>props.locus1, props.locus2</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="29">
 <pre><code>(0, 1)</code></pre>
 </div>
 </div>
-<div id="1a37dea9" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.776200Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.776095Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.778870Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.778205Z&quot;}}" data-execution_count="30">
+<div id="1a37dea9" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.159986Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.159897Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.162031Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.161631Z&quot;}}" data-execution_count="30">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb58"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a>indexer.n_descendants.props_to_index(props)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="30">
 <pre><code>5</code></pre>
 </div>
 </div>
-<div id="3aab1bd9" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.780831Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.780643Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:27.783463Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:27.782898Z&quot;}}" data-execution_count="31">
+<div id="3aab1bd9" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.163282Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.163205Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.165617Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.165134Z&quot;}}" data-execution_count="31">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb60"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a>indexer.n_descendants.props_to_index(locus1<span class="op">=</span>props.locus1 <span class="op">+</span> <span class="dv">1</span>, </span>
 <span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a>                                     locus2<span class="op">=</span>props.locus2)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="31">
@@ -1120,7 +1114,7 @@ Shape: (5, 2) (n_indices, n_properties)</code></pre>
 </div>
 </div>
 <p>Two-locus ARG:</p>
-<div id="eaf301b1" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:27.785218Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:27.785072Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:28.592010Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:28.591401Z&quot;}}" data-execution_count="32">
+<div id="eaf301b1" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.166828Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.166740Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.647834Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.647293Z&quot;}}" data-execution_count="32">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb62"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="co"># zero state vector with appropriate size</span></span>
 <span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a>initial <span class="op">=</span> [<span class="dv">0</span>] <span class="op">*</span> indexer.state_length</span>
 <span id="cb62-3"><a href="#cb62-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -1177,23 +1171,23 @@ Shape: (5, 2) (n_indices, n_properties)</code></pre>
 </div>
 </div>
 </div>
-<div id="4d57fbcc" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:28.594667Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:28.594546Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:28.596375Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:28.595950Z&quot;}}" data-execution_count="33">
+<div id="4d57fbcc" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.650843Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.650728Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.652835Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.652464Z&quot;}}" data-execution_count="33">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb63"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a><span class="co"># def fun(i):</span></span>
 <span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a><span class="co">#     i in indexer.props_to_index({'locus1': True})</span></span>
 <span id="cb63-3"><a href="#cb63-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb63-4"><a href="#cb63-4" aria-hidden="true" tabindex="-1"></a><span class="co"># graph.plot(max_nodes=200, by_index=fun)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="e98012c1" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:28.597702Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:28.597604Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:28.600263Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:28.599923Z&quot;}}" data-execution_count="34">
+<div id="e98012c1" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.654248Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.654147Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.656928Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.656527Z&quot;}}" data-execution_count="34">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb64"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a>graph.expectation()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="34">
-<pre><code>2.0091445466464206</code></pre>
+<pre><code>2.00914454664642</code></pre>
 </div>
 </div>
-<div id="d1566897" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:28.601834Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:28.601720Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:28.603517Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:28.603109Z&quot;}}" data-execution_count="35">
+<div id="d1566897" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.658133Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.658035Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.660010Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.659559Z&quot;}}" data-execution_count="35">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb66"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a>reward_matrix <span class="op">=</span> graph.states().T</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>If you pass only a subset of the state properties, <code>props_to_index</code> will return all the indices matching that property. This lets you get the get the relevant indices for use as rewards. Say, you want the total branch length of lineages with one descendant at locus 1 and any number of descendants at locus 2:</p>
-<div id="a5cbe581" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:28.604949Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:28.604808Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:28.607337Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:28.606952Z&quot;}}" data-execution_count="36">
+<div id="a5cbe581" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.661249Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.661150Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.663729Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.663302Z&quot;}}" data-execution_count="36">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb67"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a>idx_singleton_loc1 <span class="op">=</span> indexer.n_descendants.props_to_index(locus1<span class="op">=</span><span class="dv">1</span>)</span>
 <span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a>idx_singleton_loc1</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="36">
@@ -1201,7 +1195,7 @@ Shape: (5, 2) (n_indices, n_properties)</code></pre>
 </div>
 </div>
 <p>Now we can get those reward vectors and sum them:</p>
-<div id="e92a3fe0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:28.608750Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:28.608655Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:28.611159Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:28.610789Z&quot;}}" data-execution_count="37">
+<div id="e92a3fe0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.665026Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.664936Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.667676Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.667272Z&quot;}}" data-execution_count="37">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb69"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a>reward_matrix <span class="op">=</span> graph.states().T</span>
 <span id="cb69-2"><a href="#cb69-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb69-3"><a href="#cb69-3" aria-hidden="true" tabindex="-1"></a>singleton_rewards_loc1 <span class="op">=</span> reward_matrix[idx_singleton_loc1].<span class="bu">sum</span>(axis<span class="op">=</span><span class="dv">0</span>)</span>
@@ -1214,14 +1208,14 @@ Shape: (5, 2) (n_indices, n_properties)</code></pre>
        1, 1, 2, 4, 4, 4, 4, 0, 0, 0, 1, 1, 2, 2, 0, 0, 1, 4, 4, 4, 0, 4])</code></pre>
 </div>
 </div>
-<div id="3316692a" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:28.612417Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:28.612320Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:28.614494Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:28.614132Z&quot;}}" data-execution_count="38">
+<div id="3316692a" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.668972Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.668882Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.670893Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.670508Z&quot;}}" data-execution_count="38">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb71"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a>graph.expectation(singleton_rewards_loc1)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="38">
-<pre><code>1.9999999999999991</code></pre>
+<pre><code>1.999999999999999</code></pre>
 </div>
 </div>
 <p>If we repeat the exercise for all numbers of descendants at locus 1, we can get the standard SFS (we we should), except that the expected 4’ton branch length is not zero. This is because there can be a 4’ton branch from the TMRCA of the samples at locus 1 and the TMRCA for the full ARG:</p>
-<div id="a0eb94b8" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:19:28.615771Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:19:28.615674Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:19:28.778834Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:19:28.778336Z&quot;}}" data-execution_count="39">
+<div id="a0eb94b8" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:19:52.672126Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:19:52.672034Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:19:52.805195Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:19:52.804728Z&quot;}}" data-execution_count="39">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb73"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a>sfs_loc1 <span class="op">=</span> [graph.expectation(reward_matrix[indexer.n_descendants.props_to_index(locus1<span class="op">=</span>i)].<span class="bu">sum</span>(axis<span class="op">=</span><span class="dv">0</span>)) <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, nr_samples<span class="op">+</span><span class="dv">1</span>)]</span>
 <span id="cb73-2"><a href="#cb73-2" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> [<span class="ss">f"</span><span class="sc">{</span>i<span class="op">+</span><span class="dv">1</span><span class="sc">}</span><span class="ss">'ton"</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(nr_samples)]</span>
 <span id="cb73-3"><a href="#cb73-3" aria-hidden="true" tabindex="-1"></a>sns.barplot(x<span class="op">=</span>labels, y<span class="op">=</span>sfs_loc1, hue<span class="op">=</span>labels) <span class="op">;</span> </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>

@@ -360,12 +360,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  <span class="menu-text">Hex grid spatial models</span></a>
   </div>
 </li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/resistance-surface.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Estimating migration surfaces</span></a>
-  </div>
-</li>
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
@@ -526,8 +520,8 @@ div.progress-bar { /* Inner bar */
 **Finite Markov chains:** Distribution of steps spent in states and runs of particular states.
  -->
 <p>Throughout the tutorials we use the Coalescent model as an example. The Coalescent is a continuous-time Markov chain that models the ancestry of a sample of individuals from a population. Lineages coalesce into fewer lineages with more descendants until only a single common ancestral lineage remains. Branches in the resulting tree represent lineages. We call those with a single sampled descendant singleton lineages. The ones with two descendants are doubletons and so on. With four samples, the Coalescent jumps with four singletons and terminates with a single quadrupleton (4’ton). We can encode the states of this Markov chain as vectors enumerating the number of of 1’tons, 2’tons, 3’tons, and 4’tons.</p>
-<div class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:15:11.168537Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:15:11.168251Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:15:13.722987Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:15:13.722466Z&quot;}}" data-execution_count="1">
-<div id="fig-coalescent-tree" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:15:11.168537Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:15:11.168251Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:15:13.722987Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:15:13.722466Z&quot;}}" data-execution_count="1">
+<div class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:17:23.343031Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:17:23.342925Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:17:25.739713Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:17:25.739094Z&quot;}}" data-execution_count="1">
+<div id="fig-coalescent-tree" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:17:23.343031Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:17:23.342925Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:17:25.739713Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:17:25.739094Z&quot;}}" data-execution_count="1">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-coalescent-tree-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div id="fig-coalescent-tree-1" class="cell-output cell-output-display quarto-float quarto-figure quarto-figure-center anchored">
@@ -594,7 +588,7 @@ Figure&nbsp;1
 </figure>
 </div>
 </div>
-<div id="0d1e82c8" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:15:13.725232Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:15:13.725099Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:15:13.729751Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:15:13.729283Z&quot;}}" data-execution_count="2">
+<div id="0d1e82c8" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:17:25.741183Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:17:25.741064Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:17:25.744709Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:17:25.744369Z&quot;}}" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> phasic <span class="im">import</span> Graph <span class="co"># ALWAYS import phasic first to set jax backend correctly</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
@@ -648,7 +642,7 @@ Figure&nbsp;1
         
 </div>
 </div>
-<div id="cell-fig-coalescent-intro" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-11T18:15:13.731627Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-11T18:15:13.731497Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-11T18:15:14.224765Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-11T18:15:14.224071Z&quot;}}" data-execution_count="3">
+<div id="cell-fig-coalescent-intro" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-04-12T22:17:25.746158Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-04-12T22:17:25.746065Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-04-12T22:17:25.951117Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-04-12T22:17:25.950518Z&quot;}}" data-execution_count="3">
 <div class="cell-output cell-output-display" data-execution_count="3">
 <div id="fig-coalescent-intro" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
