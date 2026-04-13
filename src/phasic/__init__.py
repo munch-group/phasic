@@ -6508,7 +6508,7 @@ extern "C" {{
             dark = False
 
         # always light theme when executing via nbconvert
-        if os.environ.get('NBCONVERT', False):
+        if 'NBCONVERT_BGCOLOR' in os.environ:
             dark = False
 
         if label_fmt is None:
@@ -6550,7 +6550,7 @@ extern "C" {{
             subgraph_edgecolor='#e6e6e6'
             husl_colors = _get_color(10, lightness=0.7)
         else:
-            edge_color = '#009900'
+            edge_color = '#3e3e3e'
             node_edgecolor='black'
             node_fillcolor='#eeeeee'
             edge_color='black'

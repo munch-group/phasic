@@ -5,8 +5,8 @@ project:
 bibliography: references.bib
 
 book:
-  title: "Phasic — Supplementary Online Material"
-  subtitle: "Exhaustive Mathematical and Algorithmic Documentation"
+  title: "Mathematical Reference "
+  subtitle: "Mathematical and Algorithmic Documentation for Phasic"
   chapters:
     - index.qmd
     - part: "Foundations"
@@ -70,11 +70,19 @@ crossref:
 
 format:
   html:
-    html-math-method: katex
+    linkcolor: "#0D7D92"
+    grid:
+      sidebar-width: 330px
+      body-width: 900px
+      margin-width: 270px
+      gutter-width: 1.5rem
     theme: [cosmo, ../custom.scss]
+    highlight-style: ../numpy.theme
     toc: true
     number-sections: true
+    callout-icon: false
     code-overflow: scroll
-    # filters: 
-    #   - quarto
-    #   - headers.lua    
+    fig-align: center
+    html-math-method: katex
+    mermaid:
+      theme: neutral
