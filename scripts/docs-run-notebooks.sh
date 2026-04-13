@@ -10,6 +10,8 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
+NBCONVERT_BGCOLOR='white'
+
 if test -d $DIR; then
   for FILE in $(find $DIR -name '*.ipynb' | sort) ; do
     if [[  "$(grep $FILE _quarto.yml | grep -v '#')" ]]; then
@@ -18,11 +20,13 @@ if test -d $DIR; then
       CMD="jupyter nbconvert --log-level=WARN --to notebook --execute --inplace \
         --TagRemovePreprocessor.enabled=True \
         --TagRemovePreprocessor.remove_cell_tags='{"skip-execution"}' $FILE"
-      echo $CMD
-    #  NOTEBOOK_THEME=light PYDEVD_DISABLE_FILE_VALIDATION=1 $CMD || exit 1 ;
-     NOTEBOOK_THEME=light PYDEVD_DISABLE_FILE_VALIDATION=1 $CMD > /dev/null 2>&1 && {
+      set -x
+    #  NBCONVERT=1 PYDEVD_DISABLE_FILE_VALIDATION=1 $CMD || exit 1 ;
+     NBCONVERT_BGCOLOR="$NBCONVERT_BGCOLOR" PYDEVD_DISABLE_FILE_VALIDATION=1 $CMD > /dev/null 2>&1 && {
+      set +x
       echo -e "${GREEN}Successfully executed ${FILE}${NC}"
      } || {
+        set +x
         echo -e "${RED}Error executing ${FILE}${NC}"
         errors=true
       }

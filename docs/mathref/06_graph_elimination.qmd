@@ -43,7 +43,7 @@ Vertex elimination is the graph analogue of Gaussian elimination on a matrix. Wh
 Consider three transient vertices $v_1, v_2, v_3$ and an absorbing vertex $v_a$ with normalized edges: $w'(v_1 \to v_2) = 0.6$, $w'(v_1 \to v_a) = 0.4$, $w'(v_2 \to v_3) = 0.7$, $w'(v_2 \to v_a) = 0.3$. Eliminating $v_2$: the bypass from $v_1$ to $v_3$ has weight $0.6 \times 0.7 = 0.42$, and the bypass from $v_1$ to $v_a$ adds $0.6 \times 0.3 = 0.18$ to the existing $0.4$, giving $0.58$. After renormalization (sum $= 0.42 + 0.58 = 1.0$), the weights remain unchanged.
 </details>
 
-![Graph elimination on a four-vertex example. Top row, left to right: the normalized graph with vertices $A$, $B$, $C$, $D$ and starting vertex $S$; elimination of the first vertex creates bypass edges (shown in red/orange) and updates vertex scalars (red numbers). Bottom row: successive elimination steps remove remaining transient vertices, adding bypass edges and adjusting scalars via self-loop resolution, until only the starting vertex and absorbing vertices remain.](images/graph_elimination_example.pdf){#fig-06-elimination-example}
+![Graph elimination on a four-vertex example. Top row, left to right: the normalized graph with vertices $A$, $B$, $C$, $D$ and starting vertex $S$; elimination of the first vertex creates bypass edges (shown in red/orange) and updates vertex scalars (red numbers). Bottom row: successive elimination steps remove remaining transient vertices, adding bypass edges and adjusting scalars via self-loop resolution, until only the starting vertex and absorbing vertices remain.](images/graph_elimination_example.pdf){#fig-06-elimination-example width=90%}
 
 ::: {#def-06-self-loop-resolution}
 
