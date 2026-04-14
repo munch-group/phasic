@@ -7,6 +7,20 @@ bibliography: references.bib
 book:
   title: "Mathematical Reference "
   subtitle: "Mathematical and Algorithmic Documentation for Phasic"
+  navbar:
+    logo: ../PHASIC.png
+    logo-alt: "Phasic"
+    logo-href: /index.html
+    left:
+      - href: /pages/getting_started.html
+        text: Documentation
+      - href: /api/
+        text: Python API reference
+      - href: /mathref/index.html
+        text: Mathematical Reference
+    right:
+      - icon: github
+        href: https://github.com/munch-group/phasic/
   chapters:
     - index.qmd
     - part: "Foundations"
