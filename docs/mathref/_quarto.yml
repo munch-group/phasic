@@ -8,6 +8,7 @@ book:
   title: "Mathematical Reference "
   subtitle: "Mathematical and Algorithmic Documentation for Phasic"
   navbar:
+    title: false
     logo: ../PHASIC.png
     logo-alt: "Phasic"
     logo-href: /index.html
