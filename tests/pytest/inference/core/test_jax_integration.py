@@ -6,17 +6,17 @@ Tests pmf_from_graph, gradients, JIT compilation, and vectorization.
 
 import pytest
 
-# Try to import JAX
+import numpy as np
+import phasic as ptd
+from phasic import Graph
+
+# JAX must be imported AFTER phasic (phasic configures multi-CPU and x64 precision)
 try:
     import jax
     import jax.numpy as jnp
     HAS_JAX = True
 except ImportError:
     HAS_JAX = False
-
-import numpy as np
-import phasic as ptd
-from phasic import Graph
 
 # Skip all tests if JAX is not available
 pytestmark = pytest.mark.skipif(not HAS_JAX, reason="JAX not available")

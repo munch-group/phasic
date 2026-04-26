@@ -591,5 +591,5 @@ def main():
     return 0 if failed == 0 else 1
 
 
-if __name__ == "__main__":
-    sys.exit(main())
+# if __name__ == "__main__":
+#     sys.exit(main())

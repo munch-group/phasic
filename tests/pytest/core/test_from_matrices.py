@@ -4,6 +4,7 @@ Comprehensive test suite for Graph.from_matrices() method.
 Tests construction of graphs from matrix representations and round-trip conversions.
 """
 
+from pytest import approx
 import numpy as np
 from phasic import Graph, MatrixRepresentation
 
@@ -24,14 +25,15 @@ def test_from_matrices_basic():
     assert g.vertices_length() > 0
 
     # Test PDF computation
-    pdf = g.pdf(1.0, 100)
+    pdf = g.pdf(1.0)
     assert 0 <= pdf <= 1
     print(f"Basic from_matrices test passed (PDF at t=1.0: {pdf:.6f})")
 
 
 def test_from_matrices_with_states():
     """Test from_matrices with custom state vectors."""
-    ipv = np.array([0.5, 0.5])
+    # ipv length must match sim dimension
+    ipv = np.array([1.0, 0.0])
     sim = np.array([
         [-1.0, 0.0],
         [0.0, -2.0]
@@ -49,23 +51,26 @@ def test_from_matrices_with_states():
 
 def test_from_matrices_multidimensional():
     """Test from_matrices with multidimensional states."""
-    ipv = np.array([1.0, 0.0, 0.0])
+    ipv = np.array([1.0, 0, 0, 0])
     sim = np.array([
-        [-2.0, 1.0, 0.0],
-        [0.0, -3.0, 2.0],
-        [0.0, 0.0, -1.0]
-    ])
+        [-6,  6,  0,  0],
+        [ 0, -3,  1,  2],
+        [ 0,  0, -1,  0],
+        [ 0,  0,  0, -1]
+        ]
+    )
 
     # 2D states
     states = np.array([
-        [0, 0],
-        [1, 0],
-        [1, 1]
+         [4, 0, 0, 0],
+         [2, 1, 0, 0],
+         [0, 2, 0, 0],
+         [1, 0, 1, 0],
     ], dtype=np.int32)
 
     g = Graph.from_matrices(ipv, sim, states)
     assert g is not None
-    assert g.state_length() == 2  # Should have 2D states
+    assert g.state_length() == 4  # Should have 2D states
 
     print("from_matrices with multidimensional states test passed")
 
@@ -79,7 +84,7 @@ def test_round_trip_simple():
     v2 = g_orig.find_or_create_vertex([20])
 
     start.add_edge(v1, 0.7)
-    start.add_edge(v2, 0.3)
+#    start.add_edge(v2, 0.3)
     v1.add_edge(v2, 1.5)
 
     g_orig.normalize()
@@ -88,17 +93,21 @@ def test_round_trip_simple():
     matrices = g_orig.as_matrices()
 
     # Check that we got a NamedTuple (if our wrapper is used)
-    if isinstance(matrices, dict):
-        # Fallback for C++ Graph
-        ipv = matrices['ipv']
-        sim = matrices['sim']
-        states = matrices['states']
-    else:
-        # NamedTuple from Python wrapper
-        assert isinstance(matrices, MatrixRepresentation)
-        ipv = matrices.ipv
-        sim = matrices.sim
-        states = matrices.states
+    # if isinstance(matrices, dict):
+    #     # Fallback for C++ Graph
+    #     ipv = matrices['ipv']
+    #     assert sum(ipv) == pytest.approx(1.0)
+    #     sim = matrices['sim']
+    #     states = matrices['states']
+    # else:
+    # NamedTuple from Python wrapper
+    assert isinstance(matrices, MatrixRepresentation)
+    ipv = matrices.ipv
+    assert sum(ipv) == approx(1.0)
+    sim = matrices.sim
+    states = matrices.states
+
+
 
     # Reconstruct from matrices
     g_recon = Graph.from_matrices(ipv, sim, states)
@@ -106,9 +115,10 @@ def test_round_trip_simple():
     # Compare PDFs at several points
     times = np.linspace(0.1, 3.0, 10)
     for t in times:
-        pdf_orig = g_orig.pdf(t, 100)
-        pdf_recon = g_recon.pdf(t, 100)
-        assert abs(pdf_orig - pdf_recon) < 1e-6, f"PDFs differ at t={t}"
+        pdf_orig = g_orig.pdf(t)
+        pdf_recon = g_recon.pdf(t)
+        assert pdf_orig == approx(pdf_recon)
+        # assert abs(pdf_orig - pdf_recon) < 1e-6, f"PDFs differ at t={t}"
 
     print("Round-trip test passed")
 
@@ -144,7 +154,7 @@ def test_from_matrices_edge_cases():
 
     g = Graph.from_matrices(ipv_single, sim_single)
     assert g is not None
-    pdf = g.pdf(0.5, 100)
+    pdf = g.pdf(0.5)
     # Just check it's a valid PDF value, exact calculation depends on implementation
     assert 0 <= pdf <= 5.0  # Max PDF for exponential with rate 5
 
@@ -181,23 +191,23 @@ def test_from_matrices_performance():
     assert g.vertices_length() >= n
 
     # Test PDF computation works
-    pdf = g.pdf(1.0, 100)
+    pdf = g.pdf(1.0)
     assert 0 <= pdf <= 1
 
     print(f"Performance test passed (n={n} states)")
 
 
-if __name__ == "__main__":
-    print("Testing Graph.from_matrices() functionality")
-    print("=" * 60)
+# if __name__ == "__main__":
+#     print("Testing Graph.from_matrices() functionality")
+#     print("=" * 60)
 
-    test_from_matrices_basic()
-    test_from_matrices_with_states()
-    test_from_matrices_multidimensional()
-    test_round_trip_simple()
-    test_from_matrices_validation()
-    test_from_matrices_edge_cases()
-    test_from_matrices_performance()
+#     test_from_matrices_basic()
+#     test_from_matrices_with_states()
+#     test_from_matrices_multidimensional()
+#     test_round_trip_simple()
+#     test_from_matrices_validation()
+#     test_from_matrices_edge_cases()
+#     test_from_matrices_performance()
 
-    print("\n" + "=" * 60)
-    print("All from_matrices tests passed!")
+#     print("\n" + "=" * 60)
+#     print("All from_matrices tests passed!")

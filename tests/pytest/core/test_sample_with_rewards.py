@@ -3,8 +3,7 @@ Test sampling with rewards - following exact notebook pattern
 """
 
 import numpy as np
-from phasic import Graph
-
+from phasic import Graph, with_ipv
 
 def test_simple_sample_no_rewards():
     """Test basic sampling without rewards"""
@@ -13,16 +12,26 @@ def test_simple_sample_no_rewards():
     print("Test 1: Simple sampling (no rewards)")
     print("="*60)
 
-    def callback(state):
-        if len(state) == 0:
-            return [(np.array([1]), 0.0, [1.0])]
-        elif state[0] == 1:
-            return []
-        return []
+    @with_ipv([4, 0, 0, 0])
+    def coalescent(state):
+        transitions = []
+        for i in range(state.size):
+            for j in range(i, state.size):            
+                same = int(i == j)
+                if same and state[i] < 2:
+                    continue
+                if not same and (state[i] < 1 or state[j] < 1):
+                    continue 
+                new = state.copy()
+                new[i] -= 1
+                new[j] -= 1
+                new[i+j+1] += 1
+                transitions.append((new, [state[i]*(state[j]-same)/(1+same)]))
+        return transitions
 
-    # Create and update
-    _graph = Graph(callback)
-    _graph.update_parameterized_weights(np.array([10.0]))
+    # Create and updates
+    _graph = Graph(coalescent)
+    _graph.update_weights([10.0])
 
     # Sample
     samples = _graph.sample(10)
@@ -38,22 +47,32 @@ def test_sample_with_rewards():
     print("Test 2: Sampling with rewards")
     print("="*60)
 
-    def callback(state):
-        if len(state) == 0:
-            return [(np.array([1]), 0.0, [1.0])]
-        elif state[0] == 1:
-            return []
-        return []
+    @with_ipv([4, 0, 0, 0])
+    def coalescent(state):
+        transitions = []
+        for i in range(state.size):
+            for j in range(i, state.size):            
+                same = int(i == j)
+                if same and state[i] < 2:
+                    continue
+                if not same and (state[i] < 1 or state[j] < 1):
+                    continue 
+                new = state.copy()
+                new[i] -= 1
+                new[j] -= 1
+                new[i+j+1] += 1
+                transitions.append((new, [state[i]*(state[j]-same)/(1+same)]))
+        return transitions
 
     # Create and update
-    _graph = Graph(callback)
+    _graph = Graph(coalescent)
     print(f"Vertices: {_graph.vertices_length()}")
 
     _graph.update_parameterized_weights(np.array([10.0]))
 
     # Try different reward vectors
-    rewards_neutral = [1.0, 1.0]
-    rewards_scaled = [2.0, 2.0]
+    rewards_neutral = [0, 1, 1, 1, 1, 0]
+    rewards_scaled = [0, 2, 2, 2, 2, 0]
 
     print(f"\nWith neutral rewards {rewards_neutral}:")
     samples_neutral = _graph.sample(10, rewards=rewards_neutral)
@@ -75,33 +94,30 @@ def test_notebook_pattern():
     print("Test 3: Exact notebook pattern")
     print("="*60)
 
-    def coalescent(state, nr_samples=None):
-        if not state.size:
-            ipv = [[[nr_samples]+[0]*nr_samples, 1, []]]
-            return ipv
-        else:
-            transitions = []
-            for i in range(nr_samples):
-                for j in range(i, nr_samples):
-                    same = int(i == j)
-                    if same and state[i] < 2:
-                        continue
-                    if not same and (state[i] < 1 or state[j] < 1):
-                        continue
-                    new = state.copy()
-                    new[i] -= 1
-                    new[j] -= 1
-                    new[i+j+1] += 1
-                    transitions.append([new, 0.0, [state[i]*(state[j]-same)/(1+same)]])
-            return transitions
+    @with_ipv([4, 0, 0, 0])
+    def coalescent(state):
+        transitions = []
+        for i in range(state.size):
+            for j in range(i, state.size):            
+                same = int(i == j)
+                if same and state[i] < 2:
+                    continue
+                if not same and (state[i] < 1 or state[j] < 1):
+                    continue 
+                new = state.copy()
+                new[i] -= 1
+                new[j] -= 1
+                new[i+j+1] += 1
+                transitions.append((new, [state[i]*(state[j]-same)/(1+same)]))
+        return transitions
 
     true_theta = np.array([10.0])
     nr_samples = 3
 
-    _graph = Graph(coalescent, nr_samples=nr_samples)
+    _graph = Graph(coalescent)
     print(f"Graph vertices: {_graph.vertices_length()}")
 
-    _graph.update_parameterized_weights(true_theta)
+    _graph.update_weights(true_theta)
 
     # Sample without rewards
     print(f"\nSampling without rewards:")

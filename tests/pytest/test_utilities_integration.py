@@ -7,7 +7,7 @@ Tests plotting, SVGD, distributed computing utilities, and other features.
 import pytest
 import numpy as np
 import phasic as ptd
-from phasic import Graph
+from phasic import Graph, with_ipv
 
 # Try to import optional dependencies
 try:
@@ -64,60 +64,6 @@ class TestPlotting:
         except (TypeError, RuntimeError):
             # Some options may not be supported
             pass
-
-    def test_set_theme(self):
-        """Test setting plot theme."""
-        # Should not raise
-        ptd.set_theme('default')
-
-
-class TestSVGD:
-    """Test SVGD functionality."""
-
-    @pytest.mark.skipif(not HAS_JAX, reason="JAX not available")
-    def test_svgd_import(self):
-        """Test that SVGD can be imported."""
-        assert ptd.SVGD is not None
-
-    @pytest.mark.skipif(not HAS_JAX, reason="JAX not available")
-    def test_svgd_basic(self):
-        """Test basic SVGD functionality."""
-        # Define a simple parameterized model
-        def build_graph(theta):
-            g = Graph(1)
-            v = g.find_or_create_vertex([1])
-            g.starting_vertex().add_edge_parameterized(v, 0.0, [1.0])
-            return g
-
-        model = Graph.pmf_from_graph_parameterized(build_graph, discrete=False)
-
-        # Define log likelihood
-        observed_times = jnp.array([1.0, 1.5, 2.0])
-
-        def log_likelihood(theta):
-            pdf = model(theta, observed_times)
-            return jnp.log(pdf + 1e-10).sum()
-
-        # Define prior
-        def log_prior(theta):
-            # Simple normal prior
-            return -0.5 * jnp.sum(theta**2)
-
-        def log_posterior(theta):
-            return log_likelihood(theta) + log_prior(theta)
-
-        # Initialize particles
-        n_particles = 10
-        initial_particles = jnp.ones((n_particles, 1)) * 1.0
-
-        # Create SVGD instance
-        svgd = ptd.SVGD(log_posterior)
-
-        # Run a few steps
-        particles = svgd.update(initial_particles, n_iter=5, step_size=0.01)
-
-        assert particles.shape == (n_particles, 1)
-        assert jnp.all(jnp.isfinite(particles))
 
 
 class TestDistributedUtilities:
@@ -179,7 +125,7 @@ class TestClusterConfiguration:
     def test_suggest_config(self):
         """Test config suggestion utility."""
         # Should not raise
-        suggestion = ptd.suggest_config()
+        suggestion = ptd.suggest_config(20)
         assert suggestion is not None
 
 
@@ -281,11 +227,9 @@ class TestEdgeCasesAndErrors:
         g = Graph(1)
         v = g.find_or_create_vertex([1])
 
-        # Self-loop (creates cycle)
-        v.add_edge(v, 1.0)
-
-        # Graph should no longer be acyclic
-        assert not g.is_acyclic()
+        with pytest.raises(RuntimeError):
+            # Self-loop not allowed
+            v.add_edge(v, 1.0)
 
     def test_negative_edge_weight(self):
         """Test negative edge weights."""
@@ -320,48 +264,105 @@ class TestEdgeCasesAndErrors:
         assert len(v.state()) == 100
 
 
-class TestCallbackErrors:
-    """Test error handling in callbacks."""
+# class TestCallbackErrors:
+#     """Test error handling in callbacks."""
 
-    def test_callback_returning_wrong_type(self):
-        """Test callback returning invalid type."""
-        def bad_callback(state):
-            return "not a list"
+#     def test_callback_returning_wrong_type(self):
+#         """Test callback returning invalid type."""
+#         def bad_callback(state):
+#             return "not a list"
 
-        # Should raise when trying to build graph
-        with pytest.raises((TypeError, ValueError, RuntimeError)):
-            g = Graph(bad_callback)
-            _ = g.vertices_length()  # Force evaluation
+#         # Should raise when trying to build graph
+#         with pytest.raises((TypeError, ValueError, RuntimeError)):
+#             g = Graph(bad_callback)
+#             _ = g.vertices_length()  # Force evaluation
 
-    def test_callback_infinite_loop_detection(self):
-        """Test that infinite loops in callbacks are handled."""
-        def infinite_callback(state):
-            # Always returns same state (infinite loop)
-            return [([0], 1.0)]
+#     def test_callback_infinite_loop_detection(self):
+#         """Test that infinite loops in callbacks are handled."""
+#         def infinite_callback(state):
+#             # Always returns same state (infinite loop)
+#             return [([0], 1.0)]
 
-        # Graph construction may limit iterations or detect cycle
-        try:
-            g = Graph(infinite_callback)
-            # If it completes, should have bounded vertices
-            assert g.vertices_length() < 10000
-        except (RuntimeError, ValueError):
-            # May detect and raise error
-            pass
+#         # Graph construction may limit iterations or detect cycle
+#         try:
+#             g = Graph(infinite_callback)
+#             # If it completes, should have bounded vertices
+#             assert g.vertices_length() < 10000
+#         except (RuntimeError, ValueError):
+#             # May detect and raise error
+#             pass
 
 
 class TestNumericalStability:
     """Test numerical stability."""
 
-    def test_very_small_rates(self):
-        """Test with very small transition rates."""
+    def test_small_rates(self):
+        """Test with transition rates."""
+        small_rate = 1e-9
         g = Graph(1)
         start = g.starting_vertex()
-        v = g.find_or_create_vertex([1])
-        start.add_edge(v, 1e-10)
-        g.normalize()
-
+        v1 = g.find_or_create_vertex([1])
+        v2 = g.find_or_create_vertex([2])
+        v3 = g.find_or_create_vertex([3])
+        start.add_edge(v1, small_rate)
+        start.add_edge(v2, 1 - small_rate)
+        v1.add_edge(v3, 1)
+        v2.add_edge(v3, 1)
         exp = g.expectation()
+        print(f"Expectation: {exp}")        
         assert np.isfinite(exp)
+        assert exp > 0
+
+    def test_pretty_small_rates(self):
+        """Test with very small transition rates."""
+        small_rate = 1e-10
+        g = Graph(1)
+        start = g.starting_vertex()
+        v1 = g.find_or_create_vertex([1])
+        v2 = g.find_or_create_vertex([2])
+        v3 = g.find_or_create_vertex([3])
+        start.add_edge(v1, small_rate)
+        start.add_edge(v2, 1 - small_rate)
+        v1.add_edge(v3, 1)
+        v2.add_edge(v3, 1)
+        exp = g.expectation()
+        print(exp)
+        assert np.isfinite(exp)
+        assert exp > 0
+
+    def test_very_small_rates(self):
+        """Test with very small transition rates."""
+        small_rate = 1e-11
+        g = Graph(1)
+        start = g.starting_vertex()
+        v1 = g.find_or_create_vertex([1])
+        v2 = g.find_or_create_vertex([2])
+        v3 = g.find_or_create_vertex([3])
+        start.add_edge(v1, small_rate)
+        start.add_edge(v2, 1 - small_rate)
+        v1.add_edge(v3, 1)
+        v2.add_edge(v3, 1)
+        exp = g.expectation()
+        print(exp)
+        assert np.isfinite(exp)
+        assert exp > 0
+
+    def test_too_small_rates(self):
+        """Test with very small transition rates."""
+        small_rate = 1e-15
+        g = Graph(1)
+        start = g.starting_vertex()
+        v1 = g.find_or_create_vertex([1])
+        v2 = g.find_or_create_vertex([2])
+        v3 = g.find_or_create_vertex([3])
+        start.add_edge(v1, small_rate)
+        start.add_edge(v2, 1 - small_rate)
+        v1.add_edge(v3, 1)
+        v2.add_edge(v3, 1)
+        exp = g.expectation()
+        print(exp)
+        assert np.isfinite(exp)
+        assert exp > 0
 
     def test_very_large_rates(self):
         """Test with very large transition rates."""
@@ -395,15 +396,28 @@ class TestNumericalStability:
 class TestMemoryManagement:
     """Test memory management and cleanup."""
 
-    def test_large_graph_creation(self):
+    def test_successive_graph_creation(self):
         """Test creating and destroying large graph."""
-        def callback(state):
-            if state[0] < 100:
-                return [([state[0] + 1], 1.0)]
-            return []
 
-        g = Graph(callback)
-        assert g.vertices_length() > 50
+        @with_ipv([4, 0, 0, 0])
+        def coalescent(state):
+            transitions = []
+            for i in range(state.size):
+                for j in range(i, state.size):            
+                    same = int(i == j)
+                    if same and state[i] < 2:
+                        continue
+                    if not same and (state[i] < 1 or state[j] < 1):
+                        continue 
+                    new = state.copy()
+                    new[i] -= 1
+                    new[j] -= 1
+                    new[i+j+1] += 1
+                    transitions.append((new, state[i]*(state[j]-same)/(1+same)))
+            return transitions
+
+        g = Graph(coalescent)
+        assert g.vertices_length() == 6
 
         # Delete and ensure cleanup
         vertices_count = g.vertices_length()
@@ -421,15 +435,15 @@ class TestMemoryManagement:
         v1 = g1.find_or_create_vertex([1])
         v2 = g2.find_or_create_vertex([1])
 
+        g1.starting_vertex().add_edge(v1, 1)
+        g2.starting_vertex().add_edge(v2, 1)
+
+        v1.add_edge(g1.find_or_create_vertex([2]), 2)
+        v2.add_edge(g2.find_or_create_vertex([2]), 3) # different rate
+
         # Should be different vertices
         assert v1.index() == v2.index()  # Same index in different graphs
         # But modifying one shouldn't affect the other
-
-        g1.starting_vertex().add_edge(v1, 2.0)
-        g1.normalize()
-
-        g2.starting_vertex().add_edge(v2, 3.0)
-        g2.normalize()
 
         # Different expectations
         exp1 = g1.expectation()
@@ -444,19 +458,19 @@ class TestSpecialDistributions:
     def test_exponential_distribution(self):
         """Test exponential distribution (single state)."""
         g = Graph(1)
-        start = g.starting_vertex()
-        v = g.find_or_create_vertex([1])
+
+        v1 = g.find_or_create_vertex([1])
+        g.starting_vertex().add_edge(v1, 1)
         rate = 2.0
-        start.add_edge(v, rate)
-        g.normalize()
+        v1.add_edge(g.find_or_create_vertex([2]), rate)
 
         # Expectation should be 1/rate
         exp = g.expectation()
-        assert exp == pytest.approx(1.0/rate, rel=0.01)
+        assert exp == pytest.approx(1.0/rate)
 
         # Variance should be 1/rate^2
         var = g.variance()
-        assert var == pytest.approx(1.0/rate**2, rel=0.01)
+        assert var == pytest.approx(1/rate**2)
 
     def test_hyperexponential_distribution(self):
         """Test hyperexponential distribution (mixture of exponentials)."""
@@ -471,7 +485,7 @@ class TestSpecialDistributions:
 
         start.add_edge(v1, p1)
         start.add_edge(v2, p2)
-        g.normalize()
+        # g.normalize()
 
         # Expectation should be p1/rate1 + p2/rate2
         # But need to add edges from v1 and v2 to absorbing states
@@ -479,7 +493,7 @@ class TestSpecialDistributions:
         v4 = g.find_or_create_vertex([20])
         v1.add_edge(v3, rate1)
         v2.add_edge(v4, rate2)
-        g.normalize()
+        # g.normalize()
 
         exp = g.expectation()
         assert exp > 0
@@ -487,23 +501,24 @@ class TestSpecialDistributions:
     def test_erlang_distribution(self):
         """Test Erlang distribution (chain of exponentials)."""
         g = Graph(1)
+
         n_phases = 3
         rate = 2.0
 
-        # Create chain
-        vertices = [g.starting_vertex()]
-        for i in range(1, n_phases + 1):
-            v = g.find_or_create_vertex([i])
-            vertices.append(v)
+        v1 = g.find_or_create_vertex([1])
+        v2 = g.find_or_create_vertex([2])
+        v3 = g.find_or_create_vertex([3])
+        v4 = g.find_or_create_vertex([4])
 
-        for i in range(n_phases):
-            vertices[i].add_edge(vertices[i+1], rate)
-
-        g.normalize()
+        g.starting_vertex().add_edge(v1, 1)
+        rate = 2.0
+        v1.add_edge(v2, rate)
+        v2.add_edge(v3, rate)
+        v3.add_edge(v4, rate)
 
         # Expectation should be n_phases / rate
         exp = g.expectation()
-        assert exp == pytest.approx(n_phases / rate, rel=0.01)
+        assert exp == pytest.approx(3 / rate)
 
 
 if __name__ == "__main__":

@@ -21,15 +21,13 @@ def test_nan_correctness_univariate():
     true_theta = 1.5
     print(f"\nTrue parameter: θ = {true_theta}")
 
-    # Create simple exponential model
+    # Create simple exponential model: state [0] -> absorbing [1] with rate theta[0]
     def callback(state):
-        if len(state) == 0:
-            return [(np.array([1]), 0.0, [1.0])]
-        elif state[0] == 1:
-            return []
+        if state[0] == 0:
+            return [([1], [1.0])]
         return []
 
-    graph = Graph(callback)
+    graph = Graph(callback, ipv=[0])
 
     # Instantiate graph with true parameter value
     from phasic.trace_elimination import record_elimination_trace, instantiate_from_trace
@@ -138,15 +136,13 @@ def test_nan_correctness_multivariate():
     true_theta = 1.5
     print(f"\nTrue parameter: θ = {true_theta}")
 
-    # Create simple exponential model
+    # Create simple exponential model: state [0] -> absorbing [1] with rate theta[0]
     def callback(state):
-        if len(state) == 0:
-            return [(np.array([1]), 0.0, [1.0])]
-        elif state[0] == 1:
-            return []
+        if state[0] == 0:
+            return [([1], [1.0])]
         return []
 
-    _graph = Graph(callback)
+    _graph = Graph(callback, ipv=[0])
     n_vertices = _graph.vertices_length()
 
     # Create 2D rewards (n_features, n_vertices)
@@ -240,15 +236,13 @@ def test_nan_vs_filtered_equivalence():
     # True parameter
     true_theta = 1.5
 
-    # Create model
+    # Create model: state [0] -> absorbing [1] with rate theta[0]
     def callback(state):
-        if len(state) == 0:
-            return [(np.array([1]), 0.0, [1.0])]
-        elif state[0] == 1:
-            return []
+        if state[0] == 0:
+            return [([1], [1.0])]
         return []
 
-    graph = Graph(callback)
+    graph = Graph(callback, ipv=[0])
     model = Graph.pmf_and_moments_from_graph(graph, nr_moments=2, discrete=False)
 
     # Instantiate with true parameter and generate observations

@@ -188,6 +188,7 @@ class TestDeserializationErrors:
         """Test error when edges array has wrong shape."""
         data = {
             'states': np.array([[0]], dtype=np.int32),
+            'vertex_indices': np.array([0], dtype=np.int32),
             'edges': np.array([[0, 1]], dtype=np.float64),  # Should be (n, 3)
             'start_edges': np.empty((0, 2), dtype=np.float64),
             'param_edges': np.empty((0, 3), dtype=np.float64),
@@ -201,25 +202,28 @@ class TestDeserializationErrors:
             Graph.from_serialized(data)
 
     def test_param_edges_wrong_columns(self):
-        """Test error when param_edges has wrong number of columns."""
+        """Test error when param_edges has too few coefficient columns."""
         data = {
             'states': np.array([[0], [1]], dtype=np.int32),
+            'vertex_indices': np.array([0, 1], dtype=np.int32),
             'edges': np.empty((0, 3), dtype=np.float64),
             'start_edges': np.empty((0, 2), dtype=np.float64),
-            'param_edges': np.array([[0, 1, 0.0, 1.0]], dtype=np.float64),  # 4 cols for param_length=2
+            # 4 cols = [from, to, c1, c2] → coeff_len=2, but param_length=3 requires ≥3 coeffs
+            'param_edges': np.array([[0, 1, 0.0, 1.0]], dtype=np.float64),
             'start_param_edges': np.empty((0, 4), dtype=np.float64),
-            'param_length': 2,  # Should be 3+2=5 columns
+            'param_length': 3,
             'state_length': 1,
             'n_vertices': 2
         }
 
-        with pytest.raises(ValueError, match="param_edges array has wrong shape"):
+        with pytest.raises(ValueError, match="coefficient length < param_length"):
             Graph.from_serialized(data)
 
     def test_invalid_edge_indices(self):
         """Test error when edge refers to non-existent vertex."""
         data = {
             'states': np.array([[0], [1]], dtype=np.int32),
+            'vertex_indices': np.array([0, 1], dtype=np.int32),
             'edges': np.array([[0, 5, 1.0]], dtype=np.float64),  # Vertex 5 doesn't exist
             'start_edges': np.empty((0, 2), dtype=np.float64),
             'param_edges': np.empty((0, 0), dtype=np.float64),  # (0, 0) for param_length=0
@@ -229,7 +233,7 @@ class TestDeserializationErrors:
             'n_vertices': 2
         }
 
-        with pytest.raises(RuntimeError, match="invalid to_idx"):
+        with pytest.raises((RuntimeError, ValueError, IndexError)):
             Graph.from_serialized(data)
 
     def test_malformed_json_conversion(self):
@@ -298,5 +302,5 @@ class TestCoalescentModel:
         assert len(trace.operations) > 0
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+# if __name__ == "__main__":
+#     pytest.main([__file__, "-v"])

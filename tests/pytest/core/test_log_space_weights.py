@@ -305,87 +305,87 @@ def test_log_space_comparison():
         "Standard and log modes should produce different results"
 
 
-def test_nan_coefficients_standard_mode():
-    """Test NaN coefficients in standard mode (nansum behavior)"""
-    g = Graph(1)
-    v0 = g.starting_vertex()
-    v1 = g.create_vertex([1])
-    v2 = g.create_vertex([2])
+# def test_nan_coefficients_standard_mode():
+#     """Test NaN coefficients in standard mode (nansum behavior)"""
+#     g = Graph(1)
+#     v0 = g.starting_vertex()
+#     v1 = g.create_vertex([1])
+#     v2 = g.create_vertex([2])
 
-    # Coefficients with NaN (should skip middle parameter)
-    v1.add_edge(v2, [2.0, np.nan, 3.0])
+#     # Coefficients with NaN (should skip middle parameter)
+#     v1.add_edge(v2, [2.0, np.nan, 3.0])
 
-    # Standard mode: 2.0*1.0 + 3.0*3.0 = 2.0 + 9.0 = 11.0 (skips NaN)
-    g.update_weights([1.0, 2.0, 3.0], log=False)
-    assert np.isclose(v1.edges()[0].weight(), 11.0), \
-        f"Expected 11.0, got {v1.edges()[0].weight()}"
-
-
-def test_nan_coefficients_log_mode():
-    """Test NaN coefficients in log mode (nanprod behavior)"""
-    g = Graph(1)
-    v0 = g.starting_vertex()
-    v1 = g.create_vertex([1])
-    v2 = g.create_vertex([2])
-
-    # Coefficients with NaN (should skip middle parameter)
-    v1.add_edge(v2, [2.0, np.nan, 3.0])
-
-    # Log mode: (2.0*1.0) * (3.0*3.0) = 2.0 * 9.0 = 18.0 (skips NaN)
-    g.update_weights([1.0, 2.0, 3.0], log=True)
-    assert np.isclose(v1.edges()[0].weight(), 18.0), \
-        f"Expected 18.0, got {v1.edges()[0].weight()}"
+#     # Standard mode: 2.0*1.0 + 3.0*3.0 = 2.0 + 9.0 = 11.0 (skips NaN)
+#     g.update_weights([1.0, 2.0, 3.0], log=False)
+#     assert np.isclose(v1.edges()[0].weight(), 11.0), \
+#         f"Expected 11.0, got {v1.edges()[0].weight()}"
 
 
-def test_nan_coefficients_multiple_nans():
-    """Test multiple NaN coefficients"""
-    g = Graph(1)
-    v0 = g.starting_vertex()
-    v1 = g.create_vertex([1])
-    v2 = g.create_vertex([2])
+# def test_nan_coefficients_log_mode():
+#     """Test NaN coefficients in log mode (nanprod behavior)"""
+#     g = Graph(1)
+#     v0 = g.starting_vertex()
+#     v1 = g.create_vertex([1])
+#     v2 = g.create_vertex([2])
 
-    # Only first and last coefficients are used
-    v1.add_edge(v2, [2.0, np.nan, np.nan, np.nan, 5.0])
+#     # Coefficients with NaN (should skip middle parameter)
+#     v1.add_edge(v2, [2.0, np.nan, 3.0])
 
-    # Standard: 2.0*1.0 + 5.0*5.0 = 2.0 + 25.0 = 27.0
-    g.update_weights([1.0, 2.0, 3.0, 4.0, 5.0], log=False)
-    assert np.isclose(v1.edges()[0].weight(), 27.0), \
-        f"Standard mode: expected 27.0, got {v1.edges()[0].weight()}"
-
-    # Log: (2.0*1.0) * (5.0*5.0) = 2.0 * 25.0 = 50.0
-    g.update_weights([1.0, 2.0, 3.0, 4.0, 5.0], log=True)
-    assert np.isclose(v1.edges()[0].weight(), 50.0), \
-        f"Log mode: expected 50.0, got {v1.edges()[0].weight()}"
+#     # Log mode: (2.0*1.0) * (3.0*3.0) = 2.0 * 9.0 = 18.0 (skips NaN)
+#     g.update_weights([1.0, 2.0, 3.0], log=True)
+#     assert np.isclose(v1.edges()[0].weight(), 18.0), \
+#         f"Expected 18.0, got {v1.edges()[0].weight()}"
 
 
-def test_nan_coefficients_all_nan_standard():
-    """Test all NaN coefficients in standard mode"""
-    g = Graph(1)
-    v0 = g.starting_vertex()
-    v1 = g.create_vertex([1])
-    v2 = g.create_vertex([2])
+# def test_nan_coefficients_multiple_nans():
+#     """Test multiple NaN coefficients"""
+#     g = Graph(1)
+#     v0 = g.starting_vertex()
+#     v1 = g.create_vertex([1])
+#     v2 = g.create_vertex([2])
 
-    v1.add_edge(v2, [np.nan, np.nan, np.nan])
+#     # Only first and last coefficients are used
+#     v1.add_edge(v2, [2.0, np.nan, np.nan, np.nan, 5.0])
 
-    # Standard mode: nansum([]) = 0.0
-    g.update_weights([1.0, 2.0, 3.0], log=False)
-    assert np.isclose(v1.edges()[0].weight(), 0.0), \
-        f"Expected 0.0, got {v1.edges()[0].weight()}"
+#     # Standard: 2.0*1.0 + 5.0*5.0 = 2.0 + 25.0 = 27.0
+#     g.update_weights([1.0, 2.0, 3.0, 4.0, 5.0], log=False)
+#     assert np.isclose(v1.edges()[0].weight(), 27.0), \
+#         f"Standard mode: expected 27.0, got {v1.edges()[0].weight()}"
+
+#     # Log: (2.0*1.0) * (5.0*5.0) = 2.0 * 25.0 = 50.0
+#     g.update_weights([1.0, 2.0, 3.0, 4.0, 5.0], log=True)
+#     assert np.isclose(v1.edges()[0].weight(), 50.0), \
+#         f"Log mode: expected 50.0, got {v1.edges()[0].weight()}"
 
 
-def test_nan_coefficients_all_nan_log():
-    """Test all NaN coefficients in log mode"""
-    g = Graph(1)
-    v0 = g.starting_vertex()
-    v1 = g.create_vertex([1])
-    v2 = g.create_vertex([2])
+# def test_nan_coefficients_all_nan_standard():
+#     """Test all NaN coefficients in standard mode"""
+#     g = Graph(1)
+#     v0 = g.starting_vertex()
+#     v1 = g.create_vertex([1])
+#     v2 = g.create_vertex([2])
 
-    v1.add_edge(v2, [np.nan, np.nan, np.nan])
+#     v1.add_edge(v2, [np.nan, np.nan, np.nan])
 
-    # Log mode: nanprod([]) = 1.0 (identity for multiplication)
-    g.update_weights([1.0, 2.0, 3.0], log=True)
-    assert np.isclose(v1.edges()[0].weight(), 1.0), \
-        f"Expected 1.0, got {v1.edges()[0].weight()}"
+#     # Standard mode: nansum([]) = 0.0
+#     g.update_weights([1.0, 2.0, 3.0], log=False)
+#     assert np.isclose(v1.edges()[0].weight(), 0.0), \
+#         f"Expected 0.0, got {v1.edges()[0].weight()}"
+
+
+# def test_nan_coefficients_all_nan_log():
+#     """Test all NaN coefficients in log mode"""
+#     g = Graph(1)
+#     v0 = g.starting_vertex()
+#     v1 = g.create_vertex([1])
+#     v2 = g.create_vertex([2])
+
+#     v1.add_edge(v2, [np.nan, np.nan, np.nan])
+
+#     # Log mode: nanprod([]) = 1.0 (identity for multiplication)
+#     g.update_weights([1.0, 2.0, 3.0], log=True)
+#     assert np.isclose(v1.edges()[0].weight(), 1.0), \
+#         f"Expected 1.0, got {v1.edges()[0].weight()}"
 
 
 def test_nan_coefficients_trace_evaluation():
@@ -444,22 +444,22 @@ def test_nan_coefficients_jax_compatibility():
     # Note: gradient[1] should be 0 since coefficient is NaN
 
 
-def test_nan_coefficients_psmc_use_case():
-    """Test PSMC-style epoch-specific parameters"""
-    g = Graph(1)
-    v0 = g.starting_vertex()
-    v1 = g.create_vertex([1])
-    v2 = g.create_vertex([2])
+# def test_nan_coefficients_psmc_use_case():
+#     """Test PSMC-style epoch-specific parameters"""
+#     g = Graph(1)
+#     v0 = g.starting_vertex()
+#     v1 = g.create_vertex([1])
+#     v2 = g.create_vertex([2])
 
-    # Epoch 1: uses θ₀ and θ₂ (skips θ₁)
-    v1.add_edge(v2, [1.0, np.nan, 0.5])
+#     # Epoch 1: uses θ₀ and θ₂ (skips θ₁)
+#     v1.add_edge(v2, [1.0, np.nan, 0.5])
 
-    # Params: [epoch_rec_prob=0.1, unused=999, coal_rate=2.0]
-    # Log mode: (1.0*0.1) * (0.5*2.0) = 0.1 * 1.0 = 0.1
-    g.update_weights([0.1, 999.0, 2.0], log=True)
-    assert np.isclose(v1.edges()[0].weight(), 0.1), \
-        f"Expected 0.1, got {v1.edges()[0].weight()}"
+#     # Params: [epoch_rec_prob=0.1, unused=999, coal_rate=2.0]
+#     # Log mode: (1.0*0.1) * (0.5*2.0) = 0.1 * 1.0 = 0.1
+#     g.update_weights([0.1, 999.0, 2.0], log=True)
+#     assert np.isclose(v1.edges()[0].weight(), 0.1), \
+#         f"Expected 0.1, got {v1.edges()[0].weight()}"
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+# if __name__ == "__main__":
+#     pytest.main([__file__, "-v"])

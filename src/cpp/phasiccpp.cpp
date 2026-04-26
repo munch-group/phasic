@@ -539,18 +539,12 @@ void phasic::Graph::update_weights_parameterized(
         );
     }
 
-    // Validate parameter length if param_length is set
-    if (graph->param_length_locked && scalars.size() != graph->param_length) {
-        throw std::runtime_error(
-            "Parameter length mismatch: expected " + std::to_string(graph->param_length) +
-            " parameters but got " + std::to_string(scalars.size()) + ". " +
-            "The theta vector must match the graph's param_length even in callback mode."
-        );
-    }
-
-    // NOTE: Coefficient length validation is NOT performed in callback mode.
-    // The callback receives both theta and coefficients arrays and handles indexing itself.
-    // This allows edges to have more coefficients than parameters (extras accessible in callback).
+    // NOTE: Parameter length is NOT validated against graph->param_length in callback mode.
+    // The callback owns the theta→weight mapping and receives both theta and the edge's
+    // coefficient array as-is. This allows theta to be longer than param_length (e.g.
+    // PSMC-style epoch models where each edge uses a different slice of theta) or shorter
+    // (e.g. constant callbacks that ignore theta entirely). Coefficient length is likewise
+    // not validated here — the callback handles indexing.
 
     // Iterate through all vertices and edges
     for (size_t i = 0; i < graph->vertices_length; i++) {

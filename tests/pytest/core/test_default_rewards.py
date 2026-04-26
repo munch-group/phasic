@@ -201,28 +201,28 @@ def test_backwards_compatibility_no_rewards():
     print(f"\n✓ Backward compatibility maintained (no rewards)")
 
 
-if __name__ == "__main__":
-    print("Testing default rewards behavior...\n")
-    print("="*60)
+# if __name__ == "__main__":
+#     print("Testing default rewards behavior...\n")
+#     print("="*60)
 
-    print("\n1. Testing default rewards in NumPy mode...")
-    test_default_rewards_numpy()
+#     print("\n1. Testing default rewards in NumPy mode...")
+#     test_default_rewards_numpy()
 
-    print("\n" + "="*60)
-    print("\n2. Testing default rewards in JAX mode...")
-    test_default_rewards_jax()
+#     print("\n" + "="*60)
+#     print("\n2. Testing default rewards in JAX mode...")
+#     test_default_rewards_jax()
 
-    print("\n" + "="*60)
-    print("\n3. Testing default rewards in graph instantiation...")
-    test_default_rewards_graph_instantiation()
+#     print("\n" + "="*60)
+#     print("\n3. Testing default rewards in graph instantiation...")
+#     test_default_rewards_graph_instantiation()
 
-    print("\n" + "="*60)
-    print("\n4. Testing that scaled rewards differ from defaults...")
-    test_scaled_rewards_differ()
+#     print("\n" + "="*60)
+#     print("\n4. Testing that scaled rewards differ from defaults...")
+#     test_scaled_rewards_differ()
 
-    print("\n" + "="*60)
-    print("\n5. Testing backward compatibility (no rewards)...")
-    test_backwards_compatibility_no_rewards()
+#     print("\n" + "="*60)
+#     print("\n5. Testing backward compatibility (no rewards)...")
+#     test_backwards_compatibility_no_rewards()
 
-    print("\n" + "="*60)
-    print("\n✓ All default rewards tests passed!")
+#     print("\n" + "="*60)
+#     print("\n✓ All default rewards tests passed!")

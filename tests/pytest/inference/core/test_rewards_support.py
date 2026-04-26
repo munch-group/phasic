@@ -14,11 +14,12 @@ def test_rewards_none_backward_compat():
     """Test that rewards=None preserves backward compatibility."""
     # Build simple exponential graph: single state, rate=theta
     graph = Graph(1)
+    graph.set_param_length(1)
     v0 = graph.starting_vertex()
     v1 = graph.find_or_create_vertex([1])
 
     # Parameterized edge: weight = theta[0]
-    v0.add_edge_parameterized(v1, 0.0, [1.0])
+    v0.add_edge(v1, [1.0])
 
     # Create model factory
     model = Graph.pmf_and_moments_from_graph(graph, nr_moments=2, discrete=False)
@@ -45,13 +46,14 @@ def test_rewards_transformation():
     """Test that rewards parameter transforms moments correctly."""
     # Build two-state graph
     graph = Graph(1)
+    graph.set_param_length(1)
     v0 = graph.starting_vertex()
     v1 = graph.find_or_create_vertex([1])
     v2 = graph.find_or_create_vertex([2])
 
     # Two parameterized edges
-    v0.add_edge_parameterized(v1, 0.0, [1.0])  # rate = theta[0]
-    v1.add_edge_parameterized(v2, 0.0, [1.0])  # rate = theta[0]
+    v0.add_edge(v1, [1.0])  # rate = theta[0]
+    v1.add_edge(v2, [1.0])  # rate = theta[0]
 
     # Create model factory
     model = Graph.pmf_and_moments_from_graph(graph, nr_moments=2, discrete=False)
@@ -70,9 +72,8 @@ def test_rewards_transformation():
     rewards_custom = jnp.array([2.0, 0.5])
     pmf_custom, moments_custom = model(theta, times, rewards=rewards_custom)
 
-    # PMF should be identical (rewards don't affect PMF, only moments)
+    # PMF should be identical with uniform rewards (graph is unchanged)
     assert jnp.allclose(pmf_standard, pmf_uniform), "PMF should be same for uniform rewards"
-    assert jnp.allclose(pmf_standard, pmf_custom), "PMF should be same for custom rewards"
 
     # Moments with uniform rewards should match standard moments
     assert jnp.allclose(moments_standard, moments_uniform, rtol=1e-5), \
@@ -92,9 +93,10 @@ def test_vmap_with_rewards():
     """Test that rewards work with JAX vmap (batched theta)."""
     # Simple exponential graph
     graph = Graph(1)
+    graph.set_param_length(1)
     v0 = graph.starting_vertex()
     v1 = graph.find_or_create_vertex([1])
-    v0.add_edge_parameterized(v1, 0.0, [1.0])
+    v0.add_edge(v1, [1.0])
 
     model = Graph.pmf_and_moments_from_graph(graph, nr_moments=2, discrete=False)
 

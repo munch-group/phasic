@@ -130,14 +130,14 @@ def test_as_matrices_multidimensional():
     assert np.array_equal(indices, matrices.indices)
 
 
-if __name__ == "__main__":
-    test_as_matrices_simple()
-    print("test_as_matrices_simple passed")
+# if __name__ == "__main__":
+#     test_as_matrices_simple()
+#     print("test_as_matrices_simple passed")
 
-    test_as_matrices_complex()
-    print("test_as_matrices_complex passed")
+#     test_as_matrices_complex()
+#     print("test_as_matrices_complex passed")
 
-    test_as_matrices_multidimensional()
-    print("test_as_matrices_multidimensional passed")
+#     test_as_matrices_multidimensional()
+#     print("test_as_matrices_multidimensional passed")
 
-    print("\nAll tests passed!")
+#     print("\nAll tests passed!")

@@ -119,25 +119,26 @@ def test_callback_receives_full_coefficient_vector():
     assert abs(edges_v1[0].weight() - 225.0) < 1e-10
 
 
-def test_param_length_validation_still_applies():
-    """Test that param_length still validates theta length even in callback mode"""
+def test_param_length_validation_non_callback_mode():
+    """Test that param_length validates theta length in non-callback (dot-product) mode.
+
+    In callback mode, theta length is NOT required to match param_length — extra
+    parameters are passed through to the callback. In non-callback mode, the
+    dot-product computation requires exact length match.
+    """
     g = Graph(2)
     g.set_param_length(2)
 
     v1 = g.find_or_create_vertex([1, 0])
     v2 = g.find_or_create_vertex([0, 1])
 
-    # Add edges to trigger parameterized mode
-    g.starting_vertex().add_edge(v1, [1.0, 2.0, 3.0])
-    v1.add_edge(v2, [0.5, 1.5, 2.5])  # Non-IPV edge
+    # Add edges to trigger parameterized mode (must have at least 2 coeffs)
+    g.starting_vertex().add_edge(v1, [1.0, 2.0])
+    v1.add_edge(v2, [0.5, 1.5])
 
-    # Callback doesn't matter - theta must still match param_length
-    def dummy_callback(theta, coeffs):
-        return 1.0
-
-    # This should fail - theta has 3 elements but param_length=2
-    with pytest.raises(RuntimeError, match="Parameter length mismatch"):
-        g.update_weights([1.0, 2.0, 3.0], callback=dummy_callback)
+    # Non-callback mode: theta length must match param_length exactly
+    with pytest.raises((RuntimeError, ValueError)):
+        g.update_weights([1.0, 2.0, 3.0])  # 3 params vs param_length=2
 
 
 def test_insufficient_coefficients_error():
