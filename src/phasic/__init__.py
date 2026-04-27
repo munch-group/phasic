@@ -1813,10 +1813,12 @@ class Graph(_Graph):
                 # Already wrapped for cache
                 arg = callback_for_cache
             elif arg.__name__ != 'wrapper':
-                assert ipv is not None, "When providing a function not decorated with @callback, the ipv argument must be provided"
+                if ipv is None:
+                    raise ValueError("When providing a function not decorated with @callback, the ipv argument must be provided")
                 arg = _callback(ipv)(arg)
             else:
-                assert ipv is None, "When providing a function decorated with @callback, the ipv argument is ignored and should not be provided"
+                if ipv is not None:
+                    raise ValueError("When providing a function decorated with @callback, the ipv argument is ignored and should not be provided")
 
             # Store the callback and kwargs for extend() (with hierarchical)
             self._callback = arg
@@ -1859,6 +1861,12 @@ class Graph(_Graph):
                 logger.info(f"Saved graph to cache: {self.vertices_length()} vertices")
             except Exception as e:
                 logger.warning(f"Failed to save graph to cache: {e}")
+
+
+    def vertex_at(self, idx):
+        if idx >= self.vertices_length():
+            raise ValueError("Vertex at index does not exist")
+        return super().vertex_at(idx)
 
     @_invalidates_trace
     def find_or_create_vertex(self, state: ArrayLike) -> Vertex:
