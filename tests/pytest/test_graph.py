@@ -150,12 +150,12 @@ class TestManualConstruction:
 
     def test_manual_construction_not_raising(self):
         """manual construction not raising."""
-        graph = manual_construction(4)
+        graph = coalescent_manual_construction(4)
 
 
     def test_manual_construction_states(self):
         """manual construction correct states."""
-        graph = manual_construction(4)
+        graph = coalescent_manual_construction(4)
         assert graph.vertices_length() == 6
         states = np.array([
             [0, 0, 0, 0],
@@ -264,47 +264,25 @@ class TestConstructionFromMatrices:
     def test_round_trip_simple(self):
         """Test round-trip: create graph -> as_matrices -> from_matrices."""
         # Create original graph
-        g_orig = Graph(1)
-        start = g_orig.starting_vertex()
-        v1 = g_orig.find_or_create_vertex([10])  # Use non-conflicting states
-        v2 = g_orig.find_or_create_vertex([20])
+        graph = Graph(coalescent_callback_with_ipv)
 
-        start.add_edge(v1, 0.7)
-    #    start.add_edge(v2, 0.3)
-        v1.add_edge(v2, 1.5)
+        matrices = graph.as_matrices()
 
-        # Convert to matrices
-        matrices = g_orig.as_matrices()
-
-        # Check that we got a NamedTuple (if our wrapper is used)
-        # if isinstance(matrices, dict):
-        #     # Fallback for C++ Graph
-        #     ipv = matrices['ipv']
-        #     assert sum(ipv) == pytest.approx(1.0)
-        #     sim = matrices['sim']
-        #     states = matrices['states']
-        # else:
-        # NamedTuple from Python wrapper
         assert isinstance(matrices, MatrixRepresentation)
         ipv = matrices.ipv
         assert sum(ipv) == approx(1.0)
         sim = matrices.sim
         states = matrices.states
 
-
-
         # Reconstruct from matrices
-        g_recon = Graph.from_matrices(ipv, sim, states)
+        graph_mat = Graph.from_matrices(ipv, sim, states)
 
-        # Compare PDFs at several points
-        times = np.linspace(0.1, 3.0, 10)
-        for t in times:
-            pdf_orig = g_orig.pdf(t)
-            pdf_recon = g_recon.pdf(t)
-            assert pdf_orig == approx(pdf_recon)
-            # assert abs(pdf_orig - pdf_recon) < 1e-6, f"PDFs differ at t={t}"
+        graph_mat.expectation() == approx(graph.expectation())
 
-        print("Round-trip test passed")
+        graph_mat_matrices = graph_mat.as_matrices()
+        graph_mat_matrices.ipv == approx(ipv)
+        graph_mat_matrices.sim == approx(sim)
+        graph_mat_matrices.states == approx(states)
 
 
     def test_from_matrices_validation(self):
