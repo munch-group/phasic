@@ -1754,6 +1754,7 @@ class Graph(_Graph):
                 raise ValueError(f"theta_dim must be >= 1, got {theta_dim_arg}")
 
         self._joint_prob_base_graph_indexer = None  # flag to signify joint probability representation; defaults to until set internally
+        self._indexer = kwargs.get('indexer', None)  # StateIndexer this graph was built against; carried for downstream composition (add_epoch, joint_prob_graph)
 
         # Wrap callback with IPV BEFORE cache operations to ensure consistent hashing
         callback_for_cache = arg
@@ -3094,6 +3095,29 @@ class Graph(_Graph):
             new_graph._epoch_state_index = self._epoch_state_index
             new_graph._n_epochs = self._n_epochs + 1
         new_graph._base_param_length = base_param_length
+
+        # Propagate an epoch-aware indexer so downstream composition
+        # (joint_prob_graph, etc.) sees an indexer whose state_length matches
+        # the augmented graph's state vector length. The base indexer is
+        # preserved verbatim under _base_indexer for chained add_epoch calls.
+        if is_first_epoch:
+            base_indexer = self._indexer
+        else:
+            base_indexer = getattr(self, '_base_indexer', None) or self._indexer
+        new_graph._base_indexer = base_indexer
+        if base_indexer is not None:
+            existing_slot_names = [s.name for s in base_indexer.slots()]
+            if 'epoch' in existing_slot_names:
+                raise ValueError(
+                    "Cannot add an epoch dimension: the base indexer already "
+                    "has a slot named 'epoch'."
+                )
+            new_graph._indexer = StateIndexer(
+                *existing_slot_names, 'epoch',
+                property_sets=list(base_indexer.property_sets()),
+            )
+        else:
+            new_graph._indexer = None
 
         epoch_idx = new_graph._n_epochs  # current epoch number (0 was original)
         epoch_state_idx = new_graph._epoch_state_index
@@ -7187,8 +7211,31 @@ extern "C" {{
 
         if self.param_length() == 0:
             raise ValueError("Graph must have parameterized edges for joint_prob_graph.")
-        if reward_limit is None and tot_reward_limit == np.inf:        
+        if reward_limit is None and tot_reward_limit == np.inf:
             raise ValueError("Either reward_limit or tot_reward_limit must be specified.")
+
+        # Reconcile the supplied indexer with the graph's actual state vector
+        # length. After composition (e.g. add_epoch), the graph carries a wider
+        # state vector than the original indexer describes; in that case prefer
+        # the graph's own _indexer, which add_epoch keeps in sync.
+        graph_state_length = self.state_length()
+        if base_graph_indexer.state_length != graph_state_length:
+            graph_indexer = getattr(self, '_indexer', None)
+            if graph_indexer is not None and graph_indexer.state_length == graph_state_length:
+                logger.info(
+                    "joint_prob_graph: supplied indexer state_length=%d does not match "
+                    "graph state_length=%d; using graph._indexer instead.",
+                    base_graph_indexer.state_length, graph_state_length,
+                )
+                base_graph_indexer = graph_indexer
+            else:
+                raise ValueError(
+                    f"Indexer state_length ({base_graph_indexer.state_length}) does not "
+                    f"match graph state_length ({graph_state_length}). Pass the indexer "
+                    f"returned by add_epoch (graph._indexer), or rebuild the graph from "
+                    f"this indexer."
+                )
+
         if len(base_graph_indexer.property_sets()) != 1:
             raise ValueError("Indexer must have exactly one property set representing the base graph state.")
 
@@ -7417,6 +7464,10 @@ extern "C" {{
 
         joint_graph._joint_prob_base_graph_indexer = base_graph_indexer
         joint_graph._rewarded_props = _rewarded_props
+        # Attach the combined (base + reward) indexer so the joint graph
+        # carries an indexer matching its own state vector length, mirroring
+        # the convention for callback-built and epoch-augmented graphs.
+        joint_graph._indexer = joint_graph_indexer
 
         return joint_graph
 
