@@ -81,7 +81,8 @@ jobs:
         uses: conda-incubator/setup-miniconda@v3
         with:
           miniconda-version: "latest"
-          environment-file: conda-build/build_env.yaml 
+          environment-file: conda-build/build_env.yaml
+          activate-environment: build_env
           auto-update-conda: false
           auto-activate-base: false
           show-channel-urls: true
