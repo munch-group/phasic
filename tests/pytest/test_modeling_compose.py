@@ -97,7 +97,7 @@ class TestJointProbAfterEpoch:
         g_cont = Graph(cb, indexer=indexer)
 
         g_epochs = g_cont.add_epoch(time=EPOCH_BOUNDARY)
-        g_epochs.update_weights([TRUE_THETA1, TRUE_THETA2, 1.0])
+        g_epochs.update_weights([TRUE_THETA1, 0.0, TRUE_THETA2, 1.0])
 
         # Passing the *original* (non-augmented) indexer must work — the graph
         # transparently substitutes its own augmented indexer.
@@ -123,7 +123,7 @@ class TestJointProbAfterEpoch:
         g_cont = Graph(cb, indexer=indexer)
 
         g_epochs = g_cont.add_epoch(time=EPOCH_BOUNDARY)
-        g_epochs.update_weights([TRUE_THETA1, TRUE_THETA2, 1.0])
+        g_epochs.update_weights([TRUE_THETA1, 0.0, TRUE_THETA2, 1.0])
 
         # Passing the augmented indexer directly must also work.
         jg = g_epochs.joint_prob_graph(
@@ -141,13 +141,13 @@ class TestJointProbAfterEpoch:
         cb = _make_callback(indexer)
 
         g1 = Graph(cb, indexer=indexer).add_epoch(time=EPOCH_BOUNDARY)
-        g1.update_weights([TRUE_THETA1, TRUE_THETA2, 1.0])
+        g1.update_weights([TRUE_THETA1, 0.0, TRUE_THETA2, 1.0])
         jg_orig = g1.joint_prob_graph(
             indexer, mutation_rate=MUTATION_RATE, reward_limit=REWARD_LIMIT,
         )
 
         g2 = Graph(cb, indexer=indexer).add_epoch(time=EPOCH_BOUNDARY)
-        g2.update_weights([TRUE_THETA1, TRUE_THETA2, 1.0])
+        g2.update_weights([TRUE_THETA1, 0.0, TRUE_THETA2, 1.0])
         jg_aug = g2.joint_prob_graph(
             g2._indexer, mutation_rate=MUTATION_RATE, reward_limit=REWARD_LIMIT,
         )
@@ -161,7 +161,7 @@ class TestJointProbAfterEpoch:
         indexer = _make_indexer()
         cb = _make_callback(indexer)
         g_epochs = Graph(cb, indexer=indexer).add_epoch(time=EPOCH_BOUNDARY)
-        g_epochs.update_weights([TRUE_THETA1, TRUE_THETA2, 1.0])
+        g_epochs.update_weights([TRUE_THETA1, 0.0, TRUE_THETA2, 1.0])
 
         # Wipe the graph's own indexer to force the failure path.
         g_epochs._indexer = None

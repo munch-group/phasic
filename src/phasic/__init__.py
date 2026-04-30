@@ -3043,9 +3043,31 @@ class Graph(_Graph):
         Add an epoch boundary, returning a new graph with epoch transition edges.
 
         Computes transition rates from stop_probability(time) / accumulated_occupancy(time)
-        and wires up sister vertices in the next epoch. The new graph has one additional
-        state dimension (epoch index) if this is the first epoch, and one additional
-        coefficient slot (epoch transition rate).
+        and wires up sister vertices in the next epoch. The first call also adds an epoch
+        index to the state vector.
+
+        Coefficient layout
+        ------------------
+        After at least one ``add_epoch`` call, the per-edge coefficient vector follows
+        a uniform interleaved layout. With base coefficient count ``B`` (i.e. the length
+        of each coefficient list returned by the original callback), epoch ``k`` owns
+        slots ``[k*(B+1) .. (k+1)*(B+1) - 1]``: the first ``B`` are that epoch's
+        dynamics coefficients, and the last is the transition rate from epoch ``k-1``
+        into epoch ``k``. Epoch 0's transition slot is a dummy — its coefficient is
+        zero on every edge, so any value supplied at that index has no effect.
+
+        For example, with ``B = 1`` and ``N`` ``add_epoch`` calls (i.e. ``N + 1`` epochs)
+        the coefficient vector accepted by ``update_weights`` is::
+
+            [r_0, t_0_dummy, r_1, t_{0->1}, r_2, t_{1->2}, ..., r_N, t_{(N-1)->N}]
+
+        which lets a list of per-epoch rates and times be passed directly via
+        ``zip``::
+
+            graph.update_weights([v for pair in zip(rates, times) for v in pair])
+
+        ``param_length()`` grows from ``B`` (no epochs) to ``2*(B+1)`` after the first
+        ``add_epoch`` and by ``B + 1`` per subsequent call.
 
         Parameters
         ----------
@@ -3078,8 +3100,14 @@ class Graph(_Graph):
         else:
             base_param_length = self.param_length()
 
-        # Each epoch adds: base_param_length slots (for per-epoch dynamics) + 1 slot (epoch transition)
-        extra_coeff = base_param_length + 1
+        # Each epoch owns (base_param_length + 1) slots: B dynamics slots + 1 transition slot.
+        # The first add_epoch call also reserves a dummy transition slot for epoch 0
+        # (already present at the front via the existing B dynamics slots), so all
+        # epochs have a uniform layout. Subsequent calls add one epoch's worth of slots.
+        if is_first_epoch:
+            extra_coeff = base_param_length + 2  # epoch 0 dummy transition + epoch 1's (B + 1) slots
+        else:
+            extra_coeff = base_param_length + 1
 
         # Rebuild with wider layout
         new_graph = self._rebuild_with_wider_layout(
@@ -3129,10 +3157,11 @@ class Graph(_Graph):
         with np.errstate(invalid='ignore'):
             transition_rates = stop_probs / acc_occ
 
-        # Epoch transition coeff slot is the last slot in widened array
-        epoch_trans_coeff_idx = new_graph.param_length() - 1
-        # New epoch's dynamics coeff slots start after the previous param_length
-        new_epoch_dynamics_start = self.param_length()
+        # Uniform interleaved layout: epoch k owns slots [k*(B+1) .. (k+1)*(B+1) - 1],
+        # where the first B are dynamics and the last is the transition rate from
+        # epoch k-1 into epoch k (a dummy that stays 0.0 for k == 0).
+        new_epoch_dynamics_start = epoch_idx * (base_param_length + 1)
+        epoch_trans_coeff_idx = new_epoch_dynamics_start + base_param_length
 
         # Wire epoch transitions on the new graph
         n_vertices_before_extend = new_graph.vertices_length()
