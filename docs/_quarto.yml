@@ -1,8 +1,9 @@
 project:
   type: website
   output-dir: _build
-  post-render: 
-    - quarto render mathref/  
+  pre-render: 
+    - quarto render mathref/ 
+#    - quarto render slides/     
   # resources:
   # - objects.txt
   # - objects-test.txt
@@ -16,11 +17,12 @@ project:
     - "**/*.qmd"  # render all qmd files
     - "**/*.ipynb"  # render all qmd files
     # - "!draft-*.qmd"  # except those starting with draft-
-    - "!internal/"  # exclude entire directories
+    - "!internals/"  # exclude entire directories
     - "!pages/benchmarks/**"
     - "!pages/popgen/"
     - "!pages/topics/R/"
     - "!mathref/"  # Mathematical Reference is a separate Quarto book project with its own _quarto.yml
+    - "!pages/vignettes/"  
 
 comments:
   hypothesis: true
@@ -28,6 +30,7 @@ comments:
 execute:
   freeze: auto
   echo: true
+  fig-format: svg  
 
 metadata-files:
   - api/_sidebar.yml
@@ -202,7 +205,8 @@ format:
     html-math-method: katex
     toc: true
     mermaid:
-      theme: neutral     
+      theme: neutral 
+    fig-format: svg      
 
 quartodoc:
   title: "API Reference"  
