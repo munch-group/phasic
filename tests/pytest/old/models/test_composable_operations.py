@@ -133,8 +133,10 @@ class TestAddEpoch:
 
         g1 = graph.add_epoch(1.0)
         assert g1.vertices_length() > graph.vertices_length()
-        # param_length grows by base_param_length + 1 per epoch
-        assert g1.param_length() == graph.param_length() + graph.param_length() + 1
+        # First add_epoch widens to 2*(B+1) slots: B dynamics + 1 transition per epoch,
+        # including a dummy transition slot for epoch 0.
+        base_pl = graph.param_length()
+        assert g1.param_length() == 2 * (base_pl + 1)
 
     def test_original_unchanged(self):
         coalescent = _make_coalescent(4)
@@ -156,9 +158,9 @@ class TestAddEpoch:
 
         g1 = graph.add_epoch(1.0)
         g2 = g1.add_epoch(2.0)
-        # Each epoch adds base_param_length + 1 slots
+        # Uniform per-epoch layout: (N+1) epochs * (B+1) slots each.
         base_pl = graph.param_length()
-        assert g2.param_length() == base_pl + 2 * (base_pl + 1)
+        assert g2.param_length() == 3 * (base_pl + 1)
         assert g2.vertices_length() > g1.vertices_length()
 
     def test_epoch_then_discretize(self):
@@ -167,8 +169,8 @@ class TestAddEpoch:
         graph.update_weights([1.0])
 
         g1 = graph.add_epoch(1.0)
-        # theta: [epoch0_coal, epoch1_coal, epoch1_trans]
-        g1.update_weights([1.0, 1.0, 1.0])
+        # theta layout: [epoch0_coal, epoch0_trans_dummy, epoch1_coal, epoch1_trans]
+        g1.update_weights([1.0, 0.0, 1.0, 1.0])
 
         g2 = g1.discretize(0.1)
         assert g2.is_discrete
@@ -187,7 +189,8 @@ class TestCachingComposedGraphs:
             g = Graph(coalescent)
             g.update_weights([1.0])
             g1 = g.add_epoch(1.0)
-            g1.update_weights([1.0, 1.0, 1.0])
+            # [epoch0_coal, epoch0_trans_dummy, epoch1_coal, epoch1_trans]
+            g1.update_weights([1.0, 0.0, 1.0, 1.0])
             return g1.add_epoch(2.0)
 
         h1 = phasic_hash.compute_graph_hash(_compose())
@@ -222,7 +225,8 @@ class TestCachingComposedGraphs:
         trace = get_trace_hierarchical(g1_copy, param_length=g1.param_length())
 
         # Trace-based
-        theta = np.array([1.0, 0.5, 1.0])
+        # theta layout: [epoch0_coal, epoch0_trans_dummy, epoch1_coal, epoch1_trans]
+        theta = np.array([1.0, 0.0, 0.5, 1.0])
         concrete = instantiate_from_trace(trace, theta)
         trace_moments = concrete.moments(3)
 
@@ -390,11 +394,12 @@ class TestEquivalenceOldVsNew:
         new_graph = Graph(coalescent_simple)
         new_graph.update_weights([1 / pop_sizes[0]])
         g1 = new_graph.add_epoch(epochs[1])
-        # Must set weights before computing next epoch's transition rates
-        g1.update_weights([1 / pop_sizes[0], 1 / pop_sizes[1], 1])
+        # Uniform interleaved layout: (rate, transition) per epoch.
+        # [epoch0_coal, epoch0_trans_dummy, epoch1_coal, epoch1_trans]
+        g1.update_weights([1 / pop_sizes[0], 0.0, 1 / pop_sizes[1], 1])
         g2 = g1.add_epoch(epochs[2])
-        # theta layout: [epoch0_coal, epoch1_coal, epoch1_trans, epoch2_coal, epoch2_trans]
-        g2.update_weights([1 / pop_sizes[0], 1 / pop_sizes[1], 1, 1 / pop_sizes[2], 1])
+        # [epoch0_coal, epoch0_trans_dummy, epoch1_coal, epoch1_trans, epoch2_coal, epoch2_trans]
+        g2.update_weights([1 / pop_sizes[0], 0.0, 1 / pop_sizes[1], 1, 1 / pop_sizes[2], 1])
         new_moments = g2.moments(5)
 
         # Moments should match within numerical tolerance
