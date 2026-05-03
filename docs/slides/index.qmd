@@ -1,10 +1,12 @@
 ---
-title: "Example"
+title: "Phase-type distribution graphs for population genetics"
 data: today
-author: "Your name"
+author: "Kasper Munch"
 institute: BiRC, Department of Molecular Biology and Genetics, Aarhus University
 format:
   revealjs: 
+    classoption: fleqn
+    fleqn: true
     mainfont: "Helvetica"
     # width: "100%"
     # height: "100%"
@@ -23,19 +25,158 @@ format:
 
 
 <!-- ---------------------------------------------------- -->
-
 # Phase-type distributions
+<!-- ---------------------------------------------------- -->
+
+## The coalescent as a markov jump process
+
+![](./images/coal_mc_jump_anim_1.svg)
+
+## The coalescent as a markov jump process
+
+![](./images/coal_mc_jump_anim_2.svg){.nostretch width="60%" fig-align="left"}
+
+## The coalescent as a markov jump process
+
+![](./images/coal_mc_jump_anim_3.svg){.nostretch width="60%" fig-align="left"}
+
+## The coalescent as a markov jump process
+
+![](./images/coal_mc_jump_anim_4.svg){.nostretch width="60%" fig-align="left"}
+
+## The coalescent as a markov jump process
+
+![](./images/coal_mc_jump_anim_5.svg){.nostretch width="60%" fig-align="left"}
+
+
+## Phase-type distributed waiting time
+
+
+::: {layout="[[0.45,-0.05,0.45], [0.45,-0.05,0.45]]"}
+
+:::: {.column}
+
+![](./images/coalescent.svg)
+
+:::: 
+
+:::: {.column .fragment}
+
+$\tau \sim \mathrm{PH}(\boldsymbol{\alpha}, {\color{blue} \boldsymbol{S}})$
+
+$\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U} \boldsymbol{e}$
+
+$\boldsymbol{U} = -{\color{blue}\boldsymbol{S}}^{-1}$
+
+:::: 
+
+:::: {.column .fragment}
+
+![](./images/coalescent-unit-rewards.svg)
+
+::::
+
+:::: {.column .fragment}
+
+$\tau \sim \mathrm{PH}(\boldsymbol{\alpha}, {\color{blue} \boldsymbol{S}}, {\color{red} \boldsymbol{r}})$
+
+$\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\color{red}\boldsymbol{r}})\, \boldsymbol{e}$
+
+${\color{red} \boldsymbol{r}} = (4,\ 3,\ 2,\ 2)$
+
+:::: 
+
+:::
+
+
+
+
+
+## layout tester
+
+::: {layout="[ 0.48, -0.04, 0.48 ]"}
+:::: {#first-column}
+
+- thing  laksdj flakjsd flaksj dflkasj flkasj dflkasj dflkasj dflkajs dflkajs dflkajs dflkasj dflkajs dflaksj dflakjs dflkajsd flaksjf
+- thing 1b
+
+::::
+:::: {#second-column}
+
+- thing  laksdj flakjsd flaksj dflkasj flkasj dflkasj dflkasj dflkajs dflkajs dflkajs dflkasj dflkajs dflaksj dflakjs dflkajsd flaksjf
+
+::::
+:::
+
+## The coalescent as a markov jump process
+
+:::: {.columns}
+::: {.column width="50%"}
+
+![](./images/coal_mc_jump_anim_5.svg){fig-align="left"}
+
+:::
+::: {.column width="50%"}
+
+$$
+\boldsymbol{\alpha} = (\alpha_1, \ldots, \alpha_p)
+$$
+
+$$
+{\color{blue}\boldsymbol{S}} = 
+\begin{bmatrix}
+-6 &  6  &  & \\
+   & -3  & 1  & 2 \\
+   &     & -1  & \\
+   &     &  & -1 \\
+\end{bmatrix}
+$$
+
+:::
+::::
+
+## The coalescent as a markov jump process
+
 
 
 ## The coalescent as a markov jump process
 
-![](./images/block-coal-totbrlen-rewards.svg)
-![](./images/block-coal-unit-rewards.svg)
-![](./images/block-coal1.svg)
+:::: {.columns}
+::: {.column width="50%"}
 
+::: {.spacer-1}
+:::
+
+Left column left column left column
+
+Left column left column left column
+
+::: {.spacer-1}
+:::
+
+- Left column left column left column
+- Left column left column left column
+:::
+::: {.column width="50%"}
+![](./images/block-coal-totbrlen-rewards.svg)
+
+::: {.spacer-1}
+:::
+
+![](./images/block-coal-unit-rewards.svg)
+
+::: {.spacer-1}
+:::
+
+![](./images/block-coal1.svg)
+:::
+::::
 
 
 ## The TMRCA is phase-type distributed
+
+
+
 
 ![](./images/coalescent.svg)
 
@@ -49,6 +190,10 @@ format:
 
 ![](./images/coalescent-1ton-revtrans-operations.svg)
 
+Null rewarded node is removed and edge is created or updated:
+
+$w(u \rightarrow z) = w(u \rightarrow v) \frac{w(v \rightarrow z)}{\sum_{x \in x } w(v \rightarrow x)}$
+
 ![](./images/coalescent-1ton-revtrans.svg)
 
 ## Doubleton branch length using reward transformation
@@ -57,10 +202,39 @@ format:
 
 
 <!-- ---------------------------------------------------- -->
-
 # Graph Algorithms
+<!-- ---------------------------------------------------- -->
 
 ## Matrix formulation of phase-type distributions
+
+::: {layout="[[0.45,-0.05,0.45], [0.45,-0.05,0.45]]"}
+:::: {.column}
+
+😀 Proofs and well-described properties:
+
+CDF: $\; \; \; F_\tau(t) = 1 - \boldsymbol{\alpha}e^{\boldsymbol{S}t}\boldsymbol{e}, \;\; t\geq 0$
+
+
+MGF: $\; \; \; \mathbb{E}[\tau^k]=k!\boldsymbol{\alpha} (\boldsymbol{U}\triangle({\color{black}\boldsymbol{r}}))^{k}\boldsymbol{e}$
+
+::: {.spacer-1}
+:::
+
+😱 Complexity:
+
+Matrix operations (${\boldsymbol{S}}^{-1}$ and ${\boldsymbol{S}}^{t}$)
+limit applicability. Needlessly so for sparse matrices.
+
+::::
+:::: {.column}
+
+Coalescent n=10:
+
+![](./images/sparse-matrix.png){.nostretch height="30%" fig-align="center"}
+
+::::
+:::
+
 
 ## A graph-formulation of phase-type distributions
 
@@ -95,29 +269,26 @@ format:
 
 ## Discrete distributions
 
-![](./images/discrete1.svg)
+![](./images/discrete1.svg){.nostretch height="30%" fig-align="center"}
 
-![](./images/discrete2.svg)
+![](./images/discrete2.svg){.nostretch height="30%" fig-align="center"}
 
-![](./images/discrete3.svg)
+![](./images/discrete3.svg){.nostretch height="30%" fig-align="center"}
 
 <!-- ![](./images/discrete4.svg) -->
 
 
-## Statistical properties of the standard coalescent
-
-## Statistical properties of the standard coalescent
 
 <!-- ---------------------------------------------------- -->
-
 # Laplace Transform
+<!-- ---------------------------------------------------- -->
 
 ## Laplace Transform
 
 
 <!-- ---------------------------------------------------- -->
-
 # Joint probability
+<!-- ---------------------------------------------------- -->
 
 ## Joint probability
 
@@ -127,13 +298,13 @@ format:
 
 
 <!-- ---------------------------------------------------- -->
-
-
 # State Lumping
-
 <!-- ---------------------------------------------------- -->
 
+
+<!-- ---------------------------------------------------- -->
 # Time-inhomogeneous 
+<!-- ---------------------------------------------------- -->
 
 ## Time-inhomogeneous models
 
@@ -145,17 +316,17 @@ format:
 
 
 <!-- ---------------------------------------------------- -->
-
 # Performance
+<!-- ---------------------------------------------------- -->
 
 ## Coalescent 100 marginal moments
 
 
-
+<!-- ---------------------------------------------------- -->
+# Popgen models
 <!-- ---------------------------------------------------- -->
 
-
-# Popgen models
+## Statistical properties of the standard coalescent
 
 
 ## Isolation with migration model 
@@ -166,13 +337,13 @@ format:
 
 ## The coalescent with selection
 
+
 <!-- ---------------------------------------------------- -->
-
-
 # Inference with SVGD
-
-
 <!-- ---------------------------------------------------- -->
+
+
+
 <!-- ---------------------------------------------------- -->
 <!-- ---------------------------------------------------- -->
 <!-- ---------------------------------------------------- -->
@@ -374,3 +545,71 @@ Slide content
 ::: aside
 Schumer et al. (2018)
 :::
+
+
+
+
+## Some code
+
+```{python}
+#| echo: true
+#| output-location: column
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+r = np.arange(0, 2, 0.01)
+theta = 2 * np.pi * r
+fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
+ax.plot(theta, r)
+ax.set_rticks([0.5, 1, 1.5, 2])
+ax.grid(True)
+plt.show()
+```
+
+## Some code
+
+```{python}
+#| echo: true
+#| output-location: column
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+r = np.arange(0, 2, 0.01)
+theta = 2 * np.pi * r
+fig, ax = plt.subplots(subplot_kw={"projection": "polar"})
+ax.plot(theta, r)
+ax.set_rticks([0.5, 1, 1.5, 2])
+ax.grid(True)
+plt.show()
+```
+
+# some code
+
+```{.python code-line-numbers="6-8"}
+import numpy as np
+import matplotlib.pyplot as plt
+
+r = np.arange(0, 2, 0.01)
+theta = 2 * np.pi * r
+fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
+ax.plot(theta, r)
+ax.set_rticks([0.5, 1, 1.5, 2])
+ax.grid(True)
+plt.show()
+```
+
+## Some code
+
+```{.python code-line-numbers="|6|9"}
+import numpy as np
+import matplotlib.pyplot as plt
+
+r = np.arange(0, 2, 0.01)
+theta = 2 * np.pi * r
+fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
+ax.plot(theta, r)
+ax.set_rticks([0.5, 1, 1.5, 2])
+ax.grid(True)
+plt.show()

@@ -33,7 +33,7 @@ $presentation-heading-color: $jet !default;
 $presentation-heading-font-weight: lighter;
 //$presentation-heading-line-height: 2;
 //$presentation-block-margin: 28px;
-$presentation-font-size-root: 40px;
+$presentation-font-size-root: 35px;
 
 // colors
 //$body-bg: #f0f1eb !default;
@@ -61,8 +61,8 @@ $selection-bg: #26351c !default;
 
   .title {
     color: $body-color;
-    font-size: 1.4em;
-    // font-weight: 350;
+    font-size: 200%;
+    font-weight: 350;
     // font-weight: lighter;
   }
 
@@ -78,12 +78,13 @@ $selection-bg: #26351c !default;
   .quarto-title-author-email {
     font-style: italic;
     // font-size: 80%;
-    // color: #7F7F7F;
+    color: #7F7F7F;
   }
 
   .author,
   .quarto-title-author-name {
-    color: $body-color;
+    // color: $body-color;
+    color: #7F7F7F;
   }
 
   .quarto-title-authors {
@@ -105,6 +106,8 @@ $selection-bg: #26351c !default;
   font-weight: 380;
   // font-weight: lighter;
   font-size: 1.4em;
+  margin-top: 0.4em;
+  margin-bottom: 0.3em;
 }
 
 .reveal h3 {

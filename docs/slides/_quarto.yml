@@ -4,8 +4,14 @@ format:
     smaller: true
     theme: [default, ../custom.scss, slides.scss]     
     # theme: [default, ../custom.scss]     
-    html-math-method: mathjax
     mainfont: "Helvetica"
+    html-math-method: mathjax
+    # section-divs: true
+    # include-in-header:
+    # - text: |
+    #     <script>
+    #       Reveal.initialize({ plugins: [RevealMath.MathJax3] });
+    #     </script>
 
 execute:
   freeze: auto
