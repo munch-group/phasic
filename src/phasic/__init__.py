@@ -1419,12 +1419,8 @@ def _setup_ctypes_signatures_from_arrays(lib: Any, discrete: bool = False) -> No
         lib.compute_pmf_from_arrays.restype = None
 
 
-def _callback(ipv: list) -> Callable:
-    """
-    Turn callback functions with different signatures into a common one.
-    Also makes return the ipv when called with empty state.
-    """
-    # Validate ipv
+def _validate_ipv(ipv, allow_single_state=True):
+
     if not isinstance(ipv, (list, tuple)):
         raise TypeError(
             f"ipv must be a list, got {type(ipv).__name__}. "
@@ -1454,7 +1450,20 @@ def _callback(ipv: list) -> Callable:
         )
 
     if all(isinstance(x, (int, np.integer)) for x in ipv):
-        ipv = [[ipv, 1.0]]
+        if allow_single_state:
+            ipv = [[ipv, 1.0]]
+        else:
+            raise TypeError("To allow specifying a single state pass as IPV, pass allow_single_state=True.")
+
+    return ipv
+
+def _callback(ipv: list) -> Callable:
+    """
+    Turn callback functions with different signatures into a common one.
+    Also makes return the ipv when called with empty state.
+    """
+    # Validate ipv
+    ipv = _validate_ipv(ipv)
 
     def decorator(func):
        # @wraps(func) don't use wraps to be able to check if decorated from callable name
@@ -1468,8 +1477,10 @@ def _callback(ipv: list) -> Callable:
                 assert ipv is not None, "ipv must be provided if callback does not return it"
                 _, prob = zip(*ipv)
                 try:
-                    if abs(sum(prob) - 1.0) > 1e-12:
-                        raise ValueError("IPV does not sum to one", ipv)
+                    if sum(prob) < 0 or sum(prob) > 1:
+                        raise ValueError("IPV must be non-zero and sum to at most one", ipv)
+                    # if abs(sum(prob) - 1.0) > 1e-12:
+                    #     raise ValueError("IPV does not sum to one", ipv)
                     return [[s, a, []] for s, a in ipv]               
                 except TypeError:
                     return [[s, 1.0, a] for s, a in ipv]               
@@ -7229,12 +7240,13 @@ extern "C" {{
 
 
     def joint_prob_graph(self,
-                        base_graph_indexer: StateIndexer,
+                        base_graph_indexer: StateIndexer | None = None,
                         reward_only: list | None = None,
                         reward_rates_callback: Callable | None = None,
                         mutation_rate: float = 1.0,
                         reward_limit: int | None = None,
-                        tot_reward_limit: float = np.inf) -> Graph:
+                        tot_reward_limit: float = np.inf,
+                        discrete: bool = True) -> Graph:
 
         logger = get_logger(__name__)
 
@@ -7242,6 +7254,12 @@ extern "C" {{
             raise ValueError("Graph must have parameterized edges for joint_prob_graph.")
         if reward_limit is None and tot_reward_limit == np.inf:
             raise ValueError("Either reward_limit or tot_reward_limit must be specified.")
+
+        if base_graph_indexer is None:
+            if hasattr(self, '_indexer'):
+                base_graph_indexer = self._indexer
+            else:
+                raise TypeError("If the graph was not created using an indexer, the base_graph_indexer kwarg must be supplied.")
 
         # Reconcile the supplied indexer with the graph's actual state vector
         # length. After composition (e.g. add_epoch), the graph carries a wider
@@ -7488,8 +7506,8 @@ extern "C" {{
 
         # set discrete flag for update_weights to also normalize and for
         # expected_sojourn_time to call its discrete version
-        joint_graph.is_discrete = True
-        joint_graph.set_was_dph(True)  # Enable auto-normalization in C update_weights()
+        joint_graph.is_discrete = discrete
+        joint_graph.set_was_dph(discrete)  # Enable auto-normalization in C update_weights()
 
         joint_graph._joint_prob_base_graph_indexer = base_graph_indexer
         joint_graph._rewarded_props = _rewarded_props
