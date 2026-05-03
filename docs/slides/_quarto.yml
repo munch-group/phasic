@@ -1,0 +1,26 @@
+
+format:
+  revealjs:
+    smaller: true
+    theme: [default, ../custom.scss, slides.scss]     
+    # theme: [default, ../custom.scss]     
+    html-math-method: mathjax
+    mainfont: "Helvetica"
+
+execute:
+  freeze: auto
+  echo: false
+
+project:
+  output-dir: ../_build/slides  
+  render:
+    - index.qmd
+    # # - "**/*.qmd"  # render all qmd files
+    # # - "**/*.ipynb"  # render all qmd files
+    # # - "!draft-*.qmd"  # except those starting with draft-
+    # - "!./internals/"  # exclude entire directories
+    # - "!./pages/benchmarks/**"
+    # - "!./pages/popgen/"
+    # - "!./pages/topics/R/"
+    # - "!./mathref/*.qmd"
+    # - "!./pages/vignettes/"  
