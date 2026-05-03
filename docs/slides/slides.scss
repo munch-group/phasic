@@ -33,7 +33,7 @@ $presentation-heading-color: $jet !default;
 $presentation-heading-font-weight: lighter;
 //$presentation-heading-line-height: 2;
 //$presentation-block-margin: 28px;
-$presentation-font-size-root: 32px;
+$presentation-font-size-root: 40px;
 
 // colors
 //$body-bg: #f0f1eb !default;
@@ -50,7 +50,7 @@ $selection-bg: #26351c !default;
 
 .reveal p {
   // font-weight: 300;
-  font-weight: lighter;
+  // font-weight: lighter;
   margin-top: 1.25em;
 }
 
@@ -63,14 +63,14 @@ $selection-bg: #26351c !default;
     color: $body-color;
     font-size: 1.4em;
     // font-weight: 350;
-    font-weight: lighter;
+    // font-weight: lighter;
   }
 
   .subtitle {
     color: $accent;
     font-style: italic;
     margin-top: 0em;
-    font-weight: lighter;
+    // font-weight: lighter;
   }
 
   .institute,
@@ -101,25 +101,26 @@ $selection-bg: #26351c !default;
 
 
 .reveal h2 {
-  // font-weight: 350;
-  font-weight: lighter;
+
+  font-weight: 380;
+  // font-weight: lighter;
   font-size: 1.4em;
 }
 
 .reveal h3 {
-  color: $accent;
+  // color: $accent;
   font-style: italic;
   // font-weight: 350;
   font-weight: lighter;
-  font-size: 0.95em;
+  // font-size: 0.85em;
 }
 
-.reveal h4 {
-  color: $accent2;
-  // font-weight: 350;
-  font-weight: normal;
-  margin-top: 1.25em;
-}
+// .reveal h4 {
+//   color: $accent2;
+//   // font-weight: 350;
+//   font-weight: normal;
+//   margin-top: 1.25em;
+// }
 
 // alerts etc.
 
@@ -142,34 +143,34 @@ $selection-bg: #26351c !default;
 
 // Unordered lists
 
-.reveal ul {
-  // font-weight: 300;
-  font-weight: lighter;
-  padding-left: 16px;
+// .reveal ul {
+//   // font-weight: 300;
+//   // font-weight: lighter;
+//   padding-left: 16px;
 
-  li::marker {
-    color: mix($accent, white, 70%);
-  }
-}
+//   li::marker {
+//     color: mix($accent, white, 70%);
+//   }
+// }
 
-.reveal ul ul {
-  list-style: none;
+// .reveal ul ul {
+//   list-style: none;
 
-  li:before {
-    content: $right-arrow;
-    color: mix($accent, white, 60%);
-    display: inline-block;
-    width: 1em;
-    margin-left: -1em;
-    margin-right: 0.5em;
-  }
-}
+//   li:before {
+//     content: $right-arrow;
+//     color: mix($accent, white, 60%);
+//     display: inline-block;
+//     width: 1em;
+//     margin-left: -1em;
+//     margin-right: 0.5em;
+//   }
+// }
 
 // Ordered lists
 
 .reveal ol {
   // font-weight: 300;
-  font-weight: lighter;
+  // font-weight: lighter;
   padding-left: 16px;
 
   li::marker {
@@ -256,7 +257,7 @@ $selection-bg: #26351c !default;
   border: none; /* Remove internal row lines */
   padding: .23em; /* Adjust padding as needed */
   text-align: left; /* Adjust text alignment as needed */
-  font-weight: lighter; /* Lighter font weight for main table text */
+  // font-weight: lighter; /* Lighter font weight for main table text */
 }
 
 /* Adds a bottom border to the table header row for distinction */

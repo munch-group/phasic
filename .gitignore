@@ -54,6 +54,9 @@ docs/pages/tutorial/*.png
 docs/pages/tutorial/*.jpg
 docs/pages/tutorial/*.svg
 docs/pages/tutorial/*.pdf
+docs/**/*_files/
+docs/**/*.html
+!docs/indexl.html
 
 .slurm-code-pixi-env.sh
 .slurm-code-slurm-env.sh

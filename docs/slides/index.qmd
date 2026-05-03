@@ -1,0 +1,376 @@
+---
+title: "Example"
+data: today
+author: "Your name"
+institute: BiRC, Department of Molecular Biology and Genetics, Aarhus University
+format:
+  revealjs: 
+    mainfont: "Helvetica"
+    # width: "100%"
+    # height: "100%"
+    # min-scale: 1
+    # max-scale: 1    
+    # # smaller: true
+    # # width: 1050	# Normal width (defaults to 1050)
+    # # height:	700 # Normal height (defaults to 700)
+    # # width: 933	# "standard"
+    # # height:	700 # "standard"
+    # # width: 1050 # "wide"
+    # # height: 590 # "wide"
+    # width: 1244 # "wide"
+    # height:	700 # "wide"
+---
+
+
+<!-- ---------------------------------------------------- -->
+
+# Phase-type distributions
+
+
+## The coalescent as a markov jump process
+
+![](./images/block-coal-totbrlen-rewards.svg)
+![](./images/block-coal-unit-rewards.svg)
+![](./images/block-coal1.svg)
+
+
+
+## The TMRCA is phase-type distributed
+
+![](./images/coalescent.svg)
+
+![](./images/coalescent-unit-rewards.svg)
+
+## Total branch length follow a rewarded is phase-type distribution
+
+![](./images/coalescent-tot-brlen-rewards.svg)
+
+## Singleton branch length using reward transformation
+
+![](./images/coalescent-1ton-revtrans-operations.svg)
+
+![](./images/coalescent-1ton-revtrans.svg)
+
+## Doubleton branch length using reward transformation
+
+![](./images/coalescent-2ton-revtrans-operations.svg)
+
+
+<!-- ---------------------------------------------------- -->
+
+# Graph Algorithms
+
+## Matrix formulation of phase-type distributions
+
+## A graph-formulation of phase-type distributions
+
+## Computing moments from the graph
+
+## Standardization of the graph
+
+![](./images/normalization.svg)
+
+
+## Constructing an acyclic graph retaining the expected accumulated rewards
+
+
+![](./images/elimination.svg)
+
+![](./images/graph_elimination_example.svg)
+
+
+## Gauss elimination - reinvented
+
+## Compute expectation by recursion in reverse topological order
+
+![](./images/expectation.svg)
+
+## Higher-order moments
+
+![](./images/moment_computation_example.svg)
+
+## Higher-order moments
+
+## Higher-order moments
+
+## Discrete distributions
+
+![](./images/discrete1.svg)
+
+![](./images/discrete2.svg)
+
+![](./images/discrete3.svg)
+
+<!-- ![](./images/discrete4.svg) -->
+
+
+## Statistical properties of the standard coalescent
+
+## Statistical properties of the standard coalescent
+
+<!-- ---------------------------------------------------- -->
+
+# Laplace Transform
+
+## Laplace Transform
+
+
+<!-- ---------------------------------------------------- -->
+
+# Joint probability
+
+## Joint probability
+
+## Multivariate distributions / Joint probability
+
+## Truncated multivariate phase-type distributions
+
+
+<!-- ---------------------------------------------------- -->
+
+
+# State Lumping
+
+<!-- ---------------------------------------------------- -->
+
+# Time-inhomogeneous 
+
+## Time-inhomogeneous models
+
+## CDF for Time-inhomogeneous models
+
+## van Loen graph trick
+
+![](./images/time-inhom-trick.svg)
+
+
+<!-- ---------------------------------------------------- -->
+
+# Performance
+
+## Coalescent 100 marginal moments
+
+
+
+<!-- ---------------------------------------------------- -->
+
+
+# Popgen models
+
+
+## Isolation with migration model 
+
+
+## The coalescent conditioned on a derived variant
+
+
+## The coalescent with selection
+
+<!-- ---------------------------------------------------- -->
+
+
+# Inference with SVGD
+
+
+<!-- ---------------------------------------------------- -->
+<!-- ---------------------------------------------------- -->
+<!-- ---------------------------------------------------- -->
+<!-- ---------------------------------------------------- -->
+
+
+
+## Header
+
+- blah blah blah...
+- blah blah blah...
+
+![](./images/block-coal-unit-rewards.svg){.nostretch width="50%" fig-align="center"}
+
+
+## Header
+
+:::: {.columns}
+::: {.column width="40%"}
+- Left column left column left column
+- Left column left column left column
+- Left column left column left column
+- Left column left column left column
+:::
+::: {.column width="60%"}
+![](./images/block-coal1.svg)
+:::
+::::
+
+::: {.spacer-2}
+:::
+
+![](./images/block-coal-unit-rewards.svg){.nostretch width="80%" fig-align="center"}
+
+
+## Header
+
+![](./images/coalescent-1ton-revtrans-operations.svg)
+
+## Header
+
+![](./images/coalescent-1ton-revtrans.svg)
+
+## Header
+
+![](./images/coalescent-2ton-revtrans-operations.svg)
+
+
+
+
+
+$$
+\mathbb{E}_u[\tilde{\tau}] = x_u + w'(u \to v) \cdot \mathbb{E}_v[\tilde{\tau}] + \sum_{z \neq v} w'(u \to z) \cdot \mathbb{E}_z[\tilde{\tau}].
+$$
+
+
+## Admixture displacement in each <br>**geographical region** {.smaller}
+
+
+::: {.spacer-md} 
+:::
+
+Here we have some text that may run over several lines of the slide frame,
+depending on how long it is.
+
+- first item 
+    - A sub item
+
+Next, we'll brief review some theme-specific components.
+
+- Note that _all_ of the standard Reveal.js
+[features](https://quarto.org/docs/presentations/revealjs/)
+can be used with this theme, even if we don't highlight them here.
+
+## Additional theme classes
+
+### Some extra things you can do with the clean theme
+
+Special classes for emphasis
+
+- `.alert` class for default emphasis, e.g. [important note]{.alert}.
+- `.fg` class for custom colour, e.g. [important note]{.fg style="--col: #e64173"}.
+- `.bg` class for custom background, e.g. [important note]{.bg style="--col: #e64173"}.
+
+Cross-references
+
+- `.button` class provides a Beamer-like button, e.g.
+[[Summary]{.button}](#sec-summary)
+
+
+---------------------------------------------------------------
+
+<div style="margin-top: 2em;"></div>
+
+In Denmark, the workplace interaction is very informal and largely unaffected by seniority and age. 
+
+$$
+\frac{\partial f}{\partial \theta_j} = \frac{\partial \lambda}{\partial \theta_j} \cdot \text{PMF} + \lambda \sum_k \frac{\partial a_k}{\partial \theta_j} \operatorname{Po}(k; \lambda t) + \lambda \sum_k a_k 
+$$
+
+
+## Social norms
+
+### Neither academic seniority or age affected interaction
+
+
+<!-- a bug in quarto does not allow successive embeds witout somthing in between (like this) -->
+
+
+
+## Slide title
+
+::: {.incremental}
+- Eat spaghetti
+- Drink wine
+:::
+
+## Slide title
+
+:::: {.columns}
+
+::: {.column width="40%"}
+Left column
+:::
+
+::: {.column width="60%"}
+- One
+- Two
+- Three
+:::
+
+::::
+
+
+## header
+
+::: {.r-stretch}
+{{< embed ../pages/tutorial/state-space.ipynb#fig-coalescent-graph echo=false >}}
+:::
+
+
+## header
+
+::: {.r-stretch}
+{{< embed ../pages/tutorial/time_inhom_joint_prob.ipynb#fig-time-inhomo-joint-joint-graph >}}
+:::
+
+
+
+## header
+
+:::: {.columns .r-stretch}
+
+::: {.column width="100%"}
+{{< embed ../pages/tutorial/state-space.ipynb#fig-coalescent-graph echo=false >}}
+:::
+
+::::
+
+
+## header
+
+:::: {.columns .r-stretch}
+
+::: {.r-stretch .column width="40%"}
+{{< embed ../pages/tutorial/properties.ipynb#fig-tot-lineages-across-time >}}
+:::
+
+::: {.r-stretch .column width="60%"}
+{{< embed ../pages/tutorial/properties.ipynb#fig-tot-lineages-across-time >}}
+:::
+
+::::
+
+
+## header
+
+::: {.r-stretch}
+{{< embed ../pages/tutorial/properties.ipynb#fig-tot-lineages-across-time >}}
+:::
+
+## Admixture displacement in each <br>**geographical region** {.smaller}
+
+:::: {.columns}
+
+::: {.column width="40%"}
+{{< embed ../pages/tutorial/state-space.ipynb#fig-coalescent-graph echo=false >}}
+:::
+
+::: {.column width="60%"}
+{{< embed ../pages/tutorial/properties.ipynb#fig-tot-lineages-across-time >}}
+:::
+
+::::
+
+## Slide Title
+
+Slide content
+
+::: aside
+Schumer et al. (2018)
+:::
