@@ -4,10 +4,10 @@ Test suite for utilities and integration features.
 Tests plotting, SVGD, distributed computing utilities, and other features.
 """
 
+import phasic
+from phasic import Graph, with_ipv
 import pytest
 import numpy as np
-import phasic as ptd
-from phasic import Graph, with_ipv
 
 # Try to import optional dependencies
 try:
@@ -71,11 +71,11 @@ class TestDistributedUtilities:
 
     def test_distributed_config_exists(self):
         """Test that DistributedConfig exists."""
-        assert hasattr(ptd, 'DistributedConfig')
+        assert hasattr(phasic, 'DistributedConfig')
 
     def test_distributed_config_creation(self):
         """Test creating a DistributedConfig."""
-        config = ptd.DistributedConfig(
+        config = phasic.DistributedConfig(
             num_processes=4,
             process_id=0,
             coordinator_address='localhost:1234'
@@ -87,14 +87,14 @@ class TestDistributedUtilities:
     def test_detect_slurm_environment(self):
         """Test SLURM environment detection."""
         # Should return a dict (may be empty if not in SLURM)
-        env_info = ptd.detect_slurm_environment()
+        env_info = phasic.detect_slurm_environment()
         assert isinstance(env_info, dict)
 
     def test_get_coordinator_address(self):
         """Test coordinator address utility."""
         # Should return a string or None
         try:
-            addr = ptd.get_coordinator_address()
+            addr = phasic.get_coordinator_address()
             assert isinstance(addr, (str, type(None)))
         except Exception:
             # May not work outside SLURM environment
@@ -106,26 +106,26 @@ class TestClusterConfiguration:
 
     def test_cluster_config_exists(self):
         """Test that ClusterConfig exists."""
-        assert hasattr(ptd, 'ClusterConfig')
+        assert hasattr(phasic, 'ClusterConfig')
 
     def test_load_config(self):
         """Test loading cluster config."""
         # Should handle missing config gracefully
         try:
-            config = ptd.load_config('nonexistent_config')
+            config = phasic.load_config('nonexistent_config')
         except (FileNotFoundError, ValueError):
             # Expected if config doesn't exist
             pass
 
     def test_get_default_config(self):
         """Test getting default cluster config."""
-        config = ptd.get_default_config()
+        config = phasic.get_default_config()
         assert config is not None
 
     def test_suggest_config(self):
         """Test config suggestion utility."""
         # Should not raise
-        suggestion = ptd.suggest_config(20)
+        suggestion = phasic.suggest_config(20)
         assert suggestion is not None
 
 
@@ -134,23 +134,23 @@ class TestAutoParallel:
 
     def test_environment_info_exists(self):
         """Test that EnvironmentInfo exists."""
-        assert hasattr(ptd, 'EnvironmentInfo')
+        assert hasattr(phasic, 'EnvironmentInfo')
 
     def test_parallel_config_exists(self):
         """Test that ParallelConfig exists."""
-        assert hasattr(ptd, 'ParallelConfig')
+        assert hasattr(phasic, 'ParallelConfig')
 
     def test_detect_environment(self):
         """Test environment detection."""
-        env = ptd.detect_environment()
+        env = phasic.detect_environment()
         assert env is not None
 
     @pytest.mark.skipif(not HAS_JAX, reason="JAX not available")
     def test_configure_jax_for_environment(self):
         """Test JAX configuration for environment."""
-        env = ptd.detect_environment()
+        env = phasic.detect_environment()
         # Should not raise
-        ptd.configure_jax_for_environment(env)
+        phasic.configure_jax_for_environment(env)
 
 
 class TestCompilationConfig:
@@ -159,7 +159,7 @@ class TestCompilationConfig:
     @pytest.mark.skipif(not HAS_JAX, reason="JAX not available")
     def test_compilation_config_exists(self):
         """Test that CompilationConfig exists."""
-        assert hasattr(ptd, 'CompilationConfig')
+        assert hasattr(phasic, 'CompilationConfig')
 
     @pytest.mark.skipif(not HAS_JAX, reason="JAX not available")
     def test_get_default_compilation_config(self):
@@ -182,7 +182,7 @@ class TestMatrixRepresentation:
         g = Graph.from_matrices(ipv, sim, states)
         matrices = g.as_matrices()
 
-        assert isinstance(matrices, ptd.MatrixRepresentation)
+        assert isinstance(matrices, phasic.MatrixRepresentation)
         assert matrices.ipv is not None
         assert matrices.sim is not None
         assert matrices.states is not None
@@ -297,7 +297,7 @@ class TestNumericalStability:
     """Test numerical stability."""
 
     def test_small_rates(self):
-        """Test with transition rates."""
+        """Test with very small transition rates."""
         small_rate = 1e-9
         g = Graph(1)
         start = g.starting_vertex()
@@ -309,7 +309,7 @@ class TestNumericalStability:
         v1.add_edge(v3, 1)
         v2.add_edge(v3, 1)
         exp = g.expectation()
-        print(f"Expectation: {exp}")        
+        print(exp)
         assert np.isfinite(exp)
         assert exp > 0
 
