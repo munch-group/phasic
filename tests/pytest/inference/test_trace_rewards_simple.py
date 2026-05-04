@@ -1,27 +1,38 @@
 """
-Simple tests for reward transformation in trace-based elimination
-Using a simple 2-state model for easier testing
+Simple tests for reward transformation in trace-based elimination.
+
+Uses the canonical Exp(theta) graph: start → [2] (transient) → [1] (absorbing).
+The transient vertex carries the parameterized rate edge — putting the rate
+edge on the IPV would encode an instant-absorption distribution (PDF = 0)
+instead of an exponential.
 """
 
 import numpy as np
 
-def test_simple_reward_transformation():
-    """Test reward transformation with a simple 2-state model"""
+
+def _build_exp_graph():
+    """Build start → [2] (transient) → [1] (absorbing) with rate = theta[0]."""
     from phasic import Graph
+    g = Graph(1)
+    v_start = g.starting_vertex()
+    v_trans = g.find_or_create_vertex([2])
+    v_abs = g.find_or_create_vertex([1])
+    v_start.add_edge(v_trans, 1.0)
+    v_trans.add_edge_parameterized(v_abs, 0.0, [1.0])
+    return g
+
+
+def _transient_index(trace):
+    """Return the trace index of the transient state [2]."""
+    return next(i for i in range(trace.n_vertices)
+                if list(trace.states[i]) == [2])
+
+
+def test_simple_reward_transformation():
+    """Test reward transformation with a simple exponential model"""
     from phasic.trace_elimination import record_elimination_trace, evaluate_trace, instantiate_from_trace
 
-    # Create simple 2-state model: Start → Absorbing
-    # Rate = theta[0]
-    def callback(state):
-        if len(state) == 0:
-            # From starting vertex to state 1
-            return [(np.array([1]), 0.0, [1.0])]
-        elif state[0] == 1:
-            # State 1 is absorbing
-            return []
-        return []
-
-    graph = Graph(callback)
+    graph = _build_exp_graph()
 
     # Record trace WITH rewards
     trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)
@@ -38,12 +49,13 @@ def test_simple_reward_transformation():
     print(f"✓ Evaluated with neutral rewards")
     print(f"  - vertex_rates: {result_neutral['vertex_rates']}")
 
-    # Evaluate with scaled rewards
+    # Evaluate with reward scaled on the transient vertex (the only one
+    # that contributes sojourn time).
     rewards_scaled = np.ones(trace.n_vertices)
-    rewards_scaled[0] = 2.0  # Scale the starting vertex
+    rewards_scaled[_transient_index(trace)] = 2.0
 
     result_scaled = evaluate_trace(trace, params=theta, rewards=rewards_scaled)
-    print(f"✓ Evaluated with scaled rewards (2x on vertex 0)")
+    print(f"✓ Evaluated with scaled rewards (2x on transient vertex)")
     print(f"  - vertex_rates: {result_scaled['vertex_rates']}")
 
     # Instantiate graphs
@@ -51,15 +63,15 @@ def test_simple_reward_transformation():
     graph_scaled = instantiate_from_trace(trace, params=theta, rewards=rewards_scaled)
 
     # Compute PDF at t=1.0
-    pdf_neutral = graph_neutral.pdf(1.0, granularity=100)
-    pdf_scaled = graph_scaled.pdf(1.0, granularity=100)
+    pdf_neutral = graph_neutral.pdf(1.0, granularity=200)
+    pdf_scaled = graph_scaled.pdf(1.0, granularity=200)
 
     print(f"✓ PDF at t=1.0:")
     print(f"  - Neutral rewards: {pdf_neutral}")
     print(f"  - Scaled rewards:  {pdf_scaled}")
 
     # With scaled rewards, the PDF should be different
-    # (reward transformation scales the exit rate from vertex 0)
+    # (reward transformation scales the exit rate from the transient vertex)
     assert pdf_neutral > 0, "Neutral PDF should be positive"
     assert pdf_scaled > 0, "Scaled PDF should be positive"
     assert not np.isclose(pdf_neutral, pdf_scaled), "PDFs should differ with different rewards"
@@ -74,22 +86,13 @@ def test_reward_transformation_theory():
     For an exponential distribution with rate λ:
     - PDF(t) = λ * exp(-λt)
 
-    With reward transformation (reward r on the starting vertex):
-    - The exit rate becomes λ * r
+    With reward r on the transient vertex:
+    - The effective rate becomes λ * r
     - PDF(t) = λr * exp(-λrt)
     """
-    from phasic import Graph
     from phasic.trace_elimination import record_elimination_trace, instantiate_from_trace
 
-    # Create exponential model
-    def callback(state):
-        if len(state) == 0:
-            return [(np.array([1]), 0.0, [1.0])]  # Rate = theta[0]
-        elif state[0] == 1:
-            return []  # Absorbing
-        return []
-
-    graph = Graph(callback)
+    graph = _build_exp_graph()
     trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)
 
     # Test parameters
@@ -100,10 +103,12 @@ def test_reward_transformation_theory():
     # At t=1.0: PDF = 6.0 * exp(-6.0 * 1.0) = 6.0 * exp(-6.0) ≈ 0.0149
 
     rewards = np.ones(trace.n_vertices)
-    rewards[0] = reward
+    rewards[_transient_index(trace)] = reward
 
     graph_transformed = instantiate_from_trace(trace, params=theta, rewards=rewards)
-    pdf_actual = graph_transformed.pdf(1.0, granularity=200)
+    # Effective rate is 6.0 — uniformization needs higher granularity than
+    # default to stay under 5% at rate*t = 6.
+    pdf_actual = graph_transformed.pdf(1.0, granularity=2000)
 
     # Theoretical value
     lambda_r = theta[0] * reward

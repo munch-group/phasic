@@ -273,10 +273,12 @@ class TestOptaxWithMockSVGD:
         optimizer.reset(particles.shape, params=particles)
 
         for _ in range(100):
-            # Gradient of ||x - target||^2 is 2(x - target)
-            # Optax optimizers negate gradients internally (designed for minimization)
+            # phasic's optax_adam.step() negates Optax's descent direction so
+            # callers can do ``particles += update`` (matching SVGD ascent
+            # semantics: phi is an ascent direction). For minimisation, pass
+            # the *negative* gradient as phi.
             gradient = 2 * (particles - target)
-            update = optimizer.step(gradient, params=particles)
+            update = optimizer.step(-gradient, params=particles)
             particles = particles + update
 
         # Should be close to target after optimization

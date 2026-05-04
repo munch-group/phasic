@@ -168,7 +168,10 @@ def test_basic_convergence():
     # Build model
     print(f"\nBuilding model...")
     graph = build_exponential_graph()
-    model = Graph.pmf_from_graph(graph, discrete=False, theta_dim=1)
+    # SVGD validation requires the model to accept rewards=None, which only
+    # pmf_and_moments_from_graph provides; pmf_from_graph returns a 1-arg
+    # PMF-only callable that fails the rewards probe.
+    model = Graph.pmf_and_moments_from_graph(graph, nr_moments=2, discrete=False, theta_dim=1)
 
     # Define uninformative prior in transformed (log) space
     def uninformative_prior(phi):
@@ -178,9 +181,9 @@ def test_basic_convergence():
         return -0.5 * jnp.sum(((phi - mu) / sigma)**2)
 
     # Run SVGD (positive_params=True by default)
-    # Use ExponentialDecayStepSize for stable convergence
-    from phasic import ExponentialDecayStepSize
-    step_schedule = ExponentialDecayStepSize(first_step=0.01, last_step=0.001, tau=500.0)
+    # Use ExpStepSize for stable convergence (renamed from ExponentialDecayStepSize)
+    from phasic import ExpStepSize
+    step_schedule = ExpStepSize(first_step=0.01, last_step=0.001, tau=500.0)
 
     print(f"\nRunning SVGD...")
     svgd = SVGD(
@@ -196,7 +199,7 @@ def test_basic_convergence():
         verbose=False
     )
 
-    svgd.fit()
+    svgd.optimize()
 
     print(f"\nSVGD Results:")
     print(f"  Posterior mean: {svgd.theta_mean[0]:.3f}")
@@ -214,15 +217,15 @@ def test_basic_convergence():
     mean_tol = 0.15 * posterior_mean  # Relaxed for stochastic optimization
     std_tol = 0.75 * posterior_std  # SVGD may underestimate uncertainty (known limitation)
 
-    if mean_error < mean_tol and std_error < std_tol:
-        print(f"  ✓ PASS: SVGD converged to analytical posterior")
-        print(f"    (mean within 15%, std within 75% tolerance)")
-        return True
-    else:
-        print(f"  ✗ FAIL: SVGD did not converge")
-        print(f"    Mean error {mean_error:.3f} > tolerance {mean_tol:.3f}")
-        print(f"    OR Std error {std_error:.3f} > tolerance {std_tol:.3f}")
-        return False
+    assert mean_error < mean_tol, (
+        f"Posterior mean off by {mean_error:.3f} (tolerance {mean_tol:.3f})"
+    )
+    assert std_error < std_tol, (
+        f"Posterior std off by {std_error:.3f} (tolerance {std_tol:.3f}); "
+        f"SVGD is known to underestimate uncertainty"
+    )
+    print(f"  ✓ PASS: SVGD converged to analytical posterior")
+    print(f"    (mean within 15%, std within 75% tolerance)")
 
 
 def test_log_transformation():
@@ -254,7 +257,10 @@ def test_log_transformation():
     # Build model
     print(f"Building model...")
     graph = build_exponential_graph()
-    model = Graph.pmf_from_graph(graph, discrete=False, theta_dim=1)
+    # SVGD validation requires the model to accept rewards=None, which only
+    # pmf_and_moments_from_graph provides; pmf_from_graph returns a 1-arg
+    # PMF-only callable that fails the rewards probe.
+    model = Graph.pmf_and_moments_from_graph(graph, nr_moments=2, discrete=False, theta_dim=1)
 
     # Define log transformation
     def log_transform(phi):
@@ -272,9 +278,9 @@ def test_log_transformation():
         sigma = 10.0
         return -0.5 * jnp.sum(((phi - mu) / sigma)**2)
 
-    # Use ExponentialDecayStepSize for stable convergence
-    from phasic import ExponentialDecayStepSize
-    step_schedule = ExponentialDecayStepSize(first_step=0.01, last_step=0.001, tau=500.0)
+    # Use ExpStepSize for stable convergence (renamed from ExponentialDecayStepSize)
+    from phasic import ExpStepSize
+    step_schedule = ExpStepSize(first_step=0.01, last_step=0.001, tau=500.0)
 
     # Run SVGD with transformation
     print(f"\nRunning SVGD with log transformation...")
@@ -295,7 +301,7 @@ def test_log_transformation():
         verbose=False
     )
 
-    svgd.fit()
+    svgd.optimize()
 
     print(f"\nSVGD Results (in θ space):")
     print(f"  Posterior mean: {svgd.theta_mean[0]:.3f}")
@@ -312,14 +318,12 @@ def test_log_transformation():
     print(f"  Min θ: {min_theta:.6f}")
     print(f"  Max θ: {max_theta:.6f}")
 
-    if min_theta > 0:
-        print(f"  ✓ PASS: All particles positive (θ > 0)")
-        print(f"    Log transformation enforces constraint correctly")
-        return True
-    else:
-        print(f"  ✗ FAIL: Some particles non-positive")
-        print(f"    Min θ = {min_theta:.6f} ≤ 0")
-        return False
+    assert min_theta > 0, (
+        f"All particles should be positive after log transformation; "
+        f"min θ = {min_theta:.6f}"
+    )
+    print(f"  ✓ PASS: All particles positive (θ > 0)")
+    print(f"    Log transformation enforces constraint correctly")
 
 
 def test_positive_constraint():
@@ -351,11 +355,14 @@ def test_positive_constraint():
     # Build model
     print(f"Building model...")
     graph = build_exponential_graph()
-    model = Graph.pmf_from_graph(graph, discrete=False, theta_dim=1)
+    # SVGD validation requires the model to accept rewards=None, which only
+    # pmf_and_moments_from_graph provides; pmf_from_graph returns a 1-arg
+    # PMF-only callable that fails the rewards probe.
+    model = Graph.pmf_and_moments_from_graph(graph, nr_moments=2, discrete=False, theta_dim=1)
 
-    # Use ExponentialDecayStepSize for stable convergence
-    from phasic import ExponentialDecayStepSize
-    step_schedule = ExponentialDecayStepSize(first_step=0.01, last_step=0.001, tau=500.0)
+    # Use ExpStepSize for stable convergence (renamed from ExponentialDecayStepSize)
+    from phasic import ExpStepSize
+    step_schedule = ExpStepSize(first_step=0.01, last_step=0.001, tau=500.0)
 
     # Run SVGD with positive_params (now default)
     print(f"\nRunning SVGD with positive_params=True (default)...")
@@ -372,7 +379,7 @@ def test_positive_constraint():
         verbose=False
     )
 
-    svgd.fit()
+    svgd.optimize()
 
     print(f"\nSVGD Results:")
     print(f"  Posterior mean: {svgd.theta_mean[0]:.3f}")
@@ -389,14 +396,12 @@ def test_positive_constraint():
     print(f"  Min θ: {min_theta:.6f}")
     print(f"  Max θ: {max_theta:.6f}")
 
-    if min_theta > 0:
-        print(f"  ✓ PASS: All particles positive (θ > 0)")
-        print(f"    positive_params flag works correctly")
-        return True
-    else:
-        print(f"  ✗ FAIL: Some particles non-positive")
-        print(f"    Min θ = {min_theta:.6f} ≤ 0")
-        return False
+    assert min_theta > 0, (
+        f"positive_params flag should keep all particles positive; "
+        f"min θ = {min_theta:.6f}"
+    )
+    print(f"  ✓ PASS: All particles positive (θ > 0)")
+    print(f"    positive_params flag works correctly")
 
 
 def test_cache_isolation():
@@ -421,7 +426,10 @@ def test_cache_isolation():
 
     # Build model
     graph = build_exponential_graph()
-    model = Graph.pmf_from_graph(graph, discrete=False, theta_dim=1)
+    # SVGD validation requires the model to accept rewards=None, which only
+    # pmf_and_moments_from_graph provides; pmf_from_graph returns a 1-arg
+    # PMF-only callable that fails the rewards probe.
+    model = Graph.pmf_and_moments_from_graph(graph, nr_moments=2, discrete=False, theta_dim=1)
 
     # First run
     print(f"[1] First SVGD run...")
@@ -437,7 +445,7 @@ def test_cache_isolation():
         seed=42,
         verbose=False
     )
-    svgd1.fit()
+    svgd1.optimize()
     time1 = time.time() - start
     print(f"    Time: {time1:.2f}s")
 
@@ -447,7 +455,10 @@ def test_cache_isolation():
 
     # Need to rebuild model after clearing trace cache
     graph2 = build_exponential_graph()
-    model2 = Graph.pmf_from_graph(graph2, discrete=False, theta_dim=1)
+    # SVGD validation requires the model to accept rewards=None, which only
+    # pmf_and_moments_from_graph provides; pmf_from_graph returns a 1-arg
+    # PMF-only callable that fails the rewards probe.
+    model2 = Graph.pmf_and_moments_from_graph(graph2, nr_moments=2, discrete=False, theta_dim=1)
 
     # Second run
     print(f"[3] Second SVGD run (after cache clear)...")
@@ -462,7 +473,7 @@ def test_cache_isolation():
         seed=42,
         verbose=False
     )
-    svgd2.fit()
+    svgd2.optimize()
     time2 = time.time() - start
     print(f"    Time: {time2:.2f}s")
 
@@ -476,12 +487,11 @@ def test_cache_isolation():
     if speedup < 2.0:  # Less than 2x speedup indicates recompilation
         print(f"  ✓ PASS: Cache properly cleared")
         print(f"    Speedup {speedup:.2f}x < 2x (expected without cache)")
-        return True
     else:
+        # Don't fail the test — JAX may keep internal caches that beat ours.
         print(f"  ⚠ WARNING: Second run suspiciously fast")
         print(f"    Speedup {speedup:.2f}x ≥ 2x (may indicate cache not cleared)")
         print(f"    Note: This can happen if JAX has internal caching")
-        return True  # Still pass, as this is just a sanity check
 
 
 def main():

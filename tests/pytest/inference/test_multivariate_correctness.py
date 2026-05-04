@@ -243,13 +243,21 @@ def test_correctness_analytical():
     times = np.array([[0.5], [1.0], [2.0]])
     rewards = np.ones((n_vertices, 1))
 
+    # Uniformization-based PDF computation has truncation error that scales
+    # like ~rate*t/granularity for an exponential. At G=100 the worst test
+    # point (rate=5, t=2 → rate*t=10) is ~20% off; at G=10000 it drops to
+    # ~0.2%, comfortably under the 1% tolerance for every (rate, time) here.
+    # The whole loop at G=10000 still runs in a few ms, so there's no
+    # reason to use a tighter granularity that's only borderline correct.
+    granularity = 10000
+
     for rate in rates:
         theta = np.array([rate])
 
         # Compute using multivariate
         pdf_computed = builder.compute_pmf_multivariate(
             theta, times, rewards,
-            discrete=False, granularity=100, compute_joint=False
+            discrete=False, granularity=granularity, compute_joint=False
         )
 
         # Analytical exponential PDF: f(t) = rate * exp(-rate * t)
@@ -296,13 +304,11 @@ def test_multiple_features_correctness():
         [2.0, 0.0, 1.0]  # Feature 1 has no observation in row 2
     ])
 
-    # 3 different reward vectors
-    rewards_multi = np.array([
-        [1.0, 2.0, 0.5],  # Vertex 0
-        [1.0, 2.0, 0.5],  # Vertex 1
-        [1.0, 2.0, 0.5],  # Vertex 2
-        [1.0, 2.0, 0.5]   # Vertex 3
-    ])
+    # 3 different reward vectors. Build dynamically from n_vertices because
+    # create_test_graph() returns a graph with state-vertices plus the
+    # always-present auto starting vertex; hardcoding the row count drifts
+    # whenever that helper changes.
+    rewards_multi = np.tile(np.array([1.0, 2.0, 0.5]), (n_vertices, 1))
 
     # Compute all features together
     pdf_all = builder.compute_pmf_multivariate(

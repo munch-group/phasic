@@ -4,25 +4,35 @@ Test both trace versions: simple (without rewards) and full (with rewards)
 
 import numpy as np
 
-def test_simple_version_no_rewards():
-    """Test that simple version works correctly without rewards"""
-    from phasic import Graph
-    from phasic.trace_elimination import record_elimination_trace_simple, instantiate_from_trace
+def _build_exp_graph():
+    """Build the canonical Exp(θ) graph: start → [2] (transient) → [1] (absorb).
 
-    # Create simple 2-state exponential model manually
-    # State [0] (starting) -> State [1] (absorbing) with rate theta[0]
+    The intermediate transient vertex carries the parameterized rate edge.
+    Putting the parameterized edge directly on the IPV (start → absorb) would
+    encode an instant-absorption distribution (PDF = 0 for t > 0), not Exp(θ).
+    """
+    from phasic import Graph
     graph = Graph(1)
     v_start = graph.starting_vertex()  # State [0]
-    v_abs = graph.find_or_create_vertex([1])  # State [1] - absorbing
-    # Add parameterized edge: weight = 0.0 + 1.0 * theta[0]
-    v_start.add_edge_parameterized(v_abs, 0.0, [1.0])  # weight, edge_state
+    v_trans = graph.find_or_create_vertex([2])  # transient
+    v_abs = graph.find_or_create_vertex([1])  # absorbing
+    v_start.add_edge(v_trans, 1.0)  # IPV: enter v_trans with prob 1
+    v_trans.add_edge_parameterized(v_abs, 0.0, [1.0])  # rate = 1.0 * theta[0]
+    return graph
+
+
+def test_simple_version_no_rewards():
+    """Test that simple version works correctly without rewards"""
+    from phasic.trace_elimination import record_elimination_trace_simple, instantiate_from_trace
+
+    graph = _build_exp_graph()
 
     # Record with simple version
     trace = record_elimination_trace_simple(graph, theta_dim=1)
 
     assert trace.param_length == 1
     assert trace.reward_length == 0
-    assert trace.n_vertices == 2
+    assert trace.n_vertices == 3
 
     print(f"✓ Simple version: {trace.n_vertices} vertices, {len(trace.operations)} operations")
     print(f"  - param_length: {trace.param_length}")
@@ -48,21 +58,16 @@ def test_simple_version_no_rewards():
 
 def test_full_version_no_rewards():
     """Test that full version works correctly with rewards disabled"""
-    from phasic import Graph
     from phasic.trace_elimination import record_elimination_trace, instantiate_from_trace
 
-    # Create simple 2-state exponential model manually
-    graph = Graph(1)
-    v_start = graph.starting_vertex()
-    v_abs = graph.find_or_create_vertex([1])
-    v_start.add_edge_parameterized(v_abs, 0.0, [1.0])  # weight, edge_state
+    graph = _build_exp_graph()
 
     # Record with full version but rewards disabled
     trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=False)
 
     assert trace.param_length == 1
     assert trace.reward_length == 0
-    assert trace.n_vertices == 2
+    assert trace.n_vertices == 3
 
     print(f"✓ Full version (no rewards): {trace.n_vertices} vertices, {len(trace.operations)} operations")
 
@@ -84,21 +89,16 @@ def test_full_version_no_rewards():
 
 def test_full_version_with_rewards():
     """Test that full version works correctly with rewards enabled"""
-    from phasic import Graph
     from phasic.trace_elimination import record_elimination_trace, instantiate_from_trace
 
-    # Create simple 2-state exponential model manually
-    graph = Graph(1)
-    v_start = graph.starting_vertex()
-    v_abs = graph.find_or_create_vertex([1])
-    v_start.add_edge_parameterized(v_abs, 0.0, [1.0])  # weight, edge_state
+    graph = _build_exp_graph()
 
     # Record with rewards enabled
     trace = record_elimination_trace(graph, theta_dim=1, enable_rewards=True)
 
     assert trace.param_length == 1
-    assert trace.reward_length == 2  # n_vertices
-    assert trace.n_vertices == 2
+    assert trace.reward_length == 3  # n_vertices
+    assert trace.n_vertices == 3
 
     print(f"✓ Full version (with rewards): {trace.n_vertices} vertices, {len(trace.operations)} operations")
     print(f"  - param_length: {trace.param_length}")
@@ -119,14 +119,21 @@ def test_full_version_with_rewards():
 
     assert abs(pdf_neutral - pdf_expected) / pdf_expected < 0.05
 
-    # Instantiate with reward scaling
+    # Instantiate with reward scaling on the transient vertex (the only one
+    # that contributes sojourn time). Reward r on the transient vertex
+    # rescales sojourn time by 1/r → effective rate = λ * r.
     rewards_scaled = np.ones(trace.n_vertices)
-    rewards_scaled[0] = 3.0  # Scale starting vertex by 3
+    # Find the transient vertex's index in the trace by state
+    transient_idx = next(i for i in range(trace.n_vertices)
+                         if list(trace.states[i]) == [2])
+    rewards_scaled[transient_idx] = 3.0
 
     graph_scaled = instantiate_from_trace(trace, params=theta, rewards=rewards_scaled)
-    pdf_scaled = graph_scaled.pdf(1.0, granularity=200)
+    # Uniformization error scales like rate*t/granularity; at scaled rate 6.0
+    # and t=1.0 we need granularity higher than 200 to stay under 5%.
+    pdf_scaled = graph_scaled.pdf(1.0, granularity=2000)
 
-    # With reward on starting vertex: λ' = λ * r = 2.0 * 3.0 = 6.0
+    # With reward 3.0 on transient: λ' = λ * r = 2.0 * 3.0 = 6.0
     # PDF = 6.0 * exp(-6.0)
     pdf_expected_scaled = 6.0 * np.exp(-6.0 * 1.0)
 
@@ -141,17 +148,9 @@ def test_full_version_with_rewards():
 
 def test_operation_count_comparison():
     """Compare operation counts between versions"""
-    from phasic import Graph
     from phasic.trace_elimination import record_elimination_trace_simple, record_elimination_trace
 
-    def callback(state):
-        if len(state) == 0:
-            return [(np.array([1]), 0.0, [1.0])]
-        elif state[0] == 1:
-            return []
-        return []
-
-    graph = Graph(callback)
+    graph = _build_exp_graph()
 
     # Record both versions
     trace_simple = record_elimination_trace_simple(graph, theta_dim=1)
@@ -174,17 +173,9 @@ def test_operation_count_comparison():
 
 def test_backward_compatibility():
     """Test that default behavior is backward compatible"""
-    from phasic import Graph
     from phasic.trace_elimination import record_elimination_trace
 
-    def callback(state):
-        if len(state) == 0:
-            return [(np.array([1]), 0.0, [1.0])]
-        elif state[0] == 1:
-            return []
-        return []
-
-    graph = Graph(callback)
+    graph = _build_exp_graph()
 
     # Default call (should have no rewards)
     trace = record_elimination_trace(graph, theta_dim=1)
