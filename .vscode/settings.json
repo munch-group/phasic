@@ -113,11 +113,19 @@
             "group": "Default"
         },
         {
-            "filePath": "docs/pages",
+            "filePath": "/Users/kmt/Downloads/phase_type_lattice.R",
             "group": "Default"
         },
         {
-            "filePath": "/Users/kmt/Downloads/phase_type_lattice.R",
+            "filePath": "docs/pages/tutorial",
+            "group": "Default"
+        },
+        {
+            "filePath": "applications/popgen/bffg-two-epoch.ipynb",
+            "group": "Default"
+        },
+        {
+            "filePath": "tests/pytest/test_mcmc.py",
             "group": "Default"
         }
     ],
