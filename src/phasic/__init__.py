@@ -4207,8 +4207,13 @@ class Graph(_Graph):
 
         # Serialize the graph (now includes parameterized edges)
         serialized = graph.serialize(theta_dim=theta_dim)
-        detected_param_length = serialized.get('param_length', 0)
-        has_param_edges = detected_param_length > 0
+        # graph.parameterized() is the source of truth: it reflects edge_mode
+        # locking (PARAMETERIZED set by the first array-syntax add_edge).
+        # serialized['param_length'] is always >= 1 once any non-IPV edge has
+        # been added, even for constant graphs (the C layer stores constant
+        # weights as a single-element coefficient array), so it can't be used
+        # to detect the parameterized dispatch path.
+        has_param_edges = bool(graph.parameterized())
 
         # Generate C++ build_model() code from the serialized graph
         cpp_code = _generate_cpp_from_graph(serialized)
