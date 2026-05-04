@@ -2391,12 +2391,9 @@ class Graph(_Graph):
                     f"rewards length ({len(rewards_arr)}) must equal number of vertices ({n_vertices})"
                 )
 
-        if self.cache_trace:
+        if self.cache_trace and self.parameterized():
             if self.is_discrete:
                 raise NotImplementedError("Trace-based expectation computation not implemented yet for discrete graphs.")
-                # trace = self._ensure_trace()
-                # if trace is None:
-                #     raise RuntimeError("No trace, is your Graph parameterized?")
                 # return self._expectation_from_trace(rewards=rewards, discrete=True, **kwargs)
             else:
                 trace = self._ensure_trace()
@@ -2454,18 +2451,15 @@ class Graph(_Graph):
                     f"rewards length ({len(rewards_arr)}) must equal number of vertices ({n_vertices})"
                 )
 
-        if self.cache_trace:
+        if self.cache_trace and self.parameterized():
             if self.is_discrete:
                 raise NotImplementedError("Trace-based expectation computation not implemented yet for discrete graphs.")
-                # trace = self._ensure_trace()
-                # if trace is None:
-                #     raise RuntimeError("No trace, is your Graph parameterized?")
                 # return self._variance_from_trace(rewards=rewards, discrete=True, **kwargs)
             else:
                 trace = self._ensure_trace()
                 if trace is None:
                     raise RuntimeError("No trace, is your Graph parameterized?")
-                return self._variance_from_trace(rewards=rewards, discrete=False, **kwargs)                     
+                return self._variance_from_trace(rewards=rewards, discrete=False, **kwargs)
         # # For parameterized graphs, always use trace-based computation (O(n) memory)
         # # to avoid O(n²) matrix allocation in the C++ fallback path
         # if self.parameterized():

@@ -9,6 +9,7 @@ from phasic.test_utils import (
     coalescent_callback_parameterized,
 )
 from phasic import Graph
+from phasic.ffi_wrappers import compute_sojourn_times_ffi
 import numpy as np
 import pytest
 from pytest import approx, raises

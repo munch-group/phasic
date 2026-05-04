@@ -275,7 +275,7 @@ void phasic::Vertex::add_edge(Vertex &to, double weight) {
     struct ptd_edge *result = ptd_graph_add_edge(this->vertex, to.vertex, &coeff, 1);
 
     if (result == NULL) {
-        throw std::runtime_error((char *) ptd_err);
+        PTD_THROW_AND_CLEAR();
     }
 }
 
@@ -319,7 +319,7 @@ void phasic::Vertex::add_edge_parameterized(Vertex &to, double weight, std::vect
     free(state);
 
     if (result == NULL) {
-        throw std::runtime_error((char *) ptd_err);
+        PTD_THROW_AND_CLEAR();
     }
 }
 
@@ -482,7 +482,7 @@ phasic::Graph phasic::Graph::reward_transform(std::vector<double> rewards) {
     struct ptd_graph *res = ptd_graph_reward_transform(this->c_graph(), &rewards[0]);
 
     if (res == NULL) {
-        throw std::runtime_error((char *) ptd_err);
+        PTD_THROW_AND_CLEAR();
     }
 
     return Graph(res);
@@ -490,11 +490,11 @@ phasic::Graph phasic::Graph::reward_transform(std::vector<double> rewards) {
 
 phasic::Graph *phasic::Graph::reward_transform_p(std::vector<double> rewards) {
   struct ptd_graph *res = ptd_graph_reward_transform(this->c_graph(), &rewards[0]);
-  
+
   if (res == NULL) {
-    throw std::runtime_error((char *) ptd_err);
+    PTD_THROW_AND_CLEAR();
   }
-  
+
   return new Graph(res);
 }
 

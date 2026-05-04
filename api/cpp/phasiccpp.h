@@ -36,6 +36,16 @@
 #include "../c/phasic.h"
 #include "scc_graph.h"
 
+// Throw std::runtime_error with the contents of the global ptd_err buffer
+// and clear it so a later post-call ptd_err[0] check (e.g. in the pybind
+// add_edge dispatcher) does not see a stale message from an earlier failure.
+#define PTD_THROW_AND_CLEAR() \
+    do { \
+        std::string _ptd_msg((const char*)ptd_err); \
+        ptd_err[0] = '\0'; \
+        throw std::runtime_error(_ptd_msg); \
+    } while (0)
+
 namespace phasic {
     struct rf_graph {
         struct ptd_avl_tree *tree;
@@ -235,7 +245,7 @@ namespace phasic {
             );
 
             if (ptr == NULL) {
-                throw std::runtime_error((char *) ptd_err);
+                PTD_THROW_AND_CLEAR();
             }
 
             std::vector<double> res;
@@ -265,7 +275,7 @@ namespace phasic {
                 double *ptr = ptd_expected_sojourn_time(this->c_graph());
 
                 if (ptr == NULL) {
-                    throw std::runtime_error((char *) ptd_err);
+                    PTD_THROW_AND_CLEAR();
                 }
 
                 std::vector<double> res;
@@ -280,7 +290,7 @@ namespace phasic {
                 );
 
                 if (ptr == NULL) {
-                    throw std::runtime_error((char *) ptd_err);
+                    PTD_THROW_AND_CLEAR();
                 }
 
                 std::vector<double> res;
@@ -298,7 +308,7 @@ namespace phasic {
         //     );
 
         //     if (ptr == NULL) {
-        //         throw std::runtime_error((char *) ptd_err);
+        //         PTD_THROW_AND_CLEAR();
         //     }
 
         //     std::vector<double> res;
@@ -375,7 +385,7 @@ namespace phasic {
             long double res = ptd_dph_random_sample(c_graph(), rewards);
 
             if (std::isnan(res)) {
-                throw std::runtime_error((char *) ptd_err);
+                PTD_THROW_AND_CLEAR();
             }
 
             return res;
@@ -393,7 +403,7 @@ namespace phasic {
             long double *res = ptd_mdph_random_sample(c_graph(), rewards, vertex_rewards_length);
 
             if (res == NULL) {
-                throw std::runtime_error((char *) ptd_err);
+                PTD_THROW_AND_CLEAR();
             }
 
             return res;
@@ -469,7 +479,7 @@ namespace phasic {
             struct ptd_vertex *res = ptd_dph_random_sample_stop_vertex(c_graph(), jumps);
 
             if (res == NULL) {
-                throw std::runtime_error((char *) ptd_err);
+                PTD_THROW_AND_CLEAR();
             }
 
             return res->index;
@@ -487,7 +497,7 @@ namespace phasic {
 
         void validate() {
             if (ptd_validate_graph(c_graph())) {
-                throw std::runtime_error((char *) ptd_err);
+                PTD_THROW_AND_CLEAR();
             }
         }
 
@@ -544,7 +554,7 @@ namespace phasic {
             struct ptd_graph *res = ptd_graph_dph_reward_transform(c_graph(), &rewards[0]);
 
             if (res == NULL) {
-                throw std::runtime_error((char *) ptd_err);
+                PTD_THROW_AND_CLEAR();
             }
 
             return Graph(res);
@@ -554,7 +564,7 @@ namespace phasic {
             struct ptd_graph *res = ptd_graph_dph_reward_transform(c_graph(), &rewards[0]);
 
             if (res == NULL) {
-                throw std::runtime_error((char *) ptd_err);
+                PTD_THROW_AND_CLEAR();
             }
 
             return new Graph(res);
@@ -612,7 +622,7 @@ namespace phasic {
             struct ptd_clone_res r = ptd_clone_graph(c_graph(), c_avl_tree());
 
             if (r.graph == NULL) {
-                throw std::runtime_error((char*)ptd_err);
+                PTD_THROW_AND_CLEAR();
             }
 
             return Graph(r.graph, r.avl_tree);
@@ -623,7 +633,7 @@ namespace phasic {
             struct ptd_clone_res r = ptd_clone_graph(c_graph(), c_avl_tree());
 
             if (r.graph == NULL) {
-                throw std::runtime_error((char*)ptd_err);
+                PTD_THROW_AND_CLEAR();
             }
 
             return new Graph(r.graph, r.avl_tree);
@@ -637,7 +647,7 @@ namespace phasic {
                 this->rf_graph->ph_context = ptd_probability_distribution_context_create(c_graph(), granularity);
 
                 if (this->rf_graph->ph_context == NULL) {
-                    throw std::runtime_error((char *) ptd_err);
+                    PTD_THROW_AND_CLEAR();
                 }
 
                 _pdf.clear();
@@ -669,7 +679,7 @@ namespace phasic {
                 this->rf_graph->dph_context = ptd_dph_probability_distribution_context_create(c_graph());
 
                 if (this->rf_graph->dph_context == NULL) {
-                    throw std::runtime_error((char *) ptd_err);
+                    PTD_THROW_AND_CLEAR();
                 }
                 _dph_pmf.clear();
                 _dph_cdf.clear();
@@ -704,7 +714,7 @@ namespace phasic {
             );
 
             if (r.graph == NULL) {
-                throw std::runtime_error((char*)ptd_err);
+                PTD_THROW_AND_CLEAR();
             }
 
             return Graph(r.graph, r.avl_tree);
@@ -722,7 +732,7 @@ namespace phasic {
                 this->rf_graph->ph_context_markov = ptd_probability_distribution_context_create(c_graph(), granularity);
 
                 if (this->rf_graph->ph_context_markov == NULL) {
-                    throw std::runtime_error((char *) ptd_err);
+                    PTD_THROW_AND_CLEAR();
                 }
 
                 this->rf_graph->granularity_markov = granularity;
@@ -755,7 +765,7 @@ namespace phasic {
                 this->rf_graph->ph_context_markov = ptd_probability_distribution_context_create(c_graph(), granularity);
 
                 if (this->rf_graph->ph_context_markov == NULL) {
-                    throw std::runtime_error((char *) ptd_err);
+                    PTD_THROW_AND_CLEAR();
                 }
 
                 this->rf_graph->granularity_markov = granularity;
@@ -786,7 +796,7 @@ namespace phasic {
                 this->rf_graph->dph_context_markov = ptd_dph_probability_distribution_context_create(c_graph());
 
                 if (this->rf_graph->dph_context_markov == NULL) {
-                    throw std::runtime_error((char *) ptd_err);
+                    PTD_THROW_AND_CLEAR();
                 }
             }
 
@@ -814,7 +824,7 @@ namespace phasic {
                 this->rf_graph->dph_context_markov = ptd_dph_probability_distribution_context_create(c_graph());
 
                 if (this->rf_graph->dph_context_markov == NULL) {
-                    throw std::runtime_error((char *) ptd_err);
+                    PTD_THROW_AND_CLEAR();
                 }
             }
 
@@ -842,7 +852,7 @@ namespace phasic {
         //         this->rf_graph->dph_context_markov = ptd_dph_probability_distribution_context_create(c_graph());
 
         //         if (this->rf_graph->dph_context_markov == NULL) {
-        //             throw std::runtime_error((char *) ptd_err);
+        //             PTD_THROW_AND_CLEAR();
         //         }
         //     }
 

@@ -835,28 +835,28 @@ class TestParameterized:
 class TestUpdateWeights:
 
     def test_theta_nan(self):
-        g = coalescent_manual_construction()
+        g = Graph(coalescent_callback_parameterized, ipv=[4, 0, 0, 0])
         with raises(ValueError, match="theta contains NaN"):
             g.update_weights(np.array([float('nan')]))
 
     def test_theta_inf(self):
-        g = coalescent_manual_construction()
+        g = Graph(coalescent_callback_parameterized, ipv=[4, 0, 0, 0])
         with raises(ValueError, match="theta contains infinite"):
             g.update_weights(np.array([float('inf')]))
 
     def test_theta_wrong_dims(self):
-        g = coalescent_manual_construction()
+        g = Graph(coalescent_callback_parameterized, ipv=[4, 0, 0, 0])
         with raises(ValueError, match="theta must be 1-dimensional"):
             g.update_weights(np.array([[1.0, 2.0]]))
 
     def test_theta_empty(self):
-        g = coalescent_manual_construction()
+        g = Graph(coalescent_callback_parameterized, ipv=[4, 0, 0, 0])
         with raises(ValueError, match="theta must be non-empty"):
             g.update_weights(np.array([]))
 
     def test_theta_valid(self):
         """Valid theta should work."""
-        g = coalescent_manual_construction()
+        g = Graph(coalescent_callback_parameterized, ipv=[4, 0, 0, 0])
         g.update_weights(np.array([2.0]))
 
 
@@ -1215,32 +1215,32 @@ class TestUpdateWeightWithCallback:
 class TestPDF:
 
     def test_negative_time(self):
-        g = coalescent_manual_construction()
+        g = Graph(coalescent_callback_parameterized, ipv=[4, 0, 0, 0])
         g.update_weights(np.array([2.0]))
         with raises(ValueError, match="time must be non-negative"):
             g.pdf(-1.0)
 
     def test_nan_time(self):
-        g = coalescent_manual_construction()
+        g = Graph(coalescent_callback_parameterized, ipv=[4, 0, 0, 0])
         g.update_weights(np.array([2.0]))
         with raises(ValueError, match="time contains NaN"):
             g.pdf(float('nan'))
 
     def test_negative_granularity(self):
-        g = coalescent_manual_construction()
+        g = Graph(coalescent_callback_parameterized, ipv=[4, 0, 0, 0])
         g.update_weights(np.array([2.0]))
         with raises(ValueError, match="granularity must be >= 0"):
             g.pdf(1.0, granularity=-1)
 
     def test_float_granularity(self):
-        g = coalescent_manual_construction()
+        g = Graph(coalescent_callback_parameterized, ipv=[4, 0, 0, 0])
         g.update_weights(np.array([2.0]))
         with raises(TypeError, match="granularity must be an integer"):
             g.pdf(1.0, granularity=1.5)
 
     def test_valid_pdf(self):
         """Valid pdf call should work."""
-        g = coalescent_manual_construction()
+        g = Graph(coalescent_callback_parameterized, ipv=[4, 0, 0, 0])
         g.update_weights(np.array([2.0]))
         result = g.pdf(1.0)
         assert np.isfinite(result)
@@ -1251,14 +1251,14 @@ class TestPDF:
 class TestExpectationVarianceRewards:
 
     def test_expectation_rewards_wrong_length(self):
-        g = coalescent_manual_construction()
+        g = Graph(coalescent_callback_parameterized, ipv=[4, 0, 0, 0])
         g.update_weights(np.array([2.0]))
         n = g.vertices_length()
         with raises(ValueError, match="rewards length"):
             g.expectation(rewards=np.ones(n + 5))
 
     def test_expectation_rewards_nan(self):
-        g = coalescent_manual_construction()
+        g = Graph(coalescent_callback_parameterized, ipv=[4, 0, 0, 0])
         g.update_weights(np.array([2.0]))
         n = g.vertices_length()
         rewards = np.ones(n)
@@ -1267,20 +1267,20 @@ class TestExpectationVarianceRewards:
             g.expectation(rewards=rewards)
 
     def test_expectation_rewards_wrong_dims(self):
-        g = coalescent_manual_construction()
+        g = Graph(coalescent_callback_parameterized, ipv=[4, 0, 0, 0])
         g.update_weights(np.array([2.0]))
         with raises(ValueError, match="rewards must be 1-dimensional"):
             g.expectation(rewards=np.ones((3, 2)))
 
     def test_variance_rewards_wrong_length(self):
-        g = coalescent_manual_construction()
+        g = Graph(coalescent_callback_parameterized, ipv=[4, 0, 0, 0])
         g.update_weights(np.array([2.0]))
         n = g.vertices_length()
         with raises(ValueError, match="rewards length"):
             g.variance(rewards=np.ones(n + 5))
 
     def test_variance_rewards_nan(self):
-        g = coalescent_manual_construction()
+        g = Graph(coalescent_callback_parameterized, ipv=[4, 0, 0, 0])
         g.update_weights(np.array([2.0]))
         n = g.vertices_length()
         rewards = np.ones(n)
@@ -1290,7 +1290,7 @@ class TestExpectationVarianceRewards:
 
     def test_valid_expectation(self):
         """Valid expectation call should work."""
-        g = coalescent_manual_construction()
+        g = Graph(coalescent_callback_parameterized, ipv=[4, 0, 0, 0])
         g.update_weights(np.array([2.0]))
         result = g.expectation()
         assert np.isfinite(result)
@@ -1300,13 +1300,13 @@ class TestExpectationVarianceRewards:
 class TestRewardTransform:
 
     def test_rewards_wrong_length(self):
-        g = coalescent_manual_construction()
+        g = Graph(coalescent_callback_parameterized, ipv=[4, 0, 0, 0])
         g.update_weights(np.array([2.0]))
         with raises(ValueError, match="rewards length"):
             g.reward_transform(np.ones(g.vertices_length() + 5))
 
     def test_rewards_nan(self):
-        g = coalescent_manual_construction()
+        g = Graph(coalescent_callback_parameterized, ipv=[4, 0, 0, 0])
         g.update_weights(np.array([2.0]))
         rewards = np.ones(g.vertices_length())
         rewards[0] = float('nan')
@@ -1318,31 +1318,31 @@ class TestRewardTransform:
 class TestDiscretize:
 
     def test_invalid_rate_string(self):
-        g = coalescent_manual_construction()
+        g = Graph(coalescent_callback_parameterized, ipv=[4, 0, 0, 0])
         g.update_weights(np.array([2.0]))
         with raises(TypeError, match="rate must be a number or callable"):
             g.discretize("fast")
 
     def test_rate_zero(self):
-        g = coalescent_manual_construction()
+        g = Graph(coalescent_callback_parameterized, ipv=[4, 0, 0, 0])
         g.update_weights(np.array([2.0]))
         with raises(ValueError, match="rate must be in \\(0, 1\\)"):
             g.discretize(0.0)
 
     def test_rate_one(self):
-        g = coalescent_manual_construction()
+        g = Graph(coalescent_callback_parameterized, ipv=[4, 0, 0, 0])
         g.update_weights(np.array([2.0]))
         with raises(ValueError, match="rate must be in \\(0, 1\\)"):
             g.discretize(1.0)
 
     def test_rate_negative(self):
-        g = coalescent_manual_construction()
+        g = Graph(coalescent_callback_parameterized, ipv=[4, 0, 0, 0])
         g.update_weights(np.array([2.0]))
         with raises(ValueError, match="rate must be in \\(0, 1\\)"):
             g.discretize(-0.5)
 
     def test_rate_greater_than_one(self):
-        g = coalescent_manual_construction()
+        g = Graph(coalescent_callback_parameterized, ipv=[4, 0, 0, 0])
         g.update_weights(np.array([2.0]))
         with raises(ValueError, match="rate must be in \\(0, 1\\)"):
             g.discretize(1.5)

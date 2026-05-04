@@ -100,7 +100,7 @@ def coalescent_callback_parameterized(state):
             new[i] -= 1
             new[j] -= 1
             new[i+j+1] += 1
-            transitions.append((new, state[i]*(state[j]-same)/(1+same)))
+            transitions.append((new, [state[i]*(state[j]-same)/(1+same)]))
     return transitions
 
 
