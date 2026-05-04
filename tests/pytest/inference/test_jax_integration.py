@@ -4,6 +4,8 @@ Test suite for JAX integration in phasic.
 Tests pmf_from_graph, gradients, JIT compilation, and vectorization.
 """
 
+import os
+
 import pytest
 
 import numpy as np
@@ -18,8 +20,30 @@ try:
 except ImportError:
     HAS_JAX = False
 
-# Skip all tests if JAX is not available
-pytestmark = pytest.mark.skipif(not HAS_JAX, reason="JAX not available")
+
+# pmf_from_graph compiles a per-graph C++ wrapper and links it against the
+# phasic C/C++ sources at runtime. Those sources only exist on disk under an
+# editable install (`pip install -e .`) or when PHASIC_SOURCE_DIR points at
+# a source checkout — wheel installs don't ship them. Detect availability
+# once at import time and skip the whole module otherwise so wheel users
+# don't see 24 cryptic "no such file" failures.
+_pkg_dir = ptd._get_package_dir()
+_HAS_SOURCES = all(
+    os.path.exists(f'{_pkg_dir}/{p}')
+    for p in ('src/cpp/phasiccpp.cpp', 'src/c/phasic.c', 'src/c/phasic_hash.c')
+)
+
+pytestmark = [
+    pytest.mark.skipif(not HAS_JAX, reason="JAX not available"),
+    pytest.mark.skipif(
+        not _HAS_SOURCES,
+        reason=(
+            "phasic C/C++ sources not on disk (resolved package root: "
+            f"{_pkg_dir}); JIT compilation requires `pip install -e .` "
+            "or PHASIC_SOURCE_DIR pointing at a source checkout."
+        ),
+    ),
+]
 
 
 class TestPMFFromGraph:

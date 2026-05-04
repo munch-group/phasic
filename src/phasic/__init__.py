@@ -609,7 +609,16 @@ def _create_jax_parameterized_wrapper(compute_func: Any, graph_builder: Callable
 # ============================================================================
 
 def _get_package_dir() -> pathlib.Path:
-    """Get package root directory (caching is acceptable)."""
+    """Get package root directory (caching is acceptable).
+
+    Honours $PHASIC_SOURCE_DIR if set so wheel-installed users can still use
+    the JIT-compilation paths by pointing at a source checkout. Otherwise
+    derives the path from __file__, which only resolves to a real source
+    tree under an editable install.
+    """
+    env_dir = os.environ.get('PHASIC_SOURCE_DIR')
+    if env_dir:
+        return pathlib.Path(env_dir)
     return pathlib.Path(__file__).parent.parent.parent
 
 
@@ -1328,6 +1337,34 @@ def _compile_wrapper_library(wrapper_code: str, lib_name: str, extra_includes: l
         wrapper_file = f.name
 
     try:
+        # The JIT-compilation path needs the C/C++ sources on disk so it can
+        # build a per-graph wrapper. _get_package_dir() returns
+        # Path(__file__).parent.parent.parent which only resolves to a real
+        # source tree under an editable install (`pip install -e .`). Wheel
+        # installs put __file__ under site-packages where no `src/` exists,
+        # producing an opaque "no such file" clang error. Detect that here
+        # and emit a self-explanatory message.
+        sources = [
+            f'{pkg_dir}/src/cpp/phasiccpp.cpp',
+            f'{pkg_dir}/src/c/phasic.c',
+            f'{pkg_dir}/src/c/phasic_hash.c',
+            f'{pkg_dir}/src/c/phasic_log.c',
+        ]
+        missing = [s for s in sources if not os.path.exists(s)]
+        if missing:
+            raise RuntimeError(
+                "JIT compilation requires the phasic C/C++ source tree on "
+                "disk, but the following files are missing:\n  - "
+                + "\n  - ".join(missing)
+                + f"\n\nResolved package root: {pkg_dir}\n\n"
+                "This usually means phasic was installed from a wheel "
+                "(which does not ship the C/C++ sources) instead of as an "
+                "editable install. Reinstall with:\n\n"
+                "    pip install -e .\n\n"
+                "from a checkout of the phasic source tree, or set "
+                "PHASIC_SOURCE_DIR to point at one."
+            )
+
         # Base compilation command
         cmd = [
             'g++', '-O3', '-fPIC', '-shared', '-std=c++14',
@@ -1343,13 +1380,7 @@ def _compile_wrapper_library(wrapper_code: str, lib_name: str, extra_includes: l
                 cmd.append(f'-I{inc}')
 
         # Add source files
-        cmd.extend([
-            wrapper_file,
-            f'{pkg_dir}/src/cpp/phasiccpp.cpp',
-            f'{pkg_dir}/src/c/phasic.c',
-            f'{pkg_dir}/src/c/phasic_hash.c',
-            '-o', lib_path
-        ])
+        cmd.extend([wrapper_file, *sources, '-o', lib_path])
 
         result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode != 0:

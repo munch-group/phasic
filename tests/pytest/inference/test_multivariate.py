@@ -74,7 +74,9 @@ class TestMultivariateModel:
         n_vertices = 4
 
         times = jnp.linspace(0.5, 2.5, n_times)
-        rewards_2d = jnp.ones((n_vertices, n_features))
+        # As of v0.22.22 the reward matrix shape is (n_features, n_vertices)
+        # — one row per feature, with that feature's complete reward vector.
+        rewards_2d = jnp.ones((n_features, n_vertices))
 
         pmf, moments = model(theta, times, rewards=rewards_2d)
 
@@ -100,7 +102,8 @@ class TestMultivariateModel:
             [2.0, 4.0, 6.0],
             [2.5, 5.0, 7.5]
         ])
-        rewards_2d = jnp.ones((n_vertices, n_features))
+        # As of v0.22.22 the reward matrix shape is (n_features, n_vertices).
+        rewards_2d = jnp.ones((n_features, n_vertices))
 
         pmf, moments = model(theta, times_2d, rewards=rewards_2d)
 
@@ -207,10 +210,13 @@ class TestSVGDMultivariate:
 
         svgd.optimize()
 
-        # Should have converged to something
+        # Should have converged to something. Note: SVGD may round n_particles
+        # up to a multiple of n_devices under pmap, so assert against
+        # svgd.n_particles (the actual allocation), not the constructor arg.
         assert svgd.theta_mean is not None
         assert svgd.particles is not None
-        assert svgd.particles.shape == (20, 1)
+        assert svgd.particles.shape == (svgd.n_particles, 1)
+        assert svgd.particles.shape[0] >= 20
 
     def test_svgd_2d_inference(self):
         """Test SVGD inference with 2D rewards and 2D observations"""
@@ -251,9 +257,11 @@ class TestSVGDMultivariate:
 
         svgd.optimize()
 
-        # Should have converged
+        # Should have converged. Note: SVGD may round n_particles up to a
+        # multiple of n_devices under pmap, so assert against svgd.n_particles.
         assert svgd.theta_mean is not None
-        assert svgd.particles.shape == (20, 1)
+        assert svgd.particles.shape == (svgd.n_particles, 1)
+        assert svgd.particles.shape[0] >= 20
 
     def test_svgd_2d_moments_regularization(self):
         """Test that 2D moments work with regularization"""
@@ -295,9 +303,11 @@ class TestSVGDMultivariate:
 
         svgd.optimize()
 
-        # Should still converge
+        # Should still converge. Note: SVGD may round n_particles up to a
+        # multiple of n_devices under pmap, so assert against svgd.n_particles.
         assert svgd.theta_mean is not None
-        assert svgd.particles.shape == (20, 1)
+        assert svgd.particles.shape == (svgd.n_particles, 1)
+        assert svgd.particles.shape[0] >= 20
 
 
 @pytest.mark.skip(reason="Causes C-level segfault in _compute_pmf_and_moments_cached; see issue tracker")
