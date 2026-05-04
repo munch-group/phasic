@@ -782,12 +782,25 @@ def record_elimination_trace(graph, theta_dim: int | None = None,
             for child_edge_idx, child_idx in enumerate(vertex_targets[i]):
                 i_to_child_prob = edge_probs[i][child_edge_idx]
 
-                # CASE A: Self-loop (child == parent)
+                # CASE A: Self-loop (child == parent) — eliminating vertex i
+                # creates a self-loop at the parent (parent → i → parent), which
+                # requires a 1/(1 − q) geometric-series correction to both the
+                # bypass probabilities and the parent's sojourn time. That
+                # correction is not implemented (Phase 2 TODO). Silently
+                # skipping it produces wrong-but-finite expectations/variances
+                # (see test_self_loop_correction.py for examples), which is far
+                # more dangerous than failing loudly. Refuse to record a trace
+                # that would need it; callers should use cache_trace=False
+                # (direct C++ path) for graphs with cycles.
                 if child_idx == parent_idx:
-                    # This creates a self-loop feedback
-                    # New self-loop prob: 1 / (1 - parent_to_i * i_to_parent)
-                    # For now, skip self-loops in Phase 1 (TODO: Phase 2)
-                    continue
+                    raise RuntimeError(
+                        f"Trace-based elimination cannot handle the cycle "
+                        f"(parent={parent_idx} → i={i} → parent={parent_idx}): "
+                        f"self-loop correction 1/(1 − q) is not implemented. "
+                        f"Use cache_trace=False (direct C++ computation) for "
+                        f"graphs with cycles, or restructure the graph to be "
+                        f"acyclic."
+                    )
 
                 # Skip edge back to i
                 if child_idx == i:

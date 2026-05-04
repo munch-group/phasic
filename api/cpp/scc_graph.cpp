@@ -92,10 +92,14 @@ std::vector<size_t> SCCGraph::scc_sizes() const {
 }
 
 const Graph& SCCGraph::original_graph() const {
-    // Lazy initialize wrapper around original graph pointer
+    // Lazy initialize wrapper around original graph pointer.
+    // CRITICAL: use make_borrowed so this wrapper does NOT free the underlying
+    // ptd_graph on destruction. The original Graph owns it; double-freeing
+    // here aborts the process at teardown.
     if (!original_graph_wrapper_) {
-        // Non-owning reference to original graph
-        original_graph_wrapper_ = std::make_unique<Graph>(scc_graph_->graph);
+        original_graph_wrapper_ = std::make_unique<Graph>(
+            Graph::make_borrowed(scc_graph_->graph)
+        );
     }
     return *original_graph_wrapper_;
 }
@@ -137,22 +141,31 @@ Graph SCCVertex::as_graph() const {
     Graph& orig_graph = const_cast<Graph&>(parent_scc_graph_->original_graph());
     Graph scc_graph(orig_graph.state_length());
 
-    // Map old vertex pointers to vertices in new graph (by state)
-    std::unordered_map<struct ptd_vertex*, std::vector<int>> vertex_state_map;
+    // Map original vertex pointer → new Vertex. Using the pointer (not state)
+    // as the map key is essential: if an SCC contains the original graph's
+    // starting vertex (which has the all-zero state and is NOT in the AVL
+    // tree), looking it up via find_or_create_vertex(state) creates a duplicate
+    // vertex with the same state — leaving the new graph in an inconsistent
+    // state that aborts at destruction. Instead, when we encounter the
+    // starting vertex we explicitly map it to scc_graph.starting_vertex().
+    struct ptd_vertex* orig_start = orig_graph.c_graph()->starting_vertex;
+    std::unordered_map<struct ptd_vertex*, Vertex> vertex_map;
 
     // Step 1: Create vertices for all internal vertices in this SCC
     for (size_t i = 0; i < scc_vertex_->internal_vertices_length; ++i) {
         struct ptd_vertex* orig_vertex = scc_vertex_->internal_vertices[i];
 
-        // Get state vector
-        std::vector<int> state(orig_graph.state_length());
-        for (size_t j = 0; j < orig_graph.state_length(); ++j) {
-            state[j] = orig_vertex->state[j];
+        if (orig_vertex == orig_start) {
+            // Original graph's starting vertex → new graph's starting vertex
+            vertex_map.emplace(orig_vertex, scc_graph.starting_vertex());
+        } else {
+            // Get state vector and create a regular vertex via the AVL tree
+            std::vector<int> state(orig_graph.state_length());
+            for (size_t j = 0; j < orig_graph.state_length(); ++j) {
+                state[j] = orig_vertex->state[j];
+            }
+            vertex_map.emplace(orig_vertex, scc_graph.find_or_create_vertex(state));
         }
-
-        // Create vertex in new graph
-        scc_graph.find_or_create_vertex(state);
-        vertex_state_map[orig_vertex] = state;
     }
 
     // Step 2: Copy edges (only internal edges within this SCC)
@@ -161,17 +174,16 @@ Graph SCCVertex::as_graph() const {
     size_t param_edges_copied = 0;
     for (size_t i = 0; i < scc_vertex_->internal_vertices_length; ++i) {
         struct ptd_vertex* orig_vertex = scc_vertex_->internal_vertices[i];
-        std::vector<int> from_state = vertex_state_map[orig_vertex];
-        Vertex from_vertex = scc_graph.find_vertex(from_state);
+        Vertex from_vertex = vertex_map.at(orig_vertex);
 
         // Copy edges (both regular and parameterized)
         for (size_t j = 0; j < orig_vertex->edges_length; ++j) {
             struct ptd_edge* edge = orig_vertex->edges[j];
 
             // Only copy if target is also in this SCC
-            auto it = vertex_state_map.find(edge->to);
-            if (it != vertex_state_map.end()) {
-                Vertex to_vertex = scc_graph.find_vertex(it->second);
+            auto it = vertex_map.find(edge->to);
+            if (it != vertex_map.end()) {
+                Vertex to_vertex = it->second;
                 total_edges_copied++;
 
                 // Check if edge has parameterization

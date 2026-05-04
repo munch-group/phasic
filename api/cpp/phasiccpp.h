@@ -57,6 +57,12 @@ namespace phasic {
         struct ptd_probability_distribution_context *ph_context_markov;
         int granularity;
         int granularity_markov;
+        // When true, the destructor will not free `graph` or `tree`. Used by
+        // SCCGraph::original_graph(): we need to expose the underlying
+        // ptd_graph through a Graph wrapper without claiming ownership of it
+        // (the original Graph still owns and will destroy it). All standard
+        // constructors leave this false; only Graph::make_borrowed() flips it.
+        bool borrowed;
     };
 
 
@@ -84,6 +90,7 @@ namespace phasic {
             this->rf_graph->ph_context = NULL;
             this->rf_graph->dph_context_markov = NULL;
             this->rf_graph->ph_context_markov = NULL;
+            this->rf_graph->borrowed = false;
 
             if (this->rf_graph->tree == NULL) {
                 throw std::runtime_error("Failed to create ptd_avl_tree\n");
@@ -100,6 +107,25 @@ namespace phasic {
             this->rf_graph->ph_context = NULL;
             this->rf_graph->dph_context_markov = NULL;
             this->rf_graph->ph_context_markov = NULL;
+            this->rf_graph->borrowed = false;
+        }
+
+        // Wrap an existing ptd_graph WITHOUT taking ownership: the destructor
+        // will not free the graph or create/free an AVL tree. Use only when
+        // another Graph already owns the underlying ptd_graph and you need a
+        // const view. Callers must ensure the owner outlives this borrowed
+        // wrapper (pybind's reference_internal handles this for us at the
+        // Python layer).
+        static Graph make_borrowed(struct ptd_graph *graph) {
+            // Build via the standard ptd_graph-only constructor, then mark
+            // borrowed and discard the AVL tree it allocated. Two extra
+            // small allocations, but it sidesteps having to expose another
+            // private constructor.
+            Graph g(graph);
+            ptd_avl_tree_destroy(g.rf_graph->tree);
+            g.rf_graph->tree = NULL;
+            g.rf_graph->borrowed = true;
+            return g;
         }
 
         Graph(const Graph &o) {
@@ -113,6 +139,7 @@ namespace phasic {
             this->rf_graph->ph_context_markov = o.rf_graph->ph_context_markov;
             this->rf_graph->granularity = o.rf_graph->granularity;
             this->rf_graph->granularity_markov = o.rf_graph->granularity_markov;
+            this->rf_graph->borrowed = o.rf_graph->borrowed;
             *(this->rf_graph->references) += 1;
         }
 
@@ -143,6 +170,7 @@ namespace phasic {
             this->rf_graph->ph_context = NULL;
             this->rf_graph->dph_context_markov = NULL;
             this->rf_graph->ph_context_markov = NULL;
+            this->rf_graph->borrowed = false;
         }
 
 
@@ -155,13 +183,20 @@ namespace phasic {
             *(this->rf_graph->references) -= 1;
 
             if (*this->rf_graph->references == 0) {
-                // Last reference - destroy shared resources
+                // Last reference - destroy shared resources. The
+                // probability-distribution contexts are always owned (they
+                // are constructed lazily by methods on this wrapper), so
+                // free them unconditionally. The graph and tree are only
+                // freed when this wrapper is the owner; borrowed wrappers
+                // skip those to avoid double-frees against the real owner.
                 ptd_dph_probability_distribution_context_destroy(this->rf_graph->dph_context);
                 ptd_probability_distribution_context_destroy(this->rf_graph->ph_context);
                 ptd_dph_probability_distribution_context_destroy(this->rf_graph->dph_context_markov);
                 ptd_probability_distribution_context_destroy(this->rf_graph->ph_context_markov);
-                ptd_avl_tree_destroy(this->rf_graph->tree);
-                ptd_graph_destroy(this->rf_graph->graph);
+                if (!this->rf_graph->borrowed) {
+                    ptd_avl_tree_destroy(this->rf_graph->tree);
+                    ptd_graph_destroy(this->rf_graph->graph);
+                }
                 free(this->rf_graph->references);
             }
 

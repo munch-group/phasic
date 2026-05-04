@@ -95,7 +95,15 @@ class TestSCCDecomposition:
         assert all(len(h) == 64 for h in hashes), "Hashes should be 64 hex chars"
 
     def test_scc_as_graph(self):
-        """Test extracting SCC as standalone graph"""
+        """Test extracting SCC as standalone graph.
+
+        ``Graph(state_length)`` always auto-creates a starting vertex with the
+        all-zero state. When the SCC contains the original graph's starting
+        vertex, ``as_graph()`` reuses the auto-created one; otherwise a fresh
+        starting vertex is added in addition to the SCC's internal vertices.
+        Therefore ``subgraph.vertices_length()`` is either ``scc.size()`` (SCC
+        owns the start) or ``scc.size() + 1`` (SCC does not own the start).
+        """
         g = Graph(2)
         v0 = g.starting_vertex()
         v1 = g.find_or_create_vertex([1, 0])
@@ -110,7 +118,10 @@ class TestSCCDecomposition:
             subgraph = scc.as_graph()
 
             assert isinstance(subgraph, Graph), "Should return Graph object"
-            assert subgraph.vertices_length() == scc.size(), "Subgraph size matches SCC size"
+            assert subgraph.vertices_length() in (scc.size(), scc.size() + 1), (
+                f"Subgraph size {subgraph.vertices_length()} should be "
+                f"{scc.size()} or {scc.size() + 1} (with auto starting vertex)"
+            )
             assert subgraph.state_length() == g.state_length(), "State length preserved"
 
 

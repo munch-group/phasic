@@ -7766,3 +7766,23 @@ __all_config__ = [
 
 # Export callback decorator for building parameterized graphs
 callback = _callback
+
+
+# ============================================================================
+# SCCVertex.as_graph: wrap returned _Graph in the Python Graph subclass so
+# users get the full Python API (e.g. Graph.from_matrices, expectation, etc.)
+# instead of a bare pybind _Graph instance. The underlying C++ method returns
+# a _Graph; we wrap it post-hoc here so isinstance(..., Graph) holds.
+# ============================================================================
+try:
+    from .phasic_pybind import SCCVertex as _SCCVertex
+    _scc_vertex_as_graph_raw = _SCCVertex.as_graph
+
+    def _scc_vertex_as_graph(self):
+        return Graph(_scc_vertex_as_graph_raw(self))
+
+    _scc_vertex_as_graph.__doc__ = _scc_vertex_as_graph_raw.__doc__
+    _SCCVertex.as_graph = _scc_vertex_as_graph
+except (ImportError, AttributeError):
+    # SCC API unavailable in this build; nothing to wrap.
+    pass
