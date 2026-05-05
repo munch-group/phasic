@@ -49,6 +49,24 @@ public:
     explicit GraphBuilder(const std::string& structure_json);
 
     /**
+     * @brief Destructor: evicts this builder's entry from the
+     *        thread-local persistent-graph cache.
+     *
+     * The cache is keyed by ``GraphBuilder*`` address. Without this
+     * cleanup, a builder destroyed in one scope could leave a stale
+     * entry behind, and a *different* builder allocated at the same
+     * address would silently "hit" that entry — returning a graph
+     * built from a previous theta with a different model structure.
+     *
+     * Note: only evicts the entry on the *current* thread. Builders
+     * destroyed on threads other than the one that populated the
+     * cache (uncommon) leave a stale entry; this is acceptable
+     * because the next call from that other thread will overwrite
+     * the entry anyway (every cache miss writes a fresh entry).
+     */
+    ~GraphBuilder();
+
+    /**
      * @brief Build graph with specific parameter values
      *
      * @param theta Pointer to parameter array
@@ -219,6 +237,33 @@ public:
 
     /** Weight computation mode for parameterized edges. */
     enum class WeightMode { LINEAR, LOG };
+
+    /**
+     * @brief Get or initialise this thread's persistent graph and refresh its weights.
+     *
+     * On first call from a given thread for a given GraphBuilder
+     * instance, builds a parameterised graph (via build()) and stores
+     * it in thread-local storage keyed by ``this``. Subsequent calls
+     * from the same thread call ``update_weights(theta)`` on the
+     * cached graph and return it.
+     *
+     * The cached graph holds the C-level
+     * ``parameterized_reward_compute_graph`` once it's been built by
+     * the first forward call. After Stage A0, that cache survives
+     * across ``update_weights`` calls (only structural mutations or
+     * graph destruction invalidate it). So the O(n^3) symbolic
+     * elimination runs once per (thread, GraphBuilder) instead of
+     * once per theta call.
+     *
+     * Thread-safety: thread_local storage isolates graph instances
+     * per OS thread. Safe under the FFI handler's
+     * ``#pragma omp parallel for`` and under JAX pmap (each device
+     * runs in its own Python interpreter, hence its own GraphBuilder).
+     * Concurrent calls within a thread are serialised by the GIL on
+     * the pybind11 entry boundary; the GIL is released for the C++
+     * portion but each thread has its own slot.
+     */
+    Graph& get_or_init_persistent_graph(const double* theta, size_t theta_len);
 
 private:
     // Cached structure data (parsed from JSON once)

@@ -60,7 +60,12 @@
 #define PATH_MAX 4096
 #endif
 
-volatile char ptd_err[4096] = {'\0'};
+/* Per-thread storage: each OS thread gets its own zero-initialised slot.
+ * The matching extern declaration and the PTD_TLS macro itself live in
+ * api/c/phasic.h. ``volatile`` was previously used but served no purpose
+ * (no signal handlers or hardware accessors read it); TLS gives correct
+ * isolation under concurrent execution. */
+PTD_TLS char ptd_err[4096];
 
 /*
  * Utility data structures
@@ -1267,6 +1272,16 @@ struct ptd_clone_res ptd_clone_graph(struct ptd_graph *graph, struct ptd_avl_tre
                 snprintf((char*)ptd_err, sizeof(ptd_err), "Failed to clone edge at vertex %zu", i);
                 return res;
             }
+
+            /* ptd_graph_add_edge initialises edge->weight as
+             * sum(coefficients * 1) (default theta=1). The source edge
+             * may have been updated since (via update_weights), so its
+             * current weight differs from the default. Copy the
+             * source's current weight so the clone faithfully
+             * reproduces the source's runtime state — required by
+             * callers like ptd_graph_reward_transform that read
+             * edge->weight for SCC normalisation. */
+            new_edge->weight = old_edge->weight;
         }
     }
 
@@ -1770,6 +1785,23 @@ struct ptd_desc_reward_compute *ptd_graph_ex_absorbation_time_comp_graph_dyn(str
 struct ptd_desc_reward_compute_parameterized *ptd_graph_ex_absorbation_time_comp_graph_parameterized_dyn(struct ptd_graph *graph);
 
 int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
+    /* Take the per-graph mutex unconditionally. A double-checked-lock
+     * fast path on graph->reward_compute_graph would need acquire/release
+     * memory ordering on the read/store to be safe on weakly-ordered
+     * architectures (arm64) — phasic doesn't otherwise use C atomics, so
+     * we keep the simpler always-lock variant. An uncontended pthread
+     * mutex on macOS / Linux is ~10–20ns; the surrounding PDF/moments
+     * computation is several orders of magnitude more expensive, so the
+     * lock is in the noise.
+     *
+     * The flag check guards against the unlikely case where
+     * pthread_mutex_init failed during graph creation; in that case we
+     * fall through to the lock-free path which is correct under
+     * single-threaded use. */
+    if (graph->compute_graph_lock_initialized) {
+        pthread_mutex_lock(&graph->compute_graph_lock);
+    }
+
     if (graph->was_dph) {
         // Note: was_dph remains true - it's a permanent flag indicating this is a discrete graph
         // This ensures auto-normalization continues to work in update_weights()
@@ -1818,9 +1850,16 @@ int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
             }
 
             if (graph->reward_compute_graph == NULL) {
+                if (graph->compute_graph_lock_initialized) {
+                    pthread_mutex_unlock(&graph->compute_graph_lock);
+                }
                 return -1;
             }
         }
+    }
+
+    if (graph->compute_graph_lock_initialized) {
+        pthread_mutex_unlock(&graph->compute_graph_lock);
     }
 
     return 0;
@@ -2653,6 +2692,19 @@ struct ptd_graph *ptd_graph_create(size_t state_length) {
     graph->use_dyn_ordering = (getenv("PHASIC_DYN_ORDERING") != NULL);
     graph->elimination_trace = NULL;
     graph->current_params = NULL;
+    graph->weight_version = 0;
+
+    /* Initialise the per-graph compute-graph lock. The init can fail
+     * (out of memory), in which case we leave the flag false; later
+     * destroys are conditional on the flag and lazy builds still
+     * succeed because the unprotected double-NULL-check path is
+     * a correctness fallback (lossy under contention but not unsafe
+     * for single-threaded use). */
+    if (pthread_mutex_init(&graph->compute_graph_lock, NULL) == 0) {
+        graph->compute_graph_lock_initialized = true;
+    } else {
+        graph->compute_graph_lock_initialized = false;
+    }
 
     return graph;
 }
@@ -2719,6 +2771,12 @@ void ptd_graph_destroy(struct ptd_graph *graph) {
 #endif
     graph->elimination_trace = NULL;
     graph->current_params = NULL;
+    /* Destroy the mutex BEFORE the memset zeros the struct — destroying
+     * a mutex that's been overwritten with zeros is undefined. */
+    if (graph->compute_graph_lock_initialized) {
+        pthread_mutex_destroy(&graph->compute_graph_lock);
+        graph->compute_graph_lock_initialized = false;
+    }
     memset(graph, 0, sizeof(*graph));
     free(graph);
 }
@@ -3041,6 +3099,8 @@ void ptd_edge_update_weight(
         edge->coefficients[0] = weight;
     }
 
+    edge->to->graph->weight_version++;
+
     if (edge->to->graph->reward_compute_graph != NULL) {
         free(edge->to->graph->reward_compute_graph->commands);
         edge->to->graph->reward_compute_graph = NULL;
@@ -3051,6 +3111,8 @@ void ptd_edge_update_to(
     struct ptd_edge *edge,
     struct ptd_vertex *vertex
 ) {
+
+edge->to->graph->weight_version++;
 
 if (edge->to->graph->reward_compute_graph != NULL) {
     free(edge->to->graph->reward_compute_graph->commands);
@@ -3298,19 +3360,44 @@ void ptd_graph_update_weights(
         }
     }
 
-    // Invalidate cached compute graphs
+    // Bump weight version so any forward-state context cached against
+    // the previous weights is detected as stale by the C++ wrapper guards.
+    graph->weight_version++;
+
+    // Invalidate the *concrete* reward_compute_graph. It contains
+    // concrete double multipliers evaluated against the previous edge
+    // weights, so a theta change makes those values stale.
     if (graph->reward_compute_graph != NULL) {
         free(graph->reward_compute_graph->commands);
         free(graph->reward_compute_graph);
         graph->reward_compute_graph = NULL;
     }
 
-    if (graph->parameterized_reward_compute_graph != NULL) {
-        ptd_parameterized_reward_compute_graph_destroy(
-                graph->parameterized_reward_compute_graph
-        );
-        graph->parameterized_reward_compute_graph = NULL;
-    }
+    /* DO NOT destroy parameterized_reward_compute_graph here.
+     *
+     * The symbolic compute graph stores commands whose `multiplierptr`
+     * fields are pointers into the live edge weight slots
+     * (&edge->weight, set during graph construction). The replay loop
+     * in ptd_graph_build_ex_absorbation_time_comp_graph_parameterized
+     * dereferences `*command.multiplierptr` at replay time, so it
+     * automatically picks up whatever value `update_weights` just
+     * wrote into edge->weight. The symbolic structure depends only on
+     * graph topology + coefficients (theta-independent), neither of
+     * which `update_weights` mutates.
+     *
+     * Destroying it here forces ptd_precompute_reward_compute_graph
+     * to rebuild the symbolic structure (O(n^3) Gaussian elimination)
+     * on every theta update, which is exactly the cost SVGD pays
+     * thousands of times during inference. Preserving the cache means
+     * the second-and-beyond forward call only pays the cheap
+     * O(commands) concrete-build path (line ~1833).
+     *
+     * The cache IS still invalidated on legitimate structural changes:
+     * - ptd_graph_add_edge invalidates it (new edge means new symbolic
+     *   structure).
+     * - The was_dph branch of ptd_precompute_reward_compute_graph
+     *   invalidates and rebuilds it.
+     * - ptd_graph_destroy frees it on graph end-of-life. */
 
 #ifdef HAVE_MPFR
     if (graph->reward_compute_graph_mpfr != NULL) {
@@ -4039,10 +4126,28 @@ struct ptd_graph *ptd_graph_reward_transform(struct ptd_graph *graph, double *re
         return NULL;
     }
 
+    /* _ptd_graph_reward_transform mutates the source graph (vertex
+     * indices are reordered to SCC-topological order, edge weights are
+     * normalised then partially restored). The internal restoration
+     * loop is not idempotent, so successive calls on the same graph
+     * silently corrupt it. Clone the input first so the caller's graph
+     * survives unchanged. ptd_clone_graph preserves vertex order, so
+     * ``rewards`` keyed by source-graph indices remains valid against
+     * the clone. */
+    struct ptd_clone_res clone_res = ptd_clone_graph(graph, NULL);
+    if (clone_res.graph == NULL) {
+        return NULL;
+    }
+
     size_t *new_indices;
-    struct ptd_graph *res = _ptd_graph_reward_transform(graph, rewards, &new_indices);
+    struct ptd_graph *res = _ptd_graph_reward_transform(
+            clone_res.graph, rewards, &new_indices);
 
     free(new_indices);
+    if (clone_res.avl_tree != NULL) {
+        ptd_avl_tree_destroy(clone_res.avl_tree);
+    }
+    ptd_graph_destroy(clone_res.graph);
 
     return res;
 }
@@ -4111,8 +4216,30 @@ struct ptd_graph *ptd_graph_dph_reward_transform(struct ptd_graph *_graph, int *
 
     zero_rewards[0] = 1;
 
+    /* Clone first so _ptd_graph_reward_transform's mutating SCC index
+     * reordering and weight normalisation does not corrupt the
+     * caller's graph. ptd_clone_graph preserves vertex order, so the
+     * ``rewards[old_index]`` lookup below (line ~4143) keyed by
+     * indices returned in ``new_graph_indices`` (which are clone-graph
+     * vertex indices, identical to source-graph vertex indices)
+     * remains correct. */
+    struct ptd_clone_res clone_res = ptd_clone_graph(_graph, NULL);
+    if (clone_res.graph == NULL) {
+        free(zero_rewards);
+        return NULL;
+    }
+
     size_t *new_graph_indices;
-    struct ptd_graph *graph = _ptd_graph_reward_transform(_graph, zero_rewards, &new_graph_indices);
+    struct ptd_graph *graph = _ptd_graph_reward_transform(clone_res.graph, zero_rewards, &new_graph_indices);
+    /* The internal function returns a freshly allocated transformed
+     * graph; the cloned ``clone_res.graph`` was the (mutated) input
+     * and is no longer needed. Free it (and the avl tree if any) so
+     * the only graph we leak references to is ``graph`` (which the
+     * caller owns). */
+    if (clone_res.avl_tree != NULL) {
+        ptd_avl_tree_destroy(clone_res.avl_tree);
+    }
+    ptd_graph_destroy(clone_res.graph);
 
     struct ptd_vertex **vertices = (struct ptd_vertex **) calloc(
             graph->vertices_length, sizeof(*vertices)
@@ -5676,9 +5803,14 @@ struct ll_c2_a {
     struct ll_c2 *mem;
 };
 
-static struct ll_c2_a **ll_c2_alloced;
+/* Per-thread scratch allocator for the parameterised reward compute
+ * graph. Each call to ptd_graph_ex_absorbation_time_comp_graph_parameterized
+ * runs ll_c2_alloc_init / _free around its body, so each thread sees a
+ * clean private allocator. ``__ptd_max`` is read-only after init and
+ * stays plain static. */
+static PTD_TLS struct ll_c2_a **ll_c2_alloced;
 static size_t ll_c2_alloced__ptd_max = 1024;
-static size_t *ll_c2_alloced_index;
+static PTD_TLS size_t *ll_c2_alloced_index;
 
 static void ll_c2_alloc_init(size_t length) {
     ll_c2_alloced_index = (size_t *) calloc(length, sizeof(*ll_c2_alloced_index));
@@ -5725,9 +5857,10 @@ struct ll_p2_a {
     struct ll_p2 *mem;
 };
 
-static struct ll_p2_a **ll_p2_alloced;
+/* Per-thread sibling of ll_c2; same lifetime/usage pattern. */
+static PTD_TLS struct ll_p2_a **ll_p2_alloced;
 static size_t ll_p2_alloced__ptd_max = 1024;
-static size_t *ll_p2_alloced_index;
+static PTD_TLS size_t *ll_p2_alloced_index;
 
 static void ll_p2_alloc_init(size_t length) {
     ll_p2_alloced_index = (size_t *) calloc(length, sizeof(*ll_p2_alloced_index));
@@ -5769,7 +5902,11 @@ static void ll_p2_free(size_t index) {
     }
 }
 
-static int t = 0;
+/* Per-thread allocation counter for the linked-list-of-arrays mem pool
+ * used by the parameterised compute graph builder. Read here, written
+ * by add_mem; isolating per thread is the minimum to avoid the
+ * cross-thread torn-write hazard observed under JAX pmap. */
+static PTD_TLS int t = 0;
 
 static struct ll_of_a *add_mem(struct ll_of_a *current_mem_ll, double what) {
     struct ll_of_a *n;
@@ -8418,6 +8555,7 @@ struct ptd_dph_probability_distribution_context *_ptd_dph_probability_distributi
     res->jumps = 0;
     // res->cdf = 0;  // Reset CDF after initialization
     // res->pmf = 0;  // Reset PMF after initialization
+    res->weight_version_at_creation = graph->weight_version;
     return res;
 }
 
@@ -8585,6 +8723,7 @@ struct ptd_probability_distribution_context *ptd_probability_distribution_contex
     res->time = 0;
     res->priv = (void *) dph_res;
     res->granularity = granularity;
+    res->weight_version_at_creation = graph->weight_version;
 
     return res;
 }

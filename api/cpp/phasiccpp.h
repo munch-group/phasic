@@ -675,7 +675,9 @@ namespace phasic {
         }
 
         double pdf(double time, int granularity = 0) {
-            if (this->rf_graph->ph_context == NULL || this->rf_graph->granularity != granularity) {
+            if (this->rf_graph->ph_context == NULL
+                || this->rf_graph->granularity != granularity
+                || this->rf_graph->ph_context->weight_version_at_creation != c_graph()->weight_version) {
                 if (this->rf_graph->ph_context != NULL) {
                     ptd_probability_distribution_context_destroy(this->rf_graph->ph_context);
                 }
@@ -710,7 +712,11 @@ namespace phasic {
         }
         
         double dph_pmf(int jumps) {
-            if (this->rf_graph->dph_context == NULL) {
+            if (this->rf_graph->dph_context == NULL
+                || this->rf_graph->dph_context->weight_version_at_creation != c_graph()->weight_version) {
+                if (this->rf_graph->dph_context != NULL) {
+                    ptd_dph_probability_distribution_context_destroy(this->rf_graph->dph_context);
+                }
                 this->rf_graph->dph_context = ptd_dph_probability_distribution_context_create(c_graph());
 
                 if (this->rf_graph->dph_context == NULL) {
@@ -760,7 +766,8 @@ namespace phasic {
                 || this->rf_graph->granularity_markov != granularity
                 || this->rf_graph->ph_context_markov->time -
                    ((double) 1.0) / this->rf_graph->ph_context_markov->granularity >
-                   time) {
+                   time
+                || this->rf_graph->ph_context_markov->weight_version_at_creation != c_graph()->weight_version) {
                 if (this->rf_graph->ph_context_markov != NULL) {
                     ptd_probability_distribution_context_destroy(this->rf_graph->ph_context_markov);
                 }
@@ -793,7 +800,8 @@ namespace phasic {
                 || this->rf_graph->granularity_markov != granularity
                 || this->rf_graph->ph_context_markov->time -
                    ((double) 1.0) / this->rf_graph->ph_context_markov->granularity >
-                   time) {
+                   time
+                || this->rf_graph->ph_context_markov->weight_version_at_creation != c_graph()->weight_version) {
                 if (this->rf_graph->ph_context_markov != NULL) {
                     ptd_probability_distribution_context_destroy(this->rf_graph->ph_context_markov);
                 }
@@ -824,7 +832,8 @@ namespace phasic {
 
         std::vector<double> dph_stop_probability(int jumps) {
             if (this->rf_graph->dph_context_markov == NULL
-                || this->rf_graph->dph_context_markov->jumps > jumps) {
+                || this->rf_graph->dph_context_markov->jumps > jumps
+                || this->rf_graph->dph_context_markov->weight_version_at_creation != c_graph()->weight_version) {
                 if (this->rf_graph->dph_context_markov != NULL) {
                     ptd_dph_probability_distribution_context_destroy(this->rf_graph->dph_context_markov);
                 }

@@ -1069,6 +1069,23 @@ str
           Number of parameters/coefficients per edge
       )delim")
 
+    .def("_has_param_compute_graph_cache",
+      [](phasic::Graph &g) {
+          return g.c_graph()->parameterized_reward_compute_graph != NULL;
+      }, R"delim(
+      Test-only introspection: whether the C-level
+      parameterized_reward_compute_graph (symbolic elimination cache)
+      is currently populated. Used by Stage A0 regression tests to
+      verify the cache survives update_weights() calls.
+
+      Not part of the public API; behaviour may change.
+
+      Returns
+      -------
+      bool
+          True if the symbolic elimination cache is populated.
+      )delim")
+
     .def("is_parameterized",
       [](phasic::Graph &g) {
           return g.c_graph()->parameterized;

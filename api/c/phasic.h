@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <pthread.h>  /* pthread_mutex_t for ptd_graph::compute_graph_lock */
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,7 +57,35 @@ struct ptd_scc_graph;
 struct ptd_scc_edge;
 struct ptd_scc_vertex;
 
-extern volatile char ptd_err[4096];
+/* Thread-local-storage macro. Required for thread safety under concurrent
+ * JAX pmap / OpenMP execution: ``ptd_err`` (below) and several scratch
+ * allocators in src/c/phasic.c must give each OS thread its own slot to
+ * avoid races.
+ *
+ * We deliberately prefer the GCC/Clang ``__thread`` extension over C11
+ * ``_Thread_local`` and C++11 ``thread_local``. Reason: ``ptd_err`` is
+ * declared in this header (visible in both C and C++ TUs through
+ * extern "C") and defined in src/c/phasic.c. On macOS arm64, mixing
+ * a C-side ``_Thread_local`` definition with a C++-side ``thread_local``
+ * extern declaration produces an unresolved
+ * ``thread-local wrapper routine`` symbol because the two language
+ * standards lower to different TLS ABIs. Using ``__thread`` for both
+ * sides gives a single consistent ABI (raw TLS, no wrapper functions).
+ * Both GCC and Clang support ``__thread`` for C and C++. */
+#ifndef PTD_TLS
+#  if defined(__GNUC__) || defined(__clang__)
+#    define PTD_TLS __thread
+#  elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L && \
+        !defined(__STDC_NO_THREADS__) && !defined(__cplusplus)
+#    define PTD_TLS _Thread_local
+#  elif defined(__cplusplus) && __cplusplus >= 201103L
+#    define PTD_TLS thread_local
+#  else
+#    error "Compiler does not support thread-local storage; required for phasic"
+#  endif
+#endif
+
+extern PTD_TLS char ptd_err[4096];
 
 #ifndef PTD_DEBUG_1_INDEX
 #define PTD_DEBUG_1_INDEX 0
@@ -133,6 +162,23 @@ struct ptd_graph {
     /* Trace-based elimination (NULL until first parameter update) */
     struct ptd_elimination_trace *elimination_trace;
     double *current_params;  // Current parameter values (NULL until first update)
+
+    /* Edge-weight version counter. Incremented on every C-level mutation
+     * (ptd_graph_update_weights, ptd_edge_update_weight, ptd_edge_update_to).
+     * Forward-state context structs stamp their value at creation; cache
+     * guards in api/cpp/phasiccpp.h compare against this to detect stale
+     * contexts that need rebuilding. Starts at 0; never decreases. */
+    uint64_t weight_version;
+
+    /* Per-graph mutex protecting the lazy build inside
+     * ptd_precompute_reward_compute_graph. Two threads sharing the same
+     * ptd_graph * can both observe reward_compute_graph as NULL and try
+     * to build it, racing on the result pointer. The mutex serialises
+     * the lazy build. The flag tracks whether ptd_graph_destroy must
+     * call pthread_mutex_destroy (false if pthread_mutex_init failed
+     * during ptd_graph_create). */
+    pthread_mutex_t compute_graph_lock;
+    bool compute_graph_lock_initialized;
 };
 
 struct ptd_edge {
@@ -856,6 +902,10 @@ struct ptd_probability_distribution_context {
     void *priv;
     long double time;
     int granularity;
+    /* graph->weight_version snapshot taken when this context was created.
+     * Used by C++ wrapper cache guards (api/cpp/phasiccpp.h) to detect
+     * stale forward state after edge weights change. */
+    uint64_t weight_version_at_creation;
 };
 
 struct ptd_probability_distribution_context *ptd_probability_distribution_context_create(
@@ -881,6 +931,9 @@ struct ptd_dph_probability_distribution_context {
     size_t priv2;
     double priv3;
     int jumps;
+    /* graph->weight_version snapshot at creation; see same field on
+     * ptd_probability_distribution_context for the rationale. */
+    uint64_t weight_version_at_creation;
 };
 
 struct ptd_dph_probability_distribution_context *ptd_dph_probability_distribution_context_create(
