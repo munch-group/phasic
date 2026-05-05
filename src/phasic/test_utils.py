@@ -1,5 +1,6 @@
 
 from phasic import Graph, with_ipv
+import os
 import numpy as np
 import threading
 import psutil
@@ -110,13 +111,16 @@ def bin_coef(n):
 
 
 class ResourceMonitor:
-    def __init__(self, interval=0.05, include_children=False):
+    def __init__(self, interval=0.05, include_children=False, max_peak_mem=None, min_peak_cpu=None, min_peak_cpu_per_core=None):
         self.interval = interval
         self.include_children = include_children
         self.max_cpu = 0.0       # percent (can exceed 100 on multi-core)
         self.max_rss = 0         # bytes
         self._stop = threading.Event()
         self._proc = psutil.Process()
+        self.max_peak_mem = max_peak_mem
+        self.min_peak_cpu = min_peak_cpu
+        self.min_peak_cpu_per_core = min_peak_cpu_per_core
 
     def _sample(self):
         procs = [self._proc]
@@ -142,6 +146,58 @@ class ResourceMonitor:
     def __exit__(self, *exc):
         self._stop.set()
         self._thread.join()
+
+class AssertResources():
+
+    def __init__(self, interval=0.05, include_children=False, max_peak_mem=None, min_peak_cpu=None, min_peak_cpu_per_core=None):
+        self.interval = interval
+        self.include_children = include_children
+        self.max_cpu = 0.0       # percent (can exceed 100 on multi-core)
+        self.max_rss = 0         # bytes
+        self._stop = threading.Event()
+        self._proc = psutil.Process()
+        self.max_peak_mem = max_peak_mem
+        self.min_peak_cpu = min_peak_cpu
+        self.min_peak_cpu_per_core = min_peak_cpu_per_core
+
+    def _sample(self):
+        procs = [self._proc]
+        if self.include_children:
+            procs += self._proc.children(recursive=True)
+        cpu = sum(p.cpu_percent(None) for p in procs if p.is_running())
+        rss = sum(p.memory_info().rss for p in procs if p.is_running())
+        return cpu, rss
+
+    def _run(self):
+        self._sample()  # prime cpu_percent baseline
+        while not self._stop.wait(self.interval):
+            cpu, rss = self._sample()
+            if cpu > self.max_cpu: self.max_cpu = cpu
+            if rss > self.max_rss: self.max_rss = rss
+
+    def __enter__(self):
+        self._stop.clear()
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+        return self
+
+        
+    def __exit__(self, *exc):
+        self._stop.set()
+        self._thread.join()
+        print(self.max_rss)
+        if self.max_peak_mem is not None:
+            max_mem = self.max_rss/(1024**2)
+            print(f'Peak memory use Mb: {max_mem}')
+            assert self.max_rss/(1024**2) < self.max_peak_mem            
+        if self.min_peak_cpu is not None:
+            print(f'Peak cpu use percent: {self.max_cpu}')
+            assert self.max_cpu >= self.min_peak_cpu
+        if self.min_peak_cpu_per_core is not None:
+            peak_cpu_per_core = self.max_cpu / os.cpu_count()
+            print(f'Peak cpu use per core percent: {peak_cpu_per_core}')
+            assert peak_cpu_per_core >= self.min_peak_cpu_per_core
+
 
 # with ResourceMonitor(interval=0.05) as m:
 #     do_expensive_thing()

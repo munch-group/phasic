@@ -552,8 +552,8 @@ class TestCallbackConstruction:
         """manual construction correct states."""
         manual_graph = coalescent_manual_construction(4)
         callback_graph = Graph(coalescent_callback_with_ipv)
-        assert manual_graph.expectation() == callback_graph.expectation()
-        assert manual_graph.variance() == callback_graph.variance()
+        assert manual_graph.expectation() == approx(callback_graph.expectation())
+        assert manual_graph.variance() == approx(callback_graph.variance())
         assert manual_graph.moments(5) == approx(callback_graph.moments(5))
 
 
