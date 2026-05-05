@@ -1086,6 +1086,60 @@ str
           True if the symbolic elimination cache is populated.
       )delim")
 
+    .def("_save_param_compute_graph",
+      [](phasic::Graph &g, const std::string &path) {
+          if (g.c_graph()->parameterized_reward_compute_graph == NULL) {
+              throw std::runtime_error(
+                      "no parameterized_reward_compute_graph to save; "
+                      "call expected_waiting_time/etc. first to populate it");
+          }
+          int rc = ptd_save_parameterized_reward_compute_graph(
+                  path.c_str(),
+                  g.c_graph()->parameterized_reward_compute_graph,
+                  g.c_graph());
+          if (rc != 0) {
+              throw std::runtime_error(
+                      std::string("save failed: ") + (const char *)ptd_err);
+          }
+      }, R"delim(
+      Test-only: save the C-level parameterized_reward_compute_graph
+      to a file via ptd_save_parameterized_reward_compute_graph. Stage
+      A2 verification only; not part of the public API.
+      )delim")
+
+    .def("_load_param_compute_graph",
+      [](phasic::Graph &g, const std::string &path) {
+          struct ptd_desc_reward_compute_parameterized *loaded =
+                  ptd_load_parameterized_reward_compute_graph(
+                          path.c_str(), g.c_graph());
+          if (loaded == NULL) {
+              std::string msg((const char *)ptd_err);
+              // Clear ptd_err so subsequent calls (add_edge, etc.)
+              // don't misread our error as theirs.
+              ptd_err[0] = '\0';
+              throw std::runtime_error(
+                      std::string("load failed or cache miss: ") + msg);
+          }
+          // Replace any existing cache.
+          if (g.c_graph()->parameterized_reward_compute_graph != NULL) {
+              ptd_parameterized_reward_compute_graph_destroy(
+                      g.c_graph()->parameterized_reward_compute_graph);
+          }
+          g.c_graph()->parameterized_reward_compute_graph = loaded;
+          // Also clear the concrete reward_compute_graph so the next
+          // forward call rebuilds it from the loaded symbolic graph
+          // rather than reusing whatever was there before.
+          if (g.c_graph()->reward_compute_graph != NULL) {
+              free(g.c_graph()->reward_compute_graph->commands);
+              free(g.c_graph()->reward_compute_graph);
+              g.c_graph()->reward_compute_graph = NULL;
+          }
+      }, R"delim(
+      Test-only: load a saved parameterized_reward_compute_graph from
+      a file and install it on this graph. Stage A2 verification only;
+      not part of the public API.
+      )delim")
+
     .def("is_parameterized",
       [](phasic::Graph &g) {
           return g.c_graph()->parameterized;

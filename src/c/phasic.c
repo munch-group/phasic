@@ -1784,6 +1784,11 @@ struct ptd_avl_node *ptd_avl_tree_find(const struct ptd_avl_tree *avl_tree, cons
 struct ptd_desc_reward_compute *ptd_graph_ex_absorbation_time_comp_graph_dyn(struct ptd_graph *graph);
 struct ptd_desc_reward_compute_parameterized *ptd_graph_ex_absorbation_time_comp_graph_parameterized_dyn(struct ptd_graph *graph);
 
+// Forward declarations for Stage A2 cache helpers (defined further down).
+static int ptd_pcg_cache_disabled(void);
+static int ptd_pcg_build_cache_path(
+        const struct ptd_graph *graph, char *buf, size_t buf_len);
+
 int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
     /* Take the per-graph mutex unconditionally. A double-checked-lock
      * fast path on graph->reward_compute_graph would need acquire/release
@@ -1824,12 +1829,66 @@ int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
     if (graph->reward_compute_graph == NULL) {
         if (graph->parameterized) {
             if (graph->parameterized_reward_compute_graph == NULL) {
-                if (graph->use_dyn_ordering) {
-                    graph->parameterized_reward_compute_graph =
-                            ptd_graph_ex_absorbation_time_comp_graph_parameterized_dyn(graph);
-                } else {
-                    graph->parameterized_reward_compute_graph =
-                            ptd_graph_ex_absorbation_time_comp_graph_parameterized(graph);
+                /* Stage A2: try the on-disk symbolic-elimination cache
+                 * first. The cache is theta-independent (Stage A0
+                 * showed multiplierptr is dereferenced at replay
+                 * time), so it's keyed only on graph topology +
+                 * coefficients via ptd_graph_content_hash. On a hit,
+                 * we save an O(n^3) Gaussian elimination per fresh
+                 * process. On a miss, the elimination runs as before
+                 * and we populate the cache. PHASIC_DISABLE_CACHE=1
+                 * skips both directions. */
+                int cache_used = 0;
+                if (!ptd_pcg_cache_disabled()) {
+                    char cache_path[PATH_MAX];
+                    if (ptd_pcg_build_cache_path(graph, cache_path,
+                                                 sizeof(cache_path)) == 0) {
+                        struct ptd_desc_reward_compute_parameterized *loaded =
+                                ptd_load_parameterized_reward_compute_graph(
+                                        cache_path, graph);
+                        /* ptd_load returns NULL on either a true cache
+                         * miss (file absent) or a corrupt/version-
+                         * mismatched file. Either way, fall through
+                         * to the rebuild path. Clear ptd_err so the
+                         * cache miss does not look like a real error
+                         * to subsequent calls. */
+                        ptd_err[0] = '\0';
+                        if (loaded != NULL) {
+                            graph->parameterized_reward_compute_graph = loaded;
+                            cache_used = 1;
+                        }
+                    } else {
+                        /* build_cache_path failed (e.g. HOME unset).
+                         * Treat as cache disabled, rebuild, and don't
+                         * try to save. */
+                        ptd_err[0] = '\0';
+                    }
+                }
+
+                if (!cache_used) {
+                    if (graph->use_dyn_ordering) {
+                        graph->parameterized_reward_compute_graph =
+                                ptd_graph_ex_absorbation_time_comp_graph_parameterized_dyn(graph);
+                    } else {
+                        graph->parameterized_reward_compute_graph =
+                                ptd_graph_ex_absorbation_time_comp_graph_parameterized(graph);
+                    }
+                    /* Best-effort save. Failure here is non-fatal —
+                     * we'll just rebuild again next process. */
+                    if (!ptd_pcg_cache_disabled()
+                            && graph->parameterized_reward_compute_graph != NULL) {
+                        char cache_path[PATH_MAX];
+                        if (ptd_pcg_build_cache_path(graph, cache_path,
+                                                     sizeof(cache_path)) == 0) {
+                            (void)ptd_save_parameterized_reward_compute_graph(
+                                    cache_path,
+                                    graph->parameterized_reward_compute_graph,
+                                    graph);
+                            ptd_err[0] = '\0';  /* swallow save errors */
+                        } else {
+                            ptd_err[0] = '\0';
+                        }
+                    }
                 }
             }
 
@@ -2724,6 +2783,851 @@ void ptd_parameterized_reward_compute_graph_destroy(
     free(compute_graph->memr);
     free(compute_graph->commands);
     free(compute_graph);
+}
+
+// ===========================================================================
+// Stage A2: disk-persistent symbolic compute graph cache
+// ===========================================================================
+//
+// On-disk format for ptd_desc_reward_compute_parameterized.
+//
+// Each command's three pointer fields (fromT, toT, multiplierptr) get
+// re-encoded as a (kind, offset, vertex_idx, edge_idx) tuple at save
+// time and re-resolved at load time against the live graph.
+//
+// Two pointer kinds occur in practice (verified by reading the
+// recorder in src/c/phasic.c):
+//   - "mem":  the pointer is &mem_buffer[N] for some integer N. We
+//             save N (in doubles).
+//   - "edge": the pointer is &graph->vertices[v]->edges[e]->weight,
+//             possibly with a small byte offset. The recorder uses
+//             offset 0 (most common) or -sizeof(double) (the
+//             ``weight - 1`` self-loop trick at line 4444). We save
+//             (v, e, byte_offset) and reconstruct at load.
+
+#include <fcntl.h>
+#include <errno.h>
+
+#define PTD_PCG_MAGIC "PTDPRMC1"
+#define PTD_PCG_VERSION 1u
+#define PTD_PCG_FORMAT_REVISION 1u
+
+enum ptd_pcg_ptr_kind {
+    PTD_PCG_PTR_NULL = 0,
+    PTD_PCG_PTR_MEM = 1,   // payload: doubles offset into flat mem buffer
+    PTD_PCG_PTR_EDGE = 2,  // payload: (vertex_idx, edge_idx, byte_offset)
+};
+
+#pragma pack(push, 1)
+struct ptd_pcg_disk_header {
+    char     magic[8];                  // "PTDPRMC1"
+    uint32_t version;
+    uint32_t format_revision;
+    uint64_t graph_hash_truncated;      // first 8 bytes of SHA-256
+    uint64_t commands_length;
+    uint64_t mem_total_doubles;
+    uint64_t memr_length;
+    uint64_t reserved;                  // future use; write 0
+};
+
+struct ptd_pcg_disk_ptr {
+    uint8_t  kind;
+    uint8_t  pad[7];
+    int64_t  doubles_offset;            // for MEM kind
+    uint32_t vertex_idx;                // for EDGE kind
+    uint32_t edge_idx;                  // for EDGE kind
+    int64_t  byte_offset_from_edge_weight; // for EDGE kind (typically 0 or -8)
+};
+
+struct ptd_pcg_disk_command {
+    int32_t  type;
+    uint32_t pad;
+    uint64_t from;
+    uint64_t to;
+    double   multiplier;
+    struct ptd_pcg_disk_ptr fromT;
+    struct ptd_pcg_disk_ptr toT;
+    struct ptd_pcg_disk_ptr multiplierptr;
+};
+#pragma pack(pop)
+
+// Encode a (double*) pointer either as a mem offset or as an
+// edge-weight reference. mem_chain is the live ll_of_a chain we
+// search through ptd_pcg_chain_offset_of (cannot pointer-compare
+// against a flat copy because mem allocations are scattered in the
+// heap). edge_anchors is a sorted array of (anchor_ptr, vertex_idx,
+// edge_idx) triples used as a binary-search table to find the edge
+// a pointer falls within (after accounting for the small offsets
+// the recorder uses).
+struct ptd_pcg_edge_anchor {
+    const double *anchor; // &edge->weight
+    uint32_t vertex_idx;
+    uint32_t edge_idx;
+};
+
+static int ptd_pcg_anchor_cmp(const void *a, const void *b) {
+    const struct ptd_pcg_edge_anchor *aa = (const struct ptd_pcg_edge_anchor *)a;
+    const struct ptd_pcg_edge_anchor *bb = (const struct ptd_pcg_edge_anchor *)b;
+    if (aa->anchor < bb->anchor) return -1;
+    if (aa->anchor > bb->anchor) return 1;
+    return 0;
+}
+
+// Forward declarations for helpers defined further down.
+static int64_t ptd_pcg_chain_offset_of(
+        const struct ll_of_a *head, const double *ptr);
+
+static void ptd_pcg_encode_ptr(
+        const double *ptr,
+        const struct ll_of_a *mem_chain,
+        const struct ptd_pcg_edge_anchor *anchors,
+        size_t n_anchors,
+        struct ptd_pcg_disk_ptr *out)
+{
+    memset(out, 0, sizeof(*out));
+    if (ptr == NULL) {
+        out->kind = PTD_PCG_PTR_NULL;
+        return;
+    }
+    // Mem-pointer fast path: walk the linked-list chain looking for
+    // a node whose mem buffer contains ptr. The `mem` allocations
+    // are separate calloc()s scattered in the heap, so we cannot
+    // pointer-compare against a flat copy — we have to scan the
+    // chain. ptd_pcg_chain_offset_of returns the doubles offset
+    // into the (oldest-first) flattened layout, or -1 on miss.
+    int64_t mem_off = ptd_pcg_chain_offset_of(mem_chain, ptr);
+    if (mem_off >= 0) {
+        out->kind = PTD_PCG_PTR_MEM;
+        out->doubles_offset = mem_off;
+        return;
+    }
+    // Edge-pointer search: find the anchor with the smallest non-
+    // negative byte distance to ptr, then verify the offset is
+    // small (<= one double — the recorder's only known offsets are
+    // 0 and -sizeof(double)).
+    if (anchors != NULL && n_anchors > 0) {
+        // Binary search for the largest anchor with anchor <= ptr.
+        size_t lo = 0, hi = n_anchors;
+        while (lo < hi) {
+            size_t mid = (lo + hi) / 2;
+            if (anchors[mid].anchor <= ptr) {
+                lo = mid + 1;
+            } else {
+                hi = mid;
+            }
+        }
+        // Candidates: anchor at index (lo - 1), or one of its
+        // neighbours, since the -1 trick puts ptr just before the
+        // anchor.
+        for (int delta = -1; delta <= 1; delta++) {
+            ptrdiff_t idx = (ptrdiff_t)lo - 1 + delta;
+            if (idx < 0 || (size_t)idx >= n_anchors) continue;
+            const double *anchor = anchors[idx].anchor;
+            ptrdiff_t byte_off = (const char *)ptr - (const char *)anchor;
+            if (byte_off >= -((ptrdiff_t)sizeof(double))
+                    && byte_off <= (ptrdiff_t)sizeof(double)) {
+                out->kind = PTD_PCG_PTR_EDGE;
+                out->vertex_idx = anchors[idx].vertex_idx;
+                out->edge_idx = anchors[idx].edge_idx;
+                out->byte_offset_from_edge_weight = (int64_t)byte_off;
+                return;
+            }
+        }
+    }
+    // Pointer doesn't match anything we know about. Caller signals
+    // failure to the user — saving with an unencodable pointer would
+    // produce a load-time crash later.
+    out->kind = PTD_PCG_PTR_NULL;  // sentinel; caller checks
+    out->doubles_offset = -1;       // marker for "encoding failed"
+}
+
+// Decode an encoded pointer back to a live address against the
+// loaded mem buffer and the supplied graph.
+static double *ptd_pcg_decode_ptr(
+        const struct ptd_pcg_disk_ptr *enc,
+        double *mem_base,
+        const struct ptd_graph *graph)
+{
+    if (enc->kind == PTD_PCG_PTR_NULL) {
+        return NULL;
+    }
+    if (enc->kind == PTD_PCG_PTR_MEM) {
+        return mem_base + enc->doubles_offset;
+    }
+    if (enc->kind == PTD_PCG_PTR_EDGE) {
+        if (enc->vertex_idx >= graph->vertices_length) {
+            return NULL;  // corrupt
+        }
+        struct ptd_vertex *v = graph->vertices[enc->vertex_idx];
+        if (enc->edge_idx >= v->edges_length) {
+            return NULL;  // corrupt
+        }
+        char *base = (char *)&v->edges[enc->edge_idx]->weight;
+        return (double *)(base + enc->byte_offset_from_edge_weight);
+    }
+    return NULL;
+}
+
+// Build a sorted anchor table from a graph: one entry per
+// (vertex, edge) pair, sorted by &edge->weight ascending. Used by
+// the save path to encode edge-weight pointers.
+static struct ptd_pcg_edge_anchor *ptd_pcg_build_anchors(
+        const struct ptd_graph *graph,
+        size_t *out_n_anchors)
+{
+    size_t total = 0;
+    for (size_t i = 0; i < graph->vertices_length; i++) {
+        total += graph->vertices[i]->edges_length;
+    }
+    if (total == 0) {
+        *out_n_anchors = 0;
+        return NULL;
+    }
+    struct ptd_pcg_edge_anchor *arr =
+            (struct ptd_pcg_edge_anchor *)malloc(total * sizeof(*arr));
+    if (arr == NULL) {
+        *out_n_anchors = 0;
+        return NULL;
+    }
+    size_t idx = 0;
+    for (size_t i = 0; i < graph->vertices_length; i++) {
+        struct ptd_vertex *v = graph->vertices[i];
+        for (size_t j = 0; j < v->edges_length; j++) {
+            arr[idx].anchor = &v->edges[j]->weight;
+            arr[idx].vertex_idx = (uint32_t)i;
+            arr[idx].edge_idx = (uint32_t)j;
+            idx++;
+        }
+    }
+    qsort(arr, total, sizeof(*arr), ptd_pcg_anchor_cmp);
+    *out_n_anchors = total;
+    return arr;
+}
+
+// Walk the linked-list mem chain and produce a flat doubles buffer
+// containing every double the chain references in chain order. The
+// chain's head is the most-recently-added node; we reverse on the
+// fly so the flat buffer's indexing is stable across save/load.
+//
+// Each node's payload is `node->mem[0..node->current_mem_index)`.
+// The head node may be partially filled; older nodes are full
+// (32768 doubles) — see add_mem at line ~5915.
+static double *ptd_pcg_flatten_mem(
+        const struct ll_of_a *head,
+        size_t *out_total_doubles)
+{
+    // Count chain nodes and total doubles.
+    size_t chain_len = 0;
+    size_t total = 0;
+    for (const struct ll_of_a *p = head; p != NULL; p = p->next) {
+        chain_len++;
+        total += p->current_mem_index;
+    }
+    *out_total_doubles = total;
+    if (total == 0) {
+        return NULL;
+    }
+    // Collect node pointers so we can walk in reverse (oldest first).
+    const struct ll_of_a **nodes =
+            (const struct ll_of_a **)malloc(chain_len * sizeof(*nodes));
+    if (nodes == NULL) {
+        return NULL;
+    }
+    size_t k = chain_len;
+    for (const struct ll_of_a *p = head; p != NULL; p = p->next) {
+        nodes[--k] = p;
+    }
+    double *flat = (double *)malloc(total * sizeof(double));
+    if (flat == NULL) {
+        free(nodes);
+        return NULL;
+    }
+    size_t off = 0;
+    for (size_t i = 0; i < chain_len; i++) {
+        size_t n = nodes[i]->current_mem_index;
+        if (n > 0) {
+            memcpy(flat + off, nodes[i]->mem, n * sizeof(double));
+        }
+        off += n;
+    }
+    free(nodes);
+    return flat;
+}
+
+// Compute the offset (in doubles) of a pointer within the
+// linked-list mem chain, traversing the chain in oldest-first order.
+// Returns -1 if the pointer doesn't fall inside any node.
+static int64_t ptd_pcg_chain_offset_of(
+        const struct ll_of_a *head,
+        const double *ptr)
+{
+    if (ptr == NULL) {
+        return -1;
+    }
+    // Same chain-reverse logic as ptd_pcg_flatten_mem.
+    size_t chain_len = 0;
+    for (const struct ll_of_a *p = head; p != NULL; p = p->next) {
+        chain_len++;
+    }
+    if (chain_len == 0) {
+        return -1;
+    }
+    const struct ll_of_a **nodes =
+            (const struct ll_of_a **)malloc(chain_len * sizeof(*nodes));
+    if (nodes == NULL) {
+        return -1;
+    }
+    size_t k = chain_len;
+    for (const struct ll_of_a *p = head; p != NULL; p = p->next) {
+        nodes[--k] = p;
+    }
+    int64_t off = 0;
+    int64_t result = -1;
+    for (size_t i = 0; i < chain_len; i++) {
+        const double *base = nodes[i]->mem;
+        size_t n = nodes[i]->current_mem_index;
+        // Accept ptr exactly one past the last filled slot (writers
+        // hold pointers eagerly into the head node).
+        if (ptr >= base && ptr <= base + n) {
+            result = off + (int64_t)(ptr - base);
+            break;
+        }
+        off += (int64_t)n;
+    }
+    free(nodes);
+    return result;
+}
+
+// Return non-zero if the user has disabled all phasic disk caches via
+// PHASIC_DISABLE_CACHE=1. Matches the convention in
+// src/phasic/trace_serialization.py:81.
+static int ptd_pcg_cache_disabled(void) {
+    const char *v = getenv("PHASIC_DISABLE_CACHE");
+    return v != NULL && v[0] == '1' && v[1] == '\0';
+}
+
+// Build the path to the per-graph cache file:
+//   <home>/.phasic_cache/parameterized_reward_compute/<hash_hex>.bin
+// Creates parent directories as needed (mkdir -p style).
+//
+// Returns 0 on success, -1 on error (sets ptd_err). The bin file
+// itself is NOT created.
+static int ptd_pcg_build_cache_path(
+        const struct ptd_graph *graph, char *buf, size_t buf_len)
+{
+    const char *home = getenv("HOME");
+    if (home == NULL) {
+        snprintf((char *)ptd_err, sizeof(ptd_err),
+                 "ptd_pcg: HOME not set");
+        return -1;
+    }
+    char dir[PATH_MAX];
+    int n = snprintf(dir, sizeof(dir),
+                     "%s/.phasic_cache/parameterized_reward_compute", home);
+    if (n < 0 || (size_t)n >= sizeof(dir)) {
+        snprintf((char *)ptd_err, sizeof(ptd_err),
+                 "ptd_pcg: cache dir path too long");
+        return -1;
+    }
+    // Best-effort mkdir of each parent. Ignore EEXIST.
+    char parent[PATH_MAX];
+    snprintf(parent, sizeof(parent), "%s/.phasic_cache", home);
+    struct stat st;
+    if (stat(parent, &st) != 0) {
+        if (mkdir(parent, 0755) != 0 && errno != EEXIST) {
+            snprintf((char *)ptd_err, sizeof(ptd_err),
+                     "ptd_pcg: cannot create %s: %s", parent, strerror(errno));
+            return -1;
+        }
+    }
+    if (stat(dir, &st) != 0) {
+        if (mkdir(dir, 0755) != 0 && errno != EEXIST) {
+            snprintf((char *)ptd_err, sizeof(ptd_err),
+                     "ptd_pcg: cannot create %s: %s", dir, strerror(errno));
+            return -1;
+        }
+    }
+    struct ptd_hash_result *hash = ptd_graph_content_hash(graph);
+    if (hash == NULL) {
+        snprintf((char *)ptd_err, sizeof(ptd_err),
+                 "ptd_pcg: ptd_graph_content_hash failed");
+        return -1;
+    }
+    n = snprintf(buf, buf_len, "%s/%s.bin", dir, hash->hash_hex);
+    free(hash);
+    if (n < 0 || (size_t)n >= buf_len) {
+        snprintf((char *)ptd_err, sizeof(ptd_err),
+                 "ptd_pcg: cache path too long");
+        return -1;
+    }
+    return 0;
+}
+
+int ptd_save_parameterized_reward_compute_graph(
+        const char *path,
+        const struct ptd_desc_reward_compute_parameterized *compute,
+        const struct ptd_graph *graph)
+{
+    if (path == NULL || compute == NULL || graph == NULL) {
+        snprintf((char *)ptd_err, sizeof(ptd_err),
+                 "ptd_save_parameterized_reward_compute_graph: NULL argument");
+        return -1;
+    }
+
+    size_t n_anchors = 0;
+    struct ptd_pcg_edge_anchor *anchors = ptd_pcg_build_anchors(graph, &n_anchors);
+    // n_anchors == 0 is fine; the compute graph might only reference mem.
+
+    size_t mem_total = 0;
+    double *flat_mem = ptd_pcg_flatten_mem(
+            (const struct ll_of_a *)compute->mem, &mem_total);
+    // flat_mem may be NULL when mem_total == 0; that's not an error.
+
+    struct ptd_hash_result *hash = ptd_graph_content_hash(graph);
+    uint64_t hash_truncated = 0;
+    if (hash != NULL) {
+        for (int i = 0; i < 8; i++) {
+            hash_truncated = (hash_truncated << 8) | (uint64_t)hash->hash_full[i];
+        }
+        free(hash);
+    }
+
+    struct ptd_pcg_disk_header header;
+    memset(&header, 0, sizeof(header));
+    memcpy(header.magic, PTD_PCG_MAGIC, 8);
+    header.version = PTD_PCG_VERSION;
+    header.format_revision = PTD_PCG_FORMAT_REVISION;
+    header.graph_hash_truncated = hash_truncated;
+    header.commands_length = (uint64_t)compute->length;
+    header.mem_total_doubles = (uint64_t)mem_total;
+    header.memr_length = (uint64_t)graph->vertices_length;
+
+    // Build encoded commands array up-front so we can detect
+    // pointer-encoding failures before opening any file.
+    struct ptd_pcg_disk_command *encoded_cmds = NULL;
+    if (compute->length > 0) {
+        encoded_cmds = (struct ptd_pcg_disk_command *)
+                calloc(compute->length, sizeof(*encoded_cmds));
+        if (encoded_cmds == NULL) {
+            snprintf((char *)ptd_err, sizeof(ptd_err),
+                     "ptd_save: failed to allocate encoded commands");
+            free(flat_mem);
+            free(anchors);
+            return -1;
+        }
+    }
+    /* Per-type which-fields-are-live table. Mirrors the replay loop in
+     * ptd_graph_build_ex_absorbation_time_comp_graph_parameterized
+     * (around line 6985). The recorder doesn't initialise unused
+     * fields, so encoding them would dereference uninitialised memory
+     * and produce a "neither mem nor edge" failure. */
+    enum { NEW_ADD_T = 0, P_T = 1, INV_T = 2, PP_T = 3, ONE_MINUS_T = 4,
+           DIVIDE_T = 5, ZERO_T = 6 };
+    for (size_t i = 0; i < compute->length; i++) {
+        const struct ptd_comp_graph_parameterized *cmd = &compute->commands[i];
+        encoded_cmds[i].type = (int32_t)cmd->type;
+        encoded_cmds[i].from = (uint64_t)cmd->from;
+        encoded_cmds[i].to = (uint64_t)cmd->to;
+        encoded_cmds[i].multiplier = cmd->multiplier;
+
+        bool live_fromT = false, live_toT = false, live_multptr = false;
+        switch (cmd->type) {
+            case NEW_ADD_T:    live_multptr = true; break;
+            case P_T:          live_fromT = true; live_toT = true; break;
+            case PP_T:         live_fromT = true; live_toT = true; live_multptr = true; break;
+            case INV_T:        live_fromT = true; break;
+            case ONE_MINUS_T:  live_fromT = true; break;
+            case DIVIDE_T:     live_fromT = true; live_toT = true; break;
+            case ZERO_T:       live_fromT = true; break;
+            default:
+                snprintf((char *)ptd_err, sizeof(ptd_err),
+                         "ptd_save: command %zu has unknown type %d", i, cmd->type);
+                free(encoded_cmds);
+                free(flat_mem);
+                free(anchors);
+                return -1;
+        }
+
+        if (live_fromT) {
+            ptd_pcg_encode_ptr(cmd->fromT,
+                               (const struct ll_of_a *)compute->mem,
+                               anchors, n_anchors, &encoded_cmds[i].fromT);
+        } else {
+            encoded_cmds[i].fromT.kind = PTD_PCG_PTR_NULL;
+        }
+        if (live_toT) {
+            ptd_pcg_encode_ptr(cmd->toT,
+                               (const struct ll_of_a *)compute->mem,
+                               anchors, n_anchors, &encoded_cmds[i].toT);
+        } else {
+            encoded_cmds[i].toT.kind = PTD_PCG_PTR_NULL;
+        }
+        if (live_multptr) {
+            ptd_pcg_encode_ptr(cmd->multiplierptr,
+                               (const struct ll_of_a *)compute->mem,
+                               anchors, n_anchors, &encoded_cmds[i].multiplierptr);
+        } else {
+            encoded_cmds[i].multiplierptr.kind = PTD_PCG_PTR_NULL;
+        }
+
+        // Verify each LIVE pointer was successfully encoded. A live
+        // pointer that was non-NULL at record time but ended up as
+        // PTD_PCG_PTR_NULL after encoding is an unencodable pointer
+        // (somewhere we don't know how to find) — abort save rather
+        // than silently produce a corrupt file.
+        if ((live_fromT && cmd->fromT != NULL && encoded_cmds[i].fromT.kind == PTD_PCG_PTR_NULL) ||
+                (live_toT && cmd->toT != NULL && encoded_cmds[i].toT.kind == PTD_PCG_PTR_NULL) ||
+                (live_multptr && cmd->multiplierptr != NULL
+                        && encoded_cmds[i].multiplierptr.kind == PTD_PCG_PTR_NULL)) {
+            const char *which = "?";
+            const void *bad = NULL;
+            if (live_fromT && cmd->fromT != NULL && encoded_cmds[i].fromT.kind == PTD_PCG_PTR_NULL) {
+                which = "fromT"; bad = (const void *)cmd->fromT;
+            } else if (live_toT && cmd->toT != NULL && encoded_cmds[i].toT.kind == PTD_PCG_PTR_NULL) {
+                which = "toT"; bad = (const void *)cmd->toT;
+            } else if (live_multptr && cmd->multiplierptr != NULL && encoded_cmds[i].multiplierptr.kind == PTD_PCG_PTR_NULL) {
+                which = "multiplierptr"; bad = (const void *)cmd->multiplierptr;
+            }
+            snprintf((char *)ptd_err, sizeof(ptd_err),
+                     "ptd_save: command %zu (type=%d) field=%s pointer=%p "
+                     "is neither in the mem buffer nor near a known edge weight; "
+                     "cache save aborted to avoid a corrupt file.",
+                     i, cmd->type, which, bad);
+            free(encoded_cmds);
+            free(flat_mem);
+            free(anchors);
+            return -1;
+        }
+    }
+
+    // Encode memr (rates) as doubles offsets into flat_mem.
+    int64_t *memr_offsets = NULL;
+    if (graph->vertices_length > 0) {
+        memr_offsets = (int64_t *)malloc(graph->vertices_length * sizeof(int64_t));
+        if (memr_offsets == NULL) {
+            snprintf((char *)ptd_err, sizeof(ptd_err),
+                     "ptd_save: failed to allocate memr_offsets");
+            free(encoded_cmds);
+            free(flat_mem);
+            free(anchors);
+            return -1;
+        }
+        double **memr = (double **)compute->memr;
+        for (size_t i = 0; i < graph->vertices_length; i++) {
+            if (memr == NULL || memr[i] == NULL) {
+                memr_offsets[i] = -1;
+                continue;
+            }
+            int64_t off = ptd_pcg_chain_offset_of(
+                    (const struct ll_of_a *)compute->mem, memr[i]);
+            if (off < 0) {
+                snprintf((char *)ptd_err, sizeof(ptd_err),
+                         "ptd_save: memr[%zu] does not point into the mem buffer; "
+                         "cache save aborted.", i);
+                free(memr_offsets);
+                free(encoded_cmds);
+                free(flat_mem);
+                free(anchors);
+                return -1;
+            }
+            memr_offsets[i] = off;
+        }
+    }
+
+    // Atomic write: write to <path>.tmp.<pid>, fsync, then rename.
+    char tmp_path[PATH_MAX];
+    int written = snprintf(tmp_path, sizeof(tmp_path), "%s.tmp.%d",
+                           path, (int)getpid());
+    if (written < 0 || (size_t)written >= sizeof(tmp_path)) {
+        snprintf((char *)ptd_err, sizeof(ptd_err),
+                 "ptd_save: cache temp path too long");
+        free(memr_offsets);
+        free(encoded_cmds);
+        free(flat_mem);
+        free(anchors);
+        return -1;
+    }
+
+    FILE *fp = fopen(tmp_path, "wb");
+    if (fp == NULL) {
+        snprintf((char *)ptd_err, sizeof(ptd_err),
+                 "ptd_save: cannot open temp file %s: %s",
+                 tmp_path, strerror(errno));
+        free(memr_offsets);
+        free(encoded_cmds);
+        free(flat_mem);
+        free(anchors);
+        return -1;
+    }
+#define WRITE_OR_FAIL(buf, sz)                                                 \
+    do {                                                                       \
+        if (fwrite((buf), 1, (sz), fp) != (sz)) {                              \
+            snprintf((char *)ptd_err, sizeof(ptd_err),                         \
+                     "ptd_save: short write to %s: %s",                        \
+                     tmp_path, strerror(errno));                               \
+            fclose(fp);                                                        \
+            unlink(tmp_path);                                                  \
+            free(memr_offsets);                                                \
+            free(encoded_cmds);                                                \
+            free(flat_mem);                                                    \
+            free(anchors);                                                     \
+            return -1;                                                         \
+        }                                                                      \
+    } while (0)
+
+    WRITE_OR_FAIL(&header, sizeof(header));
+    if (compute->length > 0) {
+        WRITE_OR_FAIL(encoded_cmds, compute->length * sizeof(*encoded_cmds));
+    }
+    if (mem_total > 0) {
+        WRITE_OR_FAIL(flat_mem, mem_total * sizeof(double));
+    }
+    if (graph->vertices_length > 0) {
+        WRITE_OR_FAIL(memr_offsets, graph->vertices_length * sizeof(int64_t));
+    }
+#undef WRITE_OR_FAIL
+
+    // Flush + atomic rename.
+    fflush(fp);
+    int fd = fileno(fp);
+    if (fd >= 0) {
+        // fsync is best-effort; failures here are non-fatal because
+        // the rename is the durability boundary.
+        (void)fsync(fd);
+    }
+    if (fclose(fp) != 0) {
+        snprintf((char *)ptd_err, sizeof(ptd_err),
+                 "ptd_save: fclose failed for %s: %s",
+                 tmp_path, strerror(errno));
+        unlink(tmp_path);
+        free(memr_offsets);
+        free(encoded_cmds);
+        free(flat_mem);
+        free(anchors);
+        return -1;
+    }
+    if (rename(tmp_path, path) != 0) {
+        snprintf((char *)ptd_err, sizeof(ptd_err),
+                 "ptd_save: rename %s -> %s failed: %s",
+                 tmp_path, path, strerror(errno));
+        unlink(tmp_path);
+        free(memr_offsets);
+        free(encoded_cmds);
+        free(flat_mem);
+        free(anchors);
+        return -1;
+    }
+
+    free(memr_offsets);
+    free(encoded_cmds);
+    free(flat_mem);
+    free(anchors);
+    return 0;
+}
+
+struct ptd_desc_reward_compute_parameterized *
+ptd_load_parameterized_reward_compute_graph(
+        const char *path,
+        const struct ptd_graph *graph)
+{
+    if (path == NULL || graph == NULL) {
+        snprintf((char *)ptd_err, sizeof(ptd_err),
+                 "ptd_load: NULL argument");
+        return NULL;
+    }
+
+    FILE *fp = fopen(path, "rb");
+    if (fp == NULL) {
+        // Cache miss — file doesn't exist (the common case). Set a
+        // mild error so callers that care can introspect, but this
+        // is expected, not a failure.
+        if (errno == ENOENT) {
+            ptd_err[0] = '\0';
+        } else {
+            snprintf((char *)ptd_err, sizeof(ptd_err),
+                     "ptd_load: fopen %s failed: %s", path, strerror(errno));
+        }
+        return NULL;
+    }
+
+    struct ptd_pcg_disk_header header;
+    if (fread(&header, 1, sizeof(header), fp) != sizeof(header)) {
+        snprintf((char *)ptd_err, sizeof(ptd_err),
+                 "ptd_load: short header read in %s", path);
+        fclose(fp);
+        return NULL;
+    }
+    if (memcmp(header.magic, PTD_PCG_MAGIC, 8) != 0
+            || header.version != PTD_PCG_VERSION
+            || header.format_revision != PTD_PCG_FORMAT_REVISION) {
+        snprintf((char *)ptd_err, sizeof(ptd_err),
+                 "ptd_load: %s has wrong magic/version "
+                 "(got %.8s v%u r%u; expected %s v%u r%u). "
+                 "Treat as cache miss and rebuild.",
+                 path, header.magic, header.version, header.format_revision,
+                 PTD_PCG_MAGIC, PTD_PCG_VERSION, PTD_PCG_FORMAT_REVISION);
+        fclose(fp);
+        return NULL;
+    }
+    if (header.memr_length != (uint64_t)graph->vertices_length) {
+        snprintf((char *)ptd_err, sizeof(ptd_err),
+                 "ptd_load: %s memr_length %llu != graph->vertices_length %zu",
+                 path, (unsigned long long)header.memr_length,
+                 graph->vertices_length);
+        fclose(fp);
+        return NULL;
+    }
+
+    // Read commands.
+    struct ptd_pcg_disk_command *encoded_cmds = NULL;
+    if (header.commands_length > 0) {
+        encoded_cmds = (struct ptd_pcg_disk_command *)
+                malloc(header.commands_length * sizeof(*encoded_cmds));
+        if (encoded_cmds == NULL) {
+            snprintf((char *)ptd_err, sizeof(ptd_err),
+                     "ptd_load: oom for encoded commands");
+            fclose(fp);
+            return NULL;
+        }
+        size_t n = header.commands_length * sizeof(*encoded_cmds);
+        if (fread(encoded_cmds, 1, n, fp) != n) {
+            snprintf((char *)ptd_err, sizeof(ptd_err),
+                     "ptd_load: short commands read in %s", path);
+            free(encoded_cmds);
+            fclose(fp);
+            return NULL;
+        }
+    }
+
+    // Read flat mem.
+    double *flat_mem = NULL;
+    if (header.mem_total_doubles > 0) {
+        flat_mem = (double *)malloc(header.mem_total_doubles * sizeof(double));
+        if (flat_mem == NULL) {
+            snprintf((char *)ptd_err, sizeof(ptd_err),
+                     "ptd_load: oom for flat mem");
+            free(encoded_cmds);
+            fclose(fp);
+            return NULL;
+        }
+        size_t n = header.mem_total_doubles * sizeof(double);
+        if (fread(flat_mem, 1, n, fp) != n) {
+            snprintf((char *)ptd_err, sizeof(ptd_err),
+                     "ptd_load: short mem read in %s", path);
+            free(flat_mem);
+            free(encoded_cmds);
+            fclose(fp);
+            return NULL;
+        }
+    }
+
+    // Read memr offsets.
+    int64_t *memr_offsets = NULL;
+    if (graph->vertices_length > 0) {
+        memr_offsets = (int64_t *)malloc(graph->vertices_length * sizeof(int64_t));
+        if (memr_offsets == NULL) {
+            snprintf((char *)ptd_err, sizeof(ptd_err),
+                     "ptd_load: oom for memr_offsets");
+            free(flat_mem);
+            free(encoded_cmds);
+            fclose(fp);
+            return NULL;
+        }
+        size_t n = graph->vertices_length * sizeof(int64_t);
+        if (fread(memr_offsets, 1, n, fp) != n) {
+            snprintf((char *)ptd_err, sizeof(ptd_err),
+                     "ptd_load: short memr read in %s", path);
+            free(memr_offsets);
+            free(flat_mem);
+            free(encoded_cmds);
+            fclose(fp);
+            return NULL;
+        }
+    }
+    fclose(fp);
+
+    // Wrap flat_mem in a single-node ll_of_a chain so the existing
+    // destroy function works unchanged. The node owns the flat_mem
+    // allocation; if we OOM building the wrapper, clean up.
+    struct ll_of_a *mem_node = (struct ll_of_a *)malloc(sizeof(*mem_node));
+    if (mem_node == NULL) {
+        snprintf((char *)ptd_err, sizeof(ptd_err),
+                 "ptd_load: oom for mem node");
+        free(memr_offsets);
+        free(flat_mem);
+        free(encoded_cmds);
+        return NULL;
+    }
+    mem_node->next = NULL;
+    mem_node->mem = flat_mem;  // may be NULL when mem_total_doubles == 0
+    mem_node->current_mem_index = (size_t)header.mem_total_doubles;
+    mem_node->current_mem_position =
+            (flat_mem != NULL) ? flat_mem + header.mem_total_doubles : NULL;
+
+    // Decode commands: re-resolve pointers against flat_mem and graph.
+    struct ptd_comp_graph_parameterized *commands = NULL;
+    if (header.commands_length > 0) {
+        commands = (struct ptd_comp_graph_parameterized *)
+                malloc(header.commands_length * sizeof(*commands));
+        if (commands == NULL) {
+            snprintf((char *)ptd_err, sizeof(ptd_err),
+                     "ptd_load: oom for commands");
+            free(mem_node);
+            free(memr_offsets);
+            free(flat_mem);
+            free(encoded_cmds);
+            return NULL;
+        }
+        for (size_t i = 0; i < header.commands_length; i++) {
+            commands[i].type = encoded_cmds[i].type;
+            commands[i].from = (size_t)encoded_cmds[i].from;
+            commands[i].to = (size_t)encoded_cmds[i].to;
+            commands[i].multiplier = encoded_cmds[i].multiplier;
+            commands[i].fromT = ptd_pcg_decode_ptr(
+                    &encoded_cmds[i].fromT, flat_mem, graph);
+            commands[i].toT = ptd_pcg_decode_ptr(
+                    &encoded_cmds[i].toT, flat_mem, graph);
+            commands[i].multiplierptr = ptd_pcg_decode_ptr(
+                    &encoded_cmds[i].multiplierptr, flat_mem, graph);
+        }
+    }
+    free(encoded_cmds);
+
+    // Decode memr.
+    double **memr = NULL;
+    if (graph->vertices_length > 0) {
+        memr = (double **)malloc(graph->vertices_length * sizeof(double *));
+        if (memr == NULL) {
+            snprintf((char *)ptd_err, sizeof(ptd_err),
+                     "ptd_load: oom for memr");
+            free(commands);
+            free(mem_node);
+            free(memr_offsets);
+            free(flat_mem);
+            return NULL;
+        }
+        for (size_t i = 0; i < graph->vertices_length; i++) {
+            memr[i] = (memr_offsets[i] >= 0) ? (flat_mem + memr_offsets[i]) : NULL;
+        }
+    }
+    free(memr_offsets);
+
+    struct ptd_desc_reward_compute_parameterized *res =
+            (struct ptd_desc_reward_compute_parameterized *)malloc(sizeof(*res));
+    if (res == NULL) {
+        snprintf((char *)ptd_err, sizeof(ptd_err),
+                 "ptd_load: oom for result struct");
+        free(memr);
+        free(commands);
+        free(mem_node);
+        free(flat_mem);
+        return NULL;
+    }
+    res->length = (size_t)header.commands_length;
+    res->commands = commands;
+    res->mem = mem_node;
+    res->memr = memr;
+    return res;
 }
 
 void ptd_graph_destroy(struct ptd_graph *graph) {

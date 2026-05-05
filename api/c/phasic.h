@@ -421,6 +421,53 @@ void ptd_parameterized_reward_compute_graph_destroy(
         struct ptd_desc_reward_compute_parameterized *compute_graph
 );
 
+/**
+ * Serialise a parameterised reward compute graph to disk.
+ *
+ * Walks the commands, encodes each pointer (fromT, toT, multiplierptr)
+ * as either a mem-buffer offset or an (vertex_idx, edge_idx, byte_offset)
+ * triple, flattens the linked-list mem chain into a single contiguous
+ * buffer, and writes the result to ``path`` via atomic write-then-rename
+ * so concurrent readers never see a partial file.
+ *
+ * @param path Destination cache file (parent directory must exist).
+ * @param compute Symbolic compute graph to save.
+ * @param graph The graph that ``compute`` was built from. Used at save
+ *              time to look up edge pointers for the encoding step;
+ *              the saved file embeds (vertex_idx, edge_idx) which the
+ *              loader resolves against the live graph passed to
+ *              ptd_load_parameterized_reward_compute_graph.
+ * @return 0 on success, -1 on error (sets ptd_err).
+ */
+int ptd_save_parameterized_reward_compute_graph(
+        const char *path,
+        const struct ptd_desc_reward_compute_parameterized *compute,
+        const struct ptd_graph *graph);
+
+/**
+ * Load a parameterised reward compute graph from disk.
+ *
+ * Reads the header, validates magic/version, allocates a single
+ * ``mem`` block (wrapped in one ll_of_a node so the existing destroy
+ * function works unchanged), reads the commands, and re-points all
+ * fromT/toT/multiplierptr fields against the loaded mem and the
+ * supplied graph's edge weights.
+ *
+ * @param path Cache file path.
+ * @param graph The graph to bind edge-pointer fields to. Must have
+ *              the same structure as the graph used at save time.
+ * @return Newly allocated compute graph (caller owns; destroy via
+ *         ptd_parameterized_reward_compute_graph_destroy), or NULL
+ *         on error (cache miss / corrupt file / version mismatch /
+ *         OOM). On NULL the caller should fall back to rebuilding
+ *         the cache from scratch and ptd_err is set to a
+ *         human-readable description of the miss reason.
+ */
+struct ptd_desc_reward_compute_parameterized *
+ptd_load_parameterized_reward_compute_graph(
+        const char *path,
+        const struct ptd_graph *graph);
+
 // ============================================================================
 // Symbolic Expression System for Efficient Parameter Evaluation
 // ============================================================================
