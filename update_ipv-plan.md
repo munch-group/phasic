@@ -2,43 +2,81 @@
 
 ## Status & currency
 
-**Last reconciled with the codebase: 2026-05-05** (commit `23119fe` —
-post-Stages 1/2/3/A0/A1).
+**Last reconciled with the codebase: 2026-05-05** (commit `69a5857`,
+post-Stages 1/2/3/A0/A1/A2 + `phasic.cache` module).
 
 This plan has not been started. Greenfield additions; verified by
 grepping master for `update_ipv`, `parameterized_ipv`, `ipv_length`,
 `ipv_targets` (zero hits in `src/`, `tests/`).
 
-**Forward references** to other plans:
+### Hard prerequisite — and what it blocks
 
-- `trace-plan-v2.md` and the in-tree commits since 2026-05-05 land
-  Stages 1, 2, 3, A0, and A1 (C-codebase fixes plus a thread-local
-  persistent `phasic::Graph` cache inside `GraphBuilder`). Stage A0
-  in particular makes the cache-invalidation table in this plan's
-  "Cache impact" section *load-bearing on real behaviour* rather
-  than aspirational — see the section for details.
-- `disk-trace-cache.md` describes a future Stage A2 (disk-persistent
-  symbolic compute graph cache). Orthogonal to this plan; mentioned
-  here only so the next reader knows about it.
+**Hard prerequisite**: this plan extends `record_elimination_trace`
+(`src/phasic/trace_elimination.py`). That function currently raises on
+cyclic graphs at `trace_elimination.py:834`:
 
-**Stage A1 interaction (important)**: SVGD models built via
-`Graph.pmf_and_moments_from_graph` snapshot the graph's JSON
-structure at model-construction time (`src/phasic/__init__.py:5915`).
-The persistent `phasic::Graph` inside `GraphBuilder` is built from
-that frozen JSON. So a user who calls `graph.update_ipv(weights)`
-*after* constructing an SVGD model will mutate the user's wrapper
-but **not** propagate IPV changes into the SVGD model's
-`GraphBuilder`. This is consistent with how `update_weights(theta)`
-works (theta is passed through at call time, not snapshotted), but
-IPV is structural in the FFI/pybind path — not a runtime parameter
-visible to `GraphBuilder::build`. Users who want runtime IPV in SVGD
-should call `update_ipv` *before* `pmf_and_moments_from_graph`.
+```
+RuntimeError: Trace-based elimination cannot handle the cycle
+(parent={i} → i={j} → parent={i}): self-loop correction 1/(1 − q)
+is not implemented.
+```
 
-The trace-based path (`record_elimination_trace(parameterized_ipv=True)`
-+ `evaluate_trace_jax(trace, theta, ipv=...)`) is unaffected — the
-trace is the abstraction that lets IPV flow as a runtime parameter,
-and is what the user gets by going through `cache_trace=True` rather
-than `pmf_and_moments_from_graph`.
+This is the v1 trace-plan's central deferred work and is **not** part
+of any of the C-side stages 1/2/3/A0/A1/A2 that have landed. Until
+that fix lands, the IPV machinery this plan adds will only work on
+acyclic parameterised graphs. Most real models (ARGs,
+joint-probability kernels, anything with back-edges) have cycles, so
+this is a sharp limit on the plan's reach.
+
+**Recommendation**: pick up the v1 cyclic-elimination work *before*
+implementing this plan, or commit to landing this plan in two phases:
+(1) acyclic-only IPV traces with explicit RuntimeError on cyclic
+graphs (small, ships); (2) cyclic-graph support after the v1 work.
+
+### Forward references to other plans
+
+- `trace-plan-v2.md` and commits `23119fe` (Stages 1/2/3/A0/A1) plus
+  `153f603` (Stage A2) plus `5e0c15a` (`phasic.cache` module): all
+  on the C side and complete. Stage A0 in particular makes the
+  cache-invalidation table in this plan's "Cache impact" section
+  *load-bearing on real behaviour* rather than aspirational.
+- `disk-trace-cache.md` describes Stage A2 (now complete). The
+  on-disk symbolic compute graph cache is keyed by graph content
+  hash including IPV edge weights, so any `update_ipv` call that
+  appends a new IPV edge or changes an existing IPV-edge weight
+  invalidates that disk-cache key. The Python `_trace`/`_trace_dirty`
+  on the `Graph` wrapper is preserved across IPV updates (when the
+  trace was recorded with `parameterized_ipv=True`); only the
+  C-side disk cache misses.
+- `phasic.cache` module (`src/phasic/cache.py`): provides the
+  user-facing `clear_param_compute_cache`, `param_compute_cache_info`,
+  and `clear_all_caches` helpers. This plan does not call into it
+  directly (the cache machinery is internal to the C runtime), but
+  document it in the user-facing `update_ipv` docstring as the
+  inspection/clearing surface if users want to verify cache state
+  after IPV changes.
+
+### Stage A1 interaction (important)
+
+SVGD models built via `Graph.pmf_and_moments_from_graph` snapshot
+the graph's JSON structure at model-construction time
+(`src/phasic/__init__.py:5919`). The persistent `phasic::Graph`
+inside `GraphBuilder` is built from that frozen JSON. So a user
+who calls `graph.update_ipv(weights)` *after* constructing an
+SVGD model will mutate the user's wrapper but **not** propagate
+IPV changes into the SVGD model's `GraphBuilder`. This is
+consistent with how `update_weights(theta)` works (theta is passed
+through at call time, not snapshotted), but IPV is structural in
+the FFI/pybind path — not a runtime parameter visible to
+`GraphBuilder::build`. Users who want runtime IPV in SVGD should
+call `update_ipv` *before* `pmf_and_moments_from_graph`.
+
+The trace-based path
+(`record_elimination_trace(parameterized_ipv=True)` +
+`evaluate_trace_jax(trace, theta, ipv=...)`) is unaffected — the
+trace is the abstraction that lets IPV flow as a runtime
+parameter, and is what the user gets by going through
+`cache_trace=True` rather than `pmf_and_moments_from_graph`.
 
 ## Summary
 
@@ -146,7 +184,7 @@ Two reasonable choices for `ipv_length`:
 
 ### `Graph.update_ipv(weights)` API
 
-Insertion point: `src/phasic/__init__.py` after the existing `Graph.update_weights` method (which currently runs from line 2128 — insert immediately after). **Not** decorated with `@_invalidates_trace` (defined at `__init__.py:1570`) — the whole point is that the trace remains valid.
+Insertion point: `src/phasic/__init__.py` after the existing `Graph.update_weights` method (which currently runs from line 2132 — insert immediately after; `update_weights` ends near line 2173). **Not** decorated with `@_invalidates_trace` (defined at `__init__.py:1574`) — the whole point is that the trace remains valid.
 
 ```python
 def update_ipv(self, weights: ArrayLike) -> None:
@@ -376,9 +414,9 @@ If a user wants to fix the IPV, they write `partial(log_lik, ipv=my_ipv)` — ex
 
 Two layers in `__init__.py`:
 
-#### `_generate_cpp_from_graph` (`__init__.py:690`)
+#### `_generate_cpp_from_graph` (`__init__.py:694`)
 
-(Plan originally referenced `_generate_cpp_graph_builder` at line 686-797; the function is named `_generate_cpp_from_graph` and starts at line 690 in current master.)
+(Plan originally referenced `_generate_cpp_graph_builder` at line 686-797; the function is named `_generate_cpp_from_graph` and starts at line 694 in current master.)
 
 Add starting-vertex parameterized-IPV emissions analogous to the existing `start_param_edges` block. The generated C++ takes `(theta, ipv)` separately — or a single packed `params` vector with documented layout, whichever is cleaner. Concretely:
 
@@ -394,7 +432,7 @@ for (size_t j = 0; j < n_ipv; j++) {
 
 The `if (w > 0.0)` guard is **not** required for correctness (Experiment 1 proved zero-weight edges are inert), but is a clean optimization that avoids materializing useless edges in the rebuilt graph. It also matches the behavior of `instantiate_from_trace`'s `prob < 1e-12` filter.
 
-#### `_generate_cpp_from_trace` (`__init__.py:810`)
+#### `_generate_cpp_from_trace` (`__init__.py:814`)
 
 **Signature change since this plan was written**: the function now
 takes `observed_data` as a required parameter:
@@ -427,7 +465,7 @@ double compute_log_likelihood(const double* theta, int n_theta,
 
 When `IPV_LENGTH == 0`, the generated wrapper accepts only `(theta, n_theta)` to preserve the existing API.
 
-#### `_wrap_trace_log_likelihood_for_jax` (`__init__.py:1245`)
+#### `_wrap_trace_log_likelihood_for_jax` (`__init__.py:1249`)
 
 Currently uses `jax.pure_callback` with `vmap_method='sequential'` and a single `theta` argument. Extend to accept `(theta, ipv)`:
 
@@ -523,11 +561,11 @@ on next read with `grep -n` since unrelated edits will drift them.)
   - `trace_to_c_arrays` (line 1193) — emit `ipv_length`, `ipv_targets`.
 
 - **`src/phasic/__init__.py`**
-  - Add `Graph.update_ipv(weights)` after `Graph.update_weights` (currently ends near line 2169). **Do NOT** decorate with `@_invalidates_trace` (decorator at line 1570).
+  - Add `Graph.update_ipv(weights)` after `Graph.update_weights` (currently ends near line 2173). **Do NOT** decorate with `@_invalidates_trace` (decorator at line 1574).
   - Add `Graph._pack_ipv_for_trace` and `Graph._ipv_eligible_mask` helpers.
-  - `_generate_cpp_from_graph` (line 690) — emit parameterized-IPV `add_edge` calls, optionally guarded by `if (w > 0.0)`. *(Plan originally referred to this as `_generate_cpp_graph_builder`; that name does not exist in master.)*
-  - `_generate_cpp_from_trace` (line 810) — extend embedded metadata (`IPV_LENGTH`, `ipv_targets`); extend generated `compute_log_likelihood` signature. **Note**: this function now takes `observed_data` as a required parameter; the IPV extension must work alongside the embedded-data path, not replace it.
-  - `_wrap_trace_log_likelihood_for_jax` (line 1245) — pass `(theta, ipv)` through `jax.pure_callback`.
+  - `_generate_cpp_from_graph` (line 694) — emit parameterized-IPV `add_edge` calls, optionally guarded by `if (w > 0.0)`. *(Plan originally referred to this as `_generate_cpp_graph_builder`; that name does not exist in master.)*
+  - `_generate_cpp_from_trace` (line 814) — extend embedded metadata (`IPV_LENGTH`, `ipv_targets`); extend generated `compute_log_likelihood` signature. **Note**: this function now takes `observed_data` as a required parameter; the IPV extension must work alongside the embedded-data path, not replace it.
+  - `_wrap_trace_log_likelihood_for_jax` (line 1249) — pass `(theta, ipv)` through `jax.pure_callback`.
 
 - **No edits to `src/c/phasic.c`, `src/cpp/phasiccpp.cpp`, or `src/cpp/phasic_pybind.cpp`** — all required primitives (`Edge.update_weight`, `Vertex.add_edge`, `Graph.notify_change`) are already exposed.
 
