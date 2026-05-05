@@ -1,5 +1,45 @@
 # Plan: `Graph.update_ipv(weights)` with parameterized IPV in the elimination trace
 
+## Status & currency
+
+**Last reconciled with the codebase: 2026-05-05** (commit `23119fe` —
+post-Stages 1/2/3/A0/A1).
+
+This plan has not been started. Greenfield additions; verified by
+grepping master for `update_ipv`, `parameterized_ipv`, `ipv_length`,
+`ipv_targets` (zero hits in `src/`, `tests/`).
+
+**Forward references** to other plans:
+
+- `trace-plan-v2.md` and the in-tree commits since 2026-05-05 land
+  Stages 1, 2, 3, A0, and A1 (C-codebase fixes plus a thread-local
+  persistent `phasic::Graph` cache inside `GraphBuilder`). Stage A0
+  in particular makes the cache-invalidation table in this plan's
+  "Cache impact" section *load-bearing on real behaviour* rather
+  than aspirational — see the section for details.
+- `disk-trace-cache.md` describes a future Stage A2 (disk-persistent
+  symbolic compute graph cache). Orthogonal to this plan; mentioned
+  here only so the next reader knows about it.
+
+**Stage A1 interaction (important)**: SVGD models built via
+`Graph.pmf_and_moments_from_graph` snapshot the graph's JSON
+structure at model-construction time (`src/phasic/__init__.py:5915`).
+The persistent `phasic::Graph` inside `GraphBuilder` is built from
+that frozen JSON. So a user who calls `graph.update_ipv(weights)`
+*after* constructing an SVGD model will mutate the user's wrapper
+but **not** propagate IPV changes into the SVGD model's
+`GraphBuilder`. This is consistent with how `update_weights(theta)`
+works (theta is passed through at call time, not snapshotted), but
+IPV is structural in the FFI/pybind path — not a runtime parameter
+visible to `GraphBuilder::build`. Users who want runtime IPV in SVGD
+should call `update_ipv` *before* `pmf_and_moments_from_graph`.
+
+The trace-based path (`record_elimination_trace(parameterized_ipv=True)`
++ `evaluate_trace_jax(trace, theta, ipv=...)`) is unaffected — the
+trace is the abstraction that lets IPV flow as a runtime parameter,
+and is what the user gets by going through `cache_trace=True` rather
+than `pmf_and_moments_from_graph`.
+
 ## Summary
 
 Add a new method `Graph.update_ipv(weights)` that takes a length-`graph.vertices_length()` array of edge weights from the starting vertex to every other vertex (with zeros at the starting-vertex index and at absorbing-vertex indices, and at least one entry > 0). The method:
@@ -16,6 +56,13 @@ The plan also adds a `parameterized_ipv` flag to `record_elimination_trace`, thr
 phasic's elimination trace lets parameterized graphs evaluate PDFs/likelihoods quickly across many `theta` values: record once (O(n³)), evaluate many times (O(n)) with `update_weights(theta)`. This is the engine of SVGD inference.
 
 Today, the trace bakes IPV edge weights as `OpType.CONST` operations — so changing the IPV requires rebuilding the graph and rerecording the trace. SVGD pipelines that need to sweep over different starting distributions (or jointly infer IPV with rate parameters) pay an O(n³) re-record per IPV change.
+
+(Stages A0/A1 amortise the O(n³) elimination across SVGD theta
+calls within a single process, but the elimination still runs once
+per fresh `record_elimination_trace` call, so rerecording on every
+IPV change remains expensive when the user wants to sweep IPVs.
+This plan eliminates that re-record by making IPV a runtime trace
+parameter on equal footing with `theta`.)
 
 The new design treats IPV as a second runtime parameter vector on equal footing with `theta`. The trace records IPV edges as `OpType.PARAM` references into an extended parameter vector `[theta, ipv, rewards]`. Trace evaluation reads IPV at runtime, so `update_ipv(weights)` is O(n_vertices), not O(re-record).
 
@@ -99,7 +146,7 @@ Two reasonable choices for `ipv_length`:
 
 ### `Graph.update_ipv(weights)` API
 
-Insertion point: `src/phasic/__init__.py` after the existing `Graph.update_weights` method (around line 2150). **Not** decorated with `@_invalidates_trace` — the whole point is that the trace remains valid.
+Insertion point: `src/phasic/__init__.py` after the existing `Graph.update_weights` method (which currently runs from line 2128 — insert immediately after). **Not** decorated with `@_invalidates_trace` (defined at `__init__.py:1570`) — the whole point is that the trace remains valid.
 
 ```python
 def update_ipv(self, weights: ArrayLike) -> None:
@@ -193,7 +240,7 @@ Add a `parameterized_ipv: bool = False` parameter to `record_elimination_trace` 
 
 When `parameterized_ipv=True`:
 
-#### `EliminationTrace` dataclass additions (`trace_elimination.py:107-162`)
+#### `EliminationTrace` dataclass additions (`trace_elimination.py:109-163`)
 
 ```python
 ipv_length: int = 0           # Number of IPV slots in extended parameter vector
@@ -202,7 +249,7 @@ ipv_targets: list[int] = field(default_factory=list)  # vertex_index for each IP
 
 Both default to `0`/`[]`, preserving backward compat. The disk cache JSON deserializer uses dataclass defaults for missing fields, so existing on-disk traces still load.
 
-#### Phase 1 — starting vertex rate (replaces `trace_elimination.py:597-604`)
+#### Phase 1 — starting vertex rate (replaces `trace_elimination.py:596-619`)
 
 When `parameterized_ipv=True`:
 
@@ -226,7 +273,7 @@ if i == starting_vertex_idx:
 
 Stash `ipv_param_ops` and `ipv_targets` in a local for use in Phase 2.
 
-#### Phase 2 — starting vertex edge probabilities (replaces `trace_elimination.py:645-666`)
+#### Phase 2 — starting vertex edge probabilities (replaces `trace_elimination.py:638-664`)
 
 When `parameterized_ipv=True`:
 
@@ -260,7 +307,9 @@ trace.ipv_targets = ipv_targets if parameterized_ipv else []
 
 ### Trace evaluation changes
 
-#### `evaluate_trace_jax` (`trace_elimination.py:1373-1505`)
+#### `evaluate_trace_jax` (`trace_elimination.py:1430`)
+
+Current signature: `evaluate_trace_jax(trace, params, rewards=None, use_log=False) -> dict[str, Any]`.
 
 Add an `ipv` parameter and concatenate it into the extended vector after `theta` and before `rewards`:
 
@@ -287,22 +336,27 @@ def evaluate_trace_jax(trace, params, ipv=None, rewards=None, use_log=False):
 
 The op-execution loop (PARAM, DOT, MUL, etc.) is untouched — PARAM ops simply index into `extended_params` and don't care which segment a slot belongs to.
 
-#### `evaluate_trace` (non-JAX Python path)
+#### `evaluate_trace` (non-JAX Python path, `trace_elimination.py:956`)
+
+Current signature: `evaluate_trace(trace, params=None, rewards=None, use_log=False) -> dict[str, Any]`.
 
 Mirror the same change for the numpy path. Same signature `evaluate_trace(trace, params, ipv=None, rewards=None, use_log=False)`.
 
-#### `instantiate_from_trace` (`trace_elimination.py:1308-1364`)
+#### `instantiate_from_trace` (`trace_elimination.py:1324`)
 
 Add `ipv` parameter, thread to `evaluate_trace`:
 
 ```python
 def instantiate_from_trace(trace, params=None, rewards=None, ipv=None, use_log=False):
     result = evaluate_trace(trace, params, ipv=ipv, rewards=rewards, use_log=use_log)
-    # (rest unchanged — line 1352's `if prob < 1e-12: continue` already handles
-    # zero-IPV-derived edges correctly)
+    # (rest unchanged — the `if prob < 1e-12: continue` filter at
+    # trace_elimination.py:1409 already handles zero-IPV-derived edges
+    # correctly)
 ```
 
-### `trace_to_log_likelihood` API
+### `trace_to_log_likelihood` API (`trace_elimination.py:1618`)
+
+Current signature: `trace_to_log_likelihood(trace, observed_data, reward_vector=None, granularity=0, use_cpp=True, use_log=False)`.
 
 **Decision: pass IPV at function call time, not closure-baked.** Reasoning (from prior turn):
 
@@ -322,7 +376,9 @@ If a user wants to fix the IPV, they write `partial(log_lik, ipv=my_ipv)` — ex
 
 Two layers in `__init__.py`:
 
-#### `_generate_cpp_graph_builder` (~line 686-797)
+#### `_generate_cpp_from_graph` (`__init__.py:690`)
+
+(Plan originally referenced `_generate_cpp_graph_builder` at line 686-797; the function is named `_generate_cpp_from_graph` and starts at line 690 in current master.)
 
 Add starting-vertex parameterized-IPV emissions analogous to the existing `start_param_edges` block. The generated C++ takes `(theta, ipv)` separately — or a single packed `params` vector with documented layout, whichever is cleaner. Concretely:
 
@@ -338,7 +394,22 @@ for (size_t j = 0; j < n_ipv; j++) {
 
 The `if (w > 0.0)` guard is **not** required for correctness (Experiment 1 proved zero-weight edges are inert), but is a clean optimization that avoids materializing useless edges in the rebuilt graph. It also matches the behavior of `instantiate_from_trace`'s `prob < 1e-12` filter.
 
-#### `_generate_cpp_from_trace` (~line 801+)
+#### `_generate_cpp_from_trace` (`__init__.py:810`)
+
+**Signature change since this plan was written**: the function now
+takes `observed_data` as a required parameter:
+
+```python
+def _generate_cpp_from_trace(trace, observed_data, granularity=0) -> str
+```
+
+The observations are *embedded* into the generated C++ as static
+arrays (so the compiled binary contains both the trace and the data
+it scores). When extending for IPV, do NOT remove `observed_data`;
+instead add an IPV-handling branch alongside the existing data-
+embedding logic. The generated `compute_log_likelihood` reads its
+runtime input as `(theta[, ipv])` — the observed times are already
+baked in.
 
 Extend the embedded trace metadata:
 
@@ -356,7 +427,7 @@ double compute_log_likelihood(const double* theta, int n_theta,
 
 When `IPV_LENGTH == 0`, the generated wrapper accepts only `(theta, n_theta)` to preserve the existing API.
 
-#### `_wrap_trace_log_likelihood_for_jax` (`__init__.py` ~line 1710)
+#### `_wrap_trace_log_likelihood_for_jax` (`__init__.py:1245`)
 
 Currently uses `jax.pure_callback` with `vmap_method='sequential'` and a single `theta` argument. Extend to accept `(theta, ipv)`:
 
@@ -373,7 +444,7 @@ def wrapped(theta, ipv):
 
 `pure_callback` handles multiple array arguments natively. `vmap_method='sequential'` continues to work for batched evaluation.
 
-#### `trace_to_c_arrays` (`trace_elimination.py:1139`)
+#### `trace_to_c_arrays` (`trace_elimination.py:1193`)
 
 Emit `ipv_length` and `ipv_targets` so the codegen can read them.
 
@@ -385,7 +456,7 @@ Emit `ipv_length` and `ipv_targets` so the codegen can read them.
 | Python `_trace` recorded with `parameterized_ipv=False` | Marked dirty + warning | Trace baked old IPV as constants. |
 | Python `_last_theta` | Untouched | IPV is orthogonal to theta. |
 | C `reward_compute_graph` | Freed by `update_weight` and/or `add_edge` | Existing C primitive behavior. |
-| C `parameterized_reward_compute_graph` | Freed only by `add_edge`; preserved on pure weight updates | Acceptable — its validity depends on graph structure. |
+| C `parameterized_reward_compute_graph` | Freed only by `add_edge`; preserved on pure weight updates | Acceptable — its validity depends on graph structure. **Stage A0** (committed `23119fe`) made this load-bearing on real behaviour: `ptd_graph_update_weights` no longer destroys the symbolic compute graph, so SVGD theta sweeps amortise the O(n³) elimination across calls. `update_ipv` only invalidates the cache when the IPV mutation needs a `start.add_edge` (new target); pure weight updates on existing IPV edges preserve it. |
 | C `reward_compute_graph_mpfr` | Freed on `add_edge` | Same. |
 | C++ `ph_context`/`dph_context` | Cleared by explicit `notify_change()` call | Required for direct `graph.pdf()` consistency. |
 | Disk-based trace cache (keyed on `ptd_graph_content_hash`) | **Self-invalidates** because hash includes IPV edge weights | The in-graph IPV mutation changes the hash. |
@@ -423,7 +494,7 @@ These must not drift during implementation:
 
 A reasonable order for picking this up later:
 
-1. **Add fields to `EliminationTrace` dataclass** (`trace_elimination.py:107-162`). Add `ipv_length: int = 0` and `ipv_targets: list[int] = field(default_factory=list)`. Verify existing tests pass.
+1. **Add fields to `EliminationTrace` dataclass** (`trace_elimination.py:109-163`). Add `ipv_length: int = 0` and `ipv_targets: list[int] = field(default_factory=list)`. Verify existing tests pass.
 2. **Add `parameterized_ipv` flag to `record_elimination_trace`**. Implement Phase-1 and Phase-2 changes for the starting vertex when the flag is True. Update reward index offsets to account for the IPV segment. Add a unit test that records a trace with `parameterized_ipv=True` and inspects `ipv_length`, `ipv_targets`, and the operation list.
 3. **Extend `evaluate_trace_jax` and `evaluate_trace`** to accept `ipv` and concatenate it into the extended parameter vector. Add tests that record a trace with `parameterized_ipv=True`, evaluate at several IPV values, and compare to `instantiate_from_trace` + direct `pdf`.
 4. **Extend `instantiate_from_trace`** to accept and thread `ipv`. Add a test that confirms zero-IPV slots are dropped (the `prob < 1e-12` filter).
@@ -434,26 +505,29 @@ A reasonable order for picking this up later:
    - `update_ipv` warns and marks `_trace_dirty` when trace was recorded without IPV parameterization.
    - Repeated `update_ipv` calls leave `start.edges()` correctly updated.
 6. **Extend `trace_to_log_likelihood`** to inspect `trace.ipv_length` and return either `log_lik(theta)` or `log_lik(theta, ipv)`. Add tests for both signatures.
-7. **Extend C++ codegen** (`_generate_cpp_graph_builder`, `_generate_cpp_from_trace`, `_wrap_trace_log_likelihood_for_jax`, `trace_to_c_arrays`). Add tests that record with `parameterized_ipv=True`, generate C++, compile, and call from Python — comparing results to the Python evaluation path.
+7. **Extend C++ codegen** (`_generate_cpp_from_graph`, `_generate_cpp_from_trace`, `_wrap_trace_log_likelihood_for_jax`, `trace_to_c_arrays`). Add tests that record with `parameterized_ipv=True`, generate C++, compile, and call from Python — comparing results to the Python evaluation path.
 8. **End-to-end SVGD test**: parameterized-IPV trace + sweep over IPVs without re-recording. Confirm trace is reused (check `_trace_dirty` stays False; check on-disk cache hit count if accessible).
 9. **JAX compatibility tests**: `jit`, `vmap`, `grad` over IPV all produce expected results.
 
 ## Critical files
 
+(Line numbers below reflect master at commit `23119fe`. Re-verify
+on next read with `grep -n` since unrelated edits will drift them.)
+
 - **`src/phasic/trace_elimination.py`**
-  - `EliminationTrace` dataclass at line 107 — add `ipv_length`, `ipv_targets`.
-  - `record_elimination_trace` (Phase 1 at line 597-604, Phase 2 at line 645-666) — branch on `parameterized_ipv`. Update reward-offset arithmetic throughout.
-  - `evaluate_trace_jax` (line 1373) and `evaluate_trace` — accept `ipv`, build extended params from `[theta, ipv, rewards]`.
-  - `instantiate_from_trace` (line 1308-1364) — thread `ipv` through.
-  - `trace_to_log_likelihood` (line 1558-1751) — branch on `trace.ipv_length` for return signature.
-  - `trace_to_c_arrays` (line 1139) — emit `ipv_length`, `ipv_targets`.
+  - `EliminationTrace` dataclass at line 109 — add `ipv_length`, `ipv_targets`.
+  - `record_elimination_trace` (Phase 1 at line 596–619, Phase 2 at line 638–664) — branch on `parameterized_ipv`. Update reward-offset arithmetic throughout.
+  - `evaluate_trace_jax` (line 1430) and `evaluate_trace` (line 956) — accept `ipv`, build extended params from `[theta, ipv, rewards]`.
+  - `instantiate_from_trace` (line 1324; zero-prob filter at line 1409) — thread `ipv` through.
+  - `trace_to_log_likelihood` (line 1618) — branch on `trace.ipv_length` for return signature.
+  - `trace_to_c_arrays` (line 1193) — emit `ipv_length`, `ipv_targets`.
 
 - **`src/phasic/__init__.py`**
-  - Add `Graph.update_ipv(weights)` after `Graph.update_weights` (~line 2150). **Do NOT** decorate with `@_invalidates_trace`.
+  - Add `Graph.update_ipv(weights)` after `Graph.update_weights` (currently ends near line 2169). **Do NOT** decorate with `@_invalidates_trace` (decorator at line 1570).
   - Add `Graph._pack_ipv_for_trace` and `Graph._ipv_eligible_mask` helpers.
-  - `_generate_cpp_graph_builder` (line 686-797) — emit parameterized-IPV `add_edge` calls, optionally guarded by `if (w > 0.0)`.
-  - `_generate_cpp_from_trace` (line 801+) — extend embedded metadata (`IPV_LENGTH`, `ipv_targets`); extend generated `compute_log_likelihood` signature.
-  - `_wrap_trace_log_likelihood_for_jax` (~line 1710) — pass `(theta, ipv)` through `jax.pure_callback`.
+  - `_generate_cpp_from_graph` (line 690) — emit parameterized-IPV `add_edge` calls, optionally guarded by `if (w > 0.0)`. *(Plan originally referred to this as `_generate_cpp_graph_builder`; that name does not exist in master.)*
+  - `_generate_cpp_from_trace` (line 810) — extend embedded metadata (`IPV_LENGTH`, `ipv_targets`); extend generated `compute_log_likelihood` signature. **Note**: this function now takes `observed_data` as a required parameter; the IPV extension must work alongside the embedded-data path, not replace it.
+  - `_wrap_trace_log_likelihood_for_jax` (line 1245) — pass `(theta, ipv)` through `jax.pure_callback`.
 
 - **No edits to `src/c/phasic.c`, `src/cpp/phasiccpp.cpp`, or `src/cpp/phasic_pybind.cpp`** — all required primitives (`Edge.update_weight`, `Vertex.add_edge`, `Graph.notify_change`) are already exposed.
 
