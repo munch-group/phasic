@@ -32,8 +32,9 @@ $presentation-heading-font: "Roboto", sans-serif !default;
 $presentation-heading-color: $jet !default;
 $presentation-heading-font-weight: lighter;
 //$presentation-heading-line-height: 2;
-//$presentation-block-margin: 28px;
-$presentation-font-size-root: 35px;
+$presentation-block-margin: 16px;
+$presentation-font-size-root: 33px;
+$presentation-h2-font-size: 1.5em; 
 
 // colors
 //$body-bg: #f0f1eb !default;
@@ -106,8 +107,8 @@ $selection-bg: #26351c !default;
   font-weight: 380;
   // font-weight: lighter;
   font-size: 1.4em;
-  margin-top: 0.4em;
-  margin-bottom: 0.3em;
+  margin-top: 0.5em;
+  margin-bottom: 0.9em;
 }
 
 .reveal h3 {

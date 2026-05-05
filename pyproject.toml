@@ -98,6 +98,9 @@ testpaths = ["tests/pytest"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
+# addopts = "--capture=sys" # capture stdout/stderr
+# or 
+addopts = "--capture=tee-sys" # capture stdout/stderr AND print it
 
 [tool.setuptools.packages.find]
 where = ["src"]  # list of folders that contain the packages (["."] by default)

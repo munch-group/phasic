@@ -14,7 +14,7 @@ NBCONVERT_BGCOLOR='white'
 
 if test -d $DIR; then
   for FILE in $(find $DIR -name '*.ipynb' | sort) ; do
-    if [[  "$(grep $FILE _quarto.yml | grep -v '#')" ]]; then
+    if [[  "$(grep $FILE _quarto-default.yml | grep -v '#')" ]]; then
       echo -e "${BLUE}Rendering ${FILE}${NC}"
       # CMD="jupyter nbconvert --Application.log_level=50 --to notebook --execute --inplace $FILE"
       CMD="jupyter nbconvert --log-level=WARN --to notebook --execute --inplace \
