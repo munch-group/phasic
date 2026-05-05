@@ -43,17 +43,20 @@ format:
 
 ## The coalescent as a **Markov jump process**
 
+:::{.spacer-2}
+:::
+
 ::: {.r-stack }
 
-![](./images/coal_mc_jump_anim_1.svg){.nostretch width="90%" fig-align="left" .fragment}
+![](./images/coal_mc_jump_anim_1.svg){.nostretch width="100%" fig-align="left"}
 
-![](./images/coal_mc_jump_anim_2.svg){.nostretch width="90%"  fig-align="left" .fragment}
+![](./images/coal_mc_jump_anim_2.svg){.nostretch width="100%"  fig-align="left" .fragment}
 
-![](./images/coal_mc_jump_anim_3.svg){.nostretch width="90%"  fig-align="left" .fragment}
+![](./images/coal_mc_jump_anim_3.svg){.nostretch width="100%"  fig-align="left" .fragment}
 
-![](./images/coal_mc_jump_anim_4.svg){.nostretch width="90%"  fig-align="left" .fragment}
+![](./images/coal_mc_jump_anim_4.svg){.nostretch width="100%"  fig-align="left" .fragment}
 
-![](./images/coal_mc_jump_anim_5.svg){.nostretch width="90%"  fig-align="left" .fragment}
+![](./images/coal_mc_jump_anim_5.svg){.nostretch width="100%"  fig-align="left" .fragment}
 ::::
 
 
@@ -64,7 +67,10 @@ format:
 
 :::: {.column}
 
-![](./images/coal_mc_jump_anim_5.svg){.nostretch height="30%" fig-align="left" .fragment}
+:::{.spacer-2}
+:::
+
+![](./images/coal_mc_jump_anim_5.svg){.nostretch height="30%" fig-align="left"}
 
 ::::
 :::: {.column}
@@ -86,11 +92,57 @@ ${\color{blue}\boldsymbol{S}} =
 :::::
 ::::: {.fragment}
 $\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U} \boldsymbol{e}$
-:::::
-::::: {.fragment}
+
 $\boldsymbol{U} = -{\color{blue}\boldsymbol{S}}^{-1}$
 :::::
 
+::::
+:::
+
+<!-- ---------------------------------------------------- -->
+# Reward transforms
+<!-- ---------------------------------------------------- -->
+
+
+## The coalescent as a **Markov jump process**
+
+::: {layout="[0.55,-0.05,0.4]"}
+
+:::: {.column}
+
+:::{.spacer-2}
+:::
+
+![](./images/coalescent-tot-brlen-rewards.svg){.nostretch height="30%" fig-align="left"}
+
+::::
+:::: {.column}
+
+::::: {.fragment}
+$\tau \sim \mathrm{PH}(\boldsymbol{\alpha}, {\color{blue} \boldsymbol{S}}, {\color{red} \boldsymbol{r}})$
+:::::
+::::: {.fragment}
+$\boldsymbol{\alpha} = (1, 0, 0, 0)$
+:::::
+::::: {.fragment}
+${\color{blue}\boldsymbol{S}} = 
+\begin{bmatrix}
+-6 &  6  &  & \\
+   & -3  & 1  & 2 \\
+   &     & -1  & \\
+   &     &  & -1 \\
+\end{bmatrix}$
+:::::
+::::: {.fragment}
+
+${\color{red} \boldsymbol{r}} = (4,\ 3,\ 2,\ 2)$
+
+:::::
+::::: {.fragment}
+$\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\color{red}\boldsymbol{r}})\, \boldsymbol{e}$
+
+$\boldsymbol{U} = -{\color{blue}\boldsymbol{S}}^{-1}$
+:::::
 ::::
 :::
 
@@ -98,11 +150,11 @@ $\boldsymbol{U} = -{\color{blue}\boldsymbol{S}}^{-1}$
 ## **Phase-type** distributed waiting time
 
 
-::: {layout="[[0.40,-0.05,0.5], [0.4,-0.05,0.5]]"}
+::: {layout="[[-0.1,0.45,-0.05,0.4], [-0.1,0.45,-0.05,0.4]]"}
 
 :::: {.column}
 
-![](./images/coalescent.svg)
+![](./images/coalescent-unit-rewards.svg)
 
 :::: 
 
@@ -110,11 +162,9 @@ $\boldsymbol{U} = -{\color{blue}\boldsymbol{S}}^{-1}$
 
 **TMRCA (tree height):**
 
-$\tau \sim \mathrm{PH}(\boldsymbol{\alpha}, {\color{blue} \boldsymbol{S}})$
+${\color{red} \boldsymbol{r}} = (1,\ 1,\ 1,\ 1)$
 
-$\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U} \boldsymbol{e}$
-
-$\boldsymbol{U} = -{\color{blue}\boldsymbol{S}}^{-1}$
+$\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\color{red}\boldsymbol{r}})\, \boldsymbol{e}$
 
 :::: 
 
@@ -128,77 +178,13 @@ $\boldsymbol{U} = -{\color{blue}\boldsymbol{S}}^{-1}$
 
 **Total branch length:**
 
-$\tau \sim \mathrm{PH}(\boldsymbol{\alpha}, {\color{blue} \boldsymbol{S}}, {\color{red} \boldsymbol{r}})$
+${\color{red} \boldsymbol{r}} = (4,\ 3,\ 2,\ 2)$
 
 $\mathbb{E}[\tau] = \boldsymbol{\alpha} \boldsymbol{U}\!\, \triangle \! \,({\color{red}\boldsymbol{r}})\, \boldsymbol{e}$
-
-${\color{red} \boldsymbol{r}} = (4,\ 3,\ 2,\ 2)$
 
 :::: 
 
 :::
-
-
-
-
-
-## layout tester
-
-::: {layout="[ 0.48, -0.04, 0.48 ]"}
-:::: {#first-column}
-
-- thing  laksdj flakjsd flaksj dflkasj flkasj dflkasj dflkasj dflkajs dflkajs dflkajs dflkasj dflkajs dflaksj dflakjs dflkajsd flaksjf
-- thing 1b
-
-::::
-:::: {#second-column}
-
-- thing  laksdj flakjsd flaksj dflkasj flkasj dflkasj dflkasj dflkajs dflkajs dflkajs dflkasj dflkajs dflaksj dflakjs dflkajsd flaksjf
-
-::::
-:::
-
-## The coalescent as a **Markov jump process**
-
-:::: {.columns}
-::: {.column width="50%"}
-
-![](./images/coal_mc_jump_anim_5.svg){fig-align="left"}
-
-:::
-::: {.column width="50%"}
-
-$$
-\boldsymbol{\alpha} = (\alpha_1, \ldots, \alpha_p)
-$$
-
-$$
-{\color{blue}\boldsymbol{S}} = 
-\begin{bmatrix}
--6 &  6  &  & \\
-   & -3  & 1  & 2 \\
-   &     & -1  & \\
-   &     &  & -1 \\
-\end{bmatrix}
-$$
-
-:::
-::::
-
-
-
-## The **TMRCA** is phase-type distributed
-
-
-
-
-![](./images/coalescent.svg)
-
-![](./images/coalescent-unit-rewards.svg)
-
-## Total branch length follow a **rewarded** phase-type distribution
-
-![](./images/coalescent-tot-brlen-rewards.svg)
 
 ## Singleton branch length using **reward transformation**
 
@@ -251,7 +237,6 @@ Coalescent n=10:
 ![](./images/sparse-matrix-as-graph.png){.nostretch height="30%" fig-align="center" .fragment }
 :::
 
-
 ::::
 :::
 
@@ -273,8 +258,6 @@ Coalescent n=10:
 ::: {.r-fit-text .center}
 ⮕
 :::
-
-
 
 ::::
 :::: {.column}
@@ -324,33 +307,109 @@ Coalescent n=10:
 
 ## Constructing an **acyclic graph** retaining the expected accumulated rewards
 
-::: {layout="[[1.0], [0.4,-0.05,0.4]]"}
+## Constructing an **acyclic graph**
 
+![](./images/elimination1.svg){.nostretch width="80%" fig-align="center"}
+
+::: {layout="[-0.05,0.4,-0.05,0.4]"}
 :::: {.column}
 
-![](./images/elimination1.svg){.nostretch width="70%" fig-align="center"}
+**Edges:**<br>
 
+$w(\mathrm{C}\rightarrow \mathrm{D}) = w(\mathrm{C}\rightarrow \mathrm{A})\, w(\mathrm{A}\rightarrow \mathrm{D})$
+
+**Vertices:**<br>
+
+$x_A \leftarrow x_C + x_A$
 ::::
 :::: {.column}
 
+Insert the first equation in the third:<br>
+
 $\begin{align*}
-T_A &= 5 + 0.6 \cdot T_B \\
-T_B &= 2 + 0.5 \cdot T_C \\
-T_C &= 5 + T_A \\
-T_D &= 0
+T_C &= 5 + (5 + 0.6 \cdot T_B + 0.4 \cdot T_D) \\ 
+&= 10 + 0.6 \cdot T_B + 0.4 \cdot T_D
 \end{align*}$
 
 ::::
+:::
+
+## Constructing an **acyclic graph**
+
+![](./images/elimination2.svg){.nostretch width="80%" fig-align="center"}
+
+::: {layout="[-0.1,0.4,-0.05,0.4]"}
+:::: {.column}
+$x_\mathrm{C} +\!\,= x_\mathrm{A}\, w(\mathrm{C}\rightarrow \mathrm{A})$
+
+$x_C \leftarrow 0.6 \cdot x_C$
+
+::::
+:::: {.column}
+
+Insert the second equation in the third:<br>
+  
+$\begin{align*}
+T_C &= 5 + T_A + 0.6 \cdot ( T_B + 0.5 \cdot T_C + 0.5 \cdot T_D) \\ 
+&= 11.2 + 0.3 \cdot T_C + 0.7 \cdot T_D
+\end{align*}$
+
+::::
+:::
+
+## Constructing an **acyclic graph**
+
+![](./images/elimination3.svg){.nostretch width="80%" fig-align="center"}
+
+::: {layout="[-0.1,0.4,-0.05,0.4]"}
+:::: {.column}
+
+$x_C \leftarrow x_C + x_C \cdot \big(\frac{1}{1-0.6}-1\big)$
+
+::::
+:::: {.column}
+
+Isolate $T_C$ in the third equation to remove self-loop:<br>
+  
+$\begin{align*}
+T_C &= 11.2 + 0.3 \cdot T_C + 0.7 \cdot T_C \\
+&= 16 + T_D
+\end{align*}$
+
+::::
+:::
+
+## Constructing an **acyclic graph**
+
+![](./images/elimination4.svg){.nostretch width="80%" fig-align="center"}
+
+::: {layout="[-0.1,0.4,-0.05,0.4]"}
+:::: {.column}
+
+::::
 :::: {.column}
 
 
-$$
-w(\mathrm{C}\rightarrow \mathrm{D}) = w(\mathrm{C}\rightarrow \mathrm{A})\, w(\mathrm{A}\rightarrow \mathrm{D})
-$$
+::::
+:::
+
+
+## Constructing an **acyclic graph**
+
+![](./images/elimination5.svg){.nostretch width="80%" fig-align="center"}
+
+::: {layout="[-0.1,0.4,-0.05,0.4]"}
+:::: {.column}
 
 ::::
+:::: {.column}
 
+
+::::
 :::
+
+
+
 
 ## Constructing an **acyclic graph** retaining the expected accumulated rewards
 
@@ -359,8 +418,8 @@ $$
 :::: {.column}
 
 $\begin{align*}
-T_A &= 5 + 0.6 \cdot T_B \\
-T_B &= 2 + 0.5 \cdot T_C \\
+T_A &= 5 + 0.6 \cdot T_B + 0.4 \cdot T_D \\
+T_B &= 2 + 0.5 \cdot T_C + 0.5 \cdot T_D \\
 T_C &= 5 + T_A \\
 T_D &= 0
 \end{align*}$
@@ -402,9 +461,6 @@ $$
 w(\mathrm{C}\rightarrow \mathrm{D}) = w(\mathrm{C}\rightarrow \mathrm{A})\, w(\mathrm{A}\rightarrow \mathrm{D})
 $$
 $$
-w(\mathrm{C}\rightarrow \mathrm{D}) = w(\mathrm{C}\rightarrow \mathrm{A})\, w(\mathrm{A}\rightarrow \mathrm{D})
-$$
-$$
 x_\mathrm{C} +\!\,= x_\mathrm{A}\, w(\mathrm{C}\rightarrow \mathrm{A})
 $$
 
@@ -418,6 +474,7 @@ $$
 ::::
 
 :::
+
 
 ## Constructing an **acyclic graph** retaining the expected accumulated rewards
 
