@@ -367,6 +367,10 @@ from .auto_parallel import (
 from .cache_manager import CacheManager, print_jax_cache_info, configure_layered_cache
 from .model_export import clear_caches, clear_jax_cache, clear_model_cache, cache_info, print_model_cache_info, get_all_cache_stats, print_all_cache_info
 from .trace_cache import get_trace_cache_stats, print_trace_cache_info
+
+# On-disk cache management (~/.phasic_cache/) — symbolic compute
+# graph cache (Stage A2) and Python trace cache.
+from . import cache
 from .jax_config import CompilationConfig, get_default_config, set_default_config
 # from .cloud_cache import (
 #     S3Backend,
