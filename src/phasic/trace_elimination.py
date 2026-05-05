@@ -59,6 +59,7 @@ class OpType(Enum):
     DIV = "div"            # a / b
     INV = "inv"            # 1 / a
     SUM = "sum"            # sum([a, b, c, ...])
+    SUB = "sub"            # a - b   (added Stage 1 for self-loop correction)
 
 
 # ============================================================================
@@ -296,6 +297,20 @@ class TraceBuilder:
         self.operations.append(Operation(
             op_type=OpType.INV,
             operands=[operand]
+        ))
+        return idx
+
+    def add_sub(self, left: int, right: int) -> int:
+        """Add subtraction operation: left - right.
+
+        Added in Stage 1 of the trace pipeline plan to express the
+        geometric self-loop correction 1/(1 - q): we compute
+        ``add_inv(add_sub(add_const(1.0), q))``.
+        """
+        idx = len(self.operations)
+        self.operations.append(Operation(
+            op_type=OpType.SUB,
+            operands=[left, right]
         ))
         return idx
 
@@ -606,8 +621,27 @@ def record_elimination_trace(graph, theta_dim: int | None = None,
             # rate = 1 / sum(edge_weights)
             weight_indices = []
 
-            # Add regular edges
+            # PHASE 1 dedup: v.edges() returns ALL edges (regular + parameterised),
+            # while v.parameterized_edges() returns the parameterised subset.
+            # Mirror the PHASE 2 fix below: add a CONST term only for edges
+            # that have no matching parameterised entry, otherwise the
+            # parameterised loop adds the DOT term once and we'd otherwise
+            # double-count. Without this dedup the wrong rate cancels with
+            # the wrong probabilities in instantiate_from_trace for purely
+            # acyclic graphs, but breaks the self-loop correction (which
+            # consumes the prob/rate values directly without the cancelling
+            # division).
+            param_targets = set()
+            for param_edge in param_edges:
+                param_to_state = tuple(param_edge.to().state())
+                param_targets.add(state_to_idx[param_to_state])
+
+            # Add regular edges (skip those that are also parameterised)
             for edge in edges:
+                to_state = tuple(edge.to().state())
+                to_idx = state_to_idx[to_state]
+                if to_idx in param_targets:
+                    continue
                 weight = edge.weight()
                 weight_idx = builder.add_const(weight)
                 weight_indices.append(weight_idx)
@@ -782,16 +816,20 @@ def record_elimination_trace(graph, theta_dim: int | None = None,
             for child_edge_idx, child_idx in enumerate(vertex_targets[i]):
                 i_to_child_prob = edge_probs[i][child_edge_idx]
 
-                # CASE A: Self-loop (child == parent) — eliminating vertex i
-                # creates a self-loop at the parent (parent → i → parent), which
-                # requires a 1/(1 − q) geometric-series correction to both the
-                # bypass probabilities and the parent's sojourn time. That
-                # correction is not implemented (Phase 2 TODO). Silently
-                # skipping it produces wrong-but-finite expectations/variances
-                # (see test_self_loop_correction.py for examples), which is far
-                # more dangerous than failing loudly. Refuse to record a trace
-                # that would need it; callers should use cache_trace=False
-                # (direct C++ path) for graphs with cycles.
+                # CASE A: Self-loop (child == parent). The geometric-series
+                # 1/(1-q) correction was investigated as a potential Stage 1
+                # fix but is insufficient on its own: the current algorithm
+                # only modifies the *parent's* per-vertex state and never
+                # clears the eliminated vertex's outgoing edges, so
+                # instantiate_from_trace then double-counts vertex i in the
+                # rebuilt graph. A full fix requires either (a) reworking
+                # the elimination loop to be a true Gaussian elimination
+                # that drops vertex i from the trace, or (b) replacing the
+                # Python trace path entirely with a wrapper around the C
+                # `reward_compute_graph` machinery (which already handles
+                # cycles correctly via add_command(parent, parent, 1/(1-q))
+                # plus the weight-1 self-multiply trick at phasic.c:4274).
+                # Until one of those lands, refuse cyclic graphs loudly.
                 if child_idx == parent_idx:
                     raise RuntimeError(
                         f"Trace-based elimination cannot handle the cycle "
@@ -1026,6 +1064,9 @@ def evaluate_trace(trace: EliminationTrace, params: np.ndarray | None = None,
         elif op.op_type == OpType.SUM:
             values[i] = sum(values[idx] for idx in op.operands)
 
+        elif op.op_type == OpType.SUB:
+            values[i] = values[op.operands[0]] - values[op.operands[1]]
+
     # Extract results
     vertex_rates = values[trace.vertex_rates]
 
@@ -1201,7 +1242,9 @@ def trace_to_c_arrays(trace: EliminationTrace) -> dict[str, Any]:
     operations_coeff_counts = []
     operations_coeffs_flat = []
 
-    # Map OpType enum to integer values for C code
+    # Map OpType enum to integer values for C code. Keep in sync with the
+    # switch in _generate_cpp_from_trace's evaluate_embedded_trace and with
+    # any future C-level trace evaluator.
     op_type_to_int = {
         OpType.CONST: 0,
         OpType.PARAM: 1,
@@ -1211,6 +1254,7 @@ def trace_to_c_arrays(trace: EliminationTrace) -> dict[str, Any]:
         OpType.DIV: 5,
         OpType.INV: 6,
         OpType.SUM: 7,
+        OpType.SUB: 8,
     }
 
     for op in trace.operations:
@@ -1500,6 +1544,9 @@ def evaluate_trace_jax(trace: EliminationTrace, params, rewards=None, use_log: b
         elif op.op_type == OpType.SUM:
             total = sum(values[idx] for idx in op.operands)
             values = values.at[i].set(total)
+
+        elif op.op_type == OpType.SUB:
+            values = values.at[i].set(values[op.operands[0]] - values[op.operands[1]])
 
     # Extract results
     vertex_rates = values[trace.vertex_rates]

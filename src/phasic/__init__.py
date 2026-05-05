@@ -976,6 +976,11 @@ static struct ptd_trace_result* evaluate_embedded_trace(const double* theta, siz
             values[i] = sum;
             operands_offset += operations_operand_counts[i];
         }}
+        else if (op_type == 8) {{  // SUB
+            values[i] = values[operations_operands_flat[operands_offset]] -
+                       values[operations_operands_flat[operands_offset + 1]];
+            operands_offset += operations_operand_counts[i];
+        }}
     }}
 
     // Build result structure
