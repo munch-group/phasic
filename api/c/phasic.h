@@ -249,6 +249,32 @@ void ptd_graph_update_weights(
 );
 
 /**
+ * Set the initial probability vector after the graph has been constructed.
+ *
+ * Walks only the starting-vertex edges and writes ipv[k] to the k-th edge's
+ * weight (in construction order). Does NOT touch any non-starting-vertex
+ * edges. Bumps weight_version so the C++ wrapper's forward-state caches
+ * (ph_context_markov etc.) detect the change. The symbolic
+ * parameterized_reward_compute_graph survives this call (Stage A0
+ * invariant) — the symbolic structure depends only on topology +
+ * coefficients, neither of which IPV edge-weight updates mutate.
+ *
+ * @param graph        Graph whose IPV is being set.
+ * @param ipv          Array of new IPV edge weights.
+ * @param ipv_length   Must equal the number of starting-vertex edges.
+ *
+ * Sets ptd_err and returns without mutating any edges if:
+ *   - graph or ipv is NULL, ipv_length == 0,
+ *   - ipv_length does not match starting_vertex->edges_length,
+ *   - any ipv[k] is NaN or Inf.
+ */
+void ptd_graph_update_ipv(
+        struct ptd_graph *graph,
+        double *ipv,
+        size_t ipv_length
+);
+
+/**
  * Set the parameter length for a graph before adding edges
  *
  * This function allows explicitly setting the number of model parameters (θ)

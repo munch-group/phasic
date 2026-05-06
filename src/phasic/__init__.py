@@ -2172,6 +2172,50 @@ class Graph(_Graph):
             # C++ overload: update_weights(params, log=False)
             return super().update_weights(theta, log=log)
 
+    def update_ipv(self, ipv: ArrayLike) -> None:
+        """Set the initial probability vector after construction.
+
+        Parameters
+        ----------
+        ipv : array-like, shape (n_ipv_edges,)
+            New weights for starting-vertex edges, in construction order.
+            Length must equal the number of starting-vertex edges in
+            the graph.
+
+        Notes
+        -----
+        IPV is a property of the model, not an inference parameter. Use
+        this method to:
+
+          - set the IPV after constructing the graph if your callback
+            does not bake one in;
+          - re-run the same graph against a different initial
+            distribution without rebuilding it;
+          - propagate epoch state in a daisy chain (handled internally
+            by the daisy-chain machinery between epochs).
+
+        The symbolic compute graph cache (Stage A0) survives this call,
+        so subsequent forward computations (``expectation``, ``pdf``,
+        ``compute_pmf``, ...) reuse the cached elimination.
+
+        For users on the Python ``EliminationTrace`` path
+        (``cache_trace=True``), IPV remains baked in at trace-record
+        time — that path is not affected by ``update_ipv``.
+        """
+        ipv_array = np.asarray(ipv, dtype=np.float64)
+        if ipv_array.ndim != 1:
+            raise ValueError(
+                f"ipv must be 1-dimensional, got shape {ipv_array.shape}"
+            )
+        if ipv_array.size == 0:
+            raise ValueError("ipv must be non-empty")
+        if np.any(np.isnan(ipv_array)):
+            raise ValueError("ipv contains NaN values")
+        if np.any(np.isinf(ipv_array)):
+            raise ValueError("ipv contains infinite values")
+        self._last_ipv = ipv_array
+        return super().update_ipv(ipv_array)
+
     def _moments_from_trace(self, power: int = 1, rewards: ArrayLike | None = None, discrete: bool = False) -> float:
         """Compute moments using cached elimination trace.
 

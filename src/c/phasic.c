@@ -4358,6 +4358,85 @@ void ptd_graph_update_weights(
 }
 
 
+void ptd_graph_update_ipv(
+        struct ptd_graph *graph,
+        double *ipv,
+        size_t ipv_length
+) {
+    if (graph == NULL) {
+        snprintf((char*)ptd_err, sizeof(ptd_err), "ptd_graph_update_ipv: graph is NULL");
+        return;
+    }
+    if (ipv == NULL || ipv_length == 0) {
+        snprintf((char*)ptd_err, sizeof(ptd_err),
+            "ptd_graph_update_ipv: ipv array is NULL or empty");
+        return;
+    }
+
+    struct ptd_vertex *start = graph->starting_vertex;
+    if (start == NULL) {
+        snprintf((char*)ptd_err, sizeof(ptd_err),
+            "ptd_graph_update_ipv: graph has no starting vertex");
+        return;
+    }
+
+    if (ipv_length != start->edges_length) {
+        snprintf((char*)ptd_err, sizeof(ptd_err),
+            "ptd_graph_update_ipv: ipv length %zu does not match number of "
+            "starting-vertex edges %zu",
+            (unsigned long)ipv_length, (unsigned long)start->edges_length);
+        return;
+    }
+
+    /* Validate values up front so we never leave the graph in a half-updated
+     * state if a bad entry appears mid-loop. */
+    for (size_t k = 0; k < ipv_length; k++) {
+        if (isnan(ipv[k])) {
+            snprintf((char*)ptd_err, sizeof(ptd_err),
+                "ptd_graph_update_ipv: ipv[%zu] is NaN", (unsigned long)k);
+            return;
+        }
+        if (isinf(ipv[k])) {
+            snprintf((char*)ptd_err, sizeof(ptd_err),
+                "ptd_graph_update_ipv: ipv[%zu] is Inf", (unsigned long)k);
+            return;
+        }
+    }
+
+    /* Direct scalar write — no coefficient/log/callback kernel. IPV is a
+     * model property, not derived from a parameter vector. */
+    for (size_t k = 0; k < ipv_length; k++) {
+        start->edges[k]->weight = ipv[k];
+    }
+
+    /* Bump weight version so any cached forward-state context
+     * (ph_context_markov etc.) notices the change. */
+    graph->weight_version++;
+
+    /* Invalidate the *concrete* reward_compute_graph (it embeds concrete
+     * edge-weight values from the previous IPV). The *symbolic*
+     * parameterized_reward_compute_graph is preserved by the same Stage A0
+     * argument as ptd_graph_update_weights: it depends only on topology +
+     * coefficients, neither of which IPV edge-weight writes mutate. */
+    if (graph->reward_compute_graph != NULL) {
+        free(graph->reward_compute_graph->commands);
+        free(graph->reward_compute_graph);
+        graph->reward_compute_graph = NULL;
+    }
+
+#ifdef HAVE_MPFR
+    if (graph->reward_compute_graph_mpfr != NULL) {
+        for (size_t i = 0; i < graph->reward_compute_graph_mpfr->length; i++) {
+            free(graph->reward_compute_graph_mpfr->commands[i].multiplier_str);
+        }
+        free(graph->reward_compute_graph_mpfr->commands);
+        free(graph->reward_compute_graph_mpfr);
+        graph->reward_compute_graph_mpfr = NULL;
+    }
+#endif
+}
+
+
 struct ptd_directed_vertex **ptd_directed_graph_topological_sort(struct ptd_directed_graph *graph) {
     struct ptd_directed_vertex **res = (struct ptd_directed_vertex **) calloc(
             graph->vertices_length, sizeof(*res)

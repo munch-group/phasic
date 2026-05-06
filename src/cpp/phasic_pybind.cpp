@@ -1382,6 +1382,36 @@ str
     update_weights : Built-in linear (log=False) and multiplicative (log=True) modes
       )delim")
 
+    .def("update_ipv",
+        [](phasic::Graph& self, std::vector<double> ipv) {
+            self.update_ipv(ipv);
+        },
+        py::arg("ipv"),
+        R"delim(
+    Set the initial probability vector (IPV) after graph construction.
+
+    Updates only the starting-vertex edge weights. The k-th entry of `ipv` is
+    written to the k-th starting-vertex edge in construction order.
+
+    IPV is a property of the model, not an inference parameter — `update_ipv`
+    is intended for one-shot user setup or for daisy-chain epoch propagation,
+    not for sweeping by SVGD. The symbolic compute graph cache survives this
+    call (Stage A0 invariant), so subsequent forward computations
+    (`expectation`, `pdf`, `compute_pmf`, ...) reuse the cached elimination.
+
+    Parameters
+    ----------
+    ipv : array-like
+        New IPV edge weights. Length must equal the number of starting-vertex
+        edges.
+
+    Raises
+    ------
+    RuntimeError
+        If `ipv` length does not match the number of starting-vertex edges,
+        or if any entry is NaN or Inf.
+      )delim")
+
     .def("update_parameterized_weights",
         [](phasic::Graph& self, std::vector<double> params) {
             // Issue deprecation warning

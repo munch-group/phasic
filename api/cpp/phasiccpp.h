@@ -273,6 +273,13 @@ namespace phasic {
             std::function<double(const std::vector<double>&, const std::vector<double>&)> callback
         );
 
+        // Set the initial probability vector (IPV) after graph construction.
+        // ipv must have length equal to starting_vertex().edges().size().
+        // Symmetric to update_weights_parameterized but applies only to
+        // starting-vertex edges (skipped by update_weights). Symbolic compute
+        // graph cache survives this call (Stage A0 invariant).
+        void update_ipv(std::vector<double> ipv);
+
         std::vector<double> expected_waiting_time(std::vector<double> rewards = std::vector<double>()) {
             double *ptr = ptd_expected_waiting_time(
                     this->c_graph(),
