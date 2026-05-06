@@ -5078,6 +5078,20 @@ Use Graph.distribution_context(granularity) instead.
   Get PyCapsule for JAX FFI conditioned path sampling handler.
   Samples a path conditioned on reaching a target vertex, with fixed-size output.
   )delim");
+
+  param_module.def("get_daisy_chain_joint_probs_ffi_capsule", []() -> py::capsule {
+      auto* handler = phasic::parameterized::CreateDaisyChainJointProbsHandler();
+      return py::capsule(reinterpret_cast<void*>(handler), "xla._CUSTOM_CALL_TARGET");
+  }, R"delim(
+  Get PyCapsule for JAX FFI daisy-chain joint-probs handler.
+
+  This handler runs the entire daisy chain (n_epochs - 1 transitions
+  followed by a final-epoch joint-probs readout) in C, mirroring the
+  vanilla joint-prob path's single-FFI-call structure. Daisy-chain
+  metadata (epoch_dts, t_eval, n_epochs, ipv_target_indices, t_aux_keys,
+  t_aux_values, t_vertex_indices) is passed via a top-level
+  ``"_daisy_chain"`` object in the structure JSON.
+  )delim");
 #endif
 
   // ============================================================================
