@@ -7295,6 +7295,16 @@ extern "C" {{
         """
         Compute elimination trace with optional hierarchical caching.
 
+        .. deprecated::
+            The Python ``EliminationTrace`` machinery is no longer
+            wired to the public ``moments()`` / ``expectation()`` /
+            ``variance()`` entry points (those route directly to the
+            C++ implementation, which uses the Stage A0-cached
+            ``parameterized_reward_compute_graph``). ``compute_trace``
+            is preserved for callers that still drive the trace
+            pipeline directly, but emits a ``DeprecationWarning`` and
+            will be removed in a future release.
+
         When Graph was created with cache_trace=True, the trace is cached on the
         instance for use by moments(), expectation(), etc. In this mode, the operation
         is NON-DESTRUCTIVE (graph is preserved via cloning).
@@ -7349,6 +7359,16 @@ extern "C" {{
         >>> g = Graph(model, nr_samples=5)
         >>> trace = g.compute_trace()  # Graph emptied, trace returned
         """
+        import warnings
+        warnings.warn(
+            "Graph.compute_trace() is deprecated. The Python "
+            "EliminationTrace path it produces is no longer wired to "
+            "moments() / expectation() / variance(); those route "
+            "directly to the C++ implementation. compute_trace() will "
+            "be removed in a future release.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         # If using instance-level cache mode, check cache first
         if self._cache_trace:
             # Return cached trace if valid and not forcing recompute

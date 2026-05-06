@@ -157,6 +157,16 @@ def param_compute_cache_info() -> dict[str, Any]:
 def clear_trace_cache() -> int:
     """Delete every cached ``EliminationTrace`` (JSON and pickle).
 
+    .. deprecated::
+        The Python ``EliminationTrace`` path is no longer wired to the
+        public ``moments()``/``expectation()``/``variance()`` entry
+        points (those route directly to the C++ implementation), and
+        ``Graph(cache_trace=True)`` is deprecated. Nothing in the
+        public API populates ``~/.phasic_cache/traces/`` anymore.
+        This helper is kept for cleaning up leftover files from
+        previous phasic versions and will be removed in a future
+        release.
+
     Counterpart to :func:`clear_param_compute_cache` for the
     ``~/.phasic_cache/traces/`` subdirectory used by the Python-side
     trace pipeline. Returns the number of files deleted.
@@ -167,15 +177,38 @@ def clear_trace_cache() -> int:
     clear_param_compute_cache : clear the parameterised compute
         graph cache.
     """
+    import warnings
+    warnings.warn(
+        "clear_trace_cache() is deprecated. The Python EliminationTrace "
+        "cache it manages is no longer populated by any public API; "
+        "this helper now only cleans up leftover files from previous "
+        "phasic versions. It will be removed in a future release.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return _clear_trace_cache()
 
 
 def trace_cache_info() -> dict[str, Any]:
     """Return a summary of the trace cache.
 
+    .. deprecated::
+        See :func:`clear_trace_cache` — the Python EliminationTrace
+        cache is no longer populated by any public API. This helper
+        is kept for inspecting leftover files from previous phasic
+        versions and will be removed in a future release.
+
     Thin re-export of :func:`phasic.trace_serialization.get_cache_info`
     so callers can find both cache helpers in one module.
     """
+    import warnings
+    warnings.warn(
+        "trace_cache_info() is deprecated. The Python EliminationTrace "
+        "cache it inspects is no longer populated by any public API. "
+        "It will be removed in a future release.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return _get_trace_cache_info()
 
 
@@ -187,6 +220,13 @@ def clear_all_caches() -> dict[str, int]:
     dict
         ``{'param_compute': N, 'traces': M}`` where ``N`` and ``M``
         are the number of files deleted from each cache.
+
+    Notes
+    -----
+    The ``traces`` portion is deprecated — nothing in the public API
+    populates ``~/.phasic_cache/traces/`` anymore. This call still
+    cleans up leftover files for backwards compatibility but emits a
+    ``DeprecationWarning`` from the inner :func:`clear_trace_cache`.
     """
     return {
         "param_compute": clear_param_compute_cache(),
