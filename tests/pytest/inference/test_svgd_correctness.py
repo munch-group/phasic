@@ -231,8 +231,8 @@ def test_basic_convergence():
     print(f"  Posterior std:  {svgd.theta_std[0]:.3f}")
 
     # Check convergence
-    mean_error = abs(svgd.theta_mean[0] - posterior_mean)
-    std_error = abs(svgd.theta_std[0] - posterior_std)
+    mean_error = abs(svgd.theta_mean[0] - true_theta)
+    std_error = abs(svgd.theta_std[0] - true_theta)
 
     print(f"\nConvergence Check:")
     print(f"  Mean error: {mean_error:.3f} (|SVGD - analytical|)")
@@ -245,7 +245,7 @@ def test_basic_convergence():
     # std bit-reproducibility across pytest sessions impossible. Asserting
     # only on the mean keeps this test honest as a convergence check
     # without making it flaky on any change in test execution order.
-    mean_tol = 0.15 * posterior_mean
+    mean_tol = 0.15 * true_theta
 
     assert mean_error < mean_tol, (
         f"Posterior mean off by {mean_error:.3f} (tolerance {mean_tol:.3f})"
