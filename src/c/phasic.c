@@ -1259,6 +1259,44 @@ struct ptd_clone_res ptd_clone_graph(struct ptd_graph *graph, struct ptd_avl_tre
 
             struct ptd_vertex *new_target = vertex_map[target_idx];
 
+            /* Constant edges (coefficients_length == 0, coefficients == NULL)
+             * are hand-rolled by helpers like phasic::Vertex::add_aux_vertex
+             * and bypass ptd_graph_add_edge's validation. The clone path
+             * must mirror that: ptd_graph_add_edge rejects NULL/zero-length
+             * coefficients up front, so we hand-roll the constant edge
+             * directly. Symmetric to the starting-vertex IPV-edge clone
+             * loop above. */
+            if (old_edge->coefficients == NULL || old_edge->coefficients_length == 0) {
+                struct ptd_edge *new_edge = (struct ptd_edge *)malloc(sizeof(*new_edge));
+                if (new_edge == NULL) {
+                    free(vertex_map);
+                    ptd_graph_destroy(new_graph);
+                    snprintf((char*)ptd_err, sizeof(ptd_err), "Failed to allocate constant edge at vertex %zu", i);
+                    return res;
+                }
+                new_edge->to = new_target;
+                new_edge->weight = old_edge->weight;
+                new_edge->coefficients_length = 0;
+                new_edge->coefficients = NULL;
+                new_edge->should_free_coefficients = false;
+
+                struct ptd_edge **new_edges = (struct ptd_edge **)realloc(
+                    new_v->edges,
+                    (new_v->edges_length + 1) * sizeof(struct ptd_edge *)
+                );
+                if (new_edges == NULL) {
+                    free(new_edge);
+                    free(vertex_map);
+                    ptd_graph_destroy(new_graph);
+                    snprintf((char*)ptd_err, sizeof(ptd_err), "Failed to resize edges array at vertex %zu", i);
+                    return res;
+                }
+                new_v->edges = new_edges;
+                new_v->edges[new_v->edges_length] = new_edge;
+                new_v->edges_length++;
+                continue;
+            }
+
             // Add edge with cloned coefficients array
             struct ptd_edge *new_edge = ptd_graph_add_edge(
                 new_v, new_target,
