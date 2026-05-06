@@ -1,4 +1,29 @@
-# Plan: JAX-traceable daisy-chained likelihood for time-inhomogeneous joint-prob models
+# Plan: Daisy-chained likelihood for time-inhomogeneous joint-prob models — C path
+
+## Implementation status
+
+Phases 1, 2, and 3 (joint-snapshot variant) **landed** in
+src/phasic/__init__.py with regression tests in
+tests/pytest/test_daisy_chain_c_path.py (20 cases passing, 1 skipped
+for jax.grad — see deferred work below).
+
+Deferred to a follow-up:
+
+- **`daisy_chain_log_likelihood_per_event`** — the plan's per-event
+  variant. The notebook `time_inhom_joint_prob.ipynb` does not have a
+  reference per-event computation, so the semantic ("which graph
+  evaluates the PMF — JSP or joint-prob?") is ambiguous. Pick this up
+  when there is a concrete reference to bit-compare against. The
+  joint-snapshot variant covers the user's actual workflow.
+- **`jax.grad` through the daisy chain** — the underlying
+  `pure_callback`s have no JVP rule, so `jax.grad` over `epoch_thetas`
+  raises `Pure callbacks do not support JVP`. The fix is a custom
+  `jax.custom_vjp` that computes gradients via finite differences on
+  the boundary, mirroring the pattern at `__init__.py:4322-4332`. The
+  test `test_grad` skips with this rationale; once the VJP lands, the
+  skip flips to a finite-difference check.
+- **Phase 4 SVGD smoke test** — depends on `jax.grad`. Deferred with
+  the gradient work.
 
 ## Status & currency
 
@@ -6,70 +31,42 @@
 post-Stages 1/2/3/A0/A1/A2 + `phasic.cache` module + tutorial
 notebooks).
 
-This plan has not been started. Greenfield additions; verified by
-grepping master for `joint_stop_prob_graph`,
-`daisy_chain_log_likelihood`, `epoch_transition_fn` (zero hits in
-`src/`, `tests/`).
+**Architecture pivot (2026-05-05)**: previous revisions of this plan
+extended the Python `EliminationTrace` path via codegen
+(`_generate_cpp_stop_prob_from_trace`,
+`_wrap_trace_stop_prob_for_jax`). That path inherits the Python
+recorder's cyclic-graph rejection, and joint-prob graphs are always
+cyclic. This rewrite drops the codegen route entirely and builds the
+daisy chain on the C path — `Graph.update_ipv` (from the
+prerequisite plan) plus `Graph.stop_probability` (already C-side,
+already cycle-safe via uniformization at `phasic.c:9536-9650`).
 
-### Hard prerequisites — and what they block
+Greenfield additions verified by grep: zero hits for
+`joint_stop_prob_graph`, `daisy_chain_log_likelihood`,
+`epoch_transition_fn` in `src/`, `tests/`.
 
-This plan has **two stacked hard prerequisites**:
+## Hard prerequisites — and what they block
 
-1. **Phase 1 of `update_ipv-plan.md`** must land — it provides
-   `Graph.update_ipv(weights)` and the
-   `record_elimination_trace(parameterized_ipv=True)` flag this plan
-   builds on.
-2. The v1 trace-plan's **cyclic-graph elimination** must land. The
-   prerequisite plan's `record_elimination_trace` raises on cyclic
-   graphs at `src/phasic/trace_elimination.py:834` (the "self-loop
-   correction 1/(1 − q) is not implemented" RuntimeError). Almost
-   every realistic time-inhomogeneous joint-prob graph (the user's
-   actual use case here) has cycles, so until the cycle work lands
-   the daisy-chain machinery built by this plan can only be exercised
-   on toy acyclic models.
+This plan has **one** hard prerequisite:
 
-**Practical consequence**: do not try to start this plan until both
-prerequisites are in place. Estimating ~1 week for the cyclic
-elimination + ~1 week for `update_ipv-plan.md` Phase 1, this plan
-is at least 2 weeks of foundational work away from being ready to
-build on.
+1. **`update_ipv-plan.md` (all five batches)** must land — it
+   provides `Graph.update_ipv(ipv)` and the C-side
+   `ptd_graph_update_ipv` that this plan calls between epochs.
 
-### Forward references to other plans
+The cyclic-graph blocker that gated the previous version of this
+plan is **gone**: the C `parameterized_reward_compute_graph`
+machinery handles cycles correctly via the self-multiply trick at
+`phasic.c:5305+`, and the `ptd_probability_distribution_context`
+(uniformization) at `phasic.c:9536+` is fundamentally cycle-safe.
+`Graph.joint_prob_graph(...).expectation()` already works on cyclic
+joint-prob graphs today through this same C path.
 
-- `trace-plan-v2.md` and commits `23119fe` (Stages 1/2/3/A0/A1),
-  `153f603` (Stage A2), and `5e0c15a` (`phasic.cache` module) are
-  all complete on the C side. Stage A1 affects the "Stop-prob
-  caching across `t` values" risk note (item 4) — see that section.
-- `disk-trace-cache.md` describes Stage A2 (now complete). The C-side
-  symbolic compute graph cache lives at
-  `~/.phasic_cache/parameterized_reward_compute/<hash>.bin`,
-  managed via the `phasic.cache` module
-  (`src/phasic/cache.py`:
-  `clear_param_compute_cache`,
-  `param_compute_cache_info`,
-  `clear_all_caches`).
-- This daisy-chain plan introduces a parallel compiled-`.so` cache
-  via `_compile_trace_library` (`__init__.py:1150`) keyed on trace
-  hash. That cache is independent of the Stage A2 disk cache; both
-  live under `~/.phasic_cache/`. If users want a single
-  surface for inspection/clearing, the natural follow-up is to add
-  `phasic.cache.compiled_so_cache_info` /
-  `phasic.cache.clear_compiled_so_cache` helpers — out of scope for
-  this plan but worth flagging.
+## Goal
 
-This plan is a follow-on to `update_ipv-plan.md`. It assumes Phase 1
-of that plan has landed (i.e. `Graph.update_ipv(weights)` exists and
-`record_elimination_trace(parameterized_ipv=True)` records IPV as
-runtime PARAM ops in the trace's extended parameter vector
-`[theta, ipv, rewards]`).
-
-This plan is self-contained and can be picked up later
-independently. It does not modify or supersede anything in
-`update_ipv-plan.md`.
-
-## Context
-
-The user computes the likelihood of a piecewise-constant time-inhomogeneous coalescent model by **daisy-chaining** continuous joint-probability kernels — see `docs/pages/tutorial/time_inhom_joint_prob.ipynb`. The eager Python loop is:
+Provide a JAX-compatible `Graph.daisy_chain_log_likelihood_*` API
+that computes the data likelihood under a piecewise-constant
+time-inhomogeneous joint-probability model. The user's eager loop
+today (`docs/pages/tutorial/time_inhom_joint_prob.ipynb`):
 
 ```python
 for i in range(n_epochs - 1):
@@ -78,76 +75,167 @@ for i in range(n_epochs - 1):
     jsp_graph.update_weights(epoch_theta[i])
     epoch_ipv[i+1] = joint_stop_probabilities(jsp_graph, epoch_starts[i+1], t_map)
 
-# final epoch: read joint absorption probabilities at observed times
 log_lik = ... function of joint_probs_with_time(jsp_graph_final, ...) ...
 ```
 
-`epoch_ipv[0]` is the kernel's natural IPV. Per epoch: clone kernel → set IPV → transform graph (`joint_stop_prob_graph`) → set rates → evaluate `stop_probability` at the epoch's end time → collapse t-aux pairs → that becomes the next epoch's IPV. The final epoch is special: it reads off joint probabilities used as data-likelihood factors.
+becomes:
 
-For SVGD inference of `epoch_thetas`, this loop must be JAX-traceable (`jit`/`grad`/`vmap` compatible). Phase 1 of `update_ipv-plan.md` is necessary but insufficient — it makes IPV a runtime parameter on the trace, but the per-epoch `stop_probability` call and the `t_aux_map` collapse must also become JAX-compatible. This plan provides those pieces and assembles them into `log_lik(epoch_thetas) -> scalar` for SVGD.
+```python
+jsp_graph = joint_kernel.joint_stop_prob_graph()  # built once
+INITIAL_IPV = ...  # set once before SVGD; not optimised
 
-### User-confirmed constraints
+def daisy_chain(epoch_thetas):
+    ipv = INITIAL_IPV
+    for i in range(n_epochs - 1):
+        jsp_graph.update_ipv(ipv)
+        jsp_graph.update_weights(epoch_thetas[i])
+        ipv = jsp_graph.joint_stop_probabilities(epoch_dts[i])
+    jsp_graph.update_ipv(ipv)
+    jsp_graph.update_weights(epoch_thetas[-1])
+    return log_lik_from_final_epoch(jsp_graph, observed_times)
+```
 
-- Epoch boundaries `epoch_starts` are **fixed** (not inferred). Therefore each epoch's `dt` is a static Python float.
-- Initial epoch IPV is **fixed** at the model's defined IPV. Not an SVGD parameter.
-- Number of epochs is typically **<30**. Unrolling the daisy chain is fine; `lax.scan` is overkill.
-- `t_aux_map` may be inferred from graph structure, which is preferred — see Phase 2.1.
+`epoch_thetas` is the SVGD parameter (one rate vector per epoch).
+`INITIAL_IPV` is fixed by the user before SVGD starts. The
+intermediate `ipv` values that flow between epochs are computed by
+the daisy-chain loop itself (each is the survival distribution from
+the previous epoch's `stop_probability`); they are
+library-internal, not optimised.
+
+JAX traceability comes from threading `update_ipv` and
+`update_weights` between epochs — both will be wrapped as
+`jax.pure_callback` boundaries with `vmap_method='sequential'` (same
+pattern as the existing FFI wrappers in
+`src/phasic/ffi_wrappers.py`).
+
+### User-confirmed constraints (carried over from previous plan)
+
+- Epoch boundaries `epoch_starts` are **fixed** (not inferred). Each
+  epoch's `dt` is a static Python float.
+- Initial epoch IPV is **fixed** at the model's defined IPV. Not an
+  SVGD parameter.
+- Number of epochs typically **<30**. Unrolling the daisy chain is
+  fine; `lax.scan` is overkill.
+- `t_aux_map` may be inferred from graph structure (preferred) — see
+  `joint_stop_prob_graph` design below.
 
 ### Why not `add_epoch`?
 
-`Graph.add_epoch(time, ...)` (starts at `src/phasic/__init__.py:3086`) is the existing "build one big multi-epoch graph" pattern. It wires sister-vertex transitions weighted by `stop_probability/accumulated_occupancy`, which is correct for standard phase-type epoch composition. **It does not preserve the joint-distribution-over-rewards** needed for joint-prob inference (the reward-extended state and the t-vertex absorption-mass interpretation). The user genuinely needs the daisy chain pattern for the joint-prob case. `add_epoch` continues to be the right answer for non-joint cases.
+`Graph.add_epoch(time, ...)` (`__init__.py:3086+`) is the existing
+"build one big multi-epoch graph" pattern. It wires sister-vertex
+transitions weighted by `stop_probability/accumulated_occupancy`,
+correct for standard phase-type epoch composition. **It does not
+preserve the joint-distribution-over-rewards** needed for joint-prob
+inference (the reward-extended state and the t-vertex
+absorption-mass interpretation). The user genuinely needs the daisy
+chain pattern for the joint-prob case. `add_epoch` continues to be
+the right answer for non-joint cases.
 
 ## What's already in the codebase (reusable)
 
-- `phasic::Graph::stop_probability(time, granularity)` — C++ method, pybind-exposed at `src/cpp/phasic_pybind.cpp:2704`, Python wrapper at `src/phasic/__init__.py:2768-2794`. Same algorithmic complexity as `pdf` (uniformization), returns probability mass vector at each vertex.
-- `Graph.joint_prob_graph(...)` at `src/phasic/__init__.py:7281-7558` — produces continuous joint-probability kernels with reward-extended state, "trash" pair (state-zero self-loop at lines 7484–7487), and t-vertices. Sets `_joint_prob_base_graph_indexer` and `_rewarded_props` on the result. **Hard requirement for Phase 2.1**: `joint_prob_graph` does NOT propagate `_cache_trace` to the returned graph (verified at `__init__.py:7551–7558`); the new `joint_stop_prob_graph` must set `new._cache_trace = self._cache_trace` explicitly.
-- `_generate_cpp_from_trace` at `src/phasic/__init__.py:814` — emits standalone C++ for log-likelihood with embedded trace data. The trace evaluation block (`evaluate_embedded_trace`) and trace-to-graph instantiation are reusable for the stop-prob variant. **Signature change since this plan was written**: now takes `observed_data` as a required parameter; the data is *embedded* into the generated C++. The new `_generate_cpp_stop_prob_from_trace` does NOT take `observed_data` (stop-probability has no observations to score against — the runtime input is just `t`).
-- `_wrap_trace_log_likelihood_for_jax` (`__init__.py:1249`) — wraps a compiled `.so` for JAX via `pure_callback` with `vmap_method='sequential'`. Template for the stop-prob wrapper.
-- `_compile_trace_library` (`__init__.py:1150`) — disk-cached compilation of generated C++.
-- The notebook helper `joint_stop_prob_graph` (in `docs/pages/tutorial/time_inhom_joint_prob.ipynb`) is the structural transformation that needs to be promoted into the library.
+- **`Graph.update_ipv(ipv)`** — provided by `update_ipv-plan.md`.
+  Updates starting-vertex edge weights at runtime; symbolic compute
+  graph cache survives.
+- **`Graph.update_weights(theta)`** at `__init__.py:2132-2173`.
+  Updates non-IPV parameterised edge weights at runtime; symbolic
+  compute graph cache survives (Stage A0 invariant at
+  `phasic.c:4280-4304`).
+- **`Graph.stop_probability(time, granularity=0)`** at
+  `__init__.py:2768-2794`, C++ wrapper at `phasiccpp.h:764-796`,
+  pybind binding at `phasic_pybind.cpp:2704`. Backed by the C
+  uniformization context (`ptd_probability_distribution_context_*`
+  at `phasic.c:9536-9650`). The C++ wrapper already caches the
+  context across calls and invalidates correctly when
+  `weight_version` changes (so each `update_ipv` /
+  `update_weights` call cleanly rebuilds the per-call context but
+  reuses the symbolic compute graph). Cycle-safe.
+- **`Graph.joint_prob_graph(...)`** at `__init__.py:7281-7558`.
+  Builds the reward-extended joint kernel with trash pair
+  (`__init__.py:7484-7487`) and t-vertices. Sets
+  `_joint_prob_base_graph_indexer` and `_rewarded_props` on the
+  result. **Caveat**: `joint_prob_graph` does NOT propagate
+  `_cache_trace`; the new `joint_stop_prob_graph` must set
+  `new._cache_trace = self._cache_trace` explicitly.
+- **The notebook helper `joint_stop_prob_graph`** in
+  `docs/pages/tutorial/time_inhom_joint_prob.ipynb`. Structural
+  transformation that needs to be promoted into the library
+  (Phase 1 below).
+- **`phasic.cache.param_compute_cache_info` /
+  `clear_param_compute_cache`** — for users who want to verify the
+  symbolic cache survived a full daisy-chain sweep.
 
 ## Design decision: no silent fallbacks
 
-Per the user's explicit preference, the API exposes **two distinct entry points** for the two distinct likelihood patterns rather than one method whose behavior switches on an optional argument. Each method has a fully required, fully explicit signature.
+Per the user's explicit preference, the API exposes **two distinct
+entry points** for the two distinct likelihood patterns rather than
+one method that switches behaviour on an optional argument. Each
+has a fully required, fully explicit signature.
+
+- `daisy_chain_log_likelihood_per_event` — observed times are
+  per-event (one event = one absorption); likelihood is `Σ log
+  p(t_event | epoch)` summed over events grouped by epoch.
+- `daisy_chain_log_likelihood_joint_snapshot` — observed data are
+  joint snapshots at known times; likelihood is read from joint
+  probability mass at each observation time.
 
 ---
 
-# Phase 2 — JAX-traceable per-epoch IPV transition
+# Phase 1 — `joint_stop_prob_graph` and helpers
 
-## Phase 2.1 — Promote `joint_stop_prob_graph` from notebook to library
-
-Insertion point: `src/phasic/__init__.py` immediately after `Graph.joint_prob_graph` (currently ends near line 7558 — the next `def` is `_get_joint_probs` at line 7561). Add three new methods on `Graph`:
+Insertion point: `src/phasic/__init__.py` immediately after
+`Graph.joint_prob_graph` (currently ends near line 7558; the next
+`def` is `_get_joint_probs` at line 7561).
 
 ### `Graph.joint_stop_prob_graph(self) -> Graph`
 
-Library version of the notebook function. Differences from notebook:
+Library version of the notebook helper. Differences from notebook:
 
-1. Does **not** call `clone_with_ipv` internally. Phase 1 makes IPV a runtime parameter on the trace; the JSP graph is built **once** off the base joint-prob graph and the IPV is set at evaluation time via `update_ipv`.
-2. Detects t-vertices structurally: vertex `v` is a t-vertex iff any outgoing edge leads to an absorbing vertex (`len(edge.to().edges()) == 0`).
-3. Detects the trash pair via the notebook's `is_trash` predicate (state-zero self-loop pair).
-4. For each t-vertex, replaces its outgoing edges with a "trapping aux loop": creates an aux vertex with state-zero, adds bidirectional unit-weight parameterized edges. Mass that reaches a t-vertex shuttles between it and its aux indefinitely, so `stop_probability(t)[t_vertex] + stop_probability(t)[aux]` integrates to the joint cumulative absorption mass for that t-state.
+1. Does **not** call `clone_with_ipv` internally. With
+   `update_ipv` available, the JSP graph is built **once** off the
+   base joint-prob graph and the IPV is set per epoch via
+   `update_ipv`.
+2. Detects t-vertices structurally: vertex `v` is a t-vertex iff any
+   outgoing edge leads to an absorbing vertex
+   (`len(edge.to().edges()) == 0`).
+3. Detects the trash pair via the notebook's `is_trash` predicate
+   (state-zero self-loop pair).
+4. For each t-vertex, replaces its outgoing edges with a "trapping
+   aux loop": creates an aux vertex with state-zero, adds
+   bidirectional unit-weight parameterised edges. Mass that reaches
+   a t-vertex shuttles between it and its aux indefinitely, so
+   `stop_probability(t)[t_vertex] + stop_probability(t)[aux]` equals
+   the cumulative joint absorption mass at that t-state by time `t`.
 5. Sets attributes on the returned graph:
+
    ```python
    new._joint_prob_base_graph_indexer = self._joint_prob_base_graph_indexer
    new._rewarded_props = self._rewarded_props
-   new._joint_stop_prob_graph = True              # marker
-   new._t_vertex_indices = sorted(t_vertex_indices)   # new-graph indices
-   new._t_aux_map = t_aux_vertex_indices              # new-graph indices
+   new._joint_stop_prob_graph = True
+   new._t_vertex_indices = sorted(t_vertex_indices)
+   new._t_aux_map = t_aux_vertex_indices
    new.is_discrete = self.is_discrete
-   new._cache_trace = self._cache_trace
+   new._cache_trace = self._cache_trace  # explicit propagation
    ```
-6. Validation: raises `ValueError` if `not self._joint_prob_base_graph_indexer` or `self.param_length() == 0`.
 
-The `_joint_stop_prob_graph = True` marker lets downstream methods verify the graph type without duck-typing. `_t_aux_map` and `_t_vertex_indices` are kept in **new-graph index space** (matching what the trace will see).
+6. Validation: raises `ValueError` if
+   `not self._joint_prob_base_graph_indexer` or
+   `self.param_length() == 0`.
+
+`_t_aux_map` and `_t_vertex_indices` are kept in **new-graph index
+space**.
 
 ### `Graph.joint_stop_probabilities(self, t) -> np.ndarray`
 
-Eager numpy version. Calls `self.stop_probability(t)` and applies `_collapse_t_aux` using `self._t_aux_map`:
+Eager numpy version. Calls `self.stop_probability(t)` and applies
+`_collapse_t_aux` using `self._t_aux_map`:
 
 ```python
 def joint_stop_probabilities(self, t):
     if not getattr(self, '_joint_stop_prob_graph', False):
-        raise ValueError(".joint_stop_probabilities requires graph from .joint_stop_prob_graph()")
+        raise ValueError(
+            ".joint_stop_probabilities requires graph from "
+            ".joint_stop_prob_graph()"
+        )
     raw = np.asarray(self.stop_probability(t))
     return self._collapse_t_aux(raw)
 
@@ -169,474 +257,374 @@ Output length: `vertices_length() - n_aux`, in non-aux vertex order.
 
 ### `Graph.joint_probs_with_time(self, t) -> pd.DataFrame`
 
-Display helper. Uses `self._t_vertex_indices` to slice the collapsed vector and builds a DataFrame of (state, joint_prob) rows.
+Display helper. Uses `self._t_vertex_indices` to slice the collapsed
+vector and builds a DataFrame of (state, joint_prob) rows.
 
-## Phase 2.2 — `_generate_cpp_stop_prob_from_trace`
+**Tests** in `tests/pytest/test_daisy_chain_c_path.py`:
 
-Insertion point: `src/phasic/__init__.py` next to `_generate_cpp_from_trace` (line 814 in current master). Reuses ~95% of the existing codegen — same trace metadata block, same `evaluate_embedded_trace` block (already extended in Phase 1 to take `(theta, ipv)`), same trace-to-graph instantiation. Only the final compute step changes.
+- `test_joint_stop_prob_graph_structure`: build a small joint-prob
+  graph, transform, assert each t-vertex has exactly one aux
+  partner, t-aux edges are unit-weight, trash-pair preserved.
+- `test_joint_stop_probabilities_matches_notebook`: build the same
+  3-epoch model used in `time_inhom_joint_prob.ipynb` and
+  bit-compare `joint_stop_probabilities(t)` against the notebook's
+  eager loop output.
+- `test_joint_stop_prob_graph_cyclic`: build a joint-prob graph that
+  has cycles in its reward-extended state space, transform, call
+  `stop_probability(1.0)` — must succeed (cycle-safe via C
+  uniformization).
 
-**Signature divergence from `_generate_cpp_from_trace`**: that
-function takes `observed_data` (which it embeds as a static array
-of times into the generated binary). The stop-prob variant has no
-observations — its runtime input is `(theta, ipv, t)` and its
-output is a probability vector. Do NOT copy the `observed_data`
-parameter into the new function's signature.
-
-Generated C++ entry point:
-
-```cpp
-extern "C" void compute_stop_prob(
-    const double* theta, int n_theta,
-    const double* ipv,   int n_ipv,
-    double t,
-    double* out_stop_prob, int n_out_vertices)
-{
-    if (n_theta != PARAM_LENGTH || n_ipv != IPV_LENGTH ||
-        (size_t)n_out_vertices != N_VERTICES) {
-        for (int i = 0; i < n_out_vertices; i++) out_stop_prob[i] = NAN;
-        return;
-    }
-    struct ptd_trace_result* result = evaluate_embedded_trace(theta, n_theta, ipv, n_ipv);
-    struct ptd_graph* graph = ptd_instantiate_from_trace(result, &trace_struct);
-
-    phasic::Graph g_wrap(graph, /*own_avl_tree=*/...);
-    std::vector<double> sp = g_wrap.stop_probability(t, GRANULARITY);
-    for (size_t i = 0; i < N_VERTICES; i++) out_stop_prob[i] = sp[i];
-
-    ptd_trace_result_destroy(result);
-    // g_wrap destructor frees graph + avl_tree
-}
-```
-
-Key details:
-
-- **`t` is a runtime arg**, not embedded as static const. One binary serves all `t` values.
-- **`granularity` is embedded** at codegen time as `GRANULARITY` (matches existing `_generate_cpp_from_trace`).
-- **`#include "phasiccpp.h"`** is already in the existing codegen template.
-- **Constructing `phasic::Graph` from `ptd_graph*`**: use the C++ wrapper to leverage `stop_probability`'s implementation. The wrapper destructor handles cleanup. Alternative: inline the C-level uniformization (`ptd_probability_distribution_context_create`, `ptd_probability_distribution_step` loop). Recommend the wrapper for simplicity.
-
-Cache key for the compiled `.so` must include a function-kind discriminator (e.g. `"stop_prob"` vs `"log_lik"`) so the two binaries don't collide. `t` is **not** in the cache key.
-
-## Phase 2.3 — `_wrap_trace_stop_prob_for_jax`
-
-Insertion point: `src/phasic/__init__.py` after `_wrap_trace_log_likelihood_for_jax` (line 1249 in current master).
-
-```python
-def _wrap_trace_stop_prob_for_jax(lib_path, param_length, ipv_length, n_vertices):
-    """Wrap C++ stop_probability function for JAX.
-
-    Returns a JAX-compatible function:
-        stop_prob(theta, ipv, t) -> jnp.ndarray of shape (n_vertices,)
-
-    `t` may be a Python float (closed over) or a JAX scalar (vmap'd over).
-    """
-    import ctypes
-    lib = ctypes.CDLL(lib_path)
-    lib.compute_stop_prob.argtypes = [
-        ctypes.POINTER(ctypes.c_double), ctypes.c_int,
-        ctypes.POINTER(ctypes.c_double), ctypes.c_int,
-        ctypes.c_double,
-        ctypes.POINTER(ctypes.c_double), ctypes.c_int,
-    ]
-    lib.compute_stop_prob.restype = None
-
-    def stop_prob_cpp(theta_np, ipv_np, t_float):
-        out = np.empty(n_vertices, dtype=np.float64)
-        lib.compute_stop_prob(
-            theta_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), param_length,
-            ipv_np.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), ipv_length,
-            float(t_float),
-            out.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), n_vertices,
-        )
-        return out
-
-    def stop_prob_jax(theta, ipv, t):
-        result_shape = jax.ShapeDtypeStruct((n_vertices,), jnp.float64)
-        return jax.pure_callback(
-            lambda th, iv, tt: stop_prob_cpp(np.asarray(th), np.asarray(iv), float(tt)),
-            result_shape, theta, ipv, t,
-            vmap_method='sequential',
-        )
-    return stop_prob_jax
-```
-
-`vmap_method='sequential'` matches the existing log-likelihood wrapper. Gradients route through finite differences (same as log-lik wrapper); a `custom_vjp` upgrade is future work.
-
-## Phase 2 deliverables
-
-- `Graph.joint_stop_prob_graph(self) -> Graph`
-- `Graph.joint_stop_probabilities(self, t)` (instance method using `self._t_aux_map`)
-- `Graph.joint_probs_with_time(self, t)` (display helper)
-- `Graph._collapse_t_aux(self, raw_vec)` (helper)
-- New attributes on JSP graphs: `_joint_stop_prob_graph`, `_t_aux_map`, `_t_vertex_indices`
-- `_generate_cpp_stop_prob_from_trace(trace, granularity=0)` in `__init__.py`
-- `_wrap_trace_stop_prob_for_jax(lib_path, param_length, ipv_length, n_vertices)` in `__init__.py`
-- `_compile_trace_library` cache key extended with function-kind discriminator
+**Test gate**: all three pass; existing
+`tests/pytest/test_modeling_compose.py` still passes.
 
 ---
 
-# Phase 3 — Daisy-chain log-likelihood
+# Phase 2 — `Graph.epoch_transition_fn` and the daisy-chain loop
 
-## Phase 3.1 — `Graph.epoch_transition_fn(self, dt)`
+### `Graph.epoch_transition_fn(self, dt: float) -> Callable`
 
-Insertion point: `src/phasic/__init__.py`, near `joint_stop_prob_graph`.
+Returns a callable `(theta, ipv) -> ipv_next` that:
+
+1. `self.update_ipv(ipv)` — sets starting-vertex edge weights.
+2. `self.update_weights(theta)` — sets non-IPV edge weights.
+3. `raw = self.stop_probability(dt)` — C uniformization, cycle-safe.
+4. `ipv_next = self._collapse_t_aux(raw)` — returns surviving mass
+   collapsed over aux vertices.
+
+The returned callable is wrapped via `jax.pure_callback` with
+`vmap_method='sequential'` so it composes inside `jax.jit` and
+tolerates `jax.vmap` over particles. The wrapper signature:
 
 ```python
-def epoch_transition_fn(self, dt):
-    """Return JAX function (theta, ipv) -> next_ipv for one epoch of duration dt.
-
-    Self must be the output of .joint_stop_prob_graph(). Records the elimination
-    trace once (with parameterized_ipv=True), compiles the C++ stop-probability
-    binary once (cached on disk), and on every subsequent call evaluates
-    stop_probability(dt) under the supplied (theta, ipv) and applies the t_aux
-    collapse to produce the next epoch's IPV.
-
-    `dt` is closed over (static Python float). Different dt → different
-    transition function, but trace and binary are reused via the on-disk cache.
-    """
-    if not getattr(self, '_joint_stop_prob_graph', False):
-        raise ValueError("requires graph from .joint_stop_prob_graph()")
-
-    trace = self.record_elimination_trace(parameterized_ipv=True)
-    cpp_code = _generate_cpp_stop_prob_from_trace(trace, granularity=0)
-    lib_path = _compile_trace_library(cpp_code, _stop_prob_cache_key(trace))
-    stop_prob_fn = _wrap_trace_stop_prob_for_jax(
-        lib_path, trace.param_length, trace.ipv_length, trace.n_vertices,
+def transition(theta, ipv):
+    result_shape = jax.ShapeDtypeStruct((n_non_aux,), jnp.float64)
+    return jax.pure_callback(
+        lambda t_np, i_np: _transition_impl(self, dt, t_np, i_np),
+        result_shape, theta, ipv,
+        vmap_method='sequential',
     )
-
-    # Precompute static collapse indices
-    n = self.vertices_length()
-    aux_set = set(self._t_aux_map.values())
-    keep_indices = [i for i in range(n) if i not in aux_set]
-    aux_for_keep = [self._t_aux_map.get(k, -1) for k in keep_indices]
-    keep_arr = jnp.asarray(keep_indices)
-    has_aux = jnp.asarray([a >= 0 for a in aux_for_keep])
-    aux_arr = jnp.asarray([a if a >= 0 else 0 for a in aux_for_keep])
-
-    def collapse(raw_vec):
-        kept = raw_vec[keep_arr]
-        aux_contrib = jnp.where(has_aux, raw_vec[aux_arr], 0.0)
-        return kept + aux_contrib
-
-    def epoch_transition(theta, ipv):
-        # ipv is in collapsed (non-aux) layout; pad with zeros at aux slots
-        # before passing to the C++ binary (which expects trace's full layout).
-        padded_ipv = _pad_ipv_aux_zeros(self, ipv)
-        raw = stop_prob_fn(theta, padded_ipv, dt)   # length n_vertices
-        return collapse(raw)                         # length n_vertices - n_aux
-
-    return epoch_transition
 ```
 
-Two important properties:
+**Tests**:
 
-1. **`dt` closed over**, not JAX-traced — appropriate because epoch boundaries are fixed.
-2. **Static collapse and pad indices** — baked at construction time. JAX trace through `epoch_transition` has fully static control flow.
+- `test_epoch_transition_fn_eager`: build JSP graph, call
+  `transition_fn(theta, ipv)` directly (no JAX), compare to manually
+  doing `update_ipv → update_weights → stop_probability → collapse`.
+- `test_epoch_transition_fn_jit`: wrap in `jax.jit`, run the same
+  inputs, expect bit-identical output.
+- `test_epoch_transition_fn_vmap`: vmap over a (10,) batch of `theta`
+  particles with shared `ipv`; expect (10, n_non_aux) output that
+  matches a Python-loop reference.
 
-### IPV layout invariant (critical)
+**Test gate**: all three pass.
 
-The trace's `ipv_length` (Phase 1 Choice B) counts non-absorbing-non-starting vertices, which **includes aux vertices** in the JSP graph. The collapsed output IPV (length `n_vertices - n_aux`) is shorter. `epoch_transition_fn` must zero-pad incoming `ipv` at aux slots before passing to the C++ binary — those slots must always be zero (no probability mass should start in an aux vertex).
+---
 
-Implementation: store `_aux_ipv_slot_indices` and `_collapsed_to_padded_indices` on the JSP graph during `joint_stop_prob_graph()`. Use them in `_pad_ipv_aux_zeros` to expand a length-`(n_vertices - n_aux)` collapsed IPV into the length-`ipv_length` padded layout.
+# Phase 3 — Two daisy-chain log-likelihood methods
 
-Add an assertion at construction time that the trace's IPV slot order matches the collapsed (non-aux) order; if they differ, materialize a permutation index inside the pad/collapse helpers.
+Both methods iterate epochs in pure Python (no `lax.scan`). Each
+iteration calls the per-epoch transition fn from Phase 2, threading
+IPV forward.
 
-## Phase 3.2 — Two distinct daisy-chain methods
+### `Graph.daisy_chain_log_likelihood_per_event(...)` 
 
-The two likelihood patterns are exposed as **two distinct methods** with fully required, fully explicit signatures. No optional arguments that switch behavior.
-
-### Pattern A: per-event likelihood
-
-Used when each observation is a distinct absorption event with a known time and a known target t-state.
+Signature:
 
 ```python
 def daisy_chain_log_likelihood_per_event(
     self,
-    initial_ipv,           # length self.vertices_length() - n_aux
-    epoch_dts,             # length n_epochs (Python list / numpy — static)
-    event_times,           # length n_events; each in the FINAL epoch's local time
-    event_targets,         # length n_events; each is an index into self._t_vertex_indices
-):
-    """Return log_lik(epoch_thetas) -> scalar.
+    *,
+    epoch_dts: list[float],          # length n_epochs, static
+    epoch_thetas: jnp.ndarray,       # shape (n_epochs, theta_dim) — SVGD parameter
+    epoch_events: list[jnp.ndarray], # length n_epochs; epoch_events[i] is times in epoch i
+    initial_ipv: np.ndarray,         # shape (n_non_aux,) — fixed before SVGD; not traced
+    granularity: int = 100,
+) -> jnp.ndarray:                    # scalar log-lik
+    """Per-event likelihood: Σ_i Σ_e log p(t_e | epoch i, ipv_i, theta_i).
 
-    Likelihood model: each observation k is an absorption event observed at
-    time event_times[k] (within the final epoch) at the t-state
-    self._t_vertex_indices[event_targets[k]]. The log-likelihood is
+    `initial_ipv` is the IPV for epoch 0. Subsequent epoch IPVs are
+    computed internally by the daisy chain (each is the survival
+    distribution of the previous epoch's stop_probability) and are
+    not user-visible.
 
-        Σ_k log p_{event_targets[k]}(event_times[k])
-
-    where p_v(t) is the joint absorption probability for t-state v at time t.
-
-    Self must be the output of .joint_stop_prob_graph().
-
-    Parameters
-    ----------
-    initial_ipv : array-like, length self.vertices_length() - n_aux
-        IPV at the start of the first epoch. Caller is responsible for
-        building this from the base joint-prob graph's natural IPV.
-    epoch_dts : array-like, length n_epochs
-        Duration of each epoch. Static — closed over.
-    event_times : array-like, length n_events
-        Observation times within the final epoch (measured from final epoch start).
-    event_targets : array-like of ints, length n_events
-        For each observation, the index k into self._t_vertex_indices of the
-        absorbing t-state. Required.
-
-    Returns
-    -------
-    log_lik(epoch_thetas) -> scalar.
-        epoch_thetas is shape (n_epochs, param_length). JIT/vmap/grad-compatible.
+    `initial_ipv` is **not** an SVGD-optimised parameter; the user
+    pins it before calling SVGD. Inside the daisy chain it enters
+    the `pure_callback` boundary as a constant.
     """
-    n_epochs = len(epoch_dts)
-    if len(event_times) != len(event_targets):
-        raise ValueError("event_times and event_targets must have same length")
-
-    transitions = [self.epoch_transition_fn(float(dt)) for dt in epoch_dts]
-
-    expected_len = self.vertices_length() - len(self._t_aux_map)
-    if len(initial_ipv) != expected_len:
-        raise ValueError(f"initial_ipv length {len(initial_ipv)} != expected {expected_len}")
-
-    initial_ipv = jnp.asarray(initial_ipv, dtype=jnp.float64)
-    event_times = jnp.asarray(event_times, dtype=jnp.float64)
-    event_targets = jnp.asarray(event_targets, dtype=jnp.int32)
-
-    # The final epoch reuses the same compiled binary but with t as a JAX-traced arg.
-    # Rebuild the wrapper without closing over dt:
-    final_stop_prob = transitions[-1].__closure__[...]  # extract stop_prob_fn
-    # (Or factor out: have epoch_transition_fn return both `epoch_transition` AND
-    # the underlying `stop_prob_fn` so daisy_chain can vmap it over event times.)
-    final_collapse = transitions[-1].__closure__[...]   # extract collapse fn
-
-    def log_lik(epoch_thetas):
-        ipv = initial_ipv
-        for i in range(n_epochs - 1):
-            ipv = transitions[i](epoch_thetas[i], ipv)
-
-        # Final epoch: vmap over events
-        final_theta = epoch_thetas[-1]
-        padded_ipv = _pad_ipv_aux_zeros(self, ipv)
-        t_vertex_arr = jnp.asarray(self._t_vertex_indices)
-
-        def per_event(t_obs, target_k):
-            raw = final_stop_prob(final_theta, padded_ipv, t_obs)
-            collapsed = final_collapse(raw)
-            # event_targets[k] indexes into self._t_vertex_indices
-            t_vertex_idx = t_vertex_arr[target_k]
-            joint_prob = collapsed[t_vertex_idx]
-            return jnp.log(jnp.maximum(joint_prob, 1e-300))
-
-        log_factors = jax.vmap(per_event)(event_times, event_targets)
-        return jnp.sum(log_factors)
-
-    return log_lik
 ```
 
-### Pattern B: joint-snapshot likelihood
+Body (sketch):
 
-Used when the data is a vector of counts over t-states, observed at a single fixed time within the final epoch.
+```python
+ipv = initial_ipv
+log_lik = 0.0
+n_epochs = len(epoch_dts)
+transition = self.epoch_transition_fn  # cached factory
+
+for i in range(n_epochs - 1):
+    # PMF for events in this epoch given current IPV+theta.
+    pmf_at_events = self._epoch_event_pmf(
+        epoch_thetas[i], ipv, epoch_events[i], granularity
+    )
+    log_lik = log_lik + jnp.sum(jnp.log(pmf_at_events))
+
+    # Advance to next epoch.
+    ipv = transition(epoch_dts[i])(epoch_thetas[i], ipv)
+
+# Last epoch: same PMF treatment, no transition out.
+pmf_last = self._epoch_event_pmf(
+    epoch_thetas[-1], ipv, epoch_events[-1], granularity
+)
+log_lik = log_lik + jnp.sum(jnp.log(pmf_last))
+return log_lik
+```
+
+`_epoch_event_pmf` is a thin wrapper that calls
+`self.update_ipv(ipv); self.update_weights(theta);
+self.compute_pmf(events, granularity)` inside a `pure_callback`.
+`compute_pmf` already exists in `ffi_wrappers.py` and is cycle-safe
+via the same uniformization path.
+
+### `Graph.daisy_chain_log_likelihood_joint_snapshot(...)`
+
+Signature:
 
 ```python
 def daisy_chain_log_likelihood_joint_snapshot(
     self,
-    initial_ipv,           # length self.vertices_length() - n_aux
-    epoch_dts,             # length n_epochs (static)
-    snapshot_time,         # single float (within the final epoch)
-    counts,                # length len(self._t_vertex_indices)
-):
-    """Return log_lik(epoch_thetas) -> scalar.
+    *,
+    epoch_dts: list[float],
+    epoch_thetas: jnp.ndarray,        # SVGD parameter
+    initial_ipv: np.ndarray,          # fixed before SVGD; not traced
+    snapshot_times: jnp.ndarray,      # times at which joint-prob is observed
+    snapshot_indices: jnp.ndarray,    # which t-vertex each snapshot picks
+    snapshot_counts: jnp.ndarray,     # observation counts at each snapshot
+    granularity: int = 100,
+) -> jnp.ndarray:
+    """Joint-snapshot likelihood: Σ counts[k] · log joint_prob[k].
 
-    Likelihood model: at the final epoch's snapshot_time, the joint
-    absorption probabilities at all t-states are observed as count data.
-    The log-likelihood is
-
-        Σ_v counts[v] · log p_v(snapshot_time)
-
-    (a multinomial-style log-likelihood; for each t-state v, counts[v] is
-    the number of independent observations absorbed at v.)
-
-    To match the notebook's joint_probs_with_time pattern (one joint_prob
-    per t-state, treated as a single observation per state), pass
-    counts=jnp.ones(len(self._t_vertex_indices)).
-
-    Self must be the output of .joint_stop_prob_graph().
-
-    Parameters
-    ----------
-    initial_ipv : array-like, length self.vertices_length() - n_aux
-    epoch_dts : array-like, length n_epochs (static)
-    snapshot_time : float
-        Single time within the final epoch at which joint probs are evaluated.
-    counts : array-like, length len(self._t_vertex_indices)
-        Observation count for each t-state. Required — caller must specify
-        explicitly (no default of "all ones").
-
-    Returns
-    -------
-    log_lik(epoch_thetas) -> scalar.
+    `initial_ipv` is the epoch-0 IPV; subsequent epoch IPVs are
+    computed internally. `initial_ipv` is **not** SVGD-optimised.
     """
-    n_epochs = len(epoch_dts)
-    n_t_vertices = len(self._t_vertex_indices)
-    if len(counts) != n_t_vertices:
-        raise ValueError(
-            f"counts length {len(counts)} != number of t-states {n_t_vertices}"
-        )
-
-    transitions = [self.epoch_transition_fn(float(dt)) for dt in epoch_dts]
-
-    expected_len = self.vertices_length() - len(self._t_aux_map)
-    if len(initial_ipv) != expected_len:
-        raise ValueError(f"initial_ipv length {len(initial_ipv)} != expected {expected_len}")
-
-    initial_ipv = jnp.asarray(initial_ipv, dtype=jnp.float64)
-    counts = jnp.asarray(counts, dtype=jnp.float64)
-    t_vertex_arr = jnp.asarray(self._t_vertex_indices)
-
-    final_stop_prob = transitions[-1].__closure__[...]
-    final_collapse = transitions[-1].__closure__[...]
-
-    def log_lik(epoch_thetas):
-        ipv = initial_ipv
-        for i in range(n_epochs - 1):
-            ipv = transitions[i](epoch_thetas[i], ipv)
-
-        # Final epoch: single stop_prob call at snapshot_time
-        final_theta = epoch_thetas[-1]
-        padded_ipv = _pad_ipv_aux_zeros(self, ipv)
-        raw = final_stop_prob(final_theta, padded_ipv, snapshot_time)
-        collapsed = final_collapse(raw)
-        joint_probs = collapsed[t_vertex_arr]    # length n_t_vertices
-        return jnp.sum(counts * jnp.log(jnp.maximum(joint_probs, 1e-300)))
-
-    return log_lik
 ```
 
-### Why two methods, not one with a switch?
-
-Per the user's "no silent fallbacks" preference (`feedback_no_silent_fallbacks.md`): an API whose behavior changes implicitly based on which optional argument is passed is a silent fallback. The two patterns produce *fundamentally different* likelihood expressions (one is `Σ_k log p_{tgt[k]}(t[k])`, the other is `Σ_v counts[v] log p_v(t)`). They warrant distinct names so the caller's intent is explicit at the call site.
-
-Both methods refuse to default `counts` or `event_targets` to "all ones" or "all t-states" — those would be silent fallbacks too. Caller must specify them explicitly.
-
-### Refactoring note
-
-The `__closure__[...]` access patterns above are pseudocode — in real implementation, refactor `epoch_transition_fn` to return a small dataclass:
+Body daisies through epochs the same way, but instead of summing
+PMF-of-events per epoch, the final epoch's `joint_stop_probabilities`
+at the snapshot times is the source of likelihood:
 
 ```python
-@dataclass
-class EpochKernel:
-    transition: Callable        # (theta, ipv) -> next_ipv (dt closed over)
-    stop_prob_fn: Callable      # (theta, ipv, t) -> raw vec   (general)
-    collapse: Callable          # (raw_vec) -> collapsed_vec
-    pad_ipv: Callable           # (collapsed_ipv) -> padded_ipv
+# After daisying through n_epochs-1 transitions:
+joint_probs = self._epoch_joint_stop_probs(
+    epoch_thetas[-1], ipv, snapshot_times, granularity
+)  # shape (n_snapshot_times, n_t_vertices)
+selected = joint_probs[jnp.arange(n_snap), snapshot_indices]
+log_lik = jnp.sum(snapshot_counts * jnp.log(selected))
+return log_lik
 ```
 
-so `daisy_chain_log_likelihood_*` can directly reference `kernels[-1].stop_prob_fn` and friends instead of digging into closures.
+`_epoch_joint_stop_probs` wraps the
+`update_ipv → update_weights → stop_probability(t) → collapse_t_aux`
+sequence in a `pure_callback` that returns the collapsed vector at
+each `t`.
 
-### Why unrolled instead of `lax.scan`
+**Tests** in `tests/pytest/test_daisy_chain_c_path.py`:
 
-`lax.scan` requires each scanned function to share signature. Each `transitions[i]` closes over a different `dt`. Two ways to use scan: (a) make `dt` a JAX-traced argument to a single transition function, or (b) unroll. **Recommend unrolling** at <30 epochs — simpler, equally efficient, JIT produces a single fused XLA program. Document escape hatch: switch to `lax.scan` with `dt` as a scan input if `n_epochs` ever grows to thousands.
+- `test_daisy_chain_per_event_matches_eager`: compare against the
+  eager Python loop in `time_inhom_joint_prob.ipynb`. Tolerance:
+  `rtol=1e-9` (uniformization is deterministic at fixed
+  granularity).
+- `test_daisy_chain_joint_snapshot_matches_eager`: same, for the
+  snapshot variant.
+- `test_daisy_chain_jit`: both methods inside `jax.jit` produce
+  the same output as eager.
+- `test_daisy_chain_grad`: `jax.grad` over `epoch_thetas` (with
+  `initial_ipv` held fixed as a closed-over numpy array) gives
+  finite gradients matching finite differences at `rtol=1e-3` on a
+  small model (3 epochs, 7 vertices). IPV is not differentiated
+  through.
+- `test_daisy_chain_vmap`: 10-particle vmap completes and produces
+  shape-correct output.
+- `test_daisy_chain_symbolic_cache_survives`: across a 100-iteration
+  daisy-chain sweep, `param_compute_cache_info()['n_files']`
+  increases by exactly 1 (the JSP graph's symbolic compute graph,
+  computed once and reused).
 
-## Phase 3 deliverables
+**Test gate**: all six pass.
 
-- `Graph.epoch_transition_fn(self, dt)` returning an `EpochKernel` (dataclass with `transition`, `stop_prob_fn`, `collapse`, `pad_ipv`)
-- `Graph.daisy_chain_log_likelihood_per_event(...)` (Pattern A)
-- `Graph.daisy_chain_log_likelihood_joint_snapshot(...)` (Pattern B)
-- `Graph._pad_ipv_aux_zeros(self, collapsed_ipv)` (helper)
-- New attribute on JSP graphs: `_aux_ipv_slot_indices`, `_collapsed_to_padded_indices`
+---
 
-## Phase 3 verification plan
+# Phase 4 — SVGD integration smoke test
 
-New test file `tests/pytest/test_daisy_chain_inference.py` with these tiers:
+End-to-end SVGD over `epoch_thetas` on a 3-epoch joint-prob model.
+IPV is **not** an SVGD parameter — it is captured by closure and
+held fixed for the duration of the SVGD loop:
 
-**Tier 1 — bit-equivalence with notebook eager Python loop**
+```python
+from phasic import SVGD
 
-1. Build small parameterized coalescent (3 samples, mutation rate 0.5, reward limit 5) via `Graph.joint_prob_graph`.
-2. Build `jsp = base.joint_stop_prob_graph()`.
-3. Set up 5 epochs with known thetas and dts.
-4. Reference: run the notebook's eager Python loop literally (`clone_with_ipv` → `joint_stop_prob_graph` → `update_weights` → `joint_stop_probabilities`).
-5. JAX path A: `log_lik = jsp.daisy_chain_log_likelihood_per_event(...)`; evaluate.
-6. JAX path B: `log_lik = jsp.daisy_chain_log_likelihood_joint_snapshot(...)`; evaluate.
-7. Assert both match the eager reference to `atol=1e-9, rtol=1e-9`.
+jsp = joint_kernel.joint_stop_prob_graph()
 
-**Tier 2 — JIT, grad, vmap**
+# User sets the initial IPV once before SVGD. The daisy chain then
+# propagates surviving mass between epochs internally.
+INITIAL_IPV = np.asarray([...])  # fixed; not optimised
 
-8. `jax.jit(log_lik)` matches eager.
-9. `jax.grad(log_lik)` returns finite gradients of shape `(n_epochs, param_length)`.
-10. `jax.vmap(log_lik)(particle_thetas)` matches per-particle Python loop.
+def model(theta):
+    return jsp.daisy_chain_log_likelihood_per_event(
+        epoch_dts=[0.5, 0.5, 0.5],
+        epoch_thetas=theta.reshape(3, 2),
+        epoch_events=observed_events_grouped,
+        initial_ipv=INITIAL_IPV,   # closed over; constant per evaluation
+    )
 
-**Tier 3 — single-epoch sanity**
+# theta_dim = 3 epochs × 2 rate parameters = 6.
+svgd = SVGD(model, theta_dim=6, n_particles=50, n_iterations=200)
+result = svgd.fit(...)
+```
 
-11. With `n_epochs == 1`, daisy chain reduces to a single `epoch_transition` followed by final-epoch likelihood. Compare to direct `jsp.joint_stop_probabilities(t)` + manual log on t-vertex indices.
+`initial_ipv` enters `daisy_chain_log_likelihood_per_event` as a
+constant numpy array (or `jnp.asarray(...)` if the user prefers,
+but its value is pinned before SVGD starts). Per-epoch IPV
+propagation is library-internal: the daisy-chain loop computes
+`ipv_{i+1} = transition_fn(epoch_dts[i])(epoch_thetas[i], ipv_i)`,
+which threads through `update_ipv` between epochs but is not part
+of the SVGD particle vector.
 
-**Tier 4 — SVGD round-trip (smoke test)**
+Performance target: 50 particles × 200 iterations on a 67-vertex
+joint-prob model, **<2 minutes** (matches Phase 3 budget).
 
-12. Generate synthetic observations from a known `epoch_thetas_true` via the eager Python path (Pattern A: per-event observations).
-13. Wrap the daisy-chain `log_lik` into a `model`-shaped callable (the actual `SVGD` constructor at `src/phasic/svgd.py:4001` takes `model: Callable`, `observed_data`, `theta_dim`, plus optional kwargs — not a `log_lik_fn` keyword). For per-event likelihoods, the natural shape is `model(theta) -> log_lik`. Run `phasic.SVGD(model, observed_data, theta_dim=n_epochs * param_length, n_particles=50, n_iterations=500)`.
-14. Assert posterior mean within 20% of true on each epoch.
-15. Instrument `record_elimination_trace` call count — must be exactly 1 across all SVGD iterations.
-
-**Tier 5 — t_aux_map structural detection**
-
-16. `_t_aux_map` and `_t_vertex_indices` from library `joint_stop_prob_graph` match notebook eager construction on the same input.
-
-**Tier 6 — IPV layout invariant**
-
-17. Build a JSP graph; confirm `_aux_ipv_slot_indices` exactly matches the trace's IPV slots that correspond to aux vertices.
-18. Confirm `_pad_ipv_aux_zeros` round-trips: pad then read back the non-aux slots → original input.
-19. Build a graph where collapsed-layout order differs from trace IPV-slot order; confirm permutation is applied correctly.
-
-**Tier 7 — validation errors**
-
-20. Each input to both methods has at least one validation rule (length, type, etc.); test each rule fires with a clear `ValueError`.
-
-Smoke broader: `pixi run -- pytest tests/pytest/ -k "daisy or epoch or joint_stop or svgd" -x`.
-
-## Implementation order recommendation
-
-1. **Prerequisite**: Phase 1 of `update_ipv-plan.md` must be landed (parameterized IPV in trace).
-2. **Phase 2.1** — promote `joint_stop_prob_graph`, `joint_stop_probabilities`, `joint_probs_with_time` into the library. Notebook updates to import library functions instead of pasting helpers. Tier 5 of verification.
-3. **Phase 2.2** — extend `_generate_cpp_from_trace` to emit stop-prob variant. Test via direct `ctypes` call vs `phasic::Graph::stop_probability`.
-4. **Phase 2.3** — `_wrap_trace_stop_prob_for_jax`. Test under `jax.jit` and `jax.vmap`.
-5. **Phase 3.1** — `Graph.epoch_transition_fn`. Test single-epoch propagation against notebook eager path. Tier 6 (IPV layout invariant).
-6. **Phase 3.2** — both `daisy_chain_log_likelihood_*` methods. Run Tiers 1, 3, 7.
-7. **Phase 3.2 cont.** — Run Tiers 2, 4 (JIT/grad/vmap, SVGD round-trip).
-
-Steps 2–4 can be developed in parallel with Phase 1 (a JSP graph can be hand-constructed for unit tests).
+**Test gate**: `tests/pytest/test_daisy_chain_svgd_smoke.py` runs
+green within budget.
 
 ## Critical files
 
-(Line numbers below reflect master at commit `23119fe`. Re-verify
-on next read with `grep -n` since unrelated edits will drift them.)
+Python:
+- `src/phasic/__init__.py` — add `joint_stop_prob_graph`,
+  `joint_stop_probabilities`, `joint_probs_with_time`,
+  `_collapse_t_aux`, `epoch_transition_fn`,
+  `daisy_chain_log_likelihood_per_event`,
+  `daisy_chain_log_likelihood_joint_snapshot`,
+  `_epoch_event_pmf`, `_epoch_joint_stop_probs`. Insertion points:
+  - `joint_stop_prob_graph` family after `joint_prob_graph` (line 7558).
+  - `epoch_transition_fn` and the daisy-chain methods after that.
+- `src/phasic/ffi_wrappers.py` — possibly add
+  `compute_stop_prob_ffi` if the existing `compute_pmf_ffi` doesn't
+  cover the stop-prob signature.
 
-- **`src/phasic/__init__.py`**:
-  - After `joint_prob_graph` (currently ends near line 7558): `joint_stop_prob_graph`, `joint_stop_probabilities`, `joint_probs_with_time`, `_collapse_t_aux`, `_pad_ipv_aux_zeros`, `epoch_transition_fn`, `daisy_chain_log_likelihood_per_event`, `daisy_chain_log_likelihood_joint_snapshot`.
-  - In `joint_stop_prob_graph`: explicitly propagate `_cache_trace` from `self` to the returned graph (the existing `joint_prob_graph` does NOT do this — verified gap at `__init__.py:7551–7558`).
-  - Near `_generate_cpp_from_trace` (line 814): `_generate_cpp_stop_prob_from_trace`. **Don't copy the `observed_data` parameter**; stop-prob has no observations.
-  - Near `_wrap_trace_log_likelihood_for_jax` (line 1249): `_wrap_trace_stop_prob_for_jax`.
-  - `_compile_trace_library` (line 1150) cache key: add function-kind discriminator.
-- **`docs/pages/tutorial/time_inhom_joint_prob.ipynb`**: update to import library functions instead of pasting helpers.
-- **`api/cpp/phasiccpp.h`** / **`src/cpp/phasiccpp.cpp`**: no edits needed. `stop_probability` and `Graph(graph_ptr, avl_tree)` constructor are already exposed.
-- **`src/c/phasic.c`**: no edits needed.
-- **`tests/pytest/test_daisy_chain_inference.py`**: new file with seven-tier verification.
+C / C++ / pybind: **no changes**. Stage A0 + the existing
+`stop_probability` and `update_weights` bindings, plus the
+`update_ipv` binding from the prerequisite plan, are sufficient.
 
-Existing tests that mention `joint_prob` and may be useful regression
-sources (verified on master): `tests/pytest/test_method_of_moments.py`,
-`tests/pytest/test_modeling_compose.py`,
-`tests/pytest/test_sampling_conditioned.py`. Run them as a smoke pass
-after Phase 2.1 promotes the JSP helpers to library functions.
+Tests (new):
+- `tests/pytest/test_daisy_chain_c_path.py`
+- `tests/pytest/test_daisy_chain_svgd_smoke.py`
+
+## Verification (end-to-end)
+
+Success criterion (the user's actual workflow):
+
+```python
+# Build joint kernel once.
+joint_kernel = Graph(coal_callback, indexer=indexer).joint_prob_graph(
+    indexer, mutation_rate=0.1, reward_limit=5,
+)
+jsp = joint_kernel.joint_stop_prob_graph()
+INITIAL_IPV = np.asarray([...])  # set once before SVGD; not optimised
+
+# JAX-traceable daisy-chain — only epoch_thetas is differentiated.
+def log_lik(epoch_thetas):
+    return jsp.daisy_chain_log_likelihood_per_event(
+        epoch_dts=[0.5, 0.5, 0.5],
+        epoch_thetas=epoch_thetas.reshape(3, 2),
+        epoch_events=observed_events_grouped,
+        initial_ipv=INITIAL_IPV,   # closed over; constant per evaluation
+    )
+
+# Must JIT and grad over epoch_thetas cleanly.
+log_lik_jit = jax.jit(log_lik)
+grad_fn = jax.grad(log_lik)
+v = log_lik_jit(jnp.array([1.0, 0.5, 1.5, 0.8, 2.0, 1.0]))
+g = grad_fn(jnp.array([1.0, 0.5, 1.5, 0.8, 2.0, 1.0]))
+
+# Cache survived the full sweep.
+import phasic.cache as cache
+assert cache.param_compute_cache_info()['n_files'] == 1
+```
+
+Equivalence: the JIT output must bit-match the eager-Python-loop
+output at `rtol=1e-9, atol=1e-12` (uniformization is fully
+deterministic).
 
 ## Risks and open issues
 
-1. **`pure_callback` gradients via finite differences**. For SVGD with 50 particles × 30 epochs × 2 params × 2 finite-diff evals, that's ~6000 forward calls per gradient step. At ~1ms each on small graphs, ~6s per SVGD step. Acceptable for v1; future upgrade is `custom_vjp` wrapping a hand-derived stop-probability gradient.
-2. **Aux-vertex IPV slot zeroing**. Aux vertices are non-absorbing → eligible by Phase 1's IPV slot definition. Must always receive zero IPV (no mass starts there). `epoch_transition_fn` zero-pads incoming collapsed-layout `ipv` to the trace's aux-inclusive layout. Mechanical but easy to get wrong — Tier 6 verification is essential.
-3. **`is_trash` heuristic fragility**. The notebook's `is_trash` predicate depends on the exact structure produced by `joint_prob_graph`'s trash-pair construction (`__init__.py:7484-7487`). Add a comment in `joint_prob_graph` referencing the consumer; if trash construction ever changes, `is_trash` must be updated in lockstep.
-4. **Stop-prob caching across `t` values**. The C++ wrapper caches a `ph_context_markov` keyed on granularity and reuses it for monotonically increasing `t` — but the codegen constructs a fresh `phasic::Graph` per call, so we don't get this incremental optimization. (Stage A1's persistent `phasic::Graph` lives inside `GraphBuilder`, not inside the codegen-produced binary, so it doesn't help here either — the codegen path builds its own graph from the trace each call. The two cache layers are independent.) For per-epoch use (single `dt` per call) this is fine. For Pattern A's vmap-over-event-times, there's a potential 10–100× speedup by computing one cumulative trajectory and reading off multiple times. Defer as future optimization.
-5. **`stop_probability` granularity choice**. Defaults to `granularity=0` (auto-select based on max rate). Document that very large `dt` × large `theta` may need a granularity override.
-6. **Initial IPV construction**. The user's notebook has `epoch_ipv = get_ipv(joint_graph)` extracting IPV from the base joint-prob graph. The library should expose `Graph.get_ipv(self) -> np.ndarray` as a public method (the notebook helper version). Length contract: returns a length-`vertices_length()` array (full layout). The caller passes it to `daisy_chain_log_likelihood_*` after dropping aux slots (or the method internally drops them and validates the resulting length matches the JSP graph's collapsed layout). Recommend: add `Graph.get_ipv()` as a separate small method and have `daisy_chain_log_likelihood_*` accept input in the **JSP graph's collapsed layout** (length `vertices_length() - n_aux`), with a clear error if the user passes the wrong-length array.
+1. **`pure_callback` overhead per epoch**. Each epoch transition
+   crosses the JAX→Python→C boundary three times (`update_ipv`,
+   `update_weights`, `stop_probability`). For 30 epochs this is 90
+   crossings per evaluation. Each crossing is ~10-50 µs on M1, so
+   the overhead floor per evaluation is ~1-5 ms before any actual
+   compute. For 1000 SVGD evaluations that is 1-5 seconds of pure
+   boundary cost — acceptable but worth measuring.
+   *Mitigation*: a future optimisation could fuse the three calls
+   into a single `epoch_transition_ffi` C function; not in scope
+   for this plan.
+2. **`stop_probability` per-call context rebuild**. The
+   `weight_version` cache check at `phasiccpp.h:770` invalidates
+   the `ph_context_markov` on every `update_weights` /
+   `update_ipv` call — so each epoch transition rebuilds the
+   uniformization context from scratch. This is `O(vertices²)` per
+   epoch; for 67 vertices and 30 epochs that is ~135k operations
+   per evaluation. Negligible compared to the actual uniformization
+   step count, but worth verifying with a benchmark.
+   *Mitigation*: none needed at this stage; the symbolic compute
+   graph cache (Stage A0) already handles the expensive part.
+3. **Cycle robustness in t-aux loops**. The trapping aux loop
+   construction (Phase 1, item 4) creates a 2-vertex cycle
+   (t-vertex ↔ aux). The C uniformization path handles cycles, but
+   the `granularity = 0` (auto) heuristic computes `2 × max_rate`
+   from edge weights — large IPV or theta values could spike
+   `max_rate` and inflate the per-call step count. Document the
+   trade-off in the docstring; recommend explicit `granularity`
+   when sweeping wide-range thetas.
+4. **Snapshot-variant indexing**. The `snapshot_indices` argument
+   in `daisy_chain_log_likelihood_joint_snapshot` requires the user
+   to know the t-vertex order in the JSP graph. Provide a helper
+   `Graph.joint_snapshot_indexer(state)` that converts a base-graph
+   state to its t-vertex index in the JSP graph; document the
+   helper as the recommended way to construct `snapshot_indices`.
+5. **`add_edge_parameterized` deprecation**. The notebook helper
+   uses `add_edge_parameterized` directly. The library version
+   should use the modern list-based `add_edge(to, [coefficients])`
+   form to avoid emitting deprecation warnings to users running
+   `daisy_chain_log_likelihood_*`.
 
 ## Future work (deferred)
 
-- `custom_vjp` for stop-prob with hand-derived analytic gradients (~10–100× SVGD speedup).
-- Final-epoch optimization for Pattern A: single cumulative trajectory across multiple event times.
-- `lax.scan` variant of `daisy_chain_log_likelihood_*` for `n_epochs > 100`.
-- Generalize `add_epoch` to handle joint-prob graphs (would subsume the daisy chain entirely — much larger project).
+- **Fused C kernel** for `epoch_transition`: a single C function
+  that takes `(graph, theta, ipv, dt)` and returns `ipv_next` in
+  one FFI call instead of three. Would amortise the
+  `pure_callback` boundary cost. Worth doing if benchmarks show
+  the boundary cost dominates.
+- **`lax.scan`-based daisy-chain**: if the number of epochs ever
+  grows above ~50, unrolling becomes a JIT-compilation pain point
+  and `lax.scan` becomes attractive. Out of scope here per the
+  user's <30-epoch constraint.
+- **Joint inference of epoch boundaries**: the user has confirmed
+  epoch boundaries are fixed. If that ever changes, the daisy
+  chain needs `dt`s to become JAX-traceable; the per-epoch loop
+  would need to use `lax.cond` instead of Python `for`. Out of
+  scope.
+
+## Out of scope
+
+- Any modifications to `src/phasic/trace_elimination.py` or to the
+  Python codegen path (`_generate_cpp_from_trace`,
+  `_wrap_trace_log_likelihood_for_jax`). The Python trace path is
+  not on the critical path for this plan.
+- Any changes to `src/c/phasic.c`, `src/cpp/phasiccpp.cpp`, or
+  `src/cpp/phasic_pybind.cpp` — the prerequisite `update_ipv-plan.md`
+  has already covered the C-side surface this plan needs.
+- A `joint_stop_prob_graph` alternative that does not use t-aux
+  loops. The aux-loop construction is the established notebook
+  pattern; reproducing it in the library preserves bit-equivalence
+  with the eager reference.
+- Restructuring `joint_prob_graph` itself. Treat it as a read-only
+  building block.

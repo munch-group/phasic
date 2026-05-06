@@ -7602,6 +7602,492 @@ extern "C" {{
         return joint_graph
 
 
+    def joint_stop_prob_graph(self) -> 'Graph':
+        """Build the joint stop-probability graph for daisy-chained inference.
+
+        Promotes the notebook helper (in
+        ``docs/pages/tutorial/time_inhom_joint_prob.ipynb``) into the library.
+        The transformation: for each "t-vertex" in the source joint-prob
+        graph (a vertex that has a transition to an absorbing vertex), wire
+        a "trapping aux loop" — an aux vertex with state ``[0,...,0]`` and
+        bidirectional unit-weight parameterised edges to/from the t-vertex.
+        Mass that reaches a t-vertex shuttles between t-vertex and aux
+        forever, so ``stop_probability(t)[t_vertex] +
+        stop_probability(t)[aux]`` equals the cumulative joint absorption
+        mass at that t-state by time t.
+
+        Initial-probability-vector edges (starting vertex outgoing) are
+        added at construction time to **every non-aux, non-trash, non-
+        absorbing vertex** with weight 0. The user calls ``update_ipv``
+        before each epoch to set them; the daisy-chain loop calls it
+        between epochs to propagate surviving mass forward. The IPV vector
+        layout matches ``joint_stop_probabilities`` output (vertex order,
+        skipping aux vertices and the trash pair, expanded back to full
+        vertex space — see ``_collapse_t_aux``).
+
+        Returns
+        -------
+        Graph
+            New graph with attributes ``_joint_stop_prob_graph = True``,
+            ``_t_vertex_indices`` (sorted list of new-graph t-vertex
+            indices), ``_t_aux_map`` (dict mapping new-graph t-vertex
+            index → new-graph aux index), and the propagated
+            ``_joint_prob_base_graph_indexer`` / ``_rewarded_props`` /
+            ``_cache_trace`` from the source.
+
+        Raises
+        ------
+        ValueError
+            If ``self`` is not a joint-prob graph (no
+            ``_joint_prob_base_graph_indexer``) or has no parameterised
+            edges (``param_length() == 0``).
+        """
+        if not getattr(self, '_joint_prob_base_graph_indexer', None):
+            raise ValueError(
+                "joint_stop_prob_graph requires a graph produced by "
+                "joint_prob_graph()."
+            )
+        if self.param_length() == 0:
+            raise ValueError(
+                "joint_stop_prob_graph requires a parameterised graph; "
+                "got param_length() == 0."
+            )
+
+        # Trash-pair predicate (matches notebook): two zero-state vertices
+        # whose only edges are to each other.
+        def _is_trash(v: Vertex) -> bool:
+            if v.state().sum() != 0 or v.edges_length() != 1:
+                return False
+            child = v.edges()[0].to()
+            if child.state().sum() != 0 or child.edges_length() != 1:
+                return False
+            return child.edges()[0].to().index() == v.index()
+
+        # Identify t-vertices, trash pair, and absorbing index in the source.
+        start_old = self.starting_vertex()
+        t_vertex_old_indices: list[int] = []
+        trash_old_indices: list[int] = []
+        abs_old_index: int | None = None
+        for v in self.vertices():
+            if v.index() == start_old.index():
+                continue
+            if not v.edges():
+                abs_old_index = v.index()
+                continue
+            for edge in v.edges():
+                if len(edge.to().edges()) == 0:
+                    t_vertex_old_indices.append(v.index())
+                    break
+            if _is_trash(v):
+                trash_old_indices.append(v.index())
+
+        t_vertex_old_indices = list(np.unique(t_vertex_old_indices))
+        if len(trash_old_indices) != 2:
+            raise ValueError(
+                f"joint_stop_prob_graph: expected exactly 2 trash vertices "
+                f"in source graph, found {len(trash_old_indices)}."
+            )
+        if abs_old_index is None:
+            raise ValueError(
+                "joint_stop_prob_graph: source graph has no absorbing vertex."
+            )
+
+        # Build the new graph.
+        new = Graph(self.state_length())
+        new.set_param_length(self.param_length())
+        param_length = self.param_length()
+
+        vmap: dict[int, Vertex] = {start_old.index(): new.starting_vertex()}
+        for v in self.vertices():
+            if v.index() == start_old.index():
+                continue
+            vmap[v.index()] = new.create_vertex(list(v.state()))
+
+        # Copy interior edges (skipping trash, redirecting trash-pointers to
+        # the absorbing vertex). For t-vertices, install the t-aux trapping
+        # loop instead of the original outgoing edges.
+        t_aux_map: dict[int, int] = {}  # new-graph t-vertex idx → new-graph aux idx
+        for v in self.vertices():
+            if v.index() == start_old.index() or not v.edges():
+                continue
+            if v.index() in trash_old_indices:
+                continue
+
+            nv = vmap[v.index()]
+
+            if v.index() in t_vertex_old_indices:
+                t_aux_vertex = new.create_vertex([0] * self.state_length())
+                # Unit-weight parameterised edges in both directions; using
+                # the modern list-based add_edge to avoid the
+                # add_edge_parameterized deprecation warning.
+                nv.add_edge(t_aux_vertex, [1.0] * param_length)
+                t_aux_vertex.add_edge(nv, [1.0] * param_length)
+                t_aux_map[nv.index()] = t_aux_vertex.index()
+                continue
+
+            for e in v.parameterized_edges():
+                to_index = e.to().index()
+                if to_index in trash_old_indices:
+                    to_index = abs_old_index
+                nv.add_edge(vmap[to_index], list(e.edge_state(param_length)))
+
+        # IPV edges: one scalar starting-vertex edge per non-aux non-trash
+        # non-absorbing vertex that exists in the new graph (i.e. all the
+        # vmapped vertices except the start, the absorbing vertex, the
+        # trash pair, and the new aux vertices). Initial weight 0 — the
+        # caller must call update_ipv before any forward computation.
+        non_ipv_old_indices = (
+            {start_old.index(), abs_old_index}
+            | set(trash_old_indices)
+        )
+        # Sort by new-graph index so the IPV layout is stable and matches
+        # the natural scan order used by _collapse_t_aux.
+        ipv_targets = sorted(
+            (vmap[old_idx].index(), vmap[old_idx])
+            for old_idx in vmap
+            if old_idx not in non_ipv_old_indices
+        )
+        ipv_target_indices = [new_idx for new_idx, _v in ipv_targets]
+        for _new_idx, target in ipv_targets:
+            new.starting_vertex().add_edge(target, 0.0)
+
+        # Compute the projection from collapsed-vector coordinates (length
+        # n_non_aux, in non-aux scan order) to IPV coordinates (length
+        # n_ipv = len(ipv_target_indices)). The collapsed-vector position
+        # of a new-graph vertex index is its rank among non-aux indices.
+        aux_set = set(t_aux_map.values())
+        non_aux_rank: dict[int, int] = {}
+        rank = 0
+        for i in range(new.vertices_length()):
+            if i in aux_set:
+                continue
+            non_aux_rank[i] = rank
+            rank += 1
+        ipv_collapsed_positions = [non_aux_rank[i] for i in ipv_target_indices]
+
+        # Attach metadata in the order specified by the daisy-chain plan.
+        new._joint_prob_base_graph_indexer = self._joint_prob_base_graph_indexer
+        new._rewarded_props = getattr(self, '_rewarded_props', None)
+        new._joint_stop_prob_graph = True
+        new._t_vertex_indices = sorted(t_aux_map.keys())
+        new._t_aux_map = t_aux_map
+        # New-graph vertex indices that carry IPV edges, in starting-vertex
+        # edge order. update_ipv expects a vector of this length, in this
+        # order.
+        new._ipv_target_indices = ipv_target_indices
+        # Positions in the collapsed (length n_non_aux) vector that
+        # correspond to IPV-target vertices. Used by the daisy chain to
+        # project a stop_probability output back into IPV coordinates for
+        # the next epoch.
+        new._ipv_collapsed_positions = np.asarray(
+            ipv_collapsed_positions, dtype=np.int32
+        )
+        new.is_discrete = self.is_discrete
+        new._cache_trace = getattr(self, '_cache_trace', False)
+        # Forward the indexer like joint_prob_graph does.
+        if hasattr(self, '_indexer'):
+            new._indexer = self._indexer
+        return new
+
+
+    def _collapse_t_aux(self, raw_vec: ArrayLike) -> np.ndarray:
+        """Collapse t-aux pairs in a vertex-length vector.
+
+        Per the daisy-chain plan: walks vertex indices, skips aux indices
+        listed in ``self._t_aux_map.values()``, and adds the aux mass into
+        the corresponding t-vertex slot. Returns a vector of length
+        ``vertices_length() - n_aux`` in non-aux vertex order.
+        """
+        if not getattr(self, '_joint_stop_prob_graph', False):
+            raise ValueError(
+                "_collapse_t_aux requires a graph produced by "
+                "joint_stop_prob_graph()."
+            )
+        raw = np.asarray(raw_vec)
+        n = self.vertices_length()
+        aux_set = set(self._t_aux_map.values())
+        out: list[float] = []
+        for i in range(n):
+            if i in aux_set:
+                continue
+            p = float(raw[i])
+            if i in self._t_aux_map:
+                p += float(raw[self._t_aux_map[i]])
+            out.append(p)
+        return np.asarray(out)
+
+
+    def joint_stop_probabilities(self, t: float | int) -> np.ndarray:
+        """Joint stop probabilities at time ``t`` (eager numpy).
+
+        Calls ``stop_probability(t)`` on the JSP graph and applies
+        ``_collapse_t_aux``. Returns a vector of length
+        ``vertices_length() - n_aux``, in non-aux vertex order.
+
+        Requires a graph produced by ``joint_stop_prob_graph()``.
+        """
+        if not getattr(self, '_joint_stop_prob_graph', False):
+            raise ValueError(
+                "joint_stop_probabilities requires a graph produced by "
+                "joint_stop_prob_graph()."
+            )
+        raw = np.asarray(self.stop_probability(t))
+        return self._collapse_t_aux(raw)
+
+
+    def joint_probs_with_time(self, t: float | int) -> 'pd.DataFrame':
+        """DataFrame of (state, joint_prob) at time ``t``.
+
+        Slices the collapsed stop-probability vector at the t-vertex
+        indices; returns one row per t-state with the source-graph state
+        coordinates and the cumulative joint absorption mass at time ``t``.
+
+        Requires a graph produced by ``joint_stop_prob_graph()``.
+        """
+        if not getattr(self, '_joint_stop_prob_graph', False):
+            raise ValueError(
+                "joint_probs_with_time requires a graph produced by "
+                "joint_stop_prob_graph()."
+            )
+        import pandas as pd
+        collapsed = self.joint_stop_probabilities(t)
+        # Map t-vertex (new-graph) indices to positions in the collapsed
+        # vector. Since _collapse_t_aux skips aux indices, we need the
+        # rank of each t-vertex among non-aux vertices.
+        aux_set = set(self._t_aux_map.values())
+        non_aux_rank: dict[int, int] = {}
+        rank = 0
+        for i in range(self.vertices_length()):
+            if i in aux_set:
+                continue
+            non_aux_rank[i] = rank
+            rank += 1
+
+        states = self.states()
+        rows = []
+        probs = []
+        for t_idx in self._t_vertex_indices:
+            rows.append(states[t_idx])
+            probs.append(collapsed[non_aux_rank[t_idx]])
+        df = pd.DataFrame(rows)
+        df['probs'] = probs
+        return df
+
+
+    def epoch_transition_fn(self, dt: float) -> Callable:
+        """Return a JAX-compatible per-epoch transition function.
+
+        The returned callable has signature ``(theta, ipv) -> ipv_next``,
+        where ``theta`` and ``ipv`` are JAX arrays and ``ipv_next`` is a
+        JAX array of shape ``(n_non_aux,)`` (matching the
+        ``joint_stop_probabilities`` output dimension).
+
+        Internally:
+          1. ``self.update_ipv(ipv)`` writes ``ipv`` to starting-vertex
+             edges.
+          2. ``self.update_weights(theta)`` writes ``theta`` to
+             interior parameterised edges.
+          3. ``self.stop_probability(dt)`` runs the C uniformization
+             forward algorithm (cycle-safe).
+          4. ``_collapse_t_aux`` reduces the vertex-length probability
+             vector to ``n_non_aux`` entries by summing each aux into its
+             paired t-vertex.
+
+        The function is wrapped via ``jax.pure_callback`` with
+        ``vmap_method='sequential'``, so it composes inside ``jax.jit``
+        and tolerates ``jax.vmap`` over particles. Each crossing of the
+        JAX→Python boundary is ~10–50 µs on M1 (see daisy-chain-plan.md
+        risks); for typical SVGD budgets (1000 evaluations × 30 epochs)
+        the boundary cost is acceptable.
+
+        Parameters
+        ----------
+        dt : float
+            Epoch duration (static, not JAX-traced).
+
+        Returns
+        -------
+        Callable
+            ``(theta: jax.Array, ipv: jax.Array) -> jax.Array`` of shape
+            ``(n_non_aux,)``.
+
+        Raises
+        ------
+        ValueError
+            If ``self`` was not produced by ``joint_stop_prob_graph()``.
+        """
+        if not getattr(self, '_joint_stop_prob_graph', False):
+            raise ValueError(
+                "epoch_transition_fn requires a graph produced by "
+                "joint_stop_prob_graph()."
+            )
+
+        # Output dimension is the IPV length (n_ipv), so the daisy chain
+        # can feed the result straight into the next epoch's update_ipv.
+        # We project the collapsed-vector result down to IPV-coords using
+        # _ipv_collapsed_positions.
+        n_ipv = len(self._ipv_target_indices)
+        positions = self._ipv_collapsed_positions
+
+        def _impl(theta_np: np.ndarray, ipv_np: np.ndarray) -> np.ndarray:
+            self.update_ipv(np.asarray(ipv_np, dtype=np.float64))
+            self.update_weights(np.asarray(theta_np, dtype=np.float64))
+            raw = np.asarray(self.stop_probability(dt), dtype=np.float64)
+            collapsed = self._collapse_t_aux(raw).astype(np.float64)
+            return collapsed[positions]
+
+        result_shape = jax.ShapeDtypeStruct((n_ipv,), jnp.float64)
+
+        def transition(theta, ipv):
+            return jax.pure_callback(
+                _impl,
+                result_shape,
+                theta,
+                ipv,
+                vmap_method='sequential',
+            )
+
+        return transition
+
+
+    def daisy_chain_log_likelihood_joint_snapshot(
+        self,
+        *,
+        epoch_dts: list,
+        epoch_thetas,
+        initial_ipv,
+        snapshot_time: float,
+        snapshot_indices,
+        snapshot_counts,
+        granularity: int = 0,
+    ):
+        """Joint-snapshot likelihood under a daisy-chained joint-prob model.
+
+        Daisies through ``len(epoch_dts) - 1`` epoch transitions
+        (``update_ipv → update_weights → stop_probability(dt)``), then
+        evaluates the cumulative joint probability mass at
+        ``snapshot_time`` in the *final* epoch and reads off contributions
+        at the supplied ``snapshot_indices`` (positions in the t-vertex
+        ordering — see ``self._t_vertex_indices``).
+
+        Parameters
+        ----------
+        epoch_dts : list of float
+            Epoch durations. Length n_epochs (static Python list).
+        epoch_thetas : jnp.ndarray, shape (n_epochs, theta_dim)
+            Per-epoch parameter vectors. JAX-traced; this is the SVGD
+            parameter.
+        initial_ipv : np.ndarray, shape (n_non_aux,)
+            IPV for epoch 0. **Not** a JAX-traced argument — pin the
+            user-chosen IPV before SVGD starts and close over it.
+        snapshot_time : float
+            Time within the final epoch at which the joint stop-
+            probability is read. Static Python float.
+        snapshot_indices : array-like of int
+            Positions in ``self._t_vertex_indices`` where observations
+            are scored. JAX-traced.
+        snapshot_counts : array-like of int
+            Observation counts at each snapshot index. JAX-traced.
+        granularity : int, default 0
+            Granularity passed to ``stop_probability`` (0 = auto).
+
+        Returns
+        -------
+        jax.Array
+            Scalar log-likelihood ``Σ counts[k] · log joint_prob[k]``.
+
+        Notes
+        -----
+        Per the daisy-chain plan: ``initial_ipv`` is **not** an SVGD-
+        optimised parameter; only ``epoch_thetas`` is differentiated.
+        Intermediate per-epoch IPVs are computed internally by the daisy
+        chain.
+        """
+        if not getattr(self, '_joint_stop_prob_graph', False):
+            raise ValueError(
+                "daisy_chain_log_likelihood_joint_snapshot requires a "
+                "graph produced by joint_stop_prob_graph()."
+            )
+
+        n_epochs = len(epoch_dts)
+        if n_epochs < 1:
+            raise ValueError("epoch_dts must contain at least one epoch.")
+
+        epoch_thetas_arr = jnp.asarray(epoch_thetas)
+        if epoch_thetas_arr.ndim != 2 or epoch_thetas_arr.shape[0] != n_epochs:
+            raise ValueError(
+                f"epoch_thetas must have shape (n_epochs, theta_dim); "
+                f"got {epoch_thetas_arr.shape} with n_epochs={n_epochs}."
+            )
+        if epoch_thetas_arr.shape[1] != self.param_length():
+            raise ValueError(
+                f"epoch_thetas theta_dim ({epoch_thetas_arr.shape[1]}) "
+                f"does not match graph param_length ({self.param_length()})."
+            )
+
+        initial_ipv_arr = jnp.asarray(initial_ipv, dtype=jnp.float64)
+        # IPV layout: one entry per starting-vertex edge in the JSP graph,
+        # in construction order. The transition function output has the
+        # same shape, so the daisy chain can thread IPV forward without
+        # reshaping.
+        n_ipv = len(self._ipv_target_indices)
+        if initial_ipv_arr.shape != (n_ipv,):
+            raise ValueError(
+                f"initial_ipv must have shape ({n_ipv},); got "
+                f"{initial_ipv_arr.shape}."
+            )
+
+        snapshot_indices_arr = jnp.asarray(snapshot_indices, dtype=jnp.int32)
+        snapshot_counts_arr = jnp.asarray(snapshot_counts, dtype=jnp.float64)
+
+        # Daisy through n_epochs - 1 transitions, threading IPV forward.
+        ipv = initial_ipv_arr
+        for i in range(n_epochs - 1):
+            transition = self.epoch_transition_fn(epoch_dts[i])
+            ipv = transition(epoch_thetas_arr[i], ipv)
+
+        # Final epoch: set IPV and theta, then evaluate joint stop-probs
+        # at snapshot_time. The result is reduced to t-vertex order via
+        # _collapse_t_aux, then sliced at snapshot_indices.
+        n_t = len(self._t_vertex_indices)
+
+        def _final_joint_probs(theta_np: np.ndarray, ipv_np: np.ndarray) -> np.ndarray:
+            self.update_ipv(np.asarray(ipv_np, dtype=np.float64))
+            self.update_weights(np.asarray(theta_np, dtype=np.float64))
+            raw = np.asarray(
+                self.stop_probability(snapshot_time, granularity=granularity),
+                dtype=np.float64,
+            )
+            collapsed = self._collapse_t_aux(raw)
+            # Map t-vertex (new-graph) indices to positions in the
+            # collapsed vector; same ranking _collapse_t_aux uses.
+            aux_set = set(self._t_aux_map.values())
+            non_aux_rank = {}
+            rank = 0
+            for j in range(self.vertices_length()):
+                if j in aux_set:
+                    continue
+                non_aux_rank[j] = rank
+                rank += 1
+            t_probs = np.array(
+                [collapsed[non_aux_rank[t_idx]] for t_idx in self._t_vertex_indices],
+                dtype=np.float64,
+            )
+            return t_probs
+
+        result_shape = jax.ShapeDtypeStruct((n_t,), jnp.float64)
+        t_probs = jax.pure_callback(
+            _final_joint_probs,
+            result_shape,
+            epoch_thetas_arr[-1],
+            ipv,
+            vmap_method='sequential',
+        )
+
+        selected = t_probs[snapshot_indices_arr]
+        return jnp.sum(snapshot_counts_arr * jnp.log(selected))
+
+
     def _get_joint_probs(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
 
         if not self._joint_prob_base_graph_indexer:
