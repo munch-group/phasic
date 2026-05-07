@@ -11,7 +11,7 @@ import numpy as np
 import pickle
 import hashlib
 import pathlib
-
+from itertools import zip_longest
 # Note: JAX environment (XLA_FLAGS, device count) is configured by
 # phasic.__init__.py before this module is imported.
 # Users should configure via:
@@ -5745,6 +5745,7 @@ class SVGD:
                    figsize: tuple[float, float] | None = None,
                    skip: int = 0, max_particles: int | None = None,
                    save_path: str | None = None, unconstrained: bool = False,
+                   hide_fixed: bool = True,
                    return_fig: bool = False):
         """
         Plot trace plots showing particle evolution over iterations.
@@ -5767,6 +5768,8 @@ class SVGD:
             If False, show constrained (model-space) parameter values.
             If True, show unconstrained (optimization-space) values.
             Only relevant when using parameter transformations.
+        hide_fixed : bool, default=True
+            If True, hide fixed parameters in the trace plot.
         return_fig : bool, default=True
             If True, return (fig, axes). If False, call plt.show() instead.
 
@@ -5786,6 +5789,13 @@ class SVGD:
         except ImportError:
             raise ImportError("matplotlib is required for plotting. Install with: pip install matplotlib")
 
+        n_params = self.theta_dim
+        param_indices = list(range(n_params))
+
+        if self.fixed_mask is not None and hide_fixed:
+            param_indices = [i for i in range(n_params) if not self.fixed_mask[i]]   
+            n_params = len(param_indices)
+
         # Get appropriate history representation
         results = self.get_results()
         if not unconstrained or self.param_transform is None:
@@ -5803,8 +5813,6 @@ class SVGD:
             theta_mean = jnp.mean(history[-1], axis=0)
             space_label = " (unconstrained)"
 
-        n_params = self.theta_dim
-
         cols = int(n_params > 1) + 1
         rows = n_params // 2 + n_params % 2
 
@@ -5821,9 +5829,9 @@ class SVGD:
 
         # for i in range(n_params):
             # ax = axes[i]
-        for i, ax in enumerate(axes):
+        for i, ax in zip_longest(param_indices, axes, fillvalue=None):
 
-            if i >= n_params:
+            if i is None and ax is not None:
                 ax.axis('off')
                 continue
 
@@ -5865,7 +5873,9 @@ class SVGD:
 
     def plot_convergence(self, figsize: tuple[float, float] = (7, 3),
                          save_path: str | None = None, skip: int = 0,
-                         unconstrained: bool = False, return_fig: bool = False):
+                         unconstrained: bool = False, 
+                         hide_fixed: bool = True,
+                         return_fig: bool = False):
         """
         Plot convergence diagnostics showing mean and std over iterations.
 
@@ -5883,6 +5893,8 @@ class SVGD:
             If False, show constrained (model-space) parameter values.
             If True, show unconstrained (optimization-space) values.
             Only relevant when using parameter transformations.
+        hide_fixed : bool, default=True
+            If True, hide fixed parameters in the trace plot.
         return_fig : bool, default=True
             If True, return (fig, axes). If False, call plt.show() instead.
 
@@ -5917,6 +5929,13 @@ class SVGD:
             history = results.get('history_unconstrained', self.history)
             space_label = " (unconstrained)"
 
+        n_params = self.theta_dim
+        param_indices = list(range(n_params))
+
+        if self.fixed_mask is not None and hide_fixed:
+            param_indices = [i for i in range(n_params) if not self.fixed_mask[i]]   
+            n_params = len(param_indices)
+
         # Convert history to array
         history_array = jnp.stack(history)
 
@@ -5931,7 +5950,7 @@ class SVGD:
         ax1, axes[1] = axes
 
         # Plot 1: Mean convergence
-        for i in range(self.theta_dim):
+        for i in param_indices:
             param_name = rf"$\theta_{i}$"
             x, y = iterations, mean_over_time[:, i]
             ax1.plot(x[skip:], y[skip:], label=param_name, )
@@ -5943,7 +5962,7 @@ class SVGD:
         ax1.grid(alpha=0.3)
 
         # Plot 2: Std convergence
-        for i in range(self.theta_dim):
+        for i in param_indices:
             param_name = rf"$\theta_{i}$"
             x, y = iterations, std_over_time[:, i]
             axes[1].plot(x[skip:], y[skip:], label=param_name, )
@@ -5973,7 +5992,8 @@ class SVGD:
                 ci: float = 0.95, alpha: float = 0.2,
                 target: jnp.ndarray | list | None = None,
                 median: bool = False, return_fig: bool = False,
-                ci_method: str = 'hpd'):
+                ci_method: str = 'hpd',
+                hide_fixed: bool = True):
         """
         Plot mean parameter trajectory with credible interval ribbon.
 
@@ -6012,6 +6032,8 @@ class SVGD:
               window of ``ceil(n * ci)`` samples to find the narrowest span.
             - ``'percentile'``: Equal-tailed percentile interval using
               symmetric quantiles.
+        hide_fixed : bool, default=True
+            If True, hide fixed parameters in the trace plot.              
 
         Returns
         -------
@@ -6050,17 +6072,23 @@ class SVGD:
         # Convert history to array: (n_iterations, n_particles, theta_dim)
         history_array = jnp.stack(history)
 
+        n_params = self.theta_dim
+        param_indices = list(range(n_params))
+        if self.fixed_mask is not None and hide_fixed:
+            param_indices = [i for i in range(n_params) if not self.fixed_mask[i]]   
+            n_params = len(param_indices)
+
         mean_over_time = jnp.mean(history_array, axis=1)  # (n_iterations, theta_dim)
 
         n_iters = history_array.shape[0]
-        theta_dim = history_array.shape[2]
+        n_params = history_array.shape[2]
 
         if ci_method == 'hpd':
             # Compute HPD interval per iteration and dimension
-            lower_ci = np.empty((n_iters, theta_dim))
-            upper_ci = np.empty((n_iters, theta_dim))
+            lower_ci = np.empty((n_iters, n_params))
+            upper_ci = np.empty((n_iters, n_params))
             for t in range(n_iters):
-                for d in range(theta_dim):
+                for d in range(n_params):
                     lower_ci[t, d], upper_ci[t, d] = _compute_hpd(
                         np.asarray(history_array[t, :, d]), alpha=ci
                     )
@@ -6071,6 +6099,10 @@ class SVGD:
             lower_ci = jnp.percentile(history_array, lower_pct, axis=1)
             upper_ci = jnp.percentile(history_array, upper_pct, axis=1)
             ci_label = "CI"
+
+        param_indices = list(range(n_params))
+        if self.fixed_mask is not None and hide_fixed:
+            param_indices = [i for i in range(n_params) if not self.fixed_mask[i]]   
 
         if median:
             median_over_time = jnp.median(history_array, axis=1)  # (n_iterations, theta_dim)
@@ -6086,7 +6118,7 @@ class SVGD:
         if target is not None:
             ax.axhline(target, color='C1', linestyle='--', alpha=0.7)
 
-        for i in range(self.theta_dim):
+        for i in param_indices:
             param_name = rf"$\theta_{i}$"
             color = colors[i % len(colors)]
             x = iterations[skip:]
@@ -6340,13 +6372,14 @@ class SVGD:
         return hdr_particles, threshold
 
 
-    def plot_hdr(self, alphas: list[float] = [0.95, 0.5], idx: list[int] = [0, 1],
+    def plot_hdr(self, alphas: list[float] = [0.95, 0.5], idx: list[int] | None = None,
                     figsize: tuple[float, float] = (5, 4), hexgrid: bool = True,
                     trim: bool = True, n: int = 15, margin: float = 0.1,
                     xlim: tuple[float, float] | None = None,
                     ylim: tuple[float, float] | None = None,
                     palette: str = 'viridis', pad: int = 2,
                     unconstrained: bool = False, return_fig: bool = False,
+                    hide_fixed: bool = True,                    
                     show_hpd: bool = False, hpd_alpha: float = 0.95):
         """Plot 2D highest-density region with optional marginal HPD bands.
 
@@ -6357,8 +6390,9 @@ class SVGD:
         ----------
         alphas : list of float, default=[0.95, 0.5]
             HDR contour levels (fraction of mass enclosed).
-        idx : list of int, default=[0, 1]
+        idx : list of int, default=None
             Indices of the two parameter dimensions to plot.
+            Defaults to first two non-fixed parameters.
         figsize : tuple, default=(5, 4)
             Figure size (width, height).
         hexgrid : bool, default=True
@@ -6389,6 +6423,8 @@ class SVGD:
         hpd_alpha : float, default=0.95
             Credible level for the marginal HPD bands (only used when
             ``show_hpd=True``).
+        hide_fixed : bool, default=True
+            If True, hide fixed parameters in the trace plot.            
         """
 
         def hex_grid(x_min, x_max, y_min, y_max, n, aspect=1.0, flat_topped=False, pad=1):
@@ -6486,6 +6522,14 @@ class SVGD:
         particles = full_history[-1]
 
         n_dims = particles.shape[1]
+        param_indices = list(range(n_dims))
+
+        if self.fixed_mask is not None and hide_fixed:
+            param_indices = [i for i in range(n_dims) if not self.fixed_mask[i]]   
+            n_dims = len(param_indices)
+
+        if idx is None:
+            idx = param_indices[:2]
 
         log_prob_fn = partial(
             self._log_prob_unified,
@@ -6768,6 +6812,7 @@ class SVGD:
     def animate_parameter_pairs(self, param_pairs: list[tuple[int, int]] | None = None,
                             true_params: jnp.ndarray | list | None = None,
                             figsize: tuple[float, float] = (15, 5),
+                            hide_fixed: bool = True,                            
                             save_as_gif: str | None = None):
         """
         Animate multiple parameter pairs simultaneously.
@@ -6781,14 +6826,20 @@ class SVGD:
             True parameter values for comparison.
         figsize : tuple, default=(15, 5)
             Figure size (width, height).
+        hide_fixed : bool, default=True
+            If True, hide fixed parameters in the trace plot.            
         save_as_gif : str, optional
             Path to save animation as GIF.
         """
         n_dims = self.history.shape[2]
-        
+        param_indices = list(range(n_dims))
+        if self.fixed_mask is not None and hide_fixed:
+            param_indices = [i for i in range(n_dims) if not self.fixed_mask[i]]   
+            n_dims = len(param_indices)
+
         # Default to first few parameter pairs if not specified
         if param_pairs is None:
-            param_pairs = [(i, i+1) for i in range(0, min(6, n_dims-1), 2)]
+            param_pairs = [(param_indices[i], param_indices[i+1]) for i in range(0, min(6, n_dims-1), 2)]
         
         # Validate param_pairs
         param_pairs = [(i, j) for i, j in param_pairs if max(i, j) < n_dims]
@@ -7380,6 +7431,7 @@ class SVGD:
                      param_names: list[str] | None = None,
                      figsize: tuple[float, float] | None = None,
                      save_path: str | None = None,
+                     hide_fixed: bool = True,
                      unconstrained: bool = False, return_fig: bool = False):
         """
         Plot pairwise scatter plots for all parameter pairs.
@@ -7398,6 +7450,8 @@ class SVGD:
             If False, show constrained (model-space) parameter values.
             If True, show unconstrained (optimization-space) values.
             Only relevant when using parameter transformations.
+        hide_fixed : bool, default=True
+            If True, hide fixed parameters in the trace plot.            
         return_fig : bool, default=True
             If True, return (fig, axes). If False, call plt.show() instead.
 
@@ -7441,7 +7495,7 @@ class SVGD:
 
         fig, axes = plt.subplots(n_params, n_params, figsize=figsize)
 
-        if self.fixed_mask is not None:
+        if self.fixed_mask is not None and hide_fixed:
             param_indices = [i for i in range(n_params) if not self.fixed_mask[i]]   
         else:
             param_indices = list(range(n_params))

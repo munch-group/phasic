@@ -1068,6 +1068,10 @@ ffi::Error DaisyChainJointProbsFfiImpl(
         const int n_epochs       = dc.at("n_epochs").get<int>();
         const int param_length   = dc.at("param_length").get<int>();
         const double t_eval      = dc.at("t_eval").get<double>();
+        // Granularity is optional for backwards compatibility — older
+        // callers built JSON without this field. Default 0 = auto.
+        const int granularity    = dc.contains("granularity")
+                                   ? dc.at("granularity").get<int>() : 0;
         std::vector<double> epoch_dts          = dc.at("epoch_dts").get<std::vector<double>>();
         std::vector<int> ipv_target_indices    = dc.at("ipv_target_indices").get<std::vector<int>>();
         std::vector<int> t_aux_keys            = dc.at("t_aux_keys").get<std::vector<int>>();
@@ -1238,7 +1242,7 @@ ffi::Error DaisyChainJointProbsFfiImpl(
 
                 std::vector<double> raw;
                 try {
-                    raw = g.stop_probability(t_step, /*granularity=*/0);
+                    raw = g.stop_probability(t_step, granularity);
                 } catch (const std::exception& e) {
                     PTD_LOG_ERROR(
                         "DaisyChainJointProbsFfiImpl: stop_probability "

@@ -4878,6 +4878,7 @@ extern "C" {{
         user_fixed=None,
         sd: float = 5.0,
         verbose: bool = False,
+        granularity: int = 0,
     ):
         """Build the daisy-chain SVGD model + prior + theta_dim.
 
@@ -4900,9 +4901,11 @@ extern "C" {{
             Epoch start times. ``epoch_starts[0] == 0``; the last
             entry starts the final epoch which runs to infinity.
             ``n_epochs = len(epoch_starts)``.
-        precision : int
-            Convergence tolerance forwarded to
-            ``daisy_chain_joint_probs``.
+        t_eval : float, optional
+            Time at which final-epoch joint stop-probabilities are
+            read. Forwarded to ``daisy_chain_joint_probs``. Numeric;
+            the ``'auto'`` resolution happens upstream in
+            ``Graph.svgd``.
         user_prior : callable, optional
             User-supplied prior. If given, used as-is. If None, a
             data-informed prior is built from ``probability_matching``
@@ -4912,6 +4915,9 @@ extern "C" {{
             the ``DataPrior`` default).
         verbose : bool
             Forwarded to ``probability_matching``.
+        granularity : int, optional
+            Uniformization granularity forwarded to the FFI handler's
+            ``stop_probability`` calls. ``0`` (default) = auto.
 
         Returns
         -------
@@ -5041,6 +5047,7 @@ extern "C" {{
                 initial_ipv=initial_ipv,
                 t_eval=t_eval,
                 fixed_indices=fixed_indices,
+                granularity=granularity,
             )
             per_obs = joint_probs[observed_pos_jnp]
             return per_obs, jnp.zeros(2)
@@ -5165,7 +5172,10 @@ extern "C" {{
              fixed: ArrayLike | None = None,
              preconditioner: str | object | None = 'auto',
              epoch_starts: ArrayLike | None = None,
-             daisy_chain_t_eval: float | None = None,
+             daisy_chain_t_eval: float | str | None = None,
+             daisy_chain_granularity: int = 0,
+             daisy_chain_probe_theta: ArrayLike | None = None,
+             daisy_chain_t_eval_tol: float = 1e-3,
              ) -> dict:
         """
         Run Stein Variational Gradient Descent (SVGD) inference for Bayesian parameter estimation.
@@ -5300,6 +5310,33 @@ extern "C" {{
               matrix diagonal. Can be unstable when PMF values are small.
             - None or 'none': No preconditioning (original behavior)
             - MomentJacobianPreconditioner or FisherPreconditioner instance: Custom preconditioner
+        epoch_starts : array-like of float, optional
+            Enables daisy-chain (time-inhomogeneous) inference. ``epoch_starts[0] == 0``;
+            subsequent entries are the start times of additional epochs. ``n_epochs =
+            len(epoch_starts)``. Each epoch fits its own ``param_length`` parameters,
+            so the flattened theta has length ``n_epochs * param_length``. Requires
+            a continuous-time joint-prob graph (``discrete=False``).
+        daisy_chain_t_eval : float, str, or None, default=None
+            Time at which the final-epoch joint stop-probabilities are read off the
+            JSP graph's t-vertices. Only used when ``epoch_starts`` is set.
+            - Numeric: used as-is.
+            - ``None`` (default): falls back to ``max(sum(epoch_dts) * 4, 10.0)``.
+            - ``'auto'``: an adaptive probe (``Graph._probe_daisy_t_eval``) walks the
+              daisy chain at ``daisy_chain_probe_theta`` and grows ``t_eval`` until
+              the residual non-t-vertex transient mass falls below
+              ``daisy_chain_t_eval_tol``. Typically picks a much smaller value than
+              the conservative default and so cuts SVGD wall time significantly.
+        daisy_chain_granularity : int, default=0
+            Uniformization granularity passed to ``stop_probability`` inside the
+            daisy-chain FFI handler. ``0`` = auto (the underlying C++ picks a safe
+            value from the graph's max rate × time). Larger values give finer
+            discretisation; smaller positive values trade accuracy for speed.
+        daisy_chain_probe_theta : array-like, optional
+            Theta used by the ``daisy_chain_t_eval='auto'`` probe. Shape
+            ``(param_length,)`` (broadcast across all epochs) or
+            ``(n_epochs, param_length)`` (per-epoch). Defaults to ones.
+        daisy_chain_t_eval_tol : float, default=1e-3
+            Residual-mass tolerance used by the ``daisy_chain_t_eval='auto'`` probe.
 
         Returns
         -------
@@ -5482,14 +5519,23 @@ extern "C" {{
             # n_epochs * param_length parameters under a piecewise-
             # constant time-inhomogeneous joint-prob model.
             if epoch_starts is not None:
+                resolved_t_eval = self._resolve_daisy_chain_t_eval(
+                    daisy_chain_t_eval=daisy_chain_t_eval,
+                    epoch_starts=epoch_starts,
+                    probe_theta=daisy_chain_probe_theta,
+                    tol=daisy_chain_t_eval_tol,
+                    granularity=daisy_chain_granularity,
+                    verbose=verbose,
+                )
                 model, theta_dim, prior, fixed = self._daisy_chain_svgd_model(
                     observed_indices=observed_data,
                     epoch_starts=epoch_starts,
-                    t_eval=daisy_chain_t_eval,
+                    t_eval=resolved_t_eval,
                     user_prior=prior,
                     user_fixed=fixed,
                     sd=5.0,
                     verbose=verbose,
+                    granularity=daisy_chain_granularity,
                 )
             else:
                 # Parse fixed to get mask for joint_index model
@@ -8151,6 +8197,7 @@ extern "C" {{
         initial_ipv,
         t_eval: float | None = None,
         fixed_indices=None,
+        granularity: int = 0,
     ):
         """JAX-traceable model: joint-probs at the t-states after a daisy chain.
 
@@ -8171,10 +8218,11 @@ extern "C" {{
         as ``t → ∞``. ``t_eval`` should be large enough that the
         chain has had time to absorb most mass at the t-states. For
         slow-mutation models ``t_eval`` may need to be quite large; the
-        default scales with ``sum(epoch_dts)`` to provide a reasonable
-        starting point. Use ``Graph._converged_joint_probs(...)`` for
-        eager numpy callers who want to verify convergence to a
-        specific precision.
+        default scales with ``sum(epoch_dts)`` to provide a conservative
+        starting point. For an adaptive ``t_eval`` chosen via a
+        residual-mass probe, use
+        ``Graph.svgd(..., daisy_chain_t_eval='auto')`` or call
+        ``Graph._probe_daisy_t_eval(...)`` directly.
 
         Parameters
         ----------
@@ -8192,6 +8240,14 @@ extern "C" {{
             Flat-theta indices held fixed by SVGD. Forwarded to the
             ``custom_vjp`` backward pass to skip finite-difference
             gradient evaluations on those slots.
+        granularity : int, optional
+            Uniformization granularity passed to the underlying
+            ``stop_probability`` call in the C++ FFI handler. ``0``
+            (default) auto-picks a safe value from the graph's max rate
+            and the requested time. Larger values give finer
+            discretisation (slower, more accurate); smaller positive
+            values trade accuracy for speed. The same granularity is
+            used for every epoch's ``stop_probability`` call.
 
         Returns
         -------
@@ -8239,6 +8295,10 @@ extern "C" {{
             t_eval = max(float(sum(epoch_dts_seq)) * 4.0, 10.0)
         if t_eval <= 0:
             raise ValueError(f"t_eval must be > 0, got {t_eval}.")
+        if not isinstance(granularity, (int, np.integer)) or granularity < 0:
+            raise ValueError(
+                f"granularity must be a non-negative integer, got {granularity!r}."
+            )
 
         theta_dim = self.param_length()
         n_t = len(self._t_vertex_indices)
@@ -8260,6 +8320,7 @@ extern "C" {{
             "n_epochs": int(n_epochs),
             "param_length": int(theta_dim),
             "t_eval": float(t_eval),
+            "granularity": int(granularity),
             "epoch_dts": [float(x) for x in epoch_dts_seq],
             "ipv_target_indices": [int(x) for x in self._ipv_target_indices],
             "t_aux_keys": [int(k) for k in self._t_aux_map.keys()],
@@ -8317,6 +8378,224 @@ extern "C" {{
         _autodiff.defvjp(_autodiff_fwd, _autodiff_bwd)
 
         return _autodiff(epoch_thetas_arr.reshape(-1))
+
+
+    def _probe_daisy_t_eval(
+        self,
+        *,
+        probe_thetas: np.ndarray,
+        epoch_dts: list[float],
+        initial_ipv: np.ndarray,
+        tol: float = 1e-3,
+        t_min: float | None = None,
+        t_max: float | None = None,
+        granularity: int = 0,
+    ) -> float:
+        """Pick the smallest ``t_eval`` whose residual non-t-vertex mass
+        is below ``tol``.
+
+        Mirrors the FFI handler's daisy-chain loop in pure Python: walks
+        epochs 0..n_epochs-2 with `update_ipv → update_weights →
+        stop_probability(dt)`, projecting the collapsed t-aux survival
+        vector to the next epoch's IPV. Then in the final epoch, sets
+        the propagated IPV and final-epoch theta and grows ``t`` by 1.5×
+        until the residual transient mass at non-t vertices falls below
+        ``tol``.
+
+        Modifies ``self``'s IPV and weights as a side effect — the
+        caller is responsible for restoring them, or for accepting that
+        the next ``daisy_chain_joint_probs`` call will overwrite them.
+
+        Parameters
+        ----------
+        probe_thetas : np.ndarray, shape (n_epochs, param_length)
+            Per-epoch parameters used during the probe.
+        epoch_dts : list of float, length n_epochs - 1
+            Per-epoch durations (same as ``daisy_chain_joint_probs``).
+        initial_ipv : np.ndarray, shape (n_ipv,)
+            IPV for epoch 0, in the JSP graph's IPV layout.
+        tol : float
+            Residual-mass tolerance. Default 1e-3.
+        t_min : float, optional
+            Initial value to probe. Default ``max(sum(dts) * 0.5, 1.0)``.
+        t_max : float, optional
+            Upper bound. Default ``max(sum(dts) * 16, 40.0)``.
+        granularity : int
+            Forwarded to ``stop_probability``; 0 = auto.
+
+        Returns
+        -------
+        float
+            Chosen ``t_eval``.
+        """
+        if not getattr(self, '_joint_stop_prob_graph', False):
+            raise ValueError(
+                "_probe_daisy_t_eval requires a graph produced by "
+                "joint_stop_prob_graph()."
+            )
+
+        n_epochs = int(probe_thetas.shape[0])
+        if len(epoch_dts) != n_epochs - 1:
+            raise ValueError(
+                f"epoch_dts must have length n_epochs - 1 = {n_epochs - 1}; "
+                f"got {len(epoch_dts)}."
+            )
+
+        n_vertices = self.vertices_length()
+        t_aux_keys = list(self._t_aux_map.keys())
+        t_aux_values = list(self._t_aux_map.values())
+        aux_set = set(int(v) for v in t_aux_values)
+        t_to_aux = {int(k): int(self._t_aux_map[k]) for k in t_aux_keys}
+        ipv_target_indices = [int(x) for x in self._ipv_target_indices]
+        t_vertex_indices = set(int(x) for x in self._t_vertex_indices)
+
+        # Collapsed-position lookup (skip aux vertices).
+        collapsed_pos = [-1] * n_vertices
+        rank = 0
+        for v in range(n_vertices):
+            if v in aux_set:
+                continue
+            collapsed_pos[v] = rank
+            rank += 1
+
+        def _collapse(raw):
+            """Sum t-vertex mass with its aux partner; return collapsed."""
+            collapsed = np.zeros(rank, dtype=np.float64)
+            for v in range(n_vertices):
+                if v in aux_set:
+                    continue
+                p = float(raw[v])
+                if v in t_to_aux:
+                    p += float(raw[t_to_aux[v]])
+                collapsed[collapsed_pos[v]] = p
+            return collapsed
+
+        # Walk transitions, propagating IPV.
+        ipv_work = np.asarray(initial_ipv, dtype=np.float64).copy()
+        for epoch in range(n_epochs - 1):
+            self.update_ipv(ipv_work)
+            self.update_weights(probe_thetas[epoch])
+            raw = np.asarray(
+                self.stop_probability(float(epoch_dts[epoch]), granularity=granularity)
+            )
+            collapsed = _collapse(raw)
+            ipv_work = np.array(
+                [collapsed[collapsed_pos[v]] for v in ipv_target_indices],
+                dtype=np.float64,
+            )
+
+        # Final epoch: set IPV/theta, then grow t until residual mass
+        # at non-t-vertices is below tol.
+        self.update_ipv(ipv_work)
+        self.update_weights(probe_thetas[n_epochs - 1])
+
+        sum_dts = float(sum(epoch_dts))
+        if t_min is None:
+            t_min = max(sum_dts * 0.5, 1.0)
+        if t_max is None:
+            t_max = max(sum_dts * 16.0, 40.0)
+
+        t = t_min
+        while t <= t_max:
+            raw = np.asarray(self.stop_probability(float(t), granularity=granularity))
+            collapsed = _collapse(raw)
+            non_t_mass = sum(
+                float(collapsed[collapsed_pos[v]])
+                for v in range(n_vertices)
+                if v not in aux_set
+                and v not in t_vertex_indices
+                and v != self.starting_vertex().index()
+            )
+            if non_t_mass < tol:
+                return float(t)
+            t *= 1.5
+        return float(t_max)
+
+
+    def _resolve_daisy_chain_t_eval(
+        self,
+        *,
+        daisy_chain_t_eval,
+        epoch_starts,
+        probe_theta=None,
+        tol: float = 1e-3,
+        granularity: int = 0,
+        verbose: bool = False,
+    ) -> float:
+        """Resolve a ``daisy_chain_t_eval`` value (numeric, None, or
+        ``'auto'``) into a numeric ``t_eval`` for the daisy-chain SVGD
+        loop. ``self`` is the source joint-prob graph; we build the
+        JSP graph internally for the probe.
+
+        - Numeric: returned unchanged.
+        - None: returns the legacy default ``max(sum(dts)*4, 10.0)``.
+        - ``'auto'``: builds the JSP graph and calls
+          ``_probe_daisy_t_eval`` with ``probe_theta`` (default
+          ``[1.0, 1.0, ..., 1.0]`` per parameter slot).
+        """
+        es = np.asarray(epoch_starts, dtype=np.float64).ravel()
+        epoch_dts = list(np.diff(es))
+        sum_dts = float(sum(epoch_dts))
+        legacy_default = max(sum_dts * 4.0, 10.0)
+
+        if daisy_chain_t_eval is None:
+            return legacy_default
+        if isinstance(daisy_chain_t_eval, str):
+            if daisy_chain_t_eval != 'auto':
+                raise ValueError(
+                    f"daisy_chain_t_eval must be a positive number, None, or "
+                    f"'auto'; got {daisy_chain_t_eval!r}."
+                )
+        else:
+            t_val = float(daisy_chain_t_eval)
+            if t_val <= 0:
+                raise ValueError(
+                    f"daisy_chain_t_eval must be > 0, got {t_val}."
+                )
+            return t_val
+
+        # 'auto' branch: build JSP graph, probe.
+        jsp = self.joint_stop_prob_graph()
+        n_epochs = int(es.size)
+        param_length = self.param_length()
+        if probe_theta is None:
+            probe_thetas = np.ones((n_epochs, param_length), dtype=np.float64)
+        else:
+            probe_arr = np.asarray(probe_theta, dtype=np.float64)
+            if probe_arr.ndim == 1:
+                probe_thetas = np.broadcast_to(
+                    probe_arr.reshape(1, -1), (n_epochs, param_length)
+                ).copy()
+            else:
+                probe_thetas = probe_arr
+            if probe_thetas.shape != (n_epochs, param_length):
+                raise ValueError(
+                    f"probe_theta must broadcast to shape "
+                    f"({n_epochs}, {param_length}); got {probe_arr.shape}."
+                )
+
+        n_ipv = len(jsp._ipv_target_indices)
+        self_ipv_full = np.zeros(self.vertices_length(), dtype=np.float64)
+        for edge in self.starting_vertex().edges():
+            self_ipv_full[edge.to().index()] = edge.weight()
+        initial_ipv = self_ipv_full[jsp._ipv_target_indices]
+
+        chosen = jsp._probe_daisy_t_eval(
+            probe_thetas=probe_thetas,
+            epoch_dts=epoch_dts,
+            initial_ipv=initial_ipv,
+            tol=tol,
+            granularity=granularity,
+        )
+
+        if verbose:
+            logger = get_logger(__name__)
+            logger.info(
+                "daisy_chain_t_eval='auto': probed t_eval=%.4f (legacy default "
+                "would have been %.4f, ratio=%.2fx)",
+                chosen, legacy_default, legacy_default / max(chosen, 1e-12),
+            )
+        return float(chosen)
 
 
     def _get_joint_probs(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:

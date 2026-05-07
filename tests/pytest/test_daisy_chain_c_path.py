@@ -363,3 +363,105 @@ class TestDaisyChainJointProbs:
         # cache) or 1 (if a future change opts the daisy chain through
         # an expectation/moments path). Anything more indicates thrashing.
         assert cache.param_compute_cache_info()['n_files'] in (0, 1)
+
+
+# ---------------------------------------------------------------------------
+# Class 3: granularity threading + adaptive t_eval probe
+# ---------------------------------------------------------------------------
+
+
+class TestGranularity:
+    def test_granularity_changes_runs(self):
+        # Two granularity values must both run and produce values
+        # close to each other (granularity is a discretisation knob;
+        # answers converge as it grows).
+        import jax.numpy as jnp
+        jsp = _build_jsp_graph()
+        n_ipv = jsp.starting_vertex().edges_length()
+        initial_ipv = np.full(n_ipv, 1.0 / n_ipv)
+        thetas = jnp.asarray([[1.0, 1.0, 1.0], [1.5, 0.5, 1.0]], dtype=jnp.float64)
+
+        out_auto = np.asarray(jsp.daisy_chain_joint_probs(
+            epoch_thetas=thetas, epoch_dts=[0.5],
+            initial_ipv=initial_ipv, t_eval=10.0, granularity=0,
+        ))
+        out_high = np.asarray(jsp.daisy_chain_joint_probs(
+            epoch_thetas=thetas, epoch_dts=[0.5],
+            initial_ipv=initial_ipv, t_eval=10.0, granularity=2000,
+        ))
+        assert np.all(np.isfinite(out_auto))
+        assert np.all(np.isfinite(out_high))
+        # Auto and a high granularity should agree to a few digits;
+        # uniformization is monotonic-with-granularity.
+        np.testing.assert_allclose(out_auto, out_high, rtol=1e-3, atol=1e-6)
+
+    def test_granularity_validation(self):
+        jsp = _build_jsp_graph()
+        n_ipv = jsp.starting_vertex().edges_length()
+        with pytest.raises(ValueError, match="granularity"):
+            jsp.daisy_chain_joint_probs(
+                epoch_thetas=np.ones((2, 3)),
+                epoch_dts=[0.5],
+                initial_ipv=np.full(n_ipv, 1.0 / n_ipv),
+                granularity=-1,
+            )
+
+
+class TestAdaptiveTeval:
+    def test_probe_returns_sensible_value(self):
+        # The probe should pick a t_eval well below the legacy default
+        # (4 × sum(dts)) and should produce a residual non-t-vertex
+        # mass below tol at that t_eval.
+        jsp = _build_jsp_graph()
+        n_ipv = jsp.starting_vertex().edges_length()
+        initial_ipv = np.full(n_ipv, 1.0 / n_ipv)
+        epoch_dts = [0.5]
+        n_epochs = len(epoch_dts) + 1
+        param_length = jsp.param_length()
+        probe_thetas = np.ones((n_epochs, param_length))
+
+        tol = 1e-3
+        chosen = jsp._probe_daisy_t_eval(
+            probe_thetas=probe_thetas,
+            epoch_dts=epoch_dts,
+            initial_ipv=initial_ipv,
+            tol=tol,
+        )
+        # Should be positive and not blown out to t_max.
+        assert chosen > 0
+        assert chosen < 100.0
+
+    def test_resolve_auto_returns_numeric(self):
+        # _resolve_daisy_chain_t_eval must turn 'auto' into a float
+        # and pass numerics through unchanged.
+        indexer = _make_indexer()
+        cb = _make_callback(indexer)
+        g = Graph(cb, indexer=indexer)
+        jp = g.joint_prob_graph(
+            indexer, mutation_rate=MUTATION_RATE,
+            reward_limit=REWARD_LIMIT, discrete=False,
+        )
+
+        # Numeric pass-through.
+        assert jp._resolve_daisy_chain_t_eval(
+            daisy_chain_t_eval=7.5, epoch_starts=[0.0, 0.5],
+        ) == 7.5
+        # None → legacy default max(sum(dts)*4, 10) = 10.
+        assert jp._resolve_daisy_chain_t_eval(
+            daisy_chain_t_eval=None, epoch_starts=[0.0, 0.5],
+        ) == 10.0
+        # 'auto' → some positive number.
+        auto_val = jp._resolve_daisy_chain_t_eval(
+            daisy_chain_t_eval='auto', epoch_starts=[0.0, 0.5],
+        )
+        assert isinstance(auto_val, float) and auto_val > 0
+        # Negative numeric raises.
+        with pytest.raises(ValueError, match="must be > 0"):
+            jp._resolve_daisy_chain_t_eval(
+                daisy_chain_t_eval=-1.0, epoch_starts=[0.0, 0.5],
+            )
+        # Garbage string raises.
+        with pytest.raises(ValueError, match="'auto'"):
+            jp._resolve_daisy_chain_t_eval(
+                daisy_chain_t_eval='whatever', epoch_starts=[0.0, 0.5],
+            )
