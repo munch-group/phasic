@@ -4946,44 +4946,20 @@ extern "C" {{
                 "SVGD."
             )
 
-        # Daisy chains with n_epochs >= 2 require continuous-time
-        # stop_probability for the per-epoch transitions and the final-
-        # epoch convergence readout. Discrete joint-prob graphs would
-        # dispatch to stop_probability_discrete(jumps) which takes
-        # integer jumps, not continuous t.
-        #
-        # The single-epoch case (epoch_starts=[0]) has no transitions
-        # and is just the vanilla joint-prob model — we dispatch to the
-        # existing pmf_from_graph_joint_index path in that case so the
-        # user can use epoch_starts=[0] as a smoke check that the
-        # epoch-model machinery agrees with the vanilla model. This
-        # works on both discrete and continuous joint-prob graphs.
-        if n_epochs >= 2 and getattr(self, 'is_discrete', False):
+        # The daisy-chain FFI handler uses continuous-time
+        # stop_probability internally, which only works on
+        # continuous-time joint-prob graphs. Discrete joint-prob
+        # graphs would dispatch to stop_probability_discrete(jumps),
+        # which takes integer jumps rather than continuous t. So
+        # any epoch_starts value (including [0]) requires
+        # discrete=False.
+        if getattr(self, 'is_discrete', False):
             raise ValueError(
-                "Daisy-chain SVGD with len(epoch_starts) >= 2 requires "
-                "a continuous-time joint-prob graph. Construct the "
+                "Daisy-chain SVGD (epoch_starts=...) requires a "
+                "continuous-time joint-prob graph. Construct the "
                 "joint-prob graph with discrete=False, e.g.\n"
                 "    graph.joint_prob_graph(indexer, ..., discrete=False)"
             )
-
-        # Single-epoch short-circuit: epoch_starts=[0] is just the
-        # vanilla model with no time inhomogeneity. Dispatch to
-        # pmf_from_graph_joint_index so the result is identical to a
-        # vanilla call. The user_prior / user_fixed pass through
-        # without per-epoch broadcasting (n_epochs == 1).
-        if n_epochs == 1:
-            theta_dim = param_length
-            fixed_mask_for_model = None
-            if user_fixed is not None:
-                fixed_mask_for_model = jnp.zeros(theta_dim)
-                for idx, _ in user_fixed:
-                    fixed_mask_for_model = fixed_mask_for_model.at[idx].set(1)
-            model = Graph.pmf_from_graph_joint_index(
-                self, theta_dim=theta_dim,
-                fixed_mask=fixed_mask_for_model,
-            )
-            # Pass the user-supplied fixed/prior through unchanged.
-            return model, theta_dim, user_prior, user_fixed
 
         # Build the JSP graph and the initial IPV (in JSP-graph IPV-coords).
         jsp = self.joint_stop_prob_graph()
