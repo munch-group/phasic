@@ -68,7 +68,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../../">
-<link href="../../pages/tutorial/17_sharing.html" rel="next">
+<link href="../../pages/tutorial/14_svgd-basics.html" rel="next">
 <link href="../../pages/tutorial/08_trace-and-jax-caching-c-path.html" rel="prev">
 <script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
@@ -215,7 +215,7 @@ window.Quarto = {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Inference</li><li class="breadcrumb-item"><a href="../../pages/tutorial/09_method-of-moments.html">Method of Moments</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../pages/tutorial/08_trace-and-jax-caching-c-path.html">Inference</a></li><li class="breadcrumb-item"><a href="../../pages/tutorial/09_method-of-moments.html">Method of Moments</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
     </div>
@@ -289,15 +289,47 @@ window.Quarto = {
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
- <span class="menu-text">Inference</span></a>
+ <span class="menu-text">Modelling</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
- <span class="menu-text">pages/tutorial/08_trace-and-jax-caching.ipynb</span>
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/10_laplace.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Laplace transform</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/11_time-inhomogeneous.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Time inhomogeneity</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/12_joint-probability.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Joint probability</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/13_finite-markov-chains.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Finite Markov chains</span></a>
+  </div>
+</li>
+      </ul>
   </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Inference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../pages/tutorial/08_trace-and-jax-caching-c-path.html" class="sidebar-item-text sidebar-link">
@@ -311,41 +343,33 @@ window.Quarto = {
   </div>
 </li>
           <li class="sidebar-item">
- <span class="menu-text">pages/tutorial/10_svgd-basics.ipynb</span>
-  </li>
-          <li class="sidebar-item">
- <span class="menu-text">pages/tutorial/11_svgd-priors-and-schedules.ipynb</span>
-  </li>
-          <li class="sidebar-item">
- <span class="menu-text">pages/tutorial/12_svgd-multi-feature.ipynb</span>
-  </li>
-          <li class="sidebar-item">
- <span class="menu-text">pages/tutorial/13_svgd-multi-param.ipynb</span>
-  </li>
-          <li class="sidebar-item">
- <span class="menu-text">pages/tutorial/14_svgd-joint-prob.ipynb</span>
-  </li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
- <span class="menu-text">Computation</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
- <span class="menu-text">pages/tutorial/15_mpfr.ipynb</span>
-  </li>
-          <li class="sidebar-item">
- <span class="menu-text">pages/tutorial/16_distributed.ipynb</span>
-  </li>
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/14_svgd-basics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Inference basics</span></a>
+  </div>
+</li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../pages/tutorial/17_sharing.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Model sharing</span></a>
+  <a href="../../pages/tutorial/15_svgd-priors-and-schedules.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Priors and schedules</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/16_svgd-multi-feature.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Multi-feature inference</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/17_svgd-multi-param.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Multi-parameter inference</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/18_svgd-joint-prob.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Joint probability inference</span></a>
   </div>
 </li>
       </ul>
@@ -353,27 +377,30 @@ window.Quarto = {
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
- <span class="menu-text">Modelling</span></a>
+ <span class="menu-text">Computation</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
       <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
- <span class="menu-text">pages/tutorial/18_time-inhomogeneous.ipynb</span>
-  </li>
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/17_sharing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Model sharing</span></a>
+  </div>
+</li>
           <li class="sidebar-item">
- <span class="menu-text">pages/tutorial/19_laplace.ipynb</span>
-  </li>
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/19_mpfr.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Multiple-precision arithmetic</span></a>
+  </div>
+</li>
           <li class="sidebar-item">
- <span class="menu-text">pages/tutorial/20_joint-probability.ipynb</span>
-  </li>
-          <li class="sidebar-item">
- <span class="menu-text">pages/tutorial/22_finite-markov-chains.ipynb</span>
-  </li>
-          <li class="sidebar-item">
- <span class="menu-text">pages/tutorial/23_hex-grid.ipynb</span>
-  </li>
+  <div class="sidebar-item-container"> 
+  <a href="../../pages/tutorial/20_distributed.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Distributed computing</span></a>
+  </div>
+</li>
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
@@ -423,7 +450,7 @@ window.Quarto = {
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Inference</li><li class="breadcrumb-item"><a href="../../pages/tutorial/09_method-of-moments.html">Method of Moments</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../pages/tutorial/08_trace-and-jax-caching-c-path.html">Inference</a></li><li class="breadcrumb-item"><a href="../../pages/tutorial/09_method-of-moments.html">Method of Moments</a></li></ol></nav>
 <div class="quarto-title">
 <h1 class="title">Method of Moments</h1>
 </div>
@@ -1509,8 +1536,8 @@ Particles: 40, Iterations: 100</code></pre>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../../pages/tutorial/17_sharing.html" class="pagination-link" aria-label="Model sharing">
-        <span class="nav-page-text">Model sharing</span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../../pages/tutorial/14_svgd-basics.html" class="pagination-link" aria-label="Inference basics">
+        <span class="nav-page-text">Inference basics</span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>
