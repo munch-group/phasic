@@ -1,9 +1,12 @@
 #include "graph_builder_ffi.hpp"
 #include <stdexcept>
 #include <unordered_map>
+#include <unordered_set>
+#include <vector>
 #include <string>
 #include <memory>
 #include <limits>
+#include <nlohmann/json.hpp>
 
 extern "C" {
 #include "../../c/phasic_log.h"
@@ -1001,6 +1004,309 @@ ffi::Error SamplePathConditionedFfiImpl(
     }
 }
 
+// ===========================================================================
+// DaisyChainJointProbsFfiImpl: full daisy-chain joint-probs in C
+// ===========================================================================
+//
+// Performs the full daisy chain end-to-end inside the FFI handler so the
+// SVGD loop crosses the Python↔C boundary exactly once per forward (matching
+// the vanilla joint-prob path's perf characteristics). Mirrors the structural
+// pattern of ComputeSojournTimesFfiImpl: thread-local builder cache, OpenMP-
+// parallel vmap loop, fresh Graph per batch element (each batch element
+// receives different theta/IPV so a per-epoch persistent graph would buy
+// nothing here).
+//
+// Daisy-chain metadata (epoch_dts, t_eval, n_epochs, ipv_target_indices,
+// t_aux_keys, t_aux_values, t_vertex_indices) is encoded into the
+// structure_json under a top-level "_daisy_chain" object. GraphBuilder
+// silently ignores unknown JSON fields, so the same JSON is reused for both
+// graph construction and metadata extraction.
+
+ffi::Error DaisyChainJointProbsFfiImpl(
+    std::string_view structure_json,
+    ffi::Buffer<ffi::F64> theta,
+    ffi::Buffer<ffi::F64> initial_ipv,
+    ffi::ResultBuffer<ffi::F64> result
+) {
+    try {
+        std::string json_str(structure_json);
+
+        // Thread-local GraphBuilder cache lookup (mirrors
+        // ComputeSojournTimesFfiImpl).
+        std::shared_ptr<GraphBuilder> builder;
+        auto it = builder_cache.find(json_str);
+        if (it != builder_cache.end()) {
+            builder = it->second;
+        } else {
+            try {
+                builder = std::make_shared<GraphBuilder>(json_str);
+                builder_cache[json_str] = builder;
+            } catch (const std::exception& e) {
+                return ffi::Error::InvalidArgument(
+                    std::string("Failed to parse JSON: ") + e.what()
+                );
+            }
+        }
+
+        // Parse daisy-chain metadata from the JSON. We use nlohmann::json
+        // here directly — same library GraphBuilder uses internally.
+        nlohmann::json j;
+        try {
+            j = nlohmann::json::parse(json_str);
+        } catch (const std::exception& e) {
+            return ffi::Error::InvalidArgument(
+                std::string("Failed to re-parse JSON for daisy-chain metadata: ") + e.what()
+            );
+        }
+        if (!j.contains("_daisy_chain")) {
+            return ffi::Error::InvalidArgument(
+                "structure_json must contain a top-level \"_daisy_chain\" "
+                "object with daisy-chain metadata."
+            );
+        }
+        const auto& dc = j["_daisy_chain"];
+        const int n_epochs       = dc.at("n_epochs").get<int>();
+        const int param_length   = dc.at("param_length").get<int>();
+        const double t_eval      = dc.at("t_eval").get<double>();
+        // Granularity is optional for backwards compatibility — older
+        // callers built JSON without this field. Default 0 = auto.
+        const int granularity    = dc.contains("granularity")
+                                   ? dc.at("granularity").get<int>() : 0;
+        std::vector<double> epoch_dts          = dc.at("epoch_dts").get<std::vector<double>>();
+        std::vector<int> ipv_target_indices    = dc.at("ipv_target_indices").get<std::vector<int>>();
+        std::vector<int> t_aux_keys            = dc.at("t_aux_keys").get<std::vector<int>>();
+        std::vector<int> t_aux_values          = dc.at("t_aux_values").get<std::vector<int>>();
+        std::vector<int> t_vertex_indices      = dc.at("t_vertex_indices").get<std::vector<int>>();
+
+        if (n_epochs < 1) {
+            return ffi::Error::InvalidArgument("n_epochs must be >= 1");
+        }
+        if (static_cast<int>(epoch_dts.size()) != n_epochs - 1) {
+            return ffi::Error::InvalidArgument(
+                "epoch_dts must have length n_epochs - 1"
+            );
+        }
+        if (t_aux_keys.size() != t_aux_values.size()) {
+            return ffi::Error::InvalidArgument(
+                "_t_aux_map keys and values must have the same length"
+            );
+        }
+        const size_t n_ipv  = ipv_target_indices.size();
+        const size_t n_t    = t_vertex_indices.size();
+
+        // Build aux-set + (vertex_idx → t_aux_key) lookup tables and the
+        // collapsed-position arrays once. These depend only on the JSP
+        // graph topology, not on theta.
+        std::unordered_set<int> aux_set;
+        aux_set.reserve(t_aux_values.size());
+        for (int v : t_aux_values) aux_set.insert(v);
+
+        // For each t-vertex key v_k, the index of its aux partner.
+        std::unordered_map<int, int> t_to_aux;
+        t_to_aux.reserve(t_aux_keys.size());
+        for (size_t k = 0; k < t_aux_keys.size(); ++k) {
+            t_to_aux[t_aux_keys[k]] = t_aux_values[k];
+        }
+
+        // Parse dimensions (handle vmap batching; mirrors
+        // ComputeSojournTimesFfiImpl).
+        auto theta_dims = theta.dimensions();
+        auto ipv_dims = initial_ipv.dimensions();
+
+        size_t theta_len, ipv_len;
+        size_t theta_batch_size = 1;
+        size_t ipv_batch_size = 1;
+
+        if (theta_dims.size() == 1) {
+            theta_len = theta_dims[0];
+        } else if (theta_dims.size() == 2) {
+            theta_batch_size = theta_dims[0];
+            theta_len = theta_dims[1];
+        } else {
+            return ffi::Error::InvalidArgument("theta must be 1D or 2D");
+        }
+        if (ipv_dims.size() == 1) {
+            ipv_len = ipv_dims[0];
+        } else if (ipv_dims.size() == 2) {
+            ipv_batch_size = ipv_dims[0];
+            ipv_len = ipv_dims[1];
+        } else {
+            return ffi::Error::InvalidArgument("initial_ipv must be 1D or 2D");
+        }
+
+        if (theta_len != static_cast<size_t>(n_epochs * param_length)) {
+            return ffi::Error::InvalidArgument(
+                "theta length must equal n_epochs * param_length"
+            );
+        }
+        if (ipv_len != n_ipv) {
+            return ffi::Error::InvalidArgument(
+                "initial_ipv length must equal len(ipv_target_indices)"
+            );
+        }
+
+        const double* theta_data = theta.typed_data();
+        const double* ipv_data = initial_ipv.typed_data();
+        double* result_data = result->typed_data();
+
+        const size_t batch_size = std::max(theta_batch_size, ipv_batch_size);
+        if (theta_batch_size > 1 && ipv_batch_size > 1
+            && theta_batch_size != ipv_batch_size) {
+            return ffi::Error::InvalidArgument(
+                "theta and initial_ipv batch sizes must match (or one must be 1)"
+            );
+        }
+
+        // Per-batch daisy chain. OpenMP parallelises over particles when
+        // batched; each iteration owns its own fresh Graph.
+        #pragma omp parallel for if(batch_size > 1)
+        for (size_t b = 0; b < batch_size; ++b) {
+            const double* theta_b =
+                (theta_batch_size > 1) ? theta_data + b * theta_len : theta_data;
+            const double* ipv_b_in =
+                (ipv_batch_size > 1) ? ipv_data + b * ipv_len : ipv_data;
+            double* result_b = result_data + b * n_t;
+
+            // Build fresh Graph per batch element (each runs in its own
+            // OpenMP thread; phasic::Graph isn't thread-safe under
+            // update_weights, so no sharing). Use the first epoch's
+            // theta for the initial build — we'll overwrite via
+            // ptd_graph_update_weights inside the per-epoch loop, so
+            // the initial theta value is irrelevant beyond satisfying
+            // builder->build's length-check (must equal param_length).
+            Graph g = builder->build(theta_b, static_cast<size_t>(param_length));
+
+            // Collapsed-position lookup: position of vertex_idx in the
+            // collapsed (length = n_vertices - n_aux) vector. Computed
+            // once per batch (could be hoisted outside the OpenMP loop
+            // since it depends only on graph topology, but the cost is
+            // O(n_vertices) which is negligible relative to the
+            // stop_probability uniformization step count).
+            const size_t n_vertices = g.vertices_length();
+            std::vector<int> collapsed_pos(n_vertices, -1);
+            int rank = 0;
+            for (size_t i = 0; i < n_vertices; ++i) {
+                if (aux_set.count(static_cast<int>(i))) continue;
+                collapsed_pos[i] = rank++;
+            }
+            const size_t n_collapsed = static_cast<size_t>(rank);
+
+            // Working IPV (length n_ipv) — initialised to user's
+            // initial_ipv, then overwritten between epochs.
+            std::vector<double> ipv_work(ipv_b_in, ipv_b_in + n_ipv);
+
+            // Iterate epochs 0 .. n_epochs - 1.
+            for (int epoch = 0; epoch < n_epochs; ++epoch) {
+                const double* theta_epoch = theta_b + epoch * param_length;
+
+                // Set IPV and theta on the graph. Both update_ipv and
+                // update_weights bump weight_version, so the cached
+                // ph_context_markov gets rebuilt on the next
+                // stop_probability call.
+                ptd_graph_update_ipv(
+                    g.c_graph(), ipv_work.data(), n_ipv
+                );
+                if (ptd_err[0] != '\0') {
+                    PTD_LOG_ERROR(
+                        "DaisyChainJointProbsFfiImpl: ptd_graph_update_ipv "
+                        "failed at epoch %d: %s", epoch, (const char*)ptd_err
+                    );
+                    ptd_err[0] = '\0';
+                    for (size_t k = 0; k < n_t; ++k) {
+                        result_b[k] = std::numeric_limits<double>::quiet_NaN();
+                    }
+                    goto next_batch;
+                }
+
+                ptd_graph_update_weights(
+                    g.c_graph(),
+                    const_cast<double*>(theta_epoch),
+                    static_cast<size_t>(param_length),
+                    /*use_log=*/false
+                );
+                if (ptd_err[0] != '\0') {
+                    PTD_LOG_ERROR(
+                        "DaisyChainJointProbsFfiImpl: ptd_graph_update_weights "
+                        "failed at epoch %d: %s", epoch, (const char*)ptd_err
+                    );
+                    ptd_err[0] = '\0';
+                    for (size_t k = 0; k < n_t; ++k) {
+                        result_b[k] = std::numeric_limits<double>::quiet_NaN();
+                    }
+                    goto next_batch;
+                }
+
+                // Decide which time to evaluate stop_probability at.
+                const double t_step =
+                    (epoch < n_epochs - 1) ? epoch_dts[epoch] : t_eval;
+
+                std::vector<double> raw;
+                try {
+                    raw = g.stop_probability(t_step, granularity);
+                } catch (const std::exception& e) {
+                    PTD_LOG_ERROR(
+                        "DaisyChainJointProbsFfiImpl: stop_probability "
+                        "failed at epoch %d (t=%g): %s",
+                        epoch, t_step, e.what()
+                    );
+                    for (size_t k = 0; k < n_t; ++k) {
+                        result_b[k] = std::numeric_limits<double>::quiet_NaN();
+                    }
+                    goto next_batch;
+                }
+                if (raw.size() != n_vertices) {
+                    PTD_LOG_ERROR(
+                        "DaisyChainJointProbsFfiImpl: stop_probability "
+                        "returned size %zu, expected %zu",
+                        raw.size(), n_vertices
+                    );
+                    for (size_t k = 0; k < n_t; ++k) {
+                        result_b[k] = std::numeric_limits<double>::quiet_NaN();
+                    }
+                    goto next_batch;
+                }
+
+                // Collapse t-aux pairs into (n_collapsed,) vector.
+                // collapsed[collapsed_pos[v]] = raw[v] +
+                //     raw[t_to_aux[v]] (if v is a t-vertex).
+                std::vector<double> collapsed(n_collapsed, 0.0);
+                for (size_t v = 0; v < n_vertices; ++v) {
+                    if (aux_set.count(static_cast<int>(v))) continue;
+                    double p = raw[v];
+                    auto it_aux = t_to_aux.find(static_cast<int>(v));
+                    if (it_aux != t_to_aux.end()) {
+                        p += raw[static_cast<size_t>(it_aux->second)];
+                    }
+                    collapsed[collapsed_pos[v]] = p;
+                }
+
+                if (epoch < n_epochs - 1) {
+                    // Project collapsed → next-epoch IPV by indexing at
+                    // ipv_target_indices' collapsed positions.
+                    for (size_t k = 0; k < n_ipv; ++k) {
+                        int v_idx = ipv_target_indices[k];
+                        ipv_work[k] = collapsed[collapsed_pos[v_idx]];
+                    }
+                } else {
+                    // Final epoch: write joint-probs at t-vertex
+                    // collapsed positions to the result buffer.
+                    for (size_t k = 0; k < n_t; ++k) {
+                        int v_idx = t_vertex_indices[k];
+                        result_b[k] = collapsed[collapsed_pos[v_idx]];
+                    }
+                }
+            }
+            continue;
+            next_batch:;  // jump target on per-batch error
+        }
+
+        return ffi::Error::Success();
+    } catch (const std::exception& e) {
+        PTD_LOG_ERROR("DaisyChainJointProbsFfiImpl exception: %s", e.what());
+        return ffi::Error::Internal(e.what());
+    }
+}
+
 } // namespace ffi_handlers
 
 // Export binding creation functions for Python-side FFI registration
@@ -1117,6 +1423,20 @@ XLA_FFI_Handler* CreateSamplePathConditionedHandler() {
             .Ret<xla::ffi::Buffer<xla::ffi::S32>>()    // vertex_indices
             .Ret<xla::ffi::Buffer<xla::ffi::F64>>()    // entry_times
             .To(ffi_handlers::SamplePathConditionedFfiImpl)
+            .release();
+        return bound_handler->Call(call_frame);
+    };
+    return handler;
+}
+
+XLA_FFI_Handler* CreateDaisyChainJointProbsHandler() {
+    static constexpr XLA_FFI_Handler* handler = +[](XLA_FFI_CallFrame* call_frame) {
+        static auto* bound_handler = xla::ffi::Ffi::Bind()
+            .Attr<std::string_view>("structure_json")  // graph + _daisy_chain metadata (STATIC)
+            .Arg<xla::ffi::Buffer<xla::ffi::F64>>()    // theta (n_epochs * param_length,) - BATCHED
+            .Arg<xla::ffi::Buffer<xla::ffi::F64>>()    // initial_ipv (n_ipv,) - BATCHED
+            .Ret<xla::ffi::Buffer<xla::ffi::F64>>()    // result (n_t_vertices,)
+            .To(ffi_handlers::DaisyChainJointProbsFfiImpl)
             .release();
         return bound_handler->Call(call_frame);
     };

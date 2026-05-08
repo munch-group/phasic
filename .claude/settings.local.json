@@ -60,7 +60,8 @@
       "WebFetch(domain:quarto.org)",
       "Bash(grep -E \"\\\\.py$|\\\\.pyx$|\\\\.pxd$\")",
       "Bash(grep -rn \"\\\\.copy\\(\\)\" /Users/kmt/phasic/tests/pytest/*.py)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(git log *)"
     ],
     "deny": [],
     "ask": []

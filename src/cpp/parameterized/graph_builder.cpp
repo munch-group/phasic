@@ -4,6 +4,8 @@
 #include <sstream>
 #include <cmath>
 #include <limits>
+#include <unordered_map>  // tl_persistent_graphs cache
+#include <memory>         // std::unique_ptr
 
 using json = nlohmann::json;
 
@@ -177,20 +179,124 @@ Graph GraphBuilder::build(const double* theta, size_t theta_len) {
         start->add_edge(*to_v, edge.weight);
     }
 
-    // Add parameterized edges
+    // Add parameterised edges via the parameterised constructor so the
+    // resulting phasic::Graph is locked into PARAMETERIZED edge_mode.
+    // That is required for update_weights() to work on the persistent
+    // graph cached by get_or_init_persistent_graph(): without it,
+    // update_weights() rejects the call with a "constant graph" error.
+    //
+    // C-side ptd_graph_add_edge initialises edge->weight as
+    // sum(coefficients * 1) (default theta = 1) — the ``weight``
+    // argument to add_edge_parameterized is ignored. The caller
+    // (get_or_init_persistent_graph) follows up with
+    // update_weights_parameterized(theta) immediately after build()
+    // to install the correct weights for the requested theta.
     for (const auto& edge : param_edges_) {
         Vertex* from_v = vertices[edge.from_idx];
         Vertex* to_v = vertices[edge.to_idx];
-        from_v->add_edge(*to_v, compute_weight(edge.coefficients, theta));
+        double initial_weight = compute_weight(edge.coefficients, theta);
+        from_v->add_edge_parameterized(*to_v, initial_weight, edge.coefficients);
     }
 
-    // Add starting vertex parameterized edges
+    // Starting-vertex (IPV) edges are always treated as constants by
+    // ptd_graph_update_weights (the C path skips IPV edges per
+    // phasic.c:3245). So leaving these as scalar add_edge is correct
+    // and avoids needlessly putting the starting vertex's edges into
+    // PARAMETERIZED mode (the mode lock only applies to non-IPV edges
+    // anyway, see phasiccpp.cpp:256).
     for (const auto& edge : start_param_edges_) {
         Vertex* to_v = vertices[edge.to_idx];
         start->add_edge(*to_v, compute_weight(edge.coefficients, theta));
     }
 
+    /* C-side ptd_graph_add_edge initialises edge->weight as
+     * sum(coefficients * 1) (default theta=1) — the ``initial_weight``
+     * argument we passed to add_edge_parameterized above is ignored.
+     * Apply the requested theta now so the returned graph has the
+     * correct edge weights for the caller. This applies to every
+     * caller of build() — get_or_init_persistent_graph (which would
+     * call update_weights anyway), but also the direct
+     * ``builder->build()`` sites in graph_builder_ffi.cpp that do not
+     * cache the graph and thus did not call update_weights. */
+    if (!param_edges_.empty()) {
+        std::vector<double> theta_vec(theta, theta + theta_len);
+        bool use_log = (weight_mode_ == WeightMode::LOG);
+        g.update_weights_parameterized(theta_vec, use_log);
+    }
+
     return g;
+}
+
+namespace {
+/* Per-thread cache of persistent graphs, keyed by GraphBuilder
+ * identity. Each GraphBuilder may be used from multiple OS threads
+ * (e.g. JAX pmap with multi-threaded pure_callback, OpenMP-parallel
+ * vmap in graph_builder_ffi.cpp). Each thread needs its own
+ * phasic::Graph instance because Graph is not thread-safe under
+ * update_weights — it mutates edge->weight in place.
+ *
+ * thread_local guarantees per-OS-thread storage; the inner map is
+ * keyed by the GraphBuilder*'s address so multiple GraphBuilder
+ * instances (different model structures) don't share entries. */
+thread_local std::unordered_map<const phasic::parameterized::GraphBuilder*,
+                                std::unique_ptr<phasic::Graph>>
+        tl_persistent_graphs;
+}  // namespace
+
+GraphBuilder::~GraphBuilder() {
+    /* Evict this builder's entry from the current thread's
+     * persistent-graph cache so a new builder allocated at the same
+     * address can't accidentally hit a stale entry. ``erase`` on a
+     * key that isn't present is a no-op. */
+    tl_persistent_graphs.erase(this);
+}
+
+phasic::Graph& GraphBuilder::get_or_init_persistent_graph(
+        const double* theta, size_t theta_len) {
+    /* Graphs with no non-IPV parameterised edges (only IPV
+     * parameterised edges, or no parameterised edges at all) cannot be
+     * refreshed via ``ptd_graph_update_weights``: the C function
+     * rejects UNLOCKED graphs (no non-IPV edges → mode never locked),
+     * and IPV edges are treated as constants by update_weights anyway.
+     *
+     * For these graphs the persistent-graph optimisation also has
+     * nothing to amortise — there's no parameterised reward compute
+     * graph to cache because there are no parameterised non-IPV
+     * edges. So we fall back to fresh-graph-per-call, which gives the
+     * pre-Stage-A1 behaviour and is correct for all theta values.
+     *
+     * The fresh graph is still stored in tl_persistent_graphs (keyed
+     * by ``this``) so subsequent calls overwrite the entry rather
+     * than leaking. */
+    if (param_edges_.empty()) {
+        auto g = std::make_unique<phasic::Graph>(build(theta, theta_len));
+        tl_persistent_graphs[this] = std::move(g);
+        return *tl_persistent_graphs[this];
+    }
+
+    auto it = tl_persistent_graphs.find(this);
+    if (it == tl_persistent_graphs.end()) {
+        // First call from this thread for this builder: build the
+        // graph in PARAMETERIZED mode (build() now uses
+        // add_edge_parameterized and applies update_weights for the
+        // requested theta internally). The first forward call on
+        // this graph will populate parameterized_reward_compute_graph;
+        // Stage A0 ensures that cache survives subsequent
+        // update_weights calls.
+        auto g = std::make_unique<phasic::Graph>(build(theta, theta_len));
+        auto [inserted_it, ok] = tl_persistent_graphs.emplace(this, std::move(g));
+        return *inserted_it->second;
+    }
+    // Cached: refresh edge weights for the new theta. update_weights
+    // bumps weight_version (Stage 1) and clears the *concrete*
+    // reward_compute_graph but preserves the symbolic
+    // parameterized_reward_compute_graph (Stage A0). The next forward
+    // call rebuilds the concrete cache via the cheap O(commands) path
+    // rather than the expensive O(n^3) Gaussian elimination.
+    std::vector<double> theta_vec(theta, theta + theta_len);
+    bool use_log = (weight_mode_ == WeightMode::LOG);
+    it->second->update_weights_parameterized(theta_vec, use_log);
+    return *it->second;
 }
 
 double GraphBuilder::compute_weight(const std::vector<double>& coefficients, const double* theta) const {
@@ -287,8 +393,10 @@ py::array_t<double> GraphBuilder::compute_moments(
     {
         py::gil_scoped_release release;
 
-        // Build graph (pure C++)
-        Graph g = build(theta_vec.data(), theta_len);
+        // Reuse this thread's persistent graph: O(n^3) elimination is
+        // amortised across calls; only edge weights are refreshed for
+        // the new theta.
+        Graph& g = get_or_init_persistent_graph(theta_vec.data(), theta_len);
 
         // Compute moments (pure C++) - empty rewards = standard moments
         std::vector<double> rewards;  // Empty for standard moments
@@ -333,8 +441,9 @@ py::array_t<double> GraphBuilder::compute_pmf(
     {
         py::gil_scoped_release release;
 
-        // Build graph (pure C++, no Python objects)
-        Graph g = build(theta_vec.data(), theta_len);
+        // Reuse this thread's persistent graph (Stage A1) so the
+        // symbolic elimination cache is amortised across theta calls.
+        Graph& g = get_or_init_persistent_graph(theta_vec.data(), theta_len);
 
         // Compute PMF/PDF (pure C++)
         if (discrete) {
@@ -434,8 +543,12 @@ GraphBuilder::compute_pmf_and_moments(
     {
         py::gil_scoped_release release;
 
-        // Build graph ONCE (pure C++)
-        Graph g = build(theta_vec.data(), theta_len);
+        // Reuse this thread's persistent graph (Stage A1). Stage 2's
+        // clone-first reward_transform ensures the per-feature
+        // ``g.reward_transform(rewards_2d[j])`` calls below do NOT
+        // mutate the cached source graph, so reuse is correctness-
+        // preserving even on the multivariate path.
+        Graph& g = get_or_init_persistent_graph(theta_vec.data(), theta_len);
 
         if (is_2d_rewards) {
             // === MULTIVARIATE CASE: Compute PDF per feature ===
@@ -644,8 +757,10 @@ py::array_t<double> GraphBuilder::compute_pmf_multivariate(
     {
         py::gil_scoped_release release;
 
-        // Build graph ONCE (pure C++)
-        Graph g = build(theta_vec.data(), theta_len);
+        // Reuse this thread's persistent graph (Stage A1). Stage 2's
+        // clone-first reward_transform makes the per-feature
+        // transformations safe even when ``g`` is the cached source.
+        Graph& g = get_or_init_persistent_graph(theta_vec.data(), theta_len);
 
         // === SPARSE MODE: Compute PDF per feature independently ===
         // Each feature gets its own reward transformation and independent PDF computation
@@ -720,8 +835,8 @@ py::array_t<double> GraphBuilder::compute_accumulated_visits_converged(
     {
         py::gil_scoped_release release;
 
-        // Build graph (pure C++)
-        Graph g = build(theta_vec.data(), theta_len);
+        // Reuse this thread's persistent graph (Stage A1).
+        Graph& g = get_or_init_persistent_graph(theta_vec.data(), theta_len);
 
         // For each vertex index, iterate until convergence
         // Use accumulated_visiting_time (continuous) which handles uniformization internally

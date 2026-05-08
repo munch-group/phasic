@@ -516,6 +516,22 @@ void phasic::Graph::update_weights_parameterized(std::vector<double> scalars, bo
     notify_change();
 }
 
+void phasic::Graph::update_ipv(std::vector<double> ipv) {
+    ptd_graph_update_ipv(
+            this->c_graph(),
+            ipv.empty() ? NULL : &ipv[0],
+            ipv.size()
+    );
+
+    if (ptd_err[0] != '\0') {
+        std::string error_msg((const char*)ptd_err);
+        ptd_err[0] = '\0';
+        throw std::runtime_error(error_msg);
+    }
+
+    notify_change();
+}
+
 // Callback-based weight update
 void phasic::Graph::update_weights_parameterized(
     std::vector<double> scalars,

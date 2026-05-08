@@ -875,7 +875,7 @@ plt.show()
 ```
 
 ## Some code
-
+<!-- 
 ```{python}
 #| echo: true
 #| output-location: column
@@ -891,6 +891,7 @@ ax.set_rticks([0.5, 1, 1.5, 2])
 ax.grid(True)
 plt.show()
 ```
+ -->
 
 # some code
 
@@ -920,3 +921,4 @@ ax.plot(theta, r)
 ax.set_rticks([0.5, 1, 1.5, 2])
 ax.grid(True)
 plt.show()
+```

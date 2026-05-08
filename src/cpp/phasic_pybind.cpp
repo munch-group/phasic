@@ -1069,6 +1069,77 @@ str
           Number of parameters/coefficients per edge
       )delim")
 
+    .def("_has_param_compute_graph_cache",
+      [](phasic::Graph &g) {
+          return g.c_graph()->parameterized_reward_compute_graph != NULL;
+      }, R"delim(
+      Test-only introspection: whether the C-level
+      parameterized_reward_compute_graph (symbolic elimination cache)
+      is currently populated. Used by Stage A0 regression tests to
+      verify the cache survives update_weights() calls.
+
+      Not part of the public API; behaviour may change.
+
+      Returns
+      -------
+      bool
+          True if the symbolic elimination cache is populated.
+      )delim")
+
+    .def("_save_param_compute_graph",
+      [](phasic::Graph &g, const std::string &path) {
+          if (g.c_graph()->parameterized_reward_compute_graph == NULL) {
+              throw std::runtime_error(
+                      "no parameterized_reward_compute_graph to save; "
+                      "call expected_waiting_time/etc. first to populate it");
+          }
+          int rc = ptd_save_parameterized_reward_compute_graph(
+                  path.c_str(),
+                  g.c_graph()->parameterized_reward_compute_graph,
+                  g.c_graph());
+          if (rc != 0) {
+              throw std::runtime_error(
+                      std::string("save failed: ") + (const char *)ptd_err);
+          }
+      }, R"delim(
+      Test-only: save the C-level parameterized_reward_compute_graph
+      to a file via ptd_save_parameterized_reward_compute_graph. Stage
+      A2 verification only; not part of the public API.
+      )delim")
+
+    .def("_load_param_compute_graph",
+      [](phasic::Graph &g, const std::string &path) {
+          struct ptd_desc_reward_compute_parameterized *loaded =
+                  ptd_load_parameterized_reward_compute_graph(
+                          path.c_str(), g.c_graph());
+          if (loaded == NULL) {
+              std::string msg((const char *)ptd_err);
+              // Clear ptd_err so subsequent calls (add_edge, etc.)
+              // don't misread our error as theirs.
+              ptd_err[0] = '\0';
+              throw std::runtime_error(
+                      std::string("load failed or cache miss: ") + msg);
+          }
+          // Replace any existing cache.
+          if (g.c_graph()->parameterized_reward_compute_graph != NULL) {
+              ptd_parameterized_reward_compute_graph_destroy(
+                      g.c_graph()->parameterized_reward_compute_graph);
+          }
+          g.c_graph()->parameterized_reward_compute_graph = loaded;
+          // Also clear the concrete reward_compute_graph so the next
+          // forward call rebuilds it from the loaded symbolic graph
+          // rather than reusing whatever was there before.
+          if (g.c_graph()->reward_compute_graph != NULL) {
+              free(g.c_graph()->reward_compute_graph->commands);
+              free(g.c_graph()->reward_compute_graph);
+              g.c_graph()->reward_compute_graph = NULL;
+          }
+      }, R"delim(
+      Test-only: load a saved parameterized_reward_compute_graph from
+      a file and install it on this graph. Stage A2 verification only;
+      not part of the public API.
+      )delim")
+
     .def("is_parameterized",
       [](phasic::Graph &g) {
           return g.c_graph()->parameterized;
@@ -1309,6 +1380,36 @@ str
     See Also
     --------
     update_weights : Built-in linear (log=False) and multiplicative (log=True) modes
+      )delim")
+
+    .def("update_ipv",
+        [](phasic::Graph& self, std::vector<double> ipv) {
+            self.update_ipv(ipv);
+        },
+        py::arg("ipv"),
+        R"delim(
+    Set the initial probability vector (IPV) after graph construction.
+
+    Updates only the starting-vertex edge weights. The k-th entry of `ipv` is
+    written to the k-th starting-vertex edge in construction order.
+
+    IPV is a property of the model, not an inference parameter — `update_ipv`
+    is intended for one-shot user setup or for daisy-chain epoch propagation,
+    not for sweeping by SVGD. The symbolic compute graph cache survives this
+    call (Stage A0 invariant), so subsequent forward computations
+    (`expectation`, `pdf`, `compute_pmf`, ...) reuse the cached elimination.
+
+    Parameters
+    ----------
+    ipv : array-like
+        New IPV edge weights. Length must equal the number of starting-vertex
+        edges.
+
+    Raises
+    ------
+    RuntimeError
+        If `ipv` length does not match the number of starting-vertex edges,
+        or if any entry is NaN or Inf.
       )delim")
 
     .def("update_parameterized_weights",
@@ -4976,6 +5077,20 @@ Use Graph.distribution_context(granularity) instead.
   }, R"delim(
   Get PyCapsule for JAX FFI conditioned path sampling handler.
   Samples a path conditioned on reaching a target vertex, with fixed-size output.
+  )delim");
+
+  param_module.def("get_daisy_chain_joint_probs_ffi_capsule", []() -> py::capsule {
+      auto* handler = phasic::parameterized::CreateDaisyChainJointProbsHandler();
+      return py::capsule(reinterpret_cast<void*>(handler), "xla._CUSTOM_CALL_TARGET");
+  }, R"delim(
+  Get PyCapsule for JAX FFI daisy-chain joint-probs handler.
+
+  This handler runs the entire daisy chain (n_epochs - 1 transitions
+  followed by a final-epoch joint-probs readout) in C, mirroring the
+  vanilla joint-prob path's single-FFI-call structure. Daisy-chain
+  metadata (epoch_dts, t_eval, n_epochs, ipv_target_indices, t_aux_keys,
+  t_aux_values, t_vertex_indices) is passed via a top-level
+  ``"_daisy_chain"`` object in the structure JSON.
   )delim");
 #endif
 

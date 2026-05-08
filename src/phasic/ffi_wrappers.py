@@ -278,6 +278,19 @@ def _register_ffi_targets() -> bool:
             except AttributeError:
                 pass  # BFFG FFI handlers not available (optional)
 
+            # Daisy-chain joint-probs handler (single FFI call replaces
+            # the per-epoch pure_callback chain on the SVGD path).
+            try:
+                daisy_chain_capsule = cpp_module.parameterized.get_daisy_chain_joint_probs_ffi_capsule()
+                jax.ffi.register_ffi_target(
+                    "ptd_daisy_chain_joint_probs",
+                    daisy_chain_capsule,
+                    platform="cpu",
+                    api_version=1,
+                )
+            except AttributeError:
+                pass  # Daisy-chain FFI handler not available (optional)
+
         except Exception as e:
             # FFI registration failed
             raise PTDBackendError(
@@ -1114,10 +1127,84 @@ def backward_probabilities_ffi(
 # DO NOT attempt automatic registration on module import!
 
 
+def compute_daisy_chain_joint_probs_ffi(
+    structure_json: 'str | dict',
+    theta: 'jax.Array',
+    initial_ipv: 'jax.Array',
+) -> 'jax.Array':
+    """Run the daisy-chain joint-probs computation via JAX FFI.
+
+    Daisy-chain metadata (epoch_dts, t_eval, n_epochs, ipv_target_indices,
+    t_aux_keys, t_aux_values, t_vertex_indices, param_length) must be
+    embedded in ``structure_json`` under a top-level ``"_daisy_chain"``
+    object. Use ``Graph._daisy_chain_serialize(...)`` to build it.
+
+    Parameters
+    ----------
+    structure_json : str or dict
+        Serialized JSP graph + ``"_daisy_chain"`` metadata.
+    theta : jax.Array
+        Per-epoch parameters, flattened: shape ``(n_epochs * param_length,)``.
+    initial_ipv : jax.Array
+        IPV for epoch 0, shape ``(n_ipv,)``.
+
+    Returns
+    -------
+    jax.Array
+        Joint probabilities at the t-states, shape ``(n_t_vertices,)``.
+
+    Notes
+    -----
+    Mirrors ``compute_sojourn_times_ffi``:
+      - JSON passed as STATIC attribute (not batched).
+      - theta and initial_ipv are buffers (batched by vmap).
+      - vmap_method="expand_dims": OpenMP-parallel batch loop in the C
+        handler.
+    """
+    # Register FFI targets (raises error if FFI disabled or unavailable)
+    _register_ffi_targets()
+
+    structure_str = _ensure_json_string(structure_json)
+    theta = jnp.asarray(theta, dtype=jnp.float64)
+    initial_ipv = jnp.asarray(initial_ipv, dtype=jnp.float64)
+
+    if theta.ndim != 1:
+        raise ValueError(f"theta must be 1D, got shape {theta.shape}")
+    if initial_ipv.ndim != 1:
+        raise ValueError(
+            f"initial_ipv must be 1D, got shape {initial_ipv.shape}"
+        )
+
+    # Output shape: (n_t_vertices,). We need to extract n_t_vertices from
+    # the JSON's _daisy_chain.t_vertex_indices length so the FFI call
+    # knows the expected output shape.
+    import json as _json_mod
+    parsed = _json_mod.loads(structure_str) if isinstance(structure_json, str) \
+        else structure_json
+    if not isinstance(parsed, dict) or "_daisy_chain" not in parsed:
+        raise ValueError(
+            "structure_json must contain a top-level '_daisy_chain' object."
+        )
+    n_t = len(parsed["_daisy_chain"]["t_vertex_indices"])
+
+    result_shape = jax.ShapeDtypeStruct((n_t,), jnp.float64)
+    ffi_fn = jax.ffi.ffi_call(
+        "ptd_daisy_chain_joint_probs",
+        result_shape,
+        vmap_method="expand_dims",
+    )
+    return ffi_fn(
+        theta,
+        initial_ipv,
+        structure_json=structure_str,
+    )
+
+
 __all__ = [
     'compute_pmf_ffi',
     'compute_moments_ffi',
     'compute_pmf_and_moments_ffi',
     'compute_pmf_multivariate_ffi',
     'compute_sojourn_times_ffi',
+    'compute_daisy_chain_joint_probs_ffi',
 ]

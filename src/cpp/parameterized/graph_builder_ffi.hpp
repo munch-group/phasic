@@ -176,6 +176,41 @@ ffi::Error SamplePathConditionedFfiImpl(
     ffi::ResultBuffer<ffi::F64> out_times
 );
 
+/**
+ * @brief JAX FFI handler for daisy-chained joint-prob computation.
+ *
+ * Performs the full daisy chain end-to-end in C: for each of (n_epochs - 1)
+ * epoch transitions, calls ptd_graph_update_ipv (with the propagated IPV)
+ * and ptd_graph_update_weights (with that epoch's theta), runs
+ * stop_probability(epoch_dt), collapses t-aux pairs, projects into IPV
+ * coordinates for the next epoch. Final epoch reads stop_probability(t_eval),
+ * collapses t-aux, slices to t-vertex positions and returns.
+ *
+ * Daisy-chain metadata (epoch_dts, t_eval, n_epochs, ipv_target_indices,
+ * t_aux_keys, t_aux_values, t_vertex_indices) is encoded into the
+ * structure_json under a top-level "_daisy_chain" object. GraphBuilder
+ * silently ignores unknown JSON fields, so the same JSON can be reused
+ * for both graph construction and daisy-chain metadata extraction.
+ *
+ * Mirrors ComputeSojournTimesFfiImpl in structure: thread-local
+ * GraphBuilder cache, OpenMP-parallel vmap loop, per-batch
+ * get_or_init_persistent_graph (Stage A1) so the symbolic compute graph
+ * (Stage A0) is built once per (thread, GraphBuilder) and reused.
+ *
+ * @param structure_json JSON with graph + "_daisy_chain" metadata (string_view, STATIC)
+ * @param theta Per-epoch parameter buffer (F64, shape: [n_epochs * param_length]) - BATCHED
+ * @param initial_ipv IPV for epoch 0 (F64, shape: [n_ipv]) - BATCHED
+ * @param result Output buffer (F64, shape: [n_t_vertices])
+ *
+ * @return ffi::Error Success or error status
+ */
+ffi::Error DaisyChainJointProbsFfiImpl(
+    std::string_view structure_json,
+    ffi::Buffer<ffi::F64> theta,
+    ffi::Buffer<ffi::F64> initial_ipv,
+    ffi::ResultBuffer<ffi::F64> result
+);
+
 } // namespace ffi_handlers
 
 // Functions to create FFI handlers for Python-side registration
@@ -187,6 +222,7 @@ XLA_FFI_Handler* CreateComputePmfMultivariateHandler();
 XLA_FFI_Handler* CreateComputeSojournTimesHandler();
 XLA_FFI_Handler* CreateBackwardProbabilitiesHandler();
 XLA_FFI_Handler* CreateSamplePathConditionedHandler();
+XLA_FFI_Handler* CreateDaisyChainJointProbsHandler();
 
 } // namespace parameterized
 } // namespace phasic

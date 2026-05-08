@@ -113,35 +113,35 @@ website:
         - pages/getting_started.ipynb
         - section: "State space"
           contents:
-            - pages/tutorial/introduction.ipynb
-            - pages/tutorial/state-space.ipynb
-            - pages/tutorial/state-space-utils.ipynb
-            - pages/tutorial/visualize.ipynb
-            - pages/tutorial/properties.ipynb
-            - pages/tutorial/discrete.ipynb
-            - pages/tutorial/parametrization.ipynb
+            - pages/tutorial/01_introduction.ipynb
+            - pages/tutorial/02_state-space.ipynb
+            - pages/tutorial/03_state-space-utils.ipynb
+            - pages/tutorial/04_visualize.ipynb
+            - pages/tutorial/05_properties.ipynb
+            - pages/tutorial/06_discrete.ipynb
+            - pages/tutorial/07_parametrization.ipynb
         - section: "Inference"
           contents:
-            - pages/tutorial/trace-and-jax-caching.ipynb
-            - pages/tutorial/method-of-moments.ipynb
-            - pages/tutorial/svgd-basics.ipynb
-            - pages/tutorial/priors-and-schedules.ipynb
-            - pages/tutorial/svgd-multi-feature.ipynb
-            - pages/tutorial/svgd-multi-param.ipynb
-            - pages/tutorial/svgd-joint-prob.ipynb
+            - pages/tutorial/08_trace-and-jax-caching.ipynb
+            - pages/tutorial/08_trace-and-jax-caching-c-path.ipynb
+            - pages/tutorial/09_method-of-moments.ipynb
+            - pages/tutorial/10_svgd-basics.ipynb
+            - pages/tutorial/11_svgd-priors-and-schedules.ipynb
+            - pages/tutorial/12_svgd-multi-feature.ipynb
+            - pages/tutorial/13_svgd-multi-param.ipynb
+            - pages/tutorial/14_svgd-joint-prob.ipynb
         - section: "Computation"
           contents:
-            - pages/tutorial/mpfr.ipynb
-            - pages/tutorial/distributed.ipynb
-            - pages/tutorial/sharing.ipynb
+            - pages/tutorial/15_mpfr.ipynb
+            - pages/tutorial/16_distributed.ipynb
+            - pages/tutorial/17_sharing.ipynb
         - section: "Modelling"
           contents:
-            - pages/tutorial/time-inhomogeneous.ipynb
-            - pages/tutorial/laplace.ipynb
-            - pages/tutorial/joint-probability.ipynb
-            - pages/tutorial/time-inhom-joint-prob.ipynb
-            - pages/tutorial/finite-markov-chains.ipynb
-            - pages/tutorial/hex-grid.ipynb
+            - pages/tutorial/18_time-inhomogeneous.ipynb
+            - pages/tutorial/19_laplace.ipynb
+            - pages/tutorial/20_joint-probability.ipynb
+            - pages/tutorial/22_finite-markov-chains.ipynb
+            - pages/tutorial/23_hex-grid.ipynb          
             # - pages/tutorial/state-lumping.ipynb
             # - pages/topics/R/partitioning.ipynb
         - section: "Topics"

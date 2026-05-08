@@ -2,11 +2,61 @@
 Tests XXXX
 """
 
-class TestRewards:
+from phasic import Graph, with_ipv # ALWAYS import phasic first to set jax backend correctly
+import numpy as np
+from pytest import approx, raises
+
+nr_samples = 4
+
+np.random.seed(42)
+@with_ipv([nr_samples]+[0]*(nr_samples-1))
+def coalescent(state):
+    transitions = []
+    for i in range(state.size):
+        for j in range(i, state.size):            
+            same = int(i == j)
+            if same and state[i] < 2:
+                continue
+            if not same and (state[i] < 1 or state[j] < 1):
+                continue 
+            new = state.copy()
+            new[i] -= 1
+            new[j] -= 1
+            new[i+j+1] += 1
+            transitions.append((new, [state[i]*(state[j]-same)/(1+same)]))
+    return transitions
+
+
+class TestRewardTransform:
+    """Test reward transformation"""
+
+    def test_singleton_transform(self):
+
+        graph = Graph(coalescent)
+        rt_graph = graph.reward_transform([0, 4, 2, 0, 1, 0])
+        assert rt_graph.expectation() == approx(2)
+
+    def test_doubleton_transform(self):
+
+        graph = Graph(coalescent)
+        rt_graph = graph.reward_transform([0, 0, 1, 2, 0, 0])
+        assert rt_graph.expectation() == approx(1)
+
+    def test_tripleton_transform(self):
+
+        graph = Graph(coalescent)
+        rt_graph = graph.reward_transform([0, 0, 0, 0, 1, 0])
+        assert rt_graph.expectation() == approx(2/3)        
+
+class TestRewardedExpectation:
     """Test rewards"""
 
-    def test_expectation_rewards(self):
-        ...
+    def test_rewarded_expectation(self):
+
+        graph = Graph(coalescent)
+        assert graph.expectation([0, 4, 2, 0, 1, 0]) == approx(2)
+        assert graph.expectation([0, 0, 1, 2, 0, 0]) == approx(1)
+        assert graph.expectation([0, 0, 0, 0, 1, 0]) == approx(2/3)
 
 
 
@@ -22,28 +72,22 @@ class TestRewards:
 
 
 
-class TestExpectedWaitingTime:
+class TestRewardedExpectedWaitingTime:
     """Test expected waiting time"""
 
     def test_expected_waiting_time(self):
         ...
 
 
-class TestStateProbability:
+class TestRewardedStateProbability:
     """Test state probability"""
 
     def test_state_probability_XXXX(self):
         ...
 
 
-class TestExpectedWaitingTime:
-    """Test expected waiting time"""
 
-    def test_expected_waiting_time_XXXX(self):
-        ...
-
-
-class TestExpectedSojournTime:
+class TestRewardedExpectedSojournTime:
     """Test expected sojourn time"""
 
     def test_expected_sojourn_time_XXXX(self):

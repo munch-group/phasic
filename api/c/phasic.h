@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <pthread.h>  /* pthread_mutex_t for ptd_graph::compute_graph_lock */
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,7 +57,35 @@ struct ptd_scc_graph;
 struct ptd_scc_edge;
 struct ptd_scc_vertex;
 
-extern volatile char ptd_err[4096];
+/* Thread-local-storage macro. Required for thread safety under concurrent
+ * JAX pmap / OpenMP execution: ``ptd_err`` (below) and several scratch
+ * allocators in src/c/phasic.c must give each OS thread its own slot to
+ * avoid races.
+ *
+ * We deliberately prefer the GCC/Clang ``__thread`` extension over C11
+ * ``_Thread_local`` and C++11 ``thread_local``. Reason: ``ptd_err`` is
+ * declared in this header (visible in both C and C++ TUs through
+ * extern "C") and defined in src/c/phasic.c. On macOS arm64, mixing
+ * a C-side ``_Thread_local`` definition with a C++-side ``thread_local``
+ * extern declaration produces an unresolved
+ * ``thread-local wrapper routine`` symbol because the two language
+ * standards lower to different TLS ABIs. Using ``__thread`` for both
+ * sides gives a single consistent ABI (raw TLS, no wrapper functions).
+ * Both GCC and Clang support ``__thread`` for C and C++. */
+#ifndef PTD_TLS
+#  if defined(__GNUC__) || defined(__clang__)
+#    define PTD_TLS __thread
+#  elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L && \
+        !defined(__STDC_NO_THREADS__) && !defined(__cplusplus)
+#    define PTD_TLS _Thread_local
+#  elif defined(__cplusplus) && __cplusplus >= 201103L
+#    define PTD_TLS thread_local
+#  else
+#    error "Compiler does not support thread-local storage; required for phasic"
+#  endif
+#endif
+
+extern PTD_TLS char ptd_err[4096];
 
 #ifndef PTD_DEBUG_1_INDEX
 #define PTD_DEBUG_1_INDEX 0
@@ -133,6 +162,23 @@ struct ptd_graph {
     /* Trace-based elimination (NULL until first parameter update) */
     struct ptd_elimination_trace *elimination_trace;
     double *current_params;  // Current parameter values (NULL until first update)
+
+    /* Edge-weight version counter. Incremented on every C-level mutation
+     * (ptd_graph_update_weights, ptd_edge_update_weight, ptd_edge_update_to).
+     * Forward-state context structs stamp their value at creation; cache
+     * guards in api/cpp/phasiccpp.h compare against this to detect stale
+     * contexts that need rebuilding. Starts at 0; never decreases. */
+    uint64_t weight_version;
+
+    /* Per-graph mutex protecting the lazy build inside
+     * ptd_precompute_reward_compute_graph. Two threads sharing the same
+     * ptd_graph * can both observe reward_compute_graph as NULL and try
+     * to build it, racing on the result pointer. The mutex serialises
+     * the lazy build. The flag tracks whether ptd_graph_destroy must
+     * call pthread_mutex_destroy (false if pthread_mutex_init failed
+     * during ptd_graph_create). */
+    pthread_mutex_t compute_graph_lock;
+    bool compute_graph_lock_initialized;
 };
 
 struct ptd_edge {
@@ -200,6 +246,32 @@ void ptd_graph_update_weights(
         double *params,
         size_t params_length,
         bool use_log
+);
+
+/**
+ * Set the initial probability vector after the graph has been constructed.
+ *
+ * Walks only the starting-vertex edges and writes ipv[k] to the k-th edge's
+ * weight (in construction order). Does NOT touch any non-starting-vertex
+ * edges. Bumps weight_version so the C++ wrapper's forward-state caches
+ * (ph_context_markov etc.) detect the change. The symbolic
+ * parameterized_reward_compute_graph survives this call (Stage A0
+ * invariant) — the symbolic structure depends only on topology +
+ * coefficients, neither of which IPV edge-weight updates mutate.
+ *
+ * @param graph        Graph whose IPV is being set.
+ * @param ipv          Array of new IPV edge weights.
+ * @param ipv_length   Must equal the number of starting-vertex edges.
+ *
+ * Sets ptd_err and returns without mutating any edges if:
+ *   - graph or ipv is NULL, ipv_length == 0,
+ *   - ipv_length does not match starting_vertex->edges_length,
+ *   - any ipv[k] is NaN or Inf.
+ */
+void ptd_graph_update_ipv(
+        struct ptd_graph *graph,
+        double *ipv,
+        size_t ipv_length
 );
 
 /**
@@ -374,6 +446,53 @@ ptd_graph_build_ex_absorbation_time_comp_graph_parameterized(struct ptd_desc_rew
 void ptd_parameterized_reward_compute_graph_destroy(
         struct ptd_desc_reward_compute_parameterized *compute_graph
 );
+
+/**
+ * Serialise a parameterised reward compute graph to disk.
+ *
+ * Walks the commands, encodes each pointer (fromT, toT, multiplierptr)
+ * as either a mem-buffer offset or an (vertex_idx, edge_idx, byte_offset)
+ * triple, flattens the linked-list mem chain into a single contiguous
+ * buffer, and writes the result to ``path`` via atomic write-then-rename
+ * so concurrent readers never see a partial file.
+ *
+ * @param path Destination cache file (parent directory must exist).
+ * @param compute Symbolic compute graph to save.
+ * @param graph The graph that ``compute`` was built from. Used at save
+ *              time to look up edge pointers for the encoding step;
+ *              the saved file embeds (vertex_idx, edge_idx) which the
+ *              loader resolves against the live graph passed to
+ *              ptd_load_parameterized_reward_compute_graph.
+ * @return 0 on success, -1 on error (sets ptd_err).
+ */
+int ptd_save_parameterized_reward_compute_graph(
+        const char *path,
+        const struct ptd_desc_reward_compute_parameterized *compute,
+        const struct ptd_graph *graph);
+
+/**
+ * Load a parameterised reward compute graph from disk.
+ *
+ * Reads the header, validates magic/version, allocates a single
+ * ``mem`` block (wrapped in one ll_of_a node so the existing destroy
+ * function works unchanged), reads the commands, and re-points all
+ * fromT/toT/multiplierptr fields against the loaded mem and the
+ * supplied graph's edge weights.
+ *
+ * @param path Cache file path.
+ * @param graph The graph to bind edge-pointer fields to. Must have
+ *              the same structure as the graph used at save time.
+ * @return Newly allocated compute graph (caller owns; destroy via
+ *         ptd_parameterized_reward_compute_graph_destroy), or NULL
+ *         on error (cache miss / corrupt file / version mismatch /
+ *         OOM). On NULL the caller should fall back to rebuilding
+ *         the cache from scratch and ptd_err is set to a
+ *         human-readable description of the miss reason.
+ */
+struct ptd_desc_reward_compute_parameterized *
+ptd_load_parameterized_reward_compute_graph(
+        const char *path,
+        const struct ptd_graph *graph);
 
 // ============================================================================
 // Symbolic Expression System for Efficient Parameter Evaluation
@@ -856,6 +975,10 @@ struct ptd_probability_distribution_context {
     void *priv;
     long double time;
     int granularity;
+    /* graph->weight_version snapshot taken when this context was created.
+     * Used by C++ wrapper cache guards (api/cpp/phasiccpp.h) to detect
+     * stale forward state after edge weights change. */
+    uint64_t weight_version_at_creation;
 };
 
 struct ptd_probability_distribution_context *ptd_probability_distribution_context_create(
@@ -881,6 +1004,9 @@ struct ptd_dph_probability_distribution_context {
     size_t priv2;
     double priv3;
     int jumps;
+    /* graph->weight_version snapshot at creation; see same field on
+     * ptd_probability_distribution_context for the rationale. */
+    uint64_t weight_version_at_creation;
 };
 
 struct ptd_dph_probability_distribution_context *ptd_dph_probability_distribution_context_create(

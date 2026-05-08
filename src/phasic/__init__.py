@@ -220,6 +220,7 @@ if HAS_JAX:
         # Prior classes
         Prior,
         GaussPrior,
+        LogGaussPrior,
         HalfCauchyPrior,
         DataPrior,
         # Step size schedules
@@ -272,6 +273,7 @@ else:
     bffg_log_prob = None
     Prior = None
     GaussPrior = None
+    LogGaussPrior = None
     HalfCauchyPrior = None
     DataPrior = None
     StepSizeSchedule = None
@@ -367,6 +369,10 @@ from .auto_parallel import (
 from .cache_manager import CacheManager, print_jax_cache_info, configure_layered_cache
 from .model_export import clear_caches, clear_jax_cache, clear_model_cache, cache_info, print_model_cache_info, get_all_cache_stats, print_all_cache_info
 from .trace_cache import get_trace_cache_stats, print_trace_cache_info
+
+# On-disk cache management (~/.phasic_cache/) — symbolic compute
+# graph cache (Stage A2) and Python trace cache.
+from . import cache
 from .jax_config import CompilationConfig, get_default_config, set_default_config
 # from .cloud_cache import (
 #     S3Backend,
@@ -974,6 +980,11 @@ static struct ptd_trace_result* evaluate_embedded_trace(const double* theta, siz
                 sum += values[operations_operands_flat[operands_offset + j]];
             }}
             values[i] = sum;
+            operands_offset += operations_operand_counts[i];
+        }}
+        else if (op_type == 8) {{  // SUB
+            values[i] = values[operations_operands_flat[operands_offset]] -
+                       values[operations_operands_flat[operands_offset + 1]];
             operands_offset += operations_operand_counts[i];
         }}
     }}
@@ -1759,19 +1770,53 @@ class Graph(_Graph):
         >>> # Callback mode works:
         >>> graph.update_weights([1.5, 2.0], lambda theta, coeffs: coeffs[0]*theta[0] + coeffs[1]*theta[1] + coeffs[2])  # OK
         """
-        # Extract cache_trace flag (with hierarchical as deprecated alias)
-        cache_trace = kwargs.get('cache_trace', None)
-        hierarchical = kwargs.get('hierarchical', None)
-        if cache_trace is None and hierarchical is not None:
+        # DEPRECATED: cache_trace and hierarchical kwargs.
+        #
+        # The Python EliminationTrace path that these kwargs once gated
+        # is no longer wired to the public moments()/expectation()/
+        # variance() entry points (those route directly to the C++
+        # super() implementation, which already uses the Stage A0-cached
+        # parameterized_reward_compute_graph). Passing cache_trace=True
+        # had documented numerical bugs on cyclic graphs and produced
+        # RuntimeError on non-parameterised graphs (see
+        # tests/pytest/failing_tests.md). The implementation is left
+        # in source for the time being but the public kwarg is no
+        # longer accepted.
+        #
+        # Internally self._cache_trace is forced to False so any
+        # surviving guards in the trace machinery short-circuit
+        # cleanly.
+        cache_trace_in = kwargs.pop('cache_trace', None)
+        hierarchical_in = kwargs.pop('hierarchical', None)
+        if cache_trace_in not in (None, False) or hierarchical_in not in (None, False):
             import warnings
             warnings.warn(
-                "The 'hierarchical' parameter is deprecated. Use 'cache_trace' instead.",
+                "Graph(cache_trace=...) / Graph(hierarchical=...) is "
+                "deprecated and no longer takes effect. The Python "
+                "EliminationTrace path that this kwarg gated has been "
+                "retired from the public moments()/expectation()/"
+                "variance() entry points; those now route directly to "
+                "the C++ implementation. The argument is ignored; the "
+                "kwarg will be removed in a future release.",
                 DeprecationWarning,
-                stacklevel=2
+                stacklevel=2,
             )
-            cache_trace = hierarchical
-        elif cache_trace is None:
-            cache_trace = False
+        cache_trace = False  # forced
+
+        # Original behaviour retained as commented reference:
+        #
+        # cache_trace = kwargs.get('cache_trace', None)
+        # hierarchical = kwargs.get('hierarchical', None)
+        # if cache_trace is None and hierarchical is not None:
+        #     import warnings
+        #     warnings.warn(
+        #         "The 'hierarchical' parameter is deprecated. Use 'cache_trace' instead.",
+        #         DeprecationWarning,
+        #         stacklevel=2
+        #     )
+        #     cache_trace = hierarchical
+        # elif cache_trace is None:
+        #     cache_trace = False
 
         # Validate arg
         if isinstance(arg, int):
@@ -2163,6 +2208,50 @@ class Graph(_Graph):
             # C++ overload: update_weights(params, log=False)
             return super().update_weights(theta, log=log)
 
+    def update_ipv(self, ipv: ArrayLike) -> None:
+        """Set the initial probability vector after construction.
+
+        Parameters
+        ----------
+        ipv : array-like, shape (n_ipv_edges,)
+            New weights for starting-vertex edges, in construction order.
+            Length must equal the number of starting-vertex edges in
+            the graph.
+
+        Notes
+        -----
+        IPV is a property of the model, not an inference parameter. Use
+        this method to:
+
+          - set the IPV after constructing the graph if your callback
+            does not bake one in;
+          - re-run the same graph against a different initial
+            distribution without rebuilding it;
+          - propagate epoch state in a daisy chain (handled internally
+            by the daisy-chain machinery between epochs).
+
+        The symbolic compute graph cache (Stage A0) survives this call,
+        so subsequent forward computations (``expectation``, ``pdf``,
+        ``compute_pmf``, ...) reuse the cached elimination.
+
+        For users on the Python ``EliminationTrace`` path
+        (``cache_trace=True``), IPV remains baked in at trace-record
+        time — that path is not affected by ``update_ipv``.
+        """
+        ipv_array = np.asarray(ipv, dtype=np.float64)
+        if ipv_array.ndim != 1:
+            raise ValueError(
+                f"ipv must be 1-dimensional, got shape {ipv_array.shape}"
+            )
+        if ipv_array.size == 0:
+            raise ValueError("ipv must be non-empty")
+        if np.any(np.isnan(ipv_array)):
+            raise ValueError("ipv contains NaN values")
+        if np.any(np.isinf(ipv_array)):
+            raise ValueError("ipv contains infinite values")
+        self._last_ipv = ipv_array
+        return super().update_ipv(ipv_array)
+
     def _moments_from_trace(self, power: int = 1, rewards: ArrayLike | None = None, discrete: bool = False) -> float:
         """Compute moments using cached elimination trace.
 
@@ -2369,14 +2458,23 @@ class Graph(_Graph):
         For higher moments (k > 2), numerical stability may become an issue for
         complex distributions.
         """
-        # For parameterized graphs, always use trace-based computation (O(n) memory)
-        # to avoid O(n²) matrix allocation in the C++ fallback path
-        if self.parameterized():
-            trace = self._ensure_trace()
-            if trace is not None:
-                return self._moments_from_trace(power, rewards=rewards, discrete=discrete, **kwargs)
+        # DISABLED: trace-based routing for parameterised graphs.
+        # The C++ moments path (super().moments) already uses the
+        # Stage A0-cached parameterized_reward_compute_graph and works
+        # for parameterised graphs. Routing through
+        # self._ensure_trace() + instantiate_from_trace() recorded a
+        # Python trace and rebuilt a graph from it on every call —
+        # strictly redundant work for the same numerical result.
+        #
+        # # For parameterized graphs, always use trace-based computation (O(n) memory)
+        # # to avoid O(n²) matrix allocation in the C++ fallback path
+        # if self.parameterized():
+        #     trace = self._ensure_trace()
+        #     if trace is not None:
+        #         return self._moments_from_trace(power, rewards=rewards, discrete=discrete, **kwargs)
 
-        # Fall back to direct C++ computation for non-parameterized graphs
+        # Direct C++ computation (works for both parameterised and
+        # non-parameterised graphs).
         if discrete:
             if not self.is_discrete:
                 raise ValueError("discrete=True only valid for discrete distributions")
@@ -2422,23 +2520,24 @@ class Graph(_Graph):
                     f"rewards length ({len(rewards_arr)}) must equal number of vertices ({n_vertices})"
                 )
 
-        if self.cache_trace and self.parameterized():
-            if self.is_discrete:
-                raise NotImplementedError("Trace-based expectation computation not implemented yet for discrete graphs.")
-                # return self._expectation_from_trace(rewards=rewards, discrete=True, **kwargs)
-            else:
-                trace = self._ensure_trace()
-                if trace is None:
-                    raise RuntimeError("No trace, is your Graph parameterized?")
-                return self._expectation_from_trace(rewards=rewards, discrete=False, **kwargs)
-        # # For parameterized graphs, always use trace-based computation (O(n) memory)
-        # # to avoid O(n²) matrix allocation in the C++ fallback path
-        # if self.parameterized():
-        #     trace = self._ensure_trace()
-        #     if trace is not None:
-        #         return self._expectation_from_trace(rewards=rewards, discrete=self.is_discrete, **kwargs)
+        # DISABLED: trace-based routing for parameterised graphs.
+        # See Graph.moments() for the rationale. The
+        # _expectation_from_trace path is preserved in source for
+        # callers who use it directly, but the public expectation()
+        # entry point now always goes through the C++ super() path.
+        #
+        # if self.cache_trace and self.parameterized():
+        #     if self.is_discrete:
+        #         raise NotImplementedError("Trace-based expectation computation not implemented yet for discrete graphs.")
+        #         # return self._expectation_from_trace(rewards=rewards, discrete=True, **kwargs)
+        #     else:
+        #         trace = self._ensure_trace()
+        #         if trace is None:
+        #             raise RuntimeError("No trace, is your Graph parameterized?")
+        #         return self._expectation_from_trace(rewards=rewards, discrete=False, **kwargs)
 
-        # Fall back to direct C++ computation for non-parameterized graphs
+        # Direct C++ computation (works for both parameterised and
+        # non-parameterised graphs).
         if self.is_discrete:
             return super().expectation_discrete(rewards=rewards, **kwargs)
         else:
@@ -2482,23 +2581,21 @@ class Graph(_Graph):
                     f"rewards length ({len(rewards_arr)}) must equal number of vertices ({n_vertices})"
                 )
 
-        if self.cache_trace and self.parameterized():
-            if self.is_discrete:
-                raise NotImplementedError("Trace-based expectation computation not implemented yet for discrete graphs.")
-                # return self._variance_from_trace(rewards=rewards, discrete=True, **kwargs)
-            else:
-                trace = self._ensure_trace()
-                if trace is None:
-                    raise RuntimeError("No trace, is your Graph parameterized?")
-                return self._variance_from_trace(rewards=rewards, discrete=False, **kwargs)
-        # # For parameterized graphs, always use trace-based computation (O(n) memory)
-        # # to avoid O(n²) matrix allocation in the C++ fallback path
-        # if self.parameterized():
-        #     trace = self._ensure_trace()
-        #     if trace is not None:
-        #         return self._variance_from_trace(rewards=rewards, discrete=self.is_discrete, **kwargs)
+        # DISABLED: trace-based routing for parameterised graphs.
+        # See Graph.moments() for the rationale.
+        #
+        # if self.cache_trace and self.parameterized():
+        #     if self.is_discrete:
+        #         raise NotImplementedError("Trace-based expectation computation not implemented yet for discrete graphs.")
+        #         # return self._variance_from_trace(rewards=rewards, discrete=True, **kwargs)
+        #     else:
+        #         trace = self._ensure_trace()
+        #         if trace is None:
+        #             raise RuntimeError("No trace, is your Graph parameterized?")
+        #         return self._variance_from_trace(rewards=rewards, discrete=False, **kwargs)
 
-        # Fall back to direct C++ computation for non-parameterized graphs
+        # Direct C++ computation (works for both parameterised and
+        # non-parameterised graphs).
         if self.is_discrete:
             return super().variance_discrete(rewards=rewards, **kwargs)
         else:
@@ -4306,70 +4403,83 @@ class Graph(_Graph):
             config = get_config()
             use_ffi = config.ffi  # User can enable with config.ffi = True
 
-            if use_ffi:
-                # FFI MODE: Zero-copy XLA-optimized computation with multi-core support
-                # FFI handlers cache GraphBuilder in thread-local storage
-                from functools import partial
-
-                # Create a partially applied function with static structure_json
-                # This prevents vmap from adding a batch dimension to JSON
-                model_ffi_partial = partial(
-                    compute_pmf_ffi,
-                    structure_json_str,  # Static: not vmapped
-                    discrete=discrete,   # Static: not vmapped
-                    granularity=0        # Static: not vmapped
+            if not use_ffi:
+                # The pure_callback fallback below has been DISABLED.
+                # phasic now requires FFI for parameterised pmf models;
+                # the legacy single-core pure_callback path is left in
+                # the source as a comment for reference but is no longer
+                # reachable. To restore it, uncomment the block below
+                # and remove this raise.
+                raise PTDBackendError(
+                    "pmf_from_graph requires FFI for parameterised graphs. "
+                    "FFI is disabled in the current configuration. "
+                    "Re-enable with phasic.configure(ffi=True), or rebuild "
+                    "phasic with XLA FFI headers available."
                 )
+            # FFI MODE: Zero-copy XLA-optimized computation with multi-core support
+            # FFI handlers cache GraphBuilder in thread-local storage
+            from functools import partial
 
-                def model_pure(theta, times):
-                    """FFI wrapper for multi-core parallelization.
+            # Create a partially applied function with static structure_json
+            # This prevents vmap from adding a batch dimension to JSON
+            model_ffi_partial = partial(
+                compute_pmf_ffi,
+                structure_json_str,  # Static: not vmapped
+                discrete=discrete,   # Static: not vmapped
+                granularity=0        # Static: not vmapped
+            )
 
-                    Supports: jit, vmap, pmap with true multi-core execution
-                    FFI caching: GraphBuilder cached by JSON structure (no repeated parsing)
-                    """
-                    return model_ffi_partial(theta=theta, times=times)
-            else:
-                # pure_callback (single-core, no FFI)
-                from . import phasic_pybind as cpp_module
+            def model_pure(theta, times):
+                """FFI wrapper for multi-core parallelization.
 
-                # Create GraphBuilder ONCE - captured in model closure
-                builder = cpp_module.parameterized.GraphBuilder(structure_json_str)
+                Supports: jit, vmap, pmap with true multi-core execution
+                FFI caching: GraphBuilder cached by JSON structure (no repeated parsing)
+                """
+                return model_ffi_partial(theta=theta, times=times)
 
-                def _compute_pdf_cached(theta_np, times_np):
-                    """Uses cached builder - NO JSON parsing per call."""
-                    # Check if theta is batched (from vmap with expand_dims)
-                    if theta_np.ndim == 2:
-                        times_unbatched = times_np[0] if times_np.ndim == 2 else times_np
-                        results = []
-                        for theta_single in theta_np:
-                            result = builder.compute_pmf(
-                                theta_single,
-                                times_unbatched,
-                                discrete=discrete,
-                                granularity=0
-                            )
-                            results.append(result)
-                        return np.array(results)
-                    else:
-                        return builder.compute_pmf(
-                            theta_np,
-                            times_np,
-                            discrete=discrete,
-                            granularity=0
-                        )
-
-                def model_pure(theta, times):
-                    """Pure callback wrapper (fallback when FFI disabled)."""
-                    result_shape = jax.ShapeDtypeStruct(times.shape, times.dtype)
-                    return jax.pure_callback(
-                        lambda t, tm: _compute_pdf_cached(
-                            np.asarray(t, dtype=np.float64),
-                            np.asarray(tm, dtype=np.float64)
-                        ).astype(times.dtype),
-                        result_shape,
-                        theta,
-                        times,
-                        vmap_method='expand_dims'
-                    )
+            # ---- DISABLED: legacy pure_callback fallback (no FFI) ----
+            # from . import phasic_pybind as cpp_module
+            #
+            # # Create GraphBuilder ONCE - captured in model closure
+            # builder = cpp_module.parameterized.GraphBuilder(structure_json_str)
+            #
+            # def _compute_pdf_cached(theta_np, times_np):
+            #     """Uses cached builder - NO JSON parsing per call."""
+            #     # Check if theta is batched (from vmap with expand_dims)
+            #     if theta_np.ndim == 2:
+            #         times_unbatched = times_np[0] if times_np.ndim == 2 else times_np
+            #         results = []
+            #         for theta_single in theta_np:
+            #             result = builder.compute_pmf(
+            #                 theta_single,
+            #                 times_unbatched,
+            #                 discrete=discrete,
+            #                 granularity=0
+            #             )
+            #             results.append(result)
+            #         return np.array(results)
+            #     else:
+            #         return builder.compute_pmf(
+            #             theta_np,
+            #             times_np,
+            #             discrete=discrete,
+            #             granularity=0
+            #         )
+            #
+            # def model_pure(theta, times):
+            #     """Pure callback wrapper (fallback when FFI disabled)."""
+            #     result_shape = jax.ShapeDtypeStruct(times.shape, times.dtype)
+            #     return jax.pure_callback(
+            #         lambda t, tm: _compute_pdf_cached(
+            #             np.asarray(t, dtype=np.float64),
+            #             np.asarray(tm, dtype=np.float64)
+            #         ).astype(times.dtype),
+            #         result_shape,
+            #         theta,
+            #         times,
+            #         vmap_method='expand_dims'
+            #     )
+            # ---- end DISABLED ----
 
             # Add custom VJP for gradients (finite differences)
             @jax.custom_vjp
@@ -4760,6 +4870,304 @@ extern "C" {{
         return jax_model
 
 
+    def _daisy_chain_svgd_model(
+        self,
+        *,
+        observed_indices,
+        epoch_starts,
+        t_eval: float | None = None,
+        user_prior=None,
+        user_fixed=None,
+        sd: float = 5.0,
+        verbose: bool = False,
+        granularity: int = 0,
+    ):
+        """Build the daisy-chain SVGD model + prior + theta_dim.
+
+        Internal helper for ``Graph.svgd(epoch_starts=...)``. Constructs
+        the JSP graph from ``self``, fits a time-homogeneous reference
+        prior via ``probability_matching`` on ``self``, broadcasts it
+        across ``n_epochs`` epoch slots, and returns a model callable
+        with the SVGD ``model(theta, observed_indices, rewards=None)``
+        contract.
+
+        Parameters
+        ----------
+        observed_indices : sequence of int
+            Vertex indices in ``self`` (the source joint-prob graph)
+            corresponding to each observation. These are the same
+            integers the existing ``joint_index`` mode produces; the
+            daisy-chain branch translates them to JSP-graph t-state
+            positions internally.
+        epoch_starts : array-like of float
+            Epoch start times. ``epoch_starts[0] == 0``; the last
+            entry starts the final epoch which runs to infinity.
+            ``n_epochs = len(epoch_starts)``.
+        t_eval : float, optional
+            Time at which final-epoch joint stop-probabilities are
+            read. Forwarded to ``daisy_chain_joint_probs``. Numeric;
+            the ``'auto'`` resolution happens upstream in
+            ``Graph.svgd``.
+        user_prior : callable, optional
+            User-supplied prior. If given, used as-is. If None, a
+            data-informed prior is built from ``probability_matching``
+            on ``self`` and broadcast across epochs.
+        user_fixed : list of (local_idx, value) tuples, optional
+            Per-parameter fixings, broadcast to the flattened theta
+            shape ``(n_epochs * param_length,)``. The ``value`` may be:
+
+            - a scalar — broadcast across every epoch (legacy form);
+            - a list/array of length ``n_epochs`` — pinning the
+              parameter at a different value in each epoch.
+
+            Multiple entries can mix both forms. The returned
+            ``broadcast_fixed`` is a list of
+            ``(flat_idx, scalar_value)`` tuples ready for SVGD.
+        verbose : bool
+            Forwarded to ``probability_matching``.
+        granularity : int, optional
+            Uniformization granularity forwarded to the FFI handler's
+            ``stop_probability`` calls. ``0`` (default) = auto.
+
+        Returns
+        -------
+        (model, theta_dim, prior)
+            ``model`` is the SVGD-shaped callable; ``theta_dim`` is
+            ``n_epochs * self.param_length()``; ``prior`` is a
+            list-of-priors (one entry per flattened theta slot) or
+            ``user_prior`` if it was supplied.
+        """
+        import jax
+        import jax.numpy as jnp
+
+        # Validate epoch_starts.
+        es = np.asarray(epoch_starts, dtype=np.float64).ravel()
+        if es.size == 0:
+            raise ValueError("epoch_starts must contain at least one value.")
+        if es[0] != 0.0:
+            raise ValueError(
+                f"epoch_starts[0] must be 0.0, got {float(es[0])}."
+            )
+        if not np.all(np.diff(es) > 0):
+            raise ValueError(
+                "epoch_starts must be strictly monotonically increasing."
+            )
+        n_epochs = int(es.size)
+        epoch_dts = list(np.diff(es))  # length n_epochs - 1
+
+        param_length = self.param_length()
+        if param_length == 0:
+            raise ValueError(
+                "Graph has no parameterized edges; cannot run daisy-chain "
+                "SVGD."
+            )
+
+        # The daisy-chain FFI handler uses continuous-time
+        # stop_probability internally, which only works on
+        # continuous-time joint-prob graphs. Discrete joint-prob
+        # graphs would dispatch to stop_probability_discrete(jumps),
+        # which takes integer jumps rather than continuous t. So
+        # any epoch_starts value (including [0]) requires
+        # discrete=False.
+        if getattr(self, 'is_discrete', False):
+            raise ValueError(
+                "Daisy-chain SVGD (epoch_starts=...) requires a "
+                "continuous-time joint-prob graph. Construct the "
+                "joint-prob graph with discrete=False, e.g.\n"
+                "    graph.joint_prob_graph(indexer, ..., discrete=False)"
+            )
+
+        # Build the JSP graph and the initial IPV (in JSP-graph IPV-coords).
+        jsp = self.joint_stop_prob_graph()
+        n_ipv = len(jsp._ipv_target_indices)
+        # Read self's IPV (length self.vertices_length()) and project to
+        # the JSP graph's IPV layout. self's IPV has nonzero entries
+        # only at vertices the user's callback's @with_ipv covered;
+        # those are vertex indices in self that align with vertex
+        # indices in the JSP graph (since both graphs visit
+        # self.vertices() in the same order during construction). So
+        # we extract the entries at the JSP graph's _ipv_target_indices.
+        self_ipv_full = np.zeros(self.vertices_length(), dtype=np.float64)
+        for edge in self.starting_vertex().edges():
+            self_ipv_full[edge.to().index()] = edge.weight()
+        initial_ipv = self_ipv_full[jsp._ipv_target_indices]
+
+        # Translate observed_indices (vertex indices in self) to
+        # positions in jsp._t_vertex_indices. Since the t-vertex set of
+        # the JSP graph is exactly the t-vertex set of self (shared
+        # vertex indexing), each observed_index must be a t-vertex in
+        # self.
+        t_vertex_pos = {
+            int(t_idx): pos for pos, t_idx in enumerate(jsp._t_vertex_indices)
+        }
+        try:
+            observed_pos = np.asarray(
+                [t_vertex_pos[int(i)] for i in observed_indices],
+                dtype=np.int32,
+            )
+        except KeyError as exc:
+            raise ValueError(
+                f"observed_indices contains vertex {exc.args[0]} which is "
+                "not a t-vertex in the JSP graph; observations must "
+                "correspond to terminal joint-prob outcomes."
+            )
+
+        # Capture daisy-chain kwargs and build the SVGD model. The model
+        # contract follows pmf_from_graph_joint_index:
+        # model(theta, observed_indices_passed, rewards=None) ->
+        #     (per_obs_probs, dummy_moments)
+        # The third arg is the SVGD's per-observation index tensor,
+        # which we ignore (already captured at construction time).
+        observed_pos_jnp = jnp.asarray(observed_pos, dtype=jnp.int32)
+
+        theta_dim = n_epochs * param_length
+
+        # Build the broadcast `fixed` list (per-epoch fixed slots
+        # become per-flattened-slot fixings) early so we can pass the
+        # fixed indices into daisy_chain_joint_probs to skip FD on
+        # those slots in the custom_vjp backward.
+        if user_fixed is None:
+            broadcast_fixed = None
+            fixed_indices = None
+        else:
+            broadcast_fixed = []
+            for entry in user_fixed:
+                if not (isinstance(entry, tuple) and len(entry) == 2):
+                    raise ValueError(
+                        f"fixed entries must be (index, value) tuples; "
+                        f"got {entry!r}"
+                    )
+                local_idx, value = entry
+                if not (0 <= local_idx < param_length):
+                    raise ValueError(
+                        f"fixed index {local_idx} out of range "
+                        f"[0, {param_length})"
+                    )
+                # Two accepted value forms:
+                # - scalar: broadcast to every epoch (legacy behaviour);
+                # - list/array of length n_epochs: per-epoch values.
+                is_scalar = isinstance(value, (int, float, np.integer, np.floating))
+                if is_scalar:
+                    per_epoch_values = [float(value)] * n_epochs
+                else:
+                    arr = np.asarray(value, dtype=np.float64).ravel()
+                    if arr.size != n_epochs:
+                        raise ValueError(
+                            f"fixed entry for index {local_idx}: per-epoch "
+                            f"value list must have length n_epochs={n_epochs}; "
+                            f"got length {arr.size}"
+                        )
+                    per_epoch_values = arr.tolist()
+                for epoch, v in enumerate(per_epoch_values):
+                    broadcast_fixed.append(
+                        (epoch * param_length + local_idx, float(v))
+                    )
+            fixed_indices = [idx for idx, _v in broadcast_fixed]
+
+        def model(theta, _observed_arg=None, rewards=None):
+            theta_arr = jnp.atleast_1d(theta)
+            joint_probs = jsp.daisy_chain_joint_probs(
+                epoch_thetas=theta_arr.reshape(n_epochs, param_length),
+                epoch_dts=epoch_dts,
+                initial_ipv=initial_ipv,
+                t_eval=t_eval,
+                fixed_indices=fixed_indices,
+                granularity=granularity,
+            )
+            per_obs = joint_probs[observed_pos_jnp]
+            return per_obs, jnp.zeros(2)
+
+        # broadcast_fixed already built above (alongside fixed_indices)
+        # so we could pass fixed_indices into the model's custom_vjp.
+
+        # Build the prior. If user supplied one, broadcast it across
+        # epochs (one slot per param_length entry per epoch). A list-
+        # of-priors of length param_length is also broadcast slot-for-
+        # slot. A list of length theta_dim is taken as-is.
+        from .svgd import GaussPrior, Prior
+
+        # Helper: zero out per-parameter prior entries for fixed params.
+        # SVGD requires that prior_list[i] is None at fixed indices.
+        fixed_indices_set = (
+            set(idx for idx, _v in broadcast_fixed)
+            if broadcast_fixed is not None else set()
+        )
+
+        def _mask_fixed(prior_list):
+            return [
+                None if i in fixed_indices_set else p
+                for i, p in enumerate(prior_list)
+            ]
+
+        if user_prior is not None:
+            # Determine the broadcast pattern.
+            if isinstance(user_prior, list):
+                if len(user_prior) == theta_dim:
+                    return (
+                        model,
+                        theta_dim,
+                        _mask_fixed(user_prior),
+                        broadcast_fixed,
+                    )
+                if len(user_prior) == param_length:
+                    out = []
+                    for _epoch in range(n_epochs):
+                        out.extend(user_prior)
+                    return (
+                        model,
+                        theta_dim,
+                        _mask_fixed(out),
+                        broadcast_fixed,
+                    )
+                raise ValueError(
+                    f"user prior list length {len(user_prior)} must equal "
+                    f"either param_length={param_length} or "
+                    f"theta_dim={theta_dim}."
+                )
+            # Single callable: broadcast to every per-parameter slot.
+            return (
+                model,
+                theta_dim,
+                _mask_fixed([user_prior] * theta_dim),
+                broadcast_fixed,
+            )
+
+        # Otherwise: run probability_matching on self for a time-
+        # homogeneous reference, then broadcast across epochs.
+        from .probability_matching import probability_matching
+
+        try:
+            pm_result = probability_matching(
+                self, observed_indices,
+                std_multiplier=sd, verbose=verbose,
+            )
+            theta_hat = np.asarray(pm_result.theta, dtype=np.float64)
+            theta_std = np.asarray(pm_result.std, dtype=np.float64)
+        except Exception:
+            # Fall through to None — SVGD will use its standard-normal
+            # default prior.
+            return model, theta_dim, None, broadcast_fixed
+
+        # Per-parameter Gaussian priors, broadcast n_epochs times.
+        # GaussPrior takes ci=[lo, hi]; we pass mean ± sd*std as the
+        # 95% interval — same convention DataPrior uses.
+        broadcast_priors = []
+        for _epoch in range(n_epochs):
+            for k in range(param_length):
+                m = float(theta_hat[k])
+                s = float(theta_std[k]) if k < theta_std.size else 1.0
+                lo = m - sd * s
+                hi = m + sd * s
+                broadcast_priors.append(GaussPrior(ci=[lo, hi]))
+
+        return (
+            model,
+            theta_dim,
+            _mask_fixed(broadcast_priors),
+            broadcast_fixed,
+        )
+
+
     def svgd(self,
              observed_data: ArrayLike | SparseObservations,
              discrete: bool | None = None,
@@ -4788,6 +5196,11 @@ extern "C" {{
              rewards: ArrayLike | None = None,
              fixed: ArrayLike | None = None,
              preconditioner: str | object | None = 'auto',
+             epoch_starts: ArrayLike | None = None,
+             daisy_chain_t_eval: float | str | None = None,
+             daisy_chain_granularity: int = 0,
+             daisy_chain_probe_theta: ArrayLike | None = None,
+             daisy_chain_t_eval_tol: float = 1e-3,
              ) -> dict:
         """
         Run Stein Variational Gradient Descent (SVGD) inference for Bayesian parameter estimation.
@@ -4922,6 +5335,42 @@ extern "C" {{
               matrix diagonal. Can be unstable when PMF values are small.
             - None or 'none': No preconditioning (original behavior)
             - MomentJacobianPreconditioner or FisherPreconditioner instance: Custom preconditioner
+        epoch_starts : array-like of float, optional
+            Enables daisy-chain (time-inhomogeneous) inference. ``epoch_starts[0] == 0``;
+            subsequent entries are the start times of additional epochs. ``n_epochs =
+            len(epoch_starts)``. Each epoch fits its own ``param_length`` parameters,
+            so the flattened theta has length ``n_epochs * param_length``. Requires
+            a continuous-time joint-prob graph (``discrete=False``).
+
+            **Daisy-chain ``fixed`` semantics**: when ``epoch_starts`` is set, each
+            ``(local_idx, value)`` entry in ``fixed`` is broadcast across all epochs.
+            To pin a parameter at *different* values per epoch, pass a list/array of
+            length ``n_epochs`` as the value::
+
+                fixed=[(1, 1.0)]            # local_idx=1 fixed at 1.0 in every epoch
+                fixed=[(1, [1.0, 2.5])]     # local_idx=1 fixed at 1.0 in epoch 0, 2.5 in epoch 1
+                fixed=[(0, 5.0), (1, [2.0, 8.0])]  # mix scalar and per-epoch
+        daisy_chain_t_eval : float, str, or None, default=None
+            Time at which the final-epoch joint stop-probabilities are read off the
+            JSP graph's t-vertices. Only used when ``epoch_starts`` is set.
+            - Numeric: used as-is.
+            - ``None`` (default): falls back to ``max(sum(epoch_dts) * 4, 10.0)``.
+            - ``'auto'``: an adaptive probe (``Graph._probe_daisy_t_eval``) walks the
+              daisy chain at ``daisy_chain_probe_theta`` and grows ``t_eval`` until
+              the residual non-t-vertex transient mass falls below
+              ``daisy_chain_t_eval_tol``. Typically picks a much smaller value than
+              the conservative default and so cuts SVGD wall time significantly.
+        daisy_chain_granularity : int, default=0
+            Uniformization granularity passed to ``stop_probability`` inside the
+            daisy-chain FFI handler. ``0`` = auto (the underlying C++ picks a safe
+            value from the graph's max rate × time). Larger values give finer
+            discretisation; smaller positive values trade accuracy for speed.
+        daisy_chain_probe_theta : array-like, optional
+            Theta used by the ``daisy_chain_t_eval='auto'`` probe. Shape
+            ``(param_length,)`` (broadcast across all epochs) or
+            ``(n_epochs, param_length)`` (per-epoch). Defaults to ones.
+        daisy_chain_t_eval_tol : float, default=1e-3
+            Residual-mass tolerance used by the ``daisy_chain_t_eval='auto'`` probe.
 
         Returns
         -------
@@ -5040,8 +5489,10 @@ extern "C" {{
         if discrete is None:
             discrete = self.is_discrete
 
-        # Default prior: DataPrior with sd=5 (wide, data-informed)
-        if prior is None:
+        # Default prior: DataPrior with sd=5 (wide, data-informed).
+        # Skip when epoch_starts is given — the daisy-chain branch
+        # builds its own broadcast prior with the right shape.
+        if prior is None and epoch_starts is None:
             from .svgd import DataPrior
             try:
                 prior = DataPrior(
@@ -5097,20 +5548,46 @@ extern "C" {{
                 )
             # Force discrete mode for joint_index
             discrete = True
-            # Parse fixed to get mask for joint_index model
-            # This allows the custom VJP to skip finite differences for fixed dimensions
-            fixed_mask_for_model = None
-            if fixed is not None:
-                import jax.numpy as jnp
-                if isinstance(fixed, list) and len(fixed) > 0 and isinstance(fixed[0], tuple):
-                    fixed_mask_for_model = jnp.zeros(theta_dim)
-                    for idx, _ in fixed:
-                        fixed_mask_for_model = fixed_mask_for_model.at[idx].set(1)
-                else:
-                    fixed_mask_for_model = jnp.array(fixed)
-            # Use joint_index specific model with fixed_mask
-            model = Graph.pmf_from_graph_joint_index(self, theta_dim=theta_dim,
-                                                      fixed_mask=fixed_mask_for_model)
+
+            # Daisy-chain branch: when epoch_starts is provided, fit
+            # n_epochs * param_length parameters under a piecewise-
+            # constant time-inhomogeneous joint-prob model.
+            if epoch_starts is not None:
+                resolved_t_eval = self._resolve_daisy_chain_t_eval(
+                    daisy_chain_t_eval=daisy_chain_t_eval,
+                    epoch_starts=epoch_starts,
+                    probe_theta=daisy_chain_probe_theta,
+                    tol=daisy_chain_t_eval_tol,
+                    granularity=daisy_chain_granularity,
+                    verbose=verbose,
+                )
+                model, theta_dim, prior, fixed = self._daisy_chain_svgd_model(
+                    observed_indices=observed_data,
+                    epoch_starts=epoch_starts,
+                    t_eval=resolved_t_eval,
+                    user_prior=prior,
+                    user_fixed=fixed,
+                    sd=5.0,
+                    verbose=verbose,
+                    granularity=daisy_chain_granularity,
+                )
+            else:
+                # Parse fixed to get mask for joint_index model
+                # This allows the custom VJP to skip finite differences for fixed dimensions
+                fixed_mask_for_model = None
+                if fixed is not None:
+                    import jax.numpy as jnp
+                    if isinstance(fixed, list) and len(fixed) > 0 and isinstance(fixed[0], tuple):
+                        fixed_mask_for_model = jnp.zeros(theta_dim)
+                        for idx, _ in fixed:
+                            fixed_mask_for_model = fixed_mask_for_model.at[idx].set(1)
+                    else:
+                        fixed_mask_for_model = jnp.array(fixed)
+                # Use joint_index specific model with fixed_mask
+                model = Graph.pmf_from_graph_joint_index(
+                    self, theta_dim=theta_dim,
+                    fixed_mask=fixed_mask_for_model,
+                )
         # Auto-detect if we need multivariate model (2D rewards)
         elif rewards is not None:
             import jax.numpy as jnp
@@ -5902,7 +6379,15 @@ extern "C" {{
                 times = jnp.atleast_1d(times)
                 return model_ffi_partial(theta=theta, times=times, rewards=rewards)
         elif not _callback_mode:
-            # Use pybind11 GraphBuilder (same as pmf_from_graph)
+            # NOTE: this pybind11 GraphBuilder + pure_callback path is the
+            # default for pmf_and_moments_from_graph (use_ffi=False is the
+            # method-signature default), and is hit by SVGD's reward
+            # paths. It is NOT disabled here because it is a primary path
+            # for callers with rewards. The FFI version
+            # (compute_pmf_and_moments_ffi) is functionally equivalent
+            # and the use_ffi=False default could be flipped in a follow-
+            # up — but doing so requires auditing every caller that omits
+            # the kwarg. For now this fallback stays live.
             import json
             from . import phasic_pybind as cpp_module
             from .ffi_wrappers import _make_json_serializable
@@ -6866,6 +7351,16 @@ extern "C" {{
         """
         Compute elimination trace with optional hierarchical caching.
 
+        .. deprecated::
+            The Python ``EliminationTrace`` machinery is no longer
+            wired to the public ``moments()`` / ``expectation()`` /
+            ``variance()`` entry points (those route directly to the
+            C++ implementation, which uses the Stage A0-cached
+            ``parameterized_reward_compute_graph``). ``compute_trace``
+            is preserved for callers that still drive the trace
+            pipeline directly, but emits a ``DeprecationWarning`` and
+            will be removed in a future release.
+
         When Graph was created with cache_trace=True, the trace is cached on the
         instance for use by moments(), expectation(), etc. In this mode, the operation
         is NON-DESTRUCTIVE (graph is preserved via cloning).
@@ -6920,6 +7415,16 @@ extern "C" {{
         >>> g = Graph(model, nr_samples=5)
         >>> trace = g.compute_trace()  # Graph emptied, trace returned
         """
+        import warnings
+        warnings.warn(
+            "Graph.compute_trace() is deprecated. The Python "
+            "EliminationTrace path it produces is no longer wired to "
+            "moments() / expectation() / variance(); those route "
+            "directly to the C++ implementation. compute_trace() will "
+            "be removed in a future release.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         # If using instance-level cache mode, check cache first
         if self._cache_trace:
             # Return cached trace if valid and not forcing recompute
@@ -7547,6 +8052,584 @@ extern "C" {{
         joint_graph._indexer = joint_graph_indexer
 
         return joint_graph
+
+
+    def joint_stop_prob_graph(self) -> 'Graph':
+        """Build the joint stop-probability graph for daisy-chained inference.
+
+        Promotes the notebook helper (in
+        ``docs/pages/tutorial/time_inhom_joint_prob.ipynb``) into the library.
+        The transformation: for each "t-vertex" in the source joint-prob
+        graph (a vertex that has a transition to an absorbing vertex), wire
+        a "trapping aux loop" — an aux vertex with state ``[0,...,0]`` and
+        bidirectional unit-weight parameterised edges to/from the t-vertex.
+        Mass that reaches a t-vertex shuttles between t-vertex and aux
+        forever, so ``stop_probability(t)[t_vertex] +
+        stop_probability(t)[aux]`` equals the cumulative joint absorption
+        mass at that t-state by time t.
+
+        Initial-probability-vector edges (starting vertex outgoing) are
+        added at construction time to **every non-aux, non-trash, non-
+        absorbing vertex** with weight 0. The user calls ``update_ipv``
+        before each epoch to set them; the daisy-chain loop calls it
+        between epochs to propagate surviving mass forward. The IPV vector
+        layout matches ``joint_stop_probabilities`` output (vertex order,
+        skipping aux vertices and the trash pair, expanded back to full
+        vertex space — see ``_collapse_t_aux``).
+
+        Returns
+        -------
+        Graph
+            New graph with attributes ``_joint_stop_prob_graph = True``,
+            ``_t_vertex_indices`` (sorted list of new-graph t-vertex
+            indices), ``_t_aux_map`` (dict mapping new-graph t-vertex
+            index → new-graph aux index), and the propagated
+            ``_joint_prob_base_graph_indexer`` / ``_rewarded_props`` /
+            ``_cache_trace`` from the source.
+
+        Raises
+        ------
+        ValueError
+            If ``self`` is not a joint-prob graph (no
+            ``_joint_prob_base_graph_indexer``) or has no parameterised
+            edges (``param_length() == 0``).
+        """
+        if not getattr(self, '_joint_prob_base_graph_indexer', None):
+            raise ValueError(
+                "joint_stop_prob_graph requires a graph produced by "
+                "joint_prob_graph()."
+            )
+        if self.param_length() == 0:
+            raise ValueError(
+                "joint_stop_prob_graph requires a parameterised graph; "
+                "got param_length() == 0."
+            )
+
+        # Trash-pair predicate (matches notebook): two zero-state vertices
+        # whose only edges are to each other.
+        def _is_trash(v: Vertex) -> bool:
+            if v.state().sum() != 0 or v.edges_length() != 1:
+                return False
+            child = v.edges()[0].to()
+            if child.state().sum() != 0 or child.edges_length() != 1:
+                return False
+            return child.edges()[0].to().index() == v.index()
+
+        # Identify t-vertices, trash pair, and absorbing index in the source.
+        start_old = self.starting_vertex()
+        t_vertex_old_indices: list[int] = []
+        trash_old_indices: list[int] = []
+        abs_old_index: int | None = None
+        for v in self.vertices():
+            if v.index() == start_old.index():
+                continue
+            if not v.edges():
+                abs_old_index = v.index()
+                continue
+            for edge in v.edges():
+                if len(edge.to().edges()) == 0:
+                    t_vertex_old_indices.append(v.index())
+                    break
+            if _is_trash(v):
+                trash_old_indices.append(v.index())
+
+        t_vertex_old_indices = list(np.unique(t_vertex_old_indices))
+        if len(trash_old_indices) != 2:
+            raise ValueError(
+                f"joint_stop_prob_graph: expected exactly 2 trash vertices "
+                f"in source graph, found {len(trash_old_indices)}."
+            )
+        if abs_old_index is None:
+            raise ValueError(
+                "joint_stop_prob_graph: source graph has no absorbing vertex."
+            )
+
+        # Build the new graph.
+        new = Graph(self.state_length())
+        new.set_param_length(self.param_length())
+        param_length = self.param_length()
+
+        vmap: dict[int, Vertex] = {start_old.index(): new.starting_vertex()}
+        for v in self.vertices():
+            if v.index() == start_old.index():
+                continue
+            vmap[v.index()] = new.create_vertex(list(v.state()))
+
+        # Copy interior edges (skipping trash, redirecting trash-pointers to
+        # the absorbing vertex). For t-vertices, install the t-aux trapping
+        # loop instead of the original outgoing edges.
+        t_aux_map: dict[int, int] = {}  # new-graph t-vertex idx → new-graph aux idx
+        for v in self.vertices():
+            if v.index() == start_old.index() or not v.edges():
+                continue
+            if v.index() in trash_old_indices:
+                continue
+
+            nv = vmap[v.index()]
+
+            if v.index() in t_vertex_old_indices:
+                t_aux_vertex = new.create_vertex([0] * self.state_length())
+                # Unit-weight parameterised edges in both directions; using
+                # the modern list-based add_edge to avoid the
+                # add_edge_parameterized deprecation warning.
+                nv.add_edge(t_aux_vertex, [1.0] * param_length)
+                t_aux_vertex.add_edge(nv, [1.0] * param_length)
+                t_aux_map[nv.index()] = t_aux_vertex.index()
+                continue
+
+            for e in v.parameterized_edges():
+                to_index = e.to().index()
+                if to_index in trash_old_indices:
+                    to_index = abs_old_index
+                nv.add_edge(vmap[to_index], list(e.edge_state(param_length)))
+
+        # IPV edges: one scalar starting-vertex edge per non-aux non-trash
+        # non-absorbing vertex that exists in the new graph (i.e. all the
+        # vmapped vertices except the start, the absorbing vertex, the
+        # trash pair, and the new aux vertices). Initial weight 0 — the
+        # caller must call update_ipv before any forward computation.
+        non_ipv_old_indices = (
+            {start_old.index(), abs_old_index}
+            | set(trash_old_indices)
+        )
+        # Sort by new-graph index so the IPV layout is stable and matches
+        # the natural scan order used by _collapse_t_aux.
+        ipv_targets = sorted(
+            (vmap[old_idx].index(), vmap[old_idx])
+            for old_idx in vmap
+            if old_idx not in non_ipv_old_indices
+        )
+        ipv_target_indices = [new_idx for new_idx, _v in ipv_targets]
+        for _new_idx, target in ipv_targets:
+            new.starting_vertex().add_edge(target, 0.0)
+
+        # Attach metadata read by the daisy-chain FFI handler. The C++
+        # side rebuilds its own collapsed-position lookup from
+        # _t_aux_map; we don't need to precompute one here.
+        new._joint_prob_base_graph_indexer = self._joint_prob_base_graph_indexer
+        new._rewarded_props = getattr(self, '_rewarded_props', None)
+        new._joint_stop_prob_graph = True
+        new._t_vertex_indices = sorted(t_aux_map.keys())
+        new._t_aux_map = t_aux_map
+        # New-graph vertex indices that carry IPV edges, in starting-vertex
+        # edge order. update_ipv expects a vector of this length, in this
+        # order.
+        new._ipv_target_indices = ipv_target_indices
+        new.is_discrete = self.is_discrete
+        new._cache_trace = getattr(self, '_cache_trace', False)
+        # Forward the indexer like joint_prob_graph does.
+        if hasattr(self, '_indexer'):
+            new._indexer = self._indexer
+        return new
+
+
+    def daisy_chain_joint_probs(
+        self,
+        *,
+        epoch_thetas,
+        epoch_dts,
+        initial_ipv,
+        t_eval: float | None = None,
+        fixed_indices=None,
+        granularity: int = 0,
+    ):
+        """JAX-traceable model: joint-probs at the t-states after a daisy chain.
+
+        Daisies through ``len(epoch_dts)`` epoch transitions
+        (``update_ipv → update_weights → stop_probability(dt)``), then
+        in the final epoch sets the propagated IPV and the final-epoch
+        theta on the JSP graph and reads
+        ``joint_stop_probabilities(t_eval)`` at the t-state vertex
+        positions. The number of epochs is ``len(epoch_thetas)``, which
+        must equal ``len(epoch_dts) + 1``: each epoch *i* in
+        0..n_epochs-2 has a transition of duration ``epoch_dts[i]``;
+        the final epoch ``n_epochs-1`` has no transition out.
+
+        The joint probability of an outcome is the relative probability
+        of paths ending in (and being trapped in) that t-state. Because
+        the JSP graph's t-aux loops trap mass, ``stop_probability(t)``
+        at a t-vertex monotonically approaches the joint probability
+        as ``t → ∞``. ``t_eval`` should be large enough that the
+        chain has had time to absorb most mass at the t-states. For
+        slow-mutation models ``t_eval`` may need to be quite large; the
+        default scales with ``sum(epoch_dts)`` to provide a conservative
+        starting point. For an adaptive ``t_eval`` chosen via a
+        residual-mass probe, use
+        ``Graph.svgd(..., daisy_chain_t_eval='auto')`` or call
+        ``Graph._probe_daisy_t_eval(...)`` directly.
+
+        Parameters
+        ----------
+        epoch_thetas : array-like, shape (n_epochs, theta_dim)
+            Per-epoch parameter vectors. JAX-traced.
+        epoch_dts : array-like, shape (n_epochs - 1,)
+            Durations of the first ``n_epochs - 1`` epochs. Static
+            Python sequence (not JAX-traced).
+        initial_ipv : array-like, shape (n_ipv,)
+            IPV for epoch 0, in the JSP graph's IPV layout.
+        t_eval : float, optional
+            Time at which the final-epoch joint stop-probabilities are
+            read. Defaults to ``max(sum(epoch_dts) * 4, 10.0)``.
+        fixed_indices : sequence of int, optional
+            Flat-theta indices held fixed by SVGD. Forwarded to the
+            ``custom_vjp`` backward pass to skip finite-difference
+            gradient evaluations on those slots.
+        granularity : int, optional
+            Uniformization granularity passed to the underlying
+            ``stop_probability`` call in the C++ FFI handler. ``0``
+            (default) auto-picks a safe value from the graph's max rate
+            and the requested time. Larger values give finer
+            discretisation (slower, more accurate); smaller positive
+            values trade accuracy for speed. The same granularity is
+            used for every epoch's ``stop_probability`` call.
+
+        Returns
+        -------
+        jax.Array, shape (n_t_vertices,)
+            Joint-probs at the t-states, in the order of
+            ``self._t_vertex_indices``.
+        """
+        if not getattr(self, '_joint_stop_prob_graph', False):
+            raise ValueError(
+                "daisy_chain_joint_probs requires a graph produced by "
+                "joint_stop_prob_graph()."
+            )
+
+        epoch_thetas_arr = jnp.asarray(epoch_thetas)
+        if epoch_thetas_arr.ndim != 2:
+            raise ValueError(
+                f"epoch_thetas must have shape (n_epochs, theta_dim); "
+                f"got ndim={epoch_thetas_arr.ndim}."
+            )
+        n_epochs = int(epoch_thetas_arr.shape[0])
+        if n_epochs < 1:
+            raise ValueError("epoch_thetas must contain at least one epoch.")
+        if epoch_thetas_arr.shape[1] != self.param_length():
+            raise ValueError(
+                f"epoch_thetas theta_dim ({epoch_thetas_arr.shape[1]}) "
+                f"does not match graph param_length ({self.param_length()})."
+            )
+
+        epoch_dts_seq = list(epoch_dts)
+        if len(epoch_dts_seq) != n_epochs - 1:
+            raise ValueError(
+                f"epoch_dts must have length n_epochs - 1 = {n_epochs - 1}; "
+                f"got {len(epoch_dts_seq)}."
+            )
+
+        initial_ipv_arr = jnp.asarray(initial_ipv, dtype=jnp.float64)
+        n_ipv = len(self._ipv_target_indices)
+        if initial_ipv_arr.shape != (n_ipv,):
+            raise ValueError(
+                f"initial_ipv must have shape ({n_ipv},); got "
+                f"{initial_ipv_arr.shape}."
+            )
+
+        if t_eval is None:
+            t_eval = max(float(sum(epoch_dts_seq)) * 4.0, 10.0)
+        if t_eval <= 0:
+            raise ValueError(f"t_eval must be > 0, got {t_eval}.")
+        if not isinstance(granularity, (int, np.integer)) or granularity < 0:
+            raise ValueError(
+                f"granularity must be a non-negative integer, got {granularity!r}."
+            )
+
+        theta_dim = self.param_length()
+        n_t = len(self._t_vertex_indices)
+
+        # Build the structure JSON augmented with daisy-chain metadata.
+        # GraphBuilder ignores unknown JSON fields, so the same JSON is
+        # parsed twice in the FFI handler — once by GraphBuilder for
+        # the topology, once by the daisy-chain handler for the
+        # "_daisy_chain" sub-object. This mirrors how vanilla joint-
+        # prob FFI passes structure_json as a single static attribute.
+        from .ffi_wrappers import (
+            _make_json_serializable,
+            compute_daisy_chain_joint_probs_ffi,
+        )
+        import json as _json_mod
+
+        structure = _make_json_serializable(self.serialize(theta_dim=theta_dim))
+        structure["_daisy_chain"] = {
+            "n_epochs": int(n_epochs),
+            "param_length": int(theta_dim),
+            "t_eval": float(t_eval),
+            "granularity": int(granularity),
+            "epoch_dts": [float(x) for x in epoch_dts_seq],
+            "ipv_target_indices": [int(x) for x in self._ipv_target_indices],
+            "t_aux_keys": [int(k) for k in self._t_aux_map.keys()],
+            "t_aux_values": [int(self._t_aux_map[k]) for k in self._t_aux_map.keys()],
+            "t_vertex_indices": [int(x) for x in self._t_vertex_indices],
+        }
+        structure_json_str = _json_mod.dumps(structure)
+
+        # The full forward computation as a flat-theta function. The
+        # custom_vjp wrapper differentiates only theta_flat (initial_ipv
+        # is closed over and treated as fixed). Single FFI call replaces
+        # the per-epoch pure_callback chain.
+        def _forward(theta_flat: jnp.ndarray) -> jnp.ndarray:
+            return compute_daisy_chain_joint_probs_ffi(
+                structure_json_str,
+                theta_flat,
+                initial_ipv_arr,
+            )
+
+        # Wrap the forward in a custom_vjp so jax.grad works via finite
+        # differences. eps=1e-7 matches the established pattern at
+        # __init__.py:4322 (vanilla pmf_from_graph_joint_index).
+        eps = 1e-7
+
+        # Normalise fixed_indices to a Python set so the bwd rule can
+        # skip FD evaluations on fixed slots — both saving compute and,
+        # critically, preventing nonzero gradients from flowing into
+        # parameters the user has pinned.
+        fixed_set = (
+            set(int(i) for i in fixed_indices)
+            if fixed_indices is not None else set()
+        )
+
+        @jax.custom_vjp
+        def _autodiff(theta_flat):
+            return _forward(theta_flat)
+
+        def _autodiff_fwd(theta_flat):
+            return _forward(theta_flat), theta_flat
+
+        def _autodiff_bwd(theta_flat, cotangent):
+            n_params = theta_flat.shape[0]
+            grads = []
+            for i in range(n_params):
+                if i in fixed_set:
+                    grads.append(jnp.asarray(0.0, dtype=theta_flat.dtype))
+                    continue
+                tp = theta_flat.at[i].add(eps)
+                tm = theta_flat.at[i].add(-eps)
+                jp = _forward(tp)
+                jm = _forward(tm)
+                grads.append(jnp.sum(cotangent * (jp - jm) / (2.0 * eps)))
+            return (jnp.stack(grads),)
+
+        _autodiff.defvjp(_autodiff_fwd, _autodiff_bwd)
+
+        return _autodiff(epoch_thetas_arr.reshape(-1))
+
+
+    def _probe_daisy_t_eval(
+        self,
+        *,
+        probe_thetas: np.ndarray,
+        epoch_dts: list[float],
+        initial_ipv: np.ndarray,
+        tol: float = 1e-3,
+        t_min: float | None = None,
+        t_max: float | None = None,
+        granularity: int = 0,
+    ) -> float:
+        """Pick the smallest ``t_eval`` whose residual non-t-vertex mass
+        is below ``tol``.
+
+        Mirrors the FFI handler's daisy-chain loop in pure Python: walks
+        epochs 0..n_epochs-2 with `update_ipv → update_weights →
+        stop_probability(dt)`, projecting the collapsed t-aux survival
+        vector to the next epoch's IPV. Then in the final epoch, sets
+        the propagated IPV and final-epoch theta and grows ``t`` by 1.5×
+        until the residual transient mass at non-t vertices falls below
+        ``tol``.
+
+        Modifies ``self``'s IPV and weights as a side effect — the
+        caller is responsible for restoring them, or for accepting that
+        the next ``daisy_chain_joint_probs`` call will overwrite them.
+
+        Parameters
+        ----------
+        probe_thetas : np.ndarray, shape (n_epochs, param_length)
+            Per-epoch parameters used during the probe.
+        epoch_dts : list of float, length n_epochs - 1
+            Per-epoch durations (same as ``daisy_chain_joint_probs``).
+        initial_ipv : np.ndarray, shape (n_ipv,)
+            IPV for epoch 0, in the JSP graph's IPV layout.
+        tol : float
+            Residual-mass tolerance. Default 1e-3.
+        t_min : float, optional
+            Initial value to probe. Default ``max(sum(dts) * 0.5, 1.0)``.
+        t_max : float, optional
+            Upper bound. Default ``max(sum(dts) * 16, 40.0)``.
+        granularity : int
+            Forwarded to ``stop_probability``; 0 = auto.
+
+        Returns
+        -------
+        float
+            Chosen ``t_eval``.
+        """
+        if not getattr(self, '_joint_stop_prob_graph', False):
+            raise ValueError(
+                "_probe_daisy_t_eval requires a graph produced by "
+                "joint_stop_prob_graph()."
+            )
+
+        n_epochs = int(probe_thetas.shape[0])
+        if len(epoch_dts) != n_epochs - 1:
+            raise ValueError(
+                f"epoch_dts must have length n_epochs - 1 = {n_epochs - 1}; "
+                f"got {len(epoch_dts)}."
+            )
+
+        n_vertices = self.vertices_length()
+        t_aux_keys = list(self._t_aux_map.keys())
+        t_aux_values = list(self._t_aux_map.values())
+        aux_set = set(int(v) for v in t_aux_values)
+        t_to_aux = {int(k): int(self._t_aux_map[k]) for k in t_aux_keys}
+        ipv_target_indices = [int(x) for x in self._ipv_target_indices]
+        t_vertex_indices = set(int(x) for x in self._t_vertex_indices)
+
+        # Collapsed-position lookup (skip aux vertices).
+        collapsed_pos = [-1] * n_vertices
+        rank = 0
+        for v in range(n_vertices):
+            if v in aux_set:
+                continue
+            collapsed_pos[v] = rank
+            rank += 1
+
+        def _collapse(raw):
+            """Sum t-vertex mass with its aux partner; return collapsed."""
+            collapsed = np.zeros(rank, dtype=np.float64)
+            for v in range(n_vertices):
+                if v in aux_set:
+                    continue
+                p = float(raw[v])
+                if v in t_to_aux:
+                    p += float(raw[t_to_aux[v]])
+                collapsed[collapsed_pos[v]] = p
+            return collapsed
+
+        # Walk transitions, propagating IPV.
+        ipv_work = np.asarray(initial_ipv, dtype=np.float64).copy()
+        for epoch in range(n_epochs - 1):
+            self.update_ipv(ipv_work)
+            self.update_weights(probe_thetas[epoch])
+            raw = np.asarray(
+                self.stop_probability(float(epoch_dts[epoch]), granularity=granularity)
+            )
+            collapsed = _collapse(raw)
+            ipv_work = np.array(
+                [collapsed[collapsed_pos[v]] for v in ipv_target_indices],
+                dtype=np.float64,
+            )
+
+        # Final epoch: set IPV/theta, then grow t until residual mass
+        # at non-t-vertices is below tol.
+        self.update_ipv(ipv_work)
+        self.update_weights(probe_thetas[n_epochs - 1])
+
+        sum_dts = float(sum(epoch_dts))
+        if t_min is None:
+            t_min = max(sum_dts * 0.5, 1.0)
+        if t_max is None:
+            t_max = max(sum_dts * 16.0, 40.0)
+
+        t = t_min
+        while t <= t_max:
+            raw = np.asarray(self.stop_probability(float(t), granularity=granularity))
+            collapsed = _collapse(raw)
+            non_t_mass = sum(
+                float(collapsed[collapsed_pos[v]])
+                for v in range(n_vertices)
+                if v not in aux_set
+                and v not in t_vertex_indices
+                and v != self.starting_vertex().index()
+            )
+            if non_t_mass < tol:
+                return float(t)
+            t *= 1.5
+        return float(t_max)
+
+
+    def _resolve_daisy_chain_t_eval(
+        self,
+        *,
+        daisy_chain_t_eval,
+        epoch_starts,
+        probe_theta=None,
+        tol: float = 1e-3,
+        granularity: int = 0,
+        verbose: bool = False,
+    ) -> float:
+        """Resolve a ``daisy_chain_t_eval`` value (numeric, None, or
+        ``'auto'``) into a numeric ``t_eval`` for the daisy-chain SVGD
+        loop. ``self`` is the source joint-prob graph; we build the
+        JSP graph internally for the probe.
+
+        - Numeric: returned unchanged.
+        - None: returns the legacy default ``max(sum(dts)*4, 10.0)``.
+        - ``'auto'``: builds the JSP graph and calls
+          ``_probe_daisy_t_eval`` with ``probe_theta`` (default
+          ``[1.0, 1.0, ..., 1.0]`` per parameter slot).
+        """
+        es = np.asarray(epoch_starts, dtype=np.float64).ravel()
+        epoch_dts = list(np.diff(es))
+        sum_dts = float(sum(epoch_dts))
+        legacy_default = max(sum_dts * 4.0, 10.0)
+
+        if daisy_chain_t_eval is None:
+            return legacy_default
+        if isinstance(daisy_chain_t_eval, str):
+            if daisy_chain_t_eval != 'auto':
+                raise ValueError(
+                    f"daisy_chain_t_eval must be a positive number, None, or "
+                    f"'auto'; got {daisy_chain_t_eval!r}."
+                )
+        else:
+            t_val = float(daisy_chain_t_eval)
+            if t_val <= 0:
+                raise ValueError(
+                    f"daisy_chain_t_eval must be > 0, got {t_val}."
+                )
+            return t_val
+
+        # 'auto' branch: build JSP graph, probe.
+        jsp = self.joint_stop_prob_graph()
+        n_epochs = int(es.size)
+        param_length = self.param_length()
+        if probe_theta is None:
+            probe_thetas = np.ones((n_epochs, param_length), dtype=np.float64)
+        else:
+            probe_arr = np.asarray(probe_theta, dtype=np.float64)
+            if probe_arr.ndim == 1:
+                probe_thetas = np.broadcast_to(
+                    probe_arr.reshape(1, -1), (n_epochs, param_length)
+                ).copy()
+            else:
+                probe_thetas = probe_arr
+            if probe_thetas.shape != (n_epochs, param_length):
+                raise ValueError(
+                    f"probe_theta must broadcast to shape "
+                    f"({n_epochs}, {param_length}); got {probe_arr.shape}."
+                )
+
+        n_ipv = len(jsp._ipv_target_indices)
+        self_ipv_full = np.zeros(self.vertices_length(), dtype=np.float64)
+        for edge in self.starting_vertex().edges():
+            self_ipv_full[edge.to().index()] = edge.weight()
+        initial_ipv = self_ipv_full[jsp._ipv_target_indices]
+
+        chosen = jsp._probe_daisy_t_eval(
+            probe_thetas=probe_thetas,
+            epoch_dts=epoch_dts,
+            initial_ipv=initial_ipv,
+            tol=tol,
+            granularity=granularity,
+        )
+
+        if verbose:
+            logger = get_logger(__name__)
+            logger.info(
+                "daisy_chain_t_eval='auto': probed t_eval=%.4f (legacy default "
+                "would have been %.4f, ratio=%.2fx)",
+                chosen, legacy_default, legacy_default / max(chosen, 1e-12),
+            )
+        return float(chosen)
 
 
     def _get_joint_probs(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:

@@ -667,6 +667,69 @@ PTD_LOG_ERROR("Failed to allocate memory for %zu bytes", size);
 - Bridge: `src/cpp/phasic_pybind.cpp` - pybind11 bridge connecting C to Python logging
 - Strategic logging in: `phasic_hash.c` (hash computation), `trace_cache.c` (cache operations)
 
+### Disk caches
+
+**phasic** maintains two on-disk caches under `~/.phasic_cache/`:
+
+| Path | Contents | Populated by | Stage |
+|---|---|---|---|
+| `~/.phasic_cache/parameterized_reward_compute/<hash>.bin` | C-level symbolic elimination output (`parameterized_reward_compute_graph`) | `ptd_precompute_reward_compute_graph` on first call per (machine × model) | A2 |
+| `~/.phasic_cache/traces/<hash>.{json,pkl}` | Python `EliminationTrace` objects | `record_elimination_trace` and the trace pipeline when `cache_trace=True` | pre-existing |
+
+**Both caches are theta-independent** — keyed by graph
+content hash (`ptd_graph_content_hash`, deterministic SHA-256 over
+topology + coefficients), so the same parameterised model always
+hits the same key regardless of theta history. Re-running SVGD
+with new theta values does not produce new cache entries.
+
+**Stage A2 specifically** persists the symbolic elimination across
+processes, so a fresh process (notebook restart, SLURM worker, CLI
+run) skips the O(n³) Gaussian elimination after the first run. On
+a 500-vertex coalescent the cache hit cuts elimination cost from
+~6 ms to ~1 ms (5× speedup); for smaller models the disk I/O can
+dominate the elimination so the speedup is modest or negative.
+Stage A1's in-memory persistent graph still amortises within a
+single process, so the disk cache only matters at process start.
+
+**Behaviour & opt-out**:
+- Both caches honour `PHASIC_DISABLE_CACHE=1` to skip reads and writes.
+- Format-version mismatches (header magic / `version` /
+  `format_revision`) are treated as cache misses and trigger a
+  rebuild that overwrites the bad file.
+- Cache writes use atomic write-then-rename; multiple processes
+  racing produce identical content.
+- No automatic eviction. Users own the directory.
+
+**Python API** (`src/phasic/cache.py`):
+```python
+import phasic.cache as cache
+
+# Inspect
+cache.param_compute_cache_info()
+# {'cache_dir': '/home/.../parameterized_reward_compute', 'n_files': 12,
+#  'total_size': 540288, 'disabled': False}
+
+cache.trace_cache_info()
+# {'cache_dir': '...', 'n_traces_json': 0, 'n_traces_pickle': 3, ...}
+
+# Clear (returns number of files removed)
+cache.clear_param_compute_cache()    # 12
+cache.clear_trace_cache()            # 3
+cache.clear_all_caches()             # {'param_compute': 0, 'traces': 0}
+
+# Check if caching is disabled via env var
+cache.is_cache_disabled()            # False
+```
+
+**C API**:
+- `int ptd_save_parameterized_reward_compute_graph(const char *path, const struct ptd_desc_reward_compute_parameterized *compute, const struct ptd_graph *graph)` — declared in `api/c/phasic.h`. Atomic write of the symbolic elimination to disk. Returns 0 on success.
+- `struct ptd_desc_reward_compute_parameterized *ptd_load_parameterized_reward_compute_graph(const char *path, const struct ptd_graph *graph)` — counterpart loader. Returns NULL on cache miss / corrupt file / version mismatch (caller falls back to rebuild).
+
+**Implementation notes** (`src/c/phasic.c`):
+- On-disk format starts with a 64-byte header (`PTDPRMC1` magic + `version` + `format_revision` + truncated graph hash + lengths). Bump `PTD_PCG_FORMAT_REVISION` whenever the layout changes; old caches will be detected as mismatched and silently overwritten.
+- The compute graph contains pointers (`fromT`, `toT`, `multiplierptr`) into either the `mem` linked-list scratch buffer or live edge weights (`&edge->weight`). The save path encodes each pointer as `(kind, doubles_offset, vertex_idx, edge_idx, byte_offset_from_edge_weight)`; the load path resolves them against the loaded `mem` and the supplied graph's edges. A per-command-type liveness table avoids encoding fields the recorder doesn't initialise (e.g. `ZERO` only uses `fromT`).
+- The cache hook is in `ptd_precompute_reward_compute_graph` (parameterised branch). It tries `ptd_load_...` first; on miss runs the elimination as before and writes back via `ptd_save_...`. Both directions gated by `PHASIC_DISABLE_CACHE`.
+
 ### Full API Documentation
 
 - **C API**: See `api/c/phasic.h` (all C functions with comments)
@@ -685,6 +748,7 @@ PTD_LOG_ERROR("Failed to allocate memory for %zu bytes", size);
 - `src/phasic/trace_elimination.py` - Trace recording and evaluation (Phases 1-4)
 - `src/phasic/ffi_wrappers.py` - JAX FFI integration (Phase 5 in progress)
 - `src/phasic/svgd.py` - SVGD implementation
+- `src/phasic/cache.py` - On-disk cache management (`~/.phasic_cache/`); see "Disk caches" section above
 
 **Tests:**
 - `tests/test_trace_recording.py` - Phase 1 tests
