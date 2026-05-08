@@ -465,3 +465,108 @@ class TestAdaptiveTeval:
             jp._resolve_daisy_chain_t_eval(
                 daisy_chain_t_eval='whatever', epoch_starts=[0.0, 0.5],
             )
+
+
+# ---------------------------------------------------------------------------
+# Class 4: per-epoch fixed values
+# ---------------------------------------------------------------------------
+
+
+class TestPerEpochFixed:
+    def _build_source_jp(self):
+        """Source joint-prob graph (continuous) for daisy SVGD wiring."""
+        indexer = _make_indexer()
+        cb = _make_callback(indexer)
+        g = Graph(cb, indexer=indexer)
+        return g.joint_prob_graph(
+            indexer, mutation_rate=MUTATION_RATE,
+            reward_limit=REWARD_LIMIT, discrete=False,
+        )
+
+    def test_scalar_value_broadcasts(self):
+        # Legacy form: (local_idx, scalar) is broadcast across all epochs.
+        jp = self._build_source_jp()
+        param_length = jp.param_length()
+        epoch_starts = [0.0, 0.4]
+        n_epochs = len(epoch_starts)
+
+        model, theta_dim, prior, broadcast_fixed = jp._daisy_chain_svgd_model(
+            observed_indices=[],
+            epoch_starts=epoch_starts,
+            t_eval=10.0,
+            user_fixed=[(0, 1.5)],
+        )
+        # (0, 1.5) → fix flat indices 0, param_length, 2*param_length, ...
+        # at value 1.5 in every epoch.
+        expected = [(epoch * param_length + 0, 1.5) for epoch in range(n_epochs)]
+        assert broadcast_fixed == expected
+
+    def test_per_epoch_list_fixes_different_values(self):
+        # New form: (local_idx, [v0, v1, ...]) fixes one value per epoch.
+        jp = self._build_source_jp()
+        param_length = jp.param_length()
+        epoch_starts = [0.0, 0.4, 0.9]
+        n_epochs = len(epoch_starts)
+
+        per_epoch = [1.0, 2.5, 3.7]
+        model, theta_dim, prior, broadcast_fixed = jp._daisy_chain_svgd_model(
+            observed_indices=[],
+            epoch_starts=epoch_starts,
+            t_eval=10.0,
+            user_fixed=[(1, per_epoch)],
+        )
+        expected = [
+            (epoch * param_length + 1, float(per_epoch[epoch]))
+            for epoch in range(n_epochs)
+        ]
+        assert broadcast_fixed == expected
+
+    def test_mixed_scalar_and_list_entries(self):
+        # User can mix scalar (broadcast) with per-epoch list entries.
+        jp = self._build_source_jp()
+        param_length = jp.param_length()
+        epoch_starts = [0.0, 0.4]
+        n_epochs = len(epoch_starts)
+
+        model, theta_dim, prior, broadcast_fixed = jp._daisy_chain_svgd_model(
+            observed_indices=[],
+            epoch_starts=epoch_starts,
+            t_eval=10.0,
+            user_fixed=[(0, 5.0), (1, [2.0, 8.0])],
+        )
+        expected = (
+            [(epoch * param_length + 0, 5.0) for epoch in range(n_epochs)]
+            + [(epoch * param_length + 1, [2.0, 8.0][epoch])
+               for epoch in range(n_epochs)]
+        )
+        assert sorted(broadcast_fixed) == sorted(expected)
+
+    def test_per_epoch_list_wrong_length_raises(self):
+        jp = self._build_source_jp()
+        epoch_starts = [0.0, 0.4, 0.9]  # n_epochs = 3
+        with pytest.raises(ValueError, match="length n_epochs"):
+            jp._daisy_chain_svgd_model(
+                observed_indices=[],
+                epoch_starts=epoch_starts,
+                t_eval=10.0,
+                user_fixed=[(0, [1.0, 2.0])],  # length 2, expected 3
+            )
+
+    def test_per_epoch_value_accepts_numpy_array(self):
+        # np.ndarray works the same as a list.
+        jp = self._build_source_jp()
+        param_length = jp.param_length()
+        epoch_starts = [0.0, 0.4]
+        n_epochs = len(epoch_starts)
+
+        model, theta_dim, prior, broadcast_fixed = jp._daisy_chain_svgd_model(
+            observed_indices=[],
+            epoch_starts=epoch_starts,
+            t_eval=10.0,
+            user_fixed=[(0, np.array([1.5, 4.5]))],
+        )
+        expected = [
+            (epoch * param_length + 0, [1.5, 4.5][epoch])
+            for epoch in range(n_epochs)
+        ]
+        assert broadcast_fixed == expected
