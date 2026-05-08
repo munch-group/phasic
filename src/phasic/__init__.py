@@ -220,6 +220,7 @@ if HAS_JAX:
         # Prior classes
         Prior,
         GaussPrior,
+        LogGaussPrior,
         HalfCauchyPrior,
         DataPrior,
         # Step size schedules
@@ -272,6 +273,7 @@ else:
     bffg_log_prob = None
     Prior = None
     GaussPrior = None
+    LogGaussPrior = None
     HalfCauchyPrior = None
     DataPrior = None
     StepSizeSchedule = None
@@ -4910,9 +4912,17 @@ extern "C" {{
             User-supplied prior. If given, used as-is. If None, a
             data-informed prior is built from ``probability_matching``
             on ``self`` and broadcast across epochs.
-        sd : float
-            Standard-error multiplier for the broadcast prior (matches
-            the ``DataPrior`` default).
+        user_fixed : list of (local_idx, value) tuples, optional
+            Per-parameter fixings, broadcast to the flattened theta
+            shape ``(n_epochs * param_length,)``. The ``value`` may be:
+
+            - a scalar — broadcast across every epoch (legacy form);
+            - a list/array of length ``n_epochs`` — pinning the
+              parameter at a different value in each epoch.
+
+            Multiple entries can mix both forms. The returned
+            ``broadcast_fixed`` is a list of
+            ``(flat_idx, scalar_value)`` tuples ready for SVGD.
         verbose : bool
             Forwarded to ``probability_matching``.
         granularity : int, optional
@@ -5033,9 +5043,24 @@ extern "C" {{
                         f"fixed index {local_idx} out of range "
                         f"[0, {param_length})"
                     )
-                for epoch in range(n_epochs):
+                # Two accepted value forms:
+                # - scalar: broadcast to every epoch (legacy behaviour);
+                # - list/array of length n_epochs: per-epoch values.
+                is_scalar = isinstance(value, (int, float, np.integer, np.floating))
+                if is_scalar:
+                    per_epoch_values = [float(value)] * n_epochs
+                else:
+                    arr = np.asarray(value, dtype=np.float64).ravel()
+                    if arr.size != n_epochs:
+                        raise ValueError(
+                            f"fixed entry for index {local_idx}: per-epoch "
+                            f"value list must have length n_epochs={n_epochs}; "
+                            f"got length {arr.size}"
+                        )
+                    per_epoch_values = arr.tolist()
+                for epoch, v in enumerate(per_epoch_values):
                     broadcast_fixed.append(
-                        (epoch * param_length + local_idx, float(value))
+                        (epoch * param_length + local_idx, float(v))
                     )
             fixed_indices = [idx for idx, _v in broadcast_fixed]
 
@@ -5316,6 +5341,15 @@ extern "C" {{
             len(epoch_starts)``. Each epoch fits its own ``param_length`` parameters,
             so the flattened theta has length ``n_epochs * param_length``. Requires
             a continuous-time joint-prob graph (``discrete=False``).
+
+            **Daisy-chain ``fixed`` semantics**: when ``epoch_starts`` is set, each
+            ``(local_idx, value)`` entry in ``fixed`` is broadcast across all epochs.
+            To pin a parameter at *different* values per epoch, pass a list/array of
+            length ``n_epochs`` as the value::
+
+                fixed=[(1, 1.0)]            # local_idx=1 fixed at 1.0 in every epoch
+                fixed=[(1, [1.0, 2.5])]     # local_idx=1 fixed at 1.0 in epoch 0, 2.5 in epoch 1
+                fixed=[(0, 5.0), (1, [2.0, 8.0])]  # mix scalar and per-epoch
         daisy_chain_t_eval : float, str, or None, default=None
             Time at which the final-epoch joint stop-probabilities are read off the
             JSP graph's t-vertices. Only used when ``epoch_starts`` is set.

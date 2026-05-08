@@ -52,7 +52,7 @@ from matplotlib.collections import PolyCollection
 def truncate_colormap(cmap: matplotlib.colors.Colormap, minval: float = 0.0, maxval: float = 1.0, n: int = 100) -> matplotlib.colors.LinearSegmentedColormap:
     """Truncate a colormap to a subset of its range."""
     new_cmap = colors.LinearSegmentedColormap.from_list(
-        'trunc({n},{a:.2f},{b:.2f})'.format(n=cmap.name, a=minval, b=maxval),
+        'trunc({n},{a:.2g},{b:.2g})'.format(n=cmap.name, a=minval, b=maxval),
         cmap(np.linspace(minval, maxval, n)))
     return new_cmap
 iridis = truncate_colormap(plt.get_cmap('viridis'), 0.2, 1)
@@ -588,6 +588,150 @@ class GaussPrior(Prior):
             plt.show()
 
 
+class LogGaussPrior(Prior):
+    """Log-normal prior distribution (positive support only).
+
+    The prior is defined in THETA space: log(θ) ~ Normal(mu, sigma), so θ > 0.
+    This is the natural prior for scale-like parameters (e.g. rates, inverse
+    population sizes) because it is closed under reciprocation: if θ is
+    log-normal, so is 1/θ.
+
+    When used with positive_params=True, SVGD automatically handles the
+    transformation to PHI space with proper Jacobian correction.
+
+    Can be specified via mean/std on the log scale, or via a credible interval
+    in THETA space (the bounds are converted to the log scale internally).
+
+    Parameters
+    ----------
+    mean : float, optional
+        Prior mean of log(θ). Required if std is provided.
+    std : float, optional
+        Prior standard deviation of log(θ). Required if mean is provided.
+    ci : tuple of (float, float), optional
+        Credible interval (low, high) on θ (both > 0). Internally converted
+        to a Gaussian on log(θ) whose CI matches (log low, log high).
+    prob : float, default=0.95
+        Probability mass in the credible interval (only used with ci).
+
+    Examples
+    --------
+    >>> # 95% CI on θ ∈ [1/50_000, 1/5_000]
+    >>> prior = LogGaussPrior(ci=(1/50_000, 1/5_000))
+    >>>
+    >>> # Or directly via log-scale parameters
+    >>> prior = LogGaussPrior(mean=-9.2, std=0.59)
+    >>>
+    >>> prior.plot()  # log-scaled x axis
+    """
+
+    def __init__(self, mean: float | None = None, std: float | None = None, ci: tuple[float, float] | None = None, prob: float = 0.95) -> None:
+        if mean is not None and std is not None:
+            self.mu = mean
+            self.sigma = std
+        elif ci is not None:
+            low, high = ci
+            if low <= 0 or high <= 0:
+                raise ValueError("LogGaussPrior CI bounds must be strictly positive.")
+            log_low = np.log(low)
+            log_high = np.log(high)
+            mu = (log_low + log_high) / 2
+            z = norm.ppf((1 + prob) / 2)
+            sigma = (log_high - log_low) / (2 * z)
+            self.mu = float(mu)
+            self.sigma = float(sigma)
+        else:
+            raise ValueError(
+                "Invalid prior specification. Provide either (mean, std) or ci."
+            )
+        self._transform = None
+
+    def __call__(self, phi: jnp.ndarray) -> float:
+        """Compute log-probability.
+
+        When _transform is set (by SVGD with positive_params=True), evaluates
+        the log-normal prior in THETA space with proper Jacobian correction.
+        Otherwise, evaluates directly on the input (which must be > 0).
+        """
+        if self._transform is not None:
+            theta = self._transform(phi)
+            log_theta = jnp.log(theta)
+            # Log-normal log-density in THETA space (drop -log θ since it
+            # is a θ-only constant once transform is fixed; keep it for
+            # correctness so plot/sample/log-prob all agree)
+            log_prior_theta = (
+                -0.5 * jnp.sum(((log_theta - self.mu) / self.sigma)**2)
+                - jnp.sum(log_theta)
+            )
+            log_jacobian = -jnp.sum(jax.nn.softplus(-phi))
+            return log_prior_theta + log_jacobian
+        else:
+            log_phi = jnp.log(phi)
+            return (
+                -0.5 * jnp.sum(((log_phi - self.mu) / self.sigma)**2)
+                - jnp.sum(log_phi)
+            )
+
+    def sample(self, key: jnp.ndarray, shape: tuple[int, ...]) -> jnp.ndarray:
+        """Sample from the log-normal prior.
+
+        When _transform is set, samples in THETA space and converts to PHI space.
+        """
+        log_theta_samples = jax.random.normal(key, shape) * self.sigma + self.mu
+        theta_samples = jnp.exp(log_theta_samples)
+
+        if self._transform is not None:
+            theta_samples = jnp.maximum(theta_samples, 1e-12)
+            return _inverse_softplus(theta_samples)
+        else:
+            return theta_samples
+
+    def plot(self, log: bool = False, ax: matplotlib.axes.Axes | None = None, return_ax: bool = False, **kwargs) -> matplotlib.axes.Axes | None:
+        """Plot the log-normal prior in THETA space with a log-scaled x axis.
+
+        Parameters
+        ----------
+        log : bool, default=False
+            If True, plot log-probability instead of probability density.
+        ax : matplotlib.axes.Axes, optional
+            Axes to plot on. If None, creates new figure.
+        return_ax : bool, default=False
+            If True, return ax. If False, call plt.show().
+        **kwargs
+            Additional arguments passed to plot function.
+        """
+        import matplotlib.pyplot as plt
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(4, 3))
+        # Span ±4σ on the log scale, then exponentiate
+        log_x = np.linspace(self.mu - 4*self.sigma, self.mu + 4*self.sigma, 400)
+        x = np.exp(log_x)
+        if log:
+            # Log of the log-normal density:  -log(x) - log(σ√2π) - (log x - μ)² / (2σ²)
+            log_prob = (
+                -np.log(x)
+                - np.log(self.sigma * np.sqrt(2 * np.pi))
+                - 0.5 * ((log_x - self.mu) / self.sigma)**2
+            )
+            ax.plot(x, log_prob, **kwargs)
+            ax.set_title(f'Log LogNormal({self.mu:.2g}, {self.sigma:.2g})')
+            ax.set_ylabel('Log density')
+        else:
+            pdf = (
+                1.0 / (x * self.sigma * np.sqrt(2 * np.pi))
+                * np.exp(-0.5 * ((log_x - self.mu) / self.sigma)**2)
+            )
+            ax.plot(x, pdf, **kwargs)
+            ax.set_title(f'LogNormal({self.mu:.2g}, {self.sigma:.2g})')
+            ax.set_ylabel('Density')
+        ax.set_xscale('log')
+        ax.set_xlabel('Parameter value (θ)')
+        if ax or return_ax:
+            return ax
+        else:
+            plt.show()
+
+
 class HalfCauchyPrior(Prior):
     """Half-Cauchy prior distribution (positive support only).
 
@@ -1081,11 +1225,11 @@ class StepSizeSchedule:
             ax.axhline(self.first_step,
                        color=black_or_white,
                        linestyle='--', alpha=0.5,
-                    label=f'first_step={self.first_step:.4f}')
+                    label=f'first_step={self.first_step:.4g}')
             ax.axhline(self.last_step,
                        color=black_or_white,
                        linestyle='--', alpha=0.5,
-                    label=f'last_step={self.last_step:.4f}')
+                    label=f'last_step={self.last_step:.4g}')
 
         if ax or return_ax:
             return ax
@@ -2041,11 +2185,11 @@ class RegularizationSchedule:
             ax.axhline(self.first_reg,
                        color=black_or_white,
                        linestyle='--', alpha=0.5,
-                    label=f'first_reg={self.first_reg:.4f}')
+                    label=f'first_reg={self.first_reg:.4g}')
             ax.axhline(self.last_reg,
                        color=black_or_white,
                        linestyle='--', alpha=0.5,
-                    label=f'last_reg={self.last_reg:.4f}')
+                    label=f'last_reg={self.last_reg:.4g}')
 
         if return_ax:
             return ax
@@ -2287,7 +2431,7 @@ class ExponentialCDFRegularization(RegularizationSchedule):
 
 # def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
 #     new_cmap = colors.LinearSegmentedColormap.from_list(
-#         'trunc({n},{a:.2f},{b:.2f})'.format(n=cmap.name, a=minval, b=maxval),
+#         'trunc({n},{a:.2g},{b:.2g})'.format(n=cmap.name, a=minval, b=maxval),
 #         cmap(np.linspace(minval, maxval, n)))
 #     return new_cmap
 # # "_iridis" color map (viridis without the deep purple):
@@ -4213,7 +4357,7 @@ class SVGD:
             self.lr_scale = lr_scale
             if lr_scale < 1.0:
                 logger.debug(
-                    f"Auto-scaled learning rate: {learning_rate} → {scaled_lr:.6f} "
+                    f"Auto-scaled learning rate: {learning_rate} → {scaled_lr:.6g} "
                     f"({int(n_observations)} observations)"
                 )
         elif learning_rate is None:
@@ -4356,9 +4500,9 @@ class SVGD:
                         if prior_i is None:
                             print(f"    θ[{i}]: (fixed parameter)")
                         elif hasattr(prior_i, 'mu') and hasattr(prior_i, 'sigma'):
-                            print(f"    θ[{i}]: N({prior_i.mu:.2f}, {prior_i.sigma:.2f}²)")
+                            print(f"    θ[{i}]: N({prior_i.mu:.2g}, {prior_i.sigma:.2g}²)")
                         elif hasattr(prior_i, 'scale'):
-                            print(f"    θ[{i}]: HalfCauchy(scale={prior_i.scale:.2f})")
+                            print(f"    θ[{i}]: HalfCauchy(scale={prior_i.scale:.2g})")
                         else:
                             print(f"    θ[{i}]: {type(prior_i).__name__}")
             # Check if prior is a Prior object with sample method
@@ -4368,9 +4512,9 @@ class SVGD:
                 if verbose:
                     print(f"Initialized {n_particles} particles with theta_dim={theta_dim} from prior")
                     if hasattr(self.prior, 'mu') and hasattr(self.prior, 'sigma'):
-                        print(f"  (Prior: N({self.prior.mu:.2f}, {self.prior.sigma:.2f}²))")
+                        print(f"  (Prior: N({self.prior.mu:.2g}, {self.prior.sigma:.2g}²))")
                     elif hasattr(self.prior, 'scale'):
-                        print(f"  (Prior: HalfCauchy(scale={self.prior.scale:.2f}))")
+                        print(f"  (Prior: HalfCauchy(scale={self.prior.scale:.2g}))")
             elif self.param_transform is not None:
                 # Fallback: For transformed parameters, initialize in a range that maps to reasonable positive values
                 # softplus(x) ≈ x for x >> 0, and softplus(0) ≈ 0.69
@@ -5030,7 +5174,7 @@ class SVGD:
         # Trigger compilation with dummy call
         _ = self.compiled_grad(dummy_theta)
         if self.verbose:
-            print(f"  Gradient JIT compiled in {time() - start:.1f}s")
+            print(f"  Gradient JIT compiled in {time() - start:.1g}s")
             print(f"  Precompilation complete!")
 
         # Save to both caches
@@ -5157,7 +5301,7 @@ class SVGD:
         dummy_theta = jnp.zeros((self.theta_dim,))
         _ = compiled_grad(dummy_theta)
         if self.verbose:
-            print(f"  Gradient JIT compiled in {time() - start:.1f}s")
+            print(f"  Gradient JIT compiled in {time() - start:.1g}s")
             print(f"  Precompilation complete!")
 
         # Save to both caches
@@ -5702,19 +5846,19 @@ class SVGD:
                 ci_lo = float(np.percentile(samples_i, lo_pct))
                 ci_hi = float(np.percentile(samples_i, hi_pct))
             ax.axvspan(ci_lo, ci_hi, alpha=0.15, color='steelblue',
-                       label=f'{ci_label} [{ci_lo:.3f}, {ci_hi:.3f}]')
+                       label=f'{ci_label} [{ci_lo:.3g}, {ci_hi:.3g}]')
 
             # Posterior mean
             ax.axvline(theta_mean[i],
                        color=black_or_white,
                        linestyle='--',
-                       label=f'Mean = {theta_mean[i]:.3f}')
+                       label=f'Mean = {theta_mean[i]:.3g}')
 
             # True value (if provided)
             if true_theta is not None:
                 true_val = jnp.array(true_theta)[i]
                 ax.axvline(true_val, color='magenta', linestyle='--',
-                           label=f'True = {true_val:.3f}')
+                           label=f'True = {true_val:.3g}')
 
             # Labels
             param_name = param_names[i] if param_names else rf"$\theta_{i}$"
@@ -5849,7 +5993,7 @@ class SVGD:
 
             ax.plot(x[skip:], y[skip:], 
                     color=black_or_white, 
-                    linestyle='dashed', label=f'Mean = {theta_mean[i]:.3f}')
+                    linestyle='dashed', label=f'Mean = {theta_mean[i]:.3g}')
 
             # Labels
             param_name = param_names[i] if param_names else rf"$\theta_{i}$"
@@ -6220,15 +6364,15 @@ class SVGD:
     #     # Add true parameter if provided
     #     if true_params is not None:
     #         ax.axvline(true_params, color='hotpink', linestyle='--', 
-    #                 label=f'True value: {true_params:.2f}')
+    #                 label=f'True value: {true_params:.2g}')
             
     #     # Add data statistics
     #     if obs_stats is not None:
     #         ax.axvline(obs_stats, color='magenta',
-    #                 label=f'Observed value: {obs_stats:.2f}')    
+    #                 label=f'Observed value: {obs_stats:.2g}')    
     #     if map_est is not None:
     #         ax.axvline(map_est, color='orange', linestyle='dashed',
-    #                 label=f'MAP value: {map_est:.2f}')       
+    #                 label=f'MAP value: {map_est:.2g}')       
         
     #     ax.set_title(title)
     #     ax.set_xlabel('Parameter value')
@@ -7140,12 +7284,12 @@ class SVGD:
         elif ess_ratio < 0.5:
             return {
                 'recommended': int(current_n * 1.5),
-                'reason': f'Low ESS ratio ({ess_ratio:.2f}) - increase particles'
+                'reason': f'Low ESS ratio ({ess_ratio:.2g}) - increase particles'
             }
         elif ess_ratio > 0.9:
             return {
                 'recommended': max(20, int(current_n * 0.8)),
-                'reason': f'High ESS ratio ({ess_ratio:.2f}) - could reduce particles'
+                'reason': f'High ESS ratio ({ess_ratio:.2g}) - could reduce particles'
             }
         else:
             return {
@@ -7270,7 +7414,7 @@ class SVGD:
             issues.append(f"⚠ Low effective sample size ({diversity['ess_ratio']:.1%})")
         if converged and mean_conv_point < n_iterations * 0.7:
             pct = mean_conv_point / n_iterations * 100
-            issues.append(f"ℹ Converged at {pct:.1f}% of iterations - could reduce n_iterations")
+            issues.append(f"ℹ Converged at {pct:.1g}% of iterations - could reduce n_iterations")
 
         diagnostics['issues'] = issues
         diagnostics['suggestions'] = {
@@ -7300,8 +7444,8 @@ class SVGD:
         # print()
         # print("Particle Diversity:")
         # div = diag['diversity']
-        # print(f"  Mean inter-particle distance: {div['mean_distance']:.3f}")
-        # print(f"  Effective sample size (ESS): {div['ess']:.1f} / {diag['n_particles']} particles ({div['ess_ratio']:.1%})")
+        # print(f"  Mean inter-particle distance: {div['mean_distance']:.3g}")
+        # print(f"  Effective sample size (ESS): {div['ess']:.1g} / {diag['n_particles']} particles ({div['ess_ratio']:.1%})")
 
         # if div['ess_ratio'] > 0.7:
         #     print("  Good particle diversity")
@@ -7315,7 +7459,7 @@ class SVGD:
             print("Variance Collapse:")
             vc = diag['variance_collapse']
             print(f"  Particles collapsed at iteration {vc['collapse_iteration']}")
-            print(f"  Final diversity: {vc['final_diversity']:.4f} (max was {vc['max_diversity']:.4f})")
+            print(f"  Final diversity: {vc['final_diversity']:.4g} (max was {vc['max_diversity']:.4g})")
 
         # Issues
         if diag['issues']:
@@ -7580,7 +7724,7 @@ class SVGD:
             try:
                 anim.save(save_as_gif, writer='pillow', fps=int(1000/interval))
                 if self.verbose:
-                    print(f"Animation saved as GIF: {save_as_gif}")
+                    print(f"Animation saved as GIF: {save_as_gig}")
             except Exception as e:
                 print(f"Warning: Could not save GIF: {e}")
 
@@ -8034,15 +8178,15 @@ class SVGD:
         else:
             lo_pct = (1 - ci_level) / 2 * 100
             hi_pct = (1 + ci_level) / 2 * 100
-            lo_label = f"CI {lo_pct:.1f}%"
-            hi_label = f"CI {hi_pct:.1f}%"
+            lo_label = f"CI {lo_pct:.1g}%"
+            hi_label = f"CI {hi_pct:.1g}%"
 
         fields = ["Parameter", "Fixed", "MAP", "Mean", "SD", lo_label, hi_label]
         fmt_str = "{:<10} {:<10} {:<10} {:<10} {:<10} {:<12} {:<12}"
         print(fmt_str.format(*fields))
 
         for i in range(self.theta_dim):
-            val_fmt = f'{{:.3e}}' if np.log10(abs(theta_mean[i]) + 1e-300) > 2 else f'{{:.4f}}'
+            val_fmt = f'{{:.3e}}' if np.log10(abs(theta_mean[i]) + 1e-300) > 2 else f'{{:.4g}}'
 
             if self.fixed_mask is not None and self.fixed_mask[i]:
                 fields = [i,
