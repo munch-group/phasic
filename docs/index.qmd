@@ -10,10 +10,10 @@ listing:
     fields: [image, title]
     grid-columns: 4
     contents:
-      - pages/tutorial/introduction.ipynb
+      - pages/tutorial/01_introduction.ipynb
       - pages/vignettes/telecommunication.ipynb
       - pages/vignettes/drainage-capacity.ipynb
-      - pages/vignettes/uranium_decay.ipynb
+#      - pages/vignettes/uranium_decay.ipynb
       # - pages/vignettes/risk-assessment.ipynb
     # sort: "date desc"
     # categories: true
