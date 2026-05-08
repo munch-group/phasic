@@ -855,6 +855,7 @@ Schumer et al. (2018)
 
 
 
+<!-- 
 
 ## Some code
 
@@ -875,7 +876,6 @@ plt.show()
 ```
 
 ## Some code
-<!-- 
 ```{python}
 #| echo: true
 #| output-location: column
