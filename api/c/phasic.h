@@ -90,10 +90,15 @@ struct ptd_scc_vertex;
  * ``thread-local wrapper routine`` symbol because the two language
  * standards lower to different TLS ABIs. Using ``__thread`` for both
  * sides gives a single consistent ABI (raw TLS, no wrapper functions).
- * Both GCC and Clang support ``__thread`` for C and C++. */
+ * Both GCC and Clang support ``__thread`` for C and C++. On MSVC,
+ * which defines neither ``__GNUC__`` nor ``__STDC_VERSION__ >= C11``
+ * by default, we use ``__declspec(thread)`` which provides the same
+ * raw-TLS ABI for both C and C++ translation units. */
 #ifndef PTD_TLS
 #  if defined(__GNUC__) || defined(__clang__)
 #    define PTD_TLS __thread
+#  elif defined(_MSC_VER)
+#    define PTD_TLS __declspec(thread)
 #  elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L && \
         !defined(__STDC_NO_THREADS__) && !defined(__cplusplus)
 #    define PTD_TLS _Thread_local
