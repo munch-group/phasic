@@ -40,12 +40,40 @@
 #else
     #include <sys/stat.h>
     #include <sys/types.h>
+    #include <io.h>      // _commit, _unlink, _getpid, _fileno
+    #include <process.h> // _getpid
+    #define WIN32_LEAN_AND_MEAN
+    #include <windows.h> // MoveFileExA, MOVEFILE_REPLACE_EXISTING
     // Windows doesn't have rand_r; provide a simple replacement
     static int rand_r(unsigned int *seedp) {
         *seedp = *seedp * 1103515245 + 12345;
         return (int)((*seedp / 65536) % 32768);
     }
+    // POSIX names map to Microsoft's underscore-prefixed equivalents.
+    // _commit() is the closest analogue to fsync(): it flushes the
+    // file descriptor's buffers to disk via FlushFileBuffers().
+    #define fsync(fd)  _commit(fd)
+    #define fileno(fp) _fileno(fp)
+    #define unlink(p)  _unlink(p)
+    #define getpid()   _getpid()
 #endif
+
+/* Atomic replace of `dst` with `src`. POSIX rename() already replaces
+ * an existing destination atomically on the same filesystem; the MSVCRT
+ * rename() does not (it fails with EEXIST). MoveFileExA with
+ * MOVEFILE_REPLACE_EXISTING gives the POSIX semantics on NTFS.
+ * Returns 0 on success, non-zero on failure (errno set on POSIX;
+ * GetLastError() on Windows, mapped to a non-zero return). */
+static int ptd_atomic_rename(const char *src, const char *dst) {
+#ifdef _WIN32
+    if (MoveFileExA(src, dst, MOVEFILE_REPLACE_EXISTING) == 0) {
+        return -1;
+    }
+    return 0;
+#else
+    return rename(src, dst);
+#endif
+}
 
 #include "phasic.h"
 #include "../../api/c/phasic_hash.h"
@@ -3444,7 +3472,7 @@ int ptd_save_parameterized_reward_compute_graph(
         free(anchors);
         return -1;
     }
-    if (rename(tmp_path, path) != 0) {
+    if (ptd_atomic_rename(tmp_path, path) != 0) {
         snprintf((char *)ptd_err, sizeof(ptd_err),
                  "ptd_save: rename %s -> %s failed: %s",
                  tmp_path, path, strerror(errno));
