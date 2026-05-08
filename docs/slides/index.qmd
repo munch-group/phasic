@@ -787,63 +787,13 @@ Left column
 ## header
 
 ::: {.r-stretch}
-{{< embed ../pages/tutorial/state-space.ipynb#fig-coalescent-graph echo=false >}}
+
+use .r-stretch if to get svg to get svg embed from notebook fill entire page
+... embed goes here ...
+
 :::
 
 
-## header
-
-::: {.r-stretch}
-{{< embed ../pages/tutorial/time_inhom_joint_prob.ipynb#fig-time-inhomo-joint-joint-graph >}}
-:::
-
-
-
-## header
-
-:::: {.columns .r-stretch}
-
-::: {.column width="100%"}
-{{< embed ../pages/tutorial/state-space.ipynb#fig-coalescent-graph echo=false >}}
-:::
-
-::::
-
-
-## header
-
-:::: {.columns .r-stretch}
-
-::: {.r-stretch .column width="40%"}
-{{< embed ../pages/tutorial/properties.ipynb#fig-tot-lineages-across-time >}}
-:::
-
-::: {.r-stretch .column width="60%"}
-{{< embed ../pages/tutorial/properties.ipynb#fig-tot-lineages-across-time >}}
-:::
-
-::::
-
-
-## header
-
-::: {.r-stretch}
-{{< embed ../pages/tutorial/properties.ipynb#fig-tot-lineages-across-time >}}
-:::
-
-## Admixture displacement in each <br>**geographical region** {.smaller}
-
-:::: {.columns}
-
-::: {.column width="40%"}
-{{< embed ../pages/tutorial/state-space.ipynb#fig-coalescent-graph echo=false >}}
-:::
-
-::: {.column width="60%"}
-{{< embed ../pages/tutorial/properties.ipynb#fig-tot-lineages-across-time >}}
-:::
-
-::::
 
 ## Slide Title
 
