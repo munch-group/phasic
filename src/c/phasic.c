@@ -1842,7 +1842,7 @@ int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
      * fall through to the lock-free path which is correct under
      * single-threaded use. */
     if (graph->compute_graph_lock_initialized) {
-        pthread_mutex_lock(&graph->compute_graph_lock);
+        PTD_MUTEX_LOCK(&graph->compute_graph_lock);
     }
 
     if (graph->was_dph) {
@@ -1948,7 +1948,7 @@ int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
 
             if (graph->reward_compute_graph == NULL) {
                 if (graph->compute_graph_lock_initialized) {
-                    pthread_mutex_unlock(&graph->compute_graph_lock);
+                    PTD_MUTEX_UNLOCK(&graph->compute_graph_lock);
                 }
                 return -1;
             }
@@ -1956,7 +1956,7 @@ int ptd_precompute_reward_compute_graph(struct ptd_graph *graph) {
     }
 
     if (graph->compute_graph_lock_initialized) {
-        pthread_mutex_unlock(&graph->compute_graph_lock);
+        PTD_MUTEX_UNLOCK(&graph->compute_graph_lock);
     }
 
     return 0;
@@ -2797,7 +2797,7 @@ struct ptd_graph *ptd_graph_create(size_t state_length) {
      * succeed because the unprotected double-NULL-check path is
      * a correctness fallback (lossy under contention but not unsafe
      * for single-threaded use). */
-    if (pthread_mutex_init(&graph->compute_graph_lock, NULL) == 0) {
+    if (PTD_MUTEX_INIT(&graph->compute_graph_lock) == 0) {
         graph->compute_graph_lock_initialized = true;
     } else {
         graph->compute_graph_lock_initialized = false;
@@ -3716,7 +3716,7 @@ void ptd_graph_destroy(struct ptd_graph *graph) {
     /* Destroy the mutex BEFORE the memset zeros the struct — destroying
      * a mutex that's been overwritten with zeros is undefined. */
     if (graph->compute_graph_lock_initialized) {
-        pthread_mutex_destroy(&graph->compute_graph_lock);
+        PTD_MUTEX_DESTROY(&graph->compute_graph_lock);
         graph->compute_graph_lock_initialized = false;
     }
     memset(graph, 0, sizeof(*graph));

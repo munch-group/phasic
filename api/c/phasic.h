@@ -29,7 +29,26 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <pthread.h>  /* pthread_mutex_t for ptd_graph::compute_graph_lock */
+
+/* Portable mutex shim for ptd_graph::compute_graph_lock. MSVC (Windows)
+ * has no pthread.h, so fall back to a CRITICAL_SECTION. POSIX platforms
+ * use pthread_mutex_t directly. The PTD_MUTEX_* macros below give
+ * phasic.c a single uniform call site. */
+#ifdef _WIN32
+#  include <windows.h>
+   typedef CRITICAL_SECTION ptd_mutex_t;
+#  define PTD_MUTEX_INIT(m)    (InitializeCriticalSection(m), 0)
+#  define PTD_MUTEX_LOCK(m)    EnterCriticalSection(m)
+#  define PTD_MUTEX_UNLOCK(m)  LeaveCriticalSection(m)
+#  define PTD_MUTEX_DESTROY(m) DeleteCriticalSection(m)
+#else
+#  include <pthread.h>
+   typedef pthread_mutex_t ptd_mutex_t;
+#  define PTD_MUTEX_INIT(m)    pthread_mutex_init((m), NULL)
+#  define PTD_MUTEX_LOCK(m)    pthread_mutex_lock(m)
+#  define PTD_MUTEX_UNLOCK(m)  pthread_mutex_unlock(m)
+#  define PTD_MUTEX_DESTROY(m) pthread_mutex_destroy(m)
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -175,9 +194,10 @@ struct ptd_graph {
      * ptd_graph * can both observe reward_compute_graph as NULL and try
      * to build it, racing on the result pointer. The mutex serialises
      * the lazy build. The flag tracks whether ptd_graph_destroy must
-     * call pthread_mutex_destroy (false if pthread_mutex_init failed
-     * during ptd_graph_create). */
-    pthread_mutex_t compute_graph_lock;
+     * call PTD_MUTEX_DESTROY (false if PTD_MUTEX_INIT failed during
+     * ptd_graph_create). Type is platform-portable (pthread on POSIX,
+     * CRITICAL_SECTION on Windows) — see PTD_MUTEX_* macros above. */
+    ptd_mutex_t compute_graph_lock;
     bool compute_graph_lock_initialized;
 };
 
