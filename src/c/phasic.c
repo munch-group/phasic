@@ -9652,7 +9652,7 @@ int ptd_dph_probability_distribution_step(
 
 struct ptd_probability_distribution_context *ptd_probability_distribution_context_create(
         struct ptd_graph *graph,
-        int granularity
+        int64_t granularity
 ) {
     double max_rate = 512;
 
@@ -9672,12 +9672,12 @@ struct ptd_probability_distribution_context *ptd_probability_distribution_contex
 
     // Auto-select granularity with higher minimum for numerical stability
     if (granularity == 0) {
-        granularity = max_rate * 2;
+        granularity = (int64_t)(max_rate * 2);
         if (granularity < 1000) {
-            PTD_LOG_DEBUG("Auto-selected granularity (%zu) increased to minimum (1000) for numerical stability", granularity);
+            PTD_LOG_DEBUG("Auto-selected granularity (%lld) increased to minimum (1000) for numerical stability", (long long) granularity);
             granularity = 1000;
         } else {
-            PTD_LOG_DEBUG("Auto-selected granularity: %zu (max_rate=%.2f)", granularity, max_rate);
+            PTD_LOG_DEBUG("Auto-selected granularity: %lld (max_rate=%.2f)", (long long) granularity, max_rate);
         }
     }
 

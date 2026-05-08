@@ -55,8 +55,8 @@ namespace phasic {
         struct ptd_probability_distribution_context *ph_context;
         struct ptd_dph_probability_distribution_context *dph_context_markov;
         struct ptd_probability_distribution_context *ph_context_markov;
-        int granularity;
-        int granularity_markov;
+        int64_t granularity;
+        int64_t granularity_markov;
         // When true, the destructor will not free `graph` or `tree`. Used by
         // SCCGraph::original_graph(): we need to expose the underlying
         // ptd_graph through a Graph wrapper without claiming ownership of it
@@ -681,7 +681,7 @@ namespace phasic {
             return new Graph(r.graph, r.avl_tree);
         }
 
-        double pdf(double time, int granularity = 0) {
+        double pdf(double time, int64_t granularity = 0) {
             if (this->rf_graph->ph_context == NULL
                 || this->rf_graph->granularity != granularity
                 || this->rf_graph->ph_context->weight_version_at_creation != c_graph()->weight_version) {
@@ -701,6 +701,25 @@ namespace phasic {
                 this->rf_graph->granularity = granularity;
             }
 
+            // Step-count cap: the forward algorithm appends to _pdf/_cdf once per
+            // discretization step and would take ~granularity * time steps to reach
+            // `time`. Cap at 1e9 (~16 GB of vector storage) so an over-resolved
+            // auto-granularity on a graph with extreme rates fails fast instead of
+            // exhausting memory. Uses ph_context->granularity (post C-side auto +
+            // floor), so the check covers both explicit and granularity=0 paths.
+            const double resolved_g = (double) this->rf_graph->ph_context->granularity;
+            const double est_steps = resolved_g * time;
+            if (est_steps > 1.0e9) {
+                char msg[512];
+                snprintf(msg, sizeof(msg),
+                    "granularity * time = %.3e would require too many "
+                    "forward-algorithm steps (cap: 1e9). granularity=%lld, "
+                    "time=%g. Reduce granularity, rescale your time/rate units, "
+                    "or check that no edge has an outsized rate.",
+                    est_steps, (long long) this->rf_graph->ph_context->granularity, time);
+                throw std::invalid_argument(msg);
+            }
+
             while (time >= this->rf_graph->ph_context->time) {
                 ptd_probability_distribution_step(
                         this->rf_graph->ph_context
@@ -712,7 +731,7 @@ namespace phasic {
             return _pdf[this->rf_graph->ph_context->granularity * time];
         }
 
-        double cdf(double time, int granularity = 0) {
+        double cdf(double time, int64_t granularity = 0) {
             pdf(time, granularity);
 
             return _cdf[this->rf_graph->ph_context->granularity * time];
@@ -768,7 +787,7 @@ namespace phasic {
             return Graph(r.graph, r.avl_tree);
         }
 
-        std::vector<double> stop_probability(double time, int granularity = 0) {
+        std::vector<double> stop_probability(double time, int64_t granularity = 0) {
             if (this->rf_graph->ph_context_markov == NULL
                 || this->rf_graph->granularity_markov != granularity
                 || this->rf_graph->ph_context_markov->time -
@@ -802,7 +821,7 @@ namespace phasic {
             return ret;
         }
 
-        std::vector<double> accumulated_visiting_time(double time, int granularity = 0) {
+        std::vector<double> accumulated_visiting_time(double time, int64_t granularity = 0) {
             if (this->rf_graph->ph_context_markov == NULL
                 || this->rf_graph->granularity_markov != granularity
                 || this->rf_graph->ph_context_markov->time -
@@ -1320,13 +1339,13 @@ namespace phasic {
 
     class ProbabilityDistributionContext : private AnyProbabilityDistributionContext {
     public:
-        ProbabilityDistributionContext(Graph &graph, int granularity = 0) : graph(graph) {
+        ProbabilityDistributionContext(Graph &graph, int64_t granularity = 0) : graph(graph) {
             context = ptd_probability_distribution_context_create(graph.c_graph(), granularity);
             _discrete = false;
         }
 
         // pybind11 factory function
-        static ProbabilityDistributionContext init_factory(Graph &graph, int granularity = 0) {
+        static ProbabilityDistributionContext init_factory(Graph &graph, int64_t granularity = 0) {
             return ProbabilityDistributionContext(graph, granularity);
         }
 

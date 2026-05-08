@@ -994,7 +994,7 @@ struct ptd_probability_distribution_context {
     struct ptd_graph *graph;
     void *priv;
     long double time;
-    int granularity;
+    int64_t granularity;
     /* graph->weight_version snapshot taken when this context was created.
      * Used by C++ wrapper cache guards (api/cpp/phasiccpp.h) to detect
      * stale forward state after edge weights change. */
@@ -1003,7 +1003,7 @@ struct ptd_probability_distribution_context {
 
 struct ptd_probability_distribution_context *ptd_probability_distribution_context_create(
         struct ptd_graph *graph,
-        int granularity
+        int64_t granularity
 );
 
 void ptd_probability_distribution_context_destroy(

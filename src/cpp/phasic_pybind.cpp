@@ -2496,9 +2496,9 @@ str
       )delim")
       
     .def("distribution_context",
-      [](phasic::Graph &graph, int granularity) {
+      [](phasic::Graph &graph, int64_t granularity) {
         return new phasic::ProbabilityDistributionContext(graph, granularity);
-      }, 
+      },
       
       py::arg("granularity")=0, py::return_value_policy::move, 
       
