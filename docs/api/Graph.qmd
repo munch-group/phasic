@@ -33,6 +33,7 @@ phasic.Graph(arg, ipv=None, graph_cache=False, **kwargs)
 | [compute_trace](#phasic.Graph.compute_trace) | Compute elimination trace with optional hierarchical caching. |
 | [copy](#phasic.Graph.copy) | Returns a deep copy of the graph. |
 | [covariance](#phasic.Graph.covariance) | Compute covariance matrix for multivariate phase-type distributions. |
+| [daisy_chain_joint_probs](#phasic.Graph.daisy_chain_joint_probs) | JAX-traceable model: joint-probs at the t-states after a daisy chain. |
 | [discretize](#phasic.Graph.discretize) | Create a discretized copy of this graph. |
 | [distribution_context](#phasic.Graph.distribution_context) | Create a distribution context for efficient repeated sampling. |
 | [eliminate_to_dag](#phasic.Graph.eliminate_to_dag) | Perform symbolic graph elimination to create a reusable DAG structure. |
@@ -43,6 +44,7 @@ phasic.Graph(arg, ipv=None, graph_cache=False, **kwargs)
 | [find_or_create_vertex](#phasic.Graph.find_or_create_vertex) | Find or create a vertex with the given state. |
 | [from_matrices](#phasic.Graph.from_matrices) | Construct a Graph from matrix representation. |
 | [from_serialized](#phasic.Graph.from_serialized) | Reconstruct Graph from serialize() output. |
+| [joint_stop_prob_graph](#phasic.Graph.joint_stop_prob_graph) | Build the joint stop-probability graph for daisy-chained inference. |
 | [laplace_transform](#phasic.Graph.laplace_transform) | Create a Laplace-transformed graph. |
 | [mcmc](#phasic.Graph.mcmc) | Run MCMC Metropolis-Hastings inference for Bayesian parameter estimation. |
 | [method_of_moments](#phasic.Graph.method_of_moments) | Find parameter estimates by matching model moments to sample moments. |
@@ -67,6 +69,7 @@ phasic.Graph(arg, ipv=None, graph_cache=False, **kwargs)
 | [state_probability](#phasic.Graph.state_probability) | Compute probability of being in each state at a given time. |
 | [stop_probability](#phasic.Graph.stop_probability) | Compute probability of being in each state at a given time. |
 | [svgd](#phasic.Graph.svgd) | Run Stein Variational Gradient Descent (SVGD) inference for Bayesian parameter estimation. |
+| [update_ipv](#phasic.Graph.update_ipv) | Set the initial probability vector after construction. |
 | [update_weights](#phasic.Graph.update_weights) | Update parameterized edge weights with given parameters. |
 | [variance](#phasic.Graph.variance) | Compute variance of the phase-type distribution. |
 
@@ -203,9 +206,31 @@ phasic.Graph.add_epoch(time, callback=None, **kwargs)
 Add an epoch boundary, returning a new graph with epoch transition edges.
 
 Computes transition rates from stop_probability(time) / accumulated_occupancy(time)
-and wires up sister vertices in the next epoch. The new graph has one additional
-state dimension (epoch index) if this is the first epoch, and one additional
-coefficient slot (epoch transition rate).
+and wires up sister vertices in the next epoch. The first call also adds an epoch
+index to the state vector.
+
+#### Coefficient layout {.doc-section .doc-section-coefficient-layout}
+
+After at least one ``add_epoch`` call, the per-edge coefficient vector follows
+a uniform interleaved layout. With base coefficient count ``B`` (i.e. the length
+of each coefficient list returned by the original callback), epoch ``k`` owns
+slots ``[k*(B+1) .. (k+1)*(B+1) - 1]``: the first ``B`` are that epoch's
+dynamics coefficients, and the last is the transition rate from epoch ``k-1``
+into epoch ``k``. Epoch 0's transition slot is a dummy — its coefficient is
+zero on every edge, so any value supplied at that index has no effect.
+
+For example, with ``B = 1`` and ``N`` ``add_epoch`` calls (i.e. ``N + 1`` epochs)
+the coefficient vector accepted by ``update_weights`` is::
+
+    [r_0, t_0_dummy, r_1, t_{0->1}, r_2, t_{1->2}, ..., r_N, t_{(N-1)->N}]
+
+which lets a list of per-epoch rates and times be passed directly via
+``zip``::
+
+    graph.update_weights([v for pair in zip(rates, times) for v in pair])
+
+``param_length()`` grows from ``B`` (no epochs) to ``2*(B+1)`` after the first
+``add_epoch`` and by ``B + 1`` per subsequent call.
 
 #### Parameters {.doc-section .doc-section-parameters}
 
@@ -347,6 +372,16 @@ phasic.Graph.compute_trace(
 
 Compute elimination trace with optional hierarchical caching.
 
+.. deprecated::
+    The Python ``EliminationTrace`` machinery is no longer
+    wired to the public ``moments()`` / ``expectation()`` /
+    ``variance()`` entry points (those route directly to the
+    C++ implementation, which uses the Stage A0-cached
+    ``parameterized_reward_compute_graph``). ``compute_trace``
+    is preserved for callers that still drive the trace
+    pipeline directly, but emits a ``DeprecationWarning`` and
+    will be removed in a future release.
+
 When Graph was created with cache_trace=True, the trace is cached on the
 instance for use by moments(), expectation(), etc. In this mode, the operation
 is NON-DESTRUCTIVE (graph is preserved via cloning).
@@ -461,6 +496,76 @@ Compute covariance matrix for multivariate phase-type distributions.
 
 This method is for multivariate phase-type distributions with
 multiple marginals. For univariate distributions, use variance().
+
+### daisy_chain_joint_probs { #phasic.Graph.daisy_chain_joint_probs }
+
+```python
+phasic.Graph.daisy_chain_joint_probs(
+    epoch_thetas,
+    epoch_dts,
+    initial_ipv,
+    t_eval=None,
+    fixed_indices=None,
+    granularity=0,
+)
+```
+
+JAX-traceable model: joint-probs at the t-states after a daisy chain.
+
+Daisies through ``len(epoch_dts)`` epoch transitions
+(``update_ipv → update_weights → stop_probability(dt)``), then
+in the final epoch sets the propagated IPV and the final-epoch
+theta on the JSP graph and reads
+``joint_stop_probabilities(t_eval)`` at the t-state vertex
+positions. The number of epochs is ``len(epoch_thetas)``, which
+must equal ``len(epoch_dts) + 1``: each epoch *i* in
+0..n_epochs-2 has a transition of duration ``epoch_dts[i]``;
+the final epoch ``n_epochs-1`` has no transition out.
+
+The joint probability of an outcome is the relative probability
+of paths ending in (and being trapped in) that t-state. Because
+the JSP graph's t-aux loops trap mass, ``stop_probability(t)``
+at a t-vertex monotonically approaches the joint probability
+as ``t → ∞``. ``t_eval`` should be large enough that the
+chain has had time to absorb most mass at the t-states. For
+slow-mutation models ``t_eval`` may need to be quite large; the
+default scales with ``sum(epoch_dts)`` to provide a conservative
+starting point. For an adaptive ``t_eval`` chosen via a
+residual-mass probe, use
+``Graph.svgd(..., daisy_chain_t_eval='auto')`` or call
+``Graph._probe_daisy_t_eval(...)`` directly.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**epoch_thetas**]{.parameter-name} [:]{.parameter-annotation-sep} [([array](`array`) - [like](`like`), [shape](`shape`)([n_epochs](`n_epochs`), [theta_dim](`theta_dim`)))]{.parameter-annotation}</code>
+
+:   Per-epoch parameter vectors. JAX-traced.
+
+<code>[**epoch_dts**]{.parameter-name} [:]{.parameter-annotation-sep} [([array](`array`) - [like](`like`), [shape](`shape`)([n_epochs](`n_epochs`) - 1))]{.parameter-annotation}</code>
+
+:   Durations of the first ``n_epochs - 1`` epochs. Static Python sequence (not JAX-traced).
+
+<code>[**initial_ipv**]{.parameter-name} [:]{.parameter-annotation-sep} [([array](`array`) - [like](`like`), [shape](`shape`)([n_ipv](`n_ipv`)))]{.parameter-annotation}</code>
+
+:   IPV for epoch 0, in the JSP graph's IPV layout.
+
+<code>[**t_eval**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Time at which the final-epoch joint stop-probabilities are read. Defaults to ``max(sum(epoch_dts) * 4, 10.0)``.
+
+<code>[**fixed_indices**]{.parameter-name} [:]{.parameter-annotation-sep} [sequence of int]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Flat-theta indices held fixed by SVGD. Forwarded to the ``custom_vjp`` backward pass to skip finite-difference gradient evaluations on those slots.
+
+<code>[**granularity**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0]{.parameter-default}</code>
+
+:   Uniformization granularity passed to the underlying ``stop_probability`` call in the C++ FFI handler. ``0`` (default) auto-picks a safe value from the graph's max rate and the requested time. Larger values give finer discretisation (slower, more accurate); smaller positive values trade accuracy for speed. The same granularity is used for every epoch's ``stop_probability`` call.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [([jax](`jax`).[Array](`jax.Array`), [shape](`shape`)([n_t_vertices](`n_t_vertices`)))]{.parameter-annotation}</code>
+
+:   Joint-probs at the t-states, in the order of ``self._t_vertex_indices``.
 
 ### discretize { #phasic.Graph.discretize }
 
@@ -835,6 +940,46 @@ and reconstructed on worker processes.
 >>> g_reconstructed = Graph.from_serialized(received_dict)
 >>> assert g_reconstructed.vertices_length() == g.vertices_length()
 ```
+
+### joint_stop_prob_graph { #phasic.Graph.joint_stop_prob_graph }
+
+```python
+phasic.Graph.joint_stop_prob_graph()
+```
+
+Build the joint stop-probability graph for daisy-chained inference.
+
+Promotes the notebook helper (in
+``docs/pages/tutorial/time_inhom_joint_prob.ipynb``) into the library.
+The transformation: for each "t-vertex" in the source joint-prob
+graph (a vertex that has a transition to an absorbing vertex), wire
+a "trapping aux loop" — an aux vertex with state ``[0,...,0]`` and
+bidirectional unit-weight parameterised edges to/from the t-vertex.
+Mass that reaches a t-vertex shuttles between t-vertex and aux
+forever, so ``stop_probability(t)[t_vertex] +
+stop_probability(t)[aux]`` equals the cumulative joint absorption
+mass at that t-state by time t.
+
+Initial-probability-vector edges (starting vertex outgoing) are
+added at construction time to **every non-aux, non-trash, non-
+absorbing vertex** with weight 0. The user calls ``update_ipv``
+before each epoch to set them; the daisy-chain loop calls it
+between epochs to propagate surviving mass forward. The IPV vector
+layout matches ``joint_stop_probabilities`` output (vertex order,
+skipping aux vertices and the trash pair, expanded back to full
+vertex space — see ``_collapse_t_aux``).
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[Graph](`phasic.Graph`)]{.parameter-annotation}</code>
+
+:   New graph with attributes ``_joint_stop_prob_graph = True``, ``_t_vertex_indices`` (sorted list of new-graph t-vertex indices), ``_t_aux_map`` (dict mapping new-graph t-vertex index → new-graph aux index), and the propagated ``_joint_prob_base_graph_indexer`` / ``_rewarded_props`` / ``_cache_trace`` from the source.
+
+#### Raises {.doc-section .doc-section-raises}
+
+<code>[:]{.parameter-annotation-sep} [[ValueError](`ValueError`)]{.parameter-annotation}</code>
+
+:   If ``self`` is not a joint-prob graph (no ``_joint_prob_base_graph_indexer``) or has no parameterised edges (``param_length() == 0``).
 
 ### laplace_transform { #phasic.Graph.laplace_transform }
 
@@ -2155,6 +2300,11 @@ phasic.Graph.svgd(
     rewards=None,
     fixed=None,
     preconditioner='auto',
+    epoch_starts=None,
+    daisy_chain_t_eval=None,
+    daisy_chain_granularity=0,
+    daisy_chain_probe_theta=None,
+    daisy_chain_t_eval_tol=0.001,
 )
 ```
 
@@ -2258,6 +2408,26 @@ pmf_from_graph() or pmf_from_cpp() where the model signature is model(theta, tim
 
 :   Preconditioning method for multi-scale parameters: - 'auto' or 'jacobian': Moment Jacobian preconditioning (default, recommended).   Uses column norms of the moment Jacobian matrix for scaling. Simpler and   more robust than Fisher preconditioning. - 'fisher': Fisher diagonal preconditioning. Uses empirical Fisher information   matrix diagonal. Can be unstable when PMF values are small. - None or 'none': No preconditioning (original behavior) - MomentJacobianPreconditioner or FisherPreconditioner instance: Custom preconditioner
 
+<code>[**epoch_starts**]{.parameter-name} [:]{.parameter-annotation-sep} [array-like of float]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Enables daisy-chain (time-inhomogeneous) inference. ``epoch_starts[0] == 0``; subsequent entries are the start times of additional epochs. ``n_epochs = len(epoch_starts)``. Each epoch fits its own ``param_length`` parameters, so the flattened theta has length ``n_epochs * param_length``. Requires a continuous-time joint-prob graph (``discrete=False``).  **Daisy-chain ``fixed`` semantics**: when ``epoch_starts`` is set, each ``(local_idx, value)`` entry in ``fixed`` is broadcast across all epochs. To pin a parameter at *different* values per epoch, pass a list/array of length ``n_epochs`` as the value::      fixed=[(1, 1.0)]            # local_idx=1 fixed at 1.0 in every epoch     fixed=[(1, [1.0, 2.5])]     # local_idx=1 fixed at 1.0 in epoch 0, 2.5 in epoch 1     fixed=[(0, 5.0), (1, [2.0, 8.0])]  # mix scalar and per-epoch
+
+<code>[**daisy_chain_t_eval**]{.parameter-name} [:]{.parameter-annotation-sep} [float, str, or None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Time at which the final-epoch joint stop-probabilities are read off the JSP graph's t-vertices. Only used when ``epoch_starts`` is set. - Numeric: used as-is. - ``None`` (default): falls back to ``max(sum(epoch_dts) * 4, 10.0)``. - ``'auto'``: an adaptive probe (``Graph._probe_daisy_t_eval``) walks the   daisy chain at ``daisy_chain_probe_theta`` and grows ``t_eval`` until   the residual non-t-vertex transient mass falls below   ``daisy_chain_t_eval_tol``. Typically picks a much smaller value than   the conservative default and so cuts SVGD wall time significantly.
+
+<code>[**daisy_chain_granularity**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0]{.parameter-default}</code>
+
+:   Uniformization granularity passed to ``stop_probability`` inside the daisy-chain FFI handler. ``0`` = auto (the underlying C++ picks a safe value from the graph's max rate × time). Larger values give finer discretisation; smaller positive values trade accuracy for speed.
+
+<code>[**daisy_chain_probe_theta**]{.parameter-name} [:]{.parameter-annotation-sep} [[array](`array`) - [like](`like`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Theta used by the ``daisy_chain_t_eval='auto'`` probe. Shape ``(param_length,)`` (broadcast across all epochs) or ``(n_epochs, param_length)`` (per-epoch). Defaults to ones.
+
+<code>[**daisy_chain_t_eval_tol**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-3]{.parameter-default}</code>
+
+:   Residual-mass tolerance used by the ``daisy_chain_t_eval='auto'`` probe.
+
 #### Returns {.doc-section .doc-section-returns}
 
 <code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation}</code>
@@ -2319,6 +2489,40 @@ pmf_from_graph() or pmf_from_cpp() where the model signature is model(theta, tim
 - The likelihood is computed as sum(log(model(theta, observed_data)))
 - For better results, ensure observed_data has sufficient information about the parameters
 - Learning rate and number of iterations may need tuning for different problems
+
+### update_ipv { #phasic.Graph.update_ipv }
+
+```python
+phasic.Graph.update_ipv(ipv)
+```
+
+Set the initial probability vector after construction.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**ipv**]{.parameter-name} [:]{.parameter-annotation-sep} [([array](`array`) - [like](`like`), [shape](`shape`)([n_ipv_edges](`n_ipv_edges`)))]{.parameter-annotation}</code>
+
+:   New weights for starting-vertex edges, in construction order. Length must equal the number of starting-vertex edges in the graph.
+
+#### Notes {.doc-section .doc-section-notes}
+
+IPV is a property of the model, not an inference parameter. Use
+this method to:
+
+  - set the IPV after constructing the graph if your callback
+    does not bake one in;
+  - re-run the same graph against a different initial
+    distribution without rebuilding it;
+  - propagate epoch state in a daisy chain (handled internally
+    by the daisy-chain machinery between epochs).
+
+The symbolic compute graph cache (Stage A0) survives this call,
+so subsequent forward computations (``expectation``, ``pdf``,
+``compute_pmf``, ...) reuse the cached elimination.
+
+For users on the Python ``EliminationTrace`` path
+(``cache_trace=True``), IPV remains baked in at trace-record
+time — that path is not affected by ``update_ipv``.
 
 ### update_weights { #phasic.Graph.update_weights }
 

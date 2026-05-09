@@ -488,6 +488,7 @@ phasic.svgd.SVGD.animate_parameter_pairs(
     param_pairs=None,
     true_params=None,
     figsize=(15, 5),
+    hide_fixed=True,
     save_as_gif=None,
 )
 ```
@@ -507,6 +508,10 @@ Animate multiple parameter pairs simultaneously.
 <code>[**figsize**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [(15, 5)]{.parameter-default}</code>
 
 :   Figure size (width, height).
+
+<code>[**hide_fixed**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   If True, hide fixed parameters in the trace plot.
 
 <code>[**save_as_gif**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
@@ -690,6 +695,7 @@ phasic.svgd.SVGD.plot_ci(
     median=False,
     return_fig=False,
     ci_method='hpd',
+    hide_fixed=True,
 )
 ```
 
@@ -744,6 +750,10 @@ the specified credible interval (default 95%).
 
 :   Method for credible intervals.  - ``'hpd'``: Highest Posterior Density interval — the shortest   interval containing ``ci`` fraction of posterior samples at each   iteration. Computed by sorting the particles and sliding a   window of ``ceil(n * ci)`` samples to find the narrowest span. - ``'percentile'``: Equal-tailed percentile interval using   symmetric quantiles.
 
+<code>[**hide_fixed**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   If True, hide fixed parameters in the trace plot.
+
 #### Returns {.doc-section .doc-section-returns}
 
 <code>[]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)\[[matplotlib](`matplotlib`).[figure](`matplotlib.figure`).[Figure](`matplotlib.figure.Figure`), [matplotlib](`matplotlib`).[axes](`matplotlib.axes`).[Axes](`matplotlib.axes.Axes`)\]]{.parameter-annotation}</code>
@@ -758,6 +768,7 @@ phasic.svgd.SVGD.plot_convergence(
     save_path=None,
     skip=0,
     unconstrained=False,
+    hide_fixed=True,
     return_fig=False,
 )
 ```
@@ -784,6 +795,10 @@ Requires fit() to have been called with return_history=True.
 
 :   If False, show constrained (model-space) parameter values. If True, show unconstrained (optimization-space) values. Only relevant when using parameter transformations.
 
+<code>[**hide_fixed**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   If True, hide fixed parameters in the trace plot.
+
 <code>[**return_fig**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
 
 :   If True, return (fig, axes). If False, call plt.show() instead.
@@ -799,7 +814,7 @@ Requires fit() to have been called with return_history=True.
 ```python
 phasic.svgd.SVGD.plot_hdr(
     alphas=[0.95, 0.5],
-    idx=[0, 1],
+    idx=None,
     figsize=(5, 4),
     hexgrid=True,
     trim=True,
@@ -811,6 +826,7 @@ phasic.svgd.SVGD.plot_hdr(
     pad=2,
     unconstrained=False,
     return_fig=False,
+    hide_fixed=True,
     show_hpd=False,
     hpd_alpha=0.95,
 )
@@ -827,9 +843,9 @@ for two selected parameter dimensions.
 
 :   HDR contour levels (fraction of mass enclosed).
 
-<code>[**idx**]{.parameter-name} [:]{.parameter-annotation-sep} [list of int]{.parameter-annotation} [ = ]{.parameter-default-sep} [\[0, 1\]]{.parameter-default}</code>
+<code>[**idx**]{.parameter-name} [:]{.parameter-annotation-sep} [list of int]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
-:   Indices of the two parameter dimensions to plot.
+:   Indices of the two parameter dimensions to plot. Defaults to first two non-fixed parameters.
 
 <code>[**figsize**]{.parameter-name} [:]{.parameter-annotation-sep} [[tuple](`tuple`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [(5, 4)]{.parameter-default}</code>
 
@@ -883,6 +899,10 @@ for two selected parameter dimensions.
 
 :   Credible level for the marginal HPD bands (only used when ``show_hpd=True``).
 
+<code>[**hide_fixed**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   If True, hide fixed parameters in the trace plot.
+
 ### plot_pairwise { #phasic.svgd.SVGD.plot_pairwise }
 
 ```python
@@ -891,6 +911,7 @@ phasic.svgd.SVGD.plot_pairwise(
     param_names=None,
     figsize=None,
     save_path=None,
+    hide_fixed=True,
     unconstrained=False,
     return_fig=False,
 )
@@ -919,6 +940,10 @@ Plot pairwise scatter plots for all parameter pairs.
 <code>[**unconstrained**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
 
 :   If False, show constrained (model-space) parameter values. If True, show unconstrained (optimization-space) values. Only relevant when using parameter transformations.
+
+<code>[**hide_fixed**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   If True, hide fixed parameters in the trace plot.
 
 <code>[**return_fig**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
 
@@ -1002,6 +1027,7 @@ phasic.svgd.SVGD.plot_trace(
     max_particles=None,
     save_path=None,
     unconstrained=False,
+    hide_fixed=True,
     return_fig=False,
 )
 ```
@@ -1035,6 +1061,10 @@ Requires fit() to have been called with return_history=True.
 <code>[**unconstrained**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
 
 :   If False, show constrained (model-space) parameter values. If True, show unconstrained (optimization-space) values. Only relevant when using parameter transformations.
+
+<code>[**hide_fixed**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   If True, hide fixed parameters in the trace plot.
 
 <code>[**return_fig**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
 

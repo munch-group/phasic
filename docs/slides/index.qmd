@@ -788,9 +788,7 @@ Left column
 
 ::: {.r-stretch}
 
-use .r-stretch if to get svg to get svg embed from notebook fill entire page
-... embed goes here ...
-
+{{< embed ../pages/tutorial/state-space.ipynb#fig-coalescent-graph echo=false >}}
 :::
 
 

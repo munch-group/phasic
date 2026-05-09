@@ -4,32 +4,31 @@
 sidebar: false
 page-layout: full
 toc: false
-listing:
-  - id: showcase
-    type: grid
-    fields: [image, title]
-    grid-columns: 4
-    contents:
-      - pages/tutorial/01_introduction.ipynb
-      - pages/vignettes/telecommunication.ipynb
-      - pages/vignettes/drainage-capacity.ipynb
-#      - pages/vignettes/uranium_decay.ipynb
-      # - pages/vignettes/risk-assessment.ipynb
-    # sort: "date desc"
-    # categories: true
-    # sort-ui: true
-    # filter-ui: true
-    # fields: [image, title, description]
-# include CSS style for title blocks
+# listing:
+#   - id: showcase
+#     type: grid
+#     fields: [image, title]
+#     grid-columns: 4
+#     contents:
+#       - pages/tutorial/01_introduction.ipynb
+#       - pages/vignettes/telecommunication.ipynb
+#       - pages/vignettes/drainage-capacity.ipynb
+# #     - pages/vignettes/uranium_decay.ipynb
+# #     - pages/vignettes/risk-assessment.ipynb
+#     sort: "date desc"
+#     categories: true
+#     sort-ui: true
+#     filter-ui: true
+#     fields: [image, title, description]
 
 # # title-block-style: plain
 # title-block-banner-color: black
 # title-block-banner-bg: white
 # title-block-banner: banner.png
-
 # title-block-banner: "#00000000"
 title-block-banner: "#ffffff"
 title-block-banner-color: "#ffffff"
+
 include-in-header:
   - text: |
       <style>

@@ -35,35 +35,35 @@ execute:
 metadata-files:
   - api/_sidebar.yml
 
-filters:
-  - "interlinks"
+# filters:
+#   - "interlinks"
 
-interlinks:
-  fast: true
-  sources:
-    python:
-      url: https://docs.python.org/3/
-    griffe:
-      url: https://mkdocstrings.github.io/griffe/
-    numpy:
-      url: https://numpy.org/doc/stable/
-    pandas:
-      url: https://pandas.pydata.org/docs/
-    matplotlib:
-      url: https://matplotlib.org/stable/
-    scipy:
-      url: https://docs.scipy.org/doc/scipy/
-    statsmodels:
-      url: https://www.statsmodels.org/stable/ 
-    jax:
-      url: https://docs.jax.dev/en/latest/
-    optax:
-      url: https://optax.readthedocs.io/en/latest/
-    ipython:
-      url: https://ipython.readthedocs.io/en/stable/
-    # quartodoc-test:
-    #   url: https://machow.github.io/quartodoc
-    #   inv: objects-test.txt
+# interlinks:
+#   fast: true
+#   sources:
+#     python:
+#       url: https://docs.python.org/3/
+#     griffe:
+#       url: https://mkdocstrings.github.io/griffe/
+#     numpy:
+#       url: https://numpy.org/doc/stable/
+#     pandas:
+#       url: https://pandas.pydata.org/docs/
+#     matplotlib:
+#       url: https://matplotlib.org/stable/
+#     scipy:
+#       url: https://docs.scipy.org/doc/scipy/
+#     statsmodels:
+#       url: https://www.statsmodels.org/stable/ 
+#     jax:
+#       url: https://docs.jax.dev/en/latest/
+#     optax:
+#       url: https://optax.readthedocs.io/en/latest/
+#     ipython:
+#       url: https://ipython.readthedocs.io/en/stable/
+#     # quartodoc-test:
+#     #   url: https://machow.github.io/quartodoc
+#     #   inv: objects-test.txt
 
 website:
   # title: "phasic"
@@ -111,40 +111,38 @@ website:
       collapse-level: 3
       contents:
         - pages/getting_started.ipynb
-        - section: "State space"
+        - section: "Modeling"
           contents:
-            - pages/tutorial/01_introduction.ipynb
-            - pages/tutorial/02_state-space.ipynb
-            - pages/tutorial/03_state-space-utils.ipynb
-            - pages/tutorial/04_visualize.ipynb
-            - pages/tutorial/05_properties.ipynb
-            - pages/tutorial/06_discrete.ipynb
-            - pages/tutorial/07_parametrization.ipynb
-        - section: "Modelling"
-          contents:
-            - pages/tutorial/10_laplace.ipynb
-            - pages/tutorial/11_time-inhomogeneous.ipynb
-            - pages/tutorial/12_joint-probability.ipynb
-            - pages/tutorial/13_finite-markov-chains.ipynb
+            - pages/tutorial/introduction.ipynb
+            - pages/tutorial/state-space.ipynb
+            - pages/tutorial/state-space-utils.ipynb
+            - pages/tutorial/visualize.ipynb
+            - pages/tutorial/properties.ipynb
+            - pages/tutorial/discrete.ipynb
+            - pages/tutorial/parametrization.ipynb
+            - pages/tutorial/time-inhomogeneous.ipynb
+            - pages/tutorial/joint-probability.ipynb
+            - pages/tutorial/laplace.ipynb
+            - pages/tutorial/finite-markov-chains.ipynb
             # - pages/tutorial/hex-grid.ipynb          
             # - pages/tutorial/state-lumping.ipynb
             # - pages/topics/R/partitioning.ipynb
         - section: "Inference"
           contents:
-            # - pages/tutorial/08_trace-and-jax-caching.ipynb
-            - pages/tutorial/08_trace-and-jax-caching-c-path.ipynb
-            - pages/tutorial/09_method-of-moments.ipynb
-            - pages/tutorial/14_svgd-basics.ipynb
-            - pages/tutorial/15_svgd-priors-and-schedules.ipynb
-            - pages/tutorial/16_svgd-multi-feature.ipynb
-            - pages/tutorial/17_svgd-multi-param.ipynb
-            - pages/tutorial/18_svgd-joint-prob.ipynb
+            # - pages/tutorial/trace-and-jax-caching.ipynb
+            - pages/tutorial/trace-and-jax-caching-c-path.ipynb
+            - pages/tutorial/method-of-moments.ipynb
+            - pages/tutorial/svgd-basics.ipynb
+            - pages/tutorial/svgd-priors-and-schedules.ipynb
+            - pages/tutorial/svgd-multi-feature.ipynb
+            - pages/tutorial/svgd-multi-param.ipynb
+            - pages/tutorial/svgd-joint-prob.ipynb
         - section: "Computation"
           contents:
-            - pages/tutorial/17_sharing.ipynb
-            - pages/tutorial/19_mpfr.ipynb
-            - pages/tutorial/20_distributed.ipynb
-        - section: "Topics"
+            - pages/tutorial/sharing.ipynb
+            - pages/tutorial/mpfr.ipynb
+            - pages/tutorial/distributed.ipynb
+        - section: "Deep dives"
           contents:
             - pages/topics/vscodenb.ipynb
             - pages/topics/caching_guide.qmd
@@ -209,171 +207,171 @@ format:
       theme: neutral 
     fig-format: svg      
 
-quartodoc:
-  title: "API Reference"  
-  package: phasic
-  # package: null
-  # source_dir: ../src/cpp
-  style: pkgdown
-  dir: api
-  dynamic: true  # use runtime import for compiled extensions
-  parser: numpy  # use numpy docstring parser (more lenient)
-  render_interlinks: true
-  options:
-    signature_name: full
-    # include_inherited: false  # Avoid cyclic alias issues with C++ parent class
-    # include_empty: false  # Skip items that can't be loaded
-  renderer:
-    style: markdown
-    table_style: description-list
-  sidebar: "api/_sidebar.yml"
-  css: "api/_styles-quartodoc.css"
+# quartodoc:
+#   title: "API Reference"  
+#   package: phasic
+#   # package: null
+#   # source_dir: ../src/cpp
+#   style: pkgdown
+#   dir: api
+#   dynamic: true  # use runtime import for compiled extensions
+#   parser: numpy  # use numpy docstring parser (more lenient)
+#   render_interlinks: true
+#   options:
+#     signature_name: full
+#     # include_inherited: false  # Avoid cyclic alias issues with C++ parent class
+#     # include_empty: false  # Skip items that can't be loaded
+#   renderer:
+#     style: markdown
+#     table_style: description-list
+#   sidebar: "api/_sidebar.yml"
+#   css: "api/_styles-quartodoc.css"
 
-  sections:
-    - title: Graph
-      package: phasic
-      desc: |
-        The graph interface carrying the main UI.
-      contents:
-        - Graph
-        # - SymbolicDAG
-    - title: Graph Construction
-      package: phasic
-      desc: |
-        The state indexing utility for mapping between between the
-        integer vectors of states and the model properties they represent.
-      contents:
-        - StateIndexer
-        - PropertySet
-        - Property
-        - PropertyDict
-        - StateVector
+#   sections:
+#     - title: Graph
+#       package: phasic
+#       desc: |
+#         The graph interface carrying the main UI.
+#       contents:
+#         - Graph
+#         # - SymbolicDAG
+#     - title: Graph Construction
+#       package: phasic
+#       desc: |
+#         The state indexing utility for mapping between between the
+#         integer vectors of states and the model properties they represent.
+#       contents:
+#         - StateIndexer
+#         - PropertySet
+#         - Property
+#         - PropertyDict
+#         - StateVector
 
-    - title: Spatial Grids
-      package: phasic
-      desc: |
-        Hexagonal grid utilities for spatial phase-type models on
-        geographic boundaries.
-      contents:
-        - HexGrid
-        - HexCell
+#     - title: Spatial Grids
+#       package: phasic
+#       desc: |
+#         Hexagonal grid utilities for spatial phase-type models on
+#         geographic boundaries.
+#       contents:
+#         - HexGrid
+#         - HexCell
 
-    - title: Exceptions
-      package: phasic.exceptions
-      desc: |
-        Custom exceptions for error handling in phasic.
-      contents:
-        - PTDAlgorithmsError
-        - PTDConfigError
-        - PTDBackendError
-        - PTDFeatureError
-        - PTDJAXError
+#     - title: Exceptions
+#       package: phasic.exceptions
+#       desc: |
+#         Custom exceptions for error handling in phasic.
+#       contents:
+#         - PTDAlgorithmsError
+#         - PTDConfigError
+#         - PTDBackendError
+#         - PTDFeatureError
+#         - PTDJAXError
 
-    - title: Sparse observations
-      package: phasic.svgd
-      desc: |
-        Sparse observations for multi-feature data.
-      contents:
-        - SparseObservations
-        - dense_to_sparse
-        - is_sparse_observations
+#     - title: Sparse observations
+#       package: phasic.svgd
+#       desc: |
+#         Sparse observations for multi-feature data.
+#       contents:
+#         - SparseObservations
+#         - dense_to_sparse
+#         - is_sparse_observations
 
-    - title: Stein Variational Gradient Descent
-      package: phasic.svgd
-      desc: |
-        Stein Variational Gradient Descent and preconditioners.
-      contents:
-        - MomentJacobianPreconditioner
-        - FisherPreconditioner
-        - SVGD
-        - SVGDKernel
+#     - title: Stein Variational Gradient Descent
+#       package: phasic.svgd
+#       desc: |
+#         Stein Variational Gradient Descent and preconditioners.
+#       contents:
+#         - MomentJacobianPreconditioner
+#         - FisherPreconditioner
+#         - SVGD
+#         - SVGDKernel
 
-    - title: Priors
-      package: phasic.svgd
-      desc: |
-        Prior distributions of model parameters.
-      contents:
-        - DataPrior
-        - Prior
-        - GaussPrior
-        - HalfCauchyPrior
+#     - title: Priors
+#       package: phasic.svgd
+#       desc: |
+#         Prior distributions of model parameters.
+#       contents:
+#         - DataPrior
+#         - Prior
+#         - GaussPrior
+#         - HalfCauchyPrior
 
-    - title: Learning rate and regularization
-      package: phasic.svgd
-      desc: |
-        Learning rate schedules and regularization techniques for 
-        Stein Variational Gradient Descent.
-      contents:
-        - StepSizeSchedule
-        - ConstantStepSize
-        - ExpStepSize
-        - AdaptiveStepSize
-        - WarmupExpStepSize
-        - RegularizationSchedule
-        - ConstantRegularization
-        - ExpRegularization
+#     - title: Learning rate and regularization
+#       package: phasic.svgd
+#       desc: |
+#         Learning rate schedules and regularization techniques for 
+#         Stein Variational Gradient Descent.
+#       contents:
+#         - StepSizeSchedule
+#         - ConstantStepSize
+#         - ExpStepSize
+#         - AdaptiveStepSize
+#         - WarmupExpStepSize
+#         - RegularizationSchedule
+#         - ConstantRegularization
+#         - ExpRegularization
 
-    - title: Optimizers
-      package: phasic.svgd
-      desc: |
-        Adaptive optimizers. Recommended only for models that 
-        will not otherwise converge. 
-      contents:
-        - Adam
-        - SGDMomentum
-        - RMSprop
-        - Adagrad
+#     - title: Optimizers
+#       package: phasic.svgd
+#       desc: |
+#         Adaptive optimizers. Recommended only for models that 
+#         will not otherwise converge. 
+#       contents:
+#         - Adam
+#         - SGDMomentum
+#         - RMSprop
+#         - Adagrad
 
-    - title: Optax optimizer support
-      package: phasic.optax_wrapper
-      desc: |
-        Support for using optimizers from the external Optax library 
-        some of them pre-wrapped for convenience. Recommended only for
-        models that will not otherwise converge, and for users who 
-        want to experiment with a wider range of optimizers.
-      contents:
-        - OptaxOptimizer
-        - optax_adam
-        - optax_adamw
-        - optax_sgd
-        - optax_rmsprop
-        - optax_adagrad
-        - optax_chain
-        - optax_lion
+#     - title: Optax optimizer support
+#       package: phasic.optax_wrapper
+#       desc: |
+#         Support for using optimizers from the external Optax library 
+#         some of them pre-wrapped for convenience. Recommended only for
+#         models that will not otherwise converge, and for users who 
+#         want to experiment with a wider range of optimizers.
+#       contents:
+#         - OptaxOptimizer
+#         - optax_adam
+#         - optax_adamw
+#         - optax_sgd
+#         - optax_rmsprop
+#         - optax_adagrad
+#         - optax_chain
+#         - optax_lion
 
-    - title: Library utilities
-      package: phasic
-      desc: |
-        Configuration and Logging.
-      contents:
-        - clear_caches
-        - configure
-        - get_config
-        - get_available_options
-        - PTDAlgorithmsConfig
-        - reset_config
-        - set_log_level
-        - get_logger
+#     - title: Library utilities
+#       package: phasic
+#       desc: |
+#         Configuration and Logging.
+#       contents:
+#         - clear_caches
+#         - configure
+#         - get_config
+#         - get_available_options
+#         - PTDAlgorithmsConfig
+#         - reset_config
+#         - set_log_level
+#         - get_logger
 
-    # - title: Distributed Computing
-    #   package: phasic
-    #   desc: |
-    #     Multi-node distributed computing utilities for SLURM clusters.
-    #     Simplifies scaling from single machine to 100+ nodes with automatic
-    #     JAX distributed initialization and configuration management.
-    #   contents:
-    #     # - subtitle: "Distributed Initialization"
-    #     #   desc: "Auto-detection and setup for multi-node computing"
-    #     - DistributedConfig
-    #     - initialize_distributed
-    #     - detect_slurm_environment
-    #     - get_coordinator_address
-    #     - configure_jax_devices
-    #     - initialize_jax_distributed
-    #     # - subtitle: "Cluster Configuration"
-    #     #   desc: "YAML-based cluster configuration management"
-    #     - ClusterConfig
-    #     - load_config
-    #     - get_default_config
-    #     - validate_config
-    #     - suggest_config
+#     # - title: Distributed Computing
+#     #   package: phasic
+#     #   desc: |
+#     #     Multi-node distributed computing utilities for SLURM clusters.
+#     #     Simplifies scaling from single machine to 100+ nodes with automatic
+#     #     JAX distributed initialization and configuration management.
+#     #   contents:
+#     #     # - subtitle: "Distributed Initialization"
+#     #     #   desc: "Auto-detection and setup for multi-node computing"
+#     #     - DistributedConfig
+#     #     - initialize_distributed
+#     #     - detect_slurm_environment
+#     #     - get_coordinator_address
+#     #     - configure_jax_devices
+#     #     - initialize_jax_distributed
+#     #     # - subtitle: "Cluster Configuration"
+#     #     #   desc: "YAML-based cluster configuration management"
+#     #     - ClusterConfig
+#     #     - load_config
+#     #     - get_default_config
+#     #     - validate_config
+#     #     - suggest_config
