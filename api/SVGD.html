@@ -750,8 +750,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    param_pairs<span class="op">=</span><span class="va">None</span>,</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    true_params<span class="op">=</span><span class="va">None</span>,</span>
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    figsize<span class="op">=</span>(<span class="dv">15</span>, <span class="dv">5</span>),</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    save_as_gif<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    hide_fixed<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    save_as_gif<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Animate multiple parameter pairs simultaneously.</p>
 <section id="parameters-4" class="level4 doc-section doc-section-parameters">
 <h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-4">Parameters</h4>
@@ -767,6 +768,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <dt><code><span class="parameter-name"><strong>figsize</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>tuple</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">(15, 5)</span></code></dt>
 <dd>
 <p>Figure size (width, height).</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>hide_fixed</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>bool</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">True</span></code></dt>
+<dd>
+<p>If True, hide fixed parameters in the trace plot.</p>
 </dd>
 <dt><code><span class="parameter-name"><strong>save_as_gif</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>str</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
 <dd>
@@ -954,7 +959,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    median<span class="op">=</span><span class="va">False</span>,</span>
 <span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>    return_fig<span class="op">=</span><span class="va">False</span>,</span>
 <span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>    ci_method<span class="op">=</span><span class="st">'hpd'</span>,</span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>    hide_fixed<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Plot mean parameter trajectory with credible interval ribbon.</p>
 <p>Shows the posterior mean over iterations with a shaded region representing the specified credible interval (default 95%).</p>
 <section id="parameters-9" class="level4 doc-section doc-section-parameters">
@@ -1004,6 +1010,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <dd>
 <p>Method for credible intervals. - <code>'hpd'</code>: Highest Posterior Density interval — the shortest interval containing <code>ci</code> fraction of posterior samples at each iteration. Computed by sorting the particles and sliding a window of <code>ceil(n * ci)</code> samples to find the narrowest span. - <code>'percentile'</code>: Equal-tailed percentile interval using symmetric quantiles.</p>
 </dd>
+<dt><code><span class="parameter-name"><strong>hide_fixed</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>bool</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">True</span></code></dt>
+<dd>
+<p>If True, hide fixed parameters in the trace plot.</p>
+</dd>
 </dl>
 </section>
 <section id="returns-8" class="level4 doc-section doc-section-returns">
@@ -1023,8 +1033,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    save_path<span class="op">=</span><span class="va">None</span>,</span>
 <span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>    skip<span class="op">=</span><span class="dv">0</span>,</span>
 <span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>    unconstrained<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>    return_fig<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>    hide_fixed<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>    return_fig<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Plot convergence diagnostics showing mean and std over iterations.</p>
 <p>Requires fit() to have been called with return_history=True.</p>
 <section id="parameters-10" class="level4 doc-section doc-section-parameters">
@@ -1046,6 +1057,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <dd>
 <p>If False, show constrained (model-space) parameter values. If True, show unconstrained (optimization-space) values. Only relevant when using parameter transformations.</p>
 </dd>
+<dt><code><span class="parameter-name"><strong>hide_fixed</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>bool</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">True</span></code></dt>
+<dd>
+<p>If True, hide fixed parameters in the trace plot.</p>
+</dd>
 <dt><code><span class="parameter-name"><strong>return_fig</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>bool</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">True</span></code></dt>
 <dd>
 <p>If True, return (fig, axes). If False, call plt.show() instead.</p>
@@ -1066,7 +1081,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h3 class="anchored" data-anchor-id="phasic.svgd.SVGD.plot_hdr">plot_hdr</h3>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>phasic.svgd.SVGD.plot_hdr(</span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>    alphas<span class="op">=</span>[<span class="fl">0.95</span>, <span class="fl">0.5</span>],</span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    idx<span class="op">=</span>[<span class="dv">0</span>, <span class="dv">1</span>],</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    idx<span class="op">=</span><span class="va">None</span>,</span>
 <span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    figsize<span class="op">=</span>(<span class="dv">5</span>, <span class="dv">4</span>),</span>
 <span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    hexgrid<span class="op">=</span><span class="va">True</span>,</span>
 <span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    trim<span class="op">=</span><span class="va">True</span>,</span>
@@ -1078,9 +1093,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>    pad<span class="op">=</span><span class="dv">2</span>,</span>
 <span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>    unconstrained<span class="op">=</span><span class="va">False</span>,</span>
 <span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>    return_fig<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>    show_hpd<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>    hpd_alpha<span class="op">=</span><span class="fl">0.95</span>,</span>
-<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>    hide_fixed<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>    show_hpd<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>    hpd_alpha<span class="op">=</span><span class="fl">0.95</span>,</span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Plot 2D highest-density region with optional marginal HPD bands.</p>
 <p>Displays a hex-grid log-likelihood heatmap and KDE-based HDR contours for two selected parameter dimensions.</p>
 <section id="parameters-11" class="level4 doc-section doc-section-parameters">
@@ -1090,9 +1106,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <dd>
 <p>HDR contour levels (fraction of mass enclosed).</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>idx</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">list of int</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">[0, 1]</span></code></dt>
+<dt><code><span class="parameter-name"><strong>idx</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">list of int</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
 <dd>
-<p>Indices of the two parameter dimensions to plot.</p>
+<p>Indices of the two parameter dimensions to plot. Defaults to first two non-fixed parameters.</p>
 </dd>
 <dt><code><span class="parameter-name"><strong>figsize</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>tuple</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">(5, 4)</span></code></dt>
 <dd>
@@ -1146,6 +1162,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <dd>
 <p>Credible level for the marginal HPD bands (only used when <code>show_hpd=True</code>).</p>
 </dd>
+<dt><code><span class="parameter-name"><strong>hide_fixed</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>bool</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">True</span></code></dt>
+<dd>
+<p>If True, hide fixed parameters in the trace plot.</p>
+</dd>
 </dl>
 </section>
 </section>
@@ -1156,9 +1176,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    param_names<span class="op">=</span><span class="va">None</span>,</span>
 <span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>    figsize<span class="op">=</span><span class="va">None</span>,</span>
 <span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>    save_path<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>    unconstrained<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>    return_fig<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>    hide_fixed<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>    unconstrained<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>    return_fig<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Plot pairwise scatter plots for all parameter pairs.</p>
 <section id="parameters-12" class="level4 doc-section doc-section-parameters">
 <h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-12">Parameters</h4>
@@ -1182,6 +1203,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <dt><code><span class="parameter-name"><strong>unconstrained</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>bool</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">False</span></code></dt>
 <dd>
 <p>If False, show constrained (model-space) parameter values. If True, show unconstrained (optimization-space) values. Only relevant when using parameter transformations.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>hide_fixed</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>bool</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">True</span></code></dt>
+<dd>
+<p>If True, hide fixed parameters in the trace plot.</p>
 </dd>
 <dt><code><span class="parameter-name"><strong>return_fig</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>bool</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">True</span></code></dt>
 <dd>
@@ -1273,8 +1298,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>    max_particles<span class="op">=</span><span class="va">None</span>,</span>
 <span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>    save_path<span class="op">=</span><span class="va">None</span>,</span>
 <span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>    unconstrained<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>    return_fig<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>    hide_fixed<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>    return_fig<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Plot trace plots showing particle evolution over iterations.</p>
 <p>Requires fit() to have been called with return_history=True.</p>
 <section id="parameters-14" class="level4 doc-section doc-section-parameters">
@@ -1303,6 +1329,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <dt><code><span class="parameter-name"><strong>unconstrained</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>bool</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">False</span></code></dt>
 <dd>
 <p>If False, show constrained (model-space) parameter values. If True, show unconstrained (optimization-space) values. Only relevant when using parameter transformations.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>hide_fixed</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>bool</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">True</span></code></dt>
+<dd>
+<p>If True, hide fixed parameters in the trace plot.</p>
 </dd>
 <dt><code><span class="parameter-name"><strong>return_fig</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><code>bool</code></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">True</span></code></dt>
 <dd>
