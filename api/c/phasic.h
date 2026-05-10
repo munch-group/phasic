@@ -1050,9 +1050,47 @@ struct ptd_scc_external_edge_ref {
 };
 
 /**
+ * Per-channel info for one external out-edge from a downstream-
+ * connecting vertex of an SCC.
+ *
+ * One channel = one parent-graph edge from a downstream-connecting
+ * vertex `d_j` of the SCC to a parent vertex `w` outside the SCC.
+ * Each channel gets its own synthetic absorbing vertex (the
+ * "per-channel s_abs"), with two synthetic edges:
+ *
+ *   - Type C: ``d_j_synth → s_abs_for_channel`` with the parent's
+ *     external edge weight as its (live) weight. The parent edge
+ *     weight is set on the synthetic graph's edge slot before each
+ *     compose run.
+ *
+ *   - Phantom: ``s_abs_for_channel → phantom_absorbing`` with a
+ *     weight that the composer sets to ``1 / result[w_in_parent]``
+ *     so that the per-SCC elimination produces
+ *     ``result[s_abs_for_channel] = result[w_in_parent]``. This
+ *     injects the downstream value into this SCC's elimination
+ *     via the standard phase-type identity
+ *     ``result[v] = 1/rate(v) + Σ prob·result[child]``.
+ */
+struct ptd_scc_channel_info {
+    /* Parent-graph edge that this channel represents. */
+    size_t parent_vertex_idx;     /* the d_j vertex in the parent */
+    size_t parent_edge_idx;       /* index into d_j's edges[] */
+
+    /* Synthetic-graph vertex indices for this channel. */
+    size_t d_j_synth_idx;         /* the downstream-connecting vertex */
+    size_t s_abs_synth_idx;       /* the per-channel absorbing vertex */
+
+    /* Synthetic-graph edge indices (into the from-vertex's
+     * edges[]) for the Type C edge and the phantom edge.
+     * The composer reads/writes weights at these slots. */
+    size_t type_c_edge_idx;       /* d_j_synth → s_abs_for_channel */
+    size_t phantom_edge_idx;      /* s_abs_for_channel → phantom (always 0; only one out-edge) */
+};
+
+/**
  * Vertex categorisation and parent-mapping for a synthetic SCC graph.
  *
- * The synthetic graph contains, in canonical 5-part order:
+ * The synthetic graph contains, in canonical layout:
  *   index 0:                            synthetic source vertex
  *   indices [1, 1+n_upstream_connecting):
  *                                       upstream-connecting vertices
@@ -1060,22 +1098,34 @@ struct ptd_scc_external_edge_ref {
  *            1+n_upstream_connecting+n_internal_only):
  *                                       pure-internal vertices
  *   indices [1+n_upstream_connecting+n_internal_only,
- *            n_vertices-1):             downstream-connecting vertices
- *   index n_vertices-1:                 synthetic absorbing vertex
+ *            1+n_uc+n_io+n_dc):         downstream-connecting vertices
+ *   indices [1+n_uc+n_io+n_dc,
+ *            1+n_uc+n_io+n_dc+n_channels):
+ *                                       per-channel absorbing vertices
+ *                                       (one per external out-edge)
+ *   index n_vertices - 1:               phantom absorbing vertex
+ *                                       (only true absorbing in graph)
  *
  * `parent_indices[k]` is the original-graph vertex index of the
- * synthetic-graph vertex at synthetic-graph index k. For the
- * synthetic source (index 0) and synthetic absorbing
- * (index n_vertices-1), `parent_indices[k]` is SIZE_MAX (they
- * have no original-graph counterpart).
+ * synthetic-graph vertex at synthetic-graph index k, or SIZE_MAX
+ * for the synthetic source, per-channel absorbing vertices, and
+ * the phantom absorbing vertex (none have parent counterparts).
+ *
+ * The per-channel absorbing layout — one synthetic vertex per
+ * external out-edge — is what makes downstream-result injection
+ * work without breaking cross-parent reuse. Two parents with
+ * identical SCC internals AND identical external fan-out shape
+ * (same `(d_j, channel-position)` count per d_j) produce
+ * identical synthetic graphs.
  */
 struct ptd_scc_synthetic_metadata {
     /* The source SCC's index in the parent's SCC decomposition. */
     size_t scc_index;
 
     /* Total number of vertices in the synthetic graph. Equals
-     * n_upstream_connecting + n_internal_only +
-     * n_downstream_connecting + 2. */
+     * 1 + n_upstream_connecting + n_internal_only +
+     * n_downstream_connecting + n_channels + 1
+     * (source + internals + per-channel absorbings + phantom). */
     size_t n_vertices;
 
     /* Per-category counts. */
@@ -1083,19 +1133,20 @@ struct ptd_scc_synthetic_metadata {
     size_t n_internal_only;
     size_t n_downstream_connecting;
 
+    /* Number of external out-channels (sum over all
+     * downstream-connecting vertices of their external out-edge
+     * counts). One per-channel absorbing vertex per channel. */
+    size_t n_channels;
+
     /* Mapping from synthetic-graph vertex index to parent-graph
-     * vertex index. Length == n_vertices. SIZE_MAX for the
-     * synthetic source (index 0) and synthetic absorbing
-     * (index n_vertices - 1). */
+     * vertex index. Length == n_vertices. SIZE_MAX for synthetic
+     * source, per-channel absorbing vertices, and phantom. */
     size_t *parent_indices;
 
     /* Per-synthetic-vertex external edge references.
      *
      * Both arrays are indexed by synthetic-graph vertex index
-     * (length n_vertices). For the synthetic source (index 0),
-     * synthetic absorbing (index n_vertices - 1), and pure
-     * internal-only vertices, the corresponding entry is empty
-     * (length 0).
+     * (length n_vertices).
      *
      * external_in_edges[v_synth] lists every parent-graph edge
      * whose target is the parent-vertex corresponding to
@@ -1106,36 +1157,65 @@ struct ptd_scc_synthetic_metadata {
      * whose source is the parent-vertex corresponding to v_synth
      * and whose target is OUTSIDE the SCC. Non-empty exactly for
      * downstream-connecting vertices.
-     *
-     * Per-synthetic-vertex indexing handles dual-category
-     * vertices correctly: a vertex that is both upstream- AND
-     * downstream-connecting has non-empty entries in both arrays.
      */
     struct ptd_scc_external_edge_ref **external_in_edges;
     size_t *external_in_edges_lengths;  /* length: n_vertices */
     struct ptd_scc_external_edge_ref **external_out_edges;
     size_t *external_out_edges_lengths;  /* length: n_vertices */
+
+    /* Per-channel info — one entry per external out-channel.
+     * Length == n_channels. The composer iterates this array,
+     * setting Type C edge weights from parent values and
+     * phantom edge weights from downstream results.
+     *
+     * Channels are ordered in the same order they were
+     * encountered while walking downstream-connecting vertices
+     * (in canonical synthetic order) and their external_out_edges
+     * lists. */
+    struct ptd_scc_channel_info *channels;
 };
 
 /**
  * Build a self-contained synthetic graph for one SCC of a parent.
  *
- * The synthetic graph contains all of the SCC's internal vertices
- * (with their state vectors and internal edges copied verbatim,
- * including aux-style coefficients_length==0 edges) plus a
- * synthetic source vertex (index 0) and a synthetic absorbing
- * vertex (last index). Synthetic source and absorbing edges are
- * placeholder, with a single coefficient value 1.0 — they encode
- * structure only, not parent-specific external coefficients. This
- * keeps the synthetic graph's content hash invariant across
- * parents that share the SCC structurally.
+ * Output topology (per ``ptd_scc_synthetic_metadata``):
+ *   - Synthetic source vertex.
+ *   - All internal vertices of the SCC (state vectors copied,
+ *     internal edges copied verbatim including aux-style
+ *     coefficients_length==0 edges).
+ *   - One synthetic absorbing vertex per external out-channel
+ *     (i.e. per parent-graph edge ``d_j -> w`` where ``d_j`` is
+ *     in the SCC and ``w`` is outside).
+ *   - One phantom absorbing vertex (the only true absorbing
+ *     vertex in the graph; result == 0 by structural fact).
  *
- * Vertex ordering is canonical: see struct
- * ptd_scc_synthetic_metadata for the layout. Within each
- * category, vertices are ordered by lexicographic state vector,
- * with out-edge-signature tiebreak for duplicate states.
+ * Edge structure:
+ *   - Synthetic source -> upstream-connecting (Type A): placeholder
+ *     coefficient (length param_length, first slot 1.0).
+ *   - Internal -> internal: copied verbatim from parent.
+ *   - Downstream-connecting -> per-channel absorbing (Type C):
+ *     placeholder coefficient (length param_length, first slot
+ *     1.0). The Type C edge weight slot is what the composer
+ *     overwrites with the parent's actual external edge weight
+ *     before each compose run.
+ *   - Per-channel absorbing -> phantom (one outgoing edge each):
+ *     placeholder coefficient. The composer overwrites this
+ *     edge's weight slot with ``1/result[w_in_parent]`` so
+ *     ``result[s_abs_for_channel] = result[w_in_parent]`` (the
+ *     phase-type identity ``result[v] = 1/rate(v)`` for an
+ *     absorbing-with-one-child vertex).
  *
- * The returned graph can be passed to
+ * Cross-parent invariance: synthetic-graph topology depends only
+ * on the SCC's intrinsic content (internal structure + per-d_j
+ * external out-edge count). Two parents matching on those
+ * properties produce identical synthetic graphs and identical
+ * content hashes. The parent-specific values (Type C weights,
+ * phantom weights) flow through edge weight slots at compose
+ * time, not through the cached PRC structure.
+ *
+ * Vertex ordering is canonical (lexicographic state vector,
+ * out-edge-signature tiebreak for duplicates). The returned
+ * graph can be passed to
  * ptd_graph_ex_absorbation_time_comp_graph_parameterized without
  * modification.
  *

@@ -408,32 +408,19 @@ double **ptd_scc_collect_external_anchors(
     *n_anchors_out = 0;
     if (synth == NULL || synth->vertices_length < 2) return NULL;
 
-    /* Synthetic source is at index 0; absorbing is at last index.
-     * Caller may pass meta=NULL — in that case, infer absorbing
-     * from the graph (which is what we'd derive from meta anyway). */
-    size_t abs_idx = (meta != NULL) ? (meta->n_vertices - 1)
-                                    : (synth->vertices_length - 1);
+    /* Per the per-channel layout:
+     *   - Type A:    synth_source -> upstream-connecting (n_a edges)
+     *   - Type C:    downstream-connecting -> per-channel-absorbing
+     *   - Phantom:   per-channel-absorbing -> phantom_absorbing
+     *
+     * All three carry composer-supplied values at compose time.
+     * We collect them in order: Type A, Type C (matching
+     * meta->channels), Phantom (matching meta->channels). */
     struct ptd_vertex *src = synth->vertices[0];
-
-    /* Count: Type A = src->edges_length; Type C = number of
-     * non-source non-absorbing vertices with at least one edge to
-     * the absorbing vertex (one Type C edge per such vertex). */
     size_t n_a = src->edges_length;
-    size_t n_c = 0;
-    for (size_t v = 1; v < synth->vertices_length - 1; ++v) {
-        struct ptd_vertex *vert = synth->vertices[v];
-        for (size_t e = 0; e < vert->edges_length; ++e) {
-            if (vert->edges[e]->to->index == abs_idx) {
-                n_c++;
-                /* No break: a vertex could in principle have
-                 * multiple Type C edges, though WP-1 emits at
-                 * most one per dual/downstream-connecting vertex.
-                 * Counting all is robust. */
-            }
-        }
-    }
+    size_t n_channels = (meta != NULL) ? meta->n_channels : 0;
+    size_t total = n_a + 2 * n_channels;
 
-    size_t total = n_a + n_c;
     if (total == 0) {
         *n_anchors_out = 0;
         return NULL;
@@ -447,32 +434,30 @@ double **ptd_scc_collect_external_anchors(
     }
     size_t idx = 0;
 
-    /* The eliminator references edges via &edge->weight (the
-     * concrete evaluated weight, set by update_weights), NOT via
-     * &edge->coefficients[0] (the symbolic θ coefficient). So our
-     * external anchors must be the placeholder edges' weight
-     * slots, which is what the saved PRC's encoded pointers will
-     * try to match.
-     *
-     * Type A edges (in synthetic-source-edge order). */
+    /* Type A: synth source's outgoing edges. */
     for (size_t e = 0; e < src->edges_length; ++e) {
-        struct ptd_edge *edge = src->edges[e];
-        anchors[idx++] = &edge->weight;
+        anchors[idx++] = &src->edges[e]->weight;
     }
 
-    /* Type C edges (in vertex-then-edge order). */
-    for (size_t v = 1; v < synth->vertices_length - 1; ++v) {
-        struct ptd_vertex *vert = synth->vertices[v];
-        for (size_t e = 0; e < vert->edges_length; ++e) {
-            if (vert->edges[e]->to->index == abs_idx) {
-                anchors[idx++] = &vert->edges[e]->weight;
-            }
+    if (meta != NULL && meta->channels != NULL) {
+        /* Type C edges. */
+        for (size_t k = 0; k < meta->n_channels; ++k) {
+            const struct ptd_scc_channel_info *ch = &meta->channels[k];
+            struct ptd_vertex *d_j = synth->vertices[ch->d_j_synth_idx];
+            anchors[idx++] = &d_j->edges[ch->type_c_edge_idx]->weight;
+        }
+        /* Phantom edges. */
+        for (size_t k = 0; k < meta->n_channels; ++k) {
+            const struct ptd_scc_channel_info *ch = &meta->channels[k];
+            struct ptd_vertex *s_abs = synth->vertices[ch->s_abs_synth_idx];
+            anchors[idx++] = &s_abs->edges[ch->phantom_edge_idx]->weight;
         }
     }
 
-    *n_anchors_out = total;
+    *n_anchors_out = idx;
     return anchors;
 }
+
 
 void ptd_scc_synthetic_metadata_destroy(
         struct ptd_scc_synthetic_metadata *metadata)
@@ -496,6 +481,8 @@ void ptd_scc_synthetic_metadata_destroy(
         free(metadata->external_out_edges);
     }
     free(metadata->external_out_edges_lengths);
+
+    free(metadata->channels);
 
     free(metadata);
 }
@@ -662,8 +649,31 @@ struct ptd_graph *ptd_scc_build_synthetic_graph(
     sort_canonical(io_indices, n_io, &sort_ctx);
     sort_canonical(dc_indices, n_dc, &sort_ctx);
 
-    /* ---- 4. Build synthetic graph. ---- */
-    size_t n_synth = 1 /* source */ + n_uc + n_io + n_dc + 1 /* abs */;
+    /* Count external out-channels: one per parent-graph external
+     * edge from any internal vertex (whether in dc_indices or
+     * dual-category in uc_indices). One per-channel absorbing
+     * vertex per channel. */
+    size_t n_channels = 0;
+    for (size_t v = 0; v < n_parent; ++v) {
+        if (!is_internal[v]) continue;
+        n_channels += downstream_out_len_per_pv[v];
+    }
+
+    /* ---- 4. Build synthetic graph. ----
+     *
+     * Layout:
+     *   index 0:                              synthetic source
+     *   indices [1, 1+n_uc):                  upstream-connecting
+     *   indices [1+n_uc, 1+n_uc+n_io):        internal-only
+     *   indices [1+n_uc+n_io,                 downstream-connecting
+     *            1+n_uc+n_io+n_dc):
+     *   indices [1+n_uc+n_io+n_dc,            per-channel absorbing
+     *            1+n_uc+n_io+n_dc+n_channels):
+     *   index n_synth - 1:                    phantom absorbing
+     */
+    size_t n_synth = 1 /* source */ + n_uc + n_io + n_dc + n_channels + 1 /* phantom */;
+    size_t channel_first_idx = 1 + n_uc + n_io + n_dc;
+    size_t phantom_idx = n_synth - 1;
 
     struct ptd_graph *synth = ptd_graph_create(parent->state_length);
     if (synth == NULL) {
@@ -729,11 +739,19 @@ struct ptd_graph *ptd_scc_build_synthetic_graph(
             parent_to_synth[pv] = v;
             synth_to_parent[synth_idx++] = pv;
         }
-        /* Finally the synthetic absorbing vertex (all-zero state). */
-        struct ptd_vertex *synth_abs = ptd_vertex_create(synth);
-        if (synth_abs == NULL) goto fail_construct;
+        /* Then per-channel absorbing vertices (one per external
+         * out-channel). All have all-zero state. */
+        for (size_t k = 0; k < n_channels; ++k) {
+            struct ptd_vertex *v = ptd_vertex_create(synth);
+            if (v == NULL) goto fail_construct;
+            synth_to_parent[synth_idx++] = SIZE_MAX;
+        }
+        /* Finally the phantom absorbing vertex (the only true
+         * absorbing in the graph). All-zero state. */
+        struct ptd_vertex *phantom = ptd_vertex_create(synth);
+        if (phantom == NULL) goto fail_construct;
         synth_to_parent[synth_idx++] = SIZE_MAX;
-        (void)synth_abs;  /* used implicitly via vertices[n_synth - 1] */
+        (void)phantom;  /* used implicitly via vertices[phantom_idx] */
         if (synth_idx != n_synth) {
             snprintf(ptd_err, 1024,
                      "ptd_scc_build_synthetic_graph: vertex count mismatch "
@@ -742,8 +760,8 @@ struct ptd_graph *ptd_scc_build_synthetic_graph(
         }
     }
 
-    /* Helper: synthetic absorbing vertex pointer. */
-    struct ptd_vertex *synth_abs = synth->vertices[n_synth - 1];
+    /* Helper: phantom absorbing vertex pointer. */
+    struct ptd_vertex *phantom_vertex = synth->vertices[phantom_idx];
 
     /* ---- 5. Add edges. ---- */
     /* Build a length-param_length placeholder coefficient vector
@@ -798,24 +816,102 @@ struct ptd_graph *ptd_scc_build_synthetic_graph(
         }
     }
 
-    /* Type C: each downstream-connecting -> synthetic absorbing
-     * (placeholder).
+    /* Type C: per-channel edges. Each external out-edge from a
+     * downstream-connecting vertex gets its own synthetic
+     * absorbing vertex (already allocated above) and a
+     * placeholder Type C edge. The composer overwrites the
+     * weight slot at compose time with the parent's external
+     * edge weight.
      *
-     * Note: we add this edge for every internal vertex that has
-     * is_downstream_connecting set, including those placed in the
-     * upstream-connecting category (a vertex can be both). */
-    {
-        for (size_t v_p = 0; v_p < n_parent; ++v_p) {
-            if (!is_internal[v_p]) continue;
-            if (!is_downstream_connecting[v_p]) continue;
-            struct ptd_vertex *synth_from = parent_to_synth[v_p];
-            if (add_edge_raw(synth_from, synth_abs, 1.0, placeholder, placeholder_len) != 0) {
+     * Plus phantom edges: each per-channel absorbing has one
+     * outgoing edge to the phantom, with placeholder weight.
+     * The composer overwrites this weight slot with
+     * 1/result[w_in_parent] so the per-channel absorbing's
+     * elimination result equals the downstream parent value.
+     *
+     * We also populate the channels[] metadata array as we go,
+     * recording per-channel vertex and edge indices so the
+     * composer can find them. */
+    struct ptd_scc_channel_info *channels_info = NULL;
+    if (n_channels > 0) {
+        channels_info = (struct ptd_scc_channel_info *)calloc(
+                n_channels, sizeof(*channels_info));
+        if (channels_info == NULL) {
+            free(placeholder);
+            goto fail_construct;
+        }
+    }
+
+    /* Walk synthetic vertices in canonical order so the channel
+     * iteration order is deterministic. For each downstream-
+     * connecting vertex (whether placed in uc or dc category),
+     * walk its parent's external_out_edges list in order. */
+    size_t channel_cursor = 0;
+    for (size_t v_synth_idx = 1; v_synth_idx < channel_first_idx; ++v_synth_idx) {
+        size_t pv = synth_to_parent[v_synth_idx]; /* parent vertex idx */
+        /* synth_to_parent was transferred to meta later; for now we
+         * still own it. But we set synth_to_parent[idx] above; check
+         * for sentinel (shouldn't happen for indices 1..channel_first_idx). */
+        if (pv == SIZE_MAX) continue;
+        if (!is_downstream_connecting[pv]) continue;
+
+        struct ptd_vertex *synth_from = parent_to_synth[pv];
+        size_t n_out_edges = downstream_out_len_per_pv[pv];
+        for (size_t e = 0; e < n_out_edges; ++e) {
+            struct ptd_scc_external_edge_ref *ref = &downstream_out_per_pv[pv][e];
+
+            /* Per-channel absorbing vertex index in synthetic graph. */
+            size_t s_abs_idx = channel_first_idx + channel_cursor;
+            if (s_abs_idx >= phantom_idx) {
+                snprintf(ptd_err, 1024,
+                         "ptd_scc_build_synthetic_graph: channel index "
+                         "%zu out of range", s_abs_idx);
+                free(channels_info);
                 free(placeholder);
                 goto fail_construct;
             }
+            struct ptd_vertex *s_abs = synth->vertices[s_abs_idx];
+
+            /* Type C edge: d_j_synth -> s_abs_for_channel.
+             * Record the edge index BEFORE adding (it's the
+             * current edges_length, since add_edge_raw appends). */
+            size_t type_c_edge_idx = synth_from->edges_length;
+            if (add_edge_raw(synth_from, s_abs, 1.0,
+                             placeholder, placeholder_len) != 0) {
+                free(channels_info);
+                free(placeholder);
+                goto fail_construct;
+            }
+
+            /* Phantom edge: s_abs_for_channel -> phantom.
+             * Edge index is 0 since this is its only outgoing. */
+            if (add_edge_raw(s_abs, phantom_vertex, 1.0,
+                             placeholder, placeholder_len) != 0) {
+                free(channels_info);
+                free(placeholder);
+                goto fail_construct;
+            }
+
+            /* Populate channel info. */
+            channels_info[channel_cursor].parent_vertex_idx = ref->parent_vertex_idx;
+            channels_info[channel_cursor].parent_edge_idx = ref->parent_edge_idx;
+            channels_info[channel_cursor].d_j_synth_idx = v_synth_idx;
+            channels_info[channel_cursor].s_abs_synth_idx = s_abs_idx;
+            channels_info[channel_cursor].type_c_edge_idx = type_c_edge_idx;
+            channels_info[channel_cursor].phantom_edge_idx = 0;
+            channel_cursor++;
         }
     }
+
     free(placeholder);
+
+    if (channel_cursor != n_channels) {
+        snprintf(ptd_err, 1024,
+                 "ptd_scc_build_synthetic_graph: channel count mismatch "
+                 "(expected %zu, wired %zu)", n_channels, channel_cursor);
+        free(channels_info);
+        goto fail_construct;
+    }
 
     /* Mark synth as parameterised (any of the placeholder/internal
      * edges are array-syntax with coefficients_length >= 1). */
@@ -846,6 +942,9 @@ struct ptd_graph *ptd_scc_build_synthetic_graph(
     meta->n_upstream_connecting = n_uc;
     meta->n_internal_only = n_io;
     meta->n_downstream_connecting = n_dc;
+    meta->n_channels = n_channels;
+    meta->channels = channels_info;
+    channels_info = NULL;  /* ownership transferred to meta */
     meta->parent_indices = synth_to_parent;
     synth_to_parent = NULL;  /* ownership transferred */
 

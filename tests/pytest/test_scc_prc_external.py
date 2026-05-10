@@ -6,7 +6,7 @@ Verifies the new ``_ex`` save/load entry points and the
     synth, meta = scc.as_synthetic_graph()
     synth.update_weights(...)
     synth.expected_waiting_time()       # populates the PRC
-    synth._save_synthetic_param_compute_graph_ex(path)
+    synth._save_synthetic_param_compute_graph_ex(path, meta)
     # ... new graph rebuilt from same parent ...
     new_synth._load_synthetic_param_compute_graph_ex(path, external_table)
     new_synth.expected_waiting_time()  # uses external_table values
@@ -61,7 +61,7 @@ def test_save_load_roundtrip_with_external_anchors():
 
     with tempfile.TemporaryDirectory() as td:
         path = os.path.join(td, "scc.bin")
-        n_anchors = synth._save_synthetic_param_compute_graph_ex(path)
+        n_anchors = synth._save_synthetic_param_compute_graph_ex(path, meta)
         assert n_anchors > 0, "expected at least one EXTERNAL anchor"
         assert os.path.exists(path)
 
@@ -95,7 +95,7 @@ def test_external_table_substitution_changes_result():
 
     with tempfile.TemporaryDirectory() as td:
         path = os.path.join(td, "scc.bin")
-        n_anchors = synth._save_synthetic_param_compute_graph_ex(path)
+        n_anchors = synth._save_synthetic_param_compute_graph_ex(path, meta)
         if n_anchors == 0:
             pytest.skip("no EXTERNAL anchors for this SCC")
 
@@ -159,7 +159,7 @@ def test_v2_file_rejects_v1_loader():
 
     with tempfile.TemporaryDirectory() as td:
         path = os.path.join(td, "scc.bin")
-        n_anchors = synth._save_synthetic_param_compute_graph_ex(path)
+        n_anchors = synth._save_synthetic_param_compute_graph_ex(path, meta)
         if n_anchors == 0:
             pytest.skip("no EXTERNAL anchors")
 
@@ -181,8 +181,8 @@ def test_v2_file_rejects_v1_loader():
 @pytest.mark.parametrize("toy_name", list(BUILDERS.keys()))
 def test_anchor_count_per_synth_graph(toy_name):
     """For every SCC of every toy variant, verify that the number
-    of EXTERNAL anchors equals the number of placeholder edges
-    (synth source out-edges + count of edges into synth absorbing)."""
+    of EXTERNAL anchors equals the number of placeholder edges:
+    Type A (n_uc) + Type C (n_channels) + phantom (n_channels)."""
     g = BUILDERS[toy_name]()
     scc_decomp = g.scc_decomposition()
     for scc in scc_decomp.sccs_in_topo_order():
@@ -190,24 +190,15 @@ def test_anchor_count_per_synth_graph(toy_name):
         synth.update_weights([1.0, 1.0, 1.0, 1.0])
         synth.expected_waiting_time()
 
-        # Count expected anchors directly from the synthetic graph.
-        src = next(v for v in synth.vertices() if v.index() == 0)
-        n_a = len(list(src.edges()))
-        abs_idx = synth.vertices_length() - 1
-        n_c = 0
-        for v in synth.vertices():
-            if v.index() == 0 or v.index() == abs_idx:
-                continue
-            for e in v.edges():
-                if e.to().index() == abs_idx:
-                    n_c += 1
+        expected = meta.n_upstream_connecting + 2 * meta.n_channels
 
         with tempfile.TemporaryDirectory() as td:
             path = os.path.join(td, "scc.bin")
-            n_saved = synth._save_synthetic_param_compute_graph_ex(path)
-            assert n_saved == n_a + n_c, (
+            n_saved = synth._save_synthetic_param_compute_graph_ex(path, meta)
+            assert n_saved == expected, (
                 f"{toy_name}/scc{scc.index()}: anchor count mismatch — "
-                f"saved {n_saved}, expected {n_a + n_c} (n_a={n_a}, n_c={n_c})"
+                f"saved {n_saved}, expected {expected} "
+                f"(n_uc={meta.n_upstream_connecting}, n_channels={meta.n_channels})"
             )
 
 
@@ -234,7 +225,7 @@ def test_toy_d_aux_scc_roundtrip():
 
     with tempfile.TemporaryDirectory() as td:
         path = os.path.join(td, "toy_d_aux.bin")
-        n_anchors = synth._save_synthetic_param_compute_graph_ex(path)
+        n_anchors = synth._save_synthetic_param_compute_graph_ex(path, meta)
 
         synth2, _ = aux_scc.as_synthetic_graph()
         synth2._load_synthetic_param_compute_graph_ex(

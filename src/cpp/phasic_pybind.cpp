@@ -682,6 +682,22 @@ bool is_number(const py::object& obj) {
 }
 
 
+// SCC synthetic-graph metadata wrapper. Owns a
+// ptd_scc_synthetic_metadata*; the destructor frees the C struct.
+// Defined at file scope so it can be referenced from any pybind
+// lambda (otherwise lambdas defined before the SCCVertex binding
+// block can't see it).
+struct SccSyntheticMetadataPy {
+    struct ptd_scc_synthetic_metadata *meta;
+    SccSyntheticMetadataPy() : meta(nullptr) {}
+    ~SccSyntheticMetadataPy() {
+        if (meta) ptd_scc_synthetic_metadata_destroy(meta);
+    }
+    SccSyntheticMetadataPy(const SccSyntheticMetadataPy&) = delete;
+    SccSyntheticMetadataPy& operator=(const SccSyntheticMetadataPy&) = delete;
+};
+
+
 PYBIND11_MODULE(phasic_pybind, m) {
 
   ///////////////////////////////////////////////////////
@@ -1222,25 +1238,31 @@ str
       )delim")
 
     .def("_save_synthetic_param_compute_graph_ex",
-      [](phasic::Graph &g, const std::string &path) {
+      [](phasic::Graph &g, const std::string &path,
+         py::object meta_obj) {
           // Save the graph's parameterized_reward_compute_graph as
-          // a rev-2 file, treating every Type A (synthetic source
-          // -> non-source non-absorbing) and Type C (non-source
-          // non-absorbing -> synthetic absorbing) edge's
-          // coefficients[0] slot as an EXTERNAL anchor. Used by
+          // a rev-2 file, treating placeholder edges (Type A,
+          // Type C, and phantom) as EXTERNAL anchors. Used by
           // WP-3 tests on a synthetic graph.
           //
-          // The synthetic absorbing vertex is identified as the
-          // graph's last vertex by index. The synthetic source is
-          // the starting vertex (index 0).
+          // Caller passes the SCCSyntheticMetadata so we can
+          // identify per-channel placeholder slots; pass None to
+          // save without EXTERNAL anchors (only useful for
+          // structures that have none, e.g. SCC0 with no
+          // upstream-connecting / downstream-connecting).
           if (g.c_graph()->parameterized_reward_compute_graph == NULL) {
               throw std::runtime_error(
                       "no parameterized_reward_compute_graph; call "
                       "expected_waiting_time first");
           }
+          const struct ptd_scc_synthetic_metadata *meta_c = nullptr;
+          if (!meta_obj.is_none()) {
+              const auto& wrap = meta_obj.cast<const SccSyntheticMetadataPy&>();
+              meta_c = wrap.meta;
+          }
           size_t n_anchors = 0;
           double **anchors = ptd_scc_collect_external_anchors(
-                  g.c_graph(), NULL, &n_anchors);
+                  g.c_graph(), meta_c, &n_anchors);
           if (n_anchors == 0) {
               // No EXTERNAL anchors — just write a rev-1 file.
               int rc = ptd_save_parameterized_reward_compute_graph(
@@ -1266,11 +1288,13 @@ str
                       std::string("save_ex failed: ") + (const char *)ptd_err);
           }
           return n_anchors;
-      }, R"delim(
+      }, py::arg("path"), py::arg("meta") = py::none(), R"delim(
       WP-3 test helper: save this synthetic graph's
       parameterized_reward_compute_graph as a rev-2 file with
-      EXTERNAL pointers anchoring the placeholder edges. Returns
-      the number of anchors written.
+      EXTERNAL pointers anchoring the placeholder edges. Pass the
+      SCCSyntheticMetadata so per-channel anchors can be located;
+      pass None to save without EXTERNAL anchors. Returns the
+      number of anchors written.
       )delim")
 
     .def("_load_synthetic_param_compute_graph_ex",
@@ -3244,18 +3268,9 @@ str
     ;
 
   // =========================================================================
-  // SCC synthetic-graph metadata wrapper (owns a
-  // ptd_scc_synthetic_metadata*; freed on Python destruction).
+  // SCC synthetic-graph metadata wrapper (struct defined at file
+  // scope so it can be referenced from any pybind lambda).
   // =========================================================================
-  struct SccSyntheticMetadataPy {
-      struct ptd_scc_synthetic_metadata *meta;
-      SccSyntheticMetadataPy() : meta(nullptr) {}
-      ~SccSyntheticMetadataPy() {
-          if (meta) ptd_scc_synthetic_metadata_destroy(meta);
-      }
-      SccSyntheticMetadataPy(const SccSyntheticMetadataPy&) = delete;
-      SccSyntheticMetadataPy& operator=(const SccSyntheticMetadataPy&) = delete;
-  };
   py::class_<SccSyntheticMetadataPy>(m, "SCCSyntheticMetadata",
       "Vertex categorisation and parent-mapping metadata for a "
       "synthetic SCC graph produced by SCCVertex.as_synthetic_graph().")
@@ -3273,6 +3288,28 @@ str
       })
       .def_property_readonly("n_downstream_connecting", [](const SccSyntheticMetadataPy& m) {
           return m.meta->n_downstream_connecting;
+      })
+      .def_property_readonly("n_channels", [](const SccSyntheticMetadataPy& m) {
+          return m.meta->n_channels;
+      })
+      .def_property_readonly("channels", [](const SccSyntheticMetadataPy& m) {
+          // Returns list[dict], one entry per external out-channel.
+          // Each dict has keys: parent_vertex_idx, parent_edge_idx,
+          // d_j_synth_idx, s_abs_synth_idx, type_c_edge_idx, phantom_edge_idx.
+          py::list result;
+          if (m.meta->channels == nullptr) return result;
+          for (size_t k = 0; k < m.meta->n_channels; ++k) {
+              const struct ptd_scc_channel_info *ch = &m.meta->channels[k];
+              py::dict d;
+              d["parent_vertex_idx"] = ch->parent_vertex_idx;
+              d["parent_edge_idx"] = ch->parent_edge_idx;
+              d["d_j_synth_idx"] = ch->d_j_synth_idx;
+              d["s_abs_synth_idx"] = ch->s_abs_synth_idx;
+              d["type_c_edge_idx"] = ch->type_c_edge_idx;
+              d["phantom_edge_idx"] = ch->phantom_edge_idx;
+              result.append(d);
+          }
+          return result;
       })
       .def_property_readonly("parent_indices", [](const SccSyntheticMetadataPy& m) {
           // Returns list of int (SIZE_MAX represented as -1 for

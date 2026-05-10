@@ -43,7 +43,8 @@ SCC_CASE_IDS = [f"{name}-scc{idx}" for name, idx in SCC_CASES]
 @pytest.mark.parametrize("toy_name,scc_idx", SCC_CASES, ids=SCC_CASE_IDS)
 def test_synthetic_graph_has_canonical_layout(toy_name, scc_idx):
     """Vertex count and category counts match the canonical
-    n_uc + n_io + n_dc + 2 layout."""
+    layout (per-channel absorbings + phantom):
+        1 source + n_uc + n_io + n_dc + n_channels + 1 phantom"""
     g = BUILDERS[toy_name]()
     scc_graph = g.scc_decomposition()
     scc = scc_graph.scc_at(scc_idx)
@@ -54,7 +55,8 @@ def test_synthetic_graph_has_canonical_layout(toy_name, scc_idx):
         + meta.n_upstream_connecting
         + meta.n_internal_only
         + meta.n_downstream_connecting
-        + 1  # synthetic absorbing
+        + meta.n_channels  # per-channel absorbing vertices
+        + 1  # phantom absorbing
     )
     assert synth.vertices_length() == expected_n, (
         f"{toy_name}/scc{scc_idx}: vertex count mismatch — "
@@ -97,23 +99,35 @@ def test_synthetic_absorbing_at_last_index(toy_name, scc_idx):
 
 @pytest.mark.parametrize("toy_name,scc_idx", SCC_CASES, ids=SCC_CASE_IDS)
 def test_internal_synth_indices_have_real_parents(toy_name, scc_idx):
-    """Every non-source non-absorbing synthetic vertex has a
-    valid parent_index, and the parent vertex is in the SCC."""
+    """Every internal synthetic vertex (uc + io + dc) has a valid
+    parent_index pointing to a vertex in the SCC. Per-channel
+    absorbing and phantom vertices have parent_index == -1."""
     g = BUILDERS[toy_name]()
     scc_graph = g.scc_decomposition()
     scc = scc_graph.scc_at(scc_idx)
     _, meta = scc.as_synthetic_graph()
     internal_pidx = set(scc.internal_vertex_indices())
 
-    for v_synth in range(1, meta.n_vertices - 1):
+    n_internal = (meta.n_upstream_connecting + meta.n_internal_only
+                  + meta.n_downstream_connecting)
+    # Internal vertices live at indices [1, 1 + n_internal).
+    for v_synth in range(1, 1 + n_internal):
         pi = meta.parent_indices[v_synth]
         assert pi != -1, (
-            f"{toy_name}/scc{scc_idx}: synthetic vertex {v_synth} "
-            f"has -1 parent index but is not source/absorbing"
+            f"{toy_name}/scc{scc_idx}: internal vertex {v_synth} "
+            f"has -1 parent index"
         )
         assert pi in internal_pidx, (
             f"{toy_name}/scc{scc_idx}: synthetic vertex {v_synth} "
             f"maps to parent index {pi} which is not in this SCC"
+        )
+
+    # Per-channel absorbings + phantom should have parent == -1.
+    for v_synth in range(1 + n_internal, meta.n_vertices):
+        pi = meta.parent_indices[v_synth]
+        assert pi == -1, (
+            f"{toy_name}/scc{scc_idx}: vertex {v_synth} "
+            f"(per-channel absorbing or phantom) has parent_index {pi}, expected -1"
         )
 
 
@@ -149,9 +163,11 @@ def _find_vertex_by_synth_idx(synth, idx):
 
 @pytest.mark.parametrize("toy_name,scc_idx", SCC_CASES, ids=SCC_CASE_IDS)
 def test_internal_edges_count_matches_parent(toy_name, scc_idx):
-    """The number of Type B (internal) edges in the synthetic graph
-    equals the number of parent edges between SCC-internal
-    vertices."""
+    """Edge counts in the synthetic graph:
+       Type A:   n_upstream_connecting (synth_source out-edges)
+       Type B:   parent's internal-internal edges (verbatim)
+       Type C:   n_channels (one per external out-channel)
+       Phantom:  n_channels (one per per-channel absorbing)"""
     g = BUILDERS[toy_name]()
     scc_graph = g.scc_decomposition()
     scc = scc_graph.scc_at(scc_idx)
@@ -165,8 +181,9 @@ def test_internal_edges_count_matches_parent(toy_name, scc_idx):
 
     synth, meta = scc.as_synthetic_graph()
     n_uc = meta.n_upstream_connecting
+    n_channels = meta.n_channels
 
-    # Synthetic source has n_uc outgoing Type A placeholder edges.
+    # Type A: synth source's out-edges == n_uc.
     src = _find_vertex_by_synth_idx(synth, 0)
     type_a = sum(1 for _ in src.edges())
     assert type_a == n_uc, (
@@ -174,21 +191,47 @@ def test_internal_edges_count_matches_parent(toy_name, scc_idx):
         f"{type_a} edges, expected {n_uc} (n_upstream_connecting)"
     )
 
-    # Type C: count edges into synthetic absorbing (last index).
-    abs_idx = meta.n_vertices - 1
+    # Type C: each per-channel absorbing has exactly one
+    # incoming edge from a downstream-connecting vertex.
+    # Phantom: each per-channel absorbing has exactly one
+    # outgoing edge to phantom.
+    phantom_idx = meta.n_vertices - 1
+    n_internal = (meta.n_upstream_connecting + meta.n_internal_only
+                  + meta.n_downstream_connecting)
+    channel_first = 1 + n_internal
+
+    # Count Type C: edges from internal vertices to per-channel absorbings.
     type_c = 0
     for v in synth.vertices():
-        if v.index() == 0 or v.index() == abs_idx:
+        if v.index() == 0 or v.index() >= channel_first:
             continue
         for e in v.edges():
-            if e.to().index() == abs_idx:
+            target = e.to().index()
+            if channel_first <= target < phantom_idx:
                 type_c += 1
 
-    # Total edges minus Type A and Type C should equal expected_internal.
+    # Count phantom edges: edges from per-channel absorbings to phantom.
+    n_phantom = 0
+    for v in synth.vertices():
+        if not (channel_first <= v.index() < phantom_idx):
+            continue
+        for e in v.edges():
+            if e.to().index() == phantom_idx:
+                n_phantom += 1
+
+    assert type_c == n_channels, (
+        f"{toy_name}/scc{scc_idx}: Type C count {type_c} != n_channels {n_channels}"
+    )
+    assert n_phantom == n_channels, (
+        f"{toy_name}/scc{scc_idx}: phantom count {n_phantom} != n_channels {n_channels}"
+    )
+
+    # Total minus Type A + Type C + phantom edges == expected_internal.
     total = sum(len(list(v.edges())) for v in synth.vertices())
-    assert total - type_a - type_c == expected_internal, (
+    actual_internal = total - type_a - type_c - n_phantom
+    assert actual_internal == expected_internal, (
         f"{toy_name}/scc{scc_idx}: internal edge count mismatch — "
-        f"have {total - type_a - type_c}, expected {expected_internal}"
+        f"have {actual_internal}, expected {expected_internal}"
     )
 
 
@@ -220,16 +263,19 @@ def test_synthetic_source_edges_are_placeholder(toy_name, scc_idx):
 # Toy-D specific: duplicate-state aux vertex handling
 # ---------------------------------------------------------------------------
 
-def test_toy_d_aux_scc_has_three_zero_state_vertices():
-    """Toy-D's SCC containing the aux vertex X must produce a
-    synthetic graph with three all-zero-state vertices: the
-    synthetic source, the aux vertex X, and the synthetic
-    absorbing. All three must have distinct synthetic indices
-    (no merging via state-based lookup)."""
+def test_toy_d_aux_scc_has_distinct_zero_state_vertices():
+    """Toy-D's SCC containing the aux vertex X has multiple
+    all-zero-state vertices in its synthetic graph:
+       - Synthetic source (index 0).
+       - The aux vertex X (state [0,0]).
+       - One per-channel absorbing per external out-channel.
+       - The phantom absorbing.
+    All must have distinct synthetic indices (no merging via
+    state-based lookup). Specifically X must NOT be merged with
+    the synthetic source, even though both have all-zero state."""
     g = build_toy_d()
     scc_graph = g.scc_decomposition()
 
-    # Find the SCC that contains the aux vertex X (which has all-zero state).
     s = g.starting_vertex()
     aux_pidx = None
     for v in g.vertices():
@@ -254,13 +300,27 @@ def test_toy_d_aux_scc_has_three_zero_state_vertices():
             zero_state_indices.append(v.index())
     zero_state_indices.sort()
 
-    assert len(zero_state_indices) == 3, (
-        f"Toy-D aux SCC: expected 3 zero-state vertices "
-        f"(source + aux X + absorbing), got "
-        f"{len(zero_state_indices)} at indices {zero_state_indices}"
+    # Expected: source + aux + n_channels per-channel absorbings + phantom
+    expected_min = 2 + meta.n_channels + 1  # source + aux + channels + phantom
+    assert len(zero_state_indices) >= expected_min, (
+        f"Toy-D aux SCC: expected >= {expected_min} zero-state vertices "
+        f"(source + aux X + {meta.n_channels} per-channel absorbings + phantom), "
+        f"got {len(zero_state_indices)} at indices {zero_state_indices}"
     )
-    # Source must be at index 0, absorbing at last index.
+    # Source at 0, phantom at last.
     assert 0 in zero_state_indices
+    assert (meta.n_vertices - 1) in zero_state_indices
+    # Aux X must be at an internal index (1..1+n_uc+n_io+n_dc).
+    n_internal = (meta.n_upstream_connecting + meta.n_internal_only
+                  + meta.n_downstream_connecting)
+    aux_synth_indices = [
+        i for i in zero_state_indices
+        if 1 <= i < 1 + n_internal
+    ]
+    assert len(aux_synth_indices) >= 1, (
+        f"Toy-D aux SCC: aux vertex not found in internal range "
+        f"[1, {1 + n_internal}); zero-state indices: {zero_state_indices}"
+    )
     assert (meta.n_vertices - 1) in zero_state_indices
 
 
