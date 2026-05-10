@@ -2876,12 +2876,19 @@ void ptd_parameterized_reward_compute_graph_destroy(
 
 #define PTD_PCG_MAGIC "PTDPRMC1"
 #define PTD_PCG_VERSION 1u
-#define PTD_PCG_FORMAT_REVISION 1u
+/* Format revision history:
+ *   1 — original Stage A2 format. Pointers are NULL/MEM/EDGE.
+ *   2 — adds PTD_PCG_PTR_EXTERNAL for per-SCC PRCs that resolve
+ *       placeholder edges against a parent-supplied external
+ *       table at composition time. v2 readers handle v1 files
+ *       (strict superset); v1 readers refuse v2 files. */
+#define PTD_PCG_FORMAT_REVISION 2u
 
 enum ptd_pcg_ptr_kind {
     PTD_PCG_PTR_NULL = 0,
-    PTD_PCG_PTR_MEM = 1,   // payload: doubles offset into flat mem buffer
-    PTD_PCG_PTR_EDGE = 2,  // payload: (vertex_idx, edge_idx, byte_offset)
+    PTD_PCG_PTR_MEM = 1,       // payload: doubles offset into flat mem buffer
+    PTD_PCG_PTR_EDGE = 2,      // payload: (vertex_idx, edge_idx, byte_offset)
+    PTD_PCG_PTR_EXTERNAL = 3,  // payload: vertex_idx == external_table index (rev 2+)
 };
 
 #pragma pack(push, 1)
@@ -2943,17 +2950,40 @@ static int ptd_pcg_anchor_cmp(const void *a, const void *b) {
 static int64_t ptd_pcg_chain_offset_of(
         const struct ll_of_a *head, const double *ptr);
 
-static void ptd_pcg_encode_ptr(
+// Internal encoder that supports both v1 (NULL/MEM/EDGE) and v2
+// (additionally EXTERNAL) pointer kinds. external_anchors is a
+// caller-provided array of double* pointers; any encode-target
+// matching one of these is encoded as PTD_PCG_PTR_EXTERNAL with
+// the matching index. Pass external_anchors=NULL, n_external=0
+// for v1 behaviour.
+static void ptd_pcg_encode_ptr_impl(
         const double *ptr,
         const struct ll_of_a *mem_chain,
         const struct ptd_pcg_edge_anchor *anchors,
         size_t n_anchors,
+        const double *const *external_anchors,
+        size_t n_external,
         struct ptd_pcg_disk_ptr *out)
 {
     memset(out, 0, sizeof(*out));
     if (ptr == NULL) {
         out->kind = PTD_PCG_PTR_NULL;
         return;
+    }
+    // External-anchor fast path: cheap O(n_external) scan, since
+    // n_external is bounded by the number of synthetic placeholder
+    // edges (small in practice). Checked first so a placeholder
+    // coefficient sitting in a malloc'd block doesn't accidentally
+    // match a different vertex's edge anchor by sheer pointer
+    // proximity.
+    if (external_anchors != NULL && n_external > 0) {
+        for (size_t i = 0; i < n_external; ++i) {
+            if (ptr == external_anchors[i]) {
+                out->kind = PTD_PCG_PTR_EXTERNAL;
+                out->vertex_idx = (uint32_t)i;
+                return;
+            }
+        }
     }
     // Mem-pointer fast path: walk the linked-list chain looking for
     // a node whose mem buffer contains ptr. The `mem` allocations
@@ -3007,12 +3037,30 @@ static void ptd_pcg_encode_ptr(
     out->doubles_offset = -1;       // marker for "encoding failed"
 }
 
-// Decode an encoded pointer back to a live address against the
-// loaded mem buffer and the supplied graph.
-static double *ptd_pcg_decode_ptr(
+// v1 encoder: thin wrapper preserving the original signature.
+static void ptd_pcg_encode_ptr(
+        const double *ptr,
+        const struct ll_of_a *mem_chain,
+        const struct ptd_pcg_edge_anchor *anchors,
+        size_t n_anchors,
+        struct ptd_pcg_disk_ptr *out)
+{
+    ptd_pcg_encode_ptr_impl(ptr, mem_chain, anchors, n_anchors,
+                            NULL, 0, out);
+}
+
+// Internal decoder supporting both v1 (NULL/MEM/EDGE) and v2
+// (additionally EXTERNAL) pointer kinds. external_table is a
+// caller-provided array of doubles; EXTERNAL pointers resolve to
+// &external_table[vertex_idx]. Pass external_table=NULL,
+// n_external=0 for v1 behaviour (encountering an EXTERNAL pointer
+// then yields NULL, indicating corruption / version mismatch).
+static double *ptd_pcg_decode_ptr_impl(
         const struct ptd_pcg_disk_ptr *enc,
         double *mem_base,
-        const struct ptd_graph *graph)
+        const struct ptd_graph *graph,
+        const double *external_table,
+        size_t n_external)
 {
     if (enc->kind == PTD_PCG_PTR_NULL) {
         return NULL;
@@ -3031,7 +3079,26 @@ static double *ptd_pcg_decode_ptr(
         char *base = (char *)&v->edges[enc->edge_idx]->weight;
         return (double *)(base + enc->byte_offset_from_edge_weight);
     }
+    if (enc->kind == PTD_PCG_PTR_EXTERNAL) {
+        if (external_table == NULL || enc->vertex_idx >= n_external) {
+            return NULL;  // corrupt or v1 loader on v2 file
+        }
+        // The cast drops const because the replay loop expects
+        // double* (it never writes through these pointers when
+        // they're EXTERNAL — those pointers appear only as
+        // multiplierptr, which the replay reads but doesn't write).
+        return (double *)&external_table[enc->vertex_idx];
+    }
     return NULL;
+}
+
+// v1 decoder: thin wrapper preserving the original signature.
+static double *ptd_pcg_decode_ptr(
+        const struct ptd_pcg_disk_ptr *enc,
+        double *mem_base,
+        const struct ptd_graph *graph)
+{
+    return ptd_pcg_decode_ptr_impl(enc, mem_base, graph, NULL, 0);
 }
 
 // Build a sorted anchor table from a graph: one entry per
@@ -3229,10 +3296,18 @@ static int ptd_pcg_build_cache_path(
     return 0;
 }
 
-int ptd_save_parameterized_reward_compute_graph(
+// Shared implementation for the v1 and v2 save entry points. Pass
+// external_anchors=NULL, n_external=0 to write a v1 file (no
+// EXTERNAL pointers; format_revision is forced to 1 in that case
+// for max compatibility with v1 readers). Pass non-NULL/non-zero
+// to enable EXTERNAL pointer encoding; format_revision is then
+// written as 2.
+static int ptd_save_parameterized_reward_compute_graph_impl(
         const char *path,
         const struct ptd_desc_reward_compute_parameterized *compute,
-        const struct ptd_graph *graph)
+        const struct ptd_graph *graph,
+        const double *const *external_anchors,
+        size_t n_external)
 {
     if (path == NULL || compute == NULL || graph == NULL) {
         snprintf((char *)ptd_err, sizeof(ptd_err),
@@ -3262,7 +3337,10 @@ int ptd_save_parameterized_reward_compute_graph(
     memset(&header, 0, sizeof(header));
     memcpy(header.magic, PTD_PCG_MAGIC, 8);
     header.version = PTD_PCG_VERSION;
-    header.format_revision = PTD_PCG_FORMAT_REVISION;
+    // Write rev 1 when no EXTERNAL anchors are in play, so v1 readers
+    // accept the file. Write rev 2 only when EXTERNAL pointers might
+    // appear in the encoded commands.
+    header.format_revision = (n_external > 0) ? 2u : 1u;
     header.graph_hash_truncated = hash_truncated;
     header.commands_length = (uint64_t)compute->length;
     header.mem_total_doubles = (uint64_t)mem_total;
@@ -3315,23 +3393,29 @@ int ptd_save_parameterized_reward_compute_graph(
         }
 
         if (live_fromT) {
-            ptd_pcg_encode_ptr(cmd->fromT,
+            ptd_pcg_encode_ptr_impl(cmd->fromT,
                                (const struct ll_of_a *)compute->mem,
-                               anchors, n_anchors, &encoded_cmds[i].fromT);
+                               anchors, n_anchors,
+                               external_anchors, n_external,
+                               &encoded_cmds[i].fromT);
         } else {
             encoded_cmds[i].fromT.kind = PTD_PCG_PTR_NULL;
         }
         if (live_toT) {
-            ptd_pcg_encode_ptr(cmd->toT,
+            ptd_pcg_encode_ptr_impl(cmd->toT,
                                (const struct ll_of_a *)compute->mem,
-                               anchors, n_anchors, &encoded_cmds[i].toT);
+                               anchors, n_anchors,
+                               external_anchors, n_external,
+                               &encoded_cmds[i].toT);
         } else {
             encoded_cmds[i].toT.kind = PTD_PCG_PTR_NULL;
         }
         if (live_multptr) {
-            ptd_pcg_encode_ptr(cmd->multiplierptr,
+            ptd_pcg_encode_ptr_impl(cmd->multiplierptr,
                                (const struct ll_of_a *)compute->mem,
-                               anchors, n_anchors, &encoded_cmds[i].multiplierptr);
+                               anchors, n_anchors,
+                               external_anchors, n_external,
+                               &encoded_cmds[i].multiplierptr);
         } else {
             encoded_cmds[i].multiplierptr.kind = PTD_PCG_PTR_NULL;
         }
@@ -3491,10 +3575,47 @@ int ptd_save_parameterized_reward_compute_graph(
     return 0;
 }
 
-struct ptd_desc_reward_compute_parameterized *
-ptd_load_parameterized_reward_compute_graph(
+// v1 entry point: writes a format-revision-1 file with no
+// EXTERNAL pointers. Backward-compatible signature; existing
+// callers (Stage A2 cache write in ptd_precompute_reward_compute_graph)
+// keep working unchanged.
+int ptd_save_parameterized_reward_compute_graph(
         const char *path,
+        const struct ptd_desc_reward_compute_parameterized *compute,
         const struct ptd_graph *graph)
+{
+    return ptd_save_parameterized_reward_compute_graph_impl(
+            path, compute, graph, NULL, 0);
+}
+
+// v2 entry point: writes a format-revision-2 file with EXTERNAL
+// pointer support. Pointers in compute that match an entry in
+// external_anchors are encoded as PTD_PCG_PTR_EXTERNAL with the
+// matching index. Pass n_external > 0 to actually use this path;
+// passing 0 yields v1-equivalent behaviour and writes a rev-1 file.
+int ptd_save_parameterized_reward_compute_graph_ex(
+        const char *path,
+        const struct ptd_desc_reward_compute_parameterized *compute,
+        const struct ptd_graph *graph,
+        const double *const *external_anchors,
+        size_t n_external)
+{
+    return ptd_save_parameterized_reward_compute_graph_impl(
+            path, compute, graph, external_anchors, n_external);
+}
+
+// Shared implementation for the v1 and v2 load entry points. The
+// loader accepts both rev-1 and rev-2 files; the choice of which
+// version to write happens at save time (based on whether
+// EXTERNAL anchors were passed). external_table may be NULL with
+// n_external == 0; if a rev-2 file contains EXTERNAL pointers and
+// no table is supplied, the load fails with a clear error.
+static struct ptd_desc_reward_compute_parameterized *
+ptd_load_parameterized_reward_compute_graph_impl(
+        const char *path,
+        const struct ptd_graph *graph,
+        const double *external_table,
+        size_t n_external)
 {
     if (path == NULL || graph == NULL) {
         snprintf((char *)ptd_err, sizeof(ptd_err),
@@ -3523,12 +3644,16 @@ ptd_load_parameterized_reward_compute_graph(
         fclose(fp);
         return NULL;
     }
+    // Accept both rev 1 and rev 2 files. The decoder handles
+    // EXTERNAL pointers only if external_table is non-NULL; rev 1
+    // files won't contain any.
     if (memcmp(header.magic, PTD_PCG_MAGIC, 8) != 0
             || header.version != PTD_PCG_VERSION
-            || header.format_revision != PTD_PCG_FORMAT_REVISION) {
+            || header.format_revision < 1u
+            || header.format_revision > PTD_PCG_FORMAT_REVISION) {
         snprintf((char *)ptd_err, sizeof(ptd_err),
                  "ptd_load: %s has wrong magic/version "
-                 "(got %.8s v%u r%u; expected %s v%u r%u). "
+                 "(got %.8s v%u r%u; expected %s v%u r1..%u). "
                  "Treat as cache miss and rebuild.",
                  path, header.magic, header.version, header.format_revision,
                  PTD_PCG_MAGIC, PTD_PCG_VERSION, PTD_PCG_FORMAT_REVISION);
@@ -3649,12 +3774,37 @@ ptd_load_parameterized_reward_compute_graph(
             commands[i].from = (size_t)encoded_cmds[i].from;
             commands[i].to = (size_t)encoded_cmds[i].to;
             commands[i].multiplier = encoded_cmds[i].multiplier;
-            commands[i].fromT = ptd_pcg_decode_ptr(
-                    &encoded_cmds[i].fromT, flat_mem, graph);
-            commands[i].toT = ptd_pcg_decode_ptr(
-                    &encoded_cmds[i].toT, flat_mem, graph);
-            commands[i].multiplierptr = ptd_pcg_decode_ptr(
-                    &encoded_cmds[i].multiplierptr, flat_mem, graph);
+            commands[i].fromT = ptd_pcg_decode_ptr_impl(
+                    &encoded_cmds[i].fromT, flat_mem, graph,
+                    external_table, n_external);
+            commands[i].toT = ptd_pcg_decode_ptr_impl(
+                    &encoded_cmds[i].toT, flat_mem, graph,
+                    external_table, n_external);
+            commands[i].multiplierptr = ptd_pcg_decode_ptr_impl(
+                    &encoded_cmds[i].multiplierptr, flat_mem, graph,
+                    external_table, n_external);
+            // Detect EXTERNAL pointers in a rev-2 file when no
+            // external_table was supplied. v1 callers loading v2
+            // files would otherwise silently get NULL pointers in
+            // commands they need.
+            if (header.format_revision >= 2u && external_table == NULL) {
+                if (encoded_cmds[i].fromT.kind == PTD_PCG_PTR_EXTERNAL ||
+                    encoded_cmds[i].toT.kind == PTD_PCG_PTR_EXTERNAL ||
+                    encoded_cmds[i].multiplierptr.kind == PTD_PCG_PTR_EXTERNAL) {
+                    snprintf((char *)ptd_err, sizeof(ptd_err),
+                             "ptd_load: %s is rev 2 with EXTERNAL "
+                             "pointers but no external_table was "
+                             "supplied. Use ptd_load_parameterized_"
+                             "reward_compute_graph_ex().", path);
+                    free(commands);
+                    free(encoded_cmds);
+                    free(memr_offsets);
+                    // mem_node owns flat_mem; free both via the node.
+                    free(flat_mem);
+                    free(mem_node);
+                    return NULL;
+                }
+            }
         }
     }
     free(encoded_cmds);
@@ -3694,6 +3844,37 @@ ptd_load_parameterized_reward_compute_graph(
     res->mem = mem_node;
     res->memr = memr;
     return res;
+}
+
+// v1 entry point: backward-compatible signature. Loads a rev-1
+// file. If passed a rev-2 file, this function succeeds only if
+// the file contains no EXTERNAL pointers (e.g. an SCC with no
+// external boundary); otherwise it returns NULL with ptd_err
+// describing the mismatch. Existing callers (Stage A2 cache
+// load in ptd_precompute_reward_compute_graph) keep working
+// unchanged for rev-1 files.
+struct ptd_desc_reward_compute_parameterized *
+ptd_load_parameterized_reward_compute_graph(
+        const char *path,
+        const struct ptd_graph *graph)
+{
+    return ptd_load_parameterized_reward_compute_graph_impl(
+            path, graph, NULL, 0);
+}
+
+// v2 entry point: loads either rev-1 or rev-2 files. EXTERNAL
+// pointers in the file are resolved to &external_table[index].
+// Caller owns external_table; it must outlive the returned
+// compute graph.
+struct ptd_desc_reward_compute_parameterized *
+ptd_load_parameterized_reward_compute_graph_ex(
+        const char *path,
+        const struct ptd_graph *graph,
+        const double *external_table,
+        size_t n_external)
+{
+    return ptd_load_parameterized_reward_compute_graph_impl(
+            path, graph, external_table, n_external);
 }
 
 void ptd_graph_destroy(struct ptd_graph *graph) {

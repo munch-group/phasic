@@ -319,6 +319,81 @@ static int add_edge_raw(
 /* Public API                                                          */
 /* ------------------------------------------------------------------ */
 
+double **ptd_scc_collect_external_anchors(
+        const struct ptd_graph *synth,
+        const struct ptd_scc_synthetic_metadata *meta,
+        size_t *n_anchors_out)
+{
+    if (n_anchors_out == NULL) return NULL;
+    *n_anchors_out = 0;
+    if (synth == NULL || synth->vertices_length < 2) return NULL;
+
+    /* Synthetic source is at index 0; absorbing is at last index.
+     * Caller may pass meta=NULL — in that case, infer absorbing
+     * from the graph (which is what we'd derive from meta anyway). */
+    size_t abs_idx = (meta != NULL) ? (meta->n_vertices - 1)
+                                    : (synth->vertices_length - 1);
+    struct ptd_vertex *src = synth->vertices[0];
+
+    /* Count: Type A = src->edges_length; Type C = number of
+     * non-source non-absorbing vertices with at least one edge to
+     * the absorbing vertex (one Type C edge per such vertex). */
+    size_t n_a = src->edges_length;
+    size_t n_c = 0;
+    for (size_t v = 1; v < synth->vertices_length - 1; ++v) {
+        struct ptd_vertex *vert = synth->vertices[v];
+        for (size_t e = 0; e < vert->edges_length; ++e) {
+            if (vert->edges[e]->to->index == abs_idx) {
+                n_c++;
+                /* No break: a vertex could in principle have
+                 * multiple Type C edges, though WP-1 emits at
+                 * most one per dual/downstream-connecting vertex.
+                 * Counting all is robust. */
+            }
+        }
+    }
+
+    size_t total = n_a + n_c;
+    if (total == 0) {
+        *n_anchors_out = 0;
+        return NULL;
+    }
+
+    double **anchors = (double **)malloc(total * sizeof(double *));
+    if (anchors == NULL) {
+        snprintf(ptd_err, 1024,
+                 "ptd_scc_collect_external_anchors: oom");
+        return NULL;
+    }
+    size_t idx = 0;
+
+    /* The eliminator references edges via &edge->weight (the
+     * concrete evaluated weight, set by update_weights), NOT via
+     * &edge->coefficients[0] (the symbolic θ coefficient). So our
+     * external anchors must be the placeholder edges' weight
+     * slots, which is what the saved PRC's encoded pointers will
+     * try to match.
+     *
+     * Type A edges (in synthetic-source-edge order). */
+    for (size_t e = 0; e < src->edges_length; ++e) {
+        struct ptd_edge *edge = src->edges[e];
+        anchors[idx++] = &edge->weight;
+    }
+
+    /* Type C edges (in vertex-then-edge order). */
+    for (size_t v = 1; v < synth->vertices_length - 1; ++v) {
+        struct ptd_vertex *vert = synth->vertices[v];
+        for (size_t e = 0; e < vert->edges_length; ++e) {
+            if (vert->edges[e]->to->index == abs_idx) {
+                anchors[idx++] = &vert->edges[e]->weight;
+            }
+        }
+    }
+
+    *n_anchors_out = total;
+    return anchors;
+}
+
 void ptd_scc_synthetic_metadata_destroy(
         struct ptd_scc_synthetic_metadata *metadata)
 {

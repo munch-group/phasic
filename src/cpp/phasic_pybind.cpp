@@ -1140,6 +1140,137 @@ str
       not part of the public API.
       )delim")
 
+    .def("_save_param_compute_graph_ex",
+      [](phasic::Graph &g, const std::string &path,
+         std::vector<size_t> external_anchor_offsets) {
+          // Test-only WP-3 helper: save the graph's
+          // parameterized_reward_compute_graph (already populated by
+          // a prior elimination call) as a rev-2 file. The anchor
+          // identification here is intentionally indirect — callers
+          // pass a list of doubles-offsets into the internal mem
+          // chain; we resolve those to live double* and pass them
+          // as external_anchors. This avoids exposing raw double*
+          // pointers across the C/Python boundary.
+          //
+          // For the typical WP-3 test path (synthetic graph + its
+          // anchors collected via ptd_scc_collect_external_anchors),
+          // a higher-level Python helper builds the synthetic graph
+          // and passes its placeholder coefficient slots through
+          // _save_synthetic_param_compute_graph below.
+          (void)g; (void)path; (void)external_anchor_offsets;
+          throw std::runtime_error(
+                  "_save_param_compute_graph_ex: use "
+                  "_save_synthetic_param_compute_graph instead "
+                  "(needs the synthetic graph for anchor collection)");
+      }, R"delim(
+      Test-only stub. Use _save_synthetic_param_compute_graph
+      (defined separately on the SCCVertex) for the WP-3 path.
+      )delim")
+
+    .def("_save_synthetic_param_compute_graph_ex",
+      [](phasic::Graph &g, const std::string &path) {
+          // Save the graph's parameterized_reward_compute_graph as
+          // a rev-2 file, treating every Type A (synthetic source
+          // -> non-source non-absorbing) and Type C (non-source
+          // non-absorbing -> synthetic absorbing) edge's
+          // coefficients[0] slot as an EXTERNAL anchor. Used by
+          // WP-3 tests on a synthetic graph.
+          //
+          // The synthetic absorbing vertex is identified as the
+          // graph's last vertex by index. The synthetic source is
+          // the starting vertex (index 0).
+          if (g.c_graph()->parameterized_reward_compute_graph == NULL) {
+              throw std::runtime_error(
+                      "no parameterized_reward_compute_graph; call "
+                      "expected_waiting_time first");
+          }
+          size_t n_anchors = 0;
+          double **anchors = ptd_scc_collect_external_anchors(
+                  g.c_graph(), NULL, &n_anchors);
+          if (n_anchors == 0) {
+              // No EXTERNAL anchors — just write a rev-1 file.
+              int rc = ptd_save_parameterized_reward_compute_graph(
+                      path.c_str(),
+                      g.c_graph()->parameterized_reward_compute_graph,
+                      g.c_graph());
+              free(anchors);
+              if (rc != 0) {
+                  throw std::runtime_error(
+                          std::string("save failed: ") + (const char *)ptd_err);
+              }
+              return n_anchors;
+          }
+          int rc = ptd_save_parameterized_reward_compute_graph_ex(
+                  path.c_str(),
+                  g.c_graph()->parameterized_reward_compute_graph,
+                  g.c_graph(),
+                  (const double *const *)anchors,
+                  n_anchors);
+          free(anchors);
+          if (rc != 0) {
+              throw std::runtime_error(
+                      std::string("save_ex failed: ") + (const char *)ptd_err);
+          }
+          return n_anchors;
+      }, R"delim(
+      WP-3 test helper: save this synthetic graph's
+      parameterized_reward_compute_graph as a rev-2 file with
+      EXTERNAL pointers anchoring the placeholder edges. Returns
+      the number of anchors written.
+      )delim")
+
+    .def("_load_synthetic_param_compute_graph_ex",
+      [](phasic::Graph &g, const std::string &path,
+         std::vector<double> external_table) {
+          // Load a rev-2 file and install it on this graph,
+          // resolving EXTERNAL pointers against external_table.
+          //
+          // Note: external_table is copied here and held by the
+          // returned compute graph for as long as it lives. To
+          // satisfy this with a Python-managed std::vector, we
+          // allocate a heap copy keyed off the graph identity and
+          // leak it for now (test-only helper; real composition
+          // path in WP-5 will manage the table lifetime properly).
+          double *table_copy = NULL;
+          if (!external_table.empty()) {
+              table_copy = (double *)malloc(external_table.size() * sizeof(double));
+              if (table_copy == NULL) {
+                  throw std::runtime_error("oom for external_table copy");
+              }
+              memcpy(table_copy, external_table.data(),
+                     external_table.size() * sizeof(double));
+          }
+          struct ptd_desc_reward_compute_parameterized *loaded =
+                  ptd_load_parameterized_reward_compute_graph_ex(
+                          path.c_str(), g.c_graph(),
+                          table_copy, external_table.size());
+          if (loaded == NULL) {
+              std::string msg((const char *)ptd_err);
+              ptd_err[0] = '\0';
+              free(table_copy);
+              throw std::runtime_error(
+                      std::string("load_ex failed or cache miss: ") + msg);
+          }
+          // Replace any existing cache.
+          if (g.c_graph()->parameterized_reward_compute_graph != NULL) {
+              ptd_parameterized_reward_compute_graph_destroy(
+                      g.c_graph()->parameterized_reward_compute_graph);
+          }
+          g.c_graph()->parameterized_reward_compute_graph = loaded;
+          // table_copy is leaked deliberately for this test helper;
+          // real WP-5 composer manages the lifetime properly.
+          if (g.c_graph()->reward_compute_graph != NULL) {
+              free(g.c_graph()->reward_compute_graph->commands);
+              free(g.c_graph()->reward_compute_graph);
+              g.c_graph()->reward_compute_graph = NULL;
+          }
+      }, R"delim(
+      WP-3 test helper: load a rev-2 file and install it on this
+      graph, resolving EXTERNAL pointers against the supplied
+      external_table list. table_copy is leaked deliberately; this
+      is a test-only helper.
+      )delim")
+
     .def("is_parameterized",
       [](phasic::Graph &g) {
           return g.c_graph()->parameterized;

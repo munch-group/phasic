@@ -519,6 +519,66 @@ ptd_load_parameterized_reward_compute_graph(
         const char *path,
         const struct ptd_graph *graph);
 
+/**
+ * v2 save: write a parameterised reward compute graph with
+ * EXTERNAL pointer support.
+ *
+ * Like ptd_save_parameterized_reward_compute_graph, but takes an
+ * additional list of external anchors. Any pointer in ``compute``
+ * that matches an entry in ``external_anchors`` is encoded as
+ * PTD_PCG_PTR_EXTERNAL with the matching index. All other
+ * pointers are encoded as MEM/EDGE/NULL as in v1.
+ *
+ * The on-disk file is written as format revision 2 if
+ * ``n_external > 0``, or as revision 1 (v1-equivalent) otherwise.
+ *
+ * @param path Destination cache file.
+ * @param compute Symbolic compute graph to save.
+ * @param graph The graph from which compute was built (typically
+ *              the synthetic graph). Used to resolve EDGE pointers.
+ * @param external_anchors Array of double* pointers; pointers in
+ *              compute matching one of these get encoded as
+ *              EXTERNAL with the matching array index. May be
+ *              NULL if n_external == 0.
+ * @param n_external Length of external_anchors.
+ * @return 0 on success, -1 on error (sets ptd_err).
+ */
+int ptd_save_parameterized_reward_compute_graph_ex(
+        const char *path,
+        const struct ptd_desc_reward_compute_parameterized *compute,
+        const struct ptd_graph *graph,
+        const double *const *external_anchors,
+        size_t n_external);
+
+/**
+ * v2 load: read a parameterised reward compute graph with
+ * EXTERNAL pointer support.
+ *
+ * Accepts both rev-1 and rev-2 files. Rev-2 files containing
+ * EXTERNAL pointers require external_table to be non-NULL with
+ * sufficient n_external; otherwise the load fails.
+ *
+ * @param path Cache file path.
+ * @param graph The graph to bind EDGE pointers against (typically
+ *              a freshly-rebuilt synthetic graph at load time).
+ * @param external_table Array of doubles. EXTERNAL pointers in
+ *              the file resolve to &external_table[index]. May be
+ *              NULL if n_external == 0 and the file contains no
+ *              EXTERNAL pointers. Caller owns; must outlive the
+ *              returned compute graph.
+ * @param n_external Length of external_table.
+ * @return Newly allocated compute graph (caller owns; destroy via
+ *         ptd_parameterized_reward_compute_graph_destroy), or
+ *         NULL on cache miss / corrupt file / version mismatch /
+ *         missing external_table for a rev-2 file.
+ */
+struct ptd_desc_reward_compute_parameterized *
+ptd_load_parameterized_reward_compute_graph_ex(
+        const char *path,
+        const struct ptd_graph *graph,
+        const double *external_table,
+        size_t n_external);
+
 // ============================================================================
 // Symbolic Expression System for Efficient Parameter Evaluation
 // ============================================================================
@@ -1098,6 +1158,40 @@ struct ptd_graph *ptd_scc_build_synthetic_graph(
  */
 void ptd_scc_synthetic_metadata_destroy(
         struct ptd_scc_synthetic_metadata *metadata);
+
+/**
+ * Collect external-anchor pointers for a synthetic graph.
+ *
+ * Walks the synthetic graph and produces a flat array of
+ * (double *) pointers: one per Type A edge (synthetic source ->
+ * upstream-connecting) and one per Type C edge (downstream-
+ * connecting -> synthetic absorbing). Each pointer is the address
+ * of the placeholder edge's coefficients[0] slot.
+ *
+ * The returned array is suitable for passing as ``external_anchors``
+ * to ptd_save_parameterized_reward_compute_graph_ex.
+ *
+ * Anchor ordering (deterministic):
+ *   1. Type A edges first, in synthetic-source-edge order.
+ *   2. Type C edges next, in the order encountered while walking
+ *      vertex synthetic-indices 1..n-2 and collecting edges that
+ *      target the synthetic absorbing vertex (last index).
+ *
+ * @param synth Synthetic graph produced by
+ *              ptd_scc_build_synthetic_graph.
+ * @param meta  Metadata for the synthetic graph (used to identify
+ *              the synthetic absorbing vertex's index). May be
+ *              NULL; if NULL, the absorbing vertex is taken to
+ *              be at index synth->vertices_length - 1.
+ * @param n_anchors_out Receives the number of anchors written.
+ * @return Newly allocated array of double* (caller must free()),
+ *         or NULL if the graph is empty / on OOM (with ptd_err
+ *         set on OOM).
+ */
+double **ptd_scc_collect_external_anchors(
+        const struct ptd_graph *synth,
+        const struct ptd_scc_synthetic_metadata *meta,
+        size_t *n_anchors_out);
 
 struct ptd_phase_type_distribution {
     size_t length;
