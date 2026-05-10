@@ -417,9 +417,9 @@ double **ptd_scc_collect_external_anchors(
      * We collect them in order: Type A, Type C (matching
      * meta->channels), Phantom (matching meta->channels). */
     struct ptd_vertex *src = synth->vertices[0];
-    size_t n_a = src->edges_length;
+    size_t n_uc = (meta != NULL) ? meta->n_upstream_connecting : 0;
     size_t n_channels = (meta != NULL) ? meta->n_channels : 0;
-    size_t total = n_a + 2 * n_channels;
+    size_t total = n_uc + 2 * n_channels;
 
     if (total == 0) {
         *n_anchors_out = 0;
@@ -434,9 +434,22 @@ double **ptd_scc_collect_external_anchors(
     }
     size_t idx = 0;
 
-    /* Type A: synth source's outgoing edges. */
-    for (size_t e = 0; e < src->edges_length; ++e) {
-        anchors[idx++] = &src->edges[e]->weight;
+    /* Type A edges (synth source -> upstream-connecting), ONLY
+     * when parent_start is NOT in this SCC. When it is, the
+     * synth source IS the parent start, with Type C outgoing
+     * edges that are recorded in the channels[] iteration below.
+     *
+     * Detection: in the parent_start_in_scc case, all of synth
+     * source's out-edges target per-channel absorbings (vertex
+     * indices >= channel_first_idx). In the not-in-scc case, all
+     * target upstream-connecting vertices (indices in [1, 1+n_uc)).
+     *
+     * We use n_uc (from meta) directly — it's 0 when there are
+     * no upstream-connecting vertices. */
+    if (n_uc > 0) {
+        for (size_t e = 0; e < n_uc && e < src->edges_length; ++e) {
+            anchors[idx++] = &src->edges[e]->weight;
+        }
     }
 
     if (meta != NULL && meta->channels != NULL) {
@@ -671,8 +684,16 @@ struct ptd_graph *ptd_scc_build_synthetic_graph(
      *            1+n_uc+n_io+n_dc+n_channels):
      *   index n_synth - 1:                    phantom absorbing
      */
-    size_t n_synth = 1 /* source */ + n_uc + n_io + n_dc + n_channels + 1 /* phantom */;
-    size_t channel_first_idx = 1 + n_uc + n_io + n_dc;
+    /* If the parent's start is in this SCC, the synth's auto-created
+     * starting_vertex (already at index 0) doubles as the synth-copy
+     * of the parent's start — so we don't create a separate vertex
+     * for it. Total vertex count drops by 1 in that case. */
+    bool parent_start_in_scc_pre = is_internal[parent->starting_vertex->index];
+    size_t parent_start_skip = parent_start_in_scc_pre ? 1 : 0;
+
+    size_t n_synth = 1 /* source */ + n_uc + n_io + n_dc - parent_start_skip
+                   + n_channels + 1 /* phantom */;
+    size_t channel_first_idx = 1 + n_uc + n_io + n_dc - parent_start_skip;
     size_t phantom_idx = n_synth - 1;
 
     struct ptd_graph *synth = ptd_graph_create(parent->state_length);
@@ -706,15 +727,41 @@ struct ptd_graph *ptd_scc_build_synthetic_graph(
         goto fail_oom;
     }
 
-    /* Index 0: synthetic source (the auto-created starting vertex). */
+    /* Detect whether the parent's starting vertex is internal to
+     * this SCC. If so, the synthetic graph's auto-created
+     * starting vertex (at index 0) acts as the synth-copy of the
+     * parent's starting vertex. The parent's start has no IPV in
+     * the parent (it IS the IPV), so no Type A edge exists for
+     * it; its outgoing edges become Type C edges directly.
+     *
+     * Treating it as the synth's starting_vertex makes the
+     * eliminator give it the special "1/rate=0" treatment that
+     * matches the parent's monolithic computation. */
+    size_t parent_start_idx = parent->starting_vertex->index;
+    bool parent_start_in_scc = parent_start_in_scc_pre;
+
+    /* Index 0: synthetic source. If parent's start is in this
+     * SCC, this index doubles as the synth-copy of parent's start.
+     * Otherwise it's an unused entry-point (no out-edges; gets
+     * treated as absorbing by the eliminator). */
     struct ptd_vertex *synth_source = synth->starting_vertex;
-    synth_to_parent[0] = SIZE_MAX;
+    synth_to_parent[0] = parent_start_in_scc ? parent_start_idx : SIZE_MAX;
+    if (parent_start_in_scc) {
+        parent_to_synth[parent_start_idx] = synth_source;
+        /* synth_source already has all-zero state (matches parent
+         * start). Copy is_aux from the parent. */
+        synth_source->is_aux = parent->vertices[parent_start_idx]->is_aux;
+    }
 
     /* Indices 1..1+n_uc: upstream-connecting. */
     {
         size_t synth_idx = 1;
         for (size_t k = 0; k < n_uc; ++k) {
             size_t pv = uc_indices[k];
+            if (parent_start_in_scc && pv == parent_start_idx) {
+                /* Skip — already mapped to synth_source. */
+                continue;
+            }
             struct ptd_vertex *v = ptd_vertex_create_state(synth, parent->vertices[pv]->state);
             if (v == NULL) goto fail_construct;
             v->is_aux = parent->vertices[pv]->is_aux;
@@ -724,6 +771,7 @@ struct ptd_graph *ptd_scc_build_synthetic_graph(
         /* Then internal-only. */
         for (size_t k = 0; k < n_io; ++k) {
             size_t pv = io_indices[k];
+            if (parent_start_in_scc && pv == parent_start_idx) continue;
             struct ptd_vertex *v = ptd_vertex_create_state(synth, parent->vertices[pv]->state);
             if (v == NULL) goto fail_construct;
             v->is_aux = parent->vertices[pv]->is_aux;
@@ -733,6 +781,7 @@ struct ptd_graph *ptd_scc_build_synthetic_graph(
         /* Then downstream-connecting. */
         for (size_t k = 0; k < n_dc; ++k) {
             size_t pv = dc_indices[k];
+            if (parent_start_in_scc && pv == parent_start_idx) continue;
             struct ptd_vertex *v = ptd_vertex_create_state(synth, parent->vertices[pv]->state);
             if (v == NULL) goto fail_construct;
             v->is_aux = parent->vertices[pv]->is_aux;
@@ -780,10 +829,14 @@ struct ptd_graph *ptd_scc_build_synthetic_graph(
     if (placeholder == NULL) goto fail_construct;
     placeholder[0] = 1.0;
 
-    /* Type A: synthetic source -> each upstream-connecting (placeholder). */
+    /* Type A: synthetic source -> each upstream-connecting
+     * (placeholder). Skip the parent-start vertex if it's in
+     * this SCC, since synth_source IS the parent-start surrogate
+     * and giving it a self-edge would be a self-loop. */
     {
         for (size_t k = 0; k < n_uc; ++k) {
             size_t pv = uc_indices[k];
+            if (parent_start_in_scc && pv == parent_start_idx) continue;
             struct ptd_vertex *target = parent_to_synth[pv];
             if (add_edge_raw(synth_source, target, 1.0, placeholder, placeholder_len) != 0) {
                 free(placeholder);
@@ -844,14 +897,16 @@ struct ptd_graph *ptd_scc_build_synthetic_graph(
 
     /* Walk synthetic vertices in canonical order so the channel
      * iteration order is deterministic. For each downstream-
-     * connecting vertex (whether placed in uc or dc category),
+     * connecting vertex (whether placed in uc or dc category, or
+     * the parent-start vertex at synth index 0 when parent_start_in_scc),
      * walk its parent's external_out_edges list in order. */
     size_t channel_cursor = 0;
-    for (size_t v_synth_idx = 1; v_synth_idx < channel_first_idx; ++v_synth_idx) {
+    /* Start from index 0 when parent_start is in this SCC (because
+     * the parent_start sits at synth index 0 in that case);
+     * otherwise start from 1. */
+    size_t v_walk_start = parent_start_in_scc ? 0 : 1;
+    for (size_t v_synth_idx = v_walk_start; v_synth_idx < channel_first_idx; ++v_synth_idx) {
         size_t pv = synth_to_parent[v_synth_idx]; /* parent vertex idx */
-        /* synth_to_parent was transferred to meta later; for now we
-         * still own it. But we set synth_to_parent[idx] above; check
-         * for sentinel (shouldn't happen for indices 1..channel_first_idx). */
         if (pv == SIZE_MAX) continue;
         if (!is_downstream_connecting[pv]) continue;
 
@@ -962,12 +1017,13 @@ struct ptd_graph *ptd_scc_build_synthetic_graph(
         goto fail_construct;
     }
 
-    /* Walk the synthetic vertices (skipping source at 0 and
-     * absorbing at n_synth-1) and pull the matching per-pv list
-     * into the correct synthetic-index slot. */
-    for (size_t v_synth = 1; v_synth < n_synth - 1; ++v_synth) {
+    /* Walk the synthetic vertices and pull the matching per-pv
+     * list into the correct synthetic-index slot. We start from
+     * index 0 to also cover the parent-start case (where index 0
+     * holds the parent's start as a real internal vertex). */
+    for (size_t v_synth = 0; v_synth < n_synth; ++v_synth) {
         size_t pv = meta->parent_indices[v_synth];
-        if (pv == SIZE_MAX) continue;  /* should not happen here */
+        if (pv == SIZE_MAX) continue;
 
         /* Transfer ownership of the in-edges list. */
         meta->external_in_edges[v_synth] = upstream_in_per_pv[pv];
@@ -1091,71 +1147,22 @@ ptd_scc_get_or_compute_prc(
         }
     }
 
-    /* Step 4: try to load. The synthetic graph's placeholder edge
-     * weights serve as the external_table during load: they hold
-     * the "neutral" placeholder values (1.0 for the first slot,
-     * 0 elsewhere) that match what the file was saved with.
-     *
-     * For composition (WP-5), the caller will replace these
-     * weights with parent-supplied values before replay; the
-     * EXTERNAL pointers in the loaded PRC dereference whatever
-     * the table holds at replay time. So loading with the
-     * synthetic graph's own weight slots is correct here — it
-     * gives a "neutral" PRC suitable for the per-SCC standalone
-     * compute path. */
+    /* Step 4: try to load. We save and load the per-SCC PRC as
+     * a rev-1 file (no EXTERNAL pointers); the saved pointers
+     * reference live edge weight slots in the synthetic graph,
+     * which the composer (WP-5) overrides at compose time via
+     * ptd_edge_update_weight. */
     if (have_path) {
-        /* Build the external_table by reading the synthetic graph's
-         * placeholder edge weights in the same order as
-         * ptd_scc_collect_external_anchors produces. */
-        size_t n_anchors = 0;
-        double **anchors = ptd_scc_collect_external_anchors(
-                synth, *metadata_out, &n_anchors);
-        double *external_table = NULL;
-        if (n_anchors > 0) {
-            external_table = (double *)malloc(n_anchors * sizeof(double));
-            if (external_table == NULL) {
-                free(anchors);
-                snprintf(ptd_err, sizeof_ptd_err,
-                         "ptd_scc_get_or_compute_prc: oom for external_table");
-                ptd_graph_destroy(synth);
-                ptd_scc_synthetic_metadata_destroy(*metadata_out);
-                *metadata_out = NULL;
-                return NULL;
-            }
-            for (size_t i = 0; i < n_anchors; ++i) {
-                external_table[i] = *anchors[i];
-            }
-        }
-
         struct ptd_desc_reward_compute_parameterized *loaded =
-                ptd_load_parameterized_reward_compute_graph_ex(
-                        cache_path, synth, external_table, n_anchors);
+                ptd_load_parameterized_reward_compute_graph(
+                        cache_path, synth);
 
-        free(anchors);
         ptd_err[0] = '\0';  /* swallow load-miss error message */
 
         if (loaded != NULL) {
-            /* Cache hit. Transfer ownership of the synthetic graph
-             * and metadata to the caller. external_table is leaked
-             * here — the loaded PRC's EXTERNAL pointers reference
-             * into it, so it must outlive the PRC. The caller
-             * (composer / test harness) is responsible for the
-             * PRC's lifetime; we attach external_table to a
-             * known place: stash the pointer in metadata so it
-             * gets freed when metadata is destroyed.
-             *
-             * However, our metadata struct doesn't currently have
-             * a slot for it. For now, accept the leak in this
-             * load path; WP-5's composer will manage the
-             * external_table lifetime properly via its own
-             * machinery (the per-SCC PRC isn't held long after
-             * composition copies its commands into the parent
-             * PRC). */
             *synth_out = synth;
             return loaded;
-            /* external_table intentionally leaked; documented above. */
         }
-        free(external_table);
         /* Fall through to rebuild path on miss. */
     }
 
@@ -1174,26 +1181,22 @@ ptd_scc_get_or_compute_prc(
         return NULL;
     }
 
-    /* Step 6 + 7: collect anchors and best-effort save. Failures
-     * here are non-fatal — we still return the in-memory PRC. */
+    /* Step 6 + 7: best-effort save. Failures here are non-fatal —
+     * we still return the in-memory PRC.
+     *
+     * NOTE: WP-5's composer uses direct edge-weight overrides
+     * (via ptd_edge_update_weight) at compose time, not the
+     * EXTERNAL pointer scheme from WP-3. Saving the PRC with
+     * EXTERNAL anchors would freeze the placeholder weights into
+     * the loaded compute graph's pointer slots, making compose-
+     * time overrides invisible. So we save without EXTERNAL
+     * anchors (rev-1 format), letting the saved PRC's pointers
+     * reference live edge weight slots that compose-time overrides
+     * mutate. */
     if (have_path) {
-        size_t n_anchors = 0;
-        double **anchors = ptd_scc_collect_external_anchors(
-                synth, *metadata_out, &n_anchors);
-        if (n_anchors > 0 && anchors != NULL) {
-            (void)ptd_save_parameterized_reward_compute_graph_ex(
-                    cache_path, prc, synth,
-                    (const double *const *)anchors, n_anchors);
-            ptd_err[0] = '\0';  /* swallow save errors */
-        } else {
-            /* No external anchors (e.g. an isolated SCC with no
-             * upstream/downstream connections). Save as a v1
-             * file via the regular save path. */
-            (void)ptd_save_parameterized_reward_compute_graph(
-                    cache_path, prc, synth);
-            ptd_err[0] = '\0';
-        }
-        free(anchors);
+        (void)ptd_save_parameterized_reward_compute_graph(
+                cache_path, prc, synth);
+        ptd_err[0] = '\0';  /* swallow save errors */
     }
 
     *synth_out = synth;

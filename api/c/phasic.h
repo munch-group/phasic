@@ -1312,6 +1312,42 @@ ptd_scc_get_or_compute_prc(
         struct ptd_graph **synth_out,
         struct ptd_scc_synthetic_metadata **metadata_out);
 
+/**
+ * WP-5: SCC composition. Compute the parent-level expected
+ * waiting time vector by composing per-SCC PRCs.
+ *
+ * Walks SCCs in reverse-topological order (sink-first). For
+ * each SCC: builds (or retrieves cached) the synthetic graph
+ * + PRC, sets per-channel placeholder edge weights based on
+ * the parent's external edge weights and downstream-SCC results
+ * already computed, runs the per-SCC elimination, copies the
+ * results into the parent-wide result vector.
+ *
+ * The result is numerically equivalent to running the
+ * monolithic eliminator on the parent graph at the same theta.
+ *
+ * The parent graph's edges are updated to reflect ``theta``
+ * (via ``ptd_graph_update_weights``) before composition, so
+ * the parent's ``edge->weight`` slots can be read for Type C
+ * bindings.
+ *
+ * @param parent     Parent graph. Must be parameterised.
+ *                   ``parent->edges`` are mutated to reflect
+ *                   theta after the call.
+ * @param scc_graph  Parent's SCC decomposition.
+ * @param theta      Parameter vector. Length must equal
+ *                   ``parent->param_length``.
+ * @param theta_len  Length of theta.
+ * @return Newly allocated result vector of length
+ *         ``parent->vertices_length`` (caller frees), or NULL
+ *         on error (sets ptd_err).
+ */
+double *ptd_compose_scc_prcs(
+        struct ptd_graph *parent,
+        const struct ptd_scc_graph *scc_graph,
+        const double *theta,
+        size_t theta_len);
+
 struct ptd_phase_type_distribution {
     size_t length;
     double *initial_probability_vector;

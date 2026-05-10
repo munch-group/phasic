@@ -44,17 +44,24 @@ SCC_CASE_IDS = [f"{name}-scc{idx}" for name, idx in SCC_CASES]
 def test_synthetic_graph_has_canonical_layout(toy_name, scc_idx):
     """Vertex count and category counts match the canonical
     layout (per-channel absorbings + phantom):
-        1 source + n_uc + n_io + n_dc + n_channels + 1 phantom"""
+        1 source + n_uc + n_io + n_dc + n_channels + 1 phantom
+
+    When parent_start_in_scc, synth source doubles as the
+    parent-start vertex (no separate slot), so total drops by 1."""
     g = BUILDERS[toy_name]()
     scc_graph = g.scc_decomposition()
     scc = scc_graph.scc_at(scc_idx)
     synth, meta = scc.as_synthetic_graph()
+
+    parent_start_in_scc = (meta.parent_indices[0] != -1)
+    parent_start_skip = 1 if parent_start_in_scc else 0
 
     expected_n = (
         1  # synthetic source
         + meta.n_upstream_connecting
         + meta.n_internal_only
         + meta.n_downstream_connecting
+        - parent_start_skip
         + meta.n_channels  # per-channel absorbing vertices
         + 1  # phantom absorbing
     )
@@ -79,12 +86,21 @@ def test_synthetic_graph_state_length_preserved(toy_name):
 
 @pytest.mark.parametrize("toy_name,scc_idx", SCC_CASES, ids=SCC_CASE_IDS)
 def test_synthetic_source_at_index_0(toy_name, scc_idx):
-    """parent_indices[0] == -1 (synthetic source has no parent counterpart)."""
+    """parent_indices[0] is either -1 (synthetic source has no
+    parent counterpart) or the parent's starting vertex index
+    (when parent_start_in_scc — synth source doubles as the
+    parent's start)."""
     g = BUILDERS[toy_name]()
     scc_graph = g.scc_decomposition()
     scc = scc_graph.scc_at(scc_idx)
     _, meta = scc.as_synthetic_graph()
-    assert meta.parent_indices[0] == -1
+    parent_start_idx = g.starting_vertex().index()
+    pi0 = meta.parent_indices[0]
+    if pi0 != -1:
+        assert pi0 == parent_start_idx, (
+            f"{toy_name}/scc{scc_idx}: parent_indices[0] = {pi0}, "
+            f"expected {parent_start_idx} (parent's start) or -1"
+        )
 
 
 @pytest.mark.parametrize("toy_name,scc_idx", SCC_CASES, ids=SCC_CASE_IDS)
@@ -101,17 +117,30 @@ def test_synthetic_absorbing_at_last_index(toy_name, scc_idx):
 def test_internal_synth_indices_have_real_parents(toy_name, scc_idx):
     """Every internal synthetic vertex (uc + io + dc) has a valid
     parent_index pointing to a vertex in the SCC. Per-channel
-    absorbing and phantom vertices have parent_index == -1."""
+    absorbing and phantom vertices have parent_index == -1.
+
+    When the parent's start is in this SCC, the synth source
+    (index 0) doubles as the parent-start vertex with a real
+    parent_index. Internal vertices then occupy [0, n_internal)
+    (with parent_start_in_scc) or [1, 1+n_internal) (otherwise)."""
     g = BUILDERS[toy_name]()
     scc_graph = g.scc_decomposition()
     scc = scc_graph.scc_at(scc_idx)
     _, meta = scc.as_synthetic_graph()
     internal_pidx = set(scc.internal_vertex_indices())
 
+    parent_start_in_scc = (meta.parent_indices[0] != -1)
     n_internal = (meta.n_upstream_connecting + meta.n_internal_only
                   + meta.n_downstream_connecting)
-    # Internal vertices live at indices [1, 1 + n_internal).
-    for v_synth in range(1, 1 + n_internal):
+
+    if parent_start_in_scc:
+        internal_range = range(0, n_internal)
+        non_internal_start = n_internal
+    else:
+        internal_range = range(1, 1 + n_internal)
+        non_internal_start = 1 + n_internal
+
+    for v_synth in internal_range:
         pi = meta.parent_indices[v_synth]
         assert pi != -1, (
             f"{toy_name}/scc{scc_idx}: internal vertex {v_synth} "
@@ -123,12 +152,17 @@ def test_internal_synth_indices_have_real_parents(toy_name, scc_idx):
         )
 
     # Per-channel absorbings + phantom should have parent == -1.
-    for v_synth in range(1 + n_internal, meta.n_vertices):
+    for v_synth in range(non_internal_start, meta.n_vertices):
         pi = meta.parent_indices[v_synth]
         assert pi == -1, (
             f"{toy_name}/scc{scc_idx}: vertex {v_synth} "
             f"(per-channel absorbing or phantom) has parent_index {pi}, expected -1"
         )
+
+    if not parent_start_in_scc:
+        # When parent_start is NOT in this SCC, synth source has
+        # parent_indices[0] == -1.
+        assert meta.parent_indices[0] == -1
 
 
 @pytest.mark.parametrize("toy_name,scc_idx", SCC_CASES, ids=SCC_CASE_IDS)
@@ -183,27 +217,48 @@ def test_internal_edges_count_matches_parent(toy_name, scc_idx):
     n_uc = meta.n_upstream_connecting
     n_channels = meta.n_channels
 
-    # Type A: synth source's out-edges == n_uc.
+    # Detect parent_start_in_scc: when set, the synth source IS
+    # the parent's start vertex, with Type C out-edges directly
+    # (no separate Type A edges since the parent start has no
+    # IPV in the parent — it IS the IPV).
+    parent_start_in_scc = (meta.parent_indices[0] != -1)
+
     src = _find_vertex_by_synth_idx(synth, 0)
     type_a = sum(1 for _ in src.edges())
-    assert type_a == n_uc, (
-        f"{toy_name}/scc{scc_idx}: synthetic source has "
-        f"{type_a} edges, expected {n_uc} (n_upstream_connecting)"
-    )
+    if parent_start_in_scc:
+        assert n_uc == 0, (
+            f"{toy_name}/scc{scc_idx}: parent_start_in_scc but n_uc={n_uc}"
+        )
+    else:
+        assert type_a == n_uc, (
+            f"{toy_name}/scc{scc_idx}: synthetic source has "
+            f"{type_a} edges, expected {n_uc} (n_upstream_connecting)"
+        )
 
     # Type C: each per-channel absorbing has exactly one
-    # incoming edge from a downstream-connecting vertex.
+    # incoming edge from a downstream-connecting vertex (or
+    # from the synth source when parent_start_in_scc).
     # Phantom: each per-channel absorbing has exactly one
     # outgoing edge to phantom.
     phantom_idx = meta.n_vertices - 1
     n_internal = (meta.n_upstream_connecting + meta.n_internal_only
                   + meta.n_downstream_connecting)
+    # When parent_start_in_scc, parent_start sits at synth index 0
+    # and IS one of the n_dc vertices conceptually, but doesn't
+    # consume a separate index (n_internal counts categorise it
+    # already; just channel_first calculation is unaffected).
     channel_first = 1 + n_internal
+    if parent_start_in_scc:
+        # parent_start at index 0 saved a slot; channel_first
+        # decreases by 1.
+        channel_first -= 1
 
-    # Count Type C: edges from internal vertices to per-channel absorbings.
+    # Count Type C: edges from internal vertices (incl. synth
+    # source if it doubles as parent start) to per-channel
+    # absorbings.
     type_c = 0
     for v in synth.vertices():
-        if v.index() == 0 or v.index() >= channel_first:
+        if v.index() >= channel_first:
             continue
         for e in v.edges():
             target = e.to().index()
@@ -227,8 +282,14 @@ def test_internal_edges_count_matches_parent(toy_name, scc_idx):
     )
 
     # Total minus Type A + Type C + phantom edges == expected_internal.
+    # When parent_start_in_scc, the source's outgoing edges ARE
+    # Type C edges (not separate Type A), so we don't subtract
+    # them twice.
     total = sum(len(list(v.edges())) for v in synth.vertices())
-    actual_internal = total - type_a - type_c - n_phantom
+    if parent_start_in_scc:
+        actual_internal = total - type_c - n_phantom
+    else:
+        actual_internal = total - type_a - type_c - n_phantom
     assert actual_internal == expected_internal, (
         f"{toy_name}/scc{scc_idx}: internal edge count mismatch — "
         f"have {actual_internal}, expected {expected_internal}"

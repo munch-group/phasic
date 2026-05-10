@@ -3520,6 +3520,32 @@ str
            "Get reference to original graph")
       .def("scc_hashes", &phasic::SCCGraph::scc_hashes,
            "Compute content hashes for all SCCs")
+      .def("compose",
+           [](const phasic::SCCGraph& self,
+              phasic::Graph& parent,
+              std::vector<double> theta) {
+               // WP-5: compose per-SCC PRCs into a parent-level
+               // expected_waiting_time vector.
+               double *result = ptd_compose_scc_prcs(
+                       parent.c_graph(),
+                       self.c_ptr(),
+                       theta.data(),
+                       theta.size());
+               if (result == NULL) {
+                   std::string err((const char *)ptd_err);
+                   ptd_err[0] = '\0';
+                   throw std::runtime_error(
+                       std::string("compose failed: ") + err);
+               }
+               size_t n = parent.c_graph()->vertices_length;
+               std::vector<double> py_result(result, result + n);
+               free(result);
+               return py_result;
+           },
+           py::arg("parent"), py::arg("theta"),
+           "WP-5: compose per-SCC PRCs to compute parent-level "
+           "expected_waiting_time. Returns a list of doubles, one "
+           "per parent vertex.")
       .def("__len__", &phasic::SCCGraph::n_sccs)
       .def("__getitem__", &phasic::SCCGraph::scc_at,
            py::return_value_policy::reference_internal)
