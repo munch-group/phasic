@@ -23,6 +23,18 @@ import numpy as np
 from pathlib import Path
 
 from .trace_elimination import EliminationTrace, Operation, OpType
+
+
+def _trace_cache_dir() -> Path:
+    """Return the trace cache directory.
+
+    Honours ``PHASIC_CACHE_DIR`` env var (SLURM-WP-1) so workers
+    and orchestrator share a single location on cluster
+    filesystems. Falls back to ``$HOME/.phasic_cache/traces``.
+    """
+    override = os.environ.get("PHASIC_CACHE_DIR")
+    root = Path(override) if override else Path.home() / ".phasic_cache"
+    return root / "traces"
 from .logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -228,8 +240,7 @@ def load_trace_from_cache(hash_hex: str) -> EliminationTrace | None:
             logger.debug(f"C cache load failed, trying pickle: {e}")
 
     # Try pickle cache as fallback
-    home = Path.home()
-    cache_dir = home / ".phasic_cache" / "traces"
+    cache_dir = _trace_cache_dir()
     cache_file = cache_dir / f"{hash_hex}.pkl"
 
     if cache_file.exists():
@@ -289,8 +300,7 @@ def save_trace_to_cache(hash_hex: str, trace: EliminationTrace) -> bool:
         return False
 
     # Get cache directory
-    home = Path.home()
-    cache_dir = home / ".phasic_cache" / "traces"
+    cache_dir = _trace_cache_dir()
 
     try:
         cache_dir.mkdir(parents=True, exist_ok=True)
@@ -332,8 +342,7 @@ def clear_cache() -> int:
     int
         Number of cache files deleted
     """
-    home = Path.home()
-    cache_dir = home / ".phasic_cache" / "traces"
+    cache_dir = _trace_cache_dir()
 
     if not cache_dir.exists():
         return 0
@@ -379,8 +388,7 @@ def get_cache_info() -> dict[str, object]:
         'c_bindings_available': _HAS_C_BINDINGS
     }
 
-    home = Path.home()
-    cache_dir = home / ".phasic_cache" / "traces"
+    cache_dir = _trace_cache_dir()
 
     if not cache_dir.exists():
         return info

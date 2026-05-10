@@ -35,26 +35,23 @@
 #include "../phasic_log.h"
 
 int get_cache_dir(char *buffer, size_t buffer_size) {
-    const char *home = getenv("HOME");
-    if (home == NULL) {
-        PTD_LOG_WARNING("Cache unavailable: HOME environment variable not set");
-        sprintf((char*)ptd_err, "HOME environment variable not set");
+    /* SLURM-WP-1: route through ptd_cache_root_dir so
+     * PHASIC_CACHE_DIR override is honoured here too. */
+    char parent_dir[PATH_MAX];
+    if (ptd_cache_root_dir(parent_dir, sizeof(parent_dir)) != 0) {
+        PTD_LOG_WARNING("Cache unavailable: %s", ptd_err);
         return -1;
     }
 
-    // Build path: ~/.phasic_cache/traces
-    int ret = snprintf(buffer, buffer_size, "%s/.phasic_cache/traces", home);
+    // Build path: <root>/traces
+    int ret = snprintf(buffer, buffer_size, "%s/traces", parent_dir);
     if (ret < 0 || (size_t)ret >= buffer_size) {
         PTD_LOG_ERROR("Cache directory path too long");
         sprintf((char*)ptd_err, "Cache directory path too long");
         return -1;
     }
 
-    // Create directory if it doesn't exist (mkdir -p)
-    char parent_dir[PATH_MAX];
-    snprintf(parent_dir, sizeof(parent_dir), "%s/.phasic_cache", home);
-
-    // Create parent directory
+    // Create parent (root) directory
     struct stat st = {0};
     if (stat(parent_dir, &st) == -1) {
         if (mkdir(parent_dir, 0755) == -1) {

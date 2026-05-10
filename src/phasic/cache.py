@@ -53,10 +53,25 @@ __all__ = [
 ]
 
 
+def _cache_root() -> Path:
+    """Return the cache root directory.
+
+    Honours ``PHASIC_CACHE_DIR``: if set, used verbatim. Otherwise
+    falls back to ``$HOME/.phasic_cache``. This mirrors the C-side
+    ``ptd_cache_root_dir`` helper so Python tools (cache_info,
+    clear_cache) operate on the same directory the C cache reads
+    and writes.
+    """
+    override = os.environ.get("PHASIC_CACHE_DIR")
+    if override:
+        return Path(override)
+    return Path.home() / ".phasic_cache"
+
+
 def _param_compute_cache_dir() -> Path:
     """Return the path to the parameterised compute graph cache
     directory. Does not create it."""
-    return Path.home() / ".phasic_cache" / "parameterized_reward_compute"
+    return _cache_root() / "parameterized_reward_compute"
 
 
 def clear_param_compute_cache() -> int:

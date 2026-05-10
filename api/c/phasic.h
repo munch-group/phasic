@@ -473,6 +473,32 @@ void ptd_parameterized_reward_compute_graph_destroy(
 );
 
 /**
+ * Resolve the on-disk cache root directory.
+ *
+ * Honours the ``PHASIC_CACHE_DIR`` environment variable: if set,
+ * its value is used verbatim as the cache root. Otherwise the
+ * default ``$HOME/.phasic_cache`` is used.
+ *
+ * The resolved path is written into ``buf``. The directory is
+ * NOT created — callers that need to write into it should ensure
+ * the directory exists themselves.
+ *
+ * On SLURM-style clusters, set ``PHASIC_CACHE_DIR`` to a path on
+ * a shared filesystem (e.g. ``$WORK/.phasic_cache``) so workers
+ * and the orchestrator share cache entries. The shared filesystem
+ * must support POSIX ``rename(2)`` semantics for the atomic
+ * write-then-rename used by ``ptd_save_parameterized_reward_compute_graph``
+ * to be reliable. NFSv3+, Lustre, and ext4 are fine; some GPFS
+ * configurations are not.
+ *
+ * @param buf Output buffer (should be at least ``PATH_MAX`` bytes).
+ * @param buf_len Length of ``buf``.
+ * @return 0 on success, -1 on error (sets ``ptd_err`` —
+ *         typically because the resolved path is too long).
+ */
+int ptd_cache_root_dir(char *buf, size_t buf_len);
+
+/**
  * Serialise a parameterised reward compute graph to disk.
  *
  * Walks the commands, encodes each pointer (fromT, toT, multiplierptr)

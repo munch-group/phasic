@@ -74,18 +74,9 @@ static int ptd_scc_cache_disabled(void) {
 static int ptd_scc_build_cache_path(
         const struct ptd_graph *synth, char *buf, size_t buf_len)
 {
-    const char *home = getenv("HOME");
-    if (home == NULL) {
-        snprintf(ptd_err, sizeof_ptd_err,
-                 "ptd_scc: HOME not set");
-        return -1;
-    }
     char parent[PATH_MAX];
-    int n = snprintf(parent, sizeof(parent), "%s/.phasic_cache", home);
-    if (n < 0 || (size_t)n >= sizeof(parent)) {
-        snprintf(ptd_err, sizeof_ptd_err,
-                 "ptd_scc: cache parent path too long");
-        return -1;
+    if (ptd_cache_root_dir(parent, sizeof(parent)) != 0) {
+        return -1;  /* ptd_err set by helper */
     }
     struct stat st;
     if (stat(parent, &st) != 0) {
@@ -96,8 +87,8 @@ static int ptd_scc_build_cache_path(
         }
     }
     char dir[PATH_MAX];
-    n = snprintf(dir, sizeof(dir),
-                 "%s/.phasic_cache/parameterized_reward_compute", home);
+    int n = snprintf(dir, sizeof(dir),
+                     "%s/parameterized_reward_compute", parent);
     if (n < 0 || (size_t)n >= sizeof(dir)) {
         snprintf(ptd_err, sizeof_ptd_err,
                  "ptd_scc: cache dir path too long");

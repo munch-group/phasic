@@ -389,22 +389,16 @@ static int stack_empty(struct ptd_stack *stack) {
  * @return 0 on success, -1 on error
  */
 static int get_cache_dir(char *buffer, size_t buffer_size) {
-    const char *home = getenv("HOME");
-    if (home == NULL) {
-        sprintf((char*)ptd_err, "HOME environment variable not set");
-        return -1;
+    char parent_dir[PATH_MAX];
+    if (ptd_cache_root_dir(parent_dir, sizeof(parent_dir)) != 0) {
+        return -1;  /* ptd_err set by helper */
     }
-
-    // Build path: ~/.phasic_cache/traces
-    int ret = snprintf(buffer, buffer_size, "%s/.phasic_cache/traces", home);
+    // Build path: <root>/traces
+    int ret = snprintf(buffer, buffer_size, "%s/traces", parent_dir);
     if (ret < 0 || (size_t)ret >= buffer_size) {
         sprintf((char*)ptd_err, "Cache directory path too long");
         return -1;
     }
-
-    // Create directory if it doesn't exist (mkdir -p)
-    char parent_dir[PATH_MAX];
-    snprintf(parent_dir, sizeof(parent_dir), "%s/.phasic_cache", home);
 
     // Create parent directory
     struct stat st = {0};
@@ -3245,31 +3239,59 @@ static int ptd_pcg_cache_disabled(void) {
 //
 // Returns 0 on success, -1 on error (sets ptd_err). The bin file
 // itself is NOT created.
-static int ptd_pcg_build_cache_path(
-        const struct ptd_graph *graph, char *buf, size_t buf_len)
+/* SLURM-WP-1: resolve the cache root directory.
+ *
+ * Honours PHASIC_CACHE_DIR env var; falls back to $HOME/.phasic_cache.
+ * Public-API helper declared in api/c/phasic.h. */
+int ptd_cache_root_dir(char *buf, size_t buf_len)
 {
+    const char *override = getenv("PHASIC_CACHE_DIR");
+    if (override != NULL && override[0] != '\0') {
+        int n = snprintf(buf, buf_len, "%s", override);
+        if (n < 0 || (size_t)n >= buf_len) {
+            snprintf((char *)ptd_err, sizeof(ptd_err),
+                     "ptd_cache_root_dir: PHASIC_CACHE_DIR path too long");
+            return -1;
+        }
+        return 0;
+    }
     const char *home = getenv("HOME");
     if (home == NULL) {
         snprintf((char *)ptd_err, sizeof(ptd_err),
-                 "ptd_pcg: HOME not set");
+                 "ptd_cache_root_dir: HOME not set and "
+                 "PHASIC_CACHE_DIR not set");
         return -1;
+    }
+    int n = snprintf(buf, buf_len, "%s/.phasic_cache", home);
+    if (n < 0 || (size_t)n >= buf_len) {
+        snprintf((char *)ptd_err, sizeof(ptd_err),
+                 "ptd_cache_root_dir: $HOME/.phasic_cache too long");
+        return -1;
+    }
+    return 0;
+}
+
+static int ptd_pcg_build_cache_path(
+        const struct ptd_graph *graph, char *buf, size_t buf_len)
+{
+    char root[PATH_MAX];
+    if (ptd_cache_root_dir(root, sizeof(root)) != 0) {
+        return -1;  /* ptd_err set by helper */
     }
     char dir[PATH_MAX];
     int n = snprintf(dir, sizeof(dir),
-                     "%s/.phasic_cache/parameterized_reward_compute", home);
+                     "%s/parameterized_reward_compute", root);
     if (n < 0 || (size_t)n >= sizeof(dir)) {
         snprintf((char *)ptd_err, sizeof(ptd_err),
                  "ptd_pcg: cache dir path too long");
         return -1;
     }
     // Best-effort mkdir of each parent. Ignore EEXIST.
-    char parent[PATH_MAX];
-    snprintf(parent, sizeof(parent), "%s/.phasic_cache", home);
     struct stat st;
-    if (stat(parent, &st) != 0) {
-        if (mkdir(parent, 0755) != 0 && errno != EEXIST) {
+    if (stat(root, &st) != 0) {
+        if (mkdir(root, 0755) != 0 && errno != EEXIST) {
             snprintf((char *)ptd_err, sizeof(ptd_err),
-                     "ptd_pcg: cannot create %s: %s", parent, strerror(errno));
+                     "ptd_pcg: cannot create %s: %s", root, strerror(errno));
             return -1;
         }
     }
