@@ -261,4 +261,32 @@ std::vector<size_t> SCCVertex::outgoing_scc_edges() const {
     return targets;
 }
 
+Graph SCCVertex::as_synthetic_graph(
+        struct ptd_scc_synthetic_metadata **metadata_out) const {
+    if (metadata_out == nullptr) {
+        throw std::invalid_argument(
+            "SCCVertex::as_synthetic_graph: metadata_out must not be null");
+    }
+    *metadata_out = nullptr;
+
+    struct ptd_graph *synth = ptd_scc_build_synthetic_graph(
+        parent_scc_graph_->c_ptr(),
+        scc_vertex_->index,
+        metadata_out);
+
+    if (synth == nullptr) {
+        std::string err_msg(reinterpret_cast<const char*>(ptd_err));
+        ptd_err[0] = '\0';
+        if (err_msg.empty()) {
+            err_msg = "ptd_scc_build_synthetic_graph returned NULL "
+                      "with no error message";
+        }
+        throw std::runtime_error(err_msg);
+    }
+
+    /* Wrap synth in an owning Graph (the wrapper destroys it on
+     * destruction). */
+    return Graph(synth);
+}
+
 } // namespace phasic

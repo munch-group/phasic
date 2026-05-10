@@ -977,6 +977,128 @@ struct ptd_scc_vertex **ptd_scc_graph_topological_sort(struct ptd_scc_graph *gra
 
 void ptd_scc_graph_destroy(struct ptd_scc_graph *scc_graph);
 
+/**
+ * Reference to a parent-graph edge that crosses the boundary of an SCC.
+ *
+ * Used by ptd_scc_synthetic_metadata to record where the parent's
+ * external edges live so the composer (WP-5) can wire them to the
+ * synthetic graph's placeholder edges.
+ */
+struct ptd_scc_external_edge_ref {
+    size_t parent_vertex_idx;  /* original-graph vertex index */
+    size_t parent_edge_idx;    /* index into that vertex's edges[] */
+};
+
+/**
+ * Vertex categorisation and parent-mapping for a synthetic SCC graph.
+ *
+ * The synthetic graph contains, in canonical 5-part order:
+ *   index 0:                            synthetic source vertex
+ *   indices [1, 1+n_upstream_connecting):
+ *                                       upstream-connecting vertices
+ *   indices [1+n_upstream_connecting,
+ *            1+n_upstream_connecting+n_internal_only):
+ *                                       pure-internal vertices
+ *   indices [1+n_upstream_connecting+n_internal_only,
+ *            n_vertices-1):             downstream-connecting vertices
+ *   index n_vertices-1:                 synthetic absorbing vertex
+ *
+ * `parent_indices[k]` is the original-graph vertex index of the
+ * synthetic-graph vertex at synthetic-graph index k. For the
+ * synthetic source (index 0) and synthetic absorbing
+ * (index n_vertices-1), `parent_indices[k]` is SIZE_MAX (they
+ * have no original-graph counterpart).
+ */
+struct ptd_scc_synthetic_metadata {
+    /* The source SCC's index in the parent's SCC decomposition. */
+    size_t scc_index;
+
+    /* Total number of vertices in the synthetic graph. Equals
+     * n_upstream_connecting + n_internal_only +
+     * n_downstream_connecting + 2. */
+    size_t n_vertices;
+
+    /* Per-category counts. */
+    size_t n_upstream_connecting;
+    size_t n_internal_only;
+    size_t n_downstream_connecting;
+
+    /* Mapping from synthetic-graph vertex index to parent-graph
+     * vertex index. Length == n_vertices. SIZE_MAX for the
+     * synthetic source (index 0) and synthetic absorbing
+     * (index n_vertices - 1). */
+    size_t *parent_indices;
+
+    /* Per-synthetic-vertex external edge references.
+     *
+     * Both arrays are indexed by synthetic-graph vertex index
+     * (length n_vertices). For the synthetic source (index 0),
+     * synthetic absorbing (index n_vertices - 1), and pure
+     * internal-only vertices, the corresponding entry is empty
+     * (length 0).
+     *
+     * external_in_edges[v_synth] lists every parent-graph edge
+     * whose target is the parent-vertex corresponding to
+     * v_synth and whose source is OUTSIDE the SCC. Non-empty
+     * exactly for upstream-connecting vertices.
+     *
+     * external_out_edges[v_synth] lists every parent-graph edge
+     * whose source is the parent-vertex corresponding to v_synth
+     * and whose target is OUTSIDE the SCC. Non-empty exactly for
+     * downstream-connecting vertices.
+     *
+     * Per-synthetic-vertex indexing handles dual-category
+     * vertices correctly: a vertex that is both upstream- AND
+     * downstream-connecting has non-empty entries in both arrays.
+     */
+    struct ptd_scc_external_edge_ref **external_in_edges;
+    size_t *external_in_edges_lengths;  /* length: n_vertices */
+    struct ptd_scc_external_edge_ref **external_out_edges;
+    size_t *external_out_edges_lengths;  /* length: n_vertices */
+};
+
+/**
+ * Build a self-contained synthetic graph for one SCC of a parent.
+ *
+ * The synthetic graph contains all of the SCC's internal vertices
+ * (with their state vectors and internal edges copied verbatim,
+ * including aux-style coefficients_length==0 edges) plus a
+ * synthetic source vertex (index 0) and a synthetic absorbing
+ * vertex (last index). Synthetic source and absorbing edges are
+ * placeholder, with a single coefficient value 1.0 — they encode
+ * structure only, not parent-specific external coefficients. This
+ * keeps the synthetic graph's content hash invariant across
+ * parents that share the SCC structurally.
+ *
+ * Vertex ordering is canonical: see struct
+ * ptd_scc_synthetic_metadata for the layout. Within each
+ * category, vertices are ordered by lexicographic state vector,
+ * with out-edge-signature tiebreak for duplicate states.
+ *
+ * The returned graph can be passed to
+ * ptd_graph_ex_absorbation_time_comp_graph_parameterized without
+ * modification.
+ *
+ * @param scc_graph     SCC decomposition of the parent graph.
+ * @param scc_index     Index of the SCC to wrap. Must be < scc_graph->vertices_length.
+ * @param metadata_out  Receives a newly allocated metadata struct.
+ *                      Caller owns; destroy via
+ *                      ptd_scc_synthetic_metadata_destroy. NULL on error.
+ * @return Newly allocated synthetic graph (caller owns; destroy
+ *         via ptd_graph_destroy), or NULL on error (sets ptd_err).
+ */
+struct ptd_graph *ptd_scc_build_synthetic_graph(
+        const struct ptd_scc_graph *scc_graph,
+        size_t scc_index,
+        struct ptd_scc_synthetic_metadata **metadata_out);
+
+/**
+ * Free a metadata struct produced by ptd_scc_build_synthetic_graph.
+ * Safe to call with NULL.
+ */
+void ptd_scc_synthetic_metadata_destroy(
+        struct ptd_scc_synthetic_metadata *metadata);
+
 struct ptd_phase_type_distribution {
     size_t length;
     double *initial_probability_vector;

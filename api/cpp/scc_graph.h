@@ -171,6 +171,30 @@ public:
     std::vector<size_t> outgoing_scc_edges() const;
 
     /**
+     * @brief Build a synthetic-wrapped graph for this SCC.
+     *
+     * Unlike as_graph(), the result includes a synthetic source
+     * vertex (index 0) and a synthetic absorbing vertex (last
+     * index) with placeholder edges, in the canonical 5-part
+     * vertex ordering. The resulting graph can be passed directly
+     * to ptd_graph_ex_absorbation_time_comp_graph_parameterized.
+     *
+     * Internal edges (including aux-style edges with
+     * coefficients_length == 0) are copied verbatim. Synthetic
+     * source/absorbing edges use a single placeholder coefficient
+     * of value 1.0; the parent's external coefficient values live
+     * in the metadata's upstream_in_edges and downstream_out_edges
+     * fields, to be wired by the composer (WP-5).
+     *
+     * @param metadata_out Receives the C-level metadata struct.
+     *                     Caller owns; destroy via
+     *                     ptd_scc_synthetic_metadata_destroy.
+     * @return Newly owned synthetic graph.
+     */
+    Graph as_synthetic_graph(
+        struct ptd_scc_synthetic_metadata **metadata_out) const;
+
+    /**
      * @brief Access underlying C struct
      */
     struct ptd_scc_vertex* c_ptr() { return scc_vertex_; }

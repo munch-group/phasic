@@ -3059,6 +3059,89 @@ str
     ;
 
   // =========================================================================
+  // SCC synthetic-graph metadata wrapper (owns a
+  // ptd_scc_synthetic_metadata*; freed on Python destruction).
+  // =========================================================================
+  struct SccSyntheticMetadataPy {
+      struct ptd_scc_synthetic_metadata *meta;
+      SccSyntheticMetadataPy() : meta(nullptr) {}
+      ~SccSyntheticMetadataPy() {
+          if (meta) ptd_scc_synthetic_metadata_destroy(meta);
+      }
+      SccSyntheticMetadataPy(const SccSyntheticMetadataPy&) = delete;
+      SccSyntheticMetadataPy& operator=(const SccSyntheticMetadataPy&) = delete;
+  };
+  py::class_<SccSyntheticMetadataPy>(m, "SCCSyntheticMetadata",
+      "Vertex categorisation and parent-mapping metadata for a "
+      "synthetic SCC graph produced by SCCVertex.as_synthetic_graph().")
+      .def_property_readonly("scc_index", [](const SccSyntheticMetadataPy& m) {
+          return m.meta->scc_index;
+      }, "Index of the source SCC in the parent decomposition.")
+      .def_property_readonly("n_vertices", [](const SccSyntheticMetadataPy& m) {
+          return m.meta->n_vertices;
+      }, "Total number of vertices in the synthetic graph.")
+      .def_property_readonly("n_upstream_connecting", [](const SccSyntheticMetadataPy& m) {
+          return m.meta->n_upstream_connecting;
+      })
+      .def_property_readonly("n_internal_only", [](const SccSyntheticMetadataPy& m) {
+          return m.meta->n_internal_only;
+      })
+      .def_property_readonly("n_downstream_connecting", [](const SccSyntheticMetadataPy& m) {
+          return m.meta->n_downstream_connecting;
+      })
+      .def_property_readonly("parent_indices", [](const SccSyntheticMetadataPy& m) {
+          // Returns list of int (SIZE_MAX represented as -1 for
+          // synthetic source/absorbing).
+          py::list result;
+          for (size_t i = 0; i < m.meta->n_vertices; ++i) {
+              size_t pi = m.meta->parent_indices[i];
+              if (pi == SIZE_MAX) {
+                  result.append(py::int_(-1));
+              } else {
+                  result.append(py::int_(pi));
+              }
+          }
+          return result;
+      }, "List mapping synthetic-graph index to parent-graph index "
+         "(-1 for synthetic source and absorbing).")
+      .def_property_readonly("external_in_edges", [](const SccSyntheticMetadataPy& m) {
+          // Returns list[list[tuple[int, int]]] of length n_vertices.
+          // For synthetic-graph vertex v_synth, the entry is the
+          // list of (parent_vertex_idx, parent_edge_idx) for parent
+          // edges that flow INTO the corresponding parent vertex
+          // from outside the SCC. Empty for source, absorbing,
+          // and pure-internal-only vertices.
+          py::list result;
+          for (size_t v = 0; v < m.meta->n_vertices; ++v) {
+              py::list inner;
+              size_t n = m.meta->external_in_edges_lengths[v];
+              for (size_t i = 0; i < n; ++i) {
+                  inner.append(py::make_tuple(
+                      m.meta->external_in_edges[v][i].parent_vertex_idx,
+                      m.meta->external_in_edges[v][i].parent_edge_idx));
+              }
+              result.append(inner);
+          }
+          return result;
+      })
+      .def_property_readonly("external_out_edges", [](const SccSyntheticMetadataPy& m) {
+          // Symmetric: per synthetic-graph vertex, list of parent
+          // edges that flow OUT to outside the SCC.
+          py::list result;
+          for (size_t v = 0; v < m.meta->n_vertices; ++v) {
+              py::list inner;
+              size_t n = m.meta->external_out_edges_lengths[v];
+              for (size_t i = 0; i < n; ++i) {
+                  inner.append(py::make_tuple(
+                      m.meta->external_out_edges[v][i].parent_vertex_idx,
+                      m.meta->external_out_edges[v][i].parent_edge_idx));
+              }
+              result.append(inner);
+          }
+          return result;
+      });
+
+  // =========================================================================
   // SCCVertex bindings
   // =========================================================================
   py::class_<phasic::SCCVertex>(m, "SCCVertex",
@@ -3069,6 +3152,18 @@ str
            "Index of this SCC in parent graph")
       .def("as_graph", &phasic::SCCVertex::as_graph,
            "Extract this SCC as a standalone Graph object")
+      .def("as_synthetic_graph", [](const phasic::SCCVertex& self) {
+          auto meta_holder = std::make_unique<SccSyntheticMetadataPy>();
+          phasic::Graph synth = self.as_synthetic_graph(&meta_holder->meta);
+          return py::make_tuple(std::move(synth), std::move(meta_holder));
+      },
+      "Build a synthetic-wrapped graph for this SCC.\n\n"
+      "Returns a (Graph, SCCSyntheticMetadata) tuple. The graph has\n"
+      "a synthetic source vertex at index 0 and a synthetic absorbing\n"
+      "vertex at the last index, with placeholder edges to/from the\n"
+      "SCC's upstream/downstream-connecting vertices. The metadata\n"
+      "carries vertex categorisation and parent-edge references for\n"
+      "later composition.")
       .def("internal_vertex_indices", &phasic::SCCVertex::internal_vertex_indices,
            "Get indices of internal vertices in original graph")
       .def("hash", &phasic::SCCVertex::hash,
