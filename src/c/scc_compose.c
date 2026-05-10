@@ -38,11 +38,136 @@ SCC_COMPOSE_TLS int ptd_scc_compose_in_progress = 0;
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 
 #include "../../api/c/phasic.h"
 
 #define sizeof_ptd_err 4096
+
+/* Per-SCC processor: build synth + PRC, override per-channel
+ * edge weights, run elimination, copy results into parent_result.
+ *
+ * Returns 0 on success, -1 on failure. Sets err_msg (caller-
+ * provided buffer) on failure. parent_result is mutated; the
+ * indices it writes are disjoint from those written by other
+ * SCCs at the same level (so OpenMP-safe).
+ *
+ * Returns separate from setting ptd_err so the caller (parallel
+ * loop) can route errors to a single thread without conflicting
+ * thread-local storage. */
+static int ptd_compose_scc_one(
+        struct ptd_graph *parent,
+        const struct ptd_scc_graph *scc_graph,
+        size_t i,
+        const double *theta,
+        size_t theta_len,
+        double *parent_result,
+        char *err_msg,
+        size_t err_msg_size)
+{
+    struct ptd_graph *synth = NULL;
+    struct ptd_scc_synthetic_metadata *meta = NULL;
+    struct ptd_desc_reward_compute_parameterized *prc =
+            ptd_scc_get_or_compute_prc(scc_graph, i, &synth, &meta);
+    if (prc == NULL || synth == NULL || meta == NULL) {
+        snprintf(err_msg, err_msg_size,
+                 "ptd_compose_scc_one: per-SCC compute failed for SCC %zu", i);
+        if (synth) ptd_graph_destroy(synth);
+        if (meta) ptd_scc_synthetic_metadata_destroy(meta);
+        if (prc) ptd_parameterized_reward_compute_graph_destroy(prc);
+        return -1;
+    }
+
+    /* Step 1: update synth's edge weights from theta. */
+    {
+        double *theta_copy = (double *)malloc(theta_len * sizeof(double));
+        if (theta_copy == NULL) {
+            snprintf(err_msg, err_msg_size,
+                     "ptd_compose_scc_one: oom for theta_copy (SCC %zu)", i);
+            ptd_graph_destroy(synth);
+            ptd_scc_synthetic_metadata_destroy(meta);
+            ptd_parameterized_reward_compute_graph_destroy(prc);
+            return -1;
+        }
+        memcpy(theta_copy, theta, theta_len * sizeof(double));
+        ptd_graph_update_weights(synth, theta_copy, theta_len, false);
+        free(theta_copy);
+    }
+
+    /* Step 2: override per-channel Type C and phantom edge weights. */
+    for (size_t k = 0; k < meta->n_channels; ++k) {
+        const struct ptd_scc_channel_info *ch = &meta->channels[k];
+
+        struct ptd_vertex *parent_dj = parent->vertices[ch->parent_vertex_idx];
+        if (ch->parent_edge_idx >= parent_dj->edges_length) {
+            snprintf(err_msg, err_msg_size,
+                     "ptd_compose_scc_one: parent edge idx %zu out of range "
+                     "for vertex %zu (SCC %zu)",
+                     ch->parent_edge_idx, ch->parent_vertex_idx, i);
+            ptd_graph_destroy(synth);
+            ptd_scc_synthetic_metadata_destroy(meta);
+            ptd_parameterized_reward_compute_graph_destroy(prc);
+            return -1;
+        }
+        double parent_external_weight = parent_dj->edges[ch->parent_edge_idx]->weight;
+        size_t parent_target_idx = parent_dj->edges[ch->parent_edge_idx]->to->index;
+
+        struct ptd_vertex *synth_dj = synth->vertices[ch->d_j_synth_idx];
+        ptd_edge_update_weight(synth_dj->edges[ch->type_c_edge_idx],
+                               parent_external_weight);
+
+        struct ptd_vertex *synth_sabs = synth->vertices[ch->s_abs_synth_idx];
+        double phantom_weight;
+        if (parent_result[parent_target_idx] > 0.0) {
+            phantom_weight = 1.0 / parent_result[parent_target_idx];
+        } else if (parent_result[parent_target_idx] < 0.0) {
+            snprintf(err_msg, err_msg_size,
+                     "ptd_compose_scc_one: negative parent_result[%zu]=%g (SCC %zu)",
+                     parent_target_idx, parent_result[parent_target_idx], i);
+            ptd_graph_destroy(synth);
+            ptd_scc_synthetic_metadata_destroy(meta);
+            ptd_parameterized_reward_compute_graph_destroy(prc);
+            return -1;
+        } else {
+            phantom_weight = 1e300;
+        }
+        ptd_edge_update_weight(synth_sabs->edges[ch->phantom_edge_idx],
+                               phantom_weight);
+    }
+
+    /* Step 3: run elimination. */
+    if (synth->reward_compute_graph != NULL) {
+        free(synth->reward_compute_graph->commands);
+        free(synth->reward_compute_graph);
+        synth->reward_compute_graph = NULL;
+    }
+    if (synth->parameterized_reward_compute_graph != NULL) {
+        ptd_parameterized_reward_compute_graph_destroy(
+                synth->parameterized_reward_compute_graph);
+    }
+    synth->parameterized_reward_compute_graph = prc;
+    prc = NULL;  /* transferred to synth */
+
+    double *synth_result = ptd_expected_waiting_time(synth, NULL);
+    if (synth_result == NULL) {
+        snprintf(err_msg, err_msg_size,
+                 "ptd_compose_scc_one: per-SCC elimination failed for SCC %zu", i);
+        ptd_graph_destroy(synth);
+        ptd_scc_synthetic_metadata_destroy(meta);
+        return -1;
+    }
+
+    /* Step 4: copy results to parent_result. */
+    for (size_t v_synth = 0; v_synth < meta->n_vertices; ++v_synth) {
+        size_t parent_idx = meta->parent_indices[v_synth];
+        if (parent_idx == SIZE_MAX) continue;
+        parent_result[parent_idx] = synth_result[v_synth];
+    }
+
+    free(synth_result);
+    ptd_graph_destroy(synth);
+    ptd_scc_synthetic_metadata_destroy(meta);
+    return 0;
+}
 
 double *ptd_compose_scc_prcs(
         struct ptd_graph *parent,
@@ -161,189 +286,138 @@ double *ptd_compose_scc_prcs(
         ptd_scc_compose_in_progress--;
         return NULL;
     }
-    /* Iterate in reverse-topological (sink-first) order: process
-     * topo_order[n_sccs-1], topo_order[n_sccs-2], ..., topo_order[0]. */
 
+    /* WP-6: compute level numbers (longest path to a sink) for
+     * each SCC. SCCs at the same level are independent — they
+     * have no inter-SCC edges between them in the condensation —
+     * and can be processed in parallel.
+     *
+     * level[k] = 0 if SCC k has no outgoing edges (it's a sink),
+     *          = 1 + max(level[target]) over outgoing edges.
+     *
+     * We compute by walking topo_order in REVERSE (sinks first)
+     * so that level[target] is already known when we reach k. */
+    size_t *level_of = (size_t *)calloc(n_sccs, sizeof(size_t));
+    if (level_of == NULL) {
+        free(topo_order);
+        free(parent_result);
+        snprintf(ptd_err, sizeof_ptd_err,
+                 "ptd_compose_scc_prcs: oom for level array");
+        ptd_scc_compose_in_progress--;
+        return NULL;
+    }
+    size_t max_level = 0;
     for (size_t ii = 0; ii < n_sccs; ++ii) {
-        size_t i = topo_order[n_sccs - 1 - ii];
-        /* Build synthetic graph + metadata + PRC for this SCC.
-         * Uses the disk cache via ptd_scc_get_or_compute_prc. */
-        struct ptd_graph *synth = NULL;
-        struct ptd_scc_synthetic_metadata *meta = NULL;
-        struct ptd_desc_reward_compute_parameterized *prc =
-                ptd_scc_get_or_compute_prc(scc_graph, i, &synth, &meta);
-
-        if (prc == NULL || synth == NULL || meta == NULL) {
-            free(topo_order);
-free(parent_result);
-            if (ptd_err[0] == '\0') {
-                snprintf(ptd_err, sizeof_ptd_err,
-                         "ptd_compose_scc_prcs: per-SCC compute failed for SCC %zu", i);
-            }
-            ptd_scc_compose_in_progress--;
-            return NULL;
-        }
-
-        /* Step 1: update synth's edge weights from theta. This
-         * sets internal edges via coefficients, and Type A / Type C /
-         * phantom edges via their placeholder coefficients. We
-         * override Type C and phantom below.
-         *
-         * synth was just freshly built (or just loaded from cache);
-         * either way, calling update_weights now is safe and
-         * triggers any re-derivation we need. */
-        {
-            double *theta_copy = (double *)malloc(theta_len * sizeof(double));
-            if (theta_copy == NULL) {
-                ptd_graph_destroy(synth);
-                ptd_scc_synthetic_metadata_destroy(meta);
-                ptd_parameterized_reward_compute_graph_destroy(prc);
-                free(topo_order);
-free(parent_result);
-                snprintf(ptd_err, sizeof_ptd_err,
-                         "ptd_compose_scc_prcs: oom for synth theta_copy");
-                ptd_scc_compose_in_progress--;
-                return NULL;
-            }
-            memcpy(theta_copy, theta, theta_len * sizeof(double));
-            ptd_graph_update_weights(synth, theta_copy, theta_len, false);
-            free(theta_copy);
-            if (ptd_err[0] != '\0') {
-                ptd_graph_destroy(synth);
-                ptd_scc_synthetic_metadata_destroy(meta);
-                ptd_parameterized_reward_compute_graph_destroy(prc);
-                free(topo_order);
-free(parent_result);
-                ptd_scc_compose_in_progress--;
-                return NULL;
+        size_t k = topo_order[n_sccs - 1 - ii];  /* sink-first */
+        struct ptd_scc_vertex *scc = scc_graph->vertices[k];
+        size_t lvl = 0;
+        for (size_t e = 0; e < scc->edges_length; ++e) {
+            size_t t = scc->edges[e]->to->index;
+            if (level_of[t] + 1 > lvl) {
+                lvl = level_of[t] + 1;
             }
         }
-
-        /* Step 2: override per-channel Type C and phantom edge
-         * weights to inject parent values + downstream results. */
-        for (size_t k = 0; k < meta->n_channels; ++k) {
-            const struct ptd_scc_channel_info *ch = &meta->channels[k];
-
-            /* Type C edge: d_j_synth -> s_abs_for_channel.
-             * Weight = parent's external edge weight at current θ. */
-            struct ptd_vertex *parent_dj = parent->vertices[ch->parent_vertex_idx];
-            if (ch->parent_edge_idx >= parent_dj->edges_length) {
-                ptd_graph_destroy(synth);
-                ptd_scc_synthetic_metadata_destroy(meta);
-                ptd_parameterized_reward_compute_graph_destroy(prc);
-                free(topo_order);
-free(parent_result);
-                snprintf(ptd_err, sizeof_ptd_err,
-                         "ptd_compose_scc_prcs: parent edge idx %zu out of range for vertex %zu",
-                         ch->parent_edge_idx, ch->parent_vertex_idx);
-                ptd_scc_compose_in_progress--;
-                return NULL;
-            }
-            double parent_external_weight = parent_dj->edges[ch->parent_edge_idx]->weight;
-            size_t parent_target_idx = parent_dj->edges[ch->parent_edge_idx]->to->index;
-
-            struct ptd_vertex *synth_dj = synth->vertices[ch->d_j_synth_idx];
-            ptd_edge_update_weight(synth_dj->edges[ch->type_c_edge_idx],
-                                   parent_external_weight);
-
-            /* Phantom edge: s_abs_for_channel -> phantom.
-             * Weight = 1/parent_result[parent_target] so that
-             * result[s_abs_for_channel] = parent_result[parent_target]
-             * via the phase-type identity result[v] = 1/rate(v)
-             * for an absorbing-with-one-child vertex.
-             *
-             * Special case: if parent_result[parent_target] == 0
-             * (e.g. the downstream is a true absorbing vertex like
-             * Ω), the channel contributes 0 — set phantom weight
-             * to a very large value so result[s_abs] ~ 0. We use
-             * +infinity sentinel; the phase-type math handles this
-             * via the (1/inf) = 0 limit. Or more robustly, set
-             * to 1.0 and rely on result[s_abs] = 1/1 but multiply
-             * the contribution by 0 elsewhere — that's complicated.
-             * Simpler: leave phantom weight set by update_weights
-             * (= 1.0 from placeholder coefficient at current θ), but
-             * note result[downstream]=0 means the contribution to
-             * result[s_abs] is just 1.0 from the 1/rate term.
-             *
-             * Actually, the simplest fix: set phantom weight to a
-             * large value, getting result[s_abs] ≈ 0 when downstream
-             * result is 0. */
-            struct ptd_vertex *synth_sabs = synth->vertices[ch->s_abs_synth_idx];
-            double phantom_weight;
-            if (parent_result[parent_target_idx] > 0.0) {
-                phantom_weight = 1.0 / parent_result[parent_target_idx];
-            } else if (parent_result[parent_target_idx] < 0.0) {
-                /* Negative result shouldn't occur in well-formed
-                 * phase-type computations; bail. */
-                ptd_graph_destroy(synth);
-                ptd_scc_synthetic_metadata_destroy(meta);
-                ptd_parameterized_reward_compute_graph_destroy(prc);
-                free(topo_order);
-free(parent_result);
-                snprintf(ptd_err, sizeof_ptd_err,
-                         "ptd_compose_scc_prcs: negative parent_result[%zu]=%g",
-                         parent_target_idx, parent_result[parent_target_idx]);
-                ptd_scc_compose_in_progress--;
-                return NULL;
-            } else {
-                /* Downstream result is 0 (true absorbing).
-                 * Set phantom weight to a large value so
-                 * result[s_abs] = 1/large ≈ 0. */
-                phantom_weight = 1e300;
-            }
-            ptd_edge_update_weight(synth_sabs->edges[ch->phantom_edge_idx],
-                                   phantom_weight);
-        }
-
-        /* Step 3: run the elimination. We invalidate
-         * reward_compute_graph manually and re-trigger build so
-         * the replay sees our overridden weights. */
-        if (synth->reward_compute_graph != NULL) {
-            free(synth->reward_compute_graph->commands);
-            free(synth->reward_compute_graph);
-            synth->reward_compute_graph = NULL;
-        }
-        /* The PRC we got from get_or_compute is owned by us;
-         * install it on synth so ptd_expected_waiting_time can
-         * use it. (It builds reward_compute_graph from
-         * parameterized_reward_compute_graph if the latter is
-         * non-NULL.) */
-        if (synth->parameterized_reward_compute_graph != NULL) {
-            ptd_parameterized_reward_compute_graph_destroy(
-                    synth->parameterized_reward_compute_graph);
-        }
-        synth->parameterized_reward_compute_graph = prc;
-        prc = NULL;  /* ownership transferred to synth */
-
-        double *synth_result = ptd_expected_waiting_time(synth, NULL);
-        if (synth_result == NULL) {
-            ptd_graph_destroy(synth);  /* destroys prc via parameterized_reward_compute_graph */
-            ptd_scc_synthetic_metadata_destroy(meta);
-            free(topo_order);
-free(parent_result);
-            if (ptd_err[0] == '\0') {
-                snprintf(ptd_err, sizeof_ptd_err,
-                         "ptd_compose_scc_prcs: per-SCC elimination failed for SCC %zu", i);
-            }
-            ptd_scc_compose_in_progress--;
-            return NULL;
-        }
-
-        /* Step 4: copy per-internal-vertex results into
-         * parent_result. Iterate ALL synthetic indices (not just
-         * 1..n-1) because when the parent's start is in this SCC,
-         * synth index 0 maps to the parent's start vertex. */
-        for (size_t v_synth = 0; v_synth < meta->n_vertices; ++v_synth) {
-            size_t parent_idx = meta->parent_indices[v_synth];
-            if (parent_idx == SIZE_MAX) continue;
-            parent_result[parent_idx] = synth_result[v_synth];
-        }
-
-        free(synth_result);
-        ptd_graph_destroy(synth);  /* also destroys prc via parameterized_reward_compute_graph */
-        ptd_scc_synthetic_metadata_destroy(meta);
+        level_of[k] = lvl;
+        if (lvl > max_level) max_level = lvl;
     }
 
+    /* Group SCC indices by level. */
+    size_t *level_counts = (size_t *)calloc(max_level + 1, sizeof(size_t));
+    if (level_counts == NULL) {
+        free(level_of); free(topo_order); free(parent_result);
+        snprintf(ptd_err, sizeof_ptd_err,
+                 "ptd_compose_scc_prcs: oom for level counts");
+        ptd_scc_compose_in_progress--;
+        return NULL;
+    }
+    for (size_t k = 0; k < n_sccs; ++k) {
+        level_counts[level_of[k]]++;
+    }
+    size_t *level_offsets = (size_t *)malloc((max_level + 2) * sizeof(size_t));
+    size_t *level_indices = (size_t *)malloc(n_sccs * sizeof(size_t));
+    if (level_offsets == NULL || level_indices == NULL) {
+        free(level_offsets); free(level_indices);
+        free(level_counts); free(level_of); free(topo_order); free(parent_result);
+        snprintf(ptd_err, sizeof_ptd_err,
+                 "ptd_compose_scc_prcs: oom for level layout");
+        ptd_scc_compose_in_progress--;
+        return NULL;
+    }
+    level_offsets[0] = 0;
+    for (size_t l = 0; l <= max_level; ++l) {
+        level_offsets[l + 1] = level_offsets[l] + level_counts[l];
+    }
+    /* Place each SCC into its level slot. */
+    {
+        size_t *cursor = (size_t *)calloc(max_level + 1, sizeof(size_t));
+        if (cursor == NULL) {
+            free(level_offsets); free(level_indices); free(level_counts);
+            free(level_of); free(topo_order); free(parent_result);
+            snprintf(ptd_err, sizeof_ptd_err,
+                     "ptd_compose_scc_prcs: oom for cursor");
+            ptd_scc_compose_in_progress--;
+            return NULL;
+        }
+        for (size_t k = 0; k < n_sccs; ++k) {
+            size_t l = level_of[k];
+            level_indices[level_offsets[l] + cursor[l]++] = k;
+        }
+        free(cursor);
+    }
+    free(level_counts);
+
+    /* Process levels in order 0, 1, ..., max_level (sink-first).
+     * Within each level, SCCs are independent and can be
+     * processed in parallel. */
+    for (size_t l = 0; l <= max_level; ++l) {
+        size_t l_start = level_offsets[l];
+        size_t l_end = level_offsets[l + 1];
+        size_t l_size = l_end - l_start;
+
+        /* Per-thread error storage. We let parallel iterations
+         * each write into their own slot of err_msgs and aggregate
+         * after the loop. Errors stop the level early via
+         * compose_error flag. */
+        char *err_msgs = (char *)calloc(l_size * sizeof_ptd_err, 1);
+        int *iter_status = (int *)calloc(l_size, sizeof(int));
+        if (err_msgs == NULL || iter_status == NULL) {
+            free(err_msgs); free(iter_status);
+            free(level_offsets); free(level_indices); free(level_of);
+            free(topo_order); free(parent_result);
+            snprintf(ptd_err, sizeof_ptd_err,
+                     "ptd_compose_scc_prcs: oom for per-level err buffers");
+            ptd_scc_compose_in_progress--;
+            return NULL;
+        }
+
+#ifdef PHASIC_HAVE_OPENMP
+        #pragma omp parallel for schedule(dynamic) if(l_size > 1)
+#endif
+        for (size_t li = 0; li < l_size; ++li) {
+            size_t i = level_indices[l_start + li];
+            char *err_msg = err_msgs + li * sizeof_ptd_err;
+            iter_status[li] = ptd_compose_scc_one(
+                    parent, scc_graph, i, theta, theta_len,
+                    parent_result, err_msg, sizeof_ptd_err);
+        }
+
+        /* Aggregate errors. */
+        for (size_t li = 0; li < l_size; ++li) {
+            if (iter_status[li] != 0) {
+                snprintf(ptd_err, sizeof_ptd_err, "%s",
+                         err_msgs + li * sizeof_ptd_err);
+                free(err_msgs); free(iter_status);
+                free(level_offsets); free(level_indices); free(level_of);
+                free(topo_order); free(parent_result);
+                ptd_scc_compose_in_progress--;
+                return NULL;
+            }
+        }
+        free(err_msgs); free(iter_status);
+    }
+
+
+    free(level_offsets); free(level_indices); free(level_of);
     free(topo_order);
     ptd_scc_compose_in_progress--;
     return parent_result;

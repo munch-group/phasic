@@ -193,6 +193,18 @@ endif()
 
 find_package(OpenMP)
 
+# WP-6: link OpenMP into libphasic and libphasiccpp so the
+# composer (src/c/scc_compose.c) can parallelise per-SCC
+# compute via #pragma omp parallel for.
+if(OpenMP_C_FOUND)
+    target_link_libraries(libphasic PUBLIC OpenMP::OpenMP_C)
+    target_compile_definitions(libphasic PRIVATE PHASIC_HAVE_OPENMP)
+endif()
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(libphasiccpp PUBLIC OpenMP::OpenMP_CXX)
+    target_compile_definitions(libphasiccpp PRIVATE PHASIC_HAVE_OPENMP)
+endif()
+
 # Get XLA FFI include directory from environment, jaxlib, or local install
 message(STATUS "========================================")
 message(STATUS "Detecting XLA FFI headers for JAX integration...")
@@ -303,8 +315,10 @@ if(XLA_FFI_RESULT EQUAL 0)
 endif()
 
 # Add OpenMP support for multi-core parallelization in FFI handlers
+# and the WP-6 SCC composer.
 if(OpenMP_CXX_FOUND)
     target_link_libraries(phasic_pybind PUBLIC OpenMP::OpenMP_CXX)
+    target_compile_definitions(phasic_pybind PRIVATE PHASIC_HAVE_OPENMP)
     message(STATUS "OpenMP enabled for multi-core parallelization")
 else()
     message(WARNING "OpenMP not found - FFI will run sequentially")
