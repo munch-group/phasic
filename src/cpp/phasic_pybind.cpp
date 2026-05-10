@@ -1140,6 +1140,60 @@ str
       not part of the public API.
       )delim")
 
+    .def("_dump_param_compute_commands",
+      [](phasic::Graph &g) {
+          // WP-5 experiment helper: dump the symbolic command list
+          // as a list of dicts, one per command. Returns enough
+          // information to compare command streams across
+          // monolithic vs per-SCC eliminations.
+          py::list result;
+          struct ptd_desc_reward_compute_parameterized *prc =
+              g.c_graph()->parameterized_reward_compute_graph;
+          if (prc == NULL) {
+              return result;
+          }
+          for (size_t i = 0; i < prc->length; ++i) {
+              const struct ptd_comp_graph_parameterized *cmd = &prc->commands[i];
+              py::dict d;
+              d["i"] = i;
+              d["type"] = cmd->type;
+              d["from"] = cmd->from;
+              d["to"] = cmd->to;
+              d["multiplier"] = cmd->multiplier;
+              d["fromT_is_null"] = (cmd->fromT == NULL);
+              d["toT_is_null"] = (cmd->toT == NULL);
+              d["multiplierptr_is_null"] = (cmd->multiplierptr == NULL);
+              // Distinguish whether a non-null pointer points into
+              // the mem buffer or to a vertex edge weight. We can't
+              // give exact addresses across the C/Python boundary,
+              // but we can give "is it a known edge weight" by
+              // scanning the graph's edges.
+              auto classify = [&](double *p) -> std::string {
+                  if (p == NULL) return "null";
+                  for (size_t v = 0; v < g.c_graph()->vertices_length; ++v) {
+                      struct ptd_vertex *vert = g.c_graph()->vertices[v];
+                      for (size_t e = 0; e < vert->edges_length; ++e) {
+                          if (p == &vert->edges[e]->weight) {
+                              return "edge_v" + std::to_string(v)
+                                   + "_e" + std::to_string(e);
+                          }
+                      }
+                  }
+                  return "mem";
+              };
+              d["fromT_kind"] = classify(cmd->fromT);
+              d["toT_kind"] = classify(cmd->toT);
+              d["multiplierptr_kind"] = classify(cmd->multiplierptr);
+              result.append(d);
+          }
+          return result;
+      }, R"delim(
+      WP-5 experiment helper: dump the parameterised PRC's
+      command list as a list of dicts. Each dict has type, from,
+      to, multiplier, and pointer-classification info. Used to
+      compare monolithic vs per-SCC command streams.
+      )delim")
+
     .def("_save_param_compute_graph_ex",
       [](phasic::Graph &g, const std::string &path,
          std::vector<size_t> external_anchor_offsets) {
