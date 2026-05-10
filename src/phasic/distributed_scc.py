@@ -648,6 +648,165 @@ def run_workers_locally(
         return list(ex.map(_run_one, work_units))
 
 
+# ---------------------------------------------------------------
+# SLURM-WP-6: top-level distributed-aware precompute wrapper
+# ---------------------------------------------------------------
+
+
+def precompute_distributed(
+        graph,
+        work_dir: str,
+        cache_dir: str | None = None,
+        slurm_options: dict[str, Any] | None = None,
+        local_max_workers: int = 1,
+        wait_for_jobs: bool = True,
+        log_dir: str | None = None) -> dict[str, Any]:
+    """Populate the per-SCC PRC cache for a parameterised graph.
+
+    Plans level-sets, ships missing-SCC work units to either a
+    SLURM cluster (when ``slurm_options`` is provided) or local
+    subprocesses (default), and waits for completion so the
+    caller can immediately run hierarchical compose against a
+    fully-populated cache.
+
+    The function runs entirely on the orchestrator. The
+    distributed work is the cache population — composition
+    itself is fast and stays local.
+
+    Parameters
+    ----------
+    graph
+        A parameterised :class:`Graph`. The function calls
+        :meth:`Graph.scc_decomposition` on it.
+    work_dir : str
+        Directory where work-unit JSON files are written. Must
+        be on a shared filesystem if SLURM is used. Will be
+        created if missing.
+    cache_dir : str, optional
+        Directory used as ``PHASIC_CACHE_DIR`` for workers and
+        the orchestrator. If ``None``, the current process's
+        existing ``PHASIC_CACHE_DIR`` (or ``$HOME/.phasic_cache``)
+        is used. The directory will be created if missing.
+    slurm_options : dict, optional
+        When provided, work units are submitted via sbatch.
+        Recognised keys: ``time``, ``mem``, ``cpus``,
+        ``max_concurrent``, ``extra_directives``, ``python_exe``,
+        ``sbatch_exe``. Unrecognised keys are passed through to
+        :func:`generate_sbatch_script`.
+        When ``None``, workers run in local subprocesses.
+    local_max_workers : int
+        Concurrency for the local fallback. Ignored when
+        ``slurm_options`` is set. Default 1.
+    wait_for_jobs : bool
+        When ``True`` and using SLURM, the function does not
+        return until all submitted jobs finish. Implementation
+        polls ``squeue``. When ``False``, the function returns
+        immediately after submission, leaving the caller to
+        wait however they want.
+    log_dir : str, optional
+        Directory for sbatch stdout/stderr files. Defaults to
+        ``<work_dir>/logs``. Ignored for the local fallback.
+
+    Returns
+    -------
+    dict
+        ``{'levels': L, 'work_units_per_level': [N0, N1, ...],
+        'job_ids': [...], 'mode': 'slurm' or 'local'}``.
+
+    Notes
+    -----
+    The current implementation submits one sbatch array job per
+    level-set, waiting for each to complete before the next is
+    submitted. This is the simplest correct schedule and avoids
+    the orchestrator needing to know about SLURM job
+    dependencies. For very wide graphs you can chain level-sets
+    via ``--dependency=afterok:$prev_jobid`` for a small win;
+    that's a future optimisation.
+    """
+    if log_dir is None:
+        log_dir = os.path.join(work_dir, "logs")
+    os.makedirs(work_dir, exist_ok=True)
+    os.makedirs(log_dir, exist_ok=True)
+
+    if cache_dir is not None:
+        os.makedirs(cache_dir, exist_ok=True)
+        os.environ["PHASIC_CACHE_DIR"] = cache_dir
+    effective_cache = os.environ.get(
+            "PHASIC_CACHE_DIR",
+            os.path.expanduser("~/.phasic_cache"))
+
+    scc_graph = graph.scc_decomposition()
+    plan = plan_distributed_work(scc_graph, only_missing=True)
+    n_per_level = [len(lvl) for lvl in plan]
+
+    job_ids: list[str] = []
+    mode = "slurm" if slurm_options is not None else "local"
+
+    for level_idx, scc_indices in enumerate(plan):
+        if not scc_indices:
+            continue
+        level_work_dir = os.path.join(
+                work_dir, f"level_{level_idx}")
+        os.makedirs(level_work_dir, exist_ok=True)
+
+        wu_paths = write_work_units_for_level(
+                scc_graph, scc_indices, level_work_dir)
+
+        if slurm_options is not None:
+            opts = dict(slurm_options)
+            sbatch_exe = opts.pop("sbatch_exe", "sbatch")
+            script = generate_sbatch_script(
+                    work_units=wu_paths,
+                    cache_dir=effective_cache,
+                    log_dir=log_dir,
+                    job_name=f"phasic_scc_l{level_idx}",
+                    **opts)
+            script_path = os.path.join(
+                    level_work_dir, "submit.sh")
+            with open(script_path, "w") as f:
+                f.write(script)
+            os.chmod(script_path, 0o755)
+
+            job_id = submit_sbatch(script_path, sbatch_exe=sbatch_exe)
+            job_ids.append(job_id)
+
+            if wait_for_jobs:
+                _wait_for_slurm_job(job_id)
+        else:
+            rcs = run_workers_locally(
+                    wu_paths, max_workers=local_max_workers)
+            failures = [(wu, rc) for wu, rc in zip(wu_paths, rcs) if rc != 0]
+            if failures:
+                raise RuntimeError(
+                        f"Local workers failed at level {level_idx}: "
+                        f"{failures}")
+
+    return {
+        "mode": mode,
+        "levels": len(plan),
+        "work_units_per_level": n_per_level,
+        "job_ids": job_ids,
+    }
+
+
+def _wait_for_slurm_job(job_id: str, poll_seconds: float = 5.0) -> None:
+    """Poll squeue until the given job ID is no longer queued."""
+    import subprocess
+    import time
+
+    while True:
+        result = subprocess.run(
+                ["squeue", "-h", "-j", job_id],
+                capture_output=True, text=True)
+        if result.returncode != 0:
+            # squeue returns non-zero when job ID is unknown
+            # (= already finished). Treat as "done".
+            return
+        if not result.stdout.strip():
+            return
+        time.sleep(poll_seconds)
+
+
 def plan_distributed_work(
         scc_graph,
         only_missing: bool = True) -> list[list[int]]:
