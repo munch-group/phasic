@@ -315,13 +315,26 @@ if(XLA_FFI_RESULT EQUAL 0)
 endif()
 
 # Add OpenMP support for multi-core parallelization in FFI handlers
-# and the WP-6 SCC composer.
+# and the WP-6 SCC composer. We link BOTH the C and C++ OpenMP
+# imports because PYBIND_SOURCES contains a mix of .c and .cpp
+# files: src/c/scc_compose.c (the parallel SCC composer) is a
+# C file and needs the C compiler flag (-Xpreprocessor -fopenmp
+# on macOS / -fopenmp on Linux); without it the
+# `#pragma omp parallel for` is silently dropped during
+# preprocessing and the loop runs single-threaded.
+if(OpenMP_C_FOUND)
+    target_link_libraries(phasic_pybind PUBLIC OpenMP::OpenMP_C)
+endif()
 if(OpenMP_CXX_FOUND)
     target_link_libraries(phasic_pybind PUBLIC OpenMP::OpenMP_CXX)
+endif()
+if(OpenMP_C_FOUND OR OpenMP_CXX_FOUND)
     target_compile_definitions(phasic_pybind PRIVATE PHASIC_HAVE_OPENMP)
-    message(STATUS "OpenMP enabled for multi-core parallelization")
+    message(STATUS "OpenMP enabled for multi-core parallelization "
+                   "(C_FOUND=${OpenMP_C_FOUND} CXX_FOUND=${OpenMP_CXX_FOUND})")
 else()
-    message(WARNING "OpenMP not found - FFI will run sequentially")
+    message(WARNING "OpenMP not found - FFI and SCC composer "
+                    "will run sequentially")
 endif()
 
 install(TARGETS phasic_pybind DESTINATION phasic)

@@ -130,6 +130,20 @@ static int ptd_compose_scc_one(
         char *err_msg,
         size_t err_msg_size)
 {
+    /* The re-entrancy guard ptd_scc_compose_in_progress is
+     * __thread (PTD_SCC_TLS). Under the parallel-for above,
+     * each OpenMP worker thread has its OWN TLS slot
+     * initialised to 0 — so the master's bump in
+     * ptd_compose_scc_prcs_inner does not propagate. Without
+     * this local bump, the worker's inner call to
+     * ptd_expected_waiting_time on the synth graph would
+     * recurse back into the hierarchical path, multiplying
+     * cache hit/miss counters and breaking compose telemetry.
+     *
+     * Bump on entry; decrement at the single goto-out exit. */
+    ptd_scc_compose_in_progress++;
+
+    int rc = 0;
     struct ptd_graph *synth = NULL;
     struct ptd_scc_synthetic_metadata *meta = NULL;
     struct ptd_desc_reward_compute_parameterized *prc =
@@ -137,10 +151,8 @@ static int ptd_compose_scc_one(
     if (prc == NULL || synth == NULL || meta == NULL) {
         snprintf(err_msg, err_msg_size,
                  "ptd_compose_scc_one: per-SCC compute failed for SCC %zu", i);
-        if (synth) ptd_graph_destroy(synth);
-        if (meta) ptd_scc_synthetic_metadata_destroy(meta);
-        if (prc) ptd_parameterized_reward_compute_graph_destroy(prc);
-        return -1;
+        rc = -1;
+        goto out;
     }
 
     /* Step 1: update synth's edge weights from theta. */
@@ -149,10 +161,8 @@ static int ptd_compose_scc_one(
         if (theta_copy == NULL) {
             snprintf(err_msg, err_msg_size,
                      "ptd_compose_scc_one: oom for theta_copy (SCC %zu)", i);
-            ptd_graph_destroy(synth);
-            ptd_scc_synthetic_metadata_destroy(meta);
-            ptd_parameterized_reward_compute_graph_destroy(prc);
-            return -1;
+            rc = -1;
+            goto out;
         }
         memcpy(theta_copy, theta, theta_len * sizeof(double));
         ptd_graph_update_weights(synth, theta_copy, theta_len, false);
@@ -169,10 +179,8 @@ static int ptd_compose_scc_one(
                      "ptd_compose_scc_one: parent edge idx %zu out of range "
                      "for vertex %zu (SCC %zu)",
                      ch->parent_edge_idx, ch->parent_vertex_idx, i);
-            ptd_graph_destroy(synth);
-            ptd_scc_synthetic_metadata_destroy(meta);
-            ptd_parameterized_reward_compute_graph_destroy(prc);
-            return -1;
+            rc = -1;
+            goto out;
         }
         double parent_external_weight = parent_dj->edges[ch->parent_edge_idx]->weight;
         size_t parent_target_idx = parent_dj->edges[ch->parent_edge_idx]->to->index;
@@ -189,10 +197,8 @@ static int ptd_compose_scc_one(
             snprintf(err_msg, err_msg_size,
                      "ptd_compose_scc_one: negative parent_result[%zu]=%g (SCC %zu)",
                      parent_target_idx, parent_result[parent_target_idx], i);
-            ptd_graph_destroy(synth);
-            ptd_scc_synthetic_metadata_destroy(meta);
-            ptd_parameterized_reward_compute_graph_destroy(prc);
-            return -1;
+            rc = -1;
+            goto out;
         } else {
             phantom_weight = 1e300;
         }
@@ -217,9 +223,8 @@ static int ptd_compose_scc_one(
     if (synth_result == NULL) {
         snprintf(err_msg, err_msg_size,
                  "ptd_compose_scc_one: per-SCC elimination failed for SCC %zu", i);
-        ptd_graph_destroy(synth);
-        ptd_scc_synthetic_metadata_destroy(meta);
-        return -1;
+        rc = -1;
+        goto out;
     }
 
     /* Step 4: copy results to parent_result. */
@@ -228,11 +233,14 @@ static int ptd_compose_scc_one(
         if (parent_idx == SIZE_MAX) continue;
         parent_result[parent_idx] = synth_result[v_synth];
     }
-
     free(synth_result);
-    ptd_graph_destroy(synth);
-    ptd_scc_synthetic_metadata_destroy(meta);
-    return 0;
+
+out:
+    if (synth) ptd_graph_destroy(synth);
+    if (meta) ptd_scc_synthetic_metadata_destroy(meta);
+    if (prc) ptd_parameterized_reward_compute_graph_destroy(prc);
+    ptd_scc_compose_in_progress--;
+    return rc;
 }
 
 /* Inner body. Returns parent_result on success, NULL on
