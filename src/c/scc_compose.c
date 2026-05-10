@@ -1,3 +1,15 @@
+/* Thread-local re-entrancy guard. While the composer is running,
+ * inner calls to ptd_expected_waiting_time on synthetic graphs
+ * must NOT take the hierarchical-elimination path themselves.
+ * The integration in ptd_expected_waiting_time checks this flag
+ * before consulting PHASIC_HIERAR_ELIMINATION. */
+#if defined(__APPLE__) || defined(__linux__)
+#define SCC_COMPOSE_TLS __thread
+#else
+#define SCC_COMPOSE_TLS
+#endif
+SCC_COMPOSE_TLS int ptd_scc_compose_in_progress = 0;
+
 /**
  * @file scc_compose.c
  * @brief WP-5: SCC composition — assemble parent-level result vector
@@ -43,10 +55,14 @@ double *ptd_compose_scc_prcs(
                  "ptd_compose_scc_prcs: NULL argument");
         return NULL;
     }
+    /* Set re-entrancy guard so inner ptd_expected_waiting_time
+     * calls on synthetic graphs don't recurse into composition. */
+    ptd_scc_compose_in_progress++;
     if (theta == NULL || theta_len != parent->param_length) {
         snprintf(ptd_err, sizeof_ptd_err,
                  "ptd_compose_scc_prcs: theta length %zu != param_length %zu",
                  theta_len, parent->param_length);
+        ptd_scc_compose_in_progress--;
         return NULL;
     }
 
@@ -57,6 +73,7 @@ double *ptd_compose_scc_prcs(
     if (parent_result == NULL) {
         snprintf(ptd_err, sizeof_ptd_err,
                  "ptd_compose_scc_prcs: oom for parent_result");
+        ptd_scc_compose_in_progress--;
         return NULL;
     }
 
@@ -70,6 +87,7 @@ double *ptd_compose_scc_prcs(
             snprintf(ptd_err, sizeof_ptd_err,
                      "ptd_compose_scc_prcs: oom for theta_copy");
             free(parent_result);
+            ptd_scc_compose_in_progress--;
             return NULL;
         }
         memcpy(theta_copy, theta, theta_len * sizeof(double));
@@ -77,6 +95,7 @@ double *ptd_compose_scc_prcs(
         free(theta_copy);
         if (ptd_err[0] != '\0') {
             free(parent_result);
+            ptd_scc_compose_in_progress--;
             return NULL;
         }
     }
@@ -104,6 +123,7 @@ double *ptd_compose_scc_prcs(
         free(parent_result);
         snprintf(ptd_err, sizeof_ptd_err,
                  "ptd_compose_scc_prcs: oom for topo ordering");
+        ptd_scc_compose_in_progress--;
         return NULL;
     }
     /* Count incoming edges. */
@@ -138,6 +158,7 @@ double *ptd_compose_scc_prcs(
         snprintf(ptd_err, sizeof_ptd_err,
                  "ptd_compose_scc_prcs: condensation has cycles? "
                  "topo_idx=%zu n_sccs=%zu", topo_idx, n_sccs);
+        ptd_scc_compose_in_progress--;
         return NULL;
     }
     /* Iterate in reverse-topological (sink-first) order: process
@@ -159,6 +180,7 @@ free(parent_result);
                 snprintf(ptd_err, sizeof_ptd_err,
                          "ptd_compose_scc_prcs: per-SCC compute failed for SCC %zu", i);
             }
+            ptd_scc_compose_in_progress--;
             return NULL;
         }
 
@@ -180,6 +202,7 @@ free(parent_result);
 free(parent_result);
                 snprintf(ptd_err, sizeof_ptd_err,
                          "ptd_compose_scc_prcs: oom for synth theta_copy");
+                ptd_scc_compose_in_progress--;
                 return NULL;
             }
             memcpy(theta_copy, theta, theta_len * sizeof(double));
@@ -191,6 +214,7 @@ free(parent_result);
                 ptd_parameterized_reward_compute_graph_destroy(prc);
                 free(topo_order);
 free(parent_result);
+                ptd_scc_compose_in_progress--;
                 return NULL;
             }
         }
@@ -212,6 +236,7 @@ free(parent_result);
                 snprintf(ptd_err, sizeof_ptd_err,
                          "ptd_compose_scc_prcs: parent edge idx %zu out of range for vertex %zu",
                          ch->parent_edge_idx, ch->parent_vertex_idx);
+                ptd_scc_compose_in_progress--;
                 return NULL;
             }
             double parent_external_weight = parent_dj->edges[ch->parent_edge_idx]->weight;
@@ -258,6 +283,7 @@ free(parent_result);
                 snprintf(ptd_err, sizeof_ptd_err,
                          "ptd_compose_scc_prcs: negative parent_result[%zu]=%g",
                          parent_target_idx, parent_result[parent_target_idx]);
+                ptd_scc_compose_in_progress--;
                 return NULL;
             } else {
                 /* Downstream result is 0 (true absorbing).
@@ -299,6 +325,7 @@ free(parent_result);
                 snprintf(ptd_err, sizeof_ptd_err,
                          "ptd_compose_scc_prcs: per-SCC elimination failed for SCC %zu", i);
             }
+            ptd_scc_compose_in_progress--;
             return NULL;
         }
 
@@ -318,5 +345,6 @@ free(parent_result);
     }
 
     free(topo_order);
+    ptd_scc_compose_in_progress--;
     return parent_result;
 }

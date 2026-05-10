@@ -8426,6 +8426,50 @@ cleanup_error:
 
 
 double *ptd_expected_waiting_time(struct ptd_graph *graph, double *rewards) {
+    /* WP-7: hierarchical SCC pipeline opt-in via env var.
+     *
+     * When PHASIC_HIERAR_ELIMINATION=1 and the graph is
+     * parameterised and no reward vector is supplied, route
+     * through ptd_compose_scc_prcs instead of the monolithic
+     * eliminator. The composer reads the parent's current edge
+     * weights (already set by ptd_graph_update_weights), so we
+     * pass those weights as theta rather than re-deriving from
+     * coefficients. Reward-transformed cases (rewards != NULL)
+     * fall through to the monolithic path.
+     *
+     * Re-entrancy: the composer itself calls
+     * ptd_expected_waiting_time recursively on synthetic SCC
+     * subgraphs. Those inner calls must NOT take the
+     * hierarchical path (they should just monolithically
+     * eliminate the synth graph, which is itself the unit of
+     * caching). The composer sets ptd_scc_compose_in_progress
+     * to suppress recursion. */
+    extern int ptd_scc_compose_in_progress;
+    const char *hierar_env = getenv("PHASIC_HIERAR_ELIMINATION");
+    bool use_hierarchical = (hierar_env != NULL
+                             && hierar_env[0] == '1'
+                             && hierar_env[1] == '\0'
+                             && !ptd_scc_compose_in_progress);
+    if (use_hierarchical && graph->parameterized && rewards == NULL
+        && graph->current_params != NULL && graph->param_length > 0) {
+        struct ptd_scc_graph *scc_graph =
+                ptd_find_strongly_connected_components(graph);
+        if (scc_graph == NULL) {
+            /* Fall through to monolithic on SCC failure. */
+            ptd_err[0] = '\0';
+        } else {
+            double *result = ptd_compose_scc_prcs(
+                    graph, scc_graph,
+                    graph->current_params, graph->param_length);
+            ptd_scc_graph_destroy(scc_graph);
+            if (result != NULL) {
+                return result;
+            }
+            /* On compose failure, clear error and fall through. */
+            ptd_err[0] = '\0';
+        }
+    }
+
     if (ptd_precompute_reward_compute_graph(graph)) {
         return NULL;
     }
