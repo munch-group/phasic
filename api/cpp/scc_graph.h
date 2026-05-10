@@ -200,6 +200,14 @@ public:
     struct ptd_scc_vertex* c_ptr() { return scc_vertex_; }
     const struct ptd_scc_vertex* c_ptr() const { return scc_vertex_; }
 
+    /**
+     * @brief Access the parent SCCGraph (non-owning).
+     *
+     * Used by code that needs the C-level scc_graph pointer (e.g.
+     * passing it to per-SCC PRC compute functions).
+     */
+    const SCCGraph* parent_scc_graph() const { return parent_scc_graph_; }
+
 private:
     struct ptd_scc_vertex* scc_vertex_;  // Non-owning
     const SCCGraph* parent_scc_graph_;   // Non-owning

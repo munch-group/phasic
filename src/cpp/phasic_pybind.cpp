@@ -3295,6 +3295,88 @@ str
       "SCC's upstream/downstream-connecting vertices. The metadata\n"
       "carries vertex categorisation and parent-edge references for\n"
       "later composition.")
+      .def("get_or_compute_prc",
+           [](const phasic::SCCVertex& self) {
+               // WP-4: trigger the per-SCC PRC compute/cache path.
+               // Returns (synth_graph, metadata, n_external_anchors)
+               // for tests. The PRC itself is destroyed here — its
+               // pointer fields are bound to synth_graph's edge
+               // weight slots, so transferring it across the
+               // C/Python boundary is unsafe.
+               struct ptd_graph *synth_c = NULL;
+               struct ptd_scc_synthetic_metadata *meta = NULL;
+               struct ptd_desc_reward_compute_parameterized *prc =
+                   ptd_scc_get_or_compute_prc(
+                       self.parent_scc_graph()->c_ptr(),
+                       self.index(), &synth_c, &meta);
+               if (prc == NULL) {
+                   std::string err((const char *)ptd_err);
+                   ptd_err[0] = '\0';
+                   if (synth_c) ptd_graph_destroy(synth_c);
+                   if (meta) ptd_scc_synthetic_metadata_destroy(meta);
+                   throw std::runtime_error(
+                       std::string("get_or_compute_prc failed: ") + err);
+               }
+               // Compute n_external_anchors via the helper so tests
+               // can confirm the count.
+               size_t n_anchors = 0;
+               double **anchors = ptd_scc_collect_external_anchors(
+                   synth_c, meta, &n_anchors);
+               free(anchors);
+               // Wrap synth in an owning Python Graph; transfer
+               // metadata to a Python wrapper that owns the C
+               // struct.
+               phasic::Graph synth_cpp(synth_c);
+               auto meta_holder = std::make_unique<SccSyntheticMetadataPy>();
+               meta_holder->meta = meta;
+               // Destroy the PRC. The persistent state we care
+               // about is (a) the cache file written to disk
+               // (observable via stat), (b) the synthetic graph
+               // (returned), (c) the metadata (returned).
+               ptd_parameterized_reward_compute_graph_destroy(prc);
+               return py::make_tuple(std::move(synth_cpp),
+                                     std::move(meta_holder),
+                                     n_anchors);
+           },
+           "WP-4: trigger per-SCC PRC compute with disk caching.\n"
+           "Returns (synth_graph, metadata, n_external_anchors).")
+      .def("cache_file_path",
+           [](const phasic::SCCVertex& self) -> py::object {
+               // Compute the per-SCC cache path. Useful for tests
+               // that want to stat the cache file. Builds the
+               // synthetic graph internally to compute its hash.
+               struct ptd_graph *synth_c = NULL;
+               struct ptd_scc_synthetic_metadata *meta = NULL;
+               synth_c = ptd_scc_build_synthetic_graph(
+                   self.parent_scc_graph()->c_ptr(),
+                   self.index(), &meta);
+               if (synth_c == NULL) {
+                   std::string err((const char *)ptd_err);
+                   ptd_err[0] = '\0';
+                   throw std::runtime_error(
+                       std::string("cache_file_path build failed: ") + err);
+               }
+               struct ptd_hash_result *hash =
+                   ptd_graph_content_hash(synth_c);
+               ptd_graph_destroy(synth_c);
+               ptd_scc_synthetic_metadata_destroy(meta);
+               if (hash == NULL) {
+                   throw std::runtime_error(
+                       "cache_file_path: hash computation failed");
+               }
+               const char *home = getenv("HOME");
+               std::string path;
+               if (home != NULL) {
+                   path = std::string(home) +
+                          "/.phasic_cache/parameterized_reward_compute/scc_" +
+                          hash->hash_hex + ".bin";
+               }
+               ptd_hash_destroy(hash);
+               return py::cast(path);
+           },
+           "Return the absolute path of this SCC's cache file.\n"
+           "The file may not exist yet (compute hasn't run, or\n"
+           "PHASIC_DISABLE_CACHE=1).")
       .def("internal_vertex_indices", &phasic::SCCVertex::internal_vertex_indices,
            "Get indices of internal vertices in original graph")
       .def("hash", &phasic::SCCVertex::hash,

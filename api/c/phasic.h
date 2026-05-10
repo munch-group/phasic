@@ -1193,6 +1193,45 @@ double **ptd_scc_collect_external_anchors(
         const struct ptd_scc_synthetic_metadata *meta,
         size_t *n_anchors_out);
 
+/**
+ * Get-or-compute the per-SCC PRC, with disk caching.
+ *
+ * For the SCC at ``scc_index`` of ``scc_graph``, returns the
+ * parameterised reward compute graph for the SCC's synthetic
+ * graph (built via ptd_scc_build_synthetic_graph). The result is
+ * cached on disk under
+ * ``~/.phasic_cache/parameterized_reward_compute/scc_<hash>.bin``,
+ * where <hash> is ptd_graph_content_hash of the synthetic graph.
+ *
+ * On cold cache, builds the synthetic graph, eliminates it, saves
+ * the PRC. On warm cache, loads from disk. Either way, returns
+ * the synthetic graph (caller owns; destroy via
+ * ptd_graph_destroy) and the metadata (caller owns; destroy via
+ * ptd_scc_synthetic_metadata_destroy) so the composer can
+ * resolve the PRC's pointer references.
+ *
+ * Set PHASIC_DISABLE_CACHE=1 to skip both load and save.
+ *
+ * @param scc_graph     SCC decomposition of the parent graph.
+ * @param scc_index     Index of the SCC. Must be < scc_graph->vertices_length.
+ * @param synth_out     Receives the synthetic graph (caller owns).
+ *                      The returned PRC's pointers reference this
+ *                      graph's edge weights, so synth_out must
+ *                      outlive the PRC.
+ * @param metadata_out  Receives the synthetic-graph metadata
+ *                      (caller owns).
+ * @return Newly allocated PRC (caller destroys via
+ *         ptd_parameterized_reward_compute_graph_destroy), or
+ *         NULL on error. On NULL, *synth_out and *metadata_out
+ *         are also NULL.
+ */
+struct ptd_desc_reward_compute_parameterized *
+ptd_scc_get_or_compute_prc(
+        const struct ptd_scc_graph *scc_graph,
+        size_t scc_index,
+        struct ptd_graph **synth_out,
+        struct ptd_scc_synthetic_metadata **metadata_out);
+
 struct ptd_phase_type_distribution {
     size_t length;
     double *initial_probability_vector;

@@ -109,6 +109,18 @@ def clear_param_compute_cache() -> int:
 def param_compute_cache_info() -> dict[str, Any]:
     """Return a summary of the parameterised compute graph cache.
 
+    The cache directory holds two kinds of entries:
+
+    - ``<hash>.bin``: parent-graph-level Stage A2 entries
+      (populated by ``ptd_precompute_reward_compute_graph``).
+    - ``scc_<hash>.bin``: per-SCC entries from the hierarchical
+      pipeline (populated by ``ptd_scc_get_or_compute_prc``,
+      WP-4 of the ``hierar-elimin-cache`` branch).
+
+    Both kinds live in the same directory because they share the
+    same on-disk format (with WP-3's revision-2 extension for SCC
+    entries that need EXTERNAL pointers).
+
     Returns
     -------
     dict
@@ -116,23 +128,31 @@ def param_compute_cache_info() -> dict[str, Any]:
 
         - ``cache_dir`` (str or None): absolute path to the cache
           directory, or None if HOME is unset.
-        - ``n_files`` (int): number of ``*.bin`` files in the
-          directory.
-        - ``total_size`` (int): total size in bytes.
-        - ``disabled`` (bool): whether ``PHASIC_DISABLE_CACHE=1`` is
-          set.
+        - ``n_files`` (int): total number of ``*.bin`` files.
+        - ``n_parent_files`` (int): count of parent-level entries
+          (filenames not starting with ``scc_``).
+        - ``n_scc_files`` (int): count of per-SCC entries
+          (filenames starting with ``scc_``).
+        - ``total_size`` (int): total size in bytes across all
+          files.
+        - ``disabled`` (bool): whether ``PHASIC_DISABLE_CACHE=1``
+          is set.
 
     Examples
     --------
     >>> info = param_compute_cache_info()
-    >>> info['n_files']
+    >>> info['n_files']                  # doctest: +SKIP
+    7
+    >>> info['n_parent_files']           # doctest: +SKIP
     3
-    >>> info['disabled']
-    False
+    >>> info['n_scc_files']              # doctest: +SKIP
+    4
     """
     info: dict[str, Any] = {
         "cache_dir": None,
         "n_files": 0,
+        "n_parent_files": 0,
+        "n_scc_files": 0,
         "total_size": 0,
         "disabled": is_cache_disabled(),
     }
@@ -147,6 +167,10 @@ def param_compute_cache_info() -> dict[str, Any]:
         try:
             info["n_files"] += 1
             info["total_size"] += cache_file.stat().st_size
+            if cache_file.name.startswith("scc_"):
+                info["n_scc_files"] += 1
+            else:
+                info["n_parent_files"] += 1
         except OSError:
             # File disappeared mid-scan (concurrent clear or unlink).
             # Skip silently — the count is informational anyway.
