@@ -52,6 +52,38 @@ from .state_indexing import (
 from .hex_grid import HexGrid, HexCell
 from phasic.graph_cache import GraphCache, get_graph_cache_stats, print_graph_cache_info
 
+
+def _detect_omp_num_threads() -> int:
+    """Return the OpenMP thread count to use when OMP_NUM_THREADS
+    is unset.
+
+    Priority:
+      1. SLURM_CPUS_PER_TASK (the per-task allocation under SLURM)
+      2. SLURM_CPUS_ON_NODE (full node allocation under SLURM)
+      3. os.sched_getaffinity(0) (respects Linux cgroup limits)
+      4. os.cpu_count() (last resort: full machine logical CPUs)
+    """
+    for var in ("SLURM_CPUS_PER_TASK", "SLURM_CPUS_ON_NODE"):
+        val = os.environ.get(var)
+        if val is not None:
+            try:
+                return max(int(val), 1)
+            except ValueError:
+                pass
+    try:
+        return max(len(os.sched_getaffinity(0)), 1)
+    except (AttributeError, OSError):
+        pass
+    return os.cpu_count() or 1
+
+
+# Auto-detect OMP_NUM_THREADS BEFORE the pybind module loads —
+# OpenMP reads the env var on library load, so setting it later
+# would not take effect for the SCC composer's parallel loop.
+# Users can pre-set OMP_NUM_THREADS in their shell to override.
+if "OMP_NUM_THREADS" not in os.environ:
+    os.environ["OMP_NUM_THREADS"] = str(_detect_omp_num_threads())
+
 # from .vscode_theme import set_phasic_theme
 # from .vscode_theme import phasic_theme as theme
 # from .vscode_theme import set_theme # backwards compatibility
@@ -7089,14 +7121,14 @@ extern "C" {{
 
         try:
             from vscodenb import is_vscode_dark_theme
-            dark = is_vscode_dark_theme()
+            dark, bg_color = is_vscode_dark_theme()
         except ImportError:
             logger.warning(f"vscodenb is not available. Defaulting to light theme.")
-            dark = False
+            dark, bg_color = (False, 'white')
 
         # always light theme when executing via nbconvert
         if 'NBCONVERT_BGCOLOR' in os.environ:
-            dark = False
+            dark, bg_color = (False, os.environ['NBCONVERT_BGCOLOR'])
 
         if label_fmt is None:
             label_fmt = partial(format_label, wrap=wrap)

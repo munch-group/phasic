@@ -190,6 +190,17 @@ class PTDAlgorithmsConfig:
     disable_cache: bool = False  # PHASIC_DISABLE_CACHE
     cache_dir: str | None = None  # PHASIC_CACHE_DIR; None = default ($HOME/.phasic_cache)
 
+    # OpenMP thread count for the SCC composer's parallel loop
+    # and any other OpenMP regions inside phasic. None = leave
+    # OMP_NUM_THREADS as-is (phasic's import-time auto-detection
+    # has already set it to SLURM_CPUS_PER_TASK / os.cpu_count()
+    # if it was unset). Setting a concrete value writes the env
+    # var, but note: OpenMP reads OMP_NUM_THREADS at library
+    # load time, so changing it via configure() AFTER any
+    # parallel region has run may not take effect until a fresh
+    # Python process. Most reliable: set in shell before launch.
+    omp_num_threads: int | None = None  # OMP_NUM_THREADS
+
     # Internal tracking
     _validated: bool = field(default=False, init=False, repr=False)
     _jax_imported: bool = field(default=False, init=False, repr=False)
@@ -369,6 +380,12 @@ class PTDAlgorithmsConfig:
         if self.cache_dir is not None:
             os.environ['PHASIC_CACHE_DIR'] = str(self.cache_dir)
 
+        if self.omp_num_threads is not None:
+            if self.omp_num_threads < 1:
+                errors.append("omp_num_threads must be >= 1")
+            else:
+                os.environ['OMP_NUM_THREADS'] = str(self.omp_num_threads)
+
         # Handle errors/warnings
         if warnings and self.verbose:
             for w in warnings:
@@ -499,7 +516,7 @@ def configure(**kwargs) -> None:
         backend, verbose, force_high_precision, mpfr_precision_bits,
         condition_threshold, enable_condition_warnings,
         hierar_elimination, min_scc_size_to_cache, max_parallel_sccs,
-        disable_cache, cache_dir.
+        disable_cache, cache_dir, omp_num_threads.
 
     Raises
     ------
@@ -616,6 +633,14 @@ def get_config() -> PTDAlgorithmsConfig:
                 parsed = int(max_par)
                 if parsed >= 1:
                     kwargs['max_parallel_sccs'] = parsed
+            except ValueError:
+                pass
+        omp_threads = os.getenv('OMP_NUM_THREADS')
+        if omp_threads is not None:
+            try:
+                parsed = int(omp_threads)
+                if parsed >= 1:
+                    kwargs['omp_num_threads'] = parsed
             except ValueError:
                 pass
 
