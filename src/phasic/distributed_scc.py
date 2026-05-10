@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from typing import Any
 
 import numpy as np
@@ -419,6 +420,232 @@ def find_missing_sccs(scc_graph) -> list[int]:
         if not os.path.exists(path):
             missing.append(i)
     return missing
+
+
+# ---------------------------------------------------------------
+# SLURM-WP-5: sbatch job-script generator + work-unit submission
+# ---------------------------------------------------------------
+
+
+SBATCH_TEMPLATE = """#!/bin/bash
+#SBATCH --job-name={job_name}
+#SBATCH --output={log_dir}/scc_worker_%A_%a.out
+#SBATCH --error={log_dir}/scc_worker_%A_%a.err
+#SBATCH --array=0-{max_idx}{concurrency_clause}
+#SBATCH --time={time}
+#SBATCH --mem={mem}
+#SBATCH --cpus-per-task={cpus}
+{extra_directives}
+
+set -eu
+
+# Pass cache dir through so workers see the same shared cache.
+export PHASIC_CACHE_DIR={cache_dir}
+
+# Each task picks its work unit by SLURM_ARRAY_TASK_ID.
+WORK_UNITS=({work_units_quoted})
+WORK_UNIT="${{WORK_UNITS[$SLURM_ARRAY_TASK_ID]}}"
+
+{python_exe} -m phasic.scc_worker "$WORK_UNIT"
+"""
+
+
+def generate_sbatch_script(
+        work_units: list[str],
+        cache_dir: str,
+        log_dir: str,
+        job_name: str = "phasic_scc",
+        time: str = "01:00:00",
+        mem: str = "4G",
+        cpus: int = 1,
+        max_concurrent: int | None = None,
+        extra_directives: str = "",
+        python_exe: str = "python") -> str:
+    """Generate the sbatch array job script for a level-set.
+
+    The orchestrator submits one such script per level-set.
+    SLURM runs all array tasks in parallel (subject to scheduler
+    limits and the optional ``max_concurrent`` cap), each task
+    invoking ``python -m phasic.scc_worker`` on one work unit.
+
+    Parameters
+    ----------
+    work_units : list of str
+        Paths to work-unit JSON files. Length determines the
+        SLURM array size. Paths must be visible from the
+        compute nodes (typically on a shared filesystem).
+    cache_dir : str
+        Path the workers should use as ``PHASIC_CACHE_DIR``.
+        Must be a shared-filesystem location all workers (and
+        the orchestrator) can read and write.
+    log_dir : str
+        Directory for sbatch stdout/stderr files. Will be
+        created by SLURM if not present.
+    job_name : str
+        SLURM job name (visible in ``squeue``). Default
+        ``"phasic_scc"``.
+    time : str
+        Per-task time limit, in SLURM format (``H:MM:SS`` or
+        ``D-HH:MM:SS``). Default 1 hour.
+    mem : str
+        Per-task memory request (e.g. ``"4G"``). Default 4 GB.
+    cpus : int
+        ``--cpus-per-task``. Default 1. Set higher if your
+        per-SCC eliminations benefit from OpenMP parallelism.
+    max_concurrent : int or None
+        Cap on simultaneously running array tasks (SLURM
+        ``%`` syntax: ``0-N%K``). ``None`` = no cap.
+    extra_directives : str
+        Free-form additional ``#SBATCH`` lines (e.g. partition,
+        account). Each must include the leading ``#SBATCH``.
+    python_exe : str
+        Python interpreter to invoke. Default ``"python"``;
+        useful when the compute node's PATH differs from the
+        login node's.
+
+    Returns
+    -------
+    str
+        The sbatch script as a single string.
+    """
+    if not work_units:
+        raise ValueError(
+                "generate_sbatch_script: work_units cannot be empty")
+
+    # Quote each work-unit path safely for bash array literal.
+    quoted = " ".join(f'"{p}"' for p in work_units)
+    concurrency_clause = (
+            f"%{max_concurrent}" if max_concurrent is not None else "")
+
+    return SBATCH_TEMPLATE.format(
+            job_name=job_name,
+            max_idx=len(work_units) - 1,
+            concurrency_clause=concurrency_clause,
+            time=time,
+            mem=mem,
+            cpus=cpus,
+            extra_directives=extra_directives,
+            cache_dir=cache_dir,
+            log_dir=log_dir,
+            work_units_quoted=quoted,
+            python_exe=python_exe)
+
+
+def write_work_units_for_level(
+        scc_graph,
+        scc_indices: list[int],
+        work_dir: str) -> list[str]:
+    """Write one work-unit file per SCC in a level-set.
+
+    Parameters
+    ----------
+    scc_graph
+        SCCGraph from ``Graph.scc_decomposition()``.
+    scc_indices : list of int
+        SCC indices to write (typically one level from
+        :func:`plan_distributed_work`).
+    work_dir : str
+        Directory where work-unit JSON files are written.
+        Must exist (caller's responsibility).
+
+    Returns
+    -------
+    list of str
+        Paths to the written work-unit files, in the same
+        order as ``scc_indices``.
+    """
+    paths = []
+    for i in scc_indices:
+        scc = scc_graph.scc_at(i)
+        path = os.path.join(work_dir, f"scc_{i}.json")
+        write_work_unit(scc, path)
+        paths.append(path)
+    return paths
+
+
+def submit_sbatch(
+        script_path: str,
+        sbatch_exe: str = "sbatch") -> str:
+    """Submit an sbatch script and return the job ID.
+
+    Parameters
+    ----------
+    script_path : str
+        Path to the script written by
+        :func:`generate_sbatch_script`.
+    sbatch_exe : str
+        sbatch executable. Default ``"sbatch"``.
+
+    Returns
+    -------
+    str
+        SLURM job ID parsed from sbatch's output. Caller can
+        poll via ``squeue`` or wait via ``wait_for_jobs``.
+
+    Raises
+    ------
+    RuntimeError
+        If sbatch is not on PATH or returns non-zero.
+    """
+    import subprocess
+    try:
+        result = subprocess.run(
+                [sbatch_exe, script_path],
+                check=True, capture_output=True, text=True)
+    except FileNotFoundError as e:
+        raise RuntimeError(
+                f"sbatch executable {sbatch_exe!r} not found on PATH") from e
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(
+                f"sbatch failed (exit {e.returncode}):\n"
+                f"  stdout: {e.stdout}\n"
+                f"  stderr: {e.stderr}") from e
+
+    # sbatch prints "Submitted batch job <id>".
+    out = result.stdout.strip()
+    parts = out.split()
+    if not parts or not parts[-1].isdigit():
+        raise RuntimeError(
+                f"Could not parse job ID from sbatch output: {out!r}")
+    return parts[-1]
+
+
+def run_workers_locally(
+        work_units: list[str],
+        max_workers: int = 1) -> list[int]:
+    """Run workers in local subprocesses (no SLURM).
+
+    Test/dev fallback that mirrors the SLURM array submission:
+    each work unit is processed by ``python -m phasic.scc_worker``
+    in a subprocess. ``max_workers`` parallel processes run
+    concurrently (using ``concurrent.futures``).
+
+    Parameters
+    ----------
+    work_units : list of str
+        Paths to work-unit JSON files.
+    max_workers : int
+        Number of parallel subprocesses. Default 1 (sequential).
+
+    Returns
+    -------
+    list of int
+        Exit codes per work unit, in the same order.
+    """
+    import concurrent.futures
+    import subprocess
+    import sys as _sys
+
+    def _run_one(wu: str) -> int:
+        result = subprocess.run(
+                [_sys.executable, "-m", "phasic.scc_worker", wu],
+                env=os.environ.copy(),
+                capture_output=True,
+                text=True)
+        return result.returncode
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as ex:
+        return list(ex.map(_run_one, work_units))
 
 
 def plan_distributed_work(
