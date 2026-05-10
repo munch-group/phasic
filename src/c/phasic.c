@@ -6686,6 +6686,12 @@ struct ptd_desc_reward_compute *ptd_graph_ex_absorbation_time_comp_graph_dyn(str
 }
 
 #ifdef HAVE_MPFR
+/* DEPRECATED (MPFR-A-WP-3): builds a separate MPFR-precision
+ * compute graph by re-eliminating from scratch. The default
+ * MPFR path (MPFR-A) reads the regular reward_compute_graph
+ * directly, avoiding this re-elimination cost. This builder
+ * is now reachable only via PHASIC_USE_MPFR_LEGACY=1 and will
+ * be removed once the legacy opt-in is no longer needed. */
 static struct ptd_desc_reward_compute_mpfr *ptd_graph_ex_absorbation_time_comp_graph_mpfr(
     struct ptd_graph *graph,
     size_t precision
@@ -8324,6 +8330,10 @@ struct ptd_desc_reward_compute *ptd_graph_build_ex_absorbation_time_comp_graph_p
  * @param precision MPFR precision in bits
  * @return Result vector (double precision) or NULL on error
  */
+/* DEPRECATED (MPFR-A-WP-3): consumes reward_compute_graph_mpfr.
+ * Reachable only via PHASIC_USE_MPFR_LEGACY=1. Use
+ * ptd_expected_waiting_time_mpfr_from_double_pcg instead, which
+ * skips the MPFR re-elimination step. */
 static double *ptd_expected_waiting_time_mpfr(
     struct ptd_graph *graph,
     double *rewards,
@@ -8433,6 +8443,119 @@ static double *ptd_expected_waiting_time_mpfr(
     free(result);
 
     PTD_LOG_DEBUG("MPFR computation completed successfully with %zu-bit precision", precision);
+    return final_result;
+
+cleanup_error:
+    mpfr_clear(multiplier);
+    mpfr_clear(product);
+    for (size_t i = 0; i < n; i++) {
+        mpfr_clear(result[i]);
+    }
+    free(result);
+    return NULL;
+}
+
+/* MPFR-A-WP-1: high-precision consumer over the double-precision
+ * reward_compute_graph.
+ *
+ * Reads graph->reward_compute_graph (concrete double multipliers,
+ * already θ-bound) and performs the multiply-accumulate sweep at
+ * MPFR precision. Avoids the cost of building a separate
+ * reward_compute_graph_mpfr — we already have the symbolic
+ * elimination encoded in reward_compute_graph; we just want the
+ * arithmetic at higher precision.
+ *
+ * This is the cheap, high-value path: most workloads need
+ * higher-precision *consumption* (to avoid catastrophic
+ * cancellation in the multiply-accumulate sum) but not
+ * higher-precision *elimination*. The cost saved is the entire
+ * MPFR re-elimination — typically the dominant cost when the
+ * MPFR path triggers.
+ *
+ * Returns a newly-allocated double-precision result vector
+ * (caller frees) on success, NULL on failure (sets ptd_err).
+ */
+static double *ptd_expected_waiting_time_mpfr_from_double_pcg(
+    struct ptd_graph *graph,
+    double *rewards,
+    size_t precision
+) {
+    if (graph->reward_compute_graph == NULL) {
+        PTD_LOG_ERROR("MPFR-A: reward_compute_graph is NULL");
+        snprintf((char *)ptd_err, sizeof(ptd_err),
+                 "MPFR-A: reward_compute_graph not built");
+        return NULL;
+    }
+
+    size_t n = graph->vertices_length;
+    struct ptd_desc_reward_compute *compute = graph->reward_compute_graph;
+
+    mpfr_t *result = (mpfr_t *)malloc(n * sizeof(mpfr_t));
+    if (result == NULL) {
+        PTD_LOG_ERROR("MPFR-A: failed to allocate result array");
+        return NULL;
+    }
+    for (size_t i = 0; i < n; i++) {
+        mpfr_init2(result[i], precision);
+        if (rewards != NULL) {
+            mpfr_set_d(result[i], rewards[i], MPFR_RNDN);
+        } else {
+            mpfr_set_d(result[i], 1.0, MPFR_RNDN);
+        }
+    }
+
+    mpfr_t multiplier, product;
+    mpfr_init2(multiplier, precision);
+    mpfr_init2(product, precision);
+
+    for (size_t j = 0; j < compute->length; j++) {
+        struct ptd_reward_increase cmd = compute->commands[j];
+
+        /* Skip the NaN sentinel that the regular consumer treats
+         * as a terminator. */
+        if (isnan(cmd.multiplier)) {
+            break;
+        }
+        if (cmd.multiplier == 0.0) {
+            continue;
+        }
+        if (isinf(cmd.multiplier) && mpfr_zero_p(result[cmd.to])) {
+            continue;
+        }
+
+        mpfr_set_d(multiplier, cmd.multiplier, MPFR_RNDN);
+        mpfr_mul(product, result[cmd.to], multiplier, MPFR_RNDN);
+        mpfr_add(result[cmd.from], result[cmd.from], product, MPFR_RNDN);
+    }
+
+    double *final_result = (double *)calloc(n, sizeof(double));
+    if (final_result == NULL) {
+        PTD_LOG_ERROR("MPFR-A: failed to allocate final result");
+        goto cleanup_error;
+    }
+
+    for (size_t i = 0; i < n; i++) {
+        if (mpfr_inf_p(result[i])) {
+            final_result[i] = INFINITY;
+        } else {
+            final_result[i] = mpfr_get_d(result[i], MPFR_RNDN);
+            if (isnan(final_result[i])) {
+                PTD_LOG_ERROR("MPFR-A: NaN at vertex %zu", i);
+                snprintf((char *)ptd_err, sizeof(ptd_err),
+                         "MPFR-A: NaN at vertex %zu", i);
+                goto cleanup_error;
+            }
+        }
+    }
+
+    mpfr_clear(multiplier);
+    mpfr_clear(product);
+    for (size_t i = 0; i < n; i++) {
+        mpfr_clear(result[i]);
+    }
+    free(result);
+
+    PTD_LOG_DEBUG("MPFR-A: completed with %zu-bit precision over double PRC", precision);
     return final_result;
 
 cleanup_error:
@@ -8554,16 +8677,31 @@ double *ptd_expected_waiting_time(struct ptd_graph *graph, double *rewards) {
         if (mpfr_precision < 128) mpfr_precision = 128;
         if (mpfr_precision > 1024) mpfr_precision = 1024;
 
-        // Compute MPFR graph if not cached
-        if (graph->reward_compute_graph_mpfr == NULL) {
-            PTD_LOG_INFO("Computing MPFR graph with %zu-bit precision", mpfr_precision);
-            graph->reward_compute_graph_mpfr = ptd_graph_ex_absorbation_time_comp_graph_mpfr(
-                graph, mpfr_precision
-            );
+        /* MPFR-A: prefer the new consumer that reads the
+         * existing double reward_compute_graph and does MPFR
+         * arithmetic on top — avoids the cost of building a
+         * separate MPFR compute graph. PHASIC_USE_MPFR_LEGACY=1
+         * opts back into the old MPFR-builder path for
+         * comparison / safety-net during transition. */
+        const char *legacy = getenv("PHASIC_USE_MPFR_LEGACY");
+        bool use_legacy = (legacy != NULL && legacy[0] == '1' && legacy[1] == '\0');
+
+        double *mpfr_result = NULL;
+        if (!use_legacy) {
+            PTD_LOG_INFO("MPFR-A: consuming double PRC at %zu-bit precision", mpfr_precision);
+            mpfr_result = ptd_expected_waiting_time_mpfr_from_double_pcg(
+                    graph, rewards, mpfr_precision);
+        } else {
+            // Legacy: build separate MPFR PRC and consume that.
+            if (graph->reward_compute_graph_mpfr == NULL) {
+                PTD_LOG_INFO("Computing MPFR graph with %zu-bit precision (legacy)", mpfr_precision);
+                graph->reward_compute_graph_mpfr = ptd_graph_ex_absorbation_time_comp_graph_mpfr(
+                    graph, mpfr_precision
+                );
+            }
+            mpfr_result = ptd_expected_waiting_time_mpfr(graph, rewards, mpfr_precision);
         }
 
-        // Call MPFR execution function
-        double *mpfr_result = ptd_expected_waiting_time_mpfr(graph, rewards, mpfr_precision);
         if (mpfr_result != NULL) {
             PTD_LOG_INFO("MPFR computation successful - returning high-precision results");
             return mpfr_result;

@@ -177,7 +177,14 @@ struct ptd_graph {
     enum ptd_edge_mode edge_mode;  // Locked after first non-IPV edge added
     struct ptd_desc_reward_compute *reward_compute_graph;
     struct ptd_desc_reward_compute_parameterized *parameterized_reward_compute_graph;
-    struct ptd_desc_reward_compute_mpfr *reward_compute_graph_mpfr;  // MPFR version (cached)
+    /* DEPRECATED (MPFR-A-WP-3): the MPFR-precision compute
+     * graph. Used only when PHASIC_USE_MPFR_LEGACY=1 selects
+     * the old re-elimination path. The default (and recommended)
+     * path is now the MPFR-A consumer that operates on the
+     * regular reward_compute_graph at high precision. This
+     * field will be removed once the legacy opt-in is no
+     * longer needed. */
+    struct ptd_desc_reward_compute_mpfr *reward_compute_graph_mpfr;  // DEPRECATED: see MPFR-A
     bool was_dph;
 
     /* Elimination ordering strategy */
