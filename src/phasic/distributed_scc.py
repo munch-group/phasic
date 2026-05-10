@@ -287,3 +287,174 @@ def read_work_unit(path: str) -> dict[str, Any]:
     """
     with open(path, "r") as f:
         return json.load(f)
+
+
+# ---------------------------------------------------------------
+# SLURM-WP-2: orchestrator — level-set computation
+# ---------------------------------------------------------------
+
+
+def compute_scc_levels(scc_graph) -> list[list[int]]:
+    """Group SCCs by sink-first level (longest path to a sink).
+
+    SCCs at the same level are mutually independent — they have
+    no edges to each other in the condensation — so they can be
+    computed in parallel. Level 0 contains pure sinks (SCCs with
+    no outgoing edges), level 1 contains SCCs whose only
+    descendants are at level 0, and so on.
+
+    This mirrors the level computation inside the C composer
+    (``ptd_compose_scc_prcs``, WP-6) so the orchestrator's view
+    of parallelisable groups matches what the composer actually
+    schedules.
+
+    Parameters
+    ----------
+    scc_graph
+        An SCCGraph from ``Graph.scc_decomposition()``.
+
+    Returns
+    -------
+    list of list of int
+        ``levels[l]`` is the list of SCC indices at level ``l``.
+        Levels are returned in compute order (level 0 first), so
+        a worker pool can iterate over the outer list and submit
+        each inner list as a parallel batch.
+
+    Examples
+    --------
+    >>> scc_decomp = graph.scc_decomposition()
+    >>> levels = compute_scc_levels(scc_decomp)
+    >>> for level_set in levels:
+    ...     # All SCCs in level_set are independent.
+    ...     submit_workers_for(level_set)
+    """
+    n = len(scc_graph)
+    # outgoing[i] = list of SCC indices reachable from SCC i.
+    outgoing = [list(scc_graph.scc_at(i).outgoing_scc_edges())
+                for i in range(n)]
+
+    # level_of[i] = 1 + max(level_of[j] for j in outgoing[i]),
+    # or 0 if outgoing is empty. Compute via DFS / memoisation.
+    level_of: list[int] = [-1] * n
+
+    def _level(i: int) -> int:
+        if level_of[i] >= 0:
+            return level_of[i]
+        if not outgoing[i]:
+            level_of[i] = 0
+            return 0
+        level_of[i] = 1 + max(_level(j) for j in outgoing[i])
+        return level_of[i]
+
+    for i in range(n):
+        _level(i)
+
+    max_level = max(level_of) if level_of else 0
+    levels: list[list[int]] = [[] for _ in range(max_level + 1)]
+    for i, lev in enumerate(level_of):
+        levels[lev].append(i)
+    return levels
+
+
+def scc_cache_path_for_synth(synth) -> str:
+    """Return the on-disk cache path for a synthetic SCC graph.
+
+    Mirrors the C-level ``ptd_scc_build_cache_path``: the
+    filename is ``scc_<content_hash>.bin`` under
+    ``<cache_root>/parameterized_reward_compute/``, where
+    ``<cache_root>`` honours ``PHASIC_CACHE_DIR``.
+
+    Used by orchestrators to check whether a worker needs to
+    run for a given SCC, without going through the C cache
+    layer.
+
+    Parameters
+    ----------
+    synth
+        A synthetic SCC graph (from
+        ``SCCVertex.as_synthetic_graph()``).
+
+    Returns
+    -------
+    str
+        Absolute path to the cache file (which may or may not
+        exist on disk).
+    """
+    from phasic.cache import _param_compute_cache_dir
+    from phasic.phasic_pybind import hash as _hash_mod
+    h = _hash_mod.compute_graph_hash(synth)
+    return str(_param_compute_cache_dir() / f"scc_{h.hash_hex}.bin")
+
+
+def find_missing_sccs(scc_graph) -> list[int]:
+    """Return the list of SCC indices whose PRC is not cached.
+
+    For each SCC in the condensation, builds the synthetic graph
+    and checks whether
+    ``<cache_root>/parameterized_reward_compute/scc_<hash>.bin``
+    exists. SCCs whose cache file is present are omitted.
+
+    The orchestrator uses this to decide which work units to
+    submit to workers — already-cached SCCs are free to compose
+    without further work.
+
+    Parameters
+    ----------
+    scc_graph
+        An SCCGraph from ``Graph.scc_decomposition()``.
+
+    Returns
+    -------
+    list of int
+        Indices of SCCs that need (re)computation. Order matches
+        the SCCGraph's natural index order.
+    """
+    import os
+    missing = []
+    for i in range(len(scc_graph)):
+        scc = scc_graph.scc_at(i)
+        synth, _meta = scc.as_synthetic_graph()
+        path = scc_cache_path_for_synth(synth)
+        if not os.path.exists(path):
+            missing.append(i)
+    return missing
+
+
+def plan_distributed_work(
+        scc_graph,
+        only_missing: bool = True) -> list[list[int]]:
+    """Plan distributed work as a list of level-sets to submit.
+
+    Combines :func:`compute_scc_levels` and
+    :func:`find_missing_sccs`: returns the level-sets from the
+    SCC condensation, with already-cached SCCs filtered out
+    when ``only_missing=True`` (the default).
+
+    The orchestrator iterates over the returned levels and
+    submits one batch of workers per level. SCCs in earlier
+    levels (closer to sinks) MUST complete before SCCs in later
+    levels are submitted — though within a level, all SCCs are
+    independent.
+
+    Parameters
+    ----------
+    scc_graph
+        An SCCGraph.
+    only_missing
+        When ``True`` (default), drop SCCs that already have a
+        cache entry. When ``False``, return all levels including
+        cached SCCs (useful for unconditional recomputation).
+
+    Returns
+    -------
+    list of list of int
+        ``plan[l]`` is the list of SCC indices to submit at
+        level ``l``. May be empty for levels where all SCCs are
+        cached.
+    """
+    levels = compute_scc_levels(scc_graph)
+    if not only_missing:
+        return levels
+    missing = set(find_missing_sccs(scc_graph))
+    return [[i for i in lvl if i in missing] for lvl in levels]
