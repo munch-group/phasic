@@ -291,6 +291,10 @@ def scc_compose_stats() -> dict[str, Any]:
           loaded from disk
         - ``cache_misses``: number of times the per-SCC PRC was
           recomputed (and saved on first miss)
+        - ``cache_bypassed``: number of SCCs whose synth was
+          smaller than ``PHASIC_MIN_SCC_SIZE_TO_CACHE`` and so
+          skipped the cache entirely (no load attempt, no save).
+          NOT counted as a hit or miss.
         - ``compose_calls``: number of ``ptd_compose_scc_prcs``
           invocations (one per top-level
           ``Graph.expected_waiting_time`` taking the hierarchical

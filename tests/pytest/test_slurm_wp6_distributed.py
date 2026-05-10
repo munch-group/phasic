@@ -29,6 +29,13 @@ from toy_model import build_toy_b
 THETA = [1.0, 1.0, 1.0, 1.0]
 
 
+@pytest.fixture(autouse=True)
+def _force_cache_all_sccs(monkeypatch):
+    """Override the size threshold so every SCC produces a
+    cache entry; distributed tests check cache hit counts."""
+    monkeypatch.setenv("PHASIC_MIN_SCC_SIZE_TO_CACHE", "0")
+
+
 def test_precompute_distributed_local_populates_cache(tmp_path, monkeypatch):
     """Running precompute_distributed locally on an empty cache
     populates every SCC's PRC. A subsequent hierarchical compose

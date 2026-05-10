@@ -34,6 +34,13 @@ from toy_model import build_toy_b
 THETA = [1.0, 1.0, 1.0, 1.0]
 
 
+@pytest.fixture(autouse=True)
+def _force_cache_all_sccs(monkeypatch):
+    """Override the size threshold so every SCC produces a
+    cache entry; the worker tests count cache files."""
+    monkeypatch.setenv("PHASIC_MIN_SCC_SIZE_TO_CACHE", "0")
+
+
 def _make_work_unit(tmp_path: Path, scc_idx: int = 1) -> Path:
     """Build a single work unit for toy_b SCC scc_idx."""
     g = build_toy_b()

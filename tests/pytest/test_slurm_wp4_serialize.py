@@ -27,6 +27,14 @@ from toy_model import build_toy_b
 THETA = [1.0, 1.0, 1.0, 1.0]
 
 
+@pytest.fixture(autouse=True)
+def _force_cache_all_sccs(monkeypatch):
+    """Override the size threshold so every SCC participates in
+    the cache; tests here validate the worker-orchestrator
+    cache hand-off, not the threshold."""
+    monkeypatch.setenv("PHASIC_MIN_SCC_SIZE_TO_CACHE", "0")
+
+
 def test_serialize_returns_json_friendly_dict():
     """Serialised work unit contains only plain Python types
     that survive json.dumps()."""

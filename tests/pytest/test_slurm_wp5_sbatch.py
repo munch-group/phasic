@@ -26,6 +26,13 @@ from toy_model import build_toy_b
 THETA = [1.0, 1.0, 1.0, 1.0]
 
 
+@pytest.fixture(autouse=True)
+def _force_cache_all_sccs(monkeypatch):
+    """Override the size threshold so every SCC produces a
+    cache entry; sbatch / local-fallback tests count files."""
+    monkeypatch.setenv("PHASIC_MIN_SCC_SIZE_TO_CACHE", "0")
+
+
 def test_generate_sbatch_script_has_required_directives(tmp_path):
     work_units = [str(tmp_path / "wu_0.json"),
                   str(tmp_path / "wu_1.json")]

@@ -1431,6 +1431,10 @@ struct ptd_scc_compose_stats {
     uint64_t cache_misses;
     uint64_t compose_calls;
     uint64_t total_compose_ns;
+    /* SCCs whose synth was below PHASIC_MIN_SCC_SIZE_TO_CACHE
+     * and so bypassed the cache entirely (no load attempt, no
+     * save). These are NOT counted as hits or misses. */
+    uint64_t cache_bypassed;
 };
 
 void ptd_scc_compose_stats_get(struct ptd_scc_compose_stats *out);
@@ -1442,6 +1446,7 @@ void ptd_scc_compose_stats_reset(void);
  * public API. */
 void ptd_scc_compose_stats_record_hit(void);
 void ptd_scc_compose_stats_record_miss(void);
+void ptd_scc_compose_stats_record_bypass(void);
 
 struct ptd_phase_type_distribution {
     size_t length;

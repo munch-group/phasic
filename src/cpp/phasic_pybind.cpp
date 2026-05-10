@@ -3600,6 +3600,7 @@ str
             d["cache_misses"] = s.cache_misses;
             d["compose_calls"] = s.compose_calls;
             d["total_compose_ns"] = s.total_compose_ns;
+            d["cache_bypassed"] = s.cache_bypassed;
             return d;
         },
         "Return SCC composer telemetry counters as a dict.");

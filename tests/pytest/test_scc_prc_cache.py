@@ -30,6 +30,13 @@ from toy_model import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _force_cache_all_sccs(monkeypatch):
+    """Override the size threshold so every SCC produces a cache
+    file; this file's tests assert on cache file existence."""
+    monkeypatch.setenv("PHASIC_MIN_SCC_SIZE_TO_CACHE", "0")
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

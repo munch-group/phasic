@@ -66,6 +66,21 @@ static int ptd_scc_cache_disabled(void) {
     return v != NULL && v[0] == '1' && v[1] == '\0';
 }
 
+/* Read PHASIC_MIN_SCC_SIZE_TO_CACHE: SCCs whose synthetic graph
+ * has fewer than this many vertices skip the cache entirely
+ * (no load attempt, no save). Default 4 — small SCCs eliminate
+ * trivially and the disk I/O cost dominates the elimination
+ * cost we'd save. Set to 0 to disable the threshold (cache
+ * everything). */
+static size_t ptd_scc_min_cache_size(void) {
+    const char *v = getenv("PHASIC_MIN_SCC_SIZE_TO_CACHE");
+    if (v == NULL) return 4;  /* default */
+    char *end = NULL;
+    long parsed = strtol(v, &end, 10);
+    if (end == v || parsed < 0) return 4;
+    return (size_t)parsed;
+}
+
 /* Build the cache file path for a per-SCC PRC:
  *   <home>/.phasic_cache/parameterized_reward_compute/scc_<hash_hex>.bin
  * Creates parent directories on demand (mkdir -p style).
@@ -1118,11 +1133,22 @@ ptd_synth_get_or_compute_prc(struct ptd_graph *synth)
         return NULL;
     }
 
+    /* Skip the cache entirely for SCCs whose synth is below the
+     * size threshold. The elimination is cheap and we'd just be
+     * paying disk I/O. Hashing alone (in
+     * ptd_scc_build_cache_path) is also non-trivial for small
+     * SCCs that elsewhere take microseconds. */
+    size_t min_size = ptd_scc_min_cache_size();
+    int below_threshold = (min_size > 0 && synth->vertices_length < min_size);
+    if (below_threshold) {
+        ptd_scc_compose_stats_record_bypass();
+    }
+
     /* Build the cache file path (also computes the synthetic
      * graph's content hash internally). */
     char cache_path[PATH_MAX];
     int have_path = 0;
-    if (!ptd_scc_cache_disabled()) {
+    if (!ptd_scc_cache_disabled() && !below_threshold) {
         if (ptd_scc_build_cache_path(synth, cache_path,
                                      sizeof(cache_path)) == 0) {
             have_path = 1;

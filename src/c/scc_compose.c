@@ -47,6 +47,7 @@ static uint64_t g_cache_hits = 0;
 static uint64_t g_cache_misses = 0;
 static uint64_t g_compose_calls = 0;
 static uint64_t g_total_compose_ns = 0;
+static uint64_t g_cache_bypassed = 0;
 
 static void atomic_add_u64(uint64_t *dst, uint64_t delta)
 {
@@ -60,6 +61,7 @@ static void atomic_add_u64(uint64_t *dst, uint64_t delta)
 
 void ptd_scc_compose_stats_record_hit(void) { atomic_add_u64(&g_cache_hits, 1); }
 void ptd_scc_compose_stats_record_miss(void) { atomic_add_u64(&g_cache_misses, 1); }
+void ptd_scc_compose_stats_record_bypass(void) { atomic_add_u64(&g_cache_bypassed, 1); }
 
 void ptd_scc_compose_stats_get(struct ptd_scc_compose_stats *out)
 {
@@ -70,6 +72,7 @@ void ptd_scc_compose_stats_get(struct ptd_scc_compose_stats *out)
     out->cache_misses = g_cache_misses;
     out->compose_calls = g_compose_calls;
     out->total_compose_ns = g_total_compose_ns;
+    out->cache_bypassed = g_cache_bypassed;
 }
 
 void ptd_scc_compose_stats_reset(void)
@@ -78,6 +81,7 @@ void ptd_scc_compose_stats_reset(void)
     g_cache_misses = 0;
     g_compose_calls = 0;
     g_total_compose_ns = 0;
+    g_cache_bypassed = 0;
 }
 
 static uint64_t monotonic_ns(void)
@@ -85,6 +89,24 @@ static uint64_t monotonic_ns(void)
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return (uint64_t)ts.tv_sec * 1000000000ull + (uint64_t)ts.tv_nsec;
+}
+
+/* Read PHASIC_MAX_PARALLEL_SCCS: cap on simultaneous per-SCC
+ * computes within a level. Defaults to 0 (no cap — use OpenMP's
+ * default thread count). When set, the cap is enforced as the
+ * per-level limit regardless of OMP_NUM_THREADS, so users can
+ * keep OpenMP threads available for inner work (e.g. each SCC's
+ * own eliminator) while limiting the SCC-level fan-out for
+ * memory-pressure reasons. */
+static int ptd_scc_max_parallel(void)
+{
+    const char *v = getenv("PHASIC_MAX_PARALLEL_SCCS");
+    if (v == NULL) return 0;
+    char *end = NULL;
+    long parsed = strtol(v, &end, 10);
+    if (end == v || parsed < 1) return 0;
+    if (parsed > 1024) return 1024;  /* sanity cap */
+    return (int)parsed;
 }
 
 /* Per-SCC processor: build synth + PRC, override per-channel
@@ -434,7 +456,27 @@ static double *ptd_compose_scc_prcs_inner(
         }
 
 #ifdef PHASIC_HAVE_OPENMP
-        #pragma omp parallel for schedule(dynamic) if(l_size > 1)
+        /* Determine the per-level thread count. PHASIC_MAX_PARALLEL_SCCS
+         * caps fan-out within this level; if unset, OpenMP picks
+         * its default (usually OMP_NUM_THREADS). We never exceed
+         * the level's actual SCC count.
+         *
+         * The cap applies only to the SCC-level parallel-for, not
+         * to any nested OpenMP regions inside individual SCC
+         * eliminations — those still see the full OMP_NUM_THREADS.
+         * This lets users say "limit SCC-level fan-out to 4 but
+         * keep all 32 threads available for whatever the inner
+         * eliminator does." */
+        int max_par = ptd_scc_max_parallel();
+        int omp_threads;
+        if (max_par > 0 && (size_t)max_par < l_size) {
+            omp_threads = max_par;
+        } else {
+            omp_threads = (int)l_size;
+            if (omp_threads < 1) omp_threads = 1;
+        }
+        #pragma omp parallel for schedule(dynamic) if(l_size > 1) \
+                num_threads(omp_threads)
 #endif
         for (size_t li = 0; li < l_size; ++li) {
             size_t i = level_indices[l_start + li];

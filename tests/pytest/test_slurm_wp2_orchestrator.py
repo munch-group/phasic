@@ -28,6 +28,14 @@ from toy_model import BUILDERS, build_toy_b
 THETA = [1.0, 1.0, 1.0, 1.0]
 
 
+@pytest.fixture(autouse=True)
+def _force_cache_all_sccs(monkeypatch):
+    """Override the size threshold so every SCC participates in
+    the cache; orchestrator tests check missing/cached SCC
+    counts and would otherwise depend on toy_b SCC sizes."""
+    monkeypatch.setenv("PHASIC_MIN_SCC_SIZE_TO_CACHE", "0")
+
+
 def test_compute_levels_partitions_all_sccs():
     """Every SCC index appears exactly once across all levels."""
     g = build_toy_b()

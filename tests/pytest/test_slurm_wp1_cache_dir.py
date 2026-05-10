@@ -24,6 +24,14 @@ from toy_model import build_toy_b
 THETA = [1.0, 1.0, 1.0, 1.0]
 
 
+@pytest.fixture(autouse=True)
+def _force_cache_all_sccs(monkeypatch):
+    """Override the size threshold so every SCC participates in
+    the cache; tests in this file validate cache mechanics, not
+    the threshold."""
+    monkeypatch.setenv("PHASIC_MIN_SCC_SIZE_TO_CACHE", "0")
+
+
 def test_python_cache_dir_honours_override(tmp_path, monkeypatch):
     """phasic.cache._param_compute_cache_dir() respects
     PHASIC_CACHE_DIR."""

@@ -24,6 +24,15 @@ from toy_model import BUILDERS, build_toy_b
 THETA = [1.0, 1.0, 1.0, 1.0]
 
 
+@pytest.fixture(autouse=True)
+def _force_cache_all_sccs(monkeypatch):
+    """This file tests cache mechanics, not the size threshold.
+    Force PHASIC_MIN_SCC_SIZE_TO_CACHE=0 so toy_b's small SCCs
+    (some have synth size < 4) participate in the cache and
+    contribute to cache_hits/cache_misses."""
+    monkeypatch.setenv("PHASIC_MIN_SCC_SIZE_TO_CACHE", "0")
+
+
 def _clear_disk_cache():
     """Wipe ~/.phasic_cache/parameterized_reward_compute/ between tests
     that need controlled cache state."""
