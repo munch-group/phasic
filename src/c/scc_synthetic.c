@@ -1097,6 +1097,74 @@ fail_oom:
  * WP-4: per-SCC PRC compute and disk cache.
  * ----------------------------------------------------------------- */
 
+/* SLURM-WP-4: synth-only cache-or-compute. Operates on an
+ * already-built synthetic graph (from ptd_scc_build_synthetic_graph
+ * or from JSON deserialisation in a worker). Builds the cache
+ * path, tries to load, and on miss runs the eliminator and saves.
+ *
+ * Used both by ptd_scc_get_or_compute_prc (which wraps the
+ * synth-build step) and by the worker CLI in distributed mode.
+ *
+ * Returns the PRC on success (caller owns and must destroy via
+ * ptd_parameterized_reward_compute_graph_destroy unless installed
+ * on a graph). NULL on failure (sets ptd_err). The synth itself
+ * is NOT freed by this function. */
+struct ptd_desc_reward_compute_parameterized *
+ptd_synth_get_or_compute_prc(struct ptd_graph *synth)
+{
+    if (synth == NULL) {
+        snprintf(ptd_err, sizeof_ptd_err,
+                 "ptd_synth_get_or_compute_prc: NULL synth");
+        return NULL;
+    }
+
+    /* Build the cache file path (also computes the synthetic
+     * graph's content hash internally). */
+    char cache_path[PATH_MAX];
+    int have_path = 0;
+    if (!ptd_scc_cache_disabled()) {
+        if (ptd_scc_build_cache_path(synth, cache_path,
+                                     sizeof(cache_path)) == 0) {
+            have_path = 1;
+        } else {
+            ptd_err[0] = '\0';
+        }
+    }
+
+    /* Try to load. */
+    if (have_path) {
+        struct ptd_desc_reward_compute_parameterized *loaded =
+                ptd_load_parameterized_reward_compute_graph(
+                        cache_path, synth);
+        ptd_err[0] = '\0';  /* swallow load-miss error message */
+
+        if (loaded != NULL) {
+            ptd_scc_compose_stats_record_hit();  /* WP-8 */
+            return loaded;
+        }
+        ptd_scc_compose_stats_record_miss();  /* WP-8 */
+    }
+
+    /* Cache miss (or disabled). Run the eliminator. */
+    struct ptd_desc_reward_compute_parameterized *prc =
+            ptd_graph_ex_absorbation_time_comp_graph_parameterized(synth);
+    if (prc == NULL) {
+        if (ptd_err[0] == '\0') {
+            snprintf(ptd_err, sizeof_ptd_err,
+                     "ptd_synth_get_or_compute_prc: elimination returned NULL");
+        }
+        return NULL;
+    }
+
+    /* Best-effort save. */
+    if (have_path) {
+        (void)ptd_save_parameterized_reward_compute_graph(
+                cache_path, prc, synth);
+        ptd_err[0] = '\0';
+    }
+    return prc;
+}
+
 struct ptd_desc_reward_compute_parameterized *
 ptd_scc_get_or_compute_prc(
         const struct ptd_scc_graph *scc_graph,
@@ -1113,83 +1181,21 @@ ptd_scc_get_or_compute_prc(
         return NULL;
     }
 
-    /* Step 1: build the synthetic graph + metadata. */
+    /* Build the synthetic graph + metadata. */
     struct ptd_graph *synth = ptd_scc_build_synthetic_graph(
             scc_graph, scc_index, metadata_out);
     if (synth == NULL) {
-        /* ptd_err already set by ptd_scc_build_synthetic_graph. */
         return NULL;
     }
 
-    /* Step 2 + 3: build the cache file path (also computes the
-     * synthetic graph's content hash internally). */
-    char cache_path[PATH_MAX];
-    int have_path = 0;
-    if (!ptd_scc_cache_disabled()) {
-        if (ptd_scc_build_cache_path(synth, cache_path,
-                                     sizeof(cache_path)) == 0) {
-            have_path = 1;
-        } else {
-            /* Path build failed (e.g. HOME unset). Treat as
-             * cache disabled and proceed to recompute without
-             * saving. Clear ptd_err so the failure doesn't look
-             * like a real error to the caller. */
-            ptd_err[0] = '\0';
-        }
-    }
-
-    /* Step 4: try to load. We save and load the per-SCC PRC as
-     * a rev-1 file (no EXTERNAL pointers); the saved pointers
-     * reference live edge weight slots in the synthetic graph,
-     * which the composer (WP-5) overrides at compose time via
-     * ptd_edge_update_weight. */
-    if (have_path) {
-        struct ptd_desc_reward_compute_parameterized *loaded =
-                ptd_load_parameterized_reward_compute_graph(
-                        cache_path, synth);
-
-        ptd_err[0] = '\0';  /* swallow load-miss error message */
-
-        if (loaded != NULL) {
-            ptd_scc_compose_stats_record_hit();  /* WP-8 */
-            *synth_out = synth;
-            return loaded;
-        }
-        /* Fall through to rebuild path on miss. */
-        ptd_scc_compose_stats_record_miss();  /* WP-8 */
-    }
-
-    /* Step 5: cache miss (or disabled). Run the eliminator on the
-     * synthetic graph. */
+    /* Delegate cache-or-compute to the synth-only helper. */
     struct ptd_desc_reward_compute_parameterized *prc =
-            ptd_graph_ex_absorbation_time_comp_graph_parameterized(synth);
+            ptd_synth_get_or_compute_prc(synth);
     if (prc == NULL) {
         ptd_graph_destroy(synth);
         ptd_scc_synthetic_metadata_destroy(*metadata_out);
         *metadata_out = NULL;
-        if (ptd_err[0] == '\0') {
-            snprintf(ptd_err, sizeof_ptd_err,
-                     "ptd_scc_get_or_compute_prc: elimination returned NULL");
-        }
         return NULL;
-    }
-
-    /* Step 6 + 7: best-effort save. Failures here are non-fatal —
-     * we still return the in-memory PRC.
-     *
-     * NOTE: WP-5's composer uses direct edge-weight overrides
-     * (via ptd_edge_update_weight) at compose time, not the
-     * EXTERNAL pointer scheme from WP-3. Saving the PRC with
-     * EXTERNAL anchors would freeze the placeholder weights into
-     * the loaded compute graph's pointer slots, making compose-
-     * time overrides invisible. So we save without EXTERNAL
-     * anchors (rev-1 format), letting the saved PRC's pointers
-     * reference live edge weight slots that compose-time overrides
-     * mutate. */
-    if (have_path) {
-        (void)ptd_save_parameterized_reward_compute_graph(
-                cache_path, prc, synth);
-        ptd_err[0] = '\0';  /* swallow save errors */
     }
 
     *synth_out = synth;

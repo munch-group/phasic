@@ -1374,6 +1374,27 @@ double *ptd_compose_scc_prcs(
         const double *theta,
         size_t theta_len);
 
+/* SLURM-WP-4: synth-only cache-or-compute.
+ *
+ * Operates on an already-built synthetic SCC graph (from
+ * ptd_scc_build_synthetic_graph, or from JSON deserialisation
+ * in a distributed worker). Builds the cache path from the
+ * synth's content hash, tries to load, and on miss runs the
+ * parameterised eliminator and saves the result.
+ *
+ * Used by ptd_scc_get_or_compute_prc (after the synth-build
+ * step) and intended for direct use by the standalone worker
+ * CLI in SLURM distributed mode (SLURM-WP-3).
+ *
+ * @param synth Synthetic SCC graph. Must be non-NULL.
+ * @return PRC on success (caller owns; destroy via
+ *         ptd_parameterized_reward_compute_graph_destroy unless
+ *         installed on a graph), NULL on error (sets ptd_err).
+ *         The synth itself is NOT freed by this function.
+ */
+struct ptd_desc_reward_compute_parameterized *
+ptd_synth_get_or_compute_prc(struct ptd_graph *synth);
+
 /* Thread-local re-entrancy guard for the composer. While
  * ptd_compose_scc_prcs is running on the current thread, inner
  * ptd_expected_waiting_time calls on synthetic SCC subgraphs

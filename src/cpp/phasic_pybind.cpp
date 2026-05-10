@@ -3554,6 +3554,41 @@ str
       });
 
   // =========================================================================
+  // SLURM-WP-4: synth-only cache-or-compute
+  // =========================================================================
+  m.def("_synth_get_or_compute_prc",
+        [](phasic::Graph& synth) {
+            // Cache-or-compute the PRC for an arbitrary synthetic
+            // graph. Returns a dict with cache outcome metadata.
+            // Used by the distributed worker CLI to populate the
+            // shared SCC PRC cache without needing the full parent
+            // graph.
+            //
+            // Internally calls ptd_synth_get_or_compute_prc, which
+            // bumps the WP-8 cache hit/miss counters. Callers can
+            // observe the outcome via scc_compose_stats() before
+            // and after.
+            ptd_err[0] = '\0';
+            struct ptd_desc_reward_compute_parameterized *prc =
+                    ptd_synth_get_or_compute_prc(synth.c_graph());
+            if (prc == NULL) {
+                std::string err((const char *)ptd_err);
+                ptd_err[0] = '\0';
+                throw std::runtime_error(
+                        std::string("synth_get_or_compute_prc failed: ") + err);
+            }
+            // We don't return the PRC to Python — workers don't
+            // need it; the side effect (cache file written) is
+            // the contract. Free it here.
+            ptd_parameterized_reward_compute_graph_destroy(prc);
+            return py::none();
+        },
+        py::arg("synth"),
+        "SLURM-WP-4: cache-or-compute the PRC for a synthetic "
+        "SCC graph. Side effect: writes ~/.phasic_cache/.../scc_<hash>.bin "
+        "if not already present. Used by the distributed worker.");
+
+  // =========================================================================
   // WP-8: SCC composer telemetry
   // =========================================================================
   m.def("_scc_compose_stats_get",
