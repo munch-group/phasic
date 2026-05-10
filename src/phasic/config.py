@@ -175,6 +175,21 @@ class PTDAlgorithmsConfig:
     condition_threshold: float = 1e12  # Auto-activate MPFR when condition > threshold (lowered from 1e20 for better default)
     enable_condition_warnings: bool = True  # Log warnings for ill-conditioned operations
 
+    # Hierarchical SCC composer settings.
+    #
+    # The composer routes Graph.expected_waiting_time through a
+    # per-SCC compose path with disk-cached per-SCC PRCs. None
+    # means "leave the corresponding env var untouched"; a
+    # concrete value is written into os.environ on validate().
+    hierar_elimination: bool = False  # PHASIC_HIERAR_ELIMINATION
+    min_scc_size_to_cache: int | None = None  # PHASIC_MIN_SCC_SIZE_TO_CACHE; None = use C default (4)
+    max_parallel_sccs: int | None = None  # PHASIC_MAX_PARALLEL_SCCS; None = OpenMP default (no cap)
+
+    # On-disk cache settings (parameterised reward compute graph
+    # + per-SCC PRCs share ~/.phasic_cache/).
+    disable_cache: bool = False  # PHASIC_DISABLE_CACHE
+    cache_dir: str | None = None  # PHASIC_CACHE_DIR; None = default ($HOME/.phasic_cache)
+
     # Internal tracking
     _validated: bool = field(default=False, init=False, repr=False)
     _jax_imported: bool = field(default=False, init=False, repr=False)
@@ -319,6 +334,41 @@ class PTDAlgorithmsConfig:
         else:
             os.environ.pop('PHASIC_DISABLE_CONDITION_WARNINGS', None)
 
+        # Hierarchical SCC composer settings. configure() always
+        # wins over a pre-existing env var: if the field is set
+        # to a concrete value (not None / not False default), we
+        # overwrite the env var; if the field is None, we leave
+        # the env var alone (user may have set it explicitly in
+        # the shell, e.g. via SLURM job script).
+        if self.hierar_elimination:
+            os.environ['PHASIC_HIERAR_ELIMINATION'] = '1'
+        else:
+            os.environ.pop('PHASIC_HIERAR_ELIMINATION', None)
+
+        if self.min_scc_size_to_cache is not None:
+            if self.min_scc_size_to_cache < 0:
+                errors.append(
+                    "min_scc_size_to_cache must be non-negative")
+            else:
+                os.environ['PHASIC_MIN_SCC_SIZE_TO_CACHE'] = str(
+                    self.min_scc_size_to_cache)
+
+        if self.max_parallel_sccs is not None:
+            if self.max_parallel_sccs < 1:
+                errors.append(
+                    "max_parallel_sccs must be >= 1 (use None for no cap)")
+            else:
+                os.environ['PHASIC_MAX_PARALLEL_SCCS'] = str(
+                    self.max_parallel_sccs)
+
+        if self.disable_cache:
+            os.environ['PHASIC_DISABLE_CACHE'] = '1'
+        else:
+            os.environ.pop('PHASIC_DISABLE_CACHE', None)
+
+        if self.cache_dir is not None:
+            os.environ['PHASIC_CACHE_DIR'] = str(self.cache_dir)
+
         # Handle errors/warnings
         if warnings and self.verbose:
             for w in warnings:
@@ -444,8 +494,12 @@ def configure(**kwargs) -> None:
     Parameters
     ----------
     **kwargs
-        Configuration options (see PTDAlgorithmsConfig for details)
-        Valid options: jax, jit, ffi, openmp, strict, platform, backend, verbose
+        Configuration options (see PTDAlgorithmsConfig for details).
+        Valid options: jax, jit, ffi, openmp, strict, platform,
+        backend, verbose, force_high_precision, mpfr_precision_bits,
+        condition_threshold, enable_condition_warnings,
+        hierar_elimination, min_scc_size_to_cache, max_parallel_sccs,
+        disable_cache, cache_dir.
 
     Raises
     ------
@@ -468,25 +522,45 @@ def configure(**kwargs) -> None:
     >>> # Pure C++ (no JAX)
     >>> ptd.configure(jax=False, jit=False, backend='cpp')
 
+    >>> # Hierarchical SCC composer with custom controls
+    >>> ptd.configure(
+    ...     hierar_elimination=True,
+    ...     min_scc_size_to_cache=8,   # only cache SCCs with synth >= 8 vertices
+    ...     max_parallel_sccs=4,       # cap simultaneous SCC computes at 4
+    ...     cache_dir="/scratch/phasic_cache",  # shared filesystem on cluster
+    ... )
+
     >>> # Check what's available first
     >>> print(ptd.get_available_options())
     >>> ptd.configure(jax=True, jit=True)
+
+    Notes
+    -----
+    When configure() and an environment variable both set the
+    same field, configure() wins. Fields with value None do not
+    overwrite the corresponding env var, so leaving a knob alone
+    in configure() preserves shell-level overrides (useful for
+    SLURM job scripts).
     """
     global _global_config
 
-    # Create new config with provided kwargs
+    # Validate kwargs up-front so PTDAlgorithmsConfig() doesn't
+    # raise a generic TypeError for unknown options.
+    valid_fields = {f.name for f in PTDAlgorithmsConfig.__dataclass_fields__.values()
+                    if not f.name.startswith("_")}
+    for key in kwargs:
+        if key not in valid_fields:
+            raise PTDConfigError(
+                f"Unknown configuration option: {key}\n"
+                f"Valid options: {', '.join(sorted(valid_fields))}"
+            )
+
+    # Create new config with provided kwargs, or update existing.
     if _global_config is None:
         _global_config = PTDAlgorithmsConfig(**kwargs)
     else:
-        # Update existing config
         for key, value in kwargs.items():
-            if hasattr(_global_config, key):
-                setattr(_global_config, key, value)
-            else:
-                raise PTDConfigError(
-                    f"Unknown configuration option: {key}\n"
-                    f"Valid options: jax, jit, ffi, openmp, strict, platform, backend, verbose"
-                )
+            setattr(_global_config, key, value)
 
     # Validate
     _global_config.validate()
@@ -519,6 +593,31 @@ def get_config() -> PTDAlgorithmsConfig:
         if os.getenv('PHASIC_JAX') == '0':
             kwargs['jax'] = False
             kwargs['jit'] = False
+
+        # SCC + cache env-var overrides. Mirror the C-side
+        # readers so get_config() reflects what the C code will
+        # actually see at runtime.
+        if os.getenv('PHASIC_HIERAR_ELIMINATION') == '1':
+            kwargs['hierar_elimination'] = True
+        if os.getenv('PHASIC_DISABLE_CACHE') == '1':
+            kwargs['disable_cache'] = True
+        cache_dir_env = os.getenv('PHASIC_CACHE_DIR')
+        if cache_dir_env:
+            kwargs['cache_dir'] = cache_dir_env
+        min_scc = os.getenv('PHASIC_MIN_SCC_SIZE_TO_CACHE')
+        if min_scc is not None:
+            try:
+                kwargs['min_scc_size_to_cache'] = int(min_scc)
+            except ValueError:
+                pass  # malformed env var; let C-side default kick in
+        max_par = os.getenv('PHASIC_MAX_PARALLEL_SCCS')
+        if max_par is not None:
+            try:
+                parsed = int(max_par)
+                if parsed >= 1:
+                    kwargs['max_parallel_sccs'] = parsed
+            except ValueError:
+                pass
 
         # Create default config with env overrides
         _global_config = PTDAlgorithmsConfig(**kwargs)
