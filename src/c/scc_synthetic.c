@@ -1160,10 +1160,12 @@ ptd_scc_get_or_compute_prc(
         ptd_err[0] = '\0';  /* swallow load-miss error message */
 
         if (loaded != NULL) {
+            ptd_scc_compose_stats_record_hit();  /* WP-8 */
             *synth_out = synth;
             return loaded;
         }
         /* Fall through to rebuild path on miss. */
+        ptd_scc_compose_stats_record_miss();  /* WP-8 */
     }
 
     /* Step 5: cache miss (or disabled). Run the eliminator on the

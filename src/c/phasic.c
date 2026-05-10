@@ -8444,7 +8444,6 @@ double *ptd_expected_waiting_time(struct ptd_graph *graph, double *rewards) {
      * eliminate the synth graph, which is itself the unit of
      * caching). The composer sets ptd_scc_compose_in_progress
      * to suppress recursion. */
-    extern int ptd_scc_compose_in_progress;
     const char *hierar_env = getenv("PHASIC_HIERAR_ELIMINATION");
     bool use_hierarchical = (hierar_env != NULL
                              && hierar_env[0] == '1'

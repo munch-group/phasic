@@ -256,3 +256,53 @@ def clear_all_caches() -> dict[str, int]:
         "param_compute": clear_param_compute_cache(),
         "traces": clear_trace_cache(),
     }
+
+
+def scc_compose_stats() -> dict[str, Any]:
+    """Return SCC composer telemetry counters.
+
+    Counters are process-wide and reflect activity since process
+    start (or the last call to :func:`reset_scc_compose_stats`).
+    They are only populated when the hierarchical compose path is
+    actually invoked — that is, when ``PHASIC_HIERAR_ELIMINATION=1``
+    is set, the graph is parameterised, and ``rewards is None``.
+
+    Returns
+    -------
+    dict
+        A dict with the following keys, all integers:
+
+        - ``cache_hits``: number of times the per-SCC PRC was
+          loaded from disk
+        - ``cache_misses``: number of times the per-SCC PRC was
+          recomputed (and saved on first miss)
+        - ``compose_calls``: number of ``ptd_compose_scc_prcs``
+          invocations (one per top-level
+          ``Graph.expected_waiting_time`` taking the hierarchical
+          path)
+        - ``total_compose_ns``: cumulative wall-clock time spent
+          inside ``ptd_compose_scc_prcs`` (nanoseconds, monotonic
+          clock)
+
+    Examples
+    --------
+    >>> import os, phasic.cache as cache
+    >>> os.environ["PHASIC_HIERAR_ELIMINATION"] = "1"
+    >>> cache.reset_scc_compose_stats()
+    >>> # ... run some hierarchical computations ...
+    >>> stats = cache.scc_compose_stats()
+    >>> hit_rate = stats["cache_hits"] / max(
+    ...     stats["cache_hits"] + stats["cache_misses"], 1)
+    """
+    from phasic.phasic_pybind import _scc_compose_stats_get
+    return _scc_compose_stats_get()
+
+
+def reset_scc_compose_stats() -> None:
+    """Reset SCC composer telemetry counters to zero.
+
+    Useful at the start of a benchmark or test that wants to
+    measure cache behaviour for a specific block of work.
+    """
+    from phasic.phasic_pybind import _scc_compose_stats_reset
+    _scc_compose_stats_reset()

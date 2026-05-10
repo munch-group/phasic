@@ -1348,6 +1348,47 @@ double *ptd_compose_scc_prcs(
         const double *theta,
         size_t theta_len);
 
+/* Thread-local re-entrancy guard for the composer. While
+ * ptd_compose_scc_prcs is running on the current thread, inner
+ * ptd_expected_waiting_time calls on synthetic SCC subgraphs
+ * must NOT take the hierarchical path themselves. Defined in
+ * scc_compose.c. */
+#if defined(__APPLE__) || defined(__linux__)
+#define PTD_SCC_TLS __thread
+#else
+#define PTD_SCC_TLS
+#endif
+extern PTD_SCC_TLS int ptd_scc_compose_in_progress;
+
+/* WP-8: telemetry for the SCC composer.
+ *
+ * The composer maintains process-wide counters of cache hits,
+ * cache misses, total compose calls, and cumulative wall time
+ * spent inside ptd_compose_scc_prcs. Counters are atomic and
+ * safe to read concurrently with composer activity.
+ *
+ * Cache hits are counted when ptd_scc_get_or_compute_prc loads
+ * a per-SCC PRC from disk; misses are counted when it falls
+ * through to recompute. Counters reset on
+ * ptd_scc_compose_stats_reset().
+ */
+struct ptd_scc_compose_stats {
+    uint64_t cache_hits;
+    uint64_t cache_misses;
+    uint64_t compose_calls;
+    uint64_t total_compose_ns;
+};
+
+void ptd_scc_compose_stats_get(struct ptd_scc_compose_stats *out);
+void ptd_scc_compose_stats_reset(void);
+
+/* Internal helpers used by ptd_scc_get_or_compute_prc and
+ * ptd_compose_scc_prcs to bump counters. Exposed so they can
+ * be linked across translation units. Not part of the stable
+ * public API. */
+void ptd_scc_compose_stats_record_hit(void);
+void ptd_scc_compose_stats_record_miss(void);
+
 struct ptd_phase_type_distribution {
     size_t length;
     double *initial_probability_vector;

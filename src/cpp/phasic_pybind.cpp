@@ -3554,6 +3554,26 @@ str
       });
 
   // =========================================================================
+  // WP-8: SCC composer telemetry
+  // =========================================================================
+  m.def("_scc_compose_stats_get",
+        []() {
+            struct ptd_scc_compose_stats s;
+            ptd_scc_compose_stats_get(&s);
+            py::dict d;
+            d["cache_hits"] = s.cache_hits;
+            d["cache_misses"] = s.cache_misses;
+            d["compose_calls"] = s.compose_calls;
+            d["total_compose_ns"] = s.total_compose_ns;
+            return d;
+        },
+        "Return SCC composer telemetry counters as a dict.");
+
+  m.def("_scc_compose_stats_reset",
+        []() { ptd_scc_compose_stats_reset(); },
+        "Reset SCC composer telemetry counters to zero.");
+
+  // =========================================================================
   // Trace Cache Functions
   // =========================================================================
 

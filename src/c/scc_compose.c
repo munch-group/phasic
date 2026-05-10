@@ -1,14 +1,8 @@
-/* Thread-local re-entrancy guard. While the composer is running,
- * inner calls to ptd_expected_waiting_time on synthetic graphs
- * must NOT take the hierarchical-elimination path themselves.
- * The integration in ptd_expected_waiting_time checks this flag
- * before consulting PHASIC_HIERAR_ELIMINATION. */
-#if defined(__APPLE__) || defined(__linux__)
-#define SCC_COMPOSE_TLS __thread
-#else
-#define SCC_COMPOSE_TLS
-#endif
-SCC_COMPOSE_TLS int ptd_scc_compose_in_progress = 0;
+/* Thread-local re-entrancy guard definition. The declaration
+ * (with PTD_SCC_TLS macro) lives in api/c/phasic.h so other
+ * translation units see it as TLS too. */
+#include "../../api/c/phasic.h"
+PTD_SCC_TLS int ptd_scc_compose_in_progress = 0;
 
 /**
  * @file scc_compose.c
@@ -38,10 +32,60 @@ SCC_COMPOSE_TLS int ptd_scc_compose_in_progress = 0;
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
+#include <time.h>
 
 #include "../../api/c/phasic.h"
 
 #define sizeof_ptd_err 4096
+
+/* WP-8: process-wide telemetry counters. Atomic when OpenMP
+ * is available so parallel composer threads can bump them
+ * safely. The counters reflect activity since process start
+ * (or last ptd_scc_compose_stats_reset call). */
+static uint64_t g_cache_hits = 0;
+static uint64_t g_cache_misses = 0;
+static uint64_t g_compose_calls = 0;
+static uint64_t g_total_compose_ns = 0;
+
+static void atomic_add_u64(uint64_t *dst, uint64_t delta)
+{
+#ifdef PHASIC_HAVE_OPENMP
+    #pragma omp atomic
+    *dst += delta;
+#else
+    *dst += delta;
+#endif
+}
+
+void ptd_scc_compose_stats_record_hit(void) { atomic_add_u64(&g_cache_hits, 1); }
+void ptd_scc_compose_stats_record_miss(void) { atomic_add_u64(&g_cache_misses, 1); }
+
+void ptd_scc_compose_stats_get(struct ptd_scc_compose_stats *out)
+{
+    if (out == NULL) return;
+    /* Reads of aligned 8-byte values are atomic on the platforms
+     * we support; we don't bother with explicit barriers. */
+    out->cache_hits = g_cache_hits;
+    out->cache_misses = g_cache_misses;
+    out->compose_calls = g_compose_calls;
+    out->total_compose_ns = g_total_compose_ns;
+}
+
+void ptd_scc_compose_stats_reset(void)
+{
+    g_cache_hits = 0;
+    g_cache_misses = 0;
+    g_compose_calls = 0;
+    g_total_compose_ns = 0;
+}
+
+static uint64_t monotonic_ns(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint64_t)ts.tv_sec * 1000000000ull + (uint64_t)ts.tv_nsec;
+}
 
 /* Per-SCC processor: build synth + PRC, override per-channel
  * edge weights, run elimination, copy results into parent_result.
@@ -169,17 +213,16 @@ static int ptd_compose_scc_one(
     return 0;
 }
 
-double *ptd_compose_scc_prcs(
+/* Inner body. Returns parent_result on success, NULL on
+ * failure. The outer wrapper handles call/timing telemetry
+ * so all early-return paths automatically contribute to
+ * total_compose_ns. */
+static double *ptd_compose_scc_prcs_inner(
         struct ptd_graph *parent,
         const struct ptd_scc_graph *scc_graph,
         const double *theta,
         size_t theta_len)
 {
-    if (parent == NULL || scc_graph == NULL) {
-        snprintf(ptd_err, sizeof_ptd_err,
-                 "ptd_compose_scc_prcs: NULL argument");
-        return NULL;
-    }
     /* Set re-entrancy guard so inner ptd_expected_waiting_time
      * calls on synthetic graphs don't recurse into composition. */
     ptd_scc_compose_in_progress++;
@@ -421,4 +464,34 @@ double *ptd_compose_scc_prcs(
     free(topo_order);
     ptd_scc_compose_in_progress--;
     return parent_result;
+}
+
+/* Public entry point: handles arg validation, call counting,
+ * and timing — then delegates to the inner body. We split it
+ * this way so every early-return path (including OOM and
+ * argument errors) still contributes to total_compose_ns and
+ * compose_calls. */
+double *ptd_compose_scc_prcs(
+        struct ptd_graph *parent,
+        const struct ptd_scc_graph *scc_graph,
+        const double *theta,
+        size_t theta_len)
+{
+    if (parent == NULL || scc_graph == NULL) {
+        snprintf(ptd_err, sizeof_ptd_err,
+                 "ptd_compose_scc_prcs: NULL argument");
+        return NULL;
+    }
+
+    /* WP-8: count + time the compose call. */
+    uint64_t start_ns = monotonic_ns();
+    atomic_add_u64(&g_compose_calls, 1);
+
+    double *result = ptd_compose_scc_prcs_inner(
+            parent, scc_graph, theta, theta_len);
+
+    uint64_t elapsed = monotonic_ns() - start_ns;
+    atomic_add_u64(&g_total_compose_ns, elapsed);
+
+    return result;
 }
