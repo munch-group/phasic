@@ -3144,7 +3144,7 @@ str
   // =========================================================================
   // SCCVertex bindings
   // =========================================================================
-  py::class_<phasic::SCCVertex>(m, "SCCVertex",
+  py::class_<phasic::SCCVertex>(m, "SCCVertex", py::dynamic_attr(),
       "Strongly connected component vertex (one SCC in condensation graph)")
       .def("size", &phasic::SCCVertex::size,
            "Number of vertices in this SCC")
@@ -3186,8 +3186,29 @@ str
       .def("scc_at", &phasic::SCCGraph::scc_at,
            py::return_value_policy::reference_internal,
            "Get SCC vertex by index")
-      .def("sccs_in_topo_order", &phasic::SCCGraph::sccs_in_topo_order,
-           "Get all SCCs in topological order")
+      .def("sccs_in_topo_order", [](py::object self_obj) {
+              // Wrap each SCCVertex copy in a Python object that
+              // explicitly keeps a reference to the parent SCCGraph,
+              // so the parent's C struct outlives any SCCVertex
+              // copy returned. Without the parent reference, code
+              // like:
+              //   scc = g.scc_decomposition().sccs_in_topo_order()[0]
+              // would dangle the parent at end-of-expression.
+              const auto& self = self_obj.cast<const phasic::SCCGraph&>();
+              auto sccs = self.sccs_in_topo_order();
+              py::list result;
+              for (auto& scc : sccs) {
+                  py::object py_scc = py::cast(std::move(scc));
+                  // Bind the parent's lifetime to this SCCVertex
+                  // via Python attribute. py::keep_alive<>() doesn't
+                  // work for list-of-handle returns; this is the
+                  // pybind11-recommended workaround for that case.
+                  py_scc.attr("_parent_ref") = self_obj;
+                  result.append(py_scc);
+              }
+              return result;
+          },
+          "Get all SCCs in topological order")
       .def("scc_sizes", &phasic::SCCGraph::scc_sizes,
            "Get sizes (vertex counts) of all SCCs")
       .def("original_graph", &phasic::SCCGraph::original_graph,
