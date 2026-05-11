@@ -8805,6 +8805,7 @@ extern "C" {{
         author: str | None = None,
         registry_repo: str = 'munch-group/phasic-traces',
         dry_run: bool = False,
+        overwrite_branch: bool = False,
     ) -> str:
         """Publish this graph's compute artifact to the phasic-traces registry.
 
@@ -8836,6 +8837,12 @@ extern "C" {{
         dry_run : bool, default False
             If True, build the artifacts and return a JSON string of the
             would-be entry without cloning or pushing.
+        overwrite_branch : bool, default False
+            If a stale ``phasic-publish/<id>`` branch already exists on
+            the remote (e.g. from an earlier failed push) the call
+            refuses unless this is ``True``. With ``True``, the push
+            uses ``--force-with-lease``: it overwrites the stale branch
+            but still refuses if a third party has pushed concurrently.
 
         Returns
         -------
@@ -8846,7 +8853,9 @@ extern "C" {{
         ------
         phasic.exceptions.PTDBackendError
             If ``gh`` is missing or unauthenticated, the entry id already
-            exists, or git/gh fails.
+            exists in ``registry.json``, the feature branch already
+            exists on the remote (without ``overwrite_branch=True``),
+            or git/gh fails.
 
         Notes
         -----
@@ -8883,8 +8892,10 @@ extern "C" {{
 
         registry = ComputeRegistry(
             registry_repo=registry_repo, auto_update=False)
-        return registry.push(self, compute_id=id, metadata=metadata,
-                             dry_run=dry_run)
+        return registry.push(
+            self, compute_id=id, metadata=metadata,
+            dry_run=dry_run, overwrite_branch=overwrite_branch,
+        )
 
 
 # Module-level utility functions

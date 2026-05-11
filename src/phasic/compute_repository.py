@@ -244,8 +244,10 @@ def _save_artifacts(graph, staging_dir: Path) -> tuple[Path, list[Path]]:
     """Save the parent ``.bin`` and bundle any per-SCC files.
 
     Returns ``(parent_path, scc_paths)``. The parent file is always
-    present; the SCC list is empty unless the hierarchical compose
-    path has populated them in the local cache.
+    present. The per-SCC list contains only the cache files that
+    belong to *this* graph — derived from its own SCC decomposition,
+    not from a global glob. That keeps unrelated leftover SCC files
+    (from previous coalescent runs etc.) out of the bundle.
     """
     hash_hex = _graph_hash_hex(graph)
     parent = staging_dir / f"{hash_hex}.bin"
@@ -257,13 +259,50 @@ def _save_artifacts(graph, staging_dir: Path) -> tuple[Path, list[Path]]:
 
     scc_paths: list[Path] = []
     local_cache = _param_compute_cache_dir()
-    if local_cache.exists():
-        for scc_file in local_cache.glob("scc_*.bin"):
-            target = staging_dir / scc_file.name
-            shutil.copy2(scc_file, target)
-            scc_paths.append(target)
+    if not local_cache.exists():
+        return parent, scc_paths
+
+    expected_scc_files = _expected_scc_filenames(graph)
+    for filename in expected_scc_files:
+        src = local_cache / filename
+        if not src.is_file():
+            continue
+        target = staging_dir / filename
+        shutil.copy2(src, target)
+        scc_paths.append(target)
 
     return parent, scc_paths
+
+
+def _expected_scc_filenames(graph) -> list[str]:
+    """Return the ``scc_<hash>.bin`` filenames for *graph*'s SCCs.
+
+    Mirrors ``phasic.distributed_scc.cache_path_for_scc`` but
+    returns just the filename, not the absolute path. If the SCC
+    decomposition can't be computed (e.g. the graph is too small
+    or some C-side error), returns an empty list — callers should
+    treat per-SCC artifacts as best-effort.
+    """
+    try:
+        scc_graph = graph.scc_decomposition()
+        from phasic.phasic_pybind import hash as _hash_mod
+    except Exception as e:
+        logger.debug("scc_decomposition failed: %s", e)
+        return []
+
+    filenames: list[str] = []
+    try:
+        for scc in scc_graph:
+            try:
+                synth = scc.as_synthetic_graph()
+            except Exception:
+                continue
+            h = _hash_mod.compute_graph_hash(synth)
+            filenames.append(f"scc_{h.hash_hex}.bin")
+    except Exception as e:
+        logger.debug("SCC hash enumeration failed: %s", e)
+        return []
+    return filenames
 
 
 # ============================================================================
@@ -545,6 +584,7 @@ class ComputeRegistry:
         compute_id: str,
         metadata: dict[str, Any],
         dry_run: bool = False,
+        overwrite_branch: bool = False,
     ) -> str:
         """Publish *graph*'s compute artifact.
 
@@ -554,7 +594,41 @@ class ComputeRegistry:
         registry entry without touching the network. Otherwise clones
         the registry repo, splices the entry in, pushes a branch, and
         opens a PR — returning the PR URL.
+
+        If a branch named ``phasic-publish/<compute_id>`` already exists
+        on the remote, the push refuses unless ``overwrite_branch=True``,
+        in which case a force-with-lease push replaces it.
         """
+        # Fast-fail BEFORE any work: refresh the index and check whether
+        # this graph's hash is already registered (under any id) or the
+        # chosen id is already taken. We re-check inside the clone too;
+        # this is just to avoid expensive setup work on a known reject.
+        # Skipped for dry_run since dry_run is offline-safe.
+        if not dry_run:
+            try:
+                self.update_index()
+            except PTDBackendError:
+                # Network unreachable but no cached index either; fall
+                # through and let _open_pr's clone-time check catch it.
+                pass
+            new_hash = _graph_hash_hex(graph)
+            for other_id, other_entry in (self.index or {}).get(
+                    "computes", {}).items():
+                if other_entry.get("retracted"):
+                    continue
+                if other_entry.get("graph_hash") == new_hash:
+                    raise PTDBackendError(
+                        f"This graph (hash {new_hash[:16]}...) is already "
+                        f"registered as '{other_id}' in "
+                        f"{self.registry_repo}/registry.json. Use "
+                        f"`graph.pull_cache()` to reuse the existing "
+                        f"artifact instead of publishing a duplicate.")
+                if other_id == compute_id:
+                    raise PTDBackendError(
+                        f"compute id '{compute_id}' already exists in "
+                        f"{self.registry_repo}/registry.json (registered "
+                        f"with graph_hash {other_entry.get('graph_hash', '?')[:16]}...).")
+
         with tempfile.TemporaryDirectory(prefix="phasic_publish_") as tmp:
             staging = Path(tmp)
             parent_path, scc_paths = _save_artifacts(graph, staging)
@@ -566,7 +640,10 @@ class ComputeRegistry:
                 return json.dumps({compute_id: entry}, indent=2)
 
             _check_gh_ready()
-            return self._open_pr(compute_id, entry, parent_path, scc_paths)
+            return self._open_pr(
+                compute_id, entry, parent_path, scc_paths,
+                overwrite_branch=overwrite_branch,
+            )
 
     def _build_entry(
         self,
@@ -611,18 +688,53 @@ class ComputeRegistry:
             })
         return entry
 
+    def _guard_remote_branch(
+        self,
+        branch: str,
+        *,
+        overwrite_branch: bool,
+    ) -> None:
+        """Refuse to push if *branch* already exists on the remote.
+
+        Probes the GitHub API via ``gh api``. If the branch exists
+        and ``overwrite_branch`` is False, raises with the two
+        recovery paths (delete the stale branch, or retry with
+        ``overwrite_branch=True``).
+        """
+        # `gh api repos/.../branches/<name>` returns HTTP 404 (exit 1
+        # from gh's perspective) when the branch is absent. We don't
+        # want to surface that as an error; only the success case
+        # matters here.
+        proc = subprocess.run(
+            ["gh", "api", f"repos/{self.registry_repo}/branches/{branch}"],
+            capture_output=True, text=True, timeout=15,
+        )
+        exists = proc.returncode == 0
+        if exists and not overwrite_branch:
+            raise PTDBackendError(
+                f"Remote branch '{branch}' already exists in "
+                f"{self.registry_repo}.\n\n"
+                f"  Pick a different --id and retry, OR\n"
+                f"  Delete the stale branch:\n"
+                f"    gh api -X DELETE "
+                f"repos/{self.registry_repo}/git/refs/heads/{branch}\n"
+                f"  Or pass overwrite_branch=True to force-with-lease.")
+
     def _open_pr(
         self,
         compute_id: str,
         entry: dict[str, Any],
         parent_path: Path,
         scc_paths: list[Path],
+        *,
+        overwrite_branch: bool = False,
     ) -> str:
         """Clone the registry repo, splice in the entry, open a PR.
 
         Returns the PR URL printed by ``gh pr create``.
         """
         branch = f"phasic-publish/{compute_id}"
+        self._guard_remote_branch(branch, overwrite_branch=overwrite_branch)
         with tempfile.TemporaryDirectory(prefix="phasic_pr_") as clone_tmp:
             clone_dir = Path(clone_tmp) / "registry"
             _run(["gh", "repo", "clone", self.registry_repo, str(clone_dir)])
@@ -640,6 +752,17 @@ class ComputeRegistry:
                 raise PTDBackendError(
                     f"compute id '{compute_id}' already exists in "
                     f"{self.registry_repo}/registry.json")
+            new_hash = entry["graph_hash"]
+            for other_id, other_entry in data["computes"].items():
+                if other_entry.get("retracted"):
+                    continue
+                if other_entry.get("graph_hash") == new_hash:
+                    raise PTDBackendError(
+                        f"This graph (hash {new_hash[:16]}...) is already "
+                        f"registered as '{other_id}' in "
+                        f"{self.registry_repo}/registry.json. Use "
+                        f"`graph.pull_cache()` to reuse the existing "
+                        f"artifact instead of publishing a duplicate.")
             data["computes"][compute_id] = entry
 
             artifacts_dir = clone_dir / "artifacts"
@@ -657,7 +780,10 @@ class ComputeRegistry:
                   f"graph_hash: {entry['graph_hash']}\n"
                   f"format_revision: {entry['format_revision']}"],
                  cwd=clone_dir)
-            _run(["git", "push", "-u", "origin", branch], cwd=clone_dir)
+            push_cmd = ["git", "push", "-u", "origin", branch]
+            if overwrite_branch:
+                push_cmd.insert(2, "--force-with-lease")
+            _run(push_cmd, cwd=clone_dir)
 
             out = _run([
                 "gh", "pr", "create",
