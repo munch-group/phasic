@@ -85,12 +85,15 @@ class _Node:
         return self.left.leaves() + self.right.leaves()
 
 
-def _build_balanced(alleles):
+def _build(alleles, balanced=True):
     if len(alleles) == 1:
         return _Node(allele=alleles[0])
-    mid = (len(alleles) + 1) // 2
-    return _Node(left=_build_balanced(alleles[:mid]),
-                 right=_build_balanced(alleles[mid:]))
+    if balanced:
+        mid = (len(alleles) + 1) // 2
+    else:
+        mid = np.random.randint(1, len(alleles))
+    return _Node(left=_build(alleles[:mid], balanced=balanced),
+                 right=_build(alleles[mid:], balanced=balanced))
 
 
 def _merge(trees):
@@ -117,7 +120,8 @@ def _layout(node, spacing=1.5, seed=42):
             n.y = 0
             return 0
         lh, rh = set_y(n.left), set_y(n.right)
-        n.y = max(lh, rh) + 1.8 + 0.2 * n.n_leaves() + (0.5 - np.random.rand()) * min(3, n.n_leaves())
+        n.y = max(lh, rh) + 2 + 0.2 * n.n_leaves() + (1 - np.random.rand()) * min(3, n.n_leaves())
+
         return n.y
 
     set_x(node)
@@ -146,8 +150,13 @@ def _data_units_per_point(ax, direction='x'):
         return (ylim[1] - ylim[0]) / (bbox.height * 72)
 
 
-def draw_coalescent_tree(sequence, ax=None, figsize=(7, 6), seed=42):
+def tree_illustration(sequence, explain=True, ax=None, 
+                      ton=None, ton_label=True, balanced=True, 
+                      figsize=(6, 4), seed=42):
     
+    if ton:
+        explain = False
+
     np.random.seed(seed)
 
     counts = Counter(sequence)
@@ -172,15 +181,15 @@ def draw_coalescent_tree(sequence, ax=None, figsize=(7, 6), seed=42):
     for i in range(n_der + 1):
         if anc_groups[i] > 0:
             clade_trees.append(
-                _build_balanced([ancestral] * anc_groups[i]))
+                _build([ancestral] * anc_groups[i], balanced=balanced))
         if i < n_der:
-            t = _build_balanced([derived[i]] * counts[derived[i]])
+            t = _build([derived[i]] * counts[derived[i]], balanced=balanced)
             t.mutation = (ancestral, derived[i])
             der_roots.append(t)
             clade_trees.append(t)
 
     root = _merge(clade_trees) if len(clade_trees) > 1 else clade_trees[0]
-    _layout(root)
+    _layout(root, seed=seed)
 
     make_fig = ax is None
     if make_fig:
@@ -188,32 +197,32 @@ def draw_coalescent_tree(sequence, ax=None, figsize=(7, 6), seed=42):
     else:
         fig = ax.get_figure()
 
-    col, lw = '#38bdf8', 1.5
+    # col, lw = '#38bdf8', 1.5
+    col, lw = '#14C1E3', 1.5
+    # highlight_color = '#FF1B1B'
+    highlight_color = '#dc2626'
 
     def draw(node):
         if node.is_leaf():
             return
+        
+
         ax.plot([node.left.x, node.right.x], [node.y, node.y],
                 color=col, lw=lw, solid_capstyle='round')
         for child in (node.left, node.right):
             ax.plot([child.x, child.x], [child.y, node.y],
-                    color=col, lw=lw, solid_capstyle='round')
+                    color=highlight_color if child.n_leaves() == ton else col, 
+                    lw=lw, solid_capstyle='round')
         draw(node.left)
         draw(node.right)
 
     draw(root)
 
-    for leaf in root.leaves():
-        ax.scatter(leaf.x, 0, s=55, color=col, zorder=5)
-        c = '#dc2626' if leaf.allele != ancestral else '#333'
-        ax.text(leaf.x, -0.8, leaf.allele, ha='center', va='top',
-                fontsize=11, fontweight='bold', color=c)
-
-    ax.annotate('MRCA', xy=(root.x, root.y + 0.1),
-                xytext=(root.x, root.y + 1.5),
-                ha='center', va='bottom', fontsize=11,
-                fontweight='bold', color='#333',
-                arrowprops=dict(arrowstyle='->', color='#333', lw=1.5))
+    # ax.annotate(f'MRCA: {ancestral}', xy=(root.x, root.y + 0.1),
+    #             xytext=(root.x, root.y + 0.7),
+    #             ha='center', va='bottom', fontsize=11,
+    #             fontweight='bold', color='#333',
+    #             arrowprops=dict(arrowstyle='->', color='#333', lw=1.5))
 
     # Set limits before computing arrow size
     xs = [l.x for l in root.leaves()]
@@ -222,13 +231,31 @@ def draw_coalescent_tree(sequence, ax=None, figsize=(7, 6), seed=42):
     ax.set_aspect('auto')
 
     # Arrow length in display points → converted to data units
-    ARROW_PT = 40
+    ARROW_PT = 20
     dup_x = _data_units_per_point(ax, 'x')
     dup_y = _data_units_per_point(ax, 'y')
     arrow_len = ARROW_PT * dup_x
-    gap = 4 * dup_x
+    gap = 2 * dup_x
     # Full label width: letter + gap + arrow + gap + letter ≈
     label_half_w = arrow_len / 2 + gap + 8 * dup_x  # 8pt for a letter
+
+    for leaf in root.leaves():
+        ax.scatter(leaf.x, 0, s=40, color=col, zorder=5)
+
+    if explain:
+        for leaf in root.leaves():
+            c = highlight_color if leaf.allele != ancestral else '#333'
+            ax.text(leaf.x, -8 * dup_y, leaf.allele, ha='center', va='top',
+                    fontsize=11, fontweight='bold', color=c)
+
+        ax.plot([root.x, root.x], [root.y, root.y + 7 * dup_y],
+                color=col, lw=lw, solid_capstyle='round')    
+        ax.text(root.x, root.y + 14 * dup_y, f'MRCA: {ancestral}', ha='center', va='center',
+            fontsize=11, fontweight='bold', color='#333')
+
+    if ton and ton_label:
+        ax.text(root.left.x - 20 * dup_x, root.y, f"{ton}'ton\nbranches", ha='right', va='top',
+            fontsize=11, fontweight='bold', color=highlight_color)
 
     # Collect mutation label info, then resolve horizontal overlaps
     labels = []
@@ -236,42 +263,44 @@ def draw_coalescent_tree(sequence, ax=None, figsize=(7, 6), seed=42):
         py = _find_parent_y(root, dn)
         if py is None:
             continue
-        mid_y = (py + dn.y) / 2
+        mid_y = (py + dn.y) / 2 + 5 * dup_y # nudge up a bit from the middle
         labels.append((dn, py, mid_y))
 
     # Sort by x so we can check neighbours
     labels.sort(key=lambda t: t[0].x)
 
-    # Nudge overlapping labels vertically
-    for i in range(1, len(labels)):
-        dn_prev, _, my_prev = labels[i - 1]
-        dn_curr, _, my_curr = labels[i]
-        dx = abs(dn_curr.x - dn_prev.x)
-        if dx < 2 * label_half_w and abs(my_curr - my_prev) < 12 * dup_y:
-            # Shift current one up
-            py_curr = labels[i][1]
-            new_my = py_curr - 6 * dup_y  # place near parent
-            labels[i] = (dn_curr, py_curr, new_my)
+    if explain:
 
-    for dn, py, mid_y in labels:
-        n = dn.n_leaves()
-        fr, to = dn.mutation
+        # Nudge overlapping labels vertically
+        for i in range(1, len(labels)):
+            dn_prev, _, my_prev = labels[i - 1]
+            dn_curr, _, my_curr = labels[i]
+            dx = abs(dn_curr.x - dn_prev.x)
+            if dx < 2 * label_half_w and abs(my_curr - my_prev) < 12 * dup_y:
+                # Shift current one up
+                py_curr = labels[i][1]
+                new_my = py_curr - 6 * dup_y  # place near parent
+                labels[i] = (dn_curr, py_curr, new_my)
 
-        arrow_left = dn.x - arrow_len / 2
-        arrow_right = dn.x + arrow_len / 2
+        for dn, py, mid_y in labels:
+            n = dn.n_leaves()
+            fr, to = dn.mutation
 
-        ax.text(arrow_left - gap, mid_y, fr, ha='right', va='center',
-                fontsize=11, fontweight='bold', color='#333')
-        ax.annotate('', xy=(arrow_right, mid_y),
-                    xytext=(arrow_left, mid_y),
-                    arrowprops=dict(arrowstyle='->', color='#333', lw=1.3))
-        ax.text(arrow_right + gap, mid_y, to, ha='left', va='center',
-                fontsize=11, fontweight='bold', color='#dc2626')
+            arrow_left = dn.x - arrow_len / 2
+            arrow_right = dn.x + arrow_len / 2
 
-        # (n'ton) always below the arrow
-        ax.text(dn.x, mid_y - 10 * dup_y, f"({n}'ton)",
-                ha='center', va='top', fontsize=11, fontweight='bold', color='#555')
-        ax.plot(dn.x, mid_y, marker='*', color='#dc2626', markersize=12, zorder=6)
+            ax.text(arrow_left - gap, mid_y, fr, ha='right', va='center',
+                    fontsize=11, fontweight='bold', color='#333')
+            ax.annotate('', xy=(arrow_right, mid_y),
+                        xytext=(arrow_left, mid_y),
+                        arrowprops=dict(arrowstyle='->', color='#333', lw=1.3))
+            ax.text(arrow_right + gap, mid_y, to, ha='left', va='center',
+                    fontsize=11, fontweight='bold', color='#dc2626')
+
+            # (n'ton) always below the arrow
+            ax.text(dn.x, mid_y - 10 * dup_y, f"({n}'ton)",
+                    ha='center', va='top', fontsize=11, fontweight='bold', color='#555')
+            ax.plot(dn.x, mid_y, color='#dc2626', markersize=12, zorder=6)
 
     ax.axis('off')
     if make_fig:

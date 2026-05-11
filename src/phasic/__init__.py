@@ -7089,14 +7089,14 @@ extern "C" {{
 
         try:
             from vscodenb import is_vscode_dark_theme
-            dark = is_vscode_dark_theme()
+            dark, bg_color = is_vscode_dark_theme()
         except ImportError:
             logger.warning(f"vscodenb is not available. Defaulting to light theme.")
-            dark = False
+            dark, bg_color = (False, 'white')
 
         # always light theme when executing via nbconvert
         if 'NBCONVERT_BGCOLOR' in os.environ:
-            dark = False
+            dark, bg_color = (False, os.environ['NBCONVERT_BGCOLOR'])
 
         if label_fmt is None:
             label_fmt = partial(format_label, wrap=wrap)
@@ -7153,7 +7153,7 @@ extern "C" {{
             # subgraph_bgcolor='white'
             subgraph_bgcolor=bg_color
             subgraph_edgecolor='black'
-            husl_colors = _get_color(10, lightness=0.4)
+            husl_colors = _get_color(10, lightness=0.5)
 
         if graph.vertices_length() > max_nodes:
             print(f"Graph has too many nodes ({graph.vertices_length()}). Please set max_nodes to a higher value.")

@@ -150,6 +150,54 @@ html { font-family: 'Inter', sans-serif; }
 /* css styles */
 
 
+/* make svg plots behave */
+.column-margin img,
+.column-margin svg {
+  width: auto !important;
+  height: auto !important;
+  max-width: 100% !important;
+}
+
+// .column-margin img,
+// .column-margin svg,
+// .cell-output-display img,
+// .cell-output-display svg,
+// .cell-output-display figure img,
+// .cell-output-display .figure-img,
+// figure.figure .figure-img {
+//   width: auto !important;
+//   height: auto !important;
+//   max-width: 100% !important;
+// }
+
+// .column-margin img,
+// .column-margin svg,
+// .cell-output-display img,
+// .cell-output-display svg,
+// .cell-output-display figure img,
+// .cell-output-display .figure-img,
+// .cell-output-display img.figure-img,
+// .quarto-figure img.figure-img,
+// div.cell-output-display img.figure-img
+// figure.figure .figure-img {
+//   width: auto !important;
+//   height: auto !important;
+//   max-width: 100% !important;
+// }
+
+
+// /* make svg margin plots honor margin width */
+// .column-margin img,
+// .column-margin svg,
+// .cell-output-display img,
+// .cell-output-display svg {
+//   width: 100% !important;
+//   height: auto !important;
+//   max-width: 100% !important;
+// }
+
+
+
 #quarto-sidebar {
   border-right: 1px solid #D1D5DB; 
 }
