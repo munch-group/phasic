@@ -7169,6 +7169,148 @@ extern "C" {{
         return dot
 
 
+    def plot_scc_decomposition(self,
+                                figsize: tuple[float, float] = (10.0, 6.0),
+                                cmap: str = 'viridis',
+                                show_indices: bool = True,
+                                annotate_sizes: bool = True,
+                                title: str | None = None,
+                                ax: Any = None) -> Any:
+        """Visualise the SCC decomposition of this graph as a
+        level-wise treemap.
+
+        Rows correspond to the levels of the SCC condensation
+        (sink-first: level 0 is the absorbing/exit layer, the
+        last level contains the start vertex). SCCs at the same
+        level are eliminated independently when
+        ``parallel_elimination=True`` is enabled, so wide rows
+        signal good parallelism potential. Within a row, each
+        tile is one SCC, with width proportional to the SCC's
+        vertex count.
+
+        This is a structural visualisation only — it does not
+        depend on any runtime telemetry. To assess actual cache
+        hit/miss behaviour after a compose, use
+        ``phasic.cache.scc_compose_stats()``.
+
+        Parameters
+        ----------
+        figsize : tuple of float
+            Matplotlib figure size in inches. Ignored if ``ax``
+            is provided.
+        cmap : str
+            Matplotlib colormap name. Tiles are coloured by SCC
+            index to make adjacent SCCs visually distinct.
+        show_indices : bool
+            Print the SCC index inside each tile when the tile
+            is wide enough.
+        annotate_sizes : bool
+            Print the vertex count alongside the index.
+        title : str or None
+            Plot title. Defaults to a one-line summary of the
+            decomposition (number of SCCs, levels, widest row).
+        ax : matplotlib.axes.Axes or None
+            Existing axes to draw into. If ``None``, a new figure
+            is created.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+            The axes the treemap was drawn into.
+
+        Examples
+        --------
+        >>> import phasic
+        >>> g = phasic.Graph(my_callback)
+        >>> ax = g.plot_scc_decomposition()
+        >>> ax.figure.savefig('scc.pdf')
+
+        See Also
+        --------
+        scc_decomposition : underlying SCC structure
+        phasic.distributed_scc.compute_scc_levels : level grouping
+            used by this plot
+        """
+        import matplotlib.pyplot as plt
+        import matplotlib.patches as mpatches
+        from phasic.distributed_scc import compute_scc_levels
+
+        scc_graph = self.scc_decomposition()
+        n_sccs = len(scc_graph)
+        if n_sccs == 0:
+            raise ValueError(
+                "Graph has no SCCs to plot (empty decomposition).")
+
+        sizes = [scc_graph.scc_at(i).size() for i in range(n_sccs)]
+        levels = compute_scc_levels(scc_graph)  # sink-first
+        widest = max(len(lvl) for lvl in levels)
+        total_vertices = sum(sizes)
+
+        # Each row has its own horizontal scale (so tiles fill
+        # the row width). Tile widths within a row are
+        # proportional to SCC vertex count.
+        if ax is None:
+            fig, ax = plt.subplots(figsize=figsize)
+        else:
+            fig = ax.figure
+
+        colours = plt.get_cmap(cmap)
+        # Normalise colour by SCC index so adjacent SCCs differ.
+        def _colour(idx: int):
+            return colours((idx % max(n_sccs, 1)) / max(n_sccs - 1, 1))
+
+        n_levels = len(levels)
+        row_height = 1.0
+        gap = 0.05  # tile horizontal gap as a fraction of row total
+
+        for row_idx, level_sccs in enumerate(levels):
+            y = (n_levels - 1 - row_idx) * row_height  # level 0 at bottom
+            row_total = sum(sizes[i] for i in level_sccs)
+            if row_total == 0:
+                continue
+            # Tiles fill [0, 1] horizontally with proportional widths.
+            x = 0.0
+            for i in level_sccs:
+                w = sizes[i] / row_total - gap / len(level_sccs)
+                w = max(w, 0.005)
+                rect = mpatches.Rectangle(
+                    (x, y + 0.05), w, row_height - 0.1,
+                    facecolor=_colour(i), edgecolor='black',
+                    linewidth=0.5)
+                ax.add_patch(rect)
+                # Label if tile is wide enough.
+                if show_indices and w > 0.04:
+                    if annotate_sizes:
+                        label = f"#{i}\n{sizes[i]}v"
+                    else:
+                        label = f"#{i}"
+                    ax.text(x + w / 2, y + row_height / 2, label,
+                            ha='center', va='center', fontsize=8,
+                            color='white' if w > 0.06 else 'black')
+                x += w + gap / len(level_sccs)
+
+            # Level label on the left margin.
+            ax.text(-0.01, y + row_height / 2,
+                    f"L{row_idx} ({len(level_sccs)})",
+                    ha='right', va='center', fontsize=9,
+                    family='monospace')
+
+        ax.set_xlim(-0.15, 1.02)
+        ax.set_ylim(-0.05, n_levels * row_height + 0.05)
+        ax.set_aspect('auto')
+        ax.set_xticks([])
+        ax.set_yticks([])
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+
+        if title is None:
+            title = (f"SCC decomposition: {n_sccs} SCCs across "
+                     f"{n_levels} levels (widest {widest}, "
+                     f"{total_vertices} vertices total)")
+        ax.set_title(title, fontsize=11)
+
+        return ax
+
 
     def copy(self) -> Self:
         """
