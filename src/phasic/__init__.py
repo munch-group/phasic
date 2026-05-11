@@ -288,10 +288,6 @@ from .auto_parallel import (
     ParallelConfig,
     detect_environment,
     configure_jax_for_environment,
-    get_parallel_config,
-    set_parallel_config,
-    parallel_config,
-    disable_parallel,
 )
 
 # Cache management (JAX compilation cache)
@@ -8934,8 +8930,9 @@ def init_parallel(cpus: int | None = None,
 
     See Also
     --------
-    get_parallel_config : Query current parallel configuration
     detect_environment : Inspect environment without configuring
+    configure : phasic.configure(svgd_strategy=...) controls SVGD
+        particle parallelism strategy (auto/pmap/vmap/none).
     """
     # Detect environment
     env_info = detect_environment()
@@ -8951,12 +8948,15 @@ def init_parallel(cpus: int | None = None,
             "call init_parallel() before any JAX operations."
         )
 
-    # Configure JAX for environment
+    # Configure JAX for environment.
     config = configure_jax_for_environment(env_info, enable_x64=enable_x64)
 
-    # Store globally
-    set_parallel_config(config)
-
+    # Note: previous versions stored `config` in a module-level
+    # global via set_parallel_config(). That global was unread
+    # after the config refactor (SVGD reads its strategy from
+    # phasic.get_config().svgd_strategy instead) and has been
+    # removed. The returned ParallelConfig is still useful
+    # informationally.
     return config
 
 

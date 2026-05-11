@@ -223,6 +223,7 @@ def configure(**kwargs) -> _ConfigureContext:
       - parallel_elimination: bool
       - parallel_elimination_min_subgraph: int or None
       - parallel_elimination_max_concurrent: int or None
+      - svgd_strategy: 'auto' | 'pmap' | 'vmap' | 'none'
       - high_precision_mode: 'auto' | 'always' | 'never'
       - high_precision_bits: int or None
       - ill_condition_threshold: float
@@ -534,6 +535,15 @@ class PhasicConfig:
     parallel_elimination: bool = False
     parallel_elimination_min_subgraph: int | None = None
     parallel_elimination_max_concurrent: int | None = None
+    # SVGD particle parallelism strategy:
+    #   'auto' -> 'pmap' if jax.devices() reports >1 device, else 'vmap'
+    #   'pmap' -> distribute particles across devices
+    #   'vmap' -> vectorise particles on a single device
+    #   'none' -> sequential particle evaluation (debugging)
+    # No env-var backing — this is a runtime-only knob consumed
+    # by Graph.svgd() / SVGD() when their `parallel` kwarg is
+    # left at None.
+    svgd_strategy: _Literal['auto', 'pmap', 'vmap', 'none'] = 'auto'
 
     # --- numerical precision ---
     high_precision_mode: _Literal['auto', 'always', 'never'] = 'auto'
@@ -710,6 +720,14 @@ class PhasicConfig:
                 f"{self.parallel_elimination_min_subgraph} must be >= 0."
             )
 
+        # 8b. svgd_strategy enum check.
+        valid_strategies = ('auto', 'pmap', 'vmap', 'none')
+        if self.svgd_strategy not in valid_strategies:
+            errors.append(
+                f"svgd_strategy={self.svgd_strategy!r} must be one of "
+                f"{valid_strategies}."
+            )
+
         # 9. Env-var ↔ configure() conflict policy.
         #    Phasic's own import-time auto-detect for OMP_NUM_THREADS
         #    records itself in _phasic_assigned_env; configure() may
@@ -809,6 +827,7 @@ class PhasicConfig:
             'parallel_elimination': self.parallel_elimination,
             'parallel_elimination_min_subgraph': self.parallel_elimination_min_subgraph,
             'parallel_elimination_max_concurrent': self.parallel_elimination_max_concurrent,
+            'svgd_strategy': self.svgd_strategy,
             'high_precision_mode': self.high_precision_mode,
             'high_precision_bits': self.high_precision_bits,
             'ill_condition_threshold': self.ill_condition_threshold,
