@@ -140,6 +140,7 @@ website:
         - section: "Computation"
           contents:
             - pages/tutorial/configuration.ipynb
+            - pages/tutorial/scc-decomposition.ipynb
             - pages/tutorial/sharing.ipynb
             - pages/tutorial/mpfr.ipynb
             - pages/tutorial/distributed.ipynb

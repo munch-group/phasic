@@ -7179,14 +7179,28 @@ extern "C" {{
         """Visualise the SCC decomposition of this graph as a
         level-wise treemap.
 
-        Rows correspond to the levels of the SCC condensation
-        (sink-first: level 0 is the absorbing/exit layer, the
-        last level contains the start vertex). SCCs at the same
-        level are eliminated independently when
-        ``parallel_elimination=True`` is enabled, so wide rows
-        signal good parallelism potential. Within a row, each
-        tile is one SCC, with width proportional to the SCC's
-        vertex count.
+        Rows correspond to the levels of the SCC condensation.
+        The source-side (start vertex, where the chain enters) is
+        drawn at the **top** of the figure; the sink-side
+        (absorbing state) is at the **bottom** — time flows
+        downward.
+
+        Within a row, each tile is one SCC, with width
+        proportional to the SCC's vertex count, drawn at a
+        common absolute scale shared across all rows. So a
+        narrow row really has fewer total vertices than a wide
+        one. SCCs at the same level are eliminated independently
+        when ``parallel_elimination=True`` is enabled, so wide
+        rows signal good parallelism potential and narrow rows
+        are elimination bottlenecks.
+
+        Level labels on the left margin look like ``L7 (16)`` —
+        the level number followed by the count of parallel SCCs
+        at that level. Note that the C-side composer processes
+        levels in the opposite of the plot's vertical order
+        (sink-first, bottom-up), but that detail does not
+        affect interpretation: parallelism is per-row in either
+        direction.
 
         This is a structural visualisation only — it does not
         depend on any runtime telemetry. To assess actual cache
@@ -7261,41 +7275,57 @@ extern "C" {{
 
         n_levels = len(levels)
         row_height = 1.0
-        gap = 0.05  # tile horizontal gap as a fraction of row total
+
+        # Absolute scale: 1 horizontal unit = 1 vertex. Each
+        # tile is exactly `sizes[i]` units wide. Rows with fewer
+        # total vertices look proportionally narrower than rows
+        # with more total vertices — that's the whole point of
+        # "block width = vertex count".
+        gap = 0.4  # absolute horizontal gap between tiles, in vertex units
+        max_row_width = max(
+            sum(sizes[i] for i in lvl) + max(0, len(lvl) - 1) * gap
+            for lvl in levels
+            if lvl
+        )
 
         for row_idx, level_sccs in enumerate(levels):
-            y = (n_levels - 1 - row_idx) * row_height  # level 0 at bottom
-            row_total = sum(sizes[i] for i in level_sccs)
-            if row_total == 0:
+            # Source at top, sink at bottom — time flows downward.
+            # `levels` is sink-first (level 0 = sinks), so the
+            # last level (the source / start vertex) goes at the
+            # top of the figure.
+            y = row_idx * row_height
+            if not level_sccs:
                 continue
-            # Tiles fill [0, 1] horizontally with proportional widths.
-            x = 0.0
+            # Centre the row inside [0, max_row_width].
+            row_width = (sum(sizes[i] for i in level_sccs)
+                         + (len(level_sccs) - 1) * gap)
+            x = (max_row_width - row_width) / 2.0
             for i in level_sccs:
-                w = sizes[i] / row_total - gap / len(level_sccs)
-                w = max(w, 0.005)
+                w = sizes[i]
                 rect = mpatches.Rectangle(
                     (x, y + 0.05), w, row_height - 0.1,
                     facecolor=_colour(i), edgecolor='black',
                     linewidth=0.5)
                 ax.add_patch(rect)
-                # Label if tile is wide enough.
-                if show_indices and w > 0.04:
+                # Label if tile is wide enough relative to the
+                # whole figure (use absolute units now).
+                if show_indices and w / max_row_width > 0.03:
                     if annotate_sizes:
                         label = f"#{i}\n{sizes[i]}v"
                     else:
                         label = f"#{i}"
                     ax.text(x + w / 2, y + row_height / 2, label,
                             ha='center', va='center', fontsize=8,
-                            color='white' if w > 0.06 else 'black')
-                x += w + gap / len(level_sccs)
+                            color='white' if w / max_row_width > 0.05 else 'black')
+                x += w + gap
 
             # Level label on the left margin.
-            ax.text(-0.01, y + row_height / 2,
+            ax.text(-0.01 * max_row_width, y + row_height / 2,
                     f"L{row_idx} ({len(level_sccs)})",
                     ha='right', va='center', fontsize=9,
                     family='monospace')
 
-        ax.set_xlim(-0.15, 1.02)
+        ax.set_xlim(-0.15 * max_row_width, max_row_width * 1.02)
         ax.set_ylim(-0.05, n_levels * row_height + 0.05)
         ax.set_aspect('auto')
         ax.set_xticks([])
