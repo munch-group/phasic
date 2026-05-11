@@ -227,7 +227,7 @@ class MCMC:
         # Get configuration
         config = get_config()
         if jit is None:
-            jit = config.jit
+            jit = config._use_jit
 
         self.model = model
         self._log_prob_fn = log_prob_fn

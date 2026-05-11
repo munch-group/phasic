@@ -107,463 +107,64 @@ def _check_mpfr_available() -> bool:
         return False
 
 
-@dataclass
-class PTDAlgorithmsConfig:
-    """
-    Global configuration for phasic behavior.
+# =============================================================
+# Module-level functions: configure(), get_config(), etc.
+#
+# These all operate on PhasicConfig (defined further below).
+# The previous PTDAlgorithmsConfig class has been removed in the
+# refactor; user-facing field names changed (clean break).
+# =============================================================
 
-    All optional features must be explicitly enabled/disabled.
-    No silent fallbacks.
-
-    Parameters
-    ----------
-    jax : bool, default=True
-        Require JAX functionality. If True and JAX not installed, raises error.
-    jit : bool, default=True
-        Enable JIT compilation. Requires jax=True.
-    ffi : bool, default=True
-        Enable FFI backend for zero-copy C++ computation.
-        Provides 5-10x speedup over pure_callback. Requires XLA headers during build.
-        Set to False only if FFI cannot be built on your system.
-    openmp : bool, default=True
-        Enable OpenMP multi-threading in FFI handlers.
-        Provides ~8x additional speedup on 8-core systems (800% CPU vs 100%).
-        Requires ffi=True. Set to False only if OpenMP unavailable on your system.
-    strict : bool, default=True
-        If True, raise errors when features unavailable.
-        If False, print warnings and continue.
-    platform : Literal['cpu', 'gpu', 'tpu'], default='cpu'
-        JAX platform to use. Requires jax=True.
-    backend : Literal['jax', 'cpp', 'ffi'], default='jax'
-        Default computation backend for FFI wrappers.
-    verbose : bool, default=False
-        Print configuration details on startup.
-    force_high_precision : bool, default=False
-        Force MPFR high-precision arithmetic for all trace evaluations.
-        Raises error if MPFR not available. Auto-activation at condition > 1e20 still occurs.
-    mpfr_precision_bits : int, default=0
-        MPFR precision in bits (0 = auto-determine from condition number).
-        Examples: 128 (standard), 256 (high), 512 (very high), 1024 (extreme).
-    condition_threshold : float, default=1e20
-        Condition number threshold for auto-activating MPFR.
-        Lower values are more conservative. Set to inf to disable auto-activation.
-    enable_condition_warnings : bool, default=True
-        Enable/disable warnings about ill-conditioned operations.
-
-    Examples
-    --------
-    >>> config = PTDAlgorithmsConfig(jax=True, jit=True, ffi=False)
-    >>> config.validate()  # Check if configuration is valid
-
-    >>> # Or use factory methods
-    >>> config = PTDAlgorithmsConfig.jax_only()  # JAX with JIT
-    >>> config = PTDAlgorithmsConfig.cpp_only()  # Pure C++, no JAX
-    """
-
-    jax: bool = True
-    jit: bool = True
-    ffi: bool = True
-    openmp: bool = True
-    strict: bool = True
-    platform: Literal['cpu', 'gpu', 'tpu'] = 'cpu'
-    backend: Literal['jax', 'cpp', 'ffi'] = 'jax'
-    verbose: bool = False
-
-    # High-precision arithmetic settings (MPFR)
-    force_high_precision: bool = False  # Force MPFR for all trace evaluations
-    mpfr_precision_bits: int = 0  # MPFR precision in bits (0 = auto-determine from condition number)
-    condition_threshold: float = 1e12  # Auto-activate MPFR when condition > threshold (lowered from 1e20 for better default)
-    enable_condition_warnings: bool = True  # Log warnings for ill-conditioned operations
-
-    # Hierarchical SCC composer settings.
-    #
-    # The composer routes Graph.expected_waiting_time through a
-    # per-SCC compose path with disk-cached per-SCC PRCs. None
-    # means "leave the corresponding env var untouched"; a
-    # concrete value is written into os.environ on validate().
-    hierar_elimination: bool = False  # PHASIC_HIERAR_ELIMINATION
-    min_scc_size_to_cache: int | None = None  # PHASIC_MIN_SCC_SIZE_TO_CACHE; None = use C default (4)
-    max_parallel_sccs: int | None = None  # PHASIC_MAX_PARALLEL_SCCS; None = OpenMP default (no cap)
-
-    # On-disk cache settings (parameterised reward compute graph
-    # + per-SCC PRCs share ~/.phasic_cache/).
-    disable_cache: bool = False  # PHASIC_DISABLE_CACHE
-    cache_dir: str | None = None  # PHASIC_CACHE_DIR; None = default ($HOME/.phasic_cache)
-
-    # OpenMP thread count for the SCC composer's parallel loop
-    # and any other OpenMP regions inside phasic. None = leave
-    # OMP_NUM_THREADS as-is (phasic's import-time auto-detection
-    # has already set it to SLURM_CPUS_PER_TASK / os.cpu_count()
-    # if it was unset). Setting a concrete value writes the env
-    # var, but note: OpenMP reads OMP_NUM_THREADS at library
-    # load time, so changing it via configure() AFTER any
-    # parallel region has run may not take effect until a fresh
-    # Python process. Most reliable: set in shell before launch.
-    omp_num_threads: int | None = None  # OMP_NUM_THREADS
-
-    # Internal tracking
-    _validated: bool = field(default=False, init=False, repr=False)
-    _jax_imported: bool = field(default=False, init=False, repr=False)
-
-    def validate(self) -> None:
-        """
-        Validate configuration and check feature availability.
-
-        Raises
-        ------
-        PTDConfigError
-            If strict=True and requested features are unavailable.
-
-        Notes
-        -----
-        Logs a warning if strict=False and requested features are unavailable.
-        """
-        errors = []
-        warnings = []
-
-        # Check JAX
-        if self.jax:
-            if not _check_jax_available():
-                msg = (
-                    "jax=True but JAX not installed.\n"
-                    "  Install: pip install jax jaxlib\n"
-                    "  Or configure: phasic.configure(jax=False)"
-                )
-                errors.append(msg)
-        else:
-            # If JAX disabled, can't use JIT or JAX backend
-            if self.jit:
-                errors.append("jit=True requires jax=True")
-            if self.backend == 'jax':
-                warnings.append(
-                    "backend='jax' but jax=False. "
-                    "Switching to backend='cpp'"
-                )
-                self.backend = 'cpp'
-
-        # Check FFI availability if enabled
-        if self.ffi:
-            try:
-                from . import phasic_pybind as cpp_module
-                if not hasattr(cpp_module.parameterized, 'get_compute_pmf_ffi_capsule'):
-                    msg = (
-                        "ffi=True but FFI handlers not available.\n"
-                        "  This usually means XLA headers were not found during build.\n"
-                        "\n"
-                        "To rebuild with FFI:\n"
-                        "  export XLA_FFI_INCLUDE_DIR=$(python -c \"from jax import ffi; print(ffi.include_dir())\")\n"
-                        "  pip install --no-build-isolation --force-reinstall --no-deps .\n"
-                        "\n"
-                        "Or disable FFI (slower performance):\n"
-                        "  import phasic\n"
-                        "  phasic.configure(ffi=False)"
-                    )
-                    errors.append(msg)
-            except (ImportError, AttributeError) as e:
-                msg = (
-                    f"ffi=True but C++ module not available: {e}\n"
-                    "  This is a build error - C++ extensions should always be present.\n"
-                    "  Try rebuilding: pip install --force-reinstall --no-deps ."
-                )
-                errors.append(msg)
-
-        # Check OpenMP availability if enabled
-        if self.openmp and not self.ffi:
-            errors.append("openmp=True requires ffi=True (OpenMP only works with FFI backend)")
-
-        # Note: We don't check if OpenMP is actually compiled in - trust the build
-        # A runtime check would require platform-specific code (otool/ldd)
-
-        # Check backend consistency
-        if self.backend == 'ffi' and not self.ffi:
-            errors.append("backend='ffi' requires ffi=True")
-
-        if self.backend == 'jax' and not self.jax:
-            errors.append("backend='jax' requires jax=True")
-
-        if self.backend == 'cpp' and not _check_cpp_available():
-            errors.append(
-                "backend='cpp' but C++ module not available.\n"
-                "  This should not happen - C++ module is core dependency."
-            )
-
-        # Check platform
-        if self.platform != 'cpu':
-            if not self.jax:
-                errors.append(
-                    f"platform='{self.platform}' requires jax=True"
-                )
-            elif self.platform not in _get_available_platforms():
-                available = _get_available_platforms()
-                errors.append(
-                    f"platform='{self.platform}' not available.\n"
-                    f"  Available platforms: {available}\n"
-                    f"  Install GPU/TPU support or use platform='cpu'"
-                )
-
-        # Check MPFR high-precision settings
-        if self.force_high_precision:
-            if not _check_mpfr_available():
-                msg = (
-                    "force_high_precision=True but MPFR not available.\n"
-                    "  MPFR is required for high-precision arithmetic.\n"
-                    "\n"
-                    "To rebuild with MPFR:\n"
-                    "  pixi add mpfr gmp pkg-config\n"
-                    "  pixi install\n"
-                    "  pixi run install-dev\n"
-                    "\n"
-                    "Or via conda:\n"
-                    "  conda install mpfr gmp pkg-config -c conda-forge\n"
-                    "  pip install --no-build-isolation --force-reinstall --no-deps .\n"
-                    "\n"
-                    "Or disable high-precision mode:\n"
-                    "  phasic.configure(force_high_precision=False)"
-                )
-                errors.append(msg)
-            # Set environment variable for C code
-            os.environ['PHASIC_FORCE_MPFR'] = '1'
-        else:
-            os.environ.pop('PHASIC_FORCE_MPFR', None)
-
-        if self.mpfr_precision_bits < 0:
-            errors.append("mpfr_precision_bits must be non-negative (0 = auto)")
-        elif self.mpfr_precision_bits > 0 and self.mpfr_precision_bits < 53:
-            errors.append("mpfr_precision_bits must be >= 53 (double precision) or 0 for auto")
-        elif self.mpfr_precision_bits > 0:
-            os.environ['PHASIC_MPFR_BITS'] = str(self.mpfr_precision_bits)
-        else:
-            os.environ.pop('PHASIC_MPFR_BITS', None)
-
-        if self.condition_threshold <= 1.0:
-            errors.append("condition_threshold must be > 1.0")
-        else:
-            os.environ['PHASIC_CONDITION_THRESHOLD'] = str(self.condition_threshold)
-
-        if not self.enable_condition_warnings:
-            os.environ['PHASIC_DISABLE_CONDITION_WARNINGS'] = '1'
-        else:
-            os.environ.pop('PHASIC_DISABLE_CONDITION_WARNINGS', None)
-
-        # Hierarchical SCC composer settings. configure() always
-        # wins over a pre-existing env var: if the field is set
-        # to a concrete value (not None / not False default), we
-        # overwrite the env var; if the field is None, we leave
-        # the env var alone (user may have set it explicitly in
-        # the shell, e.g. via SLURM job script).
-        if self.hierar_elimination:
-            os.environ['PHASIC_HIERAR_ELIMINATION'] = '1'
-        else:
-            os.environ.pop('PHASIC_HIERAR_ELIMINATION', None)
-
-        if self.min_scc_size_to_cache is not None:
-            if self.min_scc_size_to_cache < 0:
-                errors.append(
-                    "min_scc_size_to_cache must be non-negative")
-            else:
-                os.environ['PHASIC_MIN_SCC_SIZE_TO_CACHE'] = str(
-                    self.min_scc_size_to_cache)
-
-        if self.max_parallel_sccs is not None:
-            if self.max_parallel_sccs < 1:
-                errors.append(
-                    "max_parallel_sccs must be >= 1 (use None for no cap)")
-            else:
-                os.environ['PHASIC_MAX_PARALLEL_SCCS'] = str(
-                    self.max_parallel_sccs)
-
-        if self.disable_cache:
-            os.environ['PHASIC_DISABLE_CACHE'] = '1'
-        else:
-            os.environ.pop('PHASIC_DISABLE_CACHE', None)
-
-        if self.cache_dir is not None:
-            os.environ['PHASIC_CACHE_DIR'] = str(self.cache_dir)
-
-        if self.omp_num_threads is not None:
-            if self.omp_num_threads < 1:
-                errors.append("omp_num_threads must be >= 1")
-            else:
-                os.environ['OMP_NUM_THREADS'] = str(self.omp_num_threads)
-
-        # Handle errors/warnings
-        if warnings and self.verbose:
-            for w in warnings:
-                print(f"WARNING: {w}", file=sys.stderr)
-
-        if errors:
-            error_msg = "\n\n".join(errors)
-            if self.strict:
-                raise PTDConfigError(error_msg)
-            else:
-                print(f"WARNING: Configuration issues:\n{error_msg}", file=sys.stderr)
-
-        self._validated = True
-
-        if self.verbose:
-            print(f"PTDAlgorithms configured: {self}")
-
-    def get_available_options(self) -> dict[str, Any]:
-        """
-        Return dict of available options on this system.
-
-        Returns
-        -------
-        dict
-            Dictionary with keys:
-            - 'jax': bool, whether JAX is installed
-            - 'jit': bool, whether JIT is available (same as jax)
-            - 'ffi': bool, whether FFI is available (always False now)
-            - 'backends': list of available backends
-            - 'platforms': list of available JAX platforms
-            - 'cpp': bool, whether C++ module is available
-
-        Examples
-        --------
-        >>> import phasic as ptd
-        >>> opts = ptd.get_available_options()
-        >>> print(opts)
-        {'jax': True, 'jit': True, 'ffi': False,
-         'backends': ['jax', 'cpp'],
-         'platforms': ['cpu'],
-         'cpp': True}
-        """
-        return {
-            'jax': _check_jax_available(),
-            'jit': _check_jax_available(),  # JIT requires JAX
-            'ffi': False,  # Always False for now (memory corruption bug)
-            'cpp': _check_cpp_available(),
-            'mpfr': _check_mpfr_available(),  # High-precision arithmetic
-            'backends': _get_available_backends(),
-            'platforms': _get_available_platforms(),
-        }
-
-    @classmethod
-    def jax_only(cls) -> PTDAlgorithmsConfig:
-        """
-        Factory: JAX-based configuration (JIT enabled, no FFI).
-
-        Returns
-        -------
-        PTDAlgorithmsConfig
-            Config with jax=True, jit=True, backend='jax'
-        """
-        return cls(
-            jax=True,
-            jit=True,
-            ffi=False,
-            backend='jax',
-            strict=True
-        )
-
-    @classmethod
-    def cpp_only(cls) -> PTDAlgorithmsConfig:
-        """
-        Factory: Pure C++ configuration (no JAX, no JIT).
-
-        Useful for environments without JAX or when JIT overhead
-        is not worth it.
-
-        Returns
-        -------
-        PTDAlgorithmsConfig
-            Config with jax=False, jit=False, backend='cpp'
-        """
-        return cls(
-            jax=False,
-            jit=False,
-            ffi=False,
-            backend='cpp',
-            strict=True
-        )
-
-    @classmethod
-    def permissive(cls) -> PTDAlgorithmsConfig:
-        """
-        Factory: Permissive configuration (warnings instead of errors).
-
-        Useful for development when you want to test functionality
-        even if some features are missing.
-
-        Returns
-        -------
-        PTDAlgorithmsConfig
-            Config with strict=False
-        """
-        return cls(
-            jax=True,
-            jit=True,
-            ffi=False,
-            backend='jax',
-            strict=False,  # Warnings not errors
-            verbose=True
-        )
-
-
-# Global configuration instance
-_global_config: PTDAlgorithmsConfig | None = None
+# Global configuration instance.
+_global_config: "PhasicConfig | None" = None
 
 
 def configure(**kwargs) -> None:
     """
     Configure phasic globally.
 
-    Parameters
-    ----------
-    **kwargs
-        Configuration options (see PTDAlgorithmsConfig for details).
-        Valid options: jax, jit, ffi, openmp, strict, platform,
-        backend, verbose, force_high_precision, mpfr_precision_bits,
-        condition_threshold, enable_condition_warnings,
-        hierar_elimination, min_scc_size_to_cache, max_parallel_sccs,
-        disable_cache, cache_dir, omp_num_threads.
+    All fields describe USER INTENT, not which library implements
+    the feature. See PhasicConfig for the full list and per-field
+    docstrings.
+
+    Field summary:
+      - compute: 'auto' | 'cpu' | 'jax-cpu' | 'jax-gpu'
+      - cpu_threads: int or None (None = auto-detect)
+      - parallel_elimination: bool
+      - parallel_elimination_min_subgraph: int or None
+      - parallel_elimination_max_concurrent: int or None
+      - high_precision_mode: 'auto' | 'always' | 'never'
+      - high_precision_bits: int or None
+      - ill_condition_threshold: float
+      - warn_on_ill_conditioning: bool
+      - cache_enabled: bool
+      - cache_dir: str or None
+      - strict: bool
+      - verbose: bool
 
     Raises
     ------
     PTDConfigError
-        If strict=True and configuration is invalid
+        On unknown kwargs, invalid values, or conflicts between
+        configure() arguments and pre-existing env vars.
 
     Examples
     --------
-    >>> import phasic as ptd
+    >>> import phasic
+    >>> phasic.configure(compute='jax-cpu', cpu_threads=4)
 
-    >>> # Standard configuration (FFI+OpenMP enabled by default)
-    >>> ptd.configure(jax=True, jit=True, ffi=True, openmp=True)
-
-    >>> # Disable FFI/OpenMP if build issues (slower, single-core only)
-    >>> ptd.configure(ffi=False, openmp=False)
-
-    >>> # Permissive (warnings not errors)
-    >>> ptd.configure(jax=True, strict=False)
-
-    >>> # Pure C++ (no JAX)
-    >>> ptd.configure(jax=False, jit=False, backend='cpp')
-
-    >>> # Hierarchical SCC composer with custom controls
-    >>> ptd.configure(
-    ...     hierar_elimination=True,
-    ...     min_scc_size_to_cache=8,   # only cache SCCs with synth >= 8 vertices
-    ...     max_parallel_sccs=4,       # cap simultaneous SCC computes at 4
-    ...     cache_dir="/scratch/phasic_cache",  # shared filesystem on cluster
+    >>> phasic.configure(
+    ...     parallel_elimination=True,
+    ...     parallel_elimination_max_concurrent=8,
+    ...     cache_dir='/scratch/phasic_cache',
     ... )
 
-    >>> # Check what's available first
-    >>> print(ptd.get_available_options())
-    >>> ptd.configure(jax=True, jit=True)
-
-    Notes
-    -----
-    When configure() and an environment variable both set the
-    same field, configure() wins. Fields with value None do not
-    overwrite the corresponding env var, so leaving a knob alone
-    in configure() preserves shell-level overrides (useful for
-    SLURM job scripts).
+    >>> phasic.configure(high_precision_mode='always',
+    ...                  high_precision_bits=256)
     """
     global _global_config
 
-    # Validate kwargs up-front so PTDAlgorithmsConfig() doesn't
-    # raise a generic TypeError for unknown options.
-    valid_fields = {f.name for f in PTDAlgorithmsConfig.__dataclass_fields__.values()
+    valid_fields = {f.name for f in PhasicConfig.__dataclass_fields__.values()
                     if not f.name.startswith("_")}
     for key in kwargs:
         if key not in valid_fields:
@@ -572,67 +173,52 @@ def configure(**kwargs) -> None:
                 f"Valid options: {', '.join(sorted(valid_fields))}"
             )
 
-    # Create new config with provided kwargs, or update existing.
     if _global_config is None:
-        _global_config = PTDAlgorithmsConfig(**kwargs)
+        _global_config = PhasicConfig(**kwargs)
     else:
         for key, value in kwargs.items():
             setattr(_global_config, key, value)
 
-    # Validate
     _global_config.validate()
 
 
-def get_config() -> PTDAlgorithmsConfig:
+def get_config() -> "PhasicConfig":
     """
-    Get current global configuration.
+    Return the current global configuration.
 
-    Returns
-    -------
-    PTDAlgorithmsConfig
-        Current configuration (creates default if none exists)
+    On first call, reads the relevant phasic env vars
+    (`PHASIC_HIERAR_ELIMINATION`, `PHASIC_DISABLE_CACHE`,
+    `PHASIC_CACHE_DIR`, `PHASIC_MIN_SCC_SIZE_TO_CACHE`,
+    `PHASIC_MAX_PARALLEL_SCCS`, `OMP_NUM_THREADS`) and seeds the
+    config so its fields agree with the environment that the C
+    layer will observe.
 
-    Examples
-    --------
-    >>> import phasic as ptd
-    >>> config = ptd.get_config()
-    >>> print(config.jax, config.jit, config.backend)
-    True True jax
+    Subsequent calls return the cached config object.
     """
     global _global_config
 
     if _global_config is None:
-        # Check environment variables for overrides
-        kwargs = {}
-        # if os.getenv('PHASIC_FFI') == '0':
-        #     kwargs['ffi'] = False
-        #     kwargs['openmp'] = False
-        if os.getenv('PHASIC_JAX') == '0':
-            kwargs['jax'] = False
-            kwargs['jit'] = False
+        kwargs: dict[str, Any] = {}
 
-        # SCC + cache env-var overrides. Mirror the C-side
-        # readers so get_config() reflects what the C code will
-        # actually see at runtime.
         if os.getenv('PHASIC_HIERAR_ELIMINATION') == '1':
-            kwargs['hierar_elimination'] = True
+            kwargs['parallel_elimination'] = True
         if os.getenv('PHASIC_DISABLE_CACHE') == '1':
-            kwargs['disable_cache'] = True
+            kwargs['cache_enabled'] = False
         cache_dir_env = os.getenv('PHASIC_CACHE_DIR')
         if cache_dir_env:
             kwargs['cache_dir'] = cache_dir_env
         min_scc = os.getenv('PHASIC_MIN_SCC_SIZE_TO_CACHE')
         if min_scc is not None:
             try:
-                kwargs['min_scc_size_to_cache'] = int(min_scc)
+                kwargs['parallel_elimination_min_subgraph'] = int(min_scc)
             except ValueError:
-                pass  # malformed env var; let C-side default kick in
+                pass
         max_par = os.getenv('PHASIC_MAX_PARALLEL_SCCS')
         if max_par is not None:
             try:
                 parsed = int(max_par)
                 if parsed >= 1:
-                    kwargs['max_parallel_sccs'] = parsed
+                    kwargs['parallel_elimination_max_concurrent'] = parsed
             except ValueError:
                 pass
         omp_threads = os.getenv('OMP_NUM_THREADS')
@@ -640,12 +226,26 @@ def get_config() -> PTDAlgorithmsConfig:
             try:
                 parsed = int(omp_threads)
                 if parsed >= 1:
-                    kwargs['omp_num_threads'] = parsed
+                    kwargs['cpu_threads'] = parsed
+            except ValueError:
+                pass
+        force_mpfr = os.getenv('PHASIC_FORCE_MPFR')
+        if force_mpfr == '1':
+            kwargs['high_precision_mode'] = 'always'
+        mpfr_bits = os.getenv('PHASIC_MPFR_BITS')
+        if mpfr_bits is not None:
+            try:
+                kwargs['high_precision_bits'] = int(mpfr_bits)
+            except ValueError:
+                pass
+        cond_thresh = os.getenv('PHASIC_CONDITION_THRESHOLD')
+        if cond_thresh is not None:
+            try:
+                kwargs['ill_condition_threshold'] = float(cond_thresh)
             except ValueError:
                 pass
 
-        # Create default config with env overrides
-        _global_config = PTDAlgorithmsConfig(**kwargs)
+        _global_config = PhasicConfig(**kwargs)
         _global_config.validate()
 
     return _global_config
@@ -653,45 +253,557 @@ def get_config() -> PTDAlgorithmsConfig:
 
 def get_available_options() -> dict[str, Any]:
     """
-    Get dictionary of available options on this system.
+    Return what's available on this system (independent of config).
 
-    Returns
-    -------
-    dict
-        Available features and backends
+    Useful for branching code in scripts:
 
-    Examples
-    --------
-    >>> import phasic as ptd
-    >>> opts = ptd.get_available_options()
-    >>> if opts['jax']:
-    ...     ptd.configure(jax=True, jit=True)
-    ... else:
-    ...     ptd.configure(jax=False, backend='cpp')
+    >>> import phasic
+    >>> if phasic.get_available_options()['mpfr']:
+    ...     phasic.configure(high_precision_mode='always')
     """
-    config = get_config()
-    return config.get_available_options()
+    return {
+        'jax': _check_jax_available(),
+        'cpp': _check_cpp_available(),
+        'mpfr': _check_mpfr_available(),
+        'platforms': _get_available_platforms(),
+    }
 
 
 def reset_config() -> None:
     """
-    Reset configuration to default.
+    Reset the global configuration to defaults.
 
-    Examples
-    --------
-    >>> import phasic as ptd
-    >>> ptd.configure(jax=False, backend='cpp')
-    >>> ptd.reset_config()  # Back to defaults
-    >>> assert ptd.get_config().jax == True
+    Mainly used by tests. Note: does NOT roll back env vars that
+    a previous configure() call wrote. If you need a clean env,
+    unset PHASIC_* / OMP_NUM_THREADS in os.environ manually.
     """
     global _global_config
     _global_config = None
 
 
 __all__ = [
-    'PTDAlgorithmsConfig',
+    'PhasicConfig',
     'configure',
     'get_config',
     'get_available_options',
     'reset_config',
 ]
+
+
+
+# =============================================================
+# New configuration API (refactor)
+# =============================================================
+#
+# This block introduces `PhasicConfig`, the replacement for
+# `PTDAlgorithmsConfig`. Once all internal callers have migrated
+# and the tests/tutorials are updated, the old class above will
+# be removed.
+#
+# Design principles:
+#   - Public fields describe user intent ("parallel_elimination",
+#     "high_precision_mode") rather than implementation
+#     mechanics ("hierar_elimination", "force_high_precision").
+#   - There is one source of truth per knob: the env var. The
+#     dataclass field is the corresponding setter. If both the
+#     env var and configure() set a field's value to different
+#     values, validate() raises — no silent override.
+#   - The `compute` field is the only public backend selector.
+#     Implementation flags (_use_jax, _use_jit, _use_ffi,
+#     _use_openmp, _jax_platform) are derived from `compute` and
+#     read by internal modules (mcmc/svgd/ffi_wrappers).
+#   - validate() does NOT mutate user-supplied fields. Any
+#     conflict raises PTDConfigError.
+
+from typing import Literal as _Literal
+
+
+# field_name -> (env_var_name, invert_bool, default_value_means_unset)
+#
+# invert_bool: if True, the env var is "off" semantics (e.g.
+# PHASIC_DISABLE_CACHE=1 disables, but the field cache_enabled
+# is the positive form). When writing: True -> env unset,
+# False -> env set to "1". When reading: presence of env -> False.
+#
+# default_value_means_unset: the field value that corresponds to
+# "leave the env var alone". For Optional[int] fields this is None;
+# for bool fields it's the default polarity.
+_ENV_VAR_FOR_FIELD = {
+    'cpu_threads':                          ('OMP_NUM_THREADS', False, None),
+    'parallel_elimination':                 ('PHASIC_HIERAR_ELIMINATION', False, False),
+    'parallel_elimination_min_subgraph':    ('PHASIC_MIN_SCC_SIZE_TO_CACHE', False, None),
+    'parallel_elimination_max_concurrent':  ('PHASIC_MAX_PARALLEL_SCCS', False, None),
+    'high_precision_mode':                  ('PHASIC_FORCE_MPFR', False, 'auto'),
+    'high_precision_bits':                  ('PHASIC_MPFR_BITS', False, None),
+    'ill_condition_threshold':              ('PHASIC_CONDITION_THRESHOLD', False, 1e12),
+    'warn_on_ill_conditioning':             ('PHASIC_DISABLE_CONDITION_WARNINGS', True, True),
+    'cache_enabled':                        ('PHASIC_DISABLE_CACHE', True, True),
+    'cache_dir':                            ('PHASIC_CACHE_DIR', False, None),
+}
+
+
+@dataclass
+class PhasicConfig:
+    """
+    Public configuration for phasic. All fields describe USER INTENT.
+    Implementation choices (JAX/MPFR/OpenMP/FFI/SCC) are derived.
+
+    Conflicting settings raise PTDConfigError; no silent coercion.
+
+    Public fields
+    -------------
+    compute : 'auto' | 'cpu' | 'jax-cpu' | 'jax-gpu', default 'auto'
+        Single source of truth for the compute backend.
+        - 'auto'    : JAX if importable, else pure C++.
+        - 'cpu'     : pure C++ pipeline; no JAX, no JIT, no FFI.
+        - 'jax-cpu' : JAX path on the CPU device.
+        - 'jax-gpu' : JAX path on a GPU device. Raises if no GPU.
+
+    cpu_threads : int or None, default None
+        OpenMP thread count. None = use auto-detected value
+        (SLURM_CPUS_PER_TASK / SLURM_CPUS_ON_NODE / sched_getaffinity
+        / os.cpu_count()). Backs OMP_NUM_THREADS.
+
+    parallel_elimination : bool, default False
+        Run Gaussian elimination in parallel across strongly-connected
+        components of the graph. Backs PHASIC_HIERAR_ELIMINATION.
+
+    parallel_elimination_min_subgraph : int or None, default None
+        Skip the on-disk cache for SCCs smaller than this many
+        vertices (None = use the C default of 4). Backs
+        PHASIC_MIN_SCC_SIZE_TO_CACHE.
+
+    parallel_elimination_max_concurrent : int or None, default None
+        Cap on simultaneous per-SCC eliminations within one level
+        of the SCC condensation. None = no cap (use all OMP threads).
+        Backs PHASIC_MAX_PARALLEL_SCCS.
+
+    high_precision_mode : 'auto' | 'always' | 'never', default 'auto'
+        When to engage high-precision arithmetic (MPFR).
+        - 'auto'   : activate when the condition number exceeds
+                     ill_condition_threshold.
+        - 'always' : force high precision for every moment computation.
+        - 'never'  : double precision only, even for ill-conditioned
+                     problems (warnings still surface).
+        Requires the library to be built with MPFR for 'always'.
+        Backs PHASIC_FORCE_MPFR.
+
+    high_precision_bits : int or None, default None
+        Precision in bits when high-precision mode is active.
+        None = auto-pick based on the condition number. Must be
+        >= 53 if specified. Backs PHASIC_MPFR_BITS.
+
+    ill_condition_threshold : float, default 1e12
+        Condition-number threshold above which high-precision mode
+        is engaged automatically. Backs PHASIC_CONDITION_THRESHOLD.
+
+    warn_on_ill_conditioning : bool, default True
+        Emit log warnings when the condition number is high.
+        Backs PHASIC_DISABLE_CONDITION_WARNINGS (inverted).
+
+    cache_enabled : bool, default True
+        Use the on-disk caches under cache_dir. Backs
+        PHASIC_DISABLE_CACHE (inverted).
+
+    cache_dir : str or None, default None
+        Override the cache root. None = $HOME/.phasic_cache. Backs
+        PHASIC_CACHE_DIR.
+
+    strict : bool, default True
+        Raise on missing-feature warnings (e.g. JAX requested but
+        not installed) instead of logging a warning. Does NOT
+        affect conflict checking — conflicts always raise.
+
+    verbose : bool, default False
+        Print configuration details and informational logs.
+    """
+
+    # --- compute backend (single source of truth) ---
+    compute: _Literal['auto', 'cpu', 'jax-cpu', 'jax-gpu'] = 'auto'
+
+    # --- parallel execution ---
+    cpu_threads: int | None = None
+    parallel_elimination: bool = False
+    parallel_elimination_min_subgraph: int | None = None
+    parallel_elimination_max_concurrent: int | None = None
+
+    # --- numerical precision ---
+    high_precision_mode: _Literal['auto', 'always', 'never'] = 'auto'
+    high_precision_bits: int | None = None
+    ill_condition_threshold: float = 1e12
+    warn_on_ill_conditioning: bool = True
+
+    # --- caching ---
+    cache_enabled: bool = True
+    cache_dir: str | None = None
+
+    # --- runtime behaviour ---
+    strict: bool = True
+    verbose: bool = False
+
+    # --- private, derived from `compute` ---
+    _use_jax: bool = field(default=True, init=False, repr=False)
+    _use_jit: bool = field(default=True, init=False, repr=False)
+    _use_ffi: bool = field(default=True, init=False, repr=False)
+    _use_openmp: bool = field(default=True, init=False, repr=False)
+    _jax_platform: _Literal['cpu', 'gpu'] = field(default='cpu', init=False, repr=False)
+
+    # Internal tracking.
+    _validated: bool = field(default=False, init=False, repr=False)
+    _jax_imported: bool = field(default=False, init=False, repr=False)
+
+    # ------------------------------------------------------------------
+    # Compatibility properties — old internal readers (config.jax,
+    # config.jit, config.ffi) keep working without touching mcmc.py /
+    # svgd.py / ffi_wrappers.py / __init__.py during the staged migration.
+    # ------------------------------------------------------------------
+    @property
+    def jax(self) -> bool:
+        """Whether JAX is enabled. Derived from `compute`."""
+        return self._use_jax
+
+    @property
+    def jit(self) -> bool:
+        """Whether JIT is enabled. Derived from `compute`."""
+        return self._use_jit
+
+    @property
+    def ffi(self) -> bool:
+        """Whether the FFI backend is enabled. Derived from `compute`."""
+        return self._use_ffi
+
+    # ------------------------------------------------------------------
+    # Resolution + validation
+    # ------------------------------------------------------------------
+    def _resolve_compute(self) -> None:
+        """Map the public `compute` value onto the private _use_* flags.
+
+        Raises
+        ------
+        PTDConfigError
+            If the requested compute mode cannot be satisfied (e.g.
+            'jax-cpu' without JAX installed, 'jax-gpu' without a GPU).
+        """
+        if self.compute == 'auto':
+            resolved = 'jax-cpu' if _check_jax_available() else 'cpu'
+        else:
+            resolved = self.compute
+
+        if resolved == 'cpu':
+            self._use_jax = False
+            self._use_jit = False
+            self._use_ffi = False
+            self._use_openmp = True
+            self._jax_platform = 'cpu'
+            return
+
+        if resolved in ('jax-cpu', 'jax-gpu'):
+            if not _check_jax_available():
+                raise PTDConfigError(
+                    f"compute={self.compute!r} requested but JAX is not installed.\n"
+                    "  Install JAX:   pip install jax jaxlib\n"
+                    "  Or set         compute='cpu'\n"
+                )
+            self._use_jax = True
+            self._use_jit = True
+            self._use_ffi = True
+            self._use_openmp = True
+            self._jax_platform = 'gpu' if resolved == 'jax-gpu' else 'cpu'
+            if resolved == 'jax-gpu' and 'gpu' not in _get_available_platforms():
+                raise PTDConfigError(
+                    f"compute='jax-gpu' requested but no GPU device is available."
+                )
+            return
+
+        raise PTDConfigError(
+            f"Unknown compute={self.compute!r}; "
+            f"must be one of 'auto', 'cpu', 'jax-cpu', 'jax-gpu'."
+        )
+
+    def validate(self) -> None:
+        """Validate the configuration, sync to env vars, raise on conflicts.
+
+        Rules:
+          1. Env-var single-source-of-truth: each non-default field is
+             written into its env var.
+          2. No silent rewrites: validate() does not mutate user-set fields.
+          3. Conflicts raise: incompatible field combinations, or
+             configure() vs pre-existing env var disagreement.
+          4. `strict` only governs missing-feature warnings; conflicts
+             always raise regardless of strict.
+        """
+        errors: list[str] = []
+
+        # 1. Resolve compute first — this populates the _use_* fields
+        #    and raises on impossible requests.
+        try:
+            self._resolve_compute()
+        except PTDConfigError as e:
+            errors.append(str(e))
+
+        # 2. parallel_elimination requires cpu_threads >= 2 (after
+        #    cpu_threads resolves: either explicit, or shell, or
+        #    phasic auto-detect).
+        effective_threads = self.cpu_threads
+        if effective_threads is None:
+            env_val = os.environ.get('OMP_NUM_THREADS')
+            if env_val is not None:
+                try:
+                    effective_threads = int(env_val)
+                except ValueError:
+                    pass
+        if self.parallel_elimination and effective_threads == 1:
+            errors.append(
+                "parallel_elimination=True is meaningless with cpu_threads=1.\n"
+                "  Set cpu_threads >= 2 or use parallel_elimination=False."
+            )
+
+        # 3. high_precision_mode='always' requires MPFR.
+        if self.high_precision_mode == 'always' and not _check_mpfr_available():
+            errors.append(
+                "high_precision_mode='always' requested but the C library was\n"
+                "  built without MPFR. Rebuild with MPFR or set\n"
+                "  high_precision_mode='auto'."
+            )
+
+        # 4. high_precision_bits: 0/None for auto, otherwise >= 53.
+        if self.high_precision_bits is not None:
+            if self.high_precision_bits < 53:
+                errors.append(
+                    f"high_precision_bits={self.high_precision_bits} too small "
+                    f"(must be >= 53 or None for auto)."
+                )
+
+        # 5. ill_condition_threshold must be > 1.
+        if self.ill_condition_threshold <= 1.0:
+            errors.append(
+                f"ill_condition_threshold={self.ill_condition_threshold} must be > 1."
+            )
+
+        # 6. cpu_threads >= 1 if set.
+        if self.cpu_threads is not None and self.cpu_threads < 1:
+            errors.append(
+                f"cpu_threads={self.cpu_threads} must be >= 1 or None for auto-detect."
+            )
+
+        # 7. parallel_elimination_max_concurrent >= 1 if set.
+        if (self.parallel_elimination_max_concurrent is not None
+                and self.parallel_elimination_max_concurrent < 1):
+            errors.append(
+                f"parallel_elimination_max_concurrent="
+                f"{self.parallel_elimination_max_concurrent} must be >= 1 or None."
+            )
+
+        # 8. parallel_elimination_min_subgraph >= 0 if set.
+        if (self.parallel_elimination_min_subgraph is not None
+                and self.parallel_elimination_min_subgraph < 0):
+            errors.append(
+                f"parallel_elimination_min_subgraph="
+                f"{self.parallel_elimination_min_subgraph} must be >= 0."
+            )
+
+        # 9. Env-var ↔ configure() conflict policy.
+        #    Phasic's own import-time auto-detect for OMP_NUM_THREADS
+        #    records itself in _phasic_assigned_env; configure() may
+        #    overwrite that without raising. Any OTHER pre-existing
+        #    env var that disagrees with a configure() value raises.
+        for field_name, (env_var, invert, default) in _ENV_VAR_FOR_FIELD.items():
+            field_value = getattr(self, field_name)
+            if field_value == default:
+                # Field at default; nothing to compare against.
+                continue
+            existing = os.environ.get(env_var)
+            if existing is None:
+                continue
+            if _env_was_set_by_phasic(env_var):
+                # Our own auto-set; safe to overwrite.
+                continue
+            # Compare existing env value with what we'd write.
+            new_str = _field_to_env_value(field_name, field_value, invert)
+            if existing != new_str:
+                errors.append(
+                    f"Conflicting configuration for {field_name}: shell sets "
+                    f"{env_var}={existing!r} but configure({field_name}="
+                    f"{field_value!r}) would write {env_var}={new_str!r}. "
+                    f"Unset {env_var} before launch, or align the two values."
+                )
+
+        # 10. Raise everything together.
+        if errors:
+            raise PTDConfigError("\n\n".join(errors))
+
+        # 11. Write env vars for non-default fields.
+        for field_name, (env_var, invert, default) in _ENV_VAR_FOR_FIELD.items():
+            field_value = getattr(self, field_name)
+            if field_value == default:
+                # Leave the env var alone (don't overwrite shell value).
+                continue
+            new_str = _field_to_env_value(field_name, field_value, invert)
+            previous = os.environ.get(env_var)
+            if new_str is None:
+                os.environ.pop(env_var, None)
+            else:
+                os.environ[env_var] = new_str
+            # Only mark as phasic-assigned if we actually CHANGED
+            # the env var. If validate() is just reaffirming a
+            # value the shell already set (e.g. via the
+            # get_config() bootstrap that reads env vars), we
+            # leave the assignment unmarked so a later configure()
+            # with a different value still triggers the conflict
+            # check.
+            if previous != new_str:
+                _phasic_assigned_env.add(env_var)
+
+        # 12. high_precision_mode is tri-valued; the C side only
+        #     reads PHASIC_FORCE_MPFR as a boolean.
+        #     'always' -> set; 'auto'/'never' -> unset.
+        #     'never' additionally writes PHASIC_CONDITION_THRESHOLD=inf
+        #     to disable the auto-trigger.
+        if self.high_precision_mode == 'always':
+            os.environ['PHASIC_FORCE_MPFR'] = '1'
+        else:
+            os.environ.pop('PHASIC_FORCE_MPFR', None)
+        if self.high_precision_mode == 'never':
+            os.environ['PHASIC_CONDITION_THRESHOLD'] = 'inf'
+        elif self.ill_condition_threshold != 1e12:
+            os.environ['PHASIC_CONDITION_THRESHOLD'] = (
+                str(self.ill_condition_threshold))
+        elif (self.high_precision_mode == 'auto'
+              and os.environ.get('PHASIC_CONDITION_THRESHOLD') == 'inf'):
+            # Previous 'never' setting bled through. Clear it so
+            # 'auto' uses the C default (1e12).
+            os.environ.pop('PHASIC_CONDITION_THRESHOLD', None)
+
+        self._validated = True
+
+        if self.verbose:
+            print(f"PhasicConfig: {self.effective()}")
+
+    # ------------------------------------------------------------------
+    # Introspection
+    # ------------------------------------------------------------------
+    def effective(self) -> dict[str, Any]:
+        """Snapshot of current configuration and its environment.
+
+        Returns
+        -------
+        dict with three sections:
+          - 'fields':      every public field and its current value.
+          - 'environment': every env var phasic uses, and its current
+                           value in os.environ (None if unset).
+          - 'derived':     useful answers about runtime state:
+                           jax_active, mpfr_active, cpu_threads_source,
+                           cache_dir_resolved, compute_resolved.
+        """
+        fields = {
+            'compute': self.compute,
+            'cpu_threads': self.cpu_threads,
+            'parallel_elimination': self.parallel_elimination,
+            'parallel_elimination_min_subgraph': self.parallel_elimination_min_subgraph,
+            'parallel_elimination_max_concurrent': self.parallel_elimination_max_concurrent,
+            'high_precision_mode': self.high_precision_mode,
+            'high_precision_bits': self.high_precision_bits,
+            'ill_condition_threshold': self.ill_condition_threshold,
+            'warn_on_ill_conditioning': self.warn_on_ill_conditioning,
+            'cache_enabled': self.cache_enabled,
+            'cache_dir': self.cache_dir,
+            'strict': self.strict,
+            'verbose': self.verbose,
+        }
+
+        env_vars = [
+            'OMP_NUM_THREADS',
+            'PHASIC_HIERAR_ELIMINATION',
+            'PHASIC_MIN_SCC_SIZE_TO_CACHE',
+            'PHASIC_MAX_PARALLEL_SCCS',
+            'PHASIC_FORCE_MPFR',
+            'PHASIC_MPFR_BITS',
+            'PHASIC_CONDITION_THRESHOLD',
+            'PHASIC_DISABLE_CONDITION_WARNINGS',
+            'PHASIC_DISABLE_CACHE',
+            'PHASIC_CACHE_DIR',
+        ]
+        environment = {var: os.environ.get(var) for var in env_vars}
+
+        # cpu_threads source: where did OMP_NUM_THREADS come from?
+        if self.cpu_threads is not None:
+            threads_src = 'configure()'
+        else:
+            threads_src = _omp_threads_source()
+
+        # cache_dir resolved: respect override or default.
+        cache_dir_resolved = self.cache_dir or os.path.expanduser('~/.phasic_cache')
+
+        # compute resolved: if 'auto', what did it become?
+        if self.compute == 'auto':
+            compute_resolved = 'jax-cpu' if self._use_jax else 'cpu'
+        else:
+            compute_resolved = self.compute
+
+        derived = {
+            'jax_active': self._jax_imported,
+            'mpfr_active': _check_mpfr_available() and (
+                self.high_precision_mode == 'always'
+                or os.environ.get('PHASIC_FORCE_MPFR') == '1'),
+            'cpu_threads_source': threads_src,
+            'cache_dir_resolved': cache_dir_resolved,
+            'compute_resolved': compute_resolved,
+        }
+
+        return {'fields': fields, 'environment': environment, 'derived': derived}
+
+    def __repr__(self) -> str:
+        """Multi-line pretty-print of the effective configuration."""
+        import json
+        eff = self.effective()
+        return "PhasicConfig:\n" + json.dumps(eff, indent=2, default=str)
+
+
+# ------------------------------------------------------------------
+# Helpers shared by validate() and effective()
+# ------------------------------------------------------------------
+
+# Module-level record of env vars that phasic itself set during
+# import-time auto-detection. configure() may overwrite these
+# without raising; user-set env vars trigger conflict checks.
+_phasic_assigned_env: set[str] = set()
+
+
+def _env_was_set_by_phasic(env_var: str) -> bool:
+    """True if phasic auto-set this env var (e.g. import-time
+    OMP_NUM_THREADS detection)."""
+    return env_var in _phasic_assigned_env
+
+
+def _field_to_env_value(field_name: str, value: Any, invert: bool) -> str | None:
+    """Convert a field value to its env-var string representation.
+
+    Returns None to signal "remove the env var" (e.g. inverted
+    bool fields at their positive default).
+    """
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        if invert:
+            # E.g. cache_enabled=False -> PHASIC_DISABLE_CACHE='1'.
+            #      cache_enabled=True  -> remove PHASIC_DISABLE_CACHE.
+            return '1' if not value else None
+        return '1' if value else None
+    if isinstance(value, str):
+        return value if value else None
+    return str(value)
+
+
+def _omp_threads_source() -> str:
+    """Describe where the OMP_NUM_THREADS value came from."""
+    if os.environ.get('OMP_NUM_THREADS') is None:
+        return 'unset'
+    if _env_was_set_by_phasic('OMP_NUM_THREADS'):
+        if os.environ.get('SLURM_CPUS_PER_TASK'):
+            return 'phasic auto-detect (SLURM_CPUS_PER_TASK)'
+        if os.environ.get('SLURM_CPUS_ON_NODE'):
+            return 'phasic auto-detect (SLURM_CPUS_ON_NODE)'
+        return 'phasic auto-detect (os.cpu_count)'
+    if os.environ.get('SLURM_CPUS_PER_TASK'):
+        return 'shell + SLURM_CPUS_PER_TASK'
+    return 'shell (OMP_NUM_THREADS)'

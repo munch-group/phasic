@@ -34,14 +34,19 @@ from typing import Any, Callable
 from datetime import datetime
 import hashlib
 
+# JAX import is deferred so that `import phasic.cache_manager`
+# (transitively pulled in by `import phasic`) does not eagerly
+# load JAX. The only use of jax in this module is
+# jax.block_until_ready inside CacheManager.sync_from_remote();
+# that callsite imports jax locally.
+HAS_JAX: bool
+jax = None
+jnp = None
 try:
-    import jax
-    import jax.numpy as jnp
-    HAS_JAX = True
-except ImportError:
+    import importlib.util
+    HAS_JAX = importlib.util.find_spec('jax') is not None
+except Exception:
     HAS_JAX = False
-    jax = None
-    jnp = None
 
 
 class CacheManager:
@@ -208,6 +213,7 @@ class CacheManager:
                       f"times_shape={times.shape}...", end=' ', flush=True)
 
             try:
+                import jax  # local — defer JAX import to first use
                 # Call model to trigger compilation
                 _ = model_fn(theta, times)
                 # Block to ensure compilation completes

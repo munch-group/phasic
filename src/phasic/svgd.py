@@ -4178,12 +4178,12 @@ class SVGD:
 
         # Validate JIT parameter against config
         if jit is None:
-            jit = config.jit  # Use config default
-        elif jit and not config.jax:
+            jit = config._use_jit  # Use config default
+        elif jit and not config._use_jax:
             raise PTDConfigError(
                 "jit=True requires JAX.\n"
-                "  Current config: jax=False\n"
-                "  Fix: phasic.configure(jax=True)"
+                "  Current config: JAX disabled (compute='cpu')\n"
+                "  Fix: phasic.configure(compute='jax-cpu')"
             )
 
         # Validate parallel parameter

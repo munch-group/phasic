@@ -24,7 +24,7 @@ import pytest
 
 import phasic
 import phasic.cache as cache
-from phasic.config import PTDAlgorithmsConfig, reset_config
+from phasic.config import PhasicConfig, reset_config
 from phasic.exceptions import PTDConfigError
 from toy_model import build_toy_b
 
@@ -35,8 +35,13 @@ THETA = [1.0, 1.0, 1.0, 1.0]
 @pytest.fixture(autouse=True)
 def _reset_config_and_env(monkeypatch):
     """Reset the global config and clear PHASIC_* env vars
-    before each test."""
+    before each test. Also clear _phasic_assigned_env so that
+    env vars set by previous tests are NOT treated as
+    phasic-owned (which would let configure() silently
+    overwrite them and bypass the conflict-check)."""
+    from phasic.config import _phasic_assigned_env
     reset_config()
+    _phasic_assigned_env.clear()
     monkeypatch.delenv("PHASIC_HIERAR_ELIMINATION", raising=False)
     monkeypatch.delenv("PHASIC_MIN_SCC_SIZE_TO_CACHE", raising=False)
     monkeypatch.delenv("PHASIC_MAX_PARALLEL_SCCS", raising=False)
@@ -44,6 +49,7 @@ def _reset_config_and_env(monkeypatch):
     monkeypatch.delenv("PHASIC_CACHE_DIR", raising=False)
     yield
     reset_config()
+    _phasic_assigned_env.clear()
 
 
 # ---------------------------------------------------------------
@@ -52,33 +58,39 @@ def _reset_config_and_env(monkeypatch):
 
 
 def test_configure_hierar_elimination_sets_env():
-    phasic.configure(hierar_elimination=True)
+    phasic.configure(parallel_elimination=True)
     assert os.environ.get("PHASIC_HIERAR_ELIMINATION") == "1"
 
 
-def test_configure_hierar_elimination_false_clears_env(monkeypatch):
+def test_configure_default_with_conflicting_env_does_nothing(monkeypatch):
+    """If the shell has set PHASIC_HIERAR_ELIMINATION=1 and the
+    user passes the field at its default (False), the env stays
+    set — phasic does not write the env for default-valued fields.
+    Effectively the shell wins for fields the user didn't touch."""
     monkeypatch.setenv("PHASIC_HIERAR_ELIMINATION", "1")
-    phasic.configure(hierar_elimination=False)
-    assert os.environ.get("PHASIC_HIERAR_ELIMINATION") is None
+    phasic.configure(parallel_elimination=False)
+    # Env still set; that's intentional under the new policy
+    # (default-valued fields don't write env vars).
+    assert os.environ.get("PHASIC_HIERAR_ELIMINATION") == "1"
 
 
 def test_configure_min_scc_size_sets_env():
-    phasic.configure(min_scc_size_to_cache=8)
+    phasic.configure(parallel_elimination_min_subgraph=8)
     assert os.environ.get("PHASIC_MIN_SCC_SIZE_TO_CACHE") == "8"
 
 
 def test_configure_min_scc_size_zero():
-    phasic.configure(min_scc_size_to_cache=0)
+    phasic.configure(parallel_elimination_min_subgraph=0)
     assert os.environ.get("PHASIC_MIN_SCC_SIZE_TO_CACHE") == "0"
 
 
 def test_configure_max_parallel_sccs_sets_env():
-    phasic.configure(max_parallel_sccs=4)
+    phasic.configure(parallel_elimination_max_concurrent=4)
     assert os.environ.get("PHASIC_MAX_PARALLEL_SCCS") == "4"
 
 
 def test_configure_disable_cache_sets_env():
-    phasic.configure(disable_cache=True)
+    phasic.configure(cache_enabled=False)
     assert os.environ.get("PHASIC_DISABLE_CACHE") == "1"
 
 
@@ -92,12 +104,13 @@ def test_configure_cache_dir_sets_env(tmp_path):
 # ---------------------------------------------------------------
 
 
-def test_configure_overrides_existing_env(monkeypatch):
-    """configure() with a concrete value wins over a pre-existing
-    env var (last setter wins)."""
+def test_configure_raises_on_conflict_with_existing_env(monkeypatch):
+    """configure() with a value disagreeing with a pre-existing
+    env var raises PTDConfigError (refactored policy:
+    shell-set env vars are user-authoritative)."""
     monkeypatch.setenv("PHASIC_MIN_SCC_SIZE_TO_CACHE", "100")
-    phasic.configure(min_scc_size_to_cache=4)
-    assert os.environ.get("PHASIC_MIN_SCC_SIZE_TO_CACHE") == "4"
+    with pytest.raises(PTDConfigError, match="PHASIC_MIN_SCC_SIZE_TO_CACHE"):
+        phasic.configure(parallel_elimination_min_subgraph=4)
 
 
 def test_configure_none_field_preserves_env(monkeypatch):
@@ -106,7 +119,7 @@ def test_configure_none_field_preserves_env(monkeypatch):
     and a Python configure() call can change other knobs without
     blowing it away."""
     monkeypatch.setenv("PHASIC_MIN_SCC_SIZE_TO_CACHE", "16")
-    phasic.configure(hierar_elimination=True)  # don't touch min_scc
+    phasic.configure(parallel_elimination=True)  # don't touch min_scc
     assert os.environ.get("PHASIC_MIN_SCC_SIZE_TO_CACHE") == "16"
 
 
@@ -118,19 +131,19 @@ def test_configure_none_field_preserves_env(monkeypatch):
 def test_get_config_reads_hierar_elimination_from_env(monkeypatch):
     monkeypatch.setenv("PHASIC_HIERAR_ELIMINATION", "1")
     cfg = phasic.get_config()
-    assert cfg.hierar_elimination is True
+    assert cfg.parallel_elimination is True
 
 
 def test_get_config_reads_min_scc_size_from_env(monkeypatch):
     monkeypatch.setenv("PHASIC_MIN_SCC_SIZE_TO_CACHE", "8")
     cfg = phasic.get_config()
-    assert cfg.min_scc_size_to_cache == 8
+    assert cfg.parallel_elimination_min_subgraph == 8
 
 
 def test_get_config_reads_max_parallel_from_env(monkeypatch):
     monkeypatch.setenv("PHASIC_MAX_PARALLEL_SCCS", "4")
     cfg = phasic.get_config()
-    assert cfg.max_parallel_sccs == 4
+    assert cfg.parallel_elimination_max_concurrent == 4
 
 
 def test_get_config_reads_cache_dir_from_env(monkeypatch, tmp_path):
@@ -144,7 +157,7 @@ def test_get_config_handles_malformed_env(monkeypatch):
     side has its own fallback to sane defaults."""
     monkeypatch.setenv("PHASIC_MIN_SCC_SIZE_TO_CACHE", "not_a_number")
     cfg = phasic.get_config()
-    assert cfg.min_scc_size_to_cache is None
+    assert cfg.parallel_elimination_min_subgraph is None
 
 
 # ---------------------------------------------------------------
@@ -153,13 +166,13 @@ def test_get_config_handles_malformed_env(monkeypatch):
 
 
 def test_configure_rejects_negative_min_scc_size():
-    with pytest.raises(PTDConfigError, match="min_scc_size_to_cache"):
-        phasic.configure(min_scc_size_to_cache=-1)
+    with pytest.raises(PTDConfigError, match="parallel_elimination_min_subgraph"):
+        phasic.configure(parallel_elimination_min_subgraph=-1)
 
 
 def test_configure_rejects_zero_max_parallel():
-    with pytest.raises(PTDConfigError, match="max_parallel_sccs"):
-        phasic.configure(max_parallel_sccs=0)
+    with pytest.raises(PTDConfigError, match="parallel_elimination_max_concurrent"):
+        phasic.configure(parallel_elimination_max_concurrent=0)
 
 
 def test_configure_unknown_field_raises():
@@ -173,12 +186,12 @@ def test_configure_unknown_field_raises():
 
 
 def test_configure_threshold_affects_cache_bypass(tmp_path):
-    """Setting min_scc_size_to_cache via configure() actually
+    """Setting parallel_elimination_min_subgraph via configure() actually
     changes which SCCs bypass the cache."""
     phasic.configure(
-            hierar_elimination=True,
+            parallel_elimination=True,
             cache_dir=str(tmp_path),
-            min_scc_size_to_cache=1000,  # bypass everything
+            parallel_elimination_min_subgraph=1000,  # bypass everything
     )
     cache.reset_scc_compose_stats()
 
@@ -192,11 +205,11 @@ def test_configure_threshold_affects_cache_bypass(tmp_path):
 
 
 def test_configure_zero_threshold_caches_everything(tmp_path):
-    """configure(min_scc_size_to_cache=0) caches every SCC."""
+    """configure(parallel_elimination_min_subgraph=0) caches every SCC."""
     phasic.configure(
-            hierar_elimination=True,
+            parallel_elimination=True,
             cache_dir=str(tmp_path),
-            min_scc_size_to_cache=0,
+            parallel_elimination_min_subgraph=0,
     )
     cache.reset_scc_compose_stats()
 
@@ -210,12 +223,12 @@ def test_configure_zero_threshold_caches_everything(tmp_path):
 
 
 def test_configure_disable_cache_end_to_end(tmp_path):
-    """configure(disable_cache=True) bypasses load and save."""
+    """configure(cache_enabled=False) bypasses load and save."""
     phasic.configure(
-            hierar_elimination=True,
+            parallel_elimination=True,
             cache_dir=str(tmp_path),
-            disable_cache=True,
-            min_scc_size_to_cache=0,
+            cache_enabled=False,
+            parallel_elimination_min_subgraph=0,
     )
     cache.reset_scc_compose_stats()
 
@@ -233,13 +246,13 @@ def test_configure_correctness_unchanged(tmp_path):
     """Whatever knob settings, the numerical answer is the same."""
     base_result = None
     for cfg_kwargs in [
-        {"hierar_elimination": False},
-        {"hierar_elimination": True, "cache_dir": str(tmp_path / "a"),
-         "min_scc_size_to_cache": 0},
-        {"hierar_elimination": True, "cache_dir": str(tmp_path / "b"),
-         "min_scc_size_to_cache": 1000},
-        {"hierar_elimination": True, "cache_dir": str(tmp_path / "c"),
-         "max_parallel_sccs": 1, "min_scc_size_to_cache": 0},
+        {"parallel_elimination": False},
+        {"parallel_elimination": True, "cache_dir": str(tmp_path / "a"),
+         "parallel_elimination_min_subgraph": 0},
+        {"parallel_elimination": True, "cache_dir": str(tmp_path / "b"),
+         "parallel_elimination_min_subgraph": 1000},
+        {"parallel_elimination": True, "cache_dir": str(tmp_path / "c"),
+         "parallel_elimination_max_concurrent": 1, "parallel_elimination_min_subgraph": 0},
     ]:
         phasic.configure(**cfg_kwargs)
         g = build_toy_b()

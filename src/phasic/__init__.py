@@ -27,7 +27,7 @@ from .config import (
     configure,
     get_config,
     get_available_options,
-    PTDAlgorithmsConfig,
+    PhasicConfig,
     reset_config
 )
 from .exceptions import (
@@ -83,6 +83,12 @@ def _detect_omp_num_threads() -> int:
 # Users can pre-set OMP_NUM_THREADS in their shell to override.
 if "OMP_NUM_THREADS" not in os.environ:
     os.environ["OMP_NUM_THREADS"] = str(_detect_omp_num_threads())
+    # Record that phasic set this value (not the user/shell).
+    # PhasicConfig's conflict checker (in config.py) treats env
+    # vars in _phasic_assigned_env as overwritable by configure();
+    # user-set env vars trigger conflict-raises.
+    from .config import _phasic_assigned_env as _phasic_assigned_env_set
+    _phasic_assigned_env_set.add("OMP_NUM_THREADS")
 
 # from .vscode_theme import set_phasic_theme
 # from .vscode_theme import phasic_theme as theme
@@ -92,147 +98,119 @@ if "OMP_NUM_THREADS" not in os.environ:
 # Get configuration (creates default if none exists)
 _config = get_config()
 
-# Configure JAX environment BEFORE importing (if JAX will be used)
-if _config.jax:
+# JAX is no longer imported at module load time. The previous
+# import-time block (which imported JAX, wrote XLA_FLAGS, applied
+# CompilationConfig.balanced(), and installed a stdout filter) is
+# now deferred to _ensure_jax_active() below, which is called
+# lazily by mcmc.py / svgd.py and by configure() when compute is
+# 'jax-cpu' / 'jax-gpu'. This means `import phasic` is cheap and
+# side-effect-light: no JAX import, no env vars beyond
+# OMP_NUM_THREADS auto-detect.
+jax = None
+jnp = None
+HAS_JAX = False
+
+
+# The _DeviceListFilter class lives at module scope so
+# _ensure_jax_active() can install it. Wrapping stdout/stderr
+# prevents JAX from logging "CpuDevice(id=0), CpuDevice(id=1), ..."
+# at first device access.
+class _DeviceListFilter:
+    def __init__(self, original: Any) -> None:
+        self.original = original
+        self.buffer = ''
+
+    def write(self, text: str) -> None:
+        self.buffer += text
+        while '\n' in self.buffer:
+            line, self.buffer = self.buffer.split('\n', 1)
+            line += '\n'
+            if not ('CpuDevice' in line or 'GpuDevice' in line):
+                self.original.write(line)
+
+    def flush(self) -> None:
+        if self.buffer and not ('CpuDevice' in self.buffer or 'GpuDevice' in self.buffer):
+            self.original.write(self.buffer)
+            self.buffer = ''
+        self.original.flush()
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.original, name)
+
+
+# ------------------------------------------------------------------
+# Deferred JAX initialisation (refactor step 2)
+#
+# `_ensure_jax_active()` is the on-demand entry point that runs the
+# same JAX setup the import-time block does above. After step 5 of
+# the config refactor, the import-time block is removed and this
+# helper is the sole path that touches JAX.
+#
+# For now (step 2) it is idempotent: if JAX was already imported by
+# the top-of-module block, calling _ensure_jax_active() is a no-op.
+# Callers in svgd.py / mcmc.py can already use it.
+# ------------------------------------------------------------------
+def _ensure_jax_active() -> None:
+    """Lazily initialise JAX. Idempotent — safe to call repeatedly.
+
+    Performs (in order):
+      1. Apply CompilationConfig.balanced() defaults.
+      2. Write XLA_FLAGS with multi-CPU device count.
+      3. Set JAX_PLATFORMS=cpu default.
+      4. Install the stdout/stderr device-list filter.
+      5. import jax + enable x64.
+
+    After this returns, ``jax`` and ``jnp`` module attributes are
+    populated. Mark the active state on the global config so
+    `effective()` reports it.
+    """
+    global jax, jnp, HAS_JAX
+    if HAS_JAX:
+        return
+
     import sys
-
-    # Configure JAX for multi-CPU BEFORE importing JAX
     if 'jax' in sys.modules:
-        # JAX already imported - this prevents multi-CPU configuration
-        raise ImportError(
-            "JAX must NOT be imported before phasic.\n"
-            "This prevents multi-CPU device configuration and will cause poor performance.\n\n"
-            "REQUIRED import order:\n"
-            "  from phasic import Graph, SVGD, ...\n"
-            "  import jax  # Import JAX AFTER phasic\n"
-            "  import jax.numpy as jnp\n\n"
-            "Note: phasic automatically:\n"
-            "  - Enables x64 precision for accurate gradients\n"
-            "  - Configures multi-CPU support (8 devices on this system)\n"
-            "  - Sets up JAX compilation cache\n\n"
-            "If you need to override CPU count, set PTDALG_CPUS before import:\n"
-            "  export PTDALG_CPUS=4\n"
-            "  python your_script.py"
-        )
-    else:
-        # Import compilation configuration system
-        from .jax_config import CompilationConfig, get_default_config, set_default_config
+        # JAX was imported by something else (e.g. the import-time
+        # block above). Just pick up the references.
+        import jax as _jax_mod
+        import jax.numpy as _jnp_mod
+        jax = _jax_mod
+        jnp = _jnp_mod
+        HAS_JAX = True
+        return
 
-        # Apply default balanced configuration (includes JAX persistent cache)
-        default_config = get_default_config()
-        default_config.apply(force=False)  # Don't override existing user configuration
+    from .jax_config import get_default_config
+    get_default_config().apply(force=False)
 
-        # Detect performance cores on Apple Silicon for multi-CPU
-        def get_available_cpus() -> int:
-            """Get number of CPUs available to this process.
+    cpu_count = int(os.environ.get('PTDALG_CPUS',
+                                   _detect_omp_num_threads()))
+    xla_flags = os.environ.get('XLA_FLAGS', '')
+    device_flag = f"--xla_force_host_platform_device_count={cpu_count}"
+    if '--xla_force_host_platform_device_count' not in xla_flags:
+        xla_flags = f"{xla_flags} {device_flag}".strip()
+        os.environ['XLA_FLAGS'] = xla_flags
 
-            Priority:
-            1. Apple Silicon P-cores (macOS ARM64 only)
-            2. SLURM allocation (SLURM_CPUS_PER_TASK or SLURM_CPUS_ON_NODE)
-            3. OS-reported affinity (respects cgroups)
-            4. Total CPU count (last resort)
-            """
-            try:
-                import subprocess
-                import platform
-
-                # Check if we're on Apple Silicon
-                if platform.system() == 'Darwin' and platform.machine() == 'arm64':
-                    result = subprocess.run(
-                        ['sysctl', '-n', 'hw.perflevel0.physicalcpu'],
-                        capture_output=True, text=True, check=True
-                    )
-                    p_cores = int(result.stdout.strip())
-                    return p_cores
-            except (subprocess.CalledProcessError, FileNotFoundError, ValueError):
-                pass
-
-            # SLURM: respect allocated CPUs, not full node count
-            for var in ('SLURM_CPUS_PER_TASK', 'SLURM_CPUS_ON_NODE'):
-                val = os.environ.get(var)
-                if val is not None:
-                    try:
-                        return max(int(val), 1)
-                    except ValueError:
-                        pass
-
-            # os.sched_getaffinity respects cgroup restrictions (Linux)
-            try:
-                return len(os.sched_getaffinity(0))
-            except (AttributeError, OSError):
-                pass
-
-            return os.cpu_count() or 1
-
-        # Configure multi-device CPU count (for pmap)
-        cpu_count = int(os.environ.get('PTDALG_CPUS', get_available_cpus()))
-        xla_flags = os.environ.get('XLA_FLAGS', '')
-        device_flag = f"--xla_force_host_platform_device_count={cpu_count}"
-
-        if '--xla_force_host_platform_device_count' not in xla_flags:
-            if xla_flags:
-                xla_flags += f" {device_flag}"
-            else:
-                xla_flags = device_flag
-            os.environ['XLA_FLAGS'] = xla_flags
-
-
-    # Set JAX platform before import
     os.environ.setdefault('JAX_PLATFORMS', 'cpu')
 
-    # Filter to suppress JAX device list output
-    class _DeviceListFilter:
-        def __init__(self, original: Any) -> None:
-            self.original = original
-            self.buffer = ''
-
-        def write(self, text: str) -> None:
-            # Buffer the text to check full lines
-            self.buffer += text
-
-            # Process complete lines
-            while '\n' in self.buffer:
-                line, self.buffer = self.buffer.split('\n', 1)
-                line += '\n'
-
-                # Filter out device list lines
-                if not ('CpuDevice' in line or 'GpuDevice' in line):
-                    self.original.write(line)
-
-        def flush(self) -> None:
-            # Flush any remaining buffer (except device lists)
-            if self.buffer and not ('CpuDevice' in self.buffer or 'GpuDevice' in self.buffer):
-                self.original.write(self.buffer)
-                self.buffer = ''
-            self.original.flush()
-
-        def __getattr__(self, name: str) -> Any:
-            return getattr(self.original, name)
-
-    # Install filter BEFORE importing JAX (and keep it active)
+    # Install device-list filter before JAX prints its device list.
     if not isinstance(sys.stdout, _DeviceListFilter):
         sys.stdout = _DeviceListFilter(sys.stdout)
     if not isinstance(sys.stderr, _DeviceListFilter):
         sys.stderr = _DeviceListFilter(sys.stderr)
 
-    # Import JAX (raise clear error if unavailable)
+    import jax as _jax_mod
+    _jax_mod.config.update('jax_enable_x64', True)
+    import jax.numpy as _jnp_mod
+    jax = _jax_mod
+    jnp = _jnp_mod
+    HAS_JAX = True
+
     try:
-        import jax
-        jax.config.update('jax_enable_x64', True)  # Enable 64-bit precision for accurate gradients
-        import jax.numpy as jnp
-        HAS_JAX = True
-    except ImportError as e:
-        raise PTDJAXError(
-            "jax=True but JAX not installed.\n"
-            "  Install: pip install jax jaxlib\n"
-            "  Or configure before import: phasic.configure(jax=False)\n"
-            f"  Original error: {e}"
-        )
-else:
-    # JAX disabled by configuration
-    jax = None
-    jnp = None
-    HAS_JAX = False
+        cfg = get_config()
+        cfg._jax_imported = True
+    except Exception:
+        pass
+
 
 # Cache for compiled libraries
 _lib_cache = {}
@@ -245,92 +223,11 @@ from .phasic_pybind import Vertex, Edge
 from .logging_config import setup_logging, get_logger
 setup_logging()
 
-# Optional SVGD support (requires JAX)
-if HAS_JAX:
-    from .svgd import (
-        SVGD,
-        # Prior classes
-        Prior,
-        GaussPrior,
-        LogGaussPrior,
-        HalfCauchyPrior,
-        DataPrior,
-        # Step size schedules
-        StepSizeSchedule,
-        ConstantStepSize,
-        ExpStepSize,
-        AdaptiveStepSize,
-        WarmupExpStepSize,
-        # Optimizers
-        Adam,
-        Adamelia,
-        SGDMomentum,
-        RMSprop,
-        Adagrad,
-        # Regularization schedules
-        RegularizationSchedule,
-        ConstantRegularization,
-        ExpRegularization,
-        ExponentialCDFRegularization,
-        # # Bandwidth schedules
-        # BandwidthSchedule,
-        # MedianBandwidth,
-        # FixedBandwidth,
-        # LocalAdaptiveBandwidth
-        # Preconditioning
-        FisherPreconditioner,
-        MomentJacobianPreconditioner,
-        # Sparse observations for multivariate SVGD
-        SparseObservations,
-        dense_to_sparse,
-        is_sparse_observations,
-    )
-    from .mcmc import MCMC
-    from .bffg import (
-        path_to_rewards,
-        path_exit_rates,
-        path_exit_rates_by_param,
-        importance_log_weight_from_rates,
-        importance_weighted_log_likelihood,
-        bffg_log_prob,
-    )
-else:
-    SVGD = None
-    MCMC = None
-    path_to_rewards = None
-    path_exit_rates = None
-    path_exit_rates_by_param = None
-    importance_log_weight_from_rates = None
-    importance_weighted_log_likelihood = None
-    bffg_log_prob = None
-    Prior = None
-    GaussPrior = None
-    LogGaussPrior = None
-    HalfCauchyPrior = None
-    DataPrior = None
-    StepSizeSchedule = None
-    ConstantStepSize = None
-    ExpStepSize = None
-    AdaptiveStepSize = None
-    WarmupExpStepSize = None
-    RegularizationSchedule = None
-    ConstantRegularization = None
-    ExpRegularization = None
-    ExponentialCDFRegularization = None
-    Adam = None
-    Adamelia = None
-    SGDMomentum = None
-    RMSprop = None
-    Adagrad = None
-    # BandwidthSchedule = None
-    # MedianBandwidth = None
-    # FixedBandwidth = None
-    # LocalAdaptiveBandwidth = None
-    FisherPreconditioner = None
-    MomentJacobianPreconditioner = None
-    SparseObservations = None
-    dense_to_sparse = None
-    is_sparse_observations = None
+# SVGD, MCMC, BFFG, and prior/optimizer/preconditioner classes
+# are JAX-dependent and resolved lazily via the module-level
+# __getattr__ at the end of this file. They are NOT bound at
+# import time, which keeps `import phasic` from triggering the
+# JAX import cascade.
 
 # Method of moments (requires JAX via svgd dependency, but MoMResult is always available)
 from .method_of_moments import MoMResult
@@ -4323,11 +4220,12 @@ class Graph(_Graph):
         >>> model2 = Graph.pmf_from_graph(g, use_cache=True)  # Subsequent: instant from cache!
         """
         # Check if JAX is available
-        if not HAS_JAX:
+        try:
+            _ensure_jax_active()
+        except Exception as _e:
             raise ImportError(
-                "JAX is required for JAX-compatible models. "
-                "Install with: pip install 'phasic[jax]' or pip install jax jaxlib"
-            )
+                "JAX is required for JAX-compatible models. Install with: pip install 'phasic[jax]' or pip install jax jaxlib"
+            ) from _e
 
         # Note: Symbolic cache (symbolic_cache.py) has been removed as obsolete.
         # The trace-based elimination system (trace_elimination.py) is now used instead,
@@ -4433,7 +4331,7 @@ class Graph(_Graph):
 
             # Check if FFI is available
             config = get_config()
-            use_ffi = config.ffi  # User can enable with config.ffi = True
+            use_ffi = config._use_ffi
 
             if not use_ffi:
                 # The pure_callback fallback below has been DISABLED.
@@ -4779,11 +4677,12 @@ extern "C" {
             raise FileNotFoundError(f"C++ file not found: {cpp_file}")
 
         # Check if JAX is available
-        if not HAS_JAX:
+        try:
+            _ensure_jax_active()
+        except Exception as _e:
             raise ImportError(
-                "JAX is required for JAX-compatible C++ models. "
-                "Install with: pip install 'phasic[jax]' or pip install jax jaxlib"
-            )
+                "JAX is required for JAX-compatible C++ models. Install with: pip install 'phasic[jax]' or pip install jax jaxlib"
+            ) from _e
 
         # Read user's C++ code
         with open(cpp_path, 'r') as f:
@@ -5464,12 +5363,14 @@ extern "C" {{
         - For better results, ensure observed_data has sufficient information about the parameters
         - Learning rate and number of iterations may need tuning for different problems
         """
-        # Check JAX availability
-        if not HAS_JAX:
+        # Activate JAX on demand (deferred from import time).
+        try:
+            _ensure_jax_active()
+        except Exception as e:
             raise ImportError(
                 "JAX is required for SVGD inference. "
                 "Install with: pip install 'phasic[jax]' or pip install jax jaxlib"
-            )
+            ) from e
 
         from .svgd import SVGD
 
@@ -5760,11 +5661,12 @@ extern "C" {{
         >>> mcmc.summary()
         >>> print(mcmc.get_results()['theta_mean'])
         """
-        if not HAS_JAX:
+        try:
+            _ensure_jax_active()
+        except Exception as _e:
             raise ImportError(
-                "JAX is required for MCMC inference. "
-                "Install with: pip install 'phasic[jax]' or pip install jax jaxlib"
-            )
+                "JAX is required for MCMC inference. Install with: pip install 'phasic[jax]' or pip install jax jaxlib"
+            ) from _e
 
         from .mcmc import MCMC
 
@@ -6100,12 +6002,15 @@ extern "C" {{
         - For variance, compute: Var[T] = E[T^2] - E[T]^2
         - For standard deviation: std[T] = sqrt(Var[T])
         """
-        # Check if JAX is available
-        if not HAS_JAX and not use_ffi:
-            raise ImportError(
-                "JAX is required for JAX-compatible models. "
-                "Install with: pip install 'phasic[jax]' or pip install jax jaxlib"
-            )
+        # Activate JAX on demand if we're going to use it.
+        if not use_ffi:
+            try:
+                _ensure_jax_active()
+            except Exception as _e:
+                raise ImportError(
+                    "JAX is required for JAX-compatible models. "
+                    "Install with: pip install 'phasic[jax]' or pip install jax jaxlib"
+                ) from _e
 
         import jax
         import jax.numpy as jnp
@@ -6306,12 +6211,15 @@ extern "C" {{
         - Required for using moment-based regularization in SVGD.fit_regularized()
         - The moments are always computed from the same graph used for PMF/PDF
         """
-        # Check if JAX is available
-        if not HAS_JAX and not use_ffi:
-            raise ImportError(
-                "JAX is required for JAX-compatible models. "
-                "Install with: pip install 'phasic[jax]' or pip install jax jaxlib"
-            )
+        # Activate JAX on demand if we're going to use it.
+        if not use_ffi:
+            try:
+                _ensure_jax_active()
+            except Exception as _e:
+                raise ImportError(
+                    "JAX is required for JAX-compatible models. "
+                    "Install with: pip install 'phasic[jax]' or pip install jax jaxlib"
+                ) from _e
 
         import jax
         import jax.numpy as jnp
@@ -6381,7 +6289,7 @@ extern "C" {{
             if not use_ffi:  # If explicitly disabled, respect it
                 use_ffi = False
             else:  # If True or default, check config
-                use_ffi = config.ffi  # Enable FFI for multi-core parallelization (C++ binding fixed!)
+                use_ffi = config._use_ffi  # Enable FFI for multi-core parallelization (C++ binding fixed!)
 
         if not _callback_mode and use_ffi:
             # FFI MODE: Zero-copy XLA-optimized computation with multi-core support
@@ -6637,11 +6545,12 @@ extern "C" {{
         - Reward transformation is not supported (rewards must be None)
         """
         # Check if JAX is available
-        if not HAS_JAX:
+        try:
+            _ensure_jax_active()
+        except Exception as _e:
             raise ImportError(
-                "JAX is required for JAX-compatible models. "
-                "Install with: pip install 'phasic[jax]' or pip install jax jaxlib"
-            )
+                "JAX is required for JAX-compatible models. Install with: pip install 'phasic[jax]' or pip install jax jaxlib"
+            ) from _e
 
         import jax
         import jax.numpy as jnp
@@ -6841,11 +6750,12 @@ extern "C" {{
         - Backward compatible: 1D rewards behave exactly as pmf_and_moments_from_graph()
         """
         # Check if JAX is available
-        if not HAS_JAX:
+        try:
+            _ensure_jax_active()
+        except Exception as _e:
             raise ImportError(
-                "JAX is required for multivariate models. "
-                "Install with: pip install 'phasic[jax]' or pip install jax jaxlib"
-            )
+                "JAX is required for multivariate models. Install with: pip install 'phasic[jax]' or pip install jax jaxlib"
+            ) from _e
 
         import jax
         import jax.numpy as jnp
@@ -8906,7 +8816,7 @@ __all_config__ = [
     'configure',
     'get_config',
     'get_available_options',
-    'PTDAlgorithmsConfig',
+    'PhasicConfig',
     'reset_config',
     'PTDAlgorithmsError',
     'PTDConfigError',
@@ -8937,3 +8847,72 @@ try:
 except (ImportError, AttributeError):
     # SCC API unavailable in this build; nothing to wrap.
     pass
+
+
+# ------------------------------------------------------------------
+# Lazy JAX-dependent attributes
+#
+# JAX-dependent exports (SVGD, MCMC, BFFG helpers, optax_*) are
+# bound to None at import time so `import phasic` stays light.
+# The module-level __getattr__ below triggers _ensure_jax_active()
+# and rebinds the symbols on first access. After that, normal
+# attribute lookup picks them up directly.
+# ------------------------------------------------------------------
+
+_JAX_LAZY_NAMES = frozenset({
+    # svgd
+    'SVGD',
+    'Prior', 'GaussPrior', 'LogGaussPrior', 'HalfCauchyPrior', 'DataPrior',
+    'StepSizeSchedule', 'ConstantStepSize', 'ExpStepSize',
+    'AdaptiveStepSize', 'WarmupExpStepSize',
+    'Adam', 'Adamelia', 'SGDMomentum', 'RMSprop', 'Adagrad',
+    'RegularizationSchedule', 'ConstantRegularization',
+    'ExpRegularization', 'ExponentialCDFRegularization',
+    'FisherPreconditioner', 'MomentJacobianPreconditioner',
+    'SparseObservations', 'dense_to_sparse', 'is_sparse_observations',
+    # mcmc
+    'MCMC',
+    # bffg
+    'path_to_rewards', 'path_exit_rates', 'path_exit_rates_by_param',
+    'importance_log_weight_from_rates',
+    'importance_weighted_log_likelihood', 'bffg_log_prob',
+})
+
+
+def __getattr__(name: str):
+    """Lazy resolution for JAX-dependent exports.
+
+    On first access to any name in `_JAX_LAZY_NAMES`, this
+    triggers _ensure_jax_active() (which imports JAX, sets up
+    XLA_FLAGS, applies CompilationConfig.balanced(), etc.) and
+    then imports the relevant module to bind the symbol on the
+    package, so subsequent accesses are direct.
+    """
+    if name not in _JAX_LAZY_NAMES:
+        raise AttributeError(f"module 'phasic' has no attribute {name!r}")
+
+    _ensure_jax_active()
+
+    # Import the relevant submodule and pull out the symbol.
+    import importlib
+    candidates = [
+        ('svgd', _JAX_LAZY_NAMES - {'MCMC', 'path_to_rewards',
+                                     'path_exit_rates',
+                                     'path_exit_rates_by_param',
+                                     'importance_log_weight_from_rates',
+                                     'importance_weighted_log_likelihood',
+                                     'bffg_log_prob'}),
+        ('mcmc', {'MCMC'}),
+        ('bffg', {'path_to_rewards', 'path_exit_rates',
+                  'path_exit_rates_by_param',
+                  'importance_log_weight_from_rates',
+                  'importance_weighted_log_likelihood',
+                  'bffg_log_prob'}),
+    ]
+    for modname, names in candidates:
+        if name in names:
+            mod = importlib.import_module(f'phasic.{modname}')
+            value = getattr(mod, name)
+            globals()[name] = value
+            return value
+    raise AttributeError(f"module 'phasic' has no attribute {name!r}")

@@ -1,5 +1,5 @@
 """Tests for OpenMP thread count auto-detection and the
-omp_num_threads configure() knob.
+cpu_threads configure() knob.
 
 Auto-detection runs at import time and writes OMP_NUM_THREADS
 if it's unset. Priority:
@@ -116,7 +116,7 @@ def test_auto_detect_malformed_slurm_var_falls_through():
 
 
 # ---------------------------------------------------------------
-# configure(omp_num_threads=...)
+# configure(cpu_threads=...)
 # ---------------------------------------------------------------
 
 
@@ -124,35 +124,55 @@ def test_configure_writes_omp_env_var():
     out = run_in_subprocess(
         {"OMP_NUM_THREADS": None},
         "import phasic, os; "
-        "phasic.configure(omp_num_threads=7); "
+        "phasic.configure(cpu_threads=7); "
         "print(os.environ['OMP_NUM_THREADS'])",
     )
     assert out == "7"
 
 
-def test_configure_overrides_existing_omp():
+def test_configure_raises_on_omp_conflict():
+    """If OMP_NUM_THREADS is set in the shell and configure()
+    asks for a different value, raise PTDConfigError. (The
+    refactored policy: shell-set env vars are user-authoritative;
+    configure() must not silently override them.)"""
+    out = run_in_subprocess(
+        {"OMP_NUM_THREADS": "2"},
+        "import phasic\n"
+        "try:\n"
+        "    phasic.configure(cpu_threads=11)\n"
+        "    print('NO_ERROR')\n"
+        "except phasic.PTDConfigError as e:\n"
+        "    print('CAUGHT:', str(e)[:120])",
+    )
+    assert "CAUGHT" in out
+    assert "OMP_NUM_THREADS" in out
+
+
+def test_configure_agrees_with_existing_omp():
+    """If OMP_NUM_THREADS is set in the shell AND configure()
+    asks for the SAME value, no conflict (both agree)."""
     out = run_in_subprocess(
         {"OMP_NUM_THREADS": "2"},
         "import phasic, os; "
-        "phasic.configure(omp_num_threads=11); "
+        "phasic.configure(cpu_threads=2); "
         "print(os.environ['OMP_NUM_THREADS'])",
     )
-    assert out == "11"
+    assert out == "2"
 
 
 def test_configure_rejects_zero():
-    """configure(omp_num_threads=0) raises."""
+    """configure(cpu_threads=0) raises."""
     out = run_in_subprocess(
         {"OMP_NUM_THREADS": None},
         "import phasic\n"
         "try:\n"
-        "    phasic.configure(omp_num_threads=0)\n"
+        "    phasic.configure(cpu_threads=0)\n"
         "    print('NO_ERROR')\n"
         "except phasic.PTDConfigError as e:\n"
         "    print('CAUGHT:', e)",
     )
     assert "CAUGHT" in out
-    assert "omp_num_threads" in out
+    assert "cpu_threads" in out
 
 
 def test_configure_rejects_negative():
@@ -160,7 +180,7 @@ def test_configure_rejects_negative():
         {"OMP_NUM_THREADS": None},
         "import phasic\n"
         "try:\n"
-        "    phasic.configure(omp_num_threads=-1)\n"
+        "    phasic.configure(cpu_threads=-1)\n"
         "    print('NO_ERROR')\n"
         "except phasic.PTDConfigError as e:\n"
         "    print('CAUGHT:', e)",
@@ -172,6 +192,6 @@ def test_get_config_reads_omp_from_env():
     """get_config() reflects OMP_NUM_THREADS from the environment."""
     out = run_in_subprocess(
         {"OMP_NUM_THREADS": "5"},
-        "import phasic; print(phasic.get_config().omp_num_threads)",
+        "import phasic; print(phasic.get_config().cpu_threads)",
     )
     assert out == "5"
