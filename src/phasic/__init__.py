@@ -307,57 +307,19 @@ from .jax_config import CompilationConfig, get_default_config, set_default_confi
 #     download_from_github_release,
 #     install_model_library
 # )
-from .trace_repository import (
-    TransportBackend,
-    IPFSBackend,
-    TraceRegistry,
-    get_trace,
-    install_trace_library,
-    get_ipfs_dir,
-    generate_swarm_key,
-    install_swarm_key,
-    detect_swarm_key,
-    remove_swarm_key,
-    configure_bootstrap_peers,
-)
 from .trace_elimination import EliminationTrace
 
-
-# Hash-based trace lookup (convenience wrapper)
-def get_trace_by_hash(graph_hash: str, force_download: bool = False, backend: TransportBackend | None = None) -> EliminationTrace | None:
-    """
-    Get elimination trace by graph structure hash.
-
-    Convenience wrapper around TraceRegistry.get_trace_by_hash().
-
-    Parameters
-    ----------
-    graph_hash : str
-        SHA-256 hash of graph structure (from phasic.hash.compute_graph_hash)
-    force_download : bool, default=False
-        If True, re-download even if cached
-    backend : TransportBackend, optional
-        Custom transport backend for content retrieval.
-
-    Returns
-    -------
-    EliminationTrace or None
-        Trace if found, None otherwise
-
-    Examples
-    --------
-    >>> import phasic
-    >>> import phasic.hash
-    >>> graph = phasic.Graph(my_callback, nr_samples=5)
-    >>> hash_result = phasic.hash.compute_graph_hash(graph)
-    >>> trace = phasic.get_trace_by_hash(hash_result.hash_hex)
-    >>> if trace is None:
-    ...     # Record new trace
-    ...     from phasic.trace_elimination import record_elimination_trace
-    ...     trace = record_elimination_trace(graph, theta_dim=1)
-    """
-    registry = TraceRegistry(backend=backend) if backend else TraceRegistry()
-    return registry.get_trace_by_hash(graph_hash, force_download=force_download)
+# Compute-graph sharing (C-elimination .bin artifacts, keyed by
+# ptd_graph_content_hash). Replaces the deprecated trace_repository
+# / EliminationTrace publish flow.
+from .transport import TransportBackend
+from .compute_repository import (
+    ComputeRegistry,
+    fetch_compute,
+    compute_source,
+    pin_compute,
+    list_computes,
+)
 
 # JAX FFI wrappers (optional, requires JAX)
 if HAS_JAX:
