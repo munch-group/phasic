@@ -119,9 +119,99 @@ def _check_mpfr_available() -> bool:
 _global_config: "PhasicConfig | None" = None
 
 
-def configure(**kwargs) -> None:
+class _ConfigureContext:
+    """Return value of ``configure(...)`` that can also be used as
+    a context manager to temporarily apply settings.
+
+    When obtained from a normal ``configure(...)`` call the settings
+    are already applied — discarding the return value is safe.
+    When entered via ``with configure(...) as ctx:`` (or
+    ``with configure(...):``), exiting the block restores the
+    pre-call configuration: the global dataclass is rolled back
+    to its previous field values, and every phasic-tracked env
+    var (the ``PHASIC_*`` set plus ``OMP_NUM_THREADS``) is
+    restored to whatever it held before the ``configure()`` call.
+
+    Nesting is supported: each block restores to the state at
+    its own ``__enter__`` time, so ``with A(): with B(): ...``
+    rolls back B first, then A.
     """
-    Configure phasic globally.
+
+    def __init__(self,
+                 saved_fields: dict[str, Any] | None,
+                 saved_env: dict[str, str | None],
+                 saved_assigned: set[str]):
+        self._saved_fields = saved_fields  # None means no prior config
+        self._saved_env = saved_env
+        self._saved_assigned = saved_assigned
+
+    def __enter__(self) -> "PhasicConfig":
+        # Settings are already applied. Return the live config so
+        # callers can ``with configure(...) as cfg:`` if they want.
+        return get_config()
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        global _global_config
+
+        # Restore env vars.
+        for var, value in self._saved_env.items():
+            if value is None:
+                os.environ.pop(var, None)
+            else:
+                os.environ[var] = value
+
+        # Restore the "phasic-assigned" bookkeeping set.
+        _phasic_assigned_env.clear()
+        _phasic_assigned_env.update(self._saved_assigned)
+
+        # Restore the dataclass.
+        if self._saved_fields is None:
+            _global_config = None
+        else:
+            if _global_config is None:
+                _global_config = PhasicConfig()
+            for k, v in self._saved_fields.items():
+                setattr(_global_config, k, v)
+            # Skip validate() on the restore path: the saved state
+            # was already valid when we captured it, and re-running
+            # validate() would re-fire env-var conflict checks
+            # against the restored values.
+            _global_config._validated = True
+
+
+def _snapshot_config_for_context() -> _ConfigureContext:
+    """Capture the current PhasicConfig + env vars + assigned-set
+    for later rollback by _ConfigureContext.__exit__."""
+    env_vars = {
+        'OMP_NUM_THREADS',
+        'PHASIC_HIERAR_ELIMINATION',
+        'PHASIC_MIN_SCC_SIZE_TO_CACHE',
+        'PHASIC_MAX_PARALLEL_SCCS',
+        'PHASIC_FORCE_MPFR',
+        'PHASIC_MPFR_BITS',
+        'PHASIC_CONDITION_THRESHOLD',
+        'PHASIC_DISABLE_CONDITION_WARNINGS',
+        'PHASIC_DISABLE_CACHE',
+        'PHASIC_CACHE_DIR',
+    }
+    saved_env = {v: os.environ.get(v) for v in env_vars}
+    saved_assigned = set(_phasic_assigned_env)
+
+    if _global_config is None:
+        saved_fields = None
+    else:
+        saved_fields = {
+            f.name: getattr(_global_config, f.name)
+            for f in PhasicConfig.__dataclass_fields__.values()
+            if not f.name.startswith("_")
+        }
+
+    return _ConfigureContext(saved_fields, saved_env, saved_assigned)
+
+
+def configure(**kwargs) -> _ConfigureContext:
+    """
+    Configure phasic globally — or temporarily, as a context manager.
 
     All fields describe USER INTENT, not which library implements
     the feature. See PhasicConfig for the full list and per-field
@@ -142,6 +232,16 @@ def configure(**kwargs) -> None:
       - strict: bool
       - verbose: bool
 
+    Returns
+    -------
+    _ConfigureContext
+        A context-manager-shaped object. When used as a regular
+        call (``configure(...)``) the settings are applied
+        immediately and persist until further changes. When used
+        as ``with configure(...): ...`` the settings are applied
+        on entry and rolled back to their previous values on exit
+        (including all phasic-tracked env vars).
+
     Raises
     ------
     PTDConfigError
@@ -151,16 +251,19 @@ def configure(**kwargs) -> None:
     Examples
     --------
     >>> import phasic
+    >>> # Persistent: settings stay applied.
     >>> phasic.configure(compute='jax-cpu', cpu_threads=4)
 
-    >>> phasic.configure(
-    ...     parallel_elimination=True,
-    ...     parallel_elimination_max_concurrent=8,
-    ...     cache_dir='/scratch/phasic_cache',
-    ... )
+    >>> # Temporary: rolled back at the end of the block.
+    >>> with phasic.configure(parallel_elimination=True,
+    ...                       parallel_elimination_max_concurrent=8):
+    ...     # graph.expectation() runs with parallel elimination
+    ...     ...
+    >>> # Outside the block, parallel_elimination is back to False
 
-    >>> phasic.configure(high_precision_mode='always',
-    ...                  high_precision_bits=256)
+    >>> # Capture the live config inside the block:
+    >>> with phasic.configure(high_precision_mode='always') as cfg:
+    ...     print(cfg.high_precision_bits)
     """
     global _global_config
 
@@ -173,6 +276,10 @@ def configure(**kwargs) -> None:
                 f"Valid options: {', '.join(sorted(valid_fields))}"
             )
 
+    # Snapshot the pre-call state BEFORE we mutate anything, so
+    # _ConfigureContext.__exit__ can roll back to it.
+    snapshot = _snapshot_config_for_context()
+
     if _global_config is None:
         _global_config = PhasicConfig(**kwargs)
     else:
@@ -180,6 +287,7 @@ def configure(**kwargs) -> None:
             setattr(_global_config, key, value)
 
     _global_config.validate()
+    return snapshot
 
 
 def get_config() -> "PhasicConfig":
