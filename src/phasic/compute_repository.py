@@ -1,38 +1,35 @@
-"""Compute-graph sharing repository.
+"""Compute-graph sharing via the phasic-traces GitHub registry.
 
-This module provides ``ComputeRegistry`` and a handful of top-level
-helpers for sharing pre-computed elimination output between machines.
-The artifact shared is the binary
+This module backs the ``Graph.pull_cache()`` and ``Graph.push_cache()``
+methods. The artifact shared is the binary
 ``parameterized_reward_compute_graph`` (``.bin``) file written by
 ``ptd_save_parameterized_reward_compute_graph`` on the C side, keyed
 by the graph's content hash (``ptd_graph_content_hash``).
 
-Why this replaces the legacy ``trace_repository``:
+Storage model
+-------------
+Artifacts and the registry live in a public GitHub repository
+(by default ``munch-group/phasic-traces``). Consumers read
+``registry.json`` from ``raw.githubusercontent.com`` and download
+``.bin`` files the same way — no auth needed. Publishers use the
+``gh`` CLI to clone the repo, splice an entry in, push a branch,
+and open a PR.
 
-- ``graph.expectation() / .pdf() / .moments()`` now route directly to
-  the C path, which reads/writes
-  ``~/.phasic_cache/parameterized_reward_compute/<hash>.bin``.
-- The Python ``EliminationTrace`` cache is deprecated (see
-  ``phasic.cache.clear_trace_cache``'s deprecation notice). Nothing
-  in the public API populates it any more.
-- The legacy ``ipfshttpclient`` dependency is dead upstream and
-  rejects modern kubo daemons; this module uses the new
-  :mod:`phasic.transport` stack instead.
+There is no IPFS in the picture. Earlier versions of this module
+had a kubo-daemon path; it was dead code in practice and was removed
+to simplify the UX.
 
-Consumer workflow
------------------
+Public surface
+--------------
+- :class:`ComputeRegistry` — registry index + fetch + publish, all
+  internal except for the methods that ``Graph.pull_cache`` /
+  ``Graph.push_cache`` call.
+- :func:`list_computes` — browse the registry without a graph.
 
->>> import phasic
->>> graph = phasic.Graph(my_callback, nr_samples=5)
->>> phasic.fetch_compute(graph)   # True on cache hit
->>> # Next expectation() call reuses the published elimination
->>> expected = graph.expectation()
-
-Publisher workflow
-------------------
-
-See :mod:`phasic.publish_cli` for the ``phasic publish-compute`` CLI
-that fronts :class:`ComputeRegistry.publish_compute`.
+``Graph.pull_cache(force=False) -> bool`` and
+``Graph.push_cache(*, id, description, ...) -> str`` are defined on
+the Graph class in ``phasic/__init__.py`` and use this module
+internally.
 """
 from __future__ import annotations
 
@@ -41,13 +38,16 @@ import json
 import os
 import shutil
 import struct
-import warnings
+import subprocess
+import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import requests
+
+from ._http_retry import request_with_retry
 from .exceptions import PTDBackendError, PTDFormatError
 from .logging_config import get_logger
-from .transport import TransportBackend
 
 if TYPE_CHECKING:
     from . import Graph
@@ -71,11 +71,16 @@ _PCG_HEADER_STRUCT = struct.Struct("<8sIIQQQQ")
 _PCG_HEADER_MAGIC = b"PTDPRMC1"
 
 
+# ============================================================================
+# Low-level helpers
+# ============================================================================
+
+
 def _peek_format_revision(path: Path) -> tuple[int, int]:
     """Return ``(version, format_revision)`` from a ``.bin`` header.
 
     Reads only the first 40 bytes. Used by the fetch path to refuse
-    files that this build cannot load.
+    files this build cannot load.
 
     Raises
     ------
@@ -107,18 +112,13 @@ def _sha256_of(path: Path) -> str:
 
 
 def _graph_hash_hex(graph: Graph) -> str:
-    """Return the canonical hex hash for *graph*.
-
-    Wraps :func:`phasic.hash.compute_graph_hash`. Kept as a private
-    helper so call sites read consistently and so future caching is
-    straightforward.
-    """
+    """Return the canonical hex hash for *graph*."""
     from . import hash as _phasic_hash
     return _phasic_hash.compute_graph_hash(graph).hash_hex
 
 
 def _param_compute_cache_dir() -> Path:
-    """Return the on-disk directory that the C path consults.
+    """Return the on-disk directory the C path consults.
 
     Honours ``PHASIC_CACHE_DIR`` so it agrees with the C side's
     ``ptd_cache_root_dir``.
@@ -128,30 +128,167 @@ def _param_compute_cache_dir() -> Path:
     return root / "parameterized_reward_compute"
 
 
+def _http_fetch(url: str, output_path: Path, timeout: float = 30.0) -> None:
+    """GET *url* and stream the body to *output_path*.
+
+    Used for both ``raw.githubusercontent.com`` URLs (the default
+    case) and ``file://`` URLs (used by tests).
+    """
+    if url.startswith("file://"):
+        # Direct copy; no requests round-trip.
+        src = url[len("file://"):]
+        shutil.copyfile(src, output_path)
+        return
+
+    response = request_with_retry(url, timeout=timeout, stream=True)
+    with output_path.open("wb") as fh:
+        for chunk in response.iter_content(chunk_size=64 * 1024):
+            if chunk:
+                fh.write(chunk)
+
+
+# ============================================================================
+# git / gh helpers (used by push_cache)
+# ============================================================================
+
+
+def _run(cmd: list[str], cwd: Path | None = None, check: bool = True) -> str:
+    """Run *cmd*, capturing output. Raises on non-zero exit."""
+    logger.debug("$ %s", " ".join(cmd))
+    proc = subprocess.run(
+        cmd, cwd=cwd, capture_output=True, text=True, timeout=120)
+    if check and proc.returncode != 0:
+        raise PTDBackendError(
+            f"command failed (exit {proc.returncode}): {' '.join(cmd)}\n"
+            f"stdout: {proc.stdout}\n"
+            f"stderr: {proc.stderr}")
+    return proc.stdout
+
+
+def _git_config_value(key: str) -> str | None:
+    try:
+        out = subprocess.run(
+            ["git", "config", "--get", key],
+            capture_output=True, text=True, timeout=5)
+    except (subprocess.SubprocessError, FileNotFoundError):
+        return None
+    if out.returncode != 0:
+        return None
+    return out.stdout.strip() or None
+
+
+def _default_author() -> str:
+    name = _git_config_value("user.name")
+    email = _git_config_value("user.email")
+    if name and email:
+        return f"{name} <{email}>"
+    if name:
+        return name
+    if email:
+        return email
+    return "unknown"
+
+
+def _check_gh_ready() -> None:
+    """Raise PTDBackendError if `gh` is missing or unauthenticated.
+
+    A 5-second `gh auth status` probe distinguishes "not installed"
+    from "installed but not logged in".
+    """
+    if not shutil.which("gh"):
+        raise PTDBackendError(
+            "`gh` (GitHub CLI) is not installed.\n"
+            "  Install:  brew install gh   (macOS)\n"
+            "            apt install gh    (Debian/Ubuntu)\n"
+            "  Or see https://cli.github.com/")
+    try:
+        proc = subprocess.run(
+            ["gh", "auth", "status"],
+            capture_output=True, text=True, timeout=5)
+    except (subprocess.SubprocessError, FileNotFoundError) as e:
+        raise PTDBackendError(f"`gh auth status` failed: {e}") from e
+    if proc.returncode != 0:
+        raise PTDBackendError(
+            "`gh` is not authenticated for this user.\n"
+            "  Run once in a terminal: gh auth login\n"
+            "  Then retry push_cache().")
+
+
+def _populate_prc_cache(graph) -> None:
+    """Force the C-side parameterized_reward_compute_graph to be built.
+
+    ``_save_param_compute_graph`` refuses to save if it's NULL; the
+    cheapest populator is ``expectation()``.
+    """
+    for fn_name in ("expectation", "moments", "pdf"):
+        fn = getattr(graph, fn_name, None)
+        if fn is None:
+            continue
+        try:
+            if fn_name == "pdf":
+                fn(1.0)
+            elif fn_name == "moments":
+                fn(1)
+            else:
+                fn()
+            return
+        except Exception as e:  # pragma: no cover — model-dependent
+            logger.debug("%s() failed: %s", fn_name, e)
+            continue
+    raise PTDBackendError(
+        "could not populate the C-side compute cache: expectation(), "
+        "moments(), and pdf() all failed on this graph")
+
+
+def _save_artifacts(graph, staging_dir: Path) -> tuple[Path, list[Path]]:
+    """Save the parent ``.bin`` and bundle any per-SCC files.
+
+    Returns ``(parent_path, scc_paths)``. The parent file is always
+    present; the SCC list is empty unless the hierarchical compose
+    path has populated them in the local cache.
+    """
+    hash_hex = _graph_hash_hex(graph)
+    parent = staging_dir / f"{hash_hex}.bin"
+
+    if not getattr(graph, "_has_param_compute_graph_cache", lambda: False)():
+        _populate_prc_cache(graph)
+
+    graph._save_param_compute_graph(str(parent))
+
+    scc_paths: list[Path] = []
+    local_cache = _param_compute_cache_dir()
+    if local_cache.exists():
+        for scc_file in local_cache.glob("scc_*.bin"):
+            target = staging_dir / scc_file.name
+            shutil.copy2(scc_file, target)
+            scc_paths.append(target)
+
+    return parent, scc_paths
+
+
 # ============================================================================
 # ComputeRegistry
 # ============================================================================
 
 
 class ComputeRegistry:
-    """Browse, fetch, pin, and publish C-elimination compute artifacts.
+    """Internal helper backing Graph.pull_cache / push_cache and list_computes.
+
+    Not exported at the top level. Construct directly only when you
+    need a non-default ``registry_repo``.
 
     Parameters
     ----------
     registry_repo : str, default 'munch-group/phasic-traces'
-        GitHub ``owner/name`` for the registry repo. The registry
-        JSON is fetched from
-        ``https://raw.githubusercontent.com/<repo>/master/registry.json``.
+        GitHub ``owner/name``. Registry JSON is read from
+        ``raw.githubusercontent.com/<repo>/master/registry.json``.
     cache_dir : Path, optional
-        Local cache directory for the registry index. Defaults to
+        Local directory for caching ``registry.json``. Defaults to
         ``~/.phasic_traces``. Per-artifact ``.bin`` files always land
-        in the C-side cache (``_param_compute_cache_dir()``) so the
-        next ``expectation()`` call picks them up transparently.
-    backend : TransportBackend, optional
-        Custom transport backend. Defaults to a lazily-constructed
-        :class:`phasic.transport.ipfs.IPFSBackend`.
+        in ``_param_compute_cache_dir()`` so the next ``expectation()``
+        call picks them up.
     auto_update : bool, default True
-        If True, fetch the registry index from GitHub on init.
+        Fetch the registry index from GitHub on init.
     """
 
     REGISTRY_URL_TEMPLATE = (
@@ -161,38 +298,21 @@ class ComputeRegistry:
         self,
         registry_repo: str = "munch-group/phasic-traces",
         cache_dir: Path | None = None,
-        backend: TransportBackend | None = None,
         auto_update: bool = True,
     ) -> None:
         self.registry_repo = registry_repo
         self.cache_dir = (Path(cache_dir) if cache_dir
                           else Path.home() / ".phasic_traces")
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        self._backend = backend
         self.index: dict[str, Any] | None = None
 
         self._load_cached_index()
         if auto_update:
             try:
                 self.update_index()
-            except PTDBackendError as e:
+            except PTDBackendError:
                 if self.index is None:
-                    # No cache fallback — re-raise so consumers know.
                     raise
-                logger.warning(
-                    "Failed to update registry, using cached version: %s", e)
-
-    # ------------------------------------------------------------------
-    # Backend
-    # ------------------------------------------------------------------
-
-    @property
-    def backend(self) -> TransportBackend:
-        """Transport backend; constructed lazily on first access."""
-        if self._backend is None:
-            from .transport.ipfs import IPFSBackend
-            self._backend = IPFSBackend()
-        return self._backend
 
     # ------------------------------------------------------------------
     # Index
@@ -217,23 +337,22 @@ class ComputeRegistry:
         self.index = data
 
     def update_index(self) -> None:
-        """Fetch the registry index from GitHub and cache it locally.
-
-        Raises
-        ------
-        PTDBackendError
-            If the index cannot be fetched and no cached copy exists.
-        """
-        from .transport._retry import request_with_retry
-        import requests
-
+        """Fetch the registry index from GitHub and cache it locally."""
         url = self.REGISTRY_URL_TEMPLATE.format(repo=self.registry_repo)
-        try:
-            response = request_with_retry(url, timeout=10.0)
-            data = response.json()
-        except (requests.RequestException, ValueError) as e:
-            raise PTDBackendError(
-                f"Failed to fetch registry from {url}: {e}") from e
+        # Allow file:// URLs so tests can point at a local mock.
+        if url.startswith("file://"):
+            try:
+                data = json.loads(Path(url[len("file://"):]).read_text())
+            except (OSError, json.JSONDecodeError) as e:
+                raise PTDBackendError(
+                    f"Failed to read registry from {url}: {e}") from e
+        else:
+            try:
+                response = request_with_retry(url, timeout=10.0)
+                data = response.json()
+            except (requests.RequestException, ValueError) as e:
+                raise PTDBackendError(
+                    f"Failed to fetch registry from {url}: {e}") from e
 
         if not isinstance(data, dict) or "computes" not in data:
             raise PTDBackendError(
@@ -249,8 +368,8 @@ class ComputeRegistry:
     def _require_index(self) -> dict[str, Any]:
         if self.index is None:
             raise PTDBackendError(
-                "Registry index not loaded. Call update_index() or "
-                "construct the registry with auto_update=True.")
+                "Registry index not loaded. Construct the registry "
+                "with auto_update=True or call update_index().")
         return self.index
 
     # ------------------------------------------------------------------
@@ -265,15 +384,8 @@ class ComputeRegistry:
     ) -> list[dict[str, Any]]:
         """List published compute artifacts, optionally filtered.
 
-        Filtering keys come from each entry's ``metadata`` block.
-        Retracted entries are skipped.
-
-        Returns
-        -------
-        list[dict]
-            One dict per published artifact. Each carries a
-            ``compute_id`` field (the registry key) plus the entry's
-            ``graph_hash`` and flattened metadata.
+        Returns one dict per artifact with ``compute_id`` and the
+        entry's metadata flattened in. Retracted entries are skipped.
         """
         idx = self._require_index()
         results: list[dict[str, Any]] = []
@@ -299,98 +411,24 @@ class ComputeRegistry:
         return results
 
     # ------------------------------------------------------------------
-    # Source introspection
+    # Pull (fetch)
     # ------------------------------------------------------------------
 
-    def compute_source(self, graph: Graph) -> dict[str, Any]:
-        """Report where a fetch for *graph* would come from.
+    def pull(self, graph: Graph, *, force: bool = False) -> bool:
+        """Download the compute artifact for *graph* if registered.
 
-        Without downloading anything, return a small dict describing
-        the cheapest source: local on-disk cache, a daemon-backed
-        IPFS fetch, an HTTP-gateway fetch, or unavailable.
-        """
-        hash_hex = _graph_hash_hex(graph)
-        local_path = _param_compute_cache_dir() / f"{hash_hex}.bin"
-        info: dict[str, Any] = {
-            "graph_hash": hash_hex,
-            "local_path": str(local_path),
-            "cached_locally": local_path.exists(),
-        }
-        if local_path.exists():
-            info["source"] = "local_cache"
-            return info
+        Internal counterpart of ``Graph.pull_cache``.
 
-        idx = self.index
-        entry = None
-        if idx is not None:
-            for compute_id, e in idx.get("computes", {}).items():
-                if e.get("graph_hash") == hash_hex and not e.get("retracted"):
-                    entry = (compute_id, e)
-                    break
-        info["registered"] = entry is not None
-        if entry is None:
-            info["source"] = "unavailable"
-            return info
-
-        info["compute_id"] = entry[0]
-        info["backend"] = self.backend.name
-        # IPFSBackend is the common case; treat 'daemon vs gateway'
-        # as a structured field so callers can present it nicely.
-        ipfs = self._backend  # avoid lazy-constructing if not needed
-        if ipfs is not None and hasattr(ipfs, "kubo"):
-            info["source"] = ("ipfs_daemon" if ipfs.kubo.is_alive()
-                              else "http_gateway")
-        else:
-            info["source"] = self.backend.name
-        return info
-
-    # ------------------------------------------------------------------
-    # Fetch
-    # ------------------------------------------------------------------
-
-    def fetch_compute(
-        self,
-        graph: Graph,
-        force_download: bool = False,
-    ) -> bool:
-        """Download the C-elimination artifact for *graph* if available.
-
-        On a hit the file is placed at
-        ``$PHASIC_CACHE_DIR/parameterized_reward_compute/<hash>.bin``
-        with atomic write-then-rename, the SHA-256 is verified, and
-        the format revision is checked against the local build.
-
-        Parameters
-        ----------
-        graph : phasic.Graph
-            The graph whose compute artifact should be fetched. The
-            graph's content hash decides what is downloaded.
-        force_download : bool, default False
-            If True, re-download even when a local cache file exists.
-
-        Returns
-        -------
-        bool
-            ``True`` if a fresh download succeeded or a local cache
-            file was already present (and not ``force_download``).
-            ``False`` if the registry has no entry for the graph's
-            hash.
-
-        Raises
-        ------
-        PTDBackendError
-            If the registry entry exists but cannot be fetched, or
-            the checksum does not match.
-        PTDFormatError
-            If the artifact's format revision exceeds the local
-            build's capability.
+        Returns True on a fresh download or an existing local file,
+        False on registry miss. Raises on network errors, bad
+        SHA-256, or format_revision exceeding this build.
         """
         hash_hex = _graph_hash_hex(graph)
         cache_dir = _param_compute_cache_dir()
         cache_dir.mkdir(parents=True, exist_ok=True)
         target = cache_dir / f"{hash_hex}.bin"
 
-        if target.exists() and not force_download:
+        if target.exists() and not force:
             return True
 
         idx = self._require_index()
@@ -410,9 +448,9 @@ class ComputeRegistry:
                 and format_revision > _LOCAL_FORMAT_REVISION):
             raise PTDFormatError(
                 f"Compute artifact '{compute_id}' has format_revision="
-                f"{format_revision} but this phasic build only "
-                f"supports up to {_LOCAL_FORMAT_REVISION}. "
-                f"Upgrade phasic to read newer artifacts.")
+                f"{format_revision} but this phasic build only supports "
+                f"up to {_LOCAL_FORMAT_REVISION}. Upgrade phasic to read "
+                f"newer artifacts.")
 
         parent = entry.get("artifacts", {}).get("parent")
         if not parent or not parent.get("cid_or_path"):
@@ -424,31 +462,22 @@ class ComputeRegistry:
             raise PTDBackendError(
                 f"Registry entry '{compute_id}' missing parent.sha256")
 
-        cid_or_path = self._resolve_artifact_url(parent["cid_or_path"])
-
+        url = self._resolve_artifact_url(parent["cid_or_path"])
         tmp = target.with_suffix(".bin.tmp")
         try:
-            self.backend.get(cid_or_path, tmp)
+            _http_fetch(url, tmp)
             actual = _sha256_of(tmp)
             if actual != sha:
                 tmp.unlink(missing_ok=True)
                 raise PTDBackendError(
                     f"SHA-256 mismatch for '{compute_id}' parent: "
                     f"expected {sha}, got {actual}")
-            # Header sanity-check before installing the file.
-            try:
-                _peek_format_revision(tmp)
-            except PTDFormatError:
-                tmp.unlink(missing_ok=True)
-                raise
+            _peek_format_revision(tmp)  # raises on bad/missing magic
             os.replace(tmp, target)
         finally:
             if tmp.exists():
                 tmp.unlink(missing_ok=True)
 
-        # Per-SCC artifacts are optional. The C side recomputes any
-        # missing per-SCC entry on demand, so we don't refuse the
-        # parent file on a partial fetch.
         for scc in entry.get("artifacts", {}).get("scc", []):
             self._fetch_scc(compute_id, scc, cache_dir)
 
@@ -458,20 +487,15 @@ class ComputeRegistry:
         return True
 
     def _resolve_artifact_url(self, cid_or_path: str) -> str:
-        """Turn ``cid_or_path`` into something the backend can fetch.
+        """Turn ``cid_or_path`` into a fetchable URL.
 
-        - Any ``<scheme>://...`` URL (``http``, ``https``, ``file``,
-          ``s3``, etc.) is returned as-is.
-        - Bare CID (``"bafy..."``, ``"Qm..."``) is returned as-is.
-        - Anything else is treated as a path relative to the
-          registry repo and rewritten to a ``raw.githubusercontent.com``
-          URL.
+        - Any ``<scheme>://...`` URL is returned as-is (so tests can
+          inject ``file://``).
+        - Anything else is treated as a path relative to the registry
+          repo and rewritten to a ``raw.githubusercontent.com`` URL.
         """
         if "://" in cid_or_path:
             return cid_or_path
-        if cid_or_path.startswith(("bafy", "bafk", "Qm")):
-            return cid_or_path
-        # Repo-relative path.
         return (f"https://raw.githubusercontent.com/{self.registry_repo}"
                 f"/master/{cid_or_path}")
 
@@ -496,7 +520,7 @@ class ComputeRegistry:
         url = self._resolve_artifact_url(cid_or_path)
         tmp = target.with_suffix(".bin.tmp")
         try:
-            self.backend.get(url, tmp)
+            _http_fetch(url, tmp)
             actual = _sha256_of(tmp)
             if actual != sha:
                 tmp.unlink(missing_ok=True)
@@ -511,61 +535,54 @@ class ComputeRegistry:
                 tmp.unlink(missing_ok=True)
 
     # ------------------------------------------------------------------
-    # Pinning
+    # Push (publish)
     # ------------------------------------------------------------------
 
-    def pin_compute(self, graph: Graph) -> None:
-        """Pin the artifact for *graph* on the local kubo daemon.
-
-        Useful for nodes that want to mirror published artifacts.
-        Requires a running daemon (raises ``PTDBackendError``
-        otherwise via :meth:`TransportBackend.pin`).
-        """
-        hash_hex = _graph_hash_hex(graph)
-        idx = self._require_index()
-        for compute_id, entry in idx["computes"].items():
-            if entry.get("graph_hash") != hash_hex or entry.get("retracted"):
-                continue
-            parent = entry.get("artifacts", {}).get("parent", {})
-            cid = parent.get("cid_or_path", "")
-            if cid.startswith(("bafy", "bafk", "Qm")):
-                self.backend.pin(cid)
-            for scc in entry.get("artifacts", {}).get("scc", []):
-                cid = scc.get("cid_or_path", "")
-                if cid.startswith(("bafy", "bafk", "Qm")):
-                    self.backend.pin(cid)
-            return
-        raise PTDBackendError(
-            f"No registered compute artifact for hash {hash_hex}")
-
-    # ------------------------------------------------------------------
-    # Publish (helper used by the CLI)
-    # ------------------------------------------------------------------
-
-    def build_publish_entry(
+    def push(
         self,
         graph: Graph,
         *,
         compute_id: str,
         metadata: dict[str, Any],
-        artifact_paths: dict[str, Path],
-    ) -> dict[str, Any]:
-        """Construct a registry entry from a populated graph.
+        dry_run: bool = False,
+    ) -> str:
+        """Publish *graph*'s compute artifact.
 
-        Used by :mod:`phasic.publish_cli`. *artifact_paths* is a dict
-        with at least key ``'parent'`` mapping to a local ``.bin``
-        file; optionally a ``'scc'`` key with a list of paths. The
-        files must already exist; SHA-256s are computed from them.
+        Internal counterpart of ``Graph.push_cache``.
 
-        Returns the entry dict (not yet inserted into a registry).
+        If ``dry_run`` is True, returns a JSON string of the would-be
+        registry entry without touching the network. Otherwise clones
+        the registry repo, splices the entry in, pushes a branch, and
+        opens a PR — returning the PR URL.
         """
+        with tempfile.TemporaryDirectory(prefix="phasic_publish_") as tmp:
+            staging = Path(tmp)
+            parent_path, scc_paths = _save_artifacts(graph, staging)
+            entry = self._build_entry(
+                graph, compute_id=compute_id, metadata=metadata,
+                parent_path=parent_path, scc_paths=scc_paths)
+
+            if dry_run:
+                return json.dumps({compute_id: entry}, indent=2)
+
+            _check_gh_ready()
+            return self._open_pr(compute_id, entry, parent_path, scc_paths)
+
+    def _build_entry(
+        self,
+        graph: Graph,
+        *,
+        compute_id: str,
+        metadata: dict[str, Any],
+        parent_path: Path,
+        scc_paths: list[Path],
+    ) -> dict[str, Any]:
+        """Construct the registry entry dict."""
         hash_hex = _graph_hash_hex(graph)
-        parent_path = Path(artifact_paths["parent"])
         if not parent_path.is_file():
             raise PTDBackendError(
                 f"parent artifact missing: {parent_path}")
-
-        _peek_format_revision(parent_path)  # raises on garbage
+        _peek_format_revision(parent_path)
 
         entry: dict[str, Any] = {
             "graph_hash": hash_hex,
@@ -580,28 +597,84 @@ class ComputeRegistry:
             },
             "metadata": dict(metadata),
         }
-        for scc_path in artifact_paths.get("scc", []):
+        for scc_path in scc_paths:
             scc_path = Path(scc_path)
             if not scc_path.is_file():
                 continue
-            # File name: scc_<hash>.bin — strip prefix and .bin.
             stem = scc_path.stem
-            if stem.startswith("scc_"):
-                scc_hash = stem[len("scc_"):]
-            else:
-                scc_hash = stem
+            scc_hash = stem[len("scc_"):] if stem.startswith("scc_") else stem
             entry["artifacts"]["scc"].append({
                 "cid_or_path": f"artifacts/{scc_path.name}",
                 "scc_hash": scc_hash,
                 "sha256": _sha256_of(scc_path),
                 "size_bytes": scc_path.stat().st_size,
             })
-
         return entry
+
+    def _open_pr(
+        self,
+        compute_id: str,
+        entry: dict[str, Any],
+        parent_path: Path,
+        scc_paths: list[Path],
+    ) -> str:
+        """Clone the registry repo, splice in the entry, open a PR.
+
+        Returns the PR URL printed by ``gh pr create``.
+        """
+        branch = f"phasic-publish/{compute_id}"
+        with tempfile.TemporaryDirectory(prefix="phasic_pr_") as clone_tmp:
+            clone_dir = Path(clone_tmp) / "registry"
+            _run(["gh", "repo", "clone", self.registry_repo, str(clone_dir)])
+            registry_path = clone_dir / "registry.json"
+            if not registry_path.is_file():
+                data: dict[str, Any] = {
+                    "version": "2.0", "format": "ptd_pcg", "computes": {}}
+            else:
+                data = json.loads(registry_path.read_text())
+                if "computes" not in data:
+                    data = {"version": "2.0", "format": "ptd_pcg",
+                            "computes": {}, **{k: v for k, v in data.items()
+                                               if k not in ("traces",)}}
+            if compute_id in data["computes"]:
+                raise PTDBackendError(
+                    f"compute id '{compute_id}' already exists in "
+                    f"{self.registry_repo}/registry.json")
+            data["computes"][compute_id] = entry
+
+            artifacts_dir = clone_dir / "artifacts"
+            artifacts_dir.mkdir(exist_ok=True)
+            shutil.copy2(parent_path, artifacts_dir / parent_path.name)
+            for p in scc_paths:
+                shutil.copy2(p, artifacts_dir / p.name)
+
+            registry_path.write_text(json.dumps(data, indent=2) + "\n")
+
+            _run(["git", "checkout", "-b", branch], cwd=clone_dir)
+            _run(["git", "add", "registry.json", "artifacts/"], cwd=clone_dir)
+            _run(["git", "commit", "-m",
+                  f"Add compute artifact {compute_id}\n\n"
+                  f"graph_hash: {entry['graph_hash']}\n"
+                  f"format_revision: {entry['format_revision']}"],
+                 cwd=clone_dir)
+            _run(["git", "push", "-u", "origin", branch], cwd=clone_dir)
+
+            out = _run([
+                "gh", "pr", "create",
+                "--title", f"Add compute artifact: {compute_id}",
+                "--body", (
+                    f"Adds the C-elimination compute artifact for "
+                    f"`{compute_id}`.\n\n"
+                    f"- graph_hash: `{entry['graph_hash']}`\n"
+                    f"- format_revision: {entry['format_revision']}\n"
+                    f"- vertices: "
+                    f"{entry['metadata'].get('vertices', 'unspecified')}"),
+            ], cwd=clone_dir)
+            return out.strip()
 
 
 # ============================================================================
-# Top-level helpers (re-exported from phasic.__init__)
+# Module-level cache + top-level helpers
 # ============================================================================
 
 
@@ -609,30 +682,11 @@ _default_registry: ComputeRegistry | None = None
 
 
 def _get_default_registry() -> ComputeRegistry:
+    """Return a process-wide default ComputeRegistry, constructed lazily."""
     global _default_registry
     if _default_registry is None:
         _default_registry = ComputeRegistry()
     return _default_registry
-
-
-def fetch_compute(graph: Graph, force_download: bool = False) -> bool:
-    """Fetch the published compute artifact for *graph* if available.
-
-    Convenience wrapper around
-    :meth:`ComputeRegistry.fetch_compute` that uses a module-level
-    default registry (constructed on first call).
-    """
-    return _get_default_registry().fetch_compute(graph, force_download)
-
-
-def compute_source(graph: Graph) -> dict[str, Any]:
-    """Inspect where a fetch for *graph* would come from."""
-    return _get_default_registry().compute_source(graph)
-
-
-def pin_compute(graph: Graph) -> None:
-    """Pin the published artifact for *graph* on the local daemon."""
-    _get_default_registry().pin_compute(graph)
 
 
 def list_computes(
@@ -640,15 +694,16 @@ def list_computes(
     model_type: str | None = None,
     tags: list[str] | None = None,
 ) -> list[dict[str, Any]]:
-    """List published compute artifacts, optionally filtered."""
+    """List published compute artifacts, optionally filtered.
+
+    Examples
+    --------
+    >>> import phasic
+    >>> for entry in phasic.list_computes(domain='population-genetics'):
+    ...     print(entry['compute_id'], entry['graph_hash'][:12])
+    """
     return _get_default_registry().list_computes(
         domain=domain, model_type=model_type, tags=tags)
 
 
-__all__ = [
-    "ComputeRegistry",
-    "fetch_compute",
-    "compute_source",
-    "pin_compute",
-    "list_computes",
-]
+__all__ = ["ComputeRegistry", "list_computes"]

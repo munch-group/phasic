@@ -1,8 +1,8 @@
-"""HTTP retry helper shared by the transport backends.
+"""HTTP retry helper.
 
-Extracted from the legacy ``trace_repository.py`` module so the kubo
-RPC client, the HTTP gateway client, and the composite IPFS backend
-can all share a single implementation.
+Single-use helper for the compute-sharing module to fetch
+``registry.json`` and individual artifact ``.bin`` files from
+``raw.githubusercontent.com`` with retries on transient errors.
 """
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ import time
 
 import requests
 
-from ..logging_config import get_logger
+from .logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -34,7 +34,7 @@ def request_with_retry(
     url : str
         URL to fetch.
     method : str, default 'GET'
-        HTTP method. ``'GET'`` and ``'POST'`` are common.
+        HTTP method.
     timeout : float, default 30
         Per-request timeout in seconds.
     max_retries : int, default 3
@@ -42,8 +42,7 @@ def request_with_retry(
     backoff_base : float, default 1.0
         Base delay in seconds (doubles each retry).
     session : requests.Session, optional
-        Session to reuse for connection pooling. If omitted, the
-        module-level ``requests.request`` is used.
+        Session to reuse for connection pooling.
     **kwargs
         Forwarded to ``requests.request``.
 

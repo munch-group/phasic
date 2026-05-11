@@ -64,3 +64,5 @@ docs/**/*.html
 sc-phasic-*.out
 
 /.luarc.json
+
+.claude/scheduled_tasks.lock

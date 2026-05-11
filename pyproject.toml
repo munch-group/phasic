@@ -64,13 +64,6 @@ jax = [
   'jax>=0.4.0',
 #  'jaxlib',
 ]
-sharing = [
-    # Consume + publish C-elimination compute artifacts via the
-    # phasic-traces registry. No ipfshttpclient: that package is
-    # dead upstream and incompatible with modern kubo. We talk to
-    # kubo directly via its HTTP RPC.
-    'requests>=2.25.0',
-]
 optax = [
     'optax>=0.2.0',
 ]
@@ -95,9 +88,6 @@ Homepage = "https://munch-group.org/phasic"
 Documentation = "https://munch-group.org/phasic"
 Repository = "https://github.com/munch-group/phasic.git"
 Issues = "https://github.com/munch-group/phasic/issues"
-
-[project.scripts]
-phasic = "phasic.publish_cli:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests/pytest"]
