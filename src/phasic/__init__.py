@@ -6821,6 +6821,7 @@ extern "C" {{
         filename: str | None = None,
         wrap: bool|int = True,
         label_fmt: Callable[[Any], str] | None = None,
+        rate_fmt: Callable[[Any], str] | None = None,
         subgraphfun: Callable[..., str] | None = None,
         by_state: Callable[..., str] | None = None,
         by_index: Callable[[int], str] | None = None,
@@ -6828,8 +6829,12 @@ extern "C" {{
         dark: bool | None = None,
         constraint: bool = True, ranksep: float = 1, nodesep: float = 1, rankdir: str = "LR",
         size: tuple[int, int] = (7, 7), fontsize: int = 12, rainbow: bool = True, penwidth: float = 1,
+        taillabel : bool = False,
         seed: int = 1,
-        **kwargs: Any) -> graphviz.Digraph | None:
+        graph_attr: dict = {},
+        node_attr: dict = {},
+        edge_attr: dict = {}
+        ) -> graphviz.Digraph | None:
         """Plot a graph using graphviz.
 
         Parameters
@@ -6842,6 +6847,10 @@ extern "C" {{
         wrap : bool | int
             Whether to wrap vertex labels, and if so, the maximum number of
             characters per line. By default True.
+        label_fmt : Callable[..., str] | None
+            Callable for format node labels:
+        rate_fmt : Callable[float] | None
+            Callable for format edge labels:
         subgraphfun : Callable[..., str] | None
             Deprecated. Use ``by_state`` instead. Callback function defining
             subgraph clusters by state.
@@ -6872,10 +6881,16 @@ extern "C" {{
             Whether to color edges with random colors, by default True.
         penwidth : float
             Graphviz penwidth attribute, by default 1.
+        taillabel : bool
+            Use taillabel instead of xlabel, by default False
         seed : int
             Random seed for graph layout, by default 1.
+        node_attr : dict
+            graphviz node attributes to override defaults.
+        edge_attr : dict
+            graphviz edge attributes to override defaults.
         **kwargs : Any
-            Additional graphviz graph attributes.
+            graphviz graph attributes to override defaults.
 
         Returns
         -------
@@ -6883,8 +6898,6 @@ extern "C" {{
             Graphviz Digraph object for display in Jupyter notebooks,
             or ``None`` if the graph exceeds ``max_nodes``.
         """
-
-
         import math
         import os
         import subprocess
@@ -6936,11 +6949,11 @@ extern "C" {{
             Returns
             -------
             str
-                Formatted string using fixed-point for integers, scientific
+                Formatted string using fixed-point for integers, float/scientific
                 notation otherwise.
             """
             if rate == round(rate):
-                return f"{rate:.2f}"
+                return f"{rate}"
             else:
                 return f"{rate:.2e}"
 
@@ -6994,7 +7007,12 @@ extern "C" {{
         if label_fmt is None:
             label_fmt = partial(format_label, wrap=wrap)
         elif label_fmt is False:
-            label_fmt = lambda vertex: str(vertex.index())
+            label_fmt = lambda vertex: ''
+
+        if rate_fmt is None:
+            rate_fmt = _format_rate
+        elif rate_fmt is False:
+            rate_fmt = lambda x: ''
 
         subprocess.check_call(['dot', '-c']) # register layout engine
 
@@ -7033,7 +7051,7 @@ extern "C" {{
             edge_color = '#3e3e3e'
             node_edgecolor='black'
             node_fillcolor='#eeeeee'
-            edge_color='black'
+            # edge_color='black'
             start_edgecolor='black'
             start_fillcolor='#bbbbbb'
             abs_edgecolor='black'
@@ -7052,30 +7070,65 @@ extern "C" {{
             print(f"Graph has too many nodes ({graph.vertices_length()}). Please set max_nodes to a higher value.")
             return None
 
-        graph_attr = dict(compound='true', newrank='true', pad='0.5',
+        _graph_attr = dict(compound='true', newrank='true', pad='0.5',
                         ranksep=str(ranksep), nodesep=str(nodesep),
                         bgcolor=bgcolor, rankdir=rankdir, ratio="auto",
                         size=f'{size[0]},{size[1]}',
                         start=str(seed),
-                        fontname="Helvetica,Arial,sans-serif", **kwargs)
-        node_attr = dict(style='filled', color='black',
+                        fontname="Helvetica,Arial,sans-serif")
+        _node_attr = dict(style='filled', color='black',
                         fontname="Helvetica,Arial,sans-serif",
                         fontsize=str(fontsize),
                         fillcolor=str(node_fillcolor))
-        edge_attr = dict(constraint='true' if constraint else 'false',
+        _edge_attr = dict(constraint='true' if constraint else 'false',
                         style='filled', labelfloat='false', labeldistance='0',
                         fontname="Helvetica,Arial,sans-serif",
+                        color=edge_color,
                         fontsize=str(fontsize), penwidth=str(penwidth))
-        dot = graphviz.Digraph(graph_attr=graph_attr, node_attr=node_attr, edge_attr=edge_attr)
+        
+        _graph_attr.update(graph_attr)
+        _node_attr.update(node_attr)
+        _edge_attr.update(edge_attr)
+
+        _graph_attr = dict((k, str(v)) for k, v in _graph_attr.items())
+        _node_attr = dict((k, str(v)) for k, v in _node_attr.items())
+        _edge_attr = dict((k, str(v)) for k, v in _edge_attr.items())
+
+        dot = graphviz.Digraph(graph_attr=_graph_attr, node_attr=_node_attr, edge_attr=_edge_attr)
         for i in range(graph.vertices_length()):
             vertex = graph.vertex_at(i)
             for edge in vertex.edges():
+                # if 'color' in edge_attr:
+                #     color = edge_attr['color']
+                # elif rainbow:
+                #     color = next(husl_colors)
+                # else:
+                #     color = edge_color
                 if rainbow:
-                    color = next(husl_colors)
+                    # color = next(husl_colors)
+                    _edge_attr['color'] = next(husl_colors)
+
+                if taillabel:
+                    _edge_attr['taillabel'] = rate_fmt(edge.weight())                    
                 else:
-                    color = edge_color
+                    _edge_attr['xlabel'] = rate_fmt(edge.weight())
+
                 dot.edge(str(vertex.index()), str(edge.to().index()),
-                    xlabel=_format_rate(edge.weight()), color=color, fontcolor=color)
+                    fontcolor=edge_attr.get('labelfontcolor', _edge_attr['color']),
+                    # xlabel=rate_fmt(edge.weight()), 
+                    # taillabel=rate_fmt(edge.weight()), 
+                    **_edge_attr
+                    )
+            #   if rainbow:
+            #         _edge_attr['color'] = next(husl_colors)
+            #     dot.edge(str(vertex.index()), str(edge.to().index()),                         
+            #         xlabel=rate_fmt(edge.weight()), 
+            #         # fontcolor=edge_attr.get('labelfontcolor', color),
+            #         **dict(_edge_attr, 
+            #                     color=edge_attr.get('color', edge_color), 
+            #                     ),
+            #         )                
+
 
         subgraph_attr = dict(rank='same',
                             style='filled',
@@ -7088,16 +7141,35 @@ extern "C" {{
             label = label_fmt(vertex)
             if i == 0:
                 dot.node(str(vertex.index()), 'S',
-                        style='filled', edge_color=start_edgecolor, fillcolor=start_fillcolor)
+                         **dict(_node_attr, 
+                                edge_color=node_attr.get('edge_color', start_edgecolor), 
+                                fillcolor=node_attr.get('fillcolor', start_fillcolor)
+                                ),
+                         )
             elif not vertex.state().sum() and vertex.rate() == 1 and len(vertex.edges()) == 1:
                 dot.node(str(vertex.index()), 'AUX',
-                        style='filled', edge_color=aux_edgecolor, fillcolor=aux_fillcolor)
+                         **dict(_node_attr, 
+                                edge_color=node_attr.get('edge_color', aux_edgecolor), 
+                                fillcolor=node_attr.get('fillcolor', aux_fillcolor)
+                                ),
+                        # style='filled', edge_color=aux_edgecolor, fillcolor=aux_fillcolor
+                        )
             elif not vertex.edges():
                 dot.node(str(vertex.index()), label,
-                        style='filled', edge_color=abs_edgecolor, fillcolor=abs_fillcolor)
+                         **dict(_node_attr, 
+                                edge_color=node_attr.get('edge_color', abs_edgecolor), 
+                                fillcolor=node_attr.get('fillcolor', abs_fillcolor)
+                                ),
+                        # style='filled', edge_color=abs_edgecolor, fillcolor=abs_fillcolor
+                        )
             else:
                 dot.node(str(vertex.index()), label,
-                        style='filled', edge_color=node_edgecolor, fillcolor=node_fillcolor)
+                         **dict(_node_attr, 
+                                edge_color=node_attr.get('edge_color', edge_color), 
+                                fillcolor=node_attr.get('fillcolor', node_fillcolor)
+                                ),                         
+                        # style='filled', edge_color=node_edgecolor, fillcolor=node_fillcolor
+                        )
 
             if i != 0:
                 if by_state:
