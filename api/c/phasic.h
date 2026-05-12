@@ -1618,7 +1618,7 @@ throw std::runtime_error(error_formatted_line); \
 
 // DEBUG_PRINT is deprecated - use PTD_LOG_DEBUG from phasic_log.h instead
 // This macro is kept for backward compatibility but routes through the logging system
-#include "../../src/c/phasic_log.h"
+#include "phasic_log.h"
 #define DEBUG_PRINT(message, ...) ptd_log(PTD_LOG_LEVEL_DEBUG, message, ##__VA_ARGS__)
 
 /**

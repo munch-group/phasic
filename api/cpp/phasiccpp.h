@@ -1025,8 +1025,7 @@ namespace phasic {
 
         // pybind11 factory function
         static Vertex init_factory(Graph &graph, std::vector<int> state) {
-            int* s = &s[0];
-            return Vertex(graph, s); 
+            return Vertex(graph, state.data());
         }
 
         ~Vertex() {
@@ -1177,7 +1176,7 @@ namespace phasic {
 
         friend class Vertex;
 
-        friend class ParameterizedEdge;
+        friend struct ParameterizedEdge;
     };
 
     struct ParameterizedEdge : private Edge {
@@ -1194,7 +1193,6 @@ namespace phasic {
 
     private:
         double *_state;
-        size_t state_size;
 
     public:
 
@@ -1386,7 +1384,10 @@ namespace phasic {
         }
 
     private:
-        Graph &graph;
+        // Stored solely to keep the Graph alive while this context exists;
+        // `context` was built from graph.c_graph() and references its
+        // internals.
+        [[maybe_unused]] Graph &graph;
         struct ptd_probability_distribution_context *context;
     };
 
@@ -1434,7 +1435,10 @@ namespace phasic {
         }
 
     private:
-        Graph &graph;
+        // Stored solely to keep the Graph alive while this context exists;
+        // `context` was built from graph.c_graph() and references its
+        // internals.
+        [[maybe_unused]] Graph &graph;
         struct ptd_dph_probability_distribution_context *context;
     };
 }

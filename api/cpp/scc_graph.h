@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../api/c/phasic.h"
+#include "../c/phasic.h"
 #include <vector>
 #include <memory>
 #include <string>

@@ -53,7 +53,7 @@ set_target_properties(libphasiccpp PROPERTIES
         SOVERSION 1
         PUBLIC_HEADER api/cpp/phasiccpp.h)
 configure_file(phasiccpp.pc.in phasiccpp.pc @ONLY)
-target_include_directories(libphasiccpp PRIVATE src/cpp)
+target_include_directories(libphasiccpp PRIVATE src/cpp src/c)
 if(PHASIC_HAVE_MPFR)
     target_include_directories(libphasiccpp PRIVATE ${MPFR_INCLUDE_DIRS} ${GMP_INCLUDE_DIRS})
     target_link_libraries(libphasiccpp PRIVATE ${MPFR_LIBRARIES} ${GMP_LIBRARIES})
@@ -300,6 +300,12 @@ endif()
 
 pybind11_add_module(phasic_pybind ${PYBIND_SOURCES})
 
+# Add src/c to the include search path so that api/c/phasic.h can resolve
+# its `#include "phasic_log.h"` without a relative path. (phasic_log.h is
+# still a private implementation header; the public surface for installed
+# consumers is via phasic/include/c/ where we also copy phasic_log.h.)
+target_include_directories(phasic_pybind PRIVATE src/c)
+
 target_link_libraries(phasic_pybind PUBLIC Eigen3::Eigen pybind11::module nlohmann_json::nlohmann_json)
 if(PHASIC_HAVE_MPFR)
     target_link_libraries(phasic_pybind PUBLIC ${MPFR_LIBRARIES} ${GMP_LIBRARIES})
@@ -339,10 +345,14 @@ endif()
 
 install(TARGETS phasic_pybind DESTINATION phasic)
 
-# Install C headers alongside Python package for users who want C API
+# Install C headers alongside Python package for users who want C API.
+# phasic_log.h is an implementation header but the public phasic.h
+# transitively includes it, so external consumers (e.g. cppimport users)
+# need it on the include path. Ship it next to phasic.h.
 install(FILES
     api/c/phasic.h
     api/c/phasic_hash.h
+    src/c/phasic_log.h
     DESTINATION phasic/include/c)
 
 # Install C++ headers alongside Python package for users who want C++ API
@@ -352,9 +362,14 @@ install(FILES
     api/cpp/user_model.h
     DESTINATION phasic/include/cpp)
 
-# Install C++ implementation files needed by headers
+# Install C++ implementation files needed by headers / external consumers
+# (e.g. cppimport modules that use the phasic::Graph C++ API). Out-of-line
+# method definitions live in phasiccpp.cpp; consumers compile it alongside
+# their own translation unit since the phasic_pybind extension does not
+# re-export C++ symbols.
 install(FILES
     api/cpp/scc_graph.cpp
+    src/cpp/phasiccpp.cpp
     DESTINATION phasic/include/cpp)
 
 

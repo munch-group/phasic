@@ -1,7 +1,7 @@
 #include "scc_graph.h"
 #include "phasiccpp.h"
 #include "../c/phasic_hash.h"
-#include "../../src/c/phasic_log.h"
+#include "phasic_log.h"
 #include <stdexcept>
 #include <algorithm>
 
