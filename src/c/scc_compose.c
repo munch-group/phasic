@@ -500,20 +500,18 @@ static double *ptd_compose_scc_prcs_inner(
             if (omp_threads < 1) omp_threads = 1;
         }
 #endif
-        /* MSVC's OpenMP only supports OpenMP 2.0, which requires the
-         * loop variable to be a plain signed integer type in canonical
-         * form (typedefs like ptrdiff_t are rejected, and the upper
-         * bound must be a loop-invariant integer expression with no
-         * cast inside the test). Use plain int and a pre-computed
-         * int upper bound. A single SCC level will not exceed INT_MAX
-         * vertices in any realistic model. The pragma must be the
-         * statement immediately preceding the for-loop with nothing
-         * (not even a comment) in between, so we put this note above. */
+        /* MSVC compiles C in C89 mode by default, which forbids
+         * declaring the loop variable inside the for-init-expression.
+         * MSVC's OpenMP parser surfaces that as C3015 ("improper
+         * form") rather than a generic C89 error. Declare the
+         * variables before the pragma so the for-init is just an
+         * assignment (canonical OpenMP 2.0 form: `var = lb`). */
+        int li_s;
         int l_size_i = (int)l_size;
 #ifdef PHASIC_HAVE_OPENMP
         #pragma omp parallel for schedule(dynamic) if(l_size_i > 1) num_threads(omp_threads)
 #endif
-        for (int li_s = 0; li_s < l_size_i; ++li_s) {
+        for (li_s = 0; li_s < l_size_i; ++li_s) {
             size_t li = (size_t)li_s;
             size_t i = level_indices[l_start + li];
             char *err_msg = err_msgs + li * sizeof_ptd_err;
