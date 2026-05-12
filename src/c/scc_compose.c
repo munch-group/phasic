@@ -33,7 +33,6 @@ PTD_SCC_TLS int ptd_scc_compose_in_progress = 0;
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include <stddef.h>
 #include <time.h>
 
 #ifdef _WIN32
@@ -500,18 +499,16 @@ static double *ptd_compose_scc_prcs_inner(
             if (omp_threads < 1) omp_threads = 1;
         }
 #endif
-        /* MSVC compiles C in C89 mode by default, which forbids
-         * declaring the loop variable inside the for-init-expression.
-         * MSVC's OpenMP parser surfaces that as C3015 ("improper
-         * form") rather than a generic C89 error. Declare the
-         * variables before the pragma so the for-init is just an
-         * assignment (canonical OpenMP 2.0 form: `var = lb`). */
+        /* MSVC implements OpenMP 2.0, whose canonical loop form
+         * requires the init to be `var = lb` (a plain assignment),
+         * not `type var = lb` (a declaration). MSVC's OpenMP parser
+         * rejects the declared form with C3015 even though plain
+         * MSVC C accepts it. Declare li_s above the pragma. */
         int li_s;
-        int l_size_i = (int)l_size;
 #ifdef PHASIC_HAVE_OPENMP
-        #pragma omp parallel for schedule(dynamic) if(l_size_i > 1) num_threads(omp_threads)
+        #pragma omp parallel for schedule(dynamic) if(l_size > 1) num_threads(omp_threads)
 #endif
-        for (li_s = 0; li_s < l_size_i; ++li_s) {
+        for (li_s = 0; li_s < (int)l_size; ++li_s) {
             size_t li = (size_t)li_s;
             size_t i = level_indices[l_start + li];
             char *err_msg = err_msgs + li * sizeof_ptd_err;
