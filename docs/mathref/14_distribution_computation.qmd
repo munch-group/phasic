@@ -13,7 +13,8 @@ This algorithm operates on the original (non-eliminated) graph and is complement
 **Prerequisites:** [01], [05]
 
 **Source files:**
-- `src/c/phasic.c` (functions: `_ptd_dph_probability_distribution_context_create`, `ptd_dph_probability_distribution_step`, `ptd_probability_distribution_context_create`, `ptd_probability_distribution_step`)
+- `src/c/phasic.c` (functions: `_ptd_dph_probability_distribution_context_create`, `ptd_dph_probability_distribution_step`, `ptd_probability_distribution_context_create`, `ptd_probability_distribution_step`, `ptd_graph_pdf_with_gradient`)
+- `api/c/phasic.h` (functions: `ptd_graph_pdf_with_gradient`, `ptd_graph_pdf_parameterized`)
 
 ## Definitions {.unnumbered}
 
@@ -309,6 +310,7 @@ CPH PDF via Uniformization
 | @alg-14-cph-uniformization (create) | `src/c/phasic.c` | `ptd_probability_distribution_context_create` | L7551--L7647 |
 | @alg-14-cph-uniformization (step) | `src/c/phasic.c` | `ptd_probability_distribution_step` | L7661--L7674 |
 | DPH context creation | `src/c/phasic.c` | `_ptd_dph_probability_distribution_context_create` | L7361--L7479 |
+| Parameterised PDF + gradient | `src/c/phasic.c` | `ptd_graph_pdf_with_gradient` | L10492--L10616 |
 
 **Deviations from pseudocode:**
 
@@ -316,6 +318,10 @@ CPH PDF via Uniformization
 - The DPH context creation validates that edge weights are at most 1.0001 (for pure DPH) or that edge weights divided by granularity are at most 1.0001 (for uniformized CPH). The tolerance of 0.0001 accommodates minor floating-point imprecision.
 - The CPH context creation performs two DPH steps and takes a CDF difference to compute the initial PDF value, rather than simply returning 0. This handles the edge case where the initial distribution has a point mass at the absorbing state.
 - The starting vertex probability vector is initialized with $p^{(0)}_{v_0} = 1$ at index 0 (the starting vertex index), and the initialization step distributes mass to transient states. The starting vertex and absorbing vertices are then zeroed in the probability vector.
+- **Parameterised PDF entry points.** For parameterised graphs the C API exposes two entries on top of the context-based forward algorithm above:
+  - `ptd_graph_pdf_with_gradient(graph, t, g, params, n_params, &pdf, gradient)` (`src/c/phasic.c` L10492--L10616) takes an explicit parameter vector, computes the uniformisation rate $\lambda(\boldsymbol{\theta}) = \max_v \lambda_v(\boldsymbol{\theta})$ and its sensitivity $\partial\lambda/\partial\theta_j$ from the coefficients of the rate-attaining vertex, runs `compute_pmf_with_gradient` for $\lfloor gt \rfloor$ uniformised steps, and converts $\text{PMF} \to \text{PDF}$ via the product rule $\text{PDF}(t) = \text{PMF}(t) \cdot \lambda(\boldsymbol{\theta})$ with the matching gradient. Granularity is auto-selected to $\max(2\lambda_{\max}, 1000)$ as in the non-parameterised path; the gradient mode enforces a floor of 1000.
+  - `ptd_graph_pdf_parameterized(graph, t, g, &pdf, gradient)` (`api/c/phasic.h` L1576--L1582) is the convenience wrapper that reads parameters from the graph's `current_params` slot (set by `ptd_graph_update_weight_parameterized`) and delegates to `ptd_graph_pdf_with_gradient`. The wrapper body is currently commented out in `src/c/phasic.c` (L10933+); callers should invoke `ptd_graph_pdf_with_gradient` directly until the wrapper is reinstated.
+- **Relationship to the hierarchical elimination path of [13].** The forward algorithm formalised here operates on the *original* graph $G$, not on the eliminated form $G^*$ from [06] and not on the per-SCC parameterised reward-compute graphs (PRCs) of [13]. The hierarchical SCC composition is a moment-computation optimisation ([15]); the PDF/PMF code path is independent and is not affected by `PHASIC_HIERAR_ELIMINATION`. In a typical SVGD iteration the two are orthogonal: hierarchical composition accelerates the moment-based likelihood while the forward algorithm above computes the PDF on the same graph.
 
 ## Symbol Index {.unnumbered}
 

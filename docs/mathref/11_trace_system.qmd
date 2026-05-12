@@ -10,6 +10,8 @@ The trace system is the computational engine behind SVGD and MCMC inference in p
 
 The trace system also integrates with the disk cache (using graph content hashes from [12]) to avoid redundant recording across sessions. Traces are serialized to JSON and stored in `~/.phasic_cache/traces/`.
 
+The trace system formalized here is distinct from the *parameterized reward-compute graph* (PRC) used by the C-level moment computation (@def-06-reward-compute-graph and [15]). The trace system is the Python-side straight-line program consumed by JAX replay; the PRC is the C-side elimination-command sequence consumed by `ptd_expected_waiting_time`. Both are keyed by the same graph content hash from [12], but they are stored in different files and serve different evaluation backends. For the hierarchical SCC composition of PRCs (the current C-level scaling mechanism), see [13].
+
 **Prerequisites:** [01], [06], [09], [10]
 
 **Source files:**
@@ -356,6 +358,7 @@ Trace Evaluation
 - The starting vertex ($v_0$) is treated specially: its outgoing edges represent initial probabilities and are always recorded as CONST operations regardless of whether the graph is parameterized.
 - The C implementation (`ptd_trace_operation`) uses a union-like struct with fields for all operation types, while the Python implementation uses a dataclass with optional fields. Both represent the same logical structure.
 - Disk caching is handled at the C level via `trace_cache.c`: traces are serialized to JSON and stored under `~/.phasic_cache/traces/{hash}.json`, where the hash is the graph content hash (see [12]).
+- The Python `EliminationTrace` JSON cache documented here is independent of the C-level *binary* PRC cache under `~/.phasic_cache/parameterized_reward_compute/{hash}.bin`. Both caches use the same graph content hash from [12] as their key, but they target different evaluation paths: the JSON cache feeds JAX trace replay; the binary cache feeds `ptd_expected_waiting_time` ([15]) and the hierarchical SCC composer ([13]). Both honour `PHASIC_DISABLE_CACHE=1` to skip reads and writes.
 
 ## Symbol Index {.unnumbered}
 

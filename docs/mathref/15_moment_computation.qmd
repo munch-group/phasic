@@ -13,7 +13,9 @@ These moment computations operate on the elimination commands (the acyclic repre
 **Prerequisites:** [01], [06]
 
 **Source files:**
-- `src/c/phasic.c` (functions: `ptd_expected_waiting_time`, `ptd_expected_sojourn_time`, `ptd_expected_sojourn_time_subset`)
+- `src/c/phasic.c` (functions: `ptd_expected_waiting_time`, `ptd_expected_sojourn_time`, `ptd_expected_sojourn_time_subset`, `ptd_precompute_reward_compute_graph`)
+- `src/c/scc_compose.c` (function: `ptd_compose_scc_prcs`) and `src/c/scc_synthetic.c` (functions: `ptd_scc_get_or_compute_prc`, `ptd_synth_get_or_compute_prc`) — only when the hierarchical path of [13] is enabled via `PHASIC_HIERAR_ELIMINATION=1`.
+- `src/phasic/cache.py` (Python introspection: `param_compute_cache_info`, `clear_param_compute_cache`).
 
 ## Definitions {.unnumbered}
 
@@ -278,11 +280,23 @@ Expected Sojourn Times
 
 ## Implementation Notes {.unnumbered}
 
+> **Recall** (@def-06-reward-compute-graph). *The reward compute graph $C = (c_0, \ldots, c_{N-1})$ is the cached elimination-command sequence produced by the elimination algorithms of [06]. The C implementation distinguishes two variants: a **concrete** reward compute graph (multipliers are `double`) and a **parameterised** reward compute graph (PRC) whose multipliers are pointers to parameter-dependent values.*
+
+In phasic, the parameterised PRC is materialised on demand and cached on disk under `~/.phasic_cache/parameterized_reward_compute/<hash>.bin` (keyed by the graph content hash from [12]). The cache file format has magic `PTDPRMC1`, a `format_revision` field (1 for monolithic, 2 when channel-indexed `PTD_PCG_PTR_EXTERNAL` placeholders appear), and a 64-bit truncated graph hash used as a fast-reject check on load. Atomic write-then-rename guarantees correctness under concurrent processes. Both load and save paths honour `PHASIC_DISABLE_CACHE=1`.
+
+**Two C entry points for moment computation:**
+
+1. **Monolithic path (default).** `ptd_expected_waiting_time(graph, rewards)` (src/c/phasic.c L8517+) calls `ptd_precompute_reward_compute_graph(graph)` (L1852--L1985) which either loads the PRC from disk or builds it via `ptd_graph_ex_absorbation_time_comp_graph_parameterized` (L7190+) and saves it. Replay of the PRC then evaluates the moment in $O(N)$. This path is used unconditionally when `rewards != NULL` (reward-transformed moments).
+
+2. **Hierarchical path (opt-in).** When `PHASIC_HIERAR_ELIMINATION=1` is set in the environment, the graph is parameterised, `rewards == NULL`, and the call is not re-entrant (`!ptd_scc_compose_in_progress`), the gate at src/c/phasic.c L8576--L8615 routes through `ptd_compose_scc_prcs(parent, scc_graph, theta, theta_len)` (`api/c/phasic.h` L1378). The composer decomposes the graph into SCCs, builds or loads a per-SCC PRC for each (cached at `scc_<hash>.bin`), composes the per-SCC results in sink-first level order (with OpenMP parallelism inside each level, capped by `PHASIC_MAX_PARALLEL_SCCS`), and returns a result vector numerically equivalent to the monolithic path by @thm-13-synthetic-correctness. On compose failure the gate clears `ptd_err` and falls through to the monolithic path. The full procedure is formalised in [13].
+
 **Source code mapping:**
 
 | Algorithm | File | Function | Lines |
 |-----------|------|----------|-------|
-| @alg-15-kth-moment ($k=1$) | `src/c/phasic.c` | `ptd_expected_waiting_time` | L6118--L6265 |
+| @alg-15-kth-moment ($k=1$) | `src/c/phasic.c` | `ptd_expected_waiting_time` | L8517+ |
+| @alg-15-kth-moment ($k=1$, monolithic replay) | `src/c/phasic.c` | `ptd_precompute_reward_compute_graph` | L1852--L1985 |
+| @alg-15-kth-moment ($k=1$, hierarchical) | `src/c/scc_compose.c` | `ptd_compose_scc_prcs` | L547--L570 |
 | @alg-15-sojourn-cross-moments (full) | `src/c/phasic.c` | `ptd_expected_sojourn_time` | L6378--L6521 |
 | @alg-15-sojourn-cross-moments (subset) | `src/c/phasic.c` | `ptd_expected_sojourn_time_subset` | L6267--L6376 |
 
@@ -292,6 +306,9 @@ Expected Sojourn Times
 - The full sojourn time algorithm (`ptd_expected_sojourn_time`) initializes the results matrix as the identity matrix (one-hot vectors), whereas the pseudocode uses "initialized to $\mathbf{I}_n$". This is equivalent but worth noting: the identity initialization means each "reward vector" is a standard basis vector.
 - The subset variant (`ptd_expected_sojourn_time_subset`) validates that all requested indices are within bounds (`< n`), returning NULL on out-of-bounds errors.
 - The full variant uses Kahan compensated summation via a parallel array of `kahan_sum` structs, while the subset variant uses plain double accumulation. This is a deliberate trade-off: the subset variant is intended for fast, moderately-sized computations where the additional memory and time cost of Kahan summation is not justified.
+- **Reward-transformed moments use the monolithic path only.** The hierarchical gate explicitly checks `rewards == NULL`. For reward-transformed absorption times ($\tilde{\tau} = \int_0^\tau r(X_t)\,dt$ with $\mathbf{r} \neq \mathbf{e}$) the call falls through to `ptd_precompute_reward_compute_graph` regardless of `PHASIC_HIERAR_ELIMINATION`. This is because the synthetic-graph construction of [13] absorbs the SCC's reward state into the synthetic absorber and does not currently propagate a per-vertex reward vector across the SCC boundary.
+- **MPFR fallback applies only to the monolithic path.** When `ptd_expected_waiting_time` detects an ill-conditioned command sequence it delegates to `ptd_expected_waiting_time_mpfr`, which replays the same monolithic PRC at arbitrary precision (see [06] Numerical Considerations). The hierarchical composer does not currently have an MPFR variant; an ill-conditioned per-SCC PRC produces a NaN, which the composer surfaces as a failure and triggers the monolithic fall-through.
+- **Cache observability.** From Python, `phasic.cache.param_compute_cache_info()` returns the directory, file count and total size of the parameterised PRC cache. After a run with `PHASIC_HIERAR_ELIMINATION=1` the directory contains both top-level `<hash>.bin` entries (one per distinct graph that ran the monolithic path) and `scc_<hash>.bin` entries (one per distinct SCC that was cached, subject to `PHASIC_MIN_SCC_SIZE_TO_CACHE`).
 
 ## Symbol Index {.unnumbered}
 

@@ -10,6 +10,8 @@ The hashing algorithm must satisfy two properties: (1) structurally identical gr
 
 The hash depends on the graph's topology (which vertices connect to which), edge coefficient vectors (the parameterization pattern), vertex state vectors, and graph metadata (state dimension, parameter dimension, discrete/continuous flag). It is explicitly independent of concrete edge weights, which are determined by the parameter vector $\boldsymbol{\theta}$ and change between evaluations.
 
+The same content hash $H(G)$ is reused as the cache key by three on-disk caches in phasic: (i) the Python `EliminationTrace` JSON cache from [11] at `~/.phasic_cache/traces/<hash>.json`, (ii) the C-level parameterized reward-compute graph (PRC) binary cache at `~/.phasic_cache/parameterized_reward_compute/<hash>.bin` consumed by `ptd_expected_waiting_time` ([15]), and (iii) the per-SCC PRC binary cache at `~/.phasic_cache/parameterized_reward_compute/scc_<hash>.bin` consumed by the hierarchical composer ([13]). Theta-independence of $H(G)$ is what allows all three to be reused across SVGD/MCMC iterations.
+
 **Prerequisites:** [01], [02]
 
 **Source files:**
@@ -222,6 +224,7 @@ Graph Content Hash
 - The `ptd_hash_equal` function performs a two-stage comparison: first comparing the 64-bit truncated hashes (fast path), then falling back to a full 32-byte `memcmp` if the 64-bit hashes match. This optimizes the common case of non-equal hashes.
 - The `ptd_graph_hash_from_json` function is declared but returns NULL in the current implementation; JSON-based hashing is handled at the Python level instead.
 - Edges with NULL coefficient arrays are treated as having weight-only edges (no parameterization), and only the target index is hashed for such edges.
+- The 64-bit truncation $H_{64}(G)$ is also embedded in the header of each binary PRC cache file as the `graph_hash_truncated` field of `ptd_pcg_disk_header` (`src/c/phasic.c`, struct definition immediately after the `PTD_PCG_MAGIC` macro at L2871). On cache load, the loader compares `graph_hash_truncated` against the live graph's $H_{64}$ as a fast reject before any payload deserialisation. A mismatch is treated as a cache miss (silent rebuild), not an error, so stale cache files from before a graph structural change are correctly invalidated.
 
 ## Symbol Index {.unnumbered}
 
